@@ -2,20 +2,21 @@
 
 import { useMemo, useState, useRef, useEffect } from 'react';
 import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/store';
-import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE, PRODUCTION_CHAINS, RANK_THRESHOLDS } from '@/lib/game/data';
+import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE, RANK_THRESHOLDS } from '@/lib/game/data';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import {
   Factory, Users, Zap, TrendingUp, AlertTriangle, FlaskConical,
-  ChevronRight, Activity, Pickaxe, Cog, Shield, Clock, Bell,
+  Activity, Pickaxe, Cog, Shield, Clock, Bell,
   ArrowUpRight, ArrowDownRight, Minus, Timer, Power, Sparkles,
   Database, Wrench, Globe, ArrowRight, Trophy, Package,
   Hammer, CheckCircle2, XCircle, Flame
 } from 'lucide-react';
 import { BuildingType, ResourceType } from '@/lib/game/types';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ProductionChainPanel } from '@/components/game/ProductionChainPanel';
 
 export function DashboardPanel() {
   const store = useGameStore();
@@ -121,19 +122,58 @@ export function DashboardPanel() {
 
       {/* GET STARTED CARD - only show when no buildings */}
       {totalBuildings === 0 && (
-        <div className="game-card-empty rounded-xl p-6 text-center">
-          <div className="text-5xl mb-3">🏗️</div>
-          <h3 className="text-lg font-bold text-cyan-400 neon-glow-cyan mb-2">Build Your First Factory!</h3>
-          <p className="text-sm text-gray-400 mb-4 max-w-md mx-auto">
-            Start by building a Coal Generator to power your empire, then add Mining Drills to extract resources.
-          </p>
-          <Button
-            className="glow-button-cyan bg-cyan-600 hover:bg-cyan-500 text-white font-semibold px-6 py-2.5"
-            onClick={() => store.setActiveTab('resources')}
-          >
-            <Pickaxe className="w-4 h-4 mr-2" />
-            Go to Extraction
-          </Button>
+        <div className="relative rounded-xl p-8 text-center border border-cyan-500/20 bg-gradient-to-br from-cyan-900/15 via-[#111827] to-teal-900/10 overflow-hidden">
+          {/* Decorative background elements */}
+          <div className="absolute inset-0 opacity-5">
+            <div className="absolute top-4 left-8 text-6xl">⛏️</div>
+            <div className="absolute bottom-4 right-8 text-6xl">🏭</div>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-8xl">🏗️</div>
+          </div>
+          <div className="relative z-10">
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5, type: 'spring' }}
+            >
+              <div className="text-6xl mb-4">🏗️</div>
+            </motion.div>
+            <h3 className="text-xl font-bold text-cyan-400 neon-glow-cyan mb-2">Build Your First Factory!</h3>
+            <p className="text-sm text-gray-400 mb-6 max-w-md mx-auto">
+              Start by building a Coal Generator to power your empire, then add Mining Drills to extract resources.
+            </p>
+            <div className="flex items-center justify-center gap-3 flex-wrap">
+              <Button
+                className="glow-button-cyan bg-yellow-600 hover:bg-yellow-500 text-white font-semibold px-5 py-2.5 text-xs"
+                onClick={() => store.setActiveTab('power')}
+              >
+                <Zap className="w-4 h-4 mr-1.5" />
+                Build Power First
+              </Button>
+              <Button
+                className="glow-button-cyan bg-cyan-600 hover:bg-cyan-500 text-white font-semibold px-5 py-2.5 text-xs"
+                onClick={() => store.setActiveTab('resources')}
+              >
+                <Pickaxe className="w-4 h-4 mr-1.5" />
+                Go to Extraction
+              </Button>
+            </div>
+            <div className="mt-6 flex items-center justify-center gap-6 text-[10px] text-gray-500">
+              <div className="flex items-center gap-1.5">
+                <span className="text-lg">1️⃣</span>
+                <span>Build Power</span>
+              </div>
+              <div className="text-gray-700">→</div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-lg">2️⃣</span>
+                <span>Build Drills</span>
+              </div>
+              <div className="text-gray-700">→</div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-lg">3️⃣</span>
+                <span>Build Factories</span>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -406,8 +446,8 @@ export function DashboardPanel() {
             )}
           </div>
 
-          {/* PRODUCTION CHAINS VISUALIZATION - with bottleneck indicator */}
-          <ProductionChainSection store={store} productionRates={productionRates} />
+          {/* PRODUCTION CHAINS VISUALIZATION - SVG flow diagram with building details */}
+          <ProductionChainPanel productionRates={productionRates} />
 
           {/* ACTIVITY FEED */}
           <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
@@ -759,231 +799,6 @@ function StatCard({
       </div>
       {/* Hover glow border effect */}
       <div className="absolute inset-0 rounded-xl border border-transparent group-hover:border-cyan-500/20 group-hover:shadow-[0_0_15px_rgba(0,255,242,0.08)] transition-all duration-300 pointer-events-none" />
-    </div>
-  );
-}
-
-// --- Production Chain Section ---
-
-function ProductionChainSection({
-  store,
-  productionRates,
-}: {
-  store: ReturnType<typeof useGameStore>;
-  productionRates: Record<string, number>;
-}) {
-  const [selectedChain, setSelectedChain] = useState(0);
-  const chain = PRODUCTION_CHAINS[selectedChain];
-
-  // Bottleneck detection for this chain
-  const chainBottlenecks = useMemo(() => {
-    return chain.steps.filter(step => {
-      const rate = productionRates[step as ResourceType] ?? 0;
-      return rate <= 0;
-    });
-  }, [chain, productionRates]);
-
-  const hasBottleneck = chainBottlenecks.length > 0;
-  const allProducing = chain.steps.every(step => (productionRates[step as ResourceType] ?? 0) > 0);
-
-  return (
-    <div
-      className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]"
-      style={{ borderColor: `${chain.color}33` }}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <ArrowRight className="w-4 h-4" style={{ color: chain.color }} />
-          <h3 className="text-sm font-semibold" style={{ color: chain.color }}>Production Chains</h3>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* Chain status badge */}
-          {allProducing && chain.steps.length > 0 ? (
-            <Badge
-              variant="outline"
-              className="text-[9px] border-green-500/50 text-green-400 bg-green-900/20"
-            >
-              <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" />
-              CHAIN ACTIVE
-            </Badge>
-          ) : hasBottleneck ? (
-            <Badge
-              variant="outline"
-              className="text-[9px] border-red-500/50 text-red-400 bg-red-900/20"
-            >
-              <AlertTriangle className="w-2.5 h-2.5 mr-0.5" />
-              BOTTLENECK
-            </Badge>
-          ) : null}
-          <Badge
-            variant="outline"
-            className="text-[10px]"
-            style={{ borderColor: `${chain.color}66`, color: chain.color, backgroundColor: `${chain.color}15` }}
-          >
-            {chain.name}
-          </Badge>
-        </div>
-      </div>
-
-      {/* Chain Selector Pills */}
-      <div className="flex gap-1.5 overflow-x-auto pb-2 mb-3 game-scrollbar">
-        {PRODUCTION_CHAINS.map((c, i) => {
-          const cBottlenecks = c.steps.filter(step => (productionRates[step as ResourceType] ?? 0) <= 0);
-          const cAllProducing = c.steps.every(step => (productionRates[step as ResourceType] ?? 0) > 0);
-          return (
-            <button
-              key={c.name}
-              onClick={() => setSelectedChain(i)}
-              className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] font-medium transition-all duration-200 border relative ${
-                i === selectedChain
-                  ? 'text-white border-transparent shadow-lg'
-                  : 'text-gray-400 border-gray-700/50 bg-gray-800/50 hover:border-gray-600 hover:text-gray-300'
-              }`}
-              style={i === selectedChain ? {
-                backgroundColor: `${c.color}33`,
-                borderColor: `${c.color}88`,
-                boxShadow: `0 0 12px ${c.color}33`,
-              } : undefined}
-            >
-              {c.name}
-              {!cAllProducing && c.steps.length > 0 && i !== selectedChain && (
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Chain Steps Flow */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={chain.name}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.25 }}
-          className="flex items-center gap-0 overflow-x-auto pb-2 game-scrollbar"
-        >
-          {chain.steps.map((step, i) => {
-            const meta = RESOURCE_META[step as ResourceType];
-            if (!meta) return null;
-            const stock = store.resources[step as ResourceType] ?? 0;
-            const rate = productionRates[step as ResourceType] ?? 0;
-            const capacity = store.resourceCapacity[step as ResourceType] ?? 0;
-            const fillPct = capacity > 0 ? Math.min(100, (stock / capacity) * 100) : 0;
-            const isBottleneck = rate <= 0;
-
-            return (
-              <div key={step} className="flex items-center flex-shrink-0">
-                {/* Step Node */}
-                <div
-                  className={`relative rounded-lg p-2.5 min-w-[90px] border transition-all duration-300 ${
-                    isBottleneck ? 'border-red-500/60 bg-red-900/10' : ''
-                  }`}
-                  style={!isBottleneck ? {
-                    borderColor: `${chain.color}44`,
-                    backgroundColor: `${chain.color}0a`,
-                  } : undefined}
-                >
-                  {/* Bottleneck badge */}
-                  {isBottleneck && (
-                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-20">
-                      <span className="text-[7px] font-bold text-red-400 bg-red-900/80 px-1.5 py-0.5 rounded-full border border-red-500/50 whitespace-nowrap">
-                        BOTTLENECK
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Resource emoji + name */}
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <span className="text-sm">{meta.emoji}</span>
-                    <span className="text-[11px] font-medium" style={{ color: isBottleneck ? '#ef4444' : meta.color }}>{meta.name}</span>
-                  </div>
-
-                  {/* Stock amount */}
-                  <div className="text-xs font-mono text-gray-300 mb-0.5">
-                    {formatNumber(stock)}
-                    {capacity > 0 && (
-                      <span className="text-[9px] text-gray-500">/{formatNumber(capacity)}</span>
-                    )}
-                  </div>
-
-                  {/* Mini capacity bar */}
-                  {capacity > 0 && (
-                    <div className="h-1 bg-gray-800 rounded-full overflow-hidden mb-1">
-                      <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{
-                          width: `${fillPct}%`,
-                          backgroundColor: isBottleneck ? '#ef4444' : fillPct > 80 ? '#ef4444' : fillPct > 50 ? '#f59e0b' : chain.color,
-                        }}
-                      />
-                    </div>
-                  )}
-
-                  {/* Net production rate */}
-                  <div className="flex items-center gap-0.5">
-                    {rate > 0 ? (
-                      <>
-                        <ArrowUpRight className="w-2.5 h-2.5 text-green-400" />
-                        <span className="text-[10px] text-green-400 font-mono font-bold">+{formatNumber(rate)}</span>
-                      </>
-                    ) : rate < 0 ? (
-                      <>
-                        <ArrowDownRight className="w-2.5 h-2.5 text-red-400" />
-                        <span className="text-[10px] text-red-400 font-mono font-bold">{formatNumber(rate)}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Minus className="w-2.5 h-2.5 text-red-400" />
-                        <span className="text-[10px] text-red-400 font-mono font-bold">0</span>
-                      </>
-                    )}
-                    <span className="text-[8px] text-gray-600">/t</span>
-                  </div>
-
-                  {/* Tier badge */}
-                  <div
-                    className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold text-white"
-                    style={{ backgroundColor: isBottleneck ? '#ef4444' : `${chain.color}99` }}
-                  >
-                    {meta.tier}
-                  </div>
-                </div>
-
-                {/* Animated Arrow Connector */}
-                {i < chain.steps.length - 1 && (
-                  <div className="flex-shrink-0 w-8 flex items-center justify-center relative">
-                    <div
-                      className="absolute h-[2px] w-full rounded-full"
-                      style={{ backgroundColor: isBottleneck ? '#ef444433' : `${chain.color}33` }}
-                    />
-                    {/* Animated flow particle */}
-                    {!isBottleneck && (
-                      <motion.div
-                        className="absolute h-[2px] w-3 rounded-full"
-                        style={{ backgroundColor: chain.color }}
-                        animate={{ x: ['-100%', '100%'] }}
-                        transition={{
-                          duration: 1.2,
-                          repeat: Infinity,
-                          ease: 'linear',
-                          delay: i * 0.2,
-                        }}
-                      />
-                    )}
-                    <ChevronRight
-                      className="w-3.5 h-3.5 relative z-10"
-                      style={{ color: isBottleneck ? '#ef4444' : chain.color }}
-                    />
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </motion.div>
-      </AnimatePresence>
     </div>
   );
 }

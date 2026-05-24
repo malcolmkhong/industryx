@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 interface Particle {
   id: number;
@@ -23,6 +23,8 @@ const PARTICLE_COLORS = [
 ];
 
 export default function AmbientParticles() {
+  const [mounted, setMounted] = useState(false);
+
   const particles = useMemo<Particle[]>(() => {
     const count = 18;
     return Array.from({ length: count }, (_, i) => ({
@@ -36,6 +38,14 @@ export default function AmbientParticles() {
       delay: Math.random() * -15,
     }));
   }, []);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true" />;
+  }
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">

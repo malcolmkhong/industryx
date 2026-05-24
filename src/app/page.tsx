@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback, useRef, useState } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
-import { RESOURCE_META } from '@/lib/game/data';
+import { RESOURCE_META, WEATHER_DEFS } from '@/lib/game/data';
 import { GameTab } from '@/lib/game/types';
 import { DashboardPanel } from '@/components/game/DashboardPanel';
 import { ResourcePanel } from '@/components/game/ResourcePanel';
@@ -29,12 +29,13 @@ import AmbientParticles from '@/components/game/AmbientParticles';
 import CelebrationOverlay from '@/components/game/CelebrationOverlay';
 import LeaderboardPanel from '@/components/game/LeaderboardPanel';
 import DailyRewardsPanel from '@/components/game/DailyRewardsPanel';
+import { QuestPanel } from '@/components/game/QuestPanel';
 import {
   Factory, Pickaxe, Cog, Truck, Zap, TrendingUp,
   FlaskConical, Users, ScrollText, Bot, Globe, AlertTriangle,
   Save, Play, Pause, FastForward, RotateCcw, ChevronRight, Bell, X,
   BookOpen, Trophy, Download, Upload, Copy, Check, MoreHorizontal, ChevronUp, Settings, BarChart3,
-  Map as MapIcon, Gift
+  Map as MapIcon, Gift, Scroll
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -75,6 +76,7 @@ const TABS = [
   { id: 'achievements' as const, label: 'Trophies', icon: Trophy, color: 'text-amber-300' },
   { id: 'leaderboard' as const, label: 'Ranks', icon: Trophy, color: 'text-amber-400' },
   { id: 'dailyRewards' as const, label: 'Daily', icon: Gift, color: 'text-pink-400' },
+  { id: 'quests' as const, label: 'Quests', icon: Scroll, color: 'text-amber-400' },
   { id: 'blueprints' as const, label: 'Blueprints', icon: Save, color: 'text-indigo-400' },
   { id: 'settings' as const, label: 'Settings', icon: Settings, color: 'text-gray-400' },
 ];
@@ -86,7 +88,7 @@ const MOBILE_PRIMARY_TABS: GameTab[] = [
 ];
 
 const MOBILE_MORE_TABS: GameTab[] = [
-  'transport', 'automation', 'prestige', 'events', 'megaprojects', 'statistics', 'achievements', 'leaderboard', 'dailyRewards', 'blueprints', 'settings',
+  'transport', 'automation', 'prestige', 'events', 'megaprojects', 'statistics', 'achievements', 'leaderboard', 'dailyRewards', 'quests', 'blueprints', 'settings',
 ];
 
 // Keyboard shortcut: number keys 1-9 map to first 9 tabs
@@ -357,6 +359,7 @@ export default function Home() {
       case 'achievements': return <AchievementPanel />;
       case 'leaderboard': return <LeaderboardPanel />;
       case 'dailyRewards': return <DailyRewardsPanel />;
+      case 'quests': return <QuestPanel />;
       case 'settings': return <SettingsPanel />;
       default: return <DashboardPanel />;
     }
@@ -518,6 +521,22 @@ export default function Home() {
                 </div>
               )}
 
+              {/* Weather indicator */}
+              {store.weather.current !== 'clear' && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant="outline" className="text-[10px] border-sky-500/50 text-sky-400 bg-sky-900/20 px-1.5 py-0">
+                      {WEATHER_DEFS[store.weather.current]?.emoji} {WEATHER_DEFS[store.weather.current]?.name}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="bg-[#111827] border-cyan-900/30">
+                    <p className="text-xs font-medium text-sky-300">{WEATHER_DEFS[store.weather.current]?.name}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">{WEATHER_DEFS[store.weather.current]?.description}</p>
+                    {store.weather.remaining > 0 && <p className="text-[10px] text-gray-500 mt-1">Remaining: {store.weather.remaining} ticks</p>}
+                  </TooltipContent>
+                </Tooltip>
+              )}
+
               {/* Auto-save indicator */}
               <div className={`flex items-center gap-1 text-[10px] transition-opacity duration-500 ${showSavedFlash ? 'opacity-100' : 'opacity-40'}`}>
                 <Check className={`w-3 h-3 transition-colors duration-300 ${showSavedFlash ? 'text-green-400' : 'text-gray-600'}`} />
@@ -630,6 +649,13 @@ export default function Home() {
               {store.activeEvents.length > 0 && (
                 <Badge variant="outline" className="text-[9px] border-orange-500/50 text-orange-400 bg-orange-900/20 px-1 py-0 h-5">
                   {store.activeEvents[0].emoji} {store.activeEvents.length}
+                </Badge>
+              )}
+
+              {/* Weather badge - mobile */}
+              {store.weather.current !== 'clear' && (
+                <Badge variant="outline" className="text-[9px] border-sky-500/50 text-sky-400 bg-sky-900/20 px-1 py-0 h-5">
+                  {WEATHER_DEFS[store.weather.current]?.emoji}
                 </Badge>
               )}
 

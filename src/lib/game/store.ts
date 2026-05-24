@@ -10,6 +10,7 @@ import {
   TransportLine, TransportType, Worker, WorkerType, Contract,
   GameEvent, GameNotification, PowerGrid, MarketPrice, MegaProjectType,
   Blueprint, Celebration, LeaderboardEntry, LoginStreak, DailyReward,
+  WeatherType,
 } from './types';
 import {
   BUILDING_DEFS, TRANSPORT_DEFS, WORKER_DEFS, INITIAL_MARKET,
@@ -17,11 +18,12 @@ import {
   EVENT_TEMPLATES, CONTRACT_TEMPLATES, RESOURCE_META,
   INITIAL_MEGA_PROJECTS, RANK_THRESHOLDS, SEASONAL_EVENTS,
   WEEKLY_DAILY_REWARDS, getStreakMultiplier,
+  WEATHER_DEFS, QUEST_DEFS,
 } from './data';
 import { soundEngine } from './soundEngine';
 
 // --- Save Version ---
-const SAVE_VERSION = 5;
+const SAVE_VERSION = 6;
 
 // --- Utility Functions ---
 function generateId(): string {
@@ -119,6 +121,21 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
     }
   }
 
+  // V5 → V6: Add weather and quests
+  if (version < 6) {
+    if (!state.weather) {
+      state.weather = {
+        current: 'clear',
+        intensity: 0,
+        remaining: 0,
+        nextChange: 100 + Math.floor(Math.random() * 200),
+      };
+    }
+    if (!state.quests) {
+      state.quests = [];
+    }
+  }
+
   state._version = SAVE_VERSION;
   return state;
 }
@@ -187,6 +204,16 @@ function createInitialState(): GameState {
       totalLogins: 0,
       weeklyRewards: [],
     },
+    weather: {
+      current: 'clear' as const,
+      intensity: 0,
+      remaining: 0,
+      nextChange: 100 + Math.floor(Math.random() * 200),
+    },
+    quests: QUEST_DEFS.map(q => ({
+      ...q,
+      steps: q.steps.map(s => ({ ...s })),
+    })),
     activeTab: 'dashboard',
     selectedBuilding: null,
     notifications: [],
@@ -277,6 +304,10 @@ interface GameActions {
   checkDailyLogin: () => void;
   claimDailyReward: (day: number) => void;
 
+  // Quests
+  claimQuestReward: (questId: string) => void;
+  updateQuestProgress: (type: string, amount: number) => void;
+
   // Reset
   resetGame: () => void;
 }
@@ -318,11 +349,11 @@ export const useGameStore = create<GameStore>()(
           } else {
             if (b.type === 'solarPanel') {
               const dayFactor = 0.5 + 0.5 * Math.sin(newTick * 0.01);
-              production *= Math.max(0.2, dayFactor);
+              production *= Math.max(0.2, dayFactor) * weatherSolarMultiplier;
             }
             if (b.type === 'windTurbine') {
               const windFactor = 0.5 + 0.5 * Math.sin(newTick * 0.007 + Math.PI / 3);
-              production *= Math.max(0.3, windFactor);
+              production *= Math.max(0.3, windFactor) * weatherWindMultiplier;
             }
             totalProduction += production;
           }
@@ -368,13 +399,24 @@ export const useGameStore = create<GameStore>()(
         totalProduction *= (1 + powerPrestigeBonus);
         const effectivePowerEfficiency = totalProduction > 0 ? Math.min(1, totalProduction / Math.max(0.001, totalConsumption)) : 0;
 
+        // Weather production multiplier
+        const weatherDef = WEATHER_DEFS[state.weather.current as WeatherType];
+        let weatherProductionMultiplier = 1;
+        let weatherSolarMultiplier = 1;
+        let weatherWindMultiplier = 1;
+        if (weatherDef) {
+          weatherProductionMultiplier = weatherDef.productionMultiplier;
+          weatherSolarMultiplier = weatherDef.solarMultiplier;
+          weatherWindMultiplier = weatherDef.windMultiplier;
+        }
+
         // Process buildings
         state.buildings.forEach(b => {
           if (!b.active) return;
           const def = BUILDING_DEFS[b.type];
           if (!def) return;
 
-          let efficiency = b.efficiency * effectivePowerEfficiency * eventProductionMultiplier;
+          let efficiency = b.efficiency * effectivePowerEfficiency * eventProductionMultiplier * weatherProductionMultiplier;
           
           if (def.category === 'extractor') efficiency *= (1 + extractorSpeedBonus);
           if (def.category === 'factory') efficiency *= (1 + factorySpeedBonus);
@@ -595,6 +637,36 @@ export const useGameStore = create<GameStore>()(
               notifications.push({ id: generateId(), type: 'warning', message: `🌟 Seasonal: ${seasonal.name} - ${seasonal.description}`, gameTick: newTick, read: false });
               break; // Only trigger one seasonal event per tick
             }
+          }
+        }
+
+        // Process weather
+        let newWeather = { ...state.weather };
+        if (newWeather.remaining > 0) {
+          newWeather.remaining = newWeather.remaining - 1;
+        }
+        if (newWeather.remaining <= 0 && newTick >= newWeather.nextChange) {
+          const weatherTypes: WeatherType[] = ['clear', 'sunny', 'rainy', 'stormy', 'foggy', 'snowy'];
+          const weights = [30, 25, 20, 10, 10, 5]; // clear is most common
+          const totalWeight = weights.reduce((a, b) => a + b, 0);
+          let roll = Math.random() * totalWeight;
+          let selectedWeather: WeatherType = 'clear';
+          for (let i = 0; i < weatherTypes.length; i++) {
+            roll -= weights[i];
+            if (roll <= 0) {
+              selectedWeather = weatherTypes[i];
+              break;
+            }
+          }
+          newWeather = {
+            current: selectedWeather,
+            intensity: selectedWeather === 'clear' ? 0 : 0.3 + Math.random() * 0.7,
+            remaining: selectedWeather === 'clear' ? 0 : 100 + Math.floor(Math.random() * 300),
+            nextChange: newTick + 200 + Math.floor(Math.random() * 400),
+          };
+          if (selectedWeather !== 'clear') {
+            const wDef = WEATHER_DEFS[selectedWeather];
+            notifications.push({ id: generateId(), type: 'info', message: `${wDef.emoji} Weather: ${wDef.name} - ${wDef.description}`, gameTick: newTick, read: false });
           }
         }
 
@@ -823,6 +895,7 @@ export const useGameStore = create<GameStore>()(
           productionHistory: newHistory,
           notifications: [...notifications, ...state.notifications.slice(-20)],
           lastOnlineTimestamp: Date.now(),
+          weather: newWeather,
         });
       },
 
@@ -879,6 +952,7 @@ export const useGameStore = create<GameStore>()(
         });
         soundEngine.play('buildingPlaced', 'building');
         get().addNotification('success', `Built ${def.name} for $${formatNumber(cost)}`);
+        get().updateQuestProgress('build', 1);
       },
 
       upgradeBuilding: (id: string) => {
@@ -1022,6 +1096,7 @@ export const useGameStore = create<GameStore>()(
         });
         soundEngine.play('buttonClick', 'ui');
         get().addNotification('info', `Started research: ${node.name}`);
+        get().updateQuestProgress('research', 1);
       },
 
       // --- WORKER ACTIONS ---
@@ -1090,6 +1165,7 @@ export const useGameStore = create<GameStore>()(
         });
         soundEngine.play('moneyEarned', 'production');
         get().addNotification('success', `Sold ${formatNumber(amount)} ${RESOURCE_META[resource].name} for $${formatNumber(sellPrice)}`);
+        get().updateQuestProgress('sell', 1);
       },
 
       buyResource: (resource: ResourceType, amount: number) => {
@@ -1341,6 +1417,8 @@ export const useGameStore = create<GameStore>()(
           celebrations: state.celebrations,
           leaderboardEntries: state.leaderboardEntries,
           loginStreak: state.loginStreak,
+          weather: state.weather,
+          quests: state.quests,
           _exportedAt: Date.now(),
         };
         try {
@@ -1390,6 +1468,50 @@ export const useGameStore = create<GameStore>()(
         } catch {
           return false;
         }
+      },
+
+      claimQuestReward: (questId: string) => {
+        const state = get();
+        const quest = state.quests.find(q => q.id === questId);
+        if (!quest || quest.claimed || !quest.completed) return;
+
+        const reward = quest.reward;
+        const updates: Partial<GameState> = {
+          money: state.money + reward.money,
+          totalMoneyEarned: state.totalMoneyEarned + reward.money,
+          researchPoints: state.researchPoints + (reward.researchPoints || 0),
+          prestigeState: {
+            ...state.prestigeState,
+            corporationPoints: state.prestigeState.corporationPoints + (reward.corporationPoints || 0),
+          },
+          quests: state.quests.map(q =>
+            q.id === questId ? { ...q, claimed: true } : q
+          ),
+        };
+
+        set(updates);
+        soundEngine.play('moneyEarned', 'building');
+        get().addNotification('success', `Quest reward claimed: ${quest.name}! +$${formatNumber(reward.money)}${reward.researchPoints ? ` +${reward.researchPoints} RP` : ''}${reward.corporationPoints ? ` +${reward.corporationPoints} CP` : ''}`);
+      },
+
+      updateQuestProgress: (type: string, amount: number) => {
+        const state = get();
+        const newQuests = state.quests.map(q => {
+          if (q.claimed || q.completed) return q;
+          if (q.type !== type) return q;
+
+          const newSteps = q.steps.map(s => {
+            if (s.completed) return s;
+            const newCurrent = s.current + amount;
+            const stepCompleted = newCurrent >= s.target;
+            return { ...s, current: newCurrent, completed: stepCompleted };
+          });
+
+          const allStepsComplete = newSteps.every(s => s.completed);
+          return { ...q, steps: newSteps, completed: allStepsComplete };
+        });
+
+        set({ quests: newQuests });
       },
 
       resetGame: () => set(createInitialState()),
@@ -1510,6 +1632,45 @@ export const useGameStore = create<GameStore>()(
         set(updates as Record<string, unknown>);
         soundEngine.play('moneyEarned', 'building');
         get().addNotification('success', `Claimed daily reward: Day ${day}!`);
+      },
+
+      // --- QUEST ACTIONS ---
+      claimQuestReward: (questId: string) => {
+        const state = get();
+        const quest = state.quests.find(q => q.id === questId);
+        if (!quest || !quest.completed || quest.claimed) return;
+        
+        set({
+          money: state.money + quest.reward.money,
+          researchPoints: state.researchPoints + (quest.reward.researchPoints ?? 0),
+          prestigeState: {
+            ...state.prestigeState,
+            corporationPoints: state.prestigeState.corporationPoints + (quest.reward.corporationPoints ?? 0),
+          },
+          quests: state.quests.map(q =>
+            q.id === questId ? { ...q, claimed: true } : q
+          ),
+        });
+        soundEngine.play('moneyEarned', 'events');
+        get().addNotification('success', `Claimed quest reward: ${quest.name}!`);
+      },
+
+      updateQuestProgress: (type: string, amount: number) => {
+        const state = get();
+        set({
+          quests: state.quests.map(q => {
+            if (q.completed || q.claimed) return q;
+            if (q.type !== type) return q;
+            return {
+              ...q,
+              steps: q.steps.map(s => {
+                const newCurrent = Math.min(s.target, s.current + amount);
+                return { ...s, current: newCurrent, completed: newCurrent >= s.target };
+              }),
+              completed: q.steps.every(s => (s.current + amount) >= s.target),
+            };
+          }),
+        });
       },
 
       // --- STORAGE UPGRADE ACTIONS ---
@@ -1933,9 +2094,11 @@ export const useGameStore = create<GameStore>()(
         celebrations: state.celebrations,
         leaderboardEntries: state.leaderboardEntries,
         loginStreak: state.loginStreak,
+        weather: state.weather,
+        quests: state.quests,
         _version: SAVE_VERSION,
       }),
-      version: 5,
+      version: 6,
       migrate: (persistedState: unknown) => {
         return migrateSaveState(persistedState as Record<string, unknown>);
       },

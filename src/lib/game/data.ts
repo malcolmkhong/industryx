@@ -3,7 +3,7 @@
 // Game Data Definitions
 // ============================================
 
-import { BuildingDefinition, TransportDefinition, WorkerDefinition, ResearchNode, MarketPrice, AutomationUnlock, PrestigeBonus, ResourceType, MegaProject, DailyReward } from './types';
+import { BuildingDefinition, TransportDefinition, WorkerDefinition, ResearchNode, MarketPrice, AutomationUnlock, PrestigeBonus, ResourceType, MegaProject, DailyReward, WeatherType, WeatherDefinition, Quest } from './types';
 
 // --- Resource Metadata ---
 export const RESOURCE_META: Record<ResourceType, { name: string; emoji: string; tier: number; color: string }> = {
@@ -1255,5 +1255,142 @@ export const SEASONAL_EVENTS = [
     effects: [{ type: 'productionMultiplier' as const, target: 'powerPlant', value: 2.0 }],
     color: '#facc15',
     triggerChance: 0.001,
+  },
+];
+
+// --- Weather Definitions ---
+export const WEATHER_DEFS: Record<WeatherType, WeatherDefinition> = {
+  clear: { name: 'Clear Skies', emoji: '☀️', productionMultiplier: 1.0, solarMultiplier: 1.0, windMultiplier: 1.0, description: 'Normal conditions. No weather effects.' },
+  sunny: { name: 'Sunny', emoji: '🌞', productionMultiplier: 1.05, solarMultiplier: 1.4, windMultiplier: 0.7, description: 'Bright sunshine! Solar output +40%, wind -30%, production +5%.' },
+  rainy: { name: 'Rainy', emoji: '🌧️', productionMultiplier: 0.9, solarMultiplier: 0.3, windMultiplier: 1.2, description: 'Heavy rain reduces solar by 70%. Wind +20%, production -10%.' },
+  stormy: { name: 'Stormy', emoji: '⛈️', productionMultiplier: 0.75, solarMultiplier: 0.1, windMultiplier: 1.8, description: 'Dangerous storm! Production -25%, solar -90%, but wind +80%!' },
+  foggy: { name: 'Foggy', emoji: '🌫️', productionMultiplier: 0.85, solarMultiplier: 0.5, windMultiplier: 0.6, description: 'Dense fog. Solar -50%, wind -40%, production -15%.' },
+  snowy: { name: 'Snowy', emoji: '❄️', productionMultiplier: 0.8, solarMultiplier: 0.4, windMultiplier: 0.8, description: 'Snowfall. Production -20%, solar -60%. Beautiful but cold.' },
+};
+
+// --- Quest Definitions ---
+export const QUEST_DEFS: Quest[] = [
+  // Tutorial quests
+  {
+    id: 'tut_build1',
+    name: 'First Steps',
+    description: 'Build your first Mining Drill to start producing resources.',
+    type: 'build',
+    category: 'tutorial',
+    steps: [{ description: 'Build a Mining Drill', target: 1, current: 0, completed: false }],
+    reward: { money: 200, researchPoints: 10 },
+    completed: false,
+    claimed: false,
+    emoji: '🏗️',
+  },
+  {
+    id: 'tut_power1',
+    name: 'Power Up',
+    description: 'Build a Coal Generator to power your factory.',
+    type: 'build',
+    category: 'tutorial',
+    steps: [{ description: 'Build a Coal Generator', target: 1, current: 0, completed: false }],
+    reward: { money: 300, researchPoints: 15 },
+    completed: false,
+    claimed: false,
+    emoji: '⚡',
+  },
+  {
+    id: 'tut_sell1',
+    name: 'First Sale',
+    description: 'Sell some resources on the market.',
+    type: 'sell',
+    category: 'tutorial',
+    steps: [{ description: 'Sell resources on the market', target: 1, current: 0, completed: false }],
+    reward: { money: 500, researchPoints: 20 },
+    completed: false,
+    claimed: false,
+    emoji: '💰',
+  },
+  {
+    id: 'tut_research1',
+    name: 'Knowledge is Power',
+    description: 'Start your first research project.',
+    type: 'research',
+    category: 'tutorial',
+    steps: [{ description: 'Start a research project', target: 1, current: 0, completed: false }],
+    reward: { money: 1000, researchPoints: 50 },
+    completed: false,
+    claimed: false,
+    emoji: '🔬',
+  },
+  {
+    id: 'tut_factory1',
+    name: 'Processing Begins',
+    description: 'Build a Smelter to process raw materials.',
+    type: 'build',
+    category: 'tutorial',
+    steps: [{ description: 'Build a Smelter', target: 1, current: 0, completed: false }],
+    reward: { money: 800, researchPoints: 25 },
+    completed: false,
+    claimed: false,
+    emoji: '🔥',
+  },
+  // Daily quests (these will be generated dynamically, but we provide templates)
+  {
+    id: 'daily_build',
+    name: 'Daily Builder',
+    description: 'Build 3 new buildings today.',
+    type: 'build',
+    category: 'daily',
+    steps: [{ description: 'Build new buildings', target: 3, current: 0, completed: false }],
+    reward: { money: 2000, researchPoints: 30 },
+    completed: false,
+    claimed: false,
+    emoji: '🏗️',
+  },
+  {
+    id: 'daily_earn',
+    name: 'Daily Earnings',
+    description: 'Earn $5,000 from sales today.',
+    type: 'earn',
+    category: 'daily',
+    steps: [{ description: 'Earn money from sales', target: 5000, current: 0, completed: false }],
+    reward: { money: 3000, researchPoints: 40 },
+    completed: false,
+    claimed: false,
+    emoji: '💵',
+  },
+  {
+    id: 'daily_produce',
+    name: 'Daily Production',
+    description: 'Produce 100 resources today.',
+    type: 'produce',
+    category: 'daily',
+    steps: [{ description: 'Produce resources', target: 100, current: 0, completed: false }],
+    reward: { money: 1500, researchPoints: 20 },
+    completed: false,
+    claimed: false,
+    emoji: '📦',
+  },
+  // Challenge quests
+  {
+    id: 'challenge_mega',
+    name: 'Mega Aspirations',
+    description: 'Start a MegaProject.',
+    type: 'reach',
+    category: 'challenge',
+    steps: [{ description: 'Start any MegaProject', target: 1, current: 0, completed: false }],
+    reward: { money: 10000, corporationPoints: 5 },
+    completed: false,
+    claimed: false,
+    emoji: '🌟',
+  },
+  {
+    id: 'challenge_prestige',
+    name: 'Global Expansion',
+    description: 'Prestige for the first time.',
+    type: 'reach',
+    category: 'challenge',
+    steps: [{ description: 'Prestige (Global Expansion)', target: 1, current: 0, completed: false }],
+    reward: { money: 0, corporationPoints: 10 },
+    completed: false,
+    claimed: false,
+    emoji: '🌍',
   },
 ];
