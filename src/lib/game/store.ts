@@ -9,6 +9,7 @@ import {
   GameState, GameTab, ResourceType, BuildingInstance, BuildingType,
   TransportLine, TransportType, Worker, WorkerType, Contract,
   GameEvent, GameNotification, PowerGrid, MarketPrice, MegaProjectType,
+  Blueprint,
 } from './types';
 import {
   BUILDING_DEFS, TRANSPORT_DEFS, WORKER_DEFS, INITIAL_MARKET,
@@ -16,6 +17,10 @@ import {
   EVENT_TEMPLATES, CONTRACT_TEMPLATES, RESOURCE_META,
   INITIAL_MEGA_PROJECTS,
 } from './data';
+import { soundEngine } from './soundEngine';
+
+// --- Save Version ---
+const SAVE_VERSION = 2;
 
 // --- Utility Functions ---
 function generateId(): string {
@@ -53,6 +58,31 @@ function isBuildingUnlocked(type: BuildingType, completedResearch: string[], pre
   if (def.unlockRequirement.research && !completedResearch.includes(def.unlockRequirement.research)) return false;
   if (def.unlockRequirement.prestige && prestigeState.totalPrestiges < def.unlockRequirement.prestige) return false;
   return true;
+}
+
+// --- Save Migration ---
+function migrateSaveState(savedState: Record<string, unknown>): Record<string, unknown> {
+  const version = (savedState._version as number) || 1;
+  let state = { ...savedState };
+
+  // V1 → V2: Add megaProjects field and productionHistory
+  if (version < 2) {
+    if (!state.megaProjects) {
+      state.megaProjects = INITIAL_MEGA_PROJECTS.map(p => ({
+        ...p,
+        stages: p.stages.map((s: Record<string, unknown>) => ({ ...s })),
+      }));
+    }
+    if (!state.productionHistory) {
+      state.productionHistory = [];
+    }
+  }
+
+  // Future migrations can be added here:
+  // if (version < 3) { ... }
+
+  state._version = SAVE_VERSION;
+  return state;
 }
 
 // --- Initial State ---
@@ -105,6 +135,8 @@ function createInitialState(): GameState {
       playTime: 0,
     },
     megaProjects: INITIAL_MEGA_PROJECTS.map(p => ({ ...p, stages: p.stages.map(s => ({ ...s })) })),
+    productionHistory: [],
+    blueprints: [],
     activeTab: 'dashboard',
     selectedBuilding: null,
     notifications: [],
@@ -164,6 +196,14 @@ interface GameActions {
   // MegaProjects
   startMegaProject: (type: MegaProjectType) => void;
   contributeToMegaProject: (type: MegaProjectType) => void;
+
+  // Blueprints
+  saveBlueprint: (name: string) => void;
+  loadBlueprint: (id: string) => void;
+  deleteBlueprint: (id: string) => void;
+  renameBlueprint: (id: string, name: string) => void;
+  exportBlueprint: (id: string) => string;
+  importBlueprint: (code: string) => boolean;
 
   // Reset
   resetGame: () => void;
@@ -225,6 +265,11 @@ export const useGameStore = create<GameStore>()(
         totalConsumption *= (1 - powerEfficiencyResearch);
 
         const overload = totalConsumption > totalProduction;
+
+        // Play power overload sound when overload newly detected
+        if (overload && !state.powerGrid.overload) {
+          soundEngine.play('powerOverload', 'events');
+        }
 
         // Apply event effects
         let eventProductionMultiplier = 1;
@@ -380,6 +425,7 @@ export const useGameStore = create<GameStore>()(
               newResearchProgress = 0;
               newResearchPoints += Math.floor(node.cost * 0.1);
               newStats.researchCompleted++;
+              soundEngine.play('researchComplete', 'events');
               notifications.push({ id: generateId(), type: 'success', message: `Research complete: ${node.name}!`, gameTick: newTick, read: false });
             }
           }
@@ -453,6 +499,7 @@ export const useGameStore = create<GameStore>()(
             emoji: template.emoji,
           };
           newActiveEvents.push(newEvent);
+          soundEngine.play('eventTriggered', 'events');
           notifications.push({ id: generateId(), type: 'warning', message: `Event: ${template.name} - ${template.description}`, gameTick: newTick, read: false });
         }
 
@@ -509,6 +556,19 @@ export const useGameStore = create<GameStore>()(
 
         const currentEfficiency = effectivePowerEfficiency * transportEfficiency * eventProductionMultiplier;
         const newPeakEfficiency = Math.max(state.stats.peakEfficiency, currentEfficiency);
+
+        // Production history snapshot (every 50 ticks)
+        let newHistory = state.productionHistory;
+        if (newTick % 50 === 0) {
+          const snapshot = {
+            timestamp: Date.now(),
+            resources: { ...newResources },
+            money: state.money + moneyEarned,
+            powerProduction: totalProduction,
+            powerConsumption: totalConsumption,
+          };
+          newHistory = [...state.productionHistory.slice(-199), snapshot];
+        }
 
         // Process active MegaProjects
         const newMegaProjects = state.megaProjects.map(mp => {
@@ -573,6 +633,7 @@ export const useGameStore = create<GameStore>()(
           activeEvents: newActiveEvents,
           stats: { ...newStats, peakEfficiency: newPeakEfficiency },
           megaProjects: newMegaProjects,
+          productionHistory: newHistory,
           notifications: [...notifications, ...state.notifications.slice(-20)],
         });
       },
@@ -588,6 +649,7 @@ export const useGameStore = create<GameStore>()(
         if (!def) return;
 
         if (!isBuildingUnlocked(type, state.completedResearch, state.prestigeState)) {
+          soundEngine.play('error', 'ui');
           get().addNotification('error', `${def.name} is locked! Complete required research first.`);
           return;
         }
@@ -596,6 +658,7 @@ export const useGameStore = create<GameStore>()(
         const cost = getBuildingCost(type, currentCount);
 
         if (state.money < cost) {
+          soundEngine.play('error', 'ui');
           get().addNotification('error', `Not enough money! Need $${formatNumber(cost)}`);
           return;
         }
@@ -614,6 +677,7 @@ export const useGameStore = create<GameStore>()(
           buildings: [...state.buildings, building],
           stats: { ...state.stats, factoriesBuilt: state.stats.factoriesBuilt + 1 },
         });
+        soundEngine.play('buildingPlaced', 'building');
         get().addNotification('success', `Built ${def.name} for $${formatNumber(cost)}`);
       },
 
@@ -626,6 +690,7 @@ export const useGameStore = create<GameStore>()(
         const cost = getBuildingCost(building.type, building.level);
 
         if (state.money < cost) {
+          soundEngine.play('error', 'ui');
           get().addNotification('error', `Not enough money! Need $${formatNumber(cost)} to upgrade`);
           return;
         }
@@ -636,6 +701,7 @@ export const useGameStore = create<GameStore>()(
             b.id === id ? { ...b, level: b.level + 1, efficiency: Math.min(2, b.efficiency + 0.05) } : b
           ),
         });
+        soundEngine.play('buildingPlaced', 'building');
         get().addNotification('info', `Upgraded ${def.name} to level ${building.level + 1}`);
       },
 
@@ -658,6 +724,7 @@ export const useGameStore = create<GameStore>()(
 
         const cost = def.baseCost.reduce((sum, c) => sum + (c.resource === 'money' ? c.amount : 0), 0);
         if (state.money < cost) {
+          soundEngine.play('error', 'ui');
           get().addNotification('error', `Not enough money! Need $${formatNumber(cost)}`);
           return;
         }
@@ -683,6 +750,7 @@ export const useGameStore = create<GameStore>()(
           transportLines: [...state.transportLines, line],
           stats: { ...state.stats, transportLinesBuilt: state.stats.transportLinesBuilt + 1 },
         });
+        soundEngine.play('buildingPlaced', 'building');
         get().addNotification('success', `Built ${def.name} for $${formatNumber(cost)}`);
       },
 
@@ -742,6 +810,7 @@ export const useGameStore = create<GameStore>()(
         }
 
         if (state.researchPoints < node.cost) {
+          soundEngine.play('error', 'ui');
           get().addNotification('error', `Need ${formatNumber(node.cost)} RP! Have ${formatNumber(state.researchPoints)}`);
           return;
         }
@@ -751,6 +820,7 @@ export const useGameStore = create<GameStore>()(
           activeResearch: id,
           researchProgress: 0,
         });
+        soundEngine.play('buttonClick', 'ui');
         get().addNotification('info', `Started research: ${node.name}`);
       },
 
@@ -800,6 +870,7 @@ export const useGameStore = create<GameStore>()(
       sellResource: (resource: ResourceType, amount: number) => {
         const state = get();
         if (state.resources[resource] < amount) {
+          soundEngine.play('error', 'ui');
           get().addNotification('error', 'Not enough resources!');
           return;
         }
@@ -817,6 +888,7 @@ export const useGameStore = create<GameStore>()(
           totalMoneyEarned: state.totalMoneyEarned + sellPrice,
           stats: { ...state.stats, totalResourcesSold: { ...state.stats.totalResourcesSold, [resource]: state.stats.totalResourcesSold[resource] + amount } },
         });
+        soundEngine.play('moneyEarned', 'production');
         get().addNotification('success', `Sold ${formatNumber(amount)} ${RESOURCE_META[resource].name} for $${formatNumber(sellPrice)}`);
       },
 
@@ -827,12 +899,14 @@ export const useGameStore = create<GameStore>()(
 
         const cost = marketItem.currentPrice * amount * 1.1;
         if (state.money < cost) {
+          soundEngine.play('error', 'ui');
           get().addNotification('error', 'Not enough money!');
           return;
         }
 
         const newAmount = state.resources[resource] + amount;
         if (newAmount > state.resourceCapacity[resource]) {
+          soundEngine.play('error', 'ui');
           get().addNotification('warning', 'Storage full!');
           return;
         }
@@ -865,6 +939,7 @@ export const useGameStore = create<GameStore>()(
           return state.resources[r.resource as ResourceType] >= r.amount;
         });
         if (!canFulfill) {
+          soundEngine.play('error', 'ui');
           get().addNotification('error', 'Not enough resources to fulfill contract!');
           return;
         }
@@ -891,6 +966,7 @@ export const useGameStore = create<GameStore>()(
           completedContracts: state.completedContracts + 1,
           stats: { ...state.stats, contractsCompleted: state.stats.contractsCompleted + 1 },
         });
+        soundEngine.play('contractCompleted', 'events');
         get().addNotification('success', `Contract fulfilled: ${contract.name}! +$${formatNumber(contract.reward.money)}`);
       },
 
@@ -919,6 +995,7 @@ export const useGameStore = create<GameStore>()(
             a.type === type ? { ...a, active: true } : a
           ),
         });
+        soundEngine.play('levelUp', 'events');
         get().addNotification('success', `Activated: ${unlock.name}!`);
       },
 
@@ -962,6 +1039,7 @@ export const useGameStore = create<GameStore>()(
             ),
           },
         });
+        soundEngine.play('levelUp', 'events');
         get().addNotification('success', `Purchased: ${bonus.name}!`);
       },
 
@@ -993,7 +1071,7 @@ export const useGameStore = create<GameStore>()(
           automationUnlocks: state.automationUnlocks,
           prestigeState: state.prestigeState,
           stats: state.stats,
-          _version: 1,
+          _version: SAVE_VERSION,
           _exportedAt: Date.now(),
         };
         try {
@@ -1136,6 +1214,170 @@ export const useGameStore = create<GameStore>()(
         });
         get().addNotification('success', `Contributed resources to ${project.name}: ${stage.name}! Construction underway...`);
       },
+
+      // --- BLUEPRINT ACTIONS ---
+      saveBlueprint: (name: string) => {
+        const state = get();
+
+        // Group buildings by type with counts
+        const buildingCounts: Record<string, number> = {};
+        state.buildings.forEach(b => {
+          buildingCounts[b.type] = (buildingCounts[b.type] || 0) + 1;
+        });
+        const buildings = Object.entries(buildingCounts).map(([type, count]) => ({
+          type: type as BuildingType,
+          count,
+        }));
+
+        // Group transport lines by type with counts
+        const transportCounts: Record<string, number> = {};
+        state.transportLines.forEach(t => {
+          transportCounts[t.type] = (transportCounts[t.type] || 0) + 1;
+        });
+        const transportLines = Object.entries(transportCounts).map(([type, count]) => ({
+          type: type as TransportType,
+          count,
+        }));
+
+        const blueprint: Blueprint = {
+          id: generateId(),
+          name,
+          buildings,
+          transportLines,
+          savedAt: Date.now(),
+          shared: false,
+          likes: 0,
+        };
+
+        set({ blueprints: [blueprint, ...state.blueprints] });
+        get().addNotification('success', `Blueprint saved: ${name}`);
+      },
+
+      loadBlueprint: (id: string) => {
+        const state = get();
+        const blueprint = state.blueprints.find(bp => bp.id === id);
+        if (!blueprint) {
+          get().addNotification('error', 'Blueprint not found!');
+          return;
+        }
+
+        // Build all missing buildings from the blueprint
+        let builtCount = 0;
+        let skippedCount = 0;
+        blueprint.buildings.forEach(bpBuilding => {
+          const currentCount = state.buildings.filter(b => b.type === bpBuilding.type).length;
+          const needed = bpBuilding.count - currentCount;
+
+          for (let i = 0; i < needed; i++) {
+            const def = BUILDING_DEFS[bpBuilding.type];
+            if (!def) { skippedCount++; continue; }
+
+            const cost = getBuildingCost(bpBuilding.type, currentCount + i);
+            if (state.money < cost) { skippedCount++; continue; }
+
+            if (!isBuildingUnlocked(bpBuilding.type, state.completedResearch, state.prestigeState)) {
+              skippedCount++;
+              continue;
+            }
+
+            const building: BuildingInstance = {
+              id: generateId(),
+              type: bpBuilding.type,
+              level: 1,
+              active: true,
+              efficiency: 1,
+              placedAt: state.gameTick,
+            };
+
+            state.money -= cost;
+            state.buildings = [...state.buildings, building];
+            state.stats = { ...state.stats, factoriesBuilt: state.stats.factoriesBuilt + 1 };
+            builtCount++;
+          }
+        });
+
+        set({
+          money: state.money,
+          buildings: state.buildings,
+          stats: state.stats,
+        });
+
+        if (builtCount > 0) {
+          get().addNotification('success', `Loaded blueprint "${blueprint.name}": Built ${builtCount} buildings${skippedCount > 0 ? ` (${skippedCount} skipped)` : ''}`);
+        } else {
+          get().addNotification('warning', `No new buildings needed from blueprint "${blueprint.name}"`);
+        }
+      },
+
+      deleteBlueprint: (id: string) => {
+        const state = get();
+        set({ blueprints: state.blueprints.filter(bp => bp.id !== id) });
+        get().addNotification('info', 'Blueprint deleted');
+      },
+
+      renameBlueprint: (id: string, name: string) => {
+        const state = get();
+        set({
+          blueprints: state.blueprints.map(bp =>
+            bp.id === id ? { ...bp, name } : bp
+          ),
+        });
+      },
+
+      exportBlueprint: (id: string) => {
+        const state = get();
+        const blueprint = state.blueprints.find(bp => bp.id === id);
+        if (!blueprint) return '';
+
+        try {
+          const exportData = {
+            n: blueprint.name,
+            b: blueprint.buildings.map(b => ({ t: b.type, c: b.count })),
+            t: blueprint.transportLines.map(t => ({ t: t.type, c: t.count })),
+            v: 1,
+          };
+          const json = JSON.stringify(exportData);
+          return btoa(encodeURIComponent(json));
+        } catch {
+          return '';
+        }
+      },
+
+      importBlueprint: (code: string) => {
+        try {
+          const json = decodeURIComponent(atob(code));
+          const data = JSON.parse(json);
+
+          if (!data.b || !Array.isArray(data.b) || !data.t || !Array.isArray(data.t)) {
+            get().addNotification('error', 'Invalid blueprint code!');
+            return false;
+          }
+
+          const blueprint: Blueprint = {
+            id: generateId(),
+            name: data.n || `Imported Layout`,
+            buildings: data.b.map((b: { t: string; c: number }) => ({
+              type: b.t as BuildingType,
+              count: b.c,
+            })),
+            transportLines: data.t.map((t: { t: string; c: number }) => ({
+              type: t.t as TransportType,
+              count: t.c,
+            })),
+            savedAt: Date.now(),
+            shared: true,
+            likes: 0,
+          };
+
+          const state = get();
+          set({ blueprints: [blueprint, ...state.blueprints] });
+          get().addNotification('success', `Blueprint imported: ${blueprint.name}`);
+          return true;
+        } catch {
+          get().addNotification('error', 'Invalid blueprint code!');
+          return false;
+        }
+      },
     }),
     {
       name: 'factory-dominion-save',
@@ -1156,7 +1398,14 @@ export const useGameStore = create<GameStore>()(
         prestigeState: state.prestigeState,
         stats: state.stats,
         megaProjects: state.megaProjects,
+        productionHistory: state.productionHistory,
+        blueprints: state.blueprints,
+        _version: SAVE_VERSION,
       }),
+      version: 2,
+      migrate: (persistedState: unknown) => {
+        return migrateSaveState(persistedState as Record<string, unknown>);
+      },
     }
   )
 );

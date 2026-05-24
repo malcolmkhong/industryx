@@ -20,13 +20,16 @@ import { BlueprintPanel } from '@/components/game/BlueprintPanel';
 import { OnboardingPanel } from '@/components/game/OnboardingPanel';
 import { AchievementPanel } from '@/components/game/AchievementPanel';
 import { MegaProjectPanel } from '@/components/game/MegaProjectPanel';
+import { SettingsPanel } from '@/components/game/SettingsPanel';
+import StatisticsPanel from '@/components/game/StatisticsPanel';
 import GameToast from '@/components/game/GameToast';
 import FloatingNumbers from '@/components/game/FloatingNumbers';
+import AmbientParticles from '@/components/game/AmbientParticles';
 import {
   Factory, Pickaxe, Cog, Truck, Zap, TrendingUp,
   FlaskConical, Users, ScrollText, Bot, Globe, AlertTriangle,
   Save, Play, Pause, FastForward, RotateCcw, ChevronRight, Bell, X,
-  BookOpen, Trophy, Download, Upload, Copy, Check, MoreHorizontal, ChevronUp
+  BookOpen, Trophy, Download, Upload, Copy, Check, MoreHorizontal, ChevronUp, Settings, BarChart3
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -62,8 +65,10 @@ const TABS = [
   { id: 'prestige' as const, label: 'Expand', icon: Globe, color: 'text-fuchsia-400' },
   { id: 'events' as const, label: 'Events', icon: AlertTriangle, color: 'text-red-400' },
   { id: 'megaprojects' as const, label: 'Mega', icon: Globe, color: 'text-fuchsia-400' },
+  { id: 'statistics' as const, label: 'Stats', icon: BarChart3, color: 'text-teal-400' },
   { id: 'achievements' as const, label: 'Trophies', icon: Trophy, color: 'text-amber-300' },
   { id: 'blueprints' as const, label: 'Blueprints', icon: Save, color: 'text-indigo-400' },
+  { id: 'settings' as const, label: 'Settings', icon: Settings, color: 'text-gray-400' },
 ];
 
 // Mobile bottom tab bar: primary tabs shown directly, secondary in "More" menu
@@ -73,7 +78,7 @@ const MOBILE_PRIMARY_TABS: GameTab[] = [
 ];
 
 const MOBILE_MORE_TABS: GameTab[] = [
-  'transport', 'automation', 'prestige', 'events', 'megaprojects', 'achievements', 'blueprints',
+  'transport', 'automation', 'prestige', 'events', 'megaprojects', 'statistics', 'achievements', 'blueprints', 'settings',
 ];
 
 // Keyboard shortcut: number keys 1-9 map to first 9 tabs
@@ -277,9 +282,11 @@ export default function Home() {
       case 'prestige': return <PrestigePanel />;
       case 'events': return <EventPanel />;
       case 'megaprojects': return <MegaProjectPanel />;
+      case 'statistics': return <StatisticsPanel />;
       case 'blueprints': return <BlueprintPanel />;
       case 'guide': return <OnboardingPanel />;
       case 'achievements': return <AchievementPanel />;
+      case 'settings': return <SettingsPanel />;
       default: return <DashboardPanel />;
     }
   };
@@ -312,11 +319,11 @@ export default function Home() {
                 </div>
               </div>
               <div className="flex items-center gap-3 text-xs">
-                <div className="bg-[#111827] rounded-lg px-3 py-1.5 border border-cyan-900/20">
+                <div className="stat-badge stat-badge-money bg-[#111827] rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default">
                   <span className="text-gray-500">💰 </span>
                   <span className="text-green-400 font-mono font-bold">${formatNumber(store.money)}</span>
                 </div>
-                <div className="bg-[#111827] rounded-lg px-3 py-1.5 border border-cyan-900/20">
+                <div className="stat-badge stat-badge-power bg-[#111827] rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default">
                   <span className="text-gray-500">⚡ </span>
                   <span className={powerPercent >= 80 ? 'text-yellow-400' : powerPercent >= 50 ? 'text-orange-400' : 'text-red-400'}>
                     {formatNumber(store.powerGrid.totalProduction)}MW
@@ -324,11 +331,11 @@ export default function Home() {
                   <span className="text-gray-600"> / </span>
                   <span className="text-gray-400">{formatNumber(store.powerGrid.totalConsumption)}MW</span>
                 </div>
-                <div className="bg-[#111827] rounded-lg px-3 py-1.5 border border-cyan-900/20">
+                <div className="stat-badge stat-badge-rp bg-[#111827] rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default">
                   <span className="text-gray-500">🔬 </span>
                   <span className="text-purple-400 font-mono">{formatNumber(store.researchPoints)} RP</span>
                 </div>
-                <div className="bg-[#111827] rounded-lg px-3 py-1.5 border border-cyan-900/20">
+                <div className="stat-badge stat-badge-cp bg-[#111827] rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default">
                   <span className="text-gray-500">🏢 </span>
                   <span className="text-fuchsia-400 font-mono">{store.prestigeState.corporationPoints} CP</span>
                 </div>
@@ -561,40 +568,49 @@ export default function Home() {
           {/* SIDEBAR NAV - desktop only */}
           <nav className="hidden lg:block w-44 flex-shrink-0 bg-[#0d1220] border-r border-cyan-900/20 overflow-y-auto game-scrollbar">
             <div className="flex flex-col py-1">
-              {TABS.map(tab => {
+              {TABS.map((tab, idx) => {
                 const isActive = store.activeTab === tab.id;
                 const Icon = tab.icon;
+                // Add separator between sections: Dashboard/Guide (0-1) | Game tabs (2-13) | Meta tabs (14-15)
+                const showSeparatorBefore = idx === 2 || idx === 14;
                 return (
-                  <button
-                    key={tab.id}
-                    onClick={() => store.setActiveTab(tab.id)}
-                    className={`flex items-center gap-2 px-3 py-2 text-xs transition-all duration-200 group relative ${
-                      isActive
-                        ? 'bg-cyan-900/20 text-cyan-400 border-r-2 border-cyan-400'
-                        : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/30'
-                    }`}
-                  >
-                    <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? tab.color : ''}`} />
-                    <span className="truncate">{tab.label}</span>
-                    {tab.id === 'contracts' && store.contracts.filter(c => !c.completed && !c.failed).length > 0 && (
-                      <span className="ml-auto bg-rose-500/20 text-rose-400 text-[9px] px-1 rounded">
-                        {store.contracts.filter(c => !c.completed && !c.failed).length}
-                      </span>
+                  <div key={tab.id}>
+                    {showSeparatorBefore && (
+                      <div className="mx-3 my-1 border-t border-cyan-900/15" />
                     )}
-                    {tab.id === 'events' && store.activeEvents.length > 0 && (
-                      <span className="ml-auto bg-orange-500/20 text-orange-400 text-[9px] px-1 rounded">
-                        {store.activeEvents.length}
-                      </span>
-                    )}
-                  </button>
+                    <button
+                      onClick={() => store.setActiveTab(tab.id)}
+                      className={`sidebar-nav-item ${isActive ? 'active' : ''} flex items-center gap-2 px-3 py-2 text-xs transition-all duration-200 group relative ${
+                        isActive
+                          ? 'bg-cyan-900/15 text-cyan-400 border-r-[3px] border-cyan-400'
+                          : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/30'
+                      }`}
+                    >
+                      <Icon className={`sidebar-icon w-4 h-4 flex-shrink-0 ${isActive ? tab.color : ''}`} />
+                      <span className="truncate">{tab.label}</span>
+                      {tab.id === 'contracts' && store.contracts.filter(c => !c.completed && !c.failed).length > 0 && (
+                        <span className="ml-auto bg-rose-500/20 text-rose-400 text-[9px] px-1 rounded">
+                          {store.contracts.filter(c => !c.completed && !c.failed).length}
+                        </span>
+                      )}
+                      {tab.id === 'events' && store.activeEvents.length > 0 && (
+                        <span className="ml-auto bg-orange-500/20 text-orange-400 text-[9px] px-1 rounded">
+                          {store.activeEvents.length}
+                        </span>
+                      )}
+                    </button>
+                  </div>
                 );
               })}
             </div>
           </nav>
 
           {/* PANEL AREA - with bottom padding for mobile tab bar */}
-          <main className="flex-1 overflow-y-auto game-scrollbar p-2 lg:p-4 game-grid-bg pb-20 lg:pb-4">
-            {renderPanel()}
+          <main className="flex-1 overflow-y-auto game-scrollbar p-2 lg:p-4 game-grid-bg pb-20 lg:pb-4 relative">
+            <AmbientParticles />
+            <div className="relative z-10">
+              {renderPanel()}
+            </div>
           </main>
         </div>
 

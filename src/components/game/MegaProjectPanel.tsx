@@ -6,8 +6,13 @@ import { ResourceType } from '@/lib/game/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   Rocket, Lock, Check, ChevronRight, Sparkles, AlertTriangle,
-  Zap, ArrowUpRight, Cpu, Package, Trophy
+  Zap, ArrowUpRight, Cpu, Package, Trophy, Eye
 } from 'lucide-react';
 
 const PROJECT_COLORS: Record<string, { border: string; glow: string; bg: string; text: string; badge: string }> = {
@@ -26,6 +31,15 @@ const BONUS_ICONS: Record<string, React.ReactNode> = {
   unlimitedStorage: <Package className="w-3.5 h-3.5" />,
 };
 
+// Detailed bonus descriptions for tooltips
+const BONUS_DETAILS: Record<string, string> = {
+  transportMultiplier: 'All transport line throughput is doubled, making your logistics network twice as efficient.',
+  powerMultiplier: 'All power generation is tripled, providing massive energy for your expanding factory.',
+  researchMultiplier: 'Research speed is doubled, allowing you to unlock technologies twice as fast.',
+  productionMultiplier: 'All building production rates are doubled across your entire empire.',
+  unlimitedStorage: 'Resource storage capacity is removed - store unlimited amounts of any resource.',
+};
+
 export function MegaProjectPanel() {
   const store = useGameStore();
 
@@ -35,18 +49,6 @@ export function MegaProjectPanel() {
     if (req.research && store.completedResearch.length < req.research) return false;
     if (req.prestige && store.prestigeState.totalPrestiges < req.prestige) return false;
     return true;
-  };
-
-  const canContribute = (project: typeof store.megaProjects[0]) => {
-    if (!project.active || project.completed) return false;
-    const stage = project.stages[project.currentStage];
-    if (!stage || stage.completed) return false;
-    // Already contributed if progress > 0
-    if (project.progress > 0) return false;
-    return stage.requiredResources.every(r => {
-      if (r.resource === 'money') return store.money >= r.amount;
-      return store.resources[r.resource as ResourceType] >= r.amount;
-    });
   };
 
   const hasResources = (project: typeof store.megaProjects[0]) => {
@@ -61,6 +63,8 @@ export function MegaProjectPanel() {
 
   const completedCount = store.megaProjects.filter(p => p.completed).length;
   const activeCount = store.megaProjects.filter(p => p.active && !p.completed).length;
+  const unlockedCount = store.megaProjects.filter(p => isUnlocked(p) && !p.active && !p.completed).length;
+  const lockedCount = store.megaProjects.filter(p => !isUnlocked(p) && !p.completed).length;
 
   return (
     <div className="space-y-4">
@@ -84,6 +88,41 @@ export function MegaProjectPanel() {
               {activeCount} Active
             </Badge>
           )}
+        </div>
+      </div>
+
+      {/* Progress Summary Bar */}
+      <div className="game-card rounded-xl bg-[#111827] p-3 border border-[#1e293b]">
+        <div className="flex items-center justify-between text-[11px]">
+          <div className="flex items-center gap-3">
+            <span className="text-gray-500">Progress:</span>
+            <span className="flex items-center gap-1">
+              <Lock className="w-3 h-3 text-gray-600" />
+              <span className="text-gray-500">{lockedCount} Locked</span>
+            </span>
+            <span className="text-gray-700">|</span>
+            <span className="flex items-center gap-1">
+              <Eye className="w-3 h-3 text-cyan-500" />
+              <span className="text-cyan-400">{unlockedCount} Unlocked</span>
+            </span>
+            <span className="text-gray-700">|</span>
+            <span className="flex items-center gap-1">
+              <Zap className="w-3 h-3 text-fuchsia-500" />
+              <span className="text-fuchsia-400">{activeCount} In Progress</span>
+            </span>
+            <span className="text-gray-700">|</span>
+            <span className="flex items-center gap-1">
+              <Check className="w-3 h-3 text-green-500" />
+              <span className="text-green-400">{completedCount} Completed</span>
+            </span>
+          </div>
+        </div>
+        {/* Visual progress bar */}
+        <div className="flex h-2 rounded-full overflow-hidden bg-gray-800 mt-2">
+          {completedCount > 0 && <div className="bg-green-500 transition-all duration-500" style={{ width: `${(completedCount / store.megaProjects.length) * 100}%` }} />}
+          {activeCount > 0 && <div className="bg-fuchsia-500 transition-all duration-500" style={{ width: `${(activeCount / store.megaProjects.length) * 100}%` }} />}
+          {unlockedCount > 0 && <div className="bg-cyan-500/50 transition-all duration-500" style={{ width: `${(unlockedCount / store.megaProjects.length) * 100}%` }} />}
+          {/* Locked = remaining space */}
         </div>
       </div>
 
@@ -115,11 +154,10 @@ export function MegaProjectPanel() {
       )}
 
       {/* MegaProject Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 relative">
         {store.megaProjects.map(project => {
           const colors = PROJECT_COLORS[project.type];
           const unlocked = isUnlocked(project);
-          const currentStage = project.stages[project.currentStage];
 
           return (
             <div
@@ -131,7 +169,7 @@ export function MegaProjectPanel() {
                     ? `${colors.border}`
                     : unlocked
                       ? 'border-gray-800'
-                      : 'border-gray-800/50 opacity-70'
+                      : 'border-gray-800/50 opacity-80'
               }`}
               style={
                 project.completed
@@ -142,7 +180,7 @@ export function MegaProjectPanel() {
               }
             >
               <div className="p-4 lg:p-5">
-                {/* Project Header */}
+                {/* Project Header - ALWAYS show name and emoji */}
                 <div className="flex items-start gap-3 mb-3">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
                     project.completed
@@ -153,12 +191,12 @@ export function MegaProjectPanel() {
                           ? 'bg-gray-800/50'
                           : 'bg-gray-900/50'
                   }`}>
-                    {project.completed ? project.emoji : unlocked ? project.emoji : <Lock className="w-5 h-5 text-gray-600" />}
+                    <span className={unlocked || project.completed ? '' : 'opacity-50 grayscale'}>{project.emoji}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className={`text-sm font-bold ${project.completed ? colors.text : unlocked ? 'text-gray-100' : 'text-gray-500'}`}>
-                        {unlocked || project.completed ? project.name : '???'}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className={`text-sm font-bold ${project.completed ? colors.text : unlocked ? 'text-gray-100' : 'text-gray-400'}`}>
+                        {project.name}
                       </h3>
                       {project.completed && (
                         <Badge className="bg-green-600/20 text-green-400 border-green-500/30 text-[9px] px-1.5">
@@ -170,12 +208,41 @@ export function MegaProjectPanel() {
                           <Zap className="w-2.5 h-2.5 mr-0.5" /> ACTIVE
                         </Badge>
                       )}
+                      {!unlocked && !project.completed && (
+                        <Badge className="bg-gray-800/50 text-gray-400 border-gray-600/30 text-[9px] px-1.5">
+                          <Lock className="w-2.5 h-2.5 mr-0.5" /> LOCKED
+                        </Badge>
+                      )}
+                      {unlocked && !project.active && !project.completed && (
+                        <Badge className="bg-cyan-900/20 text-cyan-400 border-cyan-500/30 text-[9px] px-1.5">
+                          <Eye className="w-2.5 h-2.5 mr-0.5" /> UNLOCKED
+                        </Badge>
+                      )}
                     </div>
-                    <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-2">
-                      {unlocked || project.completed ? project.description : 'Meet unlock requirements to reveal this project'}
+                    <p className={`text-[11px] mt-0.5 line-clamp-2 ${unlocked || project.completed ? 'text-gray-500' : 'text-gray-600'}`}>
+                      {project.description}
                     </p>
                   </div>
                 </div>
+
+                {/* Bonus Preview with Tooltip - shown for ALL projects */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className={`${project.completed ? 'bg-green-900/10 border-green-500/30' : unlocked ? `${colors.bg} ${colors.border}` : 'bg-gray-900/30 border-gray-700/30'} rounded-lg p-2.5 mb-3 border cursor-help`}>
+                      <div className="text-[10px] text-gray-500 mb-0.5">
+                        {project.completed ? 'Permanent Bonus Active' : 'Completion Bonus'}
+                      </div>
+                      <div className={`text-xs font-medium flex items-center gap-1.5 ${project.completed ? 'text-green-400' : unlocked ? colors.text : 'text-gray-500'}`}>
+                        {BONUS_ICONS[project.bonus.type]}
+                        {project.bonus.description}
+                      </div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="bg-[#111827] border-fuchsia-900/30 max-w-xs">
+                    <p className="text-xs text-gray-300">{BONUS_DETAILS[project.bonus.type] ?? project.bonus.description}</p>
+                    <p className="text-[10px] text-fuchsia-400 mt-1">Bonus value: +{(project.bonus.value * 100).toFixed(0)}%</p>
+                  </TooltipContent>
+                </Tooltip>
 
                 {/* Unlock Requirements (if locked) */}
                 {!unlocked && !project.completed && (
@@ -203,142 +270,124 @@ export function MegaProjectPanel() {
                   </div>
                 )}
 
-                {/* Bonus Preview */}
-                {unlocked && !project.completed && (
-                  <div className={`${colors.bg} rounded-lg p-2.5 mb-3 border ${colors.border}`}>
-                    <div className="text-[10px] text-gray-500 mb-0.5">Completion Bonus</div>
-                    <div className={`text-xs font-medium ${colors.text} flex items-center gap-1.5`}>
-                      {BONUS_ICONS[project.bonus.type]}
-                      {project.bonus.description}
-                    </div>
-                  </div>
-                )}
-
-                {/* Completed Bonus */}
-                {project.completed && (
-                  <div className="bg-green-900/10 rounded-lg p-2.5 mb-3 border border-green-500/30">
-                    <div className="text-[10px] text-green-400/60 mb-0.5">Permanent Bonus Active</div>
-                    <div className="text-xs font-medium text-green-400 flex items-center gap-1.5">
-                      {BONUS_ICONS[project.bonus.type]}
-                      {project.bonus.description}
-                    </div>
-                  </div>
-                )}
-
                 {/* Stage Progress (if active) */}
-                {project.active && !project.completed && currentStage && (
-                  <>
-                    {/* Stage Indicators */}
-                    <div className="flex items-center gap-1 mb-3">
-                      {project.stages.map((s, i) => (
-                        <div key={i} className="flex items-center gap-1 flex-1">
-                          <div className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${
-                            s.completed
-                              ? `bg-green-500`
-                              : i === project.currentStage
-                                ? `${colors.bg.replace('/10', '/30')} ${colors.text.replace('text-', 'bg-').replace('400', '500')}`
-                                : 'bg-gray-800'
-                          }`} style={i === project.currentStage && !s.completed ? {
-                            background: `linear-gradient(90deg, ${project.type === 'spaceElevator' ? '#f97316' : project.type === 'dysonSphere' ? '#eab308' : project.type === 'quantumInternet' ? '#06b6d4' : project.type === 'fusionCity' ? '#d946ef' : '#10b981'} ${project.progress * 100}%, #1f2937 ${project.progress * 100}%)`,
-                          } : undefined} />
-                          {i < project.stages.length - 1 && (
-                            <ChevronRight className="w-3 h-3 text-gray-700 flex-shrink-0" />
-                          )}
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Current Stage Info */}
-                    <div className="bg-[#0a0e17] rounded-lg p-3 mb-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="text-[11px] font-medium text-gray-300">
-                          Stage {project.currentStage + 1}/{project.stages.length}: {currentStage.name}
-                        </div>
-                        <div className={`text-[10px] font-mono ${colors.text}`}>
-                          {(project.progress * 100).toFixed(1)}%
-                        </div>
+                {project.active && !project.completed && (() => {
+                  const currentStage = project.stages[project.currentStage];
+                  if (!currentStage || currentStage.completed) return null;
+                  return (
+                    <>
+                      {/* Stage Indicators */}
+                      <div className="flex items-center gap-1 mb-3">
+                        {project.stages.map((s, i) => (
+                          <div key={i} className="flex items-center gap-1 flex-1">
+                            <div className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${
+                              s.completed
+                                ? `bg-green-500`
+                                : i === project.currentStage
+                                  ? `${colors.bg.replace('/10', '/30')} ${colors.text.replace('text-', 'bg-').replace('400', '500')}`
+                                  : 'bg-gray-800'
+                            }`} style={i === project.currentStage && !s.completed ? {
+                              background: `linear-gradient(90deg, ${project.type === 'spaceElevator' ? '#f97316' : project.type === 'dysonSphere' ? '#eab308' : project.type === 'quantumInternet' ? '#06b6d4' : project.type === 'fusionCity' ? '#d946ef' : '#10b981'} ${project.progress * 100}%, #1f2937 ${project.progress * 100}%)`,
+                            } : undefined} />
+                            {i < project.stages.length - 1 && (
+                              <ChevronRight className="w-3 h-3 text-gray-700 flex-shrink-0" />
+                            )}
+                          </div>
+                        ))}
                       </div>
 
-                      {/* Progress Bar */}
-                      <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden mb-3">
-                        <div
-                          className="h-full rounded-full transition-all duration-300"
-                          style={{
-                            width: `${project.progress * 100}%`,
-                            background: project.type === 'spaceElevator' ? 'linear-gradient(90deg, #f97316, #fb923c)' :
-                              project.type === 'dysonSphere' ? 'linear-gradient(90deg, #eab308, #facc15)' :
-                              project.type === 'quantumInternet' ? 'linear-gradient(90deg, #06b6d4, #22d3ee)' :
-                              project.type === 'fusionCity' ? 'linear-gradient(90deg, #d946ef, #e879f9)' :
-                              'linear-gradient(90deg, #10b981, #34d399)',
-                          }}
-                        />
-                      </div>
+                      {/* Current Stage Info */}
+                      <div className="bg-[#0a0e17] rounded-lg p-3 mb-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-[11px] font-medium text-gray-300">
+                            Stage {project.currentStage + 1}/{project.stages.length}: {currentStage.name}
+                          </div>
+                          <div className={`text-[10px] font-mono ${colors.text}`}>
+                            {(project.progress * 100).toFixed(1)}%
+                          </div>
+                        </div>
 
-                      {/* Required Resources */}
-                      <div className="space-y-1.5">
-                        <div className="text-[10px] text-gray-500">Required Resources</div>
-                        {currentStage.requiredResources.map((r, i) => {
-                          const resKey = r.resource as ResourceType;
-                          const meta = RESOURCE_META[resKey];
-                          const current = r.resource === 'money' ? store.money : store.resources[resKey] ?? 0;
-                          const enough = current >= r.amount;
+                        {/* Progress Bar */}
+                        <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden mb-3">
+                          <div
+                            className="h-full rounded-full transition-all duration-300"
+                            style={{
+                              width: `${project.progress * 100}%`,
+                              background: project.type === 'spaceElevator' ? 'linear-gradient(90deg, #f97316, #fb923c)' :
+                                project.type === 'dysonSphere' ? 'linear-gradient(90deg, #eab308, #facc15)' :
+                                project.type === 'quantumInternet' ? 'linear-gradient(90deg, #06b6d4, #22d3ee)' :
+                                project.type === 'fusionCity' ? 'linear-gradient(90deg, #d946ef, #e879f9)' :
+                                'linear-gradient(90deg, #10b981, #34d399)',
+                            }}
+                          />
+                        </div>
 
-                          return (
-                            <div key={i} className="flex items-center justify-between text-[11px]">
-                              <div className="flex items-center gap-1.5">
-                                {meta ? <span>{meta.emoji}</span> : <span>💰</span>}
-                                <span className="text-gray-400">{meta?.name ?? 'Money'}</span>
+                        {/* Required Resources */}
+                        <div className="space-y-1.5">
+                          <div className="text-[10px] text-gray-500">Required Resources</div>
+                          {currentStage.requiredResources.map((r, i) => {
+                            const resKey = r.resource as ResourceType;
+                            const meta = RESOURCE_META[resKey];
+                            const current = r.resource === 'money' ? store.money : store.resources[resKey] ?? 0;
+                            const enough = current >= r.amount;
+
+                            return (
+                              <div key={i} className="flex items-center justify-between text-[11px]">
+                                <div className="flex items-center gap-1.5">
+                                  {meta ? <span>{meta.emoji}</span> : <span>💰</span>}
+                                  <span className="text-gray-400">{meta?.name ?? 'Money'}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <span className={enough ? 'text-green-400' : 'text-red-400'}>
+                                    {formatNumber(current)}
+                                  </span>
+                                  <span className="text-gray-600">/</span>
+                                  <span className={enough ? 'text-gray-300' : 'text-red-300'}>
+                                    {formatNumber(r.amount)}
+                                  </span>
+                                  {enough ? (
+                                    <Check className="w-3 h-3 text-green-500" />
+                                  ) : (
+                                    <AlertTriangle className="w-3 h-3 text-red-500" />
+                                  )}
+                                </div>
                               </div>
-                              <div className="flex items-center gap-1">
-                                <span className={enough ? 'text-green-400' : 'text-red-400'}>
-                                  {formatNumber(current)}
-                                </span>
-                                <span className="text-gray-600">/</span>
-                                <span className={enough ? 'text-gray-300' : 'text-red-300'}>
-                                  {formatNumber(r.amount)}
-                                </span>
-                                {enough ? (
-                                  <Check className="w-3 h-3 text-green-500" />
-                                ) : (
-                                  <AlertTriangle className="w-3 h-3 text-red-500" />
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {/* Time estimate */}
-                      <div className="mt-2 text-[10px] text-gray-600">
-                        ⏱ Est. {currentStage.timeRequired} ticks ({(currentStage.timeRequired / 60).toFixed(0)} min at 1x)
-                      </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-2">
-                      {project.progress === 0 ? (
-                        <Button
-                          onClick={() => store.contributeToMegaProject(project.type)}
-                          disabled={!hasResources(project)}
-                          className={`flex-1 text-xs h-8 ${
-                            hasResources(project)
-                              ? 'bg-fuchsia-600 hover:bg-fuchsia-500 text-white'
-                              : 'bg-gray-800 text-gray-500'
-                          }`}
-                          size="sm"
-                        >
-                          <Sparkles className="w-3 h-3 mr-1" />
-                          {hasResources(project) ? 'Contribute Resources' : 'Insufficient Resources'}
-                        </Button>
-                      ) : (
-                        <div className="flex-1 text-center text-[11px] text-gray-400 flex items-center justify-center gap-1.5">
-                          <span className={`inline-block w-2 h-2 rounded-full ${colors.text.replace('text-', 'bg-')}`} style={{ animation: 'neonPulse 2s ease-in-out infinite' }} />
-                          Construction in progress...
+                            );
+                          })}
                         </div>
-                      )}
-                    </div>
-                  </>
-                )}
+
+                        {/* Time estimate */}
+                        <div className="mt-2 text-[10px] text-gray-600">
+                          ⏱ Est. {currentStage.timeRequired} ticks ({(currentStage.timeRequired / 60).toFixed(0)} min at 1x)
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center gap-2">
+                        {project.progress === 0 ? (
+                          <Button
+                            onClick={() => store.contributeToMegaProject(project.type)}
+                            disabled={!hasResources(project)}
+                            className={`flex-1 text-xs h-8 ${
+                              hasResources(project)
+                                ? 'bg-fuchsia-600 hover:bg-fuchsia-500 text-white'
+                                : 'bg-gray-800 text-gray-500'
+                            }`}
+                            size="sm"
+                          >
+                            <Sparkles className="w-3 h-3 mr-1" />
+                            {hasResources(project) ? 'Contribute Resources' : 'Insufficient Resources'}
+                          </Button>
+                        ) : (
+                          <div className="flex-1 text-center text-[11px] text-gray-400 flex items-center justify-center gap-1.5">
+                            <span className={`inline-block w-2 h-2 rounded-full ${colors.text.replace('text-', 'bg-')}`} style={{ animation: 'neonPulse 2s ease-in-out infinite' }} />
+                            Construction in progress...
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
 
                 {/* Start Button (if unlocked but not active) */}
                 {unlocked && !project.active && !project.completed && (
@@ -389,6 +438,9 @@ export function MegaProjectPanel() {
             </div>
           );
         })}
+
+        {/* Gradient scroll indicator at bottom of project grid */}
+        <div className="hidden lg:block absolute bottom-0 left-0 right-0 h-8 pointer-events-none bg-gradient-to-t from-[#0a0e17] to-transparent opacity-50" />
       </div>
 
       {/* Info Section */}

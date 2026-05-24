@@ -266,8 +266,8 @@ export interface MegaProject {
 export interface Blueprint {
   id: string;
   name: string;
-  buildings: { type: BuildingType; position: { x: number; y: number } }[];
-  transportLines: { type: TransportType; from: number; to: number }[];
+  buildings: { type: BuildingType; count: number }[];
+  transportLines: { type: TransportType; count: number }[];
   savedAt: number;
   shared: boolean;
   likes: number;
@@ -336,13 +336,25 @@ export interface GameState {
   // MegaProjects
   megaProjects: MegaProject[];
 
+  // Blueprints
+  blueprints: Blueprint[];
+
+  // Production History
+  productionHistory: {
+    timestamp: number;
+    resources: Record<ResourceType, number>;
+    money: number;
+    powerProduction: number;
+    powerConsumption: number;
+  }[];
+
   // UI State
   activeTab: GameTab;
   selectedBuilding: string | null;
   notifications: GameNotification[];
 }
 
-export type GameTab = 'dashboard' | 'resources' | 'factories' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'contracts' | 'automation' | 'prestige' | 'events' | 'megaprojects' | 'blueprints' | 'guide' | 'achievements';
+export type GameTab = 'dashboard' | 'resources' | 'factories' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'contracts' | 'automation' | 'prestige' | 'events' | 'megaprojects' | 'statistics' | 'blueprints' | 'guide' | 'achievements' | 'settings';
 
 export interface GameNotification {
   id: string;
