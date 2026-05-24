@@ -915,7 +915,19 @@ export const CONTRACT_TEMPLATES = [
   { name: 'Gear Supply', description: 'Supply gears for manufacturing plant', type: 'supply' as const, requiredResources: [{ resource: 'gear' as ResourceType, amount: 80 }], timeLimit: 300, difficulty: 2, emoji: '⚙️' },
 ];
 
-// --- Production Chain Visualization Data ---
+// --- Rank Thresholds ---
+export const RANK_THRESHOLDS = [
+  { name: 'Apprentice', minScore: 0, emoji: '👷', color: '#a0a0a0' },
+  { name: 'Foreman', minScore: 100, emoji: '🧑‍🏭', color: '#4ade80' },
+  { name: 'Manager', minScore: 500, emoji: '👔', color: '#22d3ee' },
+  { name: 'Director', minScore: 2000, emoji: '🎖️', color: '#facc15' },
+  { name: 'VP of Operations', minScore: 8000, emoji: '🏅', color: '#fb923c' },
+  { name: 'CEO', minScore: 25000, emoji: '👑', color: '#f472b6' },
+  { name: 'Tycoon', minScore: 100000, emoji: '💎', color: '#a78bfa' },
+  { name: 'Magnate', minScore: 500000, emoji: '🌟', color: '#fbbf24' },
+  { name: 'Industrial Legend', minScore: 2000000, emoji: '⚡', color: '#00fff2' },
+];
+
 export const PRODUCTION_CHAINS = [
   { name: 'Basic Iron', steps: ['iron', 'ironPlate', 'gear', 'engine'], color: '#a0a0a0' },
   { name: 'Steel Production', steps: ['iron', 'ironPlate', 'steel', 'advancedAlloy'], color: '#708090' },

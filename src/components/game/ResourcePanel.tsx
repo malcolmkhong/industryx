@@ -452,6 +452,34 @@ export function ResourcePanel() {
                         </div>
                       </div>
                     )}
+
+                    {/* Storage upgrade button */}
+                    <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-gray-800/50">
+                      <div className="flex items-center gap-1">
+                        <Package className="w-2.5 h-2.5 text-gray-500" />
+                        <span className="text-[9px] text-gray-500">
+                          Lv.{store.storageUpgradeLevels[resource] ?? 0}
+                        </span>
+                      </div>
+                      {(() => {
+                        const currentLevel = store.storageUpgradeLevels[resource] ?? 0;
+                        const upgradeCost = Math.floor(100 * Math.pow(1.5, currentLevel));
+                        const canAfford = store.money >= upgradeCost;
+                        return (
+                          <button
+                            onClick={() => store.upgradeStorage(resource, 1)}
+                            disabled={!canAfford}
+                            className={`text-[9px] px-1.5 py-0.5 rounded transition-colors ${
+                              canAfford
+                                ? 'text-cyan-400 bg-cyan-900/20 hover:bg-cyan-900/40 border border-cyan-800/40'
+                                : 'text-gray-600 bg-gray-800/30 border border-gray-800/30 cursor-not-allowed'
+                            }`}
+                          >
+                            +50% (${formatNumber(upgradeCost)})
+                          </button>
+                        );
+                      })()}
+                    </div>
                   </div>
                 );
               })}

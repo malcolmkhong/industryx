@@ -15,12 +15,12 @@ import {
   BUILDING_DEFS, TRANSPORT_DEFS, WORKER_DEFS, INITIAL_MARKET,
   RESEARCH_TREE, AUTOMATION_UNLOCKS, PRESTIGE_BONUSES,
   EVENT_TEMPLATES, CONTRACT_TEMPLATES, RESOURCE_META,
-  INITIAL_MEGA_PROJECTS,
+  INITIAL_MEGA_PROJECTS, RANK_THRESHOLDS,
 } from './data';
 import { soundEngine } from './soundEngine';
 
 // --- Save Version ---
-const SAVE_VERSION = 2;
+const SAVE_VERSION = 3;
 
 // --- Utility Functions ---
 function generateId(): string {
@@ -78,8 +78,22 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
     }
   }
 
-  // Future migrations can be added here:
-  // if (version < 3) { ... }
+  // V2 → V3: Add storageUpgradeLevels and lastOnlineTimestamp
+  if (version < 3) {
+    if (!state.storageUpgradeLevels) {
+      const zeroUpgrades: Record<string, number> = {};
+      (Object.keys(initialResources) as ResourceType[]).forEach(r => {
+        zeroUpgrades[r] = 0;
+      });
+      state.storageUpgradeLevels = zeroUpgrades;
+    }
+    if (!state.lastOnlineTimestamp) {
+      state.lastOnlineTimestamp = Date.now();
+    }
+    if (!state.autoSellResources) {
+      state.autoSellResources = [];
+    }
+  }
 
   state._version = SAVE_VERSION;
   return state;
@@ -137,6 +151,9 @@ function createInitialState(): GameState {
     megaProjects: INITIAL_MEGA_PROJECTS.map(p => ({ ...p, stages: p.stages.map(s => ({ ...s })) })),
     productionHistory: [],
     blueprints: [],
+    autoSellResources: [],
+    storageUpgradeLevels: { ...initialResources },
+    lastOnlineTimestamp: Date.now(),
     activeTab: 'dashboard',
     selectedBuilding: null,
     notifications: [],
@@ -173,6 +190,7 @@ interface GameActions {
   // Market
   sellResource: (resource: ResourceType, amount: number) => void;
   buyResource: (resource: ResourceType, amount: number) => void;
+  toggleAutoSell: (resource: ResourceType) => void;
   
   // Contracts
   acceptContract: (contract: Contract) => void;
@@ -204,6 +222,16 @@ interface GameActions {
   renameBlueprint: (id: string, name: string) => void;
   exportBlueprint: (id: string) => string;
   importBlueprint: (code: string) => boolean;
+
+  // Storage
+  upgradeStorage: (resource: ResourceType, levels: number) => void;
+
+  // Offline
+  calculateOfflineProgress: () => { resources: Record<ResourceType, number>; money: number; ticksElapsed: number } | null;
+  collectOfflineProgress: (offlineData: { resources: Record<ResourceType, number>; money: number; ticksElapsed: number }) => void;
+
+  // Rank
+  getCurrentRank: () => { name: string; emoji: string; color: string; score: number; nextRankScore: number | null; progress: number };
 
   // Reset
   resetGame: () => void;
@@ -554,6 +582,26 @@ export const useGameStore = create<GameStore>()(
           });
         }
 
+        // Auto-sell specific resources when > 80% capacity
+        if (state.autoSellResources.length > 0) {
+          state.autoSellResources.forEach(r => {
+            const threshold = state.resourceCapacity[r] * 0.8;
+            const excess = newResources[r] - threshold;
+            if (excess > 0) {
+              const marketItem = newMarket.find(m => m.resource === r);
+              if (marketItem) {
+                const marketBonus = state.completedResearch.includes('marketAnalysis') ? 0.2 : 0;
+                const prestigeMarketBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'marketMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
+                const sellPrice = marketItem.currentPrice * (0.9 + marketBonus + prestigeMarketBonus);
+                const sellAmount = Math.min(excess, 10);
+                newResources[r] -= sellAmount;
+                moneyEarned += sellAmount * sellPrice;
+                newStats.totalResourcesSold[r] += sellAmount;
+              }
+            }
+          });
+        }
+
         const currentEfficiency = effectivePowerEfficiency * transportEfficiency * eventProductionMultiplier;
         const newPeakEfficiency = Math.max(state.stats.peakEfficiency, currentEfficiency);
 
@@ -635,6 +683,7 @@ export const useGameStore = create<GameStore>()(
           megaProjects: newMegaProjects,
           productionHistory: newHistory,
           notifications: [...notifications, ...state.notifications.slice(-20)],
+          lastOnlineTimestamp: Date.now(),
         });
       },
 
@@ -918,6 +967,16 @@ export const useGameStore = create<GameStore>()(
         get().addNotification('info', `Bought ${formatNumber(amount)} ${RESOURCE_META[resource].name} for $${formatNumber(cost)}`);
       },
 
+      toggleAutoSell: (resource: ResourceType) => {
+        const state = get();
+        const current = state.autoSellResources;
+        if (current.includes(resource)) {
+          set({ autoSellResources: current.filter(r => r !== resource) });
+        } else {
+          set({ autoSellResources: [...current, resource] });
+        }
+      },
+
       // --- CONTRACT ACTIONS ---
       acceptContract: (contract: Contract) => {
         const state = get();
@@ -1071,6 +1130,8 @@ export const useGameStore = create<GameStore>()(
           automationUnlocks: state.automationUnlocks,
           prestigeState: state.prestigeState,
           stats: state.stats,
+          storageUpgradeLevels: state.storageUpgradeLevels,
+          lastOnlineTimestamp: state.lastOnlineTimestamp,
           _version: SAVE_VERSION,
           _exportedAt: Date.now(),
         };
@@ -1124,6 +1185,146 @@ export const useGameStore = create<GameStore>()(
       },
 
       resetGame: () => set(createInitialState()),
+
+      // --- STORAGE UPGRADE ACTIONS ---
+      upgradeStorage: (resource: ResourceType, levels: number) => {
+        const state = get();
+        const currentLevel = state.storageUpgradeLevels[resource] ?? 0;
+        let totalCost = 0;
+        for (let i = 0; i < levels; i++) {
+          totalCost += Math.floor(100 * Math.pow(1.5, currentLevel + i));
+        }
+
+        if (state.money < totalCost) {
+          soundEngine.play('error', 'ui');
+          get().addNotification('error', `Not enough money! Need $${formatNumber(totalCost)} to upgrade storage`);
+          return;
+        }
+
+        const baseCapacity = initialCapacity[resource];
+        const addedCapacity = baseCapacity * 0.5 * levels;
+        const newCapacity = { ...state.resourceCapacity, [resource]: state.resourceCapacity[resource] + addedCapacity };
+        const newUpgradeLevels = { ...state.storageUpgradeLevels, [resource]: currentLevel + levels };
+
+        set({
+          money: state.money - totalCost,
+          resourceCapacity: newCapacity,
+          storageUpgradeLevels: newUpgradeLevels,
+        });
+        soundEngine.play('buildingPlaced', 'building');
+        get().addNotification('success', `Upgraded ${RESOURCE_META[resource].name} storage to +${Math.floor(addedCapacity)} capacity`);
+      },
+
+      // --- OFFLINE PROGRESS ---
+      calculateOfflineProgress: () => {
+        const state = get();
+        const now = Date.now();
+        const elapsed = now - state.lastOnlineTimestamp;
+        if (elapsed < 5000) return null; // Less than 5 seconds, ignore
+
+        const ticksElapsed = Math.min(Math.floor(elapsed / 1000), 36000); // Cap at 10 hours
+        if (ticksElapsed <= 0) return null;
+
+        // Calculate current production rates
+        const offlineResources: Record<ResourceType, number> = { ...initialResources };
+        let offlineMoney = 0;
+
+        // Apply 50% offline rate
+        const offlineRate = 0.5;
+
+        // Offline production bonus from prestige
+        const offlinePrestigeBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'offlineMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
+        const effectiveOfflineRate = offlineRate * (1 + offlinePrestigeBonus);
+
+        // Calculate production per tick for each building
+        state.buildings.forEach(b => {
+          if (!b.active) return;
+          const def = BUILDING_DEFS[b.type];
+          if (!def || !def.outputs) return;
+
+          if (def.category === 'extractor') {
+            def.outputs.forEach(output => {
+              if (output.resource === 'money') return;
+              const res = output.resource as ResourceType;
+              const produced = output.amount * b.level * b.efficiency * effectiveOfflineRate * ticksElapsed;
+              offlineResources[res] += produced;
+            });
+          }
+        });
+
+        // Apply capacity limits to offline resources
+        (Object.keys(offlineResources) as ResourceType[]).forEach(r => {
+          offlineResources[r] = Math.min(offlineResources[r], Math.max(0, state.resourceCapacity[r] - state.resources[r]));
+        });
+
+        // Calculate offline money from market sales (reduced rate)
+        if (state.automationUnlocks.find(a => a.type === 'autoTrading' && a.active)) {
+          (Object.keys(state.resources) as ResourceType[]).forEach(r => {
+            const excess = state.resources[r] - state.resourceCapacity[r] * 0.5;
+            if (excess > 0) {
+              const marketPrice = state.market.find(m => m.resource === r)?.currentPrice ?? 0;
+              const sellAmount = Math.min(excess, Math.floor(ticksElapsed * 0.1));
+              offlineMoney += sellAmount * marketPrice * 0.7;
+            }
+          });
+        }
+
+        return {
+          resources: offlineResources,
+          money: offlineMoney,
+          ticksElapsed,
+        };
+      },
+
+      collectOfflineProgress: (offlineData) => {
+        const state = get();
+        const newResources = { ...state.resources };
+        (Object.keys(offlineData.resources) as ResourceType[]).forEach(r => {
+          newResources[r] = Math.min(state.resourceCapacity[r], newResources[r] + offlineData.resources[r]);
+        });
+
+        set({
+          resources: newResources,
+          money: state.money + offlineData.money,
+          totalMoneyEarned: state.totalMoneyEarned + offlineData.money,
+          lastOnlineTimestamp: Date.now(),
+        });
+      },
+
+      // --- RANK SYSTEM ---
+      getCurrentRank: () => {
+        const state = get();
+        const score = Math.floor(
+          state.totalMoneyEarned +
+          state.buildings.length * 100 +
+          state.completedResearch.length * 200 +
+          state.stats.contractsCompleted * 50 +
+          state.prestigeState.totalPrestiges * 500
+        );
+
+        let currentRank = RANK_THRESHOLDS[0];
+        let nextRank = RANK_THRESHOLDS[1] ?? null;
+        for (let i = RANK_THRESHOLDS.length - 1; i >= 0; i--) {
+          if (score >= RANK_THRESHOLDS[i].minScore) {
+            currentRank = RANK_THRESHOLDS[i];
+            nextRank = RANK_THRESHOLDS[i + 1] ?? null;
+            break;
+          }
+        }
+
+        const progress = nextRank
+          ? (score - currentRank.minScore) / (nextRank.minScore - currentRank.minScore)
+          : 1;
+
+        return {
+          name: currentRank.name,
+          emoji: currentRank.emoji,
+          color: currentRank.color,
+          score,
+          nextRankScore: nextRank ? nextRank.minScore : null,
+          progress: Math.min(1, Math.max(0, progress)),
+        };
+      },
 
       // --- MEGAPROJECT ACTIONS ---
       startMegaProject: (type: MegaProjectType) => {
@@ -1400,9 +1601,12 @@ export const useGameStore = create<GameStore>()(
         megaProjects: state.megaProjects,
         productionHistory: state.productionHistory,
         blueprints: state.blueprints,
+        autoSellResources: state.autoSellResources,
+        storageUpgradeLevels: state.storageUpgradeLevels,
+        lastOnlineTimestamp: state.lastOnlineTimestamp,
         _version: SAVE_VERSION,
       }),
-      version: 2,
+      version: 3,
       migrate: (persistedState: unknown) => {
         return migrateSaveState(persistedState as Record<string, unknown>);
       },

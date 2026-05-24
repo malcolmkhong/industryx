@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/store';
-import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE, PRODUCTION_CHAINS } from '@/lib/game/data';
+import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE, PRODUCTION_CHAINS, RANK_THRESHOLDS } from '@/lib/game/data';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,7 @@ import {
   Factory, Users, Zap, TrendingUp, AlertTriangle, FlaskConical,
   ChevronRight, Activity, Pickaxe, Cog, Shield, Clock, Bell,
   ArrowUpRight, ArrowDownRight, Minus, Timer, Power, Sparkles,
-  Database, Wrench, Globe, ArrowRight
+  Database, Wrench, Globe, ArrowRight, Trophy, Package
 } from 'lucide-react';
 import { BuildingType, ResourceType } from '@/lib/game/types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -96,6 +96,9 @@ export function DashboardPanel() {
 
   return (
     <div className="space-y-4">
+      {/* RANK BAR */}
+      <RankBar store={store} />
+
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <div>
@@ -817,6 +820,96 @@ function BuildingCategoryRow({
             className={`h-full ${bgColor} rounded-full transition-all duration-500`}
             style={{ width: `${pct}%` }}
           />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Rank Bar Component ---
+function RankBar({ store }: { store: ReturnType<typeof useGameStore> }) {
+  const rank = store.getCurrentRank();
+
+  return (
+    <div
+      className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b] relative overflow-hidden"
+      style={{ borderColor: `${rank.color}30` }}
+    >
+      {/* Background glow */}
+      <div
+        className="absolute inset-0 opacity-[0.03]"
+        style={{ background: `radial-gradient(ellipse at 20% 50%, ${rank.color}, transparent 70%)` }}
+      />
+
+      <div className="relative z-10 flex items-center gap-4">
+        {/* Rank emoji */}
+        <div
+          className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl border"
+          style={{
+            borderColor: `${rank.color}44`,
+            backgroundColor: `${rank.color}15`,
+            boxShadow: `0 0 20px ${rank.color}20`,
+          }}
+        >
+          {rank.emoji}
+        </div>
+
+        {/* Rank info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="text-base font-bold tracking-wide" style={{ color: rank.color }}>
+              {rank.name}
+            </h3>
+            <span className="text-[10px] text-gray-500 font-mono">
+              Score: {formatNumber(rank.score)}
+            </span>
+          </div>
+
+          {/* Progress bar to next rank */}
+          {rank.nextRankScore !== null ? (
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] text-gray-500">
+                  Next: {RANK_THRESHOLDS.find(r => r.minScore === rank.nextRankScore)?.emoji} {RANK_THRESHOLDS.find(r => r.minScore === rank.nextRankScore)?.name}
+                </span>
+                <span className="text-[10px] font-mono" style={{ color: rank.color }}>
+                  {formatNumber(rank.nextRankScore - rank.score)} pts to go
+                </span>
+              </div>
+              <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-700"
+                  style={{
+                    width: `${rank.progress * 100}%`,
+                    backgroundColor: rank.color,
+                    boxShadow: `0 0 8px ${rank.color}66`,
+                  }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-b from-white/15 to-transparent" />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold" style={{ color: rank.color }}>
+                MAX RANK ACHIEVED
+              </span>
+              <Sparkles className="w-3.5 h-3.5" style={{ color: rank.color }} />
+            </div>
+          )}
+        </div>
+
+        {/* Quick storage upgrade button */}
+        <div className="hidden sm:flex flex-col items-center gap-1">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-auto px-3 py-1.5 text-[10px] border-gray-700 text-gray-400 hover:text-cyan-400 hover:border-cyan-700"
+            onClick={() => store.setActiveTab('resources')}
+          >
+            <Package className="w-3 h-3 mr-1" />
+            Upgrade Storage
+          </Button>
         </div>
       </div>
     </div>

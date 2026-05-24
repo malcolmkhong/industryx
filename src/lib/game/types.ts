@@ -348,13 +348,22 @@ export interface GameState {
     powerConsumption: number;
   }[];
 
+  // Auto-Sell Resources
+  autoSellResources: ResourceType[];
+
+  // Storage Upgrades
+  storageUpgradeLevels: Record<ResourceType, number>;
+
+  // Offline Progress
+  lastOnlineTimestamp: number;
+
   // UI State
   activeTab: GameTab;
   selectedBuilding: string | null;
   notifications: GameNotification[];
 }
 
-export type GameTab = 'dashboard' | 'resources' | 'factories' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'contracts' | 'automation' | 'prestige' | 'events' | 'megaprojects' | 'statistics' | 'blueprints' | 'guide' | 'achievements' | 'settings';
+export type GameTab = 'dashboard' | 'factoryMap' | 'resources' | 'factories' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'contracts' | 'automation' | 'prestige' | 'events' | 'megaprojects' | 'statistics' | 'blueprints' | 'guide' | 'achievements' | 'settings';
 
 export interface GameNotification {
   id: string;

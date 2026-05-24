@@ -22,6 +22,7 @@ import { AchievementPanel } from '@/components/game/AchievementPanel';
 import { MegaProjectPanel } from '@/components/game/MegaProjectPanel';
 import { SettingsPanel } from '@/components/game/SettingsPanel';
 import StatisticsPanel from '@/components/game/StatisticsPanel';
+import FactoryMapPanel from '@/components/game/FactoryMapPanel';
 import GameToast from '@/components/game/GameToast';
 import FloatingNumbers from '@/components/game/FloatingNumbers';
 import AmbientParticles from '@/components/game/AmbientParticles';
@@ -29,7 +30,8 @@ import {
   Factory, Pickaxe, Cog, Truck, Zap, TrendingUp,
   FlaskConical, Users, ScrollText, Bot, Globe, AlertTriangle,
   Save, Play, Pause, FastForward, RotateCcw, ChevronRight, Bell, X,
-  BookOpen, Trophy, Download, Upload, Copy, Check, MoreHorizontal, ChevronUp, Settings, BarChart3
+  BookOpen, Trophy, Download, Upload, Copy, Check, MoreHorizontal, ChevronUp, Settings, BarChart3,
+  Map as MapIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -52,6 +54,7 @@ import {
 
 const TABS = [
   { id: 'dashboard' as const, label: 'Dashboard', icon: Factory, color: 'text-neon-cyan' },
+  { id: 'factoryMap' as const, label: 'Map', icon: MapIcon, color: 'text-emerald-400' },
   { id: 'guide' as const, label: 'Guide', icon: BookOpen, color: 'text-lime-400' },
   { id: 'resources' as const, label: 'Extraction', icon: Pickaxe, color: 'text-amber-400' },
   { id: 'factories' as const, label: 'Factories', icon: Cog, color: 'text-orange-400' },
@@ -73,7 +76,7 @@ const TABS = [
 
 // Mobile bottom tab bar: primary tabs shown directly, secondary in "More" menu
 const MOBILE_PRIMARY_TABS: GameTab[] = [
-  'dashboard', 'guide', 'resources', 'factories', 'power',
+  'dashboard', 'factoryMap', 'guide', 'resources', 'factories', 'power',
   'market', 'research', 'workers', 'contracts',
 ];
 
@@ -84,14 +87,15 @@ const MOBILE_MORE_TABS: GameTab[] = [
 // Keyboard shortcut: number keys 1-9 map to first 9 tabs
 const KEY_TAB_MAP: Record<string, GameTab> = {
   '1': 'dashboard',
-  '2': 'guide',
-  '3': 'resources',
-  '4': 'factories',
-  '5': 'transport',
-  '6': 'power',
-  '7': 'market',
-  '8': 'research',
-  '9': 'workers',
+  '2': 'factoryMap',
+  '3': 'guide',
+  '4': 'resources',
+  '5': 'factories',
+  '6': 'transport',
+  '7': 'power',
+  '8': 'market',
+  '9': 'research',
+  '0': 'factoryMap',
 };
 
 const SPEED_OPTIONS = [1, 2, 5, 10];
@@ -113,6 +117,31 @@ export default function Home() {
   const [importError, setImportError] = useState('');
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
   const prevGameTickRef = useRef(store.gameTick);
+
+  // Offline earnings state
+  const [offlineDialogOpen, setOfflineDialogOpen] = useState(false);
+  const [offlineData, setOfflineData] = useState<{ resources: Record<string, number>; money: number; ticksElapsed: number } | null>(null);
+  const hasCheckedOffline = useRef(false);
+
+  // Check for offline progress on mount (after rehydration)
+  useEffect(() => {
+    if (hasCheckedOffline.current) return;
+    // Wait for store to be rehydrated (gameTick > 0 means a save exists)
+    if (store.gameTick === 0 && store.buildings.length === 0) {
+      hasCheckedOffline.current = true;
+      return;
+    }
+    hasCheckedOffline.current = true;
+    const result = store.calculateOfflineProgress();
+    if (result && (result.money > 0 || Object.values(result.resources).some(v => v > 0))) {
+      // Defer state updates to avoid cascading renders
+      const timer = setTimeout(() => {
+        setOfflineData(result);
+        setOfflineDialogOpen(true);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [store]);
 
   // Close mobile "More" menu when clicking outside
   useEffect(() => {
@@ -270,6 +299,7 @@ export default function Home() {
   const renderPanel = () => {
     switch (store.activeTab) {
       case 'dashboard': return <DashboardPanel />;
+      case 'factoryMap': return <FactoryMapPanel />;
       case 'resources': return <ResourcePanel />;
       case 'factories': return <FactoryPanel />;
       case 'transport': return <TransportPanel />;
@@ -608,7 +638,7 @@ export default function Home() {
           {/* PANEL AREA - with bottom padding for mobile tab bar */}
           <main className="flex-1 overflow-y-auto game-scrollbar p-2 lg:p-4 game-grid-bg pb-20 lg:pb-4 relative">
             <AmbientParticles />
-            <div className="relative z-10">
+            <div className="relative z-10 tab-content-enter" key={store.activeTab}>
               {renderPanel()}
             </div>
           </main>
@@ -793,6 +823,94 @@ export default function Home() {
 
       {/* Toast notifications */}
       <GameToast />
+
+      {/* Offline Earnings Dialog */}
+      <Dialog open={offlineDialogOpen} onOpenChange={setOfflineDialogOpen}>
+        <DialogContent className="bg-[#111827] border-cyan-900/30 text-gray-100 max-w-md w-[calc(100%-1rem)] p-5">
+          <DialogHeader>
+            <DialogTitle className="text-cyan-400 flex items-center gap-2 text-lg">
+              <span className="text-2xl">👋</span> Welcome Back!
+            </DialogTitle>
+            <DialogDescription className="text-gray-400 text-sm mt-1">
+              {offlineData && (
+                <>
+                  You were away for{' '}
+                  <span className="text-cyan-300 font-bold">
+                    {offlineData.ticksElapsed >= 3600
+                      ? `${(offlineData.ticksElapsed / 3600).toFixed(1)} hours`
+                      : offlineData.ticksElapsed >= 60
+                        ? `${Math.floor(offlineData.ticksElapsed / 60)} minutes`
+                        : `${offlineData.ticksElapsed} seconds`}
+                  </span>
+                  . During that time:
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          {offlineData && (
+            <div className="space-y-3 mt-2">
+              {/* Money earned */}
+              {offlineData.money > 0 && (
+                <div className="bg-[#0a0e17] rounded-lg p-3 border border-green-900/30">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-400">Money Earned</span>
+                    <span className="text-sm text-green-400 font-mono font-bold">
+                      +${formatNumber(offlineData.money)}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Resources earned */}
+              <div className="bg-[#0a0e17] rounded-lg p-3 border border-cyan-900/30 max-h-48 overflow-y-auto game-scrollbar">
+                <div className="text-[10px] text-gray-500 mb-2 uppercase tracking-wider">Resources Produced</div>
+                <div className="space-y-1">
+                  {(Object.entries(offlineData.resources) as [string, number][])
+                    .filter(([, amount]) => amount > 0)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 8)
+                    .map(([resource, amount]) => {
+                      const meta = RESOURCE_META[resource as keyof typeof RESOURCE_META];
+                      return (
+                        <div key={resource} className="flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm">{meta?.emoji ?? '📦'}</span>
+                            <span className="text-gray-300">{meta?.name ?? resource}</span>
+                          </div>
+                          <span className="text-cyan-400 font-mono">+{formatNumber(amount)}</span>
+                        </div>
+                      );
+                    })}
+                  {(Object.entries(offlineData.resources) as [string, number][])
+                    .filter(([, amount]) => amount > 0).length === 0 && (
+                    <div className="text-xs text-gray-500 text-center py-2">No resources produced</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Offline rate note */}
+              <p className="text-[10px] text-gray-600 text-center">
+                Offline production runs at 50% efficiency (capped at 10 hours)
+              </p>
+
+              {/* Collect button */}
+              <Button
+                className="w-full bg-cyan-600 hover:bg-cyan-700 text-white min-h-[44px]"
+                onClick={() => {
+                  if (offlineData) {
+                    store.collectOfflineProgress(offlineData as { resources: Record<string, number>; money: number; ticksElapsed: number });
+                    setOfflineDialogOpen(false);
+                    setOfflineData(null);
+                  }
+                }}
+              >
+                Collect Earnings
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </TooltipProvider>
   );
 }
