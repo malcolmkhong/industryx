@@ -1,0 +1,258 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Factory Dominion Neon Colors */
+  --color-neon-cyan: #00fff2;
+  --color-neon-green: #39ff14;
+  --color-neon-orange: #ff6600;
+  --color-neon-purple: #bf00ff;
+  --color-neon-red: #ff0040;
+  --color-neon-yellow: #ffff00;
+  --color-neon-blue: #0088ff;
+  --color-industrial-dark: #0a0e17;
+  --color-industrial-card: #111827;
+  --color-industrial-border: #1e293b;
+  --color-industrial-hover: #1e3a5f;
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(0.07 0.02 260);
+  --foreground: oklch(0.92 0.01 260);
+  --card: oklch(0.12 0.02 260);
+  --card-foreground: oklch(0.92 0.01 260);
+  --popover: oklch(0.12 0.02 260);
+  --popover-foreground: oklch(0.92 0.01 260);
+  --primary: oklch(0.75 0.18 180);
+  --primary-foreground: oklch(0.1 0.02 260);
+  --secondary: oklch(0.18 0.03 260);
+  --secondary-foreground: oklch(0.85 0.01 260);
+  --muted: oklch(0.18 0.02 260);
+  --muted-foreground: oklch(0.6 0.02 260);
+  --accent: oklch(0.2 0.04 260);
+  --accent-foreground: oklch(0.9 0.01 260);
+  --destructive: oklch(0.6 0.25 25);
+  --border: oklch(0.25 0.03 260);
+  --input: oklch(0.2 0.03 260);
+  --ring: oklch(0.75 0.18 180);
+  --chart-1: oklch(0.75 0.18 180);
+  --chart-2: oklch(0.7 0.2 140);
+  --chart-3: oklch(0.65 0.22 30);
+  --chart-4: oklch(0.7 0.18 300);
+  --chart-5: oklch(0.75 0.2 60);
+  --sidebar: oklch(0.1 0.02 260);
+  --sidebar-foreground: oklch(0.85 0.01 260);
+  --sidebar-primary: oklch(0.75 0.18 180);
+  --sidebar-primary-foreground: oklch(0.1 0.02 260);
+  --sidebar-accent: oklch(0.18 0.04 260);
+  --sidebar-accent-foreground: oklch(0.9 0.01 260);
+  --sidebar-border: oklch(0.25 0.03 260);
+  --sidebar-ring: oklch(0.75 0.18 180);
+}
+
+/* Dark mode is the default for Factory Dominion */
+.dark {
+  --background: oklch(0.07 0.02 260);
+  --foreground: oklch(0.92 0.01 260);
+  --card: oklch(0.12 0.02 260);
+  --card-foreground: oklch(0.92 0.01 260);
+  --popover: oklch(0.12 0.02 260);
+  --popover-foreground: oklch(0.92 0.01 260);
+  --primary: oklch(0.75 0.18 180);
+  --primary-foreground: oklch(0.1 0.02 260);
+  --secondary: oklch(0.18 0.03 260);
+  --secondary-foreground: oklch(0.85 0.01 260);
+  --muted: oklch(0.18 0.02 260);
+  --muted-foreground: oklch(0.6 0.02 260);
+  --accent: oklch(0.2 0.04 260);
+  --accent-foreground: oklch(0.9 0.01 260);
+  --destructive: oklch(0.6 0.25 25);
+  --border: oklch(0.25 0.03 260);
+  --input: oklch(0.2 0.03 260);
+  --ring: oklch(0.75 0.18 180);
+  --chart-1: oklch(0.75 0.18 180);
+  --chart-2: oklch(0.7 0.2 140);
+  --chart-3: oklch(0.65 0.22 30);
+  --chart-4: oklch(0.7 0.18 300);
+  --chart-5: oklch(0.75 0.2 60);
+  --sidebar: oklch(0.1 0.02 260);
+  --sidebar-foreground: oklch(0.85 0.01 260);
+  --sidebar-primary: oklch(0.75 0.18 180);
+  --sidebar-primary-foreground: oklch(0.1 0.02 260);
+  --sidebar-accent: oklch(0.18 0.04 260);
+  --sidebar-accent-foreground: oklch(0.9 0.01 260);
+  --sidebar-border: oklch(0.25 0.03 260);
+  --sidebar-ring: oklch(0.75 0.18 180);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-geist-sans), system-ui, sans-serif;
+  }
+}
+
+/* Custom scrollbar for the game */
+.game-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.game-scrollbar::-webkit-scrollbar-track {
+  background: oklch(0.1 0.02 260);
+  border-radius: 3px;
+}
+.game-scrollbar::-webkit-scrollbar-thumb {
+  background: oklch(0.3 0.03 260);
+  border-radius: 3px;
+}
+.game-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.75 0.18 180);
+}
+
+/* Neon glow effects */
+.neon-glow-cyan {
+  text-shadow: 0 0 7px oklch(0.75 0.18 180), 0 0 10px oklch(0.75 0.18 180), 0 0 21px oklch(0.75 0.18 180);
+}
+.neon-glow-green {
+  text-shadow: 0 0 7px #39ff14, 0 0 10px #39ff14, 0 0 21px #39ff14;
+}
+.neon-glow-orange {
+  text-shadow: 0 0 7px #ff6600, 0 0 10px #ff6600, 0 0 21px #ff6600;
+}
+.neon-glow-purple {
+  text-shadow: 0 0 7px #bf00ff, 0 0 10px #bf00ff, 0 0 21px #bf00ff;
+}
+.neon-glow-red {
+  text-shadow: 0 0 7px #ff0040, 0 0 10px #ff0040;
+}
+
+.neon-border-cyan {
+  box-shadow: 0 0 5px oklch(0.75 0.18 180 / 0.3), inset 0 0 5px oklch(0.75 0.18 180 / 0.1);
+  border-color: oklch(0.75 0.18 180 / 0.5);
+}
+.neon-border-green {
+  box-shadow: 0 0 5px #39ff14 / 0.3, inset 0 0 5px #39ff14 / 0.1;
+  border-color: #39ff14 / 0.5;
+}
+.neon-border-orange {
+  box-shadow: 0 0 5px #ff6600 / 0.3, inset 0 0 5px #ff6600 / 0.1;
+  border-color: #ff6600 / 0.5;
+}
+.neon-border-purple {
+  box-shadow: 0 0 5px #bf00ff / 0.3, inset 0 0 5px #bf00ff / 0.1;
+  border-color: #bf00ff / 0.5;
+}
+
+/* Conveyor belt animation */
+@keyframes conveyorFlow {
+  0% { background-position: 0 0; }
+  100% { background-position: 20px 0; }
+}
+.conveyor-belt-bg {
+  background-image: repeating-linear-gradient(
+    90deg,
+    oklch(0.75 0.18 180 / 0.1) 0px,
+    oklch(0.75 0.18 180 / 0.3) 5px,
+    oklch(0.75 0.18 180 / 0.1) 10px,
+    transparent 10px,
+    transparent 20px
+  );
+  animation: conveyorFlow 1s linear infinite;
+}
+
+/* Pulse animation for active buildings */
+@keyframes neonPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+.neon-pulse {
+  animation: neonPulse 2s ease-in-out infinite;
+}
+
+/* Production flow animation */
+@keyframes flowRight {
+  0% { transform: translateX(-10px); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translateX(10px); opacity: 0; }
+}
+
+/* Card hover effect */
+.game-card {
+  transition: all 0.2s ease;
+  border: 1px solid oklch(0.25 0.03 260);
+}
+.game-card:hover {
+  border-color: oklch(0.75 0.18 180 / 0.4);
+  box-shadow: 0 0 15px oklch(0.75 0.18 180 / 0.1);
+  transform: translateY(-1px);
+}
+
+/* Resource bar animation */
+@keyframes resourceFill {
+  from { width: 0; }
+}
+.resource-bar-animated {
+  animation: resourceFill 0.5s ease-out;
+}
+
+/* Tab indicator animation */
+@keyframes tabSlide {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* Efficiency gauge */
+@keyframes gaugeRotate {
+  from { transform: rotate(-90deg); }
+  to { transform: rotate(var(--gauge-angle)); }
+}
+
+/* Particle effect for production */
+@keyframes particleFloat {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(-20px) scale(0.5); opacity: 0; }
+}

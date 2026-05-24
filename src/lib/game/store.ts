@@ -1,0 +1,951 @@
+// ============================================
+// FACTORY DOMINION: AUTOMATED EMPIRE
+// Zustand Game Store + Game Engine
+// ============================================
+
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import {
+  GameState, GameTab, ResourceType, BuildingInstance, BuildingType,
+  TransportLine, TransportType, Worker, WorkerType, Contract,
+  GameEvent, GameNotification, PowerGrid, MarketPrice,
+} from './types';
+import {
+  BUILDING_DEFS, TRANSPORT_DEFS, WORKER_DEFS, INITIAL_MARKET,
+  RESEARCH_TREE, AUTOMATION_UNLOCKS, PRESTIGE_BONUSES,
+  EVENT_TEMPLATES, CONTRACT_TEMPLATES, RESOURCE_META,
+} from './data';
+
+// --- Utility Functions ---
+function generateId(): string {
+  return Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
+}
+
+function formatNumber(n: number): string {
+  if (n >= 1e12) return (n / 1e12).toFixed(2) + 'T';
+  if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B';
+  if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(2) + 'K';
+  if (n >= 100) return Math.floor(n).toString();
+  if (n >= 1) return n.toFixed(1);
+  if (n > 0) return n.toFixed(2);
+  return '0';
+}
+
+function getBuildingCost(type: BuildingType, currentCount: number): number {
+  const def = BUILDING_DEFS[type];
+  if (!def) return Infinity;
+  const baseMoneyCost = def.baseCost.find(c => c.resource === 'money')?.amount ?? 0;
+  return Math.floor(baseMoneyCost * Math.pow(def.costMultiplier, currentCount));
+}
+
+function isResearchUnlocked(researchId: string, completedResearch: string[]): boolean {
+  const node = RESEARCH_TREE.find(r => r.id === researchId);
+  if (!node) return false;
+  return node.prerequisites.every(pre => completedResearch.includes(pre));
+}
+
+function isBuildingUnlocked(type: BuildingType, completedResearch: string[], prestigeState: { totalPrestiges: number }): boolean {
+  const def = BUILDING_DEFS[type];
+  if (!def) return false;
+  if (!def.unlockRequirement) return true;
+  if (def.unlockRequirement.research && !completedResearch.includes(def.unlockRequirement.research)) return false;
+  if (def.unlockRequirement.prestige && prestigeState.totalPrestiges < def.unlockRequirement.prestige) return false;
+  return true;
+}
+
+// --- Initial State ---
+const initialResources: Record<ResourceType, number> = {
+  iron: 0, copper: 0, coal: 0, oil: 0, sand: 0, lithium: 0, water: 0, rareEarth: 0,
+  ironPlate: 0, copperWire: 0, plastic: 0, glass: 0, carbon: 0,
+  circuit: 0, engine: 0, battery: 0, gear: 0, steel: 0,
+  aiChip: 0, robotics: 0, quantumPart: 0, advancedAlloy: 0, nanoMaterial: 0,
+};
+
+const initialCapacity: Record<ResourceType, number> = {
+  iron: 100, copper: 100, coal: 100, oil: 100, sand: 100, lithium: 50, water: 200, rareEarth: 20,
+  ironPlate: 50, copperWire: 50, plastic: 50, glass: 50, carbon: 30,
+  circuit: 30, engine: 20, battery: 30, gear: 40, steel: 40,
+  aiChip: 10, robotics: 5, quantumPart: 5, advancedAlloy: 10, nanoMaterial: 3,
+};
+
+function createInitialState(): GameState {
+  return {
+    money: 1000,
+    totalMoneyEarned: 0,
+    gameTick: 0,
+    gameSpeed: 1,
+    paused: false,
+    resources: { ...initialResources },
+    resourceCapacity: { ...initialCapacity },
+    buildings: [],
+    transportLines: [],
+    powerGrid: { totalProduction: 0, totalConsumption: 0, efficiency: 1, overload: false, plants: [] },
+    researchPoints: 0,
+    completedResearch: [],
+    activeResearch: null,
+    researchProgress: 0,
+    workers: [],
+    market: INITIAL_MARKET.map(m => ({ ...m })),
+    contracts: [],
+    completedContracts: 0,
+    automationUnlocks: AUTOMATION_UNLOCKS.map(a => ({ ...a })),
+    prestigeState: { corporationPoints: 0, totalPrestiges: 0, megaFactoryUnlocked: false, bonuses: PRESTIGE_BONUSES.map(b => ({ ...b })) },
+    activeEvents: [],
+    eventLog: [],
+    stats: {
+      totalResourcesProduced: { ...initialResources },
+      totalResourcesSold: { ...initialResources },
+      peakEfficiency: 0,
+      factoriesBuilt: 0,
+      transportLinesBuilt: 0,
+      researchCompleted: 0,
+      contractsCompleted: 0,
+      playTime: 0,
+    },
+    activeTab: 'dashboard',
+    selectedBuilding: null,
+    notifications: [],
+  };
+}
+
+// --- Store Actions ---
+interface GameActions {
+  // Core
+  gameTickAction: () => void;
+  setGameSpeed: (speed: number) => void;
+  togglePause: () => void;
+  setActiveTab: (tab: GameTab) => void;
+  
+  // Buildings
+  buildBuilding: (type: BuildingType) => void;
+  upgradeBuilding: (id: string) => void;
+  toggleBuilding: (id: string) => void;
+  selectBuilding: (id: string | null) => void;
+  
+  // Transport
+  buildTransportLine: (type: TransportType, from: string, to: string, resource: ResourceType) => void;
+  upgradeTransportLine: (id: string) => void;
+  toggleTransportLine: (id: string) => void;
+  
+  // Research
+  startResearch: (id: string) => void;
+  
+  // Workers
+  hireWorker: (type: WorkerType) => void;
+  assignWorker: (workerId: string, buildingId: string | null) => void;
+  levelUpWorker: (workerId: string) => void;
+  
+  // Market
+  sellResource: (resource: ResourceType, amount: number) => void;
+  buyResource: (resource: ResourceType, amount: number) => void;
+  
+  // Contracts
+  acceptContract: (contract: Contract) => void;
+  fulfillContract: (id: string) => void;
+  
+  // Automation
+  activateAutomation: (type: string) => void;
+  
+  // Prestige
+  doPrestige: () => void;
+  purchasePrestigeBonus: (id: string) => void;
+  
+  // Notifications
+  addNotification: (type: GameNotification['type'], message: string) => void;
+  clearNotifications: () => void;
+  
+  // Reset
+  resetGame: () => void;
+}
+
+export type GameStore = GameState & GameActions;
+
+export const useGameStore = create<GameStore>()(
+  persist(
+    (set, get) => ({
+      ...createInitialState(),
+
+      // --- CORE TICK ---
+      gameTickAction: () => {
+        const state = get();
+        if (state.paused) return;
+
+        const newTick = state.gameTick + 1;
+        const newResources = { ...state.resources };
+        const newStats = { ...state.stats, playTime: state.stats.playTime + 1 };
+        const notifications: GameNotification[] = [];
+
+        // Calculate power grid
+        let totalProduction = 0;
+        let totalConsumption = 0;
+        const powerBuildings = state.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power' && b.active);
+        const consumingBuildings = state.buildings.filter(b => BUILDING_DEFS[b.type]?.category !== 'power' && b.active);
+
+        powerBuildings.forEach(b => {
+          const def = BUILDING_DEFS[b.type];
+          let production = def.basePowerProduction * b.level * b.efficiency;
+          if (def.fuel && def.fuelRate) {
+            if (newResources[def.fuel] >= def.fuelRate * b.level) {
+              newResources[def.fuel] -= def.fuelRate * b.level;
+              totalProduction += production;
+            } else {
+              production *= 0.1;
+              totalProduction += production;
+            }
+          } else {
+            if (b.type === 'solarPanel') {
+              const dayFactor = 0.5 + 0.5 * Math.sin(newTick * 0.01);
+              production *= Math.max(0.2, dayFactor);
+            }
+            if (b.type === 'windTurbine') {
+              const windFactor = 0.5 + 0.5 * Math.sin(newTick * 0.007 + Math.PI / 3);
+              production *= Math.max(0.3, windFactor);
+            }
+            totalProduction += production;
+          }
+        });
+
+        consumingBuildings.forEach(b => {
+          const def = BUILDING_DEFS[b.type];
+          totalConsumption += def.basePowerConsumption * b.level * b.efficiency;
+        });
+
+        const powerEfficiencyResearch = state.completedResearch.includes('energyEfficiency') ? 0.15 : 0;
+        totalConsumption *= (1 - powerEfficiencyResearch);
+
+        const overload = totalConsumption > totalProduction;
+
+        // Apply event effects
+        let eventProductionMultiplier = 1;
+        let eventResearchMultiplier = 1;
+        state.activeEvents.forEach(event => {
+          event.effects.forEach(effect => {
+            if (effect.type === 'productionMultiplier') eventProductionMultiplier *= effect.value;
+            if (effect.type === 'researchSpeed') eventResearchMultiplier *= effect.value;
+          });
+        });
+
+        // Production speed bonuses from research
+        const extractorSpeedBonus = state.completedResearch.includes('basicAutomation') ? 0.15 : 0;
+        const factorySpeedBonus = state.completedResearch.includes('advancedAutomation') ? 0.25 : 0;
+        const workerEfficiencyBonus = state.completedResearch.includes('workerTraining') ? 0.25 : 0;
+        const logistics1Bonus = state.completedResearch.includes('logistics1') ? 0.2 : 0;
+        const advancedLogisticsBonus = state.completedResearch.includes('advancedLogistics') ? 0.3 : 0;
+        const transportBonus = logistics1Bonus + advancedLogisticsBonus;
+
+        // Prestige bonuses
+        const productionPrestigeBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'productionMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
+        const powerPrestigeBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'powerMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
+
+        totalProduction *= (1 + powerPrestigeBonus);
+        const effectivePowerEfficiency = totalProduction > 0 ? Math.min(1, totalProduction / Math.max(0.001, totalConsumption)) : 0;
+
+        // Process buildings
+        state.buildings.forEach(b => {
+          if (!b.active) return;
+          const def = BUILDING_DEFS[b.type];
+          if (!def) return;
+
+          let efficiency = b.efficiency * effectivePowerEfficiency * eventProductionMultiplier;
+          
+          if (def.category === 'extractor') efficiency *= (1 + extractorSpeedBonus);
+          if (def.category === 'factory') efficiency *= (1 + factorySpeedBonus);
+          
+          const assignedWorkers = state.workers.filter(w => w.assignedTo === b.id);
+          assignedWorkers.forEach(w => {
+            const wDef = WORKER_DEFS[w.type];
+            if (wDef) {
+              efficiency *= (1 + wDef.effects.speed * w.level * (1 + workerEfficiencyBonus));
+            }
+          });
+
+          efficiency *= (1 + productionPrestigeBonus);
+
+          if (def.category === 'extractor' && def.outputs) {
+            def.outputs.forEach(output => {
+              if (output.resource === 'money') return;
+              const res = output.resource as ResourceType;
+              const produced = output.amount * b.level * efficiency;
+              const capacity = newResources[res] + produced;
+              newResources[res] = Math.min(state.resourceCapacity[res], capacity);
+              newStats.totalResourcesProduced[res] += produced;
+            });
+          }
+
+          if (def.category === 'factory') {
+            if (def.inputs && def.outputs) {
+              let canProduce = true;
+              const adjustedInputs = def.inputs.map(input => {
+                if (input.resource === 'money') return { resource: input.resource, amount: 0 };
+                return {
+                  resource: input.resource,
+                  amount: input.amount * b.level * efficiency,
+                };
+              }).filter(i => i.resource !== 'money');
+
+              for (const input of adjustedInputs) {
+                const res = input.resource as ResourceType;
+                if (newResources[res] < input.amount) {
+                  canProduce = false;
+                  break;
+                }
+              }
+
+              if (canProduce) {
+                adjustedInputs.forEach(input => {
+                  const res = input.resource as ResourceType;
+                  newResources[res] -= input.amount;
+                });
+                def.outputs.forEach(output => {
+                  if (output.resource === 'money') return;
+                  const res = output.resource as ResourceType;
+                  const produced = output.amount * b.level * efficiency;
+                  const capacity = newResources[res] + produced;
+                  newResources[res] = Math.min(state.resourceCapacity[res], capacity);
+                  newStats.totalResourcesProduced[res] += produced;
+                });
+              }
+            }
+          }
+        });
+
+        const transportEfficiency = state.transportLines.length > 0
+          ? state.transportLines.filter(t => t.active).length / Math.max(1, state.transportLines.length)
+          : 1;
+
+        // Update market prices
+        const newMarket = state.market.map(m => {
+          const volatility = m.volatility;
+          const change = (Math.random() - 0.5) * 2 * volatility;
+          let newPrice = m.currentPrice * (1 + change * 0.1);
+          
+          state.activeEvents.forEach(event => {
+            event.effects.forEach(effect => {
+              if (effect.type === 'marketPriceMultiplier') {
+                if (!effect.target || effect.target === m.resource) {
+                  newPrice = m.basePrice * effect.value * (0.8 + Math.random() * 0.4);
+                }
+              }
+            });
+          });
+
+          newPrice = newPrice * 0.95 + m.basePrice * 0.05;
+          newPrice = Math.max(m.basePrice * 0.2, Math.min(m.basePrice * 5, newPrice));
+
+          const newHistory = [...m.priceHistory, m.currentPrice].slice(-50);
+
+          let trend: 'up' | 'down' | 'stable' = 'stable';
+          if (newHistory.length >= 5) {
+            const recent = newHistory.slice(-5);
+            const avg = recent.reduce((a, b) => a + b, 0) / recent.length;
+            if (newPrice > avg * 1.05) trend = 'up';
+            else if (newPrice < avg * 0.95) trend = 'down';
+          }
+
+          return {
+            ...m,
+            currentPrice: Math.round(newPrice * 100) / 100,
+            priceHistory: newHistory,
+            demand: Math.max(0.3, Math.min(2, m.demand + (Math.random() - 0.5) * 0.05)),
+            supply: Math.max(0.3, Math.min(2, m.supply + (Math.random() - 0.5) * 0.05)),
+            trend,
+          };
+        });
+
+        // Process research
+        let newResearchProgress = state.researchProgress;
+        let newActiveResearch = state.activeResearch;
+        let newCompletedResearch = [...state.completedResearch];
+        let newResearchPoints = state.researchPoints;
+
+        if (newActiveResearch) {
+          const node = RESEARCH_TREE.find(r => r.id === newActiveResearch);
+          if (node) {
+            const researchSpeed = eventResearchMultiplier * (1 + state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'researchMultiplier').reduce((sum, b) => sum + b.effect.value, 0));
+            newResearchProgress += researchSpeed;
+            if (newResearchProgress >= node.timeRequired) {
+              newCompletedResearch.push(newActiveResearch);
+              newActiveResearch = null;
+              newResearchProgress = 0;
+              newResearchPoints += Math.floor(node.cost * 0.1);
+              newStats.researchCompleted++;
+              notifications.push({ id: generateId(), type: 'success', message: `Research complete: ${node.name}!`, gameTick: newTick, read: false });
+            }
+          }
+        }
+
+        newResearchPoints += 0.1 * (1 + state.buildings.filter(b => b.type === 'aiLab' && b.active).length * 0.5);
+
+        // Process contracts
+        const newContracts = state.contracts.map(c => {
+          if (c.completed || c.failed) return c;
+          const newRemaining = c.timeRemaining - 1;
+          if (newRemaining <= 0) {
+            return { ...c, timeRemaining: 0, failed: true };
+          }
+          return { ...c, timeRemaining: newRemaining };
+        });
+
+        const autoFulfill = state.automationUnlocks.find(a => a.type === 'autoTrading' && a.active);
+        if (autoFulfill) {
+          newContracts.forEach(c => {
+            if (c.completed || c.failed) return;
+            const canFulfill = c.requiredResources.every(r => {
+              if (r.resource === 'money') return true;
+              return newResources[r.resource as ResourceType] >= r.amount;
+            });
+            if (canFulfill) {
+              c.requiredResources.forEach(r => {
+                if (r.resource !== 'money') {
+                  newResources[r.resource as ResourceType] -= r.amount;
+                }
+              });
+              c.completed = true;
+              const moneyReward = c.reward.money;
+              newStats.contractsCompleted++;
+              notifications.push({ id: generateId(), type: 'success', message: `Contract completed: ${c.name}! +$${formatNumber(moneyReward)}`, gameTick: newTick, read: false });
+            }
+          });
+        }
+
+        // Update workers
+        const newWorkers = state.workers.map(w => ({
+          ...w,
+          experience: w.experience + 0.01 * (1 + workerEfficiencyBonus),
+          efficiency: Math.min(2, w.efficiency + 0.001),
+        }));
+
+        newWorkers.forEach(w => {
+          const xpNeeded = w.level * 100;
+          if (w.experience >= xpNeeded) {
+            w.level++;
+            w.experience -= xpNeeded;
+          }
+        });
+
+        // Random events (every ~500 ticks)
+        const newActiveEvents = state.activeEvents.map(e => ({
+          ...e,
+          remaining: e.remaining - 1,
+        })).filter(e => e.remaining > 0);
+
+        if (newTick % 500 === 0 && Math.random() < 0.6 && newActiveEvents.length < 2) {
+          const template = EVENT_TEMPLATES[Math.floor(Math.random() * EVENT_TEMPLATES.length)];
+          const newEvent: GameEvent = {
+            id: generateId(),
+            type: template.type,
+            name: template.name,
+            description: template.description,
+            duration: template.duration,
+            remaining: template.duration,
+            effects: template.effects,
+            emoji: template.emoji,
+          };
+          newActiveEvents.push(newEvent);
+          notifications.push({ id: generateId(), type: 'warning', message: `Event: ${template.name} - ${template.description}`, gameTick: newTick, read: false });
+        }
+
+        // Generate new contracts (every ~200 ticks)
+        let contractsToAdd: Contract[] = [];
+        if (newTick % 200 === 0 && state.contracts.filter(c => !c.completed && !c.failed).length < 3) {
+          const template = CONTRACT_TEMPLATES[Math.floor(Math.random() * CONTRACT_TEMPLATES.length)];
+          const difficulty = Math.min(5, 1 + Math.floor(state.buildings.length / 5));
+          const reward = template.requiredResources.reduce((sum, r) => {
+            const marketItem = INITIAL_MARKET.find(m => m.resource === r.resource);
+            return sum + (marketItem?.basePrice ?? 10) * r.amount * (1 + difficulty * 0.3);
+          }, 0);
+          
+          const contract: Contract = {
+            id: generateId(),
+            name: template.name,
+            description: template.description,
+            type: template.type,
+            requiredResources: template.requiredResources.map(r => ({
+              resource: r.resource,
+              amount: Math.floor(r.amount * (1 + difficulty * 0.2)),
+            })),
+            timeLimit: template.timeLimit,
+            timeRemaining: template.timeLimit,
+            reward: {
+              money: Math.floor(reward),
+              researchPoints: Math.floor(difficulty * 20),
+              corporationPoints: difficulty >= 3 ? Math.floor(difficulty * 2) : 0,
+            },
+            progress: 0,
+            completed: false,
+            failed: false,
+            difficulty,
+            emoji: template.emoji,
+          };
+          contractsToAdd = [contract];
+        }
+
+        // Passive income from selling excess (if auto-trading is on)
+        let moneyEarned = 0;
+        if (autoFulfill) {
+          (Object.keys(newResources) as ResourceType[]).forEach(r => {
+            const excess = newResources[r] - state.resourceCapacity[r] * 0.8;
+            if (excess > 0) {
+              const marketPrice = newMarket.find(m => m.resource === r)?.currentPrice ?? 0;
+              const sellPrice = marketPrice * 0.9;
+              const sellAmount = Math.min(excess, 5);
+              newResources[r] -= sellAmount;
+              moneyEarned += sellAmount * sellPrice;
+              newStats.totalResourcesSold[r] += sellAmount;
+            }
+          });
+        }
+
+        const currentEfficiency = effectivePowerEfficiency * transportEfficiency * eventProductionMultiplier;
+        const newPeakEfficiency = Math.max(state.stats.peakEfficiency, currentEfficiency);
+
+        set({
+          gameTick: newTick,
+          resources: newResources,
+          money: state.money + moneyEarned,
+          totalMoneyEarned: state.totalMoneyEarned + moneyEarned,
+          powerGrid: {
+            totalProduction,
+            totalConsumption,
+            efficiency: effectivePowerEfficiency,
+            overload,
+            plants: powerBuildings,
+          },
+          market: newMarket,
+          researchPoints: newResearchPoints,
+          completedResearch: newCompletedResearch,
+          activeResearch: newActiveResearch,
+          researchProgress: newResearchProgress,
+          workers: newWorkers,
+          contracts: [...newContracts, ...contractsToAdd],
+          activeEvents: newActiveEvents,
+          stats: { ...newStats, peakEfficiency: newPeakEfficiency },
+          notifications: [...notifications, ...state.notifications.slice(-20)],
+        });
+      },
+
+      setGameSpeed: (speed: number) => set({ gameSpeed: speed }),
+      togglePause: () => set(state => ({ paused: !state.paused })),
+      setActiveTab: (tab: GameTab) => set({ activeTab: tab }),
+
+      // --- BUILDING ACTIONS ---
+      buildBuilding: (type: BuildingType) => {
+        const state = get();
+        const def = BUILDING_DEFS[type];
+        if (!def) return;
+
+        if (!isBuildingUnlocked(type, state.completedResearch, state.prestigeState)) {
+          get().addNotification('error', `${def.name} is locked! Complete required research first.`);
+          return;
+        }
+
+        const currentCount = state.buildings.filter(b => b.type === type).length;
+        const cost = getBuildingCost(type, currentCount);
+
+        if (state.money < cost) {
+          get().addNotification('error', `Not enough money! Need $${formatNumber(cost)}`);
+          return;
+        }
+
+        const building: BuildingInstance = {
+          id: generateId(),
+          type,
+          level: 1,
+          active: true,
+          efficiency: 1,
+          placedAt: state.gameTick,
+        };
+
+        set({
+          money: state.money - cost,
+          buildings: [...state.buildings, building],
+          stats: { ...state.stats, factoriesBuilt: state.stats.factoriesBuilt + 1 },
+        });
+        get().addNotification('success', `Built ${def.name} for $${formatNumber(cost)}`);
+      },
+
+      upgradeBuilding: (id: string) => {
+        const state = get();
+        const building = state.buildings.find(b => b.id === id);
+        if (!building) return;
+
+        const def = BUILDING_DEFS[building.type];
+        const cost = getBuildingCost(building.type, building.level);
+
+        if (state.money < cost) {
+          get().addNotification('error', `Not enough money! Need $${formatNumber(cost)} to upgrade`);
+          return;
+        }
+
+        set({
+          money: state.money - cost,
+          buildings: state.buildings.map(b =>
+            b.id === id ? { ...b, level: b.level + 1, efficiency: Math.min(2, b.efficiency + 0.05) } : b
+          ),
+        });
+        get().addNotification('info', `Upgraded ${def.name} to level ${building.level + 1}`);
+      },
+
+      toggleBuilding: (id: string) => {
+        const state = get();
+        set({
+          buildings: state.buildings.map(b =>
+            b.id === id ? { ...b, active: !b.active } : b
+          ),
+        });
+      },
+
+      selectBuilding: (id: string | null) => set({ selectedBuilding: id }),
+
+      // --- TRANSPORT ACTIONS ---
+      buildTransportLine: (type: TransportType, from: string, to: string, resource: ResourceType) => {
+        const state = get();
+        const def = TRANSPORT_DEFS[type];
+        if (!def) return;
+
+        const cost = def.baseCost.reduce((sum, c) => sum + (c.resource === 'money' ? c.amount : 0), 0);
+        if (state.money < cost) {
+          get().addNotification('error', `Not enough money! Need $${formatNumber(cost)}`);
+          return;
+        }
+
+        const logistics1Bonus = state.completedResearch.includes('logistics1') ? 0.2 : 0;
+        const advancedLogisticsBonus = state.completedResearch.includes('advancedLogistics') ? 0.3 : 0;
+        const transportBonus = logistics1Bonus + advancedLogisticsBonus;
+
+        const line: TransportLine = {
+          id: generateId(),
+          type,
+          level: 1,
+          fromBuilding: from,
+          toBuilding: to,
+          carriesResource: resource,
+          throughput: def.baseThroughput * (1 + transportBonus),
+          maxThroughput: def.baseThroughput * 3,
+          active: true,
+        };
+
+        set({
+          money: state.money - cost,
+          transportLines: [...state.transportLines, line],
+          stats: { ...state.stats, transportLinesBuilt: state.stats.transportLinesBuilt + 1 },
+        });
+        get().addNotification('success', `Built ${def.name} for $${formatNumber(cost)}`);
+      },
+
+      upgradeTransportLine: (id: string) => {
+        const state = get();
+        const line = state.transportLines.find(l => l.id === id);
+        if (!line) return;
+
+        const def = TRANSPORT_DEFS[line.type];
+        const cost = Math.floor(def.baseCost.reduce((sum, c) => sum + (c.resource === 'money' ? c.amount : 0), 0) * Math.pow(1.3, line.level));
+        if (state.money < cost) return;
+
+        const logistics1Bonus = state.completedResearch.includes('logistics1') ? 0.2 : 0;
+        const advancedLogisticsBonus = state.completedResearch.includes('advancedLogistics') ? 0.3 : 0;
+        const transportBonus = logistics1Bonus + advancedLogisticsBonus;
+
+        set({
+          money: state.money - cost,
+          transportLines: state.transportLines.map(l =>
+            l.id === id ? {
+              ...l,
+              level: l.level + 1,
+              throughput: Math.min(l.maxThroughput, def.baseThroughput * Math.pow(def.upgradeMultiplier, l.level) * (1 + transportBonus)),
+            } : l
+          ),
+        });
+      },
+
+      toggleTransportLine: (id: string) => {
+        const state = get();
+        set({
+          transportLines: state.transportLines.map(l =>
+            l.id === id ? { ...l, active: !l.active } : l
+          ),
+        });
+      },
+
+      // --- RESEARCH ACTIONS ---
+      startResearch: (id: string) => {
+        const state = get();
+        if (state.activeResearch) {
+          get().addNotification('warning', 'Research already in progress!');
+          return;
+        }
+
+        const node = RESEARCH_TREE.find(r => r.id === id);
+        if (!node) return;
+
+        if (state.completedResearch.includes(id)) {
+          get().addNotification('warning', 'Already researched!');
+          return;
+        }
+
+        if (!isResearchUnlocked(id, state.completedResearch)) {
+          get().addNotification('error', 'Prerequisites not met!');
+          return;
+        }
+
+        if (state.researchPoints < node.cost) {
+          get().addNotification('error', `Need ${formatNumber(node.cost)} RP! Have ${formatNumber(state.researchPoints)}`);
+          return;
+        }
+
+        set({
+          researchPoints: state.researchPoints - node.cost,
+          activeResearch: id,
+          researchProgress: 0,
+        });
+        get().addNotification('info', `Started research: ${node.name}`);
+      },
+
+      // --- WORKER ACTIONS ---
+      hireWorker: (type: WorkerType) => {
+        const state = get();
+        const def = WORKER_DEFS[type];
+        if (!def) return;
+
+        if (state.money < def.baseHireCost) {
+          get().addNotification('error', `Not enough money! Need $${formatNumber(def.baseHireCost)}`);
+          return;
+        }
+
+        const worker: Worker = {
+          id: generateId(),
+          type,
+          level: 1,
+          experience: 0,
+          assignedTo: null,
+          efficiency: 1,
+          speed: 1,
+          maintenance: 0,
+        };
+
+        set({
+          money: state.money - def.baseHireCost,
+          workers: [...state.workers, worker],
+        });
+        get().addNotification('success', `Hired ${def.name}`);
+      },
+
+      assignWorker: (workerId: string, buildingId: string | null) => {
+        const state = get();
+        set({
+          workers: state.workers.map(w =>
+            w.id === workerId ? { ...w, assignedTo: buildingId } : w
+          ),
+        });
+      },
+
+      levelUpWorker: (_workerId: string) => {
+        // Workers level up automatically based on experience
+      },
+
+      // --- MARKET ACTIONS ---
+      sellResource: (resource: ResourceType, amount: number) => {
+        const state = get();
+        if (state.resources[resource] < amount) {
+          get().addNotification('error', 'Not enough resources!');
+          return;
+        }
+
+        const marketItem = state.market.find(m => m.resource === resource);
+        if (!marketItem) return;
+
+        const marketBonus = state.completedResearch.includes('marketAnalysis') ? 0.2 : 0;
+        const prestigeMarketBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'marketMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
+        const sellPrice = marketItem.currentPrice * amount * (0.9 + marketBonus + prestigeMarketBonus);
+
+        set({
+          resources: { ...state.resources, [resource]: state.resources[resource] - amount },
+          money: state.money + sellPrice,
+          totalMoneyEarned: state.totalMoneyEarned + sellPrice,
+          stats: { ...state.stats, totalResourcesSold: { ...state.stats.totalResourcesSold, [resource]: state.stats.totalResourcesSold[resource] + amount } },
+        });
+        get().addNotification('success', `Sold ${formatNumber(amount)} ${RESOURCE_META[resource].name} for $${formatNumber(sellPrice)}`);
+      },
+
+      buyResource: (resource: ResourceType, amount: number) => {
+        const state = get();
+        const marketItem = state.market.find(m => m.resource === resource);
+        if (!marketItem) return;
+
+        const cost = marketItem.currentPrice * amount * 1.1;
+        if (state.money < cost) {
+          get().addNotification('error', 'Not enough money!');
+          return;
+        }
+
+        const newAmount = state.resources[resource] + amount;
+        if (newAmount > state.resourceCapacity[resource]) {
+          get().addNotification('warning', 'Storage full!');
+          return;
+        }
+
+        set({
+          resources: { ...state.resources, [resource]: newAmount },
+          money: state.money - cost,
+        });
+        get().addNotification('info', `Bought ${formatNumber(amount)} ${RESOURCE_META[resource].name} for $${formatNumber(cost)}`);
+      },
+
+      // --- CONTRACT ACTIONS ---
+      acceptContract: (contract: Contract) => {
+        const state = get();
+        if (state.contracts.filter(c => !c.completed && !c.failed).length >= 5) {
+          get().addNotification('warning', 'Too many active contracts!');
+          return;
+        }
+        set({ contracts: [...state.contracts, contract] });
+        get().addNotification('info', `Accepted contract: ${contract.name}`);
+      },
+
+      fulfillContract: (id: string) => {
+        const state = get();
+        const contract = state.contracts.find(c => c.id === id);
+        if (!contract || contract.completed || contract.failed) return;
+
+        const canFulfill = contract.requiredResources.every(r => {
+          if (r.resource === 'money') return true;
+          return state.resources[r.resource as ResourceType] >= r.amount;
+        });
+        if (!canFulfill) {
+          get().addNotification('error', 'Not enough resources to fulfill contract!');
+          return;
+        }
+
+        const newResources = { ...state.resources };
+        contract.requiredResources.forEach(r => {
+          if (r.resource !== 'money') {
+            newResources[r.resource as ResourceType] -= r.amount;
+          }
+        });
+
+        set({
+          resources: newResources,
+          money: state.money + contract.reward.money,
+          totalMoneyEarned: state.totalMoneyEarned + contract.reward.money,
+          researchPoints: state.researchPoints + (contract.reward.researchPoints ?? 0),
+          prestigeState: {
+            ...state.prestigeState,
+            corporationPoints: state.prestigeState.corporationPoints + (contract.reward.corporationPoints ?? 0),
+          },
+          contracts: state.contracts.map(c =>
+            c.id === id ? { ...c, completed: true, progress: 1 } : c
+          ),
+          completedContracts: state.completedContracts + 1,
+          stats: { ...state.stats, contractsCompleted: state.stats.contractsCompleted + 1 },
+        });
+        get().addNotification('success', `Contract fulfilled: ${contract.name}! +$${formatNumber(contract.reward.money)}`);
+      },
+
+      // --- AUTOMATION ACTIONS ---
+      activateAutomation: (type: string) => {
+        const state = get();
+        const unlock = state.automationUnlocks.find(a => a.type === type);
+        if (!unlock || unlock.active) return;
+
+        if (unlock.requiresResearch && !state.completedResearch.includes(unlock.requiresResearch)) {
+          get().addNotification('error', `Requires research: ${RESEARCH_TREE.find(r => r.id === unlock.requiresResearch)?.name}`);
+          return;
+        }
+
+        if (state.prestigeState.corporationPoints < unlock.cost) {
+          get().addNotification('error', `Need ${unlock.cost} Corporation Points!`);
+          return;
+        }
+
+        set({
+          prestigeState: {
+            ...state.prestigeState,
+            corporationPoints: state.prestigeState.corporationPoints - unlock.cost,
+          },
+          automationUnlocks: state.automationUnlocks.map(a =>
+            a.type === type ? { ...a, active: true } : a
+          ),
+        });
+        get().addNotification('success', `Activated: ${unlock.name}!`);
+      },
+
+      // --- PRESTIGE ACTIONS ---
+      doPrestige: () => {
+        const state = get();
+        if (state.buildings.length < 5) {
+          get().addNotification('error', 'Need at least 5 buildings to Global Expand!');
+          return;
+        }
+
+        const pointsEarned = Math.floor(state.buildings.length * 0.5 + state.completedResearch.length * 2 + state.stats.contractsCompleted);
+
+        set({
+          ...createInitialState(),
+          prestigeState: {
+            corporationPoints: state.prestigeState.corporationPoints + pointsEarned,
+            totalPrestiges: state.prestigeState.totalPrestiges + 1,
+            megaFactoryUnlocked: state.prestigeState.megaFactoryUnlocked,
+            bonuses: state.prestigeState.bonuses,
+          },
+        });
+      },
+
+      purchasePrestigeBonus: (id: string) => {
+        const state = get();
+        const bonus = state.prestigeState.bonuses.find(b => b.id === id);
+        if (!bonus || bonus.purchased) return;
+
+        if (state.prestigeState.corporationPoints < bonus.cost) {
+          get().addNotification('error', `Need ${bonus.cost} Corporation Points!`);
+          return;
+        }
+
+        set({
+          prestigeState: {
+            ...state.prestigeState,
+            corporationPoints: state.prestigeState.corporationPoints - bonus.cost,
+            bonuses: state.prestigeState.bonuses.map(b =>
+              b.id === id ? { ...b, purchased: true } : b
+            ),
+          },
+        });
+        get().addNotification('success', `Purchased: ${bonus.name}!`);
+      },
+
+      // --- NOTIFICATION ACTIONS ---
+      addNotification: (type: GameNotification['type'], message: string) => {
+        const state = get();
+        set({
+          notifications: [{ id: generateId(), type, message, gameTick: state.gameTick, read: false }, ...state.notifications].slice(0, 30),
+        });
+      },
+
+      clearNotifications: () => set({ notifications: [] }),
+
+      resetGame: () => set(createInitialState()),
+    }),
+    {
+      name: 'factory-dominion-save',
+      partialize: (state) => ({
+        money: state.money,
+        totalMoneyEarned: state.totalMoneyEarned,
+        gameTick: state.gameTick,
+        resources: state.resources,
+        resourceCapacity: state.resourceCapacity,
+        buildings: state.buildings,
+        transportLines: state.transportLines,
+        researchPoints: state.researchPoints,
+        completedResearch: state.completedResearch,
+        workers: state.workers,
+        contracts: state.contracts,
+        completedContracts: state.completedContracts,
+        automationUnlocks: state.automationUnlocks,
+        prestigeState: state.prestigeState,
+        stats: state.stats,
+      }),
+    }
+  )
+);
+
+export { formatNumber, getBuildingCost, isBuildingUnlocked, isResearchUnlocked, generateId };
