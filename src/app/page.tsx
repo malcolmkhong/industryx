@@ -30,6 +30,7 @@ import CelebrationOverlay from '@/components/game/CelebrationOverlay';
 import LeaderboardPanel from '@/components/game/LeaderboardPanel';
 import DailyRewardsPanel from '@/components/game/DailyRewardsPanel';
 import { QuestPanel } from '@/components/game/QuestPanel';
+import { NotificationCenterPanel } from '@/components/game/NotificationCenterPanel';
 import {
   Factory, Pickaxe, Cog, Truck, Zap, TrendingUp,
   FlaskConical, Users, ScrollText, Bot, Globe, AlertTriangle,
@@ -77,6 +78,7 @@ const TABS = [
   { id: 'leaderboard' as const, label: 'Ranks', icon: Trophy, color: 'text-amber-400' },
   { id: 'dailyRewards' as const, label: 'Daily', icon: Gift, color: 'text-pink-400' },
   { id: 'quests' as const, label: 'Quests', icon: Scroll, color: 'text-amber-400' },
+  { id: 'notifications' as const, label: 'Alerts', icon: Bell, color: 'text-cyan-400' },
   { id: 'blueprints' as const, label: 'Blueprints', icon: Save, color: 'text-indigo-400' },
   { id: 'settings' as const, label: 'Settings', icon: Settings, color: 'text-gray-400' },
 ];
@@ -88,7 +90,7 @@ const MOBILE_PRIMARY_TABS: GameTab[] = [
 ];
 
 const MOBILE_MORE_TABS: GameTab[] = [
-  'transport', 'automation', 'prestige', 'events', 'megaprojects', 'statistics', 'achievements', 'leaderboard', 'dailyRewards', 'quests', 'blueprints', 'settings',
+  'transport', 'automation', 'prestige', 'events', 'megaprojects', 'statistics', 'achievements', 'leaderboard', 'dailyRewards', 'quests', 'notifications', 'blueprints', 'settings',
 ];
 
 // Keyboard shortcut: number keys 1-9 map to first 9 tabs
@@ -360,6 +362,7 @@ export default function Home() {
       case 'leaderboard': return <LeaderboardPanel />;
       case 'dailyRewards': return <DailyRewardsPanel />;
       case 'quests': return <QuestPanel />;
+      case 'notifications': return <NotificationCenterPanel />;
       case 'settings': return <SettingsPanel />;
       default: return <DashboardPanel />;
     }
@@ -521,21 +524,24 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Weather indicator */}
-              {store.weather.current !== 'clear' && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Badge variant="outline" className="text-[10px] border-sky-500/50 text-sky-400 bg-sky-900/20 px-1.5 py-0">
-                      {WEATHER_DEFS[store.weather.current]?.emoji} {WEATHER_DEFS[store.weather.current]?.name}
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="bg-[#111827] border-cyan-900/30">
-                    <p className="text-xs font-medium text-sky-300">{WEATHER_DEFS[store.weather.current]?.name}</p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">{WEATHER_DEFS[store.weather.current]?.description}</p>
-                    {store.weather.remaining > 0 && <p className="text-[10px] text-gray-500 mt-1">Remaining: {store.weather.remaining} ticks</p>}
-                  </TooltipContent>
-                </Tooltip>
-              )}
+              {/* Weather indicator - always visible */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${
+                    store.weather.current === 'clear'
+                      ? 'border-gray-700 text-gray-500 bg-gray-900/20'
+                      : 'border-sky-500/50 text-sky-400 bg-sky-900/20'
+                  }`}>
+                    {WEATHER_DEFS[store.weather.current]?.emoji} {WEATHER_DEFS[store.weather.current]?.name}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="bg-[#111827] border-cyan-900/30">
+                  <p className="text-xs font-medium text-sky-300">{WEATHER_DEFS[store.weather.current]?.name}</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">{WEATHER_DEFS[store.weather.current]?.description}</p>
+                  {store.weather.remaining > 0 && <p className="text-[10px] text-gray-500 mt-1">Remaining: {store.weather.remaining} ticks</p>}
+                  {store.weather.current === 'clear' && <p className="text-[10px] text-gray-500 mt-1">Weather changes over time and affects production</p>}
+                </TooltipContent>
+              </Tooltip>
 
               {/* Auto-save indicator */}
               <div className={`flex items-center gap-1 text-[10px] transition-opacity duration-500 ${showSavedFlash ? 'opacity-100' : 'opacity-40'}`}>
@@ -653,11 +659,13 @@ export default function Home() {
               )}
 
               {/* Weather badge - mobile */}
-              {store.weather.current !== 'clear' && (
-                <Badge variant="outline" className="text-[9px] border-sky-500/50 text-sky-400 bg-sky-900/20 px-1 py-0 h-5">
-                  {WEATHER_DEFS[store.weather.current]?.emoji}
-                </Badge>
-              )}
+              <Badge variant="outline" className={`text-[9px] px-1 py-0 h-5 ${
+                store.weather.current === 'clear'
+                  ? 'border-gray-700 text-gray-500 bg-gray-900/20'
+                  : 'border-sky-500/50 text-sky-400 bg-sky-900/20'
+              }`}>
+                {WEATHER_DEFS[store.weather.current]?.emoji}
+              </Badge>
 
               {/* Export */}
               <Button variant="ghost" size="sm" className="h-6 w-6 p-0 min-w-[24px] text-gray-500" onClick={handleExport}>

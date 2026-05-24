@@ -463,7 +463,7 @@ export interface GameState {
   notifications: GameNotification[];
 }
 
-export type GameTab = 'dashboard' | 'factoryMap' | 'resources' | 'factories' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'contracts' | 'quests' | 'automation' | 'prestige' | 'events' | 'megaprojects' | 'statistics' | 'blueprints' | 'guide' | 'achievements' | 'leaderboard' | 'dailyRewards' | 'settings';
+export type GameTab = 'dashboard' | 'factoryMap' | 'resources' | 'factories' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'contracts' | 'quests' | 'automation' | 'prestige' | 'events' | 'megaprojects' | 'statistics' | 'blueprints' | 'guide' | 'achievements' | 'leaderboard' | 'dailyRewards' | 'notifications' | 'settings';
 
 export interface GameNotification {
   id: string;

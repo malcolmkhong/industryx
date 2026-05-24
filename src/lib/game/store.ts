@@ -35,6 +35,7 @@ function formatNumber(n: number): string {
   if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B';
   if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
   if (n >= 1e3) return (n / 1e3).toFixed(2) + 'K';
+  if (Number.isInteger(n) && n >= 1) return n.toString();
   if (n >= 100) return Math.floor(n).toString();
   if (n >= 1) return n.toFixed(1);
   if (n > 0) return n.toFixed(2);
@@ -265,6 +266,8 @@ interface GameActions {
   
   // Notifications
   addNotification: (type: GameNotification['type'], message: string) => void;
+  markNotificationRead: (id: string) => void;
+  markAllNotificationsRead: () => void;
   clearNotifications: () => void;
 
   // Celebrations
@@ -1380,6 +1383,20 @@ export const useGameStore = create<GameStore>()(
       },
 
       clearNotifications: () => set({ notifications: [] }),
+
+      markNotificationRead: (id: string) => {
+        set(state => ({
+          notifications: state.notifications.map(n =>
+            n.id === id ? { ...n, read: true } : n
+          ),
+        }));
+      },
+
+      markAllNotificationsRead: () => {
+        set(state => ({
+          notifications: state.notifications.map(n => ({ ...n, read: true })),
+        }));
+      },
 
       // --- CELEBRATION ACTIONS ---
       addCelebration: (celebration: Celebration) => {

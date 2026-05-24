@@ -365,6 +365,14 @@ export function ResourcePanel() {
                                 {(building.efficiency * store.powerGrid.efficiency * 100).toFixed(0)}%
                               </span>
                             </div>
+
+                            {/* Power deficit warning */}
+                            {building.active && store.powerGrid.overload && (
+                              <div className="mt-1.5 flex items-center gap-1 text-[9px] text-red-400 bg-red-900/20 rounded px-2 py-1 border border-red-900/30">
+                                <Zap className="w-2.5 h-2.5 flex-shrink-0" />
+                                <span>Requires power! Build a Coal Generator first.</span>
+                              </div>
+                            )}
                           </div>
 
                           {/* Upgrade button */}

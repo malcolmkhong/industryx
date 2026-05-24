@@ -968,3 +968,84 @@ COMPREHENSIVE HANDOVER DOCUMENT
 8. **LOW**: Responsive SVG scaling for ProductionChainPanel on small screens
 9. **LOW**: Consider code splitting / lazy loading for panel components to reduce initial bundle
 
+
+---
+Task ID: 4
+Agent: Notification Center & CSS Polish Developer
+Task: Create NotificationCenterPanel component + Apply CSS Polish
+
+Work Log:
+- Added 'notifications' to GameTab type union in types.ts
+- Added markNotificationRead(id: string) and markAllNotificationsRead() actions to GameActions interface in store.ts
+- Implemented markNotificationRead: Maps over notifications, sets matching id to read=true
+- Implemented markAllNotificationsRead: Maps over notifications, sets all to read=true
+- Created NotificationCenterPanel.tsx component with:
+  - Header with Bell icon and "Notification Center" title
+  - Mark All Read button (visible when unread notifications exist)
+  - Clear All button (visible when unread notifications exist)
+  - Summary stats grid: 4 cards showing Success/Warnings/Errors/Info counts with color-coded borders
+  - Unread count indicator with pulsing dot animation
+  - Filter tabs: All / Success / Warning / Error / Info with count badges and Filter icon
+  - Notification list with max-h-500px scrollable container
+  - Color-coded notification cards with left border (green=success, yellow=warning, red=error, cyan=info)
+  - Type icon badges (✓/⚠/✗/ℹ) in circular colored backgrounds
+  - Message text dimmed when read, bright when unread
+  - Tick timestamp and unread dot indicator per notification
+  - Click-to-mark-as-read on notification cards
+  - Individual mark-as-read button per notification
+  - Framer Motion AnimatePresence for smooth enter/exit animations
+  - Auto-scroll to top when filter changes
+  - Empty state with Bell icon and contextual message
+  - Dark industrial neon theme (bg-[#0a0e17], bg-[#111827], cyan accents)
+- Updated page.tsx:
+  - Added NotificationCenterPanel import
+  - Added 'notifications' tab entry after quests (label: 'Alerts', icon: Bell, color: 'text-cyan-400')
+  - Added 'notifications' to MOBILE_MORE_TABS
+  - Added 'notifications' renderPanel case
+- Appended CSS polish to globals.css:
+  - Better disabled button visibility (opacity: 0.5, cursor: not-allowed)
+  - Enhanced game-card hover effect (cyan border glow, box-shadow)
+  - Enhanced scrollbar styling for notification lists (4px width, cyan-tinted thumb/track)
+  - pulseDot keyframe animation (opacity + scale pulse for unread indicator)
+  - .pulse-dot utility class with 2s ease-in-out infinite animation
+  - .filter-transition utility class for smooth filter changes (transition: all 0.2s ease)
+  - Added .pulse-dot to prefers-reduced-motion: reduce override
+- ESLint passes cleanly (0 errors)
+- Dev server compiles successfully
+
+Stage Summary:
+- NotificationCenterPanel provides comprehensive notification management with filtering, read/unread tracking, and bulk actions
+- markNotificationRead and markAllNotificationsRead actions added to store for per-notification and bulk read marking
+- CSS polish: better disabled button visibility, enhanced game-card hover, refined scrollbar, pulse dot animation, filter transitions
+- Game now has 23 tabs total (added Alerts tab)
+- All changes maintain the dark industrial neon theme and respect prefers-reduced-motion
+
+---
+Task ID: 5
+Agent: Worker & Factory Panel Developer
+Task: Enhance WorkerPanel with Worker Assignment UI, Radar Chart, Productivity Comparison, Auto-Assign + Add Building Comparison Tool to FactoryPanel
+
+Work Log:
+- Read worklog.md and assessed current project state
+- Read existing WorkerPanel.tsx and FactoryPanel.tsx to understand current UI
+- Enhanced WorkerPanel.tsx with 4 new features:
+  1. Worker Efficiency Radar Chart - SVG 3-axis spider chart showing Efficiency/Speed/Maintenance for selected worker type with grid rings, axis lines, data polygon, and color-coded data points. Worker type selector tabs for all 4 worker types.
+  2. Worker Assignment Manager - Shows all active buildings with assigned worker status. Buildings with workers show worker type badge (e.g., "ENG Lv.2") and X button to unassign. Buildings without workers show dropdown to select unassigned worker. Auto-Assign button that automatically assigns unassigned workers to unstaffed buildings.
+  3. Worker Productivity Comparison - Building coverage progress bar showing % of buildings staffed. Side-by-side comparison of assigned vs unassigned workers showing efficiency boost and wasted efficiency. Warning message when unassigned workers exist.
+  4. Updated sidebar with Radar Chart, Productivity Comparison, Workforce Summary, and Worker Tips sections
+- Enhanced FactoryPanel.tsx with Building Comparison Tool:
+  - Two dropdown selects to pick buildings from all factory tiers (T1+T2+T3)
+  - Side-by-side comparison showing: Cost, Power Consumption, Inputs, Outputs, Production Rate
+  - Green highlight (checkmark + green text/bg) for the better building in each category
+  - Lower cost/power = better (highlighted green), higher output/rate = better (highlighted green)
+  - Empty state with icon when no buildings selected
+  - Added compareA/compareB state, BuildingType import, GitCompare/CheckCircle2/CircleDot icons
+- Cleaned up unused imports: Removed ArrowRight, Cpu, Route from WorkerPanel; removed outputCountA/outputCountB from FactoryPanel
+- ESLint passes cleanly (0 errors)
+- Dev server compiles successfully
+
+Stage Summary:
+- WorkerPanel now has 4 new interactive features: Radar Chart, Assignment Manager, Productivity Comparison, and enhanced Auto-Assign
+- FactoryPanel now has a Building Comparison tool for side-by-side building analysis with winner highlighting
+- Both panels maintain the dark industrial neon theme with consistent styling
+- All new features integrate with existing Zustand store actions (hireWorker, assignWorker)

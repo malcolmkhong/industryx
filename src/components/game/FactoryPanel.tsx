@@ -11,9 +11,9 @@ import {
   Zap, Lock, Layers, Cog, Flame,
   Brain, ArrowDownToLine,
   ArrowUpFromLine, ChevronDown, Package, Workflow,
-  Gauge, Box
+  Gauge, Box, GitCompare, CheckCircle2, CircleDot
 } from 'lucide-react';
-import { FactoryType, ResourceType } from '@/lib/game/types';
+import { FactoryType, ResourceType, BuildingType } from '@/lib/game/types';
 
 // Factory types organized by tier
 const TIER_1_FACTORIES: FactoryType[] = ['smelter', 'wireMill', 'chemicalPlant', 'glassFurnace', 'steelForge', 'carbonProcessor'];
@@ -71,6 +71,8 @@ export function FactoryPanel() {
   const store = useGameStore();
   const [expandedTier, setExpandedTier] = useState<number | null>(1);
   const [selectedChain, setSelectedChain] = useState<number>(0);
+  const [compareA, setCompareA] = useState<BuildingType | ''>('');
+  const [compareB, setCompareB] = useState<BuildingType | ''>('');
 
   // Track recently built/upgraded buildings for CSS animation classes
   const [recentlyBuilt, setRecentlyBuilt] = useState<Set<string>>(new Set());
@@ -765,6 +767,231 @@ export function FactoryPanel() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* BUILDING COMPARISON TOOL */}
+      <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+        <div className="flex items-center gap-2 mb-3">
+          <GitCompare className="w-4 h-4 text-cyan-400" />
+          <h3 className="text-sm font-semibold text-cyan-400">Building Comparison</h3>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          <div>
+            <label className="text-[9px] text-gray-500 mb-1 block">Building A</label>
+            <select
+              className="w-full h-7 text-[10px] bg-[#0a0e17] border border-gray-700 rounded text-gray-300 px-2 focus:border-cyan-500/50 focus:outline-none"
+              value={compareA}
+              onChange={e => setCompareA(e.target.value as BuildingType | '')}
+            >
+              <option value="">Select building...</option>
+              {[...TIER_1_FACTORIES, ...TIER_2_FACTORIES, ...TIER_3_FACTORIES].map(type => {
+                const def = BUILDING_DEFS[type];
+                return def ? (
+                  <option key={type} value={type}>{def.emoji} {def.name}</option>
+                ) : null;
+              })}
+            </select>
+          </div>
+          <div>
+            <label className="text-[9px] text-gray-500 mb-1 block">Building B</label>
+            <select
+              className="w-full h-7 text-[10px] bg-[#0a0e17] border border-gray-700 rounded text-gray-300 px-2 focus:border-cyan-500/50 focus:outline-none"
+              value={compareB}
+              onChange={e => setCompareB(e.target.value as BuildingType | '')}
+            >
+              <option value="">Select building...</option>
+              {[...TIER_1_FACTORIES, ...TIER_2_FACTORIES, ...TIER_3_FACTORIES].map(type => {
+                const def = BUILDING_DEFS[type];
+                return def ? (
+                  <option key={type} value={type}>{def.emoji} {def.name}</option>
+                ) : null;
+              })}
+            </select>
+          </div>
+        </div>
+
+        {compareA && compareB && BUILDING_DEFS[compareA] && BUILDING_DEFS[compareB] && (() => {
+          const defA = BUILDING_DEFS[compareA];
+          const defB = BUILDING_DEFS[compareB];
+          const costA = defA.baseCost;
+          const costB = defB.baseCost;
+          const powerA = defA.basePowerConsumption;
+          const powerB = defB.basePowerConsumption;
+          const inputCountA = defA.inputs?.length ?? 0;
+          const inputCountB = defB.inputs?.length ?? 0;
+          const totalOutputA = defA.outputs?.reduce((s, o) => s + o.amount, 0) ?? 0;
+          const totalOutputB = defB.outputs?.reduce((s, o) => s + o.amount, 0) ?? 0;
+          const productionRateA = totalOutputA;
+          const productionRateB = totalOutputB;
+
+          type CompareWinner = 'a' | 'b' | 'tie';
+
+          const getWinner = (a: number, b: number, lowerBetter = false): CompareWinner => {
+            if (a === b) return 'tie';
+            if (lowerBetter) return a < b ? 'a' : 'b';
+            return a > b ? 'a' : 'b';
+          };
+
+          const winnerColor = (winner: CompareWinner, side: 'a' | 'b') =>
+            winner === side ? 'text-green-400' : winner === 'tie' ? 'text-gray-300' : 'text-gray-400';
+
+          const winnerBg = (winner: CompareWinner, side: 'a' | 'b') =>
+            winner === side ? 'bg-green-900/15 border-green-800/30' : 'bg-[#0a0e17] border-gray-800/50';
+
+          const winnerIcon = (winner: CompareWinner, side: 'a' | 'b') =>
+            winner === side ? <CheckCircle2 className="w-3 h-3 text-green-400" /> : null;
+
+          const costWinner = getWinner(costA, costB, true); // lower cost is better
+          const powerWinner = getWinner(powerA, powerB, true); // lower power is better
+          const outputWinner = getWinner(totalOutputA, totalOutputB); // higher output is better
+          const rateWinner = getWinner(productionRateA, productionRateB); // higher rate is better
+          const inputWinner = getWinner(inputCountA, inputCountB, true); // fewer inputs is simpler (debatable, but let's say fewer is "better")
+
+          return (
+            <div className="bg-[#0a0e17] rounded-lg p-3 border border-gray-800/50">
+              {/* Headers */}
+              <div className="grid grid-cols-3 gap-2 mb-2">
+                <div className="text-center">
+                  <span className="text-lg">{defA.emoji}</span>
+                  <div className="text-[10px] text-cyan-400 font-medium">{defA.name}</div>
+                </div>
+                <div className="text-center flex items-center justify-center">
+                  <span className="text-[9px] text-gray-600">VS</span>
+                </div>
+                <div className="text-center">
+                  <span className="text-lg">{defB.emoji}</span>
+                  <div className="text-[10px] text-cyan-400 font-medium">{defB.name}</div>
+                </div>
+              </div>
+
+              {/* Comparison rows */}
+              <div className="space-y-1.5">
+                {/* Cost */}
+                <div className="grid grid-cols-3 gap-2 items-center">
+                  <div className={`rounded px-2 py-1.5 text-center border ${winnerBg(costWinner, 'a')}`}>
+                    <div className="flex items-center justify-center gap-1">
+                      {winnerIcon(costWinner, 'a')}
+                      <span className={`text-[10px] font-mono ${winnerColor(costWinner, 'a')}`}>${formatNumber(costA)}</span>
+                    </div>
+                  </div>
+                  <div className="text-[9px] text-gray-500 text-center">Cost</div>
+                  <div className={`rounded px-2 py-1.5 text-center border ${winnerBg(costWinner, 'b')}`}>
+                    <div className="flex items-center justify-center gap-1">
+                      {winnerIcon(costWinner, 'b')}
+                      <span className={`text-[10px] font-mono ${winnerColor(costWinner, 'b')}`}>${formatNumber(costB)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Power Consumption */}
+                <div className="grid grid-cols-3 gap-2 items-center">
+                  <div className={`rounded px-2 py-1.5 text-center border ${winnerBg(powerWinner, 'a')}`}>
+                    <div className="flex items-center justify-center gap-1">
+                      {winnerIcon(powerWinner, 'a')}
+                      <span className={`text-[10px] font-mono ${winnerColor(powerWinner, 'a')}`}>{powerA} MW</span>
+                    </div>
+                  </div>
+                  <div className="text-[9px] text-gray-500 text-center flex items-center justify-center gap-1">
+                    <Zap className="w-2.5 h-2.5 text-yellow-500" /> Power
+                  </div>
+                  <div className={`rounded px-2 py-1.5 text-center border ${winnerBg(powerWinner, 'b')}`}>
+                    <div className="flex items-center justify-center gap-1">
+                      {winnerIcon(powerWinner, 'b')}
+                      <span className={`text-[10px] font-mono ${winnerColor(powerWinner, 'b')}`}>{powerB} MW</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Inputs */}
+                <div className="grid grid-cols-3 gap-2 items-center">
+                  <div className={`rounded px-2 py-1.5 text-center border ${winnerBg(inputWinner, 'a')}`}>
+                    <div className="flex items-center justify-center gap-1">
+                      {winnerIcon(inputWinner, 'a')}
+                      <div className="flex flex-wrap gap-0.5 justify-center">
+                        {defA.inputs?.map((inp, i) => (
+                          <span key={i} className="text-[8px] text-red-300/80 bg-red-900/20 rounded px-1 py-0.5">
+                            {RESOURCE_META[inp.resource].emoji}{inp.amount}
+                          </span>
+                        ))}
+                        {(!defA.inputs || defA.inputs.length === 0) && <span className="text-[9px] text-gray-600">None</span>}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-[9px] text-gray-500 text-center">Inputs</div>
+                  <div className={`rounded px-2 py-1.5 text-center border ${winnerBg(inputWinner, 'b')}`}>
+                    <div className="flex items-center justify-center gap-1">
+                      {winnerIcon(inputWinner, 'b')}
+                      <div className="flex flex-wrap gap-0.5 justify-center">
+                        {defB.inputs?.map((inp, i) => (
+                          <span key={i} className="text-[8px] text-red-300/80 bg-red-900/20 rounded px-1 py-0.5">
+                            {RESOURCE_META[inp.resource].emoji}{inp.amount}
+                          </span>
+                        ))}
+                        {(!defB.inputs || defB.inputs.length === 0) && <span className="text-[9px] text-gray-600">None</span>}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Outputs */}
+                <div className="grid grid-cols-3 gap-2 items-center">
+                  <div className={`rounded px-2 py-1.5 text-center border ${winnerBg(outputWinner, 'a')}`}>
+                    <div className="flex items-center justify-center gap-1">
+                      {winnerIcon(outputWinner, 'a')}
+                      <div className="flex flex-wrap gap-0.5 justify-center">
+                        {defA.outputs?.map((out, i) => (
+                          <span key={i} className="text-[8px] text-green-300/80 bg-green-900/20 rounded px-1 py-0.5">
+                            {RESOURCE_META[out.resource].emoji}{out.amount}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-[9px] text-gray-500 text-center">Outputs</div>
+                  <div className={`rounded px-2 py-1.5 text-center border ${winnerBg(outputWinner, 'b')}`}>
+                    <div className="flex items-center justify-center gap-1">
+                      {winnerIcon(outputWinner, 'b')}
+                      <div className="flex flex-wrap gap-0.5 justify-center">
+                        {defB.outputs?.map((out, i) => (
+                          <span key={i} className="text-[8px] text-green-300/80 bg-green-900/20 rounded px-1 py-0.5">
+                            {RESOURCE_META[out.resource].emoji}{out.amount}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Production Rate */}
+                <div className="grid grid-cols-3 gap-2 items-center">
+                  <div className={`rounded px-2 py-1.5 text-center border ${winnerBg(rateWinner, 'a')}`}>
+                    <div className="flex items-center justify-center gap-1">
+                      {winnerIcon(rateWinner, 'a')}
+                      <span className={`text-[10px] font-mono ${winnerColor(rateWinner, 'a')}`}>{productionRateA}/t</span>
+                    </div>
+                  </div>
+                  <div className="text-[9px] text-gray-500 text-center flex items-center justify-center gap-1">
+                    <CircleDot className="w-2.5 h-2.5 text-green-500" /> Rate
+                  </div>
+                  <div className={`rounded px-2 py-1.5 text-center border ${winnerBg(rateWinner, 'b')}`}>
+                    <div className="flex items-center justify-center gap-1">
+                      {winnerIcon(rateWinner, 'b')}
+                      <span className={`text-[10px] font-mono ${winnerColor(rateWinner, 'b')}`}>{productionRateB}/t</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {(!compareA || !compareB) && (
+          <div className="text-center py-6">
+            <GitCompare className="w-8 h-8 text-gray-700 mx-auto mb-2" />
+            <p className="text-xs text-gray-500">Select two buildings to compare</p>
+          </div>
+        )}
       </div>
     </div>
   );
