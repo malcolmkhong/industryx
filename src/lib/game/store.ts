@@ -8,12 +8,13 @@ import { persist } from 'zustand/middleware';
 import {
   GameState, GameTab, ResourceType, BuildingInstance, BuildingType,
   TransportLine, TransportType, Worker, WorkerType, Contract,
-  GameEvent, GameNotification, PowerGrid, MarketPrice,
+  GameEvent, GameNotification, PowerGrid, MarketPrice, MegaProjectType,
 } from './types';
 import {
   BUILDING_DEFS, TRANSPORT_DEFS, WORKER_DEFS, INITIAL_MARKET,
   RESEARCH_TREE, AUTOMATION_UNLOCKS, PRESTIGE_BONUSES,
   EVENT_TEMPLATES, CONTRACT_TEMPLATES, RESOURCE_META,
+  INITIAL_MEGA_PROJECTS,
 } from './data';
 
 // --- Utility Functions ---
@@ -103,6 +104,7 @@ function createInitialState(): GameState {
       contractsCompleted: 0,
       playTime: 0,
     },
+    megaProjects: INITIAL_MEGA_PROJECTS.map(p => ({ ...p, stages: p.stages.map(s => ({ ...s })) })),
     activeTab: 'dashboard',
     selectedBuilding: null,
     notifications: [],
@@ -155,6 +157,14 @@ interface GameActions {
   addNotification: (type: GameNotification['type'], message: string) => void;
   clearNotifications: () => void;
   
+  // Save/Export/Import
+  exportSave: () => string;
+  importSave: (saveString: string) => boolean;
+
+  // MegaProjects
+  startMegaProject: (type: MegaProjectType) => void;
+  contributeToMegaProject: (type: MegaProjectType) => void;
+
   // Reset
   resetGame: () => void;
 }
@@ -500,6 +510,47 @@ export const useGameStore = create<GameStore>()(
         const currentEfficiency = effectivePowerEfficiency * transportEfficiency * eventProductionMultiplier;
         const newPeakEfficiency = Math.max(state.stats.peakEfficiency, currentEfficiency);
 
+        // Process active MegaProjects
+        const newMegaProjects = state.megaProjects.map(mp => {
+          if (!mp.active || mp.completed) return mp;
+          const stage = mp.stages[mp.currentStage];
+          if (!stage || stage.completed) return mp;
+
+          // Increment progress each tick (1 / timeRequired)
+          const increment = 1 / stage.timeRequired;
+          const newProgress = mp.progress + increment;
+
+          if (newProgress >= 1) {
+            // Stage complete
+            const updatedStages = mp.stages.map((s, i) =>
+              i === mp.currentStage ? { ...s, completed: true } : s
+            );
+            const nextStage = mp.currentStage + 1;
+            const isCompleted = nextStage >= mp.stages.length;
+
+            notifications.push({
+              id: generateId(),
+              type: isCompleted ? 'success' : 'info',
+              message: isCompleted
+                ? `🏆 MEGA PROJECT COMPLETE: ${mp.name}! ${mp.bonus.description}`
+                : `⚡ ${mp.name} - Stage ${nextStage}/${mp.stages.length}: ${mp.stages[mp.currentStage]?.name} complete!`,
+              gameTick: newTick,
+              read: false,
+            });
+
+            return {
+              ...mp,
+              stages: updatedStages,
+              currentStage: nextStage,
+              progress: 0,
+              completed: isCompleted,
+              active: !isCompleted,
+            };
+          }
+
+          return { ...mp, progress: newProgress };
+        });
+
         set({
           gameTick: newTick,
           resources: newResources,
@@ -521,6 +572,7 @@ export const useGameStore = create<GameStore>()(
           contracts: [...newContracts, ...contractsToAdd],
           activeEvents: newActiveEvents,
           stats: { ...newStats, peakEfficiency: newPeakEfficiency },
+          megaProjects: newMegaProjects,
           notifications: [...notifications, ...state.notifications.slice(-20)],
         });
       },
@@ -923,7 +975,167 @@ export const useGameStore = create<GameStore>()(
 
       clearNotifications: () => set({ notifications: [] }),
 
+      exportSave: () => {
+        const state = get();
+        const saveData = {
+          money: state.money,
+          totalMoneyEarned: state.totalMoneyEarned,
+          gameTick: state.gameTick,
+          resources: state.resources,
+          resourceCapacity: state.resourceCapacity,
+          buildings: state.buildings,
+          transportLines: state.transportLines,
+          researchPoints: state.researchPoints,
+          completedResearch: state.completedResearch,
+          workers: state.workers,
+          contracts: state.contracts,
+          completedContracts: state.completedContracts,
+          automationUnlocks: state.automationUnlocks,
+          prestigeState: state.prestigeState,
+          stats: state.stats,
+          _version: 1,
+          _exportedAt: Date.now(),
+        };
+        try {
+          const json = JSON.stringify(saveData);
+          return btoa(encodeURIComponent(json));
+        } catch {
+          return '';
+        }
+      },
+
+      importSave: (saveString: string) => {
+        try {
+          const json = decodeURIComponent(atob(saveString));
+          const data = JSON.parse(json);
+
+          // Validate structure has key fields
+          if (
+            typeof data.money !== 'number' ||
+            typeof data.gameTick !== 'number' ||
+            typeof data.resources !== 'object' ||
+            !Array.isArray(data.buildings)
+          ) {
+            return false;
+          }
+
+          const state = get();
+          set({
+            money: typeof data.money === 'number' ? data.money : state.money,
+            totalMoneyEarned: typeof data.totalMoneyEarned === 'number' ? data.totalMoneyEarned : state.totalMoneyEarned,
+            gameTick: typeof data.gameTick === 'number' ? data.gameTick : state.gameTick,
+            resources: data.resources && typeof data.resources === 'object' ? { ...state.resources, ...data.resources } : state.resources,
+            resourceCapacity: data.resourceCapacity && typeof data.resourceCapacity === 'object' ? { ...state.resourceCapacity, ...data.resourceCapacity } : state.resourceCapacity,
+            buildings: Array.isArray(data.buildings) ? data.buildings : state.buildings,
+            transportLines: Array.isArray(data.transportLines) ? data.transportLines : state.transportLines,
+            researchPoints: typeof data.researchPoints === 'number' ? data.researchPoints : state.researchPoints,
+            completedResearch: Array.isArray(data.completedResearch) ? data.completedResearch : state.completedResearch,
+            workers: Array.isArray(data.workers) ? data.workers : state.workers,
+            contracts: Array.isArray(data.contracts) ? data.contracts : state.contracts,
+            completedContracts: typeof data.completedContracts === 'number' ? data.completedContracts : state.completedContracts,
+            automationUnlocks: Array.isArray(data.automationUnlocks) ? data.automationUnlocks : state.automationUnlocks,
+            prestigeState: data.prestigeState && typeof data.prestigeState === 'object' ? { ...state.prestigeState, ...data.prestigeState, bonuses: Array.isArray(data.prestigeState.bonuses) ? data.prestigeState.bonuses : state.prestigeState.bonuses } : state.prestigeState,
+            stats: data.stats && typeof data.stats === 'object' ? { ...state.stats, ...data.stats } : state.stats,
+          });
+
+          get().addNotification('success', 'Save imported successfully!');
+          return true;
+        } catch {
+          return false;
+        }
+      },
+
       resetGame: () => set(createInitialState()),
+
+      // --- MEGAPROJECT ACTIONS ---
+      startMegaProject: (type: MegaProjectType) => {
+        const state = get();
+        const project = state.megaProjects.find(p => p.type === type);
+        if (!project) return;
+
+        if (project.active) {
+          get().addNotification('warning', `${project.name} is already active!`);
+          return;
+        }
+
+        if (project.completed) {
+          get().addNotification('warning', `${project.name} is already completed!`);
+          return;
+        }
+
+        // Check unlock requirements
+        const req = project.unlockRequirement;
+        if (req.buildings && state.buildings.length < req.buildings) {
+          get().addNotification('error', `Need ${req.buildings} buildings! Have ${state.buildings.length}`);
+          return;
+        }
+        if (req.research && state.completedResearch.length < req.research) {
+          get().addNotification('error', `Need ${req.research} research! Have ${state.completedResearch.length}`);
+          return;
+        }
+        if (req.prestige && state.prestigeState.totalPrestiges < req.prestige) {
+          get().addNotification('error', `Need ${req.prestige} prestiges! Have ${state.prestigeState.totalPrestiges}`);
+          return;
+        }
+
+        set({
+          megaProjects: state.megaProjects.map(p =>
+            p.type === type ? { ...p, active: true } : p
+          ),
+        });
+        get().addNotification('info', `Mega Project started: ${project.name}! Contribute resources to begin construction.`);
+      },
+
+      contributeToMegaProject: (type: MegaProjectType) => {
+        const state = get();
+        const project = state.megaProjects.find(p => p.type === type);
+        if (!project || !project.active || project.completed) return;
+
+        const stage = project.stages[project.currentStage];
+        if (!stage || stage.completed) return;
+
+        // Check if player has all required resources
+        const canContribute = stage.requiredResources.every(r => {
+          if (r.resource === 'money') return state.money >= r.amount;
+          return state.resources[r.resource as ResourceType] >= r.amount;
+        });
+
+        if (!canContribute) {
+          get().addNotification('error', `Not enough resources for ${stage.name}!`);
+          return;
+        }
+
+        // Deduct resources
+        const newResources = { ...state.resources };
+        let newMoney = state.money;
+        stage.requiredResources.forEach(r => {
+          if (r.resource === 'money') {
+            newMoney -= r.amount;
+          } else {
+            newResources[r.resource as ResourceType] -= r.amount;
+          }
+        });
+
+        // Mark stage resources as contributed (set progress to start ticking)
+        const updatedStages = project.stages.map((s, i) =>
+          i === project.currentStage ? { ...s } : s
+        );
+
+        set({
+          money: newMoney,
+          resources: newResources,
+          megaProjects: state.megaProjects.map(p =>
+            p.type === type
+              ? {
+                  ...p,
+                  stages: updatedStages,
+                  progress: Math.max(p.progress, 0.001), // Ensure progress starts
+                }
+              : p
+          ),
+        });
+        get().addNotification('success', `Contributed resources to ${project.name}: ${stage.name}! Construction underway...`);
+      },
     }),
     {
       name: 'factory-dominion-save',
@@ -943,6 +1155,7 @@ export const useGameStore = create<GameStore>()(
         automationUnlocks: state.automationUnlocks,
         prestigeState: state.prestigeState,
         stats: state.stats,
+        megaProjects: state.megaProjects,
       }),
     }
   )

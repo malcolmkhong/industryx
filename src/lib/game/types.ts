@@ -20,13 +20,13 @@ export interface ResourceAmount {
 // --- Buildings ---
 export type BuildingType = 
   | 'miningDrill' | 'oilPump' | 'waterExtractor' | 'quarry'
-  | 'smelter' | 'wireMill' | 'chemicalPlant' | 'glassFurnace'
+  | 'smelter' | 'wireMill' | 'chemicalPlant' | 'glassFurnace' | 'steelForge' | 'carbonProcessor'
   | 'gearFactory' | 'circuitFactory' | 'engineFactory' | 'batteryFactory'
   | 'aiLab' | 'roboticsBay' | 'quantumLab' | 'alloyForge' | 'nanoLab'
   | 'coalGenerator' | 'solarPanel' | 'windTurbine' | 'nuclearReactor' | 'fusionReactor';
 
 export type ExtractorType = 'miningDrill' | 'oilPump' | 'waterExtractor' | 'quarry';
-export type FactoryType = 'smelter' | 'wireMill' | 'chemicalPlant' | 'glassFurnace' | 'gearFactory' | 'circuitFactory' | 'engineFactory' | 'batteryFactory' | 'aiLab' | 'roboticsBay' | 'quantumLab' | 'alloyForge' | 'nanoLab';
+export type FactoryType = 'smelter' | 'wireMill' | 'chemicalPlant' | 'glassFurnace' | 'steelForge' | 'carbonProcessor' | 'gearFactory' | 'circuitFactory' | 'engineFactory' | 'batteryFactory' | 'aiLab' | 'roboticsBay' | 'quantumLab' | 'alloyForge' | 'nanoLab';
 export type PowerPlantType = 'coalGenerator' | 'solarPanel' | 'windTurbine' | 'nuclearReactor' | 'fusionReactor';
 
 export interface BuildingInstance {
@@ -230,6 +230,38 @@ export interface PrestigeBonus {
   };
 }
 
+// --- MegaProjects ---
+export type MegaProjectType = 'spaceElevator' | 'dysonSphere' | 'quantumInternet' | 'fusionCity' | 'terraformingEngine';
+
+export interface MegaProjectStage {
+  name: string;
+  requiredResources: ResourceAmount[];
+  timeRequired: number; // ticks
+  completed: boolean;
+}
+
+export interface MegaProject {
+  type: MegaProjectType;
+  name: string;
+  description: string;
+  emoji: string;
+  stages: MegaProjectStage[];
+  currentStage: number;
+  progress: number; // 0-1 for current stage
+  active: boolean;
+  completed: boolean;
+  bonus: {
+    type: string;
+    description: string;
+    value: number;
+  };
+  unlockRequirement: {
+    buildings?: number;
+    research?: number;
+    prestige?: number;
+  };
+}
+
 // --- Blueprints ---
 export interface Blueprint {
   id: string;
@@ -301,13 +333,16 @@ export interface GameState {
     playTime: number; // in ticks
   };
   
+  // MegaProjects
+  megaProjects: MegaProject[];
+
   // UI State
   activeTab: GameTab;
   selectedBuilding: string | null;
   notifications: GameNotification[];
 }
 
-export type GameTab = 'dashboard' | 'resources' | 'factories' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'contracts' | 'automation' | 'prestige' | 'events' | 'blueprints' | 'guide' | 'achievements';
+export type GameTab = 'dashboard' | 'resources' | 'factories' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'contracts' | 'automation' | 'prestige' | 'events' | 'megaprojects' | 'blueprints' | 'guide' | 'achievements';
 
 export interface GameNotification {
   id: string;

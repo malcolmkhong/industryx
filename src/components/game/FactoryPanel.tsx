@@ -16,7 +16,7 @@ import {
 import { FactoryType, ResourceType } from '@/lib/game/types';
 
 // Factory types organized by tier
-const TIER_1_FACTORIES: FactoryType[] = ['smelter', 'wireMill', 'chemicalPlant', 'glassFurnace'];
+const TIER_1_FACTORIES: FactoryType[] = ['smelter', 'wireMill', 'chemicalPlant', 'glassFurnace', 'steelForge', 'carbonProcessor'];
 const TIER_2_FACTORIES: FactoryType[] = ['gearFactory', 'circuitFactory', 'engineFactory', 'batteryFactory'];
 const TIER_3_FACTORIES: FactoryType[] = ['aiLab', 'roboticsBay', 'quantumLab', 'alloyForge', 'nanoLab'];
 

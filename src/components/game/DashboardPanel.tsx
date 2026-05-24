@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/store';
-import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE } from '@/lib/game/data';
+import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE, PRODUCTION_CHAINS } from '@/lib/game/data';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,9 +11,10 @@ import {
   Factory, Users, Zap, TrendingUp, AlertTriangle, FlaskConical,
   ChevronRight, Activity, Pickaxe, Cog, Shield, Clock, Bell,
   ArrowUpRight, ArrowDownRight, Minus, Timer, Power, Sparkles,
-  Database, Wrench, Globe
+  Database, Wrench, Globe, ArrowRight
 } from 'lucide-react';
 import { BuildingType, ResourceType } from '@/lib/game/types';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export function DashboardPanel() {
   const store = useGameStore();
@@ -336,6 +337,9 @@ export function DashboardPanel() {
               </div>
             )}
           </div>
+
+          {/* PRODUCTION CHAINS VISUALIZATION */}
+          <ProductionChainSection store={store} productionRates={productionRates} />
         </div>
 
         {/* RIGHT COLUMN */}
@@ -604,6 +608,181 @@ function StatCard({
       </div>
       <div className={`text-lg font-bold font-mono ${c.value}`}>{value}</div>
       <div className="text-[10px] text-gray-500 mt-0.5">{subtext}</div>
+    </div>
+  );
+}
+
+// --- Production Chain Section ---
+
+function ProductionChainSection({
+  store,
+  productionRates,
+}: {
+  store: ReturnType<typeof useGameStore>;
+  productionRates: Record<string, number>;
+}) {
+  const [selectedChain, setSelectedChain] = useState(0);
+  const chain = PRODUCTION_CHAINS[selectedChain];
+
+  return (
+    <div
+      className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]"
+      style={{ borderColor: `${chain.color}33` }}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <ArrowRight className="w-4 h-4" style={{ color: chain.color }} />
+          <h3 className="text-sm font-semibold" style={{ color: chain.color }}>Production Chains</h3>
+        </div>
+        <Badge
+          variant="outline"
+          className="text-[10px]"
+          style={{ borderColor: `${chain.color}66`, color: chain.color, backgroundColor: `${chain.color}15` }}
+        >
+          {chain.name}
+        </Badge>
+      </div>
+
+      {/* Chain Selector Pills */}
+      <div className="flex gap-1.5 overflow-x-auto pb-2 mb-3 game-scrollbar">
+        {PRODUCTION_CHAINS.map((c, i) => (
+          <button
+            key={c.name}
+            onClick={() => setSelectedChain(i)}
+            className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] font-medium transition-all duration-200 border ${
+              i === selectedChain
+                ? 'text-white border-transparent shadow-lg'
+                : 'text-gray-400 border-gray-700/50 bg-gray-800/50 hover:border-gray-600 hover:text-gray-300'
+            }`}
+            style={i === selectedChain ? {
+              backgroundColor: `${c.color}33`,
+              borderColor: `${c.color}88`,
+              boxShadow: `0 0 12px ${c.color}33`,
+            } : undefined}
+          >
+            {c.name}
+          </button>
+        ))}
+      </div>
+
+      {/* Chain Steps Flow */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={chain.name}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.25 }}
+          className="flex items-center gap-0 overflow-x-auto pb-2 game-scrollbar"
+        >
+          {chain.steps.map((step, i) => {
+            const meta = RESOURCE_META[step as ResourceType];
+            if (!meta) return null;
+            const stock = store.resources[step as ResourceType] ?? 0;
+            const rate = productionRates[step as ResourceType] ?? 0;
+            const capacity = store.resourceCapacity[step as ResourceType] ?? 0;
+            const fillPct = capacity > 0 ? Math.min(100, (stock / capacity) * 100) : 0;
+
+            return (
+              <div key={step} className="flex items-center flex-shrink-0">
+                {/* Step Node */}
+                <div
+                  className="relative rounded-lg p-2.5 min-w-[90px] border transition-all duration-300"
+                  style={{
+                    borderColor: `${chain.color}44`,
+                    backgroundColor: `${chain.color}0a`,
+                  }}
+                >
+                  {/* Resource emoji + name */}
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="text-sm">{meta.emoji}</span>
+                    <span className="text-[11px] font-medium" style={{ color: meta.color }}>{meta.name}</span>
+                  </div>
+
+                  {/* Stock amount */}
+                  <div className="text-xs font-mono text-gray-300 mb-0.5">
+                    {formatNumber(stock)}
+                    {capacity > 0 && (
+                      <span className="text-[9px] text-gray-500">/{formatNumber(capacity)}</span>
+                    )}
+                  </div>
+
+                  {/* Mini capacity bar */}
+                  {capacity > 0 && (
+                    <div className="h-1 bg-gray-800 rounded-full overflow-hidden mb-1">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: `${fillPct}%`,
+                          backgroundColor: fillPct > 80 ? '#ef4444' : fillPct > 50 ? '#f59e0b' : chain.color,
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Net production rate */}
+                  <div className="flex items-center gap-0.5">
+                    {rate > 0 ? (
+                      <>
+                        <ArrowUpRight className="w-2.5 h-2.5 text-green-400" />
+                        <span className="text-[10px] text-green-400 font-mono font-bold">+{formatNumber(rate)}</span>
+                      </>
+                    ) : rate < 0 ? (
+                      <>
+                        <ArrowDownRight className="w-2.5 h-2.5 text-red-400" />
+                        <span className="text-[10px] text-red-400 font-mono font-bold">{formatNumber(rate)}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Minus className="w-2.5 h-2.5 text-gray-600" />
+                        <span className="text-[10px] text-gray-600 font-mono">0</span>
+                      </>
+                    )}
+                    <span className="text-[8px] text-gray-600">/t</span>
+                  </div>
+
+                  {/* Tier badge */}
+                  <div
+                    className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold text-white"
+                    style={{ backgroundColor: `${chain.color}99` }}
+                  >
+                    {meta.tier}
+                  </div>
+                </div>
+
+                {/* Animated Arrow Connector */}
+                {i < chain.steps.length - 1 && (
+                  <div className="flex-shrink-0 w-8 flex items-center justify-center relative">
+                    {/* Arrow track line */}
+                    <div
+                      className="absolute h-[2px] w-full rounded-full"
+                      style={{ backgroundColor: `${chain.color}33` }}
+                    />
+                    {/* Animated flow particle */}
+                    <motion.div
+                      className="absolute h-[2px] w-3 rounded-full"
+                      style={{ backgroundColor: chain.color }}
+                      animate={{ x: ['-100%', '100%'] }}
+                      transition={{
+                        duration: 1.2,
+                        repeat: Infinity,
+                        ease: 'linear',
+                        delay: i * 0.2,
+                      }}
+                    />
+                    {/* Arrow head */}
+                    <ChevronRight
+                      className="w-3.5 h-3.5 relative z-10"
+                      style={{ color: chain.color }}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }

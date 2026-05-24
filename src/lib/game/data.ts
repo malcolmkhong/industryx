@@ -3,7 +3,7 @@
 // Game Data Definitions
 // ============================================
 
-import { BuildingDefinition, TransportDefinition, WorkerDefinition, ResearchNode, MarketPrice, AutomationUnlock, PrestigeBonus, ResourceType } from './types';
+import { BuildingDefinition, TransportDefinition, WorkerDefinition, ResearchNode, MarketPrice, AutomationUnlock, PrestigeBonus, ResourceType, MegaProject } from './types';
 
 // --- Resource Metadata ---
 export const RESOURCE_META: Record<ResourceType, { name: string; emoji: string; tier: number; color: string }> = {
@@ -156,6 +156,36 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'sand', amount: 2 }],
     outputs: [{ resource: 'glass', amount: 1 }],
     emoji: '🪟',
+  },
+  steelForge: {
+    type: 'steelForge',
+    name: 'Steel Forge',
+    description: 'Forges iron plates and coal into strong steel alloys',
+    category: 'factory',
+    tier: 1,
+    baseCost: [{ resource: 'money', amount: 1800 }],
+    costMultiplier: 1.18,
+    basePowerConsumption: 14,
+    basePowerProduction: 0,
+    baseProductionRate: 1,
+    inputs: [{ resource: 'ironPlate', amount: 2 }, { resource: 'coal', amount: 1 }],
+    outputs: [{ resource: 'steel', amount: 1 }],
+    emoji: '🛡️',
+  },
+  carbonProcessor: {
+    type: 'carbonProcessor',
+    name: 'Carbon Processor',
+    description: 'Processes coal into high-grade carbon fiber for advanced manufacturing',
+    category: 'factory',
+    tier: 1,
+    baseCost: [{ resource: 'money', amount: 2000 }],
+    costMultiplier: 1.2,
+    basePowerConsumption: 12,
+    basePowerProduction: 0,
+    baseProductionRate: 1,
+    inputs: [{ resource: 'coal', amount: 3 }],
+    outputs: [{ resource: 'carbon', amount: 1 }],
+    emoji: '🖤',
   },
   // Tier 2 Factories
   gearFactory: {
@@ -888,11 +918,267 @@ export const CONTRACT_TEMPLATES = [
 // --- Production Chain Visualization Data ---
 export const PRODUCTION_CHAINS = [
   { name: 'Basic Iron', steps: ['iron', 'ironPlate', 'gear', 'engine'], color: '#a0a0a0' },
+  { name: 'Steel Production', steps: ['iron', 'ironPlate', 'steel', 'advancedAlloy'], color: '#708090' },
   { name: 'Electronics', steps: ['copper', 'copperWire', 'circuit', 'aiChip'], color: '#00cc66' },
-  { name: 'Energy Storage', steps: ['lithium', 'battery', 'aiChip'], color: '#32cd32' },
+  { name: 'Energy Storage', steps: ['lithium', 'carbon', 'battery', 'aiChip'], color: '#32cd32' },
+  { name: 'Carbon Fiber', steps: ['coal', 'carbon', 'battery'], color: '#2d2d2d' },
   { name: 'Oil Products', steps: ['oil', 'plastic', 'circuit'], color: '#ff6b6b' },
   { name: 'Advanced Materials', steps: ['iron', 'steel', 'advancedAlloy', 'nanoMaterial'], color: '#4169e1' },
   { name: 'Quantum Tech', steps: ['rareEarth', 'aiChip', 'quantumPart', 'nanoMaterial'], color: '#9400d3' },
   { name: 'Robotics', steps: ['gear', 'engine', 'aiChip', 'robotics'], color: '#ff69b4' },
   { name: 'Glass Production', steps: ['sand', 'glass'], color: '#87ceeb' },
+];
+
+// --- MegaProject Definitions ---
+export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
+  {
+    type: 'spaceElevator',
+    name: 'Space Elevator',
+    description: 'Construct a towering tether to orbit, revolutionizing transport capacity across your entire empire.',
+    emoji: '🚀',
+    stages: [
+      {
+        name: 'Foundation & Base Tower',
+        requiredResources: [
+          { resource: 'steel', amount: 1000 },
+          { resource: 'gear', amount: 500 },
+          { resource: 'circuit', amount: 200 },
+        ],
+        timeRequired: 500,
+        completed: false,
+      },
+      {
+        name: 'Tether & Climber Systems',
+        requiredResources: [
+          { resource: 'engine', amount: 500 },
+          { resource: 'aiChip', amount: 300 },
+          { resource: 'robotics', amount: 100 },
+        ],
+        timeRequired: 1000,
+        completed: false,
+      },
+      {
+        name: 'Orbital Station & Activation',
+        requiredResources: [
+          { resource: 'quantumPart', amount: 50 },
+          { resource: 'nanoMaterial', amount: 20 },
+          { resource: 'advancedAlloy', amount: 200 },
+        ],
+        timeRequired: 2000,
+        completed: false,
+      },
+    ],
+    currentStage: 0,
+    progress: 0,
+    active: false,
+    completed: false,
+    bonus: { type: 'transportMultiplier', description: '+50% transport throughput', value: 0.5 },
+    unlockRequirement: { buildings: 20, research: 5 },
+  },
+  {
+    type: 'dysonSphere',
+    name: 'Dyson Sphere',
+    description: 'Encase a star in a megastructure to harvest unimaginable quantities of energy for your factories.',
+    emoji: '☀️',
+    stages: [
+      {
+        name: 'Solar Collector Array',
+        requiredResources: [
+          { resource: 'steel', amount: 2000 },
+          { resource: 'circuit', amount: 1000 },
+          { resource: 'battery', amount: 500 },
+        ],
+        timeRequired: 800,
+        completed: false,
+      },
+      {
+        name: 'Energy Transmission Grid',
+        requiredResources: [
+          { resource: 'aiChip', amount: 1000 },
+          { resource: 'robotics', amount: 500 },
+          { resource: 'quantumPart', amount: 200 },
+        ],
+        timeRequired: 1500,
+        completed: false,
+      },
+      {
+        name: 'Full Shell Completion',
+        requiredResources: [
+          { resource: 'nanoMaterial', amount: 100 },
+          { resource: 'advancedAlloy', amount: 500 },
+          { resource: 'quantumPart', amount: 50 },
+        ],
+        timeRequired: 3000,
+        completed: false,
+      },
+    ],
+    currentStage: 0,
+    progress: 0,
+    active: false,
+    completed: false,
+    bonus: { type: 'powerMultiplier', description: '+200% power generation', value: 2.0 },
+    unlockRequirement: { buildings: 30, research: 10 },
+  },
+  {
+    type: 'quantumInternet',
+    name: 'Quantum Internet',
+    description: 'Build an interlocking quantum network that accelerates research beyond the speed of conventional computing.',
+    emoji: '🌐',
+    stages: [
+      {
+        name: 'Quantum Node Network',
+        requiredResources: [
+          { resource: 'circuit', amount: 500 },
+          { resource: 'aiChip', amount: 300 },
+          { resource: 'battery', amount: 100 },
+        ],
+        timeRequired: 600,
+        completed: false,
+      },
+      {
+        name: 'Entanglement Relays',
+        requiredResources: [
+          { resource: 'quantumPart', amount: 200 },
+          { resource: 'robotics', amount: 100 },
+          { resource: 'circuit', amount: 500 },
+        ],
+        timeRequired: 1200,
+        completed: false,
+      },
+      {
+        name: 'Global Quantum Link',
+        requiredResources: [
+          { resource: 'nanoMaterial', amount: 50 },
+          { resource: 'quantumPart', amount: 100 },
+          { resource: 'aiChip', amount: 300 },
+        ],
+        timeRequired: 2000,
+        completed: false,
+      },
+    ],
+    currentStage: 0,
+    progress: 0,
+    active: false,
+    completed: false,
+    bonus: { type: 'researchMultiplier', description: '+100% research speed', value: 1.0 },
+    unlockRequirement: { buildings: 15, research: 8 },
+  },
+  {
+    type: 'fusionCity',
+    name: 'Fusion City',
+    description: 'Construct a self-sustaining metropolis powered by fusion, doubling all production across your dominion.',
+    emoji: '🏙️',
+    stages: [
+      {
+        name: 'City Foundation',
+        requiredResources: [
+          { resource: 'steel', amount: 3000 },
+          { resource: 'gear', amount: 1500 },
+          { resource: 'circuit', amount: 800 },
+        ],
+        timeRequired: 1000,
+        completed: false,
+      },
+      {
+        name: 'Fusion Core Installation',
+        requiredResources: [
+          { resource: 'engine', amount: 1000 },
+          { resource: 'battery', amount: 500 },
+          { resource: 'aiChip', amount: 300 },
+        ],
+        timeRequired: 2000,
+        completed: false,
+      },
+      {
+        name: 'Infrastructure & Systems',
+        requiredResources: [
+          { resource: 'robotics', amount: 200 },
+          { resource: 'quantumPart', amount: 100 },
+          { resource: 'advancedAlloy', amount: 500 },
+        ],
+        timeRequired: 3000,
+        completed: false,
+      },
+      {
+        name: 'City Activation',
+        requiredResources: [
+          { resource: 'nanoMaterial', amount: 200 },
+          { resource: 'quantumPart', amount: 100 },
+          { resource: 'aiChip', amount: 1000 },
+        ],
+        timeRequired: 5000,
+        completed: false,
+      },
+    ],
+    currentStage: 0,
+    progress: 0,
+    active: false,
+    completed: false,
+    bonus: { type: 'productionMultiplier', description: '+100% all production', value: 1.0 },
+    unlockRequirement: { buildings: 40, research: 15, prestige: 2 },
+  },
+  {
+    type: 'terraformingEngine',
+    name: 'Terraforming Engine',
+    description: 'Reshape entire worlds to your specifications. Removes all resource storage limits forever.',
+    emoji: '🌍',
+    stages: [
+      {
+        name: 'Atmospheric Processor',
+        requiredResources: [
+          { resource: 'steel', amount: 5000 },
+          { resource: 'circuit', amount: 2000 },
+          { resource: 'battery', amount: 1000 },
+        ],
+        timeRequired: 1500,
+        completed: false,
+      },
+      {
+        name: 'Geothermal Tap Network',
+        requiredResources: [
+          { resource: 'advancedAlloy', amount: 1000 },
+          { resource: 'engine', amount: 500 },
+          { resource: 'robotics', amount: 300 },
+        ],
+        timeRequired: 2500,
+        completed: false,
+      },
+      {
+        name: 'Biosphere Seed Vault',
+        requiredResources: [
+          { resource: 'aiChip', amount: 500 },
+          { resource: 'nanoMaterial', amount: 100 },
+          { resource: 'quantumPart', amount: 150 },
+        ],
+        timeRequired: 3500,
+        completed: false,
+      },
+      {
+        name: 'Planetary Core Drill',
+        requiredResources: [
+          { resource: 'nanoMaterial', amount: 200 },
+          { resource: 'advancedAlloy', amount: 800 },
+          { resource: 'quantumPart', amount: 200 },
+        ],
+        timeRequired: 4500,
+        completed: false,
+      },
+      {
+        name: 'Engine Ignition',
+        requiredResources: [
+          { resource: 'nanoMaterial', amount: 500 },
+          { resource: 'quantumPart', amount: 300 },
+          { resource: 'robotics', amount: 500 },
+        ],
+        timeRequired: 6000,
+        completed: false,
+      },
+    ],
+    currentStage: 0,
+    progress: 0,
+    active: false,
+    completed: false,
+    bonus: { type: 'unlimitedStorage', description: 'Unlimited resource storage', value: 1 },
+    unlockRequirement: { buildings: 50, research: 20, prestige: 3 },
+  },
 ];

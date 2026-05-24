@@ -220,17 +220,6 @@
   100% { transform: translateX(10px); opacity: 0; }
 }
 
-/* Card hover effect */
-.game-card {
-  transition: all 0.2s ease;
-  border: 1px solid oklch(0.25 0.03 260);
-}
-.game-card:hover {
-  border-color: oklch(0.75 0.18 180 / 0.4);
-  box-shadow: 0 0 15px oklch(0.75 0.18 180 / 0.1);
-  transform: translateY(-1px);
-}
-
 /* Resource bar animation */
 @keyframes resourceFill {
   from { width: 0; }
@@ -255,4 +244,165 @@
 @keyframes particleFloat {
   0% { transform: translateY(0) scale(1); opacity: 1; }
   100% { transform: translateY(-20px) scale(0.5); opacity: 0; }
+}
+
+/* ===== UX Enhancement: Toast Notification ===== */
+@keyframes toastSlideIn {
+  0% { transform: translateX(100%); opacity: 0; }
+  60% { transform: translateX(-8px); opacity: 1; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+@keyframes toastSlideOut {
+  0% { transform: translateX(0); opacity: 1; }
+  100% { transform: translateX(100%); opacity: 0; }
+}
+
+.game-toast {
+  animation: toastSlideIn 0.35s ease-out forwards;
+  backdrop-filter: blur(12px);
+  border-left: 3px solid;
+  min-width: 260px;
+  max-width: 360px;
+}
+
+.game-toast.toast-exit {
+  animation: toastSlideOut 0.25s ease-in forwards;
+}
+
+/* ===== UX Enhancement: Floating Numbers ===== */
+@keyframes floatUp {
+  0% {
+    transform: translateY(0) scale(0.8);
+    opacity: 0.95;
+  }
+  30% {
+    transform: translateY(-8px) scale(1.05);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-32px) scale(1);
+    opacity: 0;
+  }
+}
+
+.floating-number {
+  animation: floatUp 1.5s ease-out forwards;
+  pointer-events: none;
+  user-select: none;
+  text-shadow: 0 0 8px rgba(57, 255, 20, 0.4);
+}
+
+/* ===== Subtle Background Grid ===== */
+.game-grid-bg {
+  background-image:
+    linear-gradient(rgba(0, 255, 242, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 242, 0.02) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* ===== Improved Game Card Hover ===== */
+.game-card {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid oklch(0.25 0.03 260);
+}
+.game-card:hover {
+  border-color: oklch(0.75 0.18 180 / 0.4);
+  box-shadow: 0 0 20px oklch(0.75 0.18 180 / 0.15), 0 0 4px oklch(0.75 0.18 180 / 0.05) inset;
+  transform: translateY(-1px);
+}
+
+/* ===== Mobile Responsiveness ===== */
+
+/* Safe area container - respects iOS safe area insets */
+.safe-area-container {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Mobile bottom tab bar */
+.mobile-bottom-bar {
+  padding-bottom: env(safe-area-inset-bottom);
+  background: #0d1220;
+}
+
+/* Mobile tab scroll - hide scrollbar for cleaner look on mobile */
+.mobile-tab-scroll::-webkit-scrollbar {
+  display: none;
+}
+.mobile-tab-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  /* Enable momentum scrolling on iOS */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Disable hover effects on touch devices to prevent sticky hover */
+@media (hover: none) and (pointer: coarse) {
+  .game-card:hover {
+    border-color: oklch(0.25 0.03 260);
+    box-shadow: none;
+    transform: none;
+  }
+
+  .game-card {
+    /* Ensure adequate tap target size on mobile */
+    min-height: 44px;
+  }
+
+  /* Disable all hover transforms on touch */
+  button:hover {
+    transform: none;
+  }
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 1023px) {
+  /* Prevent horizontal overflow from wide content */
+  .game-grid-bg {
+    overflow-x: hidden;
+  }
+
+  /* Ensure all interactive elements have minimum touch targets */
+  button, [role="button"], a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Small inline buttons (like speed controls) can be smaller but still tappable */
+  .mobile-speed-btn,
+  button.h-6 {
+    min-height: 24px;
+    min-width: 24px;
+  }
+
+  /* Dialog adjustments for mobile */
+  [data-radix-popper-content-wrapper] {
+    max-width: calc(100vw - 1rem) !important;
+    max-height: 90vh !important;
+  }
+
+  /* Make sure content doesn't overflow horizontally */
+  .overflow-y-auto {
+    overflow-x: hidden;
+  }
+}
+
+/* Prevent text selection on game UI elements for better touch UX */
+.mobile-bottom-bar,
+.mobile-bottom-bar * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Active state feedback for bottom tab items */
+.mobile-bottom-bar button:active {
+  opacity: 0.7;
+}
+
+/* Ensure dialogs are properly positioned on mobile */
+@media (max-width: 640px) {
+  [role="dialog"] {
+    margin: 0.5rem;
+  }
 }
