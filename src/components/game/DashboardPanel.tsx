@@ -163,12 +163,16 @@ export function DashboardPanel() {
               <Badge
                 variant="outline"
                 className={`text-[10px] ${
-                  powerSurplus >= 0
-                    ? 'border-green-500/50 text-green-400 bg-green-900/20'
-                    : 'border-red-500/50 text-red-400 bg-red-900/20'
+                  store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption === 0
+                    ? 'border-gray-500/50 text-gray-400 bg-gray-900/20'
+                    : powerSurplus >= 0
+                      ? 'border-green-500/50 text-green-400 bg-green-900/20'
+                      : 'border-red-500/50 text-red-400 bg-red-900/20'
                 }`}
               >
-                {powerSurplus >= 0 ? (
+                {store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption === 0 ? (
+                  <>NO GRID</>
+                ) : powerSurplus >= 0 ? (
                   <><ArrowUpRight className="w-2.5 h-2.5 mr-0.5" /> SURPLUS</>
                 ) : (
                   <><ArrowDownRight className="w-2.5 h-2.5 mr-0.5" /> DEFICIT</>

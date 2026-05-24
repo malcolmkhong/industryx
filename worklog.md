@@ -40,3 +40,47 @@ Stage Summary:
 - Production chains: Iron→Plate→Gear→Engine, Copper→Wire→Circuit→AI Chip, etc.
 - Market with dynamic pricing, events, contracts for varied gameplay
 - Prestige system with permanent bonuses for long-term retention
+
+---
+Task ID: 2
+Agent: Cron Review Agent
+Task: QA testing, bug fixes, and feature improvements
+
+Work Log:
+- Tested game with agent-browser and VLM analysis
+- Identified and fixed critical bug: Mining Drill didn't produce coal, making Coal Generators useless (chicken-and-egg problem)
+- Fixed Power Grid showing "SURPLUS" when 0/0 MW (now shows "NO GRID")
+- Fixed power percentage showing 100% when no power plants exist (now shows 0%)
+- Added OnboardingPanel with 6-step tutorial guide for new players
+- Added AchievementPanel with 22 achievements across 5 categories (Production, Economy, Research, Expansion, Special)
+- Added auto-open Guide tab for new players (buildings.length === 0 && gameTick < 5)
+- Added Guide and Trophies tabs to sidebar navigation
+- Fixed FlameCircle import error (replaced with Flame)
+- Fixed GameStore type annotations in AchievementPanel and OnboardingPanel
+- All TypeScript compilation errors resolved
+- ESLint passes cleanly
+
+Stage Summary:
+- Critical gameplay bug fixed: Mining Drill now produces coal alongside iron and copper
+- Power grid display fixed for edge cases (0/0 MW, no power plants)
+- New Onboarding system with step-by-step tutorial (6 steps)
+- New Achievement system with 22 achievements and progress tracking
+- 15 tabs total in sidebar navigation
+- Auto-opens Guide tab for first-time players
+
+Unresolved Issues / Risks:
+- localStorage persistence may break if schema changes between versions (needs migration logic)
+- Coal Generator still produces only 10% power without fuel, which may confuse new players
+- Some panels could benefit from more visual polish (animations, particle effects)
+- No mobile-responsive optimization yet
+- No keyboard shortcuts implemented
+- No celebration animations on achievements/tutorial completion
+
+Priority Recommendations for Next Phase:
+1. Add localStorage schema migration for save compatibility
+2. Add celebration animations (confetti/particles) on achievements and milestones
+3. Improve mobile responsiveness
+4. Add keyboard shortcuts for tab navigation
+5. Add export/import save functionality
+6. Add more visual polish: floating production numbers, animated resource flow
+7. Add production rate summary in top bar

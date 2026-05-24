@@ -16,10 +16,13 @@ import { AutomationPanel } from '@/components/game/AutomationPanel';
 import { PrestigePanel } from '@/components/game/PrestigePanel';
 import { EventPanel } from '@/components/game/EventPanel';
 import { BlueprintPanel } from '@/components/game/BlueprintPanel';
+import { OnboardingPanel } from '@/components/game/OnboardingPanel';
+import { AchievementPanel } from '@/components/game/AchievementPanel';
 import {
   Factory, Pickaxe, Cog, Truck, Zap, TrendingUp,
   FlaskConical, Users, ScrollText, Bot, Globe, AlertTriangle,
-  Save, Play, Pause, FastForward, RotateCcw, ChevronRight, Bell, X
+  Save, Play, Pause, FastForward, RotateCcw, ChevronRight, Bell, X,
+  BookOpen, Trophy
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +36,7 @@ import {
 
 const TABS = [
   { id: 'dashboard' as const, label: 'Dashboard', icon: Factory, color: 'text-neon-cyan' },
+  { id: 'guide' as const, label: 'Guide', icon: BookOpen, color: 'text-lime-400' },
   { id: 'resources' as const, label: 'Extraction', icon: Pickaxe, color: 'text-amber-400' },
   { id: 'factories' as const, label: 'Factories', icon: Cog, color: 'text-orange-400' },
   { id: 'transport' as const, label: 'Transport', icon: Truck, color: 'text-blue-400' },
@@ -44,6 +48,7 @@ const TABS = [
   { id: 'automation' as const, label: 'Automation', icon: Bot, color: 'text-teal-400' },
   { id: 'prestige' as const, label: 'Expand', icon: Globe, color: 'text-fuchsia-400' },
   { id: 'events' as const, label: 'Events', icon: AlertTriangle, color: 'text-red-400' },
+  { id: 'achievements' as const, label: 'Trophies', icon: Trophy, color: 'text-amber-300' },
   { id: 'blueprints' as const, label: 'Blueprints', icon: Save, color: 'text-indigo-400' },
 ];
 
@@ -51,6 +56,15 @@ export default function Home() {
   const store = useGameStore();
   const tickRef = useRef<NodeJS.Timeout | null>(null);
   const notifRef = useRef<HTMLDivElement>(null);
+  const hasAutoOpenedGuide = useRef(false);
+
+  // Auto-open Guide for new players
+  useEffect(() => {
+    if (!hasAutoOpenedGuide.current && store.buildings.length === 0 && store.gameTick < 5) {
+      hasAutoOpenedGuide.current = true;
+      store.setActiveTab('guide');
+    }
+  }, [store.buildings.length, store.gameTick]);
 
   // Game tick loop
   useEffect(() => {
@@ -92,13 +106,15 @@ export default function Home() {
       case 'prestige': return <PrestigePanel />;
       case 'events': return <EventPanel />;
       case 'blueprints': return <BlueprintPanel />;
+      case 'guide': return <OnboardingPanel />;
+      case 'achievements': return <AchievementPanel />;
       default: return <DashboardPanel />;
     }
   };
 
   const powerPercent = store.powerGrid.totalConsumption > 0
     ? Math.min(100, (store.powerGrid.totalProduction / store.powerGrid.totalConsumption) * 100)
-    : 100;
+    : store.powerGrid.totalProduction > 0 ? 100 : 0;
 
   return (
     <TooltipProvider>

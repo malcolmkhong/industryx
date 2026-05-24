@@ -307,7 +307,7 @@ export interface GameState {
   notifications: GameNotification[];
 }
 
-export type GameTab = 'dashboard' | 'resources' | 'factories' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'contracts' | 'automation' | 'prestige' | 'events' | 'blueprints';
+export type GameTab = 'dashboard' | 'resources' | 'factories' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'contracts' | 'automation' | 'prestige' | 'events' | 'blueprints' | 'guide' | 'achievements';
 
 export interface GameNotification {
   id: string;

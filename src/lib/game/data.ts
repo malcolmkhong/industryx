@@ -50,7 +50,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     basePowerConsumption: 5,
     basePowerProduction: 0,
     baseProductionRate: 2,
-    outputs: [{ resource: 'iron', amount: 1 }, { resource: 'copper', amount: 0.3 }],
+    outputs: [{ resource: 'iron', amount: 1 }, { resource: 'copper', amount: 0.3 }, { resource: 'coal', amount: 0.5 }],
     emoji: '⛏️',
   },
   oilPump: {
