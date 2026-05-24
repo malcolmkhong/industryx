@@ -1194,3 +1194,47 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
     unlockRequirement: { buildings: 50, research: 20, prestige: 3 },
   },
 ];
+
+// --- Seasonal Events ---
+export const SEASONAL_EVENTS = [
+  {
+    id: 'doubleProduction',
+    name: 'Production Frenzy',
+    description: 'All factories produce 2x for a limited time!',
+    emoji: '🔥',
+    duration: 500,
+    effects: [{ type: 'productionMultiplier' as const, value: 2.0 }],
+    color: '#ff6600',
+    triggerChance: 0.002,
+  },
+  {
+    id: 'researchBoom',
+    name: 'Research Boom',
+    description: 'Research points accumulate 3x faster!',
+    emoji: '🧪',
+    duration: 300,
+    effects: [{ type: 'researchSpeed' as const, value: 3.0 }],
+    color: '#a855f7',
+    triggerChance: 0.001,
+  },
+  {
+    id: 'marketSurge',
+    name: 'Market Surge',
+    description: 'All sell prices increased by 50%!',
+    emoji: '📈',
+    duration: 400,
+    effects: [{ type: 'marketPriceMultiplier' as const, value: 1.5 }],
+    color: '#22c55e',
+    triggerChance: 0.0015,
+  },
+  {
+    id: 'powerBoost',
+    name: 'Power Boost',
+    description: 'All power plants produce 2x more energy!',
+    emoji: '⚡',
+    duration: 600,
+    effects: [{ type: 'productionMultiplier' as const, target: 'powerPlant', value: 2.0 }],
+    color: '#facc15',
+    triggerChance: 0.001,
+  },
+];

@@ -545,3 +545,158 @@ Priority Recommendations for Next Phase:
 5. Add seasonal events and leaderboard system
 6. Add more MegaProject types or expansion content
 7. Add celebration animations on achievements/milestones
+
+---
+Task ID: C
+Agent: Leaderboard & Events Developer
+Task: Add leaderboard system, seasonal events, and news ticker
+
+Work Log:
+- Updated types.ts: Added LeaderboardEntry interface with id, rank, score, corporationName, buildingsBuilt, researchCompleted, contractsCompleted, totalMoneyEarned, playTime, prestigeCount, achievedAt, rankName fields
+- Updated types.ts: Added leaderboardEntries: LeaderboardEntry[] to GameState interface
+- Updated types.ts: Added 'leaderboard' to GameTab type union
+- Updated data.ts: Added SEASONAL_EVENTS array with 4 seasonal events (doubleProduction, researchBoom, marketSurge, powerBoost) with trigger chances, durations, and effects
+- Updated store.ts: Added LeaderboardEntry import and SEASONAL_EVENTS import
+- Updated store.ts: Added leaderboardEntries: [] to createInitialState()
+- Updated store.ts: Added addLeaderboardEntry action to GameActions interface
+- Updated store.ts: Implemented addLeaderboardEntry action that sorts by score, keeps top 10, assigns ranks
+- Updated store.ts: Enhanced doPrestige() to automatically create a leaderboard entry with current run stats, auto-generated corporation name, score calculation, and rank name from RANK_THRESHOLDS
+- Updated store.ts: Added seasonal event triggering logic in gameTickAction - each tick checks SEASONAL_EVENTS trigger chances, limits 1 active seasonal event, separate from regular events
+- Updated store.ts: Added V3→V4 migration for leaderboardEntries (added empty array)
+- Updated store.ts: Added leaderboardEntries to partialize for persistence
+- Updated store.ts: Added leaderboardEntries to exportSave
+- Created LeaderboardPanel.tsx component with:
+  - Header with Trophy icon and "LEADERBOARD" title
+  - Current Run indicator showing current score, rank, and leaderboard qualification status
+  - Empty state: "No entries yet. Prestige to record your first run!"
+  - Top 10 leaderboard entries in styled cards with expand/collapse
+  - Gold/silver/bronze gradient badges for top 3 entries
+  - Each entry shows rank, corporation name, rank badge, buildings/research/contracts counts
+  - "View Details" expand button revealing full stats (money earned, buildings, research, contracts, play time, prestiges, tick recorded)
+  - Leaderboard Stats summary (best score, total runs, total prestiges)
+  - Dark industrial neon theme with amber/gold accents for rankings
+- Updated page.tsx: Added LeaderboardPanel import
+- Updated page.tsx: Added leaderboard tab entry (id: 'leaderboard', label: 'Ranks', icon: Trophy, color: 'text-amber-400')
+- Updated page.tsx: Added 'leaderboard' to MOBILE_MORE_TABS
+- Updated page.tsx: Added leaderboard renderPanel case
+- Updated page.tsx: Added news ticker bar below header (desktop only) showing scrolling notifications from store.notifications
+- Updated globals.css: Added tickerScroll keyframe animation (translateX 100% to -100%)
+- Updated globals.css: Added .news-ticker-content class with 30s linear infinite animation and white-space: nowrap
+- Updated globals.css: Added .news-ticker-content to prefers-reduced-motion: reduce override
+- ESLint passes cleanly (0 errors)
+- Dev server compiles successfully
+
+Stage Summary:
+- Leaderboard system tracks top 10 runs with auto-generated corporation names and detailed stats
+- doPrestige() automatically creates leaderboard entries before resetting game state
+- Seasonal events system adds 4 time-limited bonus events (Production Frenzy, Research Boom, Market Surge, Power Boost) with random trigger chances per tick
+- News ticker shows scrolling notifications on desktop below the header
+- All new fields (leaderboardEntries) properly persisted, migrated (V3→V4), and exported
+- Game now has 21 tabs total
+
+---
+Task ID: A
+Agent: CSS Animations & Celebration Developer
+Task: Apply CSS animations to game components + create celebration/milestone overlay
+
+Work Log:
+- Added Celebration interface to types.ts with type, title, emoji, color, description fields
+- Added celebrations: Celebration[] to GameState interface
+- Updated store.ts: SAVE_VERSION 3→4 with V3→V4 migration (adds empty celebrations array)
+- Added celebrations: [] to createInitialState()
+- Added addCelebration(celebration) and dismissCelebration() actions to GameActions
+- Implemented celebration actions: addCelebration appends, dismissCelebration removes first item
+- Added milestone detection in gameTickAction: power milestones (100/500/1000MW), rank changes
+- Added first building celebration in buildBuilding action
+- Added MegaProject stage/complete celebrations in megaProject processing
+- Added celebrations to partialize and exportSave for persistence
+- Updated persist version to 4
+- Added 3 new CSS animation classes to globals.css: confetti-particle (confettiFall 2s), glow-pulse (glowPulse 2s infinite), streak-highlight (streakFlash 1.5s)
+- Added new CSS classes to prefers-reduced-motion override section
+- Updated ResourcePanel.tsx: added recentlyBuilt/recentlyUpgraded state tracking with useCallback handlers
+- Applied build-construct CSS class to newly built extractor cards in ResourcePanel
+- Applied upgrade-flash CSS class to upgraded extractor cards in ResourcePanel
+- Updated FactoryPanel.tsx: added recentlyBuilt/recentlyUpgraded state tracking with useCallback handlers
+- Applied build-construct CSS class to newly built factory cards in FactoryPanel
+- Applied upgrade-flash CSS class to upgraded factory cards in FactoryPanel
+- Updated page.tsx: added money-glow class to money display when money increases significantly
+- Added warning-pulse class to power badge when power grid is overloaded
+- Added prevMoneyRef and moneyGlow state for detecting money changes
+- Imported and rendered CelebrationOverlay component in page.tsx
+- Created CelebrationOverlay.tsx with:
+  - Full-screen overlay with backdrop blur and black/30 overlay
+  - CelebrationCard component with framer-motion spring entrance (scale 0.8→1, fade in)
+  - ConfettiParticles component generating 24 colored dots with confettiFall animation
+  - Auto-dismiss after 3 seconds with animated progress bar
+  - Click-to-dismiss support
+  - Sound integration via soundEngine.play('levelUp', 'events')
+  - Queue indicator showing "+N more celebrations queued"
+  - Sparkle decorations (✨⭐💫) around the card
+  - Border and box-shadow colored to match celebration color
+- ESLint passes cleanly (0 errors, 0 warnings)
+
+Stage Summary:
+- Celebration/milestone overlay system fully implemented with framer-motion animations
+- CSS animation classes (build-construct, upgrade-flash, money-glow, warning-pulse) applied to game components
+- Milestone detection: first building, power milestones (100/500/1000MW), rank changes, MegaProject stages
+- Confetti particles, colored glow, and auto-dismiss create engaging celebration experience
+- All new fields properly persisted, migrated (V3→V4), and exported
+- prefers-reduced-motion support for all new CSS animations
+
+---
+Task ID: B
+Agent: Transport & Polish Developer
+Task: Transport panel enhancement + prestige tooltips + dashboard polish
+
+Work Log:
+- **Part A: Transport Panel Enhancement**
+  - Added SVG Route Diagram visualization with building nodes (colored by category) and animated transport line connections between them
+  - Lines colored by utilization (green <50%, yellow 50-80%, red >80%) with animated flow particles
+  - Resource emoji displayed at midpoint of each transport connection
+  - Added "Suggest Routes" button with collapsible panel that analyzes factory buildings
+  - Auto-route suggestion logic: finds consumer buildings, identifies their input resources, matches with producer buildings, filters out already-existing routes
+  - Each suggestion shows from-building → resource → to-building with reason and "Create Route" button
+  - "Create Route" automatically picks cheapest transport type and builds the connection
+  - Added Throughput Bar Chart visualization by transport type
+  - Each transport type shows throughput/capacity with color-coded utilization bars (green <50%, yellow 50-80%, red >80%)
+  - Total network throughput summary at bottom
+  - Improved Transport Line cards with route visualization (from building → resource → to building in styled badges)
+  - Cards show throughput bar with gradient colors, level badge, power toggle, and upgrade button
+  - Stats row enhanced with subtle gradient backgrounds per card color
+- **Part B: Prestige Panel Tooltip Enhancements**
+  - Added detailed bonus tooltips using shadcn/ui Tooltip component
+  - Each prestige bonus has a tooltip with: plain language description, current effect value (e.g., "+25% production → currently +$X/tick"), and scaling note explaining how it stacks with future prestiges
+  - 8 bonus detail objects covering all bonus types (production, power, speed, market, storage, research, megaFactory, offline)
+  - Created Prestige Preview Dialog using shadcn/ui Dialog component
+  - Dialog shows: CP earned preview, "You will keep" list (research, CP, bonuses, automation), "You will lose" list (buildings, resources, money, workers), permanent bonuses that will apply
+  - Double-confirm mechanism: first click shows "Continue", second click shows "FINAL WARNING" with red styling
+  - Added Progress Indicator section showing progress toward next CP
+  - Progress bar with fuchsia gradient and text showing "Next CP from: X more buildings / Y more research"
+  - Replaced browser `confirm()` dialog with proper Dialog component
+- **Part C: Dashboard Polish**
+  - Added Activity Feed at bottom of left column
+  - Shows last 8 game events from notifications with animated slide-in (framer-motion AnimatePresence)
+  - Each entry has colored icon (success=green, warning=yellow, error=red, info=gray), message, and tick timestamp
+  - Auto-scrolls to latest entries
+  - Enhanced StatCard component with gradient backgrounds and trend indicators
+  - Each stat card now has subtle gradient background matching its color
+  - Trend indicators (↑/↓/→) showing direction for each metric
+  - Buildings card: shows total built count trend
+  - Workers card: shows worker efficiency percentage
+  - Efficiency card: shows power surplus MW
+  - Research card: shows RP accumulation rate per tick
+  - Added bottleneck indicator to Production Chain visualization
+  - Chain steps with 0 production rate are highlighted with red border, red background, and "BOTTLENECK" badge
+  - Chain header shows "CHAIN ACTIVE" (green) badge when all steps producing, or "BOTTLENECK" (red) badge when any step has 0 rate
+  - Chain selector pills show red dot indicator for chains with bottlenecks
+  - Flow particles only animate on non-bottleneck connections
+  - Zero-rate production indicators changed from gray to red for better visibility
+- ESLint passes cleanly (0 errors)
+- Dev server compiles successfully
+
+Stage Summary:
+- Transport Panel: SVG route diagram, auto-route suggestions, throughput bar chart, improved transport line cards
+- Prestige Panel: Detailed bonus tooltips with plain language + current value + scaling notes, prestige preview dialog with double-confirm, progress indicator toward next CP
+- Dashboard: Live activity feed with slide-in animations, enhanced stat cards with gradients + trend indicators, production chain bottleneck detection with visual badges
+- All changes maintain the dark industrial neon theme
+- Transport panel now has meaningful routing functionality (was identified as priority #1 in previous worklog)

@@ -26,6 +26,8 @@ import FactoryMapPanel from '@/components/game/FactoryMapPanel';
 import GameToast from '@/components/game/GameToast';
 import FloatingNumbers from '@/components/game/FloatingNumbers';
 import AmbientParticles from '@/components/game/AmbientParticles';
+import CelebrationOverlay from '@/components/game/CelebrationOverlay';
+import LeaderboardPanel from '@/components/game/LeaderboardPanel';
 import {
   Factory, Pickaxe, Cog, Truck, Zap, TrendingUp,
   FlaskConical, Users, ScrollText, Bot, Globe, AlertTriangle,
@@ -70,6 +72,7 @@ const TABS = [
   { id: 'megaprojects' as const, label: 'Mega', icon: Globe, color: 'text-fuchsia-400' },
   { id: 'statistics' as const, label: 'Stats', icon: BarChart3, color: 'text-teal-400' },
   { id: 'achievements' as const, label: 'Trophies', icon: Trophy, color: 'text-amber-300' },
+  { id: 'leaderboard' as const, label: 'Ranks', icon: Trophy, color: 'text-amber-400' },
   { id: 'blueprints' as const, label: 'Blueprints', icon: Save, color: 'text-indigo-400' },
   { id: 'settings' as const, label: 'Settings', icon: Settings, color: 'text-gray-400' },
 ];
@@ -81,7 +84,7 @@ const MOBILE_PRIMARY_TABS: GameTab[] = [
 ];
 
 const MOBILE_MORE_TABS: GameTab[] = [
-  'transport', 'automation', 'prestige', 'events', 'megaprojects', 'statistics', 'achievements', 'blueprints', 'settings',
+  'transport', 'automation', 'prestige', 'events', 'megaprojects', 'statistics', 'achievements', 'leaderboard', 'blueprints', 'settings',
 ];
 
 // Keyboard shortcut: number keys 1-9 map to first 9 tabs
@@ -117,6 +120,8 @@ export default function Home() {
   const [importError, setImportError] = useState('');
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
   const prevGameTickRef = useRef(store.gameTick);
+  const prevMoneyRef = useRef(store.money);
+  const [moneyGlow, setMoneyGlow] = useState(false);
 
   // Offline earnings state
   const [offlineDialogOpen, setOfflineDialogOpen] = useState(false);
@@ -249,6 +254,17 @@ export default function Home() {
     prevGameTickRef.current = store.gameTick;
   }, [store.gameTick]);
 
+  // Money glow effect when money increases significantly
+  useEffect(() => {
+    if (store.money > prevMoneyRef.current + 10) {
+      const t1 = setTimeout(() => setMoneyGlow(true), 0);
+      const t2 = setTimeout(() => setMoneyGlow(false), 1000);
+      prevMoneyRef.current = store.money;
+      return () => { clearTimeout(t1); clearTimeout(t2); };
+    }
+    prevMoneyRef.current = store.money;
+  }, [store.money]);
+
   const handleExport = useCallback(() => {
     const saveStr = store.exportSave();
     setExportString(saveStr);
@@ -316,6 +332,7 @@ export default function Home() {
       case 'blueprints': return <BlueprintPanel />;
       case 'guide': return <OnboardingPanel />;
       case 'achievements': return <AchievementPanel />;
+      case 'leaderboard': return <LeaderboardPanel />;
       case 'settings': return <SettingsPanel />;
       default: return <DashboardPanel />;
     }
@@ -349,11 +366,11 @@ export default function Home() {
                 </div>
               </div>
               <div className="flex items-center gap-3 text-xs">
-                <div className="stat-badge stat-badge-money bg-[#111827] rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default">
+                <div className={`stat-badge stat-badge-money bg-[#111827] rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default ${moneyGlow ? 'money-glow' : ''}`}>
                   <span className="text-gray-500">💰 </span>
                   <span className="text-green-400 font-mono font-bold">${formatNumber(store.money)}</span>
                 </div>
-                <div className="stat-badge stat-badge-power bg-[#111827] rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default">
+                <div className={`stat-badge stat-badge-power bg-[#111827] rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default ${store.powerGrid.overload ? 'warning-pulse' : ''}`}>
                   <span className="text-gray-500">⚡ </span>
                   <span className={powerPercent >= 80 ? 'text-yellow-400' : powerPercent >= 50 ? 'text-orange-400' : 'text-red-400'}>
                     {formatNumber(store.powerGrid.totalProduction)}MW
@@ -593,6 +610,24 @@ export default function Home() {
           </div>
         </header>
 
+        {/* News Ticker - desktop only */}
+        <div className="hidden lg:block bg-[#0a0e17] border-b border-cyan-900/20 overflow-hidden h-6">
+          <div className="flex items-center h-full px-3">
+            <span className="text-[10px] text-cyan-400 font-bold mr-3 flex-shrink-0">📰 NEWS</span>
+            <div className="overflow-hidden flex-1 relative">
+              <div className="news-ticker-content text-[10px] text-gray-400">
+                {store.notifications.slice(0, 8).map((n, i) => (
+                  <span key={n.id}>
+                    {i > 0 && <span className="text-cyan-700 mx-3">•</span>}
+                    {n.message}
+                  </span>
+                ))}
+                {store.notifications.length === 0 && 'Welcome to Factory Dominion! Build your first Mining Drill to start producing resources.'}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* MAIN CONTENT */}
         <div className="flex flex-1 overflow-hidden">
           {/* SIDEBAR NAV - desktop only */}
@@ -823,6 +858,9 @@ export default function Home() {
 
       {/* Toast notifications */}
       <GameToast />
+
+      {/* Celebration overlay for milestones */}
+      <CelebrationOverlay />
 
       {/* Offline Earnings Dialog */}
       <Dialog open={offlineDialogOpen} onOpenChange={setOfflineDialogOpen}>

@@ -9,18 +9,18 @@ import {
   GameState, GameTab, ResourceType, BuildingInstance, BuildingType,
   TransportLine, TransportType, Worker, WorkerType, Contract,
   GameEvent, GameNotification, PowerGrid, MarketPrice, MegaProjectType,
-  Blueprint,
+  Blueprint, Celebration, LeaderboardEntry,
 } from './types';
 import {
   BUILDING_DEFS, TRANSPORT_DEFS, WORKER_DEFS, INITIAL_MARKET,
   RESEARCH_TREE, AUTOMATION_UNLOCKS, PRESTIGE_BONUSES,
   EVENT_TEMPLATES, CONTRACT_TEMPLATES, RESOURCE_META,
-  INITIAL_MEGA_PROJECTS, RANK_THRESHOLDS,
+  INITIAL_MEGA_PROJECTS, RANK_THRESHOLDS, SEASONAL_EVENTS,
 } from './data';
 import { soundEngine } from './soundEngine';
 
 // --- Save Version ---
-const SAVE_VERSION = 3;
+const SAVE_VERSION = 4;
 
 // --- Utility Functions ---
 function generateId(): string {
@@ -95,6 +95,16 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
     }
   }
 
+  // V3 → V4: Add celebrations and leaderboardEntries
+  if (version < 4) {
+    if (!state.celebrations) {
+      state.celebrations = [];
+    }
+    if (!state.leaderboardEntries) {
+      state.leaderboardEntries = [];
+    }
+  }
+
   state._version = SAVE_VERSION;
   return state;
 }
@@ -154,6 +164,8 @@ function createInitialState(): GameState {
     autoSellResources: [],
     storageUpgradeLevels: { ...initialResources },
     lastOnlineTimestamp: Date.now(),
+    celebrations: [],
+    leaderboardEntries: [],
     activeTab: 'dashboard',
     selectedBuilding: null,
     notifications: [],
@@ -206,6 +218,10 @@ interface GameActions {
   // Notifications
   addNotification: (type: GameNotification['type'], message: string) => void;
   clearNotifications: () => void;
+
+  // Celebrations
+  addCelebration: (celebration: Celebration) => void;
+  dismissCelebration: () => void;
   
   // Save/Export/Import
   exportSave: () => string;
@@ -232,6 +248,9 @@ interface GameActions {
 
   // Rank
   getCurrentRank: () => { name: string; emoji: string; color: string; score: number; nextRankScore: number | null; progress: number };
+
+  // Leaderboard
+  addLeaderboardEntry: (entry: LeaderboardEntry) => void;
 
   // Reset
   resetGame: () => void;
@@ -531,6 +550,29 @@ export const useGameStore = create<GameStore>()(
           notifications.push({ id: generateId(), type: 'warning', message: `Event: ${template.name} - ${template.description}`, gameTick: newTick, read: false });
         }
 
+        // Seasonal events - random trigger each tick, limit 1 active seasonal event
+        const hasActiveSeasonal = newActiveEvents.some(e => SEASONAL_EVENTS.some(se => se.id === e.type));
+        if (!hasActiveSeasonal && newActiveEvents.length < 3) {
+          for (const seasonal of SEASONAL_EVENTS) {
+            if (Math.random() < seasonal.triggerChance) {
+              const seasonalEvent: GameEvent = {
+                id: generateId(),
+                type: seasonal.id as GameEvent['type'],
+                name: seasonal.name,
+                description: seasonal.description,
+                duration: seasonal.duration,
+                remaining: seasonal.duration,
+                effects: seasonal.effects,
+                emoji: seasonal.emoji,
+              };
+              newActiveEvents.push(seasonalEvent);
+              soundEngine.play('eventTriggered', 'events');
+              notifications.push({ id: generateId(), type: 'warning', message: `🌟 Seasonal: ${seasonal.name} - ${seasonal.description}`, gameTick: newTick, read: false });
+              break; // Only trigger one seasonal event per tick
+            }
+          }
+        }
+
         // Generate new contracts (every ~200 ticks)
         let contractsToAdd: Contract[] = [];
         if (newTick % 200 === 0 && state.contracts.filter(c => !c.completed && !c.failed).length < 3) {
@@ -646,6 +688,26 @@ export const useGameStore = create<GameStore>()(
               read: false,
             });
 
+            // Celebration for MegaProject stage complete
+            if (isCompleted) {
+              get().addCelebration({
+                type: 'megaProjectComplete',
+                title: `${mp.emoji} ${mp.name} Complete!`,
+                emoji: mp.emoji,
+                color: '#f472b6',
+                description: mp.bonus.description,
+              });
+            } else {
+              get().addCelebration({
+                type: 'megaProjectStage',
+                title: `${mp.emoji} Stage ${nextStage}/${mp.stages.length}`,
+                emoji: '⚡',
+                color: '#facc15',
+                description: `${mp.name}: ${mp.stages[mp.currentStage]?.name} complete!`,
+              });
+            }
+            soundEngine.play('levelUp', 'events');
+
             return {
               ...mp,
               stages: updatedStages,
@@ -658,6 +720,58 @@ export const useGameStore = create<GameStore>()(
 
           return { ...mp, progress: newProgress };
         });
+
+        // --- Milestone detection for celebrations ---
+        // Power milestones
+        const POWER_MILESTONES = [100, 500, 1000];
+        POWER_MILESTONES.forEach(milestone => {
+          if (totalProduction >= milestone && state.powerGrid.totalProduction < milestone) {
+            get().addCelebration({
+              type: 'powerMilestone',
+              title: `⚡ ${milestone}MW Power!`,
+              emoji: '⚡',
+              color: '#facc15',
+              description: `Your power grid now produces ${milestone}MW!`,
+            });
+            soundEngine.play('levelUp', 'events');
+          }
+        });
+
+        // Rank change detection
+        const prevScore = Math.floor(
+          state.totalMoneyEarned +
+          state.buildings.length * 100 +
+          state.completedResearch.length * 200 +
+          state.stats.contractsCompleted * 50 +
+          state.prestigeState.totalPrestiges * 500
+        );
+        const newTotalMoneyEarned = state.totalMoneyEarned + moneyEarned;
+        const newScore = Math.floor(
+          newTotalMoneyEarned +
+          state.buildings.length * 100 +
+          newCompletedResearch.length * 200 +
+          newStats.contractsCompleted * 50 +
+          state.prestigeState.totalPrestiges * 500
+        );
+        let prevRankName = RANK_THRESHOLDS[0].name;
+        let newRankName = RANK_THRESHOLDS[0].name;
+        for (let i = RANK_THRESHOLDS.length - 1; i >= 0; i--) {
+          if (prevScore >= RANK_THRESHOLDS[i].minScore) { prevRankName = RANK_THRESHOLDS[i].name; break; }
+        }
+        for (let i = RANK_THRESHOLDS.length - 1; i >= 0; i--) {
+          if (newScore >= RANK_THRESHOLDS[i].minScore) { newRankName = RANK_THRESHOLDS[i].name; break; }
+        }
+        if (newRankName !== prevRankName) {
+          const newRank = RANK_THRESHOLDS.find(r => r.name === newRankName);
+          get().addCelebration({
+            type: 'rankUp',
+            title: `${newRank?.emoji ?? '🏆'} Rank Up!`,
+            emoji: newRank?.emoji ?? '🏆',
+            color: newRank?.color ?? '#4ade80',
+            description: `You are now ${newRankName}!`,
+          });
+          soundEngine.play('levelUp', 'events');
+        }
 
         set({
           gameTick: newTick,
@@ -720,6 +834,18 @@ export const useGameStore = create<GameStore>()(
           efficiency: 1,
           placedAt: state.gameTick,
         };
+
+        // First building celebration
+        if (state.buildings.length === 0) {
+          get().addCelebration({
+            type: 'firstBuilding',
+            title: 'First Steps!',
+            emoji: '🏗️',
+            color: '#4ade80',
+            description: 'You placed your first building! Your factory empire begins!',
+          });
+          soundEngine.play('levelUp', 'events');
+        }
 
         set({
           money: state.money - cost,
@@ -1068,6 +1194,45 @@ export const useGameStore = create<GameStore>()(
 
         const pointsEarned = Math.floor(state.buildings.length * 0.5 + state.completedResearch.length * 2 + state.stats.contractsCompleted);
 
+        // Calculate score and rank for leaderboard entry
+        const score = Math.floor(
+          state.totalMoneyEarned +
+          state.buildings.length * 100 +
+          state.completedResearch.length * 200 +
+          state.stats.contractsCompleted * 50 +
+          state.prestigeState.totalPrestiges * 500
+        );
+        const rankThreshold = [...RANK_THRESHOLDS].reverse().find(r => score >= r.minScore);
+        const rankName = rankThreshold?.name ?? 'Apprentice';
+
+        // Generate corporation name
+        const prefixes = ['Factory', 'Industrial', 'Global', 'Prime', 'Alpha', 'Omega', 'Nexus', 'Apex', 'Titan', 'Vanguard'];
+        const suffixes = ['Corp', 'Industries', 'Holdings', 'Systems', 'Dynamics', 'Syndicate', 'Group', 'Enterprises', 'Ventures', 'Network'];
+        const corporationName = `${prefixes[Math.floor(Math.random() * prefixes.length)]} ${suffixes[Math.floor(Math.random() * suffixes.length)]}`;
+
+        // Create leaderboard entry before resetting
+        const entry: LeaderboardEntry = {
+          id: generateId(),
+          rank: 0, // Will be re-calculated when viewing
+          score,
+          corporationName,
+          buildingsBuilt: state.stats.factoriesBuilt,
+          researchCompleted: state.completedResearch.length,
+          contractsCompleted: state.stats.contractsCompleted,
+          totalMoneyEarned: state.totalMoneyEarned,
+          playTime: state.stats.playTime,
+          prestigeCount: state.prestigeState.totalPrestiges + 1,
+          achievedAt: state.gameTick,
+          rankName,
+        };
+
+        const existingEntries = state.leaderboardEntries;
+        // Sort and assign ranks
+        const updatedEntries = [...existingEntries, entry]
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 10)
+          .map((e, i) => ({ ...e, rank: i + 1 }));
+
         set({
           ...createInitialState(),
           prestigeState: {
@@ -1076,7 +1241,10 @@ export const useGameStore = create<GameStore>()(
             megaFactoryUnlocked: state.prestigeState.megaFactoryUnlocked,
             bonuses: state.prestigeState.bonuses,
           },
+          leaderboardEntries: updatedEntries,
         });
+
+        soundEngine.play('levelUp', 'events');
       },
 
       purchasePrestigeBonus: (id: string) => {
@@ -1112,6 +1280,18 @@ export const useGameStore = create<GameStore>()(
 
       clearNotifications: () => set({ notifications: [] }),
 
+      // --- CELEBRATION ACTIONS ---
+      addCelebration: (celebration: Celebration) => {
+        set(state => ({
+          celebrations: [...state.celebrations, celebration],
+        }));
+      },
+      dismissCelebration: () => {
+        set(state => ({
+          celebrations: state.celebrations.slice(1),
+        }));
+      },
+
       exportSave: () => {
         const state = get();
         const saveData = {
@@ -1133,6 +1313,8 @@ export const useGameStore = create<GameStore>()(
           storageUpgradeLevels: state.storageUpgradeLevels,
           lastOnlineTimestamp: state.lastOnlineTimestamp,
           _version: SAVE_VERSION,
+          celebrations: state.celebrations,
+          leaderboardEntries: state.leaderboardEntries,
           _exportedAt: Date.now(),
         };
         try {
@@ -1185,6 +1367,16 @@ export const useGameStore = create<GameStore>()(
       },
 
       resetGame: () => set(createInitialState()),
+
+      // --- LEADERBOARD ACTIONS ---
+      addLeaderboardEntry: (entry: LeaderboardEntry) => {
+        const state = get();
+        const updatedEntries = [...state.leaderboardEntries, entry]
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 10)
+          .map((e, i) => ({ ...e, rank: i + 1 }));
+        set({ leaderboardEntries: updatedEntries });
+      },
 
       // --- STORAGE UPGRADE ACTIONS ---
       upgradeStorage: (resource: ResourceType, levels: number) => {
@@ -1604,9 +1796,11 @@ export const useGameStore = create<GameStore>()(
         autoSellResources: state.autoSellResources,
         storageUpgradeLevels: state.storageUpgradeLevels,
         lastOnlineTimestamp: state.lastOnlineTimestamp,
+        celebrations: state.celebrations,
+        leaderboardEntries: state.leaderboardEntries,
         _version: SAVE_VERSION,
       }),
-      version: 3,
+      version: 4,
       migrate: (persistedState: unknown) => {
         return migrateSaveState(persistedState as Record<string, unknown>);
       },

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/store';
 import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE, PRODUCTION_CHAINS, RANK_THRESHOLDS } from '@/lib/game/data';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +11,8 @@ import {
   Factory, Users, Zap, TrendingUp, AlertTriangle, FlaskConical,
   ChevronRight, Activity, Pickaxe, Cog, Shield, Clock, Bell,
   ArrowUpRight, ArrowDownRight, Minus, Timer, Power, Sparkles,
-  Database, Wrench, Globe, ArrowRight, Trophy, Package
+  Database, Wrench, Globe, ArrowRight, Trophy, Package,
+  Hammer, CheckCircle2, XCircle, Flame
 } from 'lucide-react';
 import { BuildingType, ResourceType } from '@/lib/game/types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -24,6 +25,9 @@ export function DashboardPanel() {
   const activeBuildings = store.buildings.filter(b => b.active).length;
   const totalWorkers = store.workers.length;
   const assignedWorkers = store.workers.filter(w => w.assignedTo).length;
+  const workerEfficiency = totalWorkers > 0
+    ? store.workers.reduce((s, w) => s + w.efficiency, 0) / totalWorkers
+    : 0;
 
   const powerPercent = store.powerGrid.totalConsumption > 0
     ? Math.min(100, (store.powerGrid.totalProduction / store.powerGrid.totalConsumption) * 100)
@@ -87,6 +91,22 @@ export function DashboardPanel() {
   // Recent notifications (last 5)
   const recentNotifications = store.notifications.slice(0, 5);
 
+  // Activity Feed - last 8 game events from notifications
+  const activityFeed = useMemo(() => {
+    return store.notifications.slice(0, 8).map(n => ({
+      ...n,
+      icon: n.type === 'success' ? <CheckCircle2 className="w-3 h-3" /> :
+            n.type === 'warning' ? <AlertTriangle className="w-3 h-3" /> :
+            n.type === 'error' ? <XCircle className="w-3 h-3" /> :
+            <Bell className="w-3 h-3" />,
+    }));
+  }, [store.notifications]);
+
+  // RP accumulation rate
+  const rpPerTick = useMemo(() => {
+    return 0.1 * (1 + store.buildings.filter(b => b.type === 'aiLab' && b.active).length * 0.5);
+  }, [store.buildings]);
+
   // Quick build options
   const quickBuildTypes: BuildingType[] = ['miningDrill', 'waterExtractor', 'coalGenerator', 'smelter'];
 
@@ -121,7 +141,7 @@ export function DashboardPanel() {
         </div>
       </div>
 
-      {/* TOP STATS ROW */}
+      {/* TOP STATS ROW - Enhanced with gradients and trend indicators */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatCard
           icon={<Factory className="w-4 h-4" />}
@@ -129,6 +149,9 @@ export function DashboardPanel() {
           value={totalBuildings.toString()}
           subtext={`${activeBuildings} active`}
           color="cyan"
+          gradient="from-cyan-900/20 to-cyan-800/5"
+          trend={store.stats.factoriesBuilt > 0 ? 'up' : 'stable'}
+          trendValue={`${store.stats.factoriesBuilt} built`}
         />
         <StatCard
           icon={<Users className="w-4 h-4" />}
@@ -136,6 +159,9 @@ export function DashboardPanel() {
           value={totalWorkers.toString()}
           subtext={`${assignedWorkers} assigned`}
           color="green"
+          gradient="from-green-900/20 to-green-800/5"
+          trend={workerEfficiency >= 1 ? 'up' : workerEfficiency > 0 ? 'stable' : 'down'}
+          trendValue={`Eff: ${(workerEfficiency * 100).toFixed(0)}%`}
         />
         <StatCard
           icon={<Activity className="w-4 h-4" />}
@@ -143,6 +169,9 @@ export function DashboardPanel() {
           value={`${(store.powerGrid.efficiency * 100).toFixed(0)}%`}
           subtext={store.powerGrid.overload ? 'Overloaded!' : 'Optimal'}
           color={store.powerGrid.efficiency >= 0.8 ? 'green' : store.powerGrid.efficiency >= 0.5 ? 'orange' : 'red'}
+          gradient="from-yellow-900/20 to-yellow-800/5"
+          trend={store.powerGrid.efficiency >= 0.8 ? 'up' : store.powerGrid.efficiency >= 0.5 ? 'stable' : 'down'}
+          trendValue={`${powerSurplus >= 0 ? '+' : ''}${formatNumber(powerSurplus)} MW`}
         />
         <StatCard
           icon={<FlaskConical className="w-4 h-4" />}
@@ -150,6 +179,9 @@ export function DashboardPanel() {
           value={store.completedResearch.length.toString()}
           subtext={`${formatNumber(store.researchPoints)} RP`}
           color="purple"
+          gradient="from-purple-900/20 to-purple-800/5"
+          trend={rpPerTick > 0.1 ? 'up' : 'stable'}
+          trendValue={`+${rpPerTick.toFixed(1)} RP/t`}
         />
       </div>
 
@@ -195,12 +227,10 @@ export function DashboardPanel() {
                 </span>
               </div>
               <div className="h-4 bg-gray-800 rounded-full overflow-hidden relative">
-                {/* Demand bar (background) */}
                 <div
                   className="absolute inset-y-0 left-0 bg-orange-600/30 rounded-full transition-all duration-700"
                   style={{ width: `${Math.min(100, (store.powerGrid.totalConsumption / Math.max(1, store.powerGrid.totalProduction)) * 100)}%` }}
                 />
-                {/* Production bar (foreground) */}
                 <div
                   className={`absolute inset-y-0 left-0 rounded-full transition-all duration-700 ${
                     powerPercent >= 80 ? 'bg-gradient-to-r from-green-600 to-green-400' :
@@ -211,7 +241,6 @@ export function DashboardPanel() {
                 >
                   <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent" />
                 </div>
-                {/* Shimmer effect */}
                 <div className="absolute inset-0 overflow-hidden rounded-full">
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-[conveyorFlow_2s_linear_infinite]" />
                 </div>
@@ -341,8 +370,56 @@ export function DashboardPanel() {
             )}
           </div>
 
-          {/* PRODUCTION CHAINS VISUALIZATION */}
+          {/* PRODUCTION CHAINS VISUALIZATION - with bottleneck indicator */}
           <ProductionChainSection store={store} productionRates={productionRates} />
+
+          {/* ACTIVITY FEED */}
+          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Activity className="w-4 h-4 text-cyan-400" />
+                <h3 className="text-sm font-semibold text-cyan-400">Activity Feed</h3>
+              </div>
+              <span className="text-[10px] text-gray-500">Live events</span>
+            </div>
+            {activityFeed.length === 0 ? (
+              <div className="text-center py-4">
+                <Activity className="w-6 h-6 text-gray-700 mx-auto mb-1.5" />
+                <p className="text-xs text-gray-500">No recent activity</p>
+                <p className="text-[10px] text-gray-600 mt-0.5">Start building to see events here</p>
+              </div>
+            ) : (
+              <div className="space-y-1 max-h-64 overflow-y-auto game-scrollbar">
+                <AnimatePresence initial={false}>
+                  {activityFeed.map((entry, i) => (
+                    <motion.div
+                      key={entry.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      transition={{ duration: 0.25, delay: i * 0.03 }}
+                      className={`flex items-start gap-2 py-1.5 px-2 rounded text-[11px] ${
+                        entry.type === 'success' ? 'text-green-400 bg-green-900/5' :
+                        entry.type === 'warning' ? 'text-yellow-400 bg-yellow-900/5' :
+                        entry.type === 'error' ? 'text-red-400 bg-red-900/5' :
+                        'text-gray-400 bg-gray-900/5'
+                      }`}
+                    >
+                      <div className="flex-shrink-0 mt-0.5">
+                        {entry.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="truncate block">{entry.message}</span>
+                      </div>
+                      <span className="text-[9px] text-gray-600 flex-shrink-0 mt-0.5">
+                        t:{entry.gameTick}
+                      </span>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* RIGHT COLUMN */}
@@ -585,12 +662,18 @@ function StatCard({
   value,
   subtext,
   color,
+  gradient,
+  trend,
+  trendValue,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
   subtext: string;
   color: 'cyan' | 'green' | 'orange' | 'red' | 'purple';
+  gradient?: string;
+  trend?: 'up' | 'down' | 'stable';
+  trendValue?: string;
 }) {
   const colorMap = {
     cyan: { icon: 'text-cyan-400', value: 'text-cyan-400', border: 'border-cyan-900/30', bg: 'bg-cyan-900/10' },
@@ -601,16 +684,41 @@ function StatCard({
   };
   const c = colorMap[color];
 
+  const trendIcon = trend === 'up' ? (
+    <ArrowUpRight className="w-3 h-3 text-green-400" />
+  ) : trend === 'down' ? (
+    <ArrowDownRight className="w-3 h-3 text-red-400" />
+  ) : (
+    <Minus className="w-3 h-3 text-gray-500" />
+  );
+
   return (
-    <div className={`game-card rounded-xl bg-[#111827] p-3 border ${c.border}`}>
-      <div className="flex items-center gap-2 mb-1.5">
-        <div className={`w-7 h-7 rounded-lg ${c.bg} flex items-center justify-center`}>
-          <div className={c.icon}>{icon}</div>
+    <div className={`game-card rounded-xl bg-[#111827] p-3 border ${c.border} relative overflow-hidden`}>
+      {/* Subtle gradient background */}
+      {gradient && (
+        <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-50`} />
+      )}
+      <div className="relative z-10">
+        <div className="flex items-center gap-2 mb-1.5">
+          <div className={`w-7 h-7 rounded-lg ${c.bg} flex items-center justify-center`}>
+            <div className={c.icon}>{icon}</div>
+          </div>
+          <span className="text-[10px] text-gray-500 uppercase tracking-wider">{label}</span>
+          {/* Trend indicator */}
+          {trend && (
+            <div className="ml-auto flex items-center gap-0.5">
+              {trendIcon}
+            </div>
+          )}
         </div>
-        <span className="text-[10px] text-gray-500 uppercase tracking-wider">{label}</span>
+        <div className={`text-lg font-bold font-mono ${c.value}`}>{value}</div>
+        <div className="flex items-center justify-between mt-0.5">
+          <div className="text-[10px] text-gray-500">{subtext}</div>
+          {trendValue && (
+            <div className="text-[9px] text-gray-500 font-mono">{trendValue}</div>
+          )}
+        </div>
       </div>
-      <div className={`text-lg font-bold font-mono ${c.value}`}>{value}</div>
-      <div className="text-[10px] text-gray-500 mt-0.5">{subtext}</div>
     </div>
   );
 }
@@ -627,6 +735,17 @@ function ProductionChainSection({
   const [selectedChain, setSelectedChain] = useState(0);
   const chain = PRODUCTION_CHAINS[selectedChain];
 
+  // Bottleneck detection for this chain
+  const chainBottlenecks = useMemo(() => {
+    return chain.steps.filter(step => {
+      const rate = productionRates[step as ResourceType] ?? 0;
+      return rate <= 0;
+    });
+  }, [chain, productionRates]);
+
+  const hasBottleneck = chainBottlenecks.length > 0;
+  const allProducing = chain.steps.every(step => (productionRates[step as ResourceType] ?? 0) > 0);
+
   return (
     <div
       className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]"
@@ -638,35 +757,62 @@ function ProductionChainSection({
           <ArrowRight className="w-4 h-4" style={{ color: chain.color }} />
           <h3 className="text-sm font-semibold" style={{ color: chain.color }}>Production Chains</h3>
         </div>
-        <Badge
-          variant="outline"
-          className="text-[10px]"
-          style={{ borderColor: `${chain.color}66`, color: chain.color, backgroundColor: `${chain.color}15` }}
-        >
-          {chain.name}
-        </Badge>
+        <div className="flex items-center gap-2">
+          {/* Chain status badge */}
+          {allProducing && chain.steps.length > 0 ? (
+            <Badge
+              variant="outline"
+              className="text-[9px] border-green-500/50 text-green-400 bg-green-900/20"
+            >
+              <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" />
+              CHAIN ACTIVE
+            </Badge>
+          ) : hasBottleneck ? (
+            <Badge
+              variant="outline"
+              className="text-[9px] border-red-500/50 text-red-400 bg-red-900/20"
+            >
+              <AlertTriangle className="w-2.5 h-2.5 mr-0.5" />
+              BOTTLENECK
+            </Badge>
+          ) : null}
+          <Badge
+            variant="outline"
+            className="text-[10px]"
+            style={{ borderColor: `${chain.color}66`, color: chain.color, backgroundColor: `${chain.color}15` }}
+          >
+            {chain.name}
+          </Badge>
+        </div>
       </div>
 
       {/* Chain Selector Pills */}
       <div className="flex gap-1.5 overflow-x-auto pb-2 mb-3 game-scrollbar">
-        {PRODUCTION_CHAINS.map((c, i) => (
-          <button
-            key={c.name}
-            onClick={() => setSelectedChain(i)}
-            className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] font-medium transition-all duration-200 border ${
-              i === selectedChain
-                ? 'text-white border-transparent shadow-lg'
-                : 'text-gray-400 border-gray-700/50 bg-gray-800/50 hover:border-gray-600 hover:text-gray-300'
-            }`}
-            style={i === selectedChain ? {
-              backgroundColor: `${c.color}33`,
-              borderColor: `${c.color}88`,
-              boxShadow: `0 0 12px ${c.color}33`,
-            } : undefined}
-          >
-            {c.name}
-          </button>
-        ))}
+        {PRODUCTION_CHAINS.map((c, i) => {
+          const cBottlenecks = c.steps.filter(step => (productionRates[step as ResourceType] ?? 0) <= 0);
+          const cAllProducing = c.steps.every(step => (productionRates[step as ResourceType] ?? 0) > 0);
+          return (
+            <button
+              key={c.name}
+              onClick={() => setSelectedChain(i)}
+              className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] font-medium transition-all duration-200 border relative ${
+                i === selectedChain
+                  ? 'text-white border-transparent shadow-lg'
+                  : 'text-gray-400 border-gray-700/50 bg-gray-800/50 hover:border-gray-600 hover:text-gray-300'
+              }`}
+              style={i === selectedChain ? {
+                backgroundColor: `${c.color}33`,
+                borderColor: `${c.color}88`,
+                boxShadow: `0 0 12px ${c.color}33`,
+              } : undefined}
+            >
+              {c.name}
+              {!cAllProducing && c.steps.length > 0 && i !== selectedChain && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* Chain Steps Flow */}
@@ -686,21 +832,33 @@ function ProductionChainSection({
             const rate = productionRates[step as ResourceType] ?? 0;
             const capacity = store.resourceCapacity[step as ResourceType] ?? 0;
             const fillPct = capacity > 0 ? Math.min(100, (stock / capacity) * 100) : 0;
+            const isBottleneck = rate <= 0;
 
             return (
               <div key={step} className="flex items-center flex-shrink-0">
                 {/* Step Node */}
                 <div
-                  className="relative rounded-lg p-2.5 min-w-[90px] border transition-all duration-300"
-                  style={{
+                  className={`relative rounded-lg p-2.5 min-w-[90px] border transition-all duration-300 ${
+                    isBottleneck ? 'border-red-500/60 bg-red-900/10' : ''
+                  }`}
+                  style={!isBottleneck ? {
                     borderColor: `${chain.color}44`,
                     backgroundColor: `${chain.color}0a`,
-                  }}
+                  } : undefined}
                 >
+                  {/* Bottleneck badge */}
+                  {isBottleneck && (
+                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-20">
+                      <span className="text-[7px] font-bold text-red-400 bg-red-900/80 px-1.5 py-0.5 rounded-full border border-red-500/50 whitespace-nowrap">
+                        BOTTLENECK
+                      </span>
+                    </div>
+                  )}
+
                   {/* Resource emoji + name */}
                   <div className="flex items-center gap-1.5 mb-1">
                     <span className="text-sm">{meta.emoji}</span>
-                    <span className="text-[11px] font-medium" style={{ color: meta.color }}>{meta.name}</span>
+                    <span className="text-[11px] font-medium" style={{ color: isBottleneck ? '#ef4444' : meta.color }}>{meta.name}</span>
                   </div>
 
                   {/* Stock amount */}
@@ -718,7 +876,7 @@ function ProductionChainSection({
                         className="h-full rounded-full transition-all duration-500"
                         style={{
                           width: `${fillPct}%`,
-                          backgroundColor: fillPct > 80 ? '#ef4444' : fillPct > 50 ? '#f59e0b' : chain.color,
+                          backgroundColor: isBottleneck ? '#ef4444' : fillPct > 80 ? '#ef4444' : fillPct > 50 ? '#f59e0b' : chain.color,
                         }}
                       />
                     </div>
@@ -738,8 +896,8 @@ function ProductionChainSection({
                       </>
                     ) : (
                       <>
-                        <Minus className="w-2.5 h-2.5 text-gray-600" />
-                        <span className="text-[10px] text-gray-600 font-mono">0</span>
+                        <Minus className="w-2.5 h-2.5 text-red-400" />
+                        <span className="text-[10px] text-red-400 font-mono font-bold">0</span>
                       </>
                     )}
                     <span className="text-[8px] text-gray-600">/t</span>
@@ -748,7 +906,7 @@ function ProductionChainSection({
                   {/* Tier badge */}
                   <div
                     className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold text-white"
-                    style={{ backgroundColor: `${chain.color}99` }}
+                    style={{ backgroundColor: isBottleneck ? '#ef4444' : `${chain.color}99` }}
                   >
                     {meta.tier}
                   </div>
@@ -757,27 +915,27 @@ function ProductionChainSection({
                 {/* Animated Arrow Connector */}
                 {i < chain.steps.length - 1 && (
                   <div className="flex-shrink-0 w-8 flex items-center justify-center relative">
-                    {/* Arrow track line */}
                     <div
                       className="absolute h-[2px] w-full rounded-full"
-                      style={{ backgroundColor: `${chain.color}33` }}
+                      style={{ backgroundColor: isBottleneck ? '#ef444433' : `${chain.color}33` }}
                     />
                     {/* Animated flow particle */}
-                    <motion.div
-                      className="absolute h-[2px] w-3 rounded-full"
-                      style={{ backgroundColor: chain.color }}
-                      animate={{ x: ['-100%', '100%'] }}
-                      transition={{
-                        duration: 1.2,
-                        repeat: Infinity,
-                        ease: 'linear',
-                        delay: i * 0.2,
-                      }}
-                    />
-                    {/* Arrow head */}
+                    {!isBottleneck && (
+                      <motion.div
+                        className="absolute h-[2px] w-3 rounded-full"
+                        style={{ backgroundColor: chain.color }}
+                        animate={{ x: ['-100%', '100%'] }}
+                        transition={{
+                          duration: 1.2,
+                          repeat: Infinity,
+                          ease: 'linear',
+                          delay: i * 0.2,
+                        }}
+                      />
+                    )}
                     <ChevronRight
                       className="w-3.5 h-3.5 relative z-10"
-                      style={{ color: chain.color }}
+                      style={{ color: isBottleneck ? '#ef4444' : chain.color }}
                     />
                   </div>
                 )}
@@ -904,7 +1062,7 @@ function RankBar({ store }: { store: ReturnType<typeof useGameStore> }) {
           <Button
             variant="outline"
             size="sm"
-            className="h-auto px-3 py-1.5 text-[10px] border-gray-700 text-gray-400 hover:text-cyan-400 hover:border-cyan-700"
+            className="h-8 text-[10px] border-fuchsia-800/50 text-fuchsia-400 hover:bg-fuchsia-900/20"
             onClick={() => store.setActiveTab('resources')}
           >
             <Package className="w-3 h-3 mr-1" />

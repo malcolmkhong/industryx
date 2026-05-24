@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/store';
 import { BUILDING_DEFS, RESOURCE_META } from '@/lib/game/data';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +21,10 @@ const RAW_RESOURCES: ResourceType[] = ['iron', 'copper', 'coal', 'oil', 'sand', 
 
 export function ResourcePanel() {
   const store = useGameStore();
+
+  // Track recently built/upgraded buildings for CSS animation classes
+  const [recentlyBuilt, setRecentlyBuilt] = useState<Set<string>>(new Set());
+  const [recentlyUpgraded, setRecentlyUpgraded] = useState<Set<string>>(new Set());
 
   // Production rates per resource
   const productionRates = useMemo(() => {
@@ -70,13 +74,47 @@ export function ResourcePanel() {
     return rates;
   }, [store.buildings, store.powerGrid.efficiency]);
 
-  const handleBuild = (type: ExtractorType) => {
+  const handleBuild = useCallback((type: ExtractorType) => {
+    const prevCount = store.buildings.filter(b => b.type === type).length;
     store.buildBuilding(type);
-  };
+    // After building, find the newly added building and mark it for animation
+    setTimeout(() => {
+      const newBuildings = store.buildings.filter(b => b.type === type);
+      if (newBuildings.length > prevCount) {
+        const newBuilding = newBuildings[newBuildings.length - 1];
+        if (newBuilding) {
+          setRecentlyBuilt(prev => {
+            const next = new Set(prev);
+            next.add(newBuilding.id);
+            return next;
+          });
+          setTimeout(() => {
+            setRecentlyBuilt(prev => {
+              const next = new Set(prev);
+              next.delete(newBuilding.id);
+              return next;
+            });
+          }, 1000);
+        }
+      }
+    }, 50);
+  }, [store]);
 
-  const handleUpgrade = (id: string) => {
+  const handleUpgrade = useCallback((id: string) => {
     store.upgradeBuilding(id);
-  };
+    setRecentlyUpgraded(prev => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+    setTimeout(() => {
+      setRecentlyUpgraded(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }, 1000);
+  }, [store]);
 
   const handleToggle = (id: string) => {
     store.toggleBuilding(id);
@@ -240,6 +278,10 @@ export function ResourcePanel() {
                       <div
                         key={building.id}
                         className={`rounded-lg bg-[#0a0e17] p-3 border transition-all duration-200 ${
+                          recentlyBuilt.has(building.id) ? 'build-construct' : ''
+                        } ${
+                          recentlyUpgraded.has(building.id) ? 'upgrade-flash' : ''
+                        } ${
                           building.active
                             ? 'border-amber-900/30'
                             : 'border-gray-800 opacity-60'

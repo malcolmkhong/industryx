@@ -273,6 +273,31 @@ export interface Blueprint {
   likes: number;
 }
 
+// --- Leaderboard ---
+export interface LeaderboardEntry {
+  id: string;
+  rank: number;
+  score: number;
+  corporationName: string;
+  buildingsBuilt: number;
+  researchCompleted: number;
+  contractsCompleted: number;
+  totalMoneyEarned: number;
+  playTime: number;
+  prestigeCount: number;
+  achievedAt: number; // game tick
+  rankName: string; // from RANK_THRESHOLDS
+}
+
+// --- Celebrations ---
+export interface Celebration {
+  type: string;
+  title: string;
+  emoji: string;
+  color: string;
+  description: string;
+}
+
 // --- Game State ---
 export interface GameState {
   // Core
@@ -357,13 +382,19 @@ export interface GameState {
   // Offline Progress
   lastOnlineTimestamp: number;
 
+  // Celebrations (milestone overlay queue)
+  celebrations: Celebration[];
+
+  // Leaderboard
+  leaderboardEntries: LeaderboardEntry[];
+
   // UI State
   activeTab: GameTab;
   selectedBuilding: string | null;
   notifications: GameNotification[];
 }
 
-export type GameTab = 'dashboard' | 'factoryMap' | 'resources' | 'factories' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'contracts' | 'automation' | 'prestige' | 'events' | 'megaprojects' | 'statistics' | 'blueprints' | 'guide' | 'achievements' | 'settings';
+export type GameTab = 'dashboard' | 'factoryMap' | 'resources' | 'factories' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'contracts' | 'automation' | 'prestige' | 'events' | 'megaprojects' | 'statistics' | 'blueprints' | 'guide' | 'achievements' | 'leaderboard' | 'settings';
 
 export interface GameNotification {
   id: string;
