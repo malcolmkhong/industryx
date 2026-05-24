@@ -3,7 +3,7 @@
 // Game Data Definitions
 // ============================================
 
-import { BuildingDefinition, TransportDefinition, WorkerDefinition, ResearchNode, MarketPrice, AutomationUnlock, PrestigeBonus, ResourceType, MegaProject } from './types';
+import { BuildingDefinition, TransportDefinition, WorkerDefinition, ResearchNode, MarketPrice, AutomationUnlock, PrestigeBonus, ResourceType, MegaProject, DailyReward } from './types';
 
 // --- Resource Metadata ---
 export const RESOURCE_META: Record<ResourceType, { name: string; emoji: string; tier: number; color: string }> = {
@@ -1194,6 +1194,25 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
     unlockRequirement: { buildings: 50, research: 20, prestige: 3 },
   },
 ];
+
+// --- Daily Rewards ---
+export const WEEKLY_DAILY_REWARDS: Omit<DailyReward, 'claimed'>[] = [
+  { day: 1, type: 'money', amount: 500 },
+  { day: 2, type: 'researchPoints', amount: 10 },
+  { day: 3, type: 'resources', amount: 20, resource: 'iron' },
+  { day: 4, type: 'money', amount: 1000 },
+  { day: 5, type: 'researchPoints', amount: 30 },
+  { day: 6, type: 'resources', amount: 5, resource: 'copperWire' },
+  { day: 7, type: 'corporationPoints', amount: 1 }, // JACKPOT day - also gets $2,000 via store logic
+];
+
+// Streak multiplier: >=3 days = 1.5x, >=5 days = 2x, >=7 days = 3x
+export function getStreakMultiplier(streak: number): number {
+  if (streak >= 7) return 3;
+  if (streak >= 5) return 2;
+  if (streak >= 3) return 1.5;
+  return 1;
+}
 
 // --- Seasonal Events ---
 export const SEASONAL_EVENTS = [

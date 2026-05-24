@@ -298,6 +298,66 @@ export interface Celebration {
   description: string;
 }
 
+// --- Weather ---
+export type WeatherType = 'clear' | 'rainy' | 'stormy' | 'sunny' | 'foggy' | 'snowy';
+
+export interface WeatherState {
+  current: WeatherType;
+  intensity: number; // 0-1, how strong the weather effect is
+  remaining: number; // ticks remaining
+  nextChange: number; // tick when weather will change
+}
+
+export interface WeatherDefinition {
+  name: string;
+  emoji: string;
+  productionMultiplier: number;
+  solarMultiplier: number;
+  windMultiplier: number;
+  description: string;
+}
+
+// --- Quests ---
+export type QuestType = 'build' | 'produce' | 'sell' | 'research' | 'earn' | 'reach';
+
+export interface QuestStep {
+  description: string;
+  target: number;
+  current: number;
+  completed: boolean;
+}
+
+export interface Quest {
+  id: string;
+  name: string;
+  description: string;
+  type: QuestType;
+  category: 'tutorial' | 'daily' | 'weekly' | 'challenge';
+  steps: QuestStep[];
+  reward: { money: number; researchPoints?: number; corporationPoints?: number };
+  completed: boolean;
+  claimed: boolean;
+  expiresAt?: number; // tick for daily/weekly quests
+  emoji: string;
+}
+
+// --- Daily Rewards ---
+export interface DailyReward {
+  day: number; // 1-7 (resets weekly)
+  type: 'money' | 'researchPoints' | 'resources' | 'corporationPoints';
+  amount: number;
+  resource?: ResourceType; // only for type='resources'
+  claimed: boolean;
+}
+
+export interface LoginStreak {
+  currentStreak: number;
+  longestStreak: number;
+  lastLoginDate: string; // YYYY-MM-DD format
+  totalLogins: number;
+  weeklyRewards: DailyReward[]; // 7 rewards for current week
+}
+
 // --- Game State ---
 export interface GameState {
   // Core
@@ -388,13 +448,22 @@ export interface GameState {
   // Leaderboard
   leaderboardEntries: LeaderboardEntry[];
 
+  // Login Streak
+  loginStreak: LoginStreak;
+
+  // Weather
+  weather: WeatherState;
+
+  // Quests
+  quests: Quest[];
+
   // UI State
   activeTab: GameTab;
   selectedBuilding: string | null;
   notifications: GameNotification[];
 }
 
-export type GameTab = 'dashboard' | 'factoryMap' | 'resources' | 'factories' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'contracts' | 'automation' | 'prestige' | 'events' | 'megaprojects' | 'statistics' | 'blueprints' | 'guide' | 'achievements' | 'leaderboard' | 'settings';
+export type GameTab = 'dashboard' | 'factoryMap' | 'resources' | 'factories' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'contracts' | 'quests' | 'automation' | 'prestige' | 'events' | 'megaprojects' | 'statistics' | 'blueprints' | 'guide' | 'achievements' | 'leaderboard' | 'dailyRewards' | 'settings';
 
 export interface GameNotification {
   id: string;

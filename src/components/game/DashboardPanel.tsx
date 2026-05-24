@@ -119,6 +119,24 @@ export function DashboardPanel() {
       {/* RANK BAR */}
       <RankBar store={store} />
 
+      {/* GET STARTED CARD - only show when no buildings */}
+      {totalBuildings === 0 && (
+        <div className="game-card-empty rounded-xl p-6 text-center">
+          <div className="text-5xl mb-3">🏗️</div>
+          <h3 className="text-lg font-bold text-cyan-400 neon-glow-cyan mb-2">Build Your First Factory!</h3>
+          <p className="text-sm text-gray-400 mb-4 max-w-md mx-auto">
+            Start by building a Coal Generator to power your empire, then add Mining Drills to extract resources.
+          </p>
+          <Button
+            className="glow-button-cyan bg-cyan-600 hover:bg-cyan-500 text-white font-semibold px-6 py-2.5"
+            onClick={() => store.setActiveTab('resources')}
+          >
+            <Pickaxe className="w-4 h-4 mr-2" />
+            Go to Extraction
+          </Button>
+        </div>
+      )}
+
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <div>
@@ -142,44 +160,44 @@ export function DashboardPanel() {
       </div>
 
       {/* TOP STATS ROW - Enhanced with gradients and trend indicators */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatCard
-          icon={<Factory className="w-4 h-4" />}
+          icon={<Factory className="w-5 h-5" />}
           label="Buildings"
           value={totalBuildings.toString()}
-          subtext={`${activeBuildings} active`}
+          subtext={totalBuildings === 0 ? 'None built yet' : `${activeBuildings} active of ${totalBuildings} built`}
           color="cyan"
-          gradient="from-cyan-900/20 to-cyan-800/5"
+          gradient="from-cyan-900/25 to-cyan-800/5"
           trend={store.stats.factoriesBuilt > 0 ? 'up' : 'stable'}
           trendValue={`${store.stats.factoriesBuilt} built`}
         />
         <StatCard
-          icon={<Users className="w-4 h-4" />}
+          icon={<Users className="w-5 h-5" />}
           label="Workers"
           value={totalWorkers.toString()}
-          subtext={`${assignedWorkers} assigned`}
+          subtext={totalWorkers === 0 ? 'No workers yet' : `${assignedWorkers} assigned of ${totalWorkers} hired`}
           color="green"
-          gradient="from-green-900/20 to-green-800/5"
+          gradient="from-green-900/25 to-green-800/5"
           trend={workerEfficiency >= 1 ? 'up' : workerEfficiency > 0 ? 'stable' : 'down'}
-          trendValue={`Eff: ${(workerEfficiency * 100).toFixed(0)}%`}
+          trendValue={totalWorkers === 0 ? 'Hire in Workers tab' : `Eff: ${(workerEfficiency * 100).toFixed(0)}%`}
         />
         <StatCard
-          icon={<Activity className="w-4 h-4" />}
+          icon={<Activity className="w-5 h-5" />}
           label="Efficiency"
-          value={`${(store.powerGrid.efficiency * 100).toFixed(0)}%`}
-          subtext={store.powerGrid.overload ? 'Overloaded!' : 'Optimal'}
-          color={store.powerGrid.efficiency >= 0.8 ? 'green' : store.powerGrid.efficiency >= 0.5 ? 'orange' : 'red'}
-          gradient="from-yellow-900/20 to-yellow-800/5"
+          value={store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption === 0 ? 'N/A' : `${(store.powerGrid.efficiency * 100).toFixed(0)}%`}
+          subtext={store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption === 0 ? 'No power grid' : store.powerGrid.overload ? 'Overloaded!' : 'Optimal'}
+          color={store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption === 0 ? 'orange' : store.powerGrid.efficiency >= 0.8 ? 'green' : store.powerGrid.efficiency >= 0.5 ? 'orange' : 'red'}
+          gradient="from-yellow-900/25 to-yellow-800/5"
           trend={store.powerGrid.efficiency >= 0.8 ? 'up' : store.powerGrid.efficiency >= 0.5 ? 'stable' : 'down'}
-          trendValue={`${powerSurplus >= 0 ? '+' : ''}${formatNumber(powerSurplus)} MW`}
+          trendValue={store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption === 0 ? 'Build a generator' : `${powerSurplus >= 0 ? '+' : ''}${formatNumber(powerSurplus)} MW`}
         />
         <StatCard
-          icon={<FlaskConical className="w-4 h-4" />}
+          icon={<FlaskConical className="w-5 h-5" />}
           label="Research"
           value={store.completedResearch.length.toString()}
           subtext={`${formatNumber(store.researchPoints)} RP`}
           color="purple"
-          gradient="from-purple-900/20 to-purple-800/5"
+          gradient="from-purple-900/25 to-purple-800/5"
           trend={rpPerTick > 0.1 ? 'up' : 'stable'}
           trendValue={`+${rpPerTick.toFixed(1)} RP/t`}
         />
@@ -216,6 +234,22 @@ export function DashboardPanel() {
               </Badge>
             </div>
 
+            {/* No Power Grid State */}
+            {store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption === 0 ? (
+              <div className="text-center py-4">
+                <div className="text-3xl mb-2">⚡</div>
+                <p className="text-sm text-gray-400 font-medium mb-1">NO POWER GRID</p>
+                <p className="text-xs text-gray-500 mb-3">Build a Coal Generator or Solar Panel to start generating power</p>
+                <Button
+                  className="glow-button-cyan bg-yellow-600 hover:bg-yellow-500 text-white text-xs font-semibold px-4 py-1.5"
+                  onClick={() => store.setActiveTab('power')}
+                >
+                  <Zap className="w-3 h-3 mr-1" />
+                  Go to Power
+                </Button>
+              </div>
+            ) : (
+            <>
             {/* Power Gauge */}
             <div className="relative mb-3">
               <div className="flex items-center justify-between text-xs mb-1.5">
@@ -282,6 +316,8 @@ export function DashboardPanel() {
                 </div>
               </div>
             </div>
+            </>
+            )}
           </div>
 
           {/* TOP RESOURCES */}
@@ -319,7 +355,7 @@ export function DashboardPanel() {
                     </div>
                     <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
                       <div
-                        className={`h-full rounded-full resource-bar-animated transition-all duration-500 ${
+                        className={`h-full rounded-full resource-bar-premium resource-bar-animated transition-all duration-500 ${
                           pct > 90 ? 'bg-red-500' :
                           pct > 70 ? 'bg-orange-500' :
                           'bg-gradient-to-r from-cyan-600 to-cyan-400'
@@ -693,32 +729,36 @@ function StatCard({
   );
 
   return (
-    <div className={`game-card rounded-xl bg-[#111827] p-3 border ${c.border} relative overflow-hidden`}>
+    <div className={`stat-card-gradient game-card rounded-xl bg-[#111827] p-4 sm:p-5 border ${c.border} relative overflow-hidden group`}> 
       {/* Subtle gradient background */}
       {gradient && (
-        <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-50`} />
+        <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-60`} />
       )}
       <div className="relative z-10">
-        <div className="flex items-center gap-2 mb-1.5">
-          <div className={`w-7 h-7 rounded-lg ${c.bg} flex items-center justify-center`}>
+        <div className="flex items-center gap-2.5 mb-2">
+          <div className={`w-9 h-9 rounded-xl ${c.bg} flex items-center justify-center shadow-lg`} style={{ boxShadow: `0 0 12px ${c.value === 'text-cyan-400' ? 'rgba(0,255,242,0.15)' : c.value === 'text-green-400' ? 'rgba(57,255,20,0.15)' : c.value === 'text-orange-400' ? 'rgba(255,166,0,0.15)' : c.value === 'text-red-400' ? 'rgba(255,0,64,0.15)' : 'rgba(191,0,255,0.15)'}` }}>
             <div className={c.icon}>{icon}</div>
           </div>
-          <span className="text-[10px] text-gray-500 uppercase tracking-wider">{label}</span>
-          {/* Trend indicator */}
-          {trend && (
-            <div className="ml-auto flex items-center gap-0.5">
-              {trendIcon}
-            </div>
-          )}
+          <div className="flex-1">
+            <span className="text-[11px] text-gray-500 uppercase tracking-wider block">{label}</span>
+            {/* Trend indicator */}
+            {trend && (
+              <div className="flex items-center gap-0.5 mt-0.5">
+                {trendIcon}
+                {trendValue && (
+                  <span className="text-[9px] text-gray-500 font-mono">{trendValue}</span>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-        <div className={`text-lg font-bold font-mono ${c.value}`}>{value}</div>
-        <div className="flex items-center justify-between mt-0.5">
-          <div className="text-[10px] text-gray-500">{subtext}</div>
-          {trendValue && (
-            <div className="text-[9px] text-gray-500 font-mono">{trendValue}</div>
-          )}
+        <div className={`text-xl sm:text-2xl font-bold font-mono ${c.value}`}>{value}</div>
+        <div className="mt-1">
+          <div className="text-[11px] text-gray-400">{subtext}</div>
         </div>
       </div>
+      {/* Hover glow border effect */}
+      <div className="absolute inset-0 rounded-xl border border-transparent group-hover:border-cyan-500/20 group-hover:shadow-[0_0_15px_rgba(0,255,242,0.08)] transition-all duration-300 pointer-events-none" />
     </div>
   );
 }

@@ -252,10 +252,11 @@ export function ResourcePanel() {
             </div>
 
             {store.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'extractor').length === 0 ? (
-              <div className="text-center py-8">
-                <Mountain className="w-10 h-10 text-gray-700 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">No extractors built yet</p>
-                <p className="text-[10px] text-gray-600 mt-1">Build your first extractor above to start gathering resources</p>
+              <div className="game-card-empty rounded-xl p-6 text-center">
+                <div className="text-4xl mb-3">⛏️</div>
+                <h3 className="text-base font-bold text-amber-400 mb-2">No Extractors Built</h3>
+                <p className="text-sm text-gray-400 mb-1">Build your first Mining Drill to start extracting resources</p>
+                <p className="text-xs text-gray-500 mt-2">Extractors gather raw materials like iron, copper, and coal from the earth. Start with a Mining Drill!</p>
               </div>
             ) : (
               <div className="space-y-2 max-h-[500px] overflow-y-auto game-scrollbar pr-1">
@@ -538,10 +539,10 @@ export function ResourcePanel() {
               <span className="text-[10px] text-gray-500">net/t</span>
             </div>
             {resourceFlow.length === 0 ? (
-              <div className="text-center py-6">
-                <TrendingUp className="w-8 h-8 text-gray-700 mx-auto mb-2" />
-                <p className="text-xs text-gray-500">No resource flow yet</p>
-                <p className="text-[10px] text-gray-600 mt-1">Build extractors to generate resources</p>
+              <div className="game-card-empty rounded-xl p-6 text-center">
+                <div className="text-3xl mb-2">📊</div>
+                <h3 className="text-sm font-bold text-green-400 mb-1">No Resource Flow Yet</h3>
+                <p className="text-xs text-gray-400">Build extractors to generate resources and see the flow visualization</p>
               </div>
             ) : (
               <div className="space-y-2">

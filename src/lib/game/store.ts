@@ -9,18 +9,19 @@ import {
   GameState, GameTab, ResourceType, BuildingInstance, BuildingType,
   TransportLine, TransportType, Worker, WorkerType, Contract,
   GameEvent, GameNotification, PowerGrid, MarketPrice, MegaProjectType,
-  Blueprint, Celebration, LeaderboardEntry,
+  Blueprint, Celebration, LeaderboardEntry, LoginStreak, DailyReward,
 } from './types';
 import {
   BUILDING_DEFS, TRANSPORT_DEFS, WORKER_DEFS, INITIAL_MARKET,
   RESEARCH_TREE, AUTOMATION_UNLOCKS, PRESTIGE_BONUSES,
   EVENT_TEMPLATES, CONTRACT_TEMPLATES, RESOURCE_META,
   INITIAL_MEGA_PROJECTS, RANK_THRESHOLDS, SEASONAL_EVENTS,
+  WEEKLY_DAILY_REWARDS, getStreakMultiplier,
 } from './data';
 import { soundEngine } from './soundEngine';
 
 // --- Save Version ---
-const SAVE_VERSION = 4;
+const SAVE_VERSION = 5;
 
 // --- Utility Functions ---
 function generateId(): string {
@@ -105,6 +106,19 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
     }
   }
 
+  // V4 → V5: Add loginStreak
+  if (version < 5) {
+    if (!state.loginStreak) {
+      state.loginStreak = {
+        currentStreak: 0,
+        longestStreak: 0,
+        lastLoginDate: '',
+        totalLogins: 0,
+        weeklyRewards: [],
+      };
+    }
+  }
+
   state._version = SAVE_VERSION;
   return state;
 }
@@ -166,6 +180,13 @@ function createInitialState(): GameState {
     lastOnlineTimestamp: Date.now(),
     celebrations: [],
     leaderboardEntries: [],
+    loginStreak: {
+      currentStreak: 0,
+      longestStreak: 0,
+      lastLoginDate: '',
+      totalLogins: 0,
+      weeklyRewards: [],
+    },
     activeTab: 'dashboard',
     selectedBuilding: null,
     notifications: [],
@@ -251,6 +272,10 @@ interface GameActions {
 
   // Leaderboard
   addLeaderboardEntry: (entry: LeaderboardEntry) => void;
+
+  // Daily Rewards
+  checkDailyLogin: () => void;
+  claimDailyReward: (day: number) => void;
 
   // Reset
   resetGame: () => void;
@@ -1315,6 +1340,7 @@ export const useGameStore = create<GameStore>()(
           _version: SAVE_VERSION,
           celebrations: state.celebrations,
           leaderboardEntries: state.leaderboardEntries,
+          loginStreak: state.loginStreak,
           _exportedAt: Date.now(),
         };
         try {
@@ -1376,6 +1402,114 @@ export const useGameStore = create<GameStore>()(
           .slice(0, 10)
           .map((e, i) => ({ ...e, rank: i + 1 }));
         set({ leaderboardEntries: updatedEntries });
+      },
+
+      // --- DAILY REWARDS ---
+      checkDailyLogin: () => {
+        const state = get();
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        const loginStreak = { ...state.loginStreak };
+
+        // Already logged in today
+        if (loginStreak.lastLoginDate === today) return;
+
+        const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+        // Update streak
+        if (loginStreak.lastLoginDate === yesterday) {
+          loginStreak.currentStreak++;
+        } else if (loginStreak.lastLoginDate === '') {
+          // First time ever
+          loginStreak.currentStreak = 1;
+        } else {
+          // Missed a day, reset streak
+          loginStreak.currentStreak = 1;
+        }
+
+        loginStreak.lastLoginDate = today;
+        loginStreak.totalLogins++;
+
+        // Update longest streak
+        if (loginStreak.currentStreak > loginStreak.longestStreak) {
+          loginStreak.longestStreak = loginStreak.currentStreak;
+        }
+
+        // Determine which day of the week (1-7, cycles)
+        const dayOfWeek = ((loginStreak.currentStreak - 1) % 7) + 1;
+
+        // Generate weekly rewards if none exist or if the week has cycled
+        const needsNewRewards = loginStreak.weeklyRewards.length === 0 ||
+          loginStreak.weeklyRewards.every(r => r.claimed);
+
+        if (needsNewRewards) {
+          const multiplier = getStreakMultiplier(loginStreak.currentStreak);
+          loginStreak.weeklyRewards = WEEKLY_DAILY_REWARDS.map(r => ({
+            ...r,
+            amount: Math.floor(r.amount * multiplier),
+            claimed: false,
+          }));
+        }
+
+        // Mark today's reward as available (not claimed yet)
+        // The reward for today should be unclaimed
+        const todayReward = loginStreak.weeklyRewards.find(r => r.day === dayOfWeek && !r.claimed);
+        if (!todayReward) {
+          // Generate a fresh set for this day
+          const multiplier = getStreakMultiplier(loginStreak.currentStreak);
+          loginStreak.weeklyRewards = WEEKLY_DAILY_REWARDS.map(r => ({
+            ...r,
+            amount: Math.floor(r.amount * multiplier),
+            claimed: r.day < dayOfWeek, // Past days are auto-claimed
+          }));
+        }
+
+        set({ loginStreak });
+      },
+
+      claimDailyReward: (day: number) => {
+        const state = get();
+        const loginStreak = { ...state.loginStreak, weeklyRewards: [...state.loginStreak.weeklyRewards] };
+        const rewardIndex = loginStreak.weeklyRewards.findIndex(r => r.day === day && !r.claimed);
+        if (rewardIndex === -1) return;
+
+        const reward = loginStreak.weeklyRewards[rewardIndex];
+        loginStreak.weeklyRewards[rewardIndex] = { ...reward, claimed: true };
+
+        // Apply reward
+        const updates: Partial<GameState> = { loginStreak };
+
+        switch (reward.type) {
+          case 'money':
+            updates.money = state.money + reward.amount;
+            updates.totalMoneyEarned = state.totalMoneyEarned + reward.amount;
+            break;
+          case 'researchPoints':
+            updates.researchPoints = state.researchPoints + reward.amount;
+            break;
+          case 'resources':
+            if (reward.resource) {
+              const res = reward.resource;
+              const newResources = { ...state.resources };
+              newResources[res] = Math.min(state.resourceCapacity[res], newResources[res] + reward.amount);
+              updates.resources = newResources;
+            }
+            break;
+          case 'corporationPoints':
+            updates.prestigeState = {
+              ...state.prestigeState,
+              corporationPoints: state.prestigeState.corporationPoints + reward.amount,
+            };
+            // Day 7 JACKPOT also gives $2,000
+            if (day === 7) {
+              updates.money = (updates.money ?? state.money) + 2000;
+              updates.totalMoneyEarned = (updates.totalMoneyEarned ?? state.totalMoneyEarned) + 2000;
+            }
+            break;
+        }
+
+        set(updates as Record<string, unknown>);
+        soundEngine.play('moneyEarned', 'building');
+        get().addNotification('success', `Claimed daily reward: Day ${day}!`);
       },
 
       // --- STORAGE UPGRADE ACTIONS ---
@@ -1798,9 +1932,10 @@ export const useGameStore = create<GameStore>()(
         lastOnlineTimestamp: state.lastOnlineTimestamp,
         celebrations: state.celebrations,
         leaderboardEntries: state.leaderboardEntries,
+        loginStreak: state.loginStreak,
         _version: SAVE_VERSION,
       }),
-      version: 4,
+      version: 5,
       migrate: (persistedState: unknown) => {
         return migrateSaveState(persistedState as Record<string, unknown>);
       },

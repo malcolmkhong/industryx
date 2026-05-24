@@ -657,6 +657,120 @@
   animation: streakFlash 1.5s ease-out;
 }
 
+/* ===== Empty State Card with Dashed Border ===== */
+.game-card-empty {
+  border: 2px dashed rgba(0, 255, 242, 0.2);
+  background: rgba(17, 24, 39, 0.5);
+  transition: all 0.3s ease;
+  position: relative;
+}
+.game-card-empty::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: radial-gradient(ellipse at center, rgba(0, 255, 242, 0.03), transparent 70%);
+  pointer-events: none;
+}
+.game-card-empty:hover {
+  border-color: rgba(0, 255, 242, 0.35);
+  box-shadow: 0 0 20px rgba(0, 255, 242, 0.08);
+}
+
+/* ===== Stat Card Animated Gradient Background ===== */
+.stat-card-gradient {
+  position: relative;
+  overflow: hidden;
+}
+.stat-card-gradient::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(from 0deg, transparent, rgba(0, 255, 242, 0.03), transparent, rgba(57, 255, 20, 0.03), transparent);
+  animation: statCardSpin 8s linear infinite;
+  pointer-events: none;
+}
+@keyframes statCardSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ===== Pulsing Cyan Border Glow ===== */
+.glow-border-cyan {
+  animation: glowBorderCyan 2s ease-in-out infinite;
+}
+@keyframes glowBorderCyan {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(0, 255, 242, 0.15), inset 0 0 3px rgba(0, 255, 242, 0.05);
+    border-color: rgba(0, 255, 242, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(0, 255, 242, 0.3), 0 0 30px rgba(0, 255, 242, 0.1), inset 0 0 8px rgba(0, 255, 242, 0.1);
+    border-color: rgba(0, 255, 242, 0.5);
+  }
+}
+
+/* ===== Premium Resource Bar with Shimmer ===== */
+.resource-bar-premium {
+  position: relative;
+  overflow: hidden;
+}
+.resource-bar-premium::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  animation: resourceBarShimmer 2.5s ease-in-out infinite;
+}
+@keyframes resourceBarShimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* ===== Top Bar Gradient Background ===== */
+.top-bar-gradient {
+  background: linear-gradient(180deg, rgba(0, 255, 242, 0.03) 0%, rgba(13, 18, 32, 1) 100%);
+}
+
+/* ===== Stat Badge Separator ===== */
+.stat-badge-separator {
+  width: 1px;
+  height: 20px;
+  background: linear-gradient(180deg, transparent, rgba(0, 255, 242, 0.2), transparent);
+  margin: 0 2px;
+}
+
+/* ===== Empty State Glow Button ===== */
+.glow-button-cyan {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+.glow-button-cyan::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(0, 255, 242, 0.4), rgba(0, 255, 242, 0.1), rgba(57, 255, 20, 0.3));
+  z-index: -1;
+  filter: blur(4px);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.glow-button-cyan:hover::before {
+  opacity: 1;
+}
+.glow-button-cyan:hover {
+  box-shadow: 0 0 20px rgba(0, 255, 242, 0.3), 0 0 40px rgba(0, 255, 242, 0.1);
+  transform: translateY(-1px);
+}
+
 /* ===== Reduced Motion Support ===== */
 @media (prefers-reduced-motion: reduce) {
   .build-construct,
@@ -674,10 +788,17 @@
   .confetti-particle,
   .glow-pulse,
   .streak-highlight,
-  .news-ticker-content {
+  .news-ticker-content,
+  .stat-card-gradient::after,
+  .glow-border-cyan,
+  .resource-bar-premium::after,
+  .glow-button-cyan::before {
     animation: none !important;
   }
   .game-card-premium:hover {
+    transform: none;
+  }
+  .glow-button-cyan:hover {
     transform: none;
   }
 }

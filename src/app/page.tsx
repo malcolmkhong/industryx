@@ -28,12 +28,13 @@ import FloatingNumbers from '@/components/game/FloatingNumbers';
 import AmbientParticles from '@/components/game/AmbientParticles';
 import CelebrationOverlay from '@/components/game/CelebrationOverlay';
 import LeaderboardPanel from '@/components/game/LeaderboardPanel';
+import DailyRewardsPanel from '@/components/game/DailyRewardsPanel';
 import {
   Factory, Pickaxe, Cog, Truck, Zap, TrendingUp,
   FlaskConical, Users, ScrollText, Bot, Globe, AlertTriangle,
   Save, Play, Pause, FastForward, RotateCcw, ChevronRight, Bell, X,
   BookOpen, Trophy, Download, Upload, Copy, Check, MoreHorizontal, ChevronUp, Settings, BarChart3,
-  Map as MapIcon
+  Map as MapIcon, Gift
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -73,6 +74,7 @@ const TABS = [
   { id: 'statistics' as const, label: 'Stats', icon: BarChart3, color: 'text-teal-400' },
   { id: 'achievements' as const, label: 'Trophies', icon: Trophy, color: 'text-amber-300' },
   { id: 'leaderboard' as const, label: 'Ranks', icon: Trophy, color: 'text-amber-400' },
+  { id: 'dailyRewards' as const, label: 'Daily', icon: Gift, color: 'text-pink-400' },
   { id: 'blueprints' as const, label: 'Blueprints', icon: Save, color: 'text-indigo-400' },
   { id: 'settings' as const, label: 'Settings', icon: Settings, color: 'text-gray-400' },
 ];
@@ -84,7 +86,7 @@ const MOBILE_PRIMARY_TABS: GameTab[] = [
 ];
 
 const MOBILE_MORE_TABS: GameTab[] = [
-  'transport', 'automation', 'prestige', 'events', 'megaprojects', 'statistics', 'achievements', 'leaderboard', 'blueprints', 'settings',
+  'transport', 'automation', 'prestige', 'events', 'megaprojects', 'statistics', 'achievements', 'leaderboard', 'dailyRewards', 'blueprints', 'settings',
 ];
 
 // Keyboard shortcut: number keys 1-9 map to first 9 tabs
@@ -128,6 +130,10 @@ export default function Home() {
   const [offlineData, setOfflineData] = useState<{ resources: Record<string, number>; money: number; ticksElapsed: number } | null>(null);
   const hasCheckedOffline = useRef(false);
 
+  // Daily rewards auto-popup state
+  const [dailyRewardDialogOpen, setDailyRewardDialogOpen] = useState(false);
+  const hasCheckedDailyLogin = useRef(false);
+
   // Check for offline progress on mount (after rehydration)
   useEffect(() => {
     if (hasCheckedOffline.current) return;
@@ -146,6 +152,23 @@ export default function Home() {
       }, 100);
       return () => clearTimeout(timer);
     }
+  }, [store]);
+
+  // Check daily login on mount
+  useEffect(() => {
+    if (hasCheckedDailyLogin.current) return;
+    hasCheckedDailyLogin.current = true;
+    const timer = setTimeout(() => {
+      store.checkDailyLogin();
+      // Check if today's reward is unclaimed
+      const ls = store.loginStreak;
+      const currentDay = ((ls.currentStreak - 1) % 7) + 1;
+      const todayReward = ls.weeklyRewards.find(r => r.day === currentDay && !r.claimed);
+      if (todayReward) {
+        setDailyRewardDialogOpen(true);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
   }, [store]);
 
   // Close mobile "More" menu when clicking outside
@@ -333,6 +356,7 @@ export default function Home() {
       case 'guide': return <OnboardingPanel />;
       case 'achievements': return <AchievementPanel />;
       case 'leaderboard': return <LeaderboardPanel />;
+      case 'dailyRewards': return <DailyRewardsPanel />;
       case 'settings': return <SettingsPanel />;
       default: return <DashboardPanel />;
     }
@@ -351,13 +375,13 @@ export default function Home() {
     <TooltipProvider>
       <div className="min-h-screen flex flex-col bg-[#0a0e17] text-gray-100 overflow-hidden safe-area-container">
         {/* TOP BAR */}
-        <header className="sticky top-0 z-50 bg-[#0d1220] border-b border-cyan-900/30 px-2 lg:px-3 py-1.5 lg:py-2">
+        <header className="sticky top-0 z-50 top-bar-gradient border-b border-cyan-900/30 px-2 lg:px-3 py-1.5 lg:py-2">
           {/* Desktop header row */}
-          <div className="hidden lg:flex items-center justify-between gap-3 flex-wrap">
+          <div className="hidden lg:flex items-center justify-between gap-4 flex-wrap">
             {/* Logo & Money */}
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-sm font-bold">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-base font-bold shadow-[0_0_12px_rgba(0,255,242,0.2)]">
                   FD
                 </div>
                 <div>
@@ -365,26 +389,30 @@ export default function Home() {
                   <p className="text-[10px] text-gray-500 -mt-0.5">Automated Empire</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 text-xs">
+              {/* Separator */}
+              <div className="stat-badge-separator" />
+              <div className="flex items-center gap-4 text-xs">
                 <div className={`stat-badge stat-badge-money bg-[#111827] rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default ${moneyGlow ? 'money-glow' : ''}`}>
                   <span className="text-gray-500">💰 </span>
-                  <span className="text-green-400 font-mono font-bold">${formatNumber(store.money)}</span>
+                  <span className="text-green-400 font-mono font-bold text-sm">${formatNumber(store.money)}</span>
                 </div>
                 <div className={`stat-badge stat-badge-power bg-[#111827] rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default ${store.powerGrid.overload ? 'warning-pulse' : ''}`}>
                   <span className="text-gray-500">⚡ </span>
-                  <span className={powerPercent >= 80 ? 'text-yellow-400' : powerPercent >= 50 ? 'text-orange-400' : 'text-red-400'}>
+                  <span className={`text-sm ${powerPercent >= 80 ? 'text-yellow-400' : powerPercent >= 50 ? 'text-orange-400' : 'text-red-400'}`}>
                     {formatNumber(store.powerGrid.totalProduction)}MW
                   </span>
                   <span className="text-gray-600"> / </span>
-                  <span className="text-gray-400">{formatNumber(store.powerGrid.totalConsumption)}MW</span>
+                  <span className="text-gray-400 text-sm">{formatNumber(store.powerGrid.totalConsumption)}MW</span>
                 </div>
+                {/* Separator */}
+                <div className="stat-badge-separator" />
                 <div className="stat-badge stat-badge-rp bg-[#111827] rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default">
                   <span className="text-gray-500">🔬 </span>
-                  <span className="text-purple-400 font-mono">{formatNumber(store.researchPoints)} RP</span>
+                  <span className="text-purple-400 font-mono text-sm">{formatNumber(store.researchPoints)} RP</span>
                 </div>
                 <div className="stat-badge stat-badge-cp bg-[#111827] rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default">
                   <span className="text-gray-500">🏢 </span>
-                  <span className="text-fuchsia-400 font-mono">{store.prestigeState.corporationPoints} CP</span>
+                  <span className="text-fuchsia-400 font-mono text-sm">{store.prestigeState.corporationPoints} CP</span>
                 </div>
               </div>
             </div>
@@ -435,7 +463,11 @@ export default function Home() {
                   <Button variant="ghost" size="sm" className="h-7 w-7 p-0 relative">
                     <Bell className="w-3.5 h-3.5 text-gray-400" />
                     {unreadNotifications > 0 && (
-                      <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-500 rounded-full text-[8px] text-white flex items-center justify-center">
+                      <span className={`absolute -top-0.5 -right-0.5 h-4 rounded-full text-[8px] text-white flex items-center justify-center px-1 ${
+                        store.notifications[0]?.type === 'error' ? 'bg-red-500' :
+                        store.notifications[0]?.type === 'warning' ? 'bg-orange-500' :
+                        'bg-cyan-500'
+                      }`}>
                         {unreadNotifications > 9 ? '9+' : unreadNotifications}
                       </span>
                     )}
@@ -445,15 +477,23 @@ export default function Home() {
                   {store.notifications.length === 0 ? (
                     <p className="text-xs text-gray-500">No notifications</p>
                   ) : (
-                    store.notifications.slice(0, 10).map(n => (
-                      <div key={n.id} className={`text-xs py-1 border-b border-gray-800 last:border-0 ${
-                        n.type === 'success' ? 'text-green-400' :
-                        n.type === 'warning' ? 'text-yellow-400' :
-                        n.type === 'error' ? 'text-red-400' : 'text-gray-400'
-                      }`}>
-                        {n.message}
+                    <>
+                      <div className="flex items-center gap-2 mb-2 pb-1.5 border-b border-gray-800">
+                        <Bell className="w-3 h-3 text-gray-400" />
+                        <span className="text-[10px] font-semibold text-gray-300">
+                          {unreadNotifications > 0 ? `${unreadNotifications} New ${store.notifications[0]?.type === 'error' ? 'Alert' : store.notifications[0]?.type === 'warning' ? 'Warning' : 'Event'}${unreadNotifications > 1 ? 's' : ''}` : 'No New Notifications'}
+                        </span>
                       </div>
-                    ))
+                      {store.notifications.slice(0, 10).map(n => (
+                        <div key={n.id} className={`text-xs py-1 border-b border-gray-800 last:border-0 ${
+                          n.type === 'success' ? 'text-green-400' :
+                          n.type === 'warning' ? 'text-yellow-400' :
+                          n.type === 'error' ? 'text-red-400' : 'text-gray-400'
+                        }`}>
+                          {n.message}
+                        </div>
+                      ))}
+                    </>
                   )}
                 </TooltipContent>
               </Tooltip>
@@ -464,12 +504,13 @@ export default function Home() {
                   {store.activeEvents.map(e => (
                     <Tooltip key={e.id}>
                       <TooltipTrigger asChild>
-                        <Badge variant="outline" className="text-[10px] border-orange-500/50 text-orange-400 bg-orange-900/20 px-1.5 py-0">
-                          {e.emoji} {e.name}
+                        <Badge variant="outline" className="text-[10px] border-orange-500/50 text-orange-400 bg-orange-900/20 px-1.5 py-0 neon-pulse">
+                          {e.emoji} {e.remaining <= 50 ? `${e.remaining}t` : e.name}
                         </Badge>
                       </TooltipTrigger>
                       <TooltipContent side="bottom" className="bg-[#111827] border-cyan-900/30">
-                        <p className="text-xs">{e.description}</p>
+                        <p className="text-xs font-medium text-orange-300">{e.name}</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">{e.description}</p>
                         <p className="text-[10px] text-gray-500 mt-1">Remaining: {e.remaining} ticks</p>
                       </TooltipContent>
                     </Tooltip>
