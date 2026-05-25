@@ -1319,10 +1319,74 @@ export const useGameStore = create<GameStore>()(
 
       toggleBuilding: (id: string) => {
         const state = get();
+        const building = state.buildings.find(b => b.id === id);
+        if (!building) return;
+        const def = BUILDING_DEFS[building.type];
+        const newActive = !building.active;
+        const newBuildings = state.buildings.map(b =>
+          b.id === id ? { ...b, active: newActive } : b
+        );
+
+        // Recalculate power grid immediately so UI updates without waiting for next tick
+        let totalProduction = 0;
+        let totalConsumption = 0;
+        const powerBuildings = newBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power' && b.active);
+        const consumingBuildings = newBuildings.filter(b => BUILDING_DEFS[b.type]?.category !== 'power' && b.active);
+        const newResources = { ...state.resources };
+
+        powerBuildings.forEach(b => {
+          const bDef = BUILDING_DEFS[b.type];
+          if (!bDef) return;
+          let production = bDef.basePowerProduction * b.level * b.efficiency;
+          if (bDef.fuel && bDef.fuelRate) {
+            if (state.resources[bDef.fuel] >= bDef.fuelRate * b.level) {
+              totalProduction += production;
+            } else {
+              production *= 0.1;
+              totalProduction += production;
+            }
+          } else {
+            if (b.type === 'solarPanel') {
+              const dayFactor = 0.5 + 0.5 * Math.sin(state.gameTick * 0.01);
+              production *= Math.max(0.2, dayFactor);
+            }
+            if (b.type === 'windTurbine') {
+              const windFactor = 0.5 + 0.5 * Math.sin(state.gameTick * 0.007 + Math.PI / 3);
+              production *= Math.max(0.3, windFactor);
+            }
+            totalProduction += production;
+          }
+        });
+
+        consumingBuildings.forEach(b => {
+          const bDef = BUILDING_DEFS[b.type];
+          if (!bDef) return;
+          totalConsumption += bDef.basePowerConsumption * b.level * b.efficiency;
+        });
+
+        const powerEfficiencyResearch = state.completedResearch.includes('energyEfficiency') ? 0.15 : 0;
+        totalConsumption *= (1 - powerEfficiencyResearch);
+
+        const powerPrestigeBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'powerMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
+        totalProduction *= (1 + powerPrestigeBonus);
+
+        const effectivePowerEfficiency = totalProduction > 0 ? Math.min(1, totalProduction / Math.max(0.001, totalConsumption)) : 0;
+        const overload = totalConsumption > totalProduction;
+
+        // Play sound for power toggle
+        if (def?.category === 'power') {
+          soundEngine.play(newActive ? 'buildPlace' : 'powerOverload', 'events');
+        }
+
         set({
-          buildings: state.buildings.map(b =>
-            b.id === id ? { ...b, active: !b.active } : b
-          ),
+          buildings: newBuildings,
+          powerGrid: {
+            totalProduction,
+            totalConsumption,
+            efficiency: effectivePowerEfficiency,
+            overload,
+            plants: powerBuildings,
+          },
         });
       },
 

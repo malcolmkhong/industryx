@@ -1822,3 +1822,20 @@ Unresolved Issues / Risks:
 - Daily quests should eventually scale with player tier (currently fixed at T0)
 - No contract refresh/skip mechanism if player doesn't want current contracts
 - Quest tracking (updateQuestProgress) doesn't account for tier-specific progress
+
+---
+Task ID: PowerFix-1
+Agent: Main Developer
+Task: Fix power plant toggle issues
+
+Work Log:
+- Fixed PowerPanel: individual plant cards show 0 MW when off, real-time efficiency/consumption/overload calculations
+- Fixed store.ts toggleBuilding: now recalculates power grid immediately on toggle
+- Fixed FactoryMapPanel: building detail shows 0 production/power when off
+- Fixed Tailwind syntax error border-[$meta.color]/30
+
+Stage Summary:
+- Power plant toggle now has IMMEDIATE visual feedback
+- Power grid efficiency, consumption, overload update instantly
+- Plant cards show 0 MW when turned off
+- Sound effects on power plant toggle

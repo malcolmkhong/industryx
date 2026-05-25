@@ -317,10 +317,10 @@ function SelectedBuildingPanel({
         </div>
         <div className="bg-[#0a0e17] rounded-md p-1.5 text-center">
           <div className="text-[8px] text-gray-500">Power</div>
-          <div className="text-sm font-bold font-mono text-yellow-400">
+          <div className={`text-sm font-bold font-mono ${building.active ? 'text-yellow-400' : 'text-gray-600'}`}>
             {def.basePowerProduction > 0
-              ? `+${def.basePowerProduction * building.level}MW`
-              : `-${def.basePowerConsumption * building.level}MW`}
+              ? `+${building.active ? def.basePowerProduction * building.level : 0}MW`
+              : `-${building.active ? def.basePowerConsumption * building.level : 0}MW`}
           </div>
         </div>
       </div>
@@ -332,7 +332,7 @@ function SelectedBuildingPanel({
           <div className="space-y-0.5">
             {def.outputs.map((output, i) => {
               const meta = RESOURCE_META[output.resource as keyof typeof RESOURCE_META];
-              const rate = output.amount * building.level * building.efficiency;
+              const rate = building.active ? output.amount * building.level * building.efficiency : 0;
               return (
                 <div key={i} className="flex items-center justify-between bg-[#0a0e17] rounded px-1.5 py-0.5">
                   <div className="flex items-center gap-1">

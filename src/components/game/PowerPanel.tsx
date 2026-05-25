@@ -123,19 +123,40 @@ export function PowerPanel() {
     [productionByType]
   );
 
+  // Calculate real-time consumption from current building state (not stale from last tick)
+  const totalRealConsumption = useMemo(() => {
+    let consumption = 0;
+    store.buildings.forEach(b => {
+      if (!b.active) return;
+      const def = BUILDING_DEFS[b.type];
+      if (!def || def.category === 'power') return;
+      consumption += def.basePowerConsumption * b.level * b.efficiency;
+    });
+    // Apply energy efficiency research
+    const hasEffResearch = store.completedResearch.includes('energyEfficiency');
+    if (hasEffResearch) consumption *= 0.85;
+    return consumption;
+  }, [store.buildings, store.completedResearch]);
+
+  // Real-time effective power efficiency
+  const realtimeEfficiency = totalRealProduction > 0
+    ? Math.min(1, totalRealProduction / Math.max(0.001, totalRealConsumption))
+    : 0;
+  const realtimeOverload = totalRealConsumption > totalRealProduction;
+
   // Power balance
-  const powerBalance = totalRealProduction - powerGrid.totalConsumption;
-  const powerRatio = powerGrid.totalConsumption > 0
-    ? Math.min(2, totalRealProduction / powerGrid.totalConsumption)
+  const powerBalance = totalRealProduction - totalRealConsumption;
+  const powerRatio = totalRealConsumption > 0
+    ? Math.min(2, totalRealProduction / totalRealConsumption)
     : totalRealProduction > 0 ? 2 : 0;
 
-  // Status determination
+  // Status determination (use realtime overload detection)
   const powerStatus = useMemo(() => {
-    if (powerGrid.overload) return 'overloaded';
+    if (realtimeOverload) return 'overloaded';
     if (powerRatio >= 1.3) return 'surplus';
     if (powerRatio >= 0.9) return 'balanced';
     return 'deficit';
-  }, [powerGrid.overload, powerRatio]);
+  }, [realtimeOverload, powerRatio]);
 
   // Coal fuel status
   const coalFuelStatus = useMemo(() => {
@@ -289,7 +310,7 @@ export function PowerPanel() {
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-gray-500">demand</span>
-              <span className="text-orange-400 font-mono font-bold text-sm">{formatNumber(powerGrid.totalConsumption)}</span>
+              <span className="text-orange-400 font-mono font-bold text-sm">{formatNumber(totalRealConsumption)}</span>
               <ArrowDownRight className="w-3.5 h-3.5 text-orange-400" />
             </div>
           </div>
@@ -297,7 +318,7 @@ export function PowerPanel() {
           <div className="h-6 bg-gray-800 rounded-full overflow-hidden relative">
             <div
               className="absolute inset-y-0 left-0 bg-orange-600/20 rounded-full transition-all duration-700"
-              style={{ width: `${Math.min(100, (powerGrid.totalConsumption / Math.max(1, totalRealProduction)) * 100)}%` }}
+              style={{ width: `${Math.min(100, (totalRealConsumption / Math.max(1, totalRealProduction)) * 100)}%` }}
             />
             <motion.div
               className={`absolute inset-y-0 left-0 rounded-full transition-all duration-700 ${
@@ -348,13 +369,13 @@ export function PowerPanel() {
             <div className="text-[10px] text-gray-500 mb-0.5">Efficiency</div>
             <motion.div
               className={`text-sm font-bold font-mono ${
-                powerGrid.efficiency >= 0.8 ? 'text-green-400' :
-                powerGrid.efficiency >= 0.5 ? 'text-yellow-400' : 'text-red-400'
+                realtimeEfficiency >= 0.8 ? 'text-green-400' :
+                realtimeEfficiency >= 0.5 ? 'text-yellow-400' : 'text-red-400'
               }`}
-              animate={powerGrid.efficiency < 0.5 ? { opacity: [1, 0.5, 1] } : {}}
+              animate={realtimeEfficiency < 0.5 ? { opacity: [1, 0.5, 1] } : {}}
               transition={{ duration: 1.5, repeat: Infinity }}
             >
-              {(powerGrid.efficiency * 100).toFixed(1)}%
+              {(realtimeEfficiency * 100).toFixed(1)}%
             </motion.div>
           </div>
           <div className="bg-[#0a0e17] rounded-lg p-2 text-center">
@@ -387,7 +408,7 @@ export function PowerPanel() {
         </div>
 
         {/* Overload warning */}
-        {powerGrid.overload && (
+        {realtimeOverload && (
           <motion.div
             initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
@@ -396,7 +417,7 @@ export function PowerPanel() {
             <CircleAlert className="w-4 h-4 text-red-400 flex-shrink-0" />
             <div>
               <p className="text-xs text-red-400 font-medium">Power Grid Overloaded!</p>
-              <p className="text-[10px] text-red-400/70">All buildings operating at {(powerGrid.efficiency * 100).toFixed(0)}% efficiency. Build more power plants or disable buildings.</p>
+              <p className="text-[10px] text-red-400/70">All buildings operating at {(realtimeEfficiency * 100).toFixed(0)}% efficiency. Build more power plants or disable buildings.</p>
             </div>
           </motion.div>
         )}
@@ -497,7 +518,7 @@ export function PowerPanel() {
               </motion.div>
 
               {/* Animated power flow particles */}
-              {powerGrid.efficiency > 0 && (
+              {totalRealProduction > 0 && (
                 <>
                   {[...Array(4)].map((_, i) => (
                     <motion.div
@@ -534,15 +555,15 @@ export function PowerPanel() {
               <div className="text-[9px] text-gray-500 mb-1 font-bold uppercase tracking-wider">Consumers</div>
               <div className="flex items-center gap-1">
                 <span className="text-xs">🏭</span>
-                <span className="text-[9px] font-mono text-orange-400">{formatNumber(powerGrid.totalConsumption)} MW</span>
+                <span className="text-[9px] font-mono text-orange-400">{formatNumber(totalRealConsumption)} MW</span>
               </div>
               <div className="text-[9px] text-gray-500">{store.buildings.filter(b => BUILDING_DEFS[b.type]?.category !== 'power' && b.active).length} buildings</div>
               <div className={`text-[8px] mt-1 px-1.5 py-0.5 rounded ${
-                powerGrid.efficiency >= 0.8 ? 'bg-green-900/20 text-green-400' :
-                powerGrid.efficiency >= 0.5 ? 'bg-yellow-900/20 text-yellow-400' :
+                realtimeEfficiency >= 0.8 ? 'bg-green-900/20 text-green-400' :
+                realtimeEfficiency >= 0.5 ? 'bg-yellow-900/20 text-yellow-400' :
                 'bg-red-900/20 text-red-400'
               }`}>
-                {(powerGrid.efficiency * 100).toFixed(0)}% eff
+                {(realtimeEfficiency * 100).toFixed(0)}% eff
               </div>
             </div>
           </div>
@@ -604,7 +625,7 @@ export function PowerPanel() {
             <div
               className={`game-card rounded-xl bg-[#111827] p-3 border transition-all ${
                 !unlocked ? 'border-gray-800 opacity-50' :
-                output > 0 ? `border-[$meta.color]/30` : 'border-[#1e293b]'
+                output > 0 ? 'border-yellow-900/30' : 'border-[#1e293b]'
               }`}
             >
               {/* Header */}
@@ -734,23 +755,24 @@ export function PowerPanel() {
                   const upgradeCost = getBuildingCost(plant.type, plant.level);
                   const canUpgrade = store.money >= upgradeCost;
 
-                  let actualProduction = def.basePowerProduction * plant.level * plant.efficiency;
-                  let productionNote = '';
+                  // When plant is off, show 0 production clearly
+                  let actualProduction = plant.active ? def.basePowerProduction * plant.level * plant.efficiency : 0;
+                  let productionNote = plant.active ? '' : 'OFFLINE';
                   let isDerated = false;
 
-                  if (def.fuel && def.fuelRate) {
+                  if (plant.active && def.fuel && def.fuelRate) {
                     if (store.resources[def.fuel] < def.fuelRate * plant.level) {
                       actualProduction *= 0.1;
                       productionNote = 'Low fuel!';
                       isDerated = true;
                     }
                   }
-                  if (plant.type === 'solarPanel') {
+                  if (plant.active && plant.type === 'solarPanel') {
                     const factor = Math.max(0.2, 0.5 + 0.5 * Math.sin(store.gameTick * 0.01));
                     actualProduction *= factor;
                     productionNote = factor > 0.7 ? 'Peak sun' : factor > 0.4 ? 'Moderate' : 'Low light';
                   }
-                  if (plant.type === 'windTurbine') {
+                  if (plant.active && plant.type === 'windTurbine') {
                     const factor = Math.max(0.3, 0.5 + 0.5 * Math.sin(store.gameTick * 0.007 + Math.PI / 3));
                     actualProduction *= factor;
                     productionNote = factor > 0.7 ? 'Strong wind' : factor > 0.4 ? 'Moderate' : 'Low wind';
