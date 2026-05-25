@@ -1384,3 +1384,65 @@ Priority Recommendations for Next Phase:
 5. Add more MegaProject types or expansion content
 6. Add seasonal events and leaderboard enhancements
 7. Add tutorial completion animations
+
+---
+Task ID: 1
+Agent: Main Developer (Current Phase)
+Task: Fix runtime errors and redesign Factory Floor Map with interactive build-on-map gameplay
+
+Work Log:
+- Fixed runtime error: 'weatherWindMultiplier' before initialization in store.ts
+  - Root cause: Weather multipliers (weatherSolarMultiplier, weatherWindMultiplier, weatherProductionMultiplier) were declared AFTER the powerBuildings.forEach loop that used them
+  - Fix: Moved the weather multiplier calculation block (lines 444-453) BEFORE the power grid calculation (lines 374-402)
+  - Removed the duplicate weather multiplier block that was left at the old location
+- Cleared stale Next.js cache (.next/) and restarted dev server to resolve ChunkLoadError
+- Completely redesigned FactoryMapPanel.tsx with interactive build-on-map gameplay:
+  - **16x12 grid map** (was variable 6x4 to 12x8) — fixed size for consistent building placement
+  - **Build Mode toolbar** at the top with Hammer button — toggle to enter/exit build mode
+  - **Building palette** with collapsible categories (Extraction, T1-T3 Factory, Power) showing building costs, counts, and lock status
+  - **Click-to-place**: Select a building type from palette, then click an empty cell on the map to place it
+  - **Build preview**: Hovered empty cells show building emoji and "Place here" text when in build mode
+  - **Building positions persisted** to localStorage via `factory-map-positions` key
+  - **Derived position calculation** using useMemo from savedPositions + current buildings + pendingPlacement
+  - **Zoom/Pan controls**: Mouse wheel to zoom (50%-200%), Alt+Drag to pan, reset view button
+  - **Connection overlay**: Power lines (dashed yellow SVG) from power plants to consumers, resource flow lines (cyan animated particles) between buildings with matching outputs→inputs
+  - **Weather overlay**: Tinted backgrounds for rainy/stormy/snowy/foggy weather on the map
+  - **Weather indicator badge** in header showing current weather and remaining ticks
+  - **Selected building detail panel**: Shows building info, stats, production/consumption rates, toggle/upgrade actions
+  - **Quick stats sidebar**: Buildings count, active count, category breakdowns, power grid status, efficiency bar, balance display
+  - **Legend panel**: Color coding for all building categories plus connection types
+  - All existing sidebar/tab functionality preserved — users can still build via Extraction/Factories/Power tabs
+- Fixed lint errors:
+  - Removed unused imports (Progress, Trash2, ArrowUpRight, Move, Wrench, DollarSign)
+  - Converted setState-in-effect pattern to useMemo-derived state + deferred setState via setTimeout
+  - Converted pendingPlacement ref to pendingPosition state to comply with React hooks rules
+- ESLint passes cleanly (0 errors)
+- Dev server compiles and returns HTTP 200
+
+Stage Summary:
+- Runtime error fix: weatherWindMultiplier moved before its usage in the power grid calculation
+- Factory Floor Map completely redesigned as interactive build-on-map experience
+- New features: Build Mode with palette, click-to-place, zoom/pan, connection overlay, weather overlay, quick stats
+- Building positions persisted in localStorage, derived via useMemo for performance
+- All existing game functionality (sidebar tabs, building via panels) preserved
+
+Current Project Status:
+- Factory Dominion: Automated Empire - idle factory simulation with interactive 2D map
+- 24 tabs total including redesigned Map tab
+- Interactive build-on-map: place buildings directly on a 16x12 grid
+- Weather system affects production and has visual overlay on map
+- All game systems functional: extraction, factories, power, market, research, workers, contracts, automation, prestige, events, megaprojects, quests, payouts, daily rewards, statistics, achievements, blueprints, settings
+
+Unresolved Issues / Risks:
+- Building positions not stored in Zustand (separate localStorage key) — could be lost on save import
+- Drag-to-reposition buildings not yet implemented
+- Map scroll on mobile devices may conflict with pan gesture
+- Transport routing between buildings not yet visualized on map
+
+Priority Recommendations for Next Phase:
+1. Add drag-to-reposition buildings on the map
+2. Integrate building positions into Zustand store for save/export compatibility
+3. Add mobile-friendly map controls (touch pinch zoom, tap to build)
+4. Add transport line visualization between connected buildings on map
+5. Add building context menu (right-click for upgrade/demolish/move options)
+6. Performance optimization for maps with many buildings
