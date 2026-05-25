@@ -145,6 +145,7 @@ export interface Contract {
   completed: boolean;
   failed: boolean;
   difficulty: number; // 1-5
+  gameTier?: number; // 0-3, determines when contract becomes available
   emoji: string;
 }
 
@@ -333,6 +334,7 @@ export interface Quest {
   description: string;
   type: QuestType;
   category: 'tutorial' | 'daily' | 'weekly' | 'challenge';
+  gameTier?: number; // 0-3, determines when quest becomes available
   steps: QuestStep[];
   reward: { money: number; researchPoints?: number; corporationPoints?: number };
   completed: boolean;

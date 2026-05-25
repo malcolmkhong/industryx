@@ -1762,3 +1762,63 @@ Stage Summary:
 - Enhanced visual connections with bezier curves, resource colors, and animated flow
 - Connection efficiency system: closer buildings = better efficiency (visual + stats)
 - 25 tabs total, game stable, all features working
+
+---
+Task ID: 4
+Agent: Main Coordinator (Phase 6)
+Task: Restructure contracts and missions by game tier/level to match game progression
+
+Work Log:
+- Analyzed current CONTRACT_TEMPLATES and QUEST_DEFS — both already had `gameTier` field but contract generation didn't use it
+- Added `TIER_INFO` constant to data.ts with tier names, emojis, colors, border colors, bg colors, descriptions for Tiers 0-3
+- Updated store.ts contract generation (lines 823-878):
+  - Now calculates `playerGameTier` based on highest building tier and research progress
+  - Filters contract templates to only include tiers <= player's current tier
+  - Weights selection towards current tier (3x weight) and previous tier (2x weight) vs older (1x)
+  - Contract difficulty scales with tier + building count instead of raw building count
+  - Reward multipliers scale proportionally with tier (1 + tier * 0.5)
+  - Corporation Points only awarded for Tier 2+ contracts
+  - Contract spawn interval improved from ~200 ticks to ~150 ticks
+  - Max active contracts increased from 3 to 4
+  - Added `gameTier` field to generated Contract instances
+- Added `getPlayerGameTier()` action to store for UI use
+- Completely rewrote ContractPanel.tsx with tier-based UI:
+  - Player Tier Progress Bar showing T0-T3 with colored segments
+  - Tier filter buttons (All Tiers, T0-T3) with contract counts
+  - Active contracts grouped by tier with colored tier headers and separator lines
+  - Contract cards show colored left border and tier badge
+  - Contract Pool sidebar showing available contract templates per tier
+  - Collapsible Contract History section
+  - Updated tips for tier-aware contract system
+- Completely rewrote QuestPanel.tsx with tier-based grouping:
+  - Tier Progress Bar showing quest completion per tier
+  - Summary cards per tier with completion counts and tier colors
+  - Quests grouped by gameTier instead of category
+  - Each quest shows tier badge (e.g., "🏗️ T0") and colored left border
+  - Locked tier quests shown as dimmed/grayed with "Requires T{x} buildings" message
+  - Daily quests now have gameTier: 0 and appear in Tier 0 group
+- Fixed duplicate/leftover data syntax error in data.ts (lines after QUEST_DEFS closing bracket)
+- Added gameTier: 0 to daily quests that were missing it
+- ESLint passes cleanly (0 errors)
+- Dev server compiles successfully and app is accessible
+
+Stage Summary:
+- Contracts now match game progression — early players only see raw resource contracts, T3 contracts only appear with T3 buildings
+- Quests guide players through each tier's content (T0: basics, T1: processing, T2: advanced, T3: endgame)
+- Both panels have visual tier indicators, progress bars, and tier-based grouping
+- Player tier calculated from highest building tier and research progress
+- TIER_INFO constant provides consistent tier styling across components
+- Contract rewards scale proportionally with tier difficulty
+
+Current Project Status Assessment:
+- Factory Dominion: Automated Empire is feature-rich with tier-based progression
+- 19+ game systems across 6 development phases
+- Contracts and quests now properly gated by game tier
+- Visual tier indicators on both contract and quest panels
+- Player can see which tiers are locked and what's needed to unlock them
+
+Unresolved Issues / Risks:
+- Existing save games may have contracts without gameTier field (optional type handles this)
+- Daily quests should eventually scale with player tier (currently fixed at T0)
+- No contract refresh/skip mechanism if player doesn't want current contracts
+- Quest tracking (updateQuestProgress) doesn't account for tier-specific progress

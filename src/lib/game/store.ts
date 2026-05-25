@@ -432,6 +432,9 @@ interface GameActions {
   // Rank
   getCurrentRank: () => { name: string; emoji: string; color: string; score: number; nextRankScore: number | null; progress: number };
 
+  // Game Tier
+  getPlayerGameTier: () => number;
+
   // Leaderboard
   addLeaderboardEntry: (entry: LeaderboardEntry) => void;
 
@@ -820,14 +823,35 @@ export const useGameStore = create<GameStore>()(
           }
         }
 
-        // Generate new contracts (every ~200 ticks)
+        // Calculate player's current game tier for contract generation
+        const playerGameTier = (() => {
+          if (state.buildings.length === 0) return 0;
+          const highestBuildingTier = Math.max(0, ...state.buildings.map(b => BUILDING_DEFS[b.type]?.tier ?? 0));
+          const researchTier = Math.floor(state.completedResearch.length / 3);
+          return Math.min(3, Math.max(highestBuildingTier, researchTier));
+        })();
+
+        // Generate new contracts (every ~150 ticks, tier-aware)
         let contractsToAdd: Contract[] = [];
-        if (newTick % 200 === 0 && state.contracts.filter(c => !c.completed && !c.failed).length < 3) {
-          const template = CONTRACT_TEMPLATES[Math.floor(Math.random() * CONTRACT_TEMPLATES.length)];
-          const difficulty = Math.min(5, 1 + Math.floor(state.buildings.length / 5));
+        const activeContractCount = state.contracts.filter(c => !c.completed && !c.failed).length;
+        if (newTick % 150 === 0 && activeContractCount < 4) {
+          // Filter templates to only include tiers the player has access to
+          const availableTemplates = CONTRACT_TEMPLATES.filter(t => (t.gameTier ?? 0) <= playerGameTier);
+          // Weight towards current tier (60%) and below (40%)
+          const weightedTemplates = availableTemplates.flatMap(t => {
+            const tier = t.gameTier ?? 0;
+            const weight = tier === playerGameTier ? 3 : tier === playerGameTier - 1 ? 2 : 1;
+            return Array(weight).fill(t);
+          });
+          const template = weightedTemplates.length > 0
+            ? weightedTemplates[Math.floor(Math.random() * weightedTemplates.length)]
+            : CONTRACT_TEMPLATES[0]; // fallback to first template
+          const contractTier = template.gameTier ?? 0;
+          const difficulty = Math.max(1, Math.min(5, contractTier + 1 + Math.floor(state.buildings.length / 8)));
+          const tierMultiplier = 1 + contractTier * 0.5; // Higher tier = proportionally higher rewards
           const reward = template.requiredResources.reduce((sum, r) => {
             const marketItem = INITIAL_MARKET.find(m => m.resource === r.resource);
-            return sum + (marketItem?.basePrice ?? 10) * r.amount * (1 + difficulty * 0.3);
+            return sum + (marketItem?.basePrice ?? 10) * r.amount * tierMultiplier * (1 + difficulty * 0.15);
           }, 0);
           
           const contract: Contract = {
@@ -837,19 +861,20 @@ export const useGameStore = create<GameStore>()(
             type: template.type,
             requiredResources: template.requiredResources.map(r => ({
               resource: r.resource,
-              amount: Math.floor(r.amount * (1 + difficulty * 0.2)),
+              amount: Math.floor(r.amount * (1 + (difficulty - 1) * 0.15)),
             })),
             timeLimit: template.timeLimit,
             timeRemaining: template.timeLimit,
             reward: {
               money: Math.floor(reward),
-              researchPoints: Math.floor(difficulty * 20),
-              corporationPoints: difficulty >= 3 ? Math.floor(difficulty * 2) : 0,
+              researchPoints: Math.floor(difficulty * 15 * tierMultiplier),
+              corporationPoints: contractTier >= 2 ? Math.floor((contractTier - 1) * 3 + difficulty) : 0,
             },
             progress: 0,
             completed: false,
             failed: false,
             difficulty,
+            gameTier: contractTier,
             emoji: template.emoji,
           };
           contractsToAdd = [contract];
@@ -2276,6 +2301,15 @@ export const useGameStore = create<GameStore>()(
           nextRankScore: nextRank ? nextRank.minScore : null,
           progress: Math.min(1, Math.max(0, progress)),
         };
+      },
+
+      // --- GAME TIER ---
+      getPlayerGameTier: () => {
+        const state = get();
+        if (state.buildings.length === 0) return 0;
+        const highestBuildingTier = Math.max(0, ...state.buildings.map(b => BUILDING_DEFS[b.type]?.tier ?? 0));
+        const researchTier = Math.floor(state.completedResearch.length / 3);
+        return Math.min(3, Math.max(highestBuildingTier, researchTier));
       },
 
       // --- MEGAPROJECT ACTIONS ---
