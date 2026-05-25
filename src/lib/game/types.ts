@@ -480,13 +480,40 @@ export interface GameState {
   // Tracked Quest
   trackedQuest: string | null; // quest id that is being tracked/pinned
 
+  // Drone Delivery
+  drones: {
+    fleet: Drone[];
+    completedMissions: number;
+    totalEarned: number;
+  };
+
   // UI State
   activeTab: GameTab;
   selectedBuilding: string | null;
   notifications: GameNotification[];
 }
 
-export type GameTab = 'dashboard' | 'factoryMap' | 'resources' | 'factories' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'contracts' | 'quests' | 'automation' | 'prestige' | 'events' | 'megaprojects' | 'statistics' | 'blueprints' | 'guide' | 'achievements' | 'leaderboard' | 'dailyRewards' | 'payouts' | 'notifications' | 'settings';
+export type GameTab = 'dashboard' | 'factoryMap' | 'resources' | 'factories' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'contracts' | 'quests' | 'automation' | 'prestige' | 'events' | 'megaprojects' | 'statistics' | 'blueprints' | 'guide' | 'achievements' | 'leaderboard' | 'dailyRewards' | 'payouts' | 'droneDelivery' | 'notifications' | 'settings';
+
+// --- Drone Delivery ---
+export interface Drone {
+  id: string;
+  status: 'idle' | 'delivering';
+  missionEndTick: number;
+  missionId: string | null;
+  speedLevel: number;
+  capacityLevel: number;
+  fuelEfficiencyLevel: number;
+}
+
+export interface DroneMission {
+  id: string;
+  fromBuilding: string; // building type name
+  toBuilding: string; // building type name
+  reward: { money: number; resources?: { resource: ResourceType; amount: number }[]; researchPoints?: number };
+  fuelCost: number;
+  baseTicks: number; // base duration in ticks
+}
 
 export interface GameNotification {
   id: string;

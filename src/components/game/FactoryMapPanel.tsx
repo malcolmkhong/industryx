@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+import { useMemo, useState, useCallback, useRef, useEffect, memo } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
 import { BUILDING_DEFS, RESOURCE_META } from '@/lib/game/data';
 import { BuildingInstance, BuildingType } from '@/lib/game/types';
@@ -8,16 +8,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
-  Map, Zap, ChevronUp, Activity, Factory, Pickaxe,
+  Map as MapIcon, Zap, ChevronUp, Activity, Factory, Pickaxe,
   Hammer, X, RotateCcw, Power, PowerOff,
   ZoomIn, ZoomOut, Grid3X3, Eye, Sun, Cloud, CloudRain,
   CloudLightning, CloudFog, Snowflake, ChevronDown, ChevronRight,
+  Search, Clock, Flame,
 } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Input } from '@/components/ui/input';
 
 // --- Constants ---
 const GRID_COLS = 16;
@@ -88,6 +90,25 @@ function WeatherIcon({ type }: { type: string }) {
   }
 }
 
+// --- Terrain region tint based on row ---
+function getTerrainTint(row: number): { bg: string; label: string } {
+  if (row < 4) return { bg: 'rgba(146, 64, 14, 0.06)', label: 'extraction' }; // earthy amber
+  if (row < 8) return { bg: 'rgba(22, 78, 99, 0.06)', label: 'industrial' }; // industrial cyan
+  return { bg: 'rgba(113, 63, 18, 0.06)', label: 'power' }; // electric yellow
+}
+
+// --- Decorative element for empty cells (factory floor feel) ---
+function getFloorDecoration(r: number, c: number): React.ReactNode {
+  const hash = (r * 31 + c * 17) % 7;
+  if (hash === 0) return <div className="w-0.5 h-0.5 rounded-full bg-cyan-900/30" />; // tiny dot
+  if (hash === 1) return <div className="w-1.5 h-px bg-gray-700/20" />; // dash
+  if (hash === 2) return <div className="w-1 h-1 border-t border-r border-gray-700/15 rotate-45 scale-75" />; // small cross
+  if (hash === 3) return <div className="w-0.5 h-0.5 rounded-sm bg-amber-900/20 rotate-45" />; // tiny diamond
+  if (hash === 4) return <div className="w-1 h-px bg-cyan-800/15" />; // line
+  if (hash === 5) return <div className="w-0.5 h-0.5 rounded-full bg-yellow-900/20" />; // warm dot
+  return null; // some cells stay clean
+}
+
 // --- Grid cell position tracking in store ---
 // We use a separate map from building.id -> {row, col} stored in component state
 // This way we don't need to modify the store schema
@@ -98,16 +119,18 @@ interface BuildingPosition {
 }
 
 // --- Building Tile on the Map ---
-function MapBuildingTile({
+const MapBuildingTile = memo(function MapBuildingTile({
   building,
   isSelected,
   onClick,
   tick,
+  recentlyUpgraded,
 }: {
   building: BuildingInstance;
   isSelected: boolean;
   onClick: () => void;
   tick: number;
+  recentlyUpgraded: boolean;
 }) {
   const def = BUILDING_DEFS[building.type];
   if (!def) return null;
@@ -123,7 +146,7 @@ function MapBuildingTile({
           onClick={(e) => { e.stopPropagation(); onClick(); }}
           className={`
             relative w-full h-full rounded-md border-2 cursor-pointer transition-all duration-200 overflow-hidden select-none
-            ${style.bg} ${isSelected ? 'ring-2 ring-cyan-400 shadow-[0_0_20px_rgba(0,255,242,0.6)]' : ''}
+            ${style.bg} ${isSelected ? 'animate-factory-map-pulse-ring' : ''}
             ${!building.active ? 'opacity-40 grayscale' : 'hover:brightness-125 hover:scale-[1.05]'}
           `}
           style={{ borderColor: isSelected ? '#22d3ee' : style.fill }}
@@ -140,22 +163,27 @@ function MapBuildingTile({
             <div className="absolute inset-0 bg-yellow-400/10 animate-factory-map-glow" />
           )}
 
-          {/* Production particles */}
+          {/* Upgrade flash */}
+          {recentlyUpgraded && (
+            <div className="absolute inset-0 animate-factory-map-upgrade-flash pointer-events-none z-20 rounded-md" />
+          )}
+
+          {/* Production particles - 3 particles instead of 2 */}
           {building.active && building.efficiency > 0.5 && def.outputs && (
             <div className="absolute inset-0 pointer-events-none overflow-hidden">
-              {def.outputs.slice(0, 2).map((output, i) => (
+              {def.outputs.slice(0, 3).map((output, i) => (
                 <motion.div
                   key={i}
                   className="absolute w-1 h-1 rounded-full"
                   style={{
                     backgroundColor: RESOURCE_META[output.resource as keyof typeof RESOURCE_META]?.color ?? '#00fff2',
-                    left: `${20 + i * 40}%`,
+                    left: `${15 + i * 30}%`,
                   }}
-                  animate={{ y: [0, -10, -18], opacity: [0, 0.8, 0] }}
+                  animate={{ y: [0, -8, -16, -22], opacity: [0, 0.9, 0.5, 0], scale: [0.5, 1, 0.8, 0.3] }}
                   transition={{
-                    duration: 1.5 + i * 0.3,
+                    duration: 1.8 + i * 0.25,
                     repeat: Infinity,
-                    delay: (tick % 100) * 0.01 + i * 0.5,
+                    delay: (tick % 100) * 0.01 + i * 0.4,
                     ease: 'easeOut',
                   }}
                 />
@@ -213,7 +241,7 @@ function MapBuildingTile({
       </TooltipContent>
     </Tooltip>
   );
-}
+});
 
 // --- Selected Building Detail Panel ---
 function SelectedBuildingPanel({
@@ -489,6 +517,16 @@ export default function FactoryMapPanel() {
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number } | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
+  const [buildSearch, setBuildSearch] = useState('');
+  const [recentlyUsed, setRecentlyUsed] = useState<BuildingType[]>(() => {
+    try {
+      const saved = localStorage.getItem('factory-map-recent-builds');
+      if (saved) return JSON.parse(saved);
+    } catch { /* ignore */ }
+    return [];
+  });
+  const [upgradedBuildingIds, setUpgradedBuildingIds] = useState<Set<string>>(new Set());
+  const prevBuildingLevels = useRef<Record<string, number>>({});
 
   // When user clicks on a cell in build mode, we store the target position here
   // then immediately call buildBuilding(), and the useMemo picks up the new building
@@ -593,6 +631,14 @@ export default function FactoryMapPanel() {
         return;
       }
 
+      // Track recently used building type
+      setRecentlyUsed(prev => {
+        const filtered = prev.filter(t => t !== selectedBuildType);
+        const updated = [selectedBuildType, ...filtered].slice(0, 3);
+        try { localStorage.setItem('factory-map-recent-builds', JSON.stringify(updated)); } catch { /* ignore */ }
+        return updated;
+      });
+
       // Set the target position, then build
       setPendingPosition({ row, col });
 
@@ -692,13 +738,59 @@ export default function FactoryMapPanel() {
   const factoryCount = store.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory').length;
   const powerCount = store.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power').length;
 
+  // Detect building level upgrades for flash animation
+  useEffect(() => {
+    const currentLevels: Record<string, number> = {};
+    const upgraded: string[] = [];
+    for (const b of store.buildings) {
+      currentLevels[b.id] = b.level;
+      const prevLevel = prevBuildingLevels.current[b.id];
+      if (prevLevel !== undefined && b.level > prevLevel) {
+        upgraded.push(b.id);
+      }
+    }
+    prevBuildingLevels.current = currentLevels;
+    if (upgraded.length > 0) {
+      // Defer setState to avoid cascading render within effect
+      setTimeout(() => {
+        setUpgradedBuildingIds(prev => {
+          const next = new Set(prev);
+          upgraded.forEach(id => next.add(id));
+          return next;
+        });
+        // Clear flash after animation
+        setTimeout(() => {
+          setUpgradedBuildingIds(prev => {
+            const next = new Set(prev);
+            upgraded.forEach(id => next.delete(id));
+            return next;
+          });
+        }, 700);
+      }, 0);
+    }
+  }, [store.buildings]);
+
+  // Filter building types by search
+  const filteredCategories = useMemo(() => {
+    if (!buildSearch.trim()) return BUILD_CATEGORIES;
+    const q = buildSearch.toLowerCase();
+    return BUILD_CATEGORIES.map(cat => ({
+      ...cat,
+      types: cat.types.filter(type => {
+        const def = BUILDING_DEFS[type];
+        if (!def) return false;
+        return def.name.toLowerCase().includes(q) || def.emoji.includes(q) || def.description.toLowerCase().includes(q);
+      }),
+    })).filter(cat => cat.types.length > 0);
+  }, [buildSearch]);
+
   return (
     <div className="space-y-3">
       {/* HEADER */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h2 className="text-xl font-bold text-emerald-400 tracking-wide flex items-center gap-2">
-            <Map className="w-5 h-5" />
+            <MapIcon className="w-5 h-5" />
             Factory Floor
           </h2>
           <p className="text-[10px] text-gray-500 mt-0.5">Build, manage, and visualize your factory on the map</p>
@@ -778,7 +870,55 @@ export default function FactoryMapPanel() {
               className="overflow-hidden"
             >
               <div className="px-3 py-2 space-y-2">
-                {BUILD_CATEGORIES.map((cat, catIdx) => (
+                {/* Search/Filter input */}
+                <div className="relative">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-500" />
+                  <Input
+                    value={buildSearch}
+                    onChange={(e) => setBuildSearch(e.target.value)}
+                    placeholder="Search buildings..."
+                    className="h-6 text-[10px] pl-7 pr-2 bg-[#0a0e17] border-gray-700/50 text-gray-300 placeholder:text-gray-600 focus:border-cyan-800/50"
+                  />
+                </div>
+
+                {/* Recently Used section */}
+                {recentlyUsed.length > 0 && !buildSearch.trim() && (
+                  <div>
+                    <div className="flex items-center gap-1 text-[10px] text-cyan-500/70 mb-1">
+                      <Clock className="w-2.5 h-2.5" />
+                      Recently Used
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 ml-4">
+                      {recentlyUsed.map(type => {
+                        const def = BUILDING_DEFS[type];
+                        if (!def) return null;
+                        const affordable = isBuildAffordable(type);
+                        const unlocked = isBuildUnlocked(type);
+                        if (!unlocked) return null;
+                        const isSelected = selectedBuildType === type;
+                        const cost = def.baseCost.find(c => c.resource === 'money')?.amount ?? 0;
+
+                        return (
+                          <button
+                            key={`recent-${type}`}
+                            className={`
+                              relative flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-md border transition-all text-center
+                              ${isSelected ? 'border-cyan-400 bg-cyan-900/30 shadow-[0_0_10px_rgba(0,255,242,0.3)]' : 'border-cyan-800/30 bg-cyan-900/10 hover:border-cyan-700/50'}
+                              ${!affordable ? 'opacity-60' : ''}
+                            `}
+                            onClick={() => setSelectedBuildType(isSelected ? null : type)}
+                          >
+                            <span className="text-lg leading-none">{def.emoji}</span>
+                            <span className="text-[8px] text-gray-400 leading-tight max-w-[48px] truncate">{def.name}</span>
+                            <span className={`text-[7px] font-mono ${affordable ? 'text-green-400' : 'text-red-400'}`}>${formatNumber(cost)}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {filteredCategories.map((cat, catIdx) => (
                   <div key={catIdx}>
                     <button
                       className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-gray-300 mb-1"
@@ -816,7 +956,7 @@ export default function FactoryMapPanel() {
                                 >
                                   <span className="text-lg leading-none">{def.emoji}</span>
                                   <span className="text-[8px] text-gray-400 leading-tight max-w-[48px] truncate">{def.name}</span>
-                                  <span className="text-[7px] text-green-500/70 font-mono">${formatNumber(cost)}</span>
+                                  <span className={`text-[7px] font-mono ${affordable ? 'text-green-400' : 'text-red-400'}`}>${formatNumber(cost)}</span>
                                   {count > 0 && (
                                     <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-gray-800 text-[7px] text-gray-300 flex items-center justify-center border border-gray-600">
                                       {count}
@@ -837,7 +977,7 @@ export default function FactoryMapPanel() {
                                   </div>
                                   <p className="text-[9px] text-gray-400">{def.description}</p>
                                   <div className="text-[9px] text-gray-500">
-                                    Cost: <span className="text-green-400">${formatNumber(cost)}</span>
+                                    Cost: <span className={affordable ? 'text-green-400' : 'text-red-400'}>${formatNumber(cost)}</span>
                                     {def.basePowerConsumption > 0 && <> • Power: <span className="text-yellow-400">-{def.basePowerConsumption}MW</span></>}
                                     {def.basePowerProduction > 0 && <> • Output: <span className="text-yellow-400">+{def.basePowerProduction}MW</span></>}
                                   </div>
@@ -948,33 +1088,39 @@ export default function FactoryMapPanel() {
                             setSelectedBuildingId(prev => prev === building.id ? null : building.id);
                           }}
                           tick={store.gameTick}
+                          recentlyUpgraded={upgradedBuildingIds.has(building.id)}
                         />
                       ) : (
                         <div
                           className={`
-                            w-full h-full rounded-md border transition-all duration-150
+                            w-full h-full rounded-md border transition-all duration-150 factory-blueprint-grid
                             ${canPlace && isHovered
                               ? 'border-cyan-500/60 bg-cyan-900/20 shadow-[0_0_10px_rgba(0,255,242,0.2)]'
                               : canPlace
-                                ? 'border-gray-700/40 bg-gray-900/20 hover:border-gray-600/50 hover:bg-gray-800/20'
-                                : 'border-gray-800/20 bg-[#0a0f1a]/50'
+                                ? 'border-gray-700/40 hover:border-gray-600/50 hover:bg-gray-800/20'
+                                : 'border-gray-800/20'
                             }
                           `}
+                          style={{
+                            background: canPlace && isHovered
+                              ? undefined
+                              : `linear-gradient(135deg, ${getTerrainTint(r).bg}, rgba(10, 15, 26, 0.5))`,
+                          }}
                           onClick={() => handleCellClick(r, c)}
                           onMouseEnter={() => setHoveredCell({ row: r, col: c })}
                           onMouseLeave={() => setHoveredCell(null)}
                         >
-                          {/* Build preview */}
+                          {/* Build ghost preview */}
                           {canPlace && isHovered && selectedBuildType && BUILDING_DEFS[selectedBuildType] && (
-                            <div className="w-full h-full flex flex-col items-center justify-center opacity-50">
+                            <div className="w-full h-full flex flex-col items-center justify-center opacity-50" style={{ filter: 'drop-shadow(0 0 6px rgba(0,255,242,0.4))' }}>
                               <span className="text-lg">{BUILDING_DEFS[selectedBuildType].emoji}</span>
                               <span className="text-[7px] text-cyan-400">Place here</span>
                             </div>
                           )}
-                          {/* Grid dot */}
+                          {/* Decorative floor element */}
                           {!canPlace && (
                             <div className="w-full h-full flex items-center justify-center">
-                              <div className="w-1 h-1 rounded-full bg-gray-800/50" />
+                              {getFloorDecoration(r, c)}
                             </div>
                           )}
                         </div>
@@ -1008,7 +1154,7 @@ export default function FactoryMapPanel() {
                 animate={{ opacity: 1 }}
                 className="game-card rounded-xl bg-[#111827] p-3 border border-[#1e293b] text-center"
               >
-                <Map className="w-8 h-8 text-gray-700 mx-auto mb-2" />
+                <MapIcon className="w-8 h-8 text-gray-700 mx-auto mb-2" />
                 <p className="text-[10px] text-gray-500">Click a building on the map</p>
                 <p className="text-[9px] text-gray-600 mt-0.5">to view details & actions</p>
                 <p className="text-[9px] text-gray-600 mt-2">or use <span className="text-emerald-400">Build</span> mode to place new buildings</p>
@@ -1058,10 +1204,53 @@ export default function FactoryMapPanel() {
               </div>
             </div>
 
-            {/* Power efficiency bar */}
+            {/* Mini Power Bar - production vs consumption */}
             <div className="mt-2">
               <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[8px] text-gray-500">Power Efficiency</span>
+                <span className="text-[8px] text-gray-500 flex items-center gap-0.5">
+                  <Flame className="w-2 h-2" /> Power Grid
+                </span>
+                <span className="text-[8px] font-mono text-gray-400">
+                  {store.powerGrid.overload ? (
+                    <span className="text-red-400">OVERLOAD</span>
+                  ) : store.powerGrid.totalConsumption > 0 ? (
+                    <>
+                      <span className="text-green-400">{formatNumber(store.powerGrid.totalProduction)}</span>
+                      <span className="text-gray-600">/</span>
+                      <span className="text-yellow-400">{formatNumber(store.powerGrid.totalConsumption)}</span> MW
+                    </>
+                  ) : (
+                    <span className="text-gray-600">NO GRID</span>
+                  )}
+                </span>
+              </div>
+              <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden relative">
+                {/* Consumption bar (background) */}
+                <div
+                  className="absolute inset-y-0 left-0 bg-yellow-600/40 rounded-full transition-all duration-500"
+                  style={{
+                    width: store.powerGrid.totalProduction > 0
+                      ? `${Math.min(100, (store.powerGrid.totalConsumption / store.powerGrid.totalProduction) * 100)}%`
+                      : '0%',
+                  }}
+                />
+                {/* Production bar (foreground) */}
+                <div
+                  className="absolute inset-y-0 left-0 rounded-full transition-all duration-500"
+                  style={{
+                    width: `${Math.min(100, store.powerGrid.totalProduction > 0 && store.powerGrid.totalConsumption > 0
+                      ? Math.min(100, (store.powerGrid.totalProduction / Math.max(store.powerGrid.totalProduction, store.powerGrid.totalConsumption)) * 100)
+                      : store.powerGrid.totalProduction > 0 ? 100 : 0)}%`,
+                    backgroundColor: store.powerGrid.overload ? '#f87171' : '#4ade80',
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Efficiency with color coding */}
+            <div className="mt-2">
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="text-[8px] text-gray-500">Efficiency</span>
                 <span className="text-[8px] font-mono" style={{ color: getEffColor(store.powerGrid.efficiency) }}>
                   {Math.round(store.powerGrid.efficiency * 100)}%
                 </span>
@@ -1077,10 +1266,20 @@ export default function FactoryMapPanel() {
               </div>
             </div>
 
-            {/* Income/min */}
-            <div className="mt-2 bg-[#0a0e17] rounded-md p-1.5 text-center">
-              <div className="text-[8px] text-gray-500">Balance / Income</div>
-              <div className="text-sm font-bold text-green-400 font-mono">${formatNumber(store.money)}</div>
+            {/* Tick rate indicator + Balance */}
+            <div className="mt-2 grid grid-cols-2 gap-1.5">
+              <div className="bg-[#0a0e17] rounded-md p-1.5 text-center">
+                <div className="text-[8px] text-gray-500 flex items-center justify-center gap-0.5">
+                  <Clock className="w-2 h-2" /> Tick Rate
+                </div>
+                <div className={`text-[10px] font-bold font-mono ${store.paused ? 'text-red-400' : 'text-cyan-400'}`}>
+                  {store.paused ? '⏸' : `${store.gameSpeed}x`}
+                </div>
+              </div>
+              <div className="bg-[#0a0e17] rounded-md p-1.5 text-center">
+                <div className="text-[8px] text-gray-500">Balance</div>
+                <div className="text-[10px] font-bold text-green-400 font-mono">${formatNumber(store.money)}</div>
+              </div>
             </div>
           </div>
 
@@ -1115,6 +1314,18 @@ export default function FactoryMapPanel() {
               <div className="flex items-center gap-2 text-[9px]">
                 <div className="w-4 h-0.5 bg-cyan-400/30 rounded" />
                 <span className="text-gray-500">Resource Flow</span>
+              </div>
+              <div className="flex items-center gap-2 text-[9px] mt-1 pt-1 border-t border-gray-800/30">
+                <div className="w-4 h-3 rounded-sm" style={{ background: 'linear-gradient(135deg, rgba(146, 64, 14, 0.15), rgba(10, 15, 26, 0.3))' }} />
+                <span className="text-gray-500">Extraction Zone</span>
+              </div>
+              <div className="flex items-center gap-2 text-[9px]">
+                <div className="w-4 h-3 rounded-sm" style={{ background: 'linear-gradient(135deg, rgba(22, 78, 99, 0.15), rgba(10, 15, 26, 0.3))' }} />
+                <span className="text-gray-500">Industrial Zone</span>
+              </div>
+              <div className="flex items-center gap-2 text-[9px]">
+                <div className="w-4 h-3 rounded-sm" style={{ background: 'linear-gradient(135deg, rgba(113, 63, 18, 0.15), rgba(10, 15, 26, 0.3))' }} />
+                <span className="text-gray-500">Power Zone</span>
               </div>
             </div>
           </div>

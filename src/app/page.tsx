@@ -32,12 +32,13 @@ import DailyRewardsPanel from '@/components/game/DailyRewardsPanel';
 import { QuestPanel } from '@/components/game/QuestPanel';
 import { NotificationCenterPanel } from '@/components/game/NotificationCenterPanel';
 import { PayoutPanel } from '@/components/game/PayoutPanel';
+import DroneDeliveryPanel from '@/components/game/DroneDeliveryPanel';
 import {
   Factory, Pickaxe, Cog, Truck, Zap, TrendingUp,
   FlaskConical, Users, ScrollText, Bot, Globe, AlertTriangle,
   Save, Play, Pause, FastForward, RotateCcw, ChevronRight, Bell, X,
   BookOpen, Trophy, Download, Upload, Copy, Check, MoreHorizontal, ChevronUp, Settings, BarChart3,
-  Map as MapIcon, Gift, Scroll, DollarSign
+  Map as MapIcon, Gift, Scroll, DollarSign, Plane
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -79,6 +80,7 @@ const TABS = [
   { id: 'leaderboard' as const, label: 'Ranks', icon: Trophy, color: 'text-amber-400' },
   { id: 'dailyRewards' as const, label: 'Daily', icon: Gift, color: 'text-pink-400' },
   { id: 'payouts' as const, label: 'Payouts', icon: DollarSign, color: 'text-green-400' },
+  { id: 'droneDelivery' as const, label: 'Drones', icon: Plane, color: 'text-sky-400' },
   { id: 'quests' as const, label: 'Quests', icon: Scroll, color: 'text-amber-400' },
   { id: 'notifications' as const, label: 'Alerts', icon: Bell, color: 'text-cyan-400' },
   { id: 'blueprints' as const, label: 'Blueprints', icon: Save, color: 'text-indigo-400' },
@@ -92,7 +94,7 @@ const MOBILE_PRIMARY_TABS: GameTab[] = [
 ];
 
 const MOBILE_MORE_TABS: GameTab[] = [
-  'transport', 'automation', 'prestige', 'events', 'megaprojects', 'statistics', 'achievements', 'leaderboard', 'dailyRewards', 'payouts', 'quests', 'notifications', 'blueprints', 'settings',
+  'transport', 'automation', 'prestige', 'events', 'megaprojects', 'statistics', 'achievements', 'leaderboard', 'dailyRewards', 'payouts', 'droneDelivery', 'quests', 'notifications', 'blueprints', 'settings',
 ];
 
 // Keyboard shortcut: number keys 1-9 map to first 9 tabs
@@ -373,6 +375,7 @@ export default function Home() {
       case 'leaderboard': return <LeaderboardPanel />;
       case 'dailyRewards': return <DailyRewardsPanel />;
       case 'payouts': return <PayoutPanel />;
+      case 'droneDelivery': return <DroneDeliveryPanel />;
       case 'quests': return <QuestPanel />;
       case 'notifications': return <NotificationCenterPanel />;
       case 'settings': return <SettingsPanel />;

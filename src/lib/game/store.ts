@@ -10,7 +10,7 @@ import {
   TransportLine, TransportType, Worker, WorkerType, Contract,
   GameEvent, GameNotification, PowerGrid, MarketPrice, MegaProjectType,
   Blueprint, Celebration, LeaderboardEntry, LoginStreak, DailyReward,
-  WeatherType, PayoutConfig, PayoutRecord,
+  WeatherType, PayoutConfig, PayoutRecord, Drone, DroneMission,
 } from './types';
 import {
   BUILDING_DEFS, TRANSPORT_DEFS, WORKER_DEFS, INITIAL_MARKET,
@@ -23,7 +23,7 @@ import {
 import { soundEngine } from './soundEngine';
 
 // --- Save Version ---
-const SAVE_VERSION = 8;
+const SAVE_VERSION = 9;
 
 // --- Utility Functions ---
 function generateId(): string {
@@ -62,6 +62,72 @@ function isBuildingUnlocked(type: BuildingType, completedResearch: string[], pre
   if (def.unlockRequirement.research && !completedResearch.includes(def.unlockRequirement.research)) return false;
   if (def.unlockRequirement.prestige && prestigeState.totalPrestiges < def.unlockRequirement.prestige) return false;
   return true;
+}
+
+// --- Drone Mission Generator ---
+function generateDroneMissionsFromState(state: GameState): DroneMission[] {
+  const missions: DroneMission[] = [];
+  const buildingTypes = [...new Set(state.buildings.map(b => b.type))];
+
+  if (buildingTypes.length < 2) return missions;
+
+  // Generate missions from extractor → factory and factory → factory
+  const extractors = buildingTypes.filter(t => BUILDING_DEFS[t]?.category === 'extractor');
+  const factories = buildingTypes.filter(t => BUILDING_DEFS[t]?.category === 'factory');
+
+  // Extractor to Factory missions
+  extractors.forEach((from, i) => {
+    const fromDef = BUILDING_DEFS[from];
+    if (!fromDef) return;
+    const targetFactories = factories.length > 0 ? factories : extractors.filter(t => t !== from);
+    targetFactories.forEach((to, j) => {
+      const toDef = BUILDING_DEFS[to];
+      if (!toDef) return;
+      const difficulty = 1 + i + j * 0.5;
+      const moneyReward = Math.floor(200 * difficulty + state.buildings.filter(b => b.type === from).length * 50);
+      const rpReward = Math.floor(5 * difficulty);
+      missions.push({
+        id: `drone-mission-${from}-${to}`,
+        fromBuilding: fromDef.name,
+        toBuilding: toDef.name,
+        reward: { money: moneyReward, researchPoints: rpReward },
+        fuelCost: Math.floor(50 + difficulty * 30),
+        baseTicks: Math.floor(60 + difficulty * 40),
+      });
+    });
+  });
+
+  // Factory to Factory missions (higher tier)
+  if (factories.length >= 2) {
+    for (let i = 0; i < factories.length; i++) {
+      for (let j = i + 1; j < factories.length; j++) {
+        const fromDef = BUILDING_DEFS[factories[i]];
+        const toDef = BUILDING_DEFS[factories[j]];
+        if (!fromDef || !toDef) continue;
+        const difficulty = 2 + fromDef.tier + toDef.tier;
+        const moneyReward = Math.floor(500 * difficulty);
+        const rpReward = Math.floor(10 * difficulty);
+        const resourceReward = fromDef.outputs?.[0]?.resource;
+        missions.push({
+          id: `drone-mission-${factories[i]}-${factories[j]}`,
+          fromBuilding: fromDef.name,
+          toBuilding: toDef.name,
+          reward: {
+            money: moneyReward,
+            researchPoints: rpReward,
+            resources: resourceReward && resourceReward !== 'money' ? [{
+              resource: resourceReward as ResourceType,
+              amount: Math.floor(3 * difficulty),
+            }] : undefined,
+          },
+          fuelCost: Math.floor(100 + difficulty * 40),
+          baseTicks: Math.floor(80 + difficulty * 50),
+        });
+      }
+    }
+  }
+
+  return missions.slice(0, 8); // Max 8 missions at a time
 }
 
 // --- Save Migration ---
@@ -162,6 +228,25 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
     }
   }
 
+  // V8 → V9: Add drone delivery system
+  if (version < 9) {
+    if (!state.drones) {
+      state.drones = {
+        fleet: [{
+          id: generateId(),
+          status: 'idle' as const,
+          missionEndTick: 0,
+          missionId: null,
+          speedLevel: 1,
+          capacityLevel: 1,
+          fuelEfficiencyLevel: 1,
+        }],
+        completedMissions: 0,
+        totalEarned: 0,
+      };
+    }
+  }
+
   state._version = SAVE_VERSION;
   return state;
 }
@@ -249,6 +334,19 @@ function createInitialState(): GameState {
     pendingPayout: 0,
     payoutHistory: [],
     trackedQuest: null,
+    drones: {
+      fleet: [{
+        id: generateId(),
+        status: 'idle' as const,
+        missionEndTick: 0,
+        missionId: null,
+        speedLevel: 1,
+        capacityLevel: 1,
+        fuelEfficiencyLevel: 1,
+      }],
+      completedMissions: 0,
+      totalEarned: 0,
+    },
     activeTab: 'dashboard',
     selectedBuilding: null,
     notifications: [],
@@ -350,6 +448,12 @@ interface GameActions {
   collectPayout: () => void;
   toggleAutoCollect: () => void;
 
+  // Drones
+  buyDrone: () => void;
+  sendDrone: (missionId: string, droneId: string) => void;
+  upgradeDrone: (droneId: string, type: 'speed' | 'capacity' | 'fuelEfficiency') => void;
+  generateDroneMissions: () => DroneMission[];
+
   // Reset
   resetGame: () => void;
 }
@@ -376,6 +480,7 @@ export const useGameStore = create<GameStore>()(
         let weatherProductionMultiplier = 1;
         let weatherSolarMultiplier = 1;
         let weatherWindMultiplier = 1;
+        let droneRpEarned = 0;
         if (weatherDef) {
           weatherProductionMultiplier = weatherDef.productionMultiplier;
           weatherSolarMultiplier = weatherDef.solarMultiplier;
@@ -588,6 +693,9 @@ export const useGameStore = create<GameStore>()(
         }
 
         newResearchPoints += 0.1 * (1 + state.buildings.filter(b => b.type === 'aiLab' && b.active).length * 0.5);
+
+        // Add drone RP rewards
+        newResearchPoints += droneRpEarned;
 
         // Process contracts
         const newContracts = state.contracts.map(c => {
@@ -985,6 +1093,56 @@ export const useGameStore = create<GameStore>()(
 
         moneyEarned += payoutMoneyEarned;
 
+        // --- Process Drone Deliveries ---
+        let droneMoneyEarned = 0;
+        droneRpEarned = 0;
+        const droneResourceRewards: Partial<Record<ResourceType, number>> = {};
+        let newDrones = state.drones;
+
+        const deliveringDrones = state.drones.fleet.filter(d => d.status === 'delivering' && d.missionEndTick <= newTick);
+        if (deliveringDrones.length > 0) {
+          const missions = generateDroneMissionsFromState(state);
+          const updatedFleet = state.drones.fleet.map(d => {
+            if (d.status !== 'delivering' || d.missionEndTick > newTick) return d;
+            // Mission complete
+            const mission = missions.find(m => m.id === d.missionId);
+            if (mission) {
+              const capacityMult = 1 + (d.capacityLevel - 1) * 0.25;
+              droneMoneyEarned += Math.floor(mission.reward.money * capacityMult);
+              if (mission.reward.researchPoints) droneRpEarned += Math.floor(mission.reward.researchPoints * capacityMult);
+              if (mission.reward.resources) {
+                mission.reward.resources.forEach(r => {
+                  droneResourceRewards[r.resource] = (droneResourceRewards[r.resource] || 0) + Math.floor(r.amount * capacityMult);
+                });
+              }
+            }
+            return { ...d, status: 'idle' as const, missionEndTick: 0, missionId: null };
+          });
+          newDrones = {
+            fleet: updatedFleet,
+            completedMissions: state.drones.completedMissions + deliveringDrones.length,
+            totalEarned: state.drones.totalEarned + droneMoneyEarned,
+          };
+
+          // Add resources from drone deliveries
+          (Object.keys(droneResourceRewards) as ResourceType[]).forEach(r => {
+            const amount = droneResourceRewards[r] || 0;
+            newResources[r] = Math.min(state.resourceCapacity[r], newResources[r] + amount);
+          });
+
+          moneyEarned += droneMoneyEarned;
+          if (droneMoneyEarned > 0) {
+            soundEngine.play('moneyEarned', 'building');
+            notifications.push({
+              id: generateId(),
+              type: 'success',
+              message: `🚁 Drone delivery complete! +$${formatNumber(droneMoneyEarned)}${droneRpEarned > 0 ? ` +${droneRpEarned} RP` : ''}`,
+              gameTick: newTick,
+              read: false,
+            });
+          }
+        }
+
         // Rank change detection
         const prevScore = Math.floor(
           state.totalMoneyEarned +
@@ -1050,6 +1208,7 @@ export const useGameStore = create<GameStore>()(
           payoutConfig: newPayoutConfig,
           pendingPayout: newPendingPayout,
           payoutHistory: newPayoutHistory,
+          drones: newDrones,
         });
       },
 
@@ -1590,6 +1749,7 @@ export const useGameStore = create<GameStore>()(
           payoutConfig: state.payoutConfig,
           pendingPayout: state.pendingPayout,
           payoutHistory: state.payoutHistory,
+          drones: state.drones,
           _exportedAt: Date.now(),
         };
         try {
@@ -1709,6 +1869,112 @@ export const useGameStore = create<GameStore>()(
             autoCollect: !state.payoutConfig.autoCollect,
           },
         });
+      },
+
+      // --- DRONE ACTIONS ---
+      buyDrone: () => {
+        const state = get();
+        const cost = 2000 * state.drones.fleet.length;
+        if (state.money < cost) {
+          soundEngine.play('error', 'building');
+          get().addNotification('error', `Not enough money to buy drone. Need $${formatNumber(cost)}`);
+          return;
+        }
+        const newDrone: Drone = {
+          id: generateId(),
+          status: 'idle',
+          missionEndTick: 0,
+          missionId: null,
+          speedLevel: 1,
+          capacityLevel: 1,
+          fuelEfficiencyLevel: 1,
+        };
+        set({
+          money: state.money - cost,
+          drones: {
+            ...state.drones,
+            fleet: [...state.drones.fleet, newDrone],
+          },
+        });
+        soundEngine.play('buildingPlaced', 'building');
+        get().addNotification('success', `🚁 New drone purchased for $${formatNumber(cost)}!`);
+      },
+
+      sendDrone: (missionId: string, droneId: string) => {
+        const state = get();
+        const drone = state.drones.fleet.find(d => d.id === droneId);
+        if (!drone || drone.status !== 'idle') return;
+
+        // Generate missions to find the one with matching id
+        const missions = generateDroneMissionsFromState(state);
+        const mission = missions.find(m => m.id === missionId);
+        if (!mission) return;
+
+        // Calculate fuel cost with efficiency upgrade
+        const fuelCost = Math.ceil(mission.fuelCost / (1 + (drone.fuelEfficiencyLevel - 1) * 0.15));
+        if (state.money < fuelCost) {
+          soundEngine.play('error', 'building');
+          get().addNotification('error', `Not enough money for fuel. Need $${formatNumber(fuelCost)}`);
+          return;
+        }
+
+        // Calculate delivery time with speed upgrade
+        const deliveryTicks = Math.max(10, Math.floor(mission.baseTicks / (1 + (drone.speedLevel - 1) * 0.2)));
+
+        const updatedFleet = state.drones.fleet.map(d =>
+          d.id === droneId
+            ? { ...d, status: 'delivering' as const, missionEndTick: state.gameTick + deliveryTicks, missionId }
+            : d
+        );
+
+        set({
+          money: state.money - fuelCost,
+          drones: {
+            ...state.drones,
+            fleet: updatedFleet,
+          },
+        });
+        soundEngine.play('buttonClick', 'building');
+      },
+
+      upgradeDrone: (droneId: string, type: 'speed' | 'capacity' | 'fuelEfficiency') => {
+        const state = get();
+        const drone = state.drones.fleet.find(d => d.id === droneId);
+        if (!drone) return;
+
+        const levelKey = type === 'speed' ? 'speedLevel' : type === 'capacity' ? 'capacityLevel' : 'fuelEfficiencyLevel';
+        const currentLevel = drone[levelKey];
+        if (currentLevel >= 5) {
+          get().addNotification('warning', 'This drone upgrade is already at max level!');
+          return;
+        }
+
+        const costMultiplier = type === 'speed' ? 500 : type === 'capacity' ? 800 : 600;
+        const cost = costMultiplier * currentLevel;
+        if (state.money < cost) {
+          soundEngine.play('error', 'building');
+          get().addNotification('error', `Not enough money for upgrade. Need $${formatNumber(cost)}`);
+          return;
+        }
+
+        const updatedFleet = state.drones.fleet.map(d =>
+          d.id === droneId
+            ? { ...d, [levelKey]: currentLevel + 1 }
+            : d
+        );
+
+        set({
+          money: state.money - cost,
+          drones: {
+            ...state.drones,
+            fleet: updatedFleet,
+          },
+        });
+        soundEngine.play('buildingPlaced', 'building');
+      },
+
+      generateDroneMissions: () => {
+        return generateDroneMissionsFromState(get());
       },
 
       // --- LEADERBOARD ACTIONS ---
@@ -2299,9 +2565,10 @@ export const useGameStore = create<GameStore>()(
         pendingPayout: state.pendingPayout,
         payoutHistory: state.payoutHistory,
         trackedQuest: state.trackedQuest,
+        drones: state.drones,
         _version: SAVE_VERSION,
       }),
-      version: 8,
+      version: 9,
       migrate: (persistedState: unknown) => {
         return migrateSaveState(persistedState as Record<string, unknown>);
       },
