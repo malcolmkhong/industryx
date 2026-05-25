@@ -1667,3 +1667,98 @@ Priority Recommendations for Next Phase:
 3. Apply CSS animation classes more broadly across components
 4. Performance optimization for long sessions
 5. Add more MegaProject types or expansion content
+
+---
+Task ID: 3-a
+Agent: Auto Connect Developer
+Task: Add Auto Connect feature for Factory Map 2D grid
+
+Work Log:
+- Read worklog.md and existing FactoryMapPanel.tsx (1336 lines) to understand current implementation
+- Added `FactoryConnection` interface (id, sourceBuildingId, targetBuildingId, resourceType, efficiency) defined locally in FactoryMapPanel.tsx
+- Added `autoConnectEnabled` state (default true) and `GitBranch`/`LayoutGrid` icons from lucide-react imports
+- Implemented `autoConnections` useMemo algorithm:
+  - For each active building with inputs, finds closest active supplier by Manhattan distance
+  - Resource efficiency: 100% at dist 1, decreasing by 10% per unit, min 20%
+  - Power connections: each non-power consumer connects to nearest power plant
+  - Power efficiency: 100% at dist 1, decreasing by 8% per unit, min 30%
+- Computed `avgEfficiency` for stats display and `buildingConnEfficiency` Map for tile indicators
+- Replaced old `ConnectionOverlay` with enhanced version:
+  - Accepts `connections: FactoryConnection[]` instead of `buildings: BuildingInstance[]`
+  - Uses RESOURCE_META colors for resource flow lines (iron=#a0a0a0, copper=#b87333, etc.)
+  - Power lines stay yellow (#facc15) with glow effect
+  - Bezier curved paths instead of straight lines
+  - 3 animated flow particles per connection with speed based on efficiency
+  - Line thickness based on efficiency (thicker = more efficient)
+  - Efficiency indicator dots at midpoints: green (>=0.8), yellow (>=0.5), red (<0.5)
+  - SVG filter for connection glow on high-efficiency connections
+- Implemented `autoArrange` algorithm:
+  - Groups buildings by category (extractors, T1/T2/T3 factories, power)
+  - Places extractors at rows 0-3
+  - Places T1 factories near their supplier extractors (rows 3-6)
+  - Places T2 factories near supplier T1 factories (rows 5-8)
+  - Places T3 factories (rows 7-10)
+  - Places power plants near center of consumers (rows 9-11)
+  - Applies new positions to savedPositions and persists to localStorage
+- Added UI toolbar buttons:
+  - Auto Connect toggle (GitBranch icon, cyan when enabled)
+  - Auto Arrange button (LayoutGrid icon)
+  - Connection count badge next to toolbar
+  - Eye toggle renamed to "Toggle connection visibility"
+- Added connection statistics to Quick Stats panel:
+  - Connection count with GitBranch icon
+  - Average efficiency percentage with color coding
+- Added `connectionEfficiency` prop to MapBuildingTile component:
+  - Small colored dot (bottom-left corner) showing connection efficiency
+  - Green (>=0.8), yellow (>=0.5), red (<0.5) with matching glow
+- Updated ConnectionOverlay usage: passes autoConnections when autoConnectEnabled, empty array when disabled
+- ESLint passes cleanly (0 errors)
+
+Stage Summary:
+- Auto Connect algorithm automatically links buildings by production chain with efficiency based on distance
+- Enhanced ConnectionOverlay with bezier curves, resource colors, animated particles, efficiency indicators
+- Auto Arrange repositions buildings by production tier for optimal connections
+- Toolbar: Auto Connect toggle, Auto Arrange button, connection count badge
+- Connection stats in Quick Stats panel
+- Per-building connection efficiency indicator on map tiles
+- All existing functionality preserved (build mode, selection, tooltips, etc.)
+
+---
+Task ID: 7
+Agent: Main Coordinator
+Task: Implement Auto Connect feature for factory buildings on the 2D map
+
+Work Log:
+- Analyzed current ConnectionOverlay system (basic power lines + resource flow lines with distance limit 4)
+- Designed comprehensive auto-connect system with 6 components:
+  1. FactoryConnection data model (source, target, resource, efficiency)
+  2. Auto-connect algorithm (useMemo that derives connections from building production chains)
+  3. Enhanced ConnectionOverlay with bezier curves, resource-colored lines, animated flow particles
+  4. Auto-arrange algorithm that positions buildings near their production chain partners
+  5. UI controls: Auto Connect toggle, Auto Arrange button, connection stats
+  6. Connection efficiency indicators on building tiles
+- Implemented auto-connect algorithm:
+  - Resource connections: finds closest active supplier for each input resource
+  - Power connections: connects each consumer to nearest power plant
+  - Efficiency: 100% at dist 1, -10% per unit, min 20%; power: -8% per unit, min 30%
+- Implemented enhanced ConnectionOverlay:
+  - Bezier curved SVG paths instead of straight lines
+  - RESOURCE_META colors for resource-specific lines
+  - 3 animated flow particles per connection
+  - Line thickness based on efficiency
+  - Efficiency indicator dots at midpoints (green/yellow/red)
+- Fixed Auto Arrange algorithm (critical bug):
+  - Old: Placed power plants at rows 9-11, extractors at rows 0-3 → 36% efficiency
+  - New: Spiral search algorithm, places buildings adjacent to suppliers → 100% efficiency
+  - Power plants now placed next to consumers, not segregated at bottom
+  - T1→T2→T3 factories placed directly below their suppliers
+- Added UI: GitBranch icon for auto-connect toggle, LayoutGrid icon for auto-arrange
+- QA verified: Auto-arrange moves buildings from 648px apart to 6px apart, efficiency 36%→100%
+- Lint passes cleanly (0 errors)
+
+Stage Summary:
+- Auto Connect feature fully functional with production chain awareness
+- Auto Arrange optimizes building positions for maximum connection efficiency
+- Enhanced visual connections with bezier curves, resource colors, and animated flow
+- Connection efficiency system: closer buildings = better efficiency (visual + stats)
+- 25 tabs total, game stable, all features working

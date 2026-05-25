@@ -12,7 +12,7 @@ import {
   Hammer, X, RotateCcw, Power, PowerOff,
   ZoomIn, ZoomOut, Grid3X3, Eye, Sun, Cloud, CloudRain,
   CloudLightning, CloudFog, Snowflake, ChevronDown, ChevronRight,
-  Search, Clock, Flame,
+  Search, Clock, Flame, GitBranch, LayoutGrid,
 } from 'lucide-react';
 import {
   Tooltip,
@@ -118,6 +118,15 @@ interface BuildingPosition {
   col: number;
 }
 
+// --- Factory Connection Data Model ---
+interface FactoryConnection {
+  id: string;
+  sourceBuildingId: string;
+  targetBuildingId: string;
+  resourceType: string;
+  efficiency: number;
+}
+
 // --- Building Tile on the Map ---
 const MapBuildingTile = memo(function MapBuildingTile({
   building,
@@ -125,12 +134,14 @@ const MapBuildingTile = memo(function MapBuildingTile({
   onClick,
   tick,
   recentlyUpgraded,
+  connectionEfficiency,
 }: {
   building: BuildingInstance;
   isSelected: boolean;
   onClick: () => void;
   tick: number;
   recentlyUpgraded: boolean;
+  connectionEfficiency?: number;
 }) {
   const def = BUILDING_DEFS[building.type];
   if (!def) return null;
@@ -214,6 +225,16 @@ const MapBuildingTile = memo(function MapBuildingTile({
             {/* Power indicator */}
             {producesPower && (
               <Zap className="w-2 h-2 text-yellow-400 absolute top-0 right-0 animate-factory-map-spark" />
+            )}
+            {/* Connection efficiency indicator */}
+            {connectionEfficiency !== undefined && connectionEfficiency > 0 && (
+              <div
+                className="absolute bottom-0 left-0 w-1.5 h-1.5 rounded-full"
+                style={{
+                  backgroundColor: connectionEfficiency >= 0.8 ? '#4ade80' : connectionEfficiency >= 0.5 ? '#facc15' : '#f87171',
+                  boxShadow: `0 0 3px ${connectionEfficiency >= 0.8 ? '#4ade80' : connectionEfficiency >= 0.5 ? '#facc15' : '#f87171'}`,
+                }}
+              />
             )}
           </div>
         </motion.div>
@@ -386,119 +407,89 @@ function SelectedBuildingPanel({
   );
 }
 
-// --- Connection Lines Overlay ---
+// --- Enhanced Connection Lines Overlay ---
 function ConnectionOverlay({
+  connections,
   buildingPositions,
-  buildings,
   cellWidth,
   cellHeight,
 }: {
+  connections: FactoryConnection[];
   buildingPositions: Map<string, BuildingPosition>;
-  buildings: BuildingInstance[];
   cellWidth: number;
   cellHeight: number;
 }) {
-  // Power lines from power plants to consumers
-  const powerPlants = buildings.filter(b => {
-    const def = BUILDING_DEFS[b.type];
-    return def?.category === 'power' && b.active;
-  });
-  const consumers = buildings.filter(b => {
-    const def = BUILDING_DEFS[b.type];
-    return def && def.category !== 'power' && def.basePowerConsumption > 0 && b.active;
-  });
-
-  const lines: { x1: number; y1: number; x2: number; y2: number; type: 'power' | 'flow' }[] = [];
-
-  // Power lines
-  powerPlants.forEach(pp => {
-    const ppPos = buildingPositions.get(pp.id);
-    if (!ppPos) return;
-    // Connect to nearest 3 consumers
-    const nearest = consumers
-      .map(c => {
-        const cPos = buildingPositions.get(c.id);
-        if (!cPos) return null;
-        return { ...cPos, dist: Math.abs(cPos.row - ppPos.row) + Math.abs(cPos.col - ppPos.col) };
-      })
-      .filter(Boolean)
-      .sort((a, b) => (a?.dist ?? 0) - (b?.dist ?? 0))
-      .slice(0, 3);
-
-    nearest.forEach(c => {
-      if (!c) return;
-      lines.push({
-        x1: (ppPos.col + 0.5) * cellWidth,
-        y1: (ppPos.row + 0.5) * cellHeight,
-        x2: (c.col + 0.5) * cellWidth,
-        y2: (c.row + 0.5) * cellHeight,
-        type: 'power',
-      });
-    });
-  });
-
-  // Resource flow lines (adjacent buildings in same row/col)
-  const activeBuildings = buildings.filter(b => b.active);
-  for (let i = 0; i < activeBuildings.length; i++) {
-    const a = activeBuildings[i];
-    const aPos = buildingPositions.get(a.id);
-    if (!aPos) continue;
-    const aDef = BUILDING_DEFS[a.type];
-    if (!aDef?.outputs) continue;
-
-    for (let j = i + 1; j < activeBuildings.length; j++) {
-      const b = activeBuildings[j];
-      const bPos = buildingPositions.get(b.id);
-      if (!bPos) continue;
-      const bDef = BUILDING_DEFS[b.type];
-      if (!bDef?.inputs) continue;
-
-      // Check if a's outputs feed b's inputs
-      const hasConnection = aDef.outputs.some(o =>
-        bDef.inputs?.some(inp => inp.resource === o.resource)
-      );
-
-      if (hasConnection) {
-        const dist = Math.abs(aPos.row - bPos.row) + Math.abs(aPos.col - bPos.col);
-        if (dist <= 4) {
-          lines.push({
-            x1: (aPos.col + 0.5) * cellWidth,
-            y1: (aPos.row + 0.5) * cellHeight,
-            x2: (bPos.col + 0.5) * cellWidth,
-            y2: (bPos.row + 0.5) * cellHeight,
-            type: 'flow',
-          });
-        }
-      }
-    }
-  }
-
-  if (lines.length === 0) return null;
+  if (connections.length === 0) return null;
 
   return (
-    <svg className="absolute inset-0 pointer-events-none z-0" width={GRID_COLS * cellWidth} height={GRID_ROWS * cellHeight}>
-      {lines.map((line, i) => (
-        <g key={i}>
-          {line.type === 'power' ? (
-            <line
-              x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2}
-              stroke="rgba(250, 204, 21, 0.15)" strokeWidth="1.5" strokeDasharray="6 4"
-            >
-              <animate attributeName="strokeDashoffset" from="0" to="-10" dur="1s" repeatCount="indefinite" />
-            </line>
-          ) : (
-            <>
-              <line
-                x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2}
-                stroke="rgba(0, 255, 242, 0.1)" strokeWidth="2"
-              />
-              <circle r="2" fill="rgba(0, 255, 242, 0.5)">
-                <animateMotion dur="2s" repeatCount="indefinite" path={`M${line.x1},${line.y1} L${line.x2},${line.y2}`} />
+    <svg className="absolute inset-0 pointer-events-none z-0"
+         width={GRID_COLS * cellWidth}
+         height={GRID_ROWS * cellHeight}>
+      <defs>
+        {/* Glow filters */}
+        <filter id="connection-glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+
+      {connections.map((conn) => {
+        const sourcePos = buildingPositions.get(conn.sourceBuildingId);
+        const targetPos = buildingPositions.get(conn.targetBuildingId);
+        if (!sourcePos || !targetPos) return null;
+
+        const x1 = (sourcePos.col + 0.5) * cellWidth;
+        const y1 = (sourcePos.row + 0.5) * cellHeight;
+        const x2 = (targetPos.col + 0.5) * cellWidth;
+        const y2 = (targetPos.row + 0.5) * cellHeight;
+
+        // Bezier control point (slight curve)
+        const mx = (x1 + x2) / 2;
+        const my = (y1 + y2) / 2;
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const cx = mx - dy * 0.15;
+        const cy = my + dx * 0.15;
+        const path = `M${x1},${y1} Q${cx},${cy} ${x2},${y2}`;
+
+        const isPower = conn.resourceType === 'power';
+        const meta = RESOURCE_META[conn.resourceType as keyof typeof RESOURCE_META];
+        const color = isPower ? '#facc15' : (meta?.color ?? '#00fff2');
+        const effColor = conn.efficiency >= 0.8 ? '#4ade80' : conn.efficiency >= 0.5 ? '#facc15' : '#f87171';
+        const strokeWidth = isPower ? 1.5 : Math.max(1, 2 * conn.efficiency);
+
+        return (
+          <g key={conn.id}>
+            {/* Connection line */}
+            <path
+              d={path}
+              fill="none"
+              stroke={color}
+              strokeWidth={strokeWidth}
+              opacity={isPower ? 0.2 : 0.3}
+              filter={conn.efficiency >= 0.8 ? 'url(#connection-glow)' : undefined}
+            />
+
+            {/* Efficiency indicator dot at midpoint */}
+            <circle cx={mx} cy={my} r="2" fill={effColor} opacity="0.6" />
+
+            {/* Animated flow particles */}
+            {[0, 0.33, 0.66].map((offset, j) => (
+              <circle key={j} r={isPower ? 1.5 : 2} fill={color} opacity="0.7">
+                <animateMotion
+                  dur={`${1.5 + (1 - conn.efficiency) * 1}s`}
+                  repeatCount="indefinite"
+                  begin={`${offset * 1.5}s`}
+                  path={path}
+                />
               </circle>
-            </>
-          )}
-        </g>
-      ))}
+            ))}
+          </g>
+        );
+      })}
     </svg>
   );
 }
@@ -511,6 +502,7 @@ export default function FactoryMapPanel() {
   const [selectedBuildType, setSelectedBuildType] = useState<BuildingType | null>(null);
   const [paletteCategory, setPaletteCategory] = useState(0);
   const [showConnections, setShowConnections] = useState(true);
+  const [autoConnectEnabled, setAutoConnectEnabled] = useState(true);
   const [zoom, setZoom] = useState(1);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
@@ -784,6 +776,298 @@ export default function FactoryMapPanel() {
     })).filter(cat => cat.types.length > 0);
   }, [buildSearch]);
 
+  // --- Auto-Connect Algorithm ---
+  const autoConnections = useMemo(() => {
+    const conns: FactoryConnection[] = [];
+    const activeBuildings = store.buildings.filter(b => b.active);
+
+    // For each active building with inputs, find the best supplier
+    for (const consumer of activeBuildings) {
+      const consumerDef = BUILDING_DEFS[consumer.type];
+      if (!consumerDef?.inputs) continue;
+      const consumerPos = buildingPositions.get(consumer.id);
+      if (!consumerPos) continue;
+
+      for (const input of consumerDef.inputs) {
+        // Find all active buildings that output this resource
+        const suppliers = activeBuildings.filter(b => {
+          const def = BUILDING_DEFS[b.type];
+          return def?.outputs?.some(o => o.resource === input.resource);
+        });
+
+        if (suppliers.length === 0) continue;
+
+        // Sort suppliers by distance (closest first)
+        const sorted = suppliers.map(s => {
+          const pos = buildingPositions.get(s.id);
+          if (!pos) return { building: s, dist: Infinity };
+          const dist = Math.abs(pos.row - consumerPos.row) + Math.abs(pos.col - consumerPos.col);
+          return { building: s, dist };
+        }).sort((a, b) => a.dist - b.dist);
+
+        // Connect to the closest supplier
+        const best = sorted[0];
+        if (best.dist === Infinity) continue;
+
+        // Efficiency based on distance: 100% at dist 1, decreasing by 10% per unit, min 20%
+        const efficiency = Math.max(0.2, 1 - (best.dist - 1) * 0.1);
+
+        conns.push({
+          id: `${best.building.id}-${consumer.id}-${input.resource}`,
+          sourceBuildingId: best.building.id,
+          targetBuildingId: consumer.id,
+          resourceType: input.resource,
+          efficiency,
+        });
+      }
+    }
+
+    // Add power connections: connect each consumer to nearest power plant
+    const powerPlants = activeBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power');
+    const nonPower = activeBuildings.filter(b => {
+      const def = BUILDING_DEFS[b.type];
+      return def && def.category !== 'power' && def.basePowerConsumption > 0;
+    });
+
+    for (const consumer of nonPower) {
+      const consumerPos = buildingPositions.get(consumer.id);
+      if (!consumerPos) continue;
+
+      const nearest = powerPlants.map(pp => {
+        const pos = buildingPositions.get(pp.id);
+        if (!pos) return { building: pp, dist: Infinity };
+        return { building: pp, dist: Math.abs(pos.row - consumerPos.row) + Math.abs(pos.col - consumerPos.col) };
+      }).sort((a, b) => a.dist - b.dist)[0];
+
+      if (!nearest || nearest.dist === Infinity) continue;
+
+      // Power efficiency: 100% at dist 1, decreasing by 8% per unit, min 30%
+      conns.push({
+        id: `${nearest.building.id}-${consumer.id}-power`,
+        sourceBuildingId: nearest.building.id,
+        targetBuildingId: consumer.id,
+        resourceType: 'power',
+        efficiency: Math.max(0.3, 1 - (nearest.dist - 1) * 0.08),
+      });
+    }
+
+    return conns;
+  }, [store.buildings, buildingPositions]);
+
+  // Average efficiency for stats display
+  const avgEfficiency = autoConnections.length > 0
+    ? autoConnections.reduce((sum, c) => sum + c.efficiency, 0) / autoConnections.length
+    : 0;
+
+  // Per-building connection efficiency for tile indicator
+  const buildingConnEfficiency = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const conn of autoConnections) {
+      // For target buildings, track the min efficiency of their incoming connections
+      const existing = map.get(conn.targetBuildingId);
+      if (existing === undefined || conn.efficiency < existing) {
+        map.set(conn.targetBuildingId, conn.efficiency);
+      }
+      // Also track for source buildings
+      const existingSrc = map.get(conn.sourceBuildingId);
+      if (existingSrc === undefined || conn.efficiency < existingSrc) {
+        map.set(conn.sourceBuildingId, conn.efficiency);
+      }
+    }
+    return map;
+  }, [autoConnections]);
+
+  // --- Auto-Arrange Algorithm ---
+  const autoArrange = useCallback(() => {
+    const newPositions: Record<string, BuildingPosition> = {};
+    const usedCells = new Set<string>();
+
+    // Helper: find nearest empty cell to target, expanding outward in a spiral
+    const findNearestEmpty = (targetRow: number, targetCol: number, minRow = 0, maxRow = GRID_ROWS - 1): BuildingPosition | null => {
+      for (let dist = 0; dist < Math.max(GRID_ROWS, GRID_COLS); dist++) {
+        for (let dr = -dist; dr <= dist; dr++) {
+          for (let dc = -dist; dc <= dist; dc++) {
+            if (Math.abs(dr) + Math.abs(dc) !== dist) continue; // Only check the current ring
+            const r = targetRow + dr;
+            const c = targetCol + dc;
+            if (r < minRow || r > maxRow || c < 0 || c >= GRID_COLS) continue;
+            if (!usedCells.has(`${r}-${c}`)) {
+              return { row: r, col: c };
+            }
+          }
+        }
+      }
+      return null;
+    };
+
+    // Group buildings by category
+    const extractors = store.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'extractor');
+    const t1Factories = store.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory' && BUILDING_DEFS[b.type]?.tier === 1);
+    const t2Factories = store.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory' && BUILDING_DEFS[b.type]?.tier === 2);
+    const t3Factories = store.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory' && BUILDING_DEFS[b.type]?.tier === 3);
+    const powerPlants = store.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power');
+
+    // Place extractors at top rows (0-2), spread across columns
+    let col = 0;
+    let row = 0;
+    for (const b of extractors) {
+      const pos = findNearestEmpty(row, col, 0, 2);
+      if (pos) {
+        newPositions[b.id] = pos;
+        usedCells.add(`${pos.row}-${pos.col}`);
+      }
+      col += 2; // Space extractors apart for visual clarity
+      if (col >= GRID_COLS) { col = 0; row++; }
+    }
+
+    // Place T1 factories right below their supplier extractors (row offset +1)
+    for (const b of t1Factories) {
+      const def = BUILDING_DEFS[b.type];
+      // Find the closest already-placed supplier
+      let bestPos: BuildingPosition | null = null;
+      let bestDist = Infinity;
+      for (const e of extractors) {
+        const eDef = BUILDING_DEFS[e.type];
+        if (!def?.inputs?.some(inp => eDef?.outputs?.some(o => o.resource === inp.resource))) continue;
+        const ePos = newPositions[e.id];
+        if (!ePos) continue;
+        // Target: one row below the supplier
+        const targetRow = ePos.row + 1;
+        const targetCol = ePos.col;
+        const pos = findNearestEmpty(targetRow, targetCol, 0, 5);
+        if (pos) {
+          const dist = Math.abs(pos.row - targetRow) + Math.abs(pos.col - targetCol);
+          if (dist < bestDist) {
+            bestDist = dist;
+            bestPos = pos;
+          }
+        }
+      }
+      if (bestPos) {
+        newPositions[b.id] = bestPos;
+        usedCells.add(`${bestPos.row}-${bestPos.col}`);
+      } else {
+        // Fallback: any empty cell in rows 2-5
+        const pos = findNearestEmpty(3, 0, 2, 5);
+        if (pos) {
+          newPositions[b.id] = pos;
+          usedCells.add(`${pos.row}-${pos.col}`);
+        }
+      }
+    }
+
+    // Place T2 factories right below their T1 suppliers (row offset +1)
+    for (const b of t2Factories) {
+      const def = BUILDING_DEFS[b.type];
+      let bestPos: BuildingPosition | null = null;
+      let bestDist = Infinity;
+      for (const f of t1Factories) {
+        const fDef = BUILDING_DEFS[f.type];
+        if (!def?.inputs?.some(inp => fDef?.outputs?.some(o => o.resource === inp.resource))) continue;
+        const fPos = newPositions[f.id];
+        if (!fPos) continue;
+        const targetRow = fPos.row + 1;
+        const targetCol = fPos.col;
+        const pos = findNearestEmpty(targetRow, targetCol, 0, 8);
+        if (pos) {
+          const dist = Math.abs(pos.row - targetRow) + Math.abs(pos.col - targetCol);
+          if (dist < bestDist) {
+            bestDist = dist;
+            bestPos = pos;
+          }
+        }
+      }
+      if (bestPos) {
+        newPositions[b.id] = bestPos;
+        usedCells.add(`${bestPos.row}-${bestPos.col}`);
+      } else {
+        const pos = findNearestEmpty(5, 0, 4, 8);
+        if (pos) {
+          newPositions[b.id] = pos;
+          usedCells.add(`${pos.row}-${pos.col}`);
+        }
+      }
+    }
+
+    // Place T3 factories right below their T2 suppliers (row offset +1)
+    for (const b of t3Factories) {
+      const def = BUILDING_DEFS[b.type];
+      let bestPos: BuildingPosition | null = null;
+      let bestDist = Infinity;
+      for (const f of t2Factories) {
+        const fDef = BUILDING_DEFS[f.type];
+        if (!def?.inputs?.some(inp => fDef?.outputs?.some(o => o.resource === inp.resource))) continue;
+        const fPos = newPositions[f.id];
+        if (!fPos) continue;
+        const targetRow = fPos.row + 1;
+        const targetCol = fPos.col;
+        const pos = findNearestEmpty(targetRow, targetCol, 0, 10);
+        if (pos) {
+          const dist = Math.abs(pos.row - targetRow) + Math.abs(pos.col - targetCol);
+          if (dist < bestDist) {
+            bestDist = dist;
+            bestPos = pos;
+          }
+        }
+      }
+      if (bestPos) {
+        newPositions[b.id] = bestPos;
+        usedCells.add(`${bestPos.row}-${bestPos.col}`);
+      } else {
+        const pos = findNearestEmpty(7, 0, 6, 10);
+        if (pos) {
+          newPositions[b.id] = pos;
+          usedCells.add(`${pos.row}-${pos.col}`);
+        }
+      }
+    }
+
+    // Place power plants ADJACENT to their consumers (not at the bottom)
+    // Distribute them alongside the buildings they power
+    const consumers = [...extractors, ...t1Factories, ...t2Factories, ...t3Factories]
+      .filter(b => (BUILDING_DEFS[b.type]?.basePowerConsumption ?? 0) > 0);
+    const placedPowerIds = new Set<string>();
+
+    for (const consumer of consumers) {
+      const cPos = newPositions[consumer.id];
+      if (!cPos) continue;
+
+      // Find an unplaced power plant
+      const unplacedPower = powerPlants.find(pp => !placedPowerIds.has(pp.id));
+      if (!unplacedPower) break;
+
+      // Place it right next to the consumer (prefer right side, then below, then above)
+      const pos = findNearestEmpty(cPos.row, cPos.col + 1, 0, GRID_ROWS - 1);
+      if (pos) {
+        newPositions[unplacedPower.id] = pos;
+        usedCells.add(`${pos.row}-${pos.col}`);
+        placedPowerIds.add(unplacedPower.id);
+      }
+    }
+
+    // Place any remaining power plants near the center of all buildings
+    const remainingPower = powerPlants.filter(pp => !placedPowerIds.has(pp.id));
+    const allPlacedPositions = Object.values(newPositions);
+    const centerRow = allPlacedPositions.length > 0
+      ? Math.round(allPlacedPositions.reduce((s, p) => s + p.row, 0) / allPlacedPositions.length)
+      : Math.floor(GRID_ROWS / 2);
+    const centerCol = allPlacedPositions.length > 0
+      ? Math.round(allPlacedPositions.reduce((s, p) => s + p.col, 0) / allPlacedPositions.length)
+      : Math.floor(GRID_COLS / 2);
+
+    for (const b of remainingPower) {
+      const pos = findNearestEmpty(centerRow, centerCol, 0, GRID_ROWS - 1);
+      if (pos) {
+        newPositions[b.id] = pos;
+        usedCells.add(`${pos.row}-${pos.col}`);
+      }
+    }
+
+    // Apply new positions with smooth transition
+    setSavedPositions(newPositions);
+    persistPositions(newPositions);
+  }, [store.buildings, persistPositions]);
+
   return (
     <div className="space-y-3">
       {/* HEADER */}
@@ -843,7 +1127,34 @@ export default function FactoryMapPanel() {
             )}
           </div>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-gray-400" onClick={() => setShowConnections(!showConnections)} title="Toggle connections">
+            {/* Auto Connect toggle */}
+            <Button
+              variant={autoConnectEnabled ? 'default' : 'outline'}
+              size="sm"
+              className={`h-6 w-6 p-0 ${autoConnectEnabled ? 'bg-cyan-700 text-white' : 'text-gray-400'}`}
+              onClick={() => setAutoConnectEnabled(!autoConnectEnabled)}
+              title="Auto Connect: Automatically link buildings by production chain"
+            >
+              <GitBranch className="w-3 h-3" />
+            </Button>
+            {/* Auto Arrange button */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-6 w-6 p-0 text-gray-400 hover:text-cyan-400"
+              onClick={autoArrange}
+              title="Auto Arrange: Reorganize buildings by production chain"
+            >
+              <LayoutGrid className="w-3 h-3" />
+            </Button>
+            {/* Connection count badge */}
+            {autoConnectEnabled && autoConnections.length > 0 && (
+              <Badge className="text-[7px] px-1 py-0 h-4 bg-cyan-900/40 text-cyan-400 border border-cyan-500/30">
+                {autoConnections.length}
+              </Badge>
+            )}
+            <div className="w-px h-4 bg-gray-800" />
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-gray-400" onClick={() => setShowConnections(!showConnections)} title="Toggle connection visibility">
               <Eye className="w-3 h-3" />
             </Button>
             <div className="w-px h-4 bg-gray-800" />
@@ -1048,8 +1359,8 @@ export default function FactoryMapPanel() {
               {/* Connection lines */}
               {showConnections && (
                 <ConnectionOverlay
+                  connections={autoConnectEnabled ? autoConnections : []}
                   buildingPositions={buildingPositions}
-                  buildings={store.buildings}
                   cellWidth={cellWidth}
                   cellHeight={cellHeight}
                 />
@@ -1089,6 +1400,7 @@ export default function FactoryMapPanel() {
                           }}
                           tick={store.gameTick}
                           recentlyUpgraded={upgradedBuildingIds.has(building.id)}
+                          connectionEfficiency={buildingConnEfficiency.get(building.id)}
                         />
                       ) : (
                         <div
@@ -1279,6 +1591,24 @@ export default function FactoryMapPanel() {
               <div className="bg-[#0a0e17] rounded-md p-1.5 text-center">
                 <div className="text-[8px] text-gray-500">Balance</div>
                 <div className="text-[10px] font-bold text-green-400 font-mono">${formatNumber(store.money)}</div>
+              </div>
+            </div>
+
+            {/* Connection Stats */}
+            <div className="mt-2 pt-2 border-t border-gray-800/30">
+              <div className="flex items-center gap-2 text-[9px]">
+                <GitBranch className="w-3 h-3 text-cyan-400" />
+                <span className="text-cyan-400">{autoConnections.length}</span>
+                <span className="text-gray-500">connections</span>
+                {autoConnections.length > 0 && (
+                  <>
+                    <span className="text-gray-600">•</span>
+                    <span className="text-gray-500">avg eff</span>
+                    <span className={avgEfficiency >= 0.8 ? 'text-green-400' : avgEfficiency >= 0.5 ? 'text-yellow-400' : 'text-red-400'}>
+                      {Math.round(avgEfficiency * 100)}%
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>
