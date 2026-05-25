@@ -10,7 +10,7 @@ import {
   TransportLine, TransportType, Worker, WorkerType, Contract,
   GameEvent, GameNotification, PowerGrid, MarketPrice, MegaProjectType,
   Blueprint, Celebration, LeaderboardEntry, LoginStreak, DailyReward,
-  WeatherType,
+  WeatherType, PayoutConfig, PayoutRecord,
 } from './types';
 import {
   BUILDING_DEFS, TRANSPORT_DEFS, WORKER_DEFS, INITIAL_MARKET,
@@ -23,7 +23,7 @@ import {
 import { soundEngine } from './soundEngine';
 
 // --- Save Version ---
-const SAVE_VERSION = 6;
+const SAVE_VERSION = 8;
 
 // --- Utility Functions ---
 function generateId(): string {
@@ -137,6 +137,31 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
     }
   }
 
+  // V6 → V7: Add payout system
+  if (version < 7) {
+    if (!state.payoutConfig) {
+      state.payoutConfig = {
+        basePayoutInterval: 100,
+        lastPayoutTick: 0,
+        totalPayoutsReceived: 0,
+        autoCollect: true,
+      };
+    }
+    if (state.pendingPayout === undefined) {
+      state.pendingPayout = 0;
+    }
+    if (!state.payoutHistory) {
+      state.payoutHistory = [];
+    }
+  }
+
+  // V7 → V8: Add trackedQuest
+  if (version < 8) {
+    if (state.trackedQuest === undefined) {
+      state.trackedQuest = null;
+    }
+  }
+
   state._version = SAVE_VERSION;
   return state;
 }
@@ -215,6 +240,15 @@ function createInitialState(): GameState {
       ...q,
       steps: q.steps.map(s => ({ ...s })),
     })),
+    payoutConfig: {
+      basePayoutInterval: 100,
+      lastPayoutTick: 0,
+      totalPayoutsReceived: 0,
+      autoCollect: true,
+    },
+    pendingPayout: 0,
+    payoutHistory: [],
+    trackedQuest: null,
     activeTab: 'dashboard',
     selectedBuilding: null,
     notifications: [],
@@ -310,6 +344,11 @@ interface GameActions {
   // Quests
   claimQuestReward: (questId: string) => void;
   updateQuestProgress: (type: string, amount: number) => void;
+  setTrackedQuest: (id: string | null) => void;
+
+  // Payouts
+  collectPayout: () => void;
+  toggleAutoCollect: () => void;
 
   // Reset
   resetGame: () => void;
@@ -837,6 +876,97 @@ export const useGameStore = create<GameStore>()(
           }
         });
 
+        // --- Payout System ---
+        let newPayoutConfig = { ...state.payoutConfig };
+        let newPendingPayout = state.pendingPayout;
+        let newPayoutHistory = state.payoutHistory;
+        let payoutMoneyEarned = 0;
+
+        const ticksSinceLastPayout = newTick - newPayoutConfig.lastPayoutTick;
+        if (ticksSinceLastPayout >= newPayoutConfig.basePayoutInterval && state.buildings.length > 0) {
+          // Calculate payout based on active buildings
+          const activeBuildings = state.buildings.filter(b => b.active);
+          const extractors = activeBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'extractor');
+          const factories = activeBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory');
+          const powerPlants = activeBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power');
+
+          // Base rates per building type per payout cycle
+          const extractorRate = 2;
+          const factoryRate = 5;
+          const powerRate = 1;
+
+          const extractorIncome = extractors.reduce((sum, b) => sum + extractorRate * b.level * b.efficiency, 0);
+          const factoryIncome = factories.reduce((sum, b) => sum + factoryRate * b.level * b.efficiency, 0);
+          const powerIncome = powerPlants.reduce((sum, b) => sum + powerRate * b.level * b.efficiency, 0);
+
+          let rawPayout = extractorIncome + factoryIncome + powerIncome;
+
+          // Apply game speed multiplier
+          rawPayout *= state.gameSpeed;
+
+          // Apply average efficiency modifier
+          const avgEfficiency = activeBuildings.length > 0
+            ? activeBuildings.reduce((sum, b) => sum + b.efficiency, 0) / activeBuildings.length
+            : 0;
+          rawPayout *= avgEfficiency;
+
+          // Apply prestige bonuses
+          const payoutPrestigeBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'productionMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
+          rawPayout *= (1 + payoutPrestigeBonus);
+
+          // Apply event production multiplier
+          rawPayout *= eventProductionMultiplier;
+
+          // Apply weather modifier
+          rawPayout *= weatherProductionMultiplier;
+
+          const payoutAmount = Math.floor(rawPayout);
+
+          if (payoutAmount > 0) {
+            if (newPayoutConfig.autoCollect) {
+              // Auto-collect: add to money directly
+              payoutMoneyEarned = payoutAmount;
+              notifications.push({
+                id: generateId(),
+                type: 'success',
+                message: `💰 Payout received: $${formatNumber(payoutAmount)}`,
+                gameTick: newTick,
+                read: false,
+              });
+            } else {
+              // Manual collect: accumulate in pending
+              newPendingPayout += payoutAmount;
+              notifications.push({
+                id: generateId(),
+                type: 'info',
+                message: `💰 Payout ready: $${formatNumber(payoutAmount)} — Click to collect!`,
+                gameTick: newTick,
+                read: false,
+              });
+            }
+
+            // Record payout history
+            const record: PayoutRecord = {
+              tick: newTick,
+              amount: payoutAmount,
+              buildingCount: activeBuildings.length,
+              efficiency: avgEfficiency,
+            };
+            newPayoutHistory = [...state.payoutHistory.slice(-9), record];
+
+            // Update payout config
+            newPayoutConfig = {
+              ...newPayoutConfig,
+              lastPayoutTick: newTick,
+              totalPayoutsReceived: newPayoutConfig.totalPayoutsReceived + 1,
+            };
+
+            soundEngine.play('moneyEarned', 'building');
+          }
+        }
+
+        moneyEarned += payoutMoneyEarned;
+
         // Rank change detection
         const prevScore = Math.floor(
           state.totalMoneyEarned +
@@ -899,6 +1029,9 @@ export const useGameStore = create<GameStore>()(
           notifications: [...notifications, ...state.notifications.slice(-20)],
           lastOnlineTimestamp: Date.now(),
           weather: newWeather,
+          payoutConfig: newPayoutConfig,
+          pendingPayout: newPendingPayout,
+          payoutHistory: newPayoutHistory,
         });
       },
 
@@ -1436,6 +1569,9 @@ export const useGameStore = create<GameStore>()(
           loginStreak: state.loginStreak,
           weather: state.weather,
           quests: state.quests,
+          payoutConfig: state.payoutConfig,
+          pendingPayout: state.pendingPayout,
+          payoutHistory: state.payoutHistory,
           _exportedAt: Date.now(),
         };
         try {
@@ -1532,6 +1668,30 @@ export const useGameStore = create<GameStore>()(
       },
 
       resetGame: () => set(createInitialState()),
+
+      // --- PAYOUT ACTIONS ---
+      collectPayout: () => {
+        const state = get();
+        if (state.pendingPayout <= 0) return;
+        const amount = state.pendingPayout;
+        set({
+          money: state.money + amount,
+          totalMoneyEarned: state.totalMoneyEarned + amount,
+          pendingPayout: 0,
+        });
+        soundEngine.play('moneyEarned', 'building');
+        get().addNotification('success', `💰 Collected payout: $${formatNumber(amount)}`);
+      },
+
+      toggleAutoCollect: () => {
+        const state = get();
+        set({
+          payoutConfig: {
+            ...state.payoutConfig,
+            autoCollect: !state.payoutConfig.autoCollect,
+          },
+        });
+      },
 
       // --- LEADERBOARD ACTIONS ---
       addLeaderboardEntry: (entry: LeaderboardEntry) => {
@@ -1688,6 +1848,10 @@ export const useGameStore = create<GameStore>()(
             };
           }),
         });
+      },
+
+      setTrackedQuest: (id: string | null) => {
+        set({ trackedQuest: id });
       },
 
       // --- STORAGE UPGRADE ACTIONS ---
@@ -2113,9 +2277,13 @@ export const useGameStore = create<GameStore>()(
         loginStreak: state.loginStreak,
         weather: state.weather,
         quests: state.quests,
+        payoutConfig: state.payoutConfig,
+        pendingPayout: state.pendingPayout,
+        payoutHistory: state.payoutHistory,
+        trackedQuest: state.trackedQuest,
         _version: SAVE_VERSION,
       }),
-      version: 6,
+      version: 8,
       migrate: (persistedState: unknown) => {
         return migrateSaveState(persistedState as Record<string, unknown>);
       },

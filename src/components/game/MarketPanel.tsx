@@ -11,6 +11,7 @@ import {
   Zap, Flame
 } from 'lucide-react';
 import { ResourceType } from '@/lib/game/types';
+import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 
 // --- Bezier Sparkline Component ---
 function BezierSparkline({
@@ -226,8 +227,24 @@ export function MarketPanel() {
               const fillPct = capacity > 0 ? (held / capacity) * 100 : 0;
 
               return (
-                <button
+                <GameItemTooltip
                   key={m.resource}
+                  name={meta.name}
+                  emoji={meta.emoji}
+                  category={meta.tier === 0 ? 'Raw Material' : `Tier ${meta.tier}`}
+                  tier={meta.tier}
+                  details={[
+                    { label: 'Current Price', value: `$${m.currentPrice.toFixed(2)}`, color: m.trend === 'up' ? 'text-green-400' : m.trend === 'down' ? 'text-red-400' : 'text-cyan-400' },
+                    { label: 'Base Price', value: `$${m.basePrice.toFixed(2)}` },
+                    { label: 'Trend', value: m.trend === 'up' ? '↑ Rising' : m.trend === 'down' ? '↓ Falling' : '→ Stable', color: m.trend === 'up' ? 'text-green-400' : m.trend === 'down' ? 'text-red-400' : 'text-gray-300' },
+                    { label: 'Demand', value: `${m.demand.toFixed(2)}x`, color: 'text-orange-400' },
+                    { label: 'Supply', value: `${m.supply.toFixed(2)}x`, color: 'text-cyan-400' },
+                    { label: 'Volatility', value: `${(m.volatility * 100).toFixed(0)}%`, color: m.volatility > 0.2 ? 'text-red-400' : 'text-gray-300' },
+                    { label: 'Auto-Sell', value: isAutoSell ? 'Enabled' : 'Disabled', color: isAutoSell ? 'text-green-400' : 'text-gray-500' },
+                  ]}
+                  side="right"
+                >
+                <button
                   onClick={() => setSelectedResource(m.resource)}
                   className={`game-card rounded-lg p-3 text-left transition-all w-full ${
                     isSelected ? 'border-cyan-500/50 bg-cyan-900/10' : 'bg-[#111827] border-[#1e293b] hover:border-gray-600'
@@ -284,6 +301,7 @@ export function MarketPanel() {
                     />
                   </div>
                 </button>
+                </GameItemTooltip>
               );
             })}
           </div>

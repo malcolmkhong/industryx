@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useRef, useEffect } from 'react';
 import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/store';
-import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE, RANK_THRESHOLDS } from '@/lib/game/data';
+import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE, RANK_THRESHOLDS, WEATHER_DEFS } from '@/lib/game/data';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,9 +12,9 @@ import {
   Activity, Pickaxe, Cog, Shield, Clock, Bell,
   ArrowUpRight, ArrowDownRight, Minus, Timer, Power, Sparkles,
   Database, Wrench, Globe, ArrowRight, Trophy, Package,
-  Hammer, CheckCircle2, XCircle, Flame
+  Hammer, CheckCircle2, XCircle, Flame, CloudSun, Pin, X as XIcon
 } from 'lucide-react';
-import { BuildingType, ResourceType } from '@/lib/game/types';
+import { BuildingType, ResourceType, WeatherType } from '@/lib/game/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ProductionChainPanel } from '@/components/game/ProductionChainPanel';
 
@@ -119,6 +119,57 @@ export function DashboardPanel() {
     <div className="space-y-4">
       {/* RANK BAR */}
       <RankBar store={store} />
+
+      {/* TRACKED QUEST INDICATOR */}
+      {store.trackedQuest && (() => {
+        const trackedQuestData = store.quests.find(q => q.id === store.trackedQuest);
+        if (!trackedQuestData || trackedQuestData.claimed) return null;
+        const tProgress = trackedQuestData.steps.length > 0 
+          ? trackedQuestData.steps.reduce((sum, s) => sum + Math.min(1, s.current / Math.max(1, s.target)), 0) / trackedQuestData.steps.length 
+          : 0;
+        const currentStep = trackedQuestData.steps.find(s => !s.completed);
+        return (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="bg-gradient-to-r from-cyan-900/15 to-teal-900/10 border border-cyan-500/25 rounded-xl p-3"
+          >
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-1.5">
+                <Pin className="w-3 h-3 text-cyan-400" />
+                <span className="text-[10px] text-cyan-400 uppercase tracking-wider font-semibold">Tracked Quest</span>
+              </div>
+              <button
+                onClick={() => store.setTrackedQuest(null)}
+                className="text-gray-500 hover:text-gray-300 p-0.5 rounded hover:bg-gray-800/50 transition-colors"
+              >
+                <XIcon className="w-3 h-3" />
+              </button>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <span className="text-lg">{trackedQuestData.emoji}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-200 font-medium truncate">{trackedQuestData.name}</p>
+                {currentStep && (
+                  <p className="text-[10px] text-gray-500 truncate">{currentStep.description}: {Math.min(currentStep.current, currentStep.target)}/{currentStep.target}</p>
+                )}
+              </div>
+              <div className="text-right flex-shrink-0">
+                <div className="text-[10px] text-cyan-400 font-mono">{Math.round(tProgress * 100)}%</div>
+                <div className="w-16 h-1 bg-gray-800 rounded-full overflow-hidden mt-0.5">
+                  <div className="h-full bg-cyan-400 rounded-full" style={{ width: `${tProgress * 100}%` }} />
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 mt-1.5 text-[9px]">
+              {trackedQuestData.reward.money > 0 && <span className="text-green-400">💰 ${formatNumber(trackedQuestData.reward.money)}</span>}
+              {trackedQuestData.reward.researchPoints && trackedQuestData.reward.researchPoints > 0 && <span className="text-purple-400">🔬 {trackedQuestData.reward.researchPoints}RP</span>}
+              {trackedQuestData.reward.corporationPoints && trackedQuestData.reward.corporationPoints > 0 && <span className="text-fuchsia-400">🏢 {trackedQuestData.reward.corporationPoints}CP</span>}
+            </div>
+          </motion.div>
+        );
+      })()}
 
       {/* GET STARTED CARD - only show when no buildings */}
       {totalBuildings === 0 && (
@@ -534,6 +585,9 @@ export function DashboardPanel() {
             </div>
           </div>
 
+          {/* WEATHER INFO CARD */}
+          <WeatherInfoCard store={store} />
+
           {/* ACTIVE RESEARCH */}
           <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
             <div className="flex items-center gap-2 mb-3">
@@ -927,4 +981,163 @@ function RankBar({ store }: { store: ReturnType<typeof useGameStore> }) {
       </div>
     </div>
   );
+}
+
+// --- Weather Info Card Component ---
+function WeatherInfoCard({ store }: { store: ReturnType<typeof useGameStore> }) {
+  const currentWeather = store.weather.current as WeatherType;
+  const weatherDef = WEATHER_DEFS[currentWeather];
+  if (!weatherDef) return null;
+
+  const ticksUntilChange = Math.max(0, store.weather.nextChange - store.gameTick);
+  const isEffectActive = currentWeather !== 'clear' && store.weather.remaining > 0;
+
+  // Gradient backgrounds based on weather type
+  const weatherGradients: Record<string, string> = {
+    clear: 'from-slate-800/30 to-slate-900/20',
+    sunny: 'from-yellow-900/25 to-orange-900/15',
+    rainy: 'from-blue-900/25 to-slate-900/20',
+    stormy: 'from-purple-900/30 to-slate-900/25',
+    foggy: 'from-gray-700/25 to-gray-900/20',
+    snowy: 'from-blue-200/10 to-indigo-900/15',
+  };
+
+  // Border colors based on weather
+  const weatherBorders: Record<string, string> = {
+    clear: 'border-slate-700/40',
+    sunny: 'border-yellow-600/40',
+    rainy: 'border-blue-600/40',
+    stormy: 'border-purple-600/40',
+    foggy: 'border-gray-500/40',
+    snowy: 'border-blue-300/30',
+  };
+
+  const prodEffect = weatherDef.productionMultiplier - 1;
+  const solarEffect = weatherDef.solarMultiplier - 1;
+  const windEffect = weatherDef.windMultiplier - 1;
+
+  // Animated weather particles
+  const renderWeatherParticles = () => {
+    if (currentWeather === 'clear') return null;
+    
+    const particles = [];
+    const count = currentWeather === 'stormy' ? 12 : currentWeather === 'rainy' ? 8 : 6;
+    
+    for (let i = 0; i < count; i++) {
+      const left = `${(i / count) * 100}%`;
+      const delay = `${i * 0.15}s`;
+      const duration = currentWeather === 'stormy' ? '0.6s' : currentWeather === 'rainy' ? '0.8s' : '1.5s';
+      
+      let particleClass = '';
+      if (currentWeather === 'rainy' || currentWeather === 'stormy') {
+        particleClass = 'weather-rain-drop';
+      } else if (currentWeather === 'snowy') {
+        particleClass = 'weather-snow-flake';
+      } else if (currentWeather === 'sunny') {
+        particleClass = 'weather-sun-ray';
+      } else if (currentWeather === 'foggy') {
+        particleClass = 'weather-fog-wisp';
+      }
+      
+      particles.push(
+        <div
+          key={i}
+          className={`absolute ${particleClass}`}
+          style={{ 
+            left, 
+            animationDelay: delay, 
+            animationDuration: duration,
+            top: currentWeather === 'sunny' ? '0' : '0',
+          }}
+        />
+      );
+    }
+    return particles;
+  };
+
+  return (
+    <div className={`weather-card-${currentWeather} game-card rounded-xl bg-gradient-to-br ${weatherGradients[currentWeather] || ''} p-4 border ${weatherBorders[currentWeather] || 'border-[#1e293b]'} relative overflow-hidden`}>
+      {/* Animated weather particles */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {renderWeatherParticles()}
+      </div>
+
+      <div className="relative z-10">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <CloudSun className="w-4 h-4 text-cyan-400" />
+            <h3 className="text-sm font-semibold text-cyan-400">Weather</h3>
+          </div>
+          {isEffectActive && (
+            <Badge variant="outline" className="text-[9px] border-orange-500/40 text-orange-400 bg-orange-900/20">
+              ACTIVE
+            </Badge>
+          )}
+        </div>
+
+        {/* Current weather display */}
+        <div className="flex items-center gap-3 mb-3">
+          <div className="text-3xl">{weatherDef.emoji}</div>
+          <div>
+            <p className="text-sm font-bold text-gray-200">{weatherDef.name}</p>
+            <p className="text-[10px] text-gray-400 line-clamp-2">{weatherDef.description}</p>
+          </div>
+        </div>
+
+        {/* Multiplier effects */}
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          <div className="bg-[#0a0e17]/60 rounded-lg p-2 text-center">
+            <div className="text-[9px] text-gray-500 mb-0.5">Production</div>
+            <div className={`text-xs font-bold font-mono flex items-center justify-center gap-0.5 ${
+              prodEffect > 0 ? 'text-green-400' : prodEffect < 0 ? 'text-red-400' : 'text-gray-400'
+            }`}>
+              {prodEffect > 0 ? <ArrowUpRight className="w-2.5 h-2.5" /> : prodEffect < 0 ? <ArrowDownRight className="w-2.5 h-2.5" /> : <Minus className="w-2.5 h-2.5" />}
+              {prodEffect >= 0 ? '+' : ''}{(prodEffect * 100).toFixed(0)}%
+            </div>
+          </div>
+          <div className="bg-[#0a0e17]/60 rounded-lg p-2 text-center">
+            <div className="text-[9px] text-gray-500 mb-0.5">Solar</div>
+            <div className={`text-xs font-bold font-mono flex items-center justify-center gap-0.5 ${
+              solarEffect > 0 ? 'text-green-400' : solarEffect < 0 ? 'text-red-400' : 'text-gray-400'
+            }`}>
+              {solarEffect > 0 ? <ArrowUpRight className="w-2.5 h-2.5" /> : solarEffect < 0 ? <ArrowDownRight className="w-2.5 h-2.5" /> : <Minus className="w-2.5 h-2.5" />}
+              {solarEffect >= 0 ? '+' : ''}{(solarEffect * 100).toFixed(0)}%
+            </div>
+          </div>
+          <div className="bg-[#0a0e17]/60 rounded-lg p-2 text-center">
+            <div className="text-[9px] text-gray-500 mb-0.5">Wind</div>
+            <div className={`text-xs font-bold font-mono flex items-center justify-center gap-0.5 ${
+              windEffect > 0 ? 'text-green-400' : windEffect < 0 ? 'text-red-400' : 'text-gray-400'
+            }`}>
+              {windEffect > 0 ? <ArrowUpRight className="w-2.5 h-2.5" /> : windEffect < 0 ? <ArrowDownRight className="w-2.5 h-2.5" /> : <Minus className="w-2.5 h-2.5" />}
+              {windEffect >= 0 ? '+' : ''}{(windEffect * 100).toFixed(0)}%
+            </div>
+          </div>
+        </div>
+
+        {/* Time until next change */}
+        <div className="flex items-center justify-between text-[10px]">
+          <span className="text-gray-500 flex items-center gap-1">
+            <Clock className="w-2.5 h-2.5" />
+            {isEffectActive ? 'Weather ends in' : 'Next change in'}
+          </span>
+          <span className="text-cyan-400 font-mono">
+            {isEffectActive ? formatTicksToTime(store.weather.remaining) : formatTicksToTime(ticksUntilChange)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Helper to format ticks to a readable time string
+function formatTicksToTime(ticks: number): string {
+  if (ticks <= 0) return 'Now';
+  if (ticks < 60) return `${ticks} ticks`;
+  const minutes = Math.floor(ticks / 60);
+  const seconds = ticks % 60;
+  if (minutes < 60) return `~${minutes}m ${seconds > 0 ? `${seconds}s` : ''}`;
+  const hours = Math.floor(minutes / 60);
+  const remMinutes = minutes % 60;
+  return `~${hours}h ${remMinutes > 0 ? `${remMinutes}m` : ''}`;
 }

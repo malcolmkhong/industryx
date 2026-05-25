@@ -11,6 +11,7 @@ import {
   Zap, Cog, Truck, Bot, Brain, Atom, BarChart3, Users
 } from 'lucide-react';
 import { ResearchCategory } from '@/lib/game/types';
+import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 
 export function ResearchPanel() {
   const store = useGameStore();
@@ -122,8 +123,35 @@ export function ResearchPanel() {
                   const isAvailable = !isCompleted && !isActive && isUnlocked && canAfford;
 
                   return (
-                    <div
+                    <GameItemTooltip
                       key={node.id}
+                      name={node.name}
+                      emoji={node.emoji}
+                      description={node.description}
+                      category={node.category}
+                      tier={node.tier}
+                      details={[
+                        { label: 'Cost', value: `${formatNumber(node.cost)} RP`, color: 'text-purple-400' },
+                        { label: 'Time Required', value: `${node.timeRequired} ticks` },
+                        ...node.effects.map((effect, i) => ({
+                          label: `Effect ${i + 1}`,
+                          value: `${effect.type === 'productionSpeed' ? 'Speed' : effect.type === 'unlockBuilding' ? 'Unlock' : effect.type === 'transportSpeed' ? 'Transport' : effect.type === 'powerEfficiency' ? 'Power' : effect.type === 'marketBonus' ? 'Market' : effect.type === 'workerEfficiency' ? 'Workers' : effect.type === 'unlockTransport' ? 'Unlock' : effect.type === 'storageBonus' ? 'Storage' : 'Bonus'} +${(effect.value * 100).toFixed(0)}%${effect.target ? ` (${effect.target})` : ''}`,
+                          color: 'text-cyan-400',
+                        })),
+                      ]}
+                      requirements={[
+                        ...node.prerequisites.map(pre => {
+                          const preNode = RESEARCH_TREE.find(r => r.id === pre);
+                          return {
+                            label: 'Prerequisite',
+                            value: preNode?.name ?? pre,
+                            color: store.completedResearch.includes(pre) ? 'text-green-400' : 'text-red-400',
+                          };
+                        }),
+                      ]}
+                      side="right"
+                    >
+                    <div
                       className={`rounded-lg p-3 transition-all ${
                         isCompleted
                           ? 'bg-green-900/10 border border-green-900/30'
@@ -218,6 +246,7 @@ export function ResearchPanel() {
                         </Button>
                       )}
                     </div>
+                    </GameItemTooltip>
                   );
                 })}
               </div>

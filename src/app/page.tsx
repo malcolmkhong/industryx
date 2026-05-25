@@ -31,12 +31,13 @@ import LeaderboardPanel from '@/components/game/LeaderboardPanel';
 import DailyRewardsPanel from '@/components/game/DailyRewardsPanel';
 import { QuestPanel } from '@/components/game/QuestPanel';
 import { NotificationCenterPanel } from '@/components/game/NotificationCenterPanel';
+import { PayoutPanel } from '@/components/game/PayoutPanel';
 import {
   Factory, Pickaxe, Cog, Truck, Zap, TrendingUp,
   FlaskConical, Users, ScrollText, Bot, Globe, AlertTriangle,
   Save, Play, Pause, FastForward, RotateCcw, ChevronRight, Bell, X,
   BookOpen, Trophy, Download, Upload, Copy, Check, MoreHorizontal, ChevronUp, Settings, BarChart3,
-  Map as MapIcon, Gift, Scroll
+  Map as MapIcon, Gift, Scroll, DollarSign
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -77,6 +78,7 @@ const TABS = [
   { id: 'achievements' as const, label: 'Trophies', icon: Trophy, color: 'text-amber-300' },
   { id: 'leaderboard' as const, label: 'Ranks', icon: Trophy, color: 'text-amber-400' },
   { id: 'dailyRewards' as const, label: 'Daily', icon: Gift, color: 'text-pink-400' },
+  { id: 'payouts' as const, label: 'Payouts', icon: DollarSign, color: 'text-green-400' },
   { id: 'quests' as const, label: 'Quests', icon: Scroll, color: 'text-amber-400' },
   { id: 'notifications' as const, label: 'Alerts', icon: Bell, color: 'text-cyan-400' },
   { id: 'blueprints' as const, label: 'Blueprints', icon: Save, color: 'text-indigo-400' },
@@ -90,7 +92,7 @@ const MOBILE_PRIMARY_TABS: GameTab[] = [
 ];
 
 const MOBILE_MORE_TABS: GameTab[] = [
-  'transport', 'automation', 'prestige', 'events', 'megaprojects', 'statistics', 'achievements', 'leaderboard', 'dailyRewards', 'quests', 'notifications', 'blueprints', 'settings',
+  'transport', 'automation', 'prestige', 'events', 'megaprojects', 'statistics', 'achievements', 'leaderboard', 'dailyRewards', 'payouts', 'quests', 'notifications', 'blueprints', 'settings',
 ];
 
 // Keyboard shortcut: number keys 1-9 map to first 9 tabs
@@ -361,6 +363,7 @@ export default function Home() {
       case 'achievements': return <AchievementPanel />;
       case 'leaderboard': return <LeaderboardPanel />;
       case 'dailyRewards': return <DailyRewardsPanel />;
+      case 'payouts': return <PayoutPanel />;
       case 'quests': return <QuestPanel />;
       case 'notifications': return <NotificationCenterPanel />;
       case 'settings': return <SettingsPanel />;
@@ -401,6 +404,15 @@ export default function Home() {
                 <div className={`stat-badge stat-badge-money bg-[#111827] rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default ${moneyGlow ? 'money-glow' : ''}`}>
                   <span className="text-gray-500">💰 </span>
                   <span className="text-green-400 font-mono font-bold text-sm">${formatNumber(store.money)}</span>
+                  {store.pendingPayout > 0 && !store.payoutConfig.autoCollect && (
+                    <button
+                      onClick={store.collectPayout}
+                      className="ml-2 animate-pulse inline-flex items-center gap-1 bg-green-900/40 hover:bg-green-800/50 text-green-400 text-[10px] px-1.5 py-0.5 rounded-md border border-green-500/30 transition-colors"
+                      title="Click to collect pending payout"
+                    >
+                      💰 ${formatNumber(store.pendingPayout)}
+                    </button>
+                  )}
                 </div>
                 <div className={`stat-badge stat-badge-power bg-[#111827] rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default ${store.powerGrid.overload ? 'warning-pulse' : ''}`}>
                   <span className="text-gray-500">⚡ </span>
@@ -594,6 +606,15 @@ export default function Home() {
               {/* Compact stats */}
               <div className="flex items-center gap-1 text-[10px] flex-shrink-0">
                 <span className="text-green-400 font-mono font-bold">${formatNumber(store.money)}</span>
+                {store.pendingPayout > 0 && !store.payoutConfig.autoCollect && (
+                  <button
+                    onClick={store.collectPayout}
+                    className="animate-pulse inline-flex items-center bg-green-900/40 text-green-400 text-[9px] px-1 py-0 rounded border border-green-500/30"
+                    title="Click to collect pending payout"
+                  >
+                    💰${formatNumber(store.pendingPayout)}
+                  </button>
+                )}
                 <span className="text-gray-600">|</span>
                 <span className={powerPercent >= 80 ? 'text-yellow-400' : powerPercent >= 50 ? 'text-orange-400' : 'text-red-400'}>
                   ⚡{formatNumber(store.powerGrid.totalProduction)}/{formatNumber(store.powerGrid.totalConsumption)}

@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/store';
-import { BUILDING_DEFS, RESOURCE_META } from '@/lib/game/data';
+import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE } from '@/lib/game/data';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -14,6 +14,7 @@ import {
   CircleAlert, Minus, Lock, Lightbulb, TrendingUp
 } from 'lucide-react';
 import { PowerPlantType, BuildingInstance } from '@/lib/game/types';
+import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 
 const POWER_PLANT_TYPES: PowerPlantType[] = ['coalGenerator', 'solarPanel', 'windTurbine', 'nuclearReactor', 'fusionReactor'];
 
@@ -580,8 +581,27 @@ export function PowerPanel() {
           }
 
           return (
-            <div
+            <GameItemTooltip
               key={type}
+              name={def.name}
+              emoji={def.emoji}
+              description={def.description}
+              category="Power Plant"
+              tier={def.tier}
+              details={[
+                { label: 'Power Production', value: `${def.basePowerProduction} MW`, color: 'text-green-400' },
+                { label: 'Power Consumption', value: `${def.basePowerConsumption} MW` },
+                ...(def.fuel ? [{ label: 'Fuel Type', value: RESOURCE_META[def.fuel].name, color: 'text-orange-400' }] : []),
+                ...(def.fuelRate ? [{ label: 'Fuel Rate', value: `${def.fuelRate}/t`, color: 'text-orange-400' }] : []),
+                { label: 'Build Cost', value: `$${formatNumber(getBuildingCost(type, instances.length))}`, color: store.money >= getBuildingCost(type, instances.length) ? 'text-green-400' : 'text-red-400' },
+                { label: 'Current Output', value: `${formatNumber(output)} MW`, color: 'text-yellow-400' },
+              ]}
+              requirements={[
+                ...(def.unlockRequirement?.research ? [{ label: 'Research', value: RESEARCH_TREE.find(r => r.id === def.unlockRequirement!.research)?.name ?? def.unlockRequirement.research, color: store.completedResearch.includes(def.unlockRequirement.research) ? 'text-green-400' : 'text-red-400' }] : []),
+              ]}
+              side="bottom"
+            >
+            <div
               className={`game-card rounded-xl bg-[#111827] p-3 border transition-all ${
                 !unlocked ? 'border-gray-800 opacity-50' :
                 output > 0 ? `border-[$meta.color]/30` : 'border-[#1e293b]'
@@ -661,6 +681,7 @@ export function PowerPanel() {
                 </Button>
               )}
             </div>
+            </GameItemTooltip>
           );
         })}
       </div>

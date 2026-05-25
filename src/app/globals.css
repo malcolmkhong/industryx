@@ -860,3 +860,153 @@ button:disabled, .btn-disabled {
 .filter-transition {
   transition: all 0.2s ease;
 }
+
+/* ===== Quest Card Hover Effect ===== */
+.quest-card-hover {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.quest-card-hover:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 8px rgba(0, 255, 242, 0.08);
+  border-color: rgba(0, 255, 242, 0.25);
+}
+
+/* ===== Weather-Specific Card Backgrounds ===== */
+.weather-card-clear {
+  background-image: linear-gradient(135deg, rgba(51, 65, 85, 0.15), rgba(15, 23, 42, 0.1));
+}
+.weather-card-sunny {
+  background-image: linear-gradient(135deg, rgba(161, 98, 7, 0.2), rgba(234, 88, 12, 0.1));
+}
+.weather-card-rainy {
+  background-image: linear-gradient(135deg, rgba(30, 64, 175, 0.2), rgba(51, 65, 85, 0.1));
+}
+.weather-card-stormy {
+  background-image: linear-gradient(135deg, rgba(88, 28, 135, 0.25), rgba(51, 65, 85, 0.15));
+}
+.weather-card-foggy {
+  background-image: linear-gradient(135deg, rgba(107, 114, 128, 0.2), rgba(55, 65, 81, 0.1));
+}
+.weather-card-snowy {
+  background-image: linear-gradient(135deg, rgba(147, 197, 253, 0.12), rgba(67, 56, 202, 0.1));
+}
+
+/* ===== Weather Particle Animations ===== */
+
+/* Rain drops */
+@keyframes weatherRainDrop {
+  0% { transform: translateY(-10px); opacity: 0; }
+  20% { opacity: 0.6; }
+  100% { transform: translateY(80px); opacity: 0; }
+}
+.weather-rain-drop {
+  width: 2px;
+  height: 8px;
+  background: linear-gradient(to bottom, transparent, rgba(96, 165, 250, 0.5));
+  border-radius: 0 0 1px 1px;
+  animation: weatherRainDrop 0.8s ease-in infinite;
+}
+
+/* Snow flakes */
+@keyframes weatherSnowFlake {
+  0% { transform: translateY(-5px) translateX(0) rotate(0deg); opacity: 0; }
+  20% { opacity: 0.7; }
+  50% { transform: translateY(40px) translateX(5px) rotate(180deg); opacity: 0.5; }
+  100% { transform: translateY(80px) translateX(-3px) rotate(360deg); opacity: 0; }
+}
+.weather-snow-flake {
+  width: 4px;
+  height: 4px;
+  background: rgba(191, 219, 254, 0.6);
+  border-radius: 50%;
+  animation: weatherSnowFlake 1.5s ease-in-out infinite;
+}
+
+/* Sun rays */
+@keyframes weatherSunRay {
+  0% { transform: translateY(0) scale(0.5); opacity: 0; }
+  30% { opacity: 0.4; }
+  100% { transform: translateY(-15px) scale(1.2); opacity: 0; }
+}
+.weather-sun-ray {
+  width: 3px;
+  height: 12px;
+  background: linear-gradient(to top, rgba(250, 204, 21, 0.4), transparent);
+  border-radius: 1px;
+  animation: weatherSunRay 1.5s ease-out infinite;
+}
+
+/* Fog wisps */
+@keyframes weatherFogWisp {
+  0% { transform: translateX(-10px) scaleX(0.8); opacity: 0; }
+  30% { opacity: 0.3; }
+  70% { opacity: 0.2; }
+  100% { transform: translateX(20px) scaleX(1.2); opacity: 0; }
+}
+.weather-fog-wisp {
+  width: 20px;
+  height: 3px;
+  background: rgba(156, 163, 175, 0.3);
+  border-radius: 2px;
+  animation: weatherFogWisp 2s ease-in-out infinite;
+}
+
+/* ===== Payout Glow Pulse ===== */
+@keyframes payoutGlow {
+  0%, 100% { box-shadow: 0 0 5px rgba(74, 222, 128, 0.2); }
+  50% { box-shadow: 0 0 15px rgba(74, 222, 128, 0.4), 0 0 25px rgba(74, 222, 128, 0.15); }
+}
+.payout-glow {
+  animation: payoutGlow 2s ease-in-out infinite;
+}
+
+/* ===== Income Stream Animated Underline ===== */
+@keyframes incomeStream {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+.income-stream {
+  background-image: linear-gradient(90deg, transparent 0%, rgba(74, 222, 128, 0.4) 50%, transparent 100%);
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  background-position: -200% center;
+  animation: incomeStream 2s ease-in-out infinite;
+  padding-bottom: 1px;
+  background-clip: padding-box;
+}
+
+/* ===== Tooltip Highlight Animation ===== */
+@keyframes tooltipHighlight {
+  0% { box-shadow: 0 0 0 0 rgba(0, 255, 242, 0.3); }
+  50% { box-shadow: 0 0 12px 2px rgba(0, 255, 242, 0.15); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 255, 242, 0); }
+}
+.tooltip-highlight {
+  animation: tooltipHighlight 0.6s ease-out;
+}
+
+/* ===== Enhanced game-card-premium Hover ===== */
+.game-card-premium:hover {
+  border-color: oklch(0.75 0.18 180 / 0.6);
+  box-shadow: 0 0 30px oklch(0.75 0.18 180 / 0.2), 0 0 50px oklch(0.75 0.18 180 / 0.08), 0 6px 16px rgba(0, 0, 0, 0.4);
+  transform: translateY(-3px);
+}
+
+/* ===== Reduced Motion - New Animations ===== */
+@media (prefers-reduced-motion: reduce) {
+  .quest-card-hover:hover {
+    transform: none;
+  }
+  .weather-rain-drop,
+  .weather-snow-flake,
+  .weather-sun-ray,
+  .weather-fog-wisp,
+  .payout-glow,
+  .income-stream,
+  .tooltip-highlight {
+    animation: none !important;
+  }
+  .game-card-premium:hover {
+    transform: none;
+  }
+}

@@ -11,6 +11,7 @@ import {
   Star, Trophy, Coins, FlaskConical, Globe
 } from 'lucide-react';
 import { ResourceType, Contract } from '@/lib/game/types';
+import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 
 export function ContractPanel() {
   const store = useGameStore();
@@ -81,7 +82,27 @@ export function ContractPanel() {
                   const isUrgent = timePct < 25;
 
                   return (
-                    <div key={contract.id} className={`bg-[#0a0e17] rounded-lg p-4 border ${
+                    <GameItemTooltip
+                      key={contract.id}
+                      name={contract.name}
+                      emoji={contract.emoji}
+                      description={contract.description}
+                      category={contract.type}
+                      details={[
+                        ...contract.requiredResources.map(r => ({
+                          label: `Required: ${RESOURCE_META[r.resource].name}`,
+                          value: `${formatNumber(r.amount)}`,
+                          color: store.resources[r.resource] >= r.amount ? 'text-green-400' : 'text-red-400',
+                        })),
+                        { label: 'Time Limit', value: `${formatNumber(contract.timeLimit)} ticks` },
+                        { label: 'Difficulty', value: `${'★'.repeat(contract.difficulty)}`, color: contract.difficulty >= 4 ? 'text-red-400' : contract.difficulty >= 3 ? 'text-orange-400' : 'text-gray-300' },
+                        { label: 'Money Reward', value: `$${formatNumber(contract.reward.money)}`, color: 'text-green-400' },
+                        ...(contract.reward.researchPoints ? [{ label: 'RP Reward', value: `${contract.reward.researchPoints} RP`, color: 'text-purple-400' as string }] : []),
+                        ...(contract.reward.corporationPoints && contract.reward.corporationPoints > 0 ? [{ label: 'CP Reward', value: `${contract.reward.corporationPoints} CP`, color: 'text-fuchsia-400' as string }] : []),
+                      ]}
+                      side="right"
+                    >
+                    <div className={`bg-[#0a0e17] rounded-lg p-4 border ${
                       isUrgent ? 'border-red-900/50' : canFulfill ? 'border-green-900/30' : 'border-gray-800'
                     }`}>
                       <div className="flex items-center justify-between mb-2">
@@ -178,6 +199,7 @@ export function ContractPanel() {
                         )}
                       </Button>
                     </div>
+                    </GameItemTooltip>
                   );
                 })}
               </div>

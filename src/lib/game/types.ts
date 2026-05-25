@@ -358,6 +358,21 @@ export interface LoginStreak {
   weeklyRewards: DailyReward[]; // 7 rewards for current week
 }
 
+// --- Payout ---
+export interface PayoutConfig {
+  basePayoutInterval: number; // ticks between payouts (e.g., 100 ticks = ~100 seconds at 1x)
+  lastPayoutTick: number;
+  totalPayoutsReceived: number;
+  autoCollect: boolean; // whether payouts are auto-collected
+}
+
+export interface PayoutRecord {
+  tick: number;
+  amount: number;
+  buildingCount: number;
+  efficiency: number;
+}
+
 // --- Game State ---
 export interface GameState {
   // Core
@@ -457,13 +472,21 @@ export interface GameState {
   // Quests
   quests: Quest[];
 
+  // Payout System
+  payoutConfig: PayoutConfig;
+  pendingPayout: number;
+  payoutHistory: PayoutRecord[];
+
+  // Tracked Quest
+  trackedQuest: string | null; // quest id that is being tracked/pinned
+
   // UI State
   activeTab: GameTab;
   selectedBuilding: string | null;
   notifications: GameNotification[];
 }
 
-export type GameTab = 'dashboard' | 'factoryMap' | 'resources' | 'factories' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'contracts' | 'quests' | 'automation' | 'prestige' | 'events' | 'megaprojects' | 'statistics' | 'blueprints' | 'guide' | 'achievements' | 'leaderboard' | 'dailyRewards' | 'notifications' | 'settings';
+export type GameTab = 'dashboard' | 'factoryMap' | 'resources' | 'factories' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'contracts' | 'quests' | 'automation' | 'prestige' | 'events' | 'megaprojects' | 'statistics' | 'blueprints' | 'guide' | 'achievements' | 'leaderboard' | 'dailyRewards' | 'payouts' | 'notifications' | 'settings';
 
 export interface GameNotification {
   id: string;

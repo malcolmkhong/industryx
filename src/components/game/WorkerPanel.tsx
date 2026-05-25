@@ -11,6 +11,7 @@ import {
   Zap, TrendingUp
 } from 'lucide-react';
 import { WorkerType } from '@/lib/game/types';
+import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 
 // Radar chart helper: compute polygon points for a 3-axis spider chart
 function RadarChart({ values, labels, colors, size = 160 }: {
@@ -226,7 +227,22 @@ export function WorkerPanel() {
                 const count = workersByType[type].length;
 
                 return (
-                  <div key={type} className="bg-[#0a0e17] rounded-lg p-3 border border-gray-800">
+                  <GameItemTooltip
+                    key={type}
+                    name={def.name}
+                    emoji={def.emoji}
+                    description={def.description}
+                    category="Worker"
+                    details={[
+                      { label: 'Hire Cost', value: `$${formatNumber(def.baseHireCost)}`, color: canAfford ? 'text-green-400' : 'text-red-400' },
+                      { label: 'Efficiency /lv', value: `+${(def.effects.efficiency * 100).toFixed(0)}%`, color: 'text-green-400' },
+                      { label: 'Speed /lv', value: `+${(def.effects.speed * 100).toFixed(0)}%`, color: 'text-cyan-400' },
+                      { label: 'Maintenance /lv', value: `-${(def.effects.maintenance * 100).toFixed(0)}%`, color: 'text-orange-400' },
+                      { label: 'Hired', value: `${count}` },
+                    ]}
+                    side="bottom"
+                  >
+                  <div className="bg-[#0a0e17] rounded-lg p-3 border border-gray-800">
                     <div className="flex items-center gap-3 mb-2">
                       <div className="w-10 h-10 rounded-lg bg-sky-900/20 flex items-center justify-center text-xl">
                         {def.emoji}
@@ -264,6 +280,7 @@ export function WorkerPanel() {
                       Hire for ${formatNumber(def.baseHireCost)}
                     </Button>
                   </div>
+                  </GameItemTooltip>
                 );
               })}
             </div>

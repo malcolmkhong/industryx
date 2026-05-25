@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useCallback, useEffect } from 'react';
 import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/store';
-import { BUILDING_DEFS, RESOURCE_META } from '@/lib/game/data';
+import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE } from '@/lib/game/data';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +14,7 @@ import {
   ArrowUpFromLine, RotateCcw
 } from 'lucide-react';
 import { BuildingType, ResourceType, ExtractorType } from '@/lib/game/types';
+import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 
 const EXTRACTOR_TYPES: ExtractorType[] = ['miningDrill', 'oilPump', 'waterExtractor', 'quarry'];
 
@@ -163,8 +164,27 @@ export function ResourcePanel() {
                 const activeCount = extractorsByType[type].filter(b => b.active).length;
 
                 return (
-                  <div
+                  <GameItemTooltip
                     key={type}
+                    name={def.name}
+                    emoji={def.emoji}
+                    description={def.description}
+                    category="Extractor"
+                    tier={def.tier}
+                    details={[
+                      { label: 'Production Rate', value: `${def.baseProductionRate}/t` },
+                      ...(def.outputs?.map(o => ({ label: `Output: ${RESOURCE_META[o.resource].name}`, value: `${o.amount}/t`, color: 'text-green-400' })) ?? []),
+                      { label: 'Power Consumption', value: `${def.basePowerConsumption} MW`, color: 'text-yellow-400' },
+                      { label: 'Build Cost', value: `$${formatNumber(cost)}`, color: canAfford ? 'text-green-400' : 'text-red-400' },
+                      { label: 'Cost Multiplier', value: `x${def.costMultiplier}` },
+                    ]}
+                    requirements={[
+                      ...(def.unlockRequirement?.research ? [{ label: 'Research', value: RESEARCH_TREE.find(r => r.id === def.unlockRequirement!.research)?.name ?? def.unlockRequirement.research, color: store.completedResearch.includes(def.unlockRequirement.research) ? 'text-green-400' : 'text-red-400' }] : []),
+                      ...(def.unlockRequirement?.level ? [{ label: 'Level Required', value: `${def.unlockRequirement.level}`, color: 'text-amber-400' }] : []),
+                    ]}
+                    side="bottom"
+                  >
+                  <div
                     className={`relative rounded-lg p-3 border transition-all duration-200 ${
                       !unlocked
                         ? 'bg-[#0a0e17] border-gray-800 opacity-60'
@@ -234,6 +254,7 @@ export function ResourcePanel() {
                       )}
                     </div>
                   </div>
+                  </GameItemTooltip>
                 );
               })}
             </div>

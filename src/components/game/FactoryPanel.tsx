@@ -3,7 +3,7 @@
 import { useMemo, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/store';
-import { BUILDING_DEFS, RESOURCE_META, PRODUCTION_CHAINS } from '@/lib/game/data';
+import { BUILDING_DEFS, RESOURCE_META, PRODUCTION_CHAINS, RESEARCH_TREE } from '@/lib/game/data';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -14,6 +14,7 @@ import {
   Gauge, Box, GitCompare, CheckCircle2, CircleDot
 } from 'lucide-react';
 import { FactoryType, ResourceType, BuildingType } from '@/lib/game/types';
+import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 
 // Factory types organized by tier
 const TIER_1_FACTORIES: FactoryType[] = ['smelter', 'wireMill', 'chemicalPlant', 'glassFurnace', 'steelForge', 'carbonProcessor'];
@@ -287,8 +288,26 @@ export function FactoryPanel() {
                             const unlocked = isBuildingUnlocked(type, store.completedResearch, store.prestigeState);
 
                             return (
-                              <div
+                              <GameItemTooltip
                                 key={type}
+                                name={def.name}
+                                emoji={def.emoji}
+                                description={def.description}
+                                category="Factory"
+                                tier={def.tier}
+                                details={[
+                                  ...(def.inputs?.map(inp => ({ label: `Input: ${RESOURCE_META[inp.resource].name}`, value: `${inp.amount}/t`, color: 'text-red-400' })) ?? []),
+                                  ...(def.outputs?.map(o => ({ label: `Output: ${RESOURCE_META[o.resource].name}`, value: `${o.amount}/t`, color: 'text-green-400' })) ?? []),
+                                  { label: 'Power Consumption', value: `${def.basePowerConsumption} MW`, color: 'text-yellow-400' },
+                                  { label: 'Build Cost', value: `$${formatNumber(cost)}`, color: canAfford ? 'text-green-400' : 'text-red-400' },
+                                  { label: 'Cost Multiplier', value: `x${def.costMultiplier}` },
+                                ]}
+                                requirements={[
+                                  ...(def.unlockRequirement?.research ? [{ label: 'Research', value: RESEARCH_TREE.find(r => r.id === def.unlockRequirement!.research)?.name ?? def.unlockRequirement.research, color: store.completedResearch.includes(def.unlockRequirement.research) ? 'text-green-400' : 'text-red-400' }] : []),
+                                ]}
+                                side="bottom"
+                              >
+                              <div
                                 className={`relative rounded-lg p-3 border bg-[#0a0e17] transition-all duration-200 ${
                                   !unlocked
                                     ? 'border-gray-800 opacity-60'
@@ -369,6 +388,7 @@ export function FactoryPanel() {
                                   )}
                                 </div>
                               </div>
+                              </GameItemTooltip>
                             );
                           })}
                         </div>

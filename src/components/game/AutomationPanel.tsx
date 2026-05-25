@@ -8,6 +8,7 @@ import {
   Bot, Lock, Check, Zap, ArrowRight, Brain,
   RefreshCw, Scale, Wrench, TrendingUp, Building, Package
 } from 'lucide-react';
+import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 
 const AUTO_ICONS: Record<string, React.ReactNode> = {
   autoRouting: <RefreshCw className="w-5 h-5" />,
@@ -70,8 +71,22 @@ export function AutomationPanel() {
           const canActivate = !isActive && hasResearch && canAfford;
 
           return (
-            <div
+            <GameItemTooltip
               key={unlock.type}
+              name={unlock.name}
+              emoji={unlock.emoji}
+              description={unlock.description}
+              category="Automation"
+              details={[
+                { label: 'Cost', value: `${unlock.cost} CP`, color: canAfford ? 'text-green-400' : 'text-red-400' },
+                { label: 'Status', value: isActive ? 'Active' : 'Inactive', color: isActive ? 'text-green-400' : 'text-gray-400' },
+              ]}
+              requirements={[
+                ...(unlock.requiresResearch ? [{ label: 'Research', value: RESEARCH_TREE.find(r => r.id === unlock.requiresResearch)?.name ?? unlock.requiresResearch, color: hasResearch ? 'text-green-400' : 'text-red-400' }] : []),
+              ]}
+              side="bottom"
+            >
+            <div
               className={`game-card rounded-xl bg-[#111827] p-4 border transition-all ${
                 isActive
                   ? 'border-teal-500/50 bg-teal-900/5'
@@ -147,6 +162,7 @@ export function AutomationPanel() {
                 </div>
               )}
             </div>
+            </GameItemTooltip>
           );
         })}
       </div>

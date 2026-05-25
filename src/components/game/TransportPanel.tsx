@@ -11,6 +11,7 @@ import {
   BarChart3, X
 } from 'lucide-react';
 import { TransportType, ResourceType, BuildingInstance } from '@/lib/game/types';
+import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function TransportPanel() {
@@ -428,19 +429,32 @@ export function TransportPanel() {
                 const isSelected = selectedType === type;
                 const cost = def.baseCost.reduce((sum, c) => sum + (c.resource === 'money' ? c.amount : 0), 0);
                 return (
-                  <button
+                  <GameItemTooltip
                     key={type}
-                    onClick={() => setSelectedType(type)}
-                    className={`p-2 rounded-lg border text-center transition-all ${
-                      isSelected
-                        ? 'border-cyan-500/50 bg-cyan-900/20 text-cyan-400'
-                        : 'border-gray-800 bg-[#0a0e17] text-gray-400 hover:border-gray-600'
-                    }`}
+                    name={def.name}
+                    emoji={def.emoji}
+                    description={def.description}
+                    category="Transport"
+                    details={[
+                      { label: 'Throughput', value: `${def.baseThroughput} u/t`, color: 'text-cyan-400' },
+                      { label: 'Base Cost', value: `$${formatNumber(cost)}`, color: 'text-green-400' },
+                      { label: 'Upgrade Multiplier', value: `x${def.upgradeMultiplier}`, color: 'text-purple-400' },
+                    ]}
+                    side="bottom"
                   >
-                    <div className="text-lg">{def.emoji}</div>
-                    <div className="text-[10px] font-medium mt-0.5">{def.name}</div>
-                    <div className="text-[9px] text-gray-500">${formatNumber(cost)}</div>
-                  </button>
+                    <button
+                      onClick={() => setSelectedType(type)}
+                      className={`p-2 rounded-lg border text-center transition-all w-full ${
+                        isSelected
+                          ? 'border-cyan-500/50 bg-cyan-900/20 text-cyan-400'
+                          : 'border-gray-800 bg-[#0a0e17] text-gray-400 hover:border-gray-600'
+                      }`}
+                    >
+                      <div className="text-lg">{def.emoji}</div>
+                      <div className="text-[10px] font-medium mt-0.5">{def.name}</div>
+                      <div className="text-[9px] text-gray-500">${formatNumber(cost)}</div>
+                    </button>
+                  </GameItemTooltip>
                 );
               })}
             </div>
