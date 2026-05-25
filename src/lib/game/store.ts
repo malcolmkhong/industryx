@@ -371,6 +371,17 @@ export const useGameStore = create<GameStore>()(
         const newStats = { ...state.stats, playTime: state.stats.playTime + 1 };
         const notifications: GameNotification[] = [];
 
+        // Weather production multiplier (calculated early for power grid)
+        const weatherDef = WEATHER_DEFS[state.weather.current as WeatherType];
+        let weatherProductionMultiplier = 1;
+        let weatherSolarMultiplier = 1;
+        let weatherWindMultiplier = 1;
+        if (weatherDef) {
+          weatherProductionMultiplier = weatherDef.productionMultiplier;
+          weatherSolarMultiplier = weatherDef.solarMultiplier;
+          weatherWindMultiplier = weatherDef.windMultiplier;
+        }
+
         // Calculate power grid
         let totalProduction = 0;
         let totalConsumption = 0;
@@ -440,17 +451,6 @@ export const useGameStore = create<GameStore>()(
 
         totalProduction *= (1 + powerPrestigeBonus);
         const effectivePowerEfficiency = totalProduction > 0 ? Math.min(1, totalProduction / Math.max(0.001, totalConsumption)) : 0;
-
-        // Weather production multiplier
-        const weatherDef = WEATHER_DEFS[state.weather.current as WeatherType];
-        let weatherProductionMultiplier = 1;
-        let weatherSolarMultiplier = 1;
-        let weatherWindMultiplier = 1;
-        if (weatherDef) {
-          weatherProductionMultiplier = weatherDef.productionMultiplier;
-          weatherSolarMultiplier = weatherDef.solarMultiplier;
-          weatherWindMultiplier = weatherDef.windMultiplier;
-        }
 
         // Process buildings
         state.buildings.forEach(b => {
