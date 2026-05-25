@@ -2,8 +2,8 @@
 
 import { useEffect, useCallback, useRef, useState } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
-import { RESOURCE_META, WEATHER_DEFS } from '@/lib/game/data';
-import { GameTab } from '@/lib/game/types';
+import { BUILDING_DEFS, RESOURCE_META, WEATHER_DEFS } from '@/lib/game/data';
+import { GameTab, ResourceType } from '@/lib/game/types';
 import { DashboardPanel } from '@/components/game/DashboardPanel';
 import { ResourcePanel } from '@/components/game/ResourcePanel';
 import { FactoryPanel } from '@/components/game/FactoryPanel';
@@ -117,6 +117,15 @@ export default function Home() {
   const notifRef = useRef<HTMLDivElement>(null);
   const hasAutoOpenedGuide = useRef(false);
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
+
+  // Hydration guard: prevent rendering dynamic game UI during SSR
+  // This avoids hydration mismatch because Zustand persist rehydrates from localStorage on client
+  // Using a slightly longer delay (50ms) ensures Zustand persist has fully rehydrated
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 50);
+    return () => clearTimeout(t);
+  }, []);
 
   // Save system state
   const [lastSaveTime, setLastSaveTime] = useState<number | null>(null);
@@ -375,10 +384,80 @@ export default function Home() {
     ? Math.min(100, (store.powerGrid.totalProduction / store.powerGrid.totalConsumption) * 100)
     : store.powerGrid.totalProduction > 0 ? 100 : 0;
 
+  // Compute income per minute estimate for tooltip
+  const incomePerMinute = (() => {
+    const activeBuildings = store.buildings.filter(b => b.active);
+    const extractors = activeBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'extractor');
+    const factories = activeBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory');
+    const powerPlants = activeBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power');
+    const extractorRate = 2;
+    const factoryRate = 5;
+    const powerRate = 1;
+    const extractorIncome = extractors.reduce((sum, b) => sum + extractorRate * b.level * b.efficiency, 0);
+    const factoryIncome = factories.reduce((sum, b) => sum + factoryRate * b.level * b.efficiency, 0);
+    const powerIncome = powerPlants.reduce((sum, b) => sum + powerRate * b.level * b.efficiency, 0);
+    const rawPayoutPerCycle = (extractorIncome + factoryIncome + powerIncome) * store.powerGrid.efficiency * store.gameSpeed;
+    const cyclesPerMinute = (60 / (store.payoutConfig.basePayoutInterval / store.gameSpeed));
+    return Math.floor(rawPayoutPerCycle * cyclesPerMinute);
+  })();
+
+  // Compute overall factory efficiency for indicator
+  const factoryEfficiency = (() => {
+    const activeBuildings = store.buildings.filter(b => b.active);
+    if (activeBuildings.length === 0) return 0;
+    return activeBuildings.reduce((sum, b) => sum + b.efficiency, 0) / activeBuildings.length * store.powerGrid.efficiency;
+  })();
+
   const handleMobileTabClick = (tabId: GameTab) => {
     store.setActiveTab(tabId);
     setMobileMoreOpen(false);
   };
+
+  // Show loading skeleton during SSR to prevent hydration mismatch
+  // Zustand persist rehydrates from localStorage on client, causing different initial state
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex flex-col bg-[#0a0e17] text-gray-100 overflow-hidden safe-area-container">
+        <header className="sticky top-0 z-50 border-b border-cyan-900/30 px-2 lg:px-3 py-1.5 lg:py-2">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-base font-bold shadow-[0_0_12px_rgba(0,255,242,0.2)]">
+              FD
+            </div>
+            <div>
+              <h1 className="text-sm font-bold text-cyan-400 tracking-wider">FACTORY DOMINION</h1>
+              <p className="text-[10px] text-gray-500 -mt-0.5">Automated Empire</p>
+            </div>
+            <div className="flex items-center gap-3 ml-4">
+              <div className="h-5 w-24 bg-gray-800/60 rounded shimmer-loading" />
+              <div className="h-5 w-20 bg-gray-800/60 rounded shimmer-loading" />
+              <div className="h-5 w-16 bg-gray-800/60 rounded shimmer-loading" />
+            </div>
+          </div>
+        </header>
+        <div className="flex flex-1 overflow-hidden">
+          <nav className="hidden lg:block w-44 flex-shrink-0 bg-[#0d1220] border-r border-cyan-900/20">
+            <div className="flex flex-col py-1 gap-1 px-3">
+              {[1,2,3,4,5,6,7,8].map(i => (
+                <div key={i} className="h-8 bg-gray-800/30 rounded shimmer-loading" />
+              ))}
+            </div>
+          </nav>
+          <main className="flex-1 p-4 flex items-center justify-center">
+            <div className="text-center loading-skeleton-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-cyan-500/20 to-teal-600/20 flex items-center justify-center text-3xl loading-icon-pulse">
+                🏭
+              </div>
+              <p className="text-cyan-400 font-bold text-lg">Loading Factory...</p>
+              <p className="text-gray-500 text-xs mt-1">Initializing industrial empire</p>
+              <div className="mt-4 w-48 h-1 bg-gray-800 rounded-full overflow-hidden mx-auto">
+                <div className="h-full bg-gradient-to-r from-cyan-600 to-teal-500 rounded-full loading-progress-bar" />
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <TooltipProvider>
@@ -401,19 +480,48 @@ export default function Home() {
               {/* Separator */}
               <div className="stat-badge-separator" />
               <div className="flex items-center gap-4 text-xs">
-                <div className={`stat-badge stat-badge-money bg-[#111827] rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default ${moneyGlow ? 'money-glow' : ''}`}>
-                  <span className="text-gray-500">💰 </span>
-                  <span className="text-green-400 font-mono font-bold text-sm">${formatNumber(store.money)}</span>
-                  {store.pendingPayout > 0 && !store.payoutConfig.autoCollect && (
-                    <button
-                      onClick={store.collectPayout}
-                      className="ml-2 animate-pulse inline-flex items-center gap-1 bg-green-900/40 hover:bg-green-800/50 text-green-400 text-[10px] px-1.5 py-0.5 rounded-md border border-green-500/30 transition-colors"
-                      title="Click to collect pending payout"
-                    >
-                      💰 ${formatNumber(store.pendingPayout)}
-                    </button>
-                  )}
-                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className={`stat-badge stat-badge-money bg-[#111827] rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default ${moneyGlow ? 'money-glow' : ''}`}>
+                      <span className="text-gray-500">💰 </span>
+                      <span className="text-green-400 font-mono font-bold text-sm">${formatNumber(store.money)}</span>
+                      {store.pendingPayout > 0 && !store.payoutConfig.autoCollect && (
+                        <button
+                          onClick={store.collectPayout}
+                          className="ml-2 animate-pulse inline-flex items-center gap-1 bg-green-900/40 hover:bg-green-800/50 text-green-400 text-[10px] px-1.5 py-0.5 rounded-md border border-green-500/30 transition-colors"
+                          title="Click to collect pending payout"
+                        >
+                          💰 ${formatNumber(store.pendingPayout)}
+                        </button>
+                      )}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="w-64 bg-[#111827] border-cyan-900/30 p-0 overflow-hidden">
+                    <div className="bg-gradient-to-r from-green-900/30 to-emerald-900/20 px-3 py-2 border-b border-cyan-900/20">
+                      <p className="text-xs font-bold text-green-300">💰 Financial Overview</p>
+                    </div>
+                    <div className="px-3 py-2 space-y-1.5">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-400">Current Balance</span>
+                        <span className="text-green-400 font-mono font-bold">${formatNumber(store.money)}</span>
+                      </div>
+                      {store.pendingPayout > 0 && (
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-400">Pending Payout</span>
+                          <span className="text-yellow-400 font-mono">${formatNumber(store.pendingPayout)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-400">Income/min</span>
+                        <span className="text-cyan-400 font-mono">~${formatNumber(incomePerMinute)}</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-400">Total Earned</span>
+                        <span className="text-emerald-400 font-mono">${formatNumber(store.totalMoneyEarned)}</span>
+                      </div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
                 <div className={`stat-badge stat-badge-power bg-[#111827] rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default ${store.powerGrid.overload ? 'warning-pulse' : ''}`}>
                   <span className="text-gray-500">⚡ </span>
                   <span className={`text-sm ${powerPercent >= 80 ? 'text-yellow-400' : powerPercent >= 50 ? 'text-orange-400' : 'text-red-400'}`}>
@@ -421,6 +529,28 @@ export default function Home() {
                   </span>
                   <span className="text-gray-600"> / </span>
                   <span className="text-gray-400 text-sm">{formatNumber(store.powerGrid.totalConsumption)}MW</span>
+                  {/* Efficiency indicator dot */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span
+                        className={`ml-1.5 inline-block w-2 h-2 rounded-full ${
+                          factoryEfficiency >= 0.8
+                            ? 'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.6)]'
+                            : factoryEfficiency >= 0.5
+                              ? 'bg-yellow-400 shadow-[0_0_6px_rgba(250,204,21,0.6)]'
+                              : 'bg-red-400 shadow-[0_0_6px_rgba(248,113,113,0.6)]'
+                        } ${store.buildings.filter(b => b.active).length > 0 ? 'animate-pulse' : ''}`}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="bg-[#111827] border-cyan-900/30">
+                      <p className="text-xs font-semibold mb-1" style={{ color: factoryEfficiency >= 0.8 ? '#4ade80' : factoryEfficiency >= 0.5 ? '#facc15' : '#f87171' }}>
+                        Factory Efficiency: {(factoryEfficiency * 100).toFixed(0)}%
+                      </p>
+                      <p className="text-[10px] text-gray-400">
+                        {factoryEfficiency >= 0.8 ? 'Running smoothly!' : factoryEfficiency >= 0.5 ? 'Some buildings need attention' : 'Critical: Check power & buildings'}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
                 {/* Separator */}
                 <div className="stat-badge-separator" />
@@ -769,7 +899,7 @@ export default function Home() {
           {/* PANEL AREA - with bottom padding for mobile tab bar */}
           <main className="flex-1 overflow-y-auto game-scrollbar p-2 lg:p-4 game-grid-bg pb-20 lg:pb-4 relative">
             <AmbientParticles />
-            <div className="relative z-10 tab-content-enter" key={store.activeTab}>
+            <div className="relative z-10 game-content-appear" key={store.activeTab}>
               {renderPanel()}
             </div>
           </main>

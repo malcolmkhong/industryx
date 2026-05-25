@@ -115,8 +115,39 @@ export function DashboardPanel() {
     store.buildBuilding(type);
   };
 
+  // Check if there's an unclaimed daily reward
+  const hasUnclaimedDailyReward = useMemo(() => {
+    const ls = store.loginStreak;
+    if (!ls.lastLoginDate) return false;
+    const currentDay = ((ls.currentStreak - 1) % 7) + 1;
+    return ls.weeklyRewards.some(r => r.day === currentDay && !r.claimed);
+  }, [store.loginStreak]);
+
   return (
     <div className="space-y-4">
+      {/* DAILY REWARD AVAILABLE BANNER */}
+      {hasUnclaimedDailyReward && (
+        <motion.button
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, type: 'spring' }}
+          onClick={() => store.setActiveTab('dailyRewards')}
+          className="w-full bg-gradient-to-r from-pink-900/25 via-purple-900/20 to-fuchsia-900/25 border border-pink-500/30 rounded-xl p-3 flex items-center justify-between group hover:border-pink-400/50 transition-colors cursor-pointer"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-2xl animate-bounce">🎁</span>
+            <div className="text-left">
+              <p className="text-sm font-bold text-pink-300 group-hover:text-pink-200 transition-colors">Daily Reward Available!</p>
+              <p className="text-[10px] text-gray-400">Click to claim your daily login bonus</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-pink-400/70 uppercase tracking-wider font-semibold">Day {((store.loginStreak.currentStreak - 1) % 7) + 1}</span>
+            <ArrowRight className="w-4 h-4 text-pink-400/50 group-hover:text-pink-300 group-hover:translate-x-0.5 transition-all" />
+          </div>
+        </motion.button>
+      )}
+
       {/* RANK BAR */}
       <RankBar store={store} />
 

@@ -962,6 +962,24 @@ export const useGameStore = create<GameStore>()(
             };
 
             soundEngine.play('moneyEarned', 'building');
+
+            // --- Payout Milestone Celebrations ---
+            const PAYOUT_MILESTONES = [1, 10, 25, 50, 100];
+            const newTotalPayouts = newPayoutConfig.totalPayoutsReceived;
+            PAYOUT_MILESTONES.forEach(milestone => {
+              if (newTotalPayouts === milestone) {
+                const milestoneEmojis: Record<number, string> = { 1: '🎉', 10: '🎊', 25: '💰', 50: '🏆', 100: '👑' };
+                const milestoneColors: Record<number, string> = { 1: '#4ade80', 10: '#22d3ee', 25: '#facc15', 50: '#f97316', 100: '#e879f9' };
+                get().addCelebration({
+                  type: 'payoutMilestone',
+                  title: `${milestoneEmojis[milestone] ?? '🎉'} ${milestone} Payouts!`,
+                  emoji: milestoneEmojis[milestone] ?? '🎉',
+                  color: milestoneColors[milestone] ?? '#4ade80',
+                  description: `You've received ${milestone} payout${milestone > 1 ? 's' : ''}! Keep your factories running!`,
+                });
+                soundEngine.play('levelUp', 'events');
+              }
+            });
           }
         }
 
