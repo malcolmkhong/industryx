@@ -9,7 +9,7 @@ import {
   GameState, GameTab, ResourceType, BuildingInstance, BuildingType,
   TransportLine, TransportType, Worker, WorkerType, Contract,
   GameEvent, GameNotification, PowerGrid, MarketPrice, MegaProjectType,
-  Blueprint, Celebration, LeaderboardEntry, LoginStreak, DailyReward,
+  Blueprint, LeaderboardEntry, LoginStreak, DailyReward,
   WeatherType, PayoutConfig, PayoutRecord, Drone, DroneMission,
 } from './types';
 import {
@@ -165,11 +165,8 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
     }
   }
 
-  // V3 → V4: Add celebrations and leaderboardEntries
+  // V3 → V4: Add leaderboardEntries (celebrations removed)
   if (version < 4) {
-    if (!state.celebrations) {
-      state.celebrations = [];
-    }
     if (!state.leaderboardEntries) {
       state.leaderboardEntries = [];
     }
@@ -306,7 +303,7 @@ function createInitialState(): GameState {
     autoSellResources: [],
     storageUpgradeLevels: { ...initialResources },
     lastOnlineTimestamp: Date.now(),
-    celebrations: [],
+
     leaderboardEntries: [],
     loginStreak: {
       currentStreak: 0,
@@ -402,10 +399,9 @@ interface GameActions {
   markAllNotificationsRead: () => void;
   clearNotifications: () => void;
 
-  // Celebrations
-  addCelebration: (celebration: Celebration) => void;
-  dismissCelebration: () => void;
+  // Celebrations (removed)
   
+
   // Save/Export/Import
   exportSave: () => string;
   importSave: (saveString: string) => boolean;
@@ -962,24 +958,6 @@ export const useGameStore = create<GameStore>()(
               read: false,
             });
 
-            // Celebration for MegaProject stage complete
-            if (isCompleted) {
-              get().addCelebration({
-                type: 'megaProjectComplete',
-                title: `${mp.emoji} ${mp.name} Complete!`,
-                emoji: mp.emoji,
-                color: '#f472b6',
-                description: mp.bonus.description,
-              });
-            } else {
-              get().addCelebration({
-                type: 'megaProjectStage',
-                title: `${mp.emoji} Stage ${nextStage}/${mp.stages.length}`,
-                emoji: '⚡',
-                color: '#facc15',
-                description: `${mp.name}: ${mp.stages[mp.currentStage]?.name} complete!`,
-              });
-            }
             soundEngine.play('levelUp', 'events');
 
             return {
@@ -995,18 +973,11 @@ export const useGameStore = create<GameStore>()(
           return { ...mp, progress: newProgress };
         });
 
-        // --- Milestone detection for celebrations ---
+        // --- Milestone detection ---
         // Power milestones
         const POWER_MILESTONES = [100, 500, 1000];
         POWER_MILESTONES.forEach(milestone => {
           if (totalProduction >= milestone && state.powerGrid.totalProduction < milestone) {
-            get().addCelebration({
-              type: 'powerMilestone',
-              title: `⚡ ${milestone}MW Power!`,
-              emoji: '⚡',
-              color: '#facc15',
-              description: `Your power grid now produces ${milestone}MW!`,
-            });
             soundEngine.play('levelUp', 'events');
           }
         });
@@ -1103,15 +1074,6 @@ export const useGameStore = create<GameStore>()(
             const newTotalPayouts = newPayoutConfig.totalPayoutsReceived;
             PAYOUT_MILESTONES.forEach(milestone => {
               if (newTotalPayouts === milestone) {
-                const milestoneEmojis: Record<number, string> = { 1: '🎉', 10: '🎊', 25: '💰', 50: '🏆', 100: '👑' };
-                const milestoneColors: Record<number, string> = { 1: '#4ade80', 10: '#22d3ee', 25: '#facc15', 50: '#f97316', 100: '#e879f9' };
-                get().addCelebration({
-                  type: 'payoutMilestone',
-                  title: `${milestoneEmojis[milestone] ?? '🎉'} ${milestone} Payouts!`,
-                  emoji: milestoneEmojis[milestone] ?? '🎉',
-                  color: milestoneColors[milestone] ?? '#4ade80',
-                  description: `You've received ${milestone} payout${milestone > 1 ? 's' : ''}! Keep your factories running!`,
-                });
                 soundEngine.play('levelUp', 'events');
               }
             });
@@ -1195,14 +1157,6 @@ export const useGameStore = create<GameStore>()(
           if (newScore >= RANK_THRESHOLDS[i].minScore) { newRankName = RANK_THRESHOLDS[i].name; break; }
         }
         if (newRankName !== prevRankName) {
-          const newRank = RANK_THRESHOLDS.find(r => r.name === newRankName);
-          get().addCelebration({
-            type: 'rankUp',
-            title: `${newRank?.emoji ?? '🏆'} Rank Up!`,
-            emoji: newRank?.emoji ?? '🏆',
-            color: newRank?.color ?? '#4ade80',
-            description: `You are now ${newRankName}!`,
-          });
           soundEngine.play('levelUp', 'events');
         }
 
@@ -1273,15 +1227,8 @@ export const useGameStore = create<GameStore>()(
           placedAt: state.gameTick,
         };
 
-        // First building celebration
+        // First building
         if (state.buildings.length === 0) {
-          get().addCelebration({
-            type: 'firstBuilding',
-            title: 'First Steps!',
-            emoji: '🏗️',
-            color: '#4ade80',
-            description: 'You placed your first building! Your factory empire begins!',
-          });
           soundEngine.play('levelUp', 'events');
         }
 
@@ -1799,17 +1746,7 @@ export const useGameStore = create<GameStore>()(
         }));
       },
 
-      // --- CELEBRATION ACTIONS ---
-      addCelebration: (celebration: Celebration) => {
-        set(state => ({
-          celebrations: [...state.celebrations, celebration],
-        }));
-      },
-      dismissCelebration: () => {
-        set(state => ({
-          celebrations: state.celebrations.slice(1),
-        }));
-      },
+
 
       exportSave: () => {
         const state = get();
@@ -1832,7 +1769,6 @@ export const useGameStore = create<GameStore>()(
           storageUpgradeLevels: state.storageUpgradeLevels,
           lastOnlineTimestamp: state.lastOnlineTimestamp,
           _version: SAVE_VERSION,
-          celebrations: state.celebrations,
           leaderboardEntries: state.leaderboardEntries,
           loginStreak: state.loginStreak,
           weather: state.weather,
@@ -2656,7 +2592,6 @@ export const useGameStore = create<GameStore>()(
         autoSellResources: state.autoSellResources,
         storageUpgradeLevels: state.storageUpgradeLevels,
         lastOnlineTimestamp: state.lastOnlineTimestamp,
-        celebrations: state.celebrations,
         leaderboardEntries: state.leaderboardEntries,
         loginStreak: state.loginStreak,
         weather: state.weather,

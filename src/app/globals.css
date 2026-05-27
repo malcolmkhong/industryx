@@ -654,16 +654,6 @@
   background-size: 8px 8px;
 }
 
-/* ===== Celebration Confetti Particle ===== */
-@keyframes confettiFall {
-  0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
-  100% { transform: translateY(100px) rotate(720deg); opacity: 0; }
-}
-.confetti-particle {
-  animation: confettiFall 2s ease-out forwards;
-  pointer-events: none;
-}
-
 /* ===== Glow Pulse for Important Badges ===== */
 @keyframes glowPulse {
   0%, 100% { box-shadow: 0 0 5px currentColor; }
@@ -814,7 +804,6 @@
   .animate-factory-map-spark,
   .animate-factory-map-pulse-ring,
   .animate-factory-map-upgrade-flash,
-  .confetti-particle,
   .glow-pulse,
   .streak-highlight,
   .news-ticker-content,

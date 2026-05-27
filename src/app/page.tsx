@@ -26,7 +26,6 @@ import FactoryMapPanel from '@/components/game/FactoryMapPanel';
 import GameToast from '@/components/game/GameToast';
 import FloatingNumbers from '@/components/game/FloatingNumbers';
 import AmbientParticles from '@/components/game/AmbientParticles';
-import CelebrationOverlay from '@/components/game/CelebrationOverlay';
 import LeaderboardPanel from '@/components/game/LeaderboardPanel';
 import DailyRewardsPanel from '@/components/game/DailyRewardsPanel';
 import { QuestPanel } from '@/components/game/QuestPanel';
@@ -1087,9 +1086,6 @@ export default function Home() {
 
       {/* Toast notifications */}
       <GameToast />
-
-      {/* Celebration overlay for milestones */}
-      <CelebrationOverlay />
 
       {/* Offline Earnings Dialog */}
       <Dialog open={offlineDialogOpen} onOpenChange={setOfflineDialogOpen}>

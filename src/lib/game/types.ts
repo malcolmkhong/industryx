@@ -290,15 +290,6 @@ export interface LeaderboardEntry {
   rankName: string; // from RANK_THRESHOLDS
 }
 
-// --- Celebrations ---
-export interface Celebration {
-  type: string;
-  title: string;
-  emoji: string;
-  color: string;
-  description: string;
-}
-
 // --- Weather ---
 export type WeatherType = 'clear' | 'rainy' | 'stormy' | 'sunny' | 'foggy' | 'snowy';
 
@@ -458,9 +449,6 @@ export interface GameState {
 
   // Offline Progress
   lastOnlineTimestamp: number;
-
-  // Celebrations (milestone overlay queue)
-  celebrations: Celebration[];
 
   // Leaderboard
   leaderboardEntries: LeaderboardEntry[];
