@@ -1839,3 +1839,38 @@ Stage Summary:
 - Power grid efficiency, consumption, overload update instantly
 - Plant cards show 0 MW when turned off
 - Sound effects on power plant toggle
+
+---
+Task ID: research-tab-audit
+Agent: Main Developer
+Task: Audit Research Lab tab - verify all research effects are wired to game systems
+
+Work Log:
+- Audited all 18 research nodes with 19 total effects (advancedLogistics has 2 effects)
+- Traced each effect type through store.ts to verify application:
+  - productionSpeed (basicAutomation, advancedAutomation) → applied in gameTick efficiency calc ✅
+  - unlockBuilding (12 buildings) → applied via isBuildingUnlocked() ✅
+  - transportSpeed (logistics1, advancedLogistics) → applied dynamically in transportEfficiency ✅
+  - unlockTransport (cargoTrain) → gated in TransportPanel + buildTransportLine ✅
+  - powerEfficiency (energyEfficiency) → applied in consumption calc ✅
+  - marketBonus (marketAnalysis) → applied in sell price calc ✅
+  - workerEfficiency (workerTraining) → applied in worker speed calc ✅
+  - storageBonus (storageExpansion) → was BROKEN (getCapacity function was lost)
+- Fixed critical bug: getCapacity() function was completely missing from store.ts
+  - All capacity references had been reverted to raw state.resourceCapacity[res]
+  - Re-added getCapacity() with storageBonus research check
+  - Replaced all 10 direct state.resourceCapacity[res] references with getCapacity(state, res) calls
+  - Kept upgradeStorage using raw state.resourceCapacity to avoid double-counting
+- Verified ResearchPanel UI:
+  - Active research progress bar, completion tracking, prerequisite display ✅
+  - startResearch action validates: not already active, not completed, prerequisites met, can afford ✅
+  - gameTick properly advances research and adds to completedResearch on completion ✅
+  - isResearchUnlocked exported and used correctly ✅
+- Verified isBuildingUnlocked handles string research IDs for buildings ✅
+- Verified MegaProject unlockRequirement uses number count (different type) handled separately ✅
+
+Stage Summary:
+- All 18 research nodes with 19 effects are now properly wired to game systems
+- Critical fix: getCapacity() re-added with storageBonus research applied
+- 10 capacity reference sites updated from raw state.resourceCapacity to getCapacity()
+- Research tab is fully functional end-to-end

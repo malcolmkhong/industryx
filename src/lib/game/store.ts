@@ -64,6 +64,13 @@ function isBuildingUnlocked(type: BuildingType, completedResearch: string[], pre
   return true;
 }
 
+function getCapacity(state: GameState, resource: ResourceType): number {
+  const baseCapacity = state.resourceCapacity[resource] ?? 50;
+  // Apply Storage Expansion research bonus (+50% capacity)
+  const storageBonus = state.completedResearch.includes('storageExpansion') ? 0.5 : 0;
+  return Math.floor(baseCapacity * (1 + storageBonus));
+}
+
 // --- Drone Mission Generator ---
 function generateDroneMissionsFromState(state: GameState): DroneMission[] {
   const missions: DroneMission[] = [];
@@ -585,7 +592,7 @@ export const useGameStore = create<GameStore>()(
               const res = output.resource as ResourceType;
               const produced = output.amount * b.level * efficiency;
               const capacity = newResources[res] + produced;
-              newResources[res] = Math.min(state.resourceCapacity[res], capacity);
+              newResources[res] = Math.min(getCapacity(state, res), capacity);
               newStats.totalResourcesProduced[res] += produced;
             });
           }
@@ -619,7 +626,7 @@ export const useGameStore = create<GameStore>()(
                   const res = output.resource as ResourceType;
                   const produced = output.amount * b.level * efficiency;
                   const capacity = newResources[res] + produced;
-                  newResources[res] = Math.min(state.resourceCapacity[res], capacity);
+                  newResources[res] = Math.min(getCapacity(state, res), capacity);
                   newStats.totalResourcesProduced[res] += produced;
                 });
               }
@@ -882,7 +889,7 @@ export const useGameStore = create<GameStore>()(
         let moneyEarned = 0;
         if (autoFulfill) {
           (Object.keys(newResources) as ResourceType[]).forEach(r => {
-            const excess = newResources[r] - state.resourceCapacity[r] * 0.8;
+            const excess = newResources[r] - getCapacity(state, r) * 0.8;
             if (excess > 0) {
               const marketPrice = newMarket.find(m => m.resource === r)?.currentPrice ?? 0;
               const sellPrice = marketPrice * 0.9;
@@ -897,7 +904,7 @@ export const useGameStore = create<GameStore>()(
         // Auto-sell specific resources when > 80% capacity
         if (state.autoSellResources.length > 0) {
           state.autoSellResources.forEach(r => {
-            const threshold = state.resourceCapacity[r] * 0.8;
+            const threshold = getCapacity(state, r) * 0.8;
             const excess = newResources[r] - threshold;
             if (excess > 0) {
               const marketItem = newMarket.find(m => m.resource === r);
@@ -1116,7 +1123,7 @@ export const useGameStore = create<GameStore>()(
           // Add resources from drone deliveries
           (Object.keys(droneResourceRewards) as ResourceType[]).forEach(r => {
             const amount = droneResourceRewards[r] || 0;
-            newResources[r] = Math.min(state.resourceCapacity[r], newResources[r] + amount);
+            newResources[r] = Math.min(getCapacity(state, r), newResources[r] + amount);
           });
 
           moneyEarned += droneMoneyEarned;
@@ -1532,7 +1539,7 @@ export const useGameStore = create<GameStore>()(
         }
 
         const newAmount = state.resources[resource] + amount;
-        if (newAmount > state.resourceCapacity[resource]) {
+        if (newAmount > getCapacity(state, resource)) {
           soundEngine.play('error', 'ui');
           get().addNotification('warning', 'Storage full!');
           return;
@@ -2100,7 +2107,7 @@ export const useGameStore = create<GameStore>()(
             if (reward.resource) {
               const res = reward.resource;
               const newResources = { ...state.resources };
-              newResources[res] = Math.min(state.resourceCapacity[res], newResources[res] + reward.amount);
+              newResources[res] = Math.min(getCapacity(state, res), newResources[res] + reward.amount);
               updates.resources = newResources;
             }
             break;
@@ -2233,13 +2240,13 @@ export const useGameStore = create<GameStore>()(
 
         // Apply capacity limits to offline resources
         (Object.keys(offlineResources) as ResourceType[]).forEach(r => {
-          offlineResources[r] = Math.min(offlineResources[r], Math.max(0, state.resourceCapacity[r] - state.resources[r]));
+          offlineResources[r] = Math.min(offlineResources[r], Math.max(0, getCapacity(state, r) - state.resources[r]));
         });
 
         // Calculate offline money from market sales (reduced rate)
         if (state.automationUnlocks.find(a => a.type === 'autoTrading' && a.active)) {
           (Object.keys(state.resources) as ResourceType[]).forEach(r => {
-            const excess = state.resources[r] - state.resourceCapacity[r] * 0.5;
+            const excess = state.resources[r] - getCapacity(state, r) * 0.5;
             if (excess > 0) {
               const marketPrice = state.market.find(m => m.resource === r)?.currentPrice ?? 0;
               const sellAmount = Math.min(excess, Math.floor(ticksElapsed * 0.1));
@@ -2259,7 +2266,7 @@ export const useGameStore = create<GameStore>()(
         const state = get();
         const newResources = { ...state.resources };
         (Object.keys(offlineData.resources) as ResourceType[]).forEach(r => {
-          newResources[r] = Math.min(state.resourceCapacity[r], newResources[r] + offlineData.resources[r]);
+          newResources[r] = Math.min(getCapacity(state, r), newResources[r] + offlineData.resources[r]);
         });
 
         set({
