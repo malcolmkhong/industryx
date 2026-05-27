@@ -494,10 +494,11 @@ export const useGameStore = create<GameStore>()(
         let totalProduction = 0;
         let totalConsumption = 0;
         const powerBuildings = state.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power' && b.active);
-        const consumingBuildings = state.buildings.filter(b => BUILDING_DEFS[b.type]?.category !== 'power' && b.active);
+        const consumingBuildings = state.buildings.filter(b => { const d = BUILDING_DEFS[b.type]; return d && d.category !== 'power' && b.active; });
 
         powerBuildings.forEach(b => {
           const def = BUILDING_DEFS[b.type];
+          if (!def) return;
           let production = def.basePowerProduction * b.level * b.efficiency;
           if (def.fuel && def.fuelRate) {
             if (newResources[def.fuel] >= def.fuelRate * b.level) {
@@ -522,6 +523,7 @@ export const useGameStore = create<GameStore>()(
 
         consumingBuildings.forEach(b => {
           const def = BUILDING_DEFS[b.type];
+          if (!def) return;
           totalConsumption += def.basePowerConsumption * b.level * b.efficiency;
         });
 
@@ -1331,7 +1333,7 @@ export const useGameStore = create<GameStore>()(
         let totalProduction = 0;
         let totalConsumption = 0;
         const powerBuildings = newBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power' && b.active);
-        const consumingBuildings = newBuildings.filter(b => BUILDING_DEFS[b.type]?.category !== 'power' && b.active);
+        const consumingBuildings = newBuildings.filter(b => { const d = BUILDING_DEFS[b.type]; return d && d.category !== 'power' && b.active; });
         const newResources = { ...state.resources };
 
         powerBuildings.forEach(b => {
