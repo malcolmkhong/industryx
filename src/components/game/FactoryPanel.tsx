@@ -11,10 +11,10 @@ import {
   Zap, Lock, Layers, Cog, Flame,
   Brain, ArrowDownToLine,
   ArrowUpFromLine, Package, Workflow,
-  Gauge, Box, GitCompare, CheckCircle2,
+  Gauge, Box,
   Pickaxe, Sparkles, X,
 } from 'lucide-react';
-import { FactoryType, ResourceType, BuildingType } from '@/lib/game/types';
+import { FactoryType, ResourceType } from '@/lib/game/types';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 
 // Factory types organized by tier
@@ -122,8 +122,6 @@ export function FactoryPanel() {
   const store = useGameStore();
   const [selectedTier, setSelectedTier] = useState<number>(1);
   const [selectedChain, setSelectedChain] = useState<number>(0);
-  const [compareA, setCompareA] = useState<BuildingType | ''>('');
-  const [compareB, setCompareB] = useState<BuildingType | ''>('');
   const [selectedFlowNode, setSelectedFlowNode] = useState<string | null>(null);
 
   // Track recently built/upgraded buildings for CSS animation classes
@@ -297,28 +295,28 @@ export function FactoryPanel() {
 
       {/* OVERVIEW STATS */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <FactoryStatCard
+        <PanelStatCard
           icon={<Factory className="w-4 h-4" />}
           label="Total Factories"
           value={totalFactories.toString()}
           subtext={`${activeFactories} running`}
           color="cyan"
         />
-        <FactoryStatCard
+        <PanelStatCard
           icon={<Zap className="w-4 h-4" />}
           label="Power Draw"
           value={`${formatNumber(totalPowerConsumption)}`}
           subtext="MW consumed"
           color="yellow"
         />
-        <FactoryStatCard
+        <PanelStatCard
           icon={<Gauge className="w-4 h-4" />}
           label="Avg Efficiency"
           value={`${(avgEfficiency * 100).toFixed(0)}%`}
           subtext={store.powerGrid.overload ? 'Grid overloaded!' : 'Nominal'}
           color={avgEfficiency >= 0.8 ? 'green' : avgEfficiency >= 0.5 ? 'orange' : 'red'}
         />
-        <FactoryStatCard
+        <PanelStatCard
           icon={<Package className="w-4 h-4" />}
           label="Products"
           value={Object.keys(factoryProductionRates).length.toString()}
@@ -339,7 +337,7 @@ export function FactoryPanel() {
 
         {/* SVG Flow Diagram */}
         <div className="relative bg-[#0a0e17] rounded-lg p-2 overflow-x-auto">
-          <svg viewBox="0 0 1400 160" className="w-full h-auto min-w-[600px]" style={{ maxHeight: '180px' }}>
+          <svg viewBox="0 0 1200 160" className="w-full h-auto min-w-[500px]" style={{ maxHeight: '180px' }}>
             {/* Background grid pattern */}
             <defs>
               <pattern id="flowGrid" width="20" height="20" patternUnits="userSpaceOnUse">
@@ -359,14 +357,14 @@ export function FactoryPanel() {
                     <animateMotion
                       dur="2s"
                       repeatCount="indefinite"
-                      path={`M${170 + i * 250},80 L${220 + i * 250},80`}
+                      path={`M${150 + i * 220},80 L${195 + i * 220},80`}
                     />
                     <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite" />
                   </circle>
                 ) : null
               ))}
             </defs>
-            <rect width="1400" height="160" fill="url(#flowGrid)" />
+            <rect width="1200" height="160" fill="url(#flowGrid)" />
 
             {/* Connection lines with animated flow */}
             {FLOW_TIERS.map((tier, i) => (
@@ -374,9 +372,9 @@ export function FactoryPanel() {
                 <g key={`conn${i}`}>
                   {/* Main connection line */}
                   <line
-                    x1={170 + i * 250}
+                    x1={150 + i * 220}
                     y1={80}
-                    x2={220 + i * 250}
+                    x2={195 + i * 220}
                     y2={80}
                     stroke={FLOW_TIERS[i + 1].color}
                     strokeWidth="2"
@@ -385,9 +383,9 @@ export function FactoryPanel() {
                   />
                   {/* Animated flow overlay */}
                   <line
-                    x1={170 + i * 250}
+                    x1={150 + i * 220}
                     y1={80}
-                    x2={220 + i * 250}
+                    x2={195 + i * 220}
                     y2={80}
                     stroke={FLOW_TIERS[i + 1].color}
                     strokeWidth="2"
@@ -398,13 +396,13 @@ export function FactoryPanel() {
                   </line>
                   {/* Arrow head */}
                   <polygon
-                    points={`${215 + i * 250},75 ${225 + i * 250},80 ${215 + i * 250},85`}
+                    points={`${190 + i * 220},75 ${200 + i * 220},80 ${190 + i * 220},85`}
                     fill={FLOW_TIERS[i + 1].color}
                     fillOpacity="0.6"
                   />
                   {/* Rate label */}
                   <text
-                    x={195 + i * 250}
+                    x={172 + i * 220}
                     y={68}
                     textAnchor="middle"
                     fill={FLOW_TIERS[i + 1].color}
@@ -420,7 +418,7 @@ export function FactoryPanel() {
 
             {/* Tier nodes */}
             {FLOW_TIERS.map((tier, i) => {
-              const cx = 100 + i * 250;
+              const cx = 90 + i * 220;
               const summary = tierProductionSummary[i];
               const isSelected = selectedFlowNode === tier.key;
               const hasProduction = (summary?.production ?? 0) > 0 || (summary?.consumption ?? 0) > 0;
@@ -774,7 +772,7 @@ export function FactoryPanel() {
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                       <Layers className={`w-3.5 h-3.5 ${currentColorClasses.text}`} />
-                      <h4 className={`text-xs font-semibold ${currentColorClasses.text}`}>Active Factories</h4>
+                      <h3 className={`text-xs font-semibold ${currentColorClasses.text}`}>Active Factories</h3>
                       <span className="text-[9px] text-gray-500">({currentTierBuildings.length})</span>
                     </div>
                     <div className="space-y-1.5 max-h-[400px] overflow-y-auto game-scrollbar pr-1">
@@ -923,6 +921,17 @@ export function FactoryPanel() {
                         );
                       })}
                     </div>
+                  </div>
+                )}
+
+                {/* Empty state when no factories built for this tier */}
+                {currentTierBuildings.length === 0 && (
+                  <div className="game-card-empty rounded-xl p-6 text-center">
+                    <div className="text-4xl mb-3">
+                      {selectedTier === 1 ? '🔥' : selectedTier === 2 ? '⚙️' : selectedTier === 3 ? '✨' : '🌀'}
+                    </div>
+                    <h3 className="text-base font-bold text-cyan-400 mb-2">No {currentTierConfig.label} Factories</h3>
+                    <p className="text-sm text-gray-400 mb-1">Build your first factory to start processing materials</p>
                   </div>
                 )}
               </div>
@@ -1159,202 +1168,13 @@ export function FactoryPanel() {
         </div>
       </div>
 
-      {/* BUILDING COMPARISON TOOL */}
-      <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
-        <div className="flex items-center gap-2 mb-3">
-          <GitCompare className="w-4 h-4 text-cyan-400" />
-          <h3 className="text-sm font-semibold text-cyan-400">Building Comparison</h3>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 mb-3">
-          <div>
-            <label className="text-[9px] text-gray-500 mb-1 block">Building A</label>
-            <select
-              className="w-full h-7 text-[10px] bg-[#0a0e17] border border-gray-700 rounded text-gray-300 px-2 focus:border-cyan-500/50 focus:outline-none"
-              value={compareA}
-              onChange={e => setCompareA(e.target.value as BuildingType | '')}
-            >
-              <option value="">Select building...</option>
-              {[...TIER_1_FACTORIES, ...TIER_2_FACTORIES, ...TIER_3_FACTORIES].map(type => {
-                const def = BUILDING_DEFS[type];
-                return def ? (
-                  <option key={type} value={type}>{def.emoji} {def.name}</option>
-                ) : null;
-              })}
-            </select>
-          </div>
-          <div>
-            <label className="text-[9px] text-gray-500 mb-1 block">Building B</label>
-            <select
-              className="w-full h-7 text-[10px] bg-[#0a0e17] border border-gray-700 rounded text-gray-300 px-2 focus:border-cyan-500/50 focus:outline-none"
-              value={compareB}
-              onChange={e => setCompareB(e.target.value as BuildingType | '')}
-            >
-              <option value="">Select building...</option>
-              {[...TIER_1_FACTORIES, ...TIER_2_FACTORIES, ...TIER_3_FACTORIES].map(type => {
-                const def = BUILDING_DEFS[type];
-                return def ? (
-                  <option key={type} value={type}>{def.emoji} {def.name}</option>
-                ) : null;
-              })}
-            </select>
-          </div>
-        </div>
-
-        {compareA && compareB && BUILDING_DEFS[compareA] && BUILDING_DEFS[compareB] && (() => {
-          const defA = BUILDING_DEFS[compareA];
-          const defB = BUILDING_DEFS[compareB];
-          const costA = defA.baseCost;
-          const costB = defB.baseCost;
-          const powerA = defA.basePowerConsumption;
-          const powerB = defB.basePowerConsumption;
-          const inputCountA = defA.inputs?.length ?? 0;
-          const inputCountB = defB.inputs?.length ?? 0;
-          const totalOutputA = defA.outputs?.reduce((s, o) => s + o.amount, 0) ?? 0;
-          const totalOutputB = defB.outputs?.reduce((s, o) => s + o.amount, 0) ?? 0;
-          const productionRateA = totalOutputA;
-          const productionRateB = totalOutputB;
-
-          type CompareWinner = 'a' | 'b' | 'tie';
-
-          const getWinner = (a: number, b: number, lowerBetter = false): CompareWinner => {
-            if (a === b) return 'tie';
-            if (lowerBetter) return a < b ? 'a' : 'b';
-            return a > b ? 'a' : 'b';
-          };
-
-          const winnerColor = (winner: CompareWinner, side: 'a' | 'b') =>
-            winner === side ? 'text-green-400' : winner === 'tie' ? 'text-gray-300' : 'text-gray-400';
-
-          const winnerBg = (winner: CompareWinner, side: 'a' | 'b') =>
-            winner === side ? 'bg-green-900/15 border-green-800/30' : 'bg-[#0a0e17] border-gray-800/50';
-
-          const winnerIcon = (winner: CompareWinner, side: 'a' | 'b') =>
-            winner === side ? <CheckCircle2 className="w-3 h-3 text-green-400" /> : null;
-
-          const costWinner = getWinner(costA, costB, true);
-          const powerWinner = getWinner(powerA, powerB, true);
-          const outputWinner = getWinner(totalOutputA, totalOutputB);
-          const rateWinner = getWinner(productionRateA, productionRateB);
-          const inputWinner = getWinner(inputCountA, inputCountB, true);
-
-          return (
-            <div className="bg-[#0a0e17] rounded-lg p-3 border border-gray-800/50">
-              {/* Headers */}
-              <div className="grid grid-cols-3 gap-2 mb-2">
-                <div className="text-center">
-                  <span className="text-lg">{defA.emoji}</span>
-                  <div className="text-[10px] text-cyan-400 font-medium">{defA.name}</div>
-                </div>
-                <div className="text-center flex items-center justify-center">
-                  <span className="text-[9px] text-gray-600">VS</span>
-                </div>
-                <div className="text-center">
-                  <span className="text-lg">{defB.emoji}</span>
-                  <div className="text-[10px] text-cyan-400 font-medium">{defB.name}</div>
-                </div>
-              </div>
-
-              {/* Comparison rows */}
-              <div className="space-y-1.5">
-                {/* Cost */}
-                <div className="grid grid-cols-3 gap-2 items-center">
-                  <div className={`rounded px-2 py-1.5 text-center border ${winnerBg(costWinner, 'a')}`}>
-                    <div className="flex items-center justify-center gap-1">
-                      {winnerIcon(costWinner, 'a')}
-                      <span className={`text-[10px] font-mono ${winnerColor(costWinner, 'a')}`}>${formatNumber(costA)}</span>
-                    </div>
-                  </div>
-                  <div className="text-[9px] text-gray-500 text-center">Cost</div>
-                  <div className={`rounded px-2 py-1.5 text-center border ${winnerBg(costWinner, 'b')}`}>
-                    <div className="flex items-center justify-center gap-1">
-                      {winnerIcon(costWinner, 'b')}
-                      <span className={`text-[10px] font-mono ${winnerColor(costWinner, 'b')}`}>${formatNumber(costB)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Power Consumption */}
-                <div className="grid grid-cols-3 gap-2 items-center">
-                  <div className={`rounded px-2 py-1.5 text-center border ${winnerBg(powerWinner, 'a')}`}>
-                    <div className="flex items-center justify-center gap-1">
-                      {winnerIcon(powerWinner, 'a')}
-                      <span className={`text-[10px] font-mono ${winnerColor(powerWinner, 'a')}`}>{powerA} MW</span>
-                    </div>
-                  </div>
-                  <div className="text-[9px] text-gray-500 text-center flex items-center justify-center gap-1">
-                    <Zap className="w-2.5 h-2.5 text-yellow-500" /> Power
-                  </div>
-                  <div className={`rounded px-2 py-1.5 text-center border ${winnerBg(powerWinner, 'b')}`}>
-                    <div className="flex items-center justify-center gap-1">
-                      {winnerIcon(powerWinner, 'b')}
-                      <span className={`text-[10px] font-mono ${winnerColor(powerWinner, 'b')}`}>{powerB} MW</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Inputs */}
-                <div className="grid grid-cols-3 gap-2 items-center">
-                  <div className={`rounded px-2 py-1.5 text-center border ${winnerBg(inputWinner, 'a')}`}>
-                    <div className="flex items-center justify-center gap-1">
-                      {winnerIcon(inputWinner, 'a')}
-                      <span className={`text-[10px] font-mono ${winnerColor(inputWinner, 'a')}`}>{inputCountA}</span>
-                    </div>
-                  </div>
-                  <div className="text-[9px] text-gray-500 text-center">Inputs</div>
-                  <div className={`rounded px-2 py-1.5 text-center border ${winnerBg(inputWinner, 'b')}`}>
-                    <div className="flex items-center justify-center gap-1">
-                      {winnerIcon(inputWinner, 'b')}
-                      <span className={`text-[10px] font-mono ${winnerColor(inputWinner, 'b')}`}>{inputCountB}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Total Output */}
-                <div className="grid grid-cols-3 gap-2 items-center">
-                  <div className={`rounded px-2 py-1.5 text-center border ${winnerBg(outputWinner, 'a')}`}>
-                    <div className="flex items-center justify-center gap-1">
-                      {winnerIcon(outputWinner, 'a')}
-                      <span className={`text-[10px] font-mono ${winnerColor(outputWinner, 'a')}`}>{totalOutputA}</span>
-                    </div>
-                  </div>
-                  <div className="text-[9px] text-gray-500 text-center">Output</div>
-                  <div className={`rounded px-2 py-1.5 text-center border ${winnerBg(outputWinner, 'b')}`}>
-                    <div className="flex items-center justify-center gap-1">
-                      {winnerIcon(outputWinner, 'b')}
-                      <span className={`text-[10px] font-mono ${winnerColor(outputWinner, 'b')}`}>{totalOutputB}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Production Rate */}
-                <div className="grid grid-cols-3 gap-2 items-center">
-                  <div className={`rounded px-2 py-1.5 text-center border ${winnerBg(rateWinner, 'a')}`}>
-                    <div className="flex items-center justify-center gap-1">
-                      {winnerIcon(rateWinner, 'a')}
-                      <span className={`text-[10px] font-mono ${winnerColor(rateWinner, 'a')}`}>{productionRateA}/t</span>
-                    </div>
-                  </div>
-                  <div className="text-[9px] text-gray-500 text-center">Rate</div>
-                  <div className={`rounded px-2 py-1.5 text-center border ${winnerBg(rateWinner, 'b')}`}>
-                    <div className="flex items-center justify-center gap-1">
-                      {winnerIcon(rateWinner, 'b')}
-                      <span className={`text-[10px] font-mono ${winnerColor(rateWinner, 'b')}`}>{productionRateB}/t</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
-      </div>
     </div>
   );
 }
 
 // --- Sub-components ---
 
-function FactoryStatCard({
+function PanelStatCard({
   icon,
   label,
   value,
@@ -1365,7 +1185,7 @@ function FactoryStatCard({
   label: string;
   value: string;
   subtext: string;
-  color: 'cyan' | 'green' | 'orange' | 'red' | 'purple' | 'yellow';
+  color: 'cyan' | 'green' | 'orange' | 'red' | 'purple' | 'yellow' | 'amber';
 }) {
   const colorMap = {
     cyan: { icon: 'text-cyan-400', value: 'text-cyan-400', border: 'border-cyan-900/30', bg: 'bg-cyan-900/10' },
@@ -1374,6 +1194,7 @@ function FactoryStatCard({
     red: { icon: 'text-red-400', value: 'text-red-400', border: 'border-red-900/30', bg: 'bg-red-900/10' },
     purple: { icon: 'text-purple-400', value: 'text-purple-400', border: 'border-purple-900/30', bg: 'bg-purple-900/10' },
     yellow: { icon: 'text-yellow-400', value: 'text-yellow-400', border: 'border-yellow-900/30', bg: 'bg-yellow-900/10' },
+    amber: { icon: 'text-amber-400', value: 'text-amber-400', border: 'border-amber-900/30', bg: 'bg-amber-900/10' },
   };
   const c = colorMap[color];
 

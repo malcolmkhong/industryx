@@ -646,6 +646,40 @@ Priority Recommendations for Next Phase:
 7. Add celebration animations on achievements/milestones
 
 ---
+Task ID: 4
+Agent: ResourcePanel Redesign Developer
+Task: Redesign ResourcePanel to match FactoryPanel design system
+
+Work Log:
+- Read existing ResourcePanel.tsx (684 lines) and FactoryPanel.tsx (~1402 lines) to understand both designs
+- Read game types (types.ts) for ExtractorType, ResourceType, BuildingInstance definitions
+- Read FactoryStatCard and OverviewRow sub-components from FactoryPanel for design pattern reference
+- Completely rewrote ResourcePanel.tsx to match FactoryPanel's design system:
+  1. Header: Title with `text-amber-400 neon-glow-amber`, subtitle, badges for extractor count and power draw
+  2. Overview Stats: 4-card grid using PanelStatCard (matching FactoryStatCard pattern) - Total Extractors (amber), Power Draw (yellow), Avg Efficiency (green/orange/red), Raw Materials (purple)
+  3. Hero SVG Pipeline: 3-tier extraction flow visualization (Basic Mining → Advanced Mining → Specialized) with animated dashed lines, flowing particles, clickable nodes with detail panel (AnimatePresence)
+  4. Tab Selector: Two tabs (Basic ⛏️ amber, Advanced 🏔️ orange) with active/total count, matching FactoryPanel's tier tab style
+  5. Build Cards Grid: Compact `grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5` cards with emoji+name, output badges, cost+power line, build button, lock overlay
+  6. Active Extractors List: Compact horizontal layout with emoji toggle, name/level/badges, inline output flow, efficiency bar (motion.div), upgrade button - matching FactoryPanel compact style
+  7. Right Sidebar: 3 sections (Raw Materials Inventory, Resource Flow, Extractor Summary) restyled with game-card pattern
+- Added TabKey, TabColor, TabColorClasses types and getTabColorClasses helper for amber/orange tab theming
+- Added EXTRACTION_TIERS constant for SVG flow diagram nodes
+- Added tierProductionSummary computed value for pipeline visualization
+- Kept all existing functionality: GameItemTooltip, recentlyBuilt/recentlyUpgraded tracking, handleBuild/handleUpgrade/handleToggle callbacks, production/consumption rate calculations, storage upgrades
+- Used framer-motion for animations (AnimatePresence on tab switch and flow node detail panel, motion.div on efficiency bars and extractor list items)
+- ESLint passes cleanly (0 errors)
+- Dev server compiles successfully
+
+Stage Summary:
+- ResourcePanel completely redesigned to match FactoryPanel's design system
+- Unified layout: Header → Stat Cards → Hero SVG Pipeline → Tab Selector + Build Grid + Active List (left 2/3) | Sidebar (right 1/3)
+- Amber/orange color theme consistent with extraction identity
+- SVG extraction pipeline with 3 animated tier nodes and collapsible detail panels
+- Tab-based tier selection (Basic/Advanced) matching FactoryPanel's tier tab pattern
+- Compact build cards and extractor list matching FactoryPanel's compact style
+- All existing game functionality preserved (build, upgrade, toggle, tooltips, animations, storage upgrades)
+
+---
 Task ID: 2-a
 Agent: Factory Map Polish Developer
 Task: Improve FactoryMapPanel component with better visuals, animations, and UX
@@ -2709,3 +2743,80 @@ Stage Summary:
 - Both QuestPanel and ResearchPanel are confirmed up to date with current game system
 - Identified disconnected resources: gear only consumed by Engine Factory (intentional T2 intermediate)
 - FactoryPanel layout issue still unresolved (reported from previous sessions)
+
+---
+Task ID: 5
+Agent: FactoryPanel Polish Developer
+Task: Polish FactoryPanel for design consistency with ResourcePanel
+
+Work Log:
+- Renamed FactoryStatCard to PanelStatCard (matching ResourcePanel naming convention)
+- Added 'amber' color to PanelStatCard colorMap (matching ResourcePanel's color support)
+- Removed entire Building Comparison Tool section (~190 lines) from bottom of FactoryPanel
+- Removed compareA and compareB state variables (no longer needed without comparison tool)
+- Kept selectedChain state variable (still actively used by Production Chains sidebar section)
+- Removed unused imports: GitCompare, CheckCircle2 from lucide-react
+- Removed unused import: BuildingType from types (was only used by compareA/compareB)
+- Added Box back to imports (still used in Input Demand empty state)
+- Made Production Pipeline SVG more responsive: viewBox 0 0 1400 160 → 0 0 1200 160, min-w-[600px] → min-w-[500px]
+- Adjusted SVG node spacing from 250 to 220 (all position calculations updated: cx, x1, x2, points, path)
+- Updated background rect width from 1400 to 1200
+- Added empty state for factory build cards when no active factories exist for a tier (matching ResourcePanel pattern)
+- Changed Active Factories h4 to h3 for consistency with sidebar header pattern
+- Verified all sidebar section headers follow consistent pattern: Icon (w-4 h-4 text-COLOR-400) + h3 (text-sm font-semibold text-COLOR-400)
+- ESLint passes cleanly with 0 errors
+
+Stage Summary:
+- FactoryStatCard renamed to PanelStatCard with amber colorMap entry for cross-panel consistency
+- Building Comparison Tool removed entirely (bulky, rarely used section + associated state variables)
+- Production Pipeline SVG made more compact and mobile-friendly (viewBox 1200, min-w 500px, spacing 220)
+- Empty state added for tiers with no active factories (matching ResourcePanel pattern)
+- Unused imports cleaned up (GitCompare, CheckCircle2, BuildingType removed; Box kept)
+- All sidebar headers verified consistent with icon + h3 pattern
+
+---
+Task ID: 13
+Agent: Main Coordinator (Current Phase)
+Task: Redesign Extraction and Factories pages to share a unified design system
+
+Work Log:
+- Reviewed worklog.md and assessed current project status
+- Read both ResourcePanel.tsx (684 lines) and FactoryPanel.tsx (1401 lines) in full
+- Designed unified layout system for both pages:
+  - Header (icon + title + badges)
+  - 4 Overview Stat Cards
+  - Hero SVG Pipeline visualization
+  - 2/3 column layout with tab selector, build cards, active buildings, and sidebar
+- Coordinated 2 parallel subagent tasks:
+  1. ResourcePanel complete redesign (Task 4) - matched to FactoryPanel design system
+  2. FactoryPanel polish for consistency (Task 5) - cleaned up and aligned
+- Verified lint passes cleanly (0 errors)
+- Verified dev server compiles successfully
+- QA tested both pages with agent-browser + VLM vision analysis
+- Created periodic review cron job (every 15 minutes)
+
+Stage Summary:
+- Both Extraction and Factories pages now share a unified design system:
+  - Consistent header pattern with page-specific accent colors (amber for Extraction, cyan for Factories)
+  - 4 overview stat cards in same grid layout
+  - Hero SVG pipeline visualization (Extraction Pipeline vs Production Pipeline)
+  - Tab selector for category switching (Basic/Advanced vs T1/T2/T3/T4)
+  - Compact build cards in same grid layout with I/O flow badges
+  - Compact active buildings list with same inline layout
+  - Right sidebar with consistent card styling
+- ResourcePanel changes: New SVG pipeline, tab selector, compact cards, PanelStatCard, amber theme
+- FactoryPanel changes: Renamed FactoryStatCard→PanelStatCard, removed comparison tool, more responsive SVG, added empty states, cleaned unused imports
+- Both pages verified with VLM vision analysis confirming consistent design language
+
+Current Project Status:
+- Factory Dominion: Automated Empire - feature-rich idle factory simulation game
+- 19 interconnected game systems
+- Unified design system across Extraction and Factories pages
+- Periodic review cron job active (every 15 minutes)
+
+Priority Recommendations for Next Phase:
+1. Apply unified design system to other panels (Power, Transport, Market)
+2. Add building-to-building transport routing in Transport panel
+3. Connect disconnected resources (water, glass, plastic, gear) to production chains
+4. Performance optimization for long play sessions
+5. Add more MegaProject types or expansion content
