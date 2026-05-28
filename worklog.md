@@ -2383,3 +2383,162 @@ Priority Recommendations for Next Phase:
 3. Add more T4-specific events and seasonal content
 4. Add MegaProject expansions that use T4 resources
 5. Improve transport panel with building-to-building routing
+
+---
+Task ID: 3
+Agent: Transport Panel Rewriter
+Task: Complete rewrite of TransportPanel.tsx for Factory Dominion game
+
+Work Log:
+- Read worklog.md to understand project context and history
+- Read current TransportPanel.tsx (~830 lines) to understand existing implementation
+- Read types.ts for TransportLine, BuildingInstance, TransportType, ResourceType, WeatherState, PowerGrid interfaces
+- Read data.ts for BUILDING_DEFS, TRANSPORT_DEFS, RESOURCE_META, WEATHER_DEFS definitions
+- Read store.ts for buildTransportLine, upgradeTransportLine, toggleTransportLine API and cost formulas
+- Read GameItemTooltip.tsx for tooltip component interface
+- Completely rewrote TransportPanel.tsx with all 9 required features:
+
+1. **Smart Route Builder**: 
+   - From/Resource/To dropdowns with cascading filters
+   - Selecting "From" auto-filters "Carries Resource" to that building's outputs
+   - Selecting "Carries Resource" auto-filters "To" to buildings that consume that resource
+   - Live preview panel showing route details, estimated throughput, cost, and affordability
+   - Resource dropdown disabled until "From" is selected; "To" disabled until resource is selected
+
+2. **Production Chain Overview** (right sidebar):
+   - Shows all 5 tiers (Raw/T1/T2/T3/T4) with buildings grouped by tier
+   - Green checkmark for connected buildings, red X for unconnected
+   - Completeness percentage bar at top
+   - Building names with emoji indicators
+
+3. **Auto-Connect All Button**:
+   - "Connect All" button in Bulk Operations section
+   - Shows count of missing routes and total cost
+   - Confirmation dialog with route breakdown (up to 20 shown), total cost, and afford status
+   - Uses cheapest transport type (conveyorBelt) by default
+   - Proper modal with backdrop click to close
+
+4. **Enhanced Route Diagram**:
+   - Buildings organized by tier (left-to-right: Raw → T1 → T2 → T3 → T4)
+   - Tier-based node colors: T0=amber, T1=cyan, T2=green, T3=purple, T4=gold
+   - Color-coded throughput on lines: green (<50%), yellow (50-80%), red (>80%)
+   - Animated flow particles on active lines using SVG animateMotion
+   - Auto-scaling SVG dimensions based on number of buildings per tier
+   - Resource emoji displayed at line midpoints
+
+5. **Weather Effects Display** (right sidebar):
+   - Current weather icon, name, and intensity percentage
+   - Production/Solar/Wind multiplier display with color coding
+   - Weather description text
+   - Remaining ticks until weather change
+   - Uses WEATHER_DEFS import from data.ts
+
+6. **Bulk Operations** (right sidebar):
+   - "Activate All Lines" button
+   - "Deactivate All Lines" button  
+   - "Upgrade All" per transport type (inline with throughput bars)
+   - Route Suggestions toggle button
+   - "Connect All" button with cost preview
+
+7. **Improved Bottleneck Detection**:
+   - Types: under-supplied, over-supplied, no-route, capacity, power
+   - Flow rate vs required rate display for each bottleneck
+   - Under-supplied: inbound transport can't meet consumption rate (<80%)
+   - Over-supplied: outbound exceeds consumer needs (capacity > 2x production, throughput < 50% production)
+   - Capacity warnings at >85% utilization with upgrade cost
+   - Severity icons and type-specific icons for each bottleneck category
+
+8. **Resource Flow Summary** (right sidebar):
+   - Table showing all resources flowing through the network
+   - Columns: emoji, name, production rate, consumption rate, net surplus/deficit
+   - Color-coded: green (surplus), yellow (balanced), red (deficit)
+   - Sorted by tier then name
+
+9. **Network Health Score**:
+   - Large SVG ring gauge at top of panel (0-100%)
+   - Score computed from: 35% connectivity + 25% active rate + 25% utilization - bottleneck penalty + 15 base
+   - Health Breakdown section in right sidebar with 4 sub-metrics
+   - Each sub-metric has progress bar and color coding
+   - Metrics: Connectivity, Active Rate, Utilization, Bottleneck Penalty
+
+- Layout: 2/3 left column + 1/3 right sidebar on desktop (lg:grid-cols-3), single column on mobile
+- Left: Route Diagram, Smart Route Builder, Transport Lines, Throughput by Type
+- Right: Weather Effects, Production Chain, Resource Flow, Bottleneck Detection, Bulk Operations, Health Breakdown
+- Dark industrial neon theme: bg-[#0a0e17] deep backgrounds, bg-[#111827] cards, cyan (#22d3ee) primary accent
+- No indigo/blue as primary colors (cyan/teal/amber used instead)
+- Neon glow effects on health gauge, gradient fills on progress bars
+- All text sizes small (xs, 10px, 11px) for data-dense panel
+- font-mono for all numeric values
+- framer-motion for enter/exit animations on collapsible sections and preview panel
+- useMemo for all expensive computations (routeSuggestions, bottlenecks, resourceFlow, productionChain, networkHealth, throughputByType, routeDiagram)
+- useCallback for all event handlers (handleBuild, handleConnectAll, handleCreateSuggestedRoute, handleUpgradeAllType, handleActivateAll, handleDeactivateAll, toggleSection, handleFromChange)
+- Proper TypeScript typing throughout, no `any` types
+- All existing imports maintained (TRANSPORT_DEFS, BUILDING_DEFS, RESOURCE_META, WEATHER_DEFS, formatNumber, GameItemTooltip)
+- ESLint passes cleanly (0 errors)
+- Dev server compiles successfully
+
+Stage Summary:
+- Complete rewrite of TransportPanel.tsx with 9 major feature additions
+- Smart Route Builder with cascading filters and live preview
+- Production Chain Overview with tier-based building connectivity status
+- Auto-Connect All with confirmation dialog and cost breakdown
+- Enhanced Route Diagram organized by production tier with color-coded throughput
+- Weather Effects Display showing current weather impact on production
+- Bulk Operations for activate/deactivate/upgrade all
+- Improved Bottleneck Detection with flow rates and type classification
+- Resource Flow Summary with production/consumption/surplus table
+- Network Health Score as ring gauge with detailed breakdown
+- All features use only existing store API (buildTransportLine, upgradeTransportLine, toggleTransportLine)
+- Resolves long-standing "Transport panel has limited routing functionality" issue from worklog
+
+---
+Task ID: 3
+Agent: Main Coordinator (Transport Panel Rewrite)
+Task: Improve Transport page to match current gameplay with comprehensive rewrite
+
+Work Log:
+- Analyzed current TransportPanel.tsx (955 lines) against current game systems (50+ buildings, 4 tiers, 6 transport types)
+- Identified key shortcomings: no smart filtering, no production chain overview, no auto-connect, basic diagram, missing weather effects, no bulk operations
+- Completely rewrote TransportPanel.tsx (1457 lines) with 9 major features:
+  1. Smart Route Builder - Cascading dropdown filters: "From" auto-filters resources to building outputs, then "Resource" auto-filters "To" to buildings that consume it. Live preview panel with estimated throughput, cost, and affordability.
+  2. Production Chain Overview - Right sidebar section showing all 5 tiers (Raw → T1 → T2 → T3 → T4) with green checkmarks for connected buildings and red X's for unconnected, plus completeness percentage bar.
+  3. Auto-Connect All Button - "Connect All" in Bulk Operations creates transport lines for ALL missing routes. Confirmation dialog with route breakdown, total cost, and affordability status.
+  4. Enhanced Route Diagram - Buildings organized left-to-right by tier with tier-based node colors (T0=amber, T1=cyan, T2=green, T3=purple, T4=gold). Lines color-coded by throughput utilization. Animated SVG flow particles. Auto-scaling SVG.
+  5. Weather Effects Display - Right sidebar card showing current weather emoji/name, intensity, production/solar/wind multipliers with color coding, description, and ticks until change.
+  6. Bulk Operations - Activate All / Deactivate All buttons, Upgrade All per transport type, Connect All button.
+  7. Improved Bottleneck Detection - Classifies as under-supplied, over-supplied, no-route, capacity, or power. Shows flow rate vs required rate. Detects under/over-supplied conditions.
+  8. Resource Flow Summary - Table showing all resources with production rate, consumption rate, and net surplus/deficit. Color-coded: green (surplus), yellow (balanced), red (deficit). Sorted by tier.
+  9. Network Health Score - SVG ring gauge (0-100%) computed from connectivity (35%), active rate (25%), utilization (25%), minus bottleneck penalty. Detailed breakdown with 4 sub-metrics.
+- ESLint passes cleanly (0 errors)
+- Dev server compiles successfully
+- QA tested with agent-browser + VLM vision analysis confirming all sections render correctly
+
+Stage Summary:
+- TransportPanel completely rewritten from 955 to 1457 lines with 9 major new features
+- Smart route building with cascading filters greatly improves UX for managing 50+ buildings
+- Production chain overview shows connectivity completeness across all 4 tiers
+- Auto-connect all button enables rapid setup of transport networks
+- Weather effects display integrates with existing weather system
+- Network health score provides at-a-glance logistics assessment
+- Resolves worklog priority item #1: "Add building-to-building transport routing in Transport panel"
+
+Current Project Status Assessment:
+- Factory Dominion: Automated Empire with comprehensive transport system matching gameplay depth
+- 19 interconnected game systems across 5+ development phases
+- Transport panel now properly supports 50+ buildings across 4 tiers with smart routing
+- All production chains connected: 13 raw → 10 T1 → 14 T2 → 13 T3 → 8 T4 + 5 endgame buildings
+- Network health scoring provides actionable logistics intelligence
+- Bulk operations enable efficient management at scale
+
+Unresolved Issues / Risks:
+- No cloud save sync
+- Performance not stress-tested for 100k+ tick sessions
+- Some CSS animation classes not yet applied to all game components
+
+Priority Recommendations for Next Phase:
+1. Apply CSS animation classes more broadly (build-construct on building placement, upgrade-flash on upgrades)
+2. Add cloud save sync capability
+3. Performance optimization for long play sessions
+4. Add seasonal events and leaderboard system
+5. Add more MegaProject types or expansion content
+6. Add celebration animations on achievements/milestones
