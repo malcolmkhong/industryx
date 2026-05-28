@@ -2542,3 +2542,51 @@ Priority Recommendations for Next Phase:
 4. Add seasonal events and leaderboard system
 5. Add more MegaProject types or expansion content
 6. Add celebration animations on achievements/milestones
+
+---
+Task ID: 14
+Agent: Main Developer
+Task: Update quest system to match current game system (T4 buildings, endgame content, new quest types)
+
+Work Log:
+- Updated types.ts: Expanded QuestType from 6 to 11 types (added 'contract', 'transport', 'worker', 'prestige', 'megaProject')
+- Updated types.ts: Expanded Quest category from 4 to 5 (added 'milestone'), increased gameTier support to 0-4
+- Updated types.ts: Added targetResource and targetBuilding optional fields to Quest interface for specific tracking
+- Rewrote QUEST_DEFS in data.ts from 17 quests to 47+ quests across all tiers:
+  - Tier 0 (6): First Steps, Power Up, First Sale, Expanding Operations, Diversify Resources, Logistics Begin
+  - Tier 1 (8): Processing Begins, Industrial Foundation, Knowledge is Power, Steel Strong, Construction Empire, Iron Plate Milestone, Value Added, Contractor
+  - Tier 2 (12): Precision Engineering, Silicon Valley, Energy Storage, Mechanical Heart, Nuclear Age, Workforce, Logistics Network, Circuit Board Milestone, Reliable Partner, Profit Margin, Light Metal
+  - Tier 3 (12): Artificial Minds, Rise of Machines, Quantum Leap, Electronics Age, Advanced Metallurgy, Fusion Power, Mega Aspirations, Peak Performance, AI Chip Milestone, Supply Chain Master, Corporate Contractor, Half Million
+  - Tier 4 (15): The Singularity, Dark Matter Discovery, Faster Than Light, Antimatter Revolution, Time Bender, Plasma Master, Void Crystal Harvest, Mega Builder, Stellar Harvester, Galactic Forge, Singularity Core Milestone, Multi-Millionaire, Complete Knowledge, Global Expansion, Antimatter Power
+  - Daily (4): Daily Builder, Daily Earnings, Daily Trader, Daily Contract
+  - Weekly (5): Weekly Industrialist, Weekly Scholar, Weekly Logistics, Weekly Mega Builder, Weekly Singularity
+- Updated store.ts: getPlayerGameTier now supports Tier 4 (max 4 instead of 3)
+- Enhanced updateQuestProgress to handle new quest types:
+  - 'reach' type: Checks current game state (power efficiency) directly
+  - 'earn' type: Tracks totalMoneyEarned directly
+  - 'produce' type with targetResource: Only matches quests for the specific resource
+  - 'build' type with targetBuilding: Passes building type for more precise tracking
+- Added quest progress tracking calls:
+  - buildTransportLine → updateQuestProgress('transport', 1)
+  - fulfillContract → updateQuestProgress('contract', 1)
+  - hireWorker → updateQuestProgress('worker', 1)
+  - doPrestige → updateQuestProgress('prestige', 1)
+  - buildBuilding → now passes building type as targetId
+  - gameTickAction: Periodic checks (every 10 ticks) for 'reach', 'earn', and 'produce' quest types
+- Completely rewrote QuestPanel.tsx with:
+  - Support for T4 (5 tiers instead of 4) with appropriate colors
+  - Quest type config with colors/labels for all 11 quest types
+  - Category config for all 5 categories
+  - Filter bar with quick filter pills (All, Active, Done) and expandable type/category filters
+  - Available rewards summary card showing unclaimed money
+  - "Claim All Rewards" button when rewards are available
+  - AnimatePresence for smooth filter panel transitions
+- ESLint passes cleanly (0 errors)
+- Dev server compiles successfully
+
+Stage Summary:
+- Quest system fully updated to match current game with T4/endgame content
+- 47+ quests across 5 tiers, 5 categories, 11 quest types
+- Smart quest progress tracking: produce quests track specific resources, earn quests track totalMoneyEarned, reach quests check game state
+- QuestPanel has filtering by type and category, claim-all button, T4 support
+- All quest events properly tracked: build, sell, research, transport, contract, worker, prestige, produce, earn, reach

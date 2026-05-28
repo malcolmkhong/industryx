@@ -313,7 +313,7 @@ export interface WeatherDefinition {
 }
 
 // --- Quests ---
-export type QuestType = 'build' | 'produce' | 'sell' | 'research' | 'earn' | 'reach';
+export type QuestType = 'build' | 'produce' | 'sell' | 'research' | 'earn' | 'reach' | 'contract' | 'transport' | 'worker' | 'prestige' | 'megaProject';
 
 export interface QuestStep {
   description: string;
@@ -327,14 +327,17 @@ export interface Quest {
   name: string;
   description: string;
   type: QuestType;
-  category: 'tutorial' | 'daily' | 'weekly' | 'challenge';
-  gameTier?: number; // 0-3, determines when quest becomes available
+  category: 'tutorial' | 'daily' | 'weekly' | 'challenge' | 'milestone';
+  gameTier?: number; // 0-4, determines when quest becomes available
   steps: QuestStep[];
   reward: { money: number; researchPoints?: number; corporationPoints?: number };
   completed: boolean;
   claimed: boolean;
   expiresAt?: number; // tick for daily/weekly quests
   emoji: string;
+  /** Optional target resource/building for specific tracking */
+  targetResource?: ResourceType;
+  targetBuilding?: BuildingType;
 }
 
 // --- Daily Rewards ---

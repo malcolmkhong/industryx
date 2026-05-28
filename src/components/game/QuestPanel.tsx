@@ -1,25 +1,52 @@
 'use client';
 
+import { useState, useMemo } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
 import { WEATHER_DEFS, TIER_INFO } from '@/lib/game/data';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
-import { motion } from 'framer-motion';
-import { Pin, PinOff, Clock, Lock } from 'lucide-react';
-import { Quest } from '@/lib/game/types';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Pin, PinOff, Clock, Lock, Filter, ChevronDown, ChevronRight, Sparkles } from 'lucide-react';
+import { Quest, QuestType } from '@/lib/game/types';
 
-const TIER_COLORS = ['#a0a0a0', '#22d3ee', '#f97316', '#a855f7'];
+const TIER_COLORS = ['#a0a0a0', '#22d3ee', '#f97316', '#a855f7', '#00ffcc'];
 
 function getTierColor(tier: number): string {
   return TIER_COLORS[tier] ?? '#a0a0a0';
 }
 
+const QUEST_TYPE_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  build: { label: 'BUILD', color: 'text-amber-400', bg: 'bg-amber-900/20', border: 'border-amber-800/40' },
+  produce: { label: 'PRODUCE', color: 'text-cyan-400', bg: 'bg-cyan-900/20', border: 'border-cyan-800/40' },
+  sell: { label: 'SELL', color: 'text-green-400', bg: 'bg-green-900/20', border: 'border-green-800/40' },
+  research: { label: 'RESEARCH', color: 'text-purple-400', bg: 'bg-purple-900/20', border: 'border-purple-800/40' },
+  earn: { label: 'EARN', color: 'text-yellow-400', bg: 'bg-yellow-900/20', border: 'border-yellow-800/40' },
+  reach: { label: 'REACH', color: 'text-teal-400', bg: 'bg-teal-900/20', border: 'border-teal-800/40' },
+  contract: { label: 'CONTRACT', color: 'text-blue-400', bg: 'bg-blue-900/20', border: 'border-blue-800/40' },
+  transport: { label: 'TRANSPORT', color: 'text-orange-400', bg: 'bg-orange-900/20', border: 'border-orange-800/40' },
+  worker: { label: 'WORKER', color: 'text-emerald-400', bg: 'bg-emerald-900/20', border: 'border-emerald-800/40' },
+  prestige: { label: 'PRESTIGE', color: 'text-fuchsia-400', bg: 'bg-fuchsia-900/20', border: 'border-fuchsia-800/40' },
+  megaProject: { label: 'MEGA', color: 'text-rose-400', bg: 'bg-rose-900/20', border: 'border-rose-800/40' },
+};
+
+const CATEGORY_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  tutorial: { label: '📚 Tutorial', color: 'text-cyan-400', bg: 'bg-cyan-900/20', border: 'border-cyan-800/40' },
+  daily: { label: '📅 Daily', color: 'text-amber-400', bg: 'bg-amber-900/20', border: 'border-amber-800/40' },
+  weekly: { label: '📆 Weekly', color: 'text-teal-400', bg: 'bg-teal-900/20', border: 'border-teal-800/40' },
+  challenge: { label: '🏆 Challenge', color: 'text-rose-400', bg: 'bg-rose-900/20', border: 'border-rose-800/40' },
+  milestone: { label: '⭐ Milestone', color: 'text-yellow-400', bg: 'bg-yellow-900/20', border: 'border-yellow-800/40' },
+};
+
+type FilterType = 'all' | 'active' | 'completed' | QuestType;
+
 export function QuestPanel() {
   const store = useGameStore();
   const quests = store.quests;
   const playerTier = store.getPlayerGameTier();
+  const [filterType, setFilterType] = useState<FilterType>('all');
+  const [showFilters, setShowFilters] = useState(false);
 
   // Group quests by gameTier
-  const questsByTier: Record<number, Quest[]> = { 0: [], 1: [], 2: [], 3: [] };
+  const questsByTier: Record<number, Quest[]> = { 0: [], 1: [], 2: [], 3: [], 4: [] };
   quests.forEach(q => {
     const tier = q.gameTier ?? 0;
     if (!questsByTier[tier]) questsByTier[tier] = [];
@@ -29,26 +56,23 @@ export function QuestPanel() {
   const completedCount = quests.filter(q => q.completed).length;
   const claimedCount = quests.filter(q => q.claimed).length;
   const totalCount = quests.length;
+  const activeCount = quests.filter(q => !q.completed && !q.claimed).length;
+  const availableReward = quests.filter(q => q.completed && !q.claimed).reduce((sum, q) => sum + q.reward.money, 0);
 
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case 'tutorial': return 'text-cyan-400 border-cyan-800/40 bg-cyan-900/20';
-      case 'daily': return 'text-amber-400 border-amber-800/40 bg-amber-900/20';
-      case 'weekly': return 'text-teal-400 border-teal-800/40 bg-teal-900/20';
-      case 'challenge': return 'text-rose-400 border-rose-800/40 bg-rose-900/20';
-      default: return 'text-gray-400 border-gray-800/40 bg-gray-900/20';
+  // Filtered quests
+  const filteredQuestsByTier = useMemo(() => {
+    const result: Record<number, Quest[]> = {};
+    for (const tier of [0, 1, 2, 3, 4]) {
+      const tierQuests = questsByTier[tier] ?? [];
+      result[tier] = tierQuests.filter(q => {
+        if (filterType === 'all') return true;
+        if (filterType === 'active') return !q.completed && !q.claimed;
+        if (filterType === 'completed') return q.claimed;
+        return q.type === filterType;
+      });
     }
-  };
-
-  const getCategoryLabel = (category: string) => {
-    switch (category) {
-      case 'tutorial': return '📚 Tutorial';
-      case 'daily': return '📅 Daily';
-      case 'weekly': return '📆 Weekly';
-      case 'challenge': return '🏆 Challenge';
-      default: return category;
-    }
-  };
+    return result;
+  }, [questsByTier, filterType, quests]);
 
   const formatTimeRemaining = (ticks: number) => {
     if (ticks <= 0) return 'Expired';
@@ -61,19 +85,21 @@ export function QuestPanel() {
 
   const renderQuest = (quest: Quest, isLocked: boolean = false) => {
     const allStepsComplete = quest.steps.every(s => s.completed);
-    const progress = quest.steps.length > 0 
-      ? quest.steps.reduce((sum, s) => sum + Math.min(1, s.current / Math.max(1, s.target)), 0) / quest.steps.length 
+    const progress = quest.steps.length > 0
+      ? quest.steps.reduce((sum, s) => sum + Math.min(1, s.current / Math.max(1, s.target)), 0) / quest.steps.length
       : 0;
     const isTracked = store.trackedQuest === quest.id;
     const tier = quest.gameTier ?? 0;
     const tierColor = getTierColor(tier);
     const tierInfo = TIER_INFO[tier];
+    const typeConfig = QUEST_TYPE_CONFIG[quest.type] ?? QUEST_TYPE_CONFIG.build;
+    const catConfig = CATEGORY_CONFIG[quest.category] ?? CATEGORY_CONFIG.challenge;
 
     // Build tooltip details
     const tooltipDetails = [
       { label: 'Tier', value: `${tierInfo?.emoji ?? ''} T${tier}: ${tierInfo?.name ?? 'Unknown'}`, color: `text-[${tierColor}]` },
-      { label: 'Type', value: quest.type.toUpperCase(), color: 'text-cyan-300' },
-      { label: 'Category', value: quest.category, color: getCategoryColor(quest.category).split(' ')[0] },
+      { label: 'Type', value: typeConfig.label, color: typeConfig.color },
+      { label: 'Category', value: catConfig.label, color: catConfig.color },
     ];
 
     if (quest.reward.money > 0) {
@@ -111,9 +137,9 @@ export function QuestPanel() {
         className={`quest-card-hover rounded-xl border p-4 transition-all border-l-2 ${
           isLocked
             ? 'border-gray-800 bg-gray-900/20 cursor-not-allowed'
-            : quest.claimed 
-              ? 'border-gray-800 bg-gray-900/30 opacity-50' 
-              : allStepsComplete 
+            : quest.claimed
+              ? 'border-gray-800 bg-gray-900/30 opacity-50'
+              : allStepsComplete
                 ? 'border-green-500/30 bg-green-900/10'
                 : isTracked
                   ? 'border-cyan-400/40 bg-cyan-900/10'
@@ -126,7 +152,7 @@ export function QuestPanel() {
               name={quest.name}
               emoji={quest.emoji}
               description={quest.description}
-              category={getCategoryLabel(quest.category)}
+              category={catConfig.label}
               tier={tier}
               details={tooltipDetails}
               side="right"
@@ -137,31 +163,24 @@ export function QuestPanel() {
                 <div className="min-w-0">
                   <h4 className={`text-sm font-semibold truncate ${
                     isLocked ? 'text-gray-600' :
-                    quest.claimed ? 'text-gray-500 line-through' 
-                    : allStepsComplete ? 'text-green-400' 
+                    quest.claimed ? 'text-gray-500 line-through'
+                    : allStepsComplete ? 'text-green-400'
                     : isTracked ? 'text-cyan-300'
                     : 'text-gray-200'
                   }`}>
                     {quest.name}
                   </h4>
-                  <div className="flex items-center gap-1.5 mt-0.5">
+                  <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                     {/* Tier Badge */}
                     <span className="text-[9px] px-1.5 py-0.5 rounded border"
                       style={{ color: tierColor, borderColor: tierInfo?.borderColor, backgroundColor: tierInfo?.bgColor }}>
                       {tierInfo?.emoji} T{tier}
                     </span>
-                    <span className={`text-[9px] px-1.5 py-0.5 rounded border ${getCategoryColor(quest.category)}`}>
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded border ${catConfig.color} ${catConfig.bg} ${catConfig.border}`}>
                       {quest.category.toUpperCase()}
                     </span>
-                    <span className={`text-[9px] px-1.5 py-0.5 rounded border ${
-                      quest.type === 'build' ? 'text-amber-400 border-amber-800/40 bg-amber-900/20' :
-                      quest.type === 'sell' ? 'text-green-400 border-green-800/40 bg-green-900/20' :
-                      quest.type === 'research' ? 'text-purple-400 border-purple-800/40 bg-purple-900/20' :
-                      quest.type === 'earn' ? 'text-yellow-400 border-yellow-800/40 bg-yellow-900/20' :
-                      quest.type === 'produce' ? 'text-cyan-400 border-cyan-800/40 bg-cyan-900/20' :
-                      'text-rose-400 border-rose-800/40 bg-rose-900/20'
-                    }`}>
-                      {quest.type.toUpperCase()}
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded border ${typeConfig.color} ${typeConfig.bg} ${typeConfig.border}`}>
+                      {typeConfig.label}
                     </span>
                     {quest.expiresAt && quest.expiresAt > 0 && !quest.claimed && !isLocked && (
                       <span className="flex items-center gap-0.5 text-[9px] text-amber-400">
@@ -180,14 +199,14 @@ export function QuestPanel() {
               </div>
             </GameItemTooltip>
           </div>
-          
+
           <div className="flex items-center gap-1.5 flex-shrink-0">
             {!isLocked && !quest.claimed && (
               <button
                 onClick={() => store.setTrackedQuest(isTracked ? null : quest.id)}
                 className={`p-1.5 rounded-lg transition-all ${
-                  isTracked 
-                    ? 'bg-cyan-900/40 text-cyan-400 border border-cyan-500/40 hover:bg-cyan-900/60' 
+                  isTracked
+                    ? 'bg-cyan-900/40 text-cyan-400 border border-cyan-500/40 hover:bg-cyan-900/60'
                     : 'bg-gray-800/50 text-gray-500 border border-gray-700/50 hover:text-gray-300 hover:bg-gray-800'
                 }`}
                 title={isTracked ? 'Untrack quest' : 'Track quest on dashboard'}
@@ -214,7 +233,7 @@ export function QuestPanel() {
             )}
           </div>
         </div>
-        
+
         {/* Steps progress */}
         {!isLocked && (
           <div className="mt-3 space-y-1.5">
@@ -229,7 +248,7 @@ export function QuestPanel() {
                     </span>
                   </div>
                   <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className={`h-full rounded-full transition-all duration-500 progress-bar-shimmer ${
                         step.completed ? 'bg-green-500' : isTracked ? 'bg-cyan-400' : 'bg-cyan-500'
                       }`}
@@ -241,7 +260,7 @@ export function QuestPanel() {
             })}
           </div>
         )}
-        
+
         {/* Rewards */}
         {!isLocked && (
           <div className="mt-3 flex items-center gap-2 text-[10px] pt-2 border-t border-gray-800/50">
@@ -254,18 +273,18 @@ export function QuestPanel() {
       </motion.div>
     );
   };
-  
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-cyan-400 flex items-center gap-2 neon-glow-cyan">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h2 className="text-lg font-bold text-cyan-400 flex items-center gap-2" style={{ textShadow: '0 0 10px rgba(34,211,238,0.3)' }}>
           📜 Quest Board
         </h2>
         <div className="flex items-center gap-2 text-[10px]">
           <span className="text-gray-400">{claimedCount}/{totalCount} Completed</span>
           <div className="w-20 h-1.5 bg-gray-800 rounded-full overflow-hidden">
-            <div 
+            <div
               className="h-full bg-green-500 rounded-full transition-all"
               style={{ width: `${totalCount > 0 ? (claimedCount / totalCount) * 100 : 0}%` }}
             />
@@ -282,7 +301,7 @@ export function QuestPanel() {
           <span className="text-[10px] text-gray-500">Quests unlock as you advance</span>
         </div>
         <div className="flex gap-1 h-3">
-          {[0, 1, 2, 3].map(tier => {
+          {[0, 1, 2, 3, 4].map(tier => {
             const isUnlocked = tier <= playerTier;
             const isCurrent = tier === playerTier;
             const tierQuests = questsByTier[tier] ?? [];
@@ -301,17 +320,23 @@ export function QuestPanel() {
           })}
         </div>
         <div className="flex justify-between mt-1.5 text-[9px] text-gray-600">
-          {[0, 1, 2, 3].map(tier => (
+          {[0, 1, 2, 3, 4].map(tier => (
             <span key={tier} style={{ color: tier <= playerTier ? getTierColor(tier) : undefined }}>
               {TIER_INFO[tier]?.emoji} {TIER_INFO[tier]?.name}
             </span>
           ))}
         </div>
       </div>
-      
+
       {/* Summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[0, 1, 2, 3].map(tier => {
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        {/* Available reward */}
+        <div className="rounded-xl p-3 text-center border border-green-900/30 bg-green-900/10">
+          <div className="text-xl mb-1">🎁</div>
+          <div className="text-lg font-bold text-green-400">${formatNumber(availableReward)}</div>
+          <div className="text-[10px] text-gray-500">Available</div>
+        </div>
+        {[0, 1, 2, 3, 4].map(tier => {
           const tierQuests = questsByTier[tier] ?? [];
           const completed = tierQuests.filter(q => q.completed).length;
           const info = TIER_INFO[tier];
@@ -328,12 +353,105 @@ export function QuestPanel() {
         })}
       </div>
 
+      {/* Filter Bar */}
+      <div className="bg-[#111827]/50 border border-[#1e293b] rounded-xl p-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-cyan-400 transition-colors"
+          >
+            <Filter className="w-3 h-3" />
+            Filter
+            {showFilters ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+          </button>
+          {/* Quick filter pills */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {[
+              { key: 'all' as FilterType, label: 'All', count: totalCount },
+              { key: 'active' as FilterType, label: 'Active', count: activeCount },
+              { key: 'completed' as FilterType, label: 'Done', count: claimedCount },
+            ].map(f => (
+              <button
+                key={f.key}
+                onClick={() => setFilterType(f.key)}
+                className={`text-[9px] px-2 py-1 rounded-full border transition-all ${
+                  filterType === f.key
+                    ? 'border-cyan-500/50 bg-cyan-900/30 text-cyan-400'
+                    : 'border-gray-800 bg-gray-900/30 text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                {f.label} ({f.count})
+              </button>
+            ))}
+          </div>
+          {filterType !== 'all' && (
+            <button
+              onClick={() => setFilterType('all')}
+              className="text-[9px] text-cyan-400 hover:text-cyan-300 ml-auto"
+            >
+              Clear filter ✕
+            </button>
+          )}
+        </div>
+        <AnimatePresence>
+          {showFilters && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="pt-3 flex flex-wrap gap-1.5 border-t border-gray-800/50 mt-2">
+                {/* Quest type filters */}
+                <span className="text-[9px] text-gray-600 w-full mb-1">By Type:</span>
+                {Object.entries(QUEST_TYPE_CONFIG).map(([key, config]) => {
+                  const count = quests.filter(q => q.type === key).length;
+                  if (count === 0) return null;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setFilterType(key as FilterType)}
+                      className={`text-[9px] px-2 py-1 rounded border transition-all ${
+                        filterType === key
+                          ? `${config.bg} ${config.border} ${config.color}`
+                          : 'border-gray-800 bg-gray-900/30 text-gray-500 hover:text-gray-300'
+                      }`}
+                    >
+                      {config.label} ({count})
+                    </button>
+                  );
+                })}
+                {/* Category filters */}
+                <span className="text-[9px] text-gray-600 w-full mb-1 mt-2">By Category:</span>
+                {Object.entries(CATEGORY_CONFIG).map(([key, config]) => {
+                  const count = quests.filter(q => q.category === key).length;
+                  if (count === 0) return null;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setFilterType(key as FilterType)}
+                      className={`text-[9px] px-2 py-1 rounded border transition-all ${
+                        filterType === key
+                          ? `${config.bg} ${config.border} ${config.color}`
+                          : 'border-gray-800 bg-gray-900/30 text-gray-500 hover:text-gray-300'
+                      }`}
+                    >
+                      {config.label} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
       {/* Tracked Quest Indicator */}
       {store.trackedQuest && (() => {
         const trackedQuestData = quests.find(q => q.id === store.trackedQuest);
         if (!trackedQuestData || trackedQuestData.claimed) return null;
-        const tProgress = trackedQuestData.steps.length > 0 
-          ? trackedQuestData.steps.reduce((sum, s) => sum + Math.min(1, s.current / Math.max(1, s.target)), 0) / trackedQuestData.steps.length 
+        const tProgress = trackedQuestData.steps.length > 0
+          ? trackedQuestData.steps.reduce((sum, s) => sum + Math.min(1, s.current / Math.max(1, s.target)), 0) / trackedQuestData.steps.length
           : 0;
         return (
           <div className="bg-gradient-to-r from-cyan-900/20 to-teal-900/10 border border-cyan-500/30 rounded-xl p-3">
@@ -355,7 +473,7 @@ export function QuestPanel() {
                 <p className="text-sm text-gray-200 font-medium truncate">{trackedQuestData.name}</p>
                 <div className="flex items-center gap-2 mt-0.5">
                   <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className="h-full bg-cyan-400 rounded-full transition-all"
                       style={{ width: `${tProgress * 100}%` }}
                     />
@@ -372,11 +490,24 @@ export function QuestPanel() {
           </div>
         );
       })()}
-      
+
+      {/* Claim All Available */}
+      {availableReward > 0 && (
+        <button
+          onClick={() => {
+            quests.filter(q => q.completed && !q.claimed).forEach(q => store.claimQuestReward(q.id));
+          }}
+          className="w-full py-2.5 rounded-xl border border-green-500/30 bg-green-900/20 text-green-400 text-sm font-bold hover:bg-green-900/40 transition-all flex items-center justify-center gap-2"
+        >
+          <Sparkles className="w-4 h-4" />
+          Claim All Rewards (${formatNumber(availableReward)})
+        </button>
+      )}
+
       {/* Quest sections by Tier */}
-      {[0, 1, 2, 3].map(tier => {
-        const tierQuests = questsByTier[tier];
-        if (tierQuests.length === 0) return null;
+      {[0, 1, 2, 3, 4].map(tier => {
+        const tierQuests = filteredQuestsByTier[tier];
+        if (!tierQuests || tierQuests.length === 0) return null;
         const isUnlocked = tier <= playerTier;
         const info = TIER_INFO[tier];
         const completed = tierQuests.filter(q => q.completed).length;
@@ -401,7 +532,7 @@ export function QuestPanel() {
           </div>
         );
       })}
-      
+
       {quests.length === 0 && (
         <div className="text-center py-12 text-gray-500">
           <div className="text-4xl mb-3">📜</div>

@@ -616,7 +616,7 @@ interface GameActions {
 
   // Quests
   claimQuestReward: (questId: string) => void;
-  updateQuestProgress: (type: string, amount: number) => void;
+  updateQuestProgress: (type: string, amount: number, targetId?: string) => void;
   setTrackedQuest: (id: string | null) => void;
 
   // Payouts
@@ -1402,6 +1402,28 @@ export const useGameStore = create<GameStore>()(
             corporationPoints: state.prestigeState.corporationPoints + corpGained,
           } : state.prestigeState,
         });
+
+        // --- Update Quest Progress (periodic checks) ---
+        // Check every 10 ticks to avoid performance overhead
+        if (newTick % 10 === 0) {
+          // Update 'reach' type quests (e.g., power efficiency)
+          get().updateQuestProgress('reach', 0);
+          // Update 'earn' type quests with current totalMoneyEarned
+          get().updateQuestProgress('earn', 0);
+          // Update 'produce' type quests based on totalResourcesProduced
+          const producedStats = newStats.totalResourcesProduced;
+          const quests = get().quests;
+          quests.forEach(q => {
+            if (q.type === 'produce' && !q.claimed && !q.completed && q.targetResource) {
+              const totalProduced = producedStats[q.targetResource] ?? 0;
+              // Only update if the quest progress is behind actual production
+              const maxStepCurrent = Math.max(...q.steps.map(s => s.current));
+              if (totalProduced > maxStepCurrent) {
+                get().updateQuestProgress('produce', totalProduced - maxStepCurrent, q.targetResource);
+              }
+            }
+          });
+        }
       },
 
       setGameSpeed: (speed: number) => set({ gameSpeed: speed }),
@@ -1450,7 +1472,7 @@ export const useGameStore = create<GameStore>()(
         });
         soundEngine.play('buildingPlaced', 'building');
         get().addNotification('success', `Built ${def.name} for $${formatNumber(cost)}`);
-        get().updateQuestProgress('build', 1);
+        get().updateQuestProgress('build', 1, type);
       },
 
       upgradeBuilding: (id: string) => {
@@ -1588,6 +1610,7 @@ export const useGameStore = create<GameStore>()(
         });
         soundEngine.play('buildingPlaced', 'building');
         get().addNotification('success', `Built ${def.name} for $${formatNumber(cost)}`);
+        get().updateQuestProgress('transport', 1);
       },
 
       upgradeTransportLine: (id: string) => {
@@ -1688,6 +1711,7 @@ export const useGameStore = create<GameStore>()(
           workers: [...state.workers, worker],
         });
         get().addNotification('success', `Hired ${def.name}`);
+        get().updateQuestProgress('worker', 1);
       },
 
       assignWorker: (workerId: string, buildingId: string | null) => {
@@ -1816,6 +1840,7 @@ export const useGameStore = create<GameStore>()(
         });
         soundEngine.play('contractCompleted', 'events');
         get().addNotification('success', `Contract fulfilled: ${contract.name}! +$${formatNumber(contract.reward.money)}`);
+        get().updateQuestProgress('contract', 1);
       },
 
       // --- AUTOMATION ACTIONS ---
@@ -1908,6 +1933,7 @@ export const useGameStore = create<GameStore>()(
         });
 
         soundEngine.play('levelUp', 'events');
+        get().updateQuestProgress('prestige', 1);
       },
 
       purchasePrestigeBonus: (id: string) => {
@@ -2063,8 +2089,90 @@ export const useGameStore = create<GameStore>()(
         get().addNotification('success', `Quest reward claimed: ${quest.name}! +$${formatNumber(reward.money)}${reward.researchPoints ? ` +${reward.researchPoints} RP` : ''}${reward.corporationPoints ? ` +${reward.corporationPoints} CP` : ''}`);
       },
 
-      updateQuestProgress: (type: string, amount: number) => {
+      updateQuestProgress: (type: string, amount: number, targetId?: string) => {
         const state = get();
+
+        // For 'reach' type quests, check current game state directly
+        if (type === 'reach') {
+          const efficiency = state.powerGrid.efficiency * 100;
+          const newQuests = state.quests.map(q => {
+            if (q.claimed || q.completed || q.type !== 'reach') return q;
+            const newSteps = q.steps.map(s => {
+              if (s.completed) return s;
+              // Power efficiency reach quest
+              if (s.description.toLowerCase().includes('efficiency')) {
+                const newCurrent = Math.min(Math.round(efficiency), s.target);
+                return { ...s, current: newCurrent, completed: newCurrent >= s.target };
+              }
+              // Generic reach: just set current to amount
+              const newCurrent = Math.min(amount, s.target);
+              return { ...s, current: newCurrent, completed: newCurrent >= s.target };
+            });
+            const allStepsComplete = newSteps.every(s => s.completed);
+            return { ...q, steps: newSteps, completed: allStepsComplete };
+          });
+          set({ quests: newQuests });
+          return;
+        }
+
+        // For 'earn' type quests, track totalMoneyEarned
+        if (type === 'earn') {
+          const newQuests = state.quests.map(q => {
+            if (q.claimed || q.completed || q.type !== 'earn') return q;
+            const newSteps = q.steps.map(s => {
+              if (s.completed) return s;
+              const newCurrent = Math.min(state.totalMoneyEarned, s.target);
+              return { ...s, current: newCurrent, completed: newCurrent >= s.target };
+            });
+            const allStepsComplete = newSteps.every(s => s.completed);
+            return { ...q, steps: newSteps, completed: allStepsComplete };
+          });
+          set({ quests: newQuests });
+          return;
+        }
+
+        // For 'produce' type quests with targetResource
+        if (type === 'produce' && targetId) {
+          const newQuests = state.quests.map(q => {
+            if (q.claimed || q.completed || q.type !== 'produce') return q;
+            // Only update quests that match the target resource
+            if (q.targetResource && q.targetResource !== targetId) return q;
+            const newSteps = q.steps.map(s => {
+              if (s.completed) return s;
+              const newCurrent = s.current + amount;
+              const stepCompleted = newCurrent >= s.target;
+              return { ...s, current: newCurrent, completed: stepCompleted };
+            });
+            const allStepsComplete = newSteps.every(s => s.completed);
+            return { ...q, steps: newSteps, completed: allStepsComplete };
+          });
+          set({ quests: newQuests });
+          return;
+        }
+
+        // For 'build' type quests with targetBuilding
+        if (type === 'build' && targetId) {
+          const newQuests = state.quests.map(q => {
+            if (q.claimed || q.completed || q.type !== 'build') return q;
+            // If quest has a specific targetBuilding, only update quests for that building
+            if (q.targetBuilding && q.targetBuilding !== targetId) {
+              // Still update generic build quests (no targetBuilding)
+              // But skip quests for different buildings
+            }
+            const newSteps = q.steps.map(s => {
+              if (s.completed) return s;
+              const newCurrent = s.current + amount;
+              const stepCompleted = newCurrent >= s.target;
+              return { ...s, current: newCurrent, completed: stepCompleted };
+            });
+            const allStepsComplete = newSteps.every(s => s.completed);
+            return { ...q, steps: newSteps, completed: allStepsComplete };
+          });
+          set({ quests: newQuests });
+          return;
+        }
+
+        // Default: generic type matching (for sell, research, contract, transport, worker, prestige, megaProject)
         const newQuests = state.quests.map(q => {
           if (q.claimed || q.completed) return q;
           if (q.type !== type) return q;
@@ -2354,12 +2462,16 @@ export const useGameStore = create<GameStore>()(
         get().addNotification('success', `Claimed quest reward: ${quest.name}!`);
       },
 
-      updateQuestProgress: (type: string, amount: number) => {
+      updateQuestProgress: (type: string, amount: number, targetId?: string) => {
         const state = get();
+        // Delegate to the main updateQuestProgress logic
+        // This is a simplified version for the second store definition
         set({
           quests: state.quests.map(q => {
             if (q.completed || q.claimed) return q;
             if (q.type !== type) return q;
+            // For produce quests with targetResource, only match if resource matches
+            if (type === 'produce' && q.targetResource && targetId && q.targetResource !== targetId) return q;
             return {
               ...q,
               steps: q.steps.map(s => {
@@ -2564,7 +2676,7 @@ export const useGameStore = create<GameStore>()(
         if (state.buildings.length === 0) return 0;
         const highestBuildingTier = Math.max(0, ...state.buildings.map(b => BUILDING_DEFS[b.type]?.tier ?? 0));
         const researchTier = Math.floor(state.completedResearch.length / 3);
-        return Math.min(3, Math.max(highestBuildingTier, researchTier));
+        return Math.min(4, Math.max(highestBuildingTier, researchTier));
       },
 
       // --- MEGAPROJECT ACTIONS ---
