@@ -108,10 +108,7 @@ export function TransportPanel() {
   }, [store, transportTypes]);
 
   // Bottleneck detection with solutions
-  const playerMoney = store.money;
-  const isPowerOverloaded = store.powerGrid.overload;
-
-  const bottlenecks = useMemo(() => {
+  const bottlenecks = (() => {
     const issues: {
       building: BuildingInstance;
       reason: string;
@@ -131,7 +128,6 @@ export function TransportPanel() {
         if (outLines.length === 0 && producingBuildings.some(pb => pb.id === b.id)) {
           const totalOutput = def.outputs.reduce((sum, o) => sum + o.amount * b.level, 0);
           if (totalOutput > 0) {
-            // Find the best consumer for this producer
             const outputResources = def.outputs.map(o => o.resource as ResourceType);
             const matchingConsumers = consumingBuildings.filter(cb => {
               const cbDef = BUILDING_DEFS[cb.type];
@@ -161,7 +157,7 @@ export function TransportPanel() {
         if (utilization > 0.85) {
           const lineDef = TRANSPORT_DEFS[line.type];
           const upgradeCost = Math.floor(lineDef.baseCost.reduce((s, c) => s + (c.resource === 'money' ? c.amount : 0), 0) * Math.pow(1.3, line.level));
-          const canAfford = playerMoney >= upgradeCost;
+          const canAfford = store.money >= upgradeCost;
           issues.push({
             building: b,
             reason: `${lineDef.name} at ${(utilization * 100).toFixed(0)}% capacity — risk of backup`,
@@ -184,7 +180,6 @@ export function TransportPanel() {
           const res = input.resource as ResourceType;
           const inLines = store.transportLines.filter(l => l.toBuilding === b.id && l.carriesResource === res && l.active);
           if (inLines.length === 0) {
-            // Check if any producer makes this resource
             const producers = producingBuildings.filter(pb => {
               const pbDef = BUILDING_DEFS[pb.type];
               return pbDef?.outputs?.some(o => o.resource === res);
@@ -206,7 +201,7 @@ export function TransportPanel() {
       }
 
       // 4. Building has low efficiency due to power
-      if (b.efficiency < 0.5 && isPowerOverloaded) {
+      if (b.efficiency < 0.5 && store.powerGrid.overload) {
         issues.push({
           building: b,
           reason: `Running at ${(b.efficiency * 100).toFixed(0)}% efficiency — power grid overloaded`,
@@ -235,7 +230,7 @@ export function TransportPanel() {
     issues.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
 
     return issues;
-  }, [store.buildings, store.transportLines, producingBuildings, consumingBuildings, routeSuggestions, isPowerOverloaded, playerMoney]);
+  })();
 
   // Throughput data per transport type for bar chart
   const throughputByType = useMemo(() => {

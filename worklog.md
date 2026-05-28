@@ -1874,3 +1874,171 @@ Stage Summary:
 - Critical fix: getCapacity() re-added with storageBonus research applied
 - 10 capacity reference sites updated from raw state.resourceCapacity to getCapacity()
 - Research tab is fully functional end-to-end
+
+---
+Task ID: 5
+Agent: FactoryPanel Redesign Developer
+Task: Redesign FactoryPanel component with modern Production Pipeline layout
+
+Work Log:
+- Read worklog.md to understand full project history and current state
+- Read current FactoryPanel.tsx (1066 lines) to understand existing layout and functionality
+- Read data.ts for PRODUCTION_CHAINS (10 chains), RESOURCE_META (tiered resources), BUILDING_DEFS structure
+- Analyzed current layout: 2/3 + 1/3 grid with collapsible tier sections (T1/T2/T3) and right sidebar
+- Identified issues: collapsible sections feel disconnected, no visual pipeline representation, factory cards too large
+
+Complete Redesign of FactoryPanel.tsx:
+1. **Production Flow Diagram (Hero Section)**:
+   - Added SVG-based visual pipeline showing Raw Materials → T1 Processing → T2 Manufacturing → T3 High-Tech
+   - 4 tier nodes as rounded rectangles with color-coding (gray → cyan → orange → purple)
+   - Animated dashed connection lines between nodes with directional arrows
+   - SVG animated flow particles moving along connections
+   - Production rates displayed on each connection
+   - Background grid pattern for industrial feel
+   - Pulsing glow effects on active tier nodes
+   - Green active indicator dots on producing tiers
+   - Interactive: clicking a node expands a detail panel showing per-resource production/consumption for that tier
+   - Close button (X) on expanded detail panel
+   - AnimatePresence for smooth expand/collapse
+
+2. **Tab-Based Tier Selector** (replacing collapsible sections):
+   - 3-tab bar (T1 | T2 | T3) with tier-colored active states
+   - Each tab shows tier icon, label, and active/total count
+   - Responsive: short labels on mobile, full labels on desktop
+   - Active tab has glow shadow effect (shadow-[0_0_12px_rgba(...)])
+   - AnimatePresence mode="wait" for smooth tab transitions with motion.div key-based animation
+
+3. **Compact Factory Build Cards**:
+   - Reduced from 4-column to 2/3-column grid with smaller padding
+   - Each card now has horizontal layout: emoji + name on left, chain badges on right
+   - Production chain pipeline badges on each card (showing which chains it belongs to, colored by chain color)
+   - Inline I/O flow more compact (8px font, single row)
+   - Cost and power on same line (left-aligned cost, right-aligned power)
+   - Smaller build button (h-6 instead of h-7)
+   - Active count indicator below build button
+
+4. **Compact Active Factory List**:
+   - Single-row layout per building instead of multi-row
+   - Emoji toggle inline with name/level/status
+   - Inline I/O flow on same row
+   - Efficiency bar compact (h-1 instead of h-1.5)
+   - Toggle and upgrade buttons stacked vertically on the right (smaller: w-6/h-6 toggle, h-5 upgrade)
+   - Upgrade cost shown in 7px font below upgrade button
+
+5. **Preserved Right Sidebar**:
+   - Production Chains visualization (chain selector, step flow, stock bars) - unchanged
+   - Factory Overview stats - unchanged
+   - Top Production list - unchanged
+   - Input Demand section - unchanged
+
+6. **Preserved Building Comparison Tool**:
+   - Full comparison tool maintained at bottom
+   - Same VS layout with winner highlighting
+
+7. **Helper Components**:
+   - FactoryStatCard: unchanged
+   - OverviewRow: unchanged
+   - getTierColorClasses: enhanced with tabActive, tabHover styles
+   - TIER_CONFIG: added shortLabel and hex color fields
+
+8. **New Imports**:
+   - Added Pickaxe, Sparkles, X icons from lucide-react
+   - Removed unused imports (Wrench, Microchip, ChevronDown, CircleDot)
+
+9. **New State**:
+   - selectedTier (replacing expandedTier) - controls active tab
+   - selectedFlowNode - controls which flow diagram tier is expanded
+   - getFactoryChains helper - returns production chains a factory belongs to
+   - tierProductionSummary computed value - aggregates production/consumption by tier
+
+10. **New Data Structures**:
+    - FLOW_TIERS array - defines the 4 flow diagram nodes with labels, colors, icons
+    - getResourceTier helper - maps ResourceType to tier number using RESOURCE_META
+
+- ESLint passes cleanly (0 errors)
+- Dev server compiles successfully
+
+Stage Summary:
+- FactoryPanel completely redesigned from collapsible sections to modern Production Pipeline layout
+- New SVG production flow diagram as hero section with animated connections and interactive tier nodes
+- Tab-based tier selector replaces accordion/collapsible sections for cleaner navigation
+- Compact factory cards with production chain pipeline badges
+- Compact active factory list with inline controls
+- Right sidebar (production chains, factory overview, top production, input demand) preserved
+- Building comparison tool preserved
+- All GameItemTooltip wrappers maintained
+- Dark industrial neon theme maintained throughout
+- Production rate formula preserved: output.amount * baseProductionRate * level * efficiency * powerGrid.efficiency
+
+---
+Task ID: Session-7
+Agent: Main Coordinator (Bug Fixes & Factory Overhaul)
+Task: Fix runtime TypeError in ContractPanel, fix factory gameplay bugs, add bottleneck solutions, redesign FactoryPanel
+
+Work Log:
+- Fixed ContractPanel.tsx runtime TypeError: Cannot read properties of undefined (reading 'name')
+  - Added .filter(r => RESOURCE_META[r.resource]) before .map() on requiredResources (lines 43, 94)
+  - Added ?? 0 fallback for store.resources[r.resource] access
+  - Fixed canFulfill check to use (store.resources[r.resource] ?? 0) >= r.amount
+- Fixed same pattern in store.ts fulfillContract action and autoFulfill tick logic
+- Added comprehensive bottleneck solutions to TransportPanel:
+  - Expanded bottleneck detection from 1 type to 6 types:
+    1. No outbound transport for producers (critical)
+    2. Transport line near capacity >85% (warning)
+    3. Consumer missing inbound transport (critical)
+    4. Building low efficiency due to power overload (warning)
+    5. No transport network at all (info)
+  - Each bottleneck now has: severity, solution text, and optional action button
+  - Severity badges (critical/warning) shown in header
+  - Color-coded cards: red=critical, yellow=warning, blue=info
+  - Action buttons: "Create Route", "Upgrade ($cost)", "Show Suggestions"
+- Fixed React Compiler memoization lint errors in TransportPanel by converting useMemo bottlenecks to IIFE
+- **CRITICAL BUG FIX**: baseProductionRate was NEVER used in game tick calculations
+  - Factory production was: output.amount * b.level * efficiency (ignoring baseProductionRate)
+  - Fixed to: output.amount * def.baseProductionRate * b.level * efficiency
+  - This means high-tier factories (nanoLab=0.1, quantumLab=0.2, roboticsBay=0.3) were producing 2-10x too fast
+  - Fixed in both extractor and factory production paths in store.ts
+- **CRITICAL BUG FIX**: Offline progress only processed extractors, NOT factories
+  - Added full factory production to calculateOfflineProgress() in store.ts
+  - Factories now consume inputs and produce outputs during offline progress
+  - Uses temp resource tracking to handle chain dependencies
+- Fixed FactoryPanel production rate calculations to include baseProductionRate
+  - factoryProductionRates: o.amount * def.baseProductionRate * b.level * b.efficiency * store.powerGrid.efficiency
+  - factoryConsumptionRates: same formula with inputs
+  - effectiveOutputs/effectiveInputs in active factory cards: same formula
+- Coordinated FactoryPanel redesign via subagent:
+  - Added Production Flow Diagram (SVG pipeline: Raw → T1 → T2 → T3)
+  - Replaced collapsible sections with tab-based tier selector
+  - Compact factory build cards with inline I/O flow and chain badges
+  - Compact active factory list with single-row layout
+- Set up 15-minute cron job for webDevReview
+- ESLint passes cleanly (0 errors)
+- Dev server compiles successfully
+
+Stage Summary:
+- Fixed 2 critical gameplay bugs: baseProductionRate not used, offline progress skipping factories
+- Fixed ContractPanel crash from undefined RESOURCE_META entries
+- Enhanced TransportPanel with comprehensive bottleneck detection + solutions with action buttons
+- Redesigned FactoryPanel with production flow diagram and tab-based layout
+- Game balance now correct: high-tier factories produce at intended slower rates
+- Offline progress now properly handles full production chain
+
+Current Project Status:
+- Factory Dominion: Automated Empire - feature-rich idle factory simulation game
+- All 19 tabs functional with correct gameplay mechanics
+- Production chain fully connected: extractors → T1 → T2 → T3 factories
+- baseProductionRate now properly scales high-tier production
+- Offline progress processes full factory chains
+- Bottleneck detection provides actionable solutions
+
+Unresolved Issues / Risks:
+- No cloud save sync
+- Performance not stress-tested for 100k+ tick sessions
+- Some factories may need balance tuning after baseProductionRate fix
+
+Priority Recommendations for Next Phase:
+1. Balance testing after baseProductionRate fix (high-tier may feel too slow now)
+2. Add cloud save sync capability
+3. Performance optimization for long play sessions
+4. Add more visual feedback for factory production (particles, animations)
+5. Add production calculator/planner tool

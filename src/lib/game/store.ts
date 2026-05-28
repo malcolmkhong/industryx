@@ -590,7 +590,7 @@ export const useGameStore = create<GameStore>()(
             def.outputs.forEach(output => {
               if (output.resource === 'money') return;
               const res = output.resource as ResourceType;
-              const produced = output.amount * b.level * efficiency;
+              const produced = output.amount * def.baseProductionRate * b.level * efficiency;
               const capacity = newResources[res] + produced;
               newResources[res] = Math.min(getCapacity(state, res), capacity);
               newStats.totalResourcesProduced[res] += produced;
@@ -624,7 +624,7 @@ export const useGameStore = create<GameStore>()(
                 def.outputs.forEach(output => {
                   if (output.resource === 'money') return;
                   const res = output.resource as ResourceType;
-                  const produced = output.amount * b.level * efficiency;
+                  const produced = output.amount * def.baseProductionRate * b.level * efficiency;
                   const capacity = newResources[res] + produced;
                   newResources[res] = Math.min(getCapacity(state, res), capacity);
                   newStats.totalResourcesProduced[res] += produced;
@@ -2223,6 +2223,7 @@ export const useGameStore = create<GameStore>()(
         const effectiveOfflineRate = offlineRate * (1 + offlinePrestigeBonus);
 
         // Calculate production per tick for each building
+        const offlineTempResources: Record<string, number> = { ...state.resources };
         state.buildings.forEach(b => {
           if (!b.active) return;
           const def = BUILDING_DEFS[b.type];
@@ -2232,9 +2233,50 @@ export const useGameStore = create<GameStore>()(
             def.outputs.forEach(output => {
               if (output.resource === 'money') return;
               const res = output.resource as ResourceType;
-              const produced = output.amount * b.level * b.efficiency * effectiveOfflineRate * ticksElapsed;
+              const produced = output.amount * def.baseProductionRate * b.level * b.efficiency * effectiveOfflineRate * ticksElapsed;
               offlineResources[res] += produced;
+              offlineTempResources[res] = (offlineTempResources[res] ?? 0) + produced;
             });
+          }
+
+          if (def.category === 'factory' && def.inputs && def.outputs) {
+            // Check if factory can produce (has enough input resources)
+            const adjustedInputs = def.inputs.map(input => {
+              if (input.resource === 'money') return { resource: input.resource, amount: 0 };
+              return {
+                resource: input.resource,
+                amount: input.amount * b.level * b.efficiency * effectiveOfflineRate * ticksElapsed,
+              };
+            }).filter(i => i.resource !== 'money');
+
+            let canProduce = true;
+            for (const input of adjustedInputs) {
+              const res = input.resource as ResourceType;
+              if ((offlineTempResources[res] ?? 0) < input.amount) {
+                canProduce = false;
+                break;
+              }
+            }
+
+            if (canProduce) {
+              // Consume inputs
+              adjustedInputs.forEach(input => {
+                const res = input.resource as ResourceType;
+                offlineTempResources[res] = (offlineTempResources[res] ?? 0) - input.amount;
+                // Also reduce offline resources for inputs (they came from stock)
+                if (offlineResources[res] !== undefined) {
+                  offlineResources[res] = Math.max(0, offlineResources[res] - input.amount);
+                }
+              });
+              // Produce outputs
+              def.outputs.forEach(output => {
+                if (output.resource === 'money') return;
+                const res = output.resource as ResourceType;
+                const produced = output.amount * def.baseProductionRate * b.level * b.efficiency * effectiveOfflineRate * ticksElapsed;
+                offlineResources[res] += produced;
+                offlineTempResources[res] = (offlineTempResources[res] ?? 0) + produced;
+              });
+            }
           }
         });
 
