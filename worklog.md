@@ -2232,3 +2232,154 @@ Unresolved Issues / Risks:
 - Achievement system may need new achievements for new resources/factories
 - Dashboard may need updates to show new resource information
 - The new buildings need to be tested in-game for proper production tick behavior
+
+---
+Task ID: 2
+Agent: T4 Data Developer
+Task: Add Tier 4 (T4) endgame content to data.ts — resources, buildings, research, contracts, production chains, market prices, prestige bonuses, and rank thresholds
+
+Work Log:
+- Read worklog.md for project context and history
+- Read current data.ts (1800+ lines) and types.ts to verify T4 type definitions
+- Confirmed fiberOptics and solarCell are already at tier 2 in RESOURCE_META (no fix needed)
+- Confirmed Tier3Resource in types.ts no longer includes fiberOptics or solarCell (already fixed)
+- Added 8 T4 resources to RESOURCE_META: singularityCore, darkMatterCell, warpDrive, antimatter, chronoPart, plasmaCore, megaStructure, voidCrystal
+- Added 8 T4 factory buildings to BUILDING_DEFS: singularityForge, darkMatterLab, warpDriveFactory, antimatterReactor, chronoLab, plasmaForge, megaStructureFactory, voidCrystallizer
+- Added 5 T4 endgame buildings to BUILDING_DEFS: dysonCollector, quantumTeleporter, dimensionalGateway, timeDistorter, galacticForge
+- Added antimatterPowerPlant (T4 power plant) after fusionReactor: 2000 MW production, consumes antimatter fuel
+- Added 9 T4 research nodes to RESEARCH_TREE: singularityTheory, antimatterPhysics, warpTechnology, plasmaDynamics, chronoEngineering, voidCrystallography, megaConstruction, dimensionalPhysics, galacticManufacturing
+- Added Tier 4 to TIER_INFO: Singularity tier with 🌌 emoji and #00ffcc color
+- Added 9 T4 production chains: Singularity, Dark Matter, Warp Drive, Antimatter, Plasma Core, Mega Structure, Void Crystal, Chrono Tech, Galactic Production
+- Added 8 T4 contract templates (gameTier: 4): Singularity Core Order, Dark Matter Supply, Warp Drive Contract, Antimatter Delivery, Void Crystal Research, Chrono Parts, Plasma Core Export, Mega Structure Build
+- Added 5 endgame prestige bonuses: Production Boost III, Power Boost III, Time Warp, Market Boost II, Research Boost II
+- Added 3 endgame rank thresholds: Cosmic Industrialist (10M), Galactic Emperor (50M), Universal Dominion (200M)
+- Added 8 T4 market prices with appropriate demand/supply/volatility: singularityCore through voidCrystal
+- ESLint passes cleanly (0 errors, 0 warnings)
+- Dev server compiles successfully
+
+Stage Summary:
+- Complete T4 endgame content added to data.ts
+- 8 new T4 resources with full metadata (name, emoji, tier 4, color)
+- 13 new T4 buildings (8 factories + 5 endgame ultimate buildings)
+- 1 new T4 power plant (antimatterPowerPlant — 2000 MW, consumes antimatter)
+- 9 new T4 research nodes forming a deep tech tree from nanotechnology → singularityTheory → dimensionalPhysics → galacticManufacturing
+- 9 new production chains showing endgame resource flows
+- 8 new T4 contracts for endgame resource delivery
+- 5 new prestige bonuses for endgame progression
+- 3 new rank thresholds (up to 200M score)
+- 8 new market entries for T4 resources with high prices and low supply
+- All existing content preserved — only additions made
+- No TypeScript errors, no lint errors
+
+---
+Task ID: 3
+Agent: Store T4 Update Developer
+Task: Update store.ts to support T4 resources, buildings, and endgame mechanics with save migration
+
+Work Log:
+- Bumped SAVE_VERSION from 10 to 11
+- Added V10→V11 migration in migrateSaveState() that adds T4 resources to:
+  - resources object (default 0)
+  - resourceCapacity object (default 50)
+  - storageUpgradeLevels object (default 0)
+  - stats.totalResourcesProduced (default 0)
+  - stats.totalResourcesSold (default 0)
+  - market entries (auto-added from INITIAL_MARKET for missing T4 resources)
+- Added 8 T4 resources to initialResources: singularityCore, darkMatterCell, warpDrive, antimatter, chronoPart, plasmaCore, megaStructure, voidCrystal (all 0)
+- Added 8 T4 resources to initialCapacity: all with base capacity 50 (same as T3 resources)
+- createInitialState() automatically inherits T4 resources via spread of initialResources for resources, stats, and storageUpgradeLevels
+- Added endgame building passive income logic in gameTickAction:
+  - dysonCollector: +5000 money per tick * level * efficiency
+  - quantumTeleporter: +5 RP per tick * level * efficiency
+  - dimensionalGateway: +0.5 CP per tick * level * efficiency
+  - timeDistorter: +2000 money and +2 RP per tick * level * efficiency
+  - galacticForge: +50000 money, +20 RP, +2 CP per tick * level * efficiency
+- Added corpGained tracking and prestigeState update in the final set() call when CP > 0
+- Updated persist version from 10 to 11
+- Verified partialize includes all T4-related fields (resources, resourceCapacity, storageUpgradeLevels, stats, prestigeState are all included)
+- ESLint passes cleanly (0 errors)
+- Dev server compiles successfully
+
+Stage Summary:
+- Store fully supports T4 resources with proper initialization and save migration
+- Endgame buildings (dysonCollector, quantumTeleporter, dimensionalGateway, timeDistorter, galacticForge) generate passive money/RP/CP each tick
+- Corporation points from endgame buildings are properly accumulated in prestigeState
+- Save migration V10→V11 ensures old saves get T4 resources added with default values
+- All changes are additive — no existing functionality removed or broken
+
+---
+Task ID: 4
+Agent: Main Coordinator (Phase 6 - T4 Endgame)
+Task: Add T4 buildings, endgame content, and ensure game system is MVP
+
+Work Log:
+- Updated types.ts with T4 resource types (8 new: singularityCore, darkMatterCell, warpDrive, antimatter, chronoPart, plasmaCore, megaStructure, voidCrystal) and T4 building types (13 new factories + antimatterPowerPlant)
+- Fixed Tier3Resource type (removed duplicate fiberOptics and solarCell that were erroneously in T3)
+- Updated data.ts via subagent:
+  - 8 T4 RESOURCE_META entries with tier 4, custom colors and emojis
+  - 13 T4 BUILDING_DEFS (8 regular T4 + 5 endgame ultimate buildings)
+  - 1 T4 power plant (antimatterPowerPlant: 2000 MW, uses antimatter fuel)
+  - 9 T4 research nodes with deep prerequisite chain
+  - TIER_INFO tier 4 entry (Singularity)
+  - 9 T4 production chains
+  - 8 T4 contract templates (gameTier 4, difficulty 5)
+  - 5 endgame prestige bonuses
+  - 3 endgame rank thresholds (Cosmic Industrialist, Galactic Emperor, Universal Dominion)
+  - 8 T4 market prices
+- Updated store.ts via subagent:
+  - SAVE_VERSION bumped 10 → 11
+  - V10→V11 migration adds T4 resources to all Record<ResourceType, number> fields
+  - Endgame building passive income: dysonCollector (money), quantumTeleporter (RP), dimensionalGateway (CP), timeDistorter (money+RP), galacticForge (money+RP+CP)
+  - T4 resources initialized in createInitialState()
+- Updated FactoryPanel.tsx:
+  - Added TIER_4_FACTORIES array with all 13 T4 factory types
+  - Added T4 to TIER_CONFIG with emerald color scheme
+  - Added emerald TierColor and TierColorClasses
+  - Updated FLOW_TIERS to include t4 (5 total tiers)
+  - Updated SVG flow diagram for 5 tiers (wider viewBox, adjusted positions)
+  - Updated factoriesByTier to include tier 4
+  - Updated tier tab selector to show 4 tabs (T1-T4)
+- Updated PowerPanel.tsx:
+  - Added antimatterPowerPlant to POWER_PLANT_TYPES array
+  - Added antimatterPowerPlant to POWER_PLANT_META with fuchsia color
+- Updated FactoryMapPanel.tsx:
+  - Added factory_t4 CATEGORY_STYLES with emerald color scheme
+  - Added T4 Factory label group with all 13 T4 building types
+  - Added antimatterPowerPlant to power types
+  - Updated getCategoryStyle to return factory_t4 for tier 4 factories
+- All lint checks pass (0 errors)
+- Dev server compiles successfully
+
+Stage Summary:
+- Complete T4 endgame system with 8 new resources, 14 new buildings, 9 research nodes, 8 contracts, 9 production chains
+- Endgame buildings provide passive income (money, research points, corporation points)
+- Antimatter Power Plant provides 2000 MW (10x fusion) with antimatter fuel consumption
+- Deep research prerequisite chain: nanotechnology → singularityTheory → chronoEngineering/voidCrystallography → dimensionalPhysics → galacticManufacturing
+- 5 ultimate endgame buildings require both research AND prestige levels
+- 3 new ranks for very late game: Cosmic Industrialist (10M), Galactic Emperor (50M), Universal Dominion (200M)
+- 5 new prestige bonuses for endgame progression
+- All T4 resources have market prices for trading
+- Factory Panel now shows 4 tier tabs with emerald T4 section
+- Factory Map shows T4 buildings with emerald color scheme
+- Power Panel shows antimatter power plant
+
+Current Project Status Assessment:
+- Factory Dominion: Automated Empire now has a complete 5-tier progression system (Raw → T1 → T2 → T3 → T4)
+- T4 Singularity tier provides meaningful endgame content with massive resource requirements
+- Endgame buildings generate passive income, giving veteran players continuous rewards
+- Research tree extends from 18 to 27 nodes with deep T4 chain
+- Save migration ensures existing players get T4 resources added automatically
+- Game is MVP with complete progression from startup to galactic-level manufacturing
+
+Unresolved Issues / Risks:
+- Existing save data may need localStorage clear to fully reset with new T4 fields (migration should handle this)
+- Endgame building balance may need tuning (production rates are very low but income is high)
+- Some T3 resources (like insecticide, copperIngot) still have limited consumption chains
+- Transport panel routing still limited
+
+Priority Recommendations for Next Phase:
+1. Balance testing for T4 production rates and costs
+2. Connect remaining underutilized T3 resources (insecticide, copperIngot)
+3. Add more T4-specific events and seasonal content
+4. Add MegaProject expansions that use T4 resources
+5. Improve transport panel with building-to-building routing

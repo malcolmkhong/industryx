@@ -16,7 +16,7 @@ import {
 import { PowerPlantType, BuildingInstance } from '@/lib/game/types';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 
-const POWER_PLANT_TYPES: PowerPlantType[] = ['coalGenerator', 'solarPanel', 'windTurbine', 'nuclearReactor', 'fusionReactor'];
+const POWER_PLANT_TYPES: PowerPlantType[] = ['coalGenerator', 'solarPanel', 'windTurbine', 'nuclearReactor', 'fusionReactor', 'antimatterPowerPlant'];
 
 const POWER_PLANT_META: Record<PowerPlantType, { icon: React.ReactNode; color: string; label: string; glowClass: string; emoji: string }> = {
   coalGenerator: { icon: <Flame className="w-4 h-4" />, color: '#ff6600', label: 'Coal', glowClass: 'text-orange-400', emoji: '🔥' },
@@ -24,6 +24,7 @@ const POWER_PLANT_META: Record<PowerPlantType, { icon: React.ReactNode; color: s
   windTurbine: { icon: <Wind className="w-4 h-4" />, color: '#00ccff', label: 'Wind', glowClass: 'text-cyan-400', emoji: '💨' },
   nuclearReactor: { icon: <Atom className="w-4 h-4" />, color: '#00ff66', label: 'Nuclear', glowClass: 'text-green-400', emoji: '☢️' },
   fusionReactor: { icon: <Sparkles className="w-4 h-4" />, color: '#bf00ff', label: 'Fusion', glowClass: 'text-purple-400', emoji: '⚡' },
+  antimatterPowerPlant: { icon: <Zap className="w-4 h-4" />, color: '#ff00ff', label: 'Antimatter', glowClass: 'text-fuchsia-400', emoji: '⚡' },
 };
 
 // --- Mini sparkline for power history ---

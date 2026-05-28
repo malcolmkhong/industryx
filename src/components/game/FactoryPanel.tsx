@@ -21,17 +21,46 @@ import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 const TIER_1_FACTORIES: FactoryType[] = ['smelter', 'wireMill', 'chemicalPlant', 'glassFurnace', 'carbonProcessor', 'brickFactory', 'concreteFactory', 'fertilizerFactory', 'steelForge', 'oilRefinery'];
 const TIER_2_FACTORIES: FactoryType[] = ['gearFactory', 'circuitFactory', 'engineFactory', 'batteryFactory', 'siliconRefinery', 'aluminiumFactory', 'insecticideFactory', 'copperRefinery', 'titaniumRefinery', 'coolantPlant', 'opticsLab', 'solarCellFactory', 'displayFactory', 'hydrogenPlant'];
 const TIER_3_FACTORIES: FactoryType[] = ['aiLab', 'roboticsBay', 'quantumLab', 'alloyForge', 'nanoLab', 'electronicsFactory', 'medicalTechLab', 'goldsmith', 'tungstenSmelter', 'armsFactory', 'droneShipyard', 'detectorFactory', 'neuralLab'];
+const TIER_4_FACTORIES: FactoryType[] = ['singularityForge', 'darkMatterLab', 'warpDriveFactory', 'antimatterReactor', 'chronoLab', 'plasmaForge', 'megaStructureFactory', 'voidCrystallizer', 'dysonCollector', 'quantumTeleporter', 'dimensionalGateway', 'timeDistorter', 'galacticForge'];
 
 const TIER_CONFIG = {
   1: { label: 'T1 — Processing', shortLabel: 'T1', color: 'cyan', icon: <Flame className="w-4 h-4" />, borderColor: 'border-cyan-900/40', hex: '#22d3ee' },
   2: { label: 'T2 — Manufacturing', shortLabel: 'T2', color: 'orange', icon: <Cog className="w-4 h-4" />, borderColor: 'border-orange-900/40', hex: '#f97316' },
   3: { label: 'T3 — High-Tech', shortLabel: 'T3', color: 'purple', icon: <Brain className="w-4 h-4" />, borderColor: 'border-purple-900/40', hex: '#a855f7' },
+  4: { label: 'T4 — Singularity', shortLabel: 'T4', color: 'emerald', icon: <Sparkles className="w-4 h-4" />, borderColor: 'border-emerald-900/40', hex: '#00ffcc' },
 };
 
-type TierColor = 'cyan' | 'orange' | 'purple';
+type TierColor = 'cyan' | 'orange' | 'purple' | 'emerald';
 
-function getTierColorClasses(color: TierColor) {
-  const map = {
+type TierColorClasses = {
+  text: string;
+  border: string;
+  bg: string;
+  hoverBorder: string;
+  glow: string;
+  buttonBorder: string;
+  buttonText: string;
+  buttonHover: string;
+  badge: string;
+  tabActive: string;
+  tabHover: string;
+};
+
+function getTierColorClasses(color: TierColor): TierColorClasses {
+  const map: Record<TierColor, TierColorClasses> = {
+    emerald: {
+      text: 'text-emerald-400',
+      border: 'border-emerald-500/30',
+      bg: 'bg-emerald-900/20',
+      hoverBorder: 'hover:border-emerald-500/50',
+      glow: 'hover:shadow-[0_0_15px_rgba(0,255,204,0.1)]',
+      buttonBorder: 'border-emerald-700/50',
+      buttonText: 'text-emerald-400',
+      buttonHover: 'hover:bg-emerald-900/30 hover:border-emerald-500',
+      badge: 'border-emerald-600/50',
+      tabActive: 'border-emerald-500/60 bg-emerald-900/25 text-emerald-400 shadow-[0_0_12px_rgba(0,255,204,0.15)]',
+      tabHover: 'hover:border-emerald-700/50 hover:text-emerald-300',
+    },
     cyan: {
       text: 'text-cyan-400',
       border: 'border-cyan-500/30',
@@ -81,6 +110,7 @@ const FLOW_TIERS = [
   { key: 't1', label: 'T1 Processing', icon: <Flame className="w-4 h-4" />, color: '#22d3ee', bgClass: 'bg-cyan-900/20', borderClass: 'border-cyan-700/40', textClass: 'text-cyan-400' },
   { key: 't2', label: 'T2 Manufacturing', icon: <Cog className="w-4 h-4" />, color: '#f97316', bgClass: 'bg-orange-900/20', borderClass: 'border-orange-700/40', textClass: 'text-orange-400' },
   { key: 't3', label: 'T3 High-Tech', icon: <Sparkles className="w-4 h-4" />, color: '#a855f7', bgClass: 'bg-purple-900/20', borderClass: 'border-purple-700/40', textClass: 'text-purple-400' },
+  { key: 't4', label: 'T4 Singularity', icon: <Sparkles className="w-4 h-4" />, color: '#00ffcc', bgClass: 'bg-emerald-900/20', borderClass: 'border-emerald-700/40', textClass: 'text-emerald-400' },
 ] as const;
 
 // Resource tier mapping for flow diagram
@@ -111,6 +141,7 @@ export function FactoryPanel() {
     1: factoryBuildings.filter(b => TIER_1_FACTORIES.includes(b.type as FactoryType)),
     2: factoryBuildings.filter(b => TIER_2_FACTORIES.includes(b.type as FactoryType)),
     3: factoryBuildings.filter(b => TIER_3_FACTORIES.includes(b.type as FactoryType)),
+    4: factoryBuildings.filter(b => TIER_4_FACTORIES.includes(b.type as FactoryType)),
   }), [factoryBuildings]);
 
   // Production rates for factories
@@ -148,6 +179,7 @@ export function FactoryPanel() {
       1: { production: 0, consumption: 0, resources: new Set<string>() },
       2: { production: 0, consumption: 0, resources: new Set<string>() },
       3: { production: 0, consumption: 0, resources: new Set<string>() },
+      4: { production: 0, consumption: 0, resources: new Set<string>() },
     };
     Object.entries(factoryProductionRates).forEach(([res, rate]) => {
       const tier = getResourceTier(res as ResourceType);
@@ -177,9 +209,9 @@ export function FactoryPanel() {
     : 0;
 
   // Current tier data
-  const currentTierConfig = TIER_CONFIG[selectedTier as 1 | 2 | 3];
-  const currentFactories = selectedTier === 1 ? TIER_1_FACTORIES : selectedTier === 2 ? TIER_2_FACTORIES : TIER_3_FACTORIES;
-  const currentTierBuildings = factoriesByTier[selectedTier as 1 | 2 | 3] ?? [];
+  const currentTierConfig = TIER_CONFIG[selectedTier as 1 | 2 | 3 | 4];
+  const currentFactories = selectedTier === 1 ? TIER_1_FACTORIES : selectedTier === 2 ? TIER_2_FACTORIES : selectedTier === 3 ? TIER_3_FACTORIES : TIER_4_FACTORIES;
+  const currentTierBuildings = factoriesByTier[selectedTier as 1 | 2 | 3 | 4] ?? [];
   const currentColorClasses = getTierColorClasses(currentTierConfig.color as TierColor);
 
   // Find which production chains a factory belongs to
@@ -307,7 +339,7 @@ export function FactoryPanel() {
 
         {/* SVG Flow Diagram */}
         <div className="relative bg-[#0a0e17] rounded-lg p-2 overflow-x-auto">
-          <svg viewBox="0 0 1200 160" className="w-full h-auto min-w-[600px]" style={{ maxHeight: '180px' }}>
+          <svg viewBox="0 0 1400 160" className="w-full h-auto min-w-[600px]" style={{ maxHeight: '180px' }}>
             {/* Background grid pattern */}
             <defs>
               <pattern id="flowGrid" width="20" height="20" patternUnits="userSpaceOnUse">
@@ -327,14 +359,14 @@ export function FactoryPanel() {
                     <animateMotion
                       dur="2s"
                       repeatCount="indefinite"
-                      path={`M${250 + i * 280},80 L${330 + i * 280},80`}
+                      path={`M${170 + i * 250},80 L${220 + i * 250},80`}
                     />
                     <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite" />
                   </circle>
                 ) : null
               ))}
             </defs>
-            <rect width="1200" height="160" fill="url(#flowGrid)" />
+            <rect width="1400" height="160" fill="url(#flowGrid)" />
 
             {/* Connection lines with animated flow */}
             {FLOW_TIERS.map((tier, i) => (
@@ -342,9 +374,9 @@ export function FactoryPanel() {
                 <g key={`conn${i}`}>
                   {/* Main connection line */}
                   <line
-                    x1={250 + i * 280}
+                    x1={170 + i * 250}
                     y1={80}
-                    x2={330 + i * 280}
+                    x2={220 + i * 250}
                     y2={80}
                     stroke={FLOW_TIERS[i + 1].color}
                     strokeWidth="2"
@@ -353,9 +385,9 @@ export function FactoryPanel() {
                   />
                   {/* Animated flow overlay */}
                   <line
-                    x1={250 + i * 280}
+                    x1={170 + i * 250}
                     y1={80}
-                    x2={330 + i * 280}
+                    x2={220 + i * 250}
                     y2={80}
                     stroke={FLOW_TIERS[i + 1].color}
                     strokeWidth="2"
@@ -366,13 +398,13 @@ export function FactoryPanel() {
                   </line>
                   {/* Arrow head */}
                   <polygon
-                    points={`${325 + i * 280},75 ${335 + i * 280},80 ${325 + i * 280},85`}
+                    points={`${215 + i * 250},75 ${225 + i * 250},80 ${215 + i * 250},85`}
                     fill={FLOW_TIERS[i + 1].color}
                     fillOpacity="0.6"
                   />
                   {/* Rate label */}
                   <text
-                    x={290 + i * 280}
+                    x={195 + i * 250}
                     y={68}
                     textAnchor="middle"
                     fill={FLOW_TIERS[i + 1].color}
@@ -388,7 +420,7 @@ export function FactoryPanel() {
 
             {/* Tier nodes */}
             {FLOW_TIERS.map((tier, i) => {
-              const cx = 150 + i * 280;
+              const cx = 100 + i * 250;
               const summary = tierProductionSummary[i];
               const isSelected = selectedFlowNode === tier.key;
               const hasProduction = (summary?.production ?? 0) > 0 || (summary?.consumption ?? 0) > 0;
@@ -413,9 +445,9 @@ export function FactoryPanel() {
                   )}
                   {/* Node border */}
                   <rect
-                    x={cx - 100}
+                    x={cx - 85}
                     y={20}
-                    width={200}
+                    width={170}
                     height={120}
                     rx={12}
                     fill={isSelected ? `${tier.color}15` : '#0a0e17'}
@@ -444,7 +476,7 @@ export function FactoryPanel() {
                     fontWeight="bold"
                     dominantBaseline="middle"
                   >
-                    {tier.key === 'raw' ? '⛏️' : tier.key === 't1' ? '🔥' : tier.key === 't2' ? '⚙️' : '✨'}
+                    {tier.key === 'raw' ? '⛏️' : tier.key === 't1' ? '🔥' : tier.key === 't2' ? '⚙️' : tier.key === 't3' ? '✨' : '🌀'}
                   </text>
                   {/* Tier name */}
                   <text
@@ -482,7 +514,7 @@ export function FactoryPanel() {
                   </text>
                   {/* Active indicator dot */}
                   {hasProduction && (
-                    <circle cx={cx + 90} cy={28} r={4} fill="#22c55e">
+                    <circle cx={cx + 75} cy={28} r={4} fill="#22c55e">
                       <animate attributeName="opacity" values="0.5;1;0.5" dur="2s" repeatCount="indefinite" />
                     </circle>
                   )}
@@ -560,7 +592,7 @@ export function FactoryPanel() {
         <div className="lg:col-span-2 space-y-3">
           {/* TIER TAB SELECTOR */}
           <div className="flex items-center gap-1 p-1 bg-[#111827] rounded-xl border border-[#1e293b]">
-            {([1, 2, 3] as const).map(tier => {
+            {([1, 2, 3, 4] as const).map(tier => {
               const config = TIER_CONFIG[tier];
               const colors = getTierColorClasses(config.color as TierColor);
               const tierBuildings = factoriesByTier[tier];

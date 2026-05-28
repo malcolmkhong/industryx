@@ -31,6 +31,7 @@ const CATEGORY_STYLES: Record<string, { bg: string; border: string; glow: string
   factory_t1: { bg: 'bg-cyan-900/50', border: 'border-cyan-500/50', glow: 'shadow-cyan-500/30', text: 'text-cyan-400', fill: '#164e63' },
   factory_t2: { bg: 'bg-orange-900/50', border: 'border-orange-500/50', glow: 'shadow-orange-500/30', text: 'text-orange-400', fill: '#7c2d12' },
   factory_t3: { bg: 'bg-purple-900/50', border: 'border-purple-500/50', glow: 'shadow-purple-500/30', text: 'text-purple-400', fill: '#581c87' },
+  factory_t4: { bg: 'bg-emerald-900/50', border: 'border-emerald-500/50', glow: 'shadow-emerald-500/30', text: 'text-emerald-400', fill: '#064e3b' },
   power: { bg: 'bg-yellow-900/50', border: 'border-yellow-500/50', glow: 'shadow-yellow-500/30', text: 'text-yellow-400', fill: '#713f12' },
 };
 
@@ -42,6 +43,8 @@ function getCategoryStyle(building: BuildingInstance) {
   if (def.category === 'factory') {
     if (def.tier === 1) return CATEGORY_STYLES.factory_t1;
     if (def.tier === 2) return CATEGORY_STYLES.factory_t2;
+    if (def.tier === 3) return CATEGORY_STYLES.factory_t3;
+    if (def.tier === 4) return CATEGORY_STYLES.factory_t4;
     return CATEGORY_STYLES.factory_t3;
   }
   return CATEGORY_STYLES.extractor;
@@ -72,8 +75,12 @@ const BUILD_CATEGORIES = [
     types: ['aiLab', 'roboticsBay', 'quantumLab', 'alloyForge', 'nanoLab'] as BuildingType[],
   },
   {
+    label: '🌀 T4 Factory',
+    types: ['singularityForge', 'darkMatterLab', 'warpDriveFactory', 'antimatterReactor', 'chronoLab', 'plasmaForge', 'megaStructureFactory', 'voidCrystallizer', 'dysonCollector', 'quantumTeleporter', 'dimensionalGateway', 'timeDistorter', 'galacticForge'] as BuildingType[],
+  },
+  {
     label: '⚡ Power',
-    types: ['coalGenerator', 'solarPanel', 'windTurbine', 'nuclearReactor', 'fusionReactor'] as BuildingType[],
+    types: ['coalGenerator', 'solarPanel', 'windTurbine', 'nuclearReactor', 'fusionReactor', 'antimatterPowerPlant'] as BuildingType[],
   },
 ];
 

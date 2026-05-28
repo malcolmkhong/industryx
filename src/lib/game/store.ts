@@ -23,7 +23,7 @@ import {
 import { soundEngine } from './soundEngine';
 
 // --- Save Version ---
-const SAVE_VERSION = 10;
+const SAVE_VERSION = 11;
 
 // --- Utility Functions ---
 function generateId(): string {
@@ -341,6 +341,71 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
     }
   }
 
+  // V10 → V11: Add T4 resources
+  if (version < 11) {
+    const t4Resources = ['singularityCore', 'darkMatterCell', 'warpDrive', 'antimatter', 'chronoPart', 'plasmaCore', 'megaStructure', 'voidCrystal'];
+
+    // Ensure T4 resources exist in resources object
+    if (state.resources && typeof state.resources === 'object') {
+      for (const res of t4Resources) {
+        if (!(res in (state.resources as Record<string, number>))) {
+          (state.resources as Record<string, number>)[res] = 0;
+        }
+      }
+    }
+
+    // Ensure T4 resources exist in resourceCapacity
+    if (state.resourceCapacity && typeof state.resourceCapacity === 'object') {
+      for (const res of t4Resources) {
+        if (!(res in (state.resourceCapacity as Record<string, number>))) {
+          (state.resourceCapacity as Record<string, number>)[res] = 50;
+        }
+      }
+    }
+
+    // Ensure T4 resources exist in storageUpgradeLevels
+    if (state.storageUpgradeLevels && typeof state.storageUpgradeLevels === 'object') {
+      for (const res of t4Resources) {
+        if (!(res in (state.storageUpgradeLevels as Record<string, number>))) {
+          (state.storageUpgradeLevels as Record<string, number>)[res] = 0;
+        }
+      }
+    }
+
+    // Ensure T4 resources exist in stats tracking
+    if (state.stats) {
+      const stats = state.stats as Record<string, unknown>;
+      if (stats.totalResourcesProduced && typeof stats.totalResourcesProduced === 'object') {
+        for (const res of t4Resources) {
+          if (!(res in (stats.totalResourcesProduced as Record<string, number>))) {
+            (stats.totalResourcesProduced as Record<string, number>)[res] = 0;
+          }
+        }
+      }
+      if (stats.totalResourcesSold && typeof stats.totalResourcesSold === 'object') {
+        for (const res of t4Resources) {
+          if (!(res in (stats.totalResourcesSold as Record<string, number>))) {
+            (stats.totalResourcesSold as Record<string, number>)[res] = 0;
+          }
+        }
+      }
+    }
+
+    // Add missing market entries for T4 resources
+    if (Array.isArray(state.market)) {
+      const existingResources = new Set((state.market as MarketPrice[]).map((m: MarketPrice) => m.resource));
+      const newMarketEntries: MarketPrice[] = [];
+      INITIAL_MARKET.forEach(m => {
+        if (!existingResources.has(m.resource)) {
+          newMarketEntries.push({ ...m });
+        }
+      });
+      if (newMarketEntries.length > 0) {
+        state.market = [...(state.market as MarketPrice[]), ...newMarketEntries];
+      }
+    }
+  }
+
   state._version = SAVE_VERSION;
   return state;
 }
@@ -357,6 +422,7 @@ const initialResources: Record<ResourceType, number> = {
   aiChip: 0, robotics: 0, quantumPart: 0, advancedAlloy: 0, nanoMaterial: 0,
   electronics: 0, medicalTech: 0, jewellery: 0, tungsten: 0, weapons: 0,
   scanDrone: 0, artifactDetector: 0, neuralNetwork: 0,
+  singularityCore: 0, darkMatterCell: 0, warpDrive: 0, antimatter: 0, chronoPart: 0, plasmaCore: 0, megaStructure: 0, voidCrystal: 0,
 };
 
 const initialCapacity: Record<ResourceType, number> = {
@@ -370,6 +436,7 @@ const initialCapacity: Record<ResourceType, number> = {
   aiChip: 10, robotics: 5, quantumPart: 5, advancedAlloy: 10, nanoMaterial: 3,
   electronics: 50, medicalTech: 50, jewellery: 25, tungsten: 50, weapons: 50,
   scanDrone: 25, artifactDetector: 25, neuralNetwork: 25,
+  singularityCore: 50, darkMatterCell: 50, warpDrive: 50, antimatter: 50, chronoPart: 50, plasmaCore: 50, megaStructure: 50, voidCrystal: 50,
 };
 
 function createInitialState(): GameState {
@@ -1241,6 +1308,37 @@ export const useGameStore = create<GameStore>()(
           }
         }
 
+        // === Endgame Building Passive Income ===
+        let corpGained = 0;
+        const endgameBuildings = state.buildings.filter(b => b.active && [
+          'dysonCollector', 'quantumTeleporter', 'dimensionalGateway', 'timeDistorter', 'galacticForge'
+        ].includes(b.type));
+
+        for (const b of endgameBuildings) {
+          const eff = b.efficiency * effectivePowerEfficiency;
+          const rate = b.level * eff;
+          switch (b.type) {
+            case 'dysonCollector':
+              moneyEarned += Math.floor(5000 * rate);
+              break;
+            case 'quantumTeleporter':
+              newResearchPoints += Math.floor(5 * rate);
+              break;
+            case 'dimensionalGateway':
+              corpGained += Math.floor(0.5 * rate);
+              break;
+            case 'timeDistorter':
+              moneyEarned += Math.floor(2000 * rate);
+              newResearchPoints += Math.floor(2 * rate);
+              break;
+            case 'galacticForge':
+              moneyEarned += Math.floor(50000 * rate);
+              newResearchPoints += Math.floor(20 * rate);
+              corpGained += Math.floor(2 * rate);
+              break;
+          }
+        }
+
         // Rank change detection
         const prevScore = Math.floor(
           state.totalMoneyEarned +
@@ -1299,6 +1397,10 @@ export const useGameStore = create<GameStore>()(
           pendingPayout: newPendingPayout,
           payoutHistory: newPayoutHistory,
           drones: newDrones,
+          prestigeState: corpGained > 0 ? {
+            ...state.prestigeState,
+            corporationPoints: state.prestigeState.corporationPoints + corpGained,
+          } : state.prestigeState,
         });
       },
 
@@ -2754,7 +2856,7 @@ export const useGameStore = create<GameStore>()(
         drones: state.drones,
         _version: SAVE_VERSION,
       }),
-      version: 10,
+      version: 11,
       migrate: (persistedState: unknown) => {
         return migrateSaveState(persistedState as Record<string, unknown>);
       },
