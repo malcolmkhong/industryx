@@ -18,9 +18,9 @@ import { FactoryType, ResourceType, BuildingType } from '@/lib/game/types';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 
 // Factory types organized by tier
-const TIER_1_FACTORIES: FactoryType[] = ['smelter', 'wireMill', 'chemicalPlant', 'glassFurnace', 'steelForge', 'carbonProcessor'];
-const TIER_2_FACTORIES: FactoryType[] = ['gearFactory', 'circuitFactory', 'engineFactory', 'batteryFactory'];
-const TIER_3_FACTORIES: FactoryType[] = ['aiLab', 'roboticsBay', 'quantumLab', 'alloyForge', 'nanoLab'];
+const TIER_1_FACTORIES: FactoryType[] = ['smelter', 'wireMill', 'chemicalPlant', 'glassFurnace', 'carbonProcessor', 'brickFactory', 'concreteFactory', 'fertilizerFactory', 'steelForge', 'oilRefinery'];
+const TIER_2_FACTORIES: FactoryType[] = ['gearFactory', 'circuitFactory', 'engineFactory', 'batteryFactory', 'siliconRefinery', 'aluminiumFactory', 'insecticideFactory', 'copperRefinery', 'titaniumRefinery', 'coolantPlant', 'opticsLab', 'solarCellFactory', 'displayFactory', 'hydrogenPlant'];
+const TIER_3_FACTORIES: FactoryType[] = ['aiLab', 'roboticsBay', 'quantumLab', 'alloyForge', 'nanoLab', 'electronicsFactory', 'medicalTechLab', 'goldsmith', 'tungstenSmelter', 'armsFactory', 'droneShipyard', 'detectorFactory', 'neuralLab'];
 
 const TIER_CONFIG = {
   1: { label: 'T1 — Processing', shortLabel: 'T1', color: 'cyan', icon: <Flame className="w-4 h-4" />, borderColor: 'border-cyan-900/40', hex: '#22d3ee' },
@@ -307,7 +307,7 @@ export function FactoryPanel() {
 
         {/* SVG Flow Diagram */}
         <div className="relative bg-[#0a0e17] rounded-lg p-2 overflow-x-auto">
-          <svg viewBox="0 0 900 160" className="w-full h-auto min-w-[600px]" style={{ maxHeight: '180px' }}>
+          <svg viewBox="0 0 1200 160" className="w-full h-auto min-w-[600px]" style={{ maxHeight: '180px' }}>
             {/* Background grid pattern */}
             <defs>
               <pattern id="flowGrid" width="20" height="20" patternUnits="userSpaceOnUse">
@@ -327,14 +327,14 @@ export function FactoryPanel() {
                     <animateMotion
                       dur="2s"
                       repeatCount="indefinite"
-                      path={`M${190 + i * 200},80 L${290 + i * 200},80`}
+                      path={`M${250 + i * 280},80 L${330 + i * 280},80`}
                     />
                     <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite" />
                   </circle>
                 ) : null
               ))}
             </defs>
-            <rect width="900" height="160" fill="url(#flowGrid)" />
+            <rect width="1200" height="160" fill="url(#flowGrid)" />
 
             {/* Connection lines with animated flow */}
             {FLOW_TIERS.map((tier, i) => (
@@ -342,9 +342,9 @@ export function FactoryPanel() {
                 <g key={`conn${i}`}>
                   {/* Main connection line */}
                   <line
-                    x1={190 + i * 200}
+                    x1={250 + i * 280}
                     y1={80}
-                    x2={290 + i * 200}
+                    x2={330 + i * 280}
                     y2={80}
                     stroke={FLOW_TIERS[i + 1].color}
                     strokeWidth="2"
@@ -353,9 +353,9 @@ export function FactoryPanel() {
                   />
                   {/* Animated flow overlay */}
                   <line
-                    x1={190 + i * 200}
+                    x1={250 + i * 280}
                     y1={80}
-                    x2={290 + i * 200}
+                    x2={330 + i * 280}
                     y2={80}
                     stroke={FLOW_TIERS[i + 1].color}
                     strokeWidth="2"
@@ -366,13 +366,13 @@ export function FactoryPanel() {
                   </line>
                   {/* Arrow head */}
                   <polygon
-                    points={`${285 + i * 200},75 ${295 + i * 200},80 ${285 + i * 200},85`}
+                    points={`${325 + i * 280},75 ${335 + i * 280},80 ${325 + i * 280},85`}
                     fill={FLOW_TIERS[i + 1].color}
                     fillOpacity="0.6"
                   />
                   {/* Rate label */}
                   <text
-                    x={240 + i * 200}
+                    x={290 + i * 280}
                     y={68}
                     textAnchor="middle"
                     fill={FLOW_TIERS[i + 1].color}
@@ -388,7 +388,7 @@ export function FactoryPanel() {
 
             {/* Tier nodes */}
             {FLOW_TIERS.map((tier, i) => {
-              const cx = 100 + i * 200;
+              const cx = 150 + i * 280;
               const summary = tierProductionSummary[i];
               const isSelected = selectedFlowNode === tier.key;
               const hasProduction = (summary?.production ?? 0) > 0 || (summary?.consumption ?? 0) > 0;
@@ -404,18 +404,18 @@ export function FactoryPanel() {
                     <circle
                       cx={cx}
                       cy={80}
-                      r={isSelected ? 48 : 44}
+                      r={isSelected ? 58 : 54}
                       fill={tier.color}
                       fillOpacity="0.08"
                     >
-                      <animate attributeName="r" values={isSelected ? "46;50;46" : "42;46;42"} dur="3s" repeatCount="indefinite" />
+                      <animate attributeName="r" values={isSelected ? "56;60;56" : "52;56;52"} dur="3s" repeatCount="indefinite" />
                     </circle>
                   )}
                   {/* Node border */}
                   <rect
-                    x={cx - 75}
+                    x={cx - 100}
                     y={20}
-                    width={150}
+                    width={200}
                     height={120}
                     rx={12}
                     fill={isSelected ? `${tier.color}15` : '#0a0e17'}
@@ -482,7 +482,7 @@ export function FactoryPanel() {
                   </text>
                   {/* Active indicator dot */}
                   {hasProduction && (
-                    <circle cx={cx + 60} cy={28} r={4} fill="#22c55e">
+                    <circle cx={cx + 90} cy={28} r={4} fill="#22c55e">
                       <animate attributeName="opacity" values="0.5;1;0.5" dur="2s" repeatCount="indefinite" />
                     </circle>
                   )}
@@ -612,7 +612,7 @@ export function FactoryPanel() {
                 </div>
 
                 {/* Compact Factory Build Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mb-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 mb-4">
                   {currentFactories.map(type => {
                     const def = BUILDING_DEFS[type];
                     if (!def) return null;

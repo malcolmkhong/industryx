@@ -4,10 +4,10 @@
 // ============================================
 
 // --- Resources ---
-export type RawResource = 'iron' | 'copper' | 'coal' | 'oil' | 'sand' | 'lithium' | 'water' | 'rareEarth';
-export type Tier1Resource = 'ironPlate' | 'copperWire' | 'plastic' | 'glass' | 'carbon';
-export type Tier2Resource = 'circuit' | 'engine' | 'battery' | 'gear' | 'steel';
-export type Tier3Resource = 'aiChip' | 'robotics' | 'quantumPart' | 'advancedAlloy' | 'nanoMaterial';
+export type RawResource = 'iron' | 'copper' | 'coal' | 'oil' | 'sand' | 'lithium' | 'water' | 'rareEarth' | 'clay' | 'limestone' | 'gravel' | 'bauxite' | 'wolframite';
+export type Tier1Resource = 'ironPlate' | 'copperWire' | 'plastic' | 'glass' | 'carbon' | 'bricks' | 'concrete' | 'fertilizer' | 'steel' | 'fossilFuel';
+export type Tier2Resource = 'circuit' | 'engine' | 'battery' | 'gear' | 'silicon' | 'aluminium' | 'insecticide' | 'copperIngot' | 'titanium' | 'coolant';
+export type Tier3Resource = 'aiChip' | 'robotics' | 'quantumPart' | 'advancedAlloy' | 'nanoMaterial' | 'electronics' | 'medicalTech' | 'jewellery' | 'tungsten' | 'weapons' | 'scanDrone' | 'artifactDetector' | 'fiberOptics' | 'solarCell' | 'neuralNetwork';
 export type ResourceType = RawResource | Tier1Resource | Tier2Resource | Tier3Resource;
 
 export type CostResourceType = ResourceType | 'money';
@@ -19,14 +19,14 @@ export interface ResourceAmount {
 
 // --- Buildings ---
 export type BuildingType = 
-  | 'miningDrill' | 'oilPump' | 'waterExtractor' | 'quarry'
-  | 'smelter' | 'wireMill' | 'chemicalPlant' | 'glassFurnace' | 'steelForge' | 'carbonProcessor'
-  | 'gearFactory' | 'circuitFactory' | 'engineFactory' | 'batteryFactory'
-  | 'aiLab' | 'roboticsBay' | 'quantumLab' | 'alloyForge' | 'nanoLab'
+  | 'miningDrill' | 'oilPump' | 'waterExtractor' | 'quarry' | 'clayPit' | 'limestoneQuarry' | 'gravelPit' | 'bauxiteMine' | 'wolframiteMine'
+  | 'smelter' | 'wireMill' | 'chemicalPlant' | 'glassFurnace' | 'carbonProcessor' | 'brickFactory' | 'concreteFactory' | 'fertilizerFactory' | 'steelForge' | 'oilRefinery'
+  | 'gearFactory' | 'circuitFactory' | 'engineFactory' | 'batteryFactory' | 'siliconRefinery' | 'aluminiumFactory' | 'insecticideFactory' | 'copperRefinery' | 'titaniumRefinery' | 'coolantPlant' | 'opticsLab' | 'solarCellFactory' | 'displayFactory' | 'hydrogenPlant'
+  | 'aiLab' | 'roboticsBay' | 'quantumLab' | 'alloyForge' | 'nanoLab' | 'electronicsFactory' | 'medicalTechLab' | 'goldsmith' | 'tungstenSmelter' | 'armsFactory' | 'droneShipyard' | 'detectorFactory' | 'neuralLab'
   | 'coalGenerator' | 'solarPanel' | 'windTurbine' | 'nuclearReactor' | 'fusionReactor';
 
-export type ExtractorType = 'miningDrill' | 'oilPump' | 'waterExtractor' | 'quarry';
-export type FactoryType = 'smelter' | 'wireMill' | 'chemicalPlant' | 'glassFurnace' | 'steelForge' | 'carbonProcessor' | 'gearFactory' | 'circuitFactory' | 'engineFactory' | 'batteryFactory' | 'aiLab' | 'roboticsBay' | 'quantumLab' | 'alloyForge' | 'nanoLab';
+export type ExtractorType = 'miningDrill' | 'oilPump' | 'waterExtractor' | 'quarry' | 'clayPit' | 'limestoneQuarry' | 'gravelPit' | 'bauxiteMine' | 'wolframiteMine';
+export type FactoryType = 'smelter' | 'wireMill' | 'chemicalPlant' | 'glassFurnace' | 'carbonProcessor' | 'brickFactory' | 'concreteFactory' | 'fertilizerFactory' | 'steelForge' | 'oilRefinery' | 'gearFactory' | 'circuitFactory' | 'engineFactory' | 'batteryFactory' | 'siliconRefinery' | 'aluminiumFactory' | 'insecticideFactory' | 'copperRefinery' | 'titaniumRefinery' | 'coolantPlant' | 'opticsLab' | 'solarCellFactory' | 'displayFactory' | 'hydrogenPlant' | 'aiLab' | 'roboticsBay' | 'quantumLab' | 'alloyForge' | 'nanoLab' | 'electronicsFactory' | 'medicalTechLab' | 'goldsmith' | 'tungstenSmelter' | 'armsFactory' | 'droneShipyard' | 'detectorFactory' | 'neuralLab';
 export type PowerPlantType = 'coalGenerator' | 'solarPanel' | 'windTurbine' | 'nuclearReactor' | 'fusionReactor';
 
 export interface BuildingInstance {

@@ -23,7 +23,7 @@ import {
 import { soundEngine } from './soundEngine';
 
 // --- Save Version ---
-const SAVE_VERSION = 9;
+const SAVE_VERSION = 10;
 
 // --- Utility Functions ---
 function generateId(): string {
@@ -251,6 +251,96 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
     }
   }
 
+  // V9 → V10: Add new resources and their capacities/stats/market entries
+  if (version < 10) {
+    const newResources: Record<string, number> = {
+      clay: 0, limestone: 0, gravel: 0, bauxite: 0, wolframite: 0,
+      bricks: 0, concrete: 0, fertilizer: 0, fossilFuel: 0,
+      silicon: 0, aluminium: 0, insecticide: 0, copperIngot: 0, titanium: 0,
+      coolant: 0, fiberOptics: 0, solarCell: 0,
+      electronics: 0, medicalTech: 0, jewellery: 0, tungsten: 0, weapons: 0,
+      scanDrone: 0, artifactDetector: 0, neuralNetwork: 0,
+    };
+    const newCapacities: Record<string, number> = {
+      clay: 500, limestone: 500, gravel: 500, bauxite: 200, wolframite: 100,
+      bricks: 200, concrete: 200, fertilizer: 200, fossilFuel: 200,
+      silicon: 100, aluminium: 100, insecticide: 100, copperIngot: 100, titanium: 100,
+      coolant: 100, fiberOptics: 100, solarCell: 100,
+      electronics: 50, medicalTech: 50, jewellery: 25, tungsten: 50, weapons: 50,
+      scanDrone: 25, artifactDetector: 25, neuralNetwork: 25,
+    };
+
+    // Add missing resource keys
+    if (state.resources && typeof state.resources === 'object') {
+      const resources = state.resources as Record<string, number>;
+      Object.entries(newResources).forEach(([key, value]) => {
+        if (resources[key] === undefined) {
+          resources[key] = value;
+        }
+      });
+      state.resources = resources;
+    }
+
+    // Add missing resourceCapacity keys
+    if (state.resourceCapacity && typeof state.resourceCapacity === 'object') {
+      const cap = state.resourceCapacity as Record<string, number>;
+      Object.entries(newCapacities).forEach(([key, value]) => {
+        if (cap[key] === undefined) {
+          cap[key] = value;
+        }
+      });
+      state.resourceCapacity = cap;
+    }
+
+    // Add missing stats.totalResourcesProduced keys
+    if (state.stats && typeof state.stats === 'object') {
+      const stats = state.stats as Record<string, unknown>;
+      if (stats.totalResourcesProduced && typeof stats.totalResourcesProduced === 'object') {
+        const produced = stats.totalResourcesProduced as Record<string, number>;
+        Object.entries(newResources).forEach(([key, value]) => {
+          if (produced[key] === undefined) {
+            produced[key] = value;
+          }
+        });
+        stats.totalResourcesProduced = produced;
+      }
+      if (stats.totalResourcesSold && typeof stats.totalResourcesSold === 'object') {
+        const sold = stats.totalResourcesSold as Record<string, number>;
+        Object.entries(newResources).forEach(([key, value]) => {
+          if (sold[key] === undefined) {
+            sold[key] = value;
+          }
+        });
+        stats.totalResourcesSold = sold;
+      }
+    }
+
+    // Add missing storageUpgradeLevels keys
+    if (state.storageUpgradeLevels && typeof state.storageUpgradeLevels === 'object') {
+      const upgrades = state.storageUpgradeLevels as Record<string, number>;
+      Object.entries(newResources).forEach(([key]) => {
+        if (upgrades[key] === undefined) {
+          upgrades[key] = 0;
+        }
+      });
+      state.storageUpgradeLevels = upgrades;
+    }
+
+    // Add missing market entries for new resources
+    if (Array.isArray(state.market)) {
+      const existingResources = new Set((state.market as MarketPrice[]).map((m: MarketPrice) => m.resource));
+      const newMarketEntries: MarketPrice[] = [];
+      INITIAL_MARKET.forEach(m => {
+        if (!existingResources.has(m.resource)) {
+          newMarketEntries.push({ ...m });
+        }
+      });
+      if (newMarketEntries.length > 0) {
+        state.market = [...(state.market as MarketPrice[]), ...newMarketEntries];
+      }
+    }
+  }
+
   state._version = SAVE_VERSION;
   return state;
 }
@@ -258,16 +348,28 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
 // --- Initial State ---
 const initialResources: Record<ResourceType, number> = {
   iron: 0, copper: 0, coal: 0, oil: 0, sand: 0, lithium: 0, water: 0, rareEarth: 0,
+  clay: 0, limestone: 0, gravel: 0, bauxite: 0, wolframite: 0,
   ironPlate: 0, copperWire: 0, plastic: 0, glass: 0, carbon: 0,
-  circuit: 0, engine: 0, battery: 0, gear: 0, steel: 0,
+  bricks: 0, concrete: 0, fertilizer: 0, steel: 0, fossilFuel: 0,
+  circuit: 0, engine: 0, battery: 0, gear: 0,
+  silicon: 0, aluminium: 0, insecticide: 0, copperIngot: 0, titanium: 0,
+  coolant: 0, fiberOptics: 0, solarCell: 0,
   aiChip: 0, robotics: 0, quantumPart: 0, advancedAlloy: 0, nanoMaterial: 0,
+  electronics: 0, medicalTech: 0, jewellery: 0, tungsten: 0, weapons: 0,
+  scanDrone: 0, artifactDetector: 0, neuralNetwork: 0,
 };
 
 const initialCapacity: Record<ResourceType, number> = {
   iron: 100, copper: 100, coal: 100, oil: 100, sand: 100, lithium: 50, water: 200, rareEarth: 20,
+  clay: 500, limestone: 500, gravel: 500, bauxite: 200, wolframite: 100,
   ironPlate: 50, copperWire: 50, plastic: 50, glass: 50, carbon: 30,
-  circuit: 30, engine: 20, battery: 30, gear: 40, steel: 40,
+  bricks: 200, concrete: 200, fertilizer: 200, steel: 40, fossilFuel: 200,
+  circuit: 30, engine: 20, battery: 30, gear: 40,
+  silicon: 100, aluminium: 100, insecticide: 100, copperIngot: 100, titanium: 100,
+  coolant: 100, fiberOptics: 100, solarCell: 100,
   aiChip: 10, robotics: 5, quantumPart: 5, advancedAlloy: 10, nanoMaterial: 3,
+  electronics: 50, medicalTech: 50, jewellery: 25, tungsten: 50, weapons: 50,
+  scanDrone: 25, artifactDetector: 25, neuralNetwork: 25,
 };
 
 function createInitialState(): GameState {
@@ -2652,7 +2754,7 @@ export const useGameStore = create<GameStore>()(
         drones: state.drones,
         _version: SAVE_VERSION,
       }),
-      version: 9,
+      version: 10,
       migrate: (persistedState: unknown) => {
         return migrateSaveState(persistedState as Record<string, unknown>);
       },

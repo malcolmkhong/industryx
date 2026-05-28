@@ -2042,3 +2042,193 @@ Priority Recommendations for Next Phase:
 3. Performance optimization for long play sessions
 4. Add more visual feedback for factory production (particles, animations)
 5. Add production calculator/planner tool
+
+---
+Task ID: 1-a
+Agent: Type Update Developer
+Task: Update types.ts with new resource types, building types, extractor types, and factory types inspired by Resources game
+
+Work Log:
+- Read worklog.md to understand project history and current state
+- Read existing types.ts (515 lines) to identify current type definitions
+- Replaced RawResource type: Added 'clay' | 'limestone' | 'gravel' | 'bauxite' | 'wolframite' (8 → 13 raw resources)
+- Replaced Tier1Resource type: Added 'bricks' | 'concrete' | 'fertilizer' | 'steel' | 'fossilFuel' (5 → 10 tier 1 resources)
+- Replaced Tier2Resource type: Added 'silicon' | 'aluminium' | 'insecticide' | 'copperIngot' | 'titanium' | 'coolant', removed 'steel' (5 → 10 tier 2 resources)
+- Replaced Tier3Resource type: Added 'electronics' | 'medicalTech' | 'jewellery' | 'tungsten' | 'weapons' | 'scanDrone' | 'artifactDetector' | 'fiberOptics' | 'solarCell' | 'neuralNetwork' (5 → 15 tier 3 resources)
+- Replaced BuildingType: Expanded from 19 to 51 building types across 5 categories (extractors, T1 factories, T2 factories, T3 factories, power plants)
+- Replaced ExtractorType: Expanded from 4 to 9 extractor types (added clayPit, limestoneQuarry, gravelPit, bauxiteMine, wolframiteMine)
+- Replaced FactoryType: Expanded from 15 to 37 factory types across 4 tiers
+- Kept PowerPlantType unchanged (5 types)
+- Kept all other types and interfaces in the file unchanged
+
+Stage Summary:
+- Resource types expanded significantly: 13 raw → 10 T1 → 10 T2 → 15 T3 (48 total, up from 23)
+- Building types expanded from 19 to 51 (9 extractors, 10+14+13 T1/T2/T3 factories, 5 power plants)
+- ExtractorType expanded from 4 to 9
+- FactoryType expanded from 15 to 37
+- All other types and interfaces preserved unchanged
+- These type changes lay the groundwork for expanded production chains and gameplay depth
+
+---
+Task ID: 2-a
+Agent: Data Expansion Developer
+Task: Update data.ts with new resource metadata, building definitions, production chains, market prices, and contracts
+
+Work Log:
+- Read worklog.md and existing data.ts to understand current game data structure
+- Read types.ts to verify all new ResourceType entries exist in the type system
+- Updated RESOURCE_META with 26 new resource entries:
+  - 5 new Raw resources: clay, limestone, gravel, bauxite, wolframite
+  - 5 new Tier 1 resources: bricks, concrete, fertilizer, steel (moved from T2), fossilFuel
+  - 8 new Tier 2 resources: silicon, aluminium, insecticide, copperIngot, titanium, coolant, fiberOptics, solarCell
+  - 8 new Tier 3 resources: electronics, medicalTech, jewellery, tungsten, weapons, scanDrone, artifactDetector, neuralNetwork
+- Updated BUILDING_DEFS with 25 new buildings:
+  - 5 new Extractors: clayPit, limestoneQuarry, gravelPit, bauxiteMine, wolframiteMine
+  - 4 new Tier 1 Factories: brickFactory, concreteFactory, fertilizerFactory, oilRefinery
+  - 10 new Tier 2 Factories: siliconRefinery, aluminiumFactory, insecticideFactory, copperRefinery, titaniumRefinery, coolantPlant, opticsLab, solarCellFactory, displayFactory, hydrogenPlant
+  - 8 new Tier 3 Factories: electronicsFactory, medicalTechLab, goldsmith, tungstenSmelter, armsFactory, droneShipyard, detectorFactory, neuralLab
+- Updated existing building definitions:
+  - chemicalPlant: Added water as input
+  - steelForge: Changed inputs from ironPlate+coal to iron+coal (direct raw → T1)
+  - circuitFactory: Added silicon as input
+  - batteryFactory: Added aluminium as input
+  - roboticsBay: Changed inputs to aiChip+engine+electronics
+  - nanoLab: Added neuralNetwork as input
+- Replaced PRODUCTION_CHAINS with expanded 26-chain version (up from 10)
+- Added 25 new INITIAL_MARKET entries for all new resources
+- Added 24 new CONTRACT_TEMPLATES across all tiers (T0: 3, T1: 4, T2: 6, T3: 11)
+- ESLint passes cleanly (0 errors)
+- Dev server compiles successfully
+
+Stage Summary:
+- RESOURCE_META expanded from 22 to 48 resource entries across 4 tiers
+- BUILDING_DEFS expanded from 21 to 46 building definitions (9 extractors, 31 factories, 5 power plants, 1 storage)
+- PRODUCTION_CHAINS expanded from 10 to 26 chains covering all new production paths
+- INITIAL_MARKET expanded from 23 to 48 market entries
+- CONTRACT_TEMPLATES expanded from 20 to 44 contracts across all tiers
+- Steel moved from Tier 2 to Tier 1 in RESOURCE_META (matching Tier1Resource type)
+- All existing entries preserved; only updated as specified
+
+---
+Task ID: 3-a
+Agent: Store Update Developer
+Task: Update store.ts to support new resource types and buildings
+
+Work Log:
+- Read worklog.md, types.ts, data.ts, and store.ts to understand current state
+- Incremented SAVE_VERSION from 9 to 10
+- Updated initialResources to include all 24 new resources with 0 initial amount:
+  - Raw (T0): clay, limestone, gravel, bauxite, wolframite
+  - T1: bricks, concrete, fertilizer, fossilFuel
+  - T2: silicon, aluminium, insecticide, copperIngot, titanium, coolant, fiberOptics, solarCell
+  - T3: electronics, medicalTech, jewellery, tungsten, weapons, scanDrone, artifactDetector, neuralNetwork
+- Updated initialCapacity with capacities for all new resources:
+  - Raw (T0): clay: 500, limestone: 500, gravel: 500, bauxite: 200, wolframite: 100
+  - T1: bricks: 200, concrete: 200, fertilizer: 200, fossilFuel: 200
+  - T2: silicon: 100, aluminium: 100, insecticide: 100, copperIngot: 100, titanium: 100, coolant: 100, fiberOptics: 100, solarCell: 100
+  - T3: electronics: 50, medicalTech: 50, jewellery: 25, tungsten: 50, weapons: 50, scanDrone: 25, artifactDetector: 25, neuralNetwork: 25
+- Added V9→V10 migration in migrateSaveState() that:
+  - Adds missing keys to resources with value 0
+  - Adds missing keys to resourceCapacity with appropriate default capacities
+  - Adds missing keys to stats.totalResourcesProduced with value 0
+  - Adds missing keys to stats.totalResourcesSold with value 0
+  - Adds missing keys to storageUpgradeLevels with value 0
+  - Adds missing entries to market array for new resources (from INITIAL_MARKET)
+- Updated persist version from 9 to 10
+- createInitialState() already uses { ...initialResources } and { ...initialCapacity }, so it automatically picks up all new resources
+- The tick logic already handles all buildings generically via BUILDING_DEFS iteration, so no tick changes needed
+- ESLint passes cleanly (0 errors)
+- Dev server compiles successfully
+
+Stage Summary:
+- store.ts now supports all 48 resource types (24 existing + 24 new)
+- Save migration V9→V10 ensures existing saves get all new resource fields
+- All resource keys match the ResourceType union type from types.ts
+- INITIAL_MARKET in data.ts already has entries for all new resources, referenced in migration
+
+---
+Task ID: 3-b
+Agent: Factory Panel Updater
+Task: Update FactoryPanel.tsx to include all new factory buildings in tier arrays
+
+Work Log:
+- Updated TIER_1_FACTORIES from 6 to 10 entries: added 'brickFactory', 'concreteFactory', 'fertilizerFactory', 'oilRefinery'
+- Updated TIER_2_FACTORIES from 4 to 14 entries: added 'siliconRefinery', 'aluminiumFactory', 'insecticideFactory', 'copperRefinery', 'titaniumRefinery', 'coolantPlant', 'opticsLab', 'solarCellFactory', 'displayFactory', 'hydrogenPlant'
+- Updated TIER_3_FACTORIES from 5 to 13 entries: added 'electronicsFactory', 'medicalTechLab', 'goldsmith', 'tungstenSmelter', 'armsFactory', 'droneShipyard', 'detectorFactory', 'neuralLab'
+- Updated Compact Factory Build Grid from `grid-cols-2 sm:grid-cols-3` to `grid-cols-2 sm:grid-cols-3 lg:grid-cols-4` to accommodate more factory cards
+- Updated Production Pipeline SVG flow diagram:
+  - Widened viewBox from 900 to 1200
+  - Increased node rect width from 150 to 200
+  - Adjusted node center spacing from 200 to 280 (cx = 150 + i * 280)
+  - Updated connection lines, arrow heads, rate labels, and particle animations for new positions
+  - Increased glow radius from 44/48 to 54/58 for wider nodes
+  - Moved active indicator dot from cx+60 to cx+90 to fit wider nodes
+  - Background rect width updated from 900 to 1200
+- FLOW_TIERS array unchanged (4 tiers: raw, t1, t2, t3) as specified
+- ESLint passes cleanly (0 errors)
+
+Stage Summary:
+- FactoryPanel now displays all 37 factory types across 3 tiers (10 T1 + 14 T2 + 13 T3)
+- Grid layout uses 4 columns on large screens for better card density
+- Production Pipeline SVG wider with more spacious tier nodes
+- All new factory types are already defined in types.ts FactoryType union
+
+---
+Task ID: 4-a
+Agent: Resource Panel Update Developer
+Task: Update ResourcePanel.tsx to include new extractor buildings
+
+Work Log:
+- Read worklog.md to understand project history
+- Read ResourcePanel.tsx to identify EXTRACTOR_TYPES and RAW_RESOURCES arrays
+- Verified new extractor types already exist in types.ts (ExtractorType union) and data.ts (BUILDING_DEFS)
+- Verified new resource types (clay, limestone, gravel, bauxite, wolframite) already exist in types.ts (RawResource union) and data.ts (RESOURCE_META)
+- Updated EXTRACTOR_TYPES array on line 19: Added 'clayPit', 'limestoneQuarry', 'gravelPit', 'bauxiteMine', 'wolframiteMine'
+- Updated RAW_RESOURCES array on line 21: Added 'clay', 'limestone', 'gravel', 'bauxite', 'wolframite'
+- These changes make all 9 extractor types visible in the Build Extractor grid and Extractor Summary
+- New raw resources (clay, limestone, gravel, bauxite, wolframite) now appear in the Raw Materials inventory panel
+- ESLint passes cleanly (0 errors)
+- Dev server compiles successfully
+
+Stage Summary:
+- ResourcePanel now supports all 9 extractor types (was 4, now 9)
+- New extractors: Clay Pit (🧱), Limestone Quarry (🪨), Gravel Pit (🪨), Bauxite Mine (🟫), Wolframite Mine (⬛)
+- RAW_RESOURCES expanded from 8 to 13 resources to include new raw materials
+- All new extractors have proper BUILDING_DEFS entries with costs, outputs, power consumption, and unlock requirements
+- No hardcoded extractor references needed updating beyond the two arrays
+
+---
+Task ID: Phase-6
+Agent: Main Coordinator
+Task: Major game expansion - Add all resource types and factories from Resources game reference
+
+Work Log:
+- Researched "Resources" game (resources-game.ch) for resource types and factory production chains
+- Found 15 raw materials, 24 factories with full production chain data
+- Updated types.ts: Expanded from 23 to 48 resource types, from 19 to 51 building types
+- Updated data.ts: Added 26 new RESOURCE_META entries, 25 new BUILDING_DEFS, 26 PRODUCTION_CHAINS, 25 market entries, 24 contract templates
+- Updated store.ts: Added V9→V10 migration, new resource initial values, capacities, stats keys
+- Updated FactoryPanel.tsx: Expanded tier arrays (T1: 6→10, T2: 4→14, T3: 5→13), wider grid layout
+- Updated ResourcePanel.tsx: Added 5 new extractors and raw resources
+- Connected all previously disconnected resources (water, glass, plastic, gear now have proper consumption chains)
+- All lint passes, dev server compiles cleanly
+
+Stage Summary:
+- Game now has 48 resource types across 4 tiers (13 raw, 10 T1, 10 T2, 15 T3)
+- 51 building types: 9 extractors, 10 T1 factories, 14 T2 factories, 13 T3 factories, 5 power plants
+- 26 production chains creating deep interconnected gameplay
+- Key connections fixed:
+  - Water → coolant, fertilizer (was dead-end before)
+  - Glass → fiberOptics, solarCell (was dead-end before)
+  - Plastic → circuit, displayFactory, electronics (more uses)
+  - Gear → engine → robotics (more depth)
+- New resources from Resources game: Clay, Limestone, Gravel, Bauxite, Wolframite, Bricks, Concrete, Fertilizer, Fossil Fuel, Silicon, Aluminium, Insecticide, Copper Ingot, Titanium, Coolant, Fiber Optics, Solar Cell, Electronics, Medical Tech, Jewellery, Tungsten, Weapons, Scan Drone, Artifact Detector, Neural Network
+- Save migration V9→V10 handles all new fields
+- Cron job created for 15-minute review cycle
+
+Unresolved Issues / Risks:
+- Some UI panels may need layout adjustments for the larger number of items
+- The FactoryMapPanel may need updates for new building types
+- Achievement system may need new achievements for new resources/factories
+- Dashboard may need updates to show new resource information
+- The new buildings need to be tested in-game for proper production tick behavior

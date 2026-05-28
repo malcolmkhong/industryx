@@ -16,9 +16,9 @@ import {
 import { BuildingType, ResourceType, ExtractorType } from '@/lib/game/types';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 
-const EXTRACTOR_TYPES: ExtractorType[] = ['miningDrill', 'oilPump', 'waterExtractor', 'quarry'];
+const EXTRACTOR_TYPES: ExtractorType[] = ['miningDrill', 'oilPump', 'waterExtractor', 'quarry', 'clayPit', 'limestoneQuarry', 'gravelPit', 'bauxiteMine', 'wolframiteMine'];
 
-const RAW_RESOURCES: ResourceType[] = ['iron', 'copper', 'coal', 'oil', 'sand', 'lithium', 'water', 'rareEarth'];
+const RAW_RESOURCES: ResourceType[] = ['iron', 'copper', 'coal', 'oil', 'sand', 'lithium', 'water', 'rareEarth', 'clay', 'limestone', 'gravel', 'bauxite', 'wolframite'];
 
 export function ResourcePanel() {
   const store = useGameStore();
