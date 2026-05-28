@@ -60,25 +60,7 @@ export function TransportPanel() {
     ? (activeLines.length / store.transportLines.length) * 100
     : 100;
 
-  // Bottleneck detection
-  const bottlenecks = useMemo(() => {
-    const issues: { building: BuildingInstance; reason: string }[] = [];
-    store.buildings.forEach(b => {
-      if (!b.active) return;
-      const def = BUILDING_DEFS[b.type];
-      if (!def?.outputs) return;
-      const outLines = store.transportLines.filter(l => l.fromBuilding === b.id && l.active);
-      if (outLines.length === 0 && producingBuildings.some(pb => pb.id === b.id)) {
-        const totalOutput = def.outputs.reduce((sum, o) => sum + o.amount * b.level, 0);
-        if (totalOutput > 0) {
-          issues.push({ building: b, reason: 'No outbound transport — production may be wasted' });
-        }
-      }
-    });
-    return issues;
-  }, [store.buildings, store.transportLines, producingBuildings]);
-
-  // Auto-route suggestions
+  // Auto-route suggestions (must be before bottlenecks)
   const routeSuggestions = useMemo(() => {
     const suggestions: { from: BuildingInstance; to: BuildingInstance; resource: ResourceType; reason: string }[] = [];
     const existingRoutes = new Set(store.transportLines.map(l => `${l.fromBuilding}-${l.toBuilding}-${l.carriesResource}`));
@@ -124,6 +106,136 @@ export function TransportPanel() {
 
     store.buildTransportLine(cheapestType, from, to, resource);
   }, [store, transportTypes]);
+
+  // Bottleneck detection with solutions
+  const playerMoney = store.money;
+  const isPowerOverloaded = store.powerGrid.overload;
+
+  const bottlenecks = useMemo(() => {
+    const issues: {
+      building: BuildingInstance;
+      reason: string;
+      severity: 'critical' | 'warning' | 'info';
+      solution: string;
+      action?: { label: string; onClick: () => void };
+    }[] = [];
+
+    store.buildings.forEach(b => {
+      if (!b.active) return;
+      const def = BUILDING_DEFS[b.type];
+      if (!def) return;
+
+      // 1. No outbound transport for producers
+      if (def.outputs && def.outputs.length > 0) {
+        const outLines = store.transportLines.filter(l => l.fromBuilding === b.id && l.active);
+        if (outLines.length === 0 && producingBuildings.some(pb => pb.id === b.id)) {
+          const totalOutput = def.outputs.reduce((sum, o) => sum + o.amount * b.level, 0);
+          if (totalOutput > 0) {
+            // Find the best consumer for this producer
+            const outputResources = def.outputs.map(o => o.resource as ResourceType);
+            const matchingConsumers = consumingBuildings.filter(cb => {
+              const cbDef = BUILDING_DEFS[cb.type];
+              return cbDef?.inputs?.some(i => outputResources.includes(i.resource as ResourceType));
+            });
+            const hasConsumers = matchingConsumers.length > 0;
+            issues.push({
+              building: b,
+              reason: 'No outbound transport — production may be wasted',
+              severity: 'critical',
+              solution: hasConsumers
+                ? `Build a transport line from ${def.name} to ${BUILDING_DEFS[matchingConsumers[0].type]?.name} to deliver ${outputResources.map(r => RESOURCE_META[r]?.name ?? r).join(', ')}.`
+                : `Build a consumer building (e.g. factory) that processes ${outputResources.map(r => RESOURCE_META[r]?.name ?? r).join(', ')}, then connect it with a transport line.`,
+              action: hasConsumers ? {
+                label: 'Create Route',
+                onClick: () => handleCreateSuggestedRoute(b.id, matchingConsumers[0].id, outputResources[0]),
+              } : undefined,
+            });
+          }
+        }
+      }
+
+      // 2. Transport line near capacity (>80% utilized)
+      const buildingOutLines = store.transportLines.filter(l => l.fromBuilding === b.id && l.active);
+      buildingOutLines.forEach(line => {
+        const utilization = line.throughput / line.maxThroughput;
+        if (utilization > 0.85) {
+          const lineDef = TRANSPORT_DEFS[line.type];
+          const upgradeCost = Math.floor(lineDef.baseCost.reduce((s, c) => s + (c.resource === 'money' ? c.amount : 0), 0) * Math.pow(1.3, line.level));
+          const canAfford = playerMoney >= upgradeCost;
+          issues.push({
+            building: b,
+            reason: `${lineDef.name} at ${(utilization * 100).toFixed(0)}% capacity — risk of backup`,
+            severity: 'warning',
+            solution: canAfford
+              ? `Upgrade this ${lineDef.name} to Lv.${line.level + 1} for $${formatNumber(upgradeCost)} to increase max throughput. Or build a parallel line.`
+              : `Save up $${formatNumber(upgradeCost)} to upgrade this ${lineDef.name}, or build a parallel transport line to share the load.`,
+            action: canAfford ? {
+              label: `Upgrade ($${formatNumber(upgradeCost)})`,
+              onClick: () => store.upgradeTransportLine(line.id),
+            } : undefined,
+          });
+        }
+      });
+
+      // 3. Consumer missing inbound transport for an input
+      if (def.inputs && def.inputs.length > 0) {
+        def.inputs.forEach(input => {
+          if (input.resource === 'money') return;
+          const res = input.resource as ResourceType;
+          const inLines = store.transportLines.filter(l => l.toBuilding === b.id && l.carriesResource === res && l.active);
+          if (inLines.length === 0) {
+            // Check if any producer makes this resource
+            const producers = producingBuildings.filter(pb => {
+              const pbDef = BUILDING_DEFS[pb.type];
+              return pbDef?.outputs?.some(o => o.resource === res);
+            });
+            issues.push({
+              building: b,
+              reason: `Missing inbound ${RESOURCE_META[res]?.name ?? res} — production stalled`,
+              severity: 'critical',
+              solution: producers.length > 0
+                ? `Connect ${BUILDING_DEFS[producers[0].type]?.name} to this ${def.name} with a transport line carrying ${RESOURCE_META[res]?.name ?? res}.`
+                : `Build a producer that outputs ${RESOURCE_META[res]?.name ?? res} first, then connect it to this building.`,
+              action: producers.length > 0 ? {
+                label: 'Create Route',
+                onClick: () => handleCreateSuggestedRoute(producers[0].id, b.id, res),
+              } : undefined,
+            });
+          }
+        });
+      }
+
+      // 4. Building has low efficiency due to power
+      if (b.efficiency < 0.5 && isPowerOverloaded) {
+        issues.push({
+          building: b,
+          reason: `Running at ${(b.efficiency * 100).toFixed(0)}% efficiency — power grid overloaded`,
+          severity: 'warning',
+          solution: 'Build more power plants (Power tab) or deactivate non-essential buildings to free up power for this one.',
+        });
+      }
+    });
+
+    // 5. No transport lines at all but buildings exist
+    if (store.transportLines.length === 0 && store.buildings.length > 2) {
+      issues.push({
+        building: store.buildings[0], // representative
+        reason: 'No transport network built — buildings operate independently',
+        severity: 'info',
+        solution: 'Build transport lines to connect producers to consumers. Click "Suggest Routes" above to get automatic route recommendations.',
+        action: routeSuggestions.length > 0 ? {
+          label: 'Show Suggestions',
+          onClick: () => setShowSuggestions(true),
+        } : undefined,
+      });
+    }
+
+    // Sort: critical first, then warning, then info
+    const severityOrder = { critical: 0, warning: 1, info: 2 };
+    issues.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
+
+    return issues;
+  }, [store.buildings, store.transportLines, producingBuildings, consumingBuildings, routeSuggestions, isPowerOverloaded, playerMoney]);
 
   // Throughput data per transport type for bar chart
   const throughputByType = useMemo(() => {
@@ -703,6 +815,20 @@ export function TransportPanel() {
             <div className="flex items-center gap-2 mb-3">
               <AlertTriangle className="w-4 h-4 text-orange-400" />
               <h3 className="text-sm font-semibold text-orange-400">Bottleneck Detection</h3>
+              {bottlenecks.length > 0 && (
+                <div className="flex items-center gap-1 ml-auto">
+                  {bottlenecks.filter(b => b.severity === 'critical').length > 0 && (
+                    <Badge className="text-[8px] bg-red-900/30 text-red-400 border-0 px-1.5">
+                      {bottlenecks.filter(b => b.severity === 'critical').length} critical
+                    </Badge>
+                  )}
+                  {bottlenecks.filter(b => b.severity === 'warning').length > 0 && (
+                    <Badge className="text-[8px] bg-yellow-900/30 text-yellow-400 border-0 px-1.5">
+                      {bottlenecks.filter(b => b.severity === 'warning').length} warning
+                    </Badge>
+                  )}
+                </div>
+              )}
             </div>
             {bottlenecks.length === 0 ? (
               <div className="text-center py-4">
@@ -711,16 +837,57 @@ export function TransportPanel() {
                 <p className="text-[10px] text-gray-600 mt-0.5">All buildings properly connected</p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {bottlenecks.map((bn, i) => (
-                  <div key={i} className="bg-red-900/10 border border-red-900/30 rounded-lg p-2.5">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <span className="text-sm">{BUILDING_DEFS[bn.building.type]?.emoji}</span>
-                      <span className="text-xs text-red-400 font-medium">{BUILDING_DEFS[bn.building.type]?.name} Lv.{bn.building.level}</span>
+              <div className="space-y-2 max-h-[420px] overflow-y-auto game-scrollbar">
+                {bottlenecks.map((bn, i) => {
+                  const severityStyles = {
+                    critical: 'bg-red-900/10 border-red-900/30',
+                    warning: 'bg-yellow-900/10 border-yellow-900/20',
+                    info: 'bg-blue-900/10 border-blue-900/20',
+                  };
+                  const severityColors = {
+                    critical: 'text-red-400',
+                    warning: 'text-yellow-400',
+                    info: 'text-blue-400',
+                  };
+                  const severityIcons = {
+                    critical: '🔴',
+                    warning: '🟡',
+                    info: '🔵',
+                  };
+                  return (
+                    <div key={i} className={`${severityStyles[bn.severity]} border rounded-lg p-3`}>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="text-[10px]">{severityIcons[bn.severity]}</span>
+                        <span className="text-sm">{BUILDING_DEFS[bn.building.type]?.emoji}</span>
+                        <span className={`text-xs ${severityColors[bn.severity]} font-medium`}>
+                          {BUILDING_DEFS[bn.building.type]?.name} Lv.{bn.building.level}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-gray-300 mb-1.5">{bn.reason}</p>
+                      <div className="bg-[#0a0e17] rounded px-2.5 py-1.5 mb-2 border border-gray-800/50">
+                        <div className="flex items-start gap-1.5">
+                          <Lightbulb className="w-3 h-3 text-cyan-400 flex-shrink-0 mt-0.5" />
+                          <p className="text-[10px] text-cyan-300/80 leading-relaxed">{bn.solution}</p>
+                        </div>
+                      </div>
+                      {bn.action && (
+                        <Button
+                          size="sm"
+                          className={`h-6 text-[10px] px-3 ${
+                            bn.severity === 'critical'
+                              ? 'bg-red-600 hover:bg-red-500 text-white'
+                              : bn.severity === 'warning'
+                                ? 'bg-yellow-600 hover:bg-yellow-500 text-black'
+                                : 'bg-blue-600 hover:bg-blue-500 text-white'
+                          }`}
+                          onClick={bn.action.onClick}
+                        >
+                          {bn.action.label}
+                        </Button>
+                      )}
                     </div>
-                    <p className="text-[10px] text-gray-400">{bn.reason}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

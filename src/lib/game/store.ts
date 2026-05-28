@@ -721,7 +721,7 @@ export const useGameStore = create<GameStore>()(
             if (c.completed || c.failed) return;
             const canFulfill = c.requiredResources.every(r => {
               if (r.resource === 'money') return true;
-              return newResources[r.resource as ResourceType] >= r.amount;
+              return (newResources[r.resource as ResourceType] ?? 0) >= r.amount;
             });
             if (canFulfill) {
               c.requiredResources.forEach(r => {
@@ -1580,7 +1580,7 @@ export const useGameStore = create<GameStore>()(
 
         const canFulfill = contract.requiredResources.every(r => {
           if (r.resource === 'money') return true;
-          return state.resources[r.resource as ResourceType] >= r.amount;
+          return (state.resources[r.resource as ResourceType] ?? 0) >= r.amount;
         });
         if (!canFulfill) {
           soundEngine.play('error', 'ui');

@@ -26,7 +26,7 @@ function getTierBorderColor(tier: number): string {
 
 function ContractCard({ contract, store }: { contract: Contract; store: ReturnType<typeof useGameStore> }) {
   const timePct = (contract.timeRemaining / contract.timeLimit) * 100;
-  const canFulfill = contract.requiredResources.every(r => store.resources[r.resource] >= r.amount);
+  const canFulfill = contract.requiredResources.every(r => (store.resources[r.resource] ?? 0) >= r.amount);
   const isUrgent = timePct < 25;
   const tier = contract.gameTier ?? 0;
   const tierColor = getTierColor(tier);
@@ -40,7 +40,7 @@ function ContractCard({ contract, store }: { contract: Contract; store: ReturnTy
       category={contract.type}
       tier={tier}
       details={[
-        ...contract.requiredResources.map(r => ({
+        ...contract.requiredResources.filter(r => RESOURCE_META[r.resource]).map(r => ({
           label: `Required: ${RESOURCE_META[r.resource].name}`,
           value: `${formatNumber(r.amount)}`,
           color: store.resources[r.resource] >= r.amount ? 'text-green-400' : 'text-red-400',
@@ -91,9 +91,9 @@ function ContractCard({ contract, store }: { contract: Contract; store: ReturnTy
 
         {/* Required Resources */}
         <div className="flex flex-wrap gap-2 mb-3">
-          {contract.requiredResources.map((r, i) => {
+          {contract.requiredResources.filter(r => RESOURCE_META[r.resource]).map((r, i) => {
             const meta = RESOURCE_META[r.resource];
-            const have = store.resources[r.resource];
+            const have = store.resources[r.resource] ?? 0;
             const enough = have >= r.amount;
             return (
               <div key={i} className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs ${
