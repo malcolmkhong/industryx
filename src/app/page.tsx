@@ -33,11 +33,8 @@ import { NotificationCenterPanel } from '@/components/game/NotificationCenterPan
 import { PayoutPanel } from '@/components/game/PayoutPanel';
 import DroneDeliveryPanel from '@/components/game/DroneDeliveryPanel';
 import {
-  Factory, Pickaxe, Cog, Truck, Zap, TrendingUp,
-  FlaskConical, Users, ScrollText, Bot, Globe, AlertTriangle,
-  Save, Play, Pause, FastForward, RotateCcw, ChevronRight, Bell, X,
-  BookOpen, Trophy, Download, Upload, Copy, Check, MoreHorizontal, ChevronUp, Settings, BarChart3,
-  Map as MapIcon, Gift, Scroll, DollarSign, Plane
+  Play, Pause, RotateCcw, Bell, X,
+  Download, Upload, Copy, Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -57,58 +54,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { GameSidebar, MobileNav, KEY_TAB_MAP } from '@/components/game/GameSidebar';
 
-const TABS = [
-  { id: 'dashboard' as const, label: 'Dashboard', icon: Factory, color: 'text-neon-cyan' },
-  { id: 'factoryMap' as const, label: 'Map', icon: MapIcon, color: 'text-emerald-400' },
-  { id: 'guide' as const, label: 'Guide', icon: BookOpen, color: 'text-lime-400' },
-  { id: 'resources' as const, label: 'Extraction', icon: Pickaxe, color: 'text-amber-400' },
-  { id: 'factories' as const, label: 'Factories', icon: Cog, color: 'text-orange-400' },
-  { id: 'transport' as const, label: 'Transport', icon: Truck, color: 'text-blue-400' },
-  { id: 'power' as const, label: 'Power', icon: Zap, color: 'text-yellow-400' },
-  { id: 'market' as const, label: 'Market', icon: TrendingUp, color: 'text-green-400' },
-  { id: 'research' as const, label: 'Research', icon: FlaskConical, color: 'text-purple-400' },
-  { id: 'workers' as const, label: 'Workers', icon: Users, color: 'text-sky-400' },
-  { id: 'contracts' as const, label: 'Contracts', icon: ScrollText, color: 'text-rose-400' },
-  { id: 'automation' as const, label: 'Automation', icon: Bot, color: 'text-teal-400' },
-  { id: 'prestige' as const, label: 'Expand', icon: Globe, color: 'text-fuchsia-400' },
-  { id: 'events' as const, label: 'Events', icon: AlertTriangle, color: 'text-red-400' },
-  { id: 'megaprojects' as const, label: 'Mega', icon: Globe, color: 'text-fuchsia-400' },
-  { id: 'statistics' as const, label: 'Stats', icon: BarChart3, color: 'text-teal-400' },
-  { id: 'achievements' as const, label: 'Trophies', icon: Trophy, color: 'text-amber-300' },
-  { id: 'leaderboard' as const, label: 'Ranks', icon: Trophy, color: 'text-amber-400' },
-  { id: 'dailyRewards' as const, label: 'Daily', icon: Gift, color: 'text-pink-400' },
-  { id: 'payouts' as const, label: 'Payouts', icon: DollarSign, color: 'text-green-400' },
-  { id: 'droneDelivery' as const, label: 'Drones', icon: Plane, color: 'text-sky-400' },
-  { id: 'quests' as const, label: 'Quests', icon: Scroll, color: 'text-amber-400' },
-  { id: 'notifications' as const, label: 'Alerts', icon: Bell, color: 'text-cyan-400' },
-  { id: 'blueprints' as const, label: 'Blueprints', icon: Save, color: 'text-indigo-400' },
-  { id: 'settings' as const, label: 'Settings', icon: Settings, color: 'text-gray-400' },
-];
-
-// Mobile bottom tab bar: primary tabs shown directly, secondary in "More" menu
-const MOBILE_PRIMARY_TABS: GameTab[] = [
-  'dashboard', 'factoryMap', 'guide', 'resources', 'factories', 'power',
-  'market', 'research', 'workers', 'contracts',
-];
-
-const MOBILE_MORE_TABS: GameTab[] = [
-  'transport', 'automation', 'prestige', 'events', 'megaprojects', 'statistics', 'achievements', 'leaderboard', 'dailyRewards', 'payouts', 'droneDelivery', 'quests', 'notifications', 'blueprints', 'settings',
-];
-
-// Keyboard shortcut: number keys 1-9 map to first 9 tabs
-const KEY_TAB_MAP: Record<string, GameTab> = {
-  '1': 'dashboard',
-  '2': 'factoryMap',
-  '3': 'guide',
-  '4': 'resources',
-  '5': 'factories',
-  '6': 'transport',
-  '7': 'power',
-  '8': 'market',
-  '9': 'research',
-  '0': 'factoryMap',
-};
+// Navigation is now managed by GameSidebar component
+// KEY_TAB_MAP is imported from GameSidebar
 
 const SPEED_OPTIONS = [1, 2, 5, 10];
 
@@ -117,7 +66,6 @@ export default function Home() {
   const tickRef = useRef<NodeJS.Timeout | null>(null);
   const notifRef = useRef<HTMLDivElement>(null);
   const hasAutoOpenedGuide = useRef(false);
-  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
 
   // Hydration guard: prevent rendering dynamic game UI during SSR
   // This avoids hydration mismatch because Zustand persist rehydrates from localStorage on client
@@ -186,19 +134,6 @@ export default function Home() {
     }, 500);
     return () => clearTimeout(timer);
   }, [store]);
-
-  // Close mobile "More" menu when clicking outside
-  useEffect(() => {
-    if (!mobileMoreOpen) return;
-    const handleClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest('.mobile-more-menu') && !target.closest('.mobile-more-trigger')) {
-        setMobileMoreOpen(false);
-      }
-    };
-    const t = setTimeout(() => document.addEventListener('click', handleClick), 0);
-    return () => { clearTimeout(t); document.removeEventListener('click', handleClick); };
-  }, [mobileMoreOpen]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -409,11 +344,6 @@ export default function Home() {
     if (activeBuildings.length === 0) return 0;
     return activeBuildings.reduce((sum, b) => sum + b.efficiency, 0) / activeBuildings.length * store.powerGrid.efficiency;
   })();
-
-  const handleMobileTabClick = (tabId: GameTab) => {
-    store.setActiveTab(tabId);
-    setMobileMoreOpen(false);
-  };
 
   // Show loading skeleton during SSR to prevent hydration mismatch
   // Zustand persist rehydrates from localStorage on client, causing different initial state
@@ -858,48 +788,11 @@ export default function Home() {
 
         {/* MAIN CONTENT */}
         <div className="flex flex-1 overflow-hidden">
-          {/* SIDEBAR NAV - desktop only */}
-          <nav className="hidden lg:block w-44 flex-shrink-0 bg-[#0d1220] border-r border-cyan-900/20 overflow-y-auto game-scrollbar">
-            <div className="flex flex-col py-1">
-              {TABS.map((tab, idx) => {
-                const isActive = store.activeTab === tab.id;
-                const Icon = tab.icon;
-                // Add separator between sections: Dashboard/Guide (0-1) | Game tabs (2-13) | Meta tabs (14-15)
-                const showSeparatorBefore = idx === 2 || idx === 14;
-                return (
-                  <div key={tab.id}>
-                    {showSeparatorBefore && (
-                      <div className="mx-3 my-1 border-t border-cyan-900/15" />
-                    )}
-                    <button
-                      onClick={() => store.setActiveTab(tab.id)}
-                      className={`sidebar-nav-item ${isActive ? 'active' : ''} flex items-center gap-2 px-3 py-2 text-xs transition-all duration-200 group relative ${
-                        isActive
-                          ? 'bg-cyan-900/15 text-cyan-400 border-r-[3px] border-cyan-400'
-                          : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/30'
-                      }`}
-                    >
-                      <Icon className={`sidebar-icon w-4 h-4 flex-shrink-0 ${isActive ? tab.color : ''}`} />
-                      <span className="truncate">{tab.label}</span>
-                      {tab.id === 'contracts' && store.contracts.filter(c => !c.completed && !c.failed).length > 0 && (
-                        <span className="ml-auto bg-rose-500/20 text-rose-400 text-[9px] px-1 rounded">
-                          {store.contracts.filter(c => !c.completed && !c.failed).length}
-                        </span>
-                      )}
-                      {tab.id === 'events' && store.activeEvents.length > 0 && (
-                        <span className="ml-auto bg-orange-500/20 text-orange-400 text-[9px] px-1 rounded">
-                          {store.activeEvents.length}
-                        </span>
-                      )}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </nav>
+          {/* SIDEBAR NAV - desktop only (grouped categories) */}
+          <GameSidebar activeTab={store.activeTab} onTabChange={store.setActiveTab} />
 
-          {/* PANEL AREA - with bottom padding for mobile tab bar */}
-          <main className="flex-1 overflow-y-auto game-scrollbar p-2 lg:p-4 game-grid-bg pb-20 lg:pb-4 relative">
+          {/* PANEL AREA */}
+          <main className="flex-1 overflow-y-auto game-scrollbar p-2 lg:p-4 game-grid-bg relative">
             <AmbientParticles />
             <div className="relative z-10 game-content-appear" key={store.activeTab}>
               {renderPanel()}
@@ -907,87 +800,8 @@ export default function Home() {
           </main>
         </div>
 
-        {/* MOBILE BOTTOM TAB BAR - visible only on < lg screens */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 mobile-bottom-bar">
-          {/* More menu popup */}
-          {mobileMoreOpen && (
-            <div className="mobile-more-menu absolute bottom-full left-0 right-0 bg-[#0d1220] border-t border-cyan-900/30 pb-2 pt-1 px-2 grid grid-cols-3 gap-1 shadow-[0_-4px_20px_rgba(0,0,0,0.5)]">
-              {MOBILE_MORE_TABS.map(tabId => {
-                const tab = TABS.find(t => t.id === tabId);
-                if (!tab) return null;
-                const isActive = store.activeTab === tab.id;
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => handleMobileTabClick(tab.id)}
-                    className={`flex items-center gap-1.5 px-2 py-2.5 rounded-md text-[11px] transition-colors min-h-[44px] ${
-                      isActive
-                        ? 'bg-cyan-900/30 text-cyan-400'
-                        : 'text-gray-400 active:bg-gray-800/50'
-                    }`}
-                  >
-                    <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? tab.color : ''}`} />
-                    <span className="truncate">{tab.label}</span>
-                    {tab.id === 'events' && store.activeEvents.length > 0 && (
-                      <span className="ml-auto bg-orange-500/20 text-orange-400 text-[9px] px-1 rounded">
-                        {store.activeEvents.length}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Scrollable tab strip */}
-          <div className="flex items-center border-t border-cyan-900/30 bg-[#0d1220]/95 backdrop-blur-sm overflow-x-auto game-scrollbar mobile-tab-scroll">
-            {MOBILE_PRIMARY_TABS.map(tabId => {
-              const tab = TABS.find(t => t.id === tabId);
-              if (!tab) return null;
-              const isActive = store.activeTab === tab.id;
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => handleMobileTabClick(tab.id)}
-                  className={`flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 min-w-[52px] min-h-[52px] transition-colors flex-shrink-0 ${
-                    isActive
-                      ? 'text-cyan-400 bg-cyan-900/20'
-                      : 'text-gray-500 active:text-gray-300 active:bg-gray-800/30'
-                  }`}
-                >
-                  <div className="relative">
-                    <Icon className={`w-4 h-4 ${isActive ? tab.color : ''}`} />
-                    {tab.id === 'contracts' && store.contracts.filter(c => !c.completed && !c.failed).length > 0 && (
-                      <span className="absolute -top-1.5 -right-2 w-3.5 h-3.5 bg-rose-500 rounded-full text-[7px] text-white flex items-center justify-center">
-                        {store.contracts.filter(c => !c.completed && !c.failed).length}
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-[9px] leading-tight truncate max-w-[48px]">{tab.label}</span>
-                </button>
-              );
-            })}
-
-            {/* More button */}
-            <button
-              onClick={() => setMobileMoreOpen(!mobileMoreOpen)}
-              className={`mobile-more-trigger flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 min-w-[52px] min-h-[52px] transition-colors flex-shrink-0 ${
-                mobileMoreOpen || MOBILE_MORE_TABS.includes(store.activeTab)
-                  ? 'text-cyan-400 bg-cyan-900/20'
-                  : 'text-gray-500 active:text-gray-300 active:bg-gray-800/30'
-              }`}
-            >
-              {mobileMoreOpen ? (
-                <ChevronUp className="w-4 h-4" />
-              ) : (
-                <MoreHorizontal className="w-4 h-4" />
-              )}
-              <span className="text-[9px] leading-tight">More</span>
-            </button>
-          </div>
-        </div>
+        {/* MOBILE NAVIGATION - category-based instead of More overflow */}
+        <MobileNav activeTab={store.activeTab} onTabChange={store.setActiveTab} />
 
         {/* Floating production numbers */}
         <FloatingNumbers />

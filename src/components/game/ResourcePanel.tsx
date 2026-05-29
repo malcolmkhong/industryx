@@ -14,14 +14,15 @@ import {
 } from 'lucide-react';
 import { ResourceType, ExtractorType } from '@/lib/game/types';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
+import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const EXTRACTOR_TYPES: ExtractorType[] = ['miningDrill', 'oilPump', 'waterExtractor', 'quarry', 'clayPit', 'limestoneQuarry', 'gravelPit', 'bauxiteMine', 'wolframiteMine'];
+const EXTRACTOR_TYPES: ExtractorType[] = ['miningDrill', 'oilPump', 'waterExtractor', 'quarry', 'clayPit', 'limestoneQuarry', 'gravelPit', 'bauxiteMine', 'wolframiteMine', 'rareEarthExtractor'];
 const RAW_RESOURCES: ResourceType[] = ['iron', 'copper', 'coal', 'oil', 'sand', 'lithium', 'water', 'rareEarth', 'clay', 'limestone', 'gravel', 'bauxite', 'wolframite'];
 
 const BASIC_EXTRACTORS: ExtractorType[] = ['miningDrill', 'oilPump', 'waterExtractor', 'quarry'];
-const ADVANCED_EXTRACTORS: ExtractorType[] = ['clayPit', 'limestoneQuarry', 'gravelPit', 'bauxiteMine', 'wolframiteMine'];
+const ADVANCED_EXTRACTORS: ExtractorType[] = ['clayPit', 'limestoneQuarry', 'gravelPit', 'bauxiteMine', 'wolframiteMine', 'rareEarthExtractor'];
 
 // Tab config for the tier selector
 const TAB_CONFIG = {
@@ -86,44 +87,6 @@ const EXTRACTION_TIERS = [
 ] as const;
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
-
-function PanelStatCard({
-  icon,
-  label,
-  value,
-  subtext,
-  color,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  subtext: string;
-  color: 'cyan' | 'green' | 'orange' | 'red' | 'purple' | 'yellow' | 'amber';
-}) {
-  const colorMap = {
-    cyan: { icon: 'text-cyan-400', value: 'text-cyan-400', border: 'border-cyan-900/30', bg: 'bg-cyan-900/10' },
-    green: { icon: 'text-green-400', value: 'text-green-400', border: 'border-green-900/30', bg: 'bg-green-900/10' },
-    orange: { icon: 'text-orange-400', value: 'text-orange-400', border: 'border-orange-900/30', bg: 'bg-orange-900/10' },
-    red: { icon: 'text-red-400', value: 'text-red-400', border: 'border-red-900/30', bg: 'bg-red-900/10' },
-    purple: { icon: 'text-purple-400', value: 'text-purple-400', border: 'border-purple-900/30', bg: 'bg-purple-900/10' },
-    yellow: { icon: 'text-yellow-400', value: 'text-yellow-400', border: 'border-yellow-900/30', bg: 'bg-yellow-900/10' },
-    amber: { icon: 'text-amber-400', value: 'text-amber-400', border: 'border-amber-900/30', bg: 'bg-amber-900/10' },
-  };
-  const c = colorMap[color];
-
-  return (
-    <div className={`game-card rounded-xl bg-[#111827] p-3 border ${c.border}`}>
-      <div className="flex items-center gap-2 mb-1.5">
-        <div className={`w-7 h-7 rounded-lg ${c.bg} flex items-center justify-center`}>
-          <div className={c.icon}>{icon}</div>
-        </div>
-        <span className="text-[10px] text-gray-500 uppercase tracking-wider">{label}</span>
-      </div>
-      <div className={`text-lg font-bold font-mono ${c.value}`}>{value}</div>
-      <div className="text-[10px] text-gray-500 mt-0.5">{subtext}</div>
-    </div>
-  );
-}
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
