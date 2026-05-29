@@ -12,15 +12,20 @@ import {
 } from '@/components/ui/tooltip';
 import {
   Rocket, Lock, Check, ChevronRight, Sparkles, AlertTriangle,
-  Zap, ArrowUpRight, Cpu, Package, Trophy, Eye
+  Zap, ArrowUpRight, Cpu, Package, Trophy, Eye, Pause,
+  TrendingUp, Pickaxe, Users, Wrench, DollarSign
 } from 'lucide-react';
 
-const PROJECT_COLORS: Record<string, { border: string; glow: string; bg: string; text: string; badge: string }> = {
-  spaceElevator: { border: 'border-orange-500/40', glow: 'shadow-orange-500/20', bg: 'bg-orange-900/10', text: 'text-orange-400', badge: 'border-orange-500/50 text-orange-400 bg-orange-900/20' },
-  dysonSphere: { border: 'border-yellow-500/40', glow: 'shadow-yellow-500/20', bg: 'bg-yellow-900/10', text: 'text-yellow-400', badge: 'border-yellow-500/50 text-yellow-400 bg-yellow-900/20' },
-  quantumInternet: { border: 'border-cyan-500/40', glow: 'shadow-cyan-500/20', bg: 'bg-cyan-900/10', text: 'text-cyan-400', badge: 'border-cyan-500/50 text-cyan-400 bg-cyan-900/20' },
-  fusionCity: { border: 'border-fuchsia-500/40', glow: 'shadow-fuchsia-500/20', bg: 'bg-fuchsia-900/10', text: 'text-fuchsia-400', badge: 'border-fuchsia-500/50 text-fuchsia-400 bg-fuchsia-900/20' },
-  terraformingEngine: { border: 'border-emerald-500/40', glow: 'shadow-emerald-500/20', bg: 'bg-emerald-900/10', text: 'text-emerald-400', badge: 'border-emerald-500/50 text-emerald-400 bg-emerald-900/20' },
+const PROJECT_COLORS: Record<string, { border: string; glow: string; bg: string; text: string; badge: string; gradient: string }> = {
+  spaceElevator: { border: 'border-orange-500/40', glow: 'shadow-orange-500/20', bg: 'bg-orange-900/10', text: 'text-orange-400', badge: 'border-orange-500/50 text-orange-400 bg-orange-900/20', gradient: 'linear-gradient(90deg, #f97316, #fb923c)' },
+  dysonSphere: { border: 'border-yellow-500/40', glow: 'shadow-yellow-500/20', bg: 'bg-yellow-900/10', text: 'text-yellow-400', badge: 'border-yellow-500/50 text-yellow-400 bg-yellow-900/20', gradient: 'linear-gradient(90deg, #eab308, #facc15)' },
+  quantumInternet: { border: 'border-cyan-500/40', glow: 'shadow-cyan-500/20', bg: 'bg-cyan-900/10', text: 'text-cyan-400', badge: 'border-cyan-500/50 text-cyan-400 bg-cyan-900/20', gradient: 'linear-gradient(90deg, #06b6d4, #22d3ee)' },
+  fusionCity: { border: 'border-fuchsia-500/40', glow: 'shadow-fuchsia-500/20', bg: 'bg-fuchsia-900/10', text: 'text-fuchsia-400', badge: 'border-fuchsia-500/50 text-fuchsia-400 bg-fuchsia-900/20', gradient: 'linear-gradient(90deg, #d946ef, #e879f9)' },
+  terraformingEngine: { border: 'border-emerald-500/40', glow: 'shadow-emerald-500/20', bg: 'bg-emerald-900/10', text: 'text-emerald-400', badge: 'border-emerald-500/50 text-emerald-400 bg-emerald-900/20', gradient: 'linear-gradient(90deg, #10b981, #34d399)' },
+  galacticTradeHub: { border: 'border-amber-500/40', glow: 'shadow-amber-500/20', bg: 'bg-amber-900/10', text: 'text-amber-400', badge: 'border-amber-500/50 text-amber-400 bg-amber-900/20', gradient: 'linear-gradient(90deg, #f59e0b, #fbbf24)' },
+  deepCoreExtractor: { border: 'border-red-500/40', glow: 'shadow-red-500/20', bg: 'bg-red-900/10', text: 'text-red-400', badge: 'border-red-500/50 text-red-400 bg-red-900/20', gradient: 'linear-gradient(90deg, #ef4444, #f87171)' },
+  neuralCommandCenter: { border: 'border-violet-500/40', glow: 'shadow-violet-500/20', bg: 'bg-violet-900/10', text: 'text-violet-400', badge: 'border-violet-500/50 text-violet-400 bg-violet-900/20', gradient: 'linear-gradient(90deg, #8b5cf6, #a78bfa)' },
+  nanoAssemblyMatrix: { border: 'border-teal-500/40', glow: 'shadow-teal-500/20', bg: 'bg-teal-900/10', text: 'text-teal-400', badge: 'border-teal-500/50 text-teal-400 bg-teal-900/20', gradient: 'linear-gradient(90deg, #14b8a6, #2dd4bf)' },
 };
 
 const BONUS_ICONS: Record<string, React.ReactNode> = {
@@ -29,16 +34,56 @@ const BONUS_ICONS: Record<string, React.ReactNode> = {
   researchMultiplier: <Cpu className="w-3.5 h-3.5" />,
   productionMultiplier: <ArrowUpRight className="w-3.5 h-3.5" />,
   unlimitedStorage: <Package className="w-3.5 h-3.5" />,
+  marketMultiplier: <TrendingUp className="w-3.5 h-3.5" />,
+  extractionMultiplier: <Pickaxe className="w-3.5 h-3.5" />,
+  workerEfficiency: <Users className="w-3.5 h-3.5" />,
+  buildingCostReduction: <Wrench className="w-3.5 h-3.5" />,
 };
 
 // Detailed bonus descriptions for tooltips
 const BONUS_DETAILS: Record<string, string> = {
-  transportMultiplier: 'All transport line throughput is doubled, making your logistics network twice as efficient.',
-  powerMultiplier: 'All power generation is tripled, providing massive energy for your expanding factory.',
-  researchMultiplier: 'Research speed is doubled, allowing you to unlock technologies twice as fast.',
-  productionMultiplier: 'All building production rates are doubled across your entire empire.',
-  unlimitedStorage: 'Resource storage capacity is removed - store unlimited amounts of any resource.',
+  transportMultiplier: 'All transport line throughput is boosted, making your logistics network significantly more efficient.',
+  powerMultiplier: 'All power generation is massively increased, providing enormous energy for your expanding factory.',
+  researchMultiplier: 'Research speed is boosted, allowing you to unlock technologies much faster.',
+  productionMultiplier: 'All building production rates are boosted across your entire empire.',
+  unlimitedStorage: 'Resource storage capacity is removed — store unlimited amounts of any resource forever.',
+  marketMultiplier: 'All market sell prices are increased, generating more income from every sale.',
+  extractionMultiplier: 'All extractor production rates are boosted, yielding more raw materials per tick.',
+  workerEfficiency: 'All assigned workers become significantly more effective at boosting building output.',
+  buildingCostReduction: 'All building construction and upgrade costs are reduced, making expansion cheaper.',
 };
+
+// Color for project glow shadows
+function getProjectGlowColor(type: string): string {
+  const map: Record<string, string> = {
+    spaceElevator: 'rgba(249,115,22,0.1)',
+    dysonSphere: 'rgba(234,179,8,0.1)',
+    quantumInternet: 'rgba(6,182,212,0.1)',
+    fusionCity: 'rgba(217,70,239,0.1)',
+    terraformingEngine: 'rgba(16,185,129,0.1)',
+    galacticTradeHub: 'rgba(245,158,11,0.1)',
+    deepCoreExtractor: 'rgba(239,68,68,0.1)',
+    neuralCommandCenter: 'rgba(139,92,246,0.1)',
+    nanoAssemblyMatrix: 'rgba(20,184,166,0.1)',
+  };
+  return map[type] || 'rgba(217,70,239,0.1)';
+}
+
+// Color for progress bar hex
+function getProjectProgressHex(type: string): string {
+  const map: Record<string, string> = {
+    spaceElevator: '#f97316',
+    dysonSphere: '#eab308',
+    quantumInternet: '#06b6d4',
+    fusionCity: '#d946ef',
+    terraformingEngine: '#10b981',
+    galacticTradeHub: '#f59e0b',
+    deepCoreExtractor: '#ef4444',
+    neuralCommandCenter: '#8b5cf6',
+    nanoAssemblyMatrix: '#14b8a6',
+  };
+  return map[type] || '#d946ef';
+}
 
 export function MegaProjectPanel() {
   const store = useGameStore();
@@ -65,6 +110,7 @@ export function MegaProjectPanel() {
   const activeCount = store.megaProjects.filter(p => p.active && !p.completed).length;
   const unlockedCount = store.megaProjects.filter(p => isUnlocked(p) && !p.active && !p.completed).length;
   const lockedCount = store.megaProjects.filter(p => !isUnlocked(p) && !p.completed).length;
+  const pausedCount = store.megaProjects.filter(p => p.active && !p.completed && !hasResources(p)).length;
 
   return (
     <div className="space-y-4">
@@ -88,13 +134,19 @@ export function MegaProjectPanel() {
               {activeCount} Active
             </Badge>
           )}
+          {pausedCount > 0 && (
+            <Badge variant="outline" className="border-amber-500/50 text-amber-400 bg-amber-900/20 text-xs">
+              <Pause className="w-3 h-3 mr-1" />
+              {pausedCount} Paused
+            </Badge>
+          )}
         </div>
       </div>
 
       {/* Progress Summary Bar */}
       <div className="game-card rounded-xl bg-[#111827] p-3 border border-[#1e293b]">
         <div className="flex items-center justify-between text-[11px]">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <span className="text-gray-500">Progress:</span>
             <span className="flex items-center gap-1">
               <Lock className="w-3 h-3 text-gray-600" />
@@ -137,10 +189,10 @@ export function MegaProjectPanel() {
             {store.megaProjects.filter(p => p.completed).map(p => {
               const colors = PROJECT_COLORS[p.type];
               return (
-                <div key={p.type} className={`flex items-center gap-2 rounded-lg px-3 py-2 ${colors.bg} border ${colors.border}`}>
+                <div key={p.type} className={`flex items-center gap-2 rounded-lg px-3 py-2 ${colors?.bg ?? 'bg-gray-900/10'} border ${colors?.border ?? 'border-gray-700/30'}`}>
                   <span className="text-lg">{p.emoji}</span>
                   <div>
-                    <div className={`text-xs font-medium ${colors.text}`}>{p.name}</div>
+                    <div className={`text-xs font-medium ${colors?.text ?? 'text-gray-400'}`}>{p.name}</div>
                     <div className="text-[10px] text-green-400 flex items-center gap-1">
                       {BONUS_ICONS[p.bonus.type]}
                       {p.bonus.description}
@@ -158,15 +210,17 @@ export function MegaProjectPanel() {
         {store.megaProjects.map(project => {
           const colors = PROJECT_COLORS[project.type];
           const unlocked = isUnlocked(project);
+          const resourcesMet = hasResources(project);
+          const progressHex = getProjectProgressHex(project.type);
 
           return (
             <div
               key={project.type}
               className={`game-card rounded-xl bg-[#111827] border transition-all duration-500 ${
                 project.completed
-                  ? `${colors.border} ring-1 ring-fuchsia-500/20`
+                  ? `${colors?.border ?? 'border-fuchsia-500/40'} ring-1 ring-fuchsia-500/20`
                   : project.active
-                    ? `${colors.border}`
+                    ? `${colors?.border ?? 'border-gray-700/40'}`
                     : unlocked
                       ? 'border-gray-800'
                       : 'border-gray-800/50 opacity-80'
@@ -175,7 +229,7 @@ export function MegaProjectPanel() {
                 project.completed
                   ? { boxShadow: `0 0 40px rgba(217,70,239,0.15), 0 0 80px rgba(217,70,239,0.05)` }
                   : project.active
-                    ? { boxShadow: `0 0 20px ${project.type === 'spaceElevator' ? 'rgba(249,115,22,0.1)' : project.type === 'dysonSphere' ? 'rgba(234,179,8,0.1)' : project.type === 'quantumInternet' ? 'rgba(6,182,212,0.1)' : project.type === 'fusionCity' ? 'rgba(217,70,239,0.1)' : 'rgba(16,185,129,0.1)'}` }
+                    ? { boxShadow: `0 0 20px ${getProjectGlowColor(project.type)}` }
                     : undefined
               }
             >
@@ -184,9 +238,9 @@ export function MegaProjectPanel() {
                 <div className="flex items-start gap-3 mb-3">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
                     project.completed
-                      ? `${colors.bg} neon-pulse`
+                      ? `${colors?.bg ?? 'bg-fuchsia-900/10'} neon-pulse`
                       : project.active
-                        ? `${colors.bg}`
+                        ? `${colors?.bg ?? 'bg-gray-800/50'}`
                         : unlocked
                           ? 'bg-gray-800/50'
                           : 'bg-gray-900/50'
@@ -195,7 +249,7 @@ export function MegaProjectPanel() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className={`text-sm font-bold ${project.completed ? colors.text : unlocked ? 'text-gray-100' : 'text-gray-400'}`}>
+                      <h3 className={`text-sm font-bold ${project.completed ? (colors?.text ?? 'text-fuchsia-400') : unlocked ? 'text-gray-100' : 'text-gray-400'}`}>
                         {project.name}
                       </h3>
                       {project.completed && (
@@ -203,9 +257,14 @@ export function MegaProjectPanel() {
                           <Check className="w-2.5 h-2.5 mr-0.5" /> COMPLETE
                         </Badge>
                       )}
-                      {project.active && !project.completed && (
-                        <Badge className={`${colors.badge} text-[9px] px-1.5`}>
-                          <Zap className="w-2.5 h-2.5 mr-0.5" /> ACTIVE
+                      {project.active && !project.completed && resourcesMet && (
+                        <Badge className={`${colors?.badge ?? 'border-fuchsia-500/50 text-fuchsia-400 bg-fuchsia-900/20'} text-[9px] px-1.5`}>
+                          <Zap className="w-2.5 h-2.5 mr-0.5" /> BUILDING
+                        </Badge>
+                      )}
+                      {project.active && !project.completed && !resourcesMet && (
+                        <Badge className="border-amber-500/50 text-amber-400 bg-amber-900/20 text-[9px] px-1.5">
+                          <Pause className="w-2.5 h-2.5 mr-0.5" /> PAUSED
                         </Badge>
                       )}
                       {!unlocked && !project.completed && (
@@ -228,11 +287,11 @@ export function MegaProjectPanel() {
                 {/* Bonus Preview with Tooltip - shown for ALL projects */}
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className={`${project.completed ? 'bg-green-900/10 border-green-500/30' : unlocked ? `${colors.bg} ${colors.border}` : 'bg-gray-900/30 border-gray-700/30'} rounded-lg p-2.5 mb-3 border cursor-help`}>
+                    <div className={`${project.completed ? 'bg-green-900/10 border-green-500/30' : unlocked ? `${colors?.bg ?? 'bg-gray-900/10'} ${colors?.border ?? 'border-gray-700/30'}` : 'bg-gray-900/30 border-gray-700/30'} rounded-lg p-2.5 mb-3 border cursor-help`}>
                       <div className="text-[10px] text-gray-500 mb-0.5">
                         {project.completed ? 'Permanent Bonus Active' : 'Completion Bonus'}
                       </div>
-                      <div className={`text-xs font-medium flex items-center gap-1.5 ${project.completed ? 'text-green-400' : unlocked ? colors.text : 'text-gray-500'}`}>
+                      <div className={`text-xs font-medium flex items-center gap-1.5 ${project.completed ? 'text-green-400' : unlocked ? (colors?.text ?? 'text-gray-400') : 'text-gray-500'}`}>
                         {BONUS_ICONS[project.bonus.type]}
                         {project.bonus.description}
                       </div>
@@ -240,7 +299,9 @@ export function MegaProjectPanel() {
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="bg-[#111827] border-fuchsia-900/30 max-w-xs">
                     <p className="text-xs text-gray-300">{BONUS_DETAILS[project.bonus.type] ?? project.bonus.description}</p>
-                    <p className="text-[10px] text-fuchsia-400 mt-1">Bonus value: +{(project.bonus.value * 100).toFixed(0)}%</p>
+                    <p className="text-[10px] text-fuchsia-400 mt-1">
+                      Bonus value: {project.bonus.type === 'buildingCostReduction' ? '-' : '+'}{(project.bonus.value * 100).toFixed(0)}%
+                    </p>
                   </TooltipContent>
                 </Tooltip>
 
@@ -276,18 +337,29 @@ export function MegaProjectPanel() {
                   if (!currentStage || currentStage.completed) return null;
                   return (
                     <>
+                      {/* Paused Warning */}
+                      {!resourcesMet && (
+                        <div className="bg-amber-900/10 border border-amber-500/20 rounded-lg p-2.5 mb-3 flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                          <div className="text-[10px]">
+                            <div className="text-amber-400 font-medium">Construction Paused</div>
+                            <div className="text-amber-400/60">Resources must be held to continue. Progress resumes automatically when all materials are available.</div>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Stage Indicators */}
                       <div className="flex items-center gap-1 mb-3">
                         {project.stages.map((s, i) => (
                           <div key={i} className="flex items-center gap-1 flex-1">
                             <div className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${
                               s.completed
-                                ? `bg-green-500`
+                                ? 'bg-green-500'
                                 : i === project.currentStage
-                                  ? `${colors.bg.replace('/10', '/30')} ${colors.text.replace('text-', 'bg-').replace('400', '500')}`
+                                  ? 'bg-gray-800'
                                   : 'bg-gray-800'
                             }`} style={i === project.currentStage && !s.completed ? {
-                              background: `linear-gradient(90deg, ${project.type === 'spaceElevator' ? '#f97316' : project.type === 'dysonSphere' ? '#eab308' : project.type === 'quantumInternet' ? '#06b6d4' : project.type === 'fusionCity' ? '#d946ef' : '#10b981'} ${project.progress * 100}%, #1f2937 ${project.progress * 100}%)`,
+                              background: `linear-gradient(90deg, ${progressHex} ${project.progress * 100}%, #1f2937 ${project.progress * 100}%)`,
                             } : undefined} />
                             {i < project.stages.length - 1 && (
                               <ChevronRight className="w-3 h-3 text-gray-700 flex-shrink-0" />
@@ -302,7 +374,7 @@ export function MegaProjectPanel() {
                           <div className="text-[11px] font-medium text-gray-300">
                             Stage {project.currentStage + 1}/{project.stages.length}: {currentStage.name}
                           </div>
-                          <div className={`text-[10px] font-mono ${colors.text}`}>
+                          <div className={`text-[10px] font-mono ${resourcesMet ? (colors?.text ?? 'text-fuchsia-400') : 'text-amber-400'}`}>
                             {(project.progress * 100).toFixed(1)}%
                           </div>
                         </div>
@@ -313,18 +385,18 @@ export function MegaProjectPanel() {
                             className="h-full rounded-full transition-all duration-300"
                             style={{
                               width: `${project.progress * 100}%`,
-                              background: project.type === 'spaceElevator' ? 'linear-gradient(90deg, #f97316, #fb923c)' :
-                                project.type === 'dysonSphere' ? 'linear-gradient(90deg, #eab308, #facc15)' :
-                                project.type === 'quantumInternet' ? 'linear-gradient(90deg, #06b6d4, #22d3ee)' :
-                                project.type === 'fusionCity' ? 'linear-gradient(90deg, #d946ef, #e879f9)' :
-                                'linear-gradient(90deg, #10b981, #34d399)',
+                              background: colors?.gradient ?? 'linear-gradient(90deg, #d946ef, #e879f9)',
+                              opacity: resourcesMet ? 1 : 0.5,
                             }}
                           />
                         </div>
 
                         {/* Required Resources */}
                         <div className="space-y-1.5">
-                          <div className="text-[10px] text-gray-500">Required Resources</div>
+                          <div className="text-[10px] text-gray-500 flex items-center gap-1">
+                            <DollarSign className="w-3 h-3" />
+                            Required Materials (must be held)
+                          </div>
                           {currentStage.requiredResources.map((r, i) => {
                             const resKey = r.resource as ResourceType;
                             const meta = RESOURCE_META[resKey];
@@ -359,29 +431,21 @@ export function MegaProjectPanel() {
                         {/* Time estimate */}
                         <div className="mt-2 text-[10px] text-gray-600">
                           ⏱ Est. {currentStage.timeRequired} ticks ({(currentStage.timeRequired / 60).toFixed(0)} min at 1x)
+                          {!resourcesMet && <span className="text-amber-500 ml-2">(paused until resources available)</span>}
                         </div>
                       </div>
 
-                      {/* Action Buttons */}
+                      {/* Status Indicator */}
                       <div className="flex items-center gap-2">
-                        {project.progress === 0 ? (
-                          <Button
-                            onClick={() => store.contributeToMegaProject(project.type)}
-                            disabled={!hasResources(project)}
-                            className={`flex-1 text-xs h-8 ${
-                              hasResources(project)
-                                ? 'bg-fuchsia-600 hover:bg-fuchsia-500 text-white'
-                                : 'bg-gray-800 text-gray-500'
-                            }`}
-                            size="sm"
-                          >
-                            <Sparkles className="w-3 h-3 mr-1" />
-                            {hasResources(project) ? 'Contribute Resources' : 'Insufficient Resources'}
-                          </Button>
-                        ) : (
+                        {resourcesMet ? (
                           <div className="flex-1 text-center text-[11px] text-gray-400 flex items-center justify-center gap-1.5">
-                            <span className={`inline-block w-2 h-2 rounded-full ${colors.text.replace('text-', 'bg-')}`} style={{ animation: 'neonPulse 2s ease-in-out infinite' }} />
+                            <span className={`inline-block w-2 h-2 rounded-full ${colors?.text?.replace('text-', 'bg-') ?? 'bg-fuchsia-400'}`} style={{ animation: 'neonPulse 2s ease-in-out infinite' }} />
                             Construction in progress...
+                          </div>
+                        ) : (
+                          <div className="flex-1 text-center text-[11px] text-amber-400 flex items-center justify-center gap-1.5">
+                            <Pause className="w-3 h-3" />
+                            Paused — need more resources
                           </div>
                         )}
                       </div>
@@ -393,7 +457,7 @@ export function MegaProjectPanel() {
                 {unlocked && !project.active && !project.completed && (
                   <Button
                     onClick={() => store.startMegaProject(project.type)}
-                    className={`w-full text-xs h-9 ${colors.bg} hover:opacity-80 border ${colors.border} ${colors.text}`}
+                    className={`w-full text-xs h-9 ${colors?.bg ?? 'bg-gray-800/50'} hover:opacity-80 border ${colors?.border ?? 'border-gray-700/30'} ${colors?.text ?? 'text-gray-400'}`}
                     size="sm"
                     variant="outline"
                   >
@@ -411,11 +475,11 @@ export function MegaProjectPanel() {
                         {s.completed ? (
                           <Check className="w-3 h-3 text-green-500" />
                         ) : i === project.currentStage ? (
-                          <span className={`w-3 h-3 rounded-full border ${colors.border} ${colors.bg}`} style={{ animation: 'neonPulse 2s ease-in-out infinite' }} />
+                          <span className={`w-3 h-3 rounded-full border ${colors?.border ?? 'border-fuchsia-500/40'} ${colors?.bg ?? 'bg-fuchsia-900/10'}`} style={{ animation: 'neonPulse 2s ease-in-out infinite' }} />
                         ) : (
                           <span className="w-3 h-3 rounded-full bg-gray-800" />
                         )}
-                        <span className={s.completed ? 'text-green-400' : i === project.currentStage ? colors.text : 'text-gray-600'}>
+                        <span className={s.completed ? 'text-green-400' : i === project.currentStage ? (colors?.text ?? 'text-fuchsia-400') : 'text-gray-600'}>
                           {s.name}
                         </span>
                       </div>
@@ -452,15 +516,15 @@ export function MegaProjectPanel() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-[11px] text-gray-500">
           <div>
             <div className="text-gray-400 font-medium mb-1">How It Works</div>
-            <p>Each MegaProject has multiple stages. Contribute the required resources to start construction, then wait for each stage to complete automatically over time.</p>
+            <p>Each MegaProject has multiple stages. Start the project, then maintain the required resources to keep construction progressing. If resources run out, construction pauses until they&apos;re available again. Resources are consumed when each stage completes.</p>
           </div>
           <div>
             <div className="text-gray-400 font-medium mb-1">Permanent Bonuses</div>
-            <p>Completed MegaProjects grant permanent empire-wide bonuses that persist across Global Expansions. The strongest boosts in the game.</p>
+            <p>Completed MegaProjects grant 9 types of permanent empire-wide bonuses: transport, power, research, production, storage, market, extraction, worker efficiency, and building cost reduction. The strongest boosts in the game.</p>
           </div>
           <div>
             <div className="text-gray-400 font-medium mb-1">Strategy Tips</div>
-            <p>Start with Quantum Internet (easiest unlock) for +100% research speed. Dyson Sphere&apos;s +200% power is a game-changer for late-game production.</p>
+            <p>Start with Quantum Internet (easiest unlock) for +100% research speed. Deep Core Extractor boosts all raw material output by 75%. Build production chains that sustain the required materials to keep construction running.</p>
           </div>
         </div>
       </div>

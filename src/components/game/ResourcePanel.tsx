@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/store';
+import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked, hasUnlimitedStorage } from '@/lib/game/store';
 import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE } from '@/lib/game/data';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -151,15 +151,16 @@ export function ResourcePanel() {
   }, [store.buildings, store.powerGrid.efficiency]);
 
   // Resource flow data
+  const unlimited = useMemo(() => hasUnlimitedStorage(store.megaProjects), [store.megaProjects]);
   const resourceFlow = useMemo(() => {
     return RAW_RESOURCES.map(r => {
       const rate = productionRates[r] || 0;
       const amount = store.resources[r];
-      const capacity = store.resourceCapacity[r];
+      const capacity = unlimited ? Infinity : store.resourceCapacity[r];
       const meta = RESOURCE_META[r];
       return { resource: r, rate, amount, capacity, meta };
     }).filter(r => r.rate > 0 || r.amount > 0);
-  }, [productionRates, store.resources, store.resourceCapacity]);
+  }, [productionRates, store.resources, store.resourceCapacity, unlimited]);
 
   // Extraction tier production summary for SVG flow
   const tierProductionSummary = useMemo(() => {
@@ -908,13 +909,13 @@ export function ResourcePanel() {
             <div className="space-y-2.5 max-h-96 overflow-y-auto game-scrollbar pr-1">
               {RAW_RESOURCES.map(resource => {
                 const amount = store.resources[resource];
-                const capacity = store.resourceCapacity[resource];
+                const capacity = unlimited ? Infinity : store.resourceCapacity[resource];
                 const meta = RESOURCE_META[resource];
-                const pct = capacity > 0 ? (amount / capacity) * 100 : 0;
+                const pct = Number.isFinite(capacity) && capacity > 0 ? (amount / capacity) * 100 : 0;
                 const prodRate = productionRates[resource] || 0;
                 const consRate = consumptionRates[resource] || 0;
                 const netRate = prodRate - consRate;
-                const isFull = pct >= 95;
+                const isFull = !Number.isFinite(capacity) ? false : pct >= 95;
                 const isEmpty = amount === 0;
 
                 // Only show resources that have some activity or stock
@@ -985,7 +986,7 @@ export function ResourcePanel() {
                         <div className="flex items-center gap-0.5">
                           <Clock className="w-2 h-2 text-gray-500" />
                           <span className="text-[8px] text-gray-500 font-mono">
-                            {netRate > 0 ? `+${formatNumber(capacity - amount)}` : '—'}
+                            {Number.isFinite(capacity) && netRate > 0 ? `+${formatNumber(capacity - amount)}` : '—'}
                           </span>
                         </div>
                       </div>
@@ -1049,10 +1050,10 @@ export function ResourcePanel() {
                     const consRate = consumptionRates[resource] || 0;
                     const net = rate - consRate;
                     const maxRate = Math.max(rate, consRate, 0.1);
-                    const fillPct = capacity > 0 ? (amount / capacity) * 100 : 0;
-                    const isFull = fillPct >= 100;
-                    const isAlmostFull = fillPct >= 95;
-                    const isNearing = fillPct >= 80;
+                    const fillPct = Number.isFinite(capacity) && capacity > 0 ? (amount / capacity) * 100 : 0;
+                    const isFull = Number.isFinite(capacity) && fillPct >= 100;
+                    const isAlmostFull = Number.isFinite(capacity) && fillPct >= 95;
+                    const isNearing = Number.isFinite(capacity) && fillPct >= 80;
 
                     return (
                       <div key={resource} className="bg-[#0a0e17] rounded-lg p-2">

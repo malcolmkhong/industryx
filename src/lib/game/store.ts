@@ -8,7 +8,7 @@ import { persist } from 'zustand/middleware';
 import {
   GameState, GameTab, ResourceType, BuildingInstance, BuildingType,
   TransportLine, TransportType, Worker, WorkerType, Contract,
-  GameEvent, GameNotification, PowerGrid, MarketPrice, MegaProjectType,
+  GameEvent, GameNotification, PowerGrid, MarketPrice, MegaProjectType, MegaProjectBonusType,
   Blueprint, LeaderboardEntry, LoginStreak, DailyReward,
   WeatherType, PayoutConfig, PayoutRecord, Drone, DroneMission,
 } from './types';
@@ -23,14 +23,25 @@ import {
 import { soundEngine } from './soundEngine';
 
 // --- Save Version ---
-const SAVE_VERSION = 13;
+const SAVE_VERSION = 14;
 
 // --- Utility Functions ---
 function generateId(): string {
   return Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
 }
 
+// Helper to compute total bonus value from completed mega projects for a given bonus type
+function getMegaProjectBonus(megaProjects: { completed: boolean; bonus: { type: MegaProjectBonusType; value: number } }[], bonusType: MegaProjectBonusType): number {
+  return megaProjects.filter(p => p.completed && p.bonus.type === bonusType).reduce((sum, p) => sum + p.bonus.value, 0);
+}
+
+// Check if unlimited storage is unlocked via completed mega project
+export function hasUnlimitedStorage(megaProjects: { completed: boolean; bonus: { type: MegaProjectBonusType } }[]): boolean {
+  return megaProjects.some(p => p.completed && p.bonus.type === 'unlimitedStorage');
+}
+
 function formatNumber(n: number): string {
+  if (!Number.isFinite(n)) return '∞';
   if (n >= 1e12) return (n / 1e12).toFixed(2) + 'T';
   if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B';
   if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
@@ -42,11 +53,12 @@ function formatNumber(n: number): string {
   return '0';
 }
 
-function getBuildingCost(type: BuildingType, currentCount: number): number {
+function getBuildingCost(type: BuildingType, currentCount: number, costReduction: number = 0): number {
   const def = BUILDING_DEFS[type];
   if (!def) return Infinity;
   const baseMoneyCost = def.baseCost.find(c => c.resource === 'money')?.amount ?? 0;
-  return Math.floor(baseMoneyCost * Math.pow(def.costMultiplier, currentCount));
+  const rawCost = Math.floor(baseMoneyCost * Math.pow(def.costMultiplier, currentCount));
+  return Math.max(1, Math.floor(rawCost * (1 - costReduction)));
 }
 
 function isResearchUnlocked(researchId: string, completedResearch: string[]): boolean {
@@ -65,6 +77,10 @@ function isBuildingUnlocked(type: BuildingType, completedResearch: string[], pre
 }
 
 function getCapacity(state: GameState, resource: ResourceType): number {
+  // Unlimited storage from Terraforming Engine mega project
+  const hasUnlimitedStorage = state.megaProjects.some(p => p.completed && p.bonus.type === 'unlimitedStorage');
+  if (hasUnlimitedStorage) return Infinity;
+
   const baseCapacity = state.resourceCapacity[resource] ?? 50;
   // Apply Storage Expansion research bonus (+50% capacity)
   const storageBonus = state.completedResearch.includes('storageExpansion') ? 0.5 : 0;
@@ -439,6 +455,32 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
     // Existing buildings keep their type, tick code handles them via the passive income section
   }
 
+  // V13 → V14: Add 4 new mega projects, fix resource repeats, change to resource-check model
+  if (version < 14) {
+    // Reset all mega projects to new definitions (resource lists changed, new projects added)
+    // Preserve completion status and progress of existing projects by type
+    const existingProjects = (state.megaProjects || []) as { type: string; active: boolean; completed: boolean; progress: number; currentStage: number; stages: { completed: boolean }[] }[];
+    state.megaProjects = INITIAL_MEGA_PROJECTS.map(p => {
+      const existing = existingProjects.find(ep => ep.type === p.type);
+      if (existing) {
+        // Preserve state from existing project, but use new stage definitions
+        return {
+          ...p,
+          active: existing.active,
+          completed: existing.completed,
+          progress: existing.completed ? 0 : existing.progress,
+          currentStage: existing.currentStage,
+          stages: p.stages.map((s, i) => ({
+            ...s,
+            completed: i < existing.currentStage || existing.completed,
+          })),
+        };
+      }
+      // New project — use default state
+      return p;
+    });
+  }
+
   state._version = SAVE_VERSION;
   return state;
 }
@@ -764,7 +806,17 @@ export const useGameStore = create<GameStore>()(
         const productionPrestigeBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'productionMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
         const powerPrestigeBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'powerMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
 
-        totalProduction *= (1 + powerPrestigeBonus);
+        // MegaProject bonuses (applied from completed mega projects)
+        const megaProductionBonus = getMegaProjectBonus(state.megaProjects, 'productionMultiplier');
+        const megaPowerBonus = getMegaProjectBonus(state.megaProjects, 'powerMultiplier');
+        const megaResearchBonus = getMegaProjectBonus(state.megaProjects, 'researchMultiplier');
+        const megaExtractionBonus = getMegaProjectBonus(state.megaProjects, 'extractionMultiplier');
+        const megaWorkerBonus = getMegaProjectBonus(state.megaProjects, 'workerEfficiency');
+        const megaTransportBonus = getMegaProjectBonus(state.megaProjects, 'transportMultiplier');
+        const megaMarketBonus = getMegaProjectBonus(state.megaProjects, 'marketMultiplier');
+        const megaBuildingCostReduction = getMegaProjectBonus(state.megaProjects, 'buildingCostReduction');
+
+        totalProduction *= (1 + powerPrestigeBonus + megaPowerBonus);
         const effectivePowerEfficiency = totalProduction > 0 ? Math.min(1, totalProduction / Math.max(0.001, totalConsumption)) : 0;
 
         // Process buildings
@@ -775,18 +827,18 @@ export const useGameStore = create<GameStore>()(
 
           let efficiency = b.efficiency * effectivePowerEfficiency * eventProductionMultiplier * weatherProductionMultiplier;
           
-          if (def.category === 'extractor') efficiency *= (1 + extractorSpeedBonus);
+          if (def.category === 'extractor') efficiency *= (1 + extractorSpeedBonus + megaExtractionBonus);
           if (def.category === 'factory') efficiency *= (1 + factorySpeedBonus);
           
           const assignedWorkers = state.workers.filter(w => w.assignedTo === b.id);
           assignedWorkers.forEach(w => {
             const wDef = WORKER_DEFS[w.type];
             if (wDef) {
-              efficiency *= (1 + wDef.effects.speed * w.level * (1 + workerEfficiencyBonus));
+              efficiency *= (1 + wDef.effects.speed * w.level * (1 + workerEfficiencyBonus + megaWorkerBonus));
             }
           });
 
-          efficiency *= (1 + productionPrestigeBonus);
+          efficiency *= (1 + productionPrestigeBonus + megaProductionBonus);
 
           if (def.category === 'extractor' && def.outputs) {
             def.outputs.forEach(output => {
@@ -837,7 +889,7 @@ export const useGameStore = create<GameStore>()(
         });
 
         const transportEfficiency = state.transportLines.length > 0
-          ? state.transportLines.filter(t => t.active).length / Math.max(1, state.transportLines.length)
+          ? (state.transportLines.filter(t => t.active).length / Math.max(1, state.transportLines.length)) * (1 + transportBonus + megaTransportBonus)
           : 1;
 
         // Update market prices
@@ -888,7 +940,7 @@ export const useGameStore = create<GameStore>()(
         if (newActiveResearch) {
           const node = RESEARCH_TREE.find(r => r.id === newActiveResearch);
           if (node) {
-            const researchSpeed = eventResearchMultiplier * (1 + state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'researchMultiplier').reduce((sum, b) => sum + b.effect.value, 0));
+            const researchSpeed = eventResearchMultiplier * (1 + state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'researchMultiplier').reduce((sum, b) => sum + b.effect.value, 0) + megaResearchBonus);
             newResearchProgress += researchSpeed;
             if (newResearchProgress >= node.timeRequired) {
               newCompletedResearch.push(newActiveResearch);
@@ -1113,7 +1165,8 @@ export const useGameStore = create<GameStore>()(
               if (marketItem) {
                 const marketBonus = state.completedResearch.includes('marketAnalysis') ? 0.2 : 0;
                 const prestigeMarketBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'marketMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
-                const sellPrice = marketItem.currentPrice * (0.9 + marketBonus + prestigeMarketBonus);
+                const megaMarketBonusTick = getMegaProjectBonus(state.megaProjects, 'marketMultiplier');
+                const sellPrice = marketItem.currentPrice * (0.9 + marketBonus + prestigeMarketBonus + megaMarketBonusTick);
                 const sellAmount = Math.min(excess, 10);
                 newResources[r] -= sellAmount;
                 moneyEarned += sellAmount * sellPrice;
@@ -1140,17 +1193,35 @@ export const useGameStore = create<GameStore>()(
         }
 
         // Process active MegaProjects
+        // Progress only advances if ALL required resources for current stage are available
+        // Resources are deducted when a stage completes
+        const megaProjectResourcesToDeduct: { resource: string; amount: number }[] = [];
         const newMegaProjects = state.megaProjects.map(mp => {
           if (!mp.active || mp.completed) return mp;
           const stage = mp.stages[mp.currentStage];
           if (!stage || stage.completed) return mp;
 
-          // Increment progress each tick (1 / timeRequired)
+          // Check if ALL required resources are currently available
+          const allResourcesAvailable = stage.requiredResources.every(r => {
+            if (r.resource === 'money') return state.money >= r.amount;
+            return (newResources[r.resource as ResourceType] ?? 0) >= r.amount;
+          });
+
+          // If resources are not available, progress pauses (no increment)
+          if (!allResourcesAvailable) {
+            return { ...mp, progress: mp.progress }; // paused
+          }
+
+          // Resources are available — increment progress
           const increment = 1 / stage.timeRequired;
           const newProgress = mp.progress + increment;
 
           if (newProgress >= 1) {
-            // Stage complete
+            // Stage complete — deduct resources now
+            stage.requiredResources.forEach(r => {
+              megaProjectResourcesToDeduct.push({ resource: r.resource, amount: r.amount });
+            });
+
             const updatedStages = mp.stages.map((s, i) =>
               i === mp.currentStage ? { ...s, completed: true } : s
             );
@@ -1181,6 +1252,19 @@ export const useGameStore = create<GameStore>()(
 
           return { ...mp, progress: newProgress };
         });
+
+        // Deduct resources for completed mega project stages
+        let megaDeductMoney = 0;
+        megaProjectResourcesToDeduct.forEach(r => {
+          if (r.resource === 'money') {
+            megaDeductMoney += r.amount;
+          } else {
+            newResources[r.resource as ResourceType] = Math.max(0, (newResources[r.resource as ResourceType] ?? 0) - r.amount);
+          }
+        });
+        if (megaDeductMoney > 0) {
+          newMoney -= megaDeductMoney;
+        }
 
         // --- Milestone detection ---
         // Power milestones
@@ -1227,7 +1311,8 @@ export const useGameStore = create<GameStore>()(
 
           // Apply prestige bonuses
           const payoutPrestigeBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'productionMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
-          rawPayout *= (1 + payoutPrestigeBonus);
+          const payoutMegaBonus = getMegaProjectBonus(state.megaProjects, 'productionMultiplier');
+          rawPayout *= (1 + payoutPrestigeBonus + payoutMegaBonus);
 
           // Apply event production multiplier
           rawPayout *= eventProductionMultiplier;
@@ -1476,7 +1561,8 @@ export const useGameStore = create<GameStore>()(
         }
 
         const currentCount = state.buildings.filter(b => b.type === type).length;
-        const cost = getBuildingCost(type, currentCount);
+        const megaBuildingCostReduction = getMegaProjectBonus(state.megaProjects, 'buildingCostReduction');
+        const cost = getBuildingCost(type, currentCount, megaBuildingCostReduction);
 
         if (state.money < cost) {
           soundEngine.play('error', 'ui');
@@ -1514,7 +1600,8 @@ export const useGameStore = create<GameStore>()(
         if (!building) return;
 
         const def = BUILDING_DEFS[building.type];
-        const cost = getBuildingCost(building.type, building.level);
+        const megaBuildingCostReduction2 = getMegaProjectBonus(state.megaProjects, 'buildingCostReduction');
+        const cost = getBuildingCost(building.type, building.level, megaBuildingCostReduction2);
 
         if (state.money < cost) {
           soundEngine.play('error', 'ui');
@@ -1583,7 +1670,8 @@ export const useGameStore = create<GameStore>()(
         totalConsumption *= (1 - powerEfficiencyResearch);
 
         const powerPrestigeBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'powerMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
-        totalProduction *= (1 + powerPrestigeBonus);
+        const megaPowerBonusRecalc = getMegaProjectBonus(state.megaProjects, 'powerMultiplier');
+        totalProduction *= (1 + powerPrestigeBonus + megaPowerBonusRecalc);
 
         const effectivePowerEfficiency = totalProduction > 0 ? Math.min(1, totalProduction / Math.max(0.001, totalConsumption)) : 0;
         const overload = totalConsumption > totalProduction;
@@ -1774,7 +1862,8 @@ export const useGameStore = create<GameStore>()(
 
         const marketBonus = state.completedResearch.includes('marketAnalysis') ? 0.2 : 0;
         const prestigeMarketBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'marketMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
-        const sellPrice = marketItem.currentPrice * amount * (0.9 + marketBonus + prestigeMarketBonus);
+        const megaMarketBonusManual = getMegaProjectBonus(state.megaProjects, 'marketMultiplier');
+        const sellPrice = marketItem.currentPrice * amount * (0.9 + marketBonus + prestigeMarketBonus + megaMarketBonusManual);
 
         set({
           resources: { ...state.resources, [resource]: state.resources[resource] - amount },
@@ -2569,7 +2658,8 @@ export const useGameStore = create<GameStore>()(
 
         // Offline production bonus from prestige
         const offlinePrestigeBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'offlineMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
-        const effectiveOfflineRate = offlineRate * (1 + offlinePrestigeBonus);
+        const offlineMegaProductionBonus = getMegaProjectBonus(state.megaProjects, 'productionMultiplier');
+        const effectiveOfflineRate = offlineRate * (1 + offlinePrestigeBonus + offlineMegaProductionBonus);
 
         // Calculate production per tick for each building
         const offlineTempResources: Record<string, number> = { ...state.resources };
@@ -2748,7 +2838,7 @@ export const useGameStore = create<GameStore>()(
             p.type === type ? { ...p, active: true } : p
           ),
         });
-        get().addNotification('info', `Mega Project started: ${project.name}! Contribute resources to begin construction.`);
+        get().addNotification('info', `Mega Project started: ${project.name}! Maintain required resources to keep construction progressing.`);
       },
 
       contributeToMegaProject: (type: MegaProjectType) => {
@@ -2766,40 +2856,14 @@ export const useGameStore = create<GameStore>()(
         });
 
         if (!canContribute) {
-          get().addNotification('error', `Not enough resources for ${stage.name}!`);
+          get().addNotification('error', `Not enough resources for ${stage.name}! Resources must be held for construction to progress.`);
           return;
         }
 
-        // Deduct resources
-        const newResources = { ...state.resources };
-        let newMoney = state.money;
-        stage.requiredResources.forEach(r => {
-          if (r.resource === 'money') {
-            newMoney -= r.amount;
-          } else {
-            newResources[r.resource as ResourceType] -= r.amount;
-          }
-        });
-
-        // Mark stage resources as contributed (set progress to start ticking)
-        const updatedStages = project.stages.map((s, i) =>
-          i === project.currentStage ? { ...s } : s
-        );
-
-        set({
-          money: newMoney,
-          resources: newResources,
-          megaProjects: state.megaProjects.map(p =>
-            p.type === type
-              ? {
-                  ...p,
-                  stages: updatedStages,
-                  progress: Math.max(p.progress, 0.001), // Ensure progress starts
-                }
-              : p
-          ),
-        });
-        get().addNotification('success', `Contributed resources to ${project.name}: ${stage.name}! Construction underway...`);
+        // Resources are NOT deducted upfront — they must be maintained throughout construction.
+        // Progress auto-ticks each game tick as long as all required resources are available.
+        // Resources are deducted only when the stage completes.
+        get().addNotification('info', `${project.name}: ${stage.name} — Resources confirmed. Construction will progress as long as resources remain available.`);
       },
 
       // --- BLUEPRINT ACTIONS ---
@@ -2859,7 +2923,7 @@ export const useGameStore = create<GameStore>()(
             const def = BUILDING_DEFS[bpBuilding.type];
             if (!def) { skippedCount++; continue; }
 
-            const cost = getBuildingCost(bpBuilding.type, currentCount + i);
+            const cost = getBuildingCost(bpBuilding.type, currentCount + i, getMegaProjectBonus(state.megaProjects, 'buildingCostReduction'));
             if (state.money < cost) { skippedCount++; continue; }
 
             if (!isBuildingUnlocked(bpBuilding.type, state.completedResearch, state.prestigeState)) {
@@ -3009,4 +3073,4 @@ export const useGameStore = create<GameStore>()(
   )
 );
 
-export { formatNumber, getBuildingCost, isBuildingUnlocked, isResearchUnlocked, generateId };
+export { formatNumber, getBuildingCost, isBuildingUnlocked, isResearchUnlocked, generateId, hasUnlimitedStorage };

@@ -235,7 +235,9 @@ export interface PrestigeBonus {
 }
 
 // --- MegaProjects ---
-export type MegaProjectType = 'spaceElevator' | 'dysonSphere' | 'quantumInternet' | 'fusionCity' | 'terraformingEngine';
+export type MegaProjectType = 'spaceElevator' | 'dysonSphere' | 'quantumInternet' | 'fusionCity' | 'terraformingEngine' | 'galacticTradeHub' | 'deepCoreExtractor' | 'neuralCommandCenter' | 'nanoAssemblyMatrix';
+
+export type MegaProjectBonusType = 'transportMultiplier' | 'powerMultiplier' | 'researchMultiplier' | 'productionMultiplier' | 'unlimitedStorage' | 'marketMultiplier' | 'extractionMultiplier' | 'workerEfficiency' | 'buildingCostReduction';
 
 export interface MegaProjectStage {
   name: string;
@@ -255,7 +257,7 @@ export interface MegaProject {
   active: boolean;
   completed: boolean;
   bonus: {
-    type: string;
+    type: MegaProjectBonusType;
     description: string;
     value: number;
   };

@@ -1984,6 +1984,7 @@ export const PRODUCTION_CHAINS = [
 ];
 
 // --- MegaProject Definitions ---
+// Each project's stages use UNIQUE resources (no repeats within a project)
 export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
   {
     type: 'spaceElevator',
@@ -2039,8 +2040,8 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
         name: 'Solar Collector Array',
         requiredResources: [
           { resource: 'steel', amount: 2000 },
-          { resource: 'circuit', amount: 1000 },
           { resource: 'battery', amount: 500 },
+          { resource: 'solarCell', amount: 300 },
         ],
         timeRequired: 800,
         completed: false,
@@ -2050,7 +2051,7 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
         requiredResources: [
           { resource: 'aiChip', amount: 1000 },
           { resource: 'robotics', amount: 500 },
-          { resource: 'quantumPart', amount: 200 },
+          { resource: 'fibreOptics', amount: 400 },
         ],
         timeRequired: 1500,
         completed: false,
@@ -2060,7 +2061,7 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
         requiredResources: [
           { resource: 'nanoMaterial', amount: 100 },
           { resource: 'advancedAlloy', amount: 500 },
-          { resource: 'quantumPart', amount: 50 },
+          { resource: 'quantumPart', amount: 200 },
         ],
         timeRequired: 3000,
         completed: false,
@@ -2094,7 +2095,7 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
         requiredResources: [
           { resource: 'quantumPart', amount: 200 },
           { resource: 'robotics', amount: 100 },
-          { resource: 'circuit', amount: 500 },
+          { resource: 'fibreOptics', amount: 300 },
         ],
         timeRequired: 1200,
         completed: false,
@@ -2103,8 +2104,8 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
         name: 'Global Quantum Link',
         requiredResources: [
           { resource: 'nanoMaterial', amount: 50 },
-          { resource: 'quantumPart', amount: 100 },
-          { resource: 'aiChip', amount: 300 },
+          { resource: 'advancedAlloy', amount: 200 },
+          { resource: 'electronics', amount: 150 },
         ],
         timeRequired: 2000,
         completed: false,
@@ -2138,7 +2139,7 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
         requiredResources: [
           { resource: 'engine', amount: 1000 },
           { resource: 'battery', amount: 500 },
-          { resource: 'aiChip', amount: 300 },
+          { resource: 'titanium', amount: 300 },
         ],
         timeRequired: 2000,
         completed: false,
@@ -2147,8 +2148,8 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
         name: 'Infrastructure & Systems',
         requiredResources: [
           { resource: 'robotics', amount: 200 },
-          { resource: 'quantumPart', amount: 100 },
           { resource: 'advancedAlloy', amount: 500 },
+          { resource: 'aiChip', amount: 400 },
         ],
         timeRequired: 3000,
         completed: false,
@@ -2157,8 +2158,8 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
         name: 'City Activation',
         requiredResources: [
           { resource: 'nanoMaterial', amount: 200 },
-          { resource: 'quantumPart', amount: 100 },
-          { resource: 'aiChip', amount: 1000 },
+          { resource: 'quantumPart', amount: 150 },
+          { resource: 'electronics', amount: 300 },
         ],
         timeRequired: 5000,
         completed: false,
@@ -2182,7 +2183,7 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
         requiredResources: [
           { resource: 'steel', amount: 5000 },
           { resource: 'circuit', amount: 2000 },
-          { resource: 'battery', amount: 1000 },
+          { resource: 'coolant', amount: 1500 },
         ],
         timeRequired: 1500,
         completed: false,
@@ -2202,7 +2203,7 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
         requiredResources: [
           { resource: 'aiChip', amount: 500 },
           { resource: 'nanoMaterial', amount: 100 },
-          { resource: 'quantumPart', amount: 150 },
+          { resource: 'fibreOptics', amount: 600 },
         ],
         timeRequired: 3500,
         completed: false,
@@ -2210,9 +2211,9 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
       {
         name: 'Planetary Core Drill',
         requiredResources: [
-          { resource: 'nanoMaterial', amount: 200 },
-          { resource: 'advancedAlloy', amount: 800 },
-          { resource: 'quantumPart', amount: 200 },
+          { resource: 'titanium', amount: 800 },
+          { resource: 'solarCell', amount: 400 },
+          { resource: 'electronics', amount: 200 },
         ],
         timeRequired: 4500,
         completed: false,
@@ -2220,9 +2221,9 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
       {
         name: 'Engine Ignition',
         requiredResources: [
-          { resource: 'nanoMaterial', amount: 500 },
           { resource: 'quantumPart', amount: 300 },
-          { resource: 'robotics', amount: 500 },
+          { resource: 'battery', amount: 2000 },
+          { resource: 'medicalTech', amount: 150 },
         ],
         timeRequired: 6000,
         completed: false,
@@ -2234,6 +2235,202 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
     completed: false,
     bonus: { type: 'unlimitedStorage', description: 'Unlimited resource storage', value: 1 },
     unlockRequirement: { buildings: 50, research: 20, prestige: 3 },
+  },
+  {
+    type: 'galacticTradeHub',
+    name: 'Galactic Trade Hub',
+    description: 'Construct an interstellar commerce nexus that commands premium prices across all galactic markets.',
+    emoji: '🏪',
+    stages: [
+      {
+        name: 'Trade Spire Foundation',
+        requiredResources: [
+          { resource: 'steel', amount: 2500 },
+          { resource: 'gear', amount: 1200 },
+          { resource: 'plastic', amount: 800 },
+        ],
+        timeRequired: 800,
+        completed: false,
+      },
+      {
+        name: 'Commerce Holographics',
+        requiredResources: [
+          { resource: 'electronics', amount: 400 },
+          { resource: 'fibreOptics', amount: 500 },
+          { resource: 'battery', amount: 600 },
+        ],
+        timeRequired: 1500,
+        completed: false,
+      },
+      {
+        name: 'Galactic Market Link',
+        requiredResources: [
+          { resource: 'aiChip', amount: 800 },
+          { resource: 'quantumPart', amount: 120 },
+          { resource: 'robotics', amount: 250 },
+        ],
+        timeRequired: 2500,
+        completed: false,
+      },
+    ],
+    currentStage: 0,
+    progress: 0,
+    active: false,
+    completed: false,
+    bonus: { type: 'marketMultiplier', description: '+50% market sell prices', value: 0.5 },
+    unlockRequirement: { buildings: 25, research: 12 },
+  },
+  {
+    type: 'deepCoreExtractor',
+    name: 'Deep Core Extractor',
+    description: 'Bore into the planet\'s mantle with a mega-drill that dramatically accelerates all raw material extraction.',
+    emoji: '⛏️',
+    stages: [
+      {
+        name: 'Bore Shaft Construction',
+        requiredResources: [
+          { resource: 'steel', amount: 4000 },
+          { resource: 'advancedAlloy', amount: 600 },
+          { resource: 'coolant', amount: 1000 },
+        ],
+        timeRequired: 1000,
+        completed: false,
+      },
+      {
+        name: 'Plasma Drill Head',
+        requiredResources: [
+          { resource: 'titanium', amount: 500 },
+          { resource: 'engine', amount: 800 },
+          { resource: 'circuit', amount: 1500 },
+        ],
+        timeRequired: 2000,
+        completed: false,
+      },
+      {
+        name: 'Magma Cooling System',
+        requiredResources: [
+          { resource: 'battery', amount: 1000 },
+          { resource: 'robotics', amount: 300 },
+          { resource: 'fibreOptics', amount: 400 },
+        ],
+        timeRequired: 2500,
+        completed: false,
+      },
+      {
+        name: 'Core Tap Activation',
+        requiredResources: [
+          { resource: 'quantumPart', amount: 180 },
+          { resource: 'nanoMaterial', amount: 80 },
+          { resource: 'aiChip', amount: 600 },
+        ],
+        timeRequired: 3500,
+        completed: false,
+      },
+    ],
+    currentStage: 0,
+    progress: 0,
+    active: false,
+    completed: false,
+    bonus: { type: 'extractionMultiplier', description: '+75% extraction speed', value: 0.75 },
+    unlockRequirement: { buildings: 35, research: 14, prestige: 1 },
+  },
+  {
+    type: 'neuralCommandCenter',
+    name: 'Neural Command Center',
+    description: 'Deploy a planet-wide neural network that synchronizes and supercharges every worker in your empire.',
+    emoji: '🧠',
+    stages: [
+      {
+        name: 'Neural Core Matrix',
+        requiredResources: [
+          { resource: 'aiChip', amount: 1200 },
+          { resource: 'circuit', amount: 3000 },
+          { resource: 'fibreOptics', amount: 800 },
+        ],
+        timeRequired: 1200,
+        completed: false,
+      },
+      {
+        name: 'Cortical Link Array',
+        requiredResources: [
+          { resource: 'electronics', amount: 500 },
+          { resource: 'quantumPart', amount: 150 },
+          { resource: 'battery', amount: 800 },
+        ],
+        timeRequired: 2000,
+        completed: false,
+      },
+      {
+        name: 'Global Sync Activation',
+        requiredResources: [
+          { resource: 'nanoMaterial', amount: 120 },
+          { resource: 'robotics', amount: 400 },
+          { resource: 'medicalTech', amount: 200 },
+        ],
+        timeRequired: 3000,
+        completed: false,
+      },
+    ],
+    currentStage: 0,
+    progress: 0,
+    active: false,
+    completed: false,
+    bonus: { type: 'workerEfficiency', description: '+100% worker efficiency', value: 1.0 },
+    unlockRequirement: { buildings: 30, research: 16, prestige: 2 },
+  },
+  {
+    type: 'nanoAssemblyMatrix',
+    name: 'Nano Assembly Matrix',
+    description: 'Build a molecular-scale fabrication swarm that slashes construction costs across your entire dominion.',
+    emoji: '🔬',
+    stages: [
+      {
+        name: 'Nanite Foundry',
+        requiredResources: [
+          { resource: 'nanoMaterial', amount: 150 },
+          { resource: 'quantumPart', amount: 100 },
+          { resource: 'advancedAlloy', amount: 600 },
+        ],
+        timeRequired: 1500,
+        completed: false,
+      },
+      {
+        name: 'Self-Replicating Swarm',
+        requiredResources: [
+          { resource: 'aiChip', amount: 900 },
+          { resource: 'robotics', amount: 350 },
+          { resource: 'electronics', amount: 300 },
+        ],
+        timeRequired: 2500,
+        completed: false,
+      },
+      {
+        name: 'Matrix Deployment',
+        requiredResources: [
+          { resource: 'titanium', amount: 700 },
+          { resource: 'solarCell', amount: 500 },
+          { resource: 'medicalTech', amount: 100 },
+        ],
+        timeRequired: 3000,
+        completed: false,
+      },
+      {
+        name: 'Universal Assembly',
+        requiredResources: [
+          { resource: 'fibreOptics', amount: 700 },
+          { resource: 'battery', amount: 1500 },
+          { resource: 'coolant', amount: 1200 },
+        ],
+        timeRequired: 4000,
+        completed: false,
+      },
+    ],
+    currentStage: 0,
+    progress: 0,
+    active: false,
+    completed: false,
+    bonus: { type: 'buildingCostReduction', description: '-25% building costs', value: 0.25 },
+    unlockRequirement: { buildings: 45, research: 18, prestige: 3 },
   },
 ];
 

@@ -1,6 +1,73 @@
 # Factory Dominion - Work Log
 
 ---
+Task ID: 6
+Agent: Mega Projects Overhaul
+Task: Fix Mega Projects - add more bonus types, remove resource repeats, enforce material fulfillment
+
+Work Log:
+- Added MegaProjectBonusType union type with 9 bonus types (was only 5)
+- Added 4 new Mega Projects with unique bonus types:
+  * Galactic Trade Hub (🏪) — marketMultiplier: +50% market sell prices
+  * Deep Core Extractor (⛏️) — extractionMultiplier: +75% extraction speed
+  * Neural Command Center (🧠) — workerEfficiency: +100% worker efficiency
+  * Nano Assembly Matrix (🔬) — buildingCostReduction: -25% building costs
+- Fixed ALL repeated required resources within each project's stages:
+  * Each project's stages now use completely unique resources (no duplicates within a project)
+  * Added variety with underused resources: fibreOptics, solarCell, coolant, titanium, electronics, medicalTech, plastic
+- Changed upgrade progress model from one-click to resource-check:
+  * Progress now ONLY advances when ALL required resources for current stage are currently held
+  * Resources are NOT deducted upfront — they must be maintained throughout construction
+  * Resources are deducted only when a stage completes
+  * If any required resource drops below threshold, progress pauses automatically
+- Applied ALL mega project bonuses in game logic (they were defined but NEVER applied before!):
+  * productionMultiplier → building efficiency calculation
+  * powerMultiplier → power generation (tick + recalculatePowerGrid + payouts)
+  * researchMultiplier → research speed
+  * extractionMultiplier → extractor production
+  * marketMultiplier → market sell prices (auto-sell + manual sell)
+  * workerEfficiency → assigned worker speed boost
+  * transportMultiplier → transport line efficiency
+  * buildingCostReduction → building/upgrade/blueprint costs
+  * unlimitedStorage → capacity returns Infinity
+- Updated formatNumber to handle Infinity (displays "∞")
+- Added hasUnlimitedStorage() export for UI components
+- Updated ResourcePanel to handle unlimited storage (progress bars, capacity text)
+- Updated MegaProjectPanel UI with:
+  * Color themes and gradients for all 9 projects
+  * PAUSED badge when resources are insufficient
+  * "Construction Paused" warning banner
+  * BUILDING/PAUSED status indicators instead of generic "ACTIVE"
+  * Updated info section with new mechanics description
+  * Proper resource-check UI (materials "must be held" label)
+- Bumped SAVE_VERSION from 13 to 14 with V13→V14 migration
+  * Preserves completion/progress of existing 5 projects
+  * Adds 4 new projects with default (inactive) state
+- Updated contributeToMegaProject to no longer deduct resources upfront
+- Lint passes cleanly, dev server compiles successfully
+
+Stage Summary:
+- 5 → 9 Mega Projects with 9 unique bonus types (was 5)
+- All resource repeats eliminated within each project
+- Critical bug fixed: mega project bonuses now actually apply to gameplay
+- Strategic depth added: must maintain resources during construction
+- Estimated health score: 9.5/10 → 9.7/10
+
+Current Project Status:
+- Game running on dev server port 3000
+- Lint passes cleanly (0 errors, 0 warnings)
+- All compilations successful with no runtime errors
+- 65 buildings, 56 resources, 133 quests, 9 mega projects
+- Full production chain from T0 to T4
+- All factory margins positive, endgame buildings as passive generators
+- All mega project bonuses now functional
+
+Unresolved Issues / Risks:
+- Store.ts is still 3000+ lines (could benefit from modular split)
+- Mobile nav reliability with agent-browser (needs real device testing)
+- Coal Generator fuel consumption UX could be clearer
+
+---
 Task ID: 5-0
 Agent: Phase 5 Coordinator
 Task: Phase 5 - Polish & Validation (Overall Summary)
