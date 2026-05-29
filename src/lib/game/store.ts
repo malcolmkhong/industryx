@@ -23,7 +23,7 @@ import {
 import { soundEngine } from './soundEngine';
 
 // --- Save Version ---
-const SAVE_VERSION = 11;
+const SAVE_VERSION = 12;
 
 // --- Utility Functions ---
 function generateId(): string {
@@ -404,6 +404,39 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
         state.market = [...(state.market as MarketPrice[]), ...newMarketEntries];
       }
     }
+  }
+
+  // V11 → V12: Phase 2 economy rebalance — update market prices and fix buildings
+  if (version < 12) {
+    // Update market prices for rebalanced resources
+    const priceUpdates: Record<string, number> = {
+      fossilFuel: 30, concrete: 18, gear: 55, circuit: 110, engine: 200,
+      battery: 130, aluminium: 65, silicon: 65, insecticide: 40,
+      copperIngot: 55, titanium: 250, coolant: 18, fiberOptics: 70,
+      solarCell: 110, electronics: 350, aiChip: 600, jewellery: 800,
+      weapons: 500,
+    };
+
+    if (Array.isArray(state.market)) {
+      const market = state.market as MarketPrice[];
+      for (const entry of market) {
+        const newPrice = priceUpdates[entry.resource];
+        if (newPrice !== undefined) {
+          entry.basePrice = newPrice;
+          entry.currentPrice = newPrice;
+          entry.priceHistory = [];
+        }
+      }
+      state.market = market;
+    }
+
+    // Migrate existing displayFactory buildings — description change (outputs changed)
+    if (Array.isArray(state.buildings)) {
+      // Buildings keep their type, the BUILDING_DEFS update handles the new inputs/outputs
+      // No structural change needed since building type name 'displayFactory' stays the same
+    }
+
+    // Migrate existing hydrogenPlant buildings — same type name, BUILDING_DEFS handles it
   }
 
   state._version = SAVE_VERSION;
