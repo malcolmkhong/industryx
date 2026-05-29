@@ -556,3 +556,34 @@ Stage Summary:
 - Negative rates still show "-X/t" in red
 - Special case: balanced production/consumption (±0/t) preserved in ResourcePanel when both prod and cons > 0
 - 4 files modified: ProductionChainPanel.tsx, FactoryPanel.tsx, ResourcePanel.tsx, ResourceFlowPanel.tsx
+
+---
+Task ID: 8
+Agent: Main Developer
+Task: Fix Factory Panel and other panels showing 0/t for raw materials despite active extractors
+
+Work Log:
+- Root cause: FactoryPanel only computed rates from `factoryBuildings` (category=factory), excluding extractors
+- Added `allProductionRates` and `allConsumptionRates` to FactoryPanel that include ALL buildings
+- Updated FactoryPanel net rate displays to use all-inclusive rates:
+  * Flow diagram tier detail panel (line 574-580)
+  * Production chain step view (line 1053-1054)
+  * Input Demand section (line 1211)
+  * Tier production summary for SVG flow (line 216-231)
+- Kept `factoryProductionRates` for "Top Outputs" display (should only show factory outputs)
+- Fixed critical bug: `computedProductionRates` and `computedConsumptionRates` were referenced by ResourceFlowPanel and AIAdvisorPanel but NEVER defined in the store
+- Added `computedProductionRates` and `computedConsumptionRates` to GameState type
+- Added rate tracking in `gameTickAction`:
+  * Extractor outputs → computedProdRates
+  * Factory inputs → computedConsRates (even when can't produce)
+  * Factory outputs → computedProdRates
+  * Power plant fuel consumption → computedConsRates
+- Set computed rates in the tick's `set()` call
+- Rates are NOT persisted (not in partialize), recomputed each tick
+- Lint passes cleanly, dev server compiles successfully
+
+Stage Summary:
+- Factory Panel now correctly shows +X/t for Iron Ore, Crude Oil, Sand, Lithium, etc. when extractors are active
+- ResourceFlowPanel and AIAdvisorPanel now have actual data instead of undefined/0
+- Two bugs fixed: (1) Factory Panel excluded extractors, (2) Store missing computed rate properties
+- 3 files modified: FactoryPanel.tsx, store.ts, types.ts

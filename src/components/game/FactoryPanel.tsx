@@ -144,7 +144,7 @@ export function FactoryPanel() {
     4: factoryBuildings.filter(b => TIER_4_FACTORIES.includes(b.type as FactoryType)),
   }), [factoryBuildings]);
 
-  // Production rates for factories
+  // Production rates for factories (only factory outputs, used for "Top Outputs" display)
   const factoryProductionRates = useMemo(() => {
     const rates: Record<string, number> = {};
     factoryBuildings.forEach(b => {
@@ -158,7 +158,39 @@ export function FactoryPanel() {
     return rates;
   }, [factoryBuildings, store.powerGrid.efficiency]);
 
-  // Consumption rates for factories
+  // Production rates from ALL buildings (including extractors) — used for net rate calculations
+  const allProductionRates = useMemo(() => {
+    const rates: Record<string, number> = {};
+    store.buildings.forEach(b => {
+      if (!b.active) return;
+      const def = BUILDING_DEFS[b.type];
+      if (!def || !def.outputs) return;
+      def.outputs.forEach(o => {
+        rates[o.resource] = (rates[o.resource] || 0) + o.amount * def.baseProductionRate * b.level * b.efficiency * store.powerGrid.efficiency;
+      });
+    });
+    return rates;
+  }, [store.buildings, store.powerGrid.efficiency]);
+
+  // Consumption rates from ALL buildings (including extractors with fuel) — used for net rate calculations
+  const allConsumptionRates = useMemo(() => {
+    const rates: Record<string, number> = {};
+    store.buildings.forEach(b => {
+      if (!b.active) return;
+      const def = BUILDING_DEFS[b.type];
+      if (!def || !def.inputs) return;
+      def.inputs.forEach(input => {
+        rates[input.resource] = (rates[input.resource] || 0) + input.amount * def.baseProductionRate * b.level * b.efficiency * store.powerGrid.efficiency;
+      });
+      // Also count fuel consumption for power plants
+      if (def.fuel && def.fuelRate) {
+        rates[def.fuel] = (rates[def.fuel] || 0) + def.fuelRate * b.level;
+      }
+    });
+    return rates;
+  }, [store.buildings, store.powerGrid.efficiency]);
+
+  // Consumption rates for factories only (kept for backward compat with factory-specific views)
   const factoryConsumptionRates = useMemo(() => {
     const rates: Record<string, number> = {};
     factoryBuildings.forEach(b => {
@@ -172,7 +204,7 @@ export function FactoryPanel() {
     return rates;
   }, [factoryBuildings, store.powerGrid.efficiency]);
 
-  // Aggregate rates by tier for flow diagram
+  // Aggregate rates by tier for flow diagram (includes all buildings for accurate tier 0/raw rates)
   const tierProductionSummary = useMemo(() => {
     const summary: Record<number, { production: number; consumption: number; resources: Set<string> }> = {
       0: { production: 0, consumption: 0, resources: new Set<string>() },
@@ -181,14 +213,14 @@ export function FactoryPanel() {
       3: { production: 0, consumption: 0, resources: new Set<string>() },
       4: { production: 0, consumption: 0, resources: new Set<string>() },
     };
-    Object.entries(factoryProductionRates).forEach(([res, rate]) => {
+    Object.entries(allProductionRates).forEach(([res, rate]) => {
       const tier = getResourceTier(res as ResourceType);
       if (summary[tier]) {
         summary[tier].production += rate;
         summary[tier].resources.add(res);
       }
     });
-    Object.entries(factoryConsumptionRates).forEach(([res, rate]) => {
+    Object.entries(allConsumptionRates).forEach(([res, rate]) => {
       const tier = getResourceTier(res as ResourceType);
       if (summary[tier]) {
         summary[tier].consumption += rate;
@@ -196,7 +228,7 @@ export function FactoryPanel() {
       }
     });
     return summary;
-  }, [factoryProductionRates, factoryConsumptionRates]);
+  }, [allProductionRates, allConsumptionRates]);
 
   // Factory overview stats
   const totalFactories = factoryBuildings.length;
@@ -539,13 +571,13 @@ export function FactoryPanel() {
             const tierIdx = FLOW_TIERS.findIndex(t => t.key === selectedFlowNode);
             const tierInfo = FLOW_TIERS[tierIdx];
             const tierNum = tierIdx; // 0=raw, 1=T1, 2=T2, 3=T3
-            const relevantResources = Object.entries(factoryProductionRates)
-              .concat(Object.entries(factoryConsumptionRates).filter(([k]) => !factoryProductionRates[k]))
+            const relevantResources = Object.entries(allProductionRates)
+              .concat(Object.entries(allConsumptionRates).filter(([k]) => !allProductionRates[k]))
               .filter(([res]) => getResourceTier(res as ResourceType) === tierNum)
               .reduce<Record<string, { prod: number; cons: number }>>((acc, [res, rate]) => {
                 if (!acc[res]) acc[res] = { prod: 0, cons: 0 };
-                if (factoryProductionRates[res]) acc[res].prod = factoryProductionRates[res];
-                if (factoryConsumptionRates[res]) acc[res].cons = factoryConsumptionRates[res];
+                if (allProductionRates[res]) acc[res].prod = allProductionRates[res];
+                if (allConsumptionRates[res]) acc[res].cons = allConsumptionRates[res];
                 return acc;
               }, {});
 
@@ -1018,8 +1050,8 @@ export function FactoryPanel() {
                 <div className="space-y-1">
                   {PRODUCTION_CHAINS[selectedChain].steps.map((resource, idx) => {
                     const meta = RESOURCE_META[resource as ResourceType];
-                    const production = factoryProductionRates[resource] || 0;
-                    const consumption = factoryConsumptionRates[resource] || 0;
+                    const production = allProductionRates[resource] || 0;
+                    const consumption = allConsumptionRates[resource] || 0;
                     const net = production - consumption;
                     const stock = store.resources[resource as ResourceType];
                     const capacity = store.resourceCapacity[resource as ResourceType];
@@ -1176,7 +1208,7 @@ export function FactoryPanel() {
                   .slice(0, 6)
                   .map(([resource, rate]) => {
                     const meta = RESOURCE_META[resource];
-                    const production = factoryProductionRates[resource] || 0;
+                    const production = allProductionRates[resource] || 0;
                     const net = production - rate;
                     const stock = store.resources[resource];
                     return (

@@ -489,6 +489,10 @@ export interface GameState {
   activeTab: GameTab;
   selectedBuilding: string | null;
   notifications: GameNotification[];
+
+  // Computed rates (updated each tick)
+  computedProductionRates: Record<string, number>;
+  computedConsumptionRates: Record<string, number>;
 }
 
 export type GameTab = 'dashboard' | 'factoryMap' | 'resources' | 'factories' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'contracts' | 'quests' | 'automation' | 'prestige' | 'events' | 'megaprojects' | 'statistics' | 'blueprints' | 'guide' | 'achievements' | 'leaderboard' | 'dailyRewards' | 'payouts' | 'droneDelivery' | 'notifications' | 'settings';

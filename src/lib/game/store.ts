@@ -598,6 +598,8 @@ function createInitialState(): GameState {
     activeTab: 'dashboard',
     selectedBuilding: null,
     notifications: [],
+    computedProductionRates: {},
+    computedConsumptionRates: {},
   };
 }
 
@@ -725,6 +727,10 @@ export const useGameStore = create<GameStore>()(
         const newStats = { ...state.stats, playTime: state.stats.playTime + 1 };
         const notifications: GameNotification[] = [];
 
+        // Computed rate trackers (updated during building processing)
+        const computedProdRates: Record<string, number> = {};
+        const computedConsRates: Record<string, number> = {};
+
         // Weather production multiplier (calculated early for power grid)
         const weatherDef = WEATHER_DEFS[state.weather.current as WeatherType];
         let weatherProductionMultiplier = 1;
@@ -748,12 +754,15 @@ export const useGameStore = create<GameStore>()(
           if (!def) return;
           let production = def.basePowerProduction * b.level * b.efficiency;
           if (def.fuel && def.fuelRate) {
-            if (newResources[def.fuel] >= def.fuelRate * b.level) {
-              newResources[def.fuel] -= def.fuelRate * b.level;
+            const fuelConsumed = def.fuelRate * b.level;
+            if (newResources[def.fuel] >= fuelConsumed) {
+              newResources[def.fuel] -= fuelConsumed;
               totalProduction += production;
+              computedConsRates[def.fuel] = (computedConsRates[def.fuel] || 0) + fuelConsumed;
             } else {
               production *= 0.1;
               totalProduction += production;
+              computedConsRates[def.fuel] = (computedConsRates[def.fuel] || 0) + (newResources[def.fuel] || 0);
             }
           } else {
             if (b.type === 'solarPanel') {
@@ -848,6 +857,7 @@ export const useGameStore = create<GameStore>()(
               const capacity = newResources[res] + produced;
               newResources[res] = Math.min(getCapacity(state, res), capacity);
               newStats.totalResourcesProduced[res] += produced;
+              computedProdRates[res] = (computedProdRates[res] || 0) + produced;
             });
           }
 
@@ -874,6 +884,7 @@ export const useGameStore = create<GameStore>()(
                 adjustedInputs.forEach(input => {
                   const res = input.resource as ResourceType;
                   newResources[res] -= input.amount;
+                  computedConsRates[res] = (computedConsRates[res] || 0) + input.amount;
                 });
                 def.outputs.forEach(output => {
                   if (output.resource === 'money') return;
@@ -882,6 +893,13 @@ export const useGameStore = create<GameStore>()(
                   const capacity = newResources[res] + produced;
                   newResources[res] = Math.min(getCapacity(state, res), capacity);
                   newStats.totalResourcesProduced[res] += produced;
+                  computedProdRates[res] = (computedProdRates[res] || 0) + produced;
+                });
+              } else {
+                // Even if can't produce, still track attempted consumption for demand display
+                adjustedInputs.forEach(input => {
+                  const res = input.resource as ResourceType;
+                  computedConsRates[res] = (computedConsRates[res] || 0) + input.amount;
                 });
               }
             }
@@ -1519,6 +1537,8 @@ export const useGameStore = create<GameStore>()(
             ...state.prestigeState,
             corporationPoints: state.prestigeState.corporationPoints + corpGained,
           } : state.prestigeState,
+          computedProductionRates: computedProdRates,
+          computedConsumptionRates: computedConsRates,
         });
 
         // --- Update Quest Progress (periodic checks) ---
