@@ -12,7 +12,7 @@ import {
   Brain, ArrowDownToLine,
   ArrowUpFromLine, Package, Workflow,
   Gauge, Box,
-  Pickaxe, Sparkles, X,
+  Pickaxe, Sparkles, X, Search,
 } from 'lucide-react';
 import { FactoryType, ResourceType } from '@/lib/game/types';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
@@ -124,6 +124,7 @@ export function FactoryPanel() {
   const [selectedTier, setSelectedTier] = useState<number>(1);
   const [selectedChain, setSelectedChain] = useState<number>(0);
   const [selectedFlowNode, setSelectedFlowNode] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Track recently built/upgraded buildings for CSS animation classes
   const [recentlyBuilt, setRecentlyBuilt] = useState<Set<string>>(new Set());
@@ -210,6 +211,15 @@ export function FactoryPanel() {
   // Current tier data
   const currentTierConfig = TIER_CONFIG[selectedTier as 1 | 2 | 3 | 4];
   const currentFactories = selectedTier === 1 ? TIER_1_FACTORIES : selectedTier === 2 ? TIER_2_FACTORIES : selectedTier === 3 ? TIER_3_FACTORIES : TIER_4_FACTORIES;
+  const filteredFactories = useMemo(() => {
+    if (!searchQuery.trim()) return currentFactories;
+    const q = searchQuery.toLowerCase().trim();
+    return currentFactories.filter(type => {
+      const def = BUILDING_DEFS[type];
+      if (!def) return false;
+      return def.name.toLowerCase().includes(q);
+    });
+  }, [currentFactories, searchQuery]);
   const currentTierBuildings = factoriesByTier[selectedTier as 1 | 2 | 3 | 4] ?? [];
   const currentColorClasses = getTierColorClasses(currentTierConfig.color as TierColor);
 
@@ -642,9 +652,35 @@ export function FactoryPanel() {
                   </span>
                 </div>
 
+                {/* Search input */}
+                <div className="relative mb-3">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search factories..."
+                    className="w-full h-8 pl-8 pr-8 text-xs bg-[#0a0e17] border border-cyan-900/30 rounded-lg text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-cyan-700/50 transition-colors"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
                 {/* Compact Factory Build Grid */}
+                {filteredFactories.length === 0 ? (
+                  <div className="text-center py-6">
+                    <Search className="w-6 h-6 text-gray-600 mx-auto mb-2" />
+                    <p className="text-xs text-gray-500">No factories match your search</p>
+                  </div>
+                ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 mb-4">
-                  {currentFactories.map(type => {
+                  {filteredFactories.map(type => {
                     const def = BUILDING_DEFS[type];
                     if (!def) return null;
                     const existingCount = store.buildings.filter(b => b.type === type).length;
@@ -767,6 +803,7 @@ export function FactoryPanel() {
                     );
                   })}
                 </div>
+                )}
 
                 {/* ACTIVE FACTORIES for this Tier - compact list */}
                 {currentTierBuildings.length > 0 && (

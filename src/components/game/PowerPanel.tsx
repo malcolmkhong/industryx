@@ -322,7 +322,7 @@ export function PowerPanel() {
               style={{ width: `${Math.min(100, (totalRealConsumption / Math.max(1, totalRealProduction)) * 100)}%` }}
             />
             <motion.div
-              className={`absolute inset-y-0 left-0 rounded-full transition-all duration-700 ${
+              className={`absolute inset-y-0 left-0 rounded-full transition-all duration-700 power-bar-animated-gradient ${
                 powerStatus === 'surplus'
                   ? 'bg-gradient-to-r from-green-700 via-green-500 to-green-400'
                   : powerStatus === 'balanced'
@@ -379,13 +379,16 @@ export function PowerPanel() {
               {(realtimeEfficiency * 100).toFixed(1)}%
             </motion.div>
           </div>
-          <div className="bg-[#0a0e17] rounded-lg p-2 text-center">
+          <div className="bg-[#0a0e17] rounded-lg p-2 text-center relative">
             <div className="text-[10px] text-gray-500 mb-0.5">Surplus</div>
             <div className={`text-sm font-bold font-mono ${
               powerBalance >= 0 ? 'text-green-400' : 'text-red-400'
             }`}>
               {powerBalance >= 0 ? '+' : ''}{formatNumber(powerBalance)}
             </div>
+            {powerBalance > 0 && (
+              <div className="absolute inset-0 rounded-lg pointer-events-none" style={{ boxShadow: '0 0 12px rgba(57, 255, 20, 0.15), inset 0 0 8px rgba(57, 255, 20, 0.05)' }} />
+            )}
           </div>
           <div className="bg-[#0a0e17] rounded-lg p-2 text-center">
             <div className="text-[10px] text-gray-500 mb-0.5">Plants</div>
@@ -742,10 +745,13 @@ export function PowerPanel() {
             </div>
 
             {powerPlants.length === 0 ? (
-              <div className="text-center py-8">
-                <Zap className="w-10 h-10 text-gray-700 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">No power plants built yet</p>
-                <p className="text-[10px] text-gray-600 mt-1">Build your first power plant above to start generating electricity</p>
+              <div className="text-center py-10">
+                <div className="relative inline-block">
+                  <Zap className="w-12 h-12 text-gray-700 mx-auto mb-3" />
+                  <div className="absolute -inset-3 rounded-full bg-yellow-900/10 blur-lg" />
+                </div>
+                <p className="text-sm text-gray-400 font-medium mb-1">No Power Plants Built</p>
+                <p className="text-[10px] text-gray-600 max-w-[200px] mx-auto">Build your first power plant above to start generating electricity</p>
               </div>
             ) : (
               <div className="space-y-2 max-h-[500px] overflow-y-auto game-scrollbar pr-1">

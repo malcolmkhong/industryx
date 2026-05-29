@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import {
   Zap, Pickaxe, TrendingUp, Flame, DollarSign,
   FlaskConical, Check, ChevronRight, X, Lightbulb,
-  Factory, BookOpen, Target, Rocket, Shield
+  Factory, BookOpen, Target, Rocket, Shield,
+  Keyboard, Star
 } from 'lucide-react';
 
 interface TutorialStep {
@@ -95,42 +96,88 @@ const TUTORIAL_STEPS: TutorialStep[] = [
   },
 ];
 
+const CATEGORY_COLORS: Record<string, { dot: string; label: string }> = {
+  gettingStarted: { dot: 'bg-cyan-400', label: 'Getting Started' },
+  production: { dot: 'bg-amber-400', label: 'Production' },
+  economy: { dot: 'bg-green-400', label: 'Economy' },
+  advanced: { dot: 'bg-purple-400', label: 'Advanced' },
+};
+
 const STRATEGY_HINTS = [
   {
     title: 'Balance Power & Production',
     text: 'Always keep power production above consumption. A power deficit drops efficiency to near-zero, crippling your entire factory.',
     emoji: '⚡',
+    category: 'gettingStarted' as const,
   },
   {
     title: 'Diversify Early',
     text: 'Do not rely on just one resource. Build a mix of extractors and factories to create a balanced production pipeline.',
     emoji: '🔄',
+    category: 'production' as const,
   },
   {
     title: 'Upgrade Before Expanding',
     text: 'Upgrading existing buildings is often more cost-effective than building new ones. A level 3 building produces 3x as much as level 1.',
     emoji: '⬆️',
+    category: 'production' as const,
   },
   {
     title: 'Watch the Market',
     text: 'Prices fluctuate every tick. Sell when prices peak and buy when they dip. The market trend indicator helps time your trades.',
     emoji: '📈',
+    category: 'economy' as const,
   },
   {
     title: 'Workers Boost Efficiency',
     text: 'Hiring Engineers and assigning them to buildings can significantly boost production speed. Each worker adds a percentage bonus.',
     emoji: '👷',
+    category: 'advanced' as const,
   },
   {
     title: 'Complete Contracts',
     text: 'Contracts offer big payouts for delivering resources. They have time limits though, so only accept what you can fulfill.',
     emoji: '📋',
+    category: 'economy' as const,
   },
   {
     title: 'Plan for Prestige',
     text: 'When you have enough buildings and research, consider Global Expansion (Prestige). You lose current progress but gain permanent Corporation Points for powerful bonuses.',
     emoji: '🌍',
+    category: 'advanced' as const,
   },
+];
+
+const PRO_TIPS = [
+  {
+    title: 'Build Coal Generators first — everything needs power!',
+    category: 'gettingStarted' as const,
+  },
+  {
+    title: 'Check the Market for the best-selling resources',
+    category: 'economy' as const,
+  },
+  {
+    title: 'Research unlocks powerful new buildings',
+    category: 'advanced' as const,
+  },
+  {
+    title: 'Workers can boost building efficiency',
+    category: 'production' as const,
+  },
+  {
+    title: 'Prestige resets give Corporation Points for permanent bonuses',
+    category: 'advanced' as const,
+  },
+];
+
+const KEYBOARD_SHORTCUTS = [
+  { keys: '1-9', description: 'Switch between navigation tabs' },
+  { keys: 'Space', description: 'Pause / Resume the game' },
+  { keys: '+ / =', description: 'Increase game speed' },
+  { keys: '-', description: 'Decrease game speed' },
+  { keys: 'Esc', description: 'Deselect building' },
+  { keys: '?', description: 'Toggle keyboard shortcuts help' },
 ];
 
 export function OnboardingPanel() {
@@ -188,10 +235,43 @@ export function OnboardingPanel() {
             {STRATEGY_HINTS.map((hint, i) => (
               <div key={i} className="bg-[#0a0e17] rounded-lg p-3">
                 <div className="flex items-center gap-1.5 mb-1">
+                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${CATEGORY_COLORS[hint.category]?.dot ?? 'bg-gray-400'}`} title={CATEGORY_COLORS[hint.category]?.label} />
                   <span className="text-sm">{hint.emoji}</span>
                   <span className="text-xs text-amber-300 font-medium">{hint.title}</span>
                 </div>
                 <p className="text-[10px] text-gray-500 leading-relaxed">{hint.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Pro Tips */}
+        <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div className="flex items-center gap-2 mb-3">
+            <Star className="w-4 h-4 text-yellow-400" />
+            <h3 className="text-sm font-semibold text-yellow-400">Pro Tips</h3>
+          </div>
+          <div className="space-y-2">
+            {PRO_TIPS.map((tip, i) => (
+              <div key={i} className="flex items-center gap-2 bg-[#0a0e17] rounded-lg px-3 py-2">
+                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${CATEGORY_COLORS[tip.category]?.dot ?? 'bg-gray-400'}`} title={CATEGORY_COLORS[tip.category]?.label} />
+                <span className="text-xs text-gray-300">{tip.title}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Keyboard Shortcuts */}
+        <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div className="flex items-center gap-2 mb-3">
+            <Keyboard className="w-4 h-4 text-gray-400" />
+            <h3 className="text-sm font-semibold text-gray-300">Keyboard Shortcuts</h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {KEYBOARD_SHORTCUTS.map((shortcut, i) => (
+              <div key={i} className="flex items-center justify-between bg-[#0a0e17] rounded-lg px-3 py-2">
+                <span className="text-[10px] text-gray-400">{shortcut.description}</span>
+                <kbd className="text-[10px] font-mono bg-gray-800 text-gray-300 px-2 py-0.5 rounded border border-gray-700">{shortcut.keys}</kbd>
               </div>
             ))}
           </div>
@@ -404,6 +484,7 @@ export function OnboardingPanel() {
             {STRATEGY_HINTS.map((hint, i) => (
               <div key={i} className="bg-[#0a0e17] rounded-lg p-3">
                 <div className="flex items-center gap-1.5 mb-1">
+                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${CATEGORY_COLORS[hint.category]?.dot ?? 'bg-gray-400'}`} title={CATEGORY_COLORS[hint.category]?.label} />
                   <span className="text-sm">{hint.emoji}</span>
                   <span className="text-xs text-amber-300 font-medium">{hint.title}</span>
                 </div>
@@ -473,6 +554,38 @@ export function OnboardingPanel() {
             <div className="text-[10px] text-gray-500 mb-0.5">Research</div>
             <div className="text-sm font-bold font-mono text-purple-400">{formatNumber(store.researchPoints)} RP</div>
           </div>
+        </div>
+      </div>
+
+      {/* Pro Tips */}
+      <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+        <div className="flex items-center gap-2 mb-3">
+          <Star className="w-4 h-4 text-yellow-400" />
+          <h3 className="text-sm font-semibold text-yellow-400">Pro Tips</h3>
+        </div>
+        <div className="space-y-2">
+          {PRO_TIPS.map((tip, i) => (
+            <div key={i} className="flex items-center gap-2 bg-[#0a0e17] rounded-lg px-3 py-2">
+              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${CATEGORY_COLORS[tip.category]?.dot ?? 'bg-gray-400'}`} title={CATEGORY_COLORS[tip.category]?.label} />
+              <span className="text-xs text-gray-300">{tip.title}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Keyboard Shortcuts */}
+      <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+        <div className="flex items-center gap-2 mb-3">
+          <Keyboard className="w-4 h-4 text-gray-400" />
+          <h3 className="text-sm font-semibold text-gray-300">Keyboard Shortcuts</h3>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {KEYBOARD_SHORTCUTS.map((shortcut, i) => (
+            <div key={i} className="flex items-center justify-between bg-[#0a0e17] rounded-lg px-3 py-2">
+              <span className="text-[10px] text-gray-400">{shortcut.description}</span>
+              <kbd className="text-[10px] font-mono bg-gray-800 text-gray-300 px-2 py-0.5 rounded border border-gray-700">{shortcut.keys}</kbd>
+            </div>
+          ))}
         </div>
       </div>
     </div>

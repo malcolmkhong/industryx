@@ -205,6 +205,8 @@ export function DashboardPanel() {
       {/* GET STARTED CARD - only show when no buildings */}
       {totalBuildings === 0 && (
         <div className="relative rounded-xl p-8 text-center border border-cyan-500/20 bg-gradient-to-br from-cyan-900/15 via-[#111827] to-teal-900/10 overflow-hidden">
+          {/* Radial gradient overlay for visual depth */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,255,242,0.06)_0%,transparent_70%)]" />
           {/* Decorative background elements */}
           <div className="absolute inset-0 opacity-5">
             <div className="absolute top-4 left-8 text-6xl">⛏️</div>
@@ -261,9 +263,26 @@ export function DashboardPanel() {
 
       {/* HEADER */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-cyan-400 neon-glow-cyan tracking-wide">Factory Overview</h2>
-          <p className="text-xs text-gray-500 mt-0.5">Command center for your industrial empire</p>
+        <div className="flex items-center gap-2">
+          <div>
+            <h2 className="text-xl font-bold text-cyan-400 neon-glow-cyan tracking-wide flex items-center gap-2">Factory Overview
+              {activeBuildings > 0 && (
+                <motion.span
+                  className="inline-flex items-center gap-1"
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+                  </span>
+                  <span className="text-[9px] text-green-400/70 font-normal tracking-normal">RUNNING</span>
+                </motion.span>
+              )}
+            </h2>
+            <p className="text-xs text-gray-500 mt-0.5">Command center for your industrial empire</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {store.activeEvents.length > 0 && (
@@ -273,7 +292,7 @@ export function DashboardPanel() {
             </Badge>
           )}
           {store.powerGrid.overload && (
-            <Badge variant="outline" className="border-red-500/50 text-red-400 bg-red-900/20 text-xs neon-pulse">
+            <Badge variant="outline" className="border-red-500/50 text-red-400 bg-red-900/20 text-xs" style={{ animation: 'breathe-glow 2s ease-in-out infinite' }}>
               <Zap className="w-3 h-3 mr-1" />
               POWER OVERLOAD
             </Badge>
@@ -283,46 +302,55 @@ export function DashboardPanel() {
 
       {/* TOP STATS ROW - Enhanced with gradients and trend indicators */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatCard
-          icon={<Factory className="w-5 h-5" />}
-          label="Buildings"
-          value={totalBuildings.toString()}
-          subtext={totalBuildings === 0 ? 'None built yet' : `${activeBuildings} active of ${totalBuildings} built`}
-          color="cyan"
-          gradient="from-cyan-900/25 to-cyan-800/5"
-          trend={store.stats.factoriesBuilt > 0 ? 'up' : 'stable'}
-          trendValue={`${store.stats.factoriesBuilt} built`}
-        />
-        <StatCard
-          icon={<Users className="w-5 h-5" />}
-          label="Workers"
-          value={totalWorkers.toString()}
-          subtext={totalWorkers === 0 ? 'No workers yet' : `${assignedWorkers} assigned of ${totalWorkers} hired`}
-          color="green"
-          gradient="from-green-900/25 to-green-800/5"
-          trend={workerEfficiency >= 1 ? 'up' : workerEfficiency > 0 ? 'stable' : 'down'}
-          trendValue={totalWorkers === 0 ? 'Hire in Workers tab' : `Eff: ${(workerEfficiency * 100).toFixed(0)}%`}
-        />
-        <StatCard
-          icon={<Activity className="w-5 h-5" />}
-          label="Efficiency"
-          value={store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption === 0 ? 'N/A' : `${(store.powerGrid.efficiency * 100).toFixed(0)}%`}
-          subtext={store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption === 0 ? 'No power grid' : store.powerGrid.overload ? 'Overloaded!' : 'Optimal'}
-          color={store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption === 0 ? 'orange' : store.powerGrid.efficiency >= 0.8 ? 'green' : store.powerGrid.efficiency >= 0.5 ? 'orange' : 'red'}
-          gradient="from-yellow-900/25 to-yellow-800/5"
-          trend={store.powerGrid.efficiency >= 0.8 ? 'up' : store.powerGrid.efficiency >= 0.5 ? 'stable' : 'down'}
-          trendValue={store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption === 0 ? 'Build a generator' : `${powerSurplus >= 0 ? '+' : ''}${formatNumber(powerSurplus)} MW`}
-        />
-        <StatCard
-          icon={<FlaskConical className="w-5 h-5" />}
-          label="Research"
-          value={store.completedResearch.length.toString()}
-          subtext={`${formatNumber(store.researchPoints)} RP`}
-          color="purple"
-          gradient="from-purple-900/25 to-purple-800/5"
-          trend={rpPerTick > 0.1 ? 'up' : 'stable'}
-          trendValue={`+${rpPerTick.toFixed(1)} RP/t`}
-        />
+        {[0, 1, 2, 3].map(i => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: i * 0.08, ease: 'easeOut' }}
+          >
+            {i === 0 && <StatCard
+              icon={<Factory className="w-5 h-5" />}
+              label="Buildings"
+              value={totalBuildings.toString()}
+              subtext={totalBuildings === 0 ? 'None built yet' : `${activeBuildings} active of ${totalBuildings} built`}
+              color="cyan"
+              gradient="from-cyan-900/25 to-cyan-800/5"
+              trend={store.stats.factoriesBuilt > 0 ? 'up' : 'stable'}
+              trendValue={`${store.stats.factoriesBuilt} built`}
+            />}
+            {i === 1 && <StatCard
+              icon={<Users className="w-5 h-5" />}
+              label="Workers"
+              value={totalWorkers.toString()}
+              subtext={totalWorkers === 0 ? 'No workers yet' : `${assignedWorkers} assigned of ${totalWorkers} hired`}
+              color="green"
+              gradient="from-green-900/25 to-green-800/5"
+              trend={workerEfficiency >= 1 ? 'up' : workerEfficiency > 0 ? 'stable' : 'down'}
+              trendValue={totalWorkers === 0 ? 'Hire in Workers tab' : `Eff: ${(workerEfficiency * 100).toFixed(0)}%`}
+            />}
+            {i === 2 && <StatCard
+              icon={<Activity className="w-5 h-5" />}
+              label="Efficiency"
+              value={store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption === 0 ? 'N/A' : `${(store.powerGrid.efficiency * 100).toFixed(0)}%`}
+              subtext={store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption === 0 ? 'No power grid' : store.powerGrid.overload ? 'Overloaded!' : 'Optimal'}
+              color={store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption === 0 ? 'orange' : store.powerGrid.efficiency >= 0.8 ? 'green' : store.powerGrid.efficiency >= 0.5 ? 'orange' : 'red'}
+              gradient="from-yellow-900/25 to-yellow-800/5"
+              trend={store.powerGrid.efficiency >= 0.8 ? 'up' : store.powerGrid.efficiency >= 0.5 ? 'stable' : 'down'}
+              trendValue={store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption === 0 ? 'Build a generator' : `${powerSurplus >= 0 ? '+' : ''}${formatNumber(powerSurplus)} MW`}
+            />}
+            {i === 3 && <StatCard
+              icon={<FlaskConical className="w-5 h-5" />}
+              label="Research"
+              value={store.completedResearch.length.toString()}
+              subtext={`${formatNumber(store.researchPoints)} RP`}
+              color="purple"
+              gradient="from-purple-900/25 to-purple-800/5"
+              trend={rpPerTick > 0.1 ? 'up' : 'stable'}
+              trendValue={`+${rpPerTick.toFixed(1)} RP/t`}
+            />}
+          </motion.div>
+        ))}
       </div>
 
       {/* MAIN GRID */}
@@ -451,6 +479,35 @@ export function DashboardPanel() {
               </div>
               <span className="text-[10px] text-gray-500">{topResources.length} raw materials</span>
             </div>
+            {/* Resource Overview Summary */}
+            {(() => {
+              const totalStored = topResources.reduce((sum, r) => sum + r.amount, 0);
+              const totalCapacity = topResources.reduce((sum, r) => sum + r.capacity, 0);
+              const overallPct = totalCapacity > 0 ? (totalStored / totalCapacity) * 100 : 0;
+              return (
+                <div className="mb-3 bg-[#0a0e17] rounded-lg p-2.5">
+                  <div className="flex items-center justify-between text-[10px] mb-1.5">
+                    <div className="flex items-center gap-3">
+                      <span className="text-gray-400">Total Stored: <span className="text-cyan-300 font-mono font-bold">{formatNumber(totalStored)}</span></span>
+                      <span className="text-gray-600">|</span>
+                      <span className="text-gray-400">Capacity: <span className={`font-mono font-bold ${overallPct > 80 ? 'text-orange-400' : overallPct > 50 ? 'text-yellow-400' : 'text-green-400'}`}>{overallPct.toFixed(1)}%</span></span>
+                    </div>
+                    <span className="text-gray-500 font-mono">{formatNumber(totalStored)}/{formatNumber(totalCapacity)}</span>
+                  </div>
+                  <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        overallPct > 90 ? 'bg-red-500' :
+                        overallPct > 70 ? 'bg-orange-500' :
+                        overallPct > 50 ? 'bg-yellow-500' :
+                        'bg-gradient-to-r from-cyan-600 to-cyan-400'
+                      }`}
+                      style={{ width: `${Math.min(100, overallPct)}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
             <div className="space-y-2">
               {topResources.map(({ resource, amount, capacity, meta }) => {
                 const pct = capacity > 0 ? (amount / capacity) * 100 : 0;
@@ -556,11 +613,11 @@ export function DashboardPanel() {
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 20 }}
                       transition={{ duration: 0.25, delay: i * 0.03 }}
-                      className={`flex items-start gap-2 py-1.5 px-2 rounded text-[11px] ${
-                        entry.type === 'success' ? 'text-green-400 bg-green-900/5' :
-                        entry.type === 'warning' ? 'text-yellow-400 bg-yellow-900/5' :
-                        entry.type === 'error' ? 'text-red-400 bg-red-900/5' :
-                        'text-gray-400 bg-gray-900/5'
+                      className={`flex items-start gap-2 py-1.5 px-2 rounded text-[11px] border-l-2 ${
+                        entry.type === 'success' ? 'text-green-400 bg-green-900/5 border-l-green-500' :
+                        entry.type === 'warning' ? 'text-yellow-400 bg-yellow-900/5 border-l-yellow-500' :
+                        entry.type === 'error' ? 'text-red-400 bg-red-900/5 border-l-red-500' :
+                        'text-gray-400 bg-gray-900/5 border-l-gray-600'
                       }`}
                     >
                       <div className="flex-shrink-0 mt-0.5">

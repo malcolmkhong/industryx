@@ -1049,12 +1049,33 @@ export function ResourcePanel() {
                     const consRate = consumptionRates[resource] || 0;
                     const net = rate - consRate;
                     const maxRate = Math.max(rate, consRate, 0.1);
+                    const fillPct = capacity > 0 ? (amount / capacity) * 100 : 0;
+                    const isFull = fillPct >= 100;
+                    const isAlmostFull = fillPct >= 95;
+                    const isNearing = fillPct >= 80;
 
                     return (
                       <div key={resource} className="bg-[#0a0e17] rounded-lg p-2">
                         <div className="flex items-center gap-2 mb-1.5">
                           <span className="text-sm">{meta.emoji}</span>
-                          <span className="text-[11px] text-gray-300 flex-1">{meta.name}</span>
+                          <span className="text-[11px] text-gray-300 flex-1 flex items-center gap-1.5">
+                            {meta.name}
+                            {isFull && (
+                              <span className="inline-flex items-center text-[8px] font-bold text-red-400 bg-red-900/30 border border-red-500/40 rounded px-1 py-px animate-pulse">
+                                FULL
+                              </span>
+                            )}
+                            {!isFull && isAlmostFull && (
+                              <span className="inline-flex items-center gap-0.5 text-[8px] text-red-400">
+                                🔴 <span className="text-red-300">Almost full!</span>
+                              </span>
+                            )}
+                            {!isAlmostFull && isNearing && (
+                              <span className="inline-flex items-center gap-0.5 text-[8px] text-yellow-400">
+                                ⚠ <span className="text-yellow-300">Nearing capacity</span>
+                              </span>
+                            )}
+                          </span>
                           <span className={`text-[10px] font-mono font-bold ${
                             net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : 'text-gray-500'
                           }`}>

@@ -58,13 +58,17 @@ export function ResearchPanel() {
       </div>
 
       {/* Active Research */}
-      <div className="game-card rounded-xl bg-[#111827] p-4 border border-purple-900/30">
-        <div className="flex items-center gap-2 mb-3">
+      <div className="game-card rounded-xl bg-[#111827] p-4 border border-purple-900/30 relative overflow-hidden">
+        {/* Subtle glow effect behind active research card */}
+        {activeResearchNode && (
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(168,85,247,0.08)_0%,transparent_70%)] pointer-events-none" />
+        )}
+        <div className="flex items-center gap-2 mb-3 relative z-10">
           <FlaskConical className="w-4 h-4 text-purple-400" />
           <h3 className="text-sm font-semibold text-purple-400">Active Research</h3>
         </div>
         {activeResearchNode ? (
-          <div>
+          <div className="relative z-10">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-12 h-12 rounded-xl bg-purple-900/20 flex items-center justify-center text-2xl neon-pulse">
                 {activeResearchNode.emoji}
@@ -85,7 +89,7 @@ export function ResearchPanel() {
             </div>
             <div className="h-3 bg-gray-800 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-purple-600 to-purple-400 rounded-full transition-all duration-300 relative"
+                className="h-full research-progress-gradient rounded-full transition-all duration-300 relative"
                 style={{ width: `${Math.min(100, (store.researchProgress / activeResearchNode.timeRequired) * 100)}%` }}
               >
                 <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent" />
@@ -152,13 +156,13 @@ export function ResearchPanel() {
                       side="right"
                     >
                     <div
-                      className={`rounded-lg p-3 transition-all ${
+                      className={`rounded-lg p-3 transition-all duration-200 ${
                         isCompleted
                           ? 'bg-green-900/10 border border-green-900/30'
                           : isActive
-                            ? 'bg-purple-900/10 border border-purple-500/30 neon-pulse'
+                            ? 'bg-purple-900/10 border border-purple-500/30 neon-pulse shadow-[0_0_15px_rgba(168,85,247,0.15)]'
                             : isAvailable
-                              ? 'bg-[#0a0e17] border border-gray-800 hover:border-purple-900/50 cursor-pointer'
+                              ? 'bg-[#0a0e17] border border-gray-800 hover:border-purple-900/50 hover:-translate-y-0.5 hover:shadow-lg cursor-pointer'
                               : 'bg-[#0a0e17] border border-gray-800 opacity-50'
                       }`}
                     >

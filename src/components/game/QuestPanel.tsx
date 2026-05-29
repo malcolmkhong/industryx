@@ -57,7 +57,10 @@ export function QuestPanel() {
   const claimedCount = quests.filter(q => q.claimed).length;
   const totalCount = quests.length;
   const activeCount = quests.filter(q => !q.completed && !q.claimed).length;
-  const availableReward = quests.filter(q => q.completed && !q.claimed).reduce((sum, q) => sum + q.reward.money, 0);
+  const unclaimedQuests = quests.filter(q => q.completed && !q.claimed);
+  const availableReward = unclaimedQuests.reduce((sum, q) => sum + q.reward.money, 0);
+  const availableRPReward = unclaimedQuests.reduce((sum, q) => sum + (q.reward.researchPoints ?? 0), 0);
+  const availableCPReward = unclaimedQuests.reduce((sum, q) => sum + (q.reward.corporationPoints ?? 0), 0);
 
   // Filtered quests
   const filteredQuestsByTier = useMemo(() => {
@@ -292,6 +295,24 @@ export function QuestPanel() {
         </div>
       </div>
 
+      {/* Claim All Button - prominent gradient */}
+      {unclaimedQuests.length > 0 && (
+        <button
+          onClick={() => {
+            unclaimedQuests.forEach(q => store.claimQuestReward(q.id));
+          }}
+          className="w-full py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-green-900/60 via-emerald-800/50 to-green-900/60 border border-green-400/40 text-green-300 hover:from-green-800/70 hover:via-emerald-700/60 hover:to-green-800/70 hover:border-green-400/60 hover:text-green-200 shadow-[0_0_20px_rgba(74,222,128,0.15)]"
+        >
+          <Sparkles className="w-4 h-4" />
+          Claim All Rewards ({unclaimedQuests.length} quest{unclaimedQuests.length > 1 ? 's' : ''})
+          <span className="flex items-center gap-2 ml-1 text-xs">
+            {availableReward > 0 && <span className="text-green-400">💰 ${formatNumber(availableReward)}</span>}
+            {availableRPReward > 0 && <span className="text-purple-400">🔬 {formatNumber(availableRPReward)} RP</span>}
+            {availableCPReward > 0 && <span className="text-fuchsia-400">🏢 {availableCPReward} CP</span>}
+          </span>
+        </button>
+      )}
+
       {/* Tier Progress Bar */}
       <div className="bg-[#111827]/50 border border-[#1e293b] rounded-xl p-4">
         <div className="flex items-center justify-between mb-2">
@@ -490,19 +511,6 @@ export function QuestPanel() {
           </div>
         );
       })()}
-
-      {/* Claim All Available */}
-      {availableReward > 0 && (
-        <button
-          onClick={() => {
-            quests.filter(q => q.completed && !q.claimed).forEach(q => store.claimQuestReward(q.id));
-          }}
-          className="w-full py-2.5 rounded-xl border border-green-500/30 bg-green-900/20 text-green-400 text-sm font-bold hover:bg-green-900/40 transition-all flex items-center justify-center gap-2"
-        >
-          <Sparkles className="w-4 h-4" />
-          Claim All Rewards (${formatNumber(availableReward)})
-        </button>
-      )}
 
       {/* Quest sections by Tier */}
       {[0, 1, 2, 3, 4].map(tier => {

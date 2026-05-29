@@ -149,7 +149,7 @@ export function MarketPanel() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <div>
+        <div className="bg-gradient-to-r from-green-900/10 to-transparent -m-0 p-0 rounded-xl">
           <h2 className="text-xl font-bold text-green-400 tracking-wide" style={{ textShadow: '0 0 7px #4ade80, 0 0 10px #4ade8040' }}>
             Global Market
           </h2>
@@ -266,9 +266,9 @@ export function MarketPanel() {
                       {priceRatio < 0.5 && (
                         <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-blue-900/30 text-blue-400 border border-blue-500/30 font-bold">📉 LOW</span>
                       )}
-                      {/* Trend Arrow */}
-                      {m.trend === 'up' && <span className="text-xs">⬆️</span>}
-                      {m.trend === 'down' && <span className="text-xs">⬇️</span>}
+                      {/* Trend Arrow with animation */}
+                      {m.trend === 'up' && <span className="text-xs trend-arrow-bounce" style={{ filter: 'drop-shadow(0 0 3px rgba(74,222,128,0.5))' }}>⬆️</span>}
+                      {m.trend === 'down' && <span className="text-xs trend-arrow-bounce" style={{ filter: 'drop-shadow(0 0 3px rgba(248,113,113,0.5))' }}>⬇️</span>}
                       {/* Auto-sell indicator */}
                       {isAutoSell && (
                         <span className="text-[8px] px-1 py-0.5 rounded bg-green-900/30 text-green-400 border border-green-500/30">AUTO</span>
@@ -276,8 +276,16 @@ export function MarketPanel() {
                     </div>
                   </div>
                   <div className="flex items-center justify-between mb-1">
-                    <div className={`text-sm font-bold font-mono ${m.trend === 'up' ? 'text-green-400' : m.trend === 'down' ? 'text-red-400' : 'text-cyan-400'}`}>
-                      ${m.currentPrice.toFixed(2)}
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-sm font-bold font-mono ${m.trend === 'up' ? 'text-green-400' : m.trend === 'down' ? 'text-red-400' : 'text-cyan-400'}`}>
+                        ${m.currentPrice.toFixed(2)}
+                      </span>
+                      {m.trend === 'up' && (
+                        <span className="text-[9px] text-green-400/70 font-mono">▲</span>
+                      )}
+                      {m.trend === 'down' && (
+                        <span className="text-[9px] text-red-400/70 font-mono">▼</span>
+                      )}
                     </div>
                     <div className="text-[10px] text-gray-500">
                       {formatNumber(held)}/{formatNumber(capacity)}

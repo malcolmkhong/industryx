@@ -25,6 +25,7 @@ import StatisticsPanel from '@/components/game/StatisticsPanel';
 import FactoryMapPanel from '@/components/game/FactoryMapPanel';
 import GameToast from '@/components/game/GameToast';
 import FloatingNumbers from '@/components/game/FloatingNumbers';
+import KeyboardShortcutsHelp from '@/components/game/KeyboardShortcutsHelp';
 import AmbientParticles from '@/components/game/AmbientParticles';
 import LeaderboardPanel from '@/components/game/LeaderboardPanel';
 import DailyRewardsPanel from '@/components/game/DailyRewardsPanel';
@@ -516,6 +517,7 @@ export default function Home() {
                   size="sm"
                   className="h-7 px-2 text-xs"
                   onClick={store.togglePause}
+                  aria-label={store.paused ? "Resume game" : "Pause game"}
                 >
                   {store.paused ? <Play className="w-3 h-3 text-green-400" /> : <Pause className="w-3 h-3 text-yellow-400" />}
                 </Button>
@@ -540,7 +542,7 @@ export default function Home() {
               {/* Notifications */}
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 relative">
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 relative" aria-label="Notifications">
                     <Bell className="w-3.5 h-3.5 text-gray-400" />
                     {unreadNotifications > 0 && (
                       <span className={`absolute -top-0.5 -right-0.5 h-4 rounded-full text-[8px] text-white flex items-center justify-center px-1 ${
@@ -626,7 +628,7 @@ export default function Home() {
               {/* Export save */}
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-gray-500 hover:text-cyan-400" onClick={handleExport}>
+                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-gray-500 hover:text-cyan-400" onClick={handleExport} aria-label="Export save">
                     <Download className="w-3 h-3" />
                   </Button>
                 </TooltipTrigger>
@@ -638,7 +640,7 @@ export default function Home() {
               {/* Import save */}
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-gray-500 hover:text-cyan-400" onClick={handleImport}>
+                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-gray-500 hover:text-cyan-400" onClick={handleImport} aria-label="Import save">
                     <Upload className="w-3 h-3" />
                   </Button>
                 </TooltipTrigger>
@@ -648,7 +650,7 @@ export default function Home() {
               </Tooltip>
 
               {/* Reset */}
-              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-gray-500" onClick={handleReset}>
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-gray-500" onClick={handleReset} aria-label="Reset game">
                 <RotateCcw className="w-3 h-3" />
               </Button>
             </div>
@@ -695,6 +697,7 @@ export default function Home() {
                   size="sm"
                   className="h-6 w-6 p-0 min-w-[24px] flex items-center justify-center"
                   onClick={store.togglePause}
+                  aria-label={store.paused ? "Resume game" : "Pause game"}
                 >
                   {store.paused ? <Play className="w-3 h-3 text-green-400" /> : <Pause className="w-3 h-3 text-yellow-400" />}
                 </Button>
@@ -725,7 +728,7 @@ export default function Home() {
               <Check className={`w-3 h-3 transition-colors duration-300 ${showSavedFlash ? 'text-green-400' : 'text-gray-600'}`} />
 
               {/* Notification bell */}
-              <div className="relative">
+              <div className="relative" role="status" aria-label="Notifications">
                 <Bell className="w-3.5 h-3.5 text-gray-400" />
                 {unreadNotifications > 0 && (
                   <span className="absolute -top-1 -right-1.5 w-3 h-3 bg-red-500 rounded-full text-[7px] text-white flex items-center justify-center">
@@ -751,17 +754,17 @@ export default function Home() {
               </Badge>
 
               {/* Export */}
-              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 min-w-[24px] text-gray-500" onClick={handleExport}>
+              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 min-w-[24px] text-gray-500" onClick={handleExport} aria-label="Export save">
                 <Download className="w-3 h-3" />
               </Button>
 
               {/* Import */}
-              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 min-w-[24px] text-gray-500" onClick={handleImport}>
+              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 min-w-[24px] text-gray-500" onClick={handleImport} aria-label="Import save">
                 <Upload className="w-3 h-3" />
               </Button>
 
               {/* Reset */}
-              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 min-w-[24px] text-gray-500" onClick={handleReset}>
+              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 min-w-[24px] text-gray-500" onClick={handleReset} aria-label="Reset game">
                 <RotateCcw className="w-3 h-3" />
               </Button>
             </div>
@@ -805,6 +808,7 @@ export default function Home() {
 
         {/* Floating production numbers */}
         <FloatingNumbers />
+        <KeyboardShortcutsHelp />
       </div>
 
       {/* Export Save Dialog - full-screen on mobile */}

@@ -781,6 +781,84 @@ export function SettingsPanel() {
           </p>
         </div>
       </SettingsSection>
+
+      {/* ====== CHANGELOG ====== */}
+      <SettingsSection
+        title="Changelog"
+        icon={<FileText className="w-4 h-4 text-teal-400" />}
+        defaultOpen={false}
+      >
+        <div className="space-y-3">
+          {/* v1.2.0 */}
+          <div className="bg-[#0a0e17] rounded-lg p-3 border border-teal-900/20">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-teal-400 font-mono">v1.2.0</span>
+                <span className="text-[9px] text-gray-600">Latest</span>
+              </div>
+              <span className="text-[9px] text-gray-600">Mar 2025</span>
+            </div>
+            <ul className="space-y-1">
+              <li className="text-[10px] text-gray-400 flex items-start gap-1.5">
+                <span className="text-green-500 mt-0.5">•</span>
+                Economy rebalance — all factory margins are now positive
+              </li>
+              <li className="text-[10px] text-gray-400 flex items-start gap-1.5">
+                <span className="text-green-500 mt-0.5">•</span>
+                Endgame buildings converted to passive generators (money, RP, CP)
+              </li>
+              <li className="text-[10px] text-gray-400 flex items-start gap-1.5">
+                <span className="text-yellow-500 mt-0.5">•</span>
+                Fixed duplicate quest ID bug causing console errors
+              </li>
+            </ul>
+          </div>
+
+          {/* v1.1.0 */}
+          <div className="bg-[#0a0e17] rounded-lg p-3 border border-gray-800/30">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold text-gray-300 font-mono">v1.1.0</span>
+              <span className="text-[9px] text-gray-600">Feb 2025</span>
+            </div>
+            <ul className="space-y-1">
+              <li className="text-[10px] text-gray-400 flex items-start gap-1.5">
+                <span className="text-cyan-500 mt-0.5">•</span>
+                Navigation overhaul — 25 tabs reorganized into 7 categories
+              </li>
+              <li className="text-[10px] text-gray-400 flex items-start gap-1.5">
+                <span className="text-cyan-500 mt-0.5">•</span>
+                Shared UI components (PanelStatCard, tier color system)
+              </li>
+              <li className="text-[10px] text-gray-400 flex items-start gap-1.5">
+                <span className="text-cyan-500 mt-0.5">•</span>
+                Mobile nav improved — all tabs accessible in 2 taps
+              </li>
+            </ul>
+          </div>
+
+          {/* v1.0.0 */}
+          <div className="bg-[#0a0e17] rounded-lg p-3 border border-gray-800/30">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold text-gray-300 font-mono">v1.0.0</span>
+              <span className="text-[9px] text-gray-600">Jan 2025</span>
+            </div>
+            <ul className="space-y-1">
+              <li className="text-[10px] text-gray-400 flex items-start gap-1.5">
+                <span className="text-purple-500 mt-0.5">•</span>
+                Initial release — 65 buildings, 56 resources
+              </li>
+              <li className="text-[10px] text-gray-400 flex items-start gap-1.5">
+                <span className="text-purple-500 mt-0.5">•</span>
+                Full production chains from T0 to T4
+              </li>
+              <li className="text-[10px] text-gray-400 flex items-start gap-1.5">
+                <span className="text-purple-500 mt-0.5">•</span>
+                Market, research, quests, workers, and prestige systems
+              </li>
+            </ul>
+          </div>
+        </div>
+      </SettingsSection>
     </div>
   );
 }

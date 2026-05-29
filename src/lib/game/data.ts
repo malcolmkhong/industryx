@@ -4047,7 +4047,7 @@ export const QUEST_DEFS: Quest[] = [
     emoji: '🌍',
   },
   {
-    id: 't4_research_all',
+    id: 't4_research_all_complete',
     name: 'Complete All Research',
     description: 'Complete all 26 research projects to achieve total technological supremacy.',
     type: 'research',

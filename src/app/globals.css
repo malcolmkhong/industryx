@@ -1310,3 +1310,42 @@ button:disabled, .btn-disabled {
   animation: floatUp 1.5s ease-out forwards;
   pointer-events: none;
 }
+
+/* ===== Breathe Glow Animation ===== */
+@keyframes breathe-glow {
+  0%, 100% { box-shadow: 0 0 4px rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.3); }
+  50% { box-shadow: 0 0 16px rgba(239, 68, 68, 0.5), 0 0 30px rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.7); }
+}
+
+/* ===== Research Progress Gradient Fill ===== */
+@keyframes researchProgressShimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.research-progress-gradient {
+  background: linear-gradient(90deg, #7c3aed, #a78bfa, #c084fc, #a78bfa, #7c3aed);
+  background-size: 200% 100%;
+  animation: researchProgressShimmer 3s linear infinite;
+}
+
+/* ===== Power Bar Animated Gradient ===== */
+@keyframes powerGradientFlow {
+  0% { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+.power-bar-animated-gradient {
+  background-size: 200% 100%;
+  animation: powerGradientFlow 2s linear infinite;
+}
+
+/* ===== Trend Arrow Bounce ===== */
+@keyframes trendBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+.trend-arrow-bounce {
+  animation: trendBounce 1.5s ease-in-out infinite;
+}
