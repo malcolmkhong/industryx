@@ -587,3 +587,30 @@ Stage Summary:
 - ResourceFlowPanel and AIAdvisorPanel now have actual data instead of undefined/0
 - Two bugs fixed: (1) Factory Panel excluded extractors, (2) Store missing computed rate properties
 - 3 files modified: FactoryPanel.tsx, store.ts, types.ts
+
+---
+Task ID: 9
+Agent: Main Developer
+Task: Fix 0/t display bug in Resource Extraction, Raw Materials, and Resource Flow sections
+
+Work Log:
+- Diagnosed root cause: ResourcePanel's `productionRates` was missing `def.baseProductionRate` multiplier
+  * Mining Drill (baseProductionRate=2) showed iron production as 1/t instead of 2/t per drill
+  * This caused net rates to be incorrectly 0 when production should exceed consumption
+  * Example: 3 Mining Drills produce 6 iron/t, but ResourcePanel showed 3 iron/t; with 3 Smelters consuming 3 iron/t, net showed ±0/t instead of +3/t
+- Fixed ResourcePanel.tsx `productionRates`: Added `def.baseProductionRate` to rate calculation (line 133)
+- Fixed ResourcePanel.tsx `tierProductionSummary`: Added `def.baseProductionRate` to basic, advanced, and specialized tier calculations (lines 177, 187)
+- Fixed FactoryPanel.tsx `allConsumptionRates`: Removed incorrect `def.baseProductionRate` from consumption calculation (line 183)
+  * Store calculates factory consumption as `input.amount * level * efficiency` (WITHOUT baseProductionRate)
+  * Including baseProductionRate overcounted consumption, making net rates too negative
+- Fixed FactoryPanel.tsx `factoryConsumptionRates`: Same fix — removed `def.baseProductionRate` (line 201)
+- Verified lint passes cleanly
+- Verified dev server compiles successfully
+
+Stage Summary:
+- 4 rate calculation bugs fixed across 2 files
+- Resource Extraction panel now shows correct extractor production rates
+- Raw Materials sidebar now shows correct net rates (no more incorrect ±0/t)
+- Factory Panel net rate calculations now match store's actual consumption
+- baseProductionRate acts as a "productivity bonus" that scales outputs but NOT inputs
+- Files modified: ResourcePanel.tsx, FactoryPanel.tsx

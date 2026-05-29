@@ -122,7 +122,7 @@ export function ResourcePanel() {
     return grouped;
   }, [store.buildings]);
 
-  // Production rates per resource
+  // Production rates per resource (includes baseProductionRate to match store calculation)
   const productionRates = useMemo(() => {
     const rates: Record<string, number> = {};
     store.buildings.forEach(b => {
@@ -130,7 +130,7 @@ export function ResourcePanel() {
       const def = BUILDING_DEFS[b.type];
       if (!def || def.category !== 'extractor' || !def.outputs) return;
       def.outputs.forEach(o => {
-        rates[o.resource] = (rates[o.resource] || 0) + o.amount * b.level * b.efficiency * store.powerGrid.efficiency;
+        rates[o.resource] = (rates[o.resource] || 0) + o.amount * def.baseProductionRate * b.level * b.efficiency * store.powerGrid.efficiency;
       });
     });
     return rates;
@@ -169,24 +169,26 @@ export function ResourcePanel() {
       advanced: { production: 0, resources: new Set<string>() },
       specialized: { production: 0, resources: new Set<string>() },
     };
-    // Basic extractors produce basic tier resources
+    // Basic extractors produce basic tier resources (include baseProductionRate)
     extractorBuildings.filter(b => b.active && BASIC_EXTRACTORS.includes(b.type as ExtractorType)).forEach(b => {
       const def = BUILDING_DEFS[b.type];
       if (!def?.outputs) return;
       def.outputs.forEach(o => {
-        summary.basic.production += o.amount * b.level * b.efficiency * store.powerGrid.efficiency;
+        const rate = o.amount * def.baseProductionRate * b.level * b.efficiency * store.powerGrid.efficiency;
+        summary.basic.production += rate;
         summary.basic.resources.add(o.resource);
       });
     });
-    // Advanced extractors
+    // Advanced extractors (include baseProductionRate)
     extractorBuildings.filter(b => b.active && ADVANCED_EXTRACTORS.includes(b.type as ExtractorType)).forEach(b => {
       const def = BUILDING_DEFS[b.type];
       if (!def?.outputs) return;
       def.outputs.forEach(o => {
-        summary.advanced.production += o.amount * b.level * b.efficiency * store.powerGrid.efficiency;
+        const rate = o.amount * def.baseProductionRate * b.level * b.efficiency * store.powerGrid.efficiency;
+        summary.advanced.production += rate;
         summary.advanced.resources.add(o.resource);
         // Advanced resources also count as specialized
-        summary.specialized.production += o.amount * b.level * b.efficiency * store.powerGrid.efficiency * 0.3;
+        summary.specialized.production += rate * 0.3;
         summary.specialized.resources.add(o.resource);
       });
     });

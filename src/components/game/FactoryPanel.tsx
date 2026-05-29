@@ -173,6 +173,7 @@ export function FactoryPanel() {
   }, [store.buildings, store.powerGrid.efficiency]);
 
   // Consumption rates from ALL buildings (including extractors with fuel) — used for net rate calculations
+  // Note: Consumption does NOT include baseProductionRate (matching store calculation where inputs are consumed at input.amount * level * efficiency)
   const allConsumptionRates = useMemo(() => {
     const rates: Record<string, number> = {};
     store.buildings.forEach(b => {
@@ -180,7 +181,7 @@ export function FactoryPanel() {
       const def = BUILDING_DEFS[b.type];
       if (!def || !def.inputs) return;
       def.inputs.forEach(input => {
-        rates[input.resource] = (rates[input.resource] || 0) + input.amount * def.baseProductionRate * b.level * b.efficiency * store.powerGrid.efficiency;
+        rates[input.resource] = (rates[input.resource] || 0) + input.amount * b.level * b.efficiency * store.powerGrid.efficiency;
       });
       // Also count fuel consumption for power plants
       if (def.fuel && def.fuelRate) {
@@ -191,6 +192,7 @@ export function FactoryPanel() {
   }, [store.buildings, store.powerGrid.efficiency]);
 
   // Consumption rates for factories only (kept for backward compat with factory-specific views)
+  // Note: Consumption does NOT include baseProductionRate (matching store calculation)
   const factoryConsumptionRates = useMemo(() => {
     const rates: Record<string, number> = {};
     factoryBuildings.forEach(b => {
@@ -198,7 +200,7 @@ export function FactoryPanel() {
       const def = BUILDING_DEFS[b.type];
       if (!def || !def.inputs) return;
       def.inputs.forEach(input => {
-        rates[input.resource] = (rates[input.resource] || 0) + input.amount * def.baseProductionRate * b.level * b.efficiency * store.powerGrid.efficiency;
+        rates[input.resource] = (rates[input.resource] || 0) + input.amount * b.level * b.efficiency * store.powerGrid.efficiency;
       });
     });
     return rates;
