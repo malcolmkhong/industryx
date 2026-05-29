@@ -6,7 +6,7 @@
 // --- Resources ---
 export type RawResource = 'iron' | 'copper' | 'coal' | 'oil' | 'sand' | 'lithium' | 'water' | 'rareEarth' | 'clay' | 'limestone' | 'gravel' | 'bauxite' | 'wolframite';
 export type Tier1Resource = 'ironPlate' | 'copperWire' | 'plastic' | 'glass' | 'carbon' | 'bricks' | 'concrete' | 'fertilizer' | 'steel' | 'fossilFuel';
-export type Tier2Resource = 'circuit' | 'engine' | 'battery' | 'gear' | 'silicon' | 'aluminium' | 'insecticide' | 'copperIngot' | 'titanium' | 'coolant';
+export type Tier2Resource = 'circuit' | 'engine' | 'battery' | 'gear' | 'silicon' | 'aluminium' | 'insecticide' | 'copperIngot' | 'titanium' | 'coolant' | 'fiberOptics' | 'solarCell';
 export type Tier3Resource = 'aiChip' | 'robotics' | 'quantumPart' | 'advancedAlloy' | 'nanoMaterial' | 'electronics' | 'medicalTech' | 'jewellery' | 'tungsten' | 'weapons' | 'scanDrone' | 'artifactDetector' | 'neuralNetwork';
 export type Tier4Resource = 'singularityCore' | 'darkMatterCell' | 'warpDrive' | 'antimatter' | 'chronoPart' | 'plasmaCore' | 'megaStructure' | 'voidCrystal';
 export type ResourceType = RawResource | Tier1Resource | Tier2Resource | Tier3Resource | Tier4Resource;
