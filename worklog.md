@@ -533,3 +533,26 @@ Work Log:
 
 Lint: Passes cleanly (0 errors, 0 warnings)
 Dev server: Compiles successfully
+
+---
+Task ID: 7
+Agent: Main Developer
+Task: Fix "0/t" display issue for materials — show — or +/- instead
+
+Work Log:
+- Investigated the root cause: multiple panels displayed "0/t" for materials with zero net production rate
+- Fixed all instances across 4 component files:
+  1. ProductionChainPanel.tsx: Changed "0/t" to "—" (em dash) in SVG flow nodes and detail view
+  2. FactoryPanel.tsx: Changed `{net > 0 ? '+' : ''}{formatNumber(net)}/t` to ternary with "—" for zero net in 3 locations
+  3. ResourcePanel.tsx: Changed net rate display to show "—" when net=0 and no production; kept "±0/t" when balanced prod/cons exists
+  4. ResourceFlowPanel.tsx: Changed SVG text to show "—" when netRate=0, updated color class for neutral
+- Updated color classes from `text-gray-500` to `text-gray-600` for neutral/zero state to differentiate from stock labels
+- Updated conditional logic: `net >= 0 ? '+' : ''` patterns → `net > 0 ? ... : net < 0 ? ... : '—'` for clarity
+- Lint passes cleanly, dev server compiles successfully
+
+Stage Summary:
+- All "0/t" displays now show "—" (em dash) when net rate is zero
+- Positive rates still show "+X/t" in green
+- Negative rates still show "-X/t" in red
+- Special case: balanced production/consumption (±0/t) preserved in ResourcePanel when both prod and cons > 0
+- 4 files modified: ProductionChainPanel.tsx, FactoryPanel.tsx, ResourcePanel.tsx, ResourceFlowPanel.tsx

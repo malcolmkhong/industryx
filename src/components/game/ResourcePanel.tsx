@@ -559,8 +559,8 @@ export function ResourcePanel() {
                             <span className="text-sm">{meta.emoji}</span>
                             <div className="min-w-0">
                               <div className="text-[10px] text-gray-300 font-medium truncate">{meta.name}</div>
-                              <div className={`text-[9px] font-mono ${net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : 'text-gray-500'}`}>
-                                {net > 0 ? '+' : ''}{formatNumber(net)}/t
+                              <div className={`text-[9px] font-mono ${net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : 'text-gray-600'}`}>
+                                {net > 0 ? `+${formatNumber(net)}/t` : net < 0 ? `${formatNumber(net)}/t` : '—'}
                               </div>
                             </div>
                           </div>
@@ -931,13 +931,14 @@ export function ResourcePanel() {
                         <span className="text-sm">{meta.emoji}</span>
                         <span className="text-[11px] text-gray-200 font-medium">{meta.name}</span>
                       </div>
-                      {netRate !== 0 && (
+                      {netRate !== 0 ? (
                         <span className={`text-[9px] font-mono ${netRate > 0 ? 'text-green-400' : 'text-red-400'}`}>
                           {netRate > 0 ? '+' : ''}{formatNumber(netRate)}/t
                         </span>
-                      )}
-                      {netRate === 0 && prodRate > 0 && (
+                      ) : prodRate > 0 ? (
                         <span className="text-[9px] text-yellow-400 font-mono">±0/t</span>
+                      ) : (
+                        <span className="text-[9px] text-gray-600 font-mono">—</span>
                       )}
                     </div>
 
@@ -1078,9 +1079,9 @@ export function ResourcePanel() {
                             )}
                           </span>
                           <span className={`text-[10px] font-mono font-bold ${
-                            net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : 'text-gray-500'
+                            net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : 'text-gray-600'
                           }`}>
-                            {net > 0 ? '+' : ''}{formatNumber(net)}/t
+                            {net > 0 ? `+${formatNumber(net)}/t` : net < 0 ? `${formatNumber(net)}/t` : '—'}
                           </span>
                         </div>
 

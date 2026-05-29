@@ -634,11 +634,11 @@ export default function ResourceFlowPanel() {
                       y={nodeRadius + 22}
                       textAnchor="middle"
                       fontSize={7}
-                      className={node.netRate >= 0 ? 'fill-green-400' : 'fill-red-400'}
+                      className={node.netRate > 0 ? 'fill-green-400' : node.netRate < 0 ? 'fill-red-400' : 'fill-gray-500'}
                       fontFamily="monospace"
                       opacity={isDimmed ? 0.15 : 0.8}
                     >
-                      {node.netRate >= 0 ? '+' : ''}{node.netRate.toFixed(1)}/t
+                      {node.netRate > 0 ? `+${node.netRate.toFixed(1)}/t` : node.netRate < 0 ? `${node.netRate.toFixed(1)}/t` : '—'}
                     </text>
 
                     {/* Bottleneck badge */}

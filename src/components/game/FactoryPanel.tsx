@@ -579,8 +579,8 @@ export function FactoryPanel() {
                             <span className="text-sm">{meta.emoji}</span>
                             <div className="min-w-0">
                               <div className="text-[10px] text-gray-300 font-medium truncate">{meta.name}</div>
-                              <div className={`text-[9px] font-mono ${net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : 'text-gray-500'}`}>
-                                {net > 0 ? '+' : ''}{formatNumber(net)}/t
+                              <div className={`text-[9px] font-mono ${net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : 'text-gray-600'}`}>
+                                {net > 0 ? `+${formatNumber(net)}/t` : net < 0 ? `${formatNumber(net)}/t` : '—'}
                               </div>
                             </div>
                           </div>
@@ -1041,9 +1041,9 @@ export function FactoryPanel() {
                               <div className="flex items-center justify-between">
                                 <span className="text-[10px] text-gray-200 font-medium">{meta.name}</span>
                                 <span className={`text-[9px] font-mono ${
-                                  net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : 'text-gray-500'
+                                  net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : 'text-gray-600'
                                 }`}>
-                                  {net > 0 ? '+' : ''}{formatNumber(net)}/t
+                                  {net > 0 ? `+${formatNumber(net)}/t` : net < 0 ? `${formatNumber(net)}/t` : '—'}
                                 </span>
                               </div>
                               {/* Stock bar */}
@@ -1193,8 +1193,8 @@ export function FactoryPanel() {
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-[9px] text-gray-500">Stock: {formatNumber(stock)}</span>
-                          <span className={`text-[9px] font-mono ${net >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                            {net >= 0 ? '+' : ''}{formatNumber(net)}/t net
+                          <span className={`text-[9px] font-mono ${net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : 'text-gray-600'}`}>
+                            {net > 0 ? `+${formatNumber(net)}/t` : net < 0 ? `${formatNumber(net)}/t` : '—'} net
                           </span>
                         </div>
                       </div>

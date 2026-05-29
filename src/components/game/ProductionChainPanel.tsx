@@ -406,7 +406,7 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
                       fontFamily="monospace"
                       dominantBaseline="middle"
                     >
-                      0/t
+                      —
                     </text>
                   )}
 
@@ -514,9 +514,13 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
                               <span className="text-[10px] text-green-400 font-mono font-bold">
                                 +{rate.toFixed(1)}/t
                               </span>
-                            ) : (
+                            ) : rate < 0 ? (
                               <span className="text-[10px] text-red-400 font-mono font-bold">
-                                0/t
+                                {rate.toFixed(1)}/t
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-gray-600 font-mono">
+                                —
                               </span>
                             )}
                           </div>
