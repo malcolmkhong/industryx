@@ -23,7 +23,7 @@ import {
 import { soundEngine } from './soundEngine';
 
 // --- Save Version ---
-const SAVE_VERSION = 12;
+const SAVE_VERSION = 13;
 
 // --- Utility Functions ---
 function generateId(): string {
@@ -406,15 +406,20 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
     }
   }
 
-  // V11 → V12: Phase 2 economy rebalance — update market prices and fix buildings
-  if (version < 12) {
-    // Update market prices for rebalanced resources
+  // V12 → V13: Phase 3 economy rebalance — comprehensive market price overhaul + endgame building fix
+  if (version < 13) {
+    // Complete market price rebalance for consistent margins across all tiers
     const priceUpdates: Record<string, number> = {
-      fossilFuel: 30, concrete: 18, gear: 55, circuit: 110, engine: 200,
-      battery: 130, aluminium: 65, silicon: 65, insecticide: 40,
-      copperIngot: 55, titanium: 250, coolant: 18, fiberOptics: 70,
-      solarCell: 110, electronics: 350, aiChip: 600, jewellery: 800,
-      weapons: 500,
+      // T1
+      plastic: 30, fossilFuel: 40,
+      // T2
+      circuit: 150, engine: 300, battery: 140, silicon: 75, aluminium: 70, titanium: 300, solarCell: 150,
+      // T3
+      aiChip: 1200, robotics: 5000, quantumPart: 25000, nanoMaterial: 50000,
+      electronics: 600, medicalTech: 1500, scanDrone: 5000, artifactDetector: 12000, neuralNetwork: 3500,
+      // T4
+      singularityCore: 150000, darkMatterCell: 160000, warpDrive: 180000,
+      antimatter: 8000, chronoPart: 500000, plasmaCore: 8000, megaStructure: 5000, voidCrystal: 250000,
     };
 
     if (Array.isArray(state.market)) {
@@ -430,13 +435,8 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
       state.market = market;
     }
 
-    // Migrate existing displayFactory buildings — description change (outputs changed)
-    if (Array.isArray(state.buildings)) {
-      // Buildings keep their type, the BUILDING_DEFS update handles the new inputs/outputs
-      // No structural change needed since building type name 'displayFactory' stays the same
-    }
-
-    // Migrate existing hydrogenPlant buildings — same type name, BUILDING_DEFS handles it
+    // Endgame buildings no longer have resource inputs/outputs — handled by BUILDING_DEFS update
+    // Existing buildings keep their type, tick code handles them via the passive income section
   }
 
   state._version = SAVE_VERSION;
@@ -1352,22 +1352,22 @@ export const useGameStore = create<GameStore>()(
           const rate = b.level * eff;
           switch (b.type) {
             case 'dysonCollector':
-              moneyEarned += Math.floor(5000 * rate);
+              moneyEarned += Math.floor(8000 * rate);
               break;
             case 'quantumTeleporter':
-              newResearchPoints += Math.floor(5 * rate);
+              newResearchPoints += Math.floor(10 * rate);
               break;
             case 'dimensionalGateway':
-              corpGained += Math.floor(0.5 * rate);
+              corpGained += Math.floor(1 * rate);
               break;
             case 'timeDistorter':
-              moneyEarned += Math.floor(2000 * rate);
-              newResearchPoints += Math.floor(2 * rate);
+              moneyEarned += Math.floor(5000 * rate);
+              newResearchPoints += Math.floor(5 * rate);
               break;
             case 'galacticForge':
-              moneyEarned += Math.floor(50000 * rate);
-              newResearchPoints += Math.floor(20 * rate);
-              corpGained += Math.floor(2 * rate);
+              moneyEarned += Math.floor(100000 * rate);
+              newResearchPoints += Math.floor(50 * rate);
+              corpGained += Math.floor(5 * rate);
               break;
           }
         }
