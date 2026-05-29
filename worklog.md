@@ -659,3 +659,65 @@ Stage Summary:
 - UI panels now correctly reflect mega project bonuses in their rate displays
 - All production rate displays now include ALL bonuses (mega, prestige, research, worker, event, weather)
 - 3 files modified: FactoryPanel.tsx, ResourcePanel.tsx, DashboardPanel.tsx
+
+---
+Task ID: 11
+Agent: Main Developer
+Task: Fix StatisticsPanel runtime TypeError — Cannot read properties of undefined (reading 'color')
+
+Work Log:
+- Fixed crash in StatisticsPanel.tsx where RESOURCE_META lookup returned undefined for some resource keys
+- Added null guard: `if (!meta) return null;` after looking up meta from RESOURCE_META[res]
+- Lint passes cleanly, dev server compiles successfully
+
+Stage Summary:
+- StatisticsPanel no longer crashes when encountering non-standard resource keys
+- 1 file modified: StatisticsPanel.tsx
+
+---
+Task ID: 12
+Agent: Main Developer
+Task: Build advanced Storage Management page under Production category
+
+Work Log:
+- Created new StoragePanel component at /home/z/my-project/src/components/game/StoragePanel.tsx (~580 lines)
+- Added 'storage' to GameTab union type in types.ts
+- Added Storage tab to Production navigation group in GameSidebar.tsx
+- Added StoragePanel import and switch case in page.tsx
+
+Features implemented:
+1. **Summary Dashboard**: Total Stock, Total Capacity, Active Materials (X/56), Alert Count
+2. **Three View Modes**:
+   - Overview: Tier-grouped resource list with expandable rows
+   - Chains: Production chain dependency map with ACTIVE/BLOCKED status
+   - Alerts: Smart alerts for shortages, overflow, bottlenecks, critical states
+3. **Resource Detail Card** (expandable per resource):
+   - Rate Breakdown: Production (+X/t), Consumption (-X/t), Net Balance per tick
+   - ETA calculation: "Full in ~Xt" or "Empty in ~Xt"
+   - Storage Capacity: Current capacity, fill %, upgrade level badge
+   - Upgrade Buttons: +1 Level and +5 Levels with cost display
+   - Production Chains: All chains affecting the material with tooltip showing chain steps
+   - Dependency Map: Produced By / Consumed By with per-building rates
+4. **Sort Modes**: Tier, Stock, Rate, Capacity
+5. **Search**: Case-insensitive search across all material names
+6. **Smart Alerts**:
+   - CRITICAL: Resource depleted but still being consumed
+   - SHORTAGE: <10% fill with active consumption
+   - OVERFLOW: >=95% fill
+   - BOTTLENECK: Net negative, will deplete in <100 ticks
+   - "View →" link from alert to expanded resource detail
+7. **Unlimited Storage**: Detects Terraforming Engine mega project, shows ∞ capacity
+8. **Visual Design**: Dark theme, tier color coding, capacity progress bars, Framer Motion animations
+
+Testing:
+- Lint passes cleanly (0 errors, 0 warnings)
+- Dev server compiles successfully
+- Browser test confirms: Overview, Chains, Alerts views all render correctly
+- Resource detail cards expand/collapse with animation
+- Search filters work across all tiers
+- Storage upgrade buttons functional (cost formula: 100 * 1.5^level per level)
+
+Stage Summary:
+- New Storage Management page fully implemented and functional
+- 4 files modified: StoragePanel.tsx (NEW), types.ts, GameSidebar.tsx, page.tsx
+- All required features delivered: editable capacity, real-time tracking, rate breakdown, production chains, dependency mapping, smart alerts, clean UI

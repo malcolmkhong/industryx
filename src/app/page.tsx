@@ -33,6 +33,7 @@ import { QuestPanel } from '@/components/game/QuestPanel';
 import { NotificationCenterPanel } from '@/components/game/NotificationCenterPanel';
 import { PayoutPanel } from '@/components/game/PayoutPanel';
 import DroneDeliveryPanel from '@/components/game/DroneDeliveryPanel';
+import { StoragePanel } from '@/components/game/StoragePanel';
 import {
   Play, Pause, RotateCcw, Bell, X,
   Download, Upload, Copy, Check,
@@ -293,6 +294,7 @@ export default function Home() {
       case 'factoryMap': return <FactoryMapPanel />;
       case 'resources': return <ResourcePanel />;
       case 'factories': return <FactoryPanel />;
+      case 'storage': return <StoragePanel />;
       case 'transport': return <TransportPanel />;
       case 'power': return <PowerPanel />;
       case 'market': return <MarketPanel />;
