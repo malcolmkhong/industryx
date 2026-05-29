@@ -557,6 +557,7 @@ export default function StatisticsPanel() {
             <tbody>
               {(Object.entries(store.resources) as [ResourceType, number][]).map(([res, amount]) => {
                 const meta = RESOURCE_META[res];
+                if (!meta) return null;
                 const rate = resourceRates[res] ?? 0;
                 const trend = getResourceTrend(res);
                 const capacity = store.resourceCapacity[res];
