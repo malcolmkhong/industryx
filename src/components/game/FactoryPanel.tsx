@@ -144,6 +144,11 @@ export function FactoryPanel() {
     4: factoryBuildings.filter(b => TIER_4_FACTORIES.includes(b.type as FactoryType)),
   }), [factoryBuildings]);
 
+  // Mega project and prestige bonus multipliers for production
+  const megaProductionBonus = store.megaProjects.filter(p => p.completed && p.bonus.type === 'productionMultiplier').reduce((sum, p) => sum + p.bonus.value, 0);
+  const productionPrestigeBonus = store.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'productionMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
+  const productionBonusMultiplier = 1 + megaProductionBonus + productionPrestigeBonus;
+
   // Production rates for factories (only factory outputs, used for "Top Outputs" display)
   const factoryProductionRates = useMemo(() => {
     const rates: Record<string, number> = {};
@@ -152,47 +157,21 @@ export function FactoryPanel() {
       const def = BUILDING_DEFS[b.type];
       if (!def || !def.outputs) return;
       def.outputs.forEach(o => {
-        rates[o.resource] = (rates[o.resource] || 0) + o.amount * def.baseProductionRate * b.level * b.efficiency * store.powerGrid.efficiency;
+        rates[o.resource] = (rates[o.resource] || 0) + o.amount * def.baseProductionRate * b.level * b.efficiency * store.powerGrid.efficiency * productionBonusMultiplier;
       });
     });
     return rates;
-  }, [factoryBuildings, store.powerGrid.efficiency]);
+  }, [factoryBuildings, store.powerGrid.efficiency, productionBonusMultiplier]);
 
-  // Production rates from ALL buildings (including extractors) — used for net rate calculations
-  const allProductionRates = useMemo(() => {
-    const rates: Record<string, number> = {};
-    store.buildings.forEach(b => {
-      if (!b.active) return;
-      const def = BUILDING_DEFS[b.type];
-      if (!def || !def.outputs) return;
-      def.outputs.forEach(o => {
-        rates[o.resource] = (rates[o.resource] || 0) + o.amount * def.baseProductionRate * b.level * b.efficiency * store.powerGrid.efficiency;
-      });
-    });
-    return rates;
-  }, [store.buildings, store.powerGrid.efficiency]);
+  // Production rates from ALL buildings — use store's computed rates which include all bonuses
+  // (mega project, prestige, research, worker, event, weather, etc.)
+  const allProductionRates = store.computedProductionRates;
 
-  // Consumption rates from ALL buildings (including extractors with fuel) — used for net rate calculations
-  // Note: Consumption does NOT include baseProductionRate (matching store calculation where inputs are consumed at input.amount * level * efficiency)
-  const allConsumptionRates = useMemo(() => {
-    const rates: Record<string, number> = {};
-    store.buildings.forEach(b => {
-      if (!b.active) return;
-      const def = BUILDING_DEFS[b.type];
-      if (!def || !def.inputs) return;
-      def.inputs.forEach(input => {
-        rates[input.resource] = (rates[input.resource] || 0) + input.amount * b.level * b.efficiency * store.powerGrid.efficiency;
-      });
-      // Also count fuel consumption for power plants
-      if (def.fuel && def.fuelRate) {
-        rates[def.fuel] = (rates[def.fuel] || 0) + def.fuelRate * b.level;
-      }
-    });
-    return rates;
-  }, [store.buildings, store.powerGrid.efficiency]);
+  // Consumption rates from ALL buildings — use store's computed rates which include all bonuses
+  const allConsumptionRates = store.computedConsumptionRates;
 
   // Consumption rates for factories only (kept for backward compat with factory-specific views)
-  // Note: Consumption does NOT include baseProductionRate (matching store calculation)
+  // Includes mega project and prestige bonuses
   const factoryConsumptionRates = useMemo(() => {
     const rates: Record<string, number> = {};
     factoryBuildings.forEach(b => {
@@ -200,11 +179,11 @@ export function FactoryPanel() {
       const def = BUILDING_DEFS[b.type];
       if (!def || !def.inputs) return;
       def.inputs.forEach(input => {
-        rates[input.resource] = (rates[input.resource] || 0) + input.amount * b.level * b.efficiency * store.powerGrid.efficiency;
+        rates[input.resource] = (rates[input.resource] || 0) + input.amount * b.level * b.efficiency * store.powerGrid.efficiency * productionBonusMultiplier;
       });
     });
     return rates;
-  }, [factoryBuildings, store.powerGrid.efficiency]);
+  }, [factoryBuildings, store.powerGrid.efficiency, productionBonusMultiplier]);
 
   // Aggregate rates by tier for flow diagram (includes all buildings for accurate tier 0/raw rates)
   const tierProductionSummary = useMemo(() => {
@@ -215,14 +194,14 @@ export function FactoryPanel() {
       3: { production: 0, consumption: 0, resources: new Set<string>() },
       4: { production: 0, consumption: 0, resources: new Set<string>() },
     };
-    Object.entries(allProductionRates).forEach(([res, rate]) => {
+    Object.entries(store.computedProductionRates).forEach(([res, rate]) => {
       const tier = getResourceTier(res as ResourceType);
       if (summary[tier]) {
         summary[tier].production += rate;
         summary[tier].resources.add(res);
       }
     });
-    Object.entries(allConsumptionRates).forEach(([res, rate]) => {
+    Object.entries(store.computedConsumptionRates).forEach(([res, rate]) => {
       const tier = getResourceTier(res as ResourceType);
       if (summary[tier]) {
         summary[tier].consumption += rate;
@@ -230,7 +209,7 @@ export function FactoryPanel() {
       }
     });
     return summary;
-  }, [allProductionRates, allConsumptionRates]);
+  }, [store.computedProductionRates, store.computedConsumptionRates]);
 
   // Factory overview stats
   const totalFactories = factoryBuildings.length;

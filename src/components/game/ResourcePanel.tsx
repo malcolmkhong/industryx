@@ -122,33 +122,28 @@ export function ResourcePanel() {
     return grouped;
   }, [store.buildings]);
 
-  // Production rates per resource (includes baseProductionRate to match store calculation)
+  // Production rates per resource — use store's computed rates which include all bonuses
+  // (mega project, prestige, research, worker, event, weather, etc.)
+  // Only include extractor-produced resources for the Raw Materials panel
   const productionRates = useMemo(() => {
-    const rates: Record<string, number> = {};
+    const extractorResources = new Set<string>();
     store.buildings.forEach(b => {
       if (!b.active) return;
       const def = BUILDING_DEFS[b.type];
       if (!def || def.category !== 'extractor' || !def.outputs) return;
-      def.outputs.forEach(o => {
-        rates[o.resource] = (rates[o.resource] || 0) + o.amount * def.baseProductionRate * b.level * b.efficiency * store.powerGrid.efficiency;
-      });
+      def.outputs.forEach(o => extractorResources.add(o.resource));
     });
-    return rates;
-  }, [store.buildings, store.powerGrid.efficiency]);
-
-  // Consumption rates (from factories)
-  const consumptionRates = useMemo(() => {
     const rates: Record<string, number> = {};
-    store.buildings.forEach(b => {
-      if (!b.active) return;
-      const def = BUILDING_DEFS[b.type];
-      if (!def || !def.inputs) return;
-      def.inputs.forEach(input => {
-        rates[input.resource] = (rates[input.resource] || 0) + input.amount * b.level * b.efficiency * store.powerGrid.efficiency;
-      });
+    Object.entries(store.computedProductionRates).forEach(([res, rate]) => {
+      if (extractorResources.has(res)) {
+        rates[res] = rate;
+      }
     });
     return rates;
-  }, [store.buildings, store.powerGrid.efficiency]);
+  }, [store.buildings, store.computedProductionRates]);
+
+  // Consumption rates — use store's computed rates which include all bonuses
+  const consumptionRates = store.computedConsumptionRates;
 
   // Resource flow data
   const unlimited = useMemo(() => hasUnlimitedStorage(store.megaProjects), [store.megaProjects]);
@@ -162,38 +157,42 @@ export function ResourcePanel() {
     }).filter(r => r.rate > 0 || r.amount > 0);
   }, [productionRates, store.resources, store.resourceCapacity, unlimited]);
 
-  // Extraction tier production summary for SVG flow
+  // Extraction tier production summary for SVG flow — uses store computed rates
   const tierProductionSummary = useMemo(() => {
     const summary: Record<string, { production: number; resources: Set<string> }> = {
       basic: { production: 0, resources: new Set<string>() },
       advanced: { production: 0, resources: new Set<string>() },
       specialized: { production: 0, resources: new Set<string>() },
     };
-    // Basic extractors produce basic tier resources (include baseProductionRate)
+    // Basic extractors produce basic tier resources
     extractorBuildings.filter(b => b.active && BASIC_EXTRACTORS.includes(b.type as ExtractorType)).forEach(b => {
       const def = BUILDING_DEFS[b.type];
       if (!def?.outputs) return;
       def.outputs.forEach(o => {
-        const rate = o.amount * def.baseProductionRate * b.level * b.efficiency * store.powerGrid.efficiency;
-        summary.basic.production += rate;
-        summary.basic.resources.add(o.resource);
+        const rate = store.computedProductionRates[o.resource] ?? 0;
+        if (rate > 0) {
+          summary.basic.production += rate;
+          summary.basic.resources.add(o.resource);
+        }
       });
     });
-    // Advanced extractors (include baseProductionRate)
+    // Advanced extractors
     extractorBuildings.filter(b => b.active && ADVANCED_EXTRACTORS.includes(b.type as ExtractorType)).forEach(b => {
       const def = BUILDING_DEFS[b.type];
       if (!def?.outputs) return;
       def.outputs.forEach(o => {
-        const rate = o.amount * def.baseProductionRate * b.level * b.efficiency * store.powerGrid.efficiency;
-        summary.advanced.production += rate;
-        summary.advanced.resources.add(o.resource);
-        // Advanced resources also count as specialized
-        summary.specialized.production += rate * 0.3;
-        summary.specialized.resources.add(o.resource);
+        const rate = store.computedProductionRates[o.resource] ?? 0;
+        if (rate > 0) {
+          summary.advanced.production += rate;
+          summary.advanced.resources.add(o.resource);
+          // Advanced resources also count as specialized
+          summary.specialized.production += rate * 0.3;
+          summary.specialized.resources.add(o.resource);
+        }
       });
     });
     return summary;
-  }, [extractorBuildings, store.powerGrid.efficiency]);
+  }, [extractorBuildings, store.computedProductionRates]);
 
   // ─── Overview stats ─────────────────────────────────────────────────────
 

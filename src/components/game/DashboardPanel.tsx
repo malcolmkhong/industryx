@@ -50,19 +50,9 @@ export function DashboardPanel() {
       .slice(0, 6);
   }, [store.resources, store.resourceCapacity]);
 
-  // Production rates - compute per resource
-  const productionRates = useMemo(() => {
-    const rates: Record<string, number> = {};
-    store.buildings.forEach(b => {
-      if (!b.active) return;
-      const def = BUILDING_DEFS[b.type];
-      if (!def || !def.outputs) return;
-      def.outputs.forEach(o => {
-        rates[o.resource] = (rates[o.resource] || 0) + o.amount * b.level * b.efficiency * store.powerGrid.efficiency;
-      });
-    });
-    return rates;
-  }, [store.buildings, store.powerGrid.efficiency]);
+  // Production rates — use store's computed rates which include all bonuses
+  // (mega project, prestige, research, worker, event, weather, etc.)
+  const productionRates = store.computedProductionRates;
 
   // Production rate summary items
   const topProductionRates = useMemo(() => {
