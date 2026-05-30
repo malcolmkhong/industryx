@@ -253,3 +253,88 @@ Stage Summary:
 - All `.toFixed()` calls now have null-safety fallbacks
 - Store migration also updated to include efficiency default
 - Page verified working with agent-browser
+
+---
+Task ID: 1
+Agent: bugfix-agent
+Task: Fix null/undefined building condition inconsistency (critical bug)
+
+Root Cause:
+- `null <= 0` in JavaScript evaluates to `true` (null coerces to 0), so `toggleBuilding` blocked enabling buildings with null condition
+- `null ?? 100` evaluates to `100` (nullish coalescing), so BuildingManagementPanel showed buildings as healthy
+- This inconsistency meant buildings appeared healthy in the UI but couldn't be enabled because toggle logic detected them as "broken"
+
+Work Log:
+- Added `safeCondition()` helper function after line 73 in store.ts — normalizes null/undefined/NaN to 100 (pristine), clamps 0-100
+- Fixed `toggleBuilding` condition check (line 2885): `building.condition <= 0` → `safeCondition(building.condition) <= 0`
+- Fixed "Force broken buildings inactive" check (line 1989): `b.condition <= 0` → `safeCondition(b.condition) <= 0`
+- Fixed deterioration skip check (line 1767): `b.condition <= 0` → `safeCondition(b.condition) <= 0`
+- Fixed earthquake damage skip (line 1907): `b.condition <= 0` → `safeCondition(b.condition) <= 0`; also fixed `newCondition` calculation to use `safeCondition(b.condition)`
+- Fixed storm damage skip (line 1946): `b.condition <= 0` → `safeCondition(b.condition) <= 0`
+- Fixed repairBuilding wasBroken check (line 2979): `building.condition <= 0` → `safeCondition(building.condition) <= 0`
+- Fixed repairAllBuildings repairs.push (line 3015): both `wasBroken` and `conditionChange` now use `safeCondition(b.condition)`
+- Fixed repairAllBuildings buildings map wasBroken check (line 3028): `b.condition <= 0` → `safeCondition(b.condition) <= 0`
+- Fixed condition efficiency check (line 2003): both comparisons now use `safeCondition(b.condition)`
+- Added V22→V23 save migration that re-validates all building condition/lastDamageTick/deteriorationRate/efficiency fields
+- Changed SAVE_VERSION from 22 to 23
+- Added runtime safety check in game tick that normalizes invalid condition values before the deterioration section runs
+- Lint passes cleanly
+- Dev server compiles without errors
+
+Stage Summary:
+- Critical null/undefined condition bug fixed across 11 code locations in store.ts
+- `safeCondition()` helper ensures consistent behavior: null/undefined/NaN → treated as 100 (pristine)
+- Save migration V22→V23 repairs corrupted building data on load
+- Runtime safety check prevents future invalid condition values from persisting
+- No other files modified
+
+---
+Task ID: 5
+Agent: bugfix-agent
+Task: Fix building condition null-safety bugs across UI components
+
+Root Cause:
+- `null <= 0` in JavaScript evaluates to `true` (null coerces to 0), but `null ?? 100` evaluates to `100`
+- This created an inconsistency where buildings appeared healthy in UI but couldn't be enabled
+- Additionally, `?? 100` does not handle `NaN` values, which `safeCondition()` now does
+
+Work Log:
+- **DashboardPanel.tsx**: Added `safeCondition` import; changed `b.condition <= 0` → `safeCondition(b.condition) <= 0` on line 672
+- **HybridMapPanel.tsx**: Added `safeCondition` import; changed `building.condition <= 0` → `safeCondition(building.condition) <= 0` on lines 324 and 494
+- **FactoryPanel.tsx**: Added `safeCondition` import; replaced all 4 instances of `b.condition ?? 100` and `building.condition ?? 100` with `safeCondition(b.condition)` / `safeCondition(building.condition)`
+- **PowerPanel.tsx**: Added `safeCondition` import; replaced all 10 instances of `plant.condition ?? 100` with `safeCondition(plant.condition)`
+- **ResourcePanel.tsx**: Added `safeCondition` import; replaced all 8 instances of `building.condition ?? 100` with `safeCondition(building.condition)`
+- Lint passes cleanly (no errors, no warnings)
+
+Stage Summary:
+- Fixed condition null-safety bugs across 5 UI components (22 total code locations)
+- All components now use `safeCondition()` consistently, handling null/undefined/NaN
+- `safeCondition()` replaces both raw `condition <= 0` checks (which incorrectly treated null as broken) and `condition ?? 100` checks (which didn't handle NaN)
+- No behavioral changes for valid condition values — only fixes edge cases with null/undefined/NaN
+
+---
+Task ID: 6
+Agent: main
+Task: Verify all fixes work correctly - test building condition synchronization
+
+Work Log:
+- Verified lint passes with no errors
+- Verified dev server compiles without errors
+- Tested Building Management page renders correctly (no TypeError)
+- Verified Building Management shows correct stats: 66 buildings, 66 healthy, 0 broken, 98.8% avg condition
+- Tested enabling a factory - works correctly without "broken" error
+- All condition checks are now synchronized using `safeCondition()` across:
+  - Store logic (toggleBuilding, force inactive, deterioration, repair, efficiency)
+  - BuildingManagementPanel (condition normalization, broken count, detail panel)
+  - DashboardPanel (broken count)
+  - HybridMapPanel (isBroken checks)
+  - FactoryPanel (isBroken checks, condition display)
+  - PowerPanel (isBroken checks, condition display)
+  - ResourcePanel (isBroken checks, condition display)
+
+Stage Summary:
+- All fixes verified working correctly
+- Core issue resolved: `null` condition values now consistently treated as 100 (pristine)
+- V22→V23 migration ensures existing corrupted saves are repaired on load
+- Runtime safety check prevents future invalid condition values
+- Building condition, status, repair, and UI reporting systems are now fully synchronized

@@ -51,6 +51,13 @@ export interface BuildingInstance {
   regionId?: string;   // Which region this building is placed in
 }
 
+// Safe condition value - ensures condition is always a valid number (0-100)
+// null/undefined/NaN are treated as 100 (pristine), consistent with UI normalization
+export function safeCondition(condition: number | null | undefined): number {
+  if (condition == null || !Number.isFinite(condition)) return 100;
+  return Math.max(0, Math.min(100, condition));
+}
+
 // Condition thresholds helper
 export function getConditionStatus(condition: number): BuildingConditionStatus {
   if (condition >= 100) return 'pristine';

@@ -13,7 +13,7 @@ import {
   Gauge, Plug, Fuel, Activity,
   CircleAlert, Minus, Lock, Lightbulb, TrendingUp, Wrench
 } from 'lucide-react';
-import { PowerPlantType, BuildingInstance, getConditionColor } from '@/lib/game/types';
+import { PowerPlantType, BuildingInstance, getConditionColor, safeCondition } from '@/lib/game/types';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 
 const POWER_PLANT_TYPES: PowerPlantType[] = ['coalGenerator', 'solarPanel', 'windTurbine', 'nuclearReactor', 'fusionReactor', 'antimatterPowerPlant'];
@@ -802,28 +802,28 @@ export function PowerPanel() {
                       <div className="flex items-start gap-3">
                         <div className="flex flex-col items-center gap-1.5">
                           <button
-                            onClick={() => { if ((plant.condition ?? 100) > 0) handleToggle(plant.id); }}
-                            disabled={(plant.condition ?? 100) <= 0}
+                            onClick={() => { if ((safeCondition(plant.condition)) > 0) handleToggle(plant.id); }}
+                            disabled={(safeCondition(plant.condition)) <= 0}
                             className={`text-xl transition-transform duration-200 hover:scale-110 ${
-                              (plant.condition ?? 100) <= 0 ? 'opacity-30 cursor-not-allowed' : plant.active ? 'opacity-100' : 'grayscale opacity-50'
+                              (safeCondition(plant.condition)) <= 0 ? 'opacity-30 cursor-not-allowed' : plant.active ? 'opacity-100' : 'grayscale opacity-50'
                             }`}
-                            title={(plant.condition ?? 100) <= 0 ? 'Broken! Repair first' : plant.active ? 'Click to disable' : 'Click to enable'}
+                            title={(safeCondition(plant.condition)) <= 0 ? 'Broken! Repair first' : plant.active ? 'Click to disable' : 'Click to enable'}
                           >
                             {def.emoji}
                           </button>
                           <button
-                            onClick={() => { if ((plant.condition ?? 100) > 0) handleToggle(plant.id); }}
-                            disabled={(plant.condition ?? 100) <= 0}
+                            onClick={() => { if ((safeCondition(plant.condition)) > 0) handleToggle(plant.id); }}
+                            disabled={(safeCondition(plant.condition)) <= 0}
                             className={`w-6 h-6 rounded-full flex items-center justify-center border transition-all ${
-                              (plant.condition ?? 100) <= 0
+                              (safeCondition(plant.condition)) <= 0
                                 ? 'border-red-500/30 bg-red-900/20 text-red-400 cursor-not-allowed'
                                 : plant.active
                                   ? 'border-green-500/50 bg-green-900/20 text-green-400'
                                   : 'border-gray-700 bg-gray-800 text-gray-500'
                             }`}
-                            title={(plant.condition ?? 100) <= 0 ? 'Broken! Repair first' : plant.active ? 'Disable' : 'Enable'}
+                            title={(safeCondition(plant.condition)) <= 0 ? 'Broken! Repair first' : plant.active ? 'Disable' : 'Enable'}
                           >
-                            {(plant.condition ?? 100) <= 0 ? <span className="text-[8px]">💀</span> : plant.active ? <Power className="w-3 h-3" /> : <PowerOff className="w-3 h-3" />}
+                            {(safeCondition(plant.condition)) <= 0 ? <span className="text-[8px]">💀</span> : plant.active ? <Power className="w-3 h-3" /> : <PowerOff className="w-3 h-3" />}
                           </button>
                         </div>
 
@@ -833,12 +833,12 @@ export function PowerPanel() {
                             <Badge variant="outline" className="text-[9px] border-yellow-600/50 text-yellow-400 px-1.5 py-0">
                               Lv.{plant.level}
                             </Badge>
-                            {!plant.active && (plant.condition ?? 100) <= 0 && (
+                            {!plant.active && (safeCondition(plant.condition)) <= 0 && (
                               <Badge variant="outline" className="text-[9px] border-red-500/50 text-red-400 bg-red-900/30 px-1.5 py-0 animate-pulse">
                                 BROKEN
                               </Badge>
                             )}
-                            {!plant.active && (plant.condition ?? 100) > 0 && (
+                            {!plant.active && (safeCondition(plant.condition)) > 0 && (
                               <Badge variant="outline" className="text-[9px] border-gray-600 text-gray-500 px-1.5 py-0">
                                 OFFLINE
                               </Badge>
@@ -905,9 +905,9 @@ export function PowerPanel() {
 
                         <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
                           {/* Repair button when damaged */}
-                          {(plant.condition ?? 100) < 100 && (() => {
+                          {(safeCondition(plant.condition)) < 100 && (() => {
                             const baseCost = def.baseCost.find(c => c.resource === 'money')?.amount ?? 100;
-                            const rCost = Math.max(1, Math.floor(baseCost * (100 - (plant.condition ?? 100)) / 100 * plant.level));
+                            const rCost = Math.max(1, Math.floor(baseCost * (100 - (safeCondition(plant.condition))) / 100 * plant.level));
                             const canR = store.money >= rCost;
                             return (
                               <Button

@@ -14,7 +14,7 @@ import {
   Gauge, Box,
   Pickaxe, Sparkles, X, Search, Wrench,
 } from 'lucide-react';
-import { FactoryType, ResourceType, getConditionStatus, getConditionColor } from '@/lib/game/types';
+import { FactoryType, ResourceType, getConditionStatus, getConditionColor, safeCondition } from '@/lib/game/types';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
 
@@ -214,10 +214,10 @@ export function FactoryPanel() {
   // Factory overview stats
   const totalFactories = factoryBuildings.length;
   const activeFactories = factoryBuildings.filter(b => b.active).length;
-  const brokenFactories = factoryBuildings.filter(b => (b.condition ?? 100) <= 0).length;
-  const damagedFactories = factoryBuildings.filter(b => (b.condition ?? 100) < 100 && (b.condition ?? 100) > 0).length;
+  const brokenFactories = factoryBuildings.filter(b => (safeCondition(b.condition)) <= 0).length;
+  const damagedFactories = factoryBuildings.filter(b => (safeCondition(b.condition)) < 100 && (safeCondition(b.condition)) > 0).length;
   const totalRepairCost = factoryBuildings.reduce((sum, b) => {
-    const condition = b.condition ?? 100;
+    const condition = safeCondition(b.condition);
     if (condition >= 100) return sum;
     const def = BUILDING_DEFS[b.type];
     const baseCost = def?.baseCost.find(c => c.resource === 'money')?.amount ?? 100;
@@ -895,8 +895,8 @@ export function FactoryPanel() {
                             }))
                           : [];
                         const eff = building.efficiency * store.powerGrid.efficiency;
-                        const isBroken = (building.condition ?? 100) <= 0;
-                        const condition = building.condition ?? 100;
+                        const isBroken = (safeCondition(building.condition)) <= 0;
+                        const condition = safeCondition(building.condition);
                         const conditionStatus = getConditionStatus(condition);
                         const conditionColor = getConditionColor(condition);
                         const baseRepairCost = def.baseCost.find(c => c.resource === 'money')?.amount ?? 100;

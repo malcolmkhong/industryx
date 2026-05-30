@@ -11,6 +11,7 @@ import {
   getConditionStatusLabel,
   MaintenanceLogEntry,
   RegionId,
+  safeCondition,
 } from '@/lib/game/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -88,7 +89,7 @@ function getCategoryIcon(cat: string): React.ReactNode {
 
 // ─── Helper: get repair cost for a building ──────────────────────────────────
 function getRepairCost(b: BuildingInstance): number {
-  const condition = b.condition ?? 100;
+  const condition = safeCondition(b.condition);
   if (condition >= 100) return 0;
   const def = BUILDING_DEFS[b.type];
   if (!def) return 0;
@@ -178,14 +179,14 @@ export function BuildingManagementPanel() {
       const def = BUILDING_DEFS[b.type];
       if (!def) return null;
       const repairCost = getRepairCost(b);
-      const status = getConditionStatus(b.condition);
+      const status = getConditionStatus(safeCondition(b.condition));
       const regionName = getRegionName(b.regionId, mapRegions);
       return {
         ...b,
-        // Normalize potentially missing fields from old saves
-        efficiency: b.efficiency ?? 0,
-        condition: b.condition ?? 100,
-        deteriorationRate: b.deteriorationRate ?? 0.01,
+        // Normalize potentially missing/invalid fields from old saves
+        efficiency: b.efficiency != null && Number.isFinite(b.efficiency) ? b.efficiency : 0,
+        condition: safeCondition(b.condition),
+        deteriorationRate: b.deteriorationRate != null && Number.isFinite(b.deteriorationRate) ? b.deteriorationRate : 0.01,
         lastDamageTick: b.lastDamageTick ?? 0,
         def,
         repairCost,
@@ -257,7 +258,7 @@ export function BuildingManagementPanel() {
     const needMaintenance = buildingData.filter(b => b.condition >= 25 && b.condition < 75).length;
     const critical = buildingData.filter(b => b.condition >= 1 && b.condition < 25).length;
     const broken = buildingData.filter(b => b.condition <= 0).length;
-    const avgCondition = total > 0 ? buildingData.reduce((sum, b) => sum + b.condition, 0) / total : 0;
+    const avgCondition = total > 0 ? buildingData.reduce((sum, b) => sum + (Number.isFinite(b.condition) ? b.condition : 100), 0) / total : 0;
     const totalRepairCost = buildingData.reduce((sum, b) => sum + b.repairCost, 0);
     const selfRepairActive = store.automationUnlocks.find(a => a.type === 'selfRepair' && a.active);
     const buildingsWaiting = buildingData.filter(b => b.condition < 100).length;
@@ -374,7 +375,7 @@ export function BuildingManagementPanel() {
   // ─── Deterioration factors for detail panel ───────────────────────────────
   const getDeteriorationFactors = (b: typeof buildingData[0]) => {
     const def = b.def;
-    const baseRate = b.deteriorationRate ?? 0.01;
+    const baseRate = b.deteriorationRate != null && Number.isFinite(b.deteriorationRate) ? b.deteriorationRate : 0.01;
     const ageInTicks = store.gameTick - (b.placedAt ?? 0);
     const ageFactor = 1 + Math.min(2, ageInTicks / 100000);
     const weatherFactor = store.weather.current === 'stormy' ? 2.5
@@ -1056,7 +1057,7 @@ export function BuildingManagementPanel() {
               </Badge>
             ) : (
               <Badge variant="outline" className="bg-red-900/20 text-red-400 border-red-500/30 text-[10px]">
-                <XCircle className="w-3 h-3 mr-1" /> {b.condition <= 0 ? 'Broken' : 'Inactive'}
+                <XCircle className="w-3 h-3 mr-1" /> {safeCondition(b.condition) <= 0 ? 'Broken' : 'Inactive'}
               </Badge>
             )}
             <span className="text-xs text-gray-400 font-mono">
@@ -1134,15 +1135,15 @@ export function BuildingManagementPanel() {
           </Button>
           <Button
             className={`w-full h-9 text-xs border ${
-              (b.condition ?? 100) <= 0 && !b.active
+              safeCondition(b.condition) <= 0 && !b.active
                 ? 'bg-red-900/20 text-red-400 border-red-500/30 cursor-not-allowed opacity-60'
                 : 'bg-gray-800/40 hover:bg-gray-700/50 text-gray-300 border-gray-600/30'
             }`}
             onClick={() => store.toggleBuilding(b.id)}
-            disabled={(b.condition ?? 100) <= 0 && !b.active}
+            disabled={safeCondition(b.condition) <= 0 && !b.active}
           >
-            {(b.condition ?? 100) <= 0 && !b.active ? <XCircle className="w-3.5 h-3.5 mr-1" /> : b.active ? <XCircle className="w-3.5 h-3.5 mr-1" /> : <CheckCircle2 className="w-3.5 h-3.5 mr-1" />}
-            {(b.condition ?? 100) <= 0 && !b.active ? 'Broken — Repair First' : b.active ? 'Deactivate' : 'Activate'}
+            {safeCondition(b.condition) <= 0 && !b.active ? <XCircle className="w-3.5 h-3.5 mr-1" /> : b.active ? <XCircle className="w-3.5 h-3.5 mr-1" /> : <CheckCircle2 className="w-3.5 h-3.5 mr-1" />}
+            {safeCondition(b.condition) <= 0 && !b.active ? 'Broken — Repair First' : b.active ? 'Deactivate' : 'Activate'}
           </Button>
         </div>
       </div>

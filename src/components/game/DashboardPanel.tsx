@@ -14,7 +14,7 @@ import {
   Database, Wrench, Globe, ArrowRight, Trophy, Package,
   Hammer, CheckCircle2, XCircle, Flame, CloudSun, Pin, X as XIcon
 } from 'lucide-react';
-import { BuildingType, ResourceType, WeatherType, getConditionStatus, getConditionColor } from '@/lib/game/types';
+import { BuildingType, ResourceType, WeatherType, getConditionStatus, getConditionColor, safeCondition } from '@/lib/game/types';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function DashboardPanel() {
@@ -669,7 +669,7 @@ export function DashboardPanel() {
             const wornCount = buildings.filter(b => b.condition >= 50 && b.condition < 75).length;
             const damagedCount = buildings.filter(b => b.condition >= 25 && b.condition < 50).length;
             const criticalCount = buildings.filter(b => b.condition >= 1 && b.condition < 25).length;
-            const brokenCount = buildings.filter(b => b.condition <= 0).length;
+            const brokenCount = buildings.filter(b => safeCondition(b.condition) <= 0).length;
             const damagedBuildings = buildings.filter(b => b.condition < 100);
 
             let totalRepairCost = 0;

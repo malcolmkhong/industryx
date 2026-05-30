@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo, memo } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
 import { BUILDING_DEFS, RESOURCE_META, INITIAL_REGIONS, BUILDING_FOOTPRINTS, getBuildingFootprint } from '@/lib/game/data';
-import { Region, RegionId, GridTile, LogisticsRoute, MapViewLayer, MapViewMode, BuildingType, BuildingInstance, ResourceType, getConditionColor, getConditionStatus } from '@/lib/game/types';
+import { Region, RegionId, GridTile, LogisticsRoute, MapViewLayer, MapViewMode, BuildingType, BuildingInstance, ResourceType, getConditionColor, getConditionStatus, safeCondition } from '@/lib/game/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -321,7 +321,7 @@ const BuildingTile = memo(function BuildingTile({
 
   const effColor = getEffColor(building.efficiency);
   const condColor = getConditionColor(building.condition);
-  const isBroken = building.condition <= 0;
+  const isBroken = safeCondition(building.condition) <= 0;
   const needsRepair = building.condition < 50 && !isBroken;
   const categoryColor =
     def.category === 'extractor' ? '#92400e' :
@@ -491,7 +491,7 @@ function SelectedBuildingDetail({
   const canAffordRepair = store.money >= repairCost && building.condition < 100;
   const condStatus = getConditionStatus(building.condition);
   const condColor = getConditionColor(building.condition);
-  const isBroken = building.condition <= 0;
+  const isBroken = safeCondition(building.condition) <= 0;
 
   const categoryColor =
     def.category === 'extractor' ? 'text-amber-400' :

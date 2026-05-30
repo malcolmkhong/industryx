@@ -13,7 +13,7 @@ import {
   WeatherType, PayoutConfig, PayoutRecord, Drone, DroneMission,
   Region, RegionId, GridTile, LogisticsRoute, MapViewLayer, MapViewMode, BuildingFootprint,
   BuildingConditionStatus, getConditionStatus, getConditionColor, getConditionStatusLabel,
-  MaintenanceLogEntry,
+  MaintenanceLogEntry, safeCondition,
 } from './types';
 import {
   BUILDING_DEFS, TRANSPORT_DEFS, WORKER_DEFS, INITIAL_MARKET,
@@ -28,7 +28,7 @@ import {
 import { soundEngine } from './soundEngine';
 
 // --- Save Version ---
-const SAVE_VERSION = 22;
+const SAVE_VERSION = 23;
 
 // --- Utility Functions ---
 function generateId(): string {
@@ -1201,6 +1201,19 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
     }
   }
 
+  // V22 → V23: Re-validate all building condition fields (fix null/undefined/NaN)
+  if (version < 23) {
+    if (Array.isArray(state.buildings)) {
+      state.buildings = (state.buildings as BuildingInstance[]).map((b: BuildingInstance) => ({
+        ...b,
+        condition: b.condition == null || !Number.isFinite(b.condition) ? 100 : Math.max(0, Math.min(100, b.condition)),
+        lastDamageTick: b.lastDamageTick ?? 0,
+        deteriorationRate: b.deteriorationRate == null || !Number.isFinite(b.deteriorationRate) ? 0.01 : b.deteriorationRate,
+        efficiency: b.efficiency == null || !Number.isFinite(b.efficiency) ? 1 : Math.max(0, Math.min(2, b.efficiency)),
+      }));
+    }
+  }
+
   state._version = SAVE_VERSION;
   return state;
 }
@@ -1757,6 +1770,14 @@ export const useGameStore = create<GameStore>()(
         // Process buildings
         let updatedBuildings = state.buildings.map(b => ({ ...b }));
 
+        // === Runtime Safety: Fix any buildings with invalid condition values ===
+        updatedBuildings = updatedBuildings.map(b => {
+          if (b.condition == null || !Number.isFinite(b.condition)) {
+            return { ...b, condition: 100, lastDamageTick: b.lastDamageTick ?? 0, deteriorationRate: b.deteriorationRate ?? 0.01 };
+          }
+          return b;
+        });
+
         // === Building Condition Deterioration (every 10 ticks) ===
         let selfRepairActive = state.automationUnlocks.find(a => a.type === 'selfRepair' && a.active);
         let selfRepairCostTotal = 0;
@@ -1764,7 +1785,7 @@ export const useGameStore = create<GameStore>()(
 
         if (newTick % 10 === 0) {
           updatedBuildings = updatedBuildings.map(b => {
-            if (!b.active || b.condition <= 0) return b;
+            if (!b.active || safeCondition(b.condition) <= 0) return b;
 
             const def = BUILDING_DEFS[b.type];
             if (!def) return b;
@@ -1904,9 +1925,9 @@ export const useGameStore = create<GameStore>()(
               // Earthquake: damage all buildings by 5-15 condition points
               const damageAmount = 5 + Math.random() * 10;
               updatedBuildings = updatedBuildings.map(b => {
-                if (b.condition <= 0) return b;
+                if (safeCondition(b.condition) <= 0) return b;
                 const def = BUILDING_DEFS[b.type];
-                const newCondition = Math.max(0, Math.round((b.condition - damageAmount) * 100) / 100);
+                const newCondition = Math.max(0, Math.round((safeCondition(b.condition) - damageAmount) * 100) / 100);
                 if (newCondition === 0 && b.condition > 0 && def) {
                   notifications.push({ id: generateId(), type: 'error', message: `💥 ${def.emoji} ${def.name} BROKEN by earthquake!`, gameTick: newTick, read: false });
                   maintenanceLogEntries.push({
@@ -1943,7 +1964,7 @@ export const useGameStore = create<GameStore>()(
           if (state.weather.current === 'stormy') {
             const stormDamage = 3 + Math.random() * 7;
             updatedBuildings = updatedBuildings.map(b => {
-              if (b.condition <= 0) return b;
+              if (safeCondition(b.condition) <= 0) return b;
               const def = BUILDING_DEFS[b.type];
               if (!def) return b;
               // Outdoor buildings: extractors and solar panels
@@ -1986,7 +2007,7 @@ export const useGameStore = create<GameStore>()(
 
         // Force broken buildings inactive (condition = 0)
         updatedBuildings = updatedBuildings.map(b => {
-          if (b.condition <= 0 && b.active) {
+          if (safeCondition(b.condition) <= 0 && b.active) {
             return { ...b, active: false, efficiency: 0 };
           }
           return b;
@@ -2000,7 +2021,7 @@ export const useGameStore = create<GameStore>()(
           let efficiency = b.efficiency * effectivePowerEfficiency * eventProductionMultiplier * weatherProductionMultiplier;
 
           // Condition affects efficiency: below 75%, proportional penalty
-          const conditionEfficiency = b.condition >= 75 ? 1.0 : b.condition / 75;
+          const conditionEfficiency = safeCondition(b.condition) >= 75 ? 1.0 : safeCondition(b.condition) / 75;
           efficiency *= conditionEfficiency;
           
           if (def.category === 'extractor') efficiency *= (1 + extractorSpeedBonus + megaExtractionBonus);
@@ -2882,7 +2903,7 @@ export const useGameStore = create<GameStore>()(
         const def = BUILDING_DEFS[building.type];
 
         // Prevent enabling broken buildings (condition <= 0) — must repair first
-        if (building.condition <= 0 && !building.active) {
+        if (safeCondition(building.condition) <= 0 && !building.active) {
           get().addNotification('warning', `⚡ ${def?.name ?? 'Building'} is broken! Repair it first before enabling.`);
           return;
         }
@@ -2976,7 +2997,7 @@ export const useGameStore = create<GameStore>()(
           return;
         }
 
-        const wasBroken = building.condition <= 0;
+        const wasBroken = safeCondition(building.condition) <= 0;
         const conditionChange = 100 - building.condition;
         set({
           money: state.money - repairCost,
@@ -3012,7 +3033,7 @@ export const useGameStore = create<GameStore>()(
           const baseRepairCost = def.baseCost.find(c => c.resource === 'money')?.amount ?? 100;
           const repairCost = Math.max(1, Math.floor(baseRepairCost * (100 - b.condition) / 100 * b.level));
           totalCost += repairCost;
-          repairs.push({ id: b.id, wasBroken: b.condition <= 0, conditionChange: 100 - b.condition, name: def.name, cost: repairCost });
+          repairs.push({ id: b.id, wasBroken: safeCondition(b.condition) <= 0, conditionChange: 100 - safeCondition(b.condition), name: def.name, cost: repairCost });
         }
 
         if (state.money < totalCost) {
@@ -3025,7 +3046,7 @@ export const useGameStore = create<GameStore>()(
           money: state.money - totalCost,
           buildings: state.buildings.map(b => {
             if (b.condition >= 100) return b;
-            const wasBroken = b.condition <= 0;
+            const wasBroken = safeCondition(b.condition) <= 0;
             return { ...b, condition: 100, active: wasBroken ? true : b.active, efficiency: wasBroken ? 1 : b.efficiency };
           }),
         });
