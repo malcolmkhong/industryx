@@ -26,7 +26,7 @@ import {
 import { soundEngine } from './soundEngine';
 
 // --- Save Version ---
-const SAVE_VERSION = 18;
+const SAVE_VERSION = 19;
 
 // --- Utility Functions ---
 function generateId(): string {
@@ -756,6 +756,177 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
       const existingRouteKeys = new Set(
         routes.map(r => `${r.fromBuildingId}->${r.toBuildingId}:${r.carriesResource}`)
       );
+
+      for (const consumer of activeBuildings) {
+        const consumerDef = BUILDING_DEFS[consumer.type];
+        if (!consumerDef?.inputs) continue;
+
+        for (const input of consumerDef.inputs) {
+          if (input.resource === 'money') continue;
+          const resource = input.resource as ResourceType;
+
+          const producers = activeBuildings.filter((b: BuildingInstance) => {
+            const bDef = BUILDING_DEFS[b.type];
+            return bDef?.outputs?.some(o => o.resource === resource);
+          });
+
+          let closestProducer: BuildingInstance | null = null;
+          let closestDist = Infinity;
+
+          for (const producer of producers) {
+            if (producer.id === consumer.id) continue;
+            const routeKey = `${producer.id}->${consumer.id}:${resource}`;
+            if (existingRouteKeys.has(routeKey)) continue;
+
+            const sameRegion = producer.regionId === consumer.regionId && producer.regionId !== undefined;
+            let dist: number;
+            if (sameRegion) {
+              dist = Math.abs((producer.gridRow ?? 0) - (consumer.gridRow ?? 0)) +
+                     Math.abs((producer.gridCol ?? 0) - (consumer.gridCol ?? 0));
+            } else {
+              dist = 100;
+            }
+
+            if (dist < closestDist) {
+              closestDist = dist;
+              closestProducer = producer;
+            }
+          }
+
+          if (closestProducer) {
+            const sameRegion = closestProducer.regionId === consumer.regionId && consumer.regionId !== undefined;
+            let routeType: LogisticsRoute['routeType'];
+            let efficiency: number;
+
+            if (!sameRegion) {
+              routeType = 'drone';
+              efficiency = 0.5;
+            } else if (closestDist <= 3) {
+              routeType = 'conveyor';
+              efficiency = Math.max(0.3, 1 - closestDist * 0.05);
+            } else if (closestDist <= 8) {
+              routeType = 'truck';
+              efficiency = Math.max(0.3, 1 - closestDist * 0.05);
+            } else if (closestDist <= 15) {
+              routeType = 'train';
+              efficiency = Math.max(0.3, 1 - closestDist * 0.05);
+            } else {
+              routeType = 'drone';
+              efficiency = Math.max(0.3, 1 - closestDist * 0.05);
+            }
+
+            const producerDef = BUILDING_DEFS[closestProducer.type];
+            const outputEntry = producerDef?.outputs?.find(o => o.resource === resource);
+            const outputRate = outputEntry ? outputEntry.amount * (producerDef?.baseProductionRate ?? 1) : 1;
+
+            const routeKey = `${closestProducer.id}->${consumer.id}:${resource}`;
+            existingRouteKeys.add(routeKey);
+
+            routes.push({
+              id: Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
+              fromBuildingId: closestProducer.id,
+              toBuildingId: consumer.id,
+              carriesResource: resource,
+              throughput: outputRate * efficiency,
+              maxThroughput: outputRate * 2,
+              efficiency,
+              active: true,
+              routeType,
+            });
+          }
+        }
+      }
+
+      state.logisticsRoutes = routes;
+    }
+  }
+
+  // V18 → V19: Enlarged map grids — regenerate grids with new sizes
+  if (version < 19) {
+    // Regenerate all region grids with new larger sizes
+    const newRegions = INITIAL_REGIONS;
+    const newGrids: Record<string, GridTile[]> = {};
+    for (const region of newRegions) {
+      newGrids[region.id] = generateRegionGrid(region);
+    }
+
+    // Update mapRegions with new grid sizes (preserve unlock status)
+    if (Array.isArray(state.mapRegions)) {
+      const oldRegions = state.mapRegions as Region[];
+      state.mapRegions = newRegions.map(r => {
+        const old = oldRegions.find(o => o.id === r.id);
+        return { ...r, unlocked: old?.unlocked ?? r.unlocked };
+      });
+    } else {
+      state.mapRegions = newRegions.map(r => ({ ...r }));
+    }
+
+    // Replace grids with new larger ones
+    state.mapGrids = newGrids;
+
+    // Re-assign all existing buildings to the new grids
+    if (Array.isArray(state.buildings)) {
+      const buildings = state.buildings as BuildingInstance[];
+      const mapRegions = (state.mapRegions || INITIAL_REGIONS) as Region[];
+
+      // Build occupied cells tracker
+      const occupiedCellsMap: Record<string, Set<string>> = {};
+      for (const region of mapRegions) {
+        occupiedCellsMap[region.id] = new Set<string>();
+      }
+
+      // Reset all building positions
+      const updatedBuildings = buildings.map((b: BuildingInstance) => {
+        // Clear old position
+        return { ...b, gridRow: undefined, gridCol: undefined, regionId: undefined };
+      });
+
+      // Auto-assign buildings to regions and grid positions
+      for (const b of updatedBuildings) {
+        const assignment = autoAssignBuildingToMap(b.type, updatedBuildings, mapRegions, newGrids);
+        if (assignment) {
+          const footprint = getBuildingFootprint(b.type);
+          if (!occupiedCellsMap[assignment.regionId]) occupiedCellsMap[assignment.regionId] = new Set<string>();
+          for (let dr = 0; dr < footprint.height; dr++) {
+            for (let dc = 0; dc < footprint.width; dc++) {
+              occupiedCellsMap[assignment.regionId].add(`${assignment.gridRow + dr},${assignment.gridCol + dc}`);
+            }
+          }
+          b.regionId = assignment.regionId;
+          b.gridRow = assignment.gridRow;
+          b.gridCol = assignment.gridCol;
+        }
+      }
+
+      state.buildings = updatedBuildings;
+
+      // Update grid tiles to reflect occupied cells
+      for (const region of mapRegions) {
+        const grid = newGrids[region.id];
+        if (!grid) continue;
+        const regionBuildings = updatedBuildings.filter(
+          (b: BuildingInstance) => b.regionId === region.id && b.gridRow !== undefined && b.gridCol !== undefined
+        );
+        if (regionBuildings.length > 0) {
+          newGrids[region.id] = grid.map(t => {
+            for (const b of regionBuildings) {
+              const footprint = getBuildingFootprint(b.type);
+              if (t.row >= (b.gridRow ?? 0) && t.row < (b.gridRow ?? 0) + footprint.height &&
+                  t.col >= (b.gridCol ?? 0) && t.col < (b.gridCol ?? 0) + footprint.width) {
+                return { ...t, occupiedBy: b.id };
+              }
+            }
+            return t;
+          });
+        }
+      }
+
+      state.mapGrids = newGrids;
+
+      // Re-generate logistics routes
+      const activeBuildings = updatedBuildings.filter((b: BuildingInstance) => b.active);
+      const routes: LogisticsRoute[] = [];
+      const existingRouteKeys = new Set<string>();
 
       for (const consumer of activeBuildings) {
         const consumerDef = BUILDING_DEFS[consumer.type];
