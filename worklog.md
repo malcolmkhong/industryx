@@ -429,3 +429,57 @@ Stage Summary:
 - Power Generation Diagnostics section provides clear per-plant-type status indicators
 - Dashboard and Factory panels show alerts when power generation fails
 - Power system now fully functional: Coal Generator=16MW, Solar=~3.7MW, Wind=~9.2MW
+
+---
+Task ID: 9
+Agent: main
+Task: Expand Production Chains page to include all available factory chains
+
+Work Log:
+- Investigated all 66 buildings and their input/output relationships vs existing PRODUCTION_CHAINS
+- Identified missing resource from chains: `lithium` (produced by Quarry, consumed by Battery Factory and Alloy Forge)
+- Identified 5 missing production chains: Lithium→Battery, Hydrogen Fuel, Fiber Optics, Artifact Detection, Nano Materials
+- Fixed inaccurate chain steps in existing chains:
+  - Carbon: removed `battery` from steps (battery uses lithium, not just carbon)
+  - Plastic: added `water` dependency (Chemical Plant uses oil+water→plastic)
+  - Silicon: added `fossilFuel` step (Silicon Refinery uses sand+clay+fossilFuel→silicon)
+  - Copper: added `jewellery` destination (copperIngot used in Goldsmith)
+  - Titanium: removed `medicalTech` (added proper fossilFuel dependency)
+  - Advanced Alloy: added `lithium` dependency (Alloy Forge uses steel+lithium)
+  - Tungsten: added `limestone` step, removed `artifactDetector` (has own chain now)
+  - Insecticide: added `fertilizer` step (Insecticide Factory uses copper+limestone+fertilizer)
+  - Jewellery: changed `copper` to `copperIngot` (Goldsmith uses copperIngot, not raw copper)
+  - Warp Drive: replaced `gear` with `weapons` (Warp Drive Factory uses weapons)
+  - Antimatter: restructured to reflect actual building inputs (electronics, quantumPart, coolant, rareEarth)
+  - Plasma Core: restructured to reflect actual building inputs
+  - Mega Structure: added `bricks` and `robotics`, removed `gravel`/`limestone`
+  - Void Crystal: added `jewellery` step (Void Crystallizer uses jewellery)
+- Added 5 new production chains:
+  - Lithium (basic): lithium → carbon → battery
+  - Hydrogen Fuel (basic): water → carbon → fossilFuel → coolant
+  - Fiber Optics (industrial): sand → glass → copperWire → fiberOptics → neuralNetwork
+  - Artifact Detection (advanced): tungsten → battery → electronics → scanDrone → artifactDetector
+  - Nano Materials (hightech): advancedAlloy → quantumPart → neuralNetwork → nanoMaterial
+- Renamed "Glass" chain to "Glass & Fiber" for clarity
+- Total chains: 35 → 40 across 5 categories (Basic: 10, Industrial: 10, Advanced: 10, High-Tech: 7, Cosmic: 3)
+- Enhanced ProductionChainsHub UI with:
+  - Sort controls (Category, Progress, A-Z with toggle direction)
+  - Status filter pills (All, Active, Partial, Idle)
+  - Bottleneck detection with per-chain bottleneck indicators showing which step is blocked
+  - Building count per resource step (active/total buildings shown as pills)
+  - Per-step building producer info in expanded detail
+  - Detail panel with Required Buildings showing emoji, name, and active/total count
+  - Quick Actions section with missing building suggestions
+  - Category mini progress bars in global progress section
+  - Chain Coverage stats panel
+  - Improved flow visualization with chevron arrows between step pills
+- Lint passes cleanly with no errors
+- Dev server compiles without errors
+- Verified with agent-browser: 40 chains visible across all 5 categories, all features working
+
+Stage Summary:
+- PRODUCTION_CHAINS expanded from 35 to 40 chains
+- 5 new chains added covering previously missing production paths (lithium, hydrogen fuel, fiber optics, artifact detection, nano materials)
+- Multiple existing chains corrected to reflect actual building input/output relationships
+- ProductionChainsHub significantly enhanced with sorting, filtering, bottleneck detection, building info, and quick action suggestions
+- All 40 chains verified working in the UI
