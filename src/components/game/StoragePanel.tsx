@@ -116,16 +116,17 @@ export function StoragePanel() {
       const amount = store.resources[res] ?? 0;
       const capacity = store.resourceCapacity[res] ?? 100;
       const prodRate = store.computedProductionRates[res] ?? 0;
-      const consRate = store.computedConsumptionRates[res] ?? 0;
+      const consRate = store.computedActualConsumptionRates[res] ?? 0;
+      const demandRate = store.computedConsumptionRates[res] ?? 0;
       const netRate = prodRate - consRate;
       const fillPct = capacity > 0 ? (amount / capacity) * 100 : 0;
 
-      // Critical: Empty and being consumed
-      if (amount === 0 && consRate > 0) {
+      // Critical: Empty and being demanded
+      if (amount === 0 && demandRate > 0) {
         list.push({ resource: res, type: 'critical', message: `${RESOURCE_META[res].name} is depleted but still being consumed!`, severity: 4 });
       }
-      // Shortage: < 10% and being consumed
-      else if (fillPct > 0 && fillPct < 10 && consRate > 0) {
+      // Shortage: < 10% and being demanded
+      else if (fillPct > 0 && fillPct < 10 && demandRate > 0) {
         list.push({ resource: res, type: 'shortage', message: `${RESOURCE_META[res].name} is critically low (${fillPct.toFixed(0)}%)`, severity: 3 });
       }
       // Overflow: >= 95%
@@ -142,7 +143,7 @@ export function StoragePanel() {
     }
 
     return list.sort((a, b) => b.severity - a.severity);
-  }, [store.resources, store.resourceCapacity, store.computedProductionRates, store.computedConsumptionRates, allResources, unlimited]);
+  }, [store.resources, store.resourceCapacity, store.computedProductionRates, store.computedActualConsumptionRates, store.computedConsumptionRates, allResources, unlimited]);
 
   // ─── Filtered & Sorted Resources ──────────────────────────────────────────
   const filteredResources = useMemo(() => {
@@ -166,8 +167,8 @@ export function StoragePanel() {
       switch (sortMode) {
         case 'stock': return (store.resources[b] ?? 0) - (store.resources[a] ?? 0);
         case 'rate': {
-          const netA = (store.computedProductionRates[a] ?? 0) - (store.computedConsumptionRates[a] ?? 0);
-          const netB = (store.computedProductionRates[b] ?? 0) - (store.computedConsumptionRates[b] ?? 0);
+          const netA = (store.computedProductionRates[a] ?? 0) - (store.computedActualConsumptionRates[a] ?? 0);
+          const netB = (store.computedProductionRates[b] ?? 0) - (store.computedActualConsumptionRates[b] ?? 0);
           return netB - netA;
         }
         case 'capacity': {
@@ -185,7 +186,7 @@ export function StoragePanel() {
     }
 
     return groups;
-  }, [filteredResources, sortMode, store.resources, store.resourceCapacity, store.computedProductionRates, store.computedConsumptionRates]);
+  }, [filteredResources, sortMode, store.resources, store.resourceCapacity, store.computedProductionRates, store.computedActualConsumptionRates]);
 
   // ─── Summary Stats ────────────────────────────────────────────────────────
   const summaryStats = useMemo(() => {
@@ -224,9 +225,14 @@ export function StoragePanel() {
   }, []);
 
   // ─── Render Helpers ───────────────────────────────────────────────────────
-  const renderRateBadge = (rate: number) => {
+  const renderRateBadge = (rate: number, prodRate?: number, consRate?: number) => {
     if (rate > 0) return <span className="text-green-400 font-mono text-[10px]">+{formatNumber(rate)}/t</span>;
     if (rate < 0) return <span className="text-red-400 font-mono text-[10px]">{formatNumber(rate)}/t</span>;
+    // When net rate is 0 but the resource is being both produced and consumed (balanced flow),
+    // show "±0/t" in cyan to distinguish from idle resources which show "—"
+    if (prodRate !== undefined && consRate !== undefined && prodRate > 0 && consRate > 0) {
+      return <span className="text-cyan-400 font-mono text-[10px]">±0/t</span>;
+    }
     return <span className="text-gray-600 font-mono text-[10px]">—</span>;
   };
 
@@ -255,7 +261,7 @@ export function StoragePanel() {
     const amount = store.resources[res] ?? 0;
     const capacity = store.resourceCapacity[res] ?? 100;
     const prodRate = store.computedProductionRates[res] ?? 0;
-    const consRate = store.computedConsumptionRates[res] ?? 0;
+    const consRate = store.computedActualConsumptionRates[res] ?? 0;
     const netRate = prodRate - consRate;
     const fillPct = unlimited ? 0 : (capacity > 0 ? (amount / capacity) * 100 : 0);
     const upgradeLevel = store.storageUpgradeLevels[res] ?? 0;
@@ -302,8 +308,8 @@ export function StoragePanel() {
               </div>
               <div className={`${netRate >= 0 ? 'bg-green-900/10 border-green-800/30' : 'bg-orange-900/10 border-orange-800/30'} border rounded-lg p-2 text-center`}>
                 <div className="text-[9px] text-gray-500 uppercase tracking-wider">Net Balance</div>
-                <div className={`text-sm font-bold font-mono ${netRate > 0 ? 'text-green-400' : netRate < 0 ? 'text-red-400' : 'text-gray-500'}`}>
-                  {netRate > 0 ? '+' : ''}{formatNumber(netRate)}
+                <div className={`text-sm font-bold font-mono ${netRate > 0 ? 'text-green-400' : netRate < 0 ? 'text-red-400' : prodRate > 0 && consRate > 0 ? 'text-cyan-400' : 'text-gray-500'}`}>
+                  {netRate > 0 ? '+' : ''}{netRate === 0 && prodRate > 0 && consRate > 0 ? '±0' : formatNumber(netRate)}
                 </div>
                 <div className="text-[9px] text-gray-600">per tick</div>
               </div>
@@ -479,7 +485,7 @@ export function StoragePanel() {
     const amount = store.resources[res] ?? 0;
     const capacity = store.resourceCapacity[res] ?? 100;
     const prodRate = store.computedProductionRates[res] ?? 0;
-    const consRate = store.computedConsumptionRates[res] ?? 0;
+    const consRate = store.computedActualConsumptionRates[res] ?? 0;
     const netRate = prodRate - consRate;
     const fillPct = unlimited ? 0 : (capacity > 0 ? (amount / capacity) * 100 : 0);
     const isExpanded = expandedResource === res;
@@ -518,7 +524,7 @@ export function StoragePanel() {
 
           {/* Net Rate */}
           <div className="min-w-[60px] text-right">
-            {renderRateBadge(netRate)}
+            {renderRateBadge(netRate, prodRate, consRate)}
           </div>
 
           {/* Expand Chevron */}
@@ -613,7 +619,7 @@ export function StoragePanel() {
     const activeResources = allResources.filter(r => {
       const amount = store.resources[r] ?? 0;
       const prodRate = store.computedProductionRates[r] ?? 0;
-      const consRate = store.computedConsumptionRates[r] ?? 0;
+      const consRate = store.computedActualConsumptionRates[r] ?? 0;
       return amount > 0 || prodRate > 0 || consRate > 0;
     });
 
@@ -649,7 +655,7 @@ export function StoragePanel() {
                   const stepMeta = RESOURCE_META[step as ResourceType];
                   const stepActive = activeResources.includes(step as ResourceType);
                   const stepProd = store.computedProductionRates[step] ?? 0;
-                  const stepCons = store.computedConsumptionRates[step] ?? 0;
+                  const stepCons = store.computedActualConsumptionRates[step] ?? 0;
                   const stepNet = stepProd - stepCons;
 
                   return (
@@ -662,8 +668,8 @@ export function StoragePanel() {
                         <span>{stepMeta?.emoji}</span>
                         <span className={stepActive ? 'text-gray-200' : 'text-red-400/70'}>{stepMeta?.name ?? step}</span>
                         {stepActive && (
-                          <span className={`font-mono ${stepNet > 0 ? 'text-green-400' : stepNet < 0 ? 'text-red-400' : 'text-gray-600'}`}>
-                            {stepNet > 0 ? '+' : ''}{formatNumber(stepNet)}
+                          <span className={`font-mono ${stepNet > 0 ? 'text-green-400' : stepNet < 0 ? 'text-red-400' : stepProd > 0 && stepCons > 0 ? 'text-cyan-400' : 'text-gray-600'}`}>
+                            {stepNet > 0 ? '+' : ''}{stepNet === 0 && stepProd > 0 && stepCons > 0 ? '±0' : formatNumber(stepNet)}
                           </span>
                         )}
                       </div>
@@ -695,7 +701,7 @@ export function StoragePanel() {
         const activeInTier = resources.filter(r => {
           const amount = store.resources[r] ?? 0;
           const prodRate = store.computedProductionRates[r] ?? 0;
-          const consRate = store.computedConsumptionRates[r] ?? 0;
+          const consRate = store.computedActualConsumptionRates[r] ?? 0;
           return amount > 0 || prodRate > 0 || consRate > 0;
         });
 
@@ -721,8 +727,11 @@ export function StoragePanel() {
               <span className="text-[10px] font-mono text-gray-500">
                 {(() => {
                   const tierNet = activeInTier.reduce((sum, r) => {
-                    return sum + (store.computedProductionRates[r] ?? 0) - (store.computedConsumptionRates[r] ?? 0);
+                    return sum + (store.computedProductionRates[r] ?? 0) - (store.computedActualConsumptionRates[r] ?? 0);
                   }, 0);
+                  const tierProd = activeInTier.reduce((sum, r) => sum + (store.computedProductionRates[r] ?? 0), 0);
+                  const tierCons = activeInTier.reduce((sum, r) => sum + (store.computedActualConsumptionRates[r] ?? 0), 0);
+                  if (tierNet === 0 && tierProd > 0 && tierCons > 0) return '±0';
                   return tierNet >= 0 ? `+${formatNumber(tierNet)}` : formatNumber(tierNet);
                 })()}/t
               </span>

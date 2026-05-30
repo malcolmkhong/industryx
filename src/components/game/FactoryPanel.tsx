@@ -167,8 +167,9 @@ export function FactoryPanel() {
   // (mega project, prestige, research, worker, event, weather, etc.)
   const allProductionRates = store.computedProductionRates;
 
-  // Consumption rates from ALL buildings — use store's computed rates which include all bonuses
-  const allConsumptionRates = store.computedConsumptionRates;
+  // Consumption rates — actual consumption for net rate display, demand for input demand display
+  const allActualConsumptionRates = store.computedActualConsumptionRates;
+  const allDemandRates = store.computedConsumptionRates;
 
   // Consumption rates for factories only (kept for backward compat with factory-specific views)
   // Includes mega project and prestige bonuses
@@ -201,7 +202,7 @@ export function FactoryPanel() {
         summary[tier].resources.add(res);
       }
     });
-    Object.entries(store.computedConsumptionRates).forEach(([res, rate]) => {
+    Object.entries(store.computedActualConsumptionRates).forEach(([res, rate]) => {
       const tier = getResourceTier(res as ResourceType);
       if (summary[tier]) {
         summary[tier].consumption += rate;
@@ -209,7 +210,7 @@ export function FactoryPanel() {
       }
     });
     return summary;
-  }, [store.computedProductionRates, store.computedConsumptionRates]);
+  }, [store.computedProductionRates, store.computedActualConsumptionRates]);
 
   // Factory overview stats
   const totalFactories = factoryBuildings.length;
@@ -553,12 +554,12 @@ export function FactoryPanel() {
             const tierInfo = FLOW_TIERS[tierIdx];
             const tierNum = tierIdx; // 0=raw, 1=T1, 2=T2, 3=T3
             const relevantResources = Object.entries(allProductionRates)
-              .concat(Object.entries(allConsumptionRates).filter(([k]) => !allProductionRates[k]))
+              .concat(Object.entries(allDemandRates).filter(([k]) => !allProductionRates[k]))
               .filter(([res]) => getResourceTier(res as ResourceType) === tierNum)
               .reduce<Record<string, { prod: number; cons: number }>>((acc, [res, rate]) => {
                 if (!acc[res]) acc[res] = { prod: 0, cons: 0 };
                 if (allProductionRates[res]) acc[res].prod = allProductionRates[res];
-                if (allConsumptionRates[res]) acc[res].cons = allConsumptionRates[res];
+                if (allActualConsumptionRates[res]) acc[res].cons = allActualConsumptionRates[res];
                 return acc;
               }, {});
 
@@ -592,8 +593,8 @@ export function FactoryPanel() {
                             <span className="text-sm">{meta.emoji}</span>
                             <div className="min-w-0">
                               <div className="text-[10px] text-gray-300 font-medium truncate">{meta.name}</div>
-                              <div className={`text-[9px] font-mono ${net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : 'text-gray-600'}`}>
-                                {net > 0 ? `+${formatNumber(net)}/t` : net < 0 ? `${formatNumber(net)}/t` : '—'}
+                              <div className={`text-[9px] font-mono ${net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : prod > 0 && cons > 0 ? 'text-cyan-400' : 'text-gray-600'}`}>
+                                {net > 0 ? `+${formatNumber(net)}/t` : net < 0 ? `${formatNumber(net)}/t` : prod > 0 && cons > 0 ? '±0/t' : '—'}
                               </div>
                             </div>
                           </div>
@@ -1032,7 +1033,7 @@ export function FactoryPanel() {
                   {PRODUCTION_CHAINS[selectedChain].steps.map((resource, idx) => {
                     const meta = RESOURCE_META[resource as ResourceType];
                     const production = allProductionRates[resource] || 0;
-                    const consumption = allConsumptionRates[resource] || 0;
+                    const consumption = allActualConsumptionRates[resource] || 0;
                     const net = production - consumption;
                     const stock = store.resources[resource as ResourceType];
                     const capacity = store.resourceCapacity[resource as ResourceType];
@@ -1054,9 +1055,9 @@ export function FactoryPanel() {
                               <div className="flex items-center justify-between">
                                 <span className="text-[10px] text-gray-200 font-medium">{meta.name}</span>
                                 <span className={`text-[9px] font-mono ${
-                                  net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : 'text-gray-600'
+                                  net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : production > 0 && consumption > 0 ? 'text-cyan-400' : 'text-gray-600'
                                 }`}>
-                                  {net > 0 ? `+${formatNumber(net)}/t` : net < 0 ? `${formatNumber(net)}/t` : '—'}
+                                  {net > 0 ? `+${formatNumber(net)}/t` : net < 0 ? `${formatNumber(net)}/t` : production > 0 && consumption > 0 ? '±0/t' : '—'}
                                 </span>
                               </div>
                               {/* Stock bar */}
@@ -1190,7 +1191,8 @@ export function FactoryPanel() {
                   .map(([resource, rate]) => {
                     const meta = RESOURCE_META[resource];
                     const production = allProductionRates[resource] || 0;
-                    const net = production - rate;
+                    const actualCons = allActualConsumptionRates[resource] || 0;
+                    const net = production - actualCons;
                     const stock = store.resources[resource];
                     return (
                       <div key={resource} className="bg-[#0a0e17] rounded-lg p-2.5">
@@ -1206,8 +1208,8 @@ export function FactoryPanel() {
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-[9px] text-gray-500">Stock: {formatNumber(stock)}</span>
-                          <span className={`text-[9px] font-mono ${net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : 'text-gray-600'}`}>
-                            {net > 0 ? `+${formatNumber(net)}/t` : net < 0 ? `${formatNumber(net)}/t` : '—'} net
+                          <span className={`text-[9px] font-mono ${net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : production > 0 && rate > 0 ? 'text-cyan-400' : 'text-gray-600'}`}>
+                            {net > 0 ? `+${formatNumber(net)}/t` : net < 0 ? `${formatNumber(net)}/t` : production > 0 && rate > 0 ? '±0/t' : '—'} net
                           </span>
                         </div>
                       </div>

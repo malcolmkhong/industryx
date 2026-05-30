@@ -721,3 +721,30 @@ Stage Summary:
 - New Storage Management page fully implemented and functional
 - 4 files modified: StoragePanel.tsx (NEW), types.ts, GameSidebar.tsx, page.tsx
 - All required features delivered: editable capacity, real-time tracking, rate breakdown, production chains, dependency mapping, smart alerts, clean UI
+
+---
+Task ID: 13
+Agent: Main Developer
+Task: Fix materials showing "0/t" despite being actively produced (lithium, copper, wire, carbon, fossil fuel, circuit, aluminium, fiber optics)
+
+Work Log:
+- Root cause identified: `store.computedConsumptionRates` includes "attempted consumption" from stalled factories (factories that can't produce due to insufficient inputs still have their demand tracked). This makes net rate = production - demand appear 0 or negative even when stock is actually increasing.
+- Example: Wire Mill needs copper but copper stock is 0 → `computedConsRates.copper` += 0.5 (attempted demand) but `computedProdRates.copperWire` += 0 (can't produce). The copper wasn't actually consumed, but the net rate display incorrectly shows copper as balanced/negative.
+- Fix: Added `computedActualConsumptionRates` to the store that ONLY tracks consumption when factories CAN produce (actual consumption, not attempted demand).
+- Updated GameState type to include `computedActualConsumptionRates: Record<string, number>`
+- Updated store tick function:
+  * Added `computedActualConsRates` tracker alongside `computedConsRates`
+  * Actual consumption tracked when: factory canProduce (inputs consumed), power plant fuel consumed
+  * Demand consumption (computedConsRates) still tracks stalled factory demand for demand display
+- Updated all panel components to use `computedActualConsumptionRates` for net rate calculations:
+  * ResourcePanel: `consumptionRates = store.computedActualConsumptionRates` for net rates
+  * FactoryPanel: `allActualConsumptionRates` for net rates, `allDemandRates` for input demand display
+  * StoragePanel: All net rate calculations use `computedActualConsumptionRates`
+  * ResourceFlowPanel: Net rate uses `computedActualConsumptionRates`, demand display keeps `computedConsumptionRates`
+  * AIAdvisorPanel: Keeps `computedConsumptionRates` for demand analysis (intentionally includes stalled demand for advisory purposes)
+- DashboardPanel doesn't use consumption rates, no change needed
+
+Stage Summary:
+- Materials like copper, lithium, wire, carbon, fossil fuel, circuit, aluminium, fiber optics now correctly show positive net rates when stock is increasing
+- The distinction between "actual consumption" and "demand" is now properly separated across all panels
+- 6 files modified: types.ts, store.ts, ResourcePanel.tsx, FactoryPanel.tsx, StoragePanel.tsx, ResourceFlowPanel.tsx

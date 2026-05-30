@@ -600,6 +600,7 @@ function createInitialState(): GameState {
     notifications: [],
     computedProductionRates: {},
     computedConsumptionRates: {},
+    computedActualConsumptionRates: {},
   };
 }
 
@@ -730,6 +731,7 @@ export const useGameStore = create<GameStore>()(
         // Computed rate trackers (updated during building processing)
         const computedProdRates: Record<string, number> = {};
         const computedConsRates: Record<string, number> = {};
+        const computedActualConsRates: Record<string, number> = {}; // Only actual consumption (excludes stalled demand)
 
         // Weather production multiplier (calculated early for power grid)
         const weatherDef = WEATHER_DEFS[state.weather.current as WeatherType];
@@ -759,10 +761,13 @@ export const useGameStore = create<GameStore>()(
               newResources[def.fuel] -= fuelConsumed;
               totalProduction += production;
               computedConsRates[def.fuel] = (computedConsRates[def.fuel] || 0) + fuelConsumed;
+              computedActualConsRates[def.fuel] = (computedActualConsRates[def.fuel] || 0) + fuelConsumed;
             } else {
               production *= 0.1;
               totalProduction += production;
-              computedConsRates[def.fuel] = (computedConsRates[def.fuel] || 0) + (newResources[def.fuel] || 0);
+              const actuallyConsumed = newResources[def.fuel] || 0;
+              computedConsRates[def.fuel] = (computedConsRates[def.fuel] || 0) + actuallyConsumed;
+              computedActualConsRates[def.fuel] = (computedActualConsRates[def.fuel] || 0) + actuallyConsumed;
             }
           } else {
             if (b.type === 'solarPanel') {
@@ -885,6 +890,7 @@ export const useGameStore = create<GameStore>()(
                   const res = input.resource as ResourceType;
                   newResources[res] -= input.amount;
                   computedConsRates[res] = (computedConsRates[res] || 0) + input.amount;
+                  computedActualConsRates[res] = (computedActualConsRates[res] || 0) + input.amount;
                 });
                 def.outputs.forEach(output => {
                   if (output.resource === 'money') return;
@@ -1539,6 +1545,7 @@ export const useGameStore = create<GameStore>()(
           } : state.prestigeState,
           computedProductionRates: computedProdRates,
           computedConsumptionRates: computedConsRates,
+          computedActualConsumptionRates: computedActualConsRates,
         });
 
         // --- Update Quest Progress (periodic checks) ---
@@ -3092,5 +3099,10 @@ export const useGameStore = create<GameStore>()(
     }
   )
 );
+
+// Expose store to window for debugging/testing
+if (typeof window !== 'undefined') {
+  (window as unknown as Record<string, unknown>).__gameStore = useGameStore;
+}
 
 export { formatNumber, getBuildingCost, isBuildingUnlocked, isResearchUnlocked, generateId, hasUnlimitedStorage };

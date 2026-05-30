@@ -493,6 +493,7 @@ export interface GameState {
   // Computed rates (updated each tick)
   computedProductionRates: Record<string, number>;
   computedConsumptionRates: Record<string, number>;
+  computedActualConsumptionRates: Record<string, number>; // Only actual consumption (excludes stalled factory demand)
 }
 
 export type GameTab = 'dashboard' | 'factoryMap' | 'resources' | 'factories' | 'storage' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'contracts' | 'quests' | 'automation' | 'prestige' | 'events' | 'megaprojects' | 'statistics' | 'blueprints' | 'guide' | 'achievements' | 'leaderboard' | 'dailyRewards' | 'payouts' | 'droneDelivery' | 'notifications' | 'settings';

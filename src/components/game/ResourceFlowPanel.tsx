@@ -21,6 +21,7 @@ interface FlowNode {
   tier: number;
   productionRate: number;
   consumptionRate: number;
+  demandRate: number;
   netRate: number;
   currentAmount: number;
   capacity: number;
@@ -118,7 +119,8 @@ export default function ResourceFlowPanel() {
     return allResources
       .map(res => {
         const prodRate = store.computedProductionRates[res] ?? 0;
-        const consRate = store.computedConsumptionRates[res] ?? 0;
+        const consRate = store.computedActualConsumptionRates[res] ?? 0;
+        const demandRate = store.computedConsumptionRates[res] ?? 0;
         const amount = store.resources[res] ?? 0;
         const cap = store.resourceCapacity[res] ?? 50;
         return {
@@ -126,6 +128,7 @@ export default function ResourceFlowPanel() {
           tier: RESOURCE_META[res].tier,
           productionRate: prodRate,
           consumptionRate: consRate,
+          demandRate,
           netRate: prodRate - consRate,
           currentAmount: amount,
           capacity: cap,
@@ -134,7 +137,7 @@ export default function ResourceFlowPanel() {
         };
       })
       .filter(n => n.productionRate > 0 || n.consumptionRate > 0 || n.currentAmount > 0);
-  }, [store.computedProductionRates, store.computedConsumptionRates, store.resources, store.resourceCapacity]);
+  }, [store.computedProductionRates, store.computedActualConsumptionRates, store.computedConsumptionRates, store.resources, store.resourceCapacity]);
 
   // ─── Compute flow edges ──────────────────────────────────────
   const flowEdges = useMemo<FlowEdge[]>(() => {
@@ -287,7 +290,7 @@ export default function ResourceFlowPanel() {
     }
 
     const totalProd = store.computedProductionRates[selectedResource] ?? 0;
-    const totalCons = store.computedConsumptionRates[selectedResource] ?? 0;
+    const totalCons = store.computedActualConsumptionRates[selectedResource] ?? 0;
 
     return {
       producers: producerList.sort((a, b) => b.rate - a.rate),
@@ -296,7 +299,7 @@ export default function ResourceFlowPanel() {
       totalConsumption: totalCons,
       netRate: totalProd - totalCons,
     };
-  }, [selectedResource, store.buildings, store.computedProductionRates, store.computedConsumptionRates]);
+  }, [selectedResource, store.buildings, store.computedProductionRates, store.computedActualConsumptionRates]);
 
   // ─── Production chain tracing ────────────────────────────────
   const chainTrace = useMemo(() => {

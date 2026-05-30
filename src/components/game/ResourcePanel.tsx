@@ -142,8 +142,9 @@ export function ResourcePanel() {
     return rates;
   }, [store.buildings, store.computedProductionRates]);
 
-  // Consumption rates — use store's computed rates which include all bonuses
-  const consumptionRates = store.computedConsumptionRates;
+  // Consumption rates — use actual consumption for net rate, demand consumption for demand display
+  const consumptionRates = store.computedActualConsumptionRates;
+  const demandRates = store.computedConsumptionRates;
 
   // Resource flow data
   const unlimited = useMemo(() => hasUnlimitedStorage(store.megaProjects), [store.megaProjects]);
@@ -560,8 +561,8 @@ export function ResourcePanel() {
                             <span className="text-sm">{meta.emoji}</span>
                             <div className="min-w-0">
                               <div className="text-[10px] text-gray-300 font-medium truncate">{meta.name}</div>
-                              <div className={`text-[9px] font-mono ${net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : 'text-gray-600'}`}>
-                                {net > 0 ? `+${formatNumber(net)}/t` : net < 0 ? `${formatNumber(net)}/t` : '—'}
+                              <div className={`text-[9px] font-mono ${net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : prod > 0 && cons > 0 ? 'text-cyan-400' : 'text-gray-600'}`}>
+                                {net > 0 ? `+${formatNumber(net)}/t` : net < 0 ? `${formatNumber(net)}/t` : prod > 0 && cons > 0 ? '±0/t' : '—'}
                               </div>
                             </div>
                           </div>
@@ -1080,9 +1081,9 @@ export function ResourcePanel() {
                             )}
                           </span>
                           <span className={`text-[10px] font-mono font-bold ${
-                            net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : 'text-gray-600'
+                            net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : rate > 0 && consRate > 0 ? 'text-cyan-400' : 'text-gray-600'
                           }`}>
-                            {net > 0 ? `+${formatNumber(net)}/t` : net < 0 ? `${formatNumber(net)}/t` : '—'}
+                            {net > 0 ? `+${formatNumber(net)}/t` : net < 0 ? `${formatNumber(net)}/t` : rate > 0 && consRate > 0 ? '±0/t' : '—'}
                           </span>
                         </div>
 
