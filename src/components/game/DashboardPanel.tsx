@@ -16,8 +16,7 @@ import {
 } from 'lucide-react';
 import { BuildingType, ResourceType, WeatherType } from '@/lib/game/types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ProductionChainPanel } from '@/components/game/ProductionChainPanel';
-
+import { RESOURCE_META, BUILDING_DEFS } from '@/lib/game/data';
 export function DashboardPanel() {
   const store = useGameStore();
 
@@ -575,8 +574,7 @@ export function DashboardPanel() {
             )}
           </div>
 
-          {/* PRODUCTION CHAINS VISUALIZATION - SVG flow diagram with building details */}
-          <ProductionChainPanel productionRates={productionRates} />
+          {/* PRODUCTION CHAINS — See dedicated Chains tab for full visualization */}
 
           {/* ACTIVITY FEED */}
           <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">

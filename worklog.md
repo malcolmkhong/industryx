@@ -793,3 +793,61 @@ Current Project Status:
 - Lint passes cleanly (0 errors, 0 warnings)
 - All compilations successful
 - SAVE_VERSION: 15
+
+---
+Task ID: 14
+Agent: Main Developer
+Task: Production Chains System Refactor — Rename chains to material-based names + migrate to dedicated hub page
+
+Work Log:
+- Renamed all 35 production chains from process-based to material-based names in data.ts
+- Added `category` field to each chain: 'basic' | 'industrial' | 'advanced' | 'hightech' | 'cosmic'
+- Added ProductionChainCategory type and CHAIN_CATEGORY_META to types.ts
+- Added 'chains' to GameTab union type
+- Created new ProductionChainsHub.tsx component (~350 lines) with:
+  * Categorized layout by 5 tier groups
+  * Search by chain name or material name
+  * Category filter pills
+  * Global progress bar (active/partial/total)
+  * Chain cards with status badges (ACTIVE/PARTIAL/IDLE)
+  * Expandable chain detail with flow diagram
+  * Right-side detail panel with full flow, stock, rates, capacity bars
+  * Building requirements summary
+  * Dependency map linking to other chains
+  * Category overview sidebar
+- Added 'chains' tab to GameSidebar (Production group, GitBranch icon)
+- Added ProductionChainsHub import and switch case in page.tsx
+- Removed ProductionChainPanel from DashboardPanel (replaced with comment)
+- Replaced FactoryPanel's chain visualization sidebar with link to Chains hub
+- Removed unused selectedChain state from FactoryPanel
+- Lint passes cleanly, dev server compiles successfully
+
+Name Mapping (Old → New):
+  Basic Iron → Iron
+  Steel Production → Steel
+  Brick Making → Bricks
+  Concrete Production → Concrete
+  Oil Refining → Crude Oil
+  Carbon Fiber → Carbon
+  Oil Products → Plastic
+  Silicon Tech → Silicon
+  Copper Refining → Copper
+  Glass Production → Glass
+  Coolant Production → Coolant
+  Solar Energy → Solar Panels
+  Advanced Materials → Advanced Alloy
+  Quantum Tech → Quantum Components
+  Medical Technology → Medical Tech
+  Neural Computing → Neural Processors
+  Singularity → Singularity Core
+  Dark Matter → Dark Matter Cell
+  Chrono Tech → Chrono Components
+  Galactic Production → Galactic Components
+  (15 names unchanged: Fertilizer, Electronics, Aluminium, Titanium, Robotics, Tungsten, Weapons, Scan Drones, Jewellery, Insecticide, Warp Drive, Antimatter, Plasma Core, Mega Structure, Void Crystal)
+
+Stage Summary:
+- 35 chains renamed to material-based names with category classification
+- New dedicated Production Chains Hub page with full visualization
+- Old scattered chain placements removed from Dashboard and Factory panels
+- Zero broken dependencies — all chain references use chain.name dynamically
+- Lint passes cleanly, dev server compiles successfully

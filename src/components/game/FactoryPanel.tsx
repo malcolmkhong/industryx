@@ -122,7 +122,6 @@ function getResourceTier(res: ResourceType): number {
 export function FactoryPanel() {
   const store = useGameStore();
   const [selectedTier, setSelectedTier] = useState<number>(1);
-  const [selectedChain, setSelectedChain] = useState<number>(0);
   const [selectedFlowNode, setSelectedFlowNode] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -991,124 +990,21 @@ export function FactoryPanel() {
           </AnimatePresence>
         </div>
 
-        {/* RIGHT: Production Chains & Stats */}
+        {/* RIGHT: Factory Stats */}
         <div className="space-y-4">
-          {/* PRODUCTION CHAIN VISUALIZATION */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Workflow className="w-4 h-4 text-cyan-400" />
-                <h3 className="text-sm font-semibold text-cyan-400">Production Chains</h3>
-              </div>
-              <span className="text-[10px] text-gray-500">{PRODUCTION_CHAINS.length} chains</span>
+          {/* PRODUCTION CHAINS — Link to dedicated hub */}
+          <div className="game-card rounded-xl bg-[#111827] p-4 border border-violet-900/30">
+            <div className="flex items-center gap-2 mb-2">
+              <Workflow className="w-4 h-4 text-violet-400" />
+              <h3 className="text-sm font-semibold text-violet-400">Production Chains</h3>
             </div>
-
-            {/* Chain selector tabs */}
-            <div className="flex flex-wrap gap-1.5 mb-3">
-              {PRODUCTION_CHAINS.map((chain, idx) => (
-                <button
-                  key={chain.name}
-                  onClick={() => setSelectedChain(idx)}
-                  className={`text-[9px] px-2 py-1 rounded-md border transition-all ${
-                    selectedChain === idx
-                      ? 'border-cyan-500/50 bg-cyan-900/20 text-cyan-400'
-                      : 'border-gray-800 text-gray-500 hover:border-gray-600 hover:text-gray-300'
-                  }`}
-                >
-                  {chain.name}
-                </button>
-              ))}
-            </div>
-
-            {/* Selected chain visualization */}
-            {PRODUCTION_CHAINS[selectedChain] && (
-              <div className="bg-[#0a0e17] rounded-lg p-3">
-                <div className="flex items-center gap-1 mb-2">
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: PRODUCTION_CHAINS[selectedChain].color }} />
-                  <span className="text-xs text-gray-300 font-medium">{PRODUCTION_CHAINS[selectedChain].name}</span>
-                </div>
-
-                {/* Chain steps with animated flow */}
-                <div className="space-y-1">
-                  {PRODUCTION_CHAINS[selectedChain].steps.map((resource, idx) => {
-                    const meta = RESOURCE_META[resource as ResourceType];
-                    const production = allProductionRates[resource] || 0;
-                    const consumption = allActualConsumptionRates[resource] || 0;
-                    const net = production - consumption;
-                    const stock = store.resources[resource as ResourceType];
-                    const capacity = store.resourceCapacity[resource as ResourceType];
-                    const fillPct = capacity > 0 ? (stock / capacity) * 100 : 0;
-
-                    return (
-                      <div key={resource}>
-                        <div className="flex items-center gap-2">
-                          {/* Step node */}
-                          <div
-                            className="flex items-center gap-2 flex-1 rounded-lg p-2 border transition-all"
-                            style={{
-                              borderColor: `${meta.color}33`,
-                              backgroundColor: `${meta.color}0a`,
-                            }}
-                          >
-                            <span className="text-sm">{meta.emoji}</span>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between">
-                                <span className="text-[10px] text-gray-200 font-medium">{meta.name}</span>
-                                <span className={`text-[9px] font-mono ${
-                                  net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : production > 0 && consumption > 0 ? 'text-cyan-400' : 'text-gray-600'
-                                }`}>
-                                  {net > 0 ? `+${formatNumber(net)}/t` : net < 0 ? `${formatNumber(net)}/t` : production > 0 && consumption > 0 ? '±0/t' : '—'}
-                                </span>
-                              </div>
-                              {/* Stock bar */}
-                              <div className="h-1 bg-gray-800 rounded-full overflow-hidden mt-1">
-                                <motion.div
-                                  className="h-full rounded-full"
-                                  style={{ backgroundColor: meta.color }}
-                                  initial={{ width: 0 }}
-                                  animate={{ width: `${Math.min(100, fillPct)}%` }}
-                                  transition={{ duration: 0.5 }}
-                                />
-                              </div>
-                              <div className="flex justify-between mt-0.5">
-                                <span className="text-[8px] text-gray-500 font-mono">{formatNumber(stock)}</span>
-                                <span className="text-[8px] text-gray-600 font-mono">{formatNumber(capacity)}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Animated arrow between steps */}
-                        {idx < PRODUCTION_CHAINS[selectedChain].steps.length - 1 && (
-                          <div className="flex items-center justify-center py-1">
-                            <div className="flex flex-col items-center">
-                              <motion.div
-                                animate={{ y: [0, 3, 0] }}
-                                transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
-                              >
-                                <ArrowRight
-                                  className="w-3.5 h-3.5 rotate-90"
-                                  style={{ color: PRODUCTION_CHAINS[selectedChain].color }}
-                                />
-                              </motion.div>
-                              {/* Neon flow line */}
-                              <div className="w-px h-2 relative overflow-hidden">
-                                <motion.div
-                                  className="w-full h-full"
-                                  style={{ backgroundColor: PRODUCTION_CHAINS[selectedChain].color }}
-                                  animate={{ opacity: [0.3, 1, 0.3] }}
-                                  transition={{ duration: 1.5, repeat: Infinity }}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+            <p className="text-[10px] text-gray-500 mb-2">View all {PRODUCTION_CHAINS.length} production chains with detailed flow diagrams, building requirements, and dependency maps.</p>
+            <button
+              onClick={() => useGameStore.getState().setActiveTab('chains')}
+              className="w-full text-[10px] py-2 rounded-md border border-violet-500/30 bg-violet-900/10 text-violet-400 hover:bg-violet-900/20 transition-colors"
+            >
+              Open Production Chains Hub →
+            </button>
           </div>
 
           {/* FACTORY OVERVIEW STATS */}

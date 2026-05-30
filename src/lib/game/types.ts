@@ -497,7 +497,18 @@ export interface GameState {
   computedActualConsumptionRates: Record<string, number>; // Only actual consumption (excludes stalled factory demand)
 }
 
-export type GameTab = 'dashboard' | 'factoryMap' | 'resources' | 'factories' | 'storage' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'contracts' | 'quests' | 'automation' | 'prestige' | 'events' | 'megaprojects' | 'statistics' | 'blueprints' | 'guide' | 'achievements' | 'leaderboard' | 'dailyRewards' | 'payouts' | 'droneDelivery' | 'notifications' | 'settings';
+export type GameTab = 'dashboard' | 'factoryMap' | 'resources' | 'factories' | 'storage' | 'chains' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'contracts' | 'quests' | 'automation' | 'prestige' | 'events' | 'megaprojects' | 'statistics' | 'blueprints' | 'guide' | 'achievements' | 'leaderboard' | 'dailyRewards' | 'payouts' | 'droneDelivery' | 'notifications' | 'settings';
+
+// --- Production Chain Categories ---
+export type ProductionChainCategory = 'basic' | 'industrial' | 'advanced' | 'hightech' | 'cosmic';
+
+export const CHAIN_CATEGORY_META: Record<ProductionChainCategory, { label: string; icon: string; color: string; order: number }> = {
+  basic: { label: 'Basic Materials', icon: '🪨', color: '#a0a0a0', order: 0 },
+  industrial: { label: 'Industrial Materials', icon: '🏭', color: '#8db4e2', order: 1 },
+  advanced: { label: 'Advanced Materials', icon: '⚙️', color: '#ff69b4', order: 2 },
+  hightech: { label: 'High-Tech / Quantum', icon: '🔮', color: '#9400d3', order: 3 },
+  cosmic: { label: 'Cosmic / Endgame', icon: '🌌', color: '#00ffcc', order: 4 },
+};
 
 // --- Drone Delivery ---
 export interface Drone {
