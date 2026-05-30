@@ -12,6 +12,7 @@ import {
   Blueprint, LeaderboardEntry, LoginStreak, DailyReward,
   WeatherType, PayoutConfig, PayoutRecord, Drone, DroneMission,
   Region, RegionId, GridTile, LogisticsRoute, MapViewLayer, MapViewMode, BuildingFootprint,
+  BuildingConditionStatus, getConditionStatus, getConditionColor, getConditionStatusLabel,
 } from './types';
 import {
   BUILDING_DEFS, TRANSPORT_DEFS, WORKER_DEFS, INITIAL_MARKET,
@@ -26,7 +27,7 @@ import {
 import { soundEngine } from './soundEngine';
 
 // --- Save Version ---
-const SAVE_VERSION = 20;
+const SAVE_VERSION = 21;
 
 // --- Utility Functions ---
 function generateId(): string {
@@ -1178,6 +1179,19 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
     }
   }
 
+  // V20 → V21: Building Condition System
+  if (version < 21) {
+    // Add condition fields to all existing buildings
+    if (Array.isArray(state.buildings)) {
+      state.buildings = (state.buildings as BuildingInstance[]).map((b: BuildingInstance) => ({
+        ...b,
+        condition: b.condition ?? 100,
+        lastDamageTick: b.lastDamageTick ?? 0,
+        deteriorationRate: b.deteriorationRate ?? 0.01,
+      }));
+    }
+  }
+
   state._version = SAVE_VERSION;
   return state;
 }
@@ -1233,6 +1247,9 @@ function createInitialState(): GameState {
       active: isActive,
       efficiency: isActive ? 0.8 : 0,
       placedAt: 0,
+      condition: 100,
+      lastDamageTick: 0,
+      deteriorationRate: 0.01,
       gridRow: undefined as number | undefined,
       gridCol: undefined as number | undefined,
       regionId: undefined as string | undefined,
@@ -1484,6 +1501,8 @@ interface GameActions {
   upgradeBuilding: (id: string) => void;
   toggleBuilding: (id: string) => void;
   selectBuilding: (id: string | null) => void;
+  repairBuilding: (id: string) => void;
+  repairAllBuildings: () => void;
   
   // Transport
   buildTransportLine: (type: TransportType, from: string, to: string, resource: ResourceType) => void;
@@ -1723,12 +1742,153 @@ export const useGameStore = create<GameStore>()(
         const effectivePowerEfficiency = totalProduction > 0 ? Math.min(1, totalProduction / Math.max(0.001, totalConsumption)) : 0;
 
         // Process buildings
-        state.buildings.forEach(b => {
+        let updatedBuildings = state.buildings.map(b => ({ ...b }));
+
+        // === Building Condition Deterioration (every 10 ticks) ===
+        let selfRepairActive = state.automationUnlocks.find(a => a.type === 'selfRepair' && a.active);
+        let selfRepairCostTotal = 0;
+
+        if (newTick % 10 === 0) {
+          updatedBuildings = updatedBuildings.map(b => {
+            if (!b.active || b.condition <= 0) return b;
+
+            const def = BUILDING_DEFS[b.type];
+            if (!def) return b;
+
+            // Base deterioration rate
+            let detRate = b.deteriorationRate;
+
+            // Age factor: older buildings deteriorate faster
+            const ageInTicks = newTick - b.placedAt;
+            const ageFactor = 1 + Math.min(2, ageInTicks / 100000); // Up to 3x after ~100k ticks
+            detRate *= ageFactor;
+
+            // Weather factor: storms and rain increase deterioration
+            if (state.weather.current === 'stormy') detRate *= 2.5;
+            else if (state.weather.current === 'rainy') detRate *= 1.5;
+            else if (state.weather.current === 'snowy') detRate *= 1.3;
+
+            // Power overload: faster deterioration
+            if (overload) detRate *= 1.5;
+
+            // Worker maintenance: slower deterioration if workers assigned
+            const assignedWorkersCount = state.workers.filter(w => w.assignedTo === b.id).length;
+            if (assignedWorkersCount > 0) detRate *= 0.5;
+
+            let newCondition = Math.max(0, b.condition - detRate);
+
+            // Self-repair automation: slowly repair over time
+            if (selfRepairActive && newCondition < 100) {
+              const repairRate = 0.1; // 0.1 condition per tick cycle
+              const canRepair = newCondition > 0; // Can't repair broken buildings automatically
+              if (canRepair) {
+                const actualRepair = Math.min(repairRate, 100 - newCondition);
+                newCondition = Math.min(100, newCondition + actualRepair);
+                // Cost: 50% of normal repair cost
+                const baseRepairCost = def.baseCost.find(c => c.resource === 'money')?.amount ?? 100;
+                const costPerPoint = baseRepairCost * 0.5 / 100 * b.level;
+                selfRepairCostTotal += actualRepair * costPerPoint;
+              }
+            }
+
+            // Track damage for notifications
+            const prevStatus = getConditionStatus(b.condition);
+            const newStatus = getConditionStatus(newCondition);
+
+            // Notification: building dropped to critical
+            if (prevStatus !== 'critical' && newStatus === 'critical') {
+              notifications.push({ id: generateId(), type: 'warning', message: `⚠️ ${def.emoji} ${def.name} condition is CRITICAL (${Math.round(newCondition)}%)`, gameTick: newTick, read: false });
+            }
+            // Notification: building broke
+            if (newCondition === 0 && b.condition > 0) {
+              notifications.push({ id: generateId(), type: 'error', message: `💥 ${def.emoji} ${def.name} has BROKEN DOWN! Repair it to resume production.`, gameTick: newTick, read: false });
+              soundEngine.play('powerOverload', 'events');
+            }
+
+            return {
+              ...b,
+              condition: Math.round(newCondition * 100) / 100,
+              lastDamageTick: newCondition < b.condition ? newTick : b.lastDamageTick,
+            };
+          });
+        }
+
+        // === Event Damage ===
+        // Natural disasters damage all buildings
+        state.activeEvents.forEach(event => {
+          if (event.type === 'naturalDisaster' && event.remaining === event.duration) {
+            // Only apply damage once when the event starts (remaining equals duration at start)
+            // Actually events decrement remaining at the end of the tick, so check if it just started
+          }
+        });
+
+        // Apply earthquake damage when natural disaster event is active and at certain intervals
+        if (newTick % 50 === 0) { // Check every 50 ticks
+          state.activeEvents.forEach(event => {
+            if (event.type === 'naturalDisaster') {
+              // Earthquake: damage all buildings by 5-15 condition points
+              const damageAmount = 5 + Math.random() * 10;
+              updatedBuildings = updatedBuildings.map(b => {
+                if (b.condition <= 0) return b;
+                const def = BUILDING_DEFS[b.type];
+                const newCondition = Math.max(0, Math.round((b.condition - damageAmount) * 100) / 100);
+                if (newCondition === 0 && b.condition > 0 && def) {
+                  notifications.push({ id: generateId(), type: 'error', message: `💥 ${def.emoji} ${def.name} BROKEN by earthquake!`, gameTick: newTick, read: false });
+                }
+                return {
+                  ...b,
+                  condition: newCondition,
+                  lastDamageTick: newTick,
+                };
+              });
+              notifications.push({ id: generateId(), type: 'warning', message: `🌪️ Earthquake! All buildings took ${Math.round(damageAmount)} damage.`, gameTick: newTick, read: false });
+            }
+          });
+
+          // Stormy weather: damage outdoor buildings (extractors, solar panels) every 50 ticks
+          if (state.weather.current === 'stormy') {
+            const stormDamage = 3 + Math.random() * 7;
+            updatedBuildings = updatedBuildings.map(b => {
+              if (b.condition <= 0) return b;
+              const def = BUILDING_DEFS[b.type];
+              if (!def) return b;
+              // Outdoor buildings: extractors and solar panels
+              const isOutdoor = def.category === 'extractor' || b.type === 'solarPanel' || b.type === 'windTurbine';
+              if (!isOutdoor) return b;
+              const newCondition = Math.max(0, Math.round((b.condition - stormDamage) * 100) / 100);
+              if (newCondition === 0 && b.condition > 0) {
+                notifications.push({ id: generateId(), type: 'error', message: `💥 ${def.emoji} ${def.name} BROKEN by storm!`, gameTick: newTick, read: false });
+              }
+              return {
+                ...b,
+                condition: newCondition,
+                lastDamageTick: newTick,
+              };
+            });
+          }
+        }
+
+        // Deduct self-repair costs (will be applied after moneyEarned is declared)
+        // selfRepairCostTotal is tracked above
+
+        // Force broken buildings inactive (condition = 0)
+        updatedBuildings = updatedBuildings.map(b => {
+          if (b.condition <= 0 && b.active) {
+            return { ...b, active: false, efficiency: 0 };
+          }
+          return b;
+        });
+
+        updatedBuildings.forEach(b => {
           if (!b.active) return;
           const def = BUILDING_DEFS[b.type];
           if (!def) return;
 
           let efficiency = b.efficiency * effectivePowerEfficiency * eventProductionMultiplier * weatherProductionMultiplier;
+
+          // Condition affects efficiency: below 75%, proportional penalty
+          const conditionEfficiency = b.condition >= 75 ? 1.0 : b.condition / 75;
+          efficiency *= conditionEfficiency;
           
           if (def.category === 'extractor') efficiency *= (1 + extractorSpeedBonus + megaExtractionBonus);
           if (def.category === 'factory') efficiency *= (1 + factorySpeedBonus);
@@ -1936,7 +2096,7 @@ export const useGameStore = create<GameStore>()(
           }
         });
 
-        let moneyEarned = 0;
+        let moneyEarned = -Math.floor(selfRepairCostTotal);
         let autoFulfillCP = 0;
         const autoFulfill = state.automationUnlocks.find(a => a.type === 'autoTrading' && a.active);
         if (autoFulfill) {
@@ -2434,6 +2594,7 @@ export const useGameStore = create<GameStore>()(
           resources: newResources,
           money: state.money + moneyEarned,
           totalMoneyEarned: state.totalMoneyEarned + moneyEarned,
+          buildings: updatedBuildings,
           powerGrid: {
             totalProduction,
             totalConsumption,
@@ -2528,6 +2689,9 @@ export const useGameStore = create<GameStore>()(
           active: true,
           efficiency: 1,
           placedAt: state.gameTick,
+          condition: 100,
+          lastDamageTick: 0,
+          deteriorationRate: 0.01,
           regionId: assignment?.regionId,
           gridRow: assignment?.gridRow,
           gridCol: assignment?.gridCol,
@@ -2668,6 +2832,70 @@ export const useGameStore = create<GameStore>()(
       },
 
       selectBuilding: (id: string | null) => set({ selectedBuilding: id }),
+
+      repairBuilding: (id: string) => {
+        const state = get();
+        const building = state.buildings.find(b => b.id === id);
+        if (!building) return;
+        const def = BUILDING_DEFS[building.type];
+        if (!def) return;
+        if (building.condition >= 100) return;
+
+        // Cost formula: baseRepairCost * (100 - currentCondition) / 100 * buildingLevel
+        const baseRepairCost = def.baseCost.find(c => c.resource === 'money')?.amount ?? 100;
+        const repairCost = Math.max(1, Math.floor(baseRepairCost * (100 - building.condition) / 100 * building.level));
+
+        if (state.money < repairCost) {
+          soundEngine.play('error', 'ui');
+          get().addNotification('error', `Not enough money! Need $${formatNumber(repairCost)} to repair ${def.name}`);
+          return;
+        }
+
+        const wasBroken = building.condition <= 0;
+        set({
+          money: state.money - repairCost,
+          buildings: state.buildings.map(b =>
+            b.id === id ? { ...b, condition: 100, active: wasBroken ? true : b.active, efficiency: wasBroken ? 1 : b.efficiency } : b
+          ),
+        });
+        soundEngine.play('buildingPlaced', 'building');
+        get().addNotification('success', `🔧 Repaired ${def.name} for $${formatNumber(repairCost)}` + (wasBroken ? ' — back online!' : ''));
+      },
+
+      repairAllBuildings: () => {
+        const state = get();
+        const damagedBuildings = state.buildings.filter(b => b.condition < 100);
+        if (damagedBuildings.length === 0) return;
+
+        let totalCost = 0;
+        const repairs: { id: string; wasBroken: boolean }[] = [];
+
+        for (const b of damagedBuildings) {
+          const def = BUILDING_DEFS[b.type];
+          if (!def) continue;
+          const baseRepairCost = def.baseCost.find(c => c.resource === 'money')?.amount ?? 100;
+          const repairCost = Math.max(1, Math.floor(baseRepairCost * (100 - b.condition) / 100 * b.level));
+          totalCost += repairCost;
+          repairs.push({ id: b.id, wasBroken: b.condition <= 0 });
+        }
+
+        if (state.money < totalCost) {
+          soundEngine.play('error', 'ui');
+          get().addNotification('error', `Not enough money! Need $${formatNumber(totalCost)} to repair all buildings`);
+          return;
+        }
+
+        set({
+          money: state.money - totalCost,
+          buildings: state.buildings.map(b => {
+            if (b.condition >= 100) return b;
+            const wasBroken = b.condition <= 0;
+            return { ...b, condition: 100, active: wasBroken ? true : b.active, efficiency: wasBroken ? 1 : b.efficiency };
+          }),
+        });
+        soundEngine.play('buildingPlaced', 'building');
+        get().addNotification('success', `🔧 Repaired ${repairs.length} building${repairs.length !== 1 ? 's' : ''} for $${formatNumber(totalCost)}`);
+      },
 
       // --- TRANSPORT ACTIONS ---
       buildTransportLine: (type: TransportType, from: string, to: string, resource: ResourceType) => {
@@ -4667,6 +4895,9 @@ export const useGameStore = create<GameStore>()(
               active: true,
               efficiency: 1,
               placedAt: state.gameTick,
+              condition: 100,
+              lastDamageTick: 0,
+              deteriorationRate: 0.01,
             };
 
             state.money -= cost;

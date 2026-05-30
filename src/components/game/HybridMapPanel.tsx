@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo, memo } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
 import { BUILDING_DEFS, RESOURCE_META, INITIAL_REGIONS, BUILDING_FOOTPRINTS, getBuildingFootprint } from '@/lib/game/data';
-import { Region, RegionId, GridTile, LogisticsRoute, MapViewLayer, MapViewMode, BuildingType, BuildingInstance, ResourceType } from '@/lib/game/types';
+import { Region, RegionId, GridTile, LogisticsRoute, MapViewLayer, MapViewMode, BuildingType, BuildingInstance, ResourceType, getConditionColor, getConditionStatus } from '@/lib/game/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +15,7 @@ import {
   Trash2, ArrowLeft, ZoomIn, ZoomOut, ChevronRight, X,
   Power, PowerOff, ChevronUp, Wand2, LayoutGrid, ArrowDown,
   ArrowRight, ArrowUp, Link2, BarChart3, RotateCcw, MapPin,
-  Trees, Waves, Mountain, Droplets, Navigation,
+  Trees, Waves, Mountain, Droplets, Navigation, Wrench,
 } from 'lucide-react';
 
 // =============================================
@@ -320,6 +320,9 @@ const BuildingTile = memo(function BuildingTile({
   if (!def) return null;
 
   const effColor = getEffColor(building.efficiency);
+  const condColor = getConditionColor(building.condition);
+  const isBroken = building.condition <= 0;
+  const needsRepair = building.condition < 50 && !isBroken;
   const categoryColor =
     def.category === 'extractor' ? '#92400e' :
     def.category === 'power' ? '#713f12' :
@@ -358,6 +361,23 @@ const BuildingTile = memo(function BuildingTile({
             <div className="w-3/4 h-0.5 bg-gray-800/60 rounded-full mt-0.5 overflow-hidden">
               <div className="h-full rounded-full" style={{ width: `${Math.round(building.efficiency * 100)}%`, backgroundColor: effColor }} />
             </div>
+            {/* Condition indicator bar */}
+            <div className="w-full h-[3px] bg-gray-800/60 rounded-full overflow-hidden" title={`Condition: ${Math.round(building.condition)}%`}>
+              <div
+                className={`h-full rounded-full ${isBroken ? 'animate-pulse' : ''}`}
+                style={{ width: `${Math.round(building.condition)}%`, backgroundColor: condColor }}
+              />
+            </div>
+            {needsRepair && (
+              <div className="absolute top-0.5 left-0.5">
+                <Wrench className="w-2 h-2 text-orange-400" />
+              </div>
+            )}
+            {isBroken && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <span className="text-[8px] animate-pulse">💥</span>
+              </div>
+            )}
             {connectionCount > 0 && (
               <div className="absolute top-0.5 right-0.5 flex items-center gap-0.5">
                 <Link2 className="w-2 h-2 text-cyan-400" />
@@ -376,7 +396,7 @@ const BuildingTile = memo(function BuildingTile({
         </TooltipTrigger>
         <TooltipContent side="top" className="bg-gray-900 border-gray-700 text-xs">
           <div className="font-semibold">{def.emoji} {def.name}</div>
-          <div className="text-gray-400">Lv {building.level} • Eff {Math.round(building.efficiency * 100)}%</div>
+          <div className="text-gray-400">Lv {building.level} • Eff {Math.round(building.efficiency * 100)}% • Cond {Math.round(building.condition)}%</div>
           {def.inputs && <div className="text-red-400">→ in: {def.inputs.map(i => RESOURCE_META[i.resource as ResourceType]?.name ?? i.resource).join(', ')}</div>}
           {def.outputs && <div className="text-green-400">→ out: {def.outputs.map(o => RESOURCE_META[o.resource as ResourceType]?.name ?? o.resource).join(', ')}</div>}
         </TooltipContent>
@@ -465,6 +485,14 @@ function SelectedBuildingDetail({
     : 0;
   const canAffordUpgrade = store.money >= upgradeCost;
 
+  // Repair cost calculation
+  const baseRepairCost = def.baseCost.find(c => c.resource === 'money')?.amount ?? 100;
+  const repairCost = building.condition >= 100 ? 0 : Math.max(1, Math.floor(baseRepairCost * (100 - building.condition) / 100 * building.level));
+  const canAffordRepair = store.money >= repairCost && building.condition < 100;
+  const condStatus = getConditionStatus(building.condition);
+  const condColor = getConditionColor(building.condition);
+  const isBroken = building.condition <= 0;
+
   const categoryColor =
     def.category === 'extractor' ? 'text-amber-400' :
     def.category === 'power' ? 'text-yellow-400' :
@@ -493,6 +521,30 @@ function SelectedBuildingDetail({
           <div className="text-[8px] text-gray-500">Power</div>
           <div className="text-sm font-bold font-mono text-yellow-400">{def.basePowerProduction > 0 ? `+${def.basePowerProduction * building.level}MW` : `-${def.basePowerConsumption * building.level}MW`}</div>
         </div>
+      </div>
+      {/* Condition Section */}
+      <div className="bg-gray-800/50 rounded p-2 space-y-1.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1">
+            <Wrench className="w-2.5 h-2.5" style={{ color: condColor }} />
+            <span className="text-[9px] text-gray-400">Condition</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[8px] px-1 py-0 rounded" style={{ color: condColor, backgroundColor: `${condColor}15` }}>
+              {condStatus.charAt(0).toUpperCase() + condStatus.slice(1)}
+            </span>
+            <span className="text-[10px] font-mono font-bold" style={{ color: condColor }}>{Math.round(building.condition)}%</span>
+          </div>
+        </div>
+        <div className="h-1.5 bg-gray-900/60 rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all duration-500 ${isBroken ? 'animate-pulse' : ''}`}
+            style={{ width: `${Math.round(building.condition)}%`, backgroundColor: condColor }}
+          />
+        </div>
+        {building.deteriorationRate > 0 && (
+          <div className="text-[7px] text-gray-600">Deterioration: {building.deteriorationRate.toFixed(3)}/cycle</div>
+        )}
       </div>
       {connectionCount > 0 && (
         <div className="flex items-center gap-1.5 text-[9px] text-cyan-400 bg-cyan-900/10 rounded px-2 py-1 border border-cyan-900/30">
@@ -538,12 +590,17 @@ function SelectedBuildingDetail({
         </div>
       )}
       <div className="flex gap-1.5">
-        <Button variant="outline" size="sm" className={`flex-1 h-7 text-[10px] ${building.active ? 'border-red-800/50 text-red-400 hover:bg-red-900/20' : 'border-green-800/50 text-green-400 hover:bg-green-900/20'}`} onClick={() => store.toggleBuilding(building.id)}>
-          {building.active ? <PowerOff className="w-2.5 h-2.5 mr-1" /> : <Power className="w-2.5 h-2.5 mr-1" />}{building.active ? 'Off' : 'On'}
+        <Button variant="outline" size="sm" className={`flex-1 h-7 text-[10px] ${building.active ? 'border-red-800/50 text-red-400 hover:bg-red-900/20' : isBroken ? 'border-gray-700 text-gray-600' : 'border-green-800/50 text-green-400 hover:bg-green-900/20'}`} onClick={() => store.toggleBuilding(building.id)} disabled={isBroken}>
+          {building.active ? <PowerOff className="w-2.5 h-2.5 mr-1" /> : <Power className="w-2.5 h-2.5 mr-1" />}{building.active ? 'Off' : isBroken ? 'Broken' : 'On'}
         </Button>
         <Button variant="outline" size="sm" className={`flex-1 h-7 text-[10px] ${canAffordUpgrade ? 'border-cyan-800/50 text-cyan-400 hover:bg-cyan-900/20' : 'border-gray-700 text-gray-500'}`} onClick={() => store.upgradeBuilding(building.id)} disabled={!canAffordUpgrade}>
           <ChevronUp className="w-2.5 h-2.5 mr-1" /> ${formatNumber(upgradeCost)}
         </Button>
+        {building.condition < 95 && (
+          <Button variant="outline" size="sm" className={`h-7 text-[10px] ${canAffordRepair ? 'border-orange-800/50 text-orange-400 hover:bg-orange-900/20' : 'border-gray-700 text-gray-500'}`} onClick={() => store.repairBuilding(building.id)} disabled={!canAffordRepair}>
+            <Wrench className="w-2.5 h-2.5 mr-1" /> ${formatNumber(repairCost)}
+          </Button>
+        )}
       </div>
     </motion.div>
   );

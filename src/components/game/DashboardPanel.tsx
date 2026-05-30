@@ -14,7 +14,7 @@ import {
   Database, Wrench, Globe, ArrowRight, Trophy, Package,
   Hammer, CheckCircle2, XCircle, Flame, CloudSun, Pin, X as XIcon
 } from 'lucide-react';
-import { BuildingType, ResourceType, WeatherType } from '@/lib/game/types';
+import { BuildingType, ResourceType, WeatherType, getConditionStatus, getConditionColor } from '@/lib/game/types';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function DashboardPanel() {
@@ -660,6 +660,103 @@ export function DashboardPanel() {
               />
             </div>
           </div>
+
+          {/* BUILDING CONDITION STATUS */}
+          {(() => {
+            const buildings = store.buildings;
+            const pristineCount = buildings.filter(b => b.condition >= 100).length;
+            const goodCount = buildings.filter(b => b.condition >= 75 && b.condition < 100).length;
+            const wornCount = buildings.filter(b => b.condition >= 50 && b.condition < 75).length;
+            const damagedCount = buildings.filter(b => b.condition >= 25 && b.condition < 50).length;
+            const criticalCount = buildings.filter(b => b.condition >= 1 && b.condition < 25).length;
+            const brokenCount = buildings.filter(b => b.condition <= 0).length;
+            const damagedBuildings = buildings.filter(b => b.condition < 100);
+
+            let totalRepairCost = 0;
+            for (const b of damagedBuildings) {
+              const def = BUILDING_DEFS[b.type];
+              if (!def) continue;
+              const baseRepairCost = def.baseCost.find(c => c.resource === 'money')?.amount ?? 100;
+              totalRepairCost += Math.max(1, Math.floor(baseRepairCost * (100 - b.condition) / 100 * b.level));
+            }
+
+            if (buildings.length === 0) return null;
+
+            return (
+              <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Wrench className="w-4 h-4 text-orange-400" />
+                    <h3 className="text-sm font-semibold text-orange-400">Building Condition</h3>
+                  </div>
+                  {damagedBuildings.length > 0 && (
+                    <span className="text-[10px] text-gray-500">{damagedBuildings.length} need maintenance</span>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  {pristineCount > 0 && (
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-gray-400">✨ Pristine</span>
+                      <span className="text-green-400 font-mono">{pristineCount}</span>
+                    </div>
+                  )}
+                  {goodCount > 0 && (
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-gray-400">👍 Good</span>
+                      <span className="text-green-300 font-mono">{goodCount}</span>
+                    </div>
+                  )}
+                  {wornCount > 0 && (
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-gray-400">🔧 Worn</span>
+                      <span className="text-yellow-400 font-mono">{wornCount}</span>
+                    </div>
+                  )}
+                  {damagedCount > 0 && (
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-gray-400">⚠️ Damaged</span>
+                      <span className="text-orange-400 font-mono">{damagedCount}</span>
+                    </div>
+                  )}
+                  {criticalCount > 0 && (
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-gray-400">🔴 Critical</span>
+                      <span className="text-red-400 font-mono">{criticalCount}</span>
+                    </div>
+                  )}
+                  {brokenCount > 0 && (
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-gray-400">💥 Broken</span>
+                      <span className="text-red-600 font-mono font-bold">{brokenCount}</span>
+                    </div>
+                  )}
+                  {damagedBuildings.length === 0 && (
+                    <div className="text-center py-2">
+                      <p className="text-xs text-green-400">All buildings at 100%</p>
+                    </div>
+                  )}
+                </div>
+                {damagedBuildings.length > 0 && (
+                  <div className="mt-3 pt-2 border-t border-gray-800">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] text-gray-500">Total Repair Cost</span>
+                      <span className="text-xs text-orange-400 font-mono font-bold">${formatNumber(totalRepairCost)}</span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={`w-full h-7 text-[10px] ${store.money >= totalRepairCost ? 'border-orange-800/50 text-orange-400 hover:bg-orange-900/20' : 'border-gray-700 text-gray-500'}`}
+                      onClick={() => store.repairAllBuildings()}
+                      disabled={store.money < totalRepairCost}
+                    >
+                      <Wrench className="w-3 h-3 mr-1.5" />
+                      Repair All (${formatNumber(totalRepairCost)})
+                    </Button>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* WEATHER INFO CARD */}
           <WeatherInfoCard store={store} />

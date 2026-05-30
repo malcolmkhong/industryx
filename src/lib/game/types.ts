@@ -32,6 +32,8 @@ export type ExtractorType = 'miningDrill' | 'oilPump' | 'waterExtractor' | 'quar
 export type FactoryType = 'smelter' | 'wireMill' | 'chemicalPlant' | 'glassFurnace' | 'carbonProcessor' | 'brickFactory' | 'concreteFactory' | 'fertilizerFactory' | 'steelForge' | 'oilRefinery' | 'gearFactory' | 'circuitFactory' | 'engineFactory' | 'batteryFactory' | 'siliconRefinery' | 'aluminiumFactory' | 'insecticideFactory' | 'copperRefinery' | 'titaniumRefinery' | 'coolantPlant' | 'opticsLab' | 'solarCellFactory' | 'displayFactory' | 'hydrogenPlant' | 'aiLab' | 'roboticsBay' | 'quantumLab' | 'alloyForge' | 'nanoLab' | 'electronicsFactory' | 'medicalTechLab' | 'goldsmith' | 'tungstenSmelter' | 'armsFactory' | 'droneShipyard' | 'detectorFactory' | 'neuralLab' | 'singularityForge' | 'darkMatterLab' | 'warpDriveFactory' | 'antimatterReactor' | 'chronoLab' | 'plasmaForge' | 'megaStructureFactory' | 'voidCrystallizer' | 'dysonCollector' | 'quantumTeleporter' | 'dimensionalGateway' | 'timeDistorter' | 'galacticForge';
 export type PowerPlantType = 'coalGenerator' | 'solarPanel' | 'windTurbine' | 'nuclearReactor' | 'fusionReactor' | 'antimatterPowerPlant';
 
+export type BuildingConditionStatus = 'pristine' | 'good' | 'worn' | 'damaged' | 'critical' | 'broken';
+
 export interface BuildingInstance {
   id: string;
   type: BuildingType;
@@ -39,10 +41,43 @@ export interface BuildingInstance {
   active: boolean;
   efficiency: number; // 0-1, affected by power, workers, transport
   placedAt: number; // tick when placed
+  // Condition System Fields
+  condition: number;       // 0-100, starts at 100 for new buildings
+  lastDamageTick: number;  // game tick when last damaged (for repair cooldowns)
+  deteriorationRate: number; // base deterioration per tick cycle (default: 0.01)
   // Map System Fields
   gridRow?: number;    // Row position on the grid (0-based)
   gridCol?: number;    // Column position on the grid (0-based)
   regionId?: string;   // Which region this building is placed in
+}
+
+// Condition thresholds helper
+export function getConditionStatus(condition: number): BuildingConditionStatus {
+  if (condition >= 100) return 'pristine';
+  if (condition >= 75) return 'good';
+  if (condition >= 50) return 'worn';
+  if (condition >= 25) return 'damaged';
+  if (condition >= 1) return 'critical';
+  return 'broken';
+}
+
+export function getConditionColor(condition: number): string {
+  if (condition >= 75) return '#4ade80';   // green
+  if (condition >= 50) return '#facc15';   // yellow
+  if (condition >= 25) return '#f97316';   // orange
+  if (condition >= 1) return '#ef4444';    // red
+  return '#991b1b';                         // dark red (broken)
+}
+
+export function getConditionStatusLabel(status: BuildingConditionStatus): string {
+  switch (status) {
+    case 'pristine': return 'Pristine';
+    case 'good': return 'Good';
+    case 'worn': return 'Worn';
+    case 'damaged': return 'Damaged';
+    case 'critical': return 'Critical';
+    case 'broken': return 'Broken';
+  }
 }
 
 // --- Building Size / Footprint ---

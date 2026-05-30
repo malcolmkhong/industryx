@@ -1,5 +1,45 @@
 # Factory Dominion - Worklog
 
+---
+Task ID: 3
+Agent: full-stack-developer
+Task: Implement building condition/damage/repair system
+
+Work Log:
+- Added `BuildingConditionStatus` type and helper functions (`getConditionStatus`, `getConditionColor`, `getConditionStatusLabel`) to types.ts
+- Added `condition`, `lastDamageTick`, `deteriorationRate` fields to `BuildingInstance` interface
+- Updated `SAVE_VERSION` from 20 to 21 in store.ts
+- Added V20→V21 migration that adds condition=100, lastDamageTick=0, deteriorationRate=0.01 to all existing buildings
+- Added condition fields to all building creation points: `buildBuilding`, `initialBuildings`, `loadBlueprint`
+- Implemented building deterioration in game tick (every 10 ticks): base rate 0.01, affected by age/weather/power overload/workers
+- Implemented condition→efficiency penalty: `conditionEfficiency = condition >= 75 ? 1.0 : condition / 75`
+- Added `repairBuilding(id)` store action with cost formula: `baseRepairCost * (100 - condition) / 100 * level`
+- Added `repairAllBuildings()` store action that repairs all damaged buildings at once
+- Implemented self-repair automation: 0.1 condition per tick cycle, 50% of normal cost, auto-deducted
+- Added event damage: naturalDisaster damages all buildings 5-15 points every 50 ticks, stormy weather damages outdoor buildings 3-10 points
+- Added notifications for critical (<25%) and broken (0%) buildings
+- Force broken buildings inactive (condition=0 → forced inactive, can't toggle on)
+- Updated `updatedBuildings` to use condition-aware buildings in game tick output
+- Added condition indicator bar to BuildingTile component (below efficiency bar, thinner, color-coded)
+- Added wrench icon overlay for buildings below 50% condition, broken pulse animation for 0%
+- Added condition tooltip info showing condition percentage alongside efficiency
+- Added full Condition section in SelectedBuildingDetail with bar, status text, deterioration rate
+- Added repair button (🔧 $cost) next to upgrade/toggle buttons, disabled when at 100% or can't afford
+- Toggle button disabled for broken buildings (must repair first)
+- Added Building Condition card to DashboardPanel with status breakdown by condition tier
+- Added Repair All button and total repair cost display in dashboard
+
+Stage Summary:
+- Complete building condition/damage/repair system implemented across 4 files
+- Buildings now deteriorate over time based on age, weather, power overload, and worker maintenance
+- Condition affects production efficiency below 75%
+- Broken buildings (0%) are forced inactive and require repair
+- Self-repair automation works when unlocked
+- Natural disaster events and stormy weather cause periodic building damage
+- UI shows condition bars, status indicators, repair costs, and Repair All functionality
+- Save migration V20→V21 ensures existing saves load correctly with condition=100
+- UX refinements: Changed "damaged" label to "need maintenance", repair button only shows at <95% condition, condition bar made 3px (more visible)
+
 ## Session: Logistics Route Rendering Fix (Zoom-Synchronized Coordinate System)
 
 ### Project Status
