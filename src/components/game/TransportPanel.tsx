@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
-import { TRANSPORT_DEFS, BUILDING_DEFS, RESOURCE_META, WEATHER_DEFS } from '@/lib/game/data';
+import { TRANSPORT_DEFS, BUILDING_DEFS, RESOURCE_META, WEATHER_DEFS, TRANSPORT_EVOLUTION_CHAIN, TRANSPORT_EVOLUTION_META } from '@/lib/game/data';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -10,7 +10,8 @@ import {
   Package, Route, Zap, Gauge, CircleDot, Lightbulb,
   BarChart3, X, Cloud, CheckCircle2, XCircle, Activity,
   Network, ShieldAlert, TrendingUp, TrendingDown, Minus,
-  ZapOff, Play, Pause, ChevronDown, ChevronRight, Link2
+  ZapOff, Play, Pause, ChevronDown, ChevronRight, Link2,
+  Dna, ArrowUpRight, Rocket
 } from 'lucide-react';
 import { TransportType, ResourceType, BuildingInstance } from '@/lib/game/types';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
@@ -972,6 +973,160 @@ export function TransportPanel() {
             </div>
           </div>
 
+          {/* Logistics Evolution Tree */}
+          <div className="game-card rounded-xl bg-[#111827] p-4 border border-purple-900/30">
+            <div className="flex items-center gap-2 mb-3">
+              <Dna className="w-4 h-4 text-purple-400" />
+              <h3 className="text-sm font-semibold text-purple-400">Logistics Evolution</h3>
+              <span className="text-[10px] text-gray-500">conveyor → pipe → truck → cargo → drone → ship</span>
+            </div>
+
+            {/* Evolution chain visualization */}
+            <div className="flex items-center gap-0 overflow-x-auto pb-2 game-scrollbar">
+              {TRANSPORT_EVOLUTION_CHAIN.map((type, idx) => {
+                const def = TRANSPORT_DEFS[type];
+                const meta = TRANSPORT_EVOLUTION_META[type];
+                const linesOfType = store.transportLines.filter(l => l.type === type);
+                const activeLinesOfType = linesOfType.filter(l => l.active);
+                const throughput = activeLinesOfType.reduce((s, l) => s + l.throughput, 0);
+                const isUnlocked = linesOfType.length > 0;
+                const canEvolve = def.evolvesTo && linesOfType.length > 0;
+                const nextDef = def.evolvesTo ? TRANSPORT_DEFS[def.evolvesTo] : null;
+                const totalEvolutionCost = canEvolve
+                  ? linesOfType.reduce((s, l) => s + Math.floor(def.evolutionCost * Math.pow(1.3, l.level - 1)), 0)
+                  : 0;
+                const affordableEvolveCount = canEvolve
+                  ? (() => {
+                      let cost = 0;
+                      let count = 0;
+                      for (const line of linesOfType) {
+                        const c = Math.floor(def.evolutionCost * Math.pow(1.3, line.level - 1));
+                        if (store.money >= cost + c) { cost += c; count++; }
+                      }
+                      return count;
+                    })()
+                  : 0;
+
+                return (
+                  <div key={type} className="flex items-center flex-shrink-0">
+                    {/* Transport Type Node */}
+                    <div className={`relative rounded-xl border p-3 min-w-[120px] transition-all ${
+                      isUnlocked
+                        ? 'border-purple-500/30 bg-purple-900/10'
+                        : 'border-gray-800 bg-gray-900/30 opacity-50'
+                    }`}>
+                      {/* Tier badge */}
+                      <div
+                        className="absolute -top-2 -left-1 px-1.5 py-0 rounded-full text-[8px] font-bold"
+                        style={{ backgroundColor: meta.tierColor + '30', color: meta.tierColor, border: `1px solid ${meta.tierColor}50` }}
+                      >
+                        {meta.tierName}
+                      </div>
+
+                      <div className="text-center mt-1">
+                        <div className="text-2xl mb-1">{def.emoji}</div>
+                        <div className="text-[10px] font-bold text-gray-300 truncate">{def.name}</div>
+                        <div className="text-[9px] text-gray-500 mt-0.5">{def.baseThroughput} u/t</div>
+
+                        {isUnlocked ? (
+                          <div className="mt-2 space-y-1">
+                            <div className="text-[9px] text-gray-400">
+                              <span className="text-purple-400 font-mono">{linesOfType.length}</span> line{linesOfType.length !== 1 ? 's' : ''}
+                            </div>
+                            <div className="text-[9px] text-gray-400">
+                              <span className="text-cyan-400 font-mono">{formatNumber(throughput)}</span> u/t active
+                            </div>
+                            {/* Evolve button for this type */}
+                            {canEvolve && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-5 text-[8px] px-1.5 border-purple-500/40 text-purple-300 hover:bg-purple-900/30 mt-1 w-full"
+                                onClick={() => store.evolveTransportLinesByType(type)}
+                                disabled={affordableEvolveCount === 0}
+                                title={`Evolve all ${def.name} → ${nextDef?.name} (${affordableEvolveCount}/${linesOfType.length} affordable — $${formatNumber(totalEvolutionCost)})`}
+                              >
+                                <Dna className="w-2.5 h-2.5 mr-0.5" />
+                                → {nextDef?.emoji} {affordableEvolveCount}/{linesOfType.length}
+                              </Button>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="mt-2 text-[9px] text-gray-600">No lines built</div>
+                        )}
+
+                        {/* Evolution bonus tooltip */}
+                        {def.evolutionBonus && isUnlocked && (
+                          <div className="mt-1 text-[8px] text-gray-600 italic truncate" title={def.evolutionBonus}>
+                            {def.evolutionBonus}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Arrow connector between nodes */}
+                    {idx < TRANSPORT_EVOLUTION_CHAIN.length - 1 && (
+                      <div className="flex items-center px-1 flex-shrink-0">
+                        <div className="flex items-center gap-0.5">
+                          <div className="w-3 h-[2px] bg-gradient-to-r from-purple-500/40 to-purple-500/20" />
+                          <ArrowUpRight className="w-3 h-3 text-purple-500/40" />
+                          <div className="w-3 h-[2px] bg-gradient-to-r from-purple-500/20 to-purple-500/40" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Evolution stats */}
+            <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="bg-[#0a0e17] rounded-lg p-2 text-center border border-purple-900/20">
+                <div className="text-[9px] text-gray-500">Evolution Tier</div>
+                <div className="text-sm font-bold font-mono text-purple-400">
+                  {store.transportLines.length > 0
+                    ? Math.max(...store.transportLines.map(l => TRANSPORT_DEFS[l.type]?.evolutionTier ?? 0))
+                    : 0
+                  }/5
+                </div>
+              </div>
+              <div className="bg-[#0a0e17] rounded-lg p-2 text-center border border-purple-900/20">
+                <div className="text-[9px] text-gray-500">Evolvable Lines</div>
+                <div className="text-sm font-bold font-mono text-cyan-400">
+                  {store.transportLines.filter(l => TRANSPORT_DEFS[l.type]?.evolvesTo).length}
+                </div>
+              </div>
+              <div className="bg-[#0a0e17] rounded-lg p-2 text-center border border-purple-900/20">
+                <div className="text-[9px] text-gray-500">Max Tier Lines</div>
+                <div className="text-sm font-bold font-mono text-yellow-400">
+                  {store.transportLines.filter(l => l.type === 'cargoShip').length}
+                </div>
+              </div>
+              <div className="bg-[#0a0e17] rounded-lg p-2 text-center border border-purple-900/20">
+                <div className="text-[9px] text-gray-500">Total Evolution Cost</div>
+                <div className="text-sm font-bold font-mono text-green-400">
+                  ${formatNumber(store.transportLines
+                    .filter(l => TRANSPORT_DEFS[l.type]?.evolvesTo)
+                    .reduce((s, l) => s + Math.floor((TRANSPORT_DEFS[l.type]?.evolutionCost ?? 0) * Math.pow(1.3, l.level - 1)), 0)
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Evolve All button */}
+            {store.transportLines.some(l => TRANSPORT_DEFS[l.type]?.evolvesTo) && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full h-8 text-xs mt-3 border-purple-500/40 text-purple-300 hover:bg-purple-900/20"
+                onClick={() => store.evolveAllTransportLines()}
+              >
+                <Dna className="w-3.5 h-3.5 mr-1.5" />
+                Evolve All Lines to Next Tier
+              </Button>
+            )}
+          </div>
+
           {/* Active Transport Lines */}
           <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
             <div className="flex items-center gap-2 mb-3">
@@ -1075,6 +1230,20 @@ export function TransportPanel() {
                                     title="Upgrade transport type"
                                   >
                                     ➡️
+                                  </Button>
+                                )}
+                                {/* Evolve button (one-tier evolution) */}
+                                {def.evolvesTo && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 text-[9px] px-1.5 text-purple-400 hover:text-purple-300"
+                                    onClick={() => store.evolveTransportLine(line.id)}
+                                    disabled={store.money < Math.floor(def.evolutionCost * Math.pow(1.3, line.level - 1))}
+                                    title={`Evolve → ${TRANSPORT_DEFS[def.evolvesTo].name} ($${formatNumber(Math.floor(def.evolutionCost * Math.pow(1.3, line.level - 1)))})`}
+                                  >
+                                    <Dna className="w-3 h-3 mr-0.5" />
+                                    🧬
                                   </Button>
                                 )}
                               </div>
@@ -1443,6 +1612,56 @@ export function TransportPanel() {
                   );
                 })}
               </div>
+              {/* Bulk Evolution Section */}
+              {store.transportLines.some(l => TRANSPORT_DEFS[l.type]?.evolvesTo) && (
+                <div className="border-t border-purple-800/30 pt-2 space-y-2">
+                  <div className="text-[9px] text-purple-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                    <Dna className="w-3 h-3" />
+                    Evolution
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full h-7 text-[10px] border-purple-500/40 text-purple-300 hover:bg-purple-900/20"
+                    onClick={() => store.evolveAllTransportLines()}
+                  >
+                    <Dna className="w-3 h-3 mr-1" />
+                    Evolve All to Next Tier
+                  </Button>
+                  {/* Per-type bulk evolution */}
+                  {TRANSPORT_EVOLUTION_CHAIN.filter(type => {
+                    const def = TRANSPORT_DEFS[type];
+                    return def?.evolvesTo && store.transportLines.some(l => l.type === type);
+                  }).map(type => {
+                    const def = TRANSPORT_DEFS[type];
+                    if (!def?.evolvesTo) return null;
+                    const nextDef = TRANSPORT_DEFS[def.evolvesTo];
+                    const lines = store.transportLines.filter(l => l.type === type);
+                    let affordableCount = 0;
+                    let totalEvoCost = 0;
+                    let runningCost = 0;
+                    for (const line of lines) {
+                      const c = Math.floor(def.evolutionCost * Math.pow(1.3, line.level - 1));
+                      totalEvoCost += c;
+                      if (store.money >= runningCost + c) { runningCost += c; affordableCount++; }
+                    }
+                    return (
+                      <Button
+                        key={type}
+                        variant="outline"
+                        size="sm"
+                        className="w-full h-7 text-[10px] border-purple-500/30 text-purple-300 hover:bg-purple-900/10 justify-start"
+                        onClick={() => store.evolveTransportLinesByType(type)}
+                        disabled={affordableCount === 0}
+                      >
+                        <Dna className="w-2.5 h-2.5 mr-1" />
+                        <span className="mr-1">{def.emoji}</span>
+                        {def.emoji}→{nextDef.emoji} Evolve {def.name} ({affordableCount}/{lines.length} — ${formatNumber(totalEvoCost)})
+                      </Button>
+                    );
+                  })}
+                </div>
+              )}
               <div className="border-t border-gray-800 pt-2 space-y-2">
                 <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Auto-Connect</div>
                 <Button

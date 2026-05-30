@@ -211,6 +211,11 @@ export interface TransportDefinition {
   baseThroughput: number; // units per tick
   upgradeMultiplier: number;
   emoji: string;
+  // Evolution System
+  evolutionTier: number; // 0=conveyor, 1=pipe, 2=truck, 3=cargo, 4=drone, 5=cargo ship
+  evolvesTo?: TransportType; // Next tier in the evolution chain
+  evolutionCost: number; // Money cost to evolve to next tier
+  evolutionBonus: string; // Description of what evolution unlocks
 }
 
 // --- Research ---
@@ -735,6 +740,9 @@ export interface Drone {
   speedLevel: number;
   capacityLevel: number;
   fuelEfficiencyLevel: number;
+  // Auto-Assign System
+  autoAssign: boolean; // When true, drone will auto-pick best available mission
+  autoAssignPriority: 'profit' | 'speed' | 'research'; // Mission selection strategy
 }
 
 export interface DroneMission {

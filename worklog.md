@@ -652,3 +652,60 @@ Stage Summary:
 - Connect All now supports user-selected transport type
 - Lint passes, dev server compiles without errors
 - All features verified working via agent-browser testing
+
+---
+Task ID: 14
+Agent: main
+Task: Add Logistics Evolution System + Drone Auto-Assign
+
+Work Log:
+- Added evolution system fields to TransportDefinition in types.ts: evolutionTier, evolvesTo, evolutionCost, evolutionBonus
+- Added auto-assign fields to Drone type in types.ts: autoAssign, autoAssignPriority
+- Added TRANSPORT_EVOLUTION_CHAIN and TRANSPORT_EVOLUTION_META constants to data.ts
+- Updated all 6 TRANSPORT_DEFS with evolution data (conveyorBelt→pipe→truck→cargoTrain→drone→cargoShip)
+- Updated SAVE_VERSION from 24 to 25
+- Added V24→V25 migration for drone autoAssign/autoAssignPriority fields
+- Added 3 store actions for transport evolution:
+  - evolveTransportLine(id) — evolve single line to next tier
+  - evolveAllTransportLines() — evolve all evolvable lines
+  - evolveTransportLinesByType(type) — evolve all lines of a specific type
+- Added 4 store actions for drone auto-assign:
+  - toggleDroneAutoAssign(droneId) — toggle auto-assign on/off
+  - setDroneAutoAssignPriority(droneId, priority) — set priority (profit/speed/research)
+  - autoAssignAllDrones() — enable auto-assign for all + immediately assign
+  - processAutoAssignDrones() — assign idle auto-drones to best missions based on priority
+- Added auto-assign processing in game tick (every 10 ticks) for idle auto-assign drones
+- Updated buyDrone and initial state to include autoAssign and autoAssignPriority fields
+- Built Logistics Evolution Tree UI in TransportPanel.tsx:
+  - Horizontal evolution chain with 6 nodes (Tier I through Tier VI)
+  - Each node shows emoji, name, throughput, line count, and evolve button
+  - Arrow connectors between nodes with purple gradient
+  - Evolution stats: current tier, evolvable lines, max tier lines, total evolution cost
+  - "Evolve All Lines to Next Tier" button
+  - Color-coded tier badges (gray→cyan→green→purple→sky→yellow)
+- Added evolve button (🧬) to each individual transport line
+- Added bulk evolution section in Bulk Operations:
+  - "Evolve All to Next Tier" button
+  - Per-type evolution buttons (e.g., "➡️→🔧 Evolve Conveyor Belt")
+- Updated DroneDeliveryPanel.tsx with auto-assign:
+  - Auto-Assign Control Panel with "Enable All & Assign" button
+  - Stats: auto drones count, waiting count, delivering count
+  - Per-drone auto-assign toggle (ToggleLeft/ToggleRight icons)
+  - Per-drone priority selector (profit/speed/research)
+  - AUTO badge on drone status
+  - Purple glow on auto-assigned drone cards
+  - Purple progress bars for auto-assigned delivering drones
+  - Auto-assign drone dots shown in purple on visual map
+  - "Auto-Assign" column in stats summary
+- Lint passes cleanly
+- Dev server compiles without errors
+
+Stage Summary:
+- Complete Logistics Evolution System implemented: conveyorBelt → pipe → truck → cargoTrain → drone → cargoShip
+- Evolution cost scales with line level: baseCost × 1.3^(level-1)
+- Bulk evolution supports both "evolve all" and "evolve by type" operations
+- Evolution Tree UI provides visual progression chain with stats
+- Drone Auto-Assign system with 3 priority strategies (profit, speed, research)
+- Auto-assign processes every 10 game ticks automatically
+- Purple visual theme distinguishes auto-assigned drones from manual drones
+- SAVE_VERSION: 25 with V24→V25 migration for new drone fields

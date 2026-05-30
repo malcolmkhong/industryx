@@ -1089,6 +1089,19 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
   },
 };
 
+// --- Transport Evolution Hierarchy ---
+// conveyorBelt → pipe → truck → cargoTrain → drone → cargoShip
+export const TRANSPORT_EVOLUTION_CHAIN: TransportType[] = ['conveyorBelt', 'pipe', 'truck', 'cargoTrain', 'drone', 'cargoShip'];
+
+export const TRANSPORT_EVOLUTION_META: Record<TransportType, { tier: number; tierName: string; tierColor: string; tierBg: string }> = {
+  conveyorBelt: { tier: 0, tierName: 'Tier I', tierColor: '#9ca3af', tierBg: 'bg-gray-900/20' },
+  pipe:         { tier: 1, tierName: 'Tier II', tierColor: '#22d3ee', tierBg: 'bg-cyan-900/20' },
+  truck:        { tier: 2, tierName: 'Tier III', tierColor: '#4ade80', tierBg: 'bg-green-900/20' },
+  cargoTrain:   { tier: 3, tierName: 'Tier IV', tierColor: '#c084fc', tierBg: 'bg-purple-900/20' },
+  drone:        { tier: 4, tierName: 'Tier V', tierColor: '#38bdf8', tierBg: 'bg-sky-900/20' },
+  cargoShip:    { tier: 5, tierName: 'Tier VI', tierColor: '#fbbf24', tierBg: 'bg-yellow-900/20' },
+};
+
 // --- Transport Definitions ---
 export const TRANSPORT_DEFS: Record<string, TransportDefinition> = {
   conveyorBelt: {
@@ -1099,6 +1112,10 @@ export const TRANSPORT_DEFS: Record<string, TransportDefinition> = {
     baseThroughput: 5,
     upgradeMultiplier: 1.5,
     emoji: '➡️',
+    evolutionTier: 0,
+    evolvesTo: 'pipe',
+    evolutionCost: 200,
+    evolutionBonus: '+60% throughput, liquid/gas transport',
   },
   pipe: {
     type: 'pipe',
@@ -1108,6 +1125,10 @@ export const TRANSPORT_DEFS: Record<string, TransportDefinition> = {
     baseThroughput: 8,
     upgradeMultiplier: 1.4,
     emoji: '🔧',
+    evolutionTier: 1,
+    evolvesTo: 'truck',
+    evolutionCost: 800,
+    evolutionBonus: '+87% throughput, motorized transport',
   },
   truck: {
     type: 'truck',
@@ -1117,6 +1138,10 @@ export const TRANSPORT_DEFS: Record<string, TransportDefinition> = {
     baseThroughput: 15,
     upgradeMultiplier: 1.6,
     emoji: '🚚',
+    evolutionTier: 2,
+    evolvesTo: 'cargoTrain',
+    evolutionCost: 3000,
+    evolutionBonus: '+167% throughput, rail transport system',
   },
   cargoTrain: {
     type: 'cargoTrain',
@@ -1126,6 +1151,10 @@ export const TRANSPORT_DEFS: Record<string, TransportDefinition> = {
     baseThroughput: 40,
     upgradeMultiplier: 1.7,
     emoji: '🚂',
+    evolutionTier: 3,
+    evolvesTo: 'drone',
+    evolutionCost: 5000,
+    evolutionBonus: 'Aerial flexibility, cross-region transport',
   },
   drone: {
     type: 'drone',
@@ -1135,15 +1164,22 @@ export const TRANSPORT_DEFS: Record<string, TransportDefinition> = {
     baseThroughput: 10,
     upgradeMultiplier: 1.5,
     emoji: '🚁',
+    evolutionTier: 4,
+    evolvesTo: 'cargoShip',
+    evolutionCost: 12000,
+    evolutionBonus: '+700% throughput, massive bulk capacity',
   },
   cargoShip: {
     type: 'cargoShip',
     name: 'Cargo Ship',
-    description: 'Massive maritime transport for bulk materials',
+    description: 'Massive maritime transport for bulk materials — the pinnacle of logistics evolution',
     baseCost: [{ resource: 'money', amount: 8000 }],
     baseThroughput: 80,
     upgradeMultiplier: 1.8,
     emoji: '🚢',
+    evolutionTier: 5,
+    evolutionCost: 0,
+    evolutionBonus: 'Maximum tier — no further evolution',
   },
 };
 

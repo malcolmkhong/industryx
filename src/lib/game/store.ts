@@ -24,11 +24,12 @@ import {
   WEATHER_DEFS, QUEST_DEFS,
   generateDynamicContract, generateContractBoard,
   INITIAL_REGIONS, generateRegionGrid, BUILDING_FOOTPRINTS, getBuildingFootprint,
+  TRANSPORT_EVOLUTION_CHAIN, TRANSPORT_EVOLUTION_META,
 } from './data';
 import { soundEngine } from './soundEngine';
 
 // --- Save Version ---
-const SAVE_VERSION = 24;
+const SAVE_VERSION = 25;
 
 // --- Utility Functions ---
 function generateId(): string {
@@ -1225,6 +1226,18 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
     }
   }
 
+  // V24 → V25: Add auto-assign fields to drones
+  if (version < 25) {
+    if (state.drones && Array.isArray((state.drones as { fleet: Drone[] }).fleet)) {
+      const drones = state.drones as { fleet: Drone[]; completedMissions: number; totalEarned: number };
+      drones.fleet = drones.fleet.map((d: Drone) => ({
+        ...d,
+        autoAssign: d.autoAssign ?? false,
+        autoAssignPriority: d.autoAssignPriority ?? 'profit',
+      }));
+    }
+  }
+
   state._version = SAVE_VERSION;
   return state;
 }
@@ -1501,6 +1514,8 @@ function createInitialState(): GameState {
         speedLevel: 1,
         capacityLevel: 1,
         fuelEfficiencyLevel: 1,
+        autoAssign: false,
+        autoAssignPriority: 'profit' as const,
       }],
       completedMissions: 0,
       totalEarned: 0,
@@ -1545,6 +1560,10 @@ interface GameActions {
   toggleTransportLine: (id: string) => void;
   upgradeAllTransportLines: () => void;
   upgradeTransportLinesByType: (type: TransportType) => void;
+  // Transport Evolution
+  evolveTransportLine: (id: string) => void;
+  evolveAllTransportLines: () => void;
+  evolveTransportLinesByType: (type: TransportType) => void;
   
   // Research
   startResearch: (id: string) => void;
@@ -1640,6 +1659,11 @@ interface GameActions {
   sendDrone: (missionId: string, droneId: string) => void;
   upgradeDrone: (droneId: string, type: 'speed' | 'capacity' | 'fuelEfficiency') => void;
   generateDroneMissions: () => DroneMission[];
+  // Drone Auto-Assign
+  toggleDroneAutoAssign: (droneId: string) => void;
+  setDroneAutoAssignPriority: (droneId: string, priority: 'profit' | 'speed' | 'research') => void;
+  autoAssignAllDrones: () => void;
+  processAutoAssignDrones: () => void;
 
   // Map System (Hybrid Grid + Logistics + Region)
   setActiveRegion: (regionId: RegionId) => void;
@@ -2699,6 +2723,15 @@ export const useGameStore = create<GameStore>()(
           }
         }
 
+        // --- Process Auto-Assign Drones (every 10 ticks) ---
+        if (newTick % 10 === 0 && newDrones.fleet.some(d => d.status === 'idle' && d.autoAssign)) {
+          // Schedule auto-assign processing after current tick completes
+          // Use setTimeout to avoid recursive state updates during tick
+          setTimeout(() => {
+            try { get().processAutoAssignDrones(); } catch {}
+          }, 0);
+        }
+
         // === Endgame Building Passive Income ===
         let corpGained = autoFulfillCP;
         const endgameBuildings = state.buildings.filter(b => b.active && [
@@ -3297,6 +3330,153 @@ export const useGameStore = create<GameStore>()(
           }),
         });
         get().addNotification('success', `Upgraded ${linesToUpgrade.length} ${def.name} line(s) for $${formatNumber(totalCost)}`);
+      },
+
+      // --- TRANSPORT EVOLUTION ACTIONS ---
+      evolveTransportLine: (id: string) => {
+        const state = get();
+        const line = state.transportLines.find(l => l.id === id);
+        if (!line) return;
+
+        const currentDef = TRANSPORT_DEFS[line.type];
+        if (!currentDef?.evolvesTo) {
+          get().addNotification('warning', `${currentDef.name} is already at max evolution tier!`);
+          return;
+        }
+
+        const nextType = currentDef.evolvesTo;
+        const nextDef = TRANSPORT_DEFS[nextType];
+        if (!nextDef) return;
+
+        // Evolution cost: scales with current line level
+        const evolutionCost = Math.floor(currentDef.evolutionCost * Math.pow(1.3, line.level - 1));
+        if (state.money < evolutionCost) {
+          soundEngine.play('error', 'ui');
+          get().addNotification('error', `Need $${formatNumber(evolutionCost)} to evolve ${currentDef.name} → ${nextDef.name}!`);
+          return;
+        }
+
+        const logistics1Bonus = state.completedResearch.includes('logistics1') ? 0.2 : 0;
+        const advancedLogisticsBonus = state.completedResearch.includes('advancedLogistics') ? 0.3 : 0;
+        const transportBonus = logistics1Bonus + advancedLogisticsBonus;
+
+        const newThroughput = Math.min(
+          nextDef.baseThroughput * 3 * Math.pow(nextDef.upgradeMultiplier, line.level - 1),
+          nextDef.baseThroughput * Math.pow(nextDef.upgradeMultiplier, line.level - 1) * (1 + transportBonus)
+        );
+        const newMaxThroughput = nextDef.baseThroughput * 3 * Math.pow(nextDef.upgradeMultiplier, line.level - 1);
+
+        set({
+          money: state.money - evolutionCost,
+          transportLines: state.transportLines.map(l =>
+            l.id === id ? {
+              ...l,
+              type: nextType,
+              throughput: newThroughput,
+              maxThroughput: newMaxThroughput,
+            } : l
+          ),
+        });
+        soundEngine.play('buildingPlaced', 'building');
+        get().addNotification('success', `🧬 Evolved ${currentDef.emoji} ${currentDef.name} → ${nextDef.emoji} ${nextDef.name} for $${formatNumber(evolutionCost)}`);
+      },
+
+      evolveAllTransportLines: () => {
+        const state = get();
+        let totalCost = 0;
+        const linesToEvolve: string[] = [];
+
+        for (const line of state.transportLines) {
+          const def = TRANSPORT_DEFS[line.type];
+          if (!def?.evolvesTo) continue;
+          const cost = Math.floor(def.evolutionCost * Math.pow(1.3, line.level - 1));
+          if (state.money - totalCost >= cost) {
+            totalCost += cost;
+            linesToEvolve.push(line.id);
+          }
+        }
+
+        if (linesToEvolve.length === 0) {
+          get().addNotification('warning', 'No transport lines can be evolved!');
+          return;
+        }
+
+        const logistics1Bonus = state.completedResearch.includes('logistics1') ? 0.2 : 0;
+        const advancedLogisticsBonus = state.completedResearch.includes('advancedLogistics') ? 0.3 : 0;
+        const transportBonus = logistics1Bonus + advancedLogisticsBonus;
+
+        set({
+          money: state.money - totalCost,
+          transportLines: state.transportLines.map(l => {
+            if (!linesToEvolve.includes(l.id)) return l;
+            const def = TRANSPORT_DEFS[l.type];
+            if (!def?.evolvesTo) return l;
+            const nextDef = TRANSPORT_DEFS[def.evolvesTo];
+            if (!nextDef) return l;
+            const newThroughput = Math.min(
+              nextDef.baseThroughput * 3 * Math.pow(nextDef.upgradeMultiplier, l.level - 1),
+              nextDef.baseThroughput * Math.pow(nextDef.upgradeMultiplier, l.level - 1) * (1 + transportBonus)
+            );
+            const newMaxThroughput = nextDef.baseThroughput * 3 * Math.pow(nextDef.upgradeMultiplier, l.level - 1);
+            return {
+              ...l,
+              type: def.evolvesTo,
+              throughput: newThroughput,
+              maxThroughput: newMaxThroughput,
+            };
+          }),
+        });
+        get().addNotification('success', `🧬 Evolved ${linesToEvolve.length} transport line(s) for $${formatNumber(totalCost)}`);
+      },
+
+      evolveTransportLinesByType: (type: TransportType) => {
+        const state = get();
+        const def = TRANSPORT_DEFS[type];
+        if (!def?.evolvesTo) {
+          get().addNotification('warning', `${def?.name ?? type} is already at max evolution tier!`);
+          return;
+        }
+
+        let totalCost = 0;
+        const linesToEvolve: string[] = [];
+
+        for (const line of state.transportLines) {
+          if (line.type !== type) continue;
+          const cost = Math.floor(def.evolutionCost * Math.pow(1.3, line.level - 1));
+          if (state.money - totalCost >= cost) {
+            totalCost += cost;
+            linesToEvolve.push(line.id);
+          }
+        }
+
+        if (linesToEvolve.length === 0) {
+          get().addNotification('warning', `No ${def.name} lines can be evolved!`);
+          return;
+        }
+
+        const nextDef = TRANSPORT_DEFS[def.evolvesTo];
+        const logistics1Bonus = state.completedResearch.includes('logistics1') ? 0.2 : 0;
+        const advancedLogisticsBonus = state.completedResearch.includes('advancedLogistics') ? 0.3 : 0;
+        const transportBonus = logistics1Bonus + advancedLogisticsBonus;
+
+        set({
+          money: state.money - totalCost,
+          transportLines: state.transportLines.map(l => {
+            if (!linesToEvolve.includes(l.id)) return l;
+            const newThroughput = Math.min(
+              nextDef.baseThroughput * 3 * Math.pow(nextDef.upgradeMultiplier, l.level - 1),
+              nextDef.baseThroughput * Math.pow(nextDef.upgradeMultiplier, l.level - 1) * (1 + transportBonus)
+            );
+            const newMaxThroughput = nextDef.baseThroughput * 3 * Math.pow(nextDef.upgradeMultiplier, l.level - 1);
+            return {
+              ...l,
+              type: def.evolvesTo!,
+              throughput: newThroughput,
+              maxThroughput: newMaxThroughput,
+            };
+          }),
+        });
+        get().addNotification('success', `🧬 Evolved ${linesToEvolve.length} ${def.emoji} ${def.name} → ${nextDef.emoji} ${nextDef.name} for $${formatNumber(totalCost)}`);
       },
 
       // --- RESEARCH ACTIONS ---
@@ -4593,6 +4773,8 @@ export const useGameStore = create<GameStore>()(
           speedLevel: 1,
           capacityLevel: 1,
           fuelEfficiencyLevel: 1,
+          autoAssign: false,
+          autoAssignPriority: 'profit',
         };
         set({
           money: state.money - cost,
@@ -4680,6 +4862,110 @@ export const useGameStore = create<GameStore>()(
 
       generateDroneMissions: () => {
         return generateDroneMissionsFromState(get());
+      },
+
+      // --- DRONE AUTO-ASSIGN ACTIONS ---
+      toggleDroneAutoAssign: (droneId: string) => {
+        const state = get();
+        const updatedFleet = state.drones.fleet.map(d =>
+          d.id === droneId
+            ? { ...d, autoAssign: !d.autoAssign, autoAssignPriority: d.autoAssignPriority ?? 'profit' }
+            : d
+        );
+        set({
+          drones: { ...state.drones, fleet: updatedFleet },
+        });
+      },
+
+      setDroneAutoAssignPriority: (droneId: string, priority: 'profit' | 'speed' | 'research') => {
+        const state = get();
+        const updatedFleet = state.drones.fleet.map(d =>
+          d.id === droneId ? { ...d, autoAssignPriority: priority } : d
+        );
+        set({
+          drones: { ...state.drones, fleet: updatedFleet },
+        });
+      },
+
+      autoAssignAllDrones: () => {
+        const state = get();
+        const missions = generateDroneMissionsFromState(state);
+        if (missions.length === 0) return;
+
+        // Enable auto-assign for all idle drones
+        const updatedFleet = state.drones.fleet.map(d => ({
+          ...d,
+          autoAssign: true,
+          autoAssignPriority: d.autoAssignPriority ?? 'profit' as const,
+        }));
+        set({ drones: { ...state.drones, fleet: updatedFleet } });
+
+        // Immediately assign idle drones
+        get().processAutoAssignDrones();
+        get().addNotification('success', `🚁 Auto-assign enabled for all drones`);
+      },
+
+      processAutoAssignDrones: () => {
+        const state = get();
+        const missions = generateDroneMissionsFromState(state);
+        if (missions.length === 0) return;
+
+        const idleAutoAssignDrones = state.drones.fleet.filter(d => d.status === 'idle' && d.autoAssign);
+        if (idleAutoAssignDrones.length === 0) return;
+
+        // Sort missions by different strategies
+        const sortedMissionsByPriority: Record<string, DroneMission[]> = {
+          profit: [...missions].sort((a, b) => b.reward.money - a.reward.money),
+          speed: [...missions].sort((a, b) => a.baseTicks - b.baseTicks),
+          research: [...missions].sort((a, b) => (b.reward.researchPoints ?? 0) - (a.reward.researchPoints ?? 0)),
+        };
+
+        const usedMissionIds = new Set<string>();
+        let assignments = 0;
+
+        const updatedFleet = state.drones.fleet.map(d => {
+          if (d.status !== 'idle' || !d.autoAssign) return d;
+
+          const sortedMissions = sortedMissionsByPriority[d.autoAssignPriority ?? 'profit'];
+          // Find the best mission this drone can afford
+          for (const mission of sortedMissions) {
+            if (usedMissionIds.has(mission.id)) continue;
+            const fuelCost = Math.ceil(mission.fuelCost / (1 + (d.fuelEfficiencyLevel - 1) * 0.15));
+            if (state.money < fuelCost) continue;
+
+            const deliveryTicks = Math.max(10, Math.floor(mission.baseTicks / (1 + (d.speedLevel - 1) * 0.2)));
+            usedMissionIds.add(mission.id);
+            assignments++;
+
+            // Deduct fuel cost - we'll batch this after
+            return {
+              ...d,
+              status: 'delivering' as const,
+              missionEndTick: state.gameTick + deliveryTicks,
+              missionId: mission.id,
+            };
+          }
+          return d;
+        });
+
+        if (assignments > 0) {
+          // Calculate total fuel cost
+          let totalFuelCost = 0;
+          const assignedDrones = updatedFleet.filter((d, i) => d.status === 'delivering' && state.drones.fleet[i].status === 'idle');
+          for (const d of assignedDrones) {
+            if (d.missionId) {
+              const mission = missions.find(m => m.id === d.missionId);
+              if (mission) {
+                totalFuelCost += Math.ceil(mission.fuelCost / (1 + (d.fuelEfficiencyLevel - 1) * 0.15));
+              }
+            }
+          }
+
+          set({
+            money: Math.max(0, state.money - totalFuelCost),
+            drones: { ...state.drones, fleet: updatedFleet },
+          });
+        }
       },
 
       // --- LEADERBOARD ACTIONS ---
