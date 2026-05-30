@@ -2,16 +2,18 @@
 
 import { useMemo, useState } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
-import { RESOURCE_META } from '@/lib/game/data';
+import { RESOURCE_META, CONTRACT_TYPE_TEMPLATES, CONTRACT_TIER_RULES } from '@/lib/game/data';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   ScrollText, Package, Clock, Check, X, AlertTriangle,
   Star, Trophy, Coins, FlaskConical, Globe, Lock, ChevronDown, ChevronRight,
-  RefreshCw, Swords, Zap, Gem, Trash2,
+  RefreshCw, Swords, Zap, Gem, Trash2, Truck, Wrench, Microscope, ShieldCheck,
+  Info, Layers, Shield,
 } from 'lucide-react';
-import { ResourceType, Contract, ContractDifficulty, CONTRACT_DIFFICULTY_META } from '@/lib/game/types';
+import { ResourceType, Contract, ContractDifficulty, ContractType, CONTRACT_DIFFICULTY_META } from '@/lib/game/types';
 import { motion, AnimatePresence } from 'framer-motion';
+
 // Difficulty tier visual config
 const DIFFICULTY_CONFIG: Record<ContractDifficulty, {
   gradient: string;
@@ -50,6 +52,51 @@ const DIFFICULTY_CONFIG: Record<ContractDifficulty, {
   },
 };
 
+// Contract type visual config for template badges
+const CONTRACT_TYPE_CONFIG: Record<ContractType, {
+  label: string;
+  icon: React.ReactNode;
+  color: string;
+  bgColor: string;
+  description: string;
+}> = {
+  delivery: {
+    label: 'Delivery',
+    icon: <Truck className="w-3 h-3" />,
+    color: '#3b82f6',
+    bgColor: 'bg-blue-500/10',
+    description: 'Fast transport jobs, moderate pay',
+  },
+  supply: {
+    label: 'Supply',
+    icon: <Package className="w-3 h-3" />,
+    color: '#22c55e',
+    bgColor: 'bg-green-500/10',
+    description: 'Steady restocking contracts',
+  },
+  construction: {
+    label: 'Construction',
+    icon: <Wrench className="w-3 h-3" />,
+    color: '#f59e0b',
+    bgColor: 'bg-amber-500/10',
+    description: 'Big builds, bonus CP rewards',
+  },
+  military: {
+    label: 'Military',
+    icon: <Shield className="w-3 h-3" />,
+    color: '#ef4444',
+    bgColor: 'bg-red-500/10',
+    description: 'High-risk, high-reward tactical',
+  },
+  research: {
+    label: 'Research',
+    icon: <Microscope className="w-3 h-3" />,
+    color: '#a855f7',
+    bgColor: 'bg-purple-500/10',
+    description: 'Long deadlines, RP-rich rewards',
+  },
+};
+
 // Contract card for board (unaccepted) or active (accepted)
 function ContractCard({ contract }: { contract: Contract }) {
   const store = useGameStore();
@@ -59,6 +106,8 @@ function ContractCard({ contract }: { contract: Contract }) {
   const difficultyTier = contract.difficultyTier || 'easy';
   const diffConfig = DIFFICULTY_CONFIG[difficultyTier];
   const meta = CONTRACT_DIFFICULTY_META[difficultyTier];
+  const templateType = contract.templateType ?? contract.type ?? 'delivery';
+  const typeConfig = CONTRACT_TYPE_CONFIG[templateType];
   const canFulfill = isAccepted && !isCompleted && !isFailed && contract.requiredResources.every(r => {
     if (r.resource === 'money') return true;
     return (store.resources[r.resource as ResourceType] ?? 0) >= r.amount;
@@ -100,12 +149,25 @@ function ContractCard({ contract }: { contract: Contract }) {
             >
               {meta.icon} {meta.label}
             </Badge>
-            {/* Type badge */}
-            <Badge variant="outline" className="text-[8px] px-1 py-0 border-gray-700 text-gray-500 hidden sm:inline-flex">
-              {contract.type}
+            {/* Template type badge */}
+            <Badge
+              className="text-[8px] px-1.5 py-0 border-0"
+              style={{ backgroundColor: `${typeConfig.color}22`, color: typeConfig.color }}
+            >
+              {typeConfig.icon} {typeConfig.label}
             </Badge>
           </div>
         </div>
+
+        {/* Validation indicator */}
+        {contract.validationNotes && contract.validationNotes.length > 0 && !isCompleted && !isFailed && (
+          <div className="flex items-center gap-1 mb-2 px-2 py-1 rounded-lg bg-amber-500/5 border border-amber-500/10">
+            <AlertTriangle className="w-2.5 h-2.5 text-amber-400 flex-shrink-0" />
+            <span className="text-[8px] text-amber-400/80 truncate">
+              {contract.validationNotes[0]}
+            </span>
+          </div>
+        )}
 
         {/* Required Resources */}
         <div className="flex flex-wrap gap-1.5 mb-2.5">
@@ -258,6 +320,7 @@ function ContractCard({ contract }: { contract: Contract }) {
 export function ContractPanel() {
   const store = useGameStore();
   const [selectedDifficulty, setSelectedDifficulty] = useState<ContractDifficulty | 'all'>('all');
+  const [selectedType, setSelectedType] = useState<ContractType | 'all'>('all');
   const [showHistory, setShowHistory] = useState(false);
 
   const playerTier = store.getPlayerGameTier();
@@ -280,16 +343,20 @@ export function ContractPanel() {
     [store.contracts]
   );
 
-  // Filter by difficulty
+  // Filter by difficulty AND type
   const filteredBoard = useMemo(() => {
-    if (selectedDifficulty === 'all') return boardContracts;
-    return boardContracts.filter(c => c.difficultyTier === selectedDifficulty);
-  }, [boardContracts, selectedDifficulty]);
+    let result = boardContracts;
+    if (selectedDifficulty !== 'all') result = result.filter(c => c.difficultyTier === selectedDifficulty);
+    if (selectedType !== 'all') result = result.filter(c => (c.templateType ?? c.type) === selectedType);
+    return result;
+  }, [boardContracts, selectedDifficulty, selectedType]);
 
   const filteredActive = useMemo(() => {
-    if (selectedDifficulty === 'all') return activeContracts;
-    return activeContracts.filter(c => c.difficultyTier === selectedDifficulty);
-  }, [activeContracts, selectedDifficulty]);
+    let result = activeContracts;
+    if (selectedDifficulty !== 'all') result = result.filter(c => c.difficultyTier === selectedDifficulty);
+    if (selectedType !== 'all') result = result.filter(c => (c.templateType ?? c.type) === selectedType);
+    return result;
+  }, [activeContracts, selectedDifficulty, selectedType]);
 
   // Difficulty counts
   const difficultyCounts = useMemo(() => {
@@ -297,6 +364,17 @@ export function ContractPanel() {
     [...boardContracts, ...activeContracts].forEach(c => {
       counts.all++;
       counts[c.difficultyTier || 'easy']++;
+    });
+    return counts;
+  }, [boardContracts, activeContracts]);
+
+  // Type counts
+  const typeCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: 0 };
+    [...boardContracts, ...activeContracts].forEach(c => {
+      const t = c.templateType ?? c.type ?? 'delivery';
+      counts[t] = (counts[t] || 0) + 1;
+      counts.all++;
     });
     return counts;
   }, [boardContracts, activeContracts]);
@@ -315,7 +393,7 @@ export function ContractPanel() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h2 className="text-xl font-bold text-rose-400 neon-glow-cyan tracking-wide">Contract Board</h2>
-          <p className="text-xs text-gray-500 mt-0.5">Dynamic contracts — unique material combinations every refresh</p>
+          <p className="text-xs text-gray-500 mt-0.5">4-Layer Architecture: Template → Tier Rules → Procedural Fill → Validation</p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="border-amber-500/50 text-amber-400 bg-amber-900/20 text-xs">
@@ -357,49 +435,90 @@ export function ContractPanel() {
         </div>
       </div>
 
-      {/* Difficulty Filter + Refresh */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-[10px] text-gray-500">Filter:</span>
-        {(['all', 'easy', 'medium', 'hard', 'legendary'] as const).map(diff => {
-          const isActive = selectedDifficulty === diff;
-          const count = difficultyCounts[diff] || 0;
-          const isUnlocked = diff === 'all' || playerTier >= CONTRACT_DIFFICULTY_META[diff].minGameTier;
+      {/* Difficulty Filter + Type Filter + Refresh */}
+      <div className="space-y-2">
+        {/* Difficulty filter */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[10px] text-gray-500">Tier:</span>
+          {(['all', 'easy', 'medium', 'hard', 'legendary'] as const).map(diff => {
+            const isActive = selectedDifficulty === diff;
+            const count = difficultyCounts[diff] || 0;
+            const isUnlocked = diff === 'all' || playerTier >= CONTRACT_DIFFICULTY_META[diff].minGameTier;
 
-          if (diff !== 'all' && !isUnlocked) return null;
+            if (diff !== 'all' && !isUnlocked) return null;
 
-          return (
-            <button
-              key={diff}
-              onClick={() => setSelectedDifficulty(diff)}
-              className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all flex items-center gap-1 ${
-                isActive
-                  ? 'ring-1'
-                  : 'bg-gray-900/30 text-gray-400 border border-gray-800 hover:bg-gray-800/50'
-              }`}
-              style={isActive && diff !== 'all' ? {
-                backgroundColor: `${CONTRACT_DIFFICULTY_META[diff as ContractDifficulty]?.color}22`,
-                color: CONTRACT_DIFFICULTY_META[diff as ContractDifficulty]?.color,
-                borderColor: `${CONTRACT_DIFFICULTY_META[diff as ContractDifficulty]?.color}55`,
-              } : isActive ? {
-                backgroundColor: 'rgba(244,63,94,0.15)',
-                color: '#fb7185',
-                borderColor: 'rgba(244,63,94,0.3)',
-              } : undefined}
+            return (
+              <button
+                key={diff}
+                onClick={() => setSelectedDifficulty(diff)}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all flex items-center gap-1 ${
+                  isActive
+                    ? 'ring-1'
+                    : 'bg-gray-900/30 text-gray-400 border border-gray-800 hover:bg-gray-800/50'
+                }`}
+                style={isActive && diff !== 'all' ? {
+                  backgroundColor: `${CONTRACT_DIFFICULTY_META[diff as ContractDifficulty]?.color}22`,
+                  color: CONTRACT_DIFFICULTY_META[diff as ContractDifficulty]?.color,
+                  borderColor: `${CONTRACT_DIFFICULTY_META[diff as ContractDifficulty]?.color}55`,
+                } : isActive ? {
+                  backgroundColor: 'rgba(244,63,94,0.15)',
+                  color: '#fb7185',
+                  borderColor: 'rgba(244,63,94,0.3)',
+                } : undefined}
+              >
+                {diff === 'all' ? '📋 All' : CONTRACT_DIFFICULTY_META[diff]?.icon + ' ' + CONTRACT_DIFFICULTY_META[diff]?.label}
+                {count > 0 && <span className="ml-0.5 text-[8px] opacity-70">({count})</span>}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Type filter */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[10px] text-gray-500">Type:</span>
+          {(['all', 'delivery', 'supply', 'construction', 'military', 'research'] as const).map(type => {
+            const isActive = selectedType === type;
+            const count = typeCounts[type] || 0;
+            const config = type !== 'all' ? CONTRACT_TYPE_CONFIG[type] : null;
+
+            return (
+              <button
+                key={type}
+                onClick={() => setSelectedType(type)}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all flex items-center gap-1 ${
+                  isActive
+                    ? 'ring-1'
+                    : 'bg-gray-900/30 text-gray-400 border border-gray-800 hover:bg-gray-800/50'
+                }`}
+                style={isActive && config ? {
+                  backgroundColor: `${config.color}22`,
+                  color: config.color,
+                  borderColor: `${config.color}55`,
+                } : isActive ? {
+                  backgroundColor: 'rgba(244,63,94,0.15)',
+                  color: '#fb7185',
+                  borderColor: 'rgba(244,63,94,0.3)',
+                } : undefined}
+              >
+                {type === 'all' ? '📋 All' : (
+                  <span className="flex items-center gap-1">
+                    {config?.icon} {config?.label}
+                  </span>
+                )}
+                {count > 0 && <span className="ml-0.5 text-[8px] opacity-70">({count})</span>}
+              </button>
+            );
+          })}
+          <div className="ml-auto">
+            <Button
+              onClick={() => store.refreshContractBoard()}
+              variant="outline"
+              size="sm"
+              className="text-[10px] h-7 px-2.5 bg-[#111827] border-gray-700 text-gray-400 hover:text-rose-400 hover:border-rose-700/50"
             >
-              {diff === 'all' ? '📋 All' : CONTRACT_DIFFICULTY_META[diff]?.icon + ' ' + CONTRACT_DIFFICULTY_META[diff]?.label}
-              {count > 0 && <span className="ml-0.5 text-[8px] opacity-70">({count})</span>}
-            </button>
-          );
-        })}
-        <div className="ml-auto">
-          <Button
-            onClick={() => store.refreshContractBoard()}
-            variant="outline"
-            size="sm"
-            className="text-[10px] h-7 px-2.5 bg-[#111827] border-gray-700 text-gray-400 hover:text-rose-400 hover:border-rose-700/50"
-          >
-            <RefreshCw className="w-3 h-3 mr-1" /> Refresh Board
-          </Button>
+              <RefreshCw className="w-3 h-3 mr-1" /> Refresh Board
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -450,7 +569,7 @@ export function ContractPanel() {
             <div className="game-card rounded-xl bg-[#111827] p-8 border border-[#1e293b] text-center">
               <ScrollText className="w-10 h-10 text-gray-700 mx-auto mb-2" />
               <p className="text-xs text-gray-500">No contracts available</p>
-              <p className="text-[10px] text-gray-600 mt-1">New contracts appear every ~200 ticks — or click "Refresh Board"</p>
+              <p className="text-[10px] text-gray-600 mt-1">New contracts appear every ~200 ticks — or click &quot;Refresh Board&quot;</p>
             </div>
           )}
 
@@ -473,6 +592,8 @@ export function ContractPanel() {
                   {[...completedContracts.slice(-20).reverse(), ...failedContracts.slice(-10).reverse()].map(c => {
                     const diffTier = c.difficultyTier || 'easy';
                     const diffMeta = CONTRACT_DIFFICULTY_META[diffTier];
+                    const tType = c.templateType ?? c.type ?? 'delivery';
+                    const tConfig = CONTRACT_TYPE_CONFIG[tType];
                     return (
                       <div key={c.id} className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[10px] ${
                         c.completed ? 'bg-green-900/10' : 'bg-red-900/10'
@@ -482,6 +603,7 @@ export function ContractPanel() {
                           <span>{c.emoji}</span>
                           <span className={c.completed ? 'text-green-400' : 'text-red-400'}>{c.name}</span>
                           <span className="text-[8px] text-gray-600">{diffMeta?.icon} {diffMeta?.label}</span>
+                          <span className="text-[8px]" style={{ color: tConfig?.color }}>{tConfig?.label}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           {c.completed ? (
@@ -508,15 +630,97 @@ export function ContractPanel() {
 
         {/* Sidebar (1/3) */}
         <div className="space-y-3">
+          {/* Architecture Overview */}
+          <div className="game-card rounded-xl bg-[#111827] p-3 border border-[#1e293b]">
+            <div className="flex items-center gap-2 mb-2.5">
+              <Layers className="w-4 h-4 text-rose-400" />
+              <h3 className="text-xs font-semibold text-rose-400">4-Layer Architecture</h3>
+            </div>
+            <div className="space-y-2">
+              <div className="p-2 rounded-lg bg-blue-500/5 border border-blue-500/10">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className="text-[9px] font-bold text-blue-400">L1</span>
+                  <span className="text-[10px] font-semibold text-blue-300">Base Template</span>
+                </div>
+                <div className="text-[8px] text-gray-500">5 contract types with unique flavor, deadline & reward modifiers</div>
+              </div>
+              <div className="p-2 rounded-lg bg-amber-500/5 border border-amber-500/10">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className="text-[9px] font-bold text-amber-400">L2</span>
+                  <span className="text-[10px] font-semibold text-amber-300">Tier Rules</span>
+                </div>
+                <div className="text-[8px] text-gray-500">Hard constraints: material count, resource tiers, deadlines, reward ranges</div>
+              </div>
+              <div className="p-2 rounded-lg bg-green-500/5 border border-green-500/10">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className="text-[9px] font-bold text-green-400">L3</span>
+                  <span className="text-[10px] font-semibold text-green-300">Procedural Fill</span>
+                </div>
+                <div className="text-[8px] text-gray-500">Random materials, quantities, names — weighted by type & tier</div>
+              </div>
+              <div className="p-2 rounded-lg bg-purple-500/5 border border-purple-500/10">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className="text-[9px] font-bold text-purple-400">L4</span>
+                  <span className="text-[10px] font-semibold text-purple-300">Validation</span>
+                </div>
+                <div className="text-[8px] text-gray-500">Completability, chain support, economy limits, redundancy check</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Contract Type Legend */}
+          <div className="game-card rounded-xl bg-[#111827] p-3 border border-[#1e293b]">
+            <div className="flex items-center gap-2 mb-2.5">
+              <Info className="w-4 h-4 text-cyan-400" />
+              <h3 className="text-xs font-semibold text-cyan-400">Contract Types</h3>
+            </div>
+            <div className="space-y-1.5">
+              {(['delivery', 'supply', 'construction', 'military', 'research'] as ContractType[]).map(type => {
+                const config = CONTRACT_TYPE_CONFIG[type];
+                const template = CONTRACT_TYPE_TEMPLATES[type];
+                const weight = template.spawnWeight;
+                const totalWeight = Object.values(CONTRACT_TYPE_TEMPLATES).reduce((s, t) => s + t.spawnWeight, 0);
+                const pct = Math.round((weight / totalWeight) * 100);
+                return (
+                  <div key={type} className="p-1.5 rounded-lg bg-gray-800/30 border border-gray-700/20">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span style={{ color: config.color }}>{config.icon}</span>
+                      <span className="text-[10px] font-semibold" style={{ color: config.color }}>
+                        {config.label}
+                      </span>
+                      <span className="text-[8px] text-gray-600 ml-auto">{pct}% spawn</span>
+                    </div>
+                    <div className="text-[8px] text-gray-500">{config.description}</div>
+                    <div className="text-[8px] text-gray-600 mt-0.5">
+                      {template.deadlineModifier !== 1.0 && (
+                        <span className="mr-1.5">⏱ {template.deadlineModifier > 1 ? '+' : ''}{((template.deadlineModifier - 1) * 100).toFixed(0)}% time</span>
+                      )}
+                      {template.rewardModifier !== 1.0 && (
+                        <span className="mr-1.5">💰 {template.rewardModifier > 1 ? '+' : ''}{((template.rewardModifier - 1) * 100).toFixed(0)}% pay</span>
+                      )}
+                      {template.rpBonus > 0 && (
+                        <span className="mr-1.5">🧪 +{template.rpBonus} RP</span>
+                      )}
+                      {template.cpBonus > 0 && (
+                        <span>+{template.cpBonus} CP</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Difficulty Tier Legend */}
           <div className="game-card rounded-xl bg-[#111827] p-3 border border-[#1e293b]">
             <div className="flex items-center gap-2 mb-2.5">
               <Star className="w-4 h-4 text-rose-400" />
-              <h3 className="text-xs font-semibold text-rose-400">Contract Tiers</h3>
+              <h3 className="text-xs font-semibold text-rose-400">Tier Rules (L2)</h3>
             </div>
             <div className="space-y-2">
               {(['easy', 'medium', 'hard', 'legendary'] as ContractDifficulty[]).map(diff => {
                 const meta = CONTRACT_DIFFICULTY_META[diff];
+                const rules = CONTRACT_TIER_RULES[diff];
                 const isUnlocked = playerTier >= meta.minGameTier;
                 return (
                   <div key={diff} className={`p-2 rounded-lg border transition-all ${
@@ -535,14 +739,42 @@ export function ContractPanel() {
                       )}
                     </div>
                     <div className="text-[9px] text-gray-500">
-                      {meta.materialCount[0]}–{meta.materialCount[1]} materials · {diff === 'easy' ? 'Long' : diff === 'medium' ? 'Moderate' : diff === 'hard' ? 'Short' : 'Very short'} deadline
+                      {rules.materialCount[0]}–{rules.materialCount[1]} materials · Res T{rules.allowedResourceTiers[0]}–T{rules.allowedResourceTiers[1]}
                     </div>
                     <div className="text-[9px] text-gray-500">
-                      {diff === 'legendary' ? '6× rewards + rare resources' : `${meta.rewardMultiplier}× rewards`}
+                      Deadline: {rules.deadlineRange[0]}–{rules.deadlineRange[1]}t · {rules.boardSlotCount} board slot{rules.boardSlotCount > 1 ? 's' : ''}
                     </div>
+                    <div className="text-[9px] text-gray-500">
+                      Reward: {rules.rewardMultiplier[0]}–{rules.rewardMultiplier[1]}× · RP {rules.rpRange[0]}–{rules.rpRange[1]}
+                    </div>
+                    {rules.rareResourceChance > 0 && (
+                      <div className="text-[9px] text-amber-400/70">
+                        {(rules.rareResourceChance * 100).toFixed(0)}% rare resource chance
+                      </div>
+                    )}
+                    {diff === 'legendary' && (
+                      <div className="text-[9px] text-purple-400/60">
+                        30% spawn chance per board refresh
+                      </div>
+                    )}
                   </div>
                 );
               })}
+            </div>
+          </div>
+
+          {/* Validation Layer Info */}
+          <div className="game-card rounded-xl bg-[#111827] p-3 border border-[#1e293b]">
+            <div className="flex items-center gap-2 mb-2.5">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <h3 className="text-xs font-semibold text-emerald-400">Validation (L4)</h3>
+            </div>
+            <div className="space-y-1.5 text-[10px] text-gray-500">
+              <p>• <span className="text-emerald-400/80">Completability</span> — Can you produce all required materials?</p>
+              <p>• <span className="text-emerald-400/80">Chain Support</span> — Do production chains exist for each resource?</p>
+              <p>• <span className="text-emerald-400/80">Economy Limit</span> — Rewards within 10× income, 20% RP earned</p>
+              <p>• <span className="text-emerald-400/80">Redundancy</span> — No &gt;60% material overlap with existing contracts</p>
+              <p className="text-[9px] text-gray-600 mt-1">Auto-adjusts unreachable resources &amp; excessive rewards</p>
             </div>
           </div>
 
@@ -569,24 +801,6 @@ export function ContractPanel() {
                 <span className="text-gray-500">CP Earned</span>
                 <span className="text-fuchsia-400 font-mono">{formatNumber(totalCP)}</span>
               </div>
-            </div>
-          </div>
-
-          {/* Tips */}
-          <div className="game-card rounded-xl bg-[#111827] p-3 border border-[#1e293b]">
-            <div className="flex items-center gap-2 mb-2.5">
-              <AlertTriangle className="w-4 h-4 text-gray-400" />
-              <h3 className="text-xs font-semibold text-gray-400">Contract Tips</h3>
-            </div>
-            <div className="space-y-1.5 text-[10px] text-gray-500">
-              <p>• Contracts are dynamically generated with random materials!</p>
-              <p>• 🟢 Easy: 1-2 materials, long deadlines</p>
-              <p>• 🟡 Medium: 2-4 materials, moderate deadlines</p>
-              <p>• 🔴 Hard: 3-6 materials, short deadlines, 3.5× rewards</p>
-              <p>• 💎 Legendary: 5-10 materials, rare resources!</p>
-              <p>• Unaccepted contracts expire from the board</p>
-              <p>• Click "Refresh Board" for new contract offers</p>
-              <p>• Max 5 active contracts at a time</p>
             </div>
           </div>
         </div>

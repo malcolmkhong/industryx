@@ -984,3 +984,133 @@ Unresolved Issues / Risks:
 - Contract generation could be more varied with more name templates
 - No drag-and-drop for queue reordering (research queue)
 - Board refresh is instant (could add a cooldown timer)
+
+---
+Task ID: 2
+Agent: Full-stack Developer
+Task: Implement 4-Layer Contract Architecture in the game's data.ts and types.ts
+
+Work Log:
+- Implemented complete 4-Layer Contract Architecture replacing the flat random generation approach
+- Updated types.ts with new types:
+  * ContractType alias: 'delivery' | 'supply' | 'construction' | 'military' | 'research'
+  * ContractTypeTemplate: namePatterns, descriptionPatterns, emoji, deadlineModifier, rewardModifier, rpBonus, cpBonus, spawnWeight
+  * ContractTierRules: materialCount, allowedResourceTiers, maxResourceTierWeight, deadlineRange, deadlineScaleByMaterials, rewardMultiplier, rpRange, cpRange, rareResourceChance, rareResourceCount, boardSlotCount, boardExpiration, minGameTier, spawnChance
+  * ContractValidationResult: valid, completable, chainSupported, economyBalanced, notRedundant, warnings, adjustments
+  * Updated Contract interface: added templateType, validationPassed, validationNotes fields
+- Implemented Layer 1 (Base Templates): CONTRACT_TYPE_TEMPLATES with 5 contract types
+  * Delivery (📦): 30% spawn weight, 0.9x deadline, 1.0x reward — fast deadlines, moderate rewards
+  * Supply (📋): 25% spawn weight, 1.0x deadline, 1.0x reward — medium deadlines, stable rewards
+  * Construction (🏗️): 20% spawn weight, 1.2x deadline, 1.1x reward, +2 CP bonus — longer deadlines, bonus CP
+  * Military (⚔️): 15% spawn weight, 0.7x deadline, 1.3x reward, +5 RP/+1 CP — short deadlines, high rewards
+  * Research (🔬): 10% spawn weight, 1.4x deadline, 0.9x reward, +15 RP — longest deadlines, RP-heavy rewards
+- Implemented Layer 2 (Tier Rules): CONTRACT_TIER_RULES with strict constraints per difficulty
+  * Easy: 1-2 materials, T0-T1 resources, 400-800t deadline, 0.8-1.2x reward, 3-8 RP, 0 CP, 2 board slots
+  * Medium: 2-4 materials, T0-T2 resources, 300-600t deadline, 1.5-2.5x reward, 10-25 RP, 1-4 CP, 2 board slots
+  * Hard: 3-6 materials, T1-T3 resources, 200-450t deadline, 3.0-4.5x reward, 30-60 RP, 4-10 CP, 15% rare, 1 board slot
+  * Legendary: 5-10 materials, T2-T4 resources, 120-300t deadline, 5.0-8.0x reward, 80-150 RP, 10-25 CP, 50% rare, 30% spawn chance, 1 board slot
+- Implemented Layer 3 (Procedural Fill): Complete generation algorithm
+  * Weighted contract type selection based on spawn weights
+  * Weighted material selection from allowed resource tiers with tier-based weight scaling
+  * Quantity calculation with difficulty scaling, progression scaling, and ±20% variance
+  * Name/description generation from templates with {mat}/{mats} placeholders
+  * Deadline calculation from tier rules + material count bonus + template modifier
+  * Reward calculation: market value * reward multiplier * template modifier, RP/CP from ranges + bonuses, rare resources
+- Implemented Layer 4 (Validation): Contract validation before returning
+  * Completability Check: Verifies player buildings can produce required materials
+  * Production Chain Check: Validates production chains exist for required resources
+  * Economy Limit Check: Ensures rewards don't exceed 10x income per tick * deadline or 20% total RP earned
+  * Redundancy Check: No two active contracts with >60% material overlap
+  * Auto-adjustment: Replaces unreachable resources, scales down excessive rewards
+- Built supporting infrastructure:
+  * BUILDING_RESOURCE_MAP: Maps building types to their output resources (from BUILDING_DEFS)
+  * RESOURCE_CHAIN_MAP: Maps resources to production chain prerequisites (lazy-initialized from PRODUCTION_CHAINS)
+  * Updated generateContractBoard to use tier rules for slot counts and spawn chances
+- Updated store.ts:
+  * Pass playerBuildings, existingContracts, playerMoney to generateContractBoard at both call sites
+  * Added migration for new Contract fields (templateType, validationPassed, validationNotes)
+- Backward compatible: Old CONTRACT_TEMPLATES array retained as legacy
+- Lint passes cleanly (0 errors, 0 warnings)
+- Dev server compiles successfully
+
+Stage Summary:
+- Contract system upgraded from flat random generation to structured 4-layer architecture
+- Each contract type now has distinct personality (delivery=fast, military=high reward, research=RP-heavy)
+- Tier rules enforce hard constraints on material counts, resource tiers, deadlines, rewards
+- Validation layer ensures contracts are completable, balanced, and not redundant
+- Auto-adjustment handles edge cases (unreachable resources, excessive rewards)
+- 3 files modified: types.ts, data.ts, store.ts
+
+Current Project Status:
+- Game running on dev server port 3000
+- Lint passes cleanly (0 errors, 0 warnings)
+- All compilations successful with no runtime errors
+- Contract board now uses tier-based slot counts and spawn chances
+
+
+---
+Task ID: 15
+Agent: Main Developer
+Task: Implement 4-Layer Contract Architecture — Template → Tier Rules → Procedural Fill → Validation
+
+Work Log:
+- Read and analyzed existing contract system (types.ts, data.ts, store.ts, ContractPanel.tsx)
+- Designed 4-layer architecture as specified by user
+- Added new types to types.ts:
+  * ContractType (union: delivery | supply | construction | military | research)
+  * ContractTypeTemplate (Layer 1: name patterns, description patterns, deadline/reward modifiers, spawn weight)
+  * ContractTierRules (Layer 2: material count, allowed resource tiers, deadline range, reward multiplier range, RP/CP ranges, rare resource chance, board slot count, board expiration, spawn chance, min game tier)
+  * ContractValidationResult (Layer 4: completable, chainSupported, economyBalanced, notRedundant, warnings, adjustments)
+- Updated Contract interface with new fields: templateType, validationPassed, validationNotes
+- Replaced entire dynamic contract generation engine in data.ts:
+  * Layer 1: CONTRACT_TYPE_TEMPLATES (5 types with distinct personalities)
+    - Delivery (📦): 30% spawn, fast deadlines (0.9×), moderate rewards
+    - Supply (📋): 25% spawn, medium deadlines (1.0×), stable rewards
+    - Construction (🏗️): 20% spawn, longer deadlines (1.2×), +2 CP bonus
+    - Military (⚔️): 15% spawn, short deadlines (0.7×), 1.3× reward, +5 RP
+    - Research (🔬): 10% spawn, longest deadlines (1.4×), +15 RP
+  * Layer 2: CONTRACT_TIER_RULES (strict constraints per difficulty tier)
+    - Easy: 1-2 mats, res T0-T1, deadline 400-800t, reward 0.8-1.2×, RP 3-8, 2 board slots, expires 1200t
+    - Medium: 2-4 mats, res T0-T2, deadline 300-600t, reward 1.5-2.5×, RP 10-25, CP 1-4, 2 board slots, expires 1000t
+    - Hard: 3-6 mats, res T1-T3, deadline 200-450t, reward 3.0-4.5×, RP 30-60, CP 4-10, 15% rare, 1 board slot, expires 800t
+    - Legendary: 5-10 mats, res T2-T4, deadline 120-300t, reward 5.0-8.0×, RP 80-150, CP 10-25, 50% rare, 1 board slot (30% spawn), expires 600t
+  * Layer 3: Procedural Fill with:
+    - Weighted contract type selection (pickContractType)
+    - Weighted material selection from allowed resource tiers (selectMaterials)
+    - Quantity calculation with ±20% random variance (calculateQuantity)
+    - Name/description generation from templates
+    - Deadline calculation from tier rules + material count bonus + template modifier
+    - Reward calculation: market value × tier reward range × template modifier + RP/CP bonuses
+  * Layer 4: Validation with:
+    - Completability: Checks if player buildings can produce required materials (via BUILDING_RESOURCE_MAP)
+    - Chain Support: Uses RESOURCE_CHAIN_MAP (built from PRODUCTION_CHAINS) to verify production chain accessibility
+    - Economy Limit: Reward ≤ 10× income × deadline; RP ≤ 20% total RP earned
+    - Redundancy: No >60% material overlap with existing contracts
+    - Auto-adjustment: Replaces unreachable resources, scales down excessive rewards
+    - adjustContract function for graceful degradation
+- Updated store.ts: V15→V16 migration adds templateType, validationPassed, validationNotes fields to existing contracts
+- Completely rewrote ContractPanel.tsx with:
+  * 4-Layer Architecture overview panel in sidebar (L1-L4 with color-coded cards)
+  * Contract Type filter bar (Delivery/Supply/Construction/Military/Research with counts)
+  * Template type badges on each contract card (colored by type with icon)
+  * Validation indicator on contracts (amber warning for adjusted contracts)
+  * Updated sidebar: Contract Types legend with spawn %, modifiers (time/pay/RP/CP)
+  * Updated Tier Rules section showing L2 constraints (material range, resource tier range, deadline range, board slots, reward range, rare chance)
+  * Validation Layer (L4) info panel with 4 checks explained
+  * Type-specific icons: Truck, Package, Wrench, Shield, Microscope
+
+Stage Summary:
+- Full 4-layer contract architecture implemented and working
+- Layer 1 (Base Template): 5 contract types with unique flavor, modifiers, spawn weights
+- Layer 2 (Tier Rules): Strict constraints for all 4 difficulty tiers with all specified parameters
+- Layer 3 (Procedural Fill): Weighted random generation using tier rules + templates
+- Layer 4 (Validation): Completability, chain support, economy limits, redundancy checks with auto-adjustment
+- UI fully updated to showcase architecture with type filters, badges, and documentation panels
+- Lint passes cleanly, dev server compiles successfully
+- Backward compatible: existing saves migrated with V16 migration
+
+Files Modified:
+1. src/lib/game/types.ts — Added ContractType, ContractTypeTemplate, ContractTierRules, ContractValidationResult types; Updated Contract interface
+2. src/lib/game/data.ts — Replaced dynamic contract engine with 4-layer architecture (CONTRACT_TYPE_TEMPLATES, CONTRACT_TIER_RULES, BUILDING_RESOURCE_MAP, RESOURCE_CHAIN_MAP, pickContractType, selectMaterials, calculateQuantity, calculateContractReward, validateContract, adjustContract, generateDynamicContract, generateContractBoard)
+3. src/lib/game/store.ts — Updated V16 migration for new fields, updated generateContractBoard calls
+4. src/components/game/ContractPanel.tsx — Complete rewrite with 4-layer UI

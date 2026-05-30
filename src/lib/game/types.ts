@@ -137,11 +137,13 @@ export interface WorkerDefinition {
 // --- Contracts ---
 export type ContractDifficulty = 'easy' | 'medium' | 'hard' | 'legendary';
 
+export type ContractType = 'delivery' | 'supply' | 'construction' | 'military' | 'research';
+
 export interface Contract {
   id: string;
   name: string;
   description: string;
-  type: 'delivery' | 'supply' | 'construction' | 'military' | 'research';
+  type: ContractType;
   requiredResources: ResourceAmount[];
   timeLimit: number; // ticks
   timeRemaining: number;
@@ -155,6 +157,10 @@ export interface Contract {
   emoji: string;
   accepted: boolean; // whether player has accepted this contract
   expiresAt: number; // tick when unaccepted contract expires from the board
+  // Architecture metadata (4-Layer System)
+  templateType: ContractType;     // Which base template was used
+  validationPassed: boolean;      // Did Layer 4 validation pass?
+  validationNotes?: string[];     // Any validation adjustments made
 }
 
 export interface ContractReward {
@@ -172,6 +178,50 @@ export const CONTRACT_DIFFICULTY_META: Record<ContractDifficulty, { label: strin
   hard: { label: 'Hard', icon: '🔴', color: '#ef4444', bgColor: 'bg-red-500/10', borderColor: 'border-red-500/30', minGameTier: 2, materialCount: [3, 6], deadlineMultiplier: 0.7, rewardMultiplier: 3.5, emoji: '⚔️' },
   legendary: { label: 'Legendary', icon: '💎', color: '#a855f7', bgColor: 'bg-purple-500/10', borderColor: 'border-purple-500/30', minGameTier: 3, materialCount: [5, 10], deadlineMultiplier: 0.4, rewardMultiplier: 6.0, emoji: '👑' },
 };
+
+// --- Contract Architecture (4-Layer System) ---
+
+// Layer 1: Base Template
+export interface ContractTypeTemplate {
+  type: ContractType;
+  namePatterns: string[];        // Name templates with {mat} placeholder
+  descriptionPatterns: string[]; // Description templates with {mats} placeholder
+  emoji: string;
+  deadlineModifier: number;      // Multiplier on base deadline
+  rewardModifier: number;        // Multiplier on base reward
+  rpBonus: number;               // Extra RP bonus
+  cpBonus: number;               // Extra CP bonus
+  spawnWeight: number;           // Probability weight for random selection
+}
+
+// Layer 2: Tier Rules
+export interface ContractTierRules {
+  materialCount: [number, number];
+  allowedResourceTiers: [number, number];
+  maxResourceTierWeight: number;
+  deadlineRange: [number, number];
+  deadlineScaleByMaterials: number;
+  rewardMultiplier: [number, number];
+  rpRange: [number, number];
+  cpRange: [number, number];
+  rareResourceChance: number;
+  rareResourceCount: [number, number];
+  boardSlotCount: number;
+  boardExpiration: number;
+  minGameTier: number;
+  spawnChance: number; // 0-1, for legendary only basically
+}
+
+// Layer 4: Validation
+export interface ContractValidationResult {
+  valid: boolean;
+  completable: boolean;       // Can player produce all materials?
+  chainSupported: boolean;    // Production chains exist?
+  economyBalanced: boolean;   // Rewards within economy limits?
+  notRedundant: boolean;      // Not too similar to existing contracts?
+  warnings: string[];         // Non-fatal issues
+  adjustments: string[];      // Changes made during validation
+}
 
 // --- Market ---
 export interface MarketPrice {

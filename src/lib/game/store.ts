@@ -507,6 +507,9 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
         difficultyTier: (c.difficultyTier || (c.difficulty <= 1 ? 'easy' : c.difficulty <= 2 ? 'medium' : c.difficulty <= 3 ? 'hard' : 'legendary')) as ContractDifficulty,
         accepted: c.accepted ?? !!(c.progress > 0 || c.completed), // Old contracts with progress were implicitly accepted
         expiresAt: c.expiresAt ?? 0,
+        templateType: c.templateType ?? c.type ?? 'delivery',
+        validationPassed: c.validationPassed ?? true,
+        validationNotes: c.validationNotes ?? [],
       }));
     }
   }
@@ -1212,7 +1215,7 @@ export const useGameStore = create<GameStore>()(
         const boardContracts = state.contracts.filter(c => !c.accepted && !c.completed && !c.failed);
         if (newTick % 200 === 0 && boardContracts.length < 6) {
           const existingIds = new Set(state.contracts.map(c => c.id));
-          const generatedContracts = generateContractBoard(playerGameTier, state.buildings.length, newTick, existingIds);
+          const generatedContracts = generateContractBoard(playerGameTier, state.buildings.length, newTick, existingIds, state.buildings, state.contracts, state.money);
           contractsToAdd = generatedContracts;
         }
 
@@ -2173,7 +2176,7 @@ export const useGameStore = create<GameStore>()(
         // Remove all unaccepted, non-expired contracts from the board
         const keptContracts = state.contracts.filter(c => c.accepted || c.completed || c.failed);
         const existingIds = new Set(keptContracts.map(c => c.id));
-        const newBoard = generateContractBoard(playerGameTier, state.buildings.length, state.gameTick, existingIds);
+        const newBoard = generateContractBoard(playerGameTier, state.buildings.length, state.gameTick, existingIds, state.buildings, state.contracts, state.money);
 
         set({ contracts: [...keptContracts, ...newBoard] });
         get().addNotification('info', 'Contract board refreshed!');
