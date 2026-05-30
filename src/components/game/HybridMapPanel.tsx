@@ -668,7 +668,7 @@ function TerrainOverlay({ terrain, cellSize }: { terrain: GridTile['terrain']; c
 }
 
 // =============================================
-// Enhanced Logistics SVG Overlay (Anchor-Based)
+// Enhanced Logistics SVG Overlay (Anchor-Based, Grid-Aligned)
 // =============================================
 export function LogisticsSVGOverlay({
   routes,
@@ -707,15 +707,47 @@ export function LogisticsSVGOverlay({
 
   const hasHighlight = highlightedRouteIds.size > 0;
 
-  // Calculate anchor point on the building edge closest to the other building
-  const getAnchor = useCallback((buildingId: string, targetBuildingId: string): { x: number; y: number } | null => {
+  // ---- Per-building connection distribution ----
+  // For each building, track how many routes connect to it and assign each route
+  // a slot index so anchors are distributed along the edge instead of clustering.
+  const buildingRouteSlots = useMemo(() => {
+    const slotMap = new Map<string, Map<string, number>>(); // buildingId -> (routeId -> slotIndex)
+    const countMap = new Map<string, number>(); // buildingId -> total route count
+
+    // Count routes per building
+    for (const route of regionRoutes) {
+      countMap.set(route.fromBuildingId, (countMap.get(route.fromBuildingId) ?? 0) + 1);
+      countMap.set(route.toBuildingId, (countMap.get(route.toBuildingId) ?? 0) + 1);
+    }
+
+    // Assign slot indices
+    const assignedCount = new Map<string, number>();
+    for (const route of regionRoutes) {
+      // From building
+      if (!slotMap.has(route.fromBuildingId)) slotMap.set(route.fromBuildingId, new Map());
+      const fromSlot = assignedCount.get(route.fromBuildingId) ?? 0;
+      slotMap.get(route.fromBuildingId)!.set(route.id, fromSlot);
+      assignedCount.set(route.fromBuildingId, fromSlot + 1);
+
+      // To building
+      if (!slotMap.has(route.toBuildingId)) slotMap.set(route.toBuildingId, new Map());
+      const toSlot = assignedCount.get(route.toBuildingId) ?? 0;
+      slotMap.get(route.toBuildingId)!.set(route.id, toSlot);
+      assignedCount.set(route.toBuildingId, toSlot + 1);
+    }
+
+    return { slotMap, countMap };
+  }, [regionRoutes]);
+
+  // Calculate anchor point on the building edge, distributed for multiple connections
+  const getAnchor = useCallback((buildingId: string, targetBuildingId: string, routeId: string): { x: number; y: number } | null => {
     const b = buildings.find(bb => bb.id === buildingId);
     const target = buildings.find(bb => bb.id === targetBuildingId);
     if (!b || b.gridRow === undefined || b.gridCol === undefined) return null;
     if (!target || target.gridRow === undefined || target.gridCol === undefined) return null;
 
     const fp = getBuildingFootprint(b.type);
-    // Building center
+    // Building center in grid coordinates
     const cx = (b.gridCol + fp.width / 2) * cellSize;
     const cy = (b.gridRow + fp.height / 2) * cellSize;
     // Target center
@@ -733,23 +765,51 @@ export function LogisticsSVGOverlay({
     const halfW = (fp.width * cellSize) / 2;
     const halfH = (fp.height * cellSize) / 2;
 
-    // Calculate intersection with box edges
     const absDx = Math.abs(dx);
     const absDy = Math.abs(dy);
 
-    let offsetX: number, offsetY: number;
+    let edgeX: number, edgeY: number;
+    let edgeSide: 'top' | 'bottom' | 'left' | 'right';
     if (absDx * halfH > absDy * halfW) {
       // Intersects left or right edge
-      offsetX = halfW * Math.sign(dx);
-      offsetY = (halfW * dy) / absDx;
+      edgeX = halfW * Math.sign(dx);
+      edgeY = (halfW * dy) / absDx;
+      edgeSide = dx > 0 ? 'right' : 'left';
     } else {
       // Intersects top or bottom edge
-      offsetY = halfH * Math.sign(dy);
-      offsetX = (halfH * dx) / absDy;
+      edgeY = halfH * Math.sign(dy);
+      edgeX = (halfH * dx) / absDy;
+      edgeSide = dy > 0 ? 'bottom' : 'top';
     }
 
-    return { x: cx + offsetX, y: cy + offsetY };
-  }, [buildings, cellSize]);
+    // Distribute multiple connections along the edge
+    const totalRoutes = buildingRouteSlots.countMap.get(buildingId) ?? 1;
+    const slotIndex = buildingRouteSlots.slotMap.get(buildingId)?.get(routeId) ?? 0;
+
+    if (totalRoutes > 1) {
+      // Spread connections evenly along the edge with padding from corners
+      const spreadFactor = 0.6; // Use 60% of the edge, keeping 20% padding on each side
+      const normalizedSlot = (slotIndex + 0.5) / totalRoutes; // 0.0 to 1.0
+      const offset = (normalizedSlot - 0.5) * spreadFactor; // -0.3 to 0.3
+
+      const perpX = -dy / dist;
+      const perpY = dx / dist;
+
+      if (edgeSide === 'left' || edgeSide === 'right') {
+        // Distribute vertically along the left/right edge
+        const edgeHeight = fp.height * cellSize;
+        const distributedOffset = offset * edgeHeight;
+        edgeY = Math.max(-halfH + 4, Math.min(halfH - 4, edgeY + distributedOffset));
+      } else {
+        // Distribute horizontally along the top/bottom edge
+        const edgeWidth = fp.width * cellSize;
+        const distributedOffset = offset * edgeWidth;
+        edgeX = Math.max(-halfW + 4, Math.min(halfW - 4, edgeX + distributedOffset));
+      }
+    }
+
+    return { x: cx + edgeX, y: cy + edgeY };
+  }, [buildings, cellSize, buildingRouteSlots]);
 
   // Track route overlap offsets to prevent visual clutter
   const routeOffsetMap = useMemo(() => {
@@ -764,7 +824,55 @@ export function LogisticsSVGOverlay({
     return offsets;
   }, [regionRoutes]);
 
+  // Detect route intersection points for junction indicators
+  const intersectionPoints = useMemo(() => {
+    if (regionRoutes.length < 2) return [];
+
+    // Get all route line segments
+    const segments: { id: string; x1: number; y1: number; x2: number; y2: number }[] = [];
+    for (const route of regionRoutes) {
+      const from = getAnchor(route.fromBuildingId, route.toBuildingId, route.id);
+      const to = getAnchor(route.toBuildingId, route.fromBuildingId, route.id);
+      if (from && to) {
+        segments.push({ id: route.id, x1: from.x, y1: from.y, x2: to.x, y2: to.y });
+      }
+    }
+
+    // Find intersections between different route segments
+    const points: { x: number; y: number; routeIds: string[] }[] = [];
+    for (let i = 0; i < segments.length; i++) {
+      for (let j = i + 1; j < segments.length; j++) {
+        const a = segments[i];
+        const b = segments[j];
+        if (a.id === b.id) continue;
+
+        // Line segment intersection
+        const dx1 = a.x2 - a.x1;
+        const dy1 = a.y2 - a.y1;
+        const dx2 = b.x2 - b.x1;
+        const dy2 = b.y2 - b.y1;
+        const denom = dx1 * dy2 - dy1 * dx2;
+        if (Math.abs(denom) < 0.001) continue; // Parallel
+
+        const t = ((b.x1 - a.x1) * dy2 - (b.y1 - a.y1) * dx2) / denom;
+        const u = ((b.x1 - a.x1) * dy1 - (b.y1 - a.y1) * dx1) / denom;
+
+        if (t >= 0.1 && t <= 0.9 && u >= 0.1 && u <= 0.9) {
+          points.push({
+            x: a.x1 + t * dx1,
+            y: a.y1 + t * dy1,
+            routeIds: [a.id, b.id],
+          });
+        }
+      }
+    }
+    return points;
+  }, [regionRoutes, getAnchor]);
+
   if (regionRoutes.length === 0) return null;
+
+  // Scale factor for consistent visual sizing across zoom levels
+  const sf = Math.max(0.6, Math.min(1.2, cellSize / 32));
 
   return (
     <svg
@@ -782,14 +890,22 @@ export function LogisticsSVGOverlay({
           <feGaussianBlur stdDeviation="3" result="blur" />
           <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
         </filter>
-        {/* Arrow marker for direction indication */}
+        {/* Arrow markers per route color */}
         <marker id="route-arrow" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto" markerUnits="strokeWidth">
-          <path d="M0,0 L6,2 L0,4 Z" fill="#00fff2" opacity="0.5" />
+          <path d="M0,0 L6,2 L0,4 Z" fill="#00fff2" opacity="0.7" />
         </marker>
+        <marker id="route-arrow-highlight" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#22d3ee" opacity="0.9" />
+        </marker>
+        {/* Junction indicator filter */}
+        <filter id="junction-glow" x="-100%" y="-100%" width="300%" height="300%">
+          <feGaussianBlur stdDeviation="2" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
       </defs>
       {regionRoutes.map(route => {
-        const from = getAnchor(route.fromBuildingId, route.toBuildingId);
-        const to = getAnchor(route.toBuildingId, route.fromBuildingId);
+        const from = getAnchor(route.fromBuildingId, route.toBuildingId, route.id);
+        const to = getAnchor(route.toBuildingId, route.fromBuildingId, route.id);
         if (!from || !to) return null;
 
         const meta = RESOURCE_META[route.carriesResource];
@@ -802,7 +918,7 @@ export function LogisticsSVGOverlay({
 
         // Route offset for overlapping same-pair routes
         const routeIdx = routeOffsetMap.get(route.id) ?? 0;
-        const offsetPerRoute = 4; // px offset per overlapping route
+        const offsetPerRoute = 4 * sf; // px offset per overlapping route
 
         // Midpoint with offset for overlapping routes
         const mx = (from.x + to.x) / 2;
@@ -817,14 +933,14 @@ export function LogisticsSVGOverlay({
 
         // Curve strength: stronger curve for longer routes, offset for overlapping
         const curveStrength = Math.min(0.2, 0.08 + dist * 0.0003) + routeIdx * 0.05;
-        const cx = mx + perpX - dy * curveStrength;
-        const cy = my + perpY + dx * curveStrength;
+        const qx = mx + perpX - dy * curveStrength;
+        const qy = my + perpY + dx * curveStrength;
 
-        const path = `M${from.x},${from.y} Q${cx},${cy} ${to.x},${to.y}`;
+        const path = `M${from.x},${from.y} Q${qx},${qy} ${to.x},${to.y}`;
 
         // Scale-independent stroke width
         const baseStroke = isHighlighted ? 2.5 : 1.5;
-        const strokeWidth = baseStroke * Math.max(0.6, Math.min(1.2, cellSize / 32));
+        const strokeWidth = baseStroke * sf;
 
         return (
           <g key={route.id} opacity={isDimmed ? 0.12 : 1}>
@@ -845,13 +961,13 @@ export function LogisticsSVGOverlay({
               opacity={route.active ? (isHighlighted ? 0.85 : 0.25 + route.efficiency * 0.4) : 0.12}
               strokeDasharray={route.active ? 'none' : '5 3'}
               strokeLinecap="round"
-              markerEnd={route.active && !isDimmed ? 'url(#route-arrow)' : undefined}
+              markerEnd={route.active && !isDimmed ? (isHighlighted ? 'url(#route-arrow-highlight)' : 'url(#route-arrow)') : undefined}
               filter={isHighlighted ? 'url(#route-highlight-glow)' : route.efficiency >= 0.8 ? 'url(#route-glow)' : undefined}
             />
-            {/* Route type icon at midpoint */}
+            {/* Route type icon at curve point */}
             <text
-              x={cx}
-              y={cy - 5}
+              x={qx}
+              y={qy - 5 * sf}
               textAnchor="middle"
               fontSize={Math.max(8, Math.min(12, cellSize * 0.35))}
               opacity={isHighlighted ? 1 : 0.6}
@@ -861,28 +977,41 @@ export function LogisticsSVGOverlay({
             {/* Throughput label on hover/selected */}
             {(isHighlighted || showThroughputLabels) && (
               <text
-                x={cx}
-                y={cy + 8}
+                x={qx}
+                y={qy + 8 * sf}
                 textAnchor="middle"
                 fontSize={Math.max(6, Math.min(9, cellSize * 0.25))}
                 fill={color}
                 opacity="0.9"
+                fontWeight="bold"
               >
                 {meta?.emoji ?? ''} {formatNumber(route.throughput)}/t
               </text>
             )}
-            {/* Anchor dots at connection points */}
-            {isHighlighted && (
-              <>
-                <circle cx={from.x} cy={from.y} r={3} fill={color} opacity="0.9" />
-                <circle cx={to.x} cy={to.y} r={3} fill={color} opacity="0.9" />
-              </>
-            )}
+            {/* Anchor dots at connection points — always show small dots, bigger when highlighted */}
+            <circle
+              cx={from.x}
+              cy={from.y}
+              r={isHighlighted ? 3 * sf : 2 * sf}
+              fill={isHighlighted ? color : color}
+              opacity={isHighlighted ? 0.9 : 0.4}
+              stroke={isHighlighted ? '#fff' : 'none'}
+              strokeWidth={isHighlighted ? 0.5 : 0}
+            />
+            <circle
+              cx={to.x}
+              cy={to.y}
+              r={isHighlighted ? 3 * sf : 2 * sf}
+              fill={isHighlighted ? color : color}
+              opacity={isHighlighted ? 0.9 : 0.4}
+              stroke={isHighlighted ? '#fff' : 'none'}
+              strokeWidth={isHighlighted ? 0.5 : 0}
+            />
             {/* Animated flow particles - only for active routes */}
             {route.active && !isDimmed && [0, 0.33, 0.66].map((offset, j) => (
               <circle
                 key={j}
-                r={isHighlighted ? 2.5 : 1.5}
+                r={isHighlighted ? 2.5 * sf : 1.5 * sf}
                 fill={color}
                 opacity={isHighlighted ? 0.9 : 0.6}
               >
@@ -897,6 +1026,34 @@ export function LogisticsSVGOverlay({
           </g>
         );
       })}
+      {/* Junction indicators at route intersections */}
+      {intersectionPoints.map((pt, i) => (
+        <g key={`junction-${i}`}>
+          <circle
+            cx={pt.x}
+            cy={pt.y}
+            r={3 * sf}
+            fill="#f59e0b"
+            opacity={0.5}
+            filter="url(#junction-glow)"
+          />
+          <circle
+            cx={pt.x}
+            cy={pt.y}
+            r={1.5 * sf}
+            fill="#fbbf24"
+            opacity={0.8}
+          />
+          {/* Diamond shape for junction */}
+          <polygon
+            points={`${pt.x},${pt.y - 4 * sf} ${pt.x + 3 * sf},${pt.y} ${pt.x},${pt.y + 4 * sf} ${pt.x - 3 * sf},${pt.y}`}
+            fill="none"
+            stroke="#fbbf24"
+            strokeWidth={0.8 * sf}
+            opacity={0.6}
+          />
+        </g>
+      ))}
     </svg>
   );
 }
@@ -1026,7 +1183,7 @@ function GridFactoryView() {
   const region = (store.mapRegions.length > 0 ? store.mapRegions : INITIAL_REGIONS).find(r => r.id === activeRegion);
   const grid = store.mapGrids[activeRegion] ?? [];
 
-  // Zoom state: percentage-based, 50% to 200%, default 32px cellSize
+  // Zoom state: percentage-based, 50% to 200%
   const [zoomPct, setZoomPct] = useState(100);
   const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number } | null>(null);
   const [pendingBuildType, setPendingBuildType] = useState<BuildingType | null>(null);
@@ -1042,6 +1199,9 @@ function GridFactoryView() {
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const gridContainerRef = useRef<HTMLDivElement>(null);
+
+  // Base cell size - all grid content renders at this size, then scales via CSS transform
+  const BASE_CELL_SIZE = 32;
 
   // Mobile detection
   const [isMobile, setIsMobile] = useState(false);
@@ -1064,10 +1224,12 @@ function GridFactoryView() {
   const rows = region?.gridRows ?? 16;
   const cols = region?.gridCols ?? 20;
 
-  // Base cell size (at 100% zoom) = 32px, range 16px (50%) to 64px (200%)
-  const baseCellSize = 32;
-  // Actual cell size based on zoom
-  const cellSize = Math.round(baseCellSize * (zoomPct / 100));
+  // The cell size used for ALL rendering (grid cells, SVG, labels)
+  // Zoom is applied via CSS transform: scale() on the entire grid content wrapper
+  // This guarantees pixel-perfect alignment between grid and logistics SVG at all zoom levels
+  const cellSize = BASE_CELL_SIZE;
+  // The zoom scale factor for CSS transform
+  const zoomScale = zoomPct / 100;
 
   // Buildings placed in this region
   const regionBuildings = useMemo(() => store.buildings.filter(b => b.regionId === activeRegion), [store.buildings, activeRegion]);
@@ -1182,11 +1344,10 @@ function GridFactoryView() {
   const handleFitToScreen = () => {
     const container = scrollContainerRef.current;
     if (!container) return;
-    const availW = container.clientWidth - 8; // account for padding
+    const availW = container.clientWidth - 8;
     const availH = container.clientHeight - 8;
-    const labelSizeEst = 20;
-    const gridW = cols * 32 + labelSizeEst;
-    const gridH = rows * 32 + labelSizeEst;
+    const gridW = cols * BASE_CELL_SIZE + labelSize + 8;
+    const gridH = rows * BASE_CELL_SIZE + labelSize + 8;
     const fitPct = Math.min(200, Math.max(50, Math.floor(Math.min(availW / gridW, availH / gridH) * 100 / ZOOM_STEP) * ZOOM_STEP));
     setZoomPct(fitPct);
     requestAnimationFrame(() => {
@@ -1428,12 +1589,12 @@ function GridFactoryView() {
     </AnimatePresence>
   );
 
-  // Total grid dimensions for minimap calculation
-  const totalGridWidth = cols * cellSize;
-  const totalGridHeight = rows * cellSize;
+  // Total grid dimensions for minimap calculation (in screen pixels, after zoom scaling)
+  const totalGridWidth = cols * cellSize * zoomScale;
+  const totalGridHeight = rows * cellSize * zoomScale;
 
-  // Coordinate label sizes
-  const labelSize = Math.max(18, Math.min(24, cellSize * 0.6));
+  // Base label size (renders at base cell size, scales with transform)
+  const labelSize = 20;
 
   return (
     <div className={`flex ${isMobile ? 'flex-col' : 'gap-3'} h-full`}>
@@ -1614,43 +1775,47 @@ function GridFactoryView() {
             onMouseLeave={handleMouseUp}
             onScroll={updateScrollPos}
           >
-            <div
-              ref={gridContainerRef}
-              className="relative inline-block p-1"
-              style={{
-                cursor: isPanning ? 'grabbing' : (spaceHeld || store.mapViewMode === 'view' || store.mapViewMode === 'route') ? 'grab' : undefined,
-                transition: 'width 0.15s ease, height 0.15s ease',
-              }}
-            >
-              {/* Column headers */}
-              <div className="flex" style={{ paddingLeft: labelSize, transition: 'padding-left 0.15s ease' }}>
-                {Array.from({ length: cols }, (_, c) => (
-                  <div key={`col-${c}`} className="flex items-center justify-center text-[7px] text-gray-600 font-mono" style={{ width: cellSize, height: labelSize, transition: 'width 0.15s ease' }}>
-                    {colLetter(c)}
-                  </div>
-                ))}
-              </div>
-
-              {/* Grid with row labels */}
-              <div className="flex">
-                {/* Row headers */}
-                <div className="flex flex-col" style={{ width: labelSize, transition: 'width 0.15s ease' }}>
-                  {Array.from({ length: rows }, (_, r) => (
-                    <div key={`row-${r}`} className="flex items-center justify-center text-[7px] text-gray-600 font-mono" style={{ height: cellSize, transition: 'height 0.15s ease' }}>
-                      {r}
+            {/* Outer spacer: defines scrollable area at scaled size */}
+            <div style={{ width: (cols * cellSize + labelSize + 8) * zoomScale, height: (rows * cellSize + labelSize + 8) * zoomScale, position: 'relative' }}>
+              {/* Transform-scaled content wrapper: renders everything at BASE_CELL_SIZE and scales uniformly */}
+              <div
+                ref={gridContainerRef}
+                style={{
+                  transform: `scale(${zoomScale})`,
+                  transformOrigin: 'top left',
+                  willChange: 'transform',
+                  cursor: isPanning ? 'grabbing' : (spaceHeld || store.mapViewMode === 'view' || store.mapViewMode === 'route') ? 'grab' : undefined,
+                }}
+              >
+                {/* Column headers */}
+                <div className="flex" style={{ paddingLeft: labelSize }}>
+                  {Array.from({ length: cols }, (_, c) => (
+                    <div key={`col-${c}`} className="flex items-center justify-center text-[7px] text-gray-600 font-mono" style={{ width: cellSize, height: labelSize }}>
+                      {colLetter(c)}
                     </div>
                   ))}
                 </div>
 
-                {/* CSS Grid - no gap for perfect SVG overlay alignment */}
-                <div
-                  className="relative grid"
-                  style={{
-                    gridTemplateColumns: `repeat(${cols}, ${cellSize}px)`,
-                    gridTemplateRows: `repeat(${rows}, ${cellSize}px)`,
-                    transition: 'grid-template-columns 0.15s ease, grid-template-rows 0.15s ease',
-                  }}
-                >
+                {/* Grid with row labels */}
+                <div className="flex">
+                  {/* Row headers */}
+                  <div className="flex flex-col" style={{ width: labelSize }}>
+                    {Array.from({ length: rows }, (_, r) => (
+                      <div key={`row-${r}`} className="flex items-center justify-center text-[7px] text-gray-600 font-mono" style={{ height: cellSize }}>
+                        {r}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* CSS Grid wrapper - positions SVG overlay exactly over grid cells */}
+                  <div className="relative">
+                    <div
+                      className="grid"
+                      style={{
+                        gridTemplateColumns: `repeat(${cols}, ${cellSize}px)`,
+                        gridTemplateRows: `repeat(${rows}, ${cellSize}px)`,
+                      }}
+                    >
                   {Array.from({ length: rows }, (_, r) =>
                     Array.from({ length: cols }, (_, c) => {
                       const tile = getTile(r, c);
@@ -1734,23 +1899,24 @@ function GridFactoryView() {
                       );
                     })
                   )}
+                  </div>
+                  {/* Logistics SVG overlay - positioned exactly over the grid cells */}
+                  {showLogisticsOverlay && (
+                    <LogisticsSVGOverlay
+                      routes={store.logisticsRoutes}
+                      buildings={store.buildings}
+                      cellSize={cellSize}
+                      regionId={activeRegion}
+                      selectedBuildingId={selectedBuildingId}
+                      showThroughputLabels={showThroughputLabels}
+                      gridWidth={cols * cellSize}
+                      gridHeight={rows * cellSize}
+                    />
+                  )}
                 </div>
               </div>
-
-              {/* Logistics SVG overlay - positioned exactly over the grid cells */}
-              {showLogisticsOverlay && (
-                <LogisticsSVGOverlay
-                  routes={store.logisticsRoutes}
-                  buildings={store.buildings}
-                  cellSize={cellSize}
-                  regionId={activeRegion}
-                  selectedBuildingId={selectedBuildingId}
-                  showThroughputLabels={showThroughputLabels}
-                  gridWidth={cols * cellSize}
-                  gridHeight={rows * cellSize}
-                />
-              )}
             </div>
+          </div>
           </div>
 
           {/* Minimap */}

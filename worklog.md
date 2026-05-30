@@ -1,5 +1,83 @@
 # Factory Dominion - Worklog
 
+## Session: Logistics Route Rendering Fix (Zoom-Synchronized Coordinate System)
+
+### Project Status
+- Game is functional with 66+ buildings, hybrid map system with 5 regions
+- The HybridMapPanel is the active map component
+- Logistics routes are now properly synchronized with building positions at all zoom levels
+
+### Root Cause Analysis
+The logistics route rendering had a **coordinate space desync** during zoom operations caused by:
+1. **CSS Transition Desync**: Grid cells used `transition: 'grid-template-columns 0.15s ease'` which animated cell sizes smoothly, but the SVG overlay dimensions/coordinates updated instantly via React state — creating a 150ms gap where routes were misaligned.
+2. **Rounding Drift**: `cellSize = Math.round(baseCellSize * zoomPct / 100)` caused sub-pixel rounding differences between the CSS grid (which rounds differently) and the SVG coordinate calculations.
+3. **SVG Position Misalignment**: The SVG overlay was positioned as a sibling of the grid+headers structure, but headers took up space that offset the SVG from the grid cells.
+
+### Changes Made
+
+#### 1. Transform-Based Coordinate System (CRITICAL FIX)
+**File: `src/components/game/HybridMapPanel.tsx` - GridFactoryView**
+
+- **Architecture Change**: Instead of recalculating all coordinates at each zoom level, the entire grid content (cells + SVG overlay) now renders at a fixed `BASE_CELL_SIZE = 32px` and scales uniformly via CSS `transform: scale(zoomScale)`.
+- **Benefits**: 
+  - Guarantees pixel-perfect alignment between grid and logistics SVG at ALL zoom levels
+  - Browser handles all scaling — no coordinate recalculation needed
+  - No rounding drift because both grid and SVG use the same base coordinates
+  - Instant zoom changes (no transition desync)
+- **Implementation**:
+  - `cellSize` is now always `BASE_CELL_SIZE = 32` (never changes with zoom)
+  - `zoomScale = zoomPct / 100` is the CSS transform scale factor
+  - Grid content wrapper uses `transform: scale(zoomScale)` with `transform-origin: top left`
+  - Outer spacer div defines the scrollable area at `(baseSize * zoomScale)`
+  - `will-change: transform` for smooth GPU-accelerated rendering
+
+#### 2. Removed CSS Transitions on Grid Template
+- Removed `transition: 'grid-template-columns 0.15s ease, grid-template-rows 0.15s ease'` from the CSS grid
+- Removed `transition: 'width 0.15s ease'` from column/row headers
+- Removed `transition: 'padding-left 0.15s ease'` from column header container
+- These transitions caused visual desync during zoom — now zoom is instant and synchronized
+
+#### 3. SVG Overlay Positioning Fix
+- SVG overlay is now inside a `relative` wrapper that directly wraps the CSS grid
+- This ensures `position: absolute; top: 0; left: 0` on the SVG aligns exactly with the grid cells
+- Previously the SVG was a sibling of the grid+headers structure, causing offset
+
+#### 4. Per-Building Connection Distribution
+**File: `src/components/game/HybridMapPanel.tsx` - LogisticsSVGOverlay**
+
+- **Anchor Distribution**: When multiple routes connect to the same building, they are now distributed along the building's edge instead of all converging on the same point.
+- **`buildingRouteSlots`**: Tracks per-building route count and assigns each route a slot index for even spacing along the edge.
+- **Edge-aware distribution**: Routes on left/right edges are distributed vertically; routes on top/bottom edges are distributed horizontally.
+
+#### 5. Junction Indicators at Route Intersections
+- **`intersectionPoints`**: Detects where routes between different building pairs cross each other.
+- **Visual indicators**: Diamond-shaped junction markers with glow effect at intersection points.
+- Uses line-segment intersection math with bounds checking (only mid-segment crossings shown).
+
+#### 6. Enhanced Visual Elements
+- **Always-visible anchor dots**: Small dots at route endpoints on building edges (opacity 0.4), larger when highlighted (opacity 0.9 with white stroke)
+- **Highlight arrow marker**: Separate `route-arrow-highlight` marker for selected routes
+- **Bold throughput labels**: Font weight bold for better readability
+- **Consistent scale factor**: `sf` variable for scale-independent sizing (always 1.0 at base, scales via CSS transform)
+
+### Files Modified
+- `src/components/game/HybridMapPanel.tsx`: 
+  - GridFactoryView: Transform-based zoom, removed CSS transitions, restructured HTML nesting
+  - LogisticsSVGOverlay: Per-building anchor distribution, junction indicators, enhanced visuals
+
+### Verification
+- Lint passes cleanly (no errors, no warnings)
+- Dev server compiles without errors
+- VLM visual analysis confirmed: routes properly attach to building edges at 100%, 110%, 140% zoom
+- SVG and grid bounding rects match exactly (dx=0, dy=0) at all zoom levels
+- Auto-Layout generates routes correctly in all regions
+
+### Known Limitations
+- Zoom out below 70% may make routes too small to see clearly (inherent to scaling approach)
+- Junction indicators only detect straight-line intersections, not curved path intersections
+
+---
+
 ## Session: Map System Redesign (Free Drag + Grid Snap + Logistics Fix)
 
 ### Project Status
