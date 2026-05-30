@@ -668,7 +668,7 @@ function TerrainOverlay({ terrain, cellSize }: { terrain: GridTile['terrain']; c
 }
 
 // =============================================
-// Enhanced Logistics SVG Overlay
+// Enhanced Logistics SVG Overlay (Anchor-Based)
 // =============================================
 export function LogisticsSVGOverlay({
   routes,
@@ -677,6 +677,8 @@ export function LogisticsSVGOverlay({
   regionId,
   selectedBuildingId,
   showThroughputLabels,
+  gridWidth,
+  gridHeight,
 }: {
   routes: LogisticsRoute[];
   buildings: BuildingInstance[];
@@ -684,12 +686,14 @@ export function LogisticsSVGOverlay({
   regionId: string;
   selectedBuildingId?: string | null;
   showThroughputLabels?: boolean;
+  gridWidth: number;
+  gridHeight: number;
 }) {
-  const regionRoutes = routes.filter(r => {
+  const regionRoutes = useMemo(() => routes.filter(r => {
     const from = buildings.find(b => b.id === r.fromBuildingId);
     const to = buildings.find(b => b.id === r.toBuildingId);
     return from?.regionId === regionId || to?.regionId === regionId;
-  });
+  }), [routes, buildings, regionId]);
 
   // Determine which routes are highlighted (connected to selected building)
   const highlightedRouteIds = useMemo(() => {
@@ -703,17 +707,72 @@ export function LogisticsSVGOverlay({
 
   const hasHighlight = highlightedRouteIds.size > 0;
 
+  // Calculate anchor point on the building edge closest to the other building
+  const getAnchor = useCallback((buildingId: string, targetBuildingId: string): { x: number; y: number } | null => {
+    const b = buildings.find(bb => bb.id === buildingId);
+    const target = buildings.find(bb => bb.id === targetBuildingId);
+    if (!b || b.gridRow === undefined || b.gridCol === undefined) return null;
+    if (!target || target.gridRow === undefined || target.gridCol === undefined) return null;
+
+    const fp = getBuildingFootprint(b.type);
+    // Building center
+    const cx = (b.gridCol + fp.width / 2) * cellSize;
+    const cy = (b.gridRow + fp.height / 2) * cellSize;
+    // Target center
+    const targetFp = getBuildingFootprint(target.type);
+    const tcx = (target.gridCol + targetFp.width / 2) * cellSize;
+    const tcy = (target.gridRow + targetFp.height / 2) * cellSize;
+
+    // Direction from building to target
+    const dx = tcx - cx;
+    const dy = tcy - cy;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist === 0) return { x: cx, y: cy };
+
+    // Find intersection with building bounding box edge
+    const halfW = (fp.width * cellSize) / 2;
+    const halfH = (fp.height * cellSize) / 2;
+
+    // Calculate intersection with box edges
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
+
+    let offsetX: number, offsetY: number;
+    if (absDx * halfH > absDy * halfW) {
+      // Intersects left or right edge
+      offsetX = halfW * Math.sign(dx);
+      offsetY = (halfW * dy) / absDx;
+    } else {
+      // Intersects top or bottom edge
+      offsetY = halfH * Math.sign(dy);
+      offsetX = (halfH * dx) / absDy;
+    }
+
+    return { x: cx + offsetX, y: cy + offsetY };
+  }, [buildings, cellSize]);
+
+  // Track route overlap offsets to prevent visual clutter
+  const routeOffsetMap = useMemo(() => {
+    const pairCount = new Map<string, number>();
+    const offsets = new Map<string, number>();
+    for (const route of regionRoutes) {
+      const key = [route.fromBuildingId, route.toBuildingId].sort().join('->');
+      const count = pairCount.get(key) ?? 0;
+      pairCount.set(key, count + 1);
+      offsets.set(route.id, count);
+    }
+    return offsets;
+  }, [regionRoutes]);
+
   if (regionRoutes.length === 0) return null;
 
-  const getCenter = (buildingId: string) => {
-    const b = buildings.find(bb => bb.id === buildingId);
-    if (!b || b.gridRow === undefined || b.gridCol === undefined) return null;
-    const fp = getBuildingFootprint(b.type);
-    return { x: (b.gridCol + fp.width / 2) * cellSize, y: (b.gridRow + fp.height / 2) * cellSize };
-  };
-
   return (
-    <svg className="absolute inset-0 pointer-events-none z-10" style={{ width: '100%', height: '100%' }}>
+    <svg
+      className="absolute top-0 left-0 pointer-events-none z-10"
+      width={gridWidth}
+      height={gridHeight}
+      style={{ overflow: 'visible' }}
+    >
       <defs>
         <filter id="route-glow" x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur stdDeviation="2" result="blur" />
@@ -723,10 +782,14 @@ export function LogisticsSVGOverlay({
           <feGaussianBlur stdDeviation="3" result="blur" />
           <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
         </filter>
+        {/* Arrow marker for direction indication */}
+        <marker id="route-arrow" markerWidth="6" markerHeight="4" refX="5" refY="2" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L6,2 L0,4 Z" fill="#00fff2" opacity="0.5" />
+        </marker>
       </defs>
       {regionRoutes.map(route => {
-        const from = getCenter(route.fromBuildingId);
-        const to = getCenter(route.toBuildingId);
+        const from = getAnchor(route.fromBuildingId, route.toBuildingId);
+        const to = getAnchor(route.toBuildingId, route.fromBuildingId);
         if (!from || !to) return null;
 
         const meta = RESOURCE_META[route.carriesResource];
@@ -737,39 +800,98 @@ export function LogisticsSVGOverlay({
         // Efficiency color coding
         const effStroke = route.efficiency >= 0.8 ? color : route.efficiency >= 0.5 ? '#facc15' : '#f87171';
 
+        // Route offset for overlapping same-pair routes
+        const routeIdx = routeOffsetMap.get(route.id) ?? 0;
+        const offsetPerRoute = 4; // px offset per overlapping route
+
+        // Midpoint with offset for overlapping routes
         const mx = (from.x + to.x) / 2;
         const my = (from.y + to.y) / 2;
         const dx = to.x - from.x;
         const dy = to.y - from.y;
-        const cx = mx - dy * 0.15;
-        const cy = my + dx * 0.15;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        // Perpendicular offset for overlapping routes
+        const perpX = dist > 0 ? (-dy / dist) * (routeIdx * offsetPerRoute) : 0;
+        const perpY = dist > 0 ? (dx / dist) * (routeIdx * offsetPerRoute) : 0;
+
+        // Curve strength: stronger curve for longer routes, offset for overlapping
+        const curveStrength = Math.min(0.2, 0.08 + dist * 0.0003) + routeIdx * 0.05;
+        const cx = mx + perpX - dy * curveStrength;
+        const cy = my + perpY + dx * curveStrength;
+
         const path = `M${from.x},${from.y} Q${cx},${cy} ${to.x},${to.y}`;
 
+        // Scale-independent stroke width
+        const baseStroke = isHighlighted ? 2.5 : 1.5;
+        const strokeWidth = baseStroke * Math.max(0.6, Math.min(1.2, cellSize / 32));
+
         return (
-          <g key={route.id} opacity={isDimmed ? 0.15 : 1}>
+          <g key={route.id} opacity={isDimmed ? 0.12 : 1}>
+            {/* Shadow / glow path */}
+            <path
+              d={path}
+              fill="none"
+              stroke={color}
+              strokeWidth={strokeWidth + 2}
+              opacity={0.08}
+            />
+            {/* Main route line */}
             <path
               d={path}
               fill="none"
               stroke={effStroke}
-              strokeWidth={isHighlighted ? Math.max(2, 3 * route.efficiency) : Math.max(1, 2 * route.efficiency)}
-              opacity={route.active ? (isHighlighted ? 0.8 : 0.2 + route.efficiency * 0.4) : 0.15}
-              strokeDasharray={route.active ? 'none' : '6 4'}
+              strokeWidth={strokeWidth}
+              opacity={route.active ? (isHighlighted ? 0.85 : 0.25 + route.efficiency * 0.4) : 0.12}
+              strokeDasharray={route.active ? 'none' : '5 3'}
+              strokeLinecap="round"
+              markerEnd={route.active && !isDimmed ? 'url(#route-arrow)' : undefined}
               filter={isHighlighted ? 'url(#route-highlight-glow)' : route.efficiency >= 0.8 ? 'url(#route-glow)' : undefined}
             />
             {/* Route type icon at midpoint */}
-            <text x={mx} y={my - 6} textAnchor="middle" fontSize="10" opacity={isHighlighted ? 1 : 0.7}>
+            <text
+              x={cx}
+              y={cy - 5}
+              textAnchor="middle"
+              fontSize={Math.max(8, Math.min(12, cellSize * 0.35))}
+              opacity={isHighlighted ? 1 : 0.6}
+            >
               {ROUTE_TYPE_ICON[route.routeType] ?? '🔗'}
             </text>
             {/* Throughput label on hover/selected */}
             {(isHighlighted || showThroughputLabels) && (
-              <text x={mx} y={my + 12} textAnchor="middle" fontSize="7" fill={color} opacity="0.9">
+              <text
+                x={cx}
+                y={cy + 8}
+                textAnchor="middle"
+                fontSize={Math.max(6, Math.min(9, cellSize * 0.25))}
+                fill={color}
+                opacity="0.9"
+              >
                 {meta?.emoji ?? ''} {formatNumber(route.throughput)}/t
               </text>
             )}
+            {/* Anchor dots at connection points */}
+            {isHighlighted && (
+              <>
+                <circle cx={from.x} cy={from.y} r={3} fill={color} opacity="0.9" />
+                <circle cx={to.x} cy={to.y} r={3} fill={color} opacity="0.9" />
+              </>
+            )}
             {/* Animated flow particles - only for active routes */}
             {route.active && !isDimmed && [0, 0.33, 0.66].map((offset, j) => (
-              <circle key={j} r={isHighlighted ? 3 : 2} fill={color} opacity={isHighlighted ? 0.9 : 0.7}>
-                <animateMotion dur={`${1.5 + (1 - route.efficiency) * 1}s`} repeatCount="indefinite" begin={`${offset * 1.5}s`} path={path} />
+              <circle
+                key={j}
+                r={isHighlighted ? 2.5 : 1.5}
+                fill={color}
+                opacity={isHighlighted ? 0.9 : 0.6}
+              >
+                <animateMotion
+                  dur={`${1.5 + (1 - route.efficiency) * 1}s`}
+                  repeatCount="indefinite"
+                  begin={`${offset * 1.5}s`}
+                  path={path}
+                />
               </circle>
             ))}
           </g>
@@ -1056,37 +1178,6 @@ function GridFactoryView() {
     }
   }, []);
 
-  // Wheel zoom toward cursor
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
-      const container = scrollContainerRef.current;
-      if (!container) return;
-
-      const rect = container.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-
-      // Current scroll ratio
-      const scrollRatioX = container.scrollLeft / (container.scrollWidth - container.clientWidth || 1);
-      const scrollRatioY = container.scrollTop / (container.scrollHeight - container.clientHeight || 1);
-
-      const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
-      setZoomPct(prev => {
-        const newZoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round((prev + delta) / ZOOM_STEP) * ZOOM_STEP));
-        // After zoom, restore scroll position relative to cursor
-        requestAnimationFrame(() => {
-          const newScrollWidth = container.scrollWidth;
-          const newScrollHeight = container.scrollHeight;
-          const newScrollX = scrollRatioX * (newScrollWidth - container.clientWidth);
-          const newScrollY = scrollRatioY * (newScrollHeight - container.clientHeight);
-          container.scrollTo(newScrollX, newScrollY);
-        });
-        return newZoom;
-      });
-    }
-  }, []);
-
   // Fit to screen: calculate zoom so the entire grid fits in the viewport
   const handleFitToScreen = () => {
     const container = scrollContainerRef.current;
@@ -1103,16 +1194,19 @@ function GridFactoryView() {
     });
   };
 
-  // Pan by dragging (middle mouse, Alt+left click, space+left click, or left click in view mode on empty area)
+  // Pan by dragging - left click drag in view mode, middle mouse / Alt+drag / Space+drag always
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button === 1 || (e.button === 0 && e.altKey) || (e.button === 0 && spaceHeld)) {
+    // Left click in view/route mode on empty area, or middle mouse, or Alt+click, or Space+click
+    const isViewMode = store.mapViewMode === 'view' || store.mapViewMode === 'route';
+    const canPan = e.button === 1 || (e.button === 0 && e.altKey) || (e.button === 0 && spaceHeld) || (e.button === 0 && isViewMode);
+    if (canPan) {
       e.preventDefault();
       const container = scrollContainerRef.current;
       if (!container) return;
       setIsPanning(true);
       panStart.current = { x: e.clientX, y: e.clientY, scrollLeft: container.scrollLeft, scrollTop: container.scrollTop };
     }
-  }, [spaceHeld]);
+  }, [spaceHeld, store.mapViewMode]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (isPanning && panStart.current) {
@@ -1175,6 +1269,37 @@ function GridFactoryView() {
     el.addEventListener('scroll', updateScrollPos);
     return () => { observer.disconnect(); el.removeEventListener('scroll', updateScrollPos); };
   }, [updateScrollPos]);
+
+  // Non-passive wheel handler for zoom (preventDefault requires non-passive)
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+
+    const handler = (e: WheelEvent) => {
+      // If Ctrl is held, let browser handle normal scrolling
+      if (e.ctrlKey || e.metaKey) return;
+      // Otherwise, prevent default scroll and zoom instead
+      e.preventDefault();
+
+      const rect = el.getBoundingClientRect();
+      const scrollRatioX = el.scrollLeft / (el.scrollWidth - el.clientWidth || 1);
+      const scrollRatioY = el.scrollTop / (el.scrollHeight - el.clientHeight || 1);
+
+      const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
+      setZoomPct(prev => {
+        const newZoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round((prev + delta) / ZOOM_STEP) * ZOOM_STEP));
+        requestAnimationFrame(() => {
+          const newScrollX = scrollRatioX * (el.scrollWidth - el.clientWidth);
+          const newScrollY = scrollRatioY * (el.scrollHeight - el.clientHeight);
+          el.scrollTo(newScrollX, newScrollY);
+        });
+        return newZoom;
+      });
+    };
+
+    el.addEventListener('wheel', handler, { passive: false });
+    return () => el.removeEventListener('wheel', handler);
+  }, []);
 
   // Minimap click handler
   const handleMinimapClick = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
@@ -1483,7 +1608,6 @@ function GridFactoryView() {
             ref={scrollContainerRef}
             className="w-full h-full overflow-auto game-scrollbar rounded-lg border-2 bg-gray-900/50 scroll-smooth"
             style={{ borderColor: `${region.color}40` }}
-            onWheel={handleWheel}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
@@ -1494,7 +1618,7 @@ function GridFactoryView() {
               ref={gridContainerRef}
               className="relative inline-block p-1"
               style={{
-                cursor: isPanning ? 'grabbing' : spaceHeld ? 'grab' : undefined,
+                cursor: isPanning ? 'grabbing' : (spaceHeld || store.mapViewMode === 'view' || store.mapViewMode === 'route') ? 'grab' : undefined,
                 transition: 'width 0.15s ease, height 0.15s ease',
               }}
             >
@@ -1518,9 +1642,9 @@ function GridFactoryView() {
                   ))}
                 </div>
 
-                {/* CSS Grid */}
+                {/* CSS Grid - no gap for perfect SVG overlay alignment */}
                 <div
-                  className="grid gap-px"
+                  className="relative grid"
                   style={{
                     gridTemplateColumns: `repeat(${cols}, ${cellSize}px)`,
                     gridTemplateRows: `repeat(${rows}, ${cellSize}px)`,
@@ -1613,7 +1737,7 @@ function GridFactoryView() {
                 </div>
               </div>
 
-              {/* Logistics SVG overlay */}
+              {/* Logistics SVG overlay - positioned exactly over the grid cells */}
               {showLogisticsOverlay && (
                 <LogisticsSVGOverlay
                   routes={store.logisticsRoutes}
@@ -1622,6 +1746,8 @@ function GridFactoryView() {
                   regionId={activeRegion}
                   selectedBuildingId={selectedBuildingId}
                   showThroughputLabels={showThroughputLabels}
+                  gridWidth={cols * cellSize}
+                  gridHeight={rows * cellSize}
                 />
               )}
             </div>
@@ -1672,7 +1798,7 @@ function GridFactoryView() {
             <span className="font-mono" style={{ color: getEffColor(regionEfficiency / 100) }}>{regionEfficiency}%</span> efficiency
           </div>
           <div className="ml-auto text-gray-600">
-            {cols}×{rows} grid • Pan: Alt+Drag / Space+Drag • Zoom: Ctrl+Scroll / Ctrl+=/-
+            {cols}×{rows} grid • Drag to pan • Scroll to zoom • Ctrl+Scroll to scroll
           </div>
         </div>
       </div>
