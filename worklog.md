@@ -748,3 +748,48 @@ Stage Summary:
 - Materials like copper, lithium, wire, carbon, fossil fuel, circuit, aluminium, fiber optics now correctly show positive net rates when stock is increasing
 - The distinction between "actual consumption" and "demand" is now properly separated across all panels
 - 6 files modified: types.ts, store.ts, ResourcePanel.tsx, FactoryPanel.tsx, StoragePanel.tsx, ResourceFlowPanel.tsx
+
+---
+Task ID: 13
+Agent: Main Developer
+Task: Update Mega Projects system — consume 1 unit of each required material per tick, advance progress by 1 tick
+
+Work Log:
+- Changed gameTickAction mega project processing (store.ts lines 1219-1277):
+  * Old: Check if ALL required resources are held (>= amount), increment by 1/timeRequired (float 0-1), deduct all resources only on stage completion
+  * New: Check if each required material has >= 1 unit, consume 1 of each per tick, increment progress by 1 (integer ticks)
+  * Stage completes when progress >= timeRequired
+- Updated contributeToMegaProject action (store.ts lines 2870-2935):
+  * Old: No-op — just checked resources and sent notification
+  * New: Actually consumes 1 unit of each required material and advances progress by 1 tick
+  * Can trigger stage/project completion like auto-tick does
+  * UI button added for manual contribution
+- Updated MegaProjectPanel.tsx:
+  * hasResources: Changed from checking >= r.amount to >= 1
+  * Progress display: Changed from "(progress * 100).toFixed(1)%" to "progress/timeRequired ticks"
+  * Progress bar: Changed from progress * 100 to (progress / timeRequired) * 100
+  * Stage indicators: Fixed gradient calculation for tick-based progress
+  * Resource display: "Materials Consumed (1/t each)" with "1/t" label and "~X remaining"
+  * Status text: "Consuming 1/t each material" instead of "Construction in progress..."
+  * Paused message: "Need at least 1 unit of each required material per tick"
+  * Added inline "+1 Tick" button next to status indicator
+  * Added full-width "Contribute Materials (+1 Tick)" button below start button area
+  * Updated info section text to explain per-tick consumption model
+- Added V14→V15 save migration:
+  * Converts old float progress (0-1) to integer ticks
+  * Formula: Math.floor(oldProgress * stage.timeRequired)
+- Bumped SAVE_VERSION from 14 to 15
+- Updated startMegaProject notification message
+
+Stage Summary:
+- Mega Projects now use per-tick consumption: 1 unit of each required material consumed per tick
+- Progress advances by 1 integer tick per tick instead of 1/timeRequired float increment
+- Manual "Contribute Materials (+1 Tick)" button allows players to speed up construction
+- Resources are continuously consumed during construction (not just on completion)
+- Lint passes cleanly, dev server compiles successfully
+
+Current Project Status:
+- Game running on dev server port 3000
+- Lint passes cleanly (0 errors, 0 warnings)
+- All compilations successful
+- SAVE_VERSION: 15

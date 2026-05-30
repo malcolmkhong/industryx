@@ -23,7 +23,7 @@ import {
 import { soundEngine } from './soundEngine';
 
 // --- Save Version ---
-const SAVE_VERSION = 14;
+const SAVE_VERSION = 15;
 
 // --- Utility Functions ---
 function generateId(): string {
@@ -478,6 +478,22 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
       }
       // New project — use default state
       return p;
+    });
+  }
+
+  // V14 → V15: Mega project progress changed from 0-1 float to integer ticks
+  // Convert old float progress to integer ticks
+  if (version < 15) {
+    const existingProjects = (state.megaProjects || []) as { type: string; progress: number; stages: { timeRequired: number }[]; currentStage: number }[];
+    state.megaProjects = (state.megaProjects || []).map((p: typeof existingProjects[0]) => {
+      // Old progress was 0-1 float, new progress is 0-timeRequired integer
+      const stage = p.stages[p.currentStage];
+      if (stage && p.progress > 0 && p.progress < 1) {
+        // Convert float to integer ticks
+        return { ...p, progress: Math.floor(p.progress * stage.timeRequired) };
+      }
+      // If progress was 0 or >= 1, reset to 0
+      return { ...p, progress: 0 };
     });
   }
 
@@ -1217,35 +1233,34 @@ export const useGameStore = create<GameStore>()(
         }
 
         // Process active MegaProjects
-        // Progress only advances if ALL required resources for current stage are available
-        // Resources are deducted when a stage completes
+        // Each tick: if all required materials have >= 1 unit, consume 1 of each and advance progress by 1 tick
         const megaProjectResourcesToDeduct: { resource: string; amount: number }[] = [];
         const newMegaProjects = state.megaProjects.map(mp => {
           if (!mp.active || mp.completed) return mp;
           const stage = mp.stages[mp.currentStage];
           if (!stage || stage.completed) return mp;
 
-          // Check if ALL required resources are currently available
+          // Check if ALL required materials have at least 1 unit available
           const allResourcesAvailable = stage.requiredResources.every(r => {
-            if (r.resource === 'money') return state.money >= r.amount;
-            return (newResources[r.resource as ResourceType] ?? 0) >= r.amount;
+            if (r.resource === 'money') return state.money >= 1;
+            return (newResources[r.resource as ResourceType] ?? 0) >= 1;
           });
 
-          // If resources are not available, progress pauses (no increment)
+          // If any material is missing, progress pauses (no consumption, no increment)
           if (!allResourcesAvailable) {
             return { ...mp, progress: mp.progress }; // paused
           }
 
-          // Resources are available — increment progress
-          const increment = 1 / stage.timeRequired;
-          const newProgress = mp.progress + increment;
+          // Consume 1 unit of each required material
+          stage.requiredResources.forEach(r => {
+            megaProjectResourcesToDeduct.push({ resource: r.resource, amount: 1 });
+          });
 
-          if (newProgress >= 1) {
-            // Stage complete — deduct resources now
-            stage.requiredResources.forEach(r => {
-              megaProjectResourcesToDeduct.push({ resource: r.resource, amount: r.amount });
-            });
+          // Increment progress by 1 tick
+          const newProgress = mp.progress + 1;
 
+          if (newProgress >= stage.timeRequired) {
+            // Stage complete
             const updatedStages = mp.stages.map((s, i) =>
               i === mp.currentStage ? { ...s, completed: true } : s
             );
@@ -2865,7 +2880,7 @@ export const useGameStore = create<GameStore>()(
             p.type === type ? { ...p, active: true } : p
           ),
         });
-        get().addNotification('info', `Mega Project started: ${project.name}! Maintain required resources to keep construction progressing.`);
+        get().addNotification('info', `Mega Project started: ${project.name}! Each tick consumes 1 of each required material and advances progress by 1 tick.`);
       },
 
       contributeToMegaProject: (type: MegaProjectType) => {
@@ -2876,21 +2891,63 @@ export const useGameStore = create<GameStore>()(
         const stage = project.stages[project.currentStage];
         if (!stage || stage.completed) return;
 
-        // Check if player has all required resources
+        // Check if player has at least 1 unit of each required material
         const canContribute = stage.requiredResources.every(r => {
-          if (r.resource === 'money') return state.money >= r.amount;
-          return state.resources[r.resource as ResourceType] >= r.amount;
+          if (r.resource === 'money') return state.money >= 1;
+          return state.resources[r.resource as ResourceType] >= 1;
         });
 
         if (!canContribute) {
-          get().addNotification('error', `Not enough resources for ${stage.name}! Resources must be held for construction to progress.`);
+          get().addNotification('error', `Not enough materials for ${project.name}! Need at least 1 of each required material.`);
           return;
         }
 
-        // Resources are NOT deducted upfront — they must be maintained throughout construction.
-        // Progress auto-ticks each game tick as long as all required resources are available.
-        // Resources are deducted only when the stage completes.
-        get().addNotification('info', `${project.name}: ${stage.name} — Resources confirmed. Construction will progress as long as resources remain available.`);
+        // Consume 1 unit of each required material
+        const newResources = { ...state.resources };
+        let deductMoney = 0;
+        stage.requiredResources.forEach(r => {
+          if (r.resource === 'money') {
+            deductMoney += 1;
+          } else {
+            newResources[r.resource as ResourceType] = Math.max(0, (newResources[r.resource as ResourceType] ?? 0) - 1);
+          }
+        });
+
+        // Advance progress by 1 tick
+        const newProgress = project.progress + 1;
+        let updatedProject: typeof project;
+
+        if (newProgress >= stage.timeRequired) {
+          // Stage complete
+          const updatedStages = project.stages.map((s, i) =>
+            i === project.currentStage ? { ...s, completed: true } : s
+          );
+          const nextStage = project.currentStage + 1;
+          const isCompleted = nextStage >= project.stages.length;
+
+          get().addNotification('success', isCompleted
+            ? `🏆 MEGA PROJECT COMPLETE: ${project.name}! ${project.bonus.description}`
+            : `⚡ ${project.name} - Stage ${nextStage}/${project.stages.length}: ${stage.name} complete!`
+          );
+
+          updatedProject = {
+            ...project,
+            stages: updatedStages,
+            currentStage: nextStage,
+            progress: 0,
+            completed: isCompleted,
+            active: !isCompleted,
+          };
+        } else {
+          get().addNotification('info', `${project.name}: ${stage.name} — Material contributed! Progress: ${newProgress}/${stage.timeRequired}`);
+          updatedProject = { ...project, progress: newProgress };
+        }
+
+        set({
+          resources: newResources,
+          money: state.money - deductMoney,
+          megaProjects: state.megaProjects.map(p => p.type === type ? updatedProject : p),
+        });
       },
 
       // --- BLUEPRINT ACTIONS ---

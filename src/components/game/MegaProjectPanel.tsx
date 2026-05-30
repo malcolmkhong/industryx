@@ -100,9 +100,10 @@ export function MegaProjectPanel() {
     if (!project.active || project.completed) return false;
     const stage = project.stages[project.currentStage];
     if (!stage || stage.completed) return false;
+    // Need at least 1 unit of each required material for per-tick consumption
     return stage.requiredResources.every(r => {
-      if (r.resource === 'money') return store.money >= r.amount;
-      return store.resources[r.resource as ResourceType] >= r.amount;
+      if (r.resource === 'money') return store.money >= 1;
+      return store.resources[r.resource as ResourceType] >= 1;
     });
   };
 
@@ -343,7 +344,7 @@ export function MegaProjectPanel() {
                           <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
                           <div className="text-[10px]">
                             <div className="text-amber-400 font-medium">Construction Paused</div>
-                            <div className="text-amber-400/60">Resources must be held to continue. Progress resumes automatically when all materials are available.</div>
+                            <div className="text-amber-400/60">Need at least 1 unit of each required material per tick. Progress resumes when all materials are available.</div>
                           </div>
                         </div>
                       )}
@@ -359,7 +360,7 @@ export function MegaProjectPanel() {
                                   ? 'bg-gray-800'
                                   : 'bg-gray-800'
                             }`} style={i === project.currentStage && !s.completed ? {
-                              background: `linear-gradient(90deg, ${progressHex} ${project.progress * 100}%, #1f2937 ${project.progress * 100}%)`,
+                              background: `linear-gradient(90deg, ${progressHex} ${(project.progress / (project.stages[project.currentStage]?.timeRequired || 1)) * 100}%, #1f2937 ${(project.progress / (project.stages[project.currentStage]?.timeRequired || 1)) * 100}%)`,
                             } : undefined} />
                             {i < project.stages.length - 1 && (
                               <ChevronRight className="w-3 h-3 text-gray-700 flex-shrink-0" />
@@ -375,7 +376,7 @@ export function MegaProjectPanel() {
                             Stage {project.currentStage + 1}/{project.stages.length}: {currentStage.name}
                           </div>
                           <div className={`text-[10px] font-mono ${resourcesMet ? (colors?.text ?? 'text-fuchsia-400') : 'text-amber-400'}`}>
-                            {(project.progress * 100).toFixed(1)}%
+                            {Math.round(project.progress)}/{currentStage.timeRequired} ticks
                           </div>
                         </div>
 
@@ -384,7 +385,7 @@ export function MegaProjectPanel() {
                           <div
                             className="h-full rounded-full transition-all duration-300"
                             style={{
-                              width: `${project.progress * 100}%`,
+                              width: `${(project.progress / currentStage.timeRequired) * 100}%`,
                               background: colors?.gradient ?? 'linear-gradient(90deg, #d946ef, #e879f9)',
                               opacity: resourcesMet ? 1 : 0.5,
                             }}
@@ -395,27 +396,28 @@ export function MegaProjectPanel() {
                         <div className="space-y-1.5">
                           <div className="text-[10px] text-gray-500 flex items-center gap-1">
                             <DollarSign className="w-3 h-3" />
-                            Required Materials (must be held)
+                            Materials Consumed (1/t each)
                           </div>
                           {currentStage.requiredResources.map((r, i) => {
                             const resKey = r.resource as ResourceType;
                             const meta = RESOURCE_META[resKey];
                             const current = r.resource === 'money' ? store.money : store.resources[resKey] ?? 0;
-                            const enough = current >= r.amount;
+                            const enough = current >= 1;
+                            const totalNeeded = currentStage.timeRequired - Math.round(project.progress);
 
                             return (
                               <div key={i} className="flex items-center justify-between text-[11px]">
                                 <div className="flex items-center gap-1.5">
                                   {meta ? <span>{meta.emoji}</span> : <span>💰</span>}
                                   <span className="text-gray-400">{meta?.name ?? 'Money'}</span>
+                                  <span className="text-gray-600 text-[9px]">1/t</span>
                                 </div>
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`text-[9px] ${enough ? 'text-gray-500' : 'text-amber-400'}`}>
+                                    ~{formatNumber(totalNeeded)} remaining
+                                  </span>
                                   <span className={enough ? 'text-green-400' : 'text-red-400'}>
                                     {formatNumber(current)}
-                                  </span>
-                                  <span className="text-gray-600">/</span>
-                                  <span className={enough ? 'text-gray-300' : 'text-red-300'}>
-                                    {formatNumber(r.amount)}
                                   </span>
                                   {enough ? (
                                     <Check className="w-3 h-3 text-green-500" />
@@ -430,22 +432,33 @@ export function MegaProjectPanel() {
 
                         {/* Time estimate */}
                         <div className="mt-2 text-[10px] text-gray-600">
-                          ⏱ Est. {currentStage.timeRequired} ticks ({(currentStage.timeRequired / 60).toFixed(0)} min at 1x)
-                          {!resourcesMet && <span className="text-amber-500 ml-2">(paused until resources available)</span>}
+                          ⏱ {Math.round(project.progress)}/{currentStage.timeRequired} ticks • ~{currentStage.timeRequired - Math.round(project.progress)} remaining ({((currentStage.timeRequired - Math.round(project.progress)) / 60).toFixed(0)} min at 1x)
+                          {!resourcesMet && <span className="text-amber-500 ml-2">(paused — need materials)</span>}
                         </div>
                       </div>
 
-                      {/* Status Indicator */}
+                      {/* Status Indicator + Manual Contribute Button */}
                       <div className="flex items-center gap-2">
                         {resourcesMet ? (
-                          <div className="flex-1 text-center text-[11px] text-gray-400 flex items-center justify-center gap-1.5">
-                            <span className={`inline-block w-2 h-2 rounded-full ${colors?.text?.replace('text-', 'bg-') ?? 'bg-fuchsia-400'}`} style={{ animation: 'neonPulse 2s ease-in-out infinite' }} />
-                            Construction in progress...
-                          </div>
+                          <>
+                            <div className="flex-1 text-center text-[11px] text-gray-400 flex items-center justify-center gap-1.5">
+                              <span className={`inline-block w-2 h-2 rounded-full ${colors?.text?.replace('text-', 'bg-') ?? 'bg-fuchsia-400'}`} style={{ animation: 'neonPulse 2s ease-in-out infinite' }} />
+                              Consuming 1/t each material
+                            </div>
+                            <Button
+                              onClick={() => store.contributeToMegaProject(project.type)}
+                              className={`text-[10px] h-7 px-2.5 ${colors?.bg ?? 'bg-gray-800/50'} hover:opacity-80 border ${colors?.border ?? 'border-gray-700/30'} ${colors?.text ?? 'text-gray-400'}`}
+                              size="sm"
+                              variant="outline"
+                            >
+                              <ChevronRight className="w-3 h-3 mr-0.5" />
+                              +1 Tick
+                            </Button>
+                          </>
                         ) : (
                           <div className="flex-1 text-center text-[11px] text-amber-400 flex items-center justify-center gap-1.5">
                             <Pause className="w-3 h-3" />
-                            Paused — need more resources
+                            Paused — need 1+ of each material
                           </div>
                         )}
                       </div>
@@ -463,6 +476,20 @@ export function MegaProjectPanel() {
                   >
                     <Rocket className="w-3.5 h-3.5 mr-1.5" />
                     Begin {project.name}
+                  </Button>
+                )}
+
+                {/* Manual Contribute Button (if active) */}
+                {project.active && !project.completed && (
+                  <Button
+                    onClick={() => store.contributeToMegaProject(project.type)}
+                    disabled={!hasResources(project)}
+                    className={`w-full text-xs h-9 mt-2 ${colors?.bg ?? 'bg-gray-800/50'} hover:opacity-80 border ${colors?.border ?? 'border-gray-700/30'} ${colors?.text ?? 'text-gray-400'} disabled:opacity-40 disabled:cursor-not-allowed`}
+                    size="sm"
+                    variant="outline"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5 mr-1.5" />
+                    Contribute Materials (+1 Tick)
                   </Button>
                 )}
 
@@ -516,7 +543,7 @@ export function MegaProjectPanel() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-[11px] text-gray-500">
           <div>
             <div className="text-gray-400 font-medium mb-1">How It Works</div>
-            <p>Each MegaProject has multiple stages. Start the project, then maintain the required resources to keep construction progressing. If resources run out, construction pauses until they&apos;re available again. Resources are consumed when each stage completes.</p>
+            <p>Each MegaProject has multiple stages. Start the project, then supply materials to keep construction progressing. Each tick consumes 1 unit of every required material and advances progress by 1 tick. If any material runs out, construction pauses. You can also manually contribute materials with the +1 Tick button.</p>
           </div>
           <div>
             <div className="text-gray-400 font-medium mb-1">Permanent Bonuses</div>
