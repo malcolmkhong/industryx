@@ -516,3 +516,45 @@ Stage Summary:
 - All factory buildings now represented in at least one production chain
 - 5 endgame prestige buildings have dedicated cosmic-tier chains reflecting their prerequisite technology paths
 - UI dynamically reflects the 50 total via PRODUCTION_CHAINS.length
+
+---
+Task ID: 11
+Agent: main
+Task: Full Game Economy & Math Audit — Fix critical bugs and balance issues
+
+Critical Bugs Found & Fixed:
+
+### 🔴 P0 FIX: baseProductionRate Not Applied to Input Consumption
+- **Bug**: Factory input consumption formula was `input.amount * level * efficiency` but output was `output.amount * baseProductionRate * level * efficiency`
+- **Impact**: Every building with baseProductionRate < 1 consumed inputs FASTER than its stated ratios. Example: Chrono Lab (rate 0.02) consumed inputs at 50× the rate per output unit. Made all Tier 3+ factories net money losers.
+- **Fix**: Changed both tick-time (line 2078) and offline (line 4789) input consumption to `input.amount * def.baseProductionRate * level * efficiency`
+
+### 🔴 P0 FIX: Payout Double Efficiency Penalty
+- **Bug**: Payout formula used `b.efficiency` per building AND multiplied by `avgEfficiency` of all buildings — double-dipping
+- **Impact**: One broken building penalized ALL buildings' payout income
+- **Fix**: Replaced per-building efficiency + avgEfficiency with tier-scaled flat rates + powerGridEfficiency only. New formula: `baseRate * (1 + tier * 2) * level` per building, then multiplied by `effectivePowerEfficiency` (not avg building efficiency)
+
+### 🟡 P1 FIX: Worker Compounding Exponential Growth
+- **Bug**: Workers multiplied efficiency per-worker: `efficiency *= (1 + speed * level * bonus)` — exponential with multiple workers
+- **Impact**: 4 level-20 AI Supervisors could create 47× production multiplier (uncapped)
+- **Fix**: Changed to additive stacking with cap: `workerBonus += speed * min(level, 10) * bonus; efficiency *= (1 + min(workerBonus, 2.0))`. Max worker bonus: 200%
+
+### 🟡 P1 FIX: Tier-Scaled Payout Rates
+- **Bug**: All extractors paid $2, all factories $5, all power $1 per 100 ticks regardless of cost/tier
+- **Impact**: Payout ROI for Brick Factory ($600) was 333× better than Nano Lab ($200,000)
+- **Fix**: Added tier multiplier `(1 + tier * 2)` — Tier 0=1×, Tier 1=3×, Tier 2=5×, Tier 3=7×, Tier 4=9×
+
+### 🟡 P1 FIX: Antimatter Power Plant Fuel Cost
+- **Bug**: fuelRate 0.1 antimatter/tick = $800/tick fuel cost, making it 5.3× more expensive per MW than Coal Generator
+- **Fix**: Reduced fuelRate from 0.1 to 0.01 ($80/tick, now competitive with Fusion Reactor per MW)
+
+### 🟢 P2 FIX: Solar/Wind Balance
+- **Bug**: Solar Panel (8 MW/$600) and Wind Turbine (12 MW/$800) were 3.75× worse $/MW than Coal Generator
+- **Fix**: Increased Solar Panel output 8→12 MW, Wind Turbine 12→16 MW
+
+Files Modified:
+- src/lib/game/store.ts: 4 edits (input consumption, payout formula, worker cap, payout record)
+- src/lib/game/data.ts: 3 edits (antimatter fuel rate, solar output, wind output)
+
+Lint: passes cleanly
+Dev server: compiles without errors

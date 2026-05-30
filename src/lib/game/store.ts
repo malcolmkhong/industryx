@@ -2047,12 +2047,15 @@ export const useGameStore = create<GameStore>()(
           if (def.category === 'factory') efficiency *= (1 + factorySpeedBonus);
           
           const assignedWorkers = state.workers.filter(w => w.assignedTo === b.id);
+          let workerBonus = 0;
           assignedWorkers.forEach(w => {
             const wDef = WORKER_DEFS[w.type];
             if (wDef) {
-              efficiency *= (1 + wDef.effects.speed * w.level * (1 + workerEfficiencyBonus + megaWorkerBonus));
+              // Additive stacking (capped) instead of multiplicative to prevent exponential growth
+              workerBonus += wDef.effects.speed * Math.min(w.level, 10) * (1 + workerEfficiencyBonus + megaWorkerBonus);
             }
           });
+          efficiency *= (1 + Math.min(workerBonus, 2.0)); // Cap worker bonus at 200%
 
           efficiency *= (1 + productionPrestigeBonus + megaProductionBonus);
 
@@ -2075,7 +2078,7 @@ export const useGameStore = create<GameStore>()(
                 if (input.resource === 'money') return { resource: input.resource, amount: 0 };
                 return {
                   resource: input.resource,
-                  amount: input.amount * b.level * efficiency,
+                  amount: input.amount * def.baseProductionRate * b.level * efficiency,
                 };
               }).filter(i => i.resource !== 'money');
 
@@ -2546,25 +2549,35 @@ export const useGameStore = create<GameStore>()(
           const factories = activeBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory');
           const powerPlants = activeBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power');
 
-          // Base rates per building type per payout cycle
-          const extractorRate = 2;
-          const factoryRate = 5;
-          const powerRate = 1;
+          // Base rates per building type per payout cycle, scaled by tier
+          const extractorBaseRate = 2;
+          const factoryBaseRate = 5;
+          const powerBaseRate = 1;
 
-          const extractorIncome = extractors.reduce((sum, b) => sum + extractorRate * b.level * b.efficiency, 0);
-          const factoryIncome = factories.reduce((sum, b) => sum + factoryRate * b.level * b.efficiency, 0);
-          const powerIncome = powerPlants.reduce((sum, b) => sum + powerRate * b.level * b.efficiency, 0);
+          const extractorIncome = extractors.reduce((sum, b) => {
+            const tier = BUILDING_DEFS[b.type]?.tier ?? 0;
+            const tierMult = 1 + tier * 2; // Tier 0=1x, 1=3x, 2=5x, 3=7x, 4=9x
+            return sum + extractorBaseRate * tierMult * b.level;
+          }, 0);
+          const factoryIncome = factories.reduce((sum, b) => {
+            const tier = BUILDING_DEFS[b.type]?.tier ?? 0;
+            const tierMult = 1 + tier * 2; // Tier 0=1x, 1=3x, 2=5x, 3=7x, 4=9x
+            return sum + factoryBaseRate * tierMult * b.level;
+          }, 0);
+          const powerIncome = powerPlants.reduce((sum, b) => {
+            const tier = BUILDING_DEFS[b.type]?.tier ?? 0;
+            const tierMult = 1 + tier * 2;
+            return sum + powerBaseRate * tierMult * b.level;
+          }, 0);
 
           let rawPayout = extractorIncome + factoryIncome + powerIncome;
 
           // Apply game speed multiplier
           rawPayout *= state.gameSpeed;
 
-          // Apply average efficiency modifier
-          const avgEfficiency = activeBuildings.length > 0
-            ? activeBuildings.reduce((sum, b) => sum + b.efficiency, 0) / activeBuildings.length
-            : 0;
-          rawPayout *= avgEfficiency;
+          // Apply power grid efficiency modifier (not double-dipping per-building efficiency)
+          const powerGridMod = effectivePowerEfficiency;
+          rawPayout *= powerGridMod;
 
           // Apply prestige bonuses
           const payoutPrestigeBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'productionMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
@@ -2607,7 +2620,7 @@ export const useGameStore = create<GameStore>()(
               tick: newTick,
               amount: payoutAmount,
               buildingCount: activeBuildings.length,
-              efficiency: avgEfficiency,
+              efficiency: effectivePowerEfficiency,
             };
             newPayoutHistory = [...state.payoutHistory.slice(-9), record];
 
@@ -4786,7 +4799,7 @@ export const useGameStore = create<GameStore>()(
               if (input.resource === 'money') return { resource: input.resource, amount: 0 };
               return {
                 resource: input.resource,
-                amount: input.amount * b.level * b.efficiency * effectiveOfflineRate * ticksElapsed,
+                amount: input.amount * def.baseProductionRate * b.level * b.efficiency * effectiveOfflineRate * ticksElapsed,
               };
             }).filter(i => i.resource !== 'money');
 
