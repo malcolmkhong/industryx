@@ -1448,7 +1448,22 @@ function GridFactoryView() {
           <Button variant="outline" size="sm" className="h-6 text-[9px] border-purple-800/50 text-purple-400 hover:bg-purple-900/20" onClick={handleAutoArrange}>
             <LayoutGrid className="w-3 h-3 mr-1" /> Auto-Arrange
           </Button>
-          <Button variant="outline" size="sm" className="h-6 text-[9px] border-amber-800/50 text-amber-400 hover:bg-amber-900/20" onClick={() => { store.autoAssignAllBuildings(); toast({ title: '📍 Auto-Assign', description: 'All buildings assigned to map regions!' }); }}>
+          <Button variant="outline" size="sm" className="h-6 text-[9px] border-amber-800/50 text-amber-400 hover:bg-amber-900/20" onClick={() => {
+            store.autoAssignAllBuildings();
+            // Switch to the region with the most buildings after auto-assign
+            const currentStore = useGameStore.getState();
+            const regions = currentStore.mapRegions.length > 0 ? currentStore.mapRegions : INITIAL_REGIONS;
+            let bestRegion: RegionId = 'grasslands';
+            let bestCount = 0;
+            for (const r of regions) {
+              const count = currentStore.buildings.filter(b => b.regionId === r.id).length;
+              if (count > bestCount) { bestCount = count; bestRegion = r.id; }
+            }
+            // Directly set active region + layer (bypass unlock check since auto-assign unlocks all)
+            useGameStore.setState({ activeRegion: bestRegion, mapViewLayer: 'grid' });
+            const regionName = regions.find(r => r.id === bestRegion)?.name ?? bestRegion;
+            toast({ title: '📍 Auto-Assign', description: `Buildings assigned! Viewing ${regionName} (${bestCount} buildings)` });
+          }}>
             <MapPin className="w-3 h-3 mr-1" /> Auto-Assign
           </Button>
 

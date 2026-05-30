@@ -3780,7 +3780,9 @@ export const useGameStore = create<GameStore>()(
 
       autoAssignAllBuildings: () => {
         const state = get();
-        const mapRegions = state.mapRegions.length > 0 ? state.mapRegions : INITIAL_REGIONS.map(r => ({ ...r }));
+        const mapRegions = state.mapRegions.length > 0
+          ? state.mapRegions.map(r => ({ ...r, unlocked: true })) // Unlock all regions for auto-assign
+          : INITIAL_REGIONS.map(r => ({ ...r, unlocked: true }));
         const mapGrids = { ...state.mapGrids };
 
         // Ensure grids exist for all regions
@@ -3790,14 +3792,6 @@ export const useGameStore = create<GameStore>()(
           }
         }
 
-        // Clear all existing placements so we reassign everything fresh
-        const buildings = state.buildings.map(b => ({
-          ...b,
-          regionId: undefined as string | undefined,
-          gridRow: undefined as number | undefined,
-          gridCol: undefined as number | undefined,
-        }));
-
         // Clear grid tile occupancy
         for (const region of mapRegions) {
           if (mapGrids[region.id]) {
@@ -3805,27 +3799,153 @@ export const useGameStore = create<GameStore>()(
           }
         }
 
-        // Build occupied cells tracker
+        // Build a global occupied cells tracker that persists across all assignments
         const occupiedCellsMap: Record<string, Set<string>> = {};
         for (const region of mapRegions) {
           occupiedCellsMap[region.id] = new Set<string>();
         }
 
-        // Assign all buildings to regions and grid positions
-        const updatedBuildings = buildings.map(b => {
-          const assignment = autoAssignBuildingToMap(b.type, buildings, mapRegions, mapGrids);
-          if (assignment) {
-            const footprint = getBuildingFootprint(b.type);
-            if (!occupiedCellsMap[assignment.regionId]) occupiedCellsMap[assignment.regionId] = new Set<string>();
-            for (let dr = 0; dr < footprint.height; dr++) {
-              for (let dc = 0; dc < footprint.width; dc++) {
-                occupiedCellsMap[assignment.regionId].add(`${assignment.gridRow + dr},${assignment.gridCol + dc}`);
+        // Clear all existing placements so we reassign everything fresh
+        const updatedBuildings: BuildingInstance[] = state.buildings.map(b => ({
+          ...b,
+          regionId: undefined as string | undefined,
+          gridRow: undefined as number | undefined,
+          gridCol: undefined as number | undefined,
+        }));
+
+        // Sort buildings: largest footprint first to avoid fragmentation
+        const sortedIndices = updatedBuildings
+          .map((b, i) => ({ idx: i, fp: getBuildingFootprint(b.type) }))
+          .sort((a, b) => (b.fp.width * b.fp.height) - (a.fp.width * a.fp.height))
+          .map(x => x.idx);
+
+        // Assign all buildings to regions and grid positions one by one
+        for (const i of sortedIndices) {
+          const b = updatedBuildings[i];
+          const def = BUILDING_DEFS[b.type];
+          if (!def) continue;
+
+          const footprint = getBuildingFootprint(b.type);
+          const preferredOrder = getPreferredRegionOrder(b.type);
+          let assigned = false;
+
+          for (const regionId of preferredOrder) {
+            const region = mapRegions.find(r => r.id === regionId);
+            if (!region) continue;
+
+            // Check category and size allowed (skip maxBuildingSize check for auto-assign to be more flexible)
+            if (!region.allowedCategories.includes(def.category)) continue;
+
+            const grid = mapGrids[regionId];
+            if (!grid) continue;
+
+            // Scan grid for first available position
+            for (let row = 0; row <= region.gridRows - footprint.height && !assigned; row++) {
+              for (let col = 0; col <= region.gridCols - footprint.width && !assigned; col++) {
+                let fits = true;
+                for (let dr = 0; dr < footprint.height && fits; dr++) {
+                  for (let dc = 0; dc < footprint.width && fits; dc++) {
+                    const r = row + dr;
+                    const c = col + dc;
+                    // Check grid tile terrain (water = not buildable)
+                    const tile = grid.find(t => t.row === r && t.col === c);
+                    if (!tile || tile.terrain === 'water') {
+                      fits = false;
+                    } else if (occupiedCellsMap[regionId]?.has(`${r},${c}`)) {
+                      fits = false;
+                    }
+                  }
+                }
+                if (fits) {
+                  // Mark cells as occupied
+                  if (!occupiedCellsMap[regionId]) occupiedCellsMap[regionId] = new Set<string>();
+                  for (let dr = 0; dr < footprint.height; dr++) {
+                    for (let dc = 0; dc < footprint.width; dc++) {
+                      occupiedCellsMap[regionId].add(`${row + dr},${col + dc}`);
+                    }
+                  }
+                  updatedBuildings[i] = { ...b, regionId, gridRow: row, gridCol: col };
+                  assigned = true;
+                }
               }
             }
-            return { ...b, regionId: assignment.regionId, gridRow: assignment.gridRow, gridCol: assignment.gridCol };
           }
-          return b;
-        });
+
+          // Fallback: if preferred regions didn't work, try ANY region that accepts this category
+          if (!assigned) {
+            for (const region of mapRegions) {
+              if (!region.allowedCategories.includes(def.category)) continue;
+              const grid = mapGrids[region.id];
+              if (!grid) continue;
+
+              for (let row = 0; row <= region.gridRows - footprint.height && !assigned; row++) {
+                for (let col = 0; col <= region.gridCols - footprint.width && !assigned; col++) {
+                  let fits = true;
+                  for (let dr = 0; dr < footprint.height && fits; dr++) {
+                    for (let dc = 0; dc < footprint.width && fits; dc++) {
+                      const r = row + dr;
+                      const c = col + dc;
+                      const tile = grid.find(t => t.row === r && t.col === c);
+                      if (!tile || tile.terrain === 'water') {
+                        fits = false;
+                      } else if (occupiedCellsMap[region.id]?.has(`${r},${c}`)) {
+                        fits = false;
+                      }
+                    }
+                  }
+                  if (fits) {
+                    if (!occupiedCellsMap[region.id]) occupiedCellsMap[region.id] = new Set<string>();
+                    for (let dr = 0; dr < footprint.height; dr++) {
+                      for (let dc = 0; dc < footprint.width; dc++) {
+                        occupiedCellsMap[region.id].add(`${row + dr},${col + dc}`);
+                      }
+                    }
+                    updatedBuildings[i] = { ...b, regionId: region.id, gridRow: row, gridCol: col };
+                    assigned = true;
+                  }
+                }
+              }
+              if (assigned) break;
+            }
+          }
+
+          // Last resort: force-place on any non-water tile in any region (ignoring category)
+          if (!assigned) {
+            for (const region of mapRegions) {
+              const grid = mapGrids[region.id];
+              if (!grid) continue;
+
+              for (let row = 0; row <= region.gridRows - footprint.height && !assigned; row++) {
+                for (let col = 0; col <= region.gridCols - footprint.width && !assigned; col++) {
+                  let fits = true;
+                  for (let dr = 0; dr < footprint.height && fits; dr++) {
+                    for (let dc = 0; dc < footprint.width && fits; dc++) {
+                      const r = row + dr;
+                      const c = col + dc;
+                      const tile = grid.find(t => t.row === r && t.col === c);
+                      if (!tile || tile.terrain === 'water') {
+                        fits = false;
+                      } else if (occupiedCellsMap[region.id]?.has(`${r},${c}`)) {
+                        fits = false;
+                      }
+                    }
+                  }
+                  if (fits) {
+                    if (!occupiedCellsMap[region.id]) occupiedCellsMap[region.id] = new Set<string>();
+                    for (let dr = 0; dr < footprint.height; dr++) {
+                      for (let dc = 0; dc < footprint.width; dc++) {
+                        occupiedCellsMap[region.id].add(`${row + dr},${col + dc}`);
+                      }
+                    }
+                    updatedBuildings[i] = { ...b, regionId: region.id, gridRow: row, gridCol: col };
+                    assigned = true;
+                  }
+                }
+              }
+              if (assigned) break;
+            }
+          }
+        }
 
         // Update grid tiles to reflect occupied cells
         for (const region of mapRegions) {
@@ -3837,9 +3957,9 @@ export const useGameStore = create<GameStore>()(
           if (regionBuildings.length > 0) {
             mapGrids[region.id] = grid.map(t => {
               for (const b of regionBuildings) {
-                const footprint = getBuildingFootprint(b.type);
-                if (t.row >= (b.gridRow ?? 0) && t.row < (b.gridRow ?? 0) + footprint.height &&
-                    t.col >= (b.gridCol ?? 0) && t.col < (b.gridCol ?? 0) + footprint.width) {
+                const fp = getBuildingFootprint(b.type);
+                if (t.row >= (b.gridRow ?? 0) && t.row < (b.gridRow ?? 0) + fp.height &&
+                    t.col >= (b.gridCol ?? 0) && t.col < (b.gridCol ?? 0) + fp.width) {
                   return { ...t, occupiedBy: b.id };
                 }
               }
@@ -3857,8 +3977,13 @@ export const useGameStore = create<GameStore>()(
         // Auto-generate logistics routes after reassignment
         get().autoGenerateLogisticsRoutes();
 
-        const assigned = updatedBuildings.filter(b => b.regionId !== undefined).length;
-        get().addNotification('success', `🏗️ Auto-assigned ${assigned}/${updatedBuildings.length} buildings to map regions`);
+        const assignedCount = updatedBuildings.filter(b => b.regionId !== undefined).length;
+        const unassignedCount = updatedBuildings.length - assignedCount;
+        if (unassignedCount > 0) {
+          get().addNotification('warning', `🏗️ Auto-assigned ${assignedCount}/${updatedBuildings.length} buildings. ${unassignedCount} could not be placed.`);
+        } else {
+          get().addNotification('success', `🏗️ Auto-assigned all ${assignedCount} buildings to map regions!`);
+        }
       },
 
       // --- PAYOUT ACTIONS ---
