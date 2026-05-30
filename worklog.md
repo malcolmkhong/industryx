@@ -1169,3 +1169,126 @@ Stage Summary:
 - Contract RP/CP rewards were already properly implemented in both generation and fulfillment
 - The crash was preventing ALL game functionality from working, making it appear as though RP/CP wasn't being granted
 - 1 file modified: store.ts
+
+---
+Task ID: 2-b
+Agent: Data Schema Agent
+Task: Add region definitions, building footprints, and grid generation to data.ts
+
+Work Log:
+- Updated import statement in data.ts to add BuildingFootprint, BuildingFootprintSize, Region, RegionId, GridTile
+- Added BUILDING_FOOTPRINTS constant (Record<string, BuildingFootprint>) with all 65 buildings mapped to their grid footprint sizes:
+  * 1×1: 13 buildings (small extractors + basic power)
+  * 2×2: 23 buildings (standard T1/T2 factories + nuclear reactor)
+  * 3×3: 16 buildings (advanced T2/T3 factories + fusion reactor, nanoLab)
+  * 4×4: 9 buildings (T4 industrial complexes + antimatterPowerPlant)
+  * 5×5: 5 buildings (endgame mega buildings)
+- Added helper function makeFootprint(size) to generate BuildingFootprint objects
+- Added getBuildingFootprint(type: string): BuildingFootprint helper that returns footprint from map, defaulting to { width: 1, height: 1, cells: 1 }
+- Added INITIAL_REGIONS constant with 5 regions:
+  * grasslands: Starting region (16×20, maxBuildingSize 2, minGameTier 0, extraction bonus)
+  * industrial: T2 region (16×20, maxBuildingSize 3, minGameTier 1, production bonus)
+  * highlands: T3 region (18×22, maxBuildingSize 4, minGameTier 2, efficiency bonus)
+  * quantum: T4 region (18×22, maxBuildingSize 4, minGameTier 3, production bonus)
+  * cosmic: Endgame region (20×24, maxBuildingSize 5, minGameTier 4, dual bonuses)
+- Added generateRegionGrid(region: Region): GridTile[] function with:
+  * Weighted random terrain assignment from region's terrainDistribution
+  * Bonus tile generation: rocky→extraction (10%), flat→production (5%), mountain→efficiency (15%), forest→efficiency (10%)
+  * Water tiles: no bonus (no building allowed)
+- Fixed TileBonus type compatibility: used 'efficiency' for forest tiles instead of 'capacity' (not in TileBonus type union)
+- Lint passes cleanly (0 errors, 0 warnings)
+- No new TypeScript errors introduced (pre-existing fibreOptics typos unchanged)
+
+Stage Summary:
+- BUILDING_FOOTPRINTS maps all 65 buildings to grid footprints (1×1 through 5×5)
+- getBuildingFootprint() helper provides safe lookup with 1×1 default
+- INITIAL_REGIONS defines 5 progressive regions from grasslands (free) to cosmic (50M unlock)
+- generateRegionGrid() creates terrain grids with weighted distribution and bonus tiles
+- All new code is additive — no existing code modified
+
+---
+Task ID: 4+5
+Agent: Map UI Builder
+Task: Build HybridMapPanel component with Region, Grid, and Logistics layers
+
+Work Log:
+- Read worklog.md and relevant type/store/data files to understand existing architecture
+- Studied existing FactoryMapPanel.tsx (1400+ lines) for UI patterns and conventions
+- Created new HybridMapPanel.tsx (~700 lines) replacing FactoryMapPanel with 3-layer system
+- Implemented RegionOverviewMap: vertical island-style layout with 5 spatially-positioned region cards, lock/unlock handling, building counts, color-coded borders, bonus descriptions
+- Implemented GridFactoryView: CSS Grid layout with terrain backgrounds, building footprint spanning, build mode with placement preview (green/red tint), zoom controls, tile bonus indicators
+- Implemented BuildingTile: colored building blocks with emoji + level + footprint badges, efficiency bar, selected glow, demolish hover state
+- Implemented BuildPalette: right sidebar with building categories, cost display, footprint size badges, affordable/unlocked filtering
+- Implemented SelectedBuildingDetail: slide-in panel with stats, inputs/outputs, upgrade/toggle buttons
+- Implemented LogisticsRouteOverlay: route management panel with Add Route mode (click source→dest→auto-resource-match), route list with expand/collapse, efficiency/throughput display, remove button
+- Implemented LogisticsSVGOverlay: SVG Bezier curves between buildings with animated flow particles, color-coded by resource, route type icons at midpoints, efficiency-based opacity
+- Implemented TopNavBar: [Region][Grid][Logistics] layer tabs, [View][Build][Route][Demolish] mode buttons, breadcrumb with region name, back button
+- Fixed React Compiler lint errors: removed useMemo/useCallback in favor of plain computations (compiler optimizes automatically), moved early return after all hooks
+- Updated page.tsx: replaced FactoryMapPanel import with HybridMapPanel
+- Lint passes cleanly (0 errors, 0 warnings)
+- Dev server compiles successfully
+
+Stage Summary:
+- New HybridMapPanel.tsx replaces old FactoryMapPanel with complete 3-layer hybrid map system
+- Region layer: visual world map with 5 spatially-positioned regions (Cosmic Forge → Grasslands)
+- Grid layer: full tile-based grid with building footprints, terrain, build/demolish mode
+- Logistics layer: route management + SVG overlay with animated Bezier curves
+- Navigation: layer switching + mode switching + breadcrumb + back button
+- Store integration: uses setActiveRegion, setMapViewLayer, setMapViewMode, unlockRegion, placeBuildingOnGrid, canPlaceBuilding, addLogisticsRoute, removeLogisticsRoute, buildBuilding, upgradeBuilding, toggleBuilding, selectBuilding
+- ~700 lines, lint clean, compiling successfully
+
+---
+Task ID: 14
+Agent: Main Developer
+Task: Implement Hybrid Map System (Grid + Logistics + Region) with Building Size Scaling
+
+Work Log:
+- Designed full hybrid map architecture combining 3 layers:
+  * Region System: 5 regions (Grasslands→Cosmic Forge) with progressive unlocking
+  * Grid System: Tile-based grid with terrain types, building footprints (1×1 to 5×5)
+  * Logistics System: Node-to-node route connections between buildings
+- Updated types.ts with new types:
+  * BuildingFootprint, BuildingFootprintSize (1|2|3|4|5)
+  * GridTile (row, col, terrain, occupiedBy, bonus)
+  * Region, RegionId, RegionBonus
+  * LogisticsRoute, LogisticsNode
+  * MapViewLayer, MapViewMode
+  * Extended BuildingInstance with gridRow, gridCol, regionId
+  * Extended BuildingDefinition with footprint field
+  * Extended GameState with mapRegions, mapGrids, logisticsRoutes, activeRegion, mapViewLayer, mapViewMode
+- Updated data.ts with:
+  * BUILDING_FOOTPRINTS: 65 buildings mapped to sizes (13×1×1, 23×2×2, 16×3×3, 9×4×4, 5×5×5)
+  * INITIAL_REGIONS: 5 regions with grid sizes, max building sizes, unlock costs, bonuses
+  * generateRegionGrid(): Creates terrain tiles with weighted distribution and bonus tiles
+  * getBuildingFootprint(): Helper that returns footprint, defaulting to 1×1
+- Updated store.ts with:
+  * New map state in createInitialState (regions, grids, routes)
+  * 8 new actions: setActiveRegion, setMapViewLayer, setMapViewMode, unlockRegion, placeBuildingOnGrid, removeBuildingFromGrid, canPlaceBuilding, addLogisticsRoute, removeLogisticsRoute, getRegionForBuilding
+  * V16→V17 save migration with map system defaults
+  * SAVE_VERSION bumped to 17
+- Built HybridMapPanel.tsx (~1137 lines) with:
+  * RegionOverviewMap: Vertical island layout with 5 region cards, lock/unlock, building counts
+  * GridFactoryView: CSS grid with terrain backgrounds, multi-cell building footprints, build palette
+  * LogisticsRouteOverlay: SVG Bezier curves with animated flow, route list, add route mode
+  * Top Navigation: Layer switcher (Region/Grid/Logistics), mode buttons (View/Build/Route/Demolish)
+- Integrated HybridMapPanel into page.tsx replacing old FactoryMapPanel
+- Lint: ✅ 0 errors, 0 warnings
+- Dev server: ✅ Compiles and serves correctly
+- QA: Tested with agent-browser + VLM — Region overview, grid view, and build mode all render correctly
+
+Stage Summary:
+- Full hybrid map system implemented with 3 seamless layers
+- 5 regions with progressive tier gating (Grasslands free → Cosmic Forge $50M)
+- Building footprint system (1×1 to 5×5) enforced by region max size limits
+- Logistics routing between buildings with distance-based efficiency
+- Save migration from V16 to V17 preserves existing data
+- Old FactoryMapPanel replaced with new HybridMapPanel
+
+Region Progression Table:
+| Region | Grid Size | Max Building | Min Tier | Unlock Cost | Bonus |
+|--------|-----------|-------------|----------|-------------|-------|
+| Grasslands 🌿 | 16×20 | 2×2 | 0 | Free | +10% extraction |
+| Industrial 🏭 | 16×20 | 3×3 | 1 | $50K | +15% production |
+| Highlands 🏔️ | 18×22 | 4×4 | 2 | $500K | +20% efficiency |
+| Quantum ⚛️ | 18×22 | 4×4 | 3 | $5M | +25% production |
+| Cosmic 🌌 | 20×24 | 5×5 | 4 | $50M | +30% prod, +15% eff |

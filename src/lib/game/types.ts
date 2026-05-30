@@ -39,7 +39,92 @@ export interface BuildingInstance {
   active: boolean;
   efficiency: number; // 0-1, affected by power, workers, transport
   placedAt: number; // tick when placed
+  // Map System Fields
+  gridRow?: number;    // Row position on the grid (0-based)
+  gridCol?: number;    // Column position on the grid (0-based)
+  regionId?: string;   // Which region this building is placed in
 }
+
+// --- Building Size / Footprint ---
+export type BuildingFootprintSize = 1 | 2 | 3 | 4 | 5;
+
+export interface BuildingFootprint {
+  width: BuildingFootprintSize;
+  height: BuildingFootprintSize;
+  cells: number; // width * height, convenience
+}
+
+// --- Grid Map System ---
+export interface GridTile {
+  row: number;
+  col: number;
+  occupiedBy: string | null; // building instance ID
+  regionId: string;
+  terrain: 'flat' | 'rocky' | 'water' | 'forest' | 'mountain';
+  bonus?: TileBonus;
+}
+
+export interface TileBonus {
+  type: 'production' | 'power' | 'extraction' | 'efficiency';
+  value: number; // multiplier bonus
+  description: string;
+}
+
+// --- Region System ---
+export type RegionId = 'grasslands' | 'industrial' | 'highlands' | 'quantum' | 'cosmic';
+
+export interface Region {
+  id: RegionId;
+  name: string;
+  emoji: string;
+  description: string;
+  color: string;       // Primary color for UI
+  bgColor: string;     // Background color
+  borderColor: string; // Border color
+  gridRows: number;
+  gridCols: number;
+  maxBuildingSize: BuildingFootprintSize; // Largest building allowed
+  minGameTier: number;  // Player must be at least this tier
+  allowedCategories: Array<'extractor' | 'factory' | 'power' | 'storage'>;
+  allowedResourceTiers: [number, number]; // [min, max] resource tier
+  terrainDistribution: Record<GridTile['terrain'], number>; // 0-1 weights
+  unlockCost: number;   // Money cost to unlock the region
+  unlocked: boolean;
+  bonuses: RegionBonus[];
+  icon: string;         // Lucide icon name
+}
+
+export interface RegionBonus {
+  type: 'production' | 'power' | 'extraction' | 'efficiency' | 'capacity';
+  value: number;
+  description: string;
+  appliesTo?: string; // building type or category
+}
+
+// --- Logistics Route System ---
+export interface LogisticsRoute {
+  id: string;
+  fromBuildingId: string;  // Source building instance ID
+  toBuildingId: string;    // Destination building instance ID
+  carriesResource: ResourceType;
+  throughput: number;       // Units per tick
+  maxThroughput: number;
+  efficiency: number;      // 0-1 based on distance & upgrades
+  active: boolean;
+  routeType: 'conveyor' | 'pipe' | 'truck' | 'train' | 'drone';
+}
+
+export interface LogisticsNode {
+  buildingId: string;
+  regionId: string;
+  gridRow: number;
+  gridCol: number;
+  connections: string[]; // Route IDs connected to this node
+}
+
+// --- Map View State ---
+export type MapViewLayer = 'region' | 'grid' | 'logistics';
+export type MapViewMode = 'view' | 'build' | 'route' | 'demolish';
 
 export interface BuildingDefinition {
   type: BuildingType;
@@ -58,6 +143,7 @@ export interface BuildingDefinition {
   fuelRate?: number; // fuel consumed per tick
   unlockRequirement?: { research?: string; level?: number; prestige?: number };
   emoji: string;
+  footprint?: BuildingFootprint; // Grid footprint size (defaults to 1x1 if not set)
 }
 
 // --- Transport ---
@@ -554,6 +640,14 @@ export interface GameState {
   activeTab: GameTab;
   selectedBuilding: string | null;
   notifications: GameNotification[];
+
+  // Map System (Hybrid Grid + Logistics + Region)
+  mapRegions: Region[];
+  mapGrids: Record<string, GridTile[]>; // regionId → tiles
+  logisticsRoutes: LogisticsRoute[];
+  activeRegion: RegionId | null;
+  mapViewLayer: MapViewLayer;
+  mapViewMode: MapViewMode;
 
   // Computed rates (updated each tick)
   computedProductionRates: Record<string, number>;

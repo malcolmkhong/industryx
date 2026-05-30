@@ -3,7 +3,7 @@
 // Game Data Definitions
 // ============================================
 
-import { BuildingDefinition, TransportDefinition, WorkerDefinition, ResearchNode, MarketPrice, AutomationUnlock, PrestigeBonus, ResourceType, MegaProject, DailyReward, WeatherType, WeatherDefinition, Quest, ContractDifficulty, CONTRACT_DIFFICULTY_META, ContractReward, CostResourceType, Contract, ResourceAmount, ContractType, ContractTypeTemplate, ContractTierRules, ContractValidationResult, BuildingInstance } from './types';
+import { BuildingDefinition, TransportDefinition, WorkerDefinition, ResearchNode, MarketPrice, AutomationUnlock, PrestigeBonus, ResourceType, MegaProject, DailyReward, WeatherType, WeatherDefinition, Quest, ContractDifficulty, CONTRACT_DIFFICULTY_META, ContractReward, CostResourceType, Contract, ResourceAmount, ContractType, ContractTypeTemplate, ContractTierRules, ContractValidationResult, BuildingInstance, BuildingFootprint, BuildingFootprintSize, Region, RegionId, GridTile } from './types';
 
 // --- Resource Metadata ---
 export const RESOURCE_META: Record<ResourceType, { name: string; emoji: string; tier: number; color: string }> = {
@@ -5184,3 +5184,257 @@ export const QUEST_DEFS: Quest[] = [
     emoji: '🌌',
   },
 ];
+
+// ============================================
+// BUILDING FOOTPRINTS
+// ============================================
+
+function makeFootprint(size: BuildingFootprintSize): BuildingFootprint {
+  return { width: size, height: size, cells: size * size };
+}
+
+export const BUILDING_FOOTPRINTS: Record<string, BuildingFootprint> = {
+  // 1×1 — Small extractors & basic power
+  miningDrill: makeFootprint(1),
+  oilPump: makeFootprint(1),
+  waterExtractor: makeFootprint(1),
+  clayPit: makeFootprint(1),
+  limestoneQuarry: makeFootprint(1),
+  gravelPit: makeFootprint(1),
+  bauxiteMine: makeFootprint(1),
+  wolframiteMine: makeFootprint(1),
+  rareEarthExtractor: makeFootprint(1),
+  quarry: makeFootprint(1),
+  solarPanel: makeFootprint(1),
+  windTurbine: makeFootprint(1),
+  coalGenerator: makeFootprint(1),
+
+  // 2×2 — Standard T1/T2 factories
+  smelter: makeFootprint(2),
+  wireMill: makeFootprint(2),
+  chemicalPlant: makeFootprint(2),
+  glassFurnace: makeFootprint(2),
+  carbonProcessor: makeFootprint(2),
+  brickFactory: makeFootprint(2),
+  concreteFactory: makeFootprint(2),
+  fertilizerFactory: makeFootprint(2),
+  steelForge: makeFootprint(2),
+  oilRefinery: makeFootprint(2),
+  gearFactory: makeFootprint(2),
+  circuitFactory: makeFootprint(2),
+  batteryFactory: makeFootprint(2),
+  siliconRefinery: makeFootprint(2),
+  aluminiumFactory: makeFootprint(2),
+  insecticideFactory: makeFootprint(2),
+  copperRefinery: makeFootprint(2),
+  coolantPlant: makeFootprint(2),
+  opticsLab: makeFootprint(2),
+  solarCellFactory: makeFootprint(2),
+  displayFactory: makeFootprint(2),
+  hydrogenPlant: makeFootprint(2),
+  nuclearReactor: makeFootprint(2),
+
+  // 3×3 — Advanced T2/T3 factories
+  engineFactory: makeFootprint(3),
+  titaniumRefinery: makeFootprint(3),
+  aiLab: makeFootprint(3),
+  roboticsBay: makeFootprint(3),
+  alloyForge: makeFootprint(3),
+  nanoLab: makeFootprint(3),
+  electronicsFactory: makeFootprint(3),
+  medicalTechLab: makeFootprint(3),
+  goldsmith: makeFootprint(3),
+  tungstenSmelter: makeFootprint(3),
+  armsFactory: makeFootprint(3),
+  fusionReactor: makeFootprint(3),
+  quantumLab: makeFootprint(3),
+  neuralLab: makeFootprint(3),
+  droneShipyard: makeFootprint(3),
+  detectorFactory: makeFootprint(3),
+
+  // 4×4 — T4 industrial complexes
+  singularityForge: makeFootprint(4),
+  darkMatterLab: makeFootprint(4),
+  warpDriveFactory: makeFootprint(4),
+  antimatterReactor: makeFootprint(4),
+  chronoLab: makeFootprint(4),
+  plasmaForge: makeFootprint(4),
+  megaStructureFactory: makeFootprint(4),
+  voidCrystallizer: makeFootprint(4),
+  antimatterPowerPlant: makeFootprint(4),
+
+  // 5×5 — Endgame mega buildings
+  dysonCollector: makeFootprint(5),
+  quantumTeleporter: makeFootprint(5),
+  dimensionalGateway: makeFootprint(5),
+  timeDistorter: makeFootprint(5),
+  galacticForge: makeFootprint(5),
+};
+
+export function getBuildingFootprint(type: string): BuildingFootprint {
+  return BUILDING_FOOTPRINTS[type] ?? { width: 1, height: 1, cells: 1 };
+}
+
+// ============================================
+// REGION DEFINITIONS
+// ============================================
+
+export const INITIAL_REGIONS: Region[] = [
+  {
+    id: 'grasslands',
+    name: 'Grasslands',
+    emoji: '🌿',
+    description: 'Fertile plains with rich soil — the starting region for your industrial empire. Suitable for basic extraction and early factory operations.',
+    color: '#22c55e',
+    bgColor: 'bg-green-900/30',
+    borderColor: 'border-green-500/40',
+    gridRows: 16,
+    gridCols: 20,
+    maxBuildingSize: 2,
+    minGameTier: 0,
+    allowedCategories: ['extractor', 'factory', 'power'],
+    allowedResourceTiers: [0, 1],
+    terrainDistribution: { flat: 0.7, rocky: 0.1, water: 0.05, forest: 0.1, mountain: 0.05 },
+    unlockCost: 0,
+    unlocked: true,
+    bonuses: [{ type: 'extraction', value: 0.1, description: '+10% extraction speed in rich soil' }],
+    icon: 'TreePine',
+  },
+  {
+    id: 'industrial',
+    name: 'Industrial Zone',
+    emoji: '🏭',
+    description: 'A rugged industrial district with rocky terrain and mountain resources. Dedicated to heavy manufacturing and advanced processing.',
+    color: '#f97316',
+    bgColor: 'bg-orange-900/30',
+    borderColor: 'border-orange-500/40',
+    gridRows: 16,
+    gridCols: 20,
+    maxBuildingSize: 3,
+    minGameTier: 1,
+    allowedCategories: ['extractor', 'factory', 'power'],
+    allowedResourceTiers: [0, 2],
+    terrainDistribution: { flat: 0.5, rocky: 0.2, water: 0.0, forest: 0.0, mountain: 0.3 },
+    unlockCost: 50000,
+    unlocked: false,
+    bonuses: [{ type: 'production', value: 0.15, description: '+15% factory production in dedicated zone' }],
+    icon: 'Factory',
+  },
+  {
+    id: 'highlands',
+    name: 'Highland Range',
+    emoji: '🏔️',
+    description: 'Mountainous highlands with scarce flat land but powerful efficiency bonuses from altitude. Home to advanced metallurgy and high-tech manufacturing.',
+    color: '#8b5cf6',
+    bgColor: 'bg-purple-900/30',
+    borderColor: 'border-purple-500/40',
+    gridRows: 18,
+    gridCols: 22,
+    maxBuildingSize: 4,
+    minGameTier: 2,
+    allowedCategories: ['factory', 'power'],
+    allowedResourceTiers: [1, 3],
+    terrainDistribution: { flat: 0.2, rocky: 0.4, water: 0.05, forest: 0.05, mountain: 0.3 },
+    unlockCost: 500000,
+    unlocked: false,
+    bonuses: [{ type: 'efficiency', value: 0.2, description: '+20% building efficiency at altitude' }],
+    icon: 'Mountain',
+  },
+  {
+    id: 'quantum',
+    name: 'Quantum Quarter',
+    emoji: '⚛️',
+    description: 'A strange region where quantum fields enhance production. Flat terrain with crystalline mountains, perfect for cutting-edge technology.',
+    color: '#06b6d4',
+    bgColor: 'bg-cyan-900/30',
+    borderColor: 'border-cyan-500/40',
+    gridRows: 18,
+    gridCols: 22,
+    maxBuildingSize: 4,
+    minGameTier: 3,
+    allowedCategories: ['factory', 'power'],
+    allowedResourceTiers: [2, 4],
+    terrainDistribution: { flat: 0.6, rocky: 0.1, water: 0.0, forest: 0.0, mountain: 0.3 },
+    unlockCost: 5000000,
+    unlocked: false,
+    bonuses: [{ type: 'production', value: 0.25, description: '+25% production in quantum field' }],
+    icon: 'Atom',
+  },
+  {
+    id: 'cosmic',
+    name: 'Cosmic Forge',
+    emoji: '🌌',
+    description: 'The final frontier — a vast cosmic plane where reality bends to industrial will. Unmatched bonuses for endgame mega-construction.',
+    color: '#eab308',
+    bgColor: 'bg-yellow-900/30',
+    borderColor: 'border-yellow-500/40',
+    gridRows: 20,
+    gridCols: 24,
+    maxBuildingSize: 5,
+    minGameTier: 4,
+    allowedCategories: ['factory', 'power'],
+    allowedResourceTiers: [3, 4],
+    terrainDistribution: { flat: 0.8, rocky: 0.0, water: 0.0, forest: 0.0, mountain: 0.2 },
+    unlockCost: 50000000,
+    unlocked: false,
+    bonuses: [
+      { type: 'production', value: 0.3, description: '+30% cosmic production' },
+      { type: 'efficiency', value: 0.15, description: '+15% cosmic efficiency' },
+    ],
+    icon: 'Sparkles',
+  },
+];
+
+// ============================================
+// GRID GENERATION
+// ============================================
+
+function weightedRandomTerrain(distribution: Record<GridTile['terrain'], number>): GridTile['terrain'] {
+  const terrains: GridTile['terrain'][] = ['flat', 'rocky', 'water', 'forest', 'mountain'];
+  const weights = terrains.map(t => distribution[t] ?? 0);
+  const total = weights.reduce((s, w) => s + w, 0);
+  let roll = Math.random() * total;
+  for (let i = 0; i < terrains.length; i++) {
+    roll -= weights[i];
+    if (roll <= 0) return terrains[i];
+  }
+  return 'flat';
+}
+
+export function generateRegionGrid(region: Region): GridTile[] {
+  const tiles: GridTile[] = [];
+  const { gridRows, gridCols, terrainDistribution, id } = region;
+
+  for (let row = 0; row < gridRows; row++) {
+    for (let col = 0; col < gridCols; col++) {
+      const terrain = weightedRandomTerrain(terrainDistribution);
+      let bonus: GridTile['bonus'] = undefined;
+
+      if (terrain === 'rocky' && Math.random() < 0.1) {
+        const value = Math.round((0.05 + Math.random() * 0.1) * 100) / 100; // 5-15%
+        bonus = { type: 'extraction', value, description: `+${Math.round(value * 100)}% extraction` };
+      } else if (terrain === 'flat' && Math.random() < 0.05) {
+        const value = Math.round((0.03 + Math.random() * 0.07) * 100) / 100; // 3-10%
+        bonus = { type: 'production', value, description: `+${Math.round(value * 100)}% production` };
+      } else if (terrain === 'mountain' && Math.random() < 0.15) {
+        const value = Math.round((0.05 + Math.random() * 0.15) * 100) / 100; // 5-20%
+        bonus = { type: 'efficiency', value, description: `+${Math.round(value * 100)}% efficiency` };
+      } else if (terrain === 'forest' && Math.random() < 0.1) {
+        const value = Math.round((0.05 + Math.random() * 0.05) * 100) / 100; // 5-10%
+        bonus = { type: 'efficiency', value, description: `+${Math.round(value * 100)}% capacity bonus` };
+      }
+      // water tiles: no bonus (and no building allowed — handled by absence of bonus + terrain type)
+
+      tiles.push({
+        row,
+        col,
+        occupiedBy: null,
+        regionId: id,
+        terrain,
+        bonus,
+      });
+    }
+  }
+
+  return tiles;
+}

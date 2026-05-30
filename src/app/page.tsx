@@ -22,7 +22,7 @@ import { AchievementPanel } from '@/components/game/AchievementPanel';
 import { MegaProjectPanel } from '@/components/game/MegaProjectPanel';
 import { SettingsPanel } from '@/components/game/SettingsPanel';
 import StatisticsPanel from '@/components/game/StatisticsPanel';
-import FactoryMapPanel from '@/components/game/FactoryMapPanel';
+import HybridMapPanel from '@/components/game/HybridMapPanel';
 import GameToast from '@/components/game/GameToast';
 import FloatingNumbers from '@/components/game/FloatingNumbers';
 import KeyboardShortcutsHelp from '@/components/game/KeyboardShortcutsHelp';
@@ -292,7 +292,7 @@ export default function Home() {
   const renderPanel = () => {
     switch (store.activeTab) {
       case 'dashboard': return <DashboardPanel />;
-      case 'factoryMap': return <FactoryMapPanel />;
+      case 'factoryMap': return <HybridMapPanel />;
       case 'resources': return <ResourcePanel />;
       case 'factories': return <FactoryPanel />;
       case 'storage': return <StoragePanel />;
