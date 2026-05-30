@@ -13,6 +13,7 @@ import {
   WeatherType, PayoutConfig, PayoutRecord, Drone, DroneMission,
   Region, RegionId, GridTile, LogisticsRoute, MapViewLayer, MapViewMode, BuildingFootprint,
   BuildingConditionStatus, getConditionStatus, getConditionColor, getConditionStatusLabel,
+  MaintenanceLogEntry,
 } from './types';
 import {
   BUILDING_DEFS, TRANSPORT_DEFS, WORKER_DEFS, INITIAL_MARKET,
@@ -27,7 +28,7 @@ import {
 import { soundEngine } from './soundEngine';
 
 // --- Save Version ---
-const SAVE_VERSION = 21;
+const SAVE_VERSION = 22;
 
 // --- Utility Functions ---
 function generateId(): string {
@@ -1192,6 +1193,13 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
     }
   }
 
+  // V21 → V22: Maintenance Log
+  if (version < 22) {
+    if (!state.maintenanceLog) {
+      state.maintenanceLog = [];
+    }
+  }
+
   state._version = SAVE_VERSION;
   return state;
 }
@@ -1485,6 +1493,7 @@ function createInitialState(): GameState {
     computedProductionRates: {},
     computedConsumptionRates: {},
     computedActualConsumptionRates: {},
+    maintenanceLog: [],
   };
 }
 
@@ -1544,6 +1553,9 @@ interface GameActions {
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
   clearNotifications: () => void;
+
+  // Maintenance Log
+  addMaintenanceLog: (entry: Omit<MaintenanceLogEntry, 'id'>) => void;
 
   // Celebrations (removed)
   
@@ -1747,6 +1759,7 @@ export const useGameStore = create<GameStore>()(
         // === Building Condition Deterioration (every 10 ticks) ===
         let selfRepairActive = state.automationUnlocks.find(a => a.type === 'selfRepair' && a.active);
         let selfRepairCostTotal = 0;
+        const maintenanceLogEntries: Omit<MaintenanceLogEntry, 'id'>[] = [];
 
         if (newTick % 10 === 0) {
           updatedBuildings = updatedBuildings.map(b => {
@@ -1788,6 +1801,15 @@ export const useGameStore = create<GameStore>()(
                 const baseRepairCost = def.baseCost.find(c => c.resource === 'money')?.amount ?? 100;
                 const costPerPoint = baseRepairCost * 0.5 / 100 * b.level;
                 selfRepairCostTotal += actualRepair * costPerPoint;
+                maintenanceLogEntries.push({
+                  tick: newTick,
+                  buildingId: b.id,
+                  buildingName: def.name,
+                  eventType: 'self_repair',
+                  conditionChange: Math.round(actualRepair * 100) / 100,
+                  conditionAfter: Math.round(newCondition * 100) / 100,
+                  repairCost: Math.round(actualRepair * costPerPoint * 100) / 100,
+                });
               }
             }
 
@@ -1798,11 +1820,63 @@ export const useGameStore = create<GameStore>()(
             // Notification: building dropped to critical
             if (prevStatus !== 'critical' && newStatus === 'critical') {
               notifications.push({ id: generateId(), type: 'warning', message: `⚠️ ${def.emoji} ${def.name} condition is CRITICAL (${Math.round(newCondition)}%)`, gameTick: newTick, read: false });
+              maintenanceLogEntries.push({
+                tick: newTick,
+                buildingId: b.id,
+                buildingName: def.name,
+                eventType: 'critical_warning',
+                conditionChange: Math.round((newCondition - b.condition) * 100) / 100,
+                conditionAfter: Math.round(newCondition * 100) / 100,
+                details: `Condition dropped to ${Math.round(newCondition)}%`,
+              });
             }
             // Notification: building broke
             if (newCondition === 0 && b.condition > 0) {
               notifications.push({ id: generateId(), type: 'error', message: `💥 ${def.emoji} ${def.name} has BROKEN DOWN! Repair it to resume production.`, gameTick: newTick, read: false });
               soundEngine.play('powerOverload', 'events');
+              maintenanceLogEntries.push({
+                tick: newTick,
+                buildingId: b.id,
+                buildingName: def.name,
+                eventType: 'broken',
+                conditionChange: Math.round((0 - b.condition) * 100) / 100,
+                conditionAfter: 0,
+                details: 'Building broke down',
+              });
+            }
+            // Log condition warning when dropping below 75% for the first time
+            if (prevStatus === 'pristine' && newStatus === 'good') {
+              maintenanceLogEntries.push({
+                tick: newTick,
+                buildingId: b.id,
+                buildingName: def.name,
+                eventType: 'condition_warning',
+                conditionChange: Math.round((newCondition - b.condition) * 100) / 100,
+                conditionAfter: Math.round(newCondition * 100) / 100,
+                details: 'Condition dropped below 100%',
+              });
+            } else if (prevStatus === 'good' && (newStatus === 'worn' || newStatus === 'damaged')) {
+              maintenanceLogEntries.push({
+                tick: newTick,
+                buildingId: b.id,
+                buildingName: def.name,
+                eventType: 'condition_warning',
+                conditionChange: Math.round((newCondition - b.condition) * 100) / 100,
+                conditionAfter: Math.round(newCondition * 100) / 100,
+                details: `Condition dropped to ${Math.round(newCondition)}%`,
+              });
+            }
+            // Log deterioration if significant
+            if (detRate > 0.02 && b.condition - newCondition > 0.005) {
+              maintenanceLogEntries.push({
+                tick: newTick,
+                buildingId: b.id,
+                buildingName: def.name,
+                eventType: 'deterioration',
+                conditionChange: Math.round((newCondition - b.condition) * 100) / 100,
+                conditionAfter: Math.round(newCondition * 100) / 100,
+                details: `Rate: ${detRate.toFixed(4)}/cycle`,
+              });
             }
 
             return {
@@ -1834,6 +1908,25 @@ export const useGameStore = create<GameStore>()(
                 const newCondition = Math.max(0, Math.round((b.condition - damageAmount) * 100) / 100);
                 if (newCondition === 0 && b.condition > 0 && def) {
                   notifications.push({ id: generateId(), type: 'error', message: `💥 ${def.emoji} ${def.name} BROKEN by earthquake!`, gameTick: newTick, read: false });
+                  maintenanceLogEntries.push({
+                    tick: newTick,
+                    buildingId: b.id,
+                    buildingName: def.name,
+                    eventType: 'earthquake_damage',
+                    conditionChange: Math.round((newCondition - b.condition) * 100) / 100,
+                    conditionAfter: newCondition,
+                    details: `Earthquake: -${Math.round(damageAmount)} condition`,
+                  });
+                } else if (def && b.condition - newCondition > 0.5) {
+                  maintenanceLogEntries.push({
+                    tick: newTick,
+                    buildingId: b.id,
+                    buildingName: def.name,
+                    eventType: 'earthquake_damage',
+                    conditionChange: Math.round((newCondition - b.condition) * 100) / 100,
+                    conditionAfter: newCondition,
+                    details: `Earthquake: -${Math.round(damageAmount)} condition`,
+                  });
                 }
                 return {
                   ...b,
@@ -1858,6 +1951,25 @@ export const useGameStore = create<GameStore>()(
               const newCondition = Math.max(0, Math.round((b.condition - stormDamage) * 100) / 100);
               if (newCondition === 0 && b.condition > 0) {
                 notifications.push({ id: generateId(), type: 'error', message: `💥 ${def.emoji} ${def.name} BROKEN by storm!`, gameTick: newTick, read: false });
+                maintenanceLogEntries.push({
+                  tick: newTick,
+                  buildingId: b.id,
+                  buildingName: def.name,
+                  eventType: 'broken',
+                  conditionChange: Math.round((0 - b.condition) * 100) / 100,
+                  conditionAfter: 0,
+                  details: `Storm: -${Math.round(stormDamage)} condition`,
+                });
+              } else {
+                maintenanceLogEntries.push({
+                  tick: newTick,
+                  buildingId: b.id,
+                  buildingName: def.name,
+                  eventType: 'storm_damage',
+                  conditionChange: Math.round((newCondition - b.condition) * 100) / 100,
+                  conditionAfter: newCondition,
+                  details: `Storm: -${Math.round(stormDamage)} condition`,
+                });
               }
               return {
                 ...b,
@@ -2630,6 +2742,11 @@ export const useGameStore = create<GameStore>()(
           computedActualConsumptionRates: computedActualConsRates,
         });
 
+        // --- Flush maintenance log entries collected during tick ---
+        for (const entry of maintenanceLogEntries) {
+          get().addMaintenanceLog(entry);
+        }
+
         // --- Update Quest Progress (periodic checks) ---
         // Check every 10 ticks to avoid performance overhead
         if (newTick % 10 === 0) {
@@ -2852,6 +2969,7 @@ export const useGameStore = create<GameStore>()(
         }
 
         const wasBroken = building.condition <= 0;
+        const conditionChange = 100 - building.condition;
         set({
           money: state.money - repairCost,
           buildings: state.buildings.map(b =>
@@ -2860,6 +2978,16 @@ export const useGameStore = create<GameStore>()(
         });
         soundEngine.play('buildingPlaced', 'building');
         get().addNotification('success', `🔧 Repaired ${def.name} for $${formatNumber(repairCost)}` + (wasBroken ? ' — back online!' : ''));
+        get().addMaintenanceLog({
+          tick: state.gameTick,
+          buildingId: id,
+          buildingName: def.name,
+          eventType: 'repair',
+          conditionChange: Math.round(conditionChange * 100) / 100,
+          conditionAfter: 100,
+          repairCost,
+          details: wasBroken ? 'Full repair (was broken)' : 'Full repair',
+        });
       },
 
       repairAllBuildings: () => {
@@ -2868,7 +2996,7 @@ export const useGameStore = create<GameStore>()(
         if (damagedBuildings.length === 0) return;
 
         let totalCost = 0;
-        const repairs: { id: string; wasBroken: boolean }[] = [];
+        const repairs: { id: string; wasBroken: boolean; conditionChange: number; name: string; cost: number }[] = [];
 
         for (const b of damagedBuildings) {
           const def = BUILDING_DEFS[b.type];
@@ -2876,7 +3004,7 @@ export const useGameStore = create<GameStore>()(
           const baseRepairCost = def.baseCost.find(c => c.resource === 'money')?.amount ?? 100;
           const repairCost = Math.max(1, Math.floor(baseRepairCost * (100 - b.condition) / 100 * b.level));
           totalCost += repairCost;
-          repairs.push({ id: b.id, wasBroken: b.condition <= 0 });
+          repairs.push({ id: b.id, wasBroken: b.condition <= 0, conditionChange: 100 - b.condition, name: def.name, cost: repairCost });
         }
 
         if (state.money < totalCost) {
@@ -2895,6 +3023,19 @@ export const useGameStore = create<GameStore>()(
         });
         soundEngine.play('buildingPlaced', 'building');
         get().addNotification('success', `🔧 Repaired ${repairs.length} building${repairs.length !== 1 ? 's' : ''} for $${formatNumber(totalCost)}`);
+        // Log each repair
+        for (const r of repairs) {
+          get().addMaintenanceLog({
+            tick: state.gameTick,
+            buildingId: r.id,
+            buildingName: r.name,
+            eventType: 'repair',
+            conditionChange: Math.round(r.conditionChange * 100) / 100,
+            conditionAfter: 100,
+            repairCost: r.cost,
+            details: 'Repair All',
+          });
+        }
       },
 
       // --- TRANSPORT ACTIONS ---
@@ -3463,6 +3604,15 @@ export const useGameStore = create<GameStore>()(
       markAllNotificationsRead: () => {
         set(state => ({
           notifications: state.notifications.map(n => ({ ...n, read: true })),
+        }));
+      },
+
+      addMaintenanceLog: (entry: Omit<MaintenanceLogEntry, 'id'>) => {
+        set(state => ({
+          maintenanceLog: [
+            { ...entry, id: generateId() },
+            ...state.maintenanceLog,
+          ].slice(0, 200),
         }));
       },
 

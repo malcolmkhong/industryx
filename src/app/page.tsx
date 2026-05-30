@@ -35,6 +35,7 @@ import { PayoutPanel } from '@/components/game/PayoutPanel';
 import DroneDeliveryPanel from '@/components/game/DroneDeliveryPanel';
 import { StoragePanel } from '@/components/game/StoragePanel';
 import { ProductionChainsHub } from '@/components/game/ProductionChainsHub';
+import { BuildingManagementPanel } from '@/components/game/BuildingManagementPanel';
 import {
   Play, Pause, RotateCcw, Bell, X,
   Download, Upload, Copy, Check,
@@ -302,6 +303,7 @@ export default function Home() {
       case 'market': return <MarketPanel />;
       case 'research': return <ResearchPanel />;
       case 'workers': return <WorkerPanel />;
+      case 'buildingManagement': return <BuildingManagementPanel />;
       case 'contracts': return <ContractPanel />;
       case 'automation': return <AutomationPanel />;
       case 'prestige': return <PrestigePanel />;

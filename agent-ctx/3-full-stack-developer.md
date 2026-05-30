@@ -1,22 +1,40 @@
-# Task 3: Building Condition / Damage / Repair System
+---
+Task ID: 3
+Agent: full-stack-developer
+Task: Create Building Management page
 
-## Agent: full-stack-developer
+Work Log:
+- Read existing codebase: types.ts, store.ts, GameSidebar.tsx, page.tsx
+- Added `MaintenanceLogEntry` interface to types.ts with event types: storm_damage, earthquake_damage, power_overload_damage, deterioration, condition_warning, critical_warning, broken, repair, self_repair
+- Added `buildingManagement` to `GameTab` type union
+- Added `maintenanceLog: MaintenanceLogEntry[]` to `GameState` interface
+- Updated store.ts: incremented SAVE_VERSION from 21 to 22
+- Added V21→V22 save migration to add `maintenanceLog: []` to existing saves
+- Added `maintenanceLog: []` to initial state in `createInitialState()`
+- Added `addMaintenanceLog` action to GameActions interface and implementation (keeps last 200 entries)
+- Added maintenance log calls throughout game tick:
+  - Self-repair logging when selfRepair automation is active
+  - Critical warning logging when building drops to critical (<25%)
+  - Broken event logging when building condition hits 0
+  - Condition warning logging when building drops below thresholds
+  - Deterioration logging for significant condition loss
+  - Earthquake damage logging for each building affected
+  - Storm damage logging for outdoor buildings
+- Added maintenance log calls to repairBuilding and repairAllBuildings actions
+- Added BuildingManagementPanel tab to GameSidebar in Production group (after Workers)
+- Added import and case for BuildingManagementPanel in page.tsx renderPanel switch
+- Created comprehensive BuildingManagementPanel.tsx with 5 sub-tabs:
+  - Overview: Health Dashboard (8 summary cards) + Building Overview Table (sortable, filterable)
+  - Maintenance: Repair All button, auto-repair status, damaged building quick repair list
+  - Analytics: Condition Distribution bars, Average Condition gauge, Most Damaged, Highest Det Rate, Breakdown by Type/Region
+  - Log: Filterable Damage & Maintenance Log table with color-coded rows
+  - Alerts: Grouped alert sections (Broken, Critical, Damaged, Worn, High Det Rate) with quick actions
+- Building Detail Sheet with: condition bar, status badge, operational status, deterioration factors breakdown, repair cost breakdown, location, maintenance status, action buttons
 
-## Summary
-Implemented a complete building condition/damage/repair system for Factory Dominion.
-
-## Files Modified
-1. **src/lib/game/types.ts** - Added `BuildingConditionStatus` type, `getConditionStatus()`, `getConditionColor()`, `getConditionStatusLabel()` helper functions, and `condition`, `lastDamageTick`, `deteriorationRate` fields to `BuildingInstance`
-2. **src/lib/game/store.ts** - SAVE_VERSION 20→21, V20→V21 migration, condition deterioration in game tick, condition→efficiency penalty, `repairBuilding()`, `repairAllBuildings()`, self-repair automation, event damage, broken building force-inactive, condition fields on all building creation points
-3. **src/components/game/HybridMapPanel.tsx** - Condition indicator bar on BuildingTile, wrench icon overlay, broken pulse animation, condition tooltip, condition section in SelectedBuildingDetail, repair button
-4. **src/components/game/DashboardPanel.tsx** - Building Condition card with status breakdown by tier, Repair All button with cost display
-
-## Key Design Decisions
-- Deterioration rate: 0.01 per 10-tick cycle (very slow, accumulates over time)
-- Age factor: up to 3x deterioration after 100k ticks
-- Condition penalty: proportional below 75% (condition/75)
-- Broken buildings (0%): forced inactive, cannot be toggled on, must be repaired
-- Self-repair: 0.1 condition per cycle, 50% of normal repair cost
-- Repair cost formula: `baseRepairCost * (100 - condition) / 100 * level`
-- Event damage: earthquakes 5-15 points, storms 3-10 points (outdoor only)
-- Save migration ensures existing saves work with condition=100 default
+Stage Summary:
+- Building Management page fully implemented with 5 sub-sections
+- Maintenance log system added to game store with automatic event recording
+- Save migration V21→V22 ensures backward compatibility
+- All lint checks pass, dev server compiles successfully
+- Files modified: types.ts, store.ts, GameSidebar.tsx, page.tsx
+- Files created: BuildingManagementPanel.tsx

@@ -56,6 +56,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: 'storage', label: 'Storage', icon: Database, color: 'text-amber-300' },
       { id: 'power', label: 'Power Grid', icon: Zap, color: 'text-yellow-400' },
       { id: 'workers', label: 'Workers', icon: Users, color: 'text-sky-400' },
+      { id: 'buildingManagement', label: 'Building Mgmt', icon: Wrench, color: 'text-orange-400' },
     ],
   },
   {

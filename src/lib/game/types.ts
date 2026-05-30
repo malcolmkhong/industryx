@@ -688,9 +688,25 @@ export interface GameState {
   computedProductionRates: Record<string, number>;
   computedConsumptionRates: Record<string, number>;
   computedActualConsumptionRates: Record<string, number>; // Only actual consumption (excludes stalled factory demand)
+
+  // Maintenance Log
+  maintenanceLog: MaintenanceLogEntry[];
 }
 
-export type GameTab = 'dashboard' | 'factoryMap' | 'resources' | 'factories' | 'storage' | 'chains' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'contracts' | 'quests' | 'automation' | 'prestige' | 'events' | 'megaprojects' | 'statistics' | 'blueprints' | 'guide' | 'achievements' | 'leaderboard' | 'dailyRewards' | 'payouts' | 'droneDelivery' | 'notifications' | 'settings';
+export type GameTab = 'dashboard' | 'factoryMap' | 'resources' | 'factories' | 'storage' | 'chains' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'buildingManagement' | 'contracts' | 'quests' | 'automation' | 'prestige' | 'events' | 'megaprojects' | 'statistics' | 'blueprints' | 'guide' | 'achievements' | 'leaderboard' | 'dailyRewards' | 'payouts' | 'droneDelivery' | 'notifications' | 'settings';
+
+// --- Maintenance Log ---
+export interface MaintenanceLogEntry {
+  id: string;
+  tick: number;
+  buildingId: string;
+  buildingName: string;
+  eventType: 'storm_damage' | 'earthquake_damage' | 'power_overload_damage' | 'deterioration' | 'condition_warning' | 'critical_warning' | 'broken' | 'repair' | 'self_repair';
+  conditionChange: number; // negative for damage, positive for repair
+  conditionAfter: number;
+  repairCost?: number;
+  details?: string;
+}
 
 // --- Production Chain Categories ---
 export type ProductionChainCategory = 'basic' | 'industrial' | 'advanced' | 'hightech' | 'cosmic';

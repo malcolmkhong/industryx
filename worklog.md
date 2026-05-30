@@ -1,6 +1,29 @@
 # Factory Dominion - Worklog
 
 ---
+Task ID: 4
+Agent: main
+Task: Building Management Page - Verification and refinement
+
+Work Log:
+- Verified lint passes cleanly (no errors, no warnings)
+- Verified dev server compiles without errors
+- Used agent-browser for visual verification across all 5 sub-tabs
+- Confirmed all features working: Overview table, Health Dashboard, Maintenance Center, Analytics, Log, Alerts
+- Confirmed building detail sheet opens correctly with full information
+- Confirmed search/filter/sort functionality works
+- Confirmed responsive design works on mobile and desktop
+- No critical bugs found
+
+Stage Summary:
+- Building Management page is fully functional and verified
+- All 5 sub-tabs render correctly with real data
+- Building detail sheet shows condition, efficiency impact, deterioration factors, repair cost
+- Search, filter, sort, and pagination all work
+- Maintenance log system records events automatically
+- Minor: Radix dialog accessibility warning (cosmetic, low priority)
+
+---
 Task ID: 3
 Agent: full-stack-developer
 Task: Implement building condition/damage/repair system
@@ -168,3 +191,38 @@ The logistics route rendering had a **coordinate space desync** during zoom oper
 - Lint passes cleanly (no errors, no warnings)
 - Dev server compiles without errors
 - Auto-assign tested: 66/66 buildings assigned successfully
+
+---
+
+Task ID: 3
+Agent: full-stack-developer
+Task: Create Building Management page
+
+Work Log:
+- Read existing codebase: types.ts, store.ts, GameSidebar.tsx, page.tsx to understand architecture
+- Added MaintenanceLogEntry interface to types.ts with 9 event types (storm_damage, earthquake_damage, power_overload_damage, deterioration, condition_warning, critical_warning, broken, repair, self_repair)
+- Added buildingManagement to GameTab type union
+- Added maintenanceLog: MaintenanceLogEntry[] to GameState interface
+- Updated store.ts SAVE_VERSION from 21 to 22
+- Added V21→V22 save migration adding maintenanceLog: [] to existing saves
+- Added maintenanceLog: [] to createInitialState()
+- Added addMaintenanceLog action to GameActions (keeps last 200 entries, prepends new)
+- Added maintenance log entries during game tick: self-repair, critical warnings, broken events, condition warnings, deterioration, earthquake damage, storm damage
+- Added maintenance log entries to repairBuilding and repairAllBuildings actions
+- Added Building Mgmt tab to GameSidebar Production group (after Workers, using Wrench icon)
+- Added BuildingManagementPanel import and case in page.tsx renderPanel()
+- Created comprehensive BuildingManagementPanel.tsx with 5 sub-tabs:
+  - Overview: 8 summary cards (Total, Healthy, Need Maintenance, Critical, Broken, Avg Condition, Total Repair Cost, Auto-Repair) + Sortable/Filterable building table
+  - Maintenance: Repair All button, auto-repair status/toggle, damaged buildings quick-repair list
+  - Analytics: Condition Distribution bars, Average Condition SVG gauge, Most Damaged top 5, Highest Deterioration Rate top 5, Breakdown by Type/Region
+  - Log: Filterable Damage & Maintenance Log table with event type badges and color-coded rows
+  - Alerts: 5 alert groups (Broken, Critical, Damaged, Worn, High Det Rate) with repair and go-to-map quick actions
+- Building Detail Sheet (right side panel): condition bar, status badge, operational status, efficiency impact, deterioration factors breakdown, repair cost calculation, location, maintenance status, action buttons
+
+Stage Summary:
+- Complete Building Management page with 5 sub-sections and building detail panel
+- Maintenance log system automatically records damage/repair events during game tick
+- Save migration V21→V22 ensures backward compatibility
+- Lint passes, dev server compiles successfully, page loads with BuildingManagementPanel chunk
+- Files modified: types.ts, store.ts, GameSidebar.tsx, page.tsx
+- Files created: BuildingManagementPanel.tsx (61751 bytes)
