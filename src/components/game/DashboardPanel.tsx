@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { BuildingType, ResourceType, WeatherType } from '@/lib/game/types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RESOURCE_META, BUILDING_DEFS } from '@/lib/game/data';
+
 export function DashboardPanel() {
   const store = useGameStore();
 
