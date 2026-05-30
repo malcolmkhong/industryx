@@ -481,19 +481,16 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
     });
   }
 
-  // V14 → V15: Mega project progress changed from 0-1 float to integer ticks
-  // Convert old float progress to integer ticks
+  // V14 → V15: Mega project progress changed from 0-1 float to integer ticks, added paused field
   if (version < 15) {
-    const existingProjects = (state.megaProjects || []) as { type: string; progress: number; stages: { timeRequired: number }[]; currentStage: number }[];
+    const existingProjects = (state.megaProjects || []) as { type: string; progress: number; paused?: boolean; stages: { timeRequired: number }[]; currentStage: number }[];
     state.megaProjects = (state.megaProjects || []).map((p: typeof existingProjects[0]) => {
       // Old progress was 0-1 float, new progress is 0-timeRequired integer
       const stage = p.stages[p.currentStage];
-      if (stage && p.progress > 0 && p.progress < 1) {
-        // Convert float to integer ticks
-        return { ...p, progress: Math.floor(p.progress * stage.timeRequired) };
-      }
-      // If progress was 0 or >= 1, reset to 0
-      return { ...p, progress: 0 };
+      const newProgress = (stage && p.progress > 0 && p.progress < 1)
+        ? Math.floor(p.progress * stage.timeRequired)
+        : 0;
+      return { ...p, progress: newProgress, paused: p.paused ?? false };
     });
   }
 
@@ -679,6 +676,8 @@ interface GameActions {
   // MegaProjects
   startMegaProject: (type: MegaProjectType) => void;
   contributeToMegaProject: (type: MegaProjectType) => void;
+  pauseMegaProject: (type: MegaProjectType) => void;
+  resumeMegaProject: (type: MegaProjectType) => void;
 
   // Blueprints
   saveBlueprint: (name: string) => void;
@@ -1236,7 +1235,7 @@ export const useGameStore = create<GameStore>()(
         // Each tick: if all required materials have >= 1 unit, consume 1 of each and advance progress by 1 tick
         const megaProjectResourcesToDeduct: { resource: string; amount: number }[] = [];
         const newMegaProjects = state.megaProjects.map(mp => {
-          if (!mp.active || mp.completed) return mp;
+          if (!mp.active || mp.completed || mp.paused) return mp;
           const stage = mp.stages[mp.currentStage];
           if (!stage || stage.completed) return mp;
 
@@ -2948,6 +2947,22 @@ export const useGameStore = create<GameStore>()(
           money: state.money - deductMoney,
           megaProjects: state.megaProjects.map(p => p.type === type ? updatedProject : p),
         });
+      },
+
+      pauseMegaProject: (type: MegaProjectType) => {
+        const state = get();
+        const project = state.megaProjects.find(p => p.type === type);
+        if (!project || !project.active || project.completed || project.paused) return;
+        set({ megaProjects: state.megaProjects.map(p => p.type === type ? { ...p, paused: true } : p) });
+        get().addNotification('info', `${project.name} construction paused.`);
+      },
+
+      resumeMegaProject: (type: MegaProjectType) => {
+        const state = get();
+        const project = state.megaProjects.find(p => p.type === type);
+        if (!project || !project.active || project.completed || !project.paused) return;
+        set({ megaProjects: state.megaProjects.map(p => p.type === type ? { ...p, paused: false } : p) });
+        get().addNotification('info', `${project.name} construction resumed.`);
       },
 
       // --- BLUEPRINT ACTIONS ---

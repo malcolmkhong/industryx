@@ -253,8 +253,9 @@ export interface MegaProject {
   emoji: string;
   stages: MegaProjectStage[];
   currentStage: number;
-  progress: number; // 0-1 for current stage
+  progress: number; // ticks completed for current stage
   active: boolean;
+  paused: boolean; // manually paused by player
   completed: boolean;
   bonus: {
     type: MegaProjectBonusType;

@@ -111,7 +111,7 @@ export function MegaProjectPanel() {
   const activeCount = store.megaProjects.filter(p => p.active && !p.completed).length;
   const unlockedCount = store.megaProjects.filter(p => isUnlocked(p) && !p.active && !p.completed).length;
   const lockedCount = store.megaProjects.filter(p => !isUnlocked(p) && !p.completed).length;
-  const pausedCount = store.megaProjects.filter(p => p.active && !p.completed && !hasResources(p)).length;
+  const pausedCount = store.megaProjects.filter(p => p.active && !p.completed && (p.paused || !hasResources(p))).length;
 
   return (
     <div className="space-y-4">
@@ -258,14 +258,19 @@ export function MegaProjectPanel() {
                           <Check className="w-2.5 h-2.5 mr-0.5" /> COMPLETE
                         </Badge>
                       )}
-                      {project.active && !project.completed && resourcesMet && (
+                      {project.active && !project.completed && !project.paused && resourcesMet && (
                         <Badge className={`${colors?.badge ?? 'border-fuchsia-500/50 text-fuchsia-400 bg-fuchsia-900/20'} text-[9px] px-1.5`}>
                           <Zap className="w-2.5 h-2.5 mr-0.5" /> BUILDING
                         </Badge>
                       )}
-                      {project.active && !project.completed && !resourcesMet && (
-                        <Badge className="border-amber-500/50 text-amber-400 bg-amber-900/20 text-[9px] px-1.5">
+                      {project.active && !project.completed && project.paused && (
+                        <Badge className="border-blue-500/50 text-blue-400 bg-blue-900/20 text-[9px] px-1.5">
                           <Pause className="w-2.5 h-2.5 mr-0.5" /> PAUSED
+                        </Badge>
+                      )}
+                      {project.active && !project.completed && !project.paused && !resourcesMet && (
+                        <Badge className="border-amber-500/50 text-amber-400 bg-amber-900/20 text-[9px] px-1.5">
+                          <AlertTriangle className="w-2.5 h-2.5 mr-0.5" /> STARVED
                         </Badge>
                       )}
                       {!unlocked && !project.completed && (
@@ -339,11 +344,20 @@ export function MegaProjectPanel() {
                   return (
                     <>
                       {/* Paused Warning */}
-                      {!resourcesMet && (
+                      {project.paused && (
+                        <div className="bg-blue-900/10 border border-blue-500/20 rounded-lg p-2.5 mb-3 flex items-center gap-2">
+                          <Pause className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                          <div className="text-[10px]">
+                            <div className="text-blue-400 font-medium">Manually Paused</div>
+                            <div className="text-blue-400/60">Construction is paused. No materials are consumed. Resume to continue.</div>
+                          </div>
+                        </div>
+                      )}
+                      {!project.paused && !resourcesMet && (
                         <div className="bg-amber-900/10 border border-amber-500/20 rounded-lg p-2.5 mb-3 flex items-center gap-2">
                           <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
                           <div className="text-[10px]">
-                            <div className="text-amber-400 font-medium">Construction Paused</div>
+                            <div className="text-amber-400 font-medium">Starved — No Materials</div>
                             <div className="text-amber-400/60">Need at least 1 unit of each required material per tick. Progress resumes when all materials are available.</div>
                           </div>
                         </div>
@@ -433,18 +447,44 @@ export function MegaProjectPanel() {
                         {/* Time estimate */}
                         <div className="mt-2 text-[10px] text-gray-600">
                           ⏱ {Math.round(project.progress)}/{currentStage.timeRequired} ticks • ~{currentStage.timeRequired - Math.round(project.progress)} remaining ({((currentStage.timeRequired - Math.round(project.progress)) / 60).toFixed(0)} min at 1x)
-                          {!resourcesMet && <span className="text-amber-500 ml-2">(paused — need materials)</span>}
+                          {!project.paused && !resourcesMet && <span className="text-amber-500 ml-2">(paused — need materials)</span>}
+                          {project.paused && <span className="text-blue-500 ml-2">(manually paused)</span>}
                         </div>
                       </div>
 
-                      {/* Status Indicator + Manual Contribute Button */}
+                      {/* Status Indicator + Pause/Resume + Contribute Button */}
                       <div className="flex items-center gap-2">
-                        {resourcesMet ? (
+                        {project.paused ? (
+                          <>
+                            <div className="flex-1 text-center text-[11px] text-blue-400 flex items-center justify-center gap-1.5">
+                              <Pause className="w-3 h-3" />
+                              Manually paused
+                            </div>
+                            <Button
+                              onClick={() => store.resumeMegaProject(project.type)}
+                              className="text-[10px] h-7 px-2.5 bg-green-900/20 hover:opacity-80 border border-green-500/30 text-green-400"
+                              size="sm"
+                              variant="outline"
+                            >
+                              <Zap className="w-3 h-3 mr-0.5" />
+                              Resume
+                            </Button>
+                          </>
+                        ) : resourcesMet ? (
                           <>
                             <div className="flex-1 text-center text-[11px] text-gray-400 flex items-center justify-center gap-1.5">
                               <span className={`inline-block w-2 h-2 rounded-full ${colors?.text?.replace('text-', 'bg-') ?? 'bg-fuchsia-400'}`} style={{ animation: 'neonPulse 2s ease-in-out infinite' }} />
                               Consuming 1/t each material
                             </div>
+                            <Button
+                              onClick={() => store.pauseMegaProject(project.type)}
+                              className="text-[10px] h-7 px-2.5 bg-blue-900/20 hover:opacity-80 border border-blue-500/30 text-blue-400"
+                              size="sm"
+                              variant="outline"
+                            >
+                              <Pause className="w-3 h-3 mr-0.5" />
+                              Pause
+                            </Button>
                             <Button
                               onClick={() => store.contributeToMegaProject(project.type)}
                               className={`text-[10px] h-7 px-2.5 ${colors?.bg ?? 'bg-gray-800/50'} hover:opacity-80 border ${colors?.border ?? 'border-gray-700/30'} ${colors?.text ?? 'text-gray-400'}`}
@@ -456,10 +496,21 @@ export function MegaProjectPanel() {
                             </Button>
                           </>
                         ) : (
-                          <div className="flex-1 text-center text-[11px] text-amber-400 flex items-center justify-center gap-1.5">
-                            <Pause className="w-3 h-3" />
-                            Paused — need 1+ of each material
-                          </div>
+                          <>
+                            <div className="flex-1 text-center text-[11px] text-amber-400 flex items-center justify-center gap-1.5">
+                              <AlertTriangle className="w-3 h-3" />
+                              Starved — need 1+ of each material
+                            </div>
+                            <Button
+                              onClick={() => store.pauseMegaProject(project.type)}
+                              className="text-[10px] h-7 px-2.5 bg-blue-900/20 hover:opacity-80 border border-blue-500/30 text-blue-400"
+                              size="sm"
+                              variant="outline"
+                            >
+                              <Pause className="w-3 h-3 mr-0.5" />
+                              Pause
+                            </Button>
+                          </>
                         )}
                       </div>
                     </>
@@ -479,8 +530,8 @@ export function MegaProjectPanel() {
                   </Button>
                 )}
 
-                {/* Manual Contribute Button (if active) */}
-                {project.active && !project.completed && (
+                {/* Manual Contribute Button (if active and not paused) */}
+                {project.active && !project.completed && !project.paused && (
                   <Button
                     onClick={() => store.contributeToMegaProject(project.type)}
                     disabled={!hasResources(project)}
@@ -490,6 +541,19 @@ export function MegaProjectPanel() {
                   >
                     <ChevronRight className="w-3.5 h-3.5 mr-1.5" />
                     Contribute Materials (+1 Tick)
+                  </Button>
+                )}
+
+                {/* Resume Button (if manually paused) */}
+                {project.active && !project.completed && project.paused && (
+                  <Button
+                    onClick={() => store.resumeMegaProject(project.type)}
+                    className="w-full text-xs h-9 mt-2 bg-green-900/20 hover:opacity-80 border border-green-500/30 text-green-400"
+                    size="sm"
+                    variant="outline"
+                  >
+                    <Zap className="w-3.5 h-3.5 mr-1.5" />
+                    Resume Construction
                   </Button>
                 )}
 
