@@ -1114,3 +1114,34 @@ Files Modified:
 2. src/lib/game/data.ts — Replaced dynamic contract engine with 4-layer architecture (CONTRACT_TYPE_TEMPLATES, CONTRACT_TIER_RULES, BUILDING_RESOURCE_MAP, RESOURCE_CHAIN_MAP, pickContractType, selectMaterials, calculateQuantity, calculateContractReward, validateContract, adjustContract, generateDynamicContract, generateContractBoard)
 3. src/lib/game/store.ts — Updated V16 migration for new fields, updated generateContractBoard calls
 4. src/components/game/ContractPanel.tsx — Complete rewrite with 4-layer UI
+
+---
+Task ID: 16
+Agent: Main Developer
+Task: Fix contract rewards not granting RP and CP
+
+Work Log:
+- Investigated contract fulfillment paths in store.ts
+- Found Bug 1: Auto-fulfill (autoTrading) path was completely broken — it deducted resources and marked contracts complete but NEVER granted money, RP, CP, or rare resources
+- Found Bug 2: Manual fulfill notification only showed money amount, not RP/CP/rare resources — misleading users into thinking only money was granted
+- Fixed auto-fulfill path:
+  * Added autoFulfillMoney, autoFulfillRP, autoFulfillCP accumulators
+  * Added rare resource reward grants (were completely missing)
+  * Added money to moneyEarned, RP to newResearchPoints
+  * Added autoFulfillCP to corpGained (applied via prestigeState in final set())
+  * Updated notification to show detailed rewards: +$X, +Y RP, +Z CP
+- Fixed manual fulfill notification:
+  * Now shows all reward types: +$X, +Y RP, +Z CP, +N rare resources
+  * Includes emoji and name for rare resources
+- Lint passes cleanly, dev server compiles successfully
+
+Root Cause Analysis:
+- Auto-fulfill was introduced as a convenience feature but only handled resource deduction and contract completion
+- It completely skipped the reward application step that the manual fulfillContract action had
+- The notification for both paths only mentioned money, reinforcing the perception that RP/CP wasn't being granted
+- Manual fulfillment WAS correctly granting RP/CP in the set() call, but the notification made it invisible
+
+Stage Summary:
+- Both auto-fulfill and manual fulfillment now correctly grant money, RP, CP, and rare resources
+- Notifications now display all reward types clearly
+- 1 file modified: store.ts

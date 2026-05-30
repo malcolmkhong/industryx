@@ -1089,8 +1089,11 @@ export const useGameStore = create<GameStore>()(
           }
         });
 
+        let autoFulfillCP = 0;
         const autoFulfill = state.automationUnlocks.find(a => a.type === 'autoTrading' && a.active);
         if (autoFulfill) {
+          let autoFulfillMoney = 0;
+          let autoFulfillRP = 0;
           newContracts.forEach(c => {
             if (c.completed || c.failed || !c.accepted) return;
             const canFulfill = c.requiredResources.every(r => {
@@ -1103,12 +1106,27 @@ export const useGameStore = create<GameStore>()(
                   newResources[r.resource as ResourceType] -= r.amount;
                 }
               });
+              // Grant rare resource rewards
+              if (c.reward.rareResources) {
+                c.reward.rareResources.forEach(rr => {
+                  newResources[rr.resource] = (newResources[rr.resource] ?? 0) + rr.amount;
+                });
+              }
               c.completed = true;
-              const moneyReward = c.reward.money;
+              autoFulfillMoney += c.reward.money;
+              autoFulfillRP += c.reward.researchPoints ?? 0;
+              autoFulfillCP += c.reward.corporationPoints ?? 0;
               newStats.contractsCompleted++;
-              notifications.push({ id: generateId(), type: 'success', message: `Contract completed: ${c.name}! +$${formatNumber(moneyReward)}`, gameTick: newTick, read: false });
+              // Build detailed reward notification
+              const rewardParts = [`+$${formatNumber(c.reward.money)}`];
+              if (c.reward.researchPoints) rewardParts.push(`+${c.reward.researchPoints} RP`);
+              if (c.reward.corporationPoints && c.reward.corporationPoints > 0) rewardParts.push(`+${c.reward.corporationPoints} CP`);
+              notifications.push({ id: generateId(), type: 'success', message: `Contract completed: ${c.name}! ${rewardParts.join(', ')}`, gameTick: newTick, read: false });
             }
           });
+          // Apply accumulated auto-fulfill rewards
+          moneyEarned += autoFulfillMoney;
+          newResearchPoints += autoFulfillRP;
         }
 
         // Update workers
@@ -1506,7 +1524,7 @@ export const useGameStore = create<GameStore>()(
         }
 
         // === Endgame Building Passive Income ===
-        let corpGained = 0;
+        let corpGained = autoFulfillCP;
         const endgameBuildings = state.buildings.filter(b => b.active && [
           'dysonCollector', 'quantumTeleporter', 'dimensionalGateway', 'timeDistorter', 'galacticForge'
         ].includes(b.type));
@@ -2160,7 +2178,17 @@ export const useGameStore = create<GameStore>()(
           stats: { ...state.stats, contractsCompleted: state.stats.contractsCompleted + 1 },
         });
         soundEngine.play('contractCompleted', 'events');
-        get().addNotification('success', `Contract fulfilled: ${contract.name}! +$${formatNumber(contract.reward.money)}`);
+        // Build detailed reward notification
+        const rewardParts = [`+$${formatNumber(contract.reward.money)}`];
+        if (contract.reward.researchPoints) rewardParts.push(`+${contract.reward.researchPoints} RP`);
+        if (contract.reward.corporationPoints && contract.reward.corporationPoints > 0) rewardParts.push(`+${contract.reward.corporationPoints} CP`);
+        if (contract.reward.rareResources && contract.reward.rareResources.length > 0) {
+          contract.reward.rareResources.forEach(rr => {
+            const rrMeta = RESOURCE_META[rr.resource];
+            rewardParts.push(`+${rr.amount} ${rrMeta?.emoji ?? ''} ${rrMeta?.name ?? rr.resource}`);
+          });
+        }
+        get().addNotification('success', `Contract fulfilled: ${contract.name}! ${rewardParts.join(', ')}`);
         get().updateQuestProgress('contract', 1);
       },
 
