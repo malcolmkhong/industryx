@@ -851,3 +851,61 @@ Stage Summary:
 - Old scattered chain placements removed from Dashboard and Factory panels
 - Zero broken dependencies — all chain references use chain.name dynamically
 - Lint passes cleanly, dev server compiles successfully
+
+---
+Task ID: 13
+Agent: Main Developer
+Task: Add Research Queue System (max 5) to Research Page
+
+Work Log:
+- Added `researchQueue: string[]` to `GameState` interface in types.ts
+- Updated store.ts with SAVE_VERSION bump from 15 to 16
+- Added `researchQueue: []` to initial state in createInitialState()
+- Added 4 new store actions to GameActions interface:
+  * `addToResearchQueue(id)` - Adds research to queue if space available
+  * `removeFromResearchQueue(index)` - Removes item and refunds RP
+  * `reorderResearchQueue(fromIndex, toIndex)` - Reorders queue items
+  * `clearResearchQueue()` - Clears entire queue with full RP refund
+- Modified `startResearch` action: If research is already active, adds to queue instead of rejecting
+- Modified `gameTickAction`: When active research completes, auto-starts next from queue
+  * Validates queued items (prerequisites, affordability, not already completed)
+  * Skips invalid entries and removes them from queue
+  * Auto-deducts RP cost when queue item starts
+  * Sends notification on auto-start
+- Added V15→V16 migration: adds `researchQueue: []` to existing saves
+- Added `researchQueue` to persist partialize
+- Completely rewrote ResearchPanel.tsx with:
+  * Two-column layout: Active Research (2/3) + Research Queue (1/3)
+  * Queue panel with position badges, emoji, name, cost/time
+  * Reorder buttons (up/down arrows) on each queue item
+  * Remove button (X) on each queue item
+  * Clear queue button (trash icon) at top
+  * Queue summary: total RP locked, est. total time, queue+active combined time
+  * "Queue" button appears next to "Start" on research nodes when research is active
+  * "Queued" badge and ⏳ emoji on nodes that are in the queue
+  * Q{n} position badge on queued nodes
+  * Framer Motion animations for queue item enter/exit
+  * MAX_QUEUE_SIZE = 5 enforced
+  * Custom scrollbar for queue overflow
+- Lint passes cleanly, dev server compiles successfully
+- Browser tested: queue renders correctly, items can be added/removed/reordered, auto-advance works
+
+Stage Summary:
+- Research queue system fully functional with max 5 items
+- RP is deducted when adding to queue (committed), refunded on removal
+- Auto-advance: when active research completes, first valid queue item starts automatically
+- Invalid queue entries (prerequisites not met, already done, can't afford) are skipped and removed
+- UI shows active research + queue side-by-side with rich interactivity
+- SAVE_VERSION bumped to 16 with migration
+
+Current Project Status:
+- Game running on dev server port 3000
+- Lint passes cleanly (0 errors, 0 warnings)
+- All compilations successful with no runtime errors
+- Research queue feature fully tested and working
+- Cron job (176284) created for 15-minute webDevReview
+
+Unresolved Issues / Risks:
+- Store.ts continues to grow (3000+ lines)
+- Queue auto-advance skips unaffordable items without notification (could add notification)
+- No drag-and-drop for reordering (button-based only)

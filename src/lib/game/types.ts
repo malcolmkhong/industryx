@@ -402,6 +402,7 @@ export interface GameState {
   completedResearch: string[];
   activeResearch: string | null;
   researchProgress: number;
+  researchQueue: string[]; // Max 5 queued research items
   
   // Workers
   workers: Worker[];

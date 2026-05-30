@@ -23,7 +23,7 @@ import {
 import { soundEngine } from './soundEngine';
 
 // --- Save Version ---
-const SAVE_VERSION = 15;
+const SAVE_VERSION = 16;
 
 // --- Utility Functions ---
 function generateId(): string {
@@ -494,6 +494,13 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
     });
   }
 
+  // V15 → V16: Added research queue system
+  if (version < 16) {
+    if (!state.researchQueue) {
+      state.researchQueue = [];
+    }
+  }
+
   state._version = SAVE_VERSION;
   return state;
 }
@@ -543,6 +550,7 @@ function createInitialState(): GameState {
     completedResearch: [],
     activeResearch: null,
     researchProgress: 0,
+    researchQueue: [],
     workers: [],
     market: INITIAL_MARKET.map(m => ({ ...m })),
     contracts: [],
@@ -638,6 +646,10 @@ interface GameActions {
   
   // Research
   startResearch: (id: string) => void;
+  addToResearchQueue: (id: string) => void;
+  removeFromResearchQueue: (index: number) => void;
+  reorderResearchQueue: (fromIndex: number, toIndex: number) => void;
+  clearResearchQueue: () => void;
   
   // Workers
   hireWorker: (type: WorkerType) => void;
@@ -975,6 +987,7 @@ export const useGameStore = create<GameStore>()(
         let newActiveResearch = state.activeResearch;
         let newCompletedResearch = [...state.completedResearch];
         let newResearchPoints = state.researchPoints;
+        let newResearchQueue = [...state.researchQueue];
 
         if (newActiveResearch) {
           const node = RESEARCH_TREE.find(r => r.id === newActiveResearch);
@@ -983,12 +996,51 @@ export const useGameStore = create<GameStore>()(
             newResearchProgress += researchSpeed;
             if (newResearchProgress >= node.timeRequired) {
               newCompletedResearch.push(newActiveResearch);
-              newActiveResearch = null;
-              newResearchProgress = 0;
               newResearchPoints += Math.floor(node.cost * 0.1);
               newStats.researchCompleted++;
               soundEngine.play('researchComplete', 'events');
               notifications.push({ id: generateId(), type: 'success', message: `Research complete: ${node.name}!`, gameTick: newTick, read: false });
+
+              // Auto-start next from queue
+              if (newResearchQueue.length > 0) {
+                const nextId = newResearchQueue[0];
+                const nextNode = RESEARCH_TREE.find(r => r.id === nextId);
+                // Validate the queued research is still valid
+                if (nextNode && !newCompletedResearch.includes(nextId) && isResearchUnlocked(nextId, newCompletedResearch) && newResearchPoints >= nextNode.cost) {
+                  newActiveResearch = nextId;
+                  newResearchProgress = 0;
+                  newResearchPoints -= nextNode.cost;
+                  newResearchQueue = newResearchQueue.slice(1);
+                  notifications.push({ id: generateId(), type: 'info', message: `Auto-started research: ${nextNode.name}`, gameTick: newTick, read: false });
+                } else {
+                  // Skip invalid queue entry, try next ones
+                  let started = false;
+                  let remainingQueue = [...newResearchQueue];
+                  while (remainingQueue.length > 0 && !started) {
+                    const skipId = remainingQueue[0];
+                    const skipNode = RESEARCH_TREE.find(r => r.id === skipId);
+                    if (skipNode && !newCompletedResearch.includes(skipId) && isResearchUnlocked(skipId, newCompletedResearch) && newResearchPoints >= skipNode.cost) {
+                      newActiveResearch = skipId;
+                      newResearchProgress = 0;
+                      newResearchPoints -= skipNode.cost;
+                      remainingQueue = remainingQueue.slice(1);
+                      started = true;
+                      notifications.push({ id: generateId(), type: 'info', message: `Auto-started research: ${skipNode.name}`, gameTick: newTick, read: false });
+                    } else {
+                      // Remove invalid/unaffordable entry from queue
+                      remainingQueue = remainingQueue.slice(1);
+                    }
+                  }
+                  newResearchQueue = remainingQueue;
+                  if (!started) {
+                    newActiveResearch = null;
+                    newResearchProgress = 0;
+                  }
+                }
+              } else {
+                newActiveResearch = null;
+                newResearchProgress = 0;
+              }
             }
           }
         }
@@ -1540,6 +1592,7 @@ export const useGameStore = create<GameStore>()(
           completedResearch: newCompletedResearch,
           activeResearch: newActiveResearch,
           researchProgress: newResearchProgress,
+          researchQueue: newResearchQueue,
           workers: newWorkers,
           contracts: [...newContracts, ...contractsToAdd],
           activeEvents: newActiveEvents,
@@ -1812,16 +1865,17 @@ export const useGameStore = create<GameStore>()(
       // --- RESEARCH ACTIONS ---
       startResearch: (id: string) => {
         const state = get();
-        if (state.activeResearch) {
-          get().addNotification('warning', 'Research already in progress!');
-          return;
-        }
-
         const node = RESEARCH_TREE.find(r => r.id === id);
         if (!node) return;
 
         if (state.completedResearch.includes(id)) {
           get().addNotification('warning', 'Already researched!');
+          return;
+        }
+
+        // Already in queue or active
+        if (state.activeResearch === id || state.researchQueue.includes(id)) {
+          get().addNotification('warning', 'Already queued or active!');
           return;
         }
 
@@ -1836,14 +1890,112 @@ export const useGameStore = create<GameStore>()(
           return;
         }
 
+        if (state.activeResearch) {
+          // Add to queue if research is already active
+          if (state.researchQueue.length >= 5) {
+            get().addNotification('warning', 'Research queue is full! (Max 5)');
+            return;
+          }
+          set({
+            researchPoints: state.researchPoints - node.cost,
+            researchQueue: [...state.researchQueue, id],
+          });
+          soundEngine.play('buttonClick', 'ui');
+          get().addNotification('info', `Queued research: ${node.name} (Position ${state.researchQueue.length + 1})`);
+        } else {
+          // Start immediately
+          set({
+            researchPoints: state.researchPoints - node.cost,
+            activeResearch: id,
+            researchProgress: 0,
+          });
+          soundEngine.play('buttonClick', 'ui');
+          get().addNotification('info', `Started research: ${node.name}`);
+          get().updateQuestProgress('research', 1);
+        }
+      },
+
+      addToResearchQueue: (id: string) => {
+        const state = get();
+        const node = RESEARCH_TREE.find(r => r.id === id);
+        if (!node) return;
+
+        if (state.completedResearch.includes(id)) {
+          get().addNotification('warning', 'Already researched!');
+          return;
+        }
+
+        if (state.activeResearch === id || state.researchQueue.includes(id)) {
+          get().addNotification('warning', 'Already queued or active!');
+          return;
+        }
+
+        if (state.researchQueue.length >= 5) {
+          get().addNotification('warning', 'Research queue is full! (Max 5)');
+          return;
+        }
+
+        if (state.researchPoints < node.cost) {
+          soundEngine.play('error', 'ui');
+          get().addNotification('error', `Need ${formatNumber(node.cost)} RP! Have ${formatNumber(state.researchPoints)}`);
+          return;
+        }
+
         set({
           researchPoints: state.researchPoints - node.cost,
-          activeResearch: id,
-          researchProgress: 0,
+          researchQueue: [...state.researchQueue, id],
         });
         soundEngine.play('buttonClick', 'ui');
-        get().addNotification('info', `Started research: ${node.name}`);
-        get().updateQuestProgress('research', 1);
+        get().addNotification('info', `Queued research: ${node.name} (Position ${state.researchQueue.length + 1})`);
+      },
+
+      removeFromResearchQueue: (index: number) => {
+        const state = get();
+        if (index < 0 || index >= state.researchQueue.length) return;
+
+        const removedId = state.researchQueue[index];
+        const node = RESEARCH_TREE.find(r => r.id === removedId);
+        const newQueue = [...state.researchQueue];
+        newQueue.splice(index, 1);
+
+        // Refund RP
+        const refund = node ? node.cost : 0;
+        set({
+          researchQueue: newQueue,
+          researchPoints: state.researchPoints + refund,
+        });
+        if (node) {
+          get().addNotification('info', `Removed from queue: ${node.name} (+${formatNumber(refund)} RP refunded)`);
+        }
+      },
+
+      reorderResearchQueue: (fromIndex: number, toIndex: number) => {
+        const state = get();
+        if (fromIndex < 0 || fromIndex >= state.researchQueue.length) return;
+        if (toIndex < 0 || toIndex >= state.researchQueue.length) return;
+        if (fromIndex === toIndex) return;
+
+        const newQueue = [...state.researchQueue];
+        const [moved] = newQueue.splice(fromIndex, 1);
+        newQueue.splice(toIndex, 0, moved);
+        set({ researchQueue: newQueue });
+      },
+
+      clearResearchQueue: () => {
+        const state = get();
+        // Refund all RP from queue
+        let totalRefund = 0;
+        state.researchQueue.forEach(id => {
+          const node = RESEARCH_TREE.find(r => r.id === id);
+          if (node) totalRefund += node.cost;
+        });
+        set({
+          researchQueue: [],
+          researchPoints: state.researchPoints + totalRefund,
+        });
+        if (totalRefund > 0) {
+          get().addNotification('info', `Cleared research queue (+${formatNumber(totalRefund)} RP refunded)`);
+        }
       },
 
       // --- WORKER ACTIONS ---
@@ -3162,6 +3314,7 @@ export const useGameStore = create<GameStore>()(
         payoutHistory: state.payoutHistory,
         trackedQuest: state.trackedQuest,
         drones: state.drones,
+        researchQueue: state.researchQueue,
         _version: SAVE_VERSION,
       }),
       version: 11,
