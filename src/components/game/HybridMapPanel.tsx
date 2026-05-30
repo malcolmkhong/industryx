@@ -1448,6 +1448,9 @@ function GridFactoryView() {
           <Button variant="outline" size="sm" className="h-6 text-[9px] border-purple-800/50 text-purple-400 hover:bg-purple-900/20" onClick={handleAutoArrange}>
             <LayoutGrid className="w-3 h-3 mr-1" /> Auto-Arrange
           </Button>
+          <Button variant="outline" size="sm" className="h-6 text-[9px] border-amber-800/50 text-amber-400 hover:bg-amber-900/20" onClick={() => { store.autoAssignAllBuildings(); toast({ title: '📍 Auto-Assign', description: 'All buildings assigned to map regions!' }); }}>
+            <MapPin className="w-3 h-3 mr-1" /> Auto-Assign
+          </Button>
 
           {/* Mobile palette toggle */}
           {isMobile && store.mapViewMode === 'build' && (
