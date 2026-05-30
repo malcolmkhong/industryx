@@ -99,7 +99,7 @@ export function ProductionChainsHub() {
 
   // Find buildings for a step
   const getStepBuildings = (resourceKey: string) => {
-    return BUILDING_DEFS.filter(def =>
+    return Object.values(BUILDING_DEFS).filter(def =>
       def.outputs?.some(o => o.resource === resourceKey) ||
       def.category === 'extractor' && def.resource === resourceKey
     );
