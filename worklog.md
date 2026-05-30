@@ -558,3 +558,41 @@ Files Modified:
 
 Lint: passes cleanly
 Dev server: compiles without errors
+
+---
+Task ID: 12
+Agent: main
+Task: Create Global Resource Monitor page under Overview section
+
+Work Log:
+- Added `resourceMonitor` to `GameTab` type union in types.ts
+- Added `Activity` icon import and `resourceMonitor` tab entry to NAV_GROUPS overview section in GameSidebar.tsx
+- Created comprehensive GlobalResourceMonitor.tsx component (~900 lines) with:
+  - Resource Overview Dashboard: 5 summary cards (Total Materials, Total Stored, Avg Utilization, Critical Stock, Storage Full)
+  - Top Produced/Consumed highlight cards
+  - Resource Health Monitor (collapsible): auto-detects critical, declining, bottleneck, overproduced, and storage-full resources
+  - Resource Analytics (collapsible): Production vs Consumption (top 8), Storage Utilization Distribution, Most Demanded Resources, Most Produced Resources
+  - Search bar with name search
+  - Category filter buttons: All, Raw, Processed, Industrial, Advanced, Power, Endgame (with counts)
+  - Desktop: Full resource table with 10 columns (Icon, Name, Tier, Quantity, Storage, Prod/t, Cons/t, Net/t, Value, Status)
+  - Mobile: Card-based resource view (responsive)
+  - Sort by: Quantity, Production Rate, Consumption Rate, Net Change, Market Value, Storage Utilization
+  - Status badges: Growing, Stable, Declining, Critical, Storage Full, No Stock
+  - Resource Detail Panel (click any row): full stats grid, storage bar, producing buildings, consuming buildings, production chain involvement, quick navigation buttons (Market, Chains, Storage)
+  - Shortage Analysis section: Low Stock & In Demand, Negative Net Production lists
+  - Footer with filtered count and tick timestamp
+- Added GlobalResourceMonitor import and renderPanel case in page.tsx
+- Fixed 3 bugs found by agent-browser testing:
+  - TrendingFlat not in lucide-react → replaced with Minus
+  - Warning not in lucide-react → replaced with AlertTriangle
+  - r.actualConsumption → r.actualConsumptionRate (wrong property name)
+- All sections verified working with agent-browser
+
+Stage Summary:
+- Global Resource Monitor page fully implemented and working
+- Accessible via Overview → Resource Monitor in sidebar
+- Monitors all 56 resources across 6 categories with real-time data from game store
+- Complete visibility into production, consumption, storage, market value, and resource health
+- Responsive design: full table on desktop, card view on mobile
+- No game balance, production, storage, logistics, or market systems modified
+- Lint passes, dev server compiles without errors

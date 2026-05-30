@@ -700,7 +700,7 @@ export interface GameState {
   maintenanceLog: MaintenanceLogEntry[];
 }
 
-export type GameTab = 'dashboard' | 'factoryMap' | 'resources' | 'factories' | 'storage' | 'chains' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'buildingManagement' | 'contracts' | 'quests' | 'automation' | 'prestige' | 'events' | 'megaprojects' | 'statistics' | 'blueprints' | 'guide' | 'achievements' | 'leaderboard' | 'dailyRewards' | 'payouts' | 'droneDelivery' | 'notifications' | 'settings';
+export type GameTab = 'dashboard' | 'factoryMap' | 'resources' | 'factories' | 'storage' | 'chains' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'buildingManagement' | 'contracts' | 'quests' | 'automation' | 'prestige' | 'events' | 'megaprojects' | 'statistics' | 'blueprints' | 'guide' | 'achievements' | 'leaderboard' | 'dailyRewards' | 'payouts' | 'droneDelivery' | 'notifications' | 'resourceMonitor' | 'settings';
 
 // --- Maintenance Log ---
 export interface MaintenanceLogEntry {

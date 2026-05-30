@@ -8,7 +8,7 @@ import {
   Save, Bell, BookOpen, Trophy, BarChart3,
   Map as MapIcon, Gift, Scroll, DollarSign, Plane,
   Settings, ChevronDown, ChevronRight, Home, Wrench, Swords, Coins, Database,
-  GitBranch,
+  GitBranch, Activity,
 } from 'lucide-react';
 import { LucideIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -41,6 +41,7 @@ export const NAV_GROUPS: NavGroup[] = [
     tabs: [
       { id: 'dashboard', label: 'Dashboard', icon: Factory, color: 'text-cyan-400' },
       { id: 'factoryMap', label: 'Factory Map', icon: MapIcon, color: 'text-emerald-400' },
+      { id: 'resourceMonitor', label: 'Resource Monitor', icon: Activity, color: 'text-teal-400' },
       { id: 'guide', label: 'Guide', icon: BookOpen, color: 'text-lime-400' },
     ],
   },

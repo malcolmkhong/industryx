@@ -36,6 +36,7 @@ import DroneDeliveryPanel from '@/components/game/DroneDeliveryPanel';
 import { StoragePanel } from '@/components/game/StoragePanel';
 import { ProductionChainsHub } from '@/components/game/ProductionChainsHub';
 import { BuildingManagementPanel } from '@/components/game/BuildingManagementPanel';
+import { GlobalResourceMonitor } from '@/components/game/GlobalResourceMonitor';
 import {
   Play, Pause, RotateCcw, Bell, X,
   Download, Upload, Copy, Check,
@@ -319,6 +320,7 @@ export default function Home() {
       case 'droneDelivery': return <DroneDeliveryPanel />;
       case 'quests': return <QuestPanel />;
       case 'notifications': return <NotificationCenterPanel />;
+      case 'resourceMonitor': return <GlobalResourceMonitor />;
       case 'settings': return <SettingsPanel />;
       default: return <DashboardPanel />;
     }
