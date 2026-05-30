@@ -1594,6 +1594,7 @@ interface GameActions {
   removeLogisticsRoute: (routeId: string) => void;
   getRegionForBuilding: (buildingType: BuildingType) => RegionId[];
   autoGenerateLogisticsRoutes: () => void;
+  autoAssignAllBuildings: () => void;
 
   // Reset
   resetGame: () => void;
@@ -3775,6 +3776,89 @@ export const useGameStore = create<GameStore>()(
         if (newRoutes.length > state.logisticsRoutes.length) {
           set({ logisticsRoutes: newRoutes });
         }
+      },
+
+      autoAssignAllBuildings: () => {
+        const state = get();
+        const mapRegions = state.mapRegions.length > 0 ? state.mapRegions : INITIAL_REGIONS.map(r => ({ ...r }));
+        const mapGrids = { ...state.mapGrids };
+
+        // Ensure grids exist for all regions
+        for (const region of mapRegions) {
+          if (!mapGrids[region.id]) {
+            mapGrids[region.id] = generateRegionGrid(region);
+          }
+        }
+
+        // Clear all existing placements so we reassign everything fresh
+        const buildings = state.buildings.map(b => ({
+          ...b,
+          regionId: undefined as string | undefined,
+          gridRow: undefined as number | undefined,
+          gridCol: undefined as number | undefined,
+        }));
+
+        // Clear grid tile occupancy
+        for (const region of mapRegions) {
+          if (mapGrids[region.id]) {
+            mapGrids[region.id] = mapGrids[region.id].map(t => ({ ...t, occupiedBy: undefined }));
+          }
+        }
+
+        // Build occupied cells tracker
+        const occupiedCellsMap: Record<string, Set<string>> = {};
+        for (const region of mapRegions) {
+          occupiedCellsMap[region.id] = new Set<string>();
+        }
+
+        // Assign all buildings to regions and grid positions
+        const updatedBuildings = buildings.map(b => {
+          const assignment = autoAssignBuildingToMap(b.type, buildings, mapRegions, mapGrids);
+          if (assignment) {
+            const footprint = getBuildingFootprint(b.type);
+            if (!occupiedCellsMap[assignment.regionId]) occupiedCellsMap[assignment.regionId] = new Set<string>();
+            for (let dr = 0; dr < footprint.height; dr++) {
+              for (let dc = 0; dc < footprint.width; dc++) {
+                occupiedCellsMap[assignment.regionId].add(`${assignment.gridRow + dr},${assignment.gridCol + dc}`);
+              }
+            }
+            return { ...b, regionId: assignment.regionId, gridRow: assignment.gridRow, gridCol: assignment.gridCol };
+          }
+          return b;
+        });
+
+        // Update grid tiles to reflect occupied cells
+        for (const region of mapRegions) {
+          const grid = mapGrids[region.id];
+          if (!grid) continue;
+          const regionBuildings = updatedBuildings.filter(
+            b => b.regionId === region.id && b.gridRow !== undefined && b.gridCol !== undefined
+          );
+          if (regionBuildings.length > 0) {
+            mapGrids[region.id] = grid.map(t => {
+              for (const b of regionBuildings) {
+                const footprint = getBuildingFootprint(b.type);
+                if (t.row >= (b.gridRow ?? 0) && t.row < (b.gridRow ?? 0) + footprint.height &&
+                    t.col >= (b.gridCol ?? 0) && t.col < (b.gridCol ?? 0) + footprint.width) {
+                  return { ...t, occupiedBy: b.id };
+                }
+              }
+              return t;
+            });
+          }
+        }
+
+        set({
+          buildings: updatedBuildings,
+          mapRegions,
+          mapGrids,
+        });
+
+        // Auto-generate logistics routes after reassignment
+        get().autoGenerateLogisticsRoutes();
+
+        const assigned = updatedBuildings.filter(b => b.regionId !== undefined).length;
+        get().addNotification('success', `🏗️ Auto-assigned ${assigned}/${updatedBuildings.length} buildings to map regions`);
       },
 
       // --- PAYOUT ACTIONS ---

@@ -12,7 +12,7 @@ import {
   Hammer, X, RotateCcw, Power, PowerOff,
   ZoomIn, ZoomOut, Grid3X3, Eye, Sun, Cloud, CloudRain,
   CloudLightning, CloudFog, Snowflake, ChevronDown, ChevronRight,
-  Search, Clock, Flame, GitBranch, LayoutGrid,
+  Search, Clock, Flame, GitBranch, LayoutGrid, MapPin,
 } from 'lucide-react';
 import {
   Tooltip,
@@ -1153,6 +1153,16 @@ export default function FactoryMapPanel() {
               title="Auto Arrange: Reorganize buildings by production chain"
             >
               <LayoutGrid className="w-3 h-3" />
+            </Button>
+            {/* Auto Assign to Regions button */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-6 w-6 p-0 text-gray-400 hover:text-amber-400"
+              onClick={() => store.autoAssignAllBuildings()}
+              title="Auto Assign: Assign all buildings to map regions & grid positions"
+            >
+              <MapPin className="w-3 h-3" />
             </Button>
             {/* Connection count badge */}
             {autoConnectEnabled && autoConnections.length > 0 && (
