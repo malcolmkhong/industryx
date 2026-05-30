@@ -483,3 +483,36 @@ Stage Summary:
 - Multiple existing chains corrected to reflect actual building input/output relationships
 - ProductionChainsHub significantly enhanced with sorting, filtering, bottleneck detection, building info, and quick action suggestions
 - All 40 chains verified working in the UI
+
+---
+Task ID: 10
+Agent: main
+Task: Fix discrepancy between 50 factories and 40 chains — add missing production chains
+
+Root Cause:
+- 50 buildings have category='factory' in BUILDING_DEFS
+- But only 40 production chains existed in PRODUCTION_CHAINS
+- The 10-chain gap came from:
+  1. 5 endgame prestige buildings (Dyson Collector, Quantum Teleporter, Dimensional Gateway, Time Distorter, Galactic Forge) that have no resource outputs — only passive income/points/power generation
+  2. 5 intermediate-only factories (Smelter, Wire Mill, Glass Furnace, Circuit Factory, AI Lab, Gear Factory) whose products appeared inside other chains but never as a chain's own headline end-product
+
+Work Log:
+- Investigated all 50 factory buildings and their outputs vs chain coverage
+- Identified 5 prestige buildings with no outputs (only passive bonuses) and 11 intermediate-only factories
+- Added 10 new production chains to bring total from 40 to 50:
+  - Basic: "Iron Smelting" (iron → ironPlate)
+  - Industrial: "Copper Wire" (copper → copperWire), "Glass Production" (sand → glass), "Circuit Assembly" (copperWire + plastic + silicon → circuit)
+  - Advanced: "AI Processing" (circuit + battery → aiChip)
+  - High-Tech: "Gear Production" (iron → ironPlate → gear)
+  - Cosmic: "Dyson Energy", "Quantum Teleportation", "Dimensional Rift", "Temporal Compression", "Galactic Supremacy" (endgame chains for prestige buildings using their prerequisite resources)
+- Renamed "Glass & Fiber" to "Glass Production" for the short sand→glass chain
+- Lint passes cleanly
+- Dev server compiles without errors
+- Verified with agent-browser: 50 chains visible across all 5 categories, all new chains work with detail panels
+
+Stage Summary:
+- Production chains expanded from 40 to 50, matching all 50 factory buildings
+- Category breakdown: Basic 11, Industrial 12, Advanced 11, High-Tech 8, Cosmic 8
+- All factory buildings now represented in at least one production chain
+- 5 endgame prestige buildings have dedicated cosmic-tier chains reflecting their prerequisite technology paths
+- UI dynamically reflects the 50 total via PRODUCTION_CHAINS.length

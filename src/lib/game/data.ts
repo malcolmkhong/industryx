@@ -2601,6 +2601,7 @@ export const RANK_THRESHOLDS = [
 export const PRODUCTION_CHAINS = [
   // ─── Basic Materials ─────────────────────────────────────
   { name: 'Iron', steps: ['iron', 'ironPlate', 'gear', 'engine'], color: '#a0a0a0', category: 'basic' as const },
+  { name: 'Iron Smelting', steps: ['iron', 'ironPlate'], color: '#b0b0b0', category: 'basic' as const },
   { name: 'Steel', steps: ['iron', 'coal', 'steel', 'advancedAlloy'], color: '#708090', category: 'basic' as const },
   { name: 'Bricks', steps: ['clay', 'bricks'], color: '#b5533a', category: 'basic' as const },
   { name: 'Concrete', steps: ['gravel', 'limestone', 'concrete'], color: '#95a5a6', category: 'basic' as const },
@@ -2613,15 +2614,17 @@ export const PRODUCTION_CHAINS = [
 
   // ─── Industrial Materials ─────────────────────────────────
   { name: 'Electronics', steps: ['copper', 'copperWire', 'circuit', 'aiChip', 'electronics'], color: '#00cc66', category: 'industrial' as const },
+  { name: 'Copper Wire', steps: ['copper', 'copperWire'], color: '#d4883a', category: 'industrial' as const },
   { name: 'Silicon', steps: ['sand', 'clay', 'fossilFuel', 'silicon'], color: '#8db4e2', category: 'industrial' as const },
   { name: 'Aluminium', steps: ['bauxite', 'aluminium', 'battery'], color: '#c0c0c0', category: 'industrial' as const },
   { name: 'Copper', steps: ['copper', 'copperIngot', 'jewellery'], color: '#e67e22', category: 'industrial' as const },
   { name: 'Titanium', steps: ['rareEarth', 'fossilFuel', 'titanium'], color: '#778899', category: 'industrial' as const },
-  { name: 'Glass & Fiber', steps: ['sand', 'glass', 'fiberOptics'], color: '#87ceeb', category: 'industrial' as const },
+  { name: 'Glass Production', steps: ['sand', 'glass'], color: '#87ceeb', category: 'industrial' as const },
   { name: 'Coolant', steps: ['water', 'oil', 'coolant'], color: '#00bfff', category: 'industrial' as const },
   { name: 'Solar Panels', steps: ['sand', 'glass', 'silicon', 'solarCell'], color: '#ffd700', category: 'industrial' as const },
   { name: 'Advanced Alloy', steps: ['iron', 'steel', 'lithium', 'advancedAlloy'], color: '#4169e1', category: 'industrial' as const },
   { name: 'Fiber Optics', steps: ['sand', 'glass', 'copperWire', 'fiberOptics', 'neuralNetwork'], color: '#4fc3f7', category: 'industrial' as const },
+  { name: 'Circuit Assembly', steps: ['copperWire', 'plastic', 'silicon', 'circuit'], color: '#3ddc84', category: 'industrial' as const },
 
   // ─── Advanced Materials ───────────────────────────────────
   { name: 'Quantum Components', steps: ['rareEarth', 'aiChip', 'artifactDetector', 'quantumPart', 'nanoMaterial'], color: '#9400d3', category: 'advanced' as const },
@@ -2634,6 +2637,7 @@ export const PRODUCTION_CHAINS = [
   { name: 'Jewellery', steps: ['rareEarth', 'copperIngot', 'jewellery'], color: '#e91e63', category: 'advanced' as const },
   { name: 'Insecticide', steps: ['copper', 'limestone', 'fertilizer', 'insecticide'], color: '#76ff03', category: 'advanced' as const },
   { name: 'Artifact Detection', steps: ['tungsten', 'battery', 'electronics', 'scanDrone', 'artifactDetector'], color: '#8b4513', category: 'advanced' as const },
+  { name: 'AI Processing', steps: ['circuit', 'battery', 'aiChip'], color: '#00e5ff', category: 'advanced' as const },
 
   // ─── High-Tech / Quantum ─────────────────────────────────
   { name: 'Singularity Core', steps: ['quantumPart', 'nanoMaterial', 'aiChip', 'singularityCore', 'chronoPart'], color: '#00ffcc', category: 'hightech' as const },
@@ -2643,11 +2647,17 @@ export const PRODUCTION_CHAINS = [
   { name: 'Plasma Core', steps: ['fossilFuel', 'coolant', 'advancedAlloy', 'electronics', 'plasmaCore'], color: '#ff6600', category: 'hightech' as const },
   { name: 'Chrono Components', steps: ['singularityCore', 'neuralNetwork', 'chronoPart'], color: '#ffd700', category: 'hightech' as const },
   { name: 'Nano Materials', steps: ['advancedAlloy', 'quantumPart', 'neuralNetwork', 'nanoMaterial'], color: '#80cbc4', category: 'hightech' as const },
+  { name: 'Gear Production', steps: ['iron', 'ironPlate', 'gear'], color: '#8a8a8a', category: 'hightech' as const },
 
   // ─── Cosmic / Endgame ────────────────────────────────────
   { name: 'Mega Structure', steps: ['concrete', 'bricks', 'steel', 'advancedAlloy', 'robotics', 'megaStructure'], color: '#4169e1', category: 'cosmic' as const },
   { name: 'Void Crystal', steps: ['rareEarth', 'nanoMaterial', 'quantumPart', 'jewellery', 'voidCrystal'], color: '#9400d3', category: 'cosmic' as const },
   { name: 'Galactic Components', steps: ['singularityCore', 'darkMatterCell', 'warpDrive', 'voidCrystal', 'megaStructure'], color: '#00ffcc', category: 'cosmic' as const },
+  { name: 'Dyson Energy', steps: ['solarCell', 'fiberOptics', 'electronics', 'singularityCore', 'quantumPart'], color: '#ffdd00', category: 'cosmic' as const },
+  { name: 'Quantum Teleportation', steps: ['quantumPart', 'neuralNetwork', 'singularityCore', 'darkMatterCell'], color: '#00ff88', category: 'cosmic' as const },
+  { name: 'Dimensional Rift', steps: ['darkMatterCell', 'voidCrystal', 'antimatter', 'plasmaCore'], color: '#cc00ff', category: 'cosmic' as const },
+  { name: 'Temporal Compression', steps: ['chronoPart', 'singularityCore', 'warpDrive', 'quantumPart'], color: '#ff8800', category: 'cosmic' as const },
+  { name: 'Galactic Supremacy', steps: ['megaStructure', 'voidCrystal', 'antimatter', 'singularityCore'], color: '#ff0066', category: 'cosmic' as const },
 ];
 
 // --- MegaProject Definitions ---
