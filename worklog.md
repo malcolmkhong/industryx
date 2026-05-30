@@ -1292,3 +1292,129 @@ Region Progression Table:
 | Highlands 🏔️ | 18×22 | 4×4 | 2 | $500K | +20% efficiency |
 | Quantum ⚛️ | 18×22 | 4×4 | 3 | $5M | +25% production |
 | Cosmic 🌌 | 20×24 | 5×5 | 4 | $50M | +30% prod, +15% eff |
+---
+Task ID: 1
+Agent: Store Map Integration
+Task: Auto-assign buildings to regions/grid, auto-generate logistics routes, update migration
+
+Work Log:
+- Added `getPreferredRegionOrder` helper function that determines region assignment order based on building category and tier
+- Added `autoAssignBuildingToMap` function that finds first available grid position in preferred region, scanning left-to-right top-to-bottom, with region fallback chain
+- Modified `buildBuilding` action to auto-assign new buildings to region + grid position using `autoAssignBuildingToMap`
+- Updated `buildBuilding` to mark grid tiles as occupied when placing a building
+- Added `autoGenerateLogisticsRoutes` action to GameActions interface and implementation
+- `autoGenerateLogisticsRoutes` creates logistics routes between buildings producing/consuming matching resources, with route type based on distance (conveyor/truck/train/drone) and cross-region drone routes at 0.5 efficiency
+- Bumped SAVE_VERSION from 17 to 18
+- Added V17→V18 migration that auto-assigns existing buildings to map regions + grid positions and auto-generates logistics routes
+- Lint passes cleanly (0 errors, 0 warnings)
+
+Stage Summary:
+- Buildings are now automatically placed on the map grid when built via `buildBuilding`
+- Region assignment follows tier/category rules: extractors→grasslands, T0/T1→grasslands, T2→industrial, T3→highlands, T4→quantum, 5×5→cosmic, with fallback to lower regions if preferred is locked or full
+- `autoGenerateLogisticsRoutes` creates efficient routes between producers and consumers with distance-based type and efficiency
+- Migration V17→V18 ensures existing saves get buildings placed and routes generated
+- Key functions: `getPreferredRegionOrder`, `autoAssignBuildingToMap`, `autoGenerateLogisticsRoutes`
+
+
+---
+Task ID: 4
+Agent: Map UI Enhancement
+Task: Enhance HybridMapPanel with auto-layout, region stats, improved rendering
+
+Work Log:
+- Read and analyzed the full HybridMapPanel.tsx component (1138 lines) and all related types/store/data files
+- Fixed Logistics SVG overlay rendering: removed the `mapViewLayer === 'logistics'` gate; the LogisticsSVGOverlay now always renders inside the Grid view whenever routes exist, not just when logistics layer is active
+- Changed main HybridMapPanel component to show Grid view for both 'grid' and 'logistics' layers (logistics panel shows as overlay alongside grid)
+- Added Region Statistics Panel to RegionOverviewMap with:
+  * Total buildings count
+  * Total logistics routes count
+  * Cross-region routes count
+  * Active regions count
+  * Per-region grid utilization bars (occupied/total cells)
+  * Per-region production capacity (sum of active building efficiencies)
+- Added "Auto-Layout" button in Grid toolbar that calls store.autoGenerateLogisticsRoutes() with toast notification
+- Added "Auto-Arrange" button that rearranges buildings by production chain tier:
+  * Extractors/power in rows 0-3
+  * T1 factories in rows 3-7
+  * T2 factories in rows 7-11
+  * T3 factories in rows 11-15
+  * T4/endgame in rows 15+
+  * Within tiers, buildings sorted by chain adjacency (producers before consumers)
+- Improved BuildingTile rendering:
+  * Added hover tooltip via shadcn/ui TooltipProvider/Tooltip showing building name, level, efficiency, inputs/outputs
+  * Added resource flow direction arrows (IN/OUT) when building is selected
+  * Larger emoji for multi-cell buildings (2×2+)
+  * Subtle pulsing animation for active buildings (opacity cycle)
+  * Connection count indicator (Link2 icon + number) showing logistics routes connected to building
+- Added cross-region route display in RegionOverviewMap:
+  * SVG overlay with curved lines between region cards
+  * Animated particles flowing along routes
+  * Resource type and throughput labels at midpoints
+- Added Grid Cell Info on Hover:
+  * Floating tooltip showing terrain type, coordinates (row, col), and tile bonus
+  * Works for empty cells
+- Improved Mobile Responsiveness:
+  * Mobile detection via window resize listener (768px breakpoint)
+  * Grid is full-width on mobile (flex-col instead of flex-row)
+  * Build palette appears as bottom Sheet (shadcn/ui Sheet component)
+  * Region overview uses responsive grid (grid-cols-1 on mobile, grid-cols-2 on desktop)
+  * "Palette" button on mobile toolbar opens the Sheet
+- Added new imports: Tooltip, Sheet components, toast from use-toast, new Lucide icons (Wand2, LayoutGrid, ArrowDown, ArrowUp, Link2, BarChart3)
+- Removed useCallback wrappers that were causing React Compiler lint errors
+- All lint passes cleanly, dev server compiles successfully
+
+Stage Summary:
+- 7 major enhancements applied to HybridMapPanel.tsx (file grew from 1138 to 1609 lines)
+- Logistics SVG overlay now visible at all times on Grid view (was only on logistics layer)
+- Region statistics panel provides empire-wide overview metrics
+- Auto-Layout and Auto-Arrange buttons provide one-click factory organization
+- Building tiles show richer info: tooltips, flow arrows, pulse animation, connection count
+- Cross-region logistics routes visualized with animated SVG overlay
+- Grid cell hover shows terrain/bonus/coordinates
+- Mobile experience significantly improved with bottom Sheet palette and responsive layout
+
+---
+Task ID: Map-1
+Agent: Map System Integration
+Task: Apply buildings and logistics routes to the new hybrid map system - auto-assign, auto-generate, enhance UI
+
+Work Log:
+- Added `autoAssignBuildingToMap` helper function in store.ts that determines the best region for a building based on category/tier, finds first available grid position
+- Added `getPreferredRegionOrder` helper: extractors→grasslands, T2→industrial, T3→highlands, T4→quantum, 5×5→cosmic, with fallback chains
+- Modified `buildBuilding` action to auto-assign new buildings to region + grid position on construction
+- Added `autoGenerateLogisticsRoutes` store action that creates routes between buildings producing/consuming matching resources
+  - Route types based on distance: conveyor (≤3), truck (≤8), train (≤15), drone (>15)
+  - Cross-region routes use drone type with 0.5 efficiency
+  - Efficiency formula: max(0.3, 1 - dist * 0.05)
+  - Throughput = output rate × efficiency
+- Added V17→V18 migration to auto-assign existing buildings to grid positions and generate logistics routes
+- Bumped SAVE_VERSION from 17 to 18
+- Enhanced HybridMapPanel with:
+  - Fixed logistics SVG overlay to always render on Grid view
+  - Added Region Statistics Panel showing empire overview, grid utilization, production capacity
+  - Added Auto-Layout button (calls autoGenerateLogisticsRoutes)
+  - Added Auto-Arrange button (rearranges buildings by production chain tier)
+  - Improved Building Tile with hover tooltips, resource flow arrows, connection count indicators
+  - Added Cross-Region Route Display with SVG animated lines between region cards
+  - Added Grid Cell Info on Hover (terrain type, coordinates, tile bonus)
+  - Added mobile responsiveness with bottom Sheet for build palette, vertical stacking
+- Lint passes cleanly, dev server compiles successfully (HTTP 200)
+
+Stage Summary:
+- Buildings now auto-assign to appropriate regions and grid positions when built
+- Logistics routes auto-generate based on production chain connections
+- Existing saves get migrated with building positions and routes
+- Map UI significantly enhanced with stats, auto-arrange, mobile support
+- No changes to production formulas, economy, or contract system
+- Files modified: store.ts, HybridMapPanel.tsx
+
+Current Project Status:
+- Game running on dev server port 3000
+- Lint passes cleanly (0 errors, 0 warnings)
+- SAVE_VERSION: 18
+- 65 buildings, 56 resources, 5 regions with grid maps, logistics route system
+
+Unresolved Issues / Risks:
+- Auto-assign may place buildings on suboptimal positions (could add smarter layout)
+- Cross-region routes have fixed 0.5 efficiency (could scale with distance between regions)
+- Auto-arrange doesn't account for terrain bonuses yet

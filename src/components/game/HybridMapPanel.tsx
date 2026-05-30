@@ -1,16 +1,20 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
 import { BUILDING_DEFS, RESOURCE_META, INITIAL_REGIONS, BUILDING_FOOTPRINTS, getBuildingFootprint } from '@/lib/game/data';
 import { Region, RegionId, GridTile, LogisticsRoute, MapViewLayer, MapViewMode, BuildingType, BuildingInstance, ResourceType } from '@/lib/game/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { toast } from '@/hooks/use-toast';
 import {
   Map as MapIcon, Grid3X3, Route, Lock, Unlock, Eye, Hammer,
   Trash2, ArrowLeft, ZoomIn, ZoomOut, ChevronRight, X,
-  Power, PowerOff, ChevronUp,
+  Power, PowerOff, ChevronUp, Wand2, LayoutGrid, ArrowDown,
+  ArrowRight, ArrowUp, Link2, BarChart3,
 } from 'lucide-react';
 
 // --- Region layout order ---
@@ -25,6 +29,15 @@ const TERRAIN_BG: Record<GridTile['terrain'], string> = {
   mountain: 'bg-gray-700/20',
 };
 
+// --- Terrain names ---
+const TERRAIN_NAMES: Record<GridTile['terrain'], string> = {
+  flat: 'Flat Land',
+  rocky: 'Rocky Terrain',
+  water: 'Water',
+  forest: 'Forest',
+  mountain: 'Mountain',
+};
+
 // --- Build palette categories ---
 const BUILD_CATEGORIES = [
   { label: '⛏️ Extraction', key: 'extractor' as const },
@@ -36,6 +49,16 @@ const BUILD_CATEGORIES = [
 const ROUTE_TYPE_ICON: Record<string, string> = {
   conveyor: '🔄', pipe: '🔌', truck: '🚛', train: '🚂', drone: '🛸',
 };
+
+// --- Get tier row range for auto-arrange ---
+function getTierRowRange(category: string, tier: number): [number, number] {
+  if (category === 'extractor') return [0, 3];
+  if (category === 'power') return [0, 3];
+  if (tier <= 1) return [3, 7];
+  if (tier === 2) return [7, 11];
+  if (tier === 3) return [11, 15];
+  return [15, 999]; // T4/endgame
+}
 
 // =============================================
 // Region Overview Map
@@ -70,6 +93,63 @@ function RegionOverviewMap() {
     grasslands: { row: '4', col: '1 / -1', wide: true },
   };
 
+  // --- Region positions for cross-region route SVG ---
+  const regionCardPositions: Record<RegionId, { cx: number; cy: number }> = {
+    cosmic: { cx: 50, cy: 10 },
+    quantum: { cx: 25, cy: 35 },
+    highlands: { cx: 75, cy: 35 },
+    industrial: { cx: 50, cy: 60 },
+    grasslands: { cx: 50, cy: 85 },
+  };
+
+  // --- Cross-region routes ---
+  const crossRegionRoutes = useMemo(() => {
+    return store.logisticsRoutes.filter(r => {
+      const from = store.buildings.find(b => b.id === r.fromBuildingId);
+      const to = store.buildings.find(b => b.id === r.toBuildingId);
+      return from && to && from.regionId !== to.regionId;
+    });
+  }, [store.logisticsRoutes, store.buildings]);
+
+  // --- Statistics ---
+  const totalBuildings = store.buildings.length;
+  const totalRoutes = store.logisticsRoutes.length;
+
+  const gridUtilization = useMemo(() => {
+    const result: { regionId: string; regionName: string; occupied: number; total: number; pct: number }[] = [];
+    for (const region of regions) {
+      if (!region.unlocked) continue;
+      const grid = store.mapGrids[region.id] ?? [];
+      const total = grid.length || (region.gridRows * region.gridCols);
+      const occupied = store.buildings.filter(b => b.regionId === region.id && b.gridRow !== undefined).length;
+      result.push({
+        regionId: region.id,
+        regionName: `${region.emoji} ${region.name}`,
+        occupied,
+        total,
+        pct: total > 0 ? Math.round((occupied / total) * 100) : 0,
+      });
+    }
+    return result;
+  }, [regions, store.mapGrids, store.buildings]);
+
+  const productionCapacity = useMemo(() => {
+    const result: { regionId: string; regionName: string; capacity: number }[] = [];
+    for (const region of regions) {
+      if (!region.unlocked) continue;
+      const regionBuildings = store.buildings.filter(b => b.regionId === region.id && b.active);
+      const capacity = regionBuildings.reduce((sum, b) => {
+        return sum + b.efficiency;
+      }, 0);
+      result.push({
+        regionId: region.id,
+        regionName: `${region.emoji} ${region.name}`,
+        capacity: Math.round(capacity * 100),
+      });
+    }
+    return result;
+  }, [regions, store.buildings]);
+
   return (
     <div className="space-y-4">
       <div className="text-center">
@@ -77,84 +157,202 @@ function RegionOverviewMap() {
         <p className="text-xs text-gray-500">Click a region to enter — unlock new areas to expand your empire</p>
       </div>
 
-      <div
-        className="grid gap-3 max-w-2xl mx-auto"
-        style={{
-          gridTemplateColumns: '1fr 1fr',
-          gridTemplateRows: 'auto auto auto auto',
-        }}
-      >
-        {REGION_ORDER.map(id => {
-          const region = regions.find(r => r.id === id);
-          if (!region) return null;
-          const layout = layoutConfig[id];
-          const buildingCount = getBuildingCount(region.id);
+      {/* Region cards with cross-region route overlay */}
+      <div className="relative max-w-2xl mx-auto">
+        {/* Cross-region route SVG overlay */}
+        {crossRegionRoutes.length > 0 && (
+          <svg className="absolute inset-0 pointer-events-none z-10" viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
+            <defs>
+              <filter id="cross-route-glow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="1" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+            {crossRegionRoutes.map(route => {
+              const from = store.buildings.find(b => b.id === route.fromBuildingId);
+              const to = store.buildings.find(b => b.id === route.toBuildingId);
+              if (!from?.regionId || !to?.regionId) return null;
+              const fromPos = regionCardPositions[from.regionId as RegionId];
+              const toPos = regionCardPositions[to.regionId as RegionId];
+              if (!fromPos || !toPos) return null;
 
-          return (
-            <motion.button
-              key={region.id}
-              className={`
-                relative rounded-xl border-2 p-4 text-left transition-all duration-200
-                ${region.unlocked
-                  ? 'cursor-pointer hover:scale-[1.02] hover:shadow-lg'
-                  : 'cursor-pointer opacity-70 hover:opacity-90'}
-              `}
-              style={{
-                gridColumn: layout.col,
-                gridRow: layout.row,
-                borderColor: region.unlocked ? region.color : '#374151',
-                background: region.unlocked
-                  ? `linear-gradient(135deg, ${region.color}10, ${region.color}05)`
-                  : 'rgba(17,24,39,0.8)',
-              }}
-              onClick={() => handleRegionClick(region)}
-              whileTap={{ scale: 0.97 }}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">{region.emoji}</span>
-                  <div>
-                    <div className="text-sm font-bold" style={{ color: region.unlocked ? region.color : '#9ca3af' }}>
-                      {region.name}
-                    </div>
-                    {!region.unlocked && (
-                      <div className="flex items-center gap-1 text-xs text-gray-500">
-                        <Lock className="w-3 h-3" />
-                        <span>${formatNumber(region.unlockCost)}</span>
+              const meta = RESOURCE_META[route.carriesResource];
+              const color = meta?.color ?? '#00fff2';
+              const mx = (fromPos.cx + toPos.cx) / 2;
+              const my = (fromPos.cy + toPos.cy) / 2;
+              const dx = toPos.cx - fromPos.cx;
+              const dy = toPos.cy - fromPos.cy;
+              const cx = mx - dy * 0.3;
+              const cy = my + dx * 0.3;
+
+              return (
+                <g key={route.id}>
+                  <path
+                    d={`M${fromPos.cx},${fromPos.cy} Q${cx},${cy} ${toPos.cx},${toPos.cy}`}
+                    fill="none"
+                    stroke={color}
+                    strokeWidth="0.5"
+                    opacity="0.6"
+                    filter="url(#cross-route-glow)"
+                  />
+                  {/* Animated particle */}
+                  <circle r="0.8" fill={color} opacity="0.8">
+                    <animateMotion
+                      dur={`${2 + (1 - route.efficiency) * 1.5}s`}
+                      repeatCount="indefinite"
+                      path={`M${fromPos.cx},${fromPos.cy} Q${cx},${cy} ${toPos.cx},${toPos.cy}`}
+                    />
+                  </circle>
+                  {/* Resource label at midpoint */}
+                  <text x={mx} y={my - 1.5} textAnchor="middle" fontSize="2.5" fill={color} opacity="0.9">
+                    {meta?.emoji ?? ''} {formatNumber(route.throughput)}/t
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
+        )}
+
+        <div
+          className="grid gap-3 md:grid-cols-2 grid-cols-1"
+          style={{
+            gridTemplateColumns: undefined,
+          }}
+        >
+          {REGION_ORDER.map(id => {
+            const region = regions.find(r => r.id === id);
+            if (!region) return null;
+            const layout = layoutConfig[id];
+            const buildingCount = getBuildingCount(region.id);
+
+            return (
+              <motion.button
+                key={region.id}
+                className={`
+                  relative rounded-xl border-2 p-4 text-left transition-all duration-200
+                  ${region.unlocked
+                    ? 'cursor-pointer hover:scale-[1.02] hover:shadow-lg'
+                    : 'cursor-pointer opacity-70 hover:opacity-90'}
+                `}
+                style={{
+                  borderColor: region.unlocked ? region.color : '#374151',
+                  background: region.unlocked
+                    ? `linear-gradient(135deg, ${region.color}10, ${region.color}05)`
+                    : 'rgba(17,24,39,0.8)',
+                }}
+                onClick={() => handleRegionClick(region)}
+                whileTap={{ scale: 0.97 }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{region.emoji}</span>
+                    <div>
+                      <div className="text-sm font-bold" style={{ color: region.unlocked ? region.color : '#9ca3af' }}>
+                        {region.name}
                       </div>
+                      {!region.unlocked && (
+                        <div className="flex items-center gap-1 text-xs text-gray-500">
+                          <Lock className="w-3 h-3" />
+                          <span>${formatNumber(region.unlockCost)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    {region.unlocked ? (
+                      <Badge variant="outline" className="text-[9px] border-green-500/30 text-green-400 bg-green-900/10">
+                        {buildingCount} building{buildingCount !== 1 ? 's' : ''}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[9px] border-gray-600 text-gray-500 bg-gray-900/20">
+                        <Lock className="w-2.5 h-2.5 mr-0.5" /> Locked
+                      </Badge>
                     )}
                   </div>
                 </div>
-                <div className="flex flex-col items-end gap-1">
-                  {region.unlocked ? (
-                    <Badge variant="outline" className="text-[9px] border-green-500/30 text-green-400 bg-green-900/10">
-                      {buildingCount} building{buildingCount !== 1 ? 's' : ''}
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-[9px] border-gray-600 text-gray-500 bg-gray-900/20">
-                      <Lock className="w-2.5 h-2.5 mr-0.5" /> Locked
-                    </Badge>
-                  )}
+                {region.unlocked && (
+                  <div className="mt-2 text-[10px] text-gray-500 line-clamp-1">{region.description}</div>
+                )}
+                {region.unlocked && region.bonuses.length > 0 && (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {region.bonuses.map((b, i) => (
+                      <span key={i} className="text-[8px] px-1 py-0.5 rounded bg-gray-800/60 text-gray-400">
+                        {b.description}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {!region.unlocked && store.money >= region.unlockCost && (
+                  <div className="mt-2 text-[10px] text-yellow-400 animate-pulse">💰 Can afford! Click to unlock</div>
+                )}
+              </motion.button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* --- Region Statistics Panel --- */}
+      <div className="bg-gray-900/80 rounded-lg border border-gray-800 p-4 max-w-2xl mx-auto">
+        <div className="text-xs font-bold text-cyan-400 flex items-center gap-1.5 mb-3">
+          <BarChart3 className="w-3.5 h-3.5" /> Empire Statistics
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="bg-gray-800/50 rounded-md p-2 text-center">
+            <div className="text-[8px] text-gray-500 uppercase tracking-wider">Buildings</div>
+            <div className="text-base font-bold text-cyan-400 font-mono">{totalBuildings}</div>
+          </div>
+          <div className="bg-gray-800/50 rounded-md p-2 text-center">
+            <div className="text-[8px] text-gray-500 uppercase tracking-wider">Logistics Routes</div>
+            <div className="text-base font-bold text-emerald-400 font-mono">{totalRoutes}</div>
+          </div>
+          <div className="bg-gray-800/50 rounded-md p-2 text-center">
+            <div className="text-[8px] text-gray-500 uppercase tracking-wider">Cross-Region</div>
+            <div className="text-base font-bold text-orange-400 font-mono">{crossRegionRoutes.length}</div>
+          </div>
+          <div className="bg-gray-800/50 rounded-md p-2 text-center">
+            <div className="text-[8px] text-gray-500 uppercase tracking-wider">Regions Active</div>
+            <div className="text-base font-bold text-purple-400 font-mono">{regions.filter(r => r.unlocked).length}/{regions.length}</div>
+          </div>
+        </div>
+
+        {/* Per-region utilization */}
+        {gridUtilization.length > 0 && (
+          <div className="mt-3 space-y-1.5">
+            <div className="text-[9px] text-gray-500 font-semibold">Grid Utilization</div>
+            {gridUtilization.map(r => (
+              <div key={r.regionId} className="flex items-center gap-2 text-[9px]">
+                <span className="text-gray-400 w-24 truncate">{r.regionName}</span>
+                <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${r.pct}%`,
+                      backgroundColor: r.pct < 30 ? '#4ade80' : r.pct < 60 ? '#facc15' : '#f87171',
+                    }}
+                  />
                 </div>
+                <span className="text-gray-500 font-mono w-12 text-right">{r.pct}%</span>
+                <span className="text-gray-600 font-mono w-16 text-right">({r.occupied}/{r.total})</span>
               </div>
-              {region.unlocked && (
-                <div className="mt-2 text-[10px] text-gray-500 line-clamp-1">{region.description}</div>
-              )}
-              {region.unlocked && region.bonuses.length > 0 && (
-                <div className="mt-1 flex flex-wrap gap-1">
-                  {region.bonuses.map((b, i) => (
-                    <span key={i} className="text-[8px] px-1 py-0.5 rounded bg-gray-800/60 text-gray-400">
-                      {b.description}
-                    </span>
-                  ))}
-                </div>
-              )}
-              {!region.unlocked && store.money >= region.unlockCost && (
-                <div className="mt-2 text-[10px] text-yellow-400 animate-pulse">💰 Can afford! Click to unlock</div>
-              )}
-            </motion.button>
-          );
-        })}
+            ))}
+          </div>
+        )}
+
+        {/* Per-region production capacity */}
+        {productionCapacity.length > 0 && (
+          <div className="mt-3 space-y-1.5">
+            <div className="text-[9px] text-gray-500 font-semibold">Production Capacity (Active Efficiency)</div>
+            {productionCapacity.map(r => (
+              <div key={r.regionId} className="flex items-center justify-between text-[9px]">
+                <span className="text-gray-400">{r.regionName}</span>
+                <span className="text-cyan-400 font-mono">{r.capacity}%</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -172,7 +370,17 @@ function GridFactoryView() {
   const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number } | null>(null);
   const [pendingBuildType, setPendingBuildType] = useState<BuildingType | null>(null);
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
+  const [mobilePaletteOpen, setMobilePaletteOpen] = useState(false);
   const gridContainerRef = useRef<HTMLDivElement>(null);
+
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   const rows = region?.gridRows ?? 16;
   const cols = region?.gridCols ?? 20;
@@ -205,6 +413,11 @@ function GridFactoryView() {
   // Get tile for position
   const getTile = (row: number, col: number): GridTile | undefined =>
     grid.find(t => t.row === row && t.col === col);
+
+  // Connection count for a building
+  const getConnectionCount = (buildingId: string): number => {
+    return store.logisticsRoutes.filter(r => r.fromBuildingId === buildingId || r.toBuildingId === buildingId).length;
+  };
 
   // Handle cell click
   const handleCellClick = (row: number, col: number) => {
@@ -253,6 +466,127 @@ function GridFactoryView() {
   const handleZoomIn = () => setZoom(z => Math.min(1.5, z + 0.15));
   const handleZoomOut = () => setZoom(z => Math.max(0.5, z - 0.15));
 
+  // Auto-Layout: generate logistics routes
+  const handleAutoLayout = () => {
+    if (typeof store.autoGenerateLogisticsRoutes === 'function') {
+      store.autoGenerateLogisticsRoutes();
+      toast({ title: '🔄 Auto-Layout', description: 'Logistics routes generated automatically!' });
+    } else {
+      toast({ title: '🔄 Auto-Layout', description: 'Auto-generate routes not yet available.' });
+    }
+  };
+
+  // Auto-Arrange: rearrange buildings by tier
+  const handleAutoArrange = () => {
+    // Collect all buildings in this region with positions
+    const buildingsWithPositions = regionBuildings
+      .filter(b => b.gridRow !== undefined && b.gridCol !== undefined)
+      .map(b => ({
+        id: b.id,
+        type: b.type,
+        gridRow: b.gridRow!,
+        gridCol: b.gridCol!,
+      }));
+
+    if (buildingsWithPositions.length === 0) {
+      toast({ title: '📐 Auto-Arrange', description: 'No buildings to arrange.' });
+      return;
+    }
+
+    // Group buildings by production chain tier
+    interface BuildingGroup {
+      id: string;
+      type: BuildingType;
+      tier: number;
+      category: string;
+      outputs: string[];
+      inputs: string[];
+    }
+
+    const buildGroups: BuildingGroup[] = buildingsWithPositions.map(b => {
+      const bdef = BUILDING_DEFS[b.type];
+      return {
+        id: b.id,
+        type: b.type,
+        tier: bdef?.tier ?? 0,
+        category: bdef?.category ?? 'factory',
+        outputs: bdef?.outputs?.map(o => o.resource) ?? [],
+        inputs: bdef?.inputs?.map(i => i.resource) ?? [],
+      };
+    });
+
+    // Sort by tier, then by production chain (buildings that supply each other are adjacent)
+    const sortedGroups = [...buildGroups].sort((a, b) => {
+      const aRange = getTierRowRange(a.category, a.tier);
+      const bRange = getTierRowRange(b.category, b.tier);
+      if (aRange[0] !== bRange[0]) return aRange[0] - bRange[0];
+
+      if (a.outputs.some(o => b.inputs.includes(o))) return -1;
+      if (b.outputs.some(o => a.inputs.includes(o))) return 1;
+
+      if (a.category !== b.category) {
+        const catOrder: Record<string, number> = { extractor: 0, power: 1, factory: 2, storage: 3 };
+        return (catOrder[a.category] ?? 2) - (catOrder[b.category] ?? 2);
+      }
+
+      return 0;
+    });
+
+    let currentRow = 0;
+    let currentCol = 0;
+    const occupiedCells = new Set<string>();
+
+    for (const group of sortedGroups) {
+      const fp = getBuildingFootprint(group.type);
+      const range = getTierRowRange(group.category, group.tier);
+
+      if (currentRow < range[0]) {
+        currentRow = range[0];
+        currentCol = 0;
+      }
+
+      let placed = false;
+      for (let r = currentRow; r < Math.min(range[1], rows) && !placed; r++) {
+        for (let c = (r === currentRow ? currentCol : 0); c <= cols - fp.width && !placed; c++) {
+          let canPlaceHere = true;
+          for (let dr = 0; dr < fp.height && canPlaceHere; dr++) {
+            for (let dc = 0; dc < fp.width && canPlaceHere; dc++) {
+              const tr = r + dr;
+              const tc = c + dc;
+              const tTile = grid.find(t => t.row === tr && t.col === tc);
+              if (tr >= rows || tc >= cols || occupiedCells.has(`${tr}-${tc}`) || tTile?.terrain === 'water') {
+                canPlaceHere = false;
+              }
+            }
+          }
+
+          if (canPlaceHere) {
+            store.removeBuildingFromGrid(group.id);
+            store.placeBuildingOnGrid(group.id, activeRegion, r, c);
+
+            for (let dr = 0; dr < fp.height; dr++) {
+              for (let dc = 0; dc < fp.width; dc++) {
+                occupiedCells.add(`${r + dr}-${c + dc}`);
+              }
+            }
+
+            currentRow = r;
+            currentCol = c + fp.width;
+            if (currentCol >= cols) {
+              currentCol = 0;
+              currentRow++;
+            }
+            placed = true;
+          }
+        }
+        currentCol = 0;
+      }
+    }
+
+    toast({ title: '📐 Auto-Arrange', description: `Arranged ${buildingsWithPositions.length} buildings by production tier!` });
+    setSelectedBuildingId(null);
+  };
+
   // Get available building types for this region's allowed categories
   const allowedCategories = region?.allowedCategories ?? [];
   const maxBuildingSize = region?.maxBuildingSize ?? 2;
@@ -296,12 +630,41 @@ function GridFactoryView() {
     return <div className="text-center text-gray-500 p-8">Region not found</div>;
   }
 
+  // --- Sidebar content (shared between desktop sidebar and mobile sheet) ---
+  const sidebarContent = (
+    <AnimatePresence mode="wait">
+      {selectedBuilding ? (
+        <SelectedBuildingDetail
+          key="detail"
+          building={selectedBuilding}
+          connectionCount={getConnectionCount(selectedBuilding.id)}
+          onClose={() => { setSelectedBuildingId(null); store.selectBuilding(null); }}
+        />
+      ) : store.mapViewMode === 'build' ? (
+        <BuildPalette
+          key="palette"
+          groups={paletteGroups}
+          pendingType={pendingBuildType}
+          onSelectType={setPendingBuildType}
+          isAffordable={isAffordable}
+          isUnlocked={isUnlocked}
+        />
+      ) : (
+        <div className="text-center text-gray-500 text-xs p-4">
+          <Eye className="w-6 h-6 mx-auto mb-2 text-gray-600" />
+          <p>Switch to Build mode to place buildings</p>
+          <p className="mt-1 text-gray-600">Click any building to see details</p>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+
   return (
-    <div className="flex gap-3 h-full">
+    <div className={`flex ${isMobile ? 'flex-col' : 'gap-3'} h-full`}>
       {/* Grid Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Zoom controls */}
-        <div className="flex items-center gap-2 mb-2">
+        {/* Zoom controls + toolbar */}
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
           <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-gray-400" onClick={handleZoomOut}>
             <ZoomOut className="w-3.5 h-3.5" />
           </Button>
@@ -309,7 +672,37 @@ function GridFactoryView() {
           <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-gray-400" onClick={handleZoomIn}>
             <ZoomIn className="w-3.5 h-3.5" />
           </Button>
-          <div className="ml-auto text-[10px] text-gray-500">
+
+          {/* Auto-Layout button */}
+          <Button
+            variant="outline" size="sm"
+            className="h-6 text-[9px] border-cyan-800/50 text-cyan-400 hover:bg-cyan-900/20"
+            onClick={handleAutoLayout}
+          >
+            <Wand2 className="w-3 h-3 mr-1" /> Auto-Layout
+          </Button>
+
+          {/* Auto-Arrange button */}
+          <Button
+            variant="outline" size="sm"
+            className="h-6 text-[9px] border-purple-800/50 text-purple-400 hover:bg-purple-900/20"
+            onClick={handleAutoArrange}
+          >
+            <LayoutGrid className="w-3 h-3 mr-1" /> Auto-Arrange
+          </Button>
+
+          {/* Mobile palette toggle */}
+          {isMobile && store.mapViewMode === 'build' && (
+            <Button
+              variant="outline" size="sm"
+              className="h-6 text-[9px] border-amber-800/50 text-amber-400 hover:bg-amber-900/20 ml-auto"
+              onClick={() => setMobilePaletteOpen(true)}
+            >
+              <Hammer className="w-3 h-3 mr-1" /> Palette
+            </Button>
+          )}
+
+          <div className={`${isMobile ? 'hidden' : 'ml-auto'} text-[10px] text-gray-500`}>
             {region.emoji} {region.name} • {regionBuildings.length} building{regionBuildings.length !== 1 ? 's' : ''}
           </div>
         </div>
@@ -345,6 +738,12 @@ function GridFactoryView() {
                   const showPreview = store.mapViewMode === 'build' && pendingBuildType && isHovered && !isBuildingCell;
                   const previewValid = showPreview && isPlacementValid(r, c);
 
+                  // Connection count for building
+                  const connectionCount = building ? getConnectionCount(building.id) : 0;
+
+                  // Tooltip content for empty cells
+                  const tooltipContent = !isBuildingCell ? `${TERRAIN_NAMES[terrain]} • (${r}, ${c})${tile?.bonus ? ` • ${tile.bonus.description}` : ''}` : null;
+
                   return (
                     <div
                       key={`${r}-${c}`}
@@ -362,6 +761,7 @@ function GridFactoryView() {
                       onClick={() => handleCellClick(r, c)}
                       onMouseEnter={() => setHoveredCell({ row: r, col: c })}
                       onMouseLeave={() => setHoveredCell(null)}
+                      title={tooltipContent ?? undefined}
                     >
                       {/* Building content (only rendered at top-left cell) */}
                       {isTopLeft && building && fp && (
@@ -371,6 +771,7 @@ function GridFactoryView() {
                           isSelected={!!isSelected}
                           cellSize={cellSize}
                           mode={store.mapViewMode}
+                          connectionCount={connectionCount}
                         />
                       )}
 
@@ -389,6 +790,14 @@ function GridFactoryView() {
                         />
                       )}
 
+                      {/* Hover tooltip for empty cells */}
+                      {isHovered && !isBuildingCell && !isWater && (
+                        <div className="absolute z-30 bottom-full left-1/2 -translate-x-1/2 mb-1 px-1.5 py-0.5 rounded bg-gray-900 border border-gray-700 text-[8px] text-gray-300 whitespace-nowrap pointer-events-none shadow-lg">
+                          {TERRAIN_NAMES[terrain]} ({r},{c})
+                          {tile?.bonus && <span className="text-green-400 ml-1">+{tile.bonus.description}</span>}
+                        </div>
+                      )}
+
                       {/* Build preview overlay */}
                       {showPreview && (
                         <div className={`absolute inset-0 rounded-sm ${previewValid ? 'bg-green-500/20 border border-green-500/40' : 'bg-red-500/20 border border-red-500/40'}`} />
@@ -398,37 +807,36 @@ function GridFactoryView() {
                 })
               )}
             </div>
+
+            {/* Logistics SVG overlay — always render when there are routes */}
+            <LogisticsSVGOverlay
+              routes={store.logisticsRoutes}
+              buildings={store.buildings}
+              cellSize={cellSize}
+              regionId={activeRegion}
+            />
           </div>
         </div>
       </div>
 
-      {/* Right sidebar — Build palette or Building details */}
-      <div className="w-56 flex-shrink-0 overflow-y-auto game-scrollbar space-y-2">
-        <AnimatePresence mode="wait">
-          {selectedBuilding ? (
-            <SelectedBuildingDetail
-              key="detail"
-              building={selectedBuilding}
-              onClose={() => { setSelectedBuildingId(null); store.selectBuilding(null); }}
-            />
-          ) : store.mapViewMode === 'build' ? (
-            <BuildPalette
-              key="palette"
-              groups={paletteGroups}
-              pendingType={pendingBuildType}
-              onSelectType={setPendingBuildType}
-              isAffordable={isAffordable}
-              isUnlocked={isUnlocked}
-            />
-          ) : (
-            <div className="text-center text-gray-500 text-xs p-4">
-              <Eye className="w-6 h-6 mx-auto mb-2 text-gray-600" />
-              <p>Switch to Build mode to place buildings</p>
-              <p className="mt-1 text-gray-600">Click any building to see details</p>
-            </div>
-          )}
-        </AnimatePresence>
-      </div>
+      {/* Desktop: Right sidebar */}
+      {!isMobile && (
+        <div className="w-56 flex-shrink-0 overflow-y-auto game-scrollbar space-y-2">
+          {sidebarContent}
+        </div>
+      )}
+
+      {/* Mobile: Bottom sheet for build palette */}
+      {isMobile && (
+        <Sheet open={mobilePaletteOpen} onOpenChange={setMobilePaletteOpen}>
+          <SheetContent side="bottom" className="h-[60vh] bg-gray-950 border-gray-800 p-3 overflow-y-auto">
+            <SheetHeader className="pb-2">
+              <SheetTitle className="text-sm text-cyan-400">Build Palette</SheetTitle>
+            </SheetHeader>
+            {sidebarContent}
+          </SheetContent>
+        </Sheet>
+      )}
     </div>
   );
 }
@@ -442,12 +850,14 @@ function BuildingTile({
   isSelected,
   cellSize,
   mode,
+  connectionCount,
 }: {
   building: BuildingInstance;
   footprint: { width: number; height: number; cells: number };
   isSelected: boolean;
   cellSize: number;
   mode: MapViewMode;
+  connectionCount: number;
 }) {
   const def = BUILDING_DEFS[building.type];
   if (!def) return null;
@@ -460,39 +870,85 @@ function BuildingTile({
     def.tier === 2 ? '#7c2d12' :
     def.tier === 3 ? '#581c87' : '#064e3b';
 
+  // Multi-cell buildings get larger emoji
+  const isMultiCell = footprint.width > 1 || footprint.height > 1;
+  const emojiFontSize = isMultiCell
+    ? Math.max(16, cellSize * 0.45)
+    : Math.max(12, cellSize * 0.3);
+
   return (
-    <motion.div
-      className={`
-        absolute inset-0 rounded-md border-2 overflow-hidden flex flex-col items-center justify-center
-        ${!building.active ? 'opacity-40 grayscale' : ''}
-        ${mode === 'demolish' ? 'hover:border-red-500 hover:bg-red-900/30' : ''}
-      `}
-      style={{
-        borderColor: isSelected ? '#22d3ee' : categoryColor,
-        background: `linear-gradient(135deg, ${categoryColor}90, ${categoryColor}60)`,
-        boxShadow: isSelected ? '0 0 12px rgba(34,211,238,0.4)' : building.active ? `0 0 4px ${categoryColor}60` : 'none',
-      }}
-      initial={false}
-      animate={isSelected ? { scale: [1, 1.02, 1] } : {}}
-      transition={isSelected ? { duration: 1.5, repeat: Infinity } : {}}
-    >
-      <span className="text-sm leading-none" style={{ fontSize: Math.max(12, cellSize * 0.3) }}>
-        {def.emoji}
-      </span>
-      <div className="flex items-center gap-0.5 mt-0.5">
-        <Badge className="text-[6px] px-0.5 py-0 h-3 min-w-[10px] bg-gray-800/80 text-gray-300 border-gray-600/50">
-          {building.level}
-        </Badge>
-        {footprint.width > 1 && (
-          <Badge className="text-[5px] px-0.5 py-0 h-3 bg-gray-700/60 text-gray-400 border-gray-600/30">
-            {footprint.width}×{footprint.height}
-          </Badge>
-        )}
-      </div>
-      <div className="w-3/4 h-0.5 bg-gray-800/60 rounded-full mt-0.5 overflow-hidden">
-        <div className="h-full rounded-full" style={{ width: `${Math.round(building.efficiency * 100)}%`, backgroundColor: effColor }} />
-      </div>
-    </motion.div>
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <motion.div
+            className={`
+              absolute inset-0 rounded-md border-2 overflow-hidden flex flex-col items-center justify-center
+              ${!building.active ? 'opacity-40 grayscale' : ''}
+              ${mode === 'demolish' ? 'hover:border-red-500 hover:bg-red-900/30' : ''}
+            `}
+            style={{
+              borderColor: isSelected ? '#22d3ee' : categoryColor,
+              background: `linear-gradient(135deg, ${categoryColor}90, ${categoryColor}60)`,
+              boxShadow: isSelected ? '0 0 12px rgba(34,211,238,0.4)' : building.active ? `0 0 4px ${categoryColor}60` : 'none',
+            }}
+            initial={false}
+            animate={building.active ? { opacity: [1, 0.85, 1] } : {}}
+            transition={building.active ? { duration: 2, repeat: Infinity, ease: 'easeInOut' } : {}}
+          >
+            <span className="leading-none" style={{ fontSize: emojiFontSize }}>
+              {def.emoji}
+            </span>
+            <div className="flex items-center gap-0.5 mt-0.5">
+              <Badge className="text-[6px] px-0.5 py-0 h-3 min-w-[10px] bg-gray-800/80 text-gray-300 border-gray-600/50">
+                {building.level}
+              </Badge>
+              {footprint.width > 1 && (
+                <Badge className="text-[5px] px-0.5 py-0 h-3 bg-gray-700/60 text-gray-400 border-gray-600/30">
+                  {footprint.width}×{footprint.height}
+                </Badge>
+              )}
+            </div>
+            <div className="w-3/4 h-0.5 bg-gray-800/60 rounded-full mt-0.5 overflow-hidden">
+              <div className="h-full rounded-full" style={{ width: `${Math.round(building.efficiency * 100)}%`, backgroundColor: effColor }} />
+            </div>
+
+            {/* Connection count indicator */}
+            {connectionCount > 0 && (
+              <div className="absolute top-0.5 right-0.5 flex items-center gap-0.5">
+                <Link2 className="w-2 h-2 text-cyan-400" />
+                <span className="text-[6px] text-cyan-300 font-mono">{connectionCount}</span>
+              </div>
+            )}
+
+            {/* Resource flow direction arrows when selected */}
+            {isSelected && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="flex flex-col items-center gap-0.5">
+                  {def.inputs && def.inputs.length > 0 && (
+                    <div className="flex items-center gap-0.5">
+                      <ArrowDown className="w-2 h-2 text-red-400 animate-bounce" />
+                      <span className="text-[5px] text-red-300">IN</span>
+                    </div>
+                  )}
+                  {def.outputs && def.outputs.length > 0 && (
+                    <div className="flex items-center gap-0.5">
+                      <ArrowUp className="w-2 h-2 text-green-400 animate-bounce" />
+                      <span className="text-[5px] text-green-300">OUT</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="bg-gray-900 border-gray-700 text-xs">
+          <div className="font-semibold">{def.emoji} {def.name}</div>
+          <div className="text-gray-400">Lv {building.level} • Eff {Math.round(building.efficiency * 100)}%</div>
+          {def.inputs && <div className="text-red-400">→ in: {def.inputs.map(i => RESOURCE_META[i.resource as ResourceType]?.name ?? i.resource).join(', ')}</div>}
+          {def.outputs && <div className="text-green-400">→ out: {def.outputs.map(o => RESOURCE_META[o.resource as ResourceType]?.name ?? o.resource).join(', ')}</div>}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
@@ -582,9 +1038,11 @@ function BuildPalette({
 // =============================================
 function SelectedBuildingDetail({
   building,
+  connectionCount,
   onClose,
 }: {
   building: BuildingInstance;
+  connectionCount: number;
   onClose: () => void;
 }) {
   const store = useGameStore();
@@ -638,6 +1096,28 @@ function SelectedBuildingDetail({
               : `-${def.basePowerConsumption * building.level}MW`}
           </div>
         </div>
+      </div>
+
+      {/* Connection count */}
+      {connectionCount > 0 && (
+        <div className="flex items-center gap-1.5 text-[9px] text-cyan-400 bg-cyan-900/10 rounded px-2 py-1 border border-cyan-900/30">
+          <Link2 className="w-3 h-3" />
+          <span>{connectionCount} logistics route{connectionCount !== 1 ? 's' : ''} connected</span>
+        </div>
+      )}
+
+      {/* Resource flow direction */}
+      <div className="space-y-1">
+        {def.inputs && def.inputs.length > 0 && (
+          <div className="flex items-center gap-1 text-[8px] text-red-400">
+            <ArrowDown className="w-2.5 h-2.5" /> Input Flow
+          </div>
+        )}
+        {def.outputs && def.outputs.length > 0 && (
+          <div className="flex items-center gap-1 text-[8px] text-green-400">
+            <ArrowUp className="w-2.5 h-2.5" /> Output Flow
+          </div>
+        )}
       </div>
 
       {def.outputs && (
@@ -864,10 +1344,10 @@ function LogisticsRouteOverlay() {
         </div>
       )}
 
-      {/* SVG route visualization hint */}
+      {/* SVG route visualization info */}
       <div className="text-center text-[10px] text-gray-600 p-4">
         <Route className="w-5 h-5 mx-auto mb-1 text-gray-700" />
-        Route lines render on the Grid view when Logistics layer is active
+        Route lines display on the Grid view
       </div>
     </div>
   );
@@ -875,6 +1355,7 @@ function LogisticsRouteOverlay() {
 
 // =============================================
 // Logistics SVG Overlay (renders on top of grid)
+// Always renders when there are logistics routes
 // =============================================
 export function LogisticsSVGOverlay({
   routes,
@@ -887,7 +1368,6 @@ export function LogisticsSVGOverlay({
   cellSize: number;
   regionId: string;
 }) {
-  const regionBuildings = buildings.filter(b => b.regionId === regionId && b.gridRow !== undefined && b.gridCol !== undefined);
   const regionRoutes = routes.filter(r => {
     const from = buildings.find(b => b.id === r.fromBuildingId);
     const to = buildings.find(b => b.id === r.toBuildingId);
@@ -1081,7 +1561,7 @@ export default function HybridMapPanel() {
           </motion.div>
         )}
 
-        {layer === 'grid' && (
+        {(layer === 'grid' || layer === 'logistics') && (
           <motion.div
             key="grid"
             initial={{ opacity: 0, y: 10 }}
@@ -1093,15 +1573,7 @@ export default function HybridMapPanel() {
             {activeRegion ? (
               <div className="relative h-full">
                 <GridFactoryView />
-                {/* Logistics SVG overlay when in logistics mode */}
-                {store.mapViewLayer === 'logistics' && (
-                  <LogisticsSVGOverlay
-                    routes={store.logisticsRoutes}
-                    buildings={store.buildings}
-                    cellSize={Math.max(28, Math.min(56, Math.floor(700 / activeRegion.gridCols)))}
-                    regionId={store.activeRegion ?? 'grasslands'}
-                  />
-                )}
+                {/* Logistics SVG overlay always renders when there are routes — NOT gated by logistics layer */}
               </div>
             ) : (
               <div className="text-center text-gray-500 p-8">
@@ -1114,7 +1586,7 @@ export default function HybridMapPanel() {
 
         {layer === 'logistics' && (
           <motion.div
-            key="logistics"
+            key="logistics-panel"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
