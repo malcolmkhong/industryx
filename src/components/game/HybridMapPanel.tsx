@@ -904,7 +904,7 @@ function GridFactoryView() {
   const region = (store.mapRegions.length > 0 ? store.mapRegions : INITIAL_REGIONS).find(r => r.id === activeRegion);
   const grid = store.mapGrids[activeRegion] ?? [];
 
-  // Zoom state: percentage-based, 25% to 200%
+  // Zoom state: percentage-based, 50% to 200%, default 32px cellSize
   const [zoomPct, setZoomPct] = useState(100);
   const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number } | null>(null);
   const [pendingBuildType, setPendingBuildType] = useState<BuildingType | null>(null);
@@ -915,6 +915,7 @@ function GridFactoryView() {
 
   // Pan state
   const [isPanning, setIsPanning] = useState(false);
+  const [spaceHeld, setSpaceHeld] = useState(false);
   const panStart = useRef<{ x: number; y: number; scrollLeft: number; scrollTop: number } | null>(null);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -941,8 +942,8 @@ function GridFactoryView() {
   const rows = region?.gridRows ?? 16;
   const cols = region?.gridCols ?? 20;
 
-  // Base cell size (at 100% zoom)
-  const baseCellSize = Math.max(28, Math.min(56, Math.floor(700 / cols)));
+  // Base cell size (at 100% zoom) = 32px, range 16px (50%) to 64px (200%)
+  const baseCellSize = 32;
   // Actual cell size based on zoom
   const cellSize = Math.round(baseCellSize * (zoomPct / 100));
 
@@ -1037,7 +1038,7 @@ function GridFactoryView() {
 
   // --- Zoom handlers ---
   const ZOOM_STEP = 10;
-  const ZOOM_MIN = 25;
+  const ZOOM_MIN = 50;
   const ZOOM_MAX = 200;
 
   const handleZoomIn = useCallback(() => {
@@ -1086,16 +1087,32 @@ function GridFactoryView() {
     }
   }, []);
 
-  // Pan by dragging (middle mouse or Alt+left click)
+  // Fit to screen: calculate zoom so the entire grid fits in the viewport
+  const handleFitToScreen = () => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const availW = container.clientWidth - 8; // account for padding
+    const availH = container.clientHeight - 8;
+    const labelSizeEst = 20;
+    const gridW = cols * 32 + labelSizeEst;
+    const gridH = rows * 32 + labelSizeEst;
+    const fitPct = Math.min(200, Math.max(50, Math.floor(Math.min(availW / gridW, availH / gridH) * 100 / ZOOM_STEP) * ZOOM_STEP));
+    setZoomPct(fitPct);
+    requestAnimationFrame(() => {
+      container.scrollTo({ left: 0, top: 0, behavior: 'smooth' });
+    });
+  };
+
+  // Pan by dragging (middle mouse, Alt+left click, space+left click, or left click in view mode on empty area)
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button === 1 || (e.button === 0 && e.altKey)) {
+    if (e.button === 1 || (e.button === 0 && e.altKey) || (e.button === 0 && spaceHeld)) {
       e.preventDefault();
       const container = scrollContainerRef.current;
       if (!container) return;
       setIsPanning(true);
       panStart.current = { x: e.clientX, y: e.clientY, scrollLeft: container.scrollLeft, scrollTop: container.scrollTop };
     }
-  }, []);
+  }, [spaceHeld]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (isPanning && panStart.current) {
@@ -1120,16 +1137,34 @@ function GridFactoryView() {
       if (!container) return;
       const PAN_STEP = 60;
 
-      if (e.key === '=' || e.key === '+') { handleZoomIn(); e.preventDefault(); }
-      else if (e.key === '-') { handleZoomOut(); e.preventDefault(); }
+      // Space bar for panning
+      if (e.key === ' ' && !e.repeat) {
+        e.preventDefault();
+        setSpaceHeld(true);
+        return;
+      }
+
+      // Ctrl+= or Ctrl++ to zoom in
+      if ((e.ctrlKey || e.metaKey) && (e.key === '=' || e.key === '+')) { handleZoomIn(); e.preventDefault(); }
+      // Ctrl+- to zoom out
+      else if ((e.ctrlKey || e.metaKey) && e.key === '-') { handleZoomOut(); e.preventDefault(); }
+      // Ctrl+0 to reset zoom
+      else if ((e.ctrlKey || e.metaKey) && e.key === '0') { handleResetView(); e.preventDefault(); }
       else if (e.key === 'ArrowLeft') { container.scrollLeft -= PAN_STEP; e.preventDefault(); }
       else if (e.key === 'ArrowRight') { container.scrollLeft += PAN_STEP; e.preventDefault(); }
       else if (e.key === 'ArrowUp') { container.scrollTop -= PAN_STEP; e.preventDefault(); }
       else if (e.key === 'ArrowDown') { container.scrollTop += PAN_STEP; e.preventDefault(); }
     };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === ' ') {
+        setSpaceHeld(false);
+        setIsPanning(false);
+      }
+    };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleZoomIn, handleZoomOut]);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => { window.removeEventListener('keydown', handleKeyDown); window.removeEventListener('keyup', handleKeyUp); };
+  }, [handleZoomIn, handleZoomOut, handleResetView]);
 
   // Scroll observer for minimap
   useEffect(() => {
@@ -1282,7 +1317,7 @@ function GridFactoryView() {
         {/* Breadcrumb + toolbar */}
         <div className="flex items-center gap-2 mb-2 flex-wrap">
           {/* Breadcrumb */}
-          <div className="flex items-center gap-1 text-[10px] mr-2">
+          <div className="flex items-center gap-1 text-[10px] mr-1">
             <button className="text-gray-500 hover:text-cyan-400 transition-colors" onClick={() => store.setMapViewLayer('region')}>
               <MapIcon className="w-3 h-3 inline mr-0.5" />World Map
             </button>
@@ -1290,23 +1325,126 @@ function GridFactoryView() {
             <span style={{ color: region.color }}>{region.emoji} {region.name}</span>
           </div>
 
-          {/* Zoom controls */}
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-gray-400" onClick={handleZoomOut}><ZoomOut className="w-3.5 h-3.5" /></Button>
-          <span className="text-[10px] text-gray-500 font-mono w-8 text-center">{zoomPct}%</span>
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-gray-400" onClick={handleZoomIn}><ZoomIn className="w-3.5 h-3.5" /></Button>
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-gray-400" onClick={handleResetView} title="Reset view"><RotateCcw className="w-3 h-3" /></Button>
+          {/* Divider */}
+          <div className="w-px h-4 bg-gray-700" />
 
-          {/* Logistics overlay toggle */}
-          <Button variant={showLogisticsOverlay ? 'outline' : 'ghost'} size="sm" className={`h-6 text-[9px] ${showLogisticsOverlay ? 'border-cyan-800/50 text-cyan-400' : 'text-gray-500'}`} onClick={() => setShowLogisticsOverlay(v => !v)}>
-            <Route className="w-3 h-3 mr-1" />Routes
-          </Button>
+          {/* Zoom controls group */}
+          <div className="flex items-center bg-gray-900/60 rounded-md border border-gray-800 overflow-hidden">
+            <TooltipProvider delayDuration={400}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-gray-400 hover:text-gray-200 rounded-none" onClick={handleZoomOut} disabled={zoomPct <= ZOOM_MIN}>
+                    <ZoomOut className="w-3.5 h-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-[9px] bg-gray-900 border-gray-700">Zoom Out (Ctrl+-)</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
-          {/* Auto-Layout button */}
+            <TooltipProvider delayDuration={400}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    className="h-6 px-1.5 text-[9px] text-gray-300 font-mono hover:bg-gray-800/40 cursor-pointer border-x border-gray-800 min-w-[32px] text-center"
+                    onClick={handleResetView}
+                  >
+                    {zoomPct}%
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-[9px] bg-gray-900 border-gray-700">Click to reset zoom (Ctrl+0)</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider delayDuration={400}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-gray-400 hover:text-gray-200 rounded-none" onClick={handleZoomIn} disabled={zoomPct >= ZOOM_MAX}>
+                    <ZoomIn className="w-3.5 h-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-[9px] bg-gray-900 border-gray-700">Zoom In (Ctrl+=)</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider delayDuration={400}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-gray-400 hover:text-gray-200 rounded-none" onClick={handleFitToScreen} title="Fit to screen">
+                    <RotateCcw className="w-3 h-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-[9px] bg-gray-900 border-gray-700">Fit to Screen</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+
+          {/* Divider */}
+          <div className="w-px h-4 bg-gray-700" />
+
+          {/* Layer toggle group */}
+          <div className="flex items-center bg-gray-900/60 rounded-md border border-gray-800 overflow-hidden">
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`h-6 px-1.5 text-[9px] rounded-none ${store.mapViewLayer === 'region' ? 'text-cyan-400 bg-cyan-900/20' : 'text-gray-500 hover:text-gray-300'}`}
+              onClick={() => store.setMapViewLayer('region')}
+            >
+              <MapIcon className="w-3 h-3" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`h-6 px-1.5 text-[9px] rounded-none ${store.mapViewLayer === 'grid' ? 'text-cyan-400 bg-cyan-900/20' : 'text-gray-500 hover:text-gray-300'}`}
+              onClick={() => store.setMapViewLayer('grid')}
+            >
+              <Grid3X3 className="w-3 h-3" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`h-6 px-1.5 text-[9px] rounded-none ${showLogisticsOverlay ? 'text-cyan-400 bg-cyan-900/20' : 'text-gray-500 hover:text-gray-300'}`}
+              onClick={() => setShowLogisticsOverlay(v => !v)}
+            >
+              <Route className="w-3 h-3" />
+            </Button>
+          </div>
+
+          {/* Divider */}
+          <div className="w-px h-4 bg-gray-700" />
+
+          {/* Mode toggle group */}
+          <div className="flex items-center bg-gray-900/60 rounded-md border border-gray-800 overflow-hidden">
+            {([
+              { key: 'view' as MapViewMode, icon: <Eye className="w-3 h-3" />, label: 'View', activeClass: 'text-gray-300 bg-gray-800/40' },
+              { key: 'build' as MapViewMode, icon: <Hammer className="w-3 h-3" />, label: 'Build', activeClass: 'text-amber-400 bg-amber-900/20' },
+              { key: 'route' as MapViewMode, icon: <Route className="w-3 h-3" />, label: 'Route', activeClass: 'text-cyan-400 bg-cyan-900/20' },
+              { key: 'demolish' as MapViewMode, icon: <Trash2 className="w-3 h-3" />, label: 'Demolish', activeClass: 'text-red-400 bg-red-900/20' },
+            ] as const).map(mode => (
+              <TooltipProvider key={mode.key} delayDuration={400}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`h-6 px-1.5 text-[9px] rounded-none ${store.mapViewMode === mode.key ? mode.activeClass : 'text-gray-500 hover:text-gray-300'}`}
+                      onClick={() => store.setMapViewMode(mode.key)}
+                    >
+                      {mode.icon}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-[9px] bg-gray-900 border-gray-700">{mode.label}</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ))}
+          </div>
+
+          {/* Divider */}
+          <div className="w-px h-4 bg-gray-700" />
+
+          {/* Action buttons */}
           <Button variant="outline" size="sm" className="h-6 text-[9px] border-cyan-800/50 text-cyan-400 hover:bg-cyan-900/20" onClick={handleAutoLayout}>
             <Wand2 className="w-3 h-3 mr-1" /> Auto-Layout
           </Button>
-
-          {/* Auto-Arrange button */}
           <Button variant="outline" size="sm" className="h-6 text-[9px] border-purple-800/50 text-purple-400 hover:bg-purple-900/20" onClick={handleAutoArrange}>
             <LayoutGrid className="w-3 h-3 mr-1" /> Auto-Arrange
           </Button>
@@ -1325,7 +1463,7 @@ function GridFactoryView() {
         <div className="flex-1 relative overflow-hidden">
           <div
             ref={scrollContainerRef}
-            className="w-full h-full overflow-auto game-scrollbar rounded-lg border-2 bg-gray-900/50"
+            className="w-full h-full overflow-auto game-scrollbar rounded-lg border-2 bg-gray-900/50 scroll-smooth"
             style={{ borderColor: `${region.color}40` }}
             onWheel={handleWheel}
             onMouseDown={handleMouseDown}
@@ -1337,12 +1475,15 @@ function GridFactoryView() {
             <div
               ref={gridContainerRef}
               className="relative inline-block p-1"
-              style={{ cursor: isPanning ? 'grabbing' : undefined }}
+              style={{
+                cursor: isPanning ? 'grabbing' : spaceHeld ? 'grab' : undefined,
+                transition: 'width 0.15s ease, height 0.15s ease',
+              }}
             >
               {/* Column headers */}
-              <div className="flex" style={{ paddingLeft: labelSize }}>
+              <div className="flex" style={{ paddingLeft: labelSize, transition: 'padding-left 0.15s ease' }}>
                 {Array.from({ length: cols }, (_, c) => (
-                  <div key={`col-${c}`} className="flex items-center justify-center text-[7px] text-gray-600 font-mono" style={{ width: cellSize, height: labelSize }}>
+                  <div key={`col-${c}`} className="flex items-center justify-center text-[7px] text-gray-600 font-mono" style={{ width: cellSize, height: labelSize, transition: 'width 0.15s ease' }}>
                     {colLetter(c)}
                   </div>
                 ))}
@@ -1351,9 +1492,9 @@ function GridFactoryView() {
               {/* Grid with row labels */}
               <div className="flex">
                 {/* Row headers */}
-                <div className="flex flex-col" style={{ width: labelSize }}>
+                <div className="flex flex-col" style={{ width: labelSize, transition: 'width 0.15s ease' }}>
                   {Array.from({ length: rows }, (_, r) => (
-                    <div key={`row-${r}`} className="flex items-center justify-center text-[7px] text-gray-600 font-mono" style={{ height: cellSize }}>
+                    <div key={`row-${r}`} className="flex items-center justify-center text-[7px] text-gray-600 font-mono" style={{ height: cellSize, transition: 'height 0.15s ease' }}>
                       {r}
                     </div>
                   ))}
@@ -1365,6 +1506,7 @@ function GridFactoryView() {
                   style={{
                     gridTemplateColumns: `repeat(${cols}, ${cellSize}px)`,
                     gridTemplateRows: `repeat(${rows}, ${cellSize}px)`,
+                    transition: 'grid-template-columns 0.15s ease, grid-template-rows 0.15s ease',
                   }}
                 >
                   {Array.from({ length: rows }, (_, r) =>
@@ -1512,7 +1654,7 @@ function GridFactoryView() {
             <span className="font-mono" style={{ color: getEffColor(regionEfficiency / 100) }}>{regionEfficiency}%</span> efficiency
           </div>
           <div className="ml-auto text-gray-600">
-            {cols}×{rows} grid • Scroll: Alt+Drag • Zoom: Ctrl+Scroll
+            {cols}×{rows} grid • Pan: Alt+Drag / Space+Drag • Zoom: Ctrl+Scroll / Ctrl+=/-
           </div>
         </div>
       </div>

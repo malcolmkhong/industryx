@@ -97,3 +97,65 @@ Stage Summary:
 - No critical errors or crashes
 - Zoom, pan, minimap all operational
 - Buildings can be placed and viewed correctly
+
+---
+Task ID: 2
+Agent: Main
+Task: Enlarge map grids and auto-place all 66 buildings
+
+Work Log:
+- Updated BUILDING_FOOTPRINTS with new sizing: 1×1 (6 small extractors), 2×2 (17 standard extractors + basic power + T1 factories), 3×3 (15 T2 factories + nuclear), 4×4 (14 T3 factories + fusion), 5×5 (14 T4/endgame/mega + antimatter power)
+- Enlarged grid sizes: grasslands 24×30→30×30, industrial 24×30→25×25, highlands 28×32→25×25, quantum 28×32→20×20, cosmic 30×36→25×25
+- Increased quantum maxBuildingSize from 4 to 5 (allows 5×5 overflow from cosmic)
+- Set all 5 regions to unlocked: true for full building visibility
+- Bumped SAVE_VERSION from 19 to 20
+- Added V19→V20 migration: regenerates grids with new sizes, unlocks all regions, resets building positions, re-assigns via autoAssignBuildingToMap, updates grid occupiedBy, regenerates logistics routes
+- Initialized all 66 building types in createInitialState with:
+  - id: `${type}-starter`, level: 1, placedAt: 0
+  - Active by default (0.8 efficiency): all 10 extractors + coalGenerator, solarPanel, windTurbine
+  - Inactive by default (0 efficiency): all factories + nuclearReactor, fusionReactor, antimatterPowerPlant
+  - All buildings auto-placed on map via autoAssignBuildingToMap during initialization
+  - Logistics routes auto-generated for active buildings with inputs
+
+Stage Summary:
+- All 66 building types now placed on the map at game start
+- Grids enlarged to accommodate larger building footprints
+- All regions unlocked for full map visibility
+- Lint passes clean, compiles successfully
+
+---
+Task ID: 3 (Enhancement)
+Agent: full-stack-developer subagent
+Task: Add Zoom In/Out Functionality to HybridMapPanel
+
+Work Log:
+- Changed baseCellSize from dynamic calculation to fixed 32px (matching spec: default 32px, range 16-64px)
+- Changed ZOOM_MIN from 25% to 50% (spec: 50%-200% range, cellSize 16px-64px)
+- Fixed keyboard shortcuts to use Ctrl/Cmd modifier keys:
+  - Ctrl+= or Ctrl++ to zoom in
+  - Ctrl+- to zoom out
+  - Ctrl+0 to reset zoom
+- Added Space+Drag panning support (space bar held = pan mode with grab cursor)
+- Added handleFitToScreen function that auto-calculates zoom to fit entire grid in viewport
+- Enhanced toolbar with organized button groups separated by dividers:
+  - Zoom controls group: ZoomOut, percentage display (clickable to reset), ZoomIn, Fit-to-Screen button
+  - Layer toggle group: Region / Grid / Logistics overlay icons
+  - Mode toggle group: View / Build / Route / Demolish icons with color-coded active states
+  - Action buttons: Auto-Layout, Auto-Arrange
+- Added tooltips to all toolbar buttons showing keyboard shortcuts
+- Added disabled state to zoom buttons when at min/max zoom
+- Added smooth CSS transitions (0.15s ease) for:
+  - Grid template columns/rows
+  - Column header widths
+  - Row header heights
+  - Grid container size
+- Updated stats bar text to show new shortcuts (Space+Drag, Ctrl+=/-)
+- Replaced separate Routes toggle button with layer group toggle
+- Added scroll-smooth class to scroll container
+
+Stage Summary:
+- Zoom range: 50%-200% (cellSize 16px-64px, default 32px)
+- Keyboard shortcuts: Ctrl+=/-, Ctrl+0, Space+Drag, Alt+Drag, arrow keys
+- Smooth zoom transitions with CSS
+- Organized toolbar with grouped controls and tooltips
+- No lint errors

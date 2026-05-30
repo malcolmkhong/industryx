@@ -26,7 +26,7 @@ import {
 import { soundEngine } from './soundEngine';
 
 // --- Save Version ---
-const SAVE_VERSION = 19;
+const SAVE_VERSION = 20;
 
 // --- Utility Functions ---
 function generateId(): string {
@@ -1012,6 +1012,172 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
     }
   }
 
+  // V19 → V20: Enlarged grids, new building footprints, all 66 buildings auto-placed, all regions unlocked
+  if (version < 20) {
+    // Regenerate all region grids with new larger sizes and unlocked regions
+    const newRegions = INITIAL_REGIONS;
+    const newGrids: Record<string, GridTile[]> = {};
+    for (const region of newRegions) {
+      newGrids[region.id] = generateRegionGrid(region);
+    }
+
+    // Update mapRegions with new grid sizes and unlock all regions
+    if (Array.isArray(state.mapRegions)) {
+      state.mapRegions = newRegions.map(r => ({ ...r, unlocked: true }));
+    } else {
+      state.mapRegions = newRegions.map(r => ({ ...r, unlocked: true }));
+    }
+
+    // Replace grids with new larger ones
+    state.mapGrids = newGrids;
+
+    // Reset all existing building positions and re-assign
+    if (Array.isArray(state.buildings)) {
+      const buildings = state.buildings as BuildingInstance[];
+      const mapRegions = (state.mapRegions || INITIAL_REGIONS) as Region[];
+
+      // Build occupied cells tracker
+      const occupiedCellsMap: Record<string, Set<string>> = {};
+      for (const region of mapRegions) {
+        occupiedCellsMap[region.id] = new Set<string>();
+      }
+
+      // Reset all building positions
+      const updatedBuildings = buildings.map((b: BuildingInstance) => {
+        return { ...b, gridRow: undefined, gridCol: undefined, regionId: undefined };
+      });
+
+      // Auto-assign buildings to regions and grid positions
+      for (const b of updatedBuildings) {
+        const assignment = autoAssignBuildingToMap(b.type, updatedBuildings, mapRegions, newGrids);
+        if (assignment) {
+          const footprint = getBuildingFootprint(b.type);
+          if (!occupiedCellsMap[assignment.regionId]) occupiedCellsMap[assignment.regionId] = new Set<string>();
+          for (let dr = 0; dr < footprint.height; dr++) {
+            for (let dc = 0; dc < footprint.width; dc++) {
+              occupiedCellsMap[assignment.regionId].add(`${assignment.gridRow + dr},${assignment.gridCol + dc}`);
+            }
+          }
+          b.regionId = assignment.regionId;
+          b.gridRow = assignment.gridRow;
+          b.gridCol = assignment.gridCol;
+        }
+      }
+
+      state.buildings = updatedBuildings;
+
+      // Update grid tiles to reflect occupied cells
+      for (const region of mapRegions) {
+        const grid = newGrids[region.id];
+        if (!grid) continue;
+        const regionBuildings = updatedBuildings.filter(
+          (b: BuildingInstance) => b.regionId === region.id && b.gridRow !== undefined && b.gridCol !== undefined
+        );
+        if (regionBuildings.length > 0) {
+          newGrids[region.id] = grid.map(t => {
+            for (const b of regionBuildings) {
+              const footprint = getBuildingFootprint(b.type);
+              if (t.row >= (b.gridRow ?? 0) && t.row < (b.gridRow ?? 0) + footprint.height &&
+                  t.col >= (b.gridCol ?? 0) && t.col < (b.gridCol ?? 0) + footprint.width) {
+                return { ...t, occupiedBy: b.id };
+              }
+            }
+            return t;
+          });
+        }
+      }
+
+      state.mapGrids = newGrids;
+
+      // Re-generate logistics routes
+      const activeBuildings = updatedBuildings.filter((b: BuildingInstance) => b.active);
+      const routes: LogisticsRoute[] = [];
+      const existingRouteKeys = new Set<string>();
+
+      for (const consumer of activeBuildings) {
+        const consumerDef = BUILDING_DEFS[consumer.type];
+        if (!consumerDef?.inputs) continue;
+
+        for (const input of consumerDef.inputs) {
+          if (input.resource === 'money') continue;
+          const resource = input.resource as ResourceType;
+
+          const producers = activeBuildings.filter((b: BuildingInstance) => {
+            const bDef = BUILDING_DEFS[b.type];
+            return bDef?.outputs?.some(o => o.resource === resource);
+          });
+
+          let closestProducer: BuildingInstance | null = null;
+          let closestDist = Infinity;
+
+          for (const producer of producers) {
+            if (producer.id === consumer.id) continue;
+            const routeKey = `${producer.id}->${consumer.id}:${resource}`;
+            if (existingRouteKeys.has(routeKey)) continue;
+
+            const sameRegion = producer.regionId === consumer.regionId && producer.regionId !== undefined;
+            let dist: number;
+            if (sameRegion) {
+              dist = Math.abs((producer.gridRow ?? 0) - (consumer.gridRow ?? 0)) +
+                     Math.abs((producer.gridCol ?? 0) - (consumer.gridCol ?? 0));
+            } else {
+              dist = 100;
+            }
+
+            if (dist < closestDist) {
+              closestDist = dist;
+              closestProducer = producer;
+            }
+          }
+
+          if (closestProducer) {
+            const sameRegion = closestProducer.regionId === consumer.regionId && consumer.regionId !== undefined;
+            let routeType: LogisticsRoute['routeType'];
+            let efficiency: number;
+
+            if (!sameRegion) {
+              routeType = 'drone';
+              efficiency = 0.5;
+            } else if (closestDist <= 3) {
+              routeType = 'conveyor';
+              efficiency = Math.max(0.3, 1 - closestDist * 0.05);
+            } else if (closestDist <= 8) {
+              routeType = 'truck';
+              efficiency = Math.max(0.3, 1 - closestDist * 0.05);
+            } else if (closestDist <= 15) {
+              routeType = 'train';
+              efficiency = Math.max(0.3, 1 - closestDist * 0.05);
+            } else {
+              routeType = 'drone';
+              efficiency = Math.max(0.3, 1 - closestDist * 0.05);
+            }
+
+            const producerDef = BUILDING_DEFS[closestProducer.type];
+            const outputEntry = producerDef?.outputs?.find(o => o.resource === resource);
+            const outputRate = outputEntry ? outputEntry.amount * (producerDef?.baseProductionRate ?? 1) : 1;
+
+            const routeKey = `${closestProducer.id}->${consumer.id}:${resource}`;
+            existingRouteKeys.add(routeKey);
+
+            routes.push({
+              id: Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
+              fromBuildingId: closestProducer.id,
+              toBuildingId: consumer.id,
+              carriesResource: resource,
+              throughput: outputRate * efficiency,
+              maxThroughput: outputRate * 2,
+              efficiency,
+              active: true,
+              routeType,
+            });
+          }
+        }
+      }
+
+      state.logisticsRoutes = routes;
+    }
+  }
+
   state._version = SAVE_VERSION;
   return state;
 }
@@ -1046,6 +1212,168 @@ const initialCapacity: Record<ResourceType, number> = {
 };
 
 function createInitialState(): GameState {
+  // Build all 66 building instances
+  const allBuildingTypes = Object.keys(BUILDING_DEFS) as BuildingType[];
+
+  // Buildings that are active by default (no inputs needed)
+  const activeByDefaultTypes = new Set<string>([
+    // Extractors - produce on their own
+    'miningDrill', 'oilPump', 'waterExtractor', 'quarry', 'clayPit', 'limestoneQuarry',
+    'gravelPit', 'bauxiteMine', 'wolframiteMine', 'rareEarthExtractor',
+    // Basic power plants - produce on their own
+    'coalGenerator', 'solarPanel', 'windTurbine',
+  ]);
+
+  const initialBuildings: BuildingInstance[] = allBuildingTypes.map(type => {
+    const isActive = activeByDefaultTypes.has(type);
+    return {
+      id: `${type}-starter`,
+      type,
+      level: 1,
+      active: isActive,
+      efficiency: isActive ? 0.8 : 0,
+      placedAt: 0,
+      gridRow: undefined as number | undefined,
+      gridCol: undefined as number | undefined,
+      regionId: undefined as string | undefined,
+    };
+  });
+
+  // Generate region grids
+  const mapRegions = INITIAL_REGIONS.map(r => ({ ...r }));
+  const mapGrids: Record<string, GridTile[]> = {};
+  for (const region of INITIAL_REGIONS) {
+    mapGrids[region.id] = generateRegionGrid(region);
+  }
+
+  // Auto-assign all buildings to the map
+  const occupiedCellsMap: Record<string, Set<string>> = {};
+  for (const region of mapRegions) {
+    occupiedCellsMap[region.id] = new Set<string>();
+  }
+
+  for (const b of initialBuildings) {
+    const assignment = autoAssignBuildingToMap(b.type, initialBuildings, mapRegions, mapGrids);
+    if (assignment) {
+      const footprint = getBuildingFootprint(b.type);
+      if (!occupiedCellsMap[assignment.regionId]) occupiedCellsMap[assignment.regionId] = new Set<string>();
+      for (let dr = 0; dr < footprint.height; dr++) {
+        for (let dc = 0; dc < footprint.width; dc++) {
+          occupiedCellsMap[assignment.regionId].add(`${assignment.gridRow + dr},${assignment.gridCol + dc}`);
+        }
+      }
+      b.regionId = assignment.regionId;
+      b.gridRow = assignment.gridRow;
+      b.gridCol = assignment.gridCol;
+    }
+  }
+
+  // Update grid tiles to reflect occupied cells
+  for (const region of mapRegions) {
+    const grid = mapGrids[region.id];
+    if (!grid) continue;
+    const regionBuildings = initialBuildings.filter(
+      b => b.regionId === region.id && b.gridRow !== undefined && b.gridCol !== undefined
+    );
+    if (regionBuildings.length > 0) {
+      mapGrids[region.id] = grid.map(t => {
+        for (const b of regionBuildings) {
+          const footprint = getBuildingFootprint(b.type);
+          if (t.row >= (b.gridRow ?? 0) && t.row < (b.gridRow ?? 0) + footprint.height &&
+              t.col >= (b.gridCol ?? 0) && t.col < (b.gridCol ?? 0) + footprint.width) {
+            return { ...t, occupiedBy: b.id };
+          }
+        }
+        return t;
+      });
+    }
+  }
+
+  // Generate logistics routes for active buildings
+  const activeBuildings = initialBuildings.filter(b => b.active);
+  const logisticsRoutes: LogisticsRoute[] = [];
+  const existingRouteKeys = new Set<string>();
+
+  for (const consumer of activeBuildings) {
+    const consumerDef = BUILDING_DEFS[consumer.type];
+    if (!consumerDef?.inputs) continue;
+
+    for (const input of consumerDef.inputs) {
+      if (input.resource === 'money') continue;
+      const resource = input.resource as ResourceType;
+
+      const producers = activeBuildings.filter(b => {
+        const bDef = BUILDING_DEFS[b.type];
+        return bDef?.outputs?.some(o => o.resource === resource);
+      });
+
+      let closestProducer: BuildingInstance | null = null;
+      let closestDist = Infinity;
+
+      for (const producer of producers) {
+        if (producer.id === consumer.id) continue;
+        const routeKey = `${producer.id}->${consumer.id}:${resource}`;
+        if (existingRouteKeys.has(routeKey)) continue;
+
+        const sameRegion = producer.regionId === consumer.regionId && producer.regionId !== undefined;
+        let dist: number;
+        if (sameRegion) {
+          dist = Math.abs((producer.gridRow ?? 0) - (consumer.gridRow ?? 0)) +
+                 Math.abs((producer.gridCol ?? 0) - (consumer.gridCol ?? 0));
+        } else {
+          dist = 100;
+        }
+
+        if (dist < closestDist) {
+          closestDist = dist;
+          closestProducer = producer;
+        }
+      }
+
+      if (closestProducer) {
+        const sameRegion = closestProducer.regionId === consumer.regionId && consumer.regionId !== undefined;
+        let routeType: LogisticsRoute['routeType'];
+        let efficiency: number;
+
+        if (!sameRegion) {
+          routeType = 'drone';
+          efficiency = 0.5;
+        } else if (closestDist <= 3) {
+          routeType = 'conveyor';
+          efficiency = Math.max(0.3, 1 - closestDist * 0.05);
+        } else if (closestDist <= 8) {
+          routeType = 'truck';
+          efficiency = Math.max(0.3, 1 - closestDist * 0.05);
+        } else if (closestDist <= 15) {
+          routeType = 'train';
+          efficiency = Math.max(0.3, 1 - closestDist * 0.05);
+        } else {
+          routeType = 'drone';
+          efficiency = Math.max(0.3, 1 - closestDist * 0.05);
+        }
+
+        const producerDef = BUILDING_DEFS[closestProducer.type];
+        const outputEntry = producerDef?.outputs?.find(o => o.resource === resource);
+        const outputRate = outputEntry ? outputEntry.amount * (producerDef?.baseProductionRate ?? 1) : 1;
+
+        const routeKey = `${closestProducer.id}->${consumer.id}:${resource}`;
+        existingRouteKeys.add(routeKey);
+
+        logisticsRoutes.push({
+          id: Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
+          fromBuildingId: closestProducer.id,
+          toBuildingId: consumer.id,
+          carriesResource: resource,
+          throughput: outputRate * efficiency,
+          maxThroughput: outputRate * 2,
+          efficiency,
+          active: true,
+          routeType,
+        });
+      }
+    }
+  }
+
   return {
     money: 1000,
     totalMoneyEarned: 0,
@@ -1054,7 +1382,7 @@ function createInitialState(): GameState {
     paused: false,
     resources: { ...initialResources },
     resourceCapacity: { ...initialCapacity },
-    buildings: [],
+    buildings: initialBuildings,
     transportLines: [],
     powerGrid: { totalProduction: 0, totalConsumption: 0, efficiency: 1, overload: false, plants: [] },
     researchPoints: 0,
@@ -1131,18 +1459,9 @@ function createInitialState(): GameState {
     selectedBuilding: null,
     notifications: [],
     // Map System (Hybrid Grid + Logistics + Region)
-    mapRegions: INITIAL_REGIONS.map(r => {
-      const grid = generateRegionGrid(r);
-      return { ...r };
-    }),
-    mapGrids: (() => {
-      const grids: Record<string, GridTile[]> = {};
-      INITIAL_REGIONS.forEach(r => {
-        grids[r.id] = generateRegionGrid(r);
-      });
-      return grids;
-    })(),
-    logisticsRoutes: [],
+    mapRegions: mapRegions,
+    mapGrids: mapGrids,
+    logisticsRoutes: logisticsRoutes,
     activeRegion: 'grasslands' as RegionId,
     mapViewLayer: 'region' as MapViewLayer,
     mapViewMode: 'view' as MapViewMode,
