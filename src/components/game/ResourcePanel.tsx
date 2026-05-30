@@ -10,9 +10,9 @@ import {
   Pickaxe, ChevronUp, Power, PowerOff, Hammer, ArrowRight,
   Package, TrendingUp, Zap, Clock, Lock, Layers, Droplets,
   Mountain, Drill, Container, Warehouse, ArrowDownToLine,
-  ArrowUpFromLine, Workflow, Gauge, X,
+  ArrowUpFromLine, Workflow, Gauge, X, Wrench,
 } from 'lucide-react';
-import { ResourceType, ExtractorType } from '@/lib/game/types';
+import { ResourceType, ExtractorType, getConditionColor } from '@/lib/game/types';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
 
@@ -780,11 +780,12 @@ export function ResourcePanel() {
                             <div className="flex items-center gap-2">
                               {/* Toggle + Emoji */}
                               <button
-                                onClick={() => handleToggle(building.id)}
+                                onClick={() => { if ((building.condition ?? 100) > 0) handleToggle(building.id); }}
+                                disabled={(building.condition ?? 100) <= 0}
                                 className={`text-base transition-transform duration-200 hover:scale-110 flex-shrink-0 ${
-                                  building.active ? 'opacity-100' : 'grayscale opacity-50'
+                                  (building.condition ?? 100) <= 0 ? 'opacity-30 cursor-not-allowed' : building.active ? 'opacity-100' : 'grayscale opacity-50'
                                 }`}
-                                title={building.active ? 'Click to disable' : 'Click to enable'}
+                                title={(building.condition ?? 100) <= 0 ? 'Broken! Repair first' : building.active ? 'Click to disable' : 'Click to enable'}
                               >
                                 {def.emoji}
                               </button>
@@ -849,15 +850,38 @@ export function ResourcePanel() {
                               {/* Upgrade + Toggle - compact */}
                               <div className="flex flex-col items-end gap-1 flex-shrink-0">
                                 <button
-                                  onClick={() => handleToggle(building.id)}
+                                  onClick={() => { if ((building.condition ?? 100) > 0) handleToggle(building.id); }}
+                                  disabled={(building.condition ?? 100) <= 0}
                                   className={`w-6 h-6 rounded-full flex items-center justify-center border transition-all ${
-                                    building.active
-                                      ? 'border-green-500/50 bg-green-900/20 text-green-400'
-                                      : 'border-gray-700 bg-gray-800 text-gray-500'
+                                    (building.condition ?? 100) <= 0
+                                      ? 'border-red-500/30 bg-red-900/20 text-red-400 cursor-not-allowed'
+                                      : building.active
+                                        ? 'border-green-500/50 bg-green-900/20 text-green-400'
+                                        : 'border-gray-700 bg-gray-800 text-gray-500'
                                   }`}
+                                  title={(building.condition ?? 100) <= 0 ? 'Broken! Repair first' : building.active ? 'Disable' : 'Enable'}
                                 >
-                                  {building.active ? <Power className="w-3 h-3" /> : <PowerOff className="w-3 h-3" />}
+                                  {(building.condition ?? 100) <= 0 ? <span className="text-[8px]">💀</span> : building.active ? <Power className="w-3 h-3" /> : <PowerOff className="w-3 h-3" />}
                                 </button>
+                                {/* Repair button when damaged */}
+                                {(building.condition ?? 100) < 100 && (() => {
+                                  const bDef = BUILDING_DEFS[building.type];
+                                  const baseCost = bDef?.baseCost.find(c => c.resource === 'money')?.amount ?? 100;
+                                  const rCost = Math.max(1, Math.floor(baseCost * (100 - (building.condition ?? 100)) / 100 * building.level));
+                                  const canR = store.money >= rCost;
+                                  return (
+                                    <button
+                                      onClick={() => store.repairBuilding(building.id)}
+                                      disabled={!canR}
+                                      className={`w-6 h-6 rounded-full flex items-center justify-center border transition-all ${
+                                        canR ? 'border-orange-500/50 bg-orange-900/20 text-orange-400 hover:bg-orange-800/30' : 'border-gray-700 bg-gray-800 text-gray-500 cursor-not-allowed'
+                                      }`}
+                                      title={canR ? `Repair $${formatNumber(rCost)}` : `Need $${formatNumber(rCost)}`}
+                                    >
+                                      <Wrench className="w-3 h-3" />
+                                    </button>
+                                  );
+                                })()}
                                 <Button
                                   variant="outline"
                                   size="sm"

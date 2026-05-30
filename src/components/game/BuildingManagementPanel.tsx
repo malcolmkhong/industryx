@@ -1133,11 +1133,16 @@ export function BuildingManagementPanel() {
             Go to Building on Map
           </Button>
           <Button
-            className="w-full h-9 text-xs bg-gray-800/40 hover:bg-gray-700/50 text-gray-300 border border-gray-600/30"
+            className={`w-full h-9 text-xs border ${
+              (b.condition ?? 100) <= 0 && !b.active
+                ? 'bg-red-900/20 text-red-400 border-red-500/30 cursor-not-allowed opacity-60'
+                : 'bg-gray-800/40 hover:bg-gray-700/50 text-gray-300 border-gray-600/30'
+            }`}
             onClick={() => store.toggleBuilding(b.id)}
+            disabled={(b.condition ?? 100) <= 0 && !b.active}
           >
-            {b.active ? <XCircle className="w-3.5 h-3.5 mr-1" /> : <CheckCircle2 className="w-3.5 h-3.5 mr-1" />}
-            {b.active ? 'Deactivate' : 'Activate'}
+            {(b.condition ?? 100) <= 0 && !b.active ? <XCircle className="w-3.5 h-3.5 mr-1" /> : b.active ? <XCircle className="w-3.5 h-3.5 mr-1" /> : <CheckCircle2 className="w-3.5 h-3.5 mr-1" />}
+            {(b.condition ?? 100) <= 0 && !b.active ? 'Broken — Repair First' : b.active ? 'Deactivate' : 'Activate'}
           </Button>
         </div>
       </div>

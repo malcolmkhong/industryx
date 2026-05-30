@@ -12,9 +12,9 @@ import {
   Brain, ArrowDownToLine,
   ArrowUpFromLine, Package, Workflow,
   Gauge, Box,
-  Pickaxe, Sparkles, X, Search,
+  Pickaxe, Sparkles, X, Search, Wrench,
 } from 'lucide-react';
-import { FactoryType, ResourceType } from '@/lib/game/types';
+import { FactoryType, ResourceType, getConditionStatus, getConditionColor } from '@/lib/game/types';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
 
@@ -214,6 +214,15 @@ export function FactoryPanel() {
   // Factory overview stats
   const totalFactories = factoryBuildings.length;
   const activeFactories = factoryBuildings.filter(b => b.active).length;
+  const brokenFactories = factoryBuildings.filter(b => (b.condition ?? 100) <= 0).length;
+  const damagedFactories = factoryBuildings.filter(b => (b.condition ?? 100) < 100 && (b.condition ?? 100) > 0).length;
+  const totalRepairCost = factoryBuildings.reduce((sum, b) => {
+    const condition = b.condition ?? 100;
+    if (condition >= 100) return sum;
+    const def = BUILDING_DEFS[b.type];
+    const baseCost = def?.baseCost.find(c => c.resource === 'money')?.amount ?? 100;
+    return sum + Math.max(1, Math.floor(baseCost * (100 - condition) / 100 * b.level));
+  }, 0);
   const totalPowerConsumption = factoryBuildings
     .filter(b => b.active)
     .reduce((sum, b) => sum + BUILDING_DEFS[b.type].basePowerConsumption * b.level, 0);
@@ -348,6 +357,44 @@ export function FactoryPanel() {
           color="purple"
         />
       </div>
+
+      {/* BROKEN / DAMAGED BUILDING ALERT */}
+      {(brokenFactories > 0 || damagedFactories > 0) && (
+        <div className={`rounded-lg p-3 border flex items-center justify-between gap-3 ${
+          brokenFactories > 0
+            ? 'bg-red-900/20 border-red-500/30'
+            : 'bg-yellow-900/20 border-yellow-500/30'
+        }`}>
+          <div className="flex items-center gap-2">
+            <span className="text-sm">{brokenFactories > 0 ? '💥' : '⚠️'}</span>
+            <div>
+              <span className={`text-xs font-semibold ${brokenFactories > 0 ? 'text-red-400' : 'text-yellow-400'}`}>
+                {brokenFactories > 0
+                  ? `${brokenFactories} factory${brokenFactories > 1 ? 'ies' : 'y'} broken!`
+                  : `${damagedFactories} factor${damagedFactories > 1 ? 'ies need' : 'y needs'} maintenance`}
+              </span>
+              {totalRepairCost > 0 && (
+                <span className="text-[10px] text-gray-400 ml-2">
+                  Repair cost: ${formatNumber(totalRepairCost)}
+                </span>
+              )}
+            </div>
+          </div>
+          <Button
+            size="sm"
+            className={`h-7 text-[10px] ${
+              brokenFactories > 0
+                ? 'bg-red-900/40 hover:bg-red-800/50 text-red-400 border border-red-500/30'
+                : 'bg-orange-900/40 hover:bg-orange-800/50 text-orange-400 border border-orange-500/30'
+            }`}
+            onClick={() => store.repairAllBuildings()}
+            disabled={store.money < totalRepairCost}
+          >
+            <Wrench className="w-3 h-3 mr-1" />
+            Repair All (${formatNumber(totalRepairCost)})
+          </Button>
+        </div>
+      )}
 
       {/* PRODUCTION FLOW DIAGRAM - HERO SECTION */}
       <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
@@ -848,6 +895,13 @@ export function FactoryPanel() {
                             }))
                           : [];
                         const eff = building.efficiency * store.powerGrid.efficiency;
+                        const isBroken = (building.condition ?? 100) <= 0;
+                        const condition = building.condition ?? 100;
+                        const conditionStatus = getConditionStatus(condition);
+                        const conditionColor = getConditionColor(condition);
+                        const baseRepairCost = def.baseCost.find(c => c.resource === 'money')?.amount ?? 100;
+                        const repairCost = condition >= 100 ? 0 : Math.max(1, Math.floor(baseRepairCost * (100 - condition) / 100 * building.level));
+                        const canRepair = store.money >= repairCost && condition < 100;
 
                         return (
                           <motion.div
@@ -859,19 +913,22 @@ export function FactoryPanel() {
                             } ${
                               recentlyUpgraded.has(building.id) ? 'upgrade-flash' : ''
                             } ${
-                              building.active
-                                ? `${currentColorClasses.border}`
-                                : 'border-gray-800 opacity-60'
+                              isBroken
+                                ? 'border-red-900/50'
+                                : building.active
+                                  ? `${currentColorClasses.border}`
+                                  : 'border-gray-800 opacity-60'
                             }`}
                           >
                             <div className="flex items-center gap-2">
                               {/* Toggle + Emoji */}
                               <button
-                                onClick={() => handleToggle(building.id)}
+                                onClick={() => !isBroken && handleToggle(building.id)}
+                                disabled={isBroken}
                                 className={`text-base transition-transform duration-200 hover:scale-110 flex-shrink-0 ${
-                                  building.active ? 'opacity-100' : 'grayscale opacity-50'
+                                  isBroken ? 'opacity-30 cursor-not-allowed' : building.active ? 'opacity-100' : 'grayscale opacity-50'
                                 }`}
-                                title={building.active ? 'Click to disable' : 'Click to enable'}
+                                title={isBroken ? 'Broken! Repair first' : building.active ? 'Click to disable' : 'Click to enable'}
                               >
                                 {def.emoji}
                               </button>
@@ -883,7 +940,12 @@ export function FactoryPanel() {
                                   <Badge variant="outline" className={`text-[8px] ${currentColorClasses.badge} ${currentColorClasses.text} px-1 py-0`}>
                                     Lv.{building.level}
                                   </Badge>
-                                  {!building.active && (
+                                  {isBroken && (
+                                    <Badge variant="outline" className="text-[8px] border-red-500/50 text-red-400 bg-red-900/30 px-1 py-0 animate-pulse">
+                                      BROKEN
+                                    </Badge>
+                                  )}
+                                  {!building.active && !isBroken && (
                                     <Badge variant="outline" className="text-[8px] border-gray-600 text-gray-500 px-1 py-0">
                                       OFF
                                     </Badge>
@@ -936,20 +998,55 @@ export function FactoryPanel() {
                                     {(eff * 100).toFixed(0)}%
                                   </span>
                                 </div>
+
+                                {/* Condition bar - only show if damaged */}
+                                {condition < 95 && (
+                                  <div className="flex items-center gap-1.5 mt-0.5">
+                                    <span className="text-[8px] text-gray-500">HP</span>
+                                    <div className="flex-1 h-1 bg-gray-800 rounded-full overflow-hidden">
+                                      <div
+                                        className="h-full rounded-full transition-all duration-300"
+                                        style={{ width: `${Math.max(1, condition)}%`, backgroundColor: conditionColor }}
+                                      />
+                                    </div>
+                                    <span className="text-[8px] font-mono" style={{ color: conditionColor }}>
+                                      {Math.round(condition)}%
+                                    </span>
+                                  </div>
+                                )}
                               </div>
 
-                              {/* Upgrade + Toggle - compact */}
+                              {/* Upgrade + Toggle + Repair - compact */}
                               <div className="flex flex-col items-end gap-1 flex-shrink-0">
                                 <button
-                                  onClick={() => handleToggle(building.id)}
+                                  onClick={() => !isBroken && handleToggle(building.id)}
+                                  disabled={isBroken}
                                   className={`w-6 h-6 rounded-full flex items-center justify-center border transition-all ${
-                                    building.active
-                                      ? 'border-green-500/50 bg-green-900/20 text-green-400'
-                                      : 'border-gray-700 bg-gray-800 text-gray-500'
+                                    isBroken
+                                      ? 'border-red-500/30 bg-red-900/20 text-red-400 cursor-not-allowed'
+                                      : building.active
+                                        ? 'border-green-500/50 bg-green-900/20 text-green-400'
+                                        : 'border-gray-700 bg-gray-800 text-gray-500'
                                   }`}
+                                  title={isBroken ? 'Broken! Repair first' : building.active ? 'Disable' : 'Enable'}
                                 >
-                                  {building.active ? <Power className="w-3 h-3" /> : <PowerOff className="w-3 h-3" />}
+                                  {isBroken ? <span className="text-[8px]">💀</span> : building.active ? <Power className="w-3 h-3" /> : <PowerOff className="w-3 h-3" />}
                                 </button>
+                                {/* Repair button - only show when damaged */}
+                                {condition < 100 && (
+                                  <button
+                                    onClick={() => store.repairBuilding(building.id)}
+                                    disabled={!canRepair}
+                                    className={`w-6 h-6 rounded-full flex items-center justify-center border transition-all ${
+                                      canRepair
+                                        ? 'border-orange-500/50 bg-orange-900/20 text-orange-400 hover:bg-orange-800/30'
+                                        : 'border-gray-700 bg-gray-800 text-gray-500 cursor-not-allowed'
+                                    }`}
+                                    title={canRepair ? `Repair for $${formatNumber(repairCost)}` : `Need $${formatNumber(repairCost)} to repair`}
+                                  >
+                                    <Wrench className="w-3 h-3" />
+                                  </button>
+                                )}
                                 <Button
                                   variant="outline"
                                   size="sm"

@@ -2880,6 +2880,13 @@ export const useGameStore = create<GameStore>()(
         const building = state.buildings.find(b => b.id === id);
         if (!building) return;
         const def = BUILDING_DEFS[building.type];
+
+        // Prevent enabling broken buildings (condition <= 0) — must repair first
+        if (building.condition <= 0 && !building.active) {
+          get().addNotification('warning', `⚡ ${def?.name ?? 'Building'} is broken! Repair it first before enabling.`);
+          return;
+        }
+
         const newActive = !building.active;
         const newBuildings = state.buildings.map(b =>
           b.id === id ? { ...b, active: newActive } : b
