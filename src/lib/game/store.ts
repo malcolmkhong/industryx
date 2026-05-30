@@ -1089,6 +1089,7 @@ export const useGameStore = create<GameStore>()(
           }
         });
 
+        let moneyEarned = 0;
         let autoFulfillCP = 0;
         const autoFulfill = state.automationUnlocks.find(a => a.type === 'autoTrading' && a.active);
         if (autoFulfill) {
@@ -1238,7 +1239,6 @@ export const useGameStore = create<GameStore>()(
         }
 
         // Passive income from selling excess (if auto-trading is on)
-        let moneyEarned = 0;
         if (autoFulfill) {
           (Object.keys(newResources) as ResourceType[]).forEach(r => {
             const excess = newResources[r] - getCapacity(state, r) * 0.8;
