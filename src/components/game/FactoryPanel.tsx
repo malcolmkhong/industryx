@@ -359,6 +359,23 @@ export function FactoryPanel() {
       </div>
 
       {/* BROKEN / DAMAGED BUILDING ALERT */}
+      {store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption > 0 && (
+        <div className="rounded-lg p-3 border bg-red-900/20 border-red-500/30 flex items-center gap-3">
+          <Zap className="w-5 h-5 text-red-400 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-red-400">Power Grid Failure</p>
+            <p className="text-[10px] text-red-300/80">Factories cannot run without power. Check the Power Grid tab for diagnostics.</p>
+          </div>
+          <Button
+            size="sm"
+            className="h-7 text-[10px] bg-red-900/40 hover:bg-red-800/50 text-red-400 border border-red-500/30 shrink-0"
+            onClick={() => store.setActiveTab('power')}
+          >
+            <Zap className="w-2.5 h-2.5 mr-1" />
+            Power Grid
+          </Button>
+        </div>
+      )}
       {(brokenFactories > 0 || damagedFactories > 0) && (
         <div className={`rounded-lg p-3 border flex items-center justify-between gap-3 ${
           brokenFactories > 0

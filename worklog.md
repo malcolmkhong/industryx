@@ -338,3 +338,94 @@ Stage Summary:
 - V22→V23 migration ensures existing corrupted saves are repaired on load
 - Runtime safety check prevents future invalid condition values
 - Building condition, status, repair, and UI reporting systems are now fully synchronized
+
+---
+Task ID: 3+4
+Agent: bugfix-agent
+Task: Fix critical power system bug — buildings active but generating ZERO power
+
+Root Cause:
+- Power buildings (solar panels, wind turbines, nuclear reactors) start with `active: false` and `efficiency: 0`
+- Toggling them ON only sets `active: true` but leaves `efficiency: 0`
+- Power production = `basePowerProduction * level * efficiency`, so efficiency=0 → production=0
+
+Work Log:
+- **Fix 1** (toggleBuilding, line ~2911): Changed `toggleBuilding` to set `efficiency: 1` when enabling a building that has zero/null/invalid efficiency. Previously only `active` was toggled; now both `active` and `efficiency` are corrected.
+- **Fix 2** (tick function, line ~2016): Added a `map` pass after the "Force broken buildings inactive" block that fixes any active buildings with zero/null/invalid efficiency by setting efficiency to 1. This catches buildings that somehow still have efficiency=0 after being toggled on (e.g., from initial state before Fix 1 was deployed).
+- **Fix 3** (V23→V24 migration): Added save migration that sets efficiency=1 for any active building with null/undefined/NaN/zero efficiency on load. Ensures existing saves with corrupted efficiency data are repaired.
+- **Fix 4** (SAVE_VERSION): Updated from 23 to 24.
+- **Fix 5** (tick power grid calc, line ~1691): Changed `b.efficiency` to `(b.efficiency > 0 ? b.efficiency : 1)` in power production calculation. Belt-and-suspenders defense: even if efficiency somehow stays 0, power production uses 1 as fallback.
+- **Fix 6** (toggleBuilding power grid recalc, line ~2926): Same defensive fix as Fix 5, applied to the immediate power grid recalculation in toggleBuilding.
+
+Stage Summary:
+- Critical power production bug fixed with 6 targeted edits across store.ts
+- Three layers of defense: toggle-time fix, tick-time fix, and power calculation fallback
+- Save migration V23→V24 repairs existing corrupted saves on load
+- Lint passes cleanly with no errors or warnings
+- Dev server compiles without errors
+
+---
+Task ID: 5
+Agent: power-panel-enhancer
+Task: Enhance PowerPanel with clear status indicators for why power buildings may not be generating
+
+Work Log:
+- **Fix 1** (line 100): Changed `b.efficiency` to `(b.efficiency > 0 ? b.efficiency : 1)` in productionByType calculation, preventing zero-efficiency from causing zero production
+- **Fix 2** (line 134): Changed `b.efficiency` to `(b.efficiency > 0 ? b.efficiency : 1)` in totalRealConsumption calculation, same defensive fallback for consumption
+- **Fix 3** (line 766): Changed `plant.efficiency` to `(plant.efficiency > 0 ? plant.efficiency : 1)` in actualProduction for individual plant cards
+- **Fix 4** (after line 767): Added zero-efficiency safety net — when an active plant has null/zero efficiency, sets `productionNote = 'No output (eff=0)'` and `isDerated = true` for visual feedback
+- **Fix 5** (before Power History Mini-Chart): Added comprehensive "Power Generation Diagnostics" section with:
+  - Per-plant-type status indicators: generating, offline, no_instances, low_output, broken, low_fuel
+  - Visual color-coding and status labels explaining why production may be zero
+  - Mini output bars showing actual vs max production ratio
+  - Summary diagnostic for "Power Generation Failure" (0 MW production with demand) with actionable advice
+  - Summary diagnostic for "Getting Started" (no production, no demand) with guidance
+- Lint passes cleanly with no errors or warnings
+- Dev server compiles without errors
+
+Stage Summary:
+- Enhanced PowerPanel with 5 targeted edits for power generation diagnostics
+- Three efficiency fallback fixes prevent zero-efficiency from causing zero calculations
+- New diagnostics section provides clear, actionable status for each power plant type
+- Visual indicators (color-coded rows, progress bars, summary alerts) help users understand and fix power issues
+- File modified: src/components/game/PowerPanel.tsx
+
+---
+Task ID: 7-8
+Agent: main
+Task: Fix power generation system - buildings active but producing zero power, add status indicators
+
+Root Cause Analysis:
+- Buildings that start inactive have `efficiency: 0`
+- When toggled ON, `toggleBuilding` only sets `active: true` — does NOT update `efficiency`
+- Power production = `basePowerProduction * level * efficiency` — with efficiency=0, production is always 0
+- The tick function calculates a local `efficiency` variable but never writes it back to building instances
+- This affects ALL non-default-active buildings including Nuclear Reactor, Fusion Reactor, Antimatter Power Plant
+
+Work Log:
+- Investigated power generation logic in store.ts tick function (lines 1683-1717)
+- Identified that `b.efficiency` being 0 zeroes out all power production
+- Fixed toggleBuilding to set `efficiency: 1` when enabling a building with zero/invalid efficiency
+- Added tick-time safety check to fix active buildings with zero efficiency
+- Added V23→V24 migration to repair existing saves with zero-efficiency active buildings
+- Updated SAVE_VERSION from 23 to 24
+- Added defensive fallback `(b.efficiency > 0 ? b.efficiency : 1)` in power grid calculations
+- Added "Power Generation Diagnostics" section to PowerPanel with per-plant-type status indicators:
+  - 6 status states: generating, offline, no_instances, low_output, broken, low_fuel
+  - Color-coded backgrounds and descriptive labels
+  - Mini output progress bars
+  - "Power Generation Failure" summary alert when production=0 but demand>0
+  - "Getting Started" guidance when no grid exists
+- Added power failure alert to DashboardPanel with diagnostic breakdown
+- Added power failure alert to FactoryPanel with link to Power Grid tab
+- Fixed efficiency fallback in PowerPanel's productionByType, totalRealConsumption, and actualProduction calculations
+- Added zero-efficiency safety net in PowerPanel individual plant cards
+- All fixes verified with agent-browser: Power panel shows correct generation, diagnostics work
+
+Stage Summary:
+- Core bug fixed: inactive buildings toggled on now get efficiency=1 instead of staying at 0
+- Three layers of defense: toggle-time, tick-time, calculation-time fallbacks
+- V23→V24 migration repairs existing corrupted saves
+- Power Generation Diagnostics section provides clear per-plant-type status indicators
+- Dashboard and Factory panels show alerts when power generation fails
+- Power system now fully functional: Coal Generator=16MW, Solar=~3.7MW, Wind=~9.2MW

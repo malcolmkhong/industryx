@@ -455,6 +455,32 @@ export function DashboardPanel() {
                 </div>
               </div>
             </div>
+            {/* Power Generation Failure Alert */}
+            {store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption > 0 && (() => {
+              const activePlants = store.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power' && b.active);
+              const brokenPlants = store.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power' && safeCondition(b.condition) <= 0);
+              const offlinePlants = store.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power' && !b.active && safeCondition(b.condition) > 0);
+              return (
+                <div className="mt-2 p-2.5 rounded-lg bg-red-900/20 border border-red-500/30">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+                    <span className="text-[10px] font-bold text-red-400">POWER GENERATION FAILURE</span>
+                  </div>
+                  <div className="text-[9px] text-red-300/80 space-y-0.5">
+                    {activePlants.length > 0 && <p>⚡ {activePlants.length} plant(s) active but producing 0 MW — efficiency may be zero</p>}
+                    {brokenPlants.length > 0 && <p>💀 {brokenPlants.length} plant(s) broken — repair required</p>}
+                    {offlinePlants.length > 0 && <p>🔌 {offlinePlants.length} plant(s) offline — enable to generate power</p>}
+                  </div>
+                  <Button
+                    className="mt-1.5 h-6 text-[9px] bg-red-900/40 hover:bg-red-800/50 text-red-400 border border-red-500/30"
+                    onClick={() => store.setActiveTab('power')}
+                  >
+                    <Zap className="w-2.5 h-2.5 mr-1" />
+                    Diagnose in Power Grid
+                  </Button>
+                </div>
+              );
+            })()}
             </>
             )}
           </div>

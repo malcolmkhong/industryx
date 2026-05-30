@@ -28,7 +28,7 @@ import {
 import { soundEngine } from './soundEngine';
 
 // --- Save Version ---
-const SAVE_VERSION = 23;
+const SAVE_VERSION = 24;
 
 // --- Utility Functions ---
 function generateId(): string {
@@ -1214,6 +1214,17 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
     }
   }
 
+  // V23 → V24: Fix buildings with zero efficiency that are active
+  if (version < 24) {
+    if (Array.isArray(state.buildings)) {
+      state.buildings = (state.buildings as BuildingInstance[]).map((b: BuildingInstance) => ({
+        ...b,
+        // Active buildings with zero/null efficiency get set to 1
+        efficiency: b.active && (b.efficiency == null || !Number.isFinite(b.efficiency) || b.efficiency <= 0) ? 1 : b.efficiency,
+      }));
+    }
+  }
+
   state._version = SAVE_VERSION;
   return state;
 }
@@ -1688,7 +1699,7 @@ export const useGameStore = create<GameStore>()(
         powerBuildings.forEach(b => {
           const def = BUILDING_DEFS[b.type];
           if (!def) return;
-          let production = def.basePowerProduction * b.level * b.efficiency;
+          let production = def.basePowerProduction * b.level * (b.efficiency > 0 ? b.efficiency : 1);
           if (def.fuel && def.fuelRate) {
             const fuelConsumed = def.fuelRate * b.level;
             if (newResources[def.fuel] >= fuelConsumed) {
@@ -2009,6 +2020,14 @@ export const useGameStore = create<GameStore>()(
         updatedBuildings = updatedBuildings.map(b => {
           if (safeCondition(b.condition) <= 0 && b.active) {
             return { ...b, active: false, efficiency: 0 };
+          }
+          return b;
+        });
+
+        // Fix buildings with zero efficiency that are active (toggled on from initial state)
+        updatedBuildings = updatedBuildings.map(b => {
+          if (b.active && (b.efficiency == null || !Number.isFinite(b.efficiency) || b.efficiency <= 0)) {
+            return { ...b, efficiency: 1 };
           }
           return b;
         });
@@ -2909,9 +2928,14 @@ export const useGameStore = create<GameStore>()(
         }
 
         const newActive = !building.active;
-        const newBuildings = state.buildings.map(b =>
-          b.id === id ? { ...b, active: newActive } : b
-        );
+        const newBuildings = state.buildings.map(b => {
+          if (b.id !== id) return b;
+          // When enabling a building, fix zero/invalid efficiency
+          if (newActive && (b.efficiency == null || !Number.isFinite(b.efficiency) || b.efficiency <= 0)) {
+            return { ...b, active: newActive, efficiency: 1 };
+          }
+          return { ...b, active: newActive };
+        });
 
         // Recalculate power grid immediately so UI updates without waiting for next tick
         let totalProduction = 0;
@@ -2923,7 +2947,7 @@ export const useGameStore = create<GameStore>()(
         powerBuildings.forEach(b => {
           const bDef = BUILDING_DEFS[b.type];
           if (!bDef) return;
-          let production = bDef.basePowerProduction * b.level * b.efficiency;
+          let production = bDef.basePowerProduction * b.level * (b.efficiency > 0 ? b.efficiency : 1);
           if (bDef.fuel && bDef.fuelRate) {
             if (state.resources[bDef.fuel] >= bDef.fuelRate * b.level) {
               totalProduction += production;

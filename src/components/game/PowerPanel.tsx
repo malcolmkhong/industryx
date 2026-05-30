@@ -97,7 +97,7 @@ export function PowerPanel() {
       let totalType = 0;
       instances.forEach(b => {
         if (!b.active) return;
-        let plantProduction = def.basePowerProduction * b.level * b.efficiency;
+        let plantProduction = def.basePowerProduction * b.level * (b.efficiency > 0 ? b.efficiency : 1);
         if (def.fuel && def.fuelRate) {
           if (store.resources[def.fuel] < def.fuelRate * b.level) {
             plantProduction *= 0.1;
@@ -131,7 +131,7 @@ export function PowerPanel() {
       if (!b.active) return;
       const def = BUILDING_DEFS[b.type];
       if (!def || def.category === 'power') return;
-      consumption += def.basePowerConsumption * b.level * b.efficiency;
+      consumption += def.basePowerConsumption * b.level * (b.efficiency > 0 ? b.efficiency : 1);
     });
     // Apply energy efficiency research
     const hasEffResearch = store.completedResearch.includes('energyEfficiency');
@@ -711,6 +711,139 @@ export function PowerPanel() {
         })}
       </div>
 
+      {/* Power Generation Diagnostics */}
+      <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+        <div className="flex items-center gap-2 mb-3">
+          <Activity className="w-4 h-4 text-cyan-400" />
+          <h3 className="text-sm font-semibold text-cyan-400">Power Generation Diagnostics</h3>
+        </div>
+        <div className="space-y-2">
+          {POWER_PLANT_TYPES.map(type => {
+            const def = BUILDING_DEFS[type];
+            if (!def) return null;
+            const meta = POWER_PLANT_META[type];
+            const instances = plantsByType[type] || [];
+            const activeInstances = instances.filter(b => b.active);
+            const totalOutput = productionByType[type] || 0;
+            const maxOutput = activeInstances.reduce((sum, b) => sum + def.basePowerProduction * b.level, 0);
+            
+            // Determine status
+            let status: 'generating' | 'offline' | 'no_instances' | 'low_output' | 'broken' | 'low_fuel' = 'no_instances';
+            let statusLabel = '';
+            let statusColor = 'text-gray-500';
+            let statusBg = 'bg-gray-900/30';
+            let statusBorder = 'border-gray-700/30';
+            
+            if (instances.length === 0) {
+              status = 'no_instances';
+              statusLabel = 'Not Built';
+              statusColor = 'text-gray-500';
+              statusBg = 'bg-gray-900/20';
+              statusBorder = 'border-gray-700/20';
+            } else if (activeInstances.length === 0) {
+              const brokenCount = instances.filter(b => safeCondition(b.condition) <= 0).length;
+              if (brokenCount === instances.length && instances.length > 0) {
+                status = 'broken';
+                statusLabel = `${brokenCount} Broken — Repair Required`;
+                statusColor = 'text-red-400';
+                statusBg = 'bg-red-900/20';
+                statusBorder = 'border-red-500/30';
+              } else {
+                status = 'offline';
+                statusLabel = `${instances.length} Plant(s) Offline — Enable to Generate`;
+                statusColor = 'text-yellow-400';
+                statusBg = 'bg-yellow-900/10';
+                statusBorder = 'border-yellow-500/20';
+              }
+            } else if (def.fuel && def.fuelRate && store.resources[def.fuel] < def.fuelRate * activeInstances.length) {
+              status = 'low_fuel';
+              statusLabel = `Low Fuel — ${RESOURCE_META[def.fuel].emoji} ${formatNumber(store.resources[def.fuel])} remaining`;
+              statusColor = 'text-orange-400';
+              statusBg = 'bg-orange-900/10';
+              statusBorder = 'border-orange-500/20';
+            } else if (maxOutput > 0 && totalOutput < maxOutput * 0.5) {
+              status = 'low_output';
+              if (type === 'solarPanel') {
+                statusLabel = `Low Output — ${solarFactor > 0.4 ? 'Moderate' : 'Low'} Sunlight (${(solarFactor * 100).toFixed(0)}%)`;
+              } else if (type === 'windTurbine') {
+                statusLabel = `Low Output — ${windFactor > 0.4 ? 'Moderate' : 'Low'} Wind (${(windFactor * 100).toFixed(0)}%)`;
+              } else {
+                statusLabel = `Low Output — ${formatNumber(totalOutput)} / ${formatNumber(maxOutput)} MW`;
+              }
+              statusColor = 'text-yellow-400';
+              statusBg = 'bg-yellow-900/10';
+              statusBorder = 'border-yellow-500/20';
+            } else {
+              status = 'generating';
+              statusLabel = `Generating ${formatNumber(totalOutput)} MW`;
+              statusColor = 'text-green-400';
+              statusBg = 'bg-green-900/10';
+              statusBorder = 'border-green-500/20';
+            }
+
+            return (
+              <div key={type} className={`flex items-center gap-3 p-2.5 rounded-lg border ${statusBg} ${statusBorder}`}>
+                <span className="text-lg">{meta.emoji}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-gray-200">{def.name}</span>
+                    <span className="text-[9px] text-gray-500">
+                      {activeInstances.length}/{instances.length} active
+                    </span>
+                  </div>
+                  <div className={`text-[10px] font-medium ${statusColor} mt-0.5`}>
+                    {statusLabel}
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className={`text-xs font-mono font-bold ${totalOutput > 0 ? meta.glowClass : 'text-gray-600'}`}>
+                    {formatNumber(totalOutput)} MW
+                  </div>
+                  {maxOutput > 0 && (
+                    <div className="w-16 h-1 bg-gray-800 rounded-full mt-1 overflow-hidden">
+                      <div 
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{ 
+                          width: `${Math.min(100, maxOutput > 0 ? (totalOutput / maxOutput) * 100 : 0)}%`,
+                          backgroundColor: status === 'generating' ? meta.color : status === 'low_output' ? '#facc15' : '#4b5563'
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        
+        {/* Summary diagnostic */}
+        {totalRealProduction === 0 && totalRealConsumption > 0 && (
+          <div className="mt-3 p-2.5 rounded-lg bg-red-900/20 border border-red-500/30">
+            <div className="flex items-center gap-2 mb-1">
+              <CircleAlert className="w-3.5 h-3.5 text-red-400" />
+              <span className="text-xs font-bold text-red-400">Power Generation Failure</span>
+            </div>
+            <p className="text-[10px] text-red-300/80">
+              Your power plants are producing 0 MW while buildings demand {formatNumber(totalRealConsumption)} MW. 
+              {!activePowerPlants.length ? ' No power plants are active — enable power plants to restore electricity.' : 
+               ' Active power plants may have zero efficiency — try toggling them off and on again.'}
+            </p>
+          </div>
+        )}
+        {totalRealProduction === 0 && totalRealConsumption === 0 && (
+          <div className="mt-3 p-2.5 rounded-lg bg-gray-900/30 border border-gray-700/20">
+            <div className="flex items-center gap-2 mb-1">
+              <Lightbulb className="w-3.5 h-3.5 text-gray-400" />
+              <span className="text-xs font-medium text-gray-400">Getting Started</span>
+            </div>
+            <p className="text-[10px] text-gray-500">
+              Build and activate power plants to supply electricity to your factories and extractors.
+              Start with a Coal Generator, Solar Panel, or Wind Turbine.
+            </p>
+          </div>
+        )}
+      </div>
+
       {/* Power History Mini-Chart */}
       {powerHistory.length > 1 && (
         <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
@@ -763,9 +896,13 @@ export function PowerPanel() {
                   const canUpgrade = store.money >= upgradeCost;
 
                   // When plant is off, show 0 production clearly
-                  let actualProduction = plant.active ? def.basePowerProduction * plant.level * plant.efficiency : 0;
+                  let actualProduction = plant.active ? def.basePowerProduction * plant.level * (plant.efficiency > 0 ? plant.efficiency : 1) : 0;
                   let productionNote = plant.active ? '' : 'OFFLINE';
                   let isDerated = false;
+                  if (plant.active && (plant.efficiency == null || plant.efficiency <= 0)) {
+                    productionNote = 'No output (eff=0)';
+                    isDerated = true;
+                  }
 
                   if (plant.active && def.fuel && def.fuelRate) {
                     if (store.resources[def.fuel] < def.fuelRate * plant.level) {
