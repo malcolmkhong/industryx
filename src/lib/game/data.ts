@@ -3,7 +3,7 @@
 // Game Data Definitions
 // ============================================
 
-import { BuildingDefinition, TransportDefinition, WorkerDefinition, ResearchNode, MarketPrice, AutomationUnlock, PrestigeBonus, ResourceType, MegaProject, DailyReward, WeatherType, WeatherDefinition, Quest } from './types';
+import { BuildingDefinition, TransportDefinition, WorkerDefinition, ResearchNode, MarketPrice, AutomationUnlock, PrestigeBonus, ResourceType, MegaProject, DailyReward, WeatherType, WeatherDefinition, Quest, ContractDifficulty, CONTRACT_DIFFICULTY_META, ContractReward, CostResourceType, Contract, ResourceAmount } from './types';
 
 // --- Resource Metadata ---
 export const RESOURCE_META: Record<ResourceType, { name: string; emoji: string; tier: number; color: string }> = {
@@ -1929,7 +1929,338 @@ export const CONTRACT_TEMPLATES = [
   { name: 'Mega Structure Build', description: 'Deliver mega structures for the orbital habitat construction', type: 'construction' as const, requiredResources: [{ resource: 'megaStructure' as ResourceType, amount: 2 }], timeLimit: 1500, difficulty: 5, gameTier: 4, emoji: '🏗️' },
 ];
 
-// --- Rank Thresholds ---
+// ============================================
+// DYNAMIC CONTRACT GENERATION ENGINE
+// ============================================
+
+// Resources grouped by tier for contract generation
+const RESOURCES_BY_TIER: Record<number, ResourceType[]> = {
+  0: ['iron', 'copper', 'coal', 'oil', 'sand', 'lithium', 'water', 'rareEarth', 'clay', 'limestone', 'gravel', 'bauxite', 'wolframite'],
+  1: ['ironPlate', 'copperWire', 'plastic', 'glass', 'carbon', 'bricks', 'concrete', 'fertilizer', 'steel', 'fossilFuel'],
+  2: ['circuit', 'engine', 'battery', 'gear', 'silicon', 'aluminium', 'insecticide', 'copperIngot', 'titanium', 'coolant', 'fiberOptics', 'solarCell'],
+  3: ['aiChip', 'robotics', 'quantumPart', 'advancedAlloy', 'nanoMaterial', 'electronics', 'medicalTech', 'jewellery', 'tungsten', 'weapons', 'scanDrone', 'artifactDetector', 'neuralNetwork'],
+  4: ['singularityCore', 'darkMatterCell', 'warpDrive', 'antimatter', 'chronoPart', 'plasmaCore', 'megaStructure', 'voidCrystal'],
+};
+
+// Contract name templates by type
+const CONTRACT_NAMES_BY_TYPE: Record<string, string[]> = {
+  delivery: [
+    '{mat} Delivery', '{mat} Shipment', '{mat} Export', '{mat} Transport',
+    '{mat} Supply Run', 'Urgent {mat} Delivery', '{mat} Freight Contract',
+  ],
+  supply: [
+    '{mat} Supply Contract', '{mat} Provision Order', '{mat} Replenishment',
+    '{mat} Stock Order', '{mat} Procurement', '{mat} Restock Mission',
+  ],
+  construction: [
+    '{mat} Build Project', '{mat} Assembly Contract', '{mat} Fabrication Order',
+    '{mat} Construction Bid', '{mat} Infrastructure Project',
+  ],
+  military: [
+    '{mat} Defense Contract', '{mat} Military Order', '{mat} Tactical Supply',
+    '{mat} Armament Deal', '{mat} Strategic Reserve',
+  ],
+  research: [
+    '{mat} Research Grant', '{mat} Lab Supply', '{mat} Experiment Materials',
+    '{mat} Scientific Procurement', '{mat} Study Commission',
+  ],
+};
+
+// Contract description templates
+const CONTRACT_DESCRIPTIONS: Record<string, string[]> = {
+  delivery: [
+    'Deliver {mats} to the industrial sector',
+    'Transport {mats} to the distribution hub',
+    'Ship {mats} to the regional warehouse',
+    'Freight {mats} to the commercial district',
+  ],
+  supply: [
+    'Supply {mats} for the manufacturing line',
+    'Provide {mats} to the production facility',
+    'Restock {mats} at the central depot',
+    'Procure {mats} for the assembly plant',
+  ],
+  construction: [
+    'Assemble {mats} for the building project',
+    'Fabricate {mats} for the infrastructure upgrade',
+    'Construct with {mats} for the development zone',
+  ],
+  military: [
+    'Furnish {mats} for the defense initiative',
+    'Supply {mats} for the tactical operation',
+    'Deliver {mats} for the strategic reserve',
+  ],
+  research: [
+    'Provide {mats} for the research laboratory',
+    'Supply {mats} for the scientific study',
+    'Procure {mats} for the experimental program',
+  ],
+};
+
+// Base deadline in ticks per difficulty tier
+const BASE_DEADLINE: Record<ContractDifficulty, number> = {
+  easy: 600,
+  medium: 450,
+  hard: 300,
+  legendary: 180,
+};
+
+// Unaccepted contract board expiration in ticks
+const BOARD_EXPIRATION = 1200; // ~20 minutes at 1x
+
+// Quantity ranges by material tier (base amounts before scaling)
+const QUANTITY_BY_RESOURCE_TIER: Record<number, [number, number]> = {
+  0: [50, 200],   // Raw: 50-200
+  1: [20, 100],   // T1: 20-100
+  2: [10, 50],    // T2: 10-50
+  3: [3, 20],     // T3: 3-20
+  4: [1, 5],      // T4: 1-5
+};
+
+// Rare resource reward pool for legendary contracts
+const RARE_RESOURCE_REWARDS: ResourceType[] = [
+  'rareEarth', 'titanium', 'fiberOptics', 'solarCell', 'electronics',
+  'aiChip', 'quantumPart', 'nanoMaterial', 'neuralNetwork',
+];
+
+function randomInt(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function randomChoice<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function shuffleArray<T>(arr: T[]): T[] {
+  const result = [...arr];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
+// Get available resources based on player's game tier
+function getAvailableResources(gameTier: number): ResourceType[] {
+  const resources: ResourceType[] = [];
+  for (let tier = 0; tier <= Math.min(gameTier, 4); tier++) {
+    resources.push(...RESOURCES_BY_TIER[tier]);
+  }
+  return resources;
+}
+
+// Get resource tier ceiling for a difficulty tier
+function getMaxResourceTier(difficultyTier: ContractDifficulty, gameTier: number): number {
+  const meta = CONTRACT_DIFFICULTY_META[difficultyTier];
+  return Math.min(gameTier, 4);
+}
+
+// Calculate quantity for a resource based on its tier and player progression
+function calculateQuantity(resource: ResourceType, difficultyTier: ContractDifficulty, gameTier: number, buildingCount: number): number {
+  const resMeta = RESOURCE_META[resource];
+  if (!resMeta) return 10;
+
+  const [baseMin, baseMax] = QUANTITY_BY_RESOURCE_TIER[resMeta.tier] ?? [10, 50];
+
+  // Scale by difficulty: legendary = more quantity
+  const difficultyScale: Record<ContractDifficulty, number> = {
+    easy: 0.7,
+    medium: 1.0,
+    hard: 1.4,
+    legendary: 2.0,
+  };
+
+  // Scale by player progression (more buildings = larger orders)
+  const progressionScale = 1 + Math.min(buildingCount / 30, 2);
+
+  const min = Math.max(1, Math.floor(baseMin * difficultyScale[difficultyTier] * progressionScale));
+  const max = Math.max(min + 1, Math.floor(baseMax * difficultyScale[difficultyTier] * progressionScale));
+
+  return randomInt(min, max);
+}
+
+// Calculate reward for a contract
+function calculateReward(
+  requiredResources: ResourceAmount[],
+  difficultyTier: ContractDifficulty,
+  gameTier: number,
+): ContractReward {
+  const meta = CONTRACT_DIFFICULTY_META[difficultyTier];
+
+  // Base money from market value of required resources
+  let baseMoney = 0;
+  for (const req of requiredResources) {
+    const marketItem = INITIAL_MARKET.find(m => m.resource === req.resource);
+    const price = marketItem?.basePrice ?? 10;
+    baseMoney += price * req.amount;
+  }
+
+  // Apply difficulty multiplier
+  const money = Math.floor(baseMoney * meta.rewardMultiplier);
+
+  // Research points scale with difficulty
+  const rpScale: Record<ContractDifficulty, number> = { easy: 5, medium: 15, hard: 40, legendary: 100 };
+  const researchPoints = Math.floor(rpScale[difficultyTier] * (1 + gameTier * 0.3));
+
+  // Corporation points only for medium+
+  let corporationPoints = 0;
+  if (difficultyTier === 'medium') corporationPoints = randomInt(1, 3);
+  else if (difficultyTier === 'hard') corporationPoints = randomInt(3, 8);
+  else if (difficultyTier === 'legendary') corporationPoints = randomInt(8, 20);
+
+  // Rare resources for legendary contracts (50% chance)
+  let rareResources: { resource: ResourceType; amount: number }[] | undefined;
+  if (difficultyTier === 'legendary' && Math.random() < 0.5) {
+    const rareRes = randomChoice(RARE_RESOURCE_REWARDS);
+    rareResources = [{ resource: rareRes, amount: randomInt(1, 3) }];
+  }
+
+  return {
+    money,
+    researchPoints,
+    corporationPoints,
+    rareResources,
+  };
+}
+
+// Generate a single dynamic contract
+export function generateDynamicContract(
+  difficultyTier: ContractDifficulty,
+  gameTier: number,
+  buildingCount: number,
+  currentTick: number,
+  existingContractIds: Set<string>,
+): Contract | null {
+  const meta = CONTRACT_DIFFICULTY_META[difficultyTier];
+
+  // Don't generate if player tier is too low
+  if (gameTier < meta.minGameTier) return null;
+
+  const maxResourceTier = getMaxResourceTier(difficultyTier, gameTier);
+
+  // Get available resources up to the max tier
+  const availableResources = getAvailableResources(maxResourceTier);
+  if (availableResources.length === 0) return null;
+
+  // Determine number of materials
+  const [minMats, maxMats] = meta.materialCount;
+  const materialCount = randomInt(minMats, maxMats);
+
+  // Select random unique materials, weighted toward higher tiers for harder contracts
+  const weightedResources: ResourceType[] = [];
+  for (const res of availableResources) {
+    const resTier = RESOURCE_META[res]?.tier ?? 0;
+    // Higher difficulty = more weight toward higher tier resources
+    let weight = 1;
+    if (difficultyTier === 'medium' && resTier >= 1) weight = 2;
+    else if (difficultyTier === 'hard' && resTier >= 2) weight = 3;
+    else if (difficultyTier === 'legendary' && resTier >= 3) weight = 4;
+    for (let i = 0; i < weight; i++) weightedResources.push(res);
+  }
+
+  const shuffled = shuffleArray(weightedResources);
+  const selectedResources = shuffled.slice(0, materialCount);
+  // Remove duplicates
+  const uniqueResources = [...new Set(selectedResources)];
+  if (uniqueResources.length === 0) return null;
+
+  // Calculate quantities
+  const requiredResources: ResourceAmount[] = uniqueResources.map(res => ({
+    resource: res as CostResourceType,
+    amount: calculateQuantity(res, difficultyTier, gameTier, buildingCount),
+  }));
+
+  // Generate name and description
+  const contractType = randomChoice<Contract['type']>(['delivery', 'supply', 'construction', 'military', 'research']);
+  const nameTemplate = randomChoice(CONTRACT_NAMES_BY_TYPE[contractType]);
+  const descTemplate = randomChoice(CONTRACT_DESCRIPTIONS[contractType]);
+
+  // Replace {mat} with first material name
+  const firstMatName = RESOURCE_META[uniqueResources[0] as ResourceType]?.name ?? uniqueResources[0];
+  const matListStr = requiredResources.map(r => {
+    const name = RESOURCE_META[r.resource as ResourceType]?.name ?? r.resource;
+    return `${r.amount} ${name}`;
+  }).join(', ');
+
+  const name = nameTemplate.replace('{mat}', firstMatName);
+  const description = descTemplate.replace('{mats}', matListStr);
+
+  // Calculate deadline
+  const baseDeadline = BASE_DEADLINE[difficultyTier];
+  const deadline = Math.floor(baseDeadline * meta.deadlineMultiplier);
+
+  // Calculate reward
+  const reward = calculateReward(requiredResources, difficultyTier, gameTier);
+
+  // Difficulty number (legacy)
+  const difficultyMap: Record<ContractDifficulty, number> = { easy: 1, medium: 2, hard: 4, legendary: 5 };
+
+  // Generate unique ID
+  const id = `dyn-${difficultyTier}-${currentTick}-${Math.random().toString(36).substring(2, 7)}`;
+  if (existingContractIds.has(id)) return null;
+
+  return {
+    id,
+    name,
+    description,
+    type: contractType,
+    requiredResources,
+    timeLimit: deadline,
+    timeRemaining: deadline,
+    reward,
+    progress: 0,
+    completed: false,
+    failed: false,
+    difficulty: difficultyMap[difficultyTier],
+    difficultyTier,
+    gameTier: maxResourceTier,
+    emoji: meta.emoji,
+    accepted: false,
+    expiresAt: currentTick + BOARD_EXPIRATION,
+  };
+}
+
+// Generate a batch of contracts for the contract board
+export function generateContractBoard(
+  gameTier: number,
+  buildingCount: number,
+  currentTick: number,
+  existingContractIds: Set<string>,
+): Contract[] {
+  const contracts: Contract[] = [];
+
+  // Generate 2 easy contracts always
+  for (let i = 0; i < 2; i++) {
+    const c = generateDynamicContract('easy', gameTier, buildingCount, currentTick, existingContractIds);
+    if (c) { contracts.push(c); existingContractIds.add(c.id); }
+  }
+
+  // Generate 2 medium contracts if tier >= 1
+  if (gameTier >= 1) {
+    for (let i = 0; i < 2; i++) {
+      const c = generateDynamicContract('medium', gameTier, buildingCount, currentTick, existingContractIds);
+      if (c) { contracts.push(c); existingContractIds.add(c.id); }
+    }
+  }
+
+  // Generate 1 hard contract if tier >= 2
+  if (gameTier >= 2) {
+    const c = generateDynamicContract('hard', gameTier, buildingCount, currentTick, existingContractIds);
+    if (c) { contracts.push(c); existingContractIds.add(c.id); }
+  }
+
+  // Generate 1 legendary contract if tier >= 3 (30% chance)
+  if (gameTier >= 3 && Math.random() < 0.3) {
+    const c = generateDynamicContract('legendary', gameTier, buildingCount, currentTick, existingContractIds);
+    if (c) { contracts.push(c); existingContractIds.add(c.id); }
+  }
+
+  return contracts;
+}
+
+// ============================================
+// END DYNAMIC CONTRACT ENGINE
+// ============================================
 export const RANK_THRESHOLDS = [
   { name: 'Apprentice', minScore: 0, emoji: '👷', color: '#a0a0a0' },
   { name: 'Foreman', minScore: 100, emoji: '🧑‍🏭', color: '#4ade80' },

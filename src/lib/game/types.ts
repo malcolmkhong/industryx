@@ -135,6 +135,8 @@ export interface WorkerDefinition {
 }
 
 // --- Contracts ---
+export type ContractDifficulty = 'easy' | 'medium' | 'hard' | 'legendary';
+
 export interface Contract {
   id: string;
   name: string;
@@ -147,9 +149,12 @@ export interface Contract {
   progress: number; // 0-1
   completed: boolean;
   failed: boolean;
-  difficulty: number; // 1-5
-  gameTier?: number; // 0-3, determines when contract becomes available
+  difficulty: number; // 1-5 numeric (legacy)
+  difficultyTier: ContractDifficulty; // easy/medium/hard/legendary
+  gameTier?: number; // 0-4, determines when contract becomes available
   emoji: string;
+  accepted: boolean; // whether player has accepted this contract
+  expiresAt: number; // tick when unaccepted contract expires from the board
 }
 
 export interface ContractReward {
@@ -158,7 +163,15 @@ export interface ContractReward {
   corporationPoints?: number;
   blueprints?: string[];
   unlockBuilding?: BuildingType;
+  rareResources?: { resource: ResourceType; amount: number }[];
 }
+
+export const CONTRACT_DIFFICULTY_META: Record<ContractDifficulty, { label: string; icon: string; color: string; bgColor: string; borderColor: string; minGameTier: number; materialCount: [number, number]; deadlineMultiplier: number; rewardMultiplier: number; emoji: string }> = {
+  easy: { label: 'Easy', icon: '🟢', color: '#22c55e', bgColor: 'bg-green-500/10', borderColor: 'border-green-500/30', minGameTier: 0, materialCount: [1, 2], deadlineMultiplier: 1.5, rewardMultiplier: 1.0, emoji: '📦' },
+  medium: { label: 'Medium', icon: '🟡', color: '#eab308', bgColor: 'bg-yellow-500/10', borderColor: 'border-yellow-500/30', minGameTier: 1, materialCount: [2, 4], deadlineMultiplier: 1.0, rewardMultiplier: 2.0, emoji: '📋' },
+  hard: { label: 'Hard', icon: '🔴', color: '#ef4444', bgColor: 'bg-red-500/10', borderColor: 'border-red-500/30', minGameTier: 2, materialCount: [3, 6], deadlineMultiplier: 0.7, rewardMultiplier: 3.5, emoji: '⚔️' },
+  legendary: { label: 'Legendary', icon: '💎', color: '#a855f7', bgColor: 'bg-purple-500/10', borderColor: 'border-purple-500/30', minGameTier: 3, materialCount: [5, 10], deadlineMultiplier: 0.4, rewardMultiplier: 6.0, emoji: '👑' },
+};
 
 // --- Market ---
 export interface MarketPrice {

@@ -909,3 +909,78 @@ Unresolved Issues / Risks:
 - Store.ts continues to grow (3000+ lines)
 - Queue auto-advance skips unaffordable items without notification (could add notification)
 - No drag-and-drop for reordering (button-based only)
+
+---
+Task ID: 14
+Agent: Main Developer
+Task: Dynamic Contract Event System with Random Material Combinations
+
+Work Log:
+- Analyzed existing contract system: 40 fixed CONTRACT_TEMPLATES, basic generation every 150 ticks
+- Designed new dynamic contract generation engine with 4 difficulty tiers:
+  * Easy (🟢): 1-2 materials, long deadlines, 1× rewards, T0+
+  * Medium (🟡): 2-4 materials, moderate deadlines, 2× rewards, T1+
+  * Hard (🔴): 3-6 materials, short deadlines, 3.5× rewards, T2+
+  * Legendary (💎): 5-10 materials, very short deadlines, 6× rewards + rare resources, T3+
+- Updated types.ts:
+  * Added ContractDifficulty type ('easy' | 'medium' | 'hard' | 'legendary')
+  * Added difficultyTier, accepted, expiresAt fields to Contract interface
+  * Added rareResources field to ContractReward interface
+  * Added CONTRACT_DIFFICULTY_META constant with all tier metadata
+- Created contract generation engine in data.ts (~200 lines):
+  * RESOURCES_BY_TIER mapping (5 tiers, 56 resources)
+  * Random material selection with difficulty-weighted tier preference
+  * Quantity scaling based on resource tier, difficulty tier, and player progression
+  * Reward calculation: market-value-based with difficulty multiplier
+  * Name/description generation from templates
+  * Deadline calculation per difficulty tier
+  * Rare resource rewards for legendary contracts (50% chance)
+  * generateDynamicContract() - single contract generation
+  * generateContractBoard() - batch generation for the contract board
+- Updated store.ts:
+  * Replaced old template-based contract generation with dynamic engine
+  * Added acceptContract(contractId) - accepts from board (not auto-added anymore)
+  * Added refreshContractBoard() - manually regenerate all board contracts
+  * Added abandonContract(id) - abandon active contract
+  * Contract timers: accepted contracts tick down, unaccepted contracts expire from board
+  * Progress tracking: real progress bar based on resource availability
+  * Auto-fulfill (autoTrading) only works on accepted contracts
+  * Rare resource rewards applied on fulfillment
+  * V16 migration: adds difficultyTier, accepted, expiresAt to existing contracts
+- Completely rewrote ContractPanel.tsx:
+  * Two-section layout: Available on Board + Active Contracts
+  * Contract cards with difficulty-themed gradients (green/yellow/red/purple)
+  * Difficulty filter buttons (All/Easy/Medium/Hard/Legendary)
+  * Refresh Board button for manual regeneration
+  * Accept/Dismiss buttons on board contracts
+  * Fulfill/Abandon buttons on active contracts
+  * Real progress bars on active contracts
+  * Board expiration timers on unaccepted contracts
+  * Deadline urgency indicators (red pulsing when <25%)
+  * Reward display including rare resources (💎 icon)
+  * Contract History (collapsible) with difficulty tier indicators
+  * Sidebar: Contract Tiers legend, Stats, Tips
+  * Framer Motion animations for card transitions
+- Fixed duplicate useGameStore import bug
+- Lint passes cleanly, dev server compiles successfully
+- Browser tested: board generates contracts, accept works, refresh works, no errors
+
+Stage Summary:
+- Dynamic contract system fully functional with 4 difficulty tiers
+- Every contract is a unique random combination of materials
+- Quantity and rewards scale with difficulty, player tier, and building count
+- Board/Active separation with proper accept/fulfill flow
+- Legendary contracts offer rare resource rewards
+- SAVE_VERSION at 16 (same as research queue, combined migration)
+
+Current Project Status:
+- Game running on dev server port 3000
+- Lint passes cleanly (0 errors, 0 warnings)
+- Dynamic contracts and research queue both working
+- All compilations successful
+
+Unresolved Issues / Risks:
+- Store.ts continues to grow (3200+ lines)
+- Contract generation could be more varied with more name templates
+- No drag-and-drop for queue reordering (research queue)
+- Board refresh is instant (could add a cooldown timer)

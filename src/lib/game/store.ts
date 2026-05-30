@@ -7,7 +7,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import {
   GameState, GameTab, ResourceType, BuildingInstance, BuildingType,
-  TransportLine, TransportType, Worker, WorkerType, Contract,
+  TransportLine, TransportType, Worker, WorkerType, Contract, ContractDifficulty,
   GameEvent, GameNotification, PowerGrid, MarketPrice, MegaProjectType, MegaProjectBonusType,
   Blueprint, LeaderboardEntry, LoginStreak, DailyReward,
   WeatherType, PayoutConfig, PayoutRecord, Drone, DroneMission,
@@ -19,6 +19,7 @@ import {
   INITIAL_MEGA_PROJECTS, RANK_THRESHOLDS, SEASONAL_EVENTS,
   WEEKLY_DAILY_REWARDS, getStreakMultiplier,
   WEATHER_DEFS, QUEST_DEFS,
+  generateDynamicContract, generateContractBoard,
 } from './data';
 import { soundEngine } from './soundEngine';
 
@@ -494,10 +495,19 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
     });
   }
 
-  // V15 → V16: Added research queue system
+  // V15 → V16: Added research queue + dynamic contracts
   if (version < 16) {
     if (!state.researchQueue) {
       state.researchQueue = [];
+    }
+    // Migrate existing contracts to new format
+    if (Array.isArray(state.contracts)) {
+      state.contracts = (state.contracts as Contract[]).map((c: Contract) => ({
+        ...c,
+        difficultyTier: (c.difficultyTier || (c.difficulty <= 1 ? 'easy' : c.difficulty <= 2 ? 'medium' : c.difficulty <= 3 ? 'hard' : 'legendary')) as ContractDifficulty,
+        accepted: c.accepted ?? !!(c.progress > 0 || c.completed), // Old contracts with progress were implicitly accepted
+        expiresAt: c.expiresAt ?? 0,
+      }));
     }
   }
 
@@ -662,8 +672,10 @@ interface GameActions {
   toggleAutoSell: (resource: ResourceType) => void;
   
   // Contracts
-  acceptContract: (contract: Contract) => void;
+  acceptContract: (contractId: string) => void;
   fulfillContract: (id: string) => void;
+  refreshContractBoard: () => void;
+  abandonContract: (id: string) => void;
   
   // Automation
   activateAutomation: (type: string) => void;
@@ -1050,20 +1062,34 @@ export const useGameStore = create<GameStore>()(
         // Add drone RP rewards
         newResearchPoints += droneRpEarned;
 
-        // Process contracts
+        // Process contracts - tick timers for accepted contracts only
         const newContracts = state.contracts.map(c => {
           if (c.completed || c.failed) return c;
-          const newRemaining = c.timeRemaining - 1;
-          if (newRemaining <= 0) {
-            return { ...c, timeRemaining: 0, failed: true };
+          if (c.accepted) {
+            const newRemaining = c.timeRemaining - 1;
+            if (newRemaining <= 0) {
+              return { ...c, timeRemaining: 0, failed: true };
+            }
+            // Update progress based on resource availability
+            const fulfilledResources = c.requiredResources.filter(r => {
+              if (r.resource === 'money') return true;
+              return (newResources[r.resource as ResourceType] ?? 0) >= r.amount;
+            });
+            const progress = c.requiredResources.length > 0 ? fulfilledResources.length / c.requiredResources.length : 0;
+            return { ...c, timeRemaining: newRemaining, progress };
+          } else {
+            // Unaccepted: check board expiration
+            if (c.expiresAt && newTick >= c.expiresAt) {
+              return { ...c, failed: true }; // Expired from board
+            }
+            return c;
           }
-          return { ...c, timeRemaining: newRemaining };
         });
 
         const autoFulfill = state.automationUnlocks.find(a => a.type === 'autoTrading' && a.active);
         if (autoFulfill) {
           newContracts.forEach(c => {
-            if (c.completed || c.failed) return;
+            if (c.completed || c.failed || !c.accepted) return;
             const canFulfill = c.requiredResources.every(r => {
               if (r.resource === 'money') return true;
               return (newResources[r.resource as ResourceType] ?? 0) >= r.amount;
@@ -1181,53 +1207,13 @@ export const useGameStore = create<GameStore>()(
           return Math.min(3, Math.max(highestBuildingTier, researchTier));
         })();
 
-        // Generate new contracts (every ~150 ticks, tier-aware)
+        // Generate new contracts using dynamic generation engine (every ~200 ticks)
         let contractsToAdd: Contract[] = [];
-        const activeContractCount = state.contracts.filter(c => !c.completed && !c.failed).length;
-        if (newTick % 150 === 0 && activeContractCount < 4) {
-          // Filter templates to only include tiers the player has access to
-          const availableTemplates = CONTRACT_TEMPLATES.filter(t => (t.gameTier ?? 0) <= playerGameTier);
-          // Weight towards current tier (60%) and below (40%)
-          const weightedTemplates = availableTemplates.flatMap(t => {
-            const tier = t.gameTier ?? 0;
-            const weight = tier === playerGameTier ? 3 : tier === playerGameTier - 1 ? 2 : 1;
-            return Array(weight).fill(t);
-          });
-          const template = weightedTemplates.length > 0
-            ? weightedTemplates[Math.floor(Math.random() * weightedTemplates.length)]
-            : CONTRACT_TEMPLATES[0]; // fallback to first template
-          const contractTier = template.gameTier ?? 0;
-          const difficulty = Math.max(1, Math.min(5, contractTier + 1 + Math.floor(state.buildings.length / 8)));
-          const tierMultiplier = 1 + contractTier * 0.5; // Higher tier = proportionally higher rewards
-          const reward = template.requiredResources.reduce((sum, r) => {
-            const marketItem = INITIAL_MARKET.find(m => m.resource === r.resource);
-            return sum + (marketItem?.basePrice ?? 10) * r.amount * tierMultiplier * (1 + difficulty * 0.15);
-          }, 0);
-          
-          const contract: Contract = {
-            id: generateId(),
-            name: template.name,
-            description: template.description,
-            type: template.type,
-            requiredResources: template.requiredResources.map(r => ({
-              resource: r.resource,
-              amount: Math.floor(r.amount * (1 + (difficulty - 1) * 0.15)),
-            })),
-            timeLimit: template.timeLimit,
-            timeRemaining: template.timeLimit,
-            reward: {
-              money: Math.floor(reward),
-              researchPoints: Math.floor(difficulty * 15 * tierMultiplier),
-              corporationPoints: contractTier >= 2 ? Math.floor((contractTier - 1) * 3 + difficulty) : 0,
-            },
-            progress: 0,
-            completed: false,
-            failed: false,
-            difficulty,
-            gameTier: contractTier,
-            emoji: template.emoji,
-          };
-          contractsToAdd = [contract];
+        const boardContracts = state.contracts.filter(c => !c.accepted && !c.completed && !c.failed);
+        if (newTick % 200 === 0 && boardContracts.length < 6) {
+          const existingIds = new Set(state.contracts.map(c => c.id));
+          const generatedContracts = generateContractBoard(playerGameTier, state.buildings.length, newTick, existingIds);
+          contractsToAdd = generatedContracts;
         }
 
         // Passive income from selling excess (if auto-trading is on)
@@ -2106,20 +2092,30 @@ export const useGameStore = create<GameStore>()(
       },
 
       // --- CONTRACT ACTIONS ---
-      acceptContract: (contract: Contract) => {
+      acceptContract: (contractId: string) => {
         const state = get();
-        if (state.contracts.filter(c => !c.completed && !c.failed).length >= 5) {
-          get().addNotification('warning', 'Too many active contracts!');
+        const contract = state.contracts.find(c => c.id === contractId);
+        if (!contract || contract.accepted || contract.completed || contract.failed) return;
+
+        const activeAccepted = state.contracts.filter(c => c.accepted && !c.completed && !c.failed).length;
+        if (activeAccepted >= 5) {
+          get().addNotification('warning', 'Too many active contracts! (Max 5)');
           return;
         }
-        set({ contracts: [...state.contracts, contract] });
+
+        set({
+          contracts: state.contracts.map(c =>
+            c.id === contractId ? { ...c, accepted: true } : c
+          ),
+        });
+        soundEngine.play('buttonClick', 'ui');
         get().addNotification('info', `Accepted contract: ${contract.name}`);
       },
 
       fulfillContract: (id: string) => {
         const state = get();
         const contract = state.contracts.find(c => c.id === id);
-        if (!contract || contract.completed || contract.failed) return;
+        if (!contract || contract.completed || contract.failed || !contract.accepted) return;
 
         const canFulfill = contract.requiredResources.every(r => {
           if (r.resource === 'money') return true;
@@ -2137,6 +2133,13 @@ export const useGameStore = create<GameStore>()(
             newResources[r.resource as ResourceType] -= r.amount;
           }
         });
+
+        // Apply rare resource rewards
+        if (contract.reward.rareResources) {
+          contract.reward.rareResources.forEach(rr => {
+            newResources[rr.resource] = (newResources[rr.resource] ?? 0) + rr.amount;
+          });
+        }
 
         set({
           resources: newResources,
@@ -2156,6 +2159,39 @@ export const useGameStore = create<GameStore>()(
         soundEngine.play('contractCompleted', 'events');
         get().addNotification('success', `Contract fulfilled: ${contract.name}! +$${formatNumber(contract.reward.money)}`);
         get().updateQuestProgress('contract', 1);
+      },
+
+      refreshContractBoard: () => {
+        const state = get();
+        const playerGameTier = (() => {
+          if (state.buildings.length === 0) return 0;
+          const highestBuildingTier = Math.max(0, ...state.buildings.map(b => BUILDING_DEFS[b.type]?.tier ?? 0));
+          const researchTier = Math.floor(state.completedResearch.length / 3);
+          return Math.min(4, Math.max(highestBuildingTier, researchTier));
+        })();
+
+        // Remove all unaccepted, non-expired contracts from the board
+        const keptContracts = state.contracts.filter(c => c.accepted || c.completed || c.failed);
+        const existingIds = new Set(keptContracts.map(c => c.id));
+        const newBoard = generateContractBoard(playerGameTier, state.buildings.length, state.gameTick, existingIds);
+
+        set({ contracts: [...keptContracts, ...newBoard] });
+        get().addNotification('info', 'Contract board refreshed!');
+      },
+
+      abandonContract: (id: string) => {
+        const state = get();
+        const contract = state.contracts.find(c => c.id === id);
+        if (!contract || contract.completed || contract.failed) return;
+
+        set({
+          contracts: state.contracts.map(c =>
+            c.id === id ? { ...c, failed: true } : c
+          ),
+        });
+        if (contract.accepted) {
+          get().addNotification('warning', `Abandoned contract: ${contract.name}`);
+        }
       },
 
       // --- AUTOMATION ACTIONS ---
