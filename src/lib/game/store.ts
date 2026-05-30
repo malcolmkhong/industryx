@@ -1541,7 +1541,10 @@ interface GameActions {
   // Transport
   buildTransportLine: (type: TransportType, from: string, to: string, resource: ResourceType) => void;
   upgradeTransportLine: (id: string) => void;
+  upgradeTransportType: (id: string, newType: TransportType) => void;
   toggleTransportLine: (id: string) => void;
+  upgradeAllTransportLines: () => void;
+  upgradeTransportLinesByType: (type: TransportType) => void;
   
   // Research
   startResearch: (id: string) => void;
@@ -3175,6 +3178,125 @@ export const useGameStore = create<GameStore>()(
             l.id === id ? { ...l, active: !l.active } : l
           ),
         });
+      },
+
+      upgradeTransportType: (id: string, newType: TransportType) => {
+        const state = get();
+        const line = state.transportLines.find(l => l.id === id);
+        if (!line) return;
+
+        const newDef = TRANSPORT_DEFS[newType];
+        if (!newDef) return;
+        if (line.type === newType) return; // Same type, no-op
+
+        // Cost: difference between new type base cost and current type base cost, scaled by level
+        const currentDef = TRANSPORT_DEFS[line.type];
+        const currentBaseCost = currentDef.baseCost.reduce((sum, c) => sum + (c.resource === 'money' ? c.amount : 0), 0);
+        const newBaseCost = newDef.baseCost.reduce((sum, c) => sum + (c.resource === 'money' ? c.amount : 0), 0);
+        const upgradeCost = Math.max(0, Math.floor((newBaseCost - currentBaseCost * 0.5) * Math.pow(1.2, line.level - 1)));
+
+        if (state.money < upgradeCost) {
+          soundEngine.play('error', 'ui');
+          get().addNotification('error', `Need $${formatNumber(upgradeCost)} to upgrade to ${newDef.name}!`);
+          return;
+        }
+
+        const logistics1Bonus = state.completedResearch.includes('logistics1') ? 0.2 : 0;
+        const advancedLogisticsBonus = state.completedResearch.includes('advancedLogistics') ? 0.3 : 0;
+        const transportBonus = logistics1Bonus + advancedLogisticsBonus;
+
+        set({
+          money: state.money - upgradeCost,
+          transportLines: state.transportLines.map(l =>
+            l.id === id ? {
+              ...l,
+              type: newType,
+              throughput: Math.min(l.maxThroughput, newDef.baseThroughput * Math.pow(newDef.upgradeMultiplier, l.level - 1) * (1 + transportBonus)),
+              maxThroughput: newDef.baseThroughput * 3 * Math.pow(newDef.upgradeMultiplier, l.level - 1),
+            } : l
+          ),
+        });
+        soundEngine.play('buildingPlaced', 'building');
+        get().addNotification('success', `Upgraded to ${newDef.name} for $${formatNumber(upgradeCost)}`);
+      },
+
+      upgradeAllTransportLines: () => {
+        const state = get();
+        let totalCost = 0;
+        const linesToUpgrade: string[] = [];
+
+        for (const line of state.transportLines) {
+          const def = TRANSPORT_DEFS[line.type];
+          if (!def) continue;
+          const cost = Math.floor(def.baseCost.reduce((sum, c) => sum + (c.resource === 'money' ? c.amount : 0), 0) * Math.pow(1.3, line.level));
+          if (state.money - totalCost >= cost) {
+            totalCost += cost;
+            linesToUpgrade.push(line.id);
+          }
+        }
+
+        if (linesToUpgrade.length === 0) {
+          get().addNotification('warning', 'No transport lines can be upgraded!');
+          return;
+        }
+
+        const logistics1Bonus = state.completedResearch.includes('logistics1') ? 0.2 : 0;
+        const advancedLogisticsBonus = state.completedResearch.includes('advancedLogistics') ? 0.3 : 0;
+        const transportBonus = logistics1Bonus + advancedLogisticsBonus;
+
+        set({
+          money: state.money - totalCost,
+          transportLines: state.transportLines.map(l => {
+            if (!linesToUpgrade.includes(l.id)) return l;
+            const def = TRANSPORT_DEFS[l.type];
+            if (!def) return l;
+            return {
+              ...l,
+              level: l.level + 1,
+              throughput: Math.min(l.maxThroughput, def.baseThroughput * Math.pow(def.upgradeMultiplier, l.level) * (1 + transportBonus)),
+            };
+          }),
+        });
+        get().addNotification('success', `Upgraded ${linesToUpgrade.length} transport lines for $${formatNumber(totalCost)}`);
+      },
+
+      upgradeTransportLinesByType: (type: TransportType) => {
+        const state = get();
+        let totalCost = 0;
+        const linesToUpgrade: string[] = [];
+        const def = TRANSPORT_DEFS[type];
+        if (!def) return;
+
+        for (const line of state.transportLines) {
+          if (line.type !== type) continue;
+          const cost = Math.floor(def.baseCost.reduce((sum, c) => sum + (c.resource === 'money' ? c.amount : 0), 0) * Math.pow(1.3, line.level));
+          if (state.money - totalCost >= cost) {
+            totalCost += cost;
+            linesToUpgrade.push(line.id);
+          }
+        }
+
+        if (linesToUpgrade.length === 0) {
+          get().addNotification('warning', `No ${def.name} lines can be upgraded!`);
+          return;
+        }
+
+        const logistics1Bonus = state.completedResearch.includes('logistics1') ? 0.2 : 0;
+        const advancedLogisticsBonus = state.completedResearch.includes('advancedLogistics') ? 0.3 : 0;
+        const transportBonus = logistics1Bonus + advancedLogisticsBonus;
+
+        set({
+          money: state.money - totalCost,
+          transportLines: state.transportLines.map(l => {
+            if (!linesToUpgrade.includes(l.id)) return l;
+            return {
+              ...l,
+              level: l.level + 1,
+              throughput: Math.min(l.maxThroughput, def.baseThroughput * Math.pow(def.upgradeMultiplier, l.level) * (1 + transportBonus)),
+            };
+          }),
+        });
+        get().addNotification('success', `Upgraded ${linesToUpgrade.length} ${def.name} line(s) for $${formatNumber(totalCost)}`);
       },
 
       // --- RESEARCH ACTIONS ---

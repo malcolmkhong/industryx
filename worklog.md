@@ -596,3 +596,59 @@ Stage Summary:
 - Responsive design: full table on desktop, card view on mobile
 - No game balance, production, storage, logistics, or market systems modified
 - Lint passes, dev server compiles without errors
+
+---
+Task ID: 13
+Agent: main
+Task: Improve Transport page - add transport upgrade functionality (type upgrades + bulk upgrades)
+
+Work Log:
+- Analyzed existing TransportPanel.tsx and store.ts transport actions
+- Identified gaps: (1) Connect All always used CHEAPEST_TYPE, (2) Route Suggestions always used CHEAPEST_TYPE, (3) No transport type upgrade path, (4) Bulk upgrades limited to per-type with no all-upgrade option
+- Added 4 new store actions in store.ts:
+  - `upgradeTransportType(id, newType)` — Convert a transport line from one type to another (e.g., conveyor → truck)
+  - `upgradeAllTransportLines()` — Bulk upgrade all affordable transport lines (level +1)
+  - `upgradeTransportLinesByType(type)` — Bulk upgrade all lines of a specific type (level +1)
+- Added helper functions in TransportPanel.tsx:
+  - `getTypeUpgradeCost(line, newType)` — Calculates cost to upgrade transport type (difference between new and current base costs, scaled by level)
+  - `recommendTransportType(requiredThroughput)` — Smart recommendation based on throughput needs
+  - `getNextUpgradeType(current)` — Returns next type in hierarchy
+  - `TYPE_HIERARCHY` — Ordered list for upgrade path
+- Enhanced Smart Route Builder:
+  - Transport type buttons now show throughput (u/t) in addition to cost
+  - Recommended type gets green ✓ badge when preview data is available
+  - "Recommended: [type]" banner shows when non-optimal type is selected (with click-to-switch)
+- Enhanced Transport Lines list:
+  - Added ➡️ type upgrade button per line
+  - Clicking ➡️ expands a panel showing all 5 alternative transport types with cost, throughput, and affordability
+  - Next type in hierarchy highlighted in purple
+  - Unaffordable options shown as disabled
+- Enhanced Throughput by Type section:
+  - Bulk upgrade button now shows affordable count (e.g., "All (2)")
+  - Uses new `upgradeTransportLinesByType` store action
+- Enhanced Bulk Operations section:
+  - Added "Upgrades" subsection with:
+    - "Upgrade All" button showing count and total cost
+    - Per-type bulk upgrade buttons (e.g., "Upgrade All Conveyor Belt (2/3 — $260)")
+  - Added "Auto-Connect" subsection with:
+    - Transport type selector for Connect All (6 type buttons)
+    - Connect All button using selected type instead of always cheapest
+- Updated Route Suggestions to use smart type recommendation
+- Added `connectAllType` and `upgradingLineId` state variables
+- All features verified working with agent-browser:
+  - Level upgrades work (deduct money, increase level/throughput)
+  - Type upgrades work (change type, recalculate throughput/max)
+  - Bulk Upgrade All works (upgrades affordable lines only)
+  - Per-type bulk upgrades work
+  - Connect All with type selector works
+  - Smart recommendation shows correct types
+
+Stage Summary:
+- Transport upgrade system fully implemented with type conversion and bulk operations
+- 4 new store actions added, 0 existing actions modified
+- Smart type recommendation based on throughput needs
+- Per-line type upgrade UI with expandable panel
+- Bulk operations include Upgrade All and per-type upgrades
+- Connect All now supports user-selected transport type
+- Lint passes, dev server compiles without errors
+- All features verified working via agent-browser testing

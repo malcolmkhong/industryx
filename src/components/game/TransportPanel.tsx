@@ -41,6 +41,23 @@ function getUpgradeCost(line: { type: TransportType; level: number }): number {
   return Math.floor(def.baseCost.reduce((s, c) => s + (c.resource === 'money' ? c.amount : 0), 0) * Math.pow(1.3, line.level));
 }
 
+function getTypeUpgradeCost(line: { type: TransportType; level: number }, newType: TransportType): number {
+  const currentDef = TRANSPORT_DEFS[line.type];
+  const newDef = TRANSPORT_DEFS[newType];
+  const currentBase = currentDef.baseCost.reduce((s, c) => s + (c.resource === 'money' ? c.amount : 0), 0);
+  const newBase = newDef.baseCost.reduce((s, c) => s + (c.resource === 'money' ? c.amount : 0), 0);
+  return Math.max(0, Math.floor((newBase - currentBase * 0.5) * Math.pow(1.2, line.level - 1)));
+}
+
+// Recommend transport type based on required throughput
+function recommendTransportType(requiredThroughput: number): TransportType {
+  const types: TransportType[] = ['conveyorBelt', 'pipe', 'truck', 'cargoTrain', 'drone', 'cargoShip'];
+  for (const type of types) {
+    if (TRANSPORT_DEFS[type].baseThroughput >= requiredThroughput) return type;
+  }
+  return 'cargoShip'; // Highest capacity
+}
+
 const TRANSPORT_TYPES: TransportType[] = ['conveyorBelt', 'pipe', 'truck', 'cargoTrain', 'drone', 'cargoShip'];
 
 const CHEAPEST_TYPE = TRANSPORT_TYPES.reduce((best, type) => {
@@ -48,6 +65,15 @@ const CHEAPEST_TYPE = TRANSPORT_TYPES.reduce((best, type) => {
   const bestCost = getTransportCost(best);
   return cost < bestCost ? type : best;
 }, 'conveyorBelt' as TransportType);
+
+// Transport type hierarchy for upgrade paths
+const TYPE_HIERARCHY: TransportType[] = ['conveyorBelt', 'pipe', 'truck', 'cargoTrain', 'drone', 'cargoShip'];
+
+function getNextUpgradeType(current: TransportType): TransportType | null {
+  const idx = TYPE_HIERARCHY.indexOf(current);
+  if (idx < 0 || idx >= TYPE_HIERARCHY.length - 1) return null;
+  return TYPE_HIERARCHY[idx + 1];
+}
 
 export function TransportPanel() {
   const store = useGameStore();
@@ -57,7 +83,9 @@ export function TransportPanel() {
   const [carriesResource, setCarriesResource] = useState<ResourceType | ''>('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showConnectAllDialog, setShowConnectAllDialog] = useState(false);
+  const [connectAllType, setConnectAllType] = useState<TransportType>('conveyorBelt');
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({ lines: true, throughput: true });
+  const [upgradingLineId, setUpgradingLineId] = useState<string | null>(null);
 
   // --- Derived Data ---
   const activeLines = useMemo(() => store.transportLines.filter(l => l.active), [store.transportLines]);
@@ -129,7 +157,9 @@ export function TransportPanel() {
     const estimatedThroughput = Math.min(def.baseThroughput, outputAmount * fromB.level, inputAmount * toB.level);
     const cost = getTransportCost(selectedType);
     const canAfford = store.money >= cost;
-    return { fromDef, toDef, estimatedThroughput, cost, canAfford, outputAmount, inputAmount };
+    const recommendedType = recommendTransportType(Math.max(outputAmount * fromB.level, inputAmount * toB.level));
+    const isRecommended = selectedType === recommendedType;
+    return { fromDef, toDef, estimatedThroughput, cost, canAfford, outputAmount, inputAmount, recommendedType, isRecommended };
   }, [fromBuilding, toBuilding, carriesResource, selectedType, store.buildings, store.money]);
 
   // --- Route Suggestions ---
@@ -189,19 +219,32 @@ export function TransportPanel() {
         });
       });
     });
-    const totalCost = routes.length * getTransportCost(CHEAPEST_TYPE);
+    const totalCost = routes.length * getTransportCost(connectAllType);
     return { routes, totalCost, canAfford: store.money >= totalCost };
-  }, [consumingBuildings, producingBuildings, store.transportLines, store.money]);
+  }, [consumingBuildings, producingBuildings, store.transportLines, store.money, connectAllType]);
 
   const handleConnectAll = useCallback(() => {
     connectAllData.routes.forEach(r => {
-      store.buildTransportLine(CHEAPEST_TYPE, r.from, r.to, r.resource);
+      store.buildTransportLine(connectAllType, r.from, r.to, r.resource);
     });
     setShowConnectAllDialog(false);
-  }, [connectAllData.routes, store]);
+  }, [connectAllData.routes, store, connectAllType]);
 
   const handleCreateSuggestedRoute = useCallback((from: string, to: string, resource: ResourceType) => {
-    store.buildTransportLine(CHEAPEST_TYPE, from, to, resource);
+    // Smart type selection: find the optimal transport type based on throughput needs
+    const fromB = store.buildings.find(b => b.id === from);
+    const toB = store.buildings.find(b => b.id === to);
+    if (!fromB || !toB) {
+      store.buildTransportLine(CHEAPEST_TYPE, from, to, resource);
+      return;
+    }
+    const fromDef = BUILDING_DEFS[fromB.type];
+    const toDef = BUILDING_DEFS[toB.type];
+    const outputAmount = fromDef?.outputs?.find(o => o.resource === resource)?.amount ?? 0;
+    const inputAmount = toDef?.inputs?.find(i => i.resource === resource)?.amount ?? 0;
+    const requiredThroughput = Math.max(outputAmount * fromB.level, inputAmount * toB.level);
+    const bestType = recommendTransportType(requiredThroughput);
+    store.buildTransportLine(bestType, from, to, resource);
   }, [store]);
 
   const handleBuild = useCallback(() => {
@@ -549,12 +592,11 @@ export function TransportPanel() {
 
   // --- Bulk Operations ---
   const handleUpgradeAllType = useCallback((type: TransportType) => {
-    store.transportLines.filter(l => l.type === type).forEach(l => {
-      const cost = getUpgradeCost(l);
-      if (store.money >= cost) {
-        store.upgradeTransportLine(l.id);
-      }
-    });
+    store.upgradeTransportLinesByType(type);
+  }, [store]);
+
+  const handleUpgradeAll = useCallback(() => {
+    store.upgradeAllTransportLines();
   }, [store]);
 
   const handleActivateAll = useCallback(() => {
@@ -564,6 +606,37 @@ export function TransportPanel() {
   const handleDeactivateAll = useCallback(() => {
     store.transportLines.filter(l => l.active).forEach(l => store.toggleTransportLine(l.id));
   }, [store]);
+
+  // --- Bulk upgrade cost computation ---
+  const bulkUpgradeData = useMemo(() => {
+    let totalCost = 0;
+    let upgradeableCount = 0;
+    for (const line of store.transportLines) {
+      const cost = getUpgradeCost(line);
+      if (store.money >= totalCost + cost) {
+        totalCost += cost;
+        upgradeableCount++;
+      }
+    }
+    return { totalCost, upgradeableCount };
+  }, [store.transportLines, store.money]);
+
+  const bulkUpgradeByTypeData = useMemo(() => {
+    const data: Record<string, { count: number; totalCost: number; upgradeableCount: number }> = {};
+    for (const type of TRANSPORT_TYPES) {
+      const lines = store.transportLines.filter(l => l.type === type);
+      if (lines.length === 0) continue;
+      let totalCost = 0;
+      let upgradeableCount = 0;
+      for (const line of lines) {
+        const cost = getUpgradeCost(line);
+        totalCost += cost;
+        if (store.money >= cost) upgradeableCount++;
+      }
+      data[type] = { count: lines.length, totalCost, upgradeableCount };
+    }
+    return data;
+  }, [store.transportLines, store.money]);
 
   const toggleSection = useCallback((key: string) => {
     setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }));
@@ -744,6 +817,7 @@ export function TransportPanel() {
                 const def = TRANSPORT_DEFS[type];
                 const isSelected = selectedType === type;
                 const cost = getTransportCost(type);
+                const isRecommended = previewData?.recommendedType === type;
                 return (
                   <GameItemTooltip
                     key={type}
@@ -760,20 +834,39 @@ export function TransportPanel() {
                   >
                     <button
                       onClick={() => setSelectedType(type)}
-                      className={`p-2 rounded-lg border text-center transition-all w-full ${
+                      className={`p-2 rounded-lg border text-center transition-all w-full relative ${
                         isSelected
                           ? 'border-cyan-500/50 bg-cyan-900/20 text-cyan-400'
-                          : 'border-gray-800 bg-[#0a0e17] text-gray-400 hover:border-gray-600'
+                          : isRecommended
+                            ? 'border-green-500/50 bg-green-900/10 text-green-400'
+                            : 'border-gray-800 bg-[#0a0e17] text-gray-400 hover:border-gray-600'
                       }`}
                     >
+                      {isRecommended && !isSelected && (
+                        <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full text-[7px] text-white flex items-center justify-center font-bold">✓</span>
+                      )}
                       <div className="text-lg">{def.emoji}</div>
                       <div className="text-[10px] font-medium mt-0.5">{def.name}</div>
                       <div className="text-[9px] text-gray-500">${formatNumber(cost)}</div>
+                      <div className="text-[8px] text-gray-600">{def.baseThroughput} u/t</div>
                     </button>
                   </GameItemTooltip>
                 );
               })}
             </div>
+            {previewData && !previewData.isRecommended && (
+              <div className="flex items-center gap-2 mb-3 bg-green-900/10 border border-green-500/20 rounded-lg px-3 py-1.5 text-[10px]">
+                <Lightbulb className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
+                <span className="text-green-400">Recommended: </span>
+                <button
+                  className="text-green-300 font-bold hover:text-green-200 underline"
+                  onClick={() => setSelectedType(previewData.recommendedType)}
+                >
+                  {TRANSPORT_DEFS[previewData.recommendedType].emoji} {TRANSPORT_DEFS[previewData.recommendedType].name}
+                </button>
+                <span className="text-gray-500">(${TRANSPORT_DEFS[previewData.recommendedType].baseThroughput} u/t)</span>
+              </div>
+            )}
 
             {/* Route Configuration - Smart Filtering */}
             <div className="space-y-3">
@@ -908,6 +1001,9 @@ export function TransportPanel() {
                         const toDef = toB ? BUILDING_DEFS[toB.type] : null;
                         const upgradeCost = getUpgradeCost(line);
                         const throughputPct = line.maxThroughput > 0 ? (line.throughput / line.maxThroughput) * 100 : 0;
+                        const nextType = getNextUpgradeType(line.type);
+                        const typeUpgradeCost = nextType ? getTypeUpgradeCost(line, nextType) : null;
+                        const showTypeUpgrade = upgradingLineId === line.id;
 
                         return (
                           <div key={line.id} className={`bg-[#0a0e17] rounded-lg p-3 border transition-all ${line.active ? 'border-cyan-900/30 hover:border-cyan-800/50' : 'border-gray-800 opacity-60'}`}>
@@ -956,17 +1052,76 @@ export function TransportPanel() {
                                   <Power className="w-3 h-3" />
                                 </button>
                               </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 text-[10px] px-2 text-cyan-400 hover:text-cyan-300"
-                                onClick={() => store.upgradeTransportLine(line.id)}
-                                disabled={store.money < upgradeCost}
-                              >
-                                <ChevronUp className="w-3 h-3 mr-0.5" />
-                                ${formatNumber(upgradeCost)}
-                              </Button>
+                              <div className="flex items-center gap-1">
+                                {/* Level Upgrade */}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 text-[9px] px-2 text-cyan-400 hover:text-cyan-300"
+                                  onClick={() => store.upgradeTransportLine(line.id)}
+                                  disabled={store.money < upgradeCost}
+                                  title={`Upgrade to Lv.${line.level + 1} ($${formatNumber(upgradeCost)})`}
+                                >
+                                  <ChevronUp className="w-3 h-3 mr-0.5" />
+                                  ${formatNumber(upgradeCost)}
+                                </Button>
+                                {/* Type Upgrade toggle */}
+                                {nextType && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 text-[9px] px-1.5 text-purple-400 hover:text-purple-300"
+                                    onClick={() => setUpgradingLineId(showTypeUpgrade ? null : line.id)}
+                                    title="Upgrade transport type"
+                                  >
+                                    ➡️
+                                  </Button>
+                                )}
+                              </div>
                             </div>
+                            {/* Type upgrade panel */}
+                            <AnimatePresence>
+                              {showTypeUpgrade && (
+                                <motion.div
+                                  initial={{ opacity: 0, height: 0 }}
+                                  animate={{ opacity: 1, height: 'auto' }}
+                                  exit={{ opacity: 0, height: 0 }}
+                                  transition={{ duration: 0.15 }}
+                                  className="mt-2 pt-2 border-t border-gray-800"
+                                >
+                                  <div className="text-[9px] text-gray-500 mb-1.5">Upgrade Transport Type:</div>
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    {TYPE_HIERARCHY.filter(t => t !== line.type).map(newType => {
+                                      const newDef = TRANSPORT_DEFS[newType];
+                                      const cost = getTypeUpgradeCost(line, newType);
+                                      const canAfford = store.money >= cost;
+                                      const isNext = newType === nextType;
+                                      return (
+                                        <button
+                                          key={newType}
+                                          onClick={() => {
+                                            store.upgradeTransportType(line.id, newType);
+                                            setUpgradingLineId(null);
+                                          }}
+                                          disabled={!canAfford}
+                                          className={`flex items-center gap-1 px-2 py-1 rounded-md border text-[9px] transition-colors ${
+                                            isNext
+                                              ? 'border-purple-500/50 bg-purple-900/20 text-purple-400 hover:bg-purple-900/30'
+                                              : 'border-gray-700 bg-gray-800/30 text-gray-400 hover:bg-gray-800/50'
+                                          } ${!canAfford ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+                                          title={`Upgrade to ${newDef.name} — $${formatNumber(cost)}`}
+                                        >
+                                          <span>{newDef.emoji}</span>
+                                          <span>{newDef.name}</span>
+                                          <span className="text-green-400 font-mono">${formatNumber(cost)}</span>
+                                          <span className="text-gray-600">{newDef.baseThroughput}u/t</span>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
                           </div>
                         );
                       })}
@@ -991,7 +1146,9 @@ export function TransportPanel() {
                 {expandedSections.throughput && (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
                     <div className="space-y-3">
-                      {throughputByType.map(({ type, def, count, throughput, capacity, utilization, totalUpgradeCost }) => (
+                      {throughputByType.map(({ type, def, count, throughput, capacity, utilization, totalUpgradeCost }) => {
+                        const bulkData = bulkUpgradeByTypeData[type];
+                        return (
                         <div key={type}>
                           <div className="flex items-center justify-between mb-1">
                             <div className="flex items-center gap-2">
@@ -1011,11 +1168,11 @@ export function TransportPanel() {
                                 size="sm"
                                 className="h-5 text-[9px] px-1.5 text-purple-400 hover:text-purple-300"
                                 onClick={() => handleUpgradeAllType(type)}
-                                disabled={store.money < totalUpgradeCost}
-                                title={`Upgrade all ${def.name} lines ($${formatNumber(totalUpgradeCost)})`}
+                                disabled={!bulkData || bulkData.upgradeableCount === 0}
+                                title={`Upgrade all ${def.name} lines (Lv+1, ${bulkData?.upgradeableCount ?? 0}/${count} affordable — $${formatNumber(bulkData?.totalCost ?? 0)})`}
                               >
                                 <ChevronUp className="w-2.5 h-2.5 mr-0.5" />
-                                All
+                                All ({bulkData?.upgradeableCount ?? 0})
                               </Button>
                             </div>
                           </div>
@@ -1030,7 +1187,8 @@ export function TransportPanel() {
                             />
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                       <div className="pt-2 border-t border-gray-800 flex items-center justify-between">
                         <span className="text-xs text-gray-400 font-medium">Total Network</span>
                         <span className="text-xs text-cyan-400 font-mono font-bold">{formatNumber(totalThroughput)}/{formatNumber(totalMaxThroughput)} u/t</span>
@@ -1254,7 +1412,39 @@ export function TransportPanel() {
                 <Pause className="w-3 h-3 mr-1" />
                 Deactivate All Lines
               </Button>
-              <div className="border-t border-gray-800 pt-2">
+              <div className="border-t border-gray-800 pt-2 space-y-2">
+                <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Upgrades</div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full h-7 text-[10px] border-purple-800/50 text-purple-400 hover:bg-purple-900/20"
+                  onClick={handleUpgradeAll}
+                  disabled={bulkUpgradeData.upgradeableCount === 0}
+                >
+                  <ChevronUp className="w-3 h-3 mr-1" />
+                  Upgrade All ({bulkUpgradeData.upgradeableCount} lines — ${formatNumber(bulkUpgradeData.totalCost)})
+                </Button>
+                {/* Per-type bulk upgrades */}
+                {Object.entries(bulkUpgradeByTypeData).map(([type, data]) => {
+                  const def = TRANSPORT_DEFS[type];
+                  if (!def || data.count === 0) return null;
+                  return (
+                    <Button
+                      key={type}
+                      variant="outline"
+                      size="sm"
+                      className="w-full h-7 text-[10px] border-purple-800/30 text-purple-300 hover:bg-purple-900/10 justify-start"
+                      onClick={() => handleUpgradeAllType(type as TransportType)}
+                      disabled={data.upgradeableCount === 0}
+                    >
+                      <span className="mr-1">{def.emoji}</span>
+                      Upgrade All {def.name} ({data.upgradeableCount}/{data.count} — ${formatNumber(data.totalCost)})
+                    </Button>
+                  );
+                })}
+              </div>
+              <div className="border-t border-gray-800 pt-2 space-y-2">
+                <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Auto-Connect</div>
                 <Button
                   variant="outline"
                   size="sm"
@@ -1264,16 +1454,38 @@ export function TransportPanel() {
                   <Lightbulb className="w-3 h-3 mr-1" />
                   Route Suggestions ({routeSuggestions.length})
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full h-7 text-[10px] border-purple-800/50 text-purple-400 hover:bg-purple-900/20 mt-2"
-                  onClick={() => setShowConnectAllDialog(true)}
-                  disabled={connectAllData.routes.length === 0}
-                >
-                  <Link2 className="w-3 h-3 mr-1" />
-                  Connect All ({connectAllData.routes.length} routes — ${formatNumber(connectAllData.totalCost)})
-                </Button>
+                <div>
+                  <label className="text-[9px] text-gray-500 block mb-1">Connect All — Transport Type:</label>
+                  <div className="flex items-center gap-1 mb-2">
+                    {TRANSPORT_TYPES.map(type => {
+                      const def = TRANSPORT_DEFS[type];
+                      const isSelected = connectAllType === type;
+                      return (
+                        <button
+                          key={type}
+                          onClick={() => setConnectAllType(type)}
+                          className={`px-1.5 py-1 rounded border text-[9px] transition-colors ${
+                            isSelected
+                              ? 'border-cyan-500/50 bg-cyan-900/20 text-cyan-400'
+                              : 'border-gray-700 text-gray-500 hover:border-gray-500'
+                          }`}
+                        >
+                          {def.emoji} {def.name.split(' ')[0]}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full h-7 text-[10px] border-purple-800/50 text-purple-400 hover:bg-purple-900/20"
+                    onClick={() => setShowConnectAllDialog(true)}
+                    disabled={connectAllData.routes.length === 0}
+                  >
+                    <Link2 className="w-3 h-3 mr-1" />
+                    Connect All ({connectAllData.routes.length} routes — ${formatNumber(connectAllData.totalCost)})
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
