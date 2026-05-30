@@ -88,11 +88,12 @@ function getCategoryIcon(cat: string): React.ReactNode {
 
 // ─── Helper: get repair cost for a building ──────────────────────────────────
 function getRepairCost(b: BuildingInstance): number {
-  if (b.condition >= 100) return 0;
+  const condition = b.condition ?? 100;
+  if (condition >= 100) return 0;
   const def = BUILDING_DEFS[b.type];
   if (!def) return 0;
   const baseRepairCost = def.baseCost.find(c => c.resource === 'money')?.amount ?? 100;
-  return Math.max(1, Math.floor(baseRepairCost * (100 - b.condition) / 100 * b.level));
+  return Math.max(1, Math.floor(baseRepairCost * (100 - condition) / 100 * b.level));
 }
 
 // ─── Helper: get region name ─────────────────────────────────────────────────
@@ -181,6 +182,11 @@ export function BuildingManagementPanel() {
       const regionName = getRegionName(b.regionId, mapRegions);
       return {
         ...b,
+        // Normalize potentially missing fields from old saves
+        efficiency: b.efficiency ?? 0,
+        condition: b.condition ?? 100,
+        deteriorationRate: b.deteriorationRate ?? 0.01,
+        lastDamageTick: b.lastDamageTick ?? 0,
         def,
         repairCost,
         status,
@@ -368,8 +374,8 @@ export function BuildingManagementPanel() {
   // ─── Deterioration factors for detail panel ───────────────────────────────
   const getDeteriorationFactors = (b: typeof buildingData[0]) => {
     const def = b.def;
-    const baseRate = b.deteriorationRate;
-    const ageInTicks = store.gameTick - b.placedAt;
+    const baseRate = b.deteriorationRate ?? 0.01;
+    const ageInTicks = store.gameTick - (b.placedAt ?? 0);
     const ageFactor = 1 + Math.min(2, ageInTicks / 100000);
     const weatherFactor = store.weather.current === 'stormy' ? 2.5
       : store.weather.current === 'rainy' ? 1.5
@@ -567,8 +573,8 @@ export function BuildingManagementPanel() {
                       <StatusBadge condition={b.condition} />
                     </td>
                     <td className="py-1.5 px-2 hidden md:table-cell">
-                      <span className={`font-mono ${b.efficiency >= 0.8 ? 'text-green-400' : b.efficiency >= 0.5 ? 'text-yellow-400' : 'text-red-400'}`}>
-                        {(b.efficiency * 100).toFixed(0)}%
+                      <span className={`font-mono ${(b.efficiency ?? 0) >= 0.8 ? 'text-green-400' : (b.efficiency ?? 0) >= 0.5 ? 'text-yellow-400' : 'text-red-400'}`}>
+                        {((b.efficiency ?? 0) * 100).toFixed(0)}%
                       </span>
                     </td>
                     <td className="py-1.5 px-2 hidden lg:table-cell">
@@ -579,7 +585,7 @@ export function BuildingManagementPanel() {
                       )}
                     </td>
                     <td className="py-1.5 px-2 hidden lg:table-cell">
-                      <span className="text-gray-400 font-mono">{b.deteriorationRate.toFixed(3)}</span>
+                      <span className="text-gray-400 font-mono">{(b.deteriorationRate ?? 0.01).toFixed(3)}</span>
                     </td>
                   </tr>
                 ))}
@@ -801,7 +807,7 @@ export function BuildingManagementPanel() {
                   <span className="text-sm">{b.def.emoji}</span>
                   <span className="text-[10px] text-gray-300 truncate flex-1">{b.def.name}</span>
                   <TrendingDown className="w-3 h-3 text-red-400" />
-                  <span className="text-[10px] font-mono text-red-400">{b.deteriorationRate.toFixed(4)}</span>
+                  <span className="text-[10px] font-mono text-red-400">{(b.deteriorationRate ?? 0.01).toFixed(4)}</span>
                 </div>
               ))}
             </div>
@@ -907,9 +913,9 @@ export function BuildingManagementPanel() {
                           </Badge>
                         </td>
                         <td className={`py-1.5 px-2 text-right font-mono ${entry.conditionChange > 0 ? 'text-green-400' : entry.conditionChange < 0 ? 'text-red-400' : 'text-gray-500'}`}>
-                          {entry.conditionChange > 0 ? '+' : ''}{entry.conditionChange.toFixed(2)}
+                          {entry.conditionChange > 0 ? '+' : ''}{(entry.conditionChange ?? 0).toFixed(2)}
                         </td>
-                        <td className="py-1.5 px-2 text-right font-mono text-gray-400 hidden sm:table-cell">{entry.conditionAfter.toFixed(1)}%</td>
+                        <td className="py-1.5 px-2 text-right font-mono text-gray-400 hidden sm:table-cell">{(entry.conditionAfter ?? 0).toFixed(1)}%</td>
                         <td className="py-1.5 px-2 text-right font-mono text-green-400 hidden md:table-cell">
                           {entry.repairCost ? `$${formatNumber(entry.repairCost)}` : '—'}
                         </td>
@@ -1054,8 +1060,8 @@ export function BuildingManagementPanel() {
               </Badge>
             )}
             <span className="text-xs text-gray-400 font-mono">
-              Efficiency: <span className={b.efficiency >= 0.8 ? 'text-green-400' : b.efficiency >= 0.5 ? 'text-yellow-400' : 'text-red-400'}>
-                {(b.efficiency * 100).toFixed(0)}%
+              Efficiency: <span className={(b.efficiency ?? 0) >= 0.8 ? 'text-green-400' : (b.efficiency ?? 0) >= 0.5 ? 'text-yellow-400' : 'text-red-400'}>
+                {((b.efficiency ?? 0) * 100).toFixed(0)}%
               </span>
             </span>
           </div>

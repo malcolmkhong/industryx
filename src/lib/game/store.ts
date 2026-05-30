@@ -1189,6 +1189,7 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
         condition: b.condition ?? 100,
         lastDamageTick: b.lastDamageTick ?? 0,
         deteriorationRate: b.deteriorationRate ?? 0.01,
+        efficiency: b.efficiency ?? 0,
       }));
     }
   }

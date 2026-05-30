@@ -226,3 +226,30 @@ Stage Summary:
 - Lint passes, dev server compiles successfully, page loads with BuildingManagementPanel chunk
 - Files modified: types.ts, store.ts, GameSidebar.tsx, page.tsx
 - Files created: BuildingManagementPanel.tsx (61751 bytes)
+
+---
+Task ID: 5
+Agent: main
+Task: Fix TypeError: Cannot read properties of undefined (reading 'toFixed') in BuildingManagementPanel
+
+Work Log:
+- Identified the root cause: `b.efficiency` and `b.deteriorationRate` could be `undefined` on building instances from old saves or code paths that didn't set these fields
+- The `buildingData` memo spread `...b` without normalizing potentially missing fields
+- Fixed `buildingData` memo to normalize `efficiency`, `condition`, `deteriorationRate`, `lastDamageTick` with defaults
+- Fixed `getRepairCost()` helper to handle `b.condition ?? 100`
+- Added defensive `?? 0` and `?? 0.01` fallbacks at all `.toFixed()` call sites:
+  - Overview table: `b.efficiency` and `b.deteriorationRate`
+  - Analytics tab: `b.deteriorationRate`
+  - Detail panel: `b.efficiency`
+  - Maintenance log: `entry.conditionChange` and `entry.conditionAfter`
+- Fixed `getDeteriorationFactors` to handle `b.deteriorationRate ?? 0.01` and `b.placedAt ?? 0`
+- Also added `efficiency` normalization to V20→V21 store migration for future save compatibility
+- Lint passes cleanly
+- Dev server compiles without errors
+- Verified via agent-browser: Building Management page loads correctly with all 66 buildings showing
+
+Stage Summary:
+- Critical TypeError bug fixed in BuildingManagementPanel.tsx
+- All `.toFixed()` calls now have null-safety fallbacks
+- Store migration also updated to include efficiency default
+- Page verified working with agent-browser
