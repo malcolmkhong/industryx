@@ -630,7 +630,7 @@ export function ResourcePanel() {
                           <div className="flex items-center gap-0.5 flex-wrap">
                             {def.outputs?.map((out, i) => (
                               <span key={i} className="text-[8px] text-green-300/80 bg-green-900/20 rounded px-1 py-px">
-                                <GameIcon icon={RESOURCE_META[out.resource].icon} size={10} className="inline-flex" />{(out.amount * store.gameSpeed).toFixed(1)}/s
+                                <GameIcon icon={RESOURCE_META[out.resource].icon} size={10} className="inline-flex" />{(out.amount * def.baseProductionRate * store.gameSpeed).toFixed(1)}/s
                               </span>
                             ))}
                           </div>
@@ -742,7 +742,7 @@ export function ResourcePanel() {
                                     <div key={i} className="flex items-center gap-0.5 bg-green-900/15 rounded px-1 py-px">
                                       <GameIcon icon={meta.icon} size={10} className="inline-flex" />
                                       <span className={`text-[8px] font-mono ${building.active ? 'text-green-400' : 'text-gray-500'}`}>
-                                        +{formatNumber(rate)}
+                                        +{formatNumber(rate * store.gameSpeed)}
                                       </span>
                                     </div>
                                   ))}

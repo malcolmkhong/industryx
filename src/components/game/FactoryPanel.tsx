@@ -812,7 +812,7 @@ export function FactoryPanel() {
                                     }`}>
                                       <GameIcon icon={meta.icon} size={12} className="inline-flex" />
                                       <span className={`text-[8px] font-mono ${building.active ? (hasEnough ? 'text-red-300/80' : 'text-red-400') : 'text-gray-500'}`}>
-                                        -{formatNumber(rate)}
+                                        -{formatNumber(rate * store.gameSpeed)}
                                       </span>
                                     </div>
                                   ))}
@@ -823,7 +823,7 @@ export function FactoryPanel() {
                                     <div key={i} className="flex items-center gap-0.5 bg-green-900/15 rounded px-1 py-px">
                                       <GameIcon icon={meta.icon} size={12} className="inline-flex" />
                                       <span className={`text-[8px] font-mono ${building.active ? 'text-green-400' : 'text-gray-500'}`}>
-                                        +{formatNumber(rate)}
+                                        +{formatNumber(rate * store.gameSpeed)}
                                       </span>
                                     </div>
                                   ))}
