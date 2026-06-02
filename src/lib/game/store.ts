@@ -9,6 +9,7 @@ import {
   simulateMarketTick, recordPlayerSell, recordPlayerBuy, createInitialSimState,
   MarketSimulationState, MarketSector,
 } from './marketSimulator';
+import { generateNewsText, initNewsLLM, resetTickBudget, getLLMState, LLMEngineState } from './newsLLM';
 import {
   GameState, GameTab, ResourceType, BuildingInstance, BuildingType,
   TransportLine, TransportType, Worker, WorkerType, Contract,
@@ -747,6 +748,9 @@ interface GameActions {
 
   // Reset
   resetGame: () => void;
+
+  // LLM News State
+  getNewsLLMState: () => import('./newsLLM').LLMEngineState;
 }
 
 export type GameStore = GameState & GameActions;
@@ -799,6 +803,41 @@ if (typeof window !== 'undefined') {
       debouncedStorage.__pendingValue = null;
     }
   });
+}
+
+// ─── Async LLM News Enhancement ────────────────────────────────────────────
+// Processes news items with EventPackets through the local LLM for text enhancement.
+// Non-blocking — fires in background and updates store when results arrive.
+// LLM is ONLY a language layer — it never changes data or meaning.
+
+let llmInitialized = false;
+
+async function enhanceNewsInBackground(
+  newsItems: Array<{ id: string; eventPacket: import('./newsBuilder').EventPacket }>,
+): Promise<void> {
+  // Initialize LLM once (lazy init)
+  if (!llmInitialized) {
+    llmInitialized = true;
+    initNewsLLM().catch(() => { /* LLM not available — fallback mode */ });
+  }
+
+  for (const item of newsItems) {
+    try {
+      const result = await generateNewsText(item.eventPacket);
+      if (result.source === 'llm' && result.title && result.description) {
+        // Update the specific news item in the store
+        const store = useGameStore.getState();
+        const updatedNews = store.marketNews.map(n =>
+          n.id === item.id
+            ? { ...n, title: result.title, description: result.description, textSource: 'llm' as const }
+            : n
+        );
+        useGameStore.setState({ marketNews: updatedNews });
+      }
+    } catch {
+      // LLM failed for this item — keep fallback text, no gameplay impact
+    }
+  }
 }
 
 export const useGameStore = create<GameStore>()(
@@ -958,6 +997,16 @@ export const useGameStore = create<GameStore>()(
               marketNews: [...simResult.news, ...existingNews].slice(0, MAX_NEWS),
               marketNarratives: [...simResult.narratives, ...existingNarratives].slice(0, MAX_NARRATIVES),
             });
+
+            // ── Async LLM Enhancement ──
+            // Try to enhance news text with local LLM (non-blocking)
+            // Only processes news items that have eventPackets and haven't been enhanced yet
+            const newsToEnhance = simResult.news.filter(n => n.eventPacket && n.textSource === 'fallback');
+            if (newsToEnhance.length > 0) {
+              resetTickBudget();
+              // Fire and forget — the enhancement will update news in background
+              enhanceNewsInBackground(newsToEnhance);
+            }
           }
         }
 
@@ -2344,6 +2393,8 @@ export const useGameStore = create<GameStore>()(
       },
 
       resetGame: () => set(createInitialState()),
+
+      getNewsLLMState: () => getLLMState(),
 
       // --- PAYOUT ACTIONS ---
       collectPayout: () => {

@@ -1467,3 +1467,140 @@ Stage Summary:
 - Narrative: 4 types (production, consumption, trade, hoarding), player behavior interpretation, 20-item cap
 - Pipeline: Base System → MVIL → Price Calc → Mean Reversion → Clamp → News → Narrative → UI
 - No modifications to base price formula, mean reversion, clamps, supply/demand, momentum, or correlation systems
+
+---
+Task ID: 3
+Agent: full-stack-developer
+Task: Create News Builder Module — Structured EventPacket Builder + Enhanced Templates
+
+Work Log:
+- Created `/home/z/my-project/src/lib/game/newsBuilder.ts` — a new module bridging the market simulation engine and the LLM layer
+- Defined `EventPacket` interface with type, resource, delta, severity, and context fields
+- Implemented 4 core builder functions:
+  - `buildEventPacketFromPriceMove()` — builds from price movements, returns null if change < 4%, infers cause from price ratio (speculative bubble, supply shortage, market crash, oversupply, normal trading)
+  - `buildEventPacketFromVolatility()` — builds from MVIL injection events, maps source/label to context
+  - `buildEventPacketFromSector()` — builds from sector-wide movements, returns null if avgChange < 3%
+  - `buildEventPacketFromTrade()` — builds from trade volume imbalance, returns null if totalVolume < 20 or imbalance ratio < 0.6
+- Created rich template system with 6+ variants per category:
+  - Price Move Up: 8 templates
+  - Price Move Down: 8 templates
+  - Volatility Micro: 6 templates
+  - Volatility Macro: 6 templates
+  - Volatility Chain: 6 templates
+  - Sector Rally: 6 templates
+  - Sector Downturn: 6 templates
+  - Trade Buy-Heavy: 6 templates
+  - Trade Sell-Heavy: 6 templates
+- Created separate title template arrays (6 each): Price Up, Price Down, Volatility, Sector, Trade
+- Implemented template variable substitution system supporting: {name}, {pct}, {cause}, {insight}, {outlook}, {sector}, {source}, {volume}, {direction}, {intensity}
+- Added analyst insight phrases (5 up, 5 down, 5 neutral)
+- Added outlook phrases (3 bullish, 3 bearish, 3 neutral)
+- Implemented anti-repetition system with rolling window of last 3 template indices per category (14 categories total)
+- Implemented `generateFallbackText()` — core function that selects template category, picks variant (avoiding repeats), substitutes variables, returns title + description
+- Implemented `eventPacketToMarketNews()` — utility to convert EventPacket to MarketNews object
+- Lint passes cleanly with no errors
+- No existing files modified
+
+Stage Summary:
+- Complete newsBuilder module created with EventPacket builders, rich template system, and anti-repetition
+- Module is self-contained — only depends on RESOURCE_META for display names and type imports
+- Importable as `import { ... } from '@/lib/game/newsBuilder'`
+- Exports: EventPacket, buildEventPacketFromPriceMove, buildEventPacketFromVolatility, buildEventPacketFromSector, buildEventPacketFromTrade, generateFallbackText, eventPacketToMarketNews
+- File: src/lib/game/newsBuilder.ts
+
+---
+Task ID: 2
+Agent: newsLLM-module-creator
+Task: Create the Local LLM News Text Generation Module
+
+Work Log:
+- Created `/home/z/my-project/src/lib/game/newsLLM.ts` — complete hybrid news generation module (~580 lines)
+- Implemented all required types:
+  - `EventPacket` — structured data input for LLM (type, resource, delta, severity, context)
+  - `NewsTextResult` — output with title, description, source tracking, and generation time
+  - `LLMLoadState` — idle | loading | ready | failed | unsupported
+  - `LLMEngineState` — full engine state tracking (loadState, model, backend, avgGenTime, totalCalls, cacheHits)
+- Implemented `initNewsLLM()` — WebGPU detection → WASM fallback → @huggingface/transformers dynamic import → pipeline creation (TinyLlama-1.1B-Chat-v1.0). Marks 'unsupported' if transformers.js not available.
+- Implemented `generateNewsText(packet)` — main entry point:
+  - LRU cache check first (hash-based key from all EventPacket fields)
+  - Tick budget enforcement (max 3 LLM calls per tick)
+  - Temporary disable if avg gen time >2000ms (60s cooldown)
+  - Serial queue processing (max 1 concurrent LLM call)
+  - 3-second timeout on LLM calls
+  - Always returns valid result, never throws
+- Implemented `getLLMState()` — returns current engine state for UI display
+- Implemented `resetTickBudget()` — resets per-tick LLM call budget
+- Implemented `shutdownNewsLLM()` — full resource cleanup
+- Implemented strict LLM prompt system:
+  - System prompt: professional financial news writer, strict rules against inventing data
+  - User prompt: JSON-serialized EventPacket
+  - Output parsing: JSON extraction from markdown code blocks, validation of title/description, resource name verification
+- Implemented enhanced deterministic fallback with 7 template variants per event type:
+  - `price_move`: 7 templates (direct, market action, analyst-style, breaking news, supply/demand framing, trend continuation, short punchy)
+  - `volatility`: 7 templates (spike, turbulence, injection-based, risk alert, stability break, momentum shift, quick flash)
+  - `sector`: 7 templates (broad movement, sector rotation, macro-driven, trend, performance update, summary, sector advance/decline)
+  - `trade`: 7 templates (volume surge, order imbalance, unusual activity, flow analysis, accumulation/distribution, brief, position shift)
+- Vocabulary variation system:
+  - 15 positive verbs (surge, soar, climb, rally, advance, etc.)
+  - 15 negative verbs (plunge, dive, crash, collapse, tumble, etc.)
+  - 10 positive nouns, 10 negative nouns
+  - 10 cause connectors (amid, driven by, following, due to, etc.)
+  - 5 severity-adaptive adverbs per level (low/medium/high)
+  - Recent template index tracking (avoids repeating same template within last 4 selections)
+- LRU cache: max 100 entries, stores both LLM and fallback results
+- Performance controls:
+  - Max concurrent LLM calls: 1 (serial queue)
+  - Max LLM calls per tick: 3
+  - LLM call timeout: 3000ms
+  - Auto-disable if average >2000ms for 60 seconds
+  - Generation time tracking with rolling 20-sample window
+
+Verification:
+- ESLint passes with no errors on newsLLM.ts
+- Dev server compiles without errors
+- No existing files modified
+- Module is importable as `import { ... } from '@/lib/game/newsLLM'`
+
+Stage Summary:
+- Complete hybrid news generation module created at `src/lib/game/newsLLM.ts`
+- Deterministic fallback system with 28 total template variants across 4 event types
+- LLM enhancement layer with WebGPU/WASM detection and @huggingface/transformers dynamic import
+- Robust error handling: never throws, always returns valid result
+- Caching, rate limiting, and performance monitoring built in
+- Game works perfectly without this module ever being initialized (fallback-only mode)
+- No other files modified
+
+---
+Task ID: 5
+Agent: market-panel-enhancer
+Task: Update MarketPanel.tsx News View with enhanced UI + LLM status indicators
+
+Work Log:
+- Added `Cpu` and `Sparkles` imports from lucide-react (line 13)
+- Added `newsFilter` state: `useState<'all' | 'price_move' | 'volatility' | 'sector' | 'trade'>('all')` (line 185)
+- Added `filteredNews` useMemo that filters `store.marketNews` by `newsFilter` category (lines 194-198)
+- Added `llmState` variable that reads `store.getNewsLLMState?.()` with fallback defaults (line 200)
+- Replaced entire `{viewMode === 'news' && (` section (lines 947-1159) with enhanced news UI:
+  - **Header**: "Market News" title + total count badge + LLM status indicator
+    - LLM active: green dot + Sparkles icon + "AI Enhanced" badge
+    - Fallback: gray dot + Cpu icon + "Template Mode" badge
+  - **LLM stats bar**: Shown when LLM is ready and has calls/caches — displays model name, backend, avg gen time, call count, cache hits
+  - **Filter row**: All | Price | Volatility | Sector | Trade — matching amber-themed style similar to sector filter buttons, with per-category counts
+  - **News cards**: Enhanced with:
+    - Colored left border for severity: red=high, yellow=medium, gray=low (`border-l-2`)
+    - textSource badge: green "AI" badge with Sparkles icon when `textSource===llm`, gray "Template" badge otherwise
+    - Category icon + label in footer
+    - Affected resources, impact summary, game tick in footer
+  - **Empty state**: Differentiates between no news at all vs no matching filter
+  - **Scrollable list**: `max-h-[500px] overflow-y-auto game-scrollbar`
+- Preserved existing Active Volatility and Player Narratives panels unchanged
+- Lint passes cleanly (no errors in MarketPanel.tsx)
+- Dev server compiles without errors
+
+Stage Summary:
+- Enhanced MarketPanel news view with LLM status indicators, category filters, severity borders, and textSource badges
+- Added `filteredNews` useMemo and `newsFilter` state for category-based filtering
+- LLM state (loadState, model, backend, avgGenTimeMs, totalCalls, cacheHits) displayed when available
+- No other parts of MarketPanel.tsx modified
+- File: src/components/game/MarketPanel.tsx
+

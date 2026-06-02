@@ -19,6 +19,14 @@
 
 import { GameState, MarketPrice, ResourceType } from './types';
 import { RESOURCE_META, BUILDING_DEFS } from './data';
+import {
+  buildEventPacketFromPriceMove,
+  buildEventPacketFromVolatility,
+  buildEventPacketFromSector,
+  buildEventPacketFromTrade,
+  generateFallbackText,
+  EventPacket,
+} from './newsBuilder';
 
 // ─── Sector Definitions ────────────────────────────────────────────────────
 // Resources in the same sector move together
@@ -293,6 +301,9 @@ export interface MarketNews {
   severity: 'low' | 'medium' | 'high';
   gameTick: number;
   category: 'price_move' | 'volatility' | 'correlation' | 'sector' | 'trade';
+  // ── Hybrid News System fields ──
+  textSource?: 'llm' | 'fallback'; // tracks which generator produced the text
+  eventPacket?: import('./newsBuilder').EventPacket; // structured data for LLM re-generation
 }
 
 function generateNewsId(): string {
@@ -884,26 +895,53 @@ export function simulateMarketTick(input: MarketSimulationInput): MarketSimulati
   }
 
   // ═════════════════════════════════════════════════════════════════════════
-  // OVERLAY 2: Generate Market News (purely from simulation outputs)
+  // OVERLAY 2: Generate Market News (Hybrid Pipeline)
+  // Pipeline: EventPacket → newsBuilder (fallback text) → [async LLM enhancement]
   // ═════════════════════════════════════════════════════════════════════════
   const generatedNews: MarketNews[] = [];
 
-  // News from significant price movements
+  // Helper: Build MarketNews from EventPacket using enhanced templates
+  function newsFromPacket(
+    packet: EventPacket,
+    affectedRes: ResourceType[],
+    gameTick: number,
+    category: MarketNews['category'],
+  ): MarketNews {
+    const { title, description } = generateFallbackText(packet);
+    const name = RESOURCE_META[packet.resource as ResourceType]?.name ?? packet.resource;
+    return {
+      id: generateNewsId(),
+      title,
+      description,
+      affectedResources: affectedRes,
+      impactSummary: `${name} ${packet.delta}`,
+      severity: packet.severity,
+      gameTick,
+      category,
+      textSource: 'fallback',   // will be updated by async LLM enhancement
+      eventPacket: packet,       // stored for async LLM re-generation
+    };
+  }
+
+  // News from significant price movements (via EventPacket)
   for (const m of newMarket) {
     const changeRatio = priceChanges[m.resource] ?? 0;
     const oldPrice = m.currentPrice / (1 + changeRatio);
-    const news = generatePriceMoveNews(m.resource, oldPrice, m.currentPrice, m.basePrice, gameTick);
-    if (news) generatedNews.push(news);
-  }
-
-  // News from new MVIL injection events
-  for (const { resource, injection } of newInjectionEvents) {
-    if (injection.source === 'macro' || injection.intensity > 0.2) {
-      generatedNews.push(generateVolatilityNews(resource, injection, gameTick));
+    const packet = buildEventPacketFromPriceMove(m.resource, oldPrice, m.currentPrice, m.basePrice);
+    if (packet) {
+      generatedNews.push(newsFromPacket(packet, [m.resource], gameTick, 'price_move'));
     }
   }
 
-  // News from sector-wide movements
+  // News from new MVIL injection events (via EventPacket)
+  for (const { resource, injection } of newInjectionEvents) {
+    if (injection.source === 'macro' || injection.intensity > 0.2) {
+      const packet = buildEventPacketFromVolatility(resource, injection);
+      generatedNews.push(newsFromPacket(packet, [resource], gameTick, 'volatility'));
+    }
+  }
+
+  // News from sector-wide movements (via EventPacket)
   for (const sector of Object.keys(sectorTrends) as MarketSector[]) {
     const sectorRes = sectorResources[sector] ?? [];
     if (sectorRes.length === 0) continue;
@@ -914,16 +952,20 @@ export function simulateMarketTick(input: MarketSimulationInput): MarketSimulati
       totalChange += priceChanges[res] ?? 0;
     }
     const avgChange = totalChange / sectorRes.length;
-    const news = generateSectorNews(sector, trend, avgChange, sectorRes, gameTick);
-    if (news) generatedNews.push(news);
+    const packet = buildEventPacketFromSector(sector, trend, avgChange);
+    if (packet) {
+      generatedNews.push(newsFromPacket(packet, sectorRes, gameTick, 'sector'));
+    }
   }
 
-  // News from trade imbalances
+  // News from trade imbalances (via EventPacket)
   for (const m of newMarket) {
     const sells = newSimState.recentPlayerSells[m.resource] ?? 0;
     const buys = newSimState.recentPlayerBuys[m.resource] ?? 0;
-    const news = generateTradeNews(m.resource, sells, buys, gameTick);
-    if (news) generatedNews.push(news);
+    const packet = buildEventPacketFromTrade(m.resource, sells, buys);
+    if (packet) {
+      generatedNews.push(newsFromPacket(packet, [m.resource], gameTick, 'trade'));
+    }
   }
 
   // ═════════════════════════════════════════════════════════════════════════

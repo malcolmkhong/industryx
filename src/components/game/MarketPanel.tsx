@@ -9,7 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import {
   TrendingUp, TrendingDown, Minus, ShoppingCart, DollarSign,
   ArrowUpRight, ArrowDownRight, BarChart3, Wallet, Activity,
-  Zap, Flame, Package, RefreshCw, Link2, Layers, Newspaper, AlertTriangle
+  Zap, Flame, Package, RefreshCw, Link2, Layers, Newspaper, AlertTriangle,
+  Cpu, Sparkles
 } from 'lucide-react';
 import { ResourceType } from '@/lib/game/types';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
@@ -181,6 +182,7 @@ export function MarketPanel() {
   const [filter, setFilter] = useState<'all' | MarketSector>('all');
   const [tradeMode, setTradeMode] = useState<'sell' | 'buy'>('sell');
   const [viewMode, setViewMode] = useState<'market' | 'sectors' | 'chains' | 'news'>('market');
+  const [newsFilter, setNewsFilter] = useState<'all' | 'price_move' | 'volatility' | 'sector' | 'trade'>('all');
 
   const filteredMarket = useMemo(() => {
     return store.market.filter(m => {
@@ -188,6 +190,14 @@ export function MarketPanel() {
       return RESOURCE_SECTOR[m.resource] === filter;
     });
   }, [store.market, filter]);
+
+  const filteredNews = useMemo(() => {
+    const allNews = store.marketNews ?? [];
+    if (newsFilter === 'all') return allNews;
+    return allNews.filter(n => n.category === newsFilter);
+  }, [store.marketNews, newsFilter]);
+
+  const llmState = store.getNewsLLMState?.() ?? { loadState: 'idle', model: null, backend: null, averageGenTimeMs: 0, totalCalls: 0, cacheHits: 0 };
 
   const portfolioValue = useMemo(() => {
     return (Object.entries(store.resources) as [ResourceType, number][])
@@ -940,37 +950,111 @@ export function MarketPanel() {
           {/* News Feed */}
           <div className="lg:col-span-2 space-y-3">
             <div className="game-card rounded-xl bg-card p-4 border border-amber-900/20">
+              {/* Header with LLM status */}
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Newspaper className="w-4 h-4 text-amber-400" />
                   <h3 className="text-sm font-semibold text-amber-400">Market News</h3>
+                  <Badge variant="outline" className="border-amber-500/30 text-amber-400 bg-amber-900/10 text-[9px]">
+                    {(store.marketNews?.length ?? 0)} stories
+                  </Badge>
                 </div>
-                <Badge variant="outline" className="border-amber-500/30 text-amber-400 bg-amber-900/10 text-[9px]">
-                  {(store.marketNews?.length ?? 0)} stories
-                </Badge>
+                <div className="flex items-center gap-2">
+                  {llmState.loadState === 'ready' ? (
+                    <span className="flex items-center gap-1 text-[9px] text-green-400 bg-green-900/20 border border-green-500/20 rounded-full px-2 py-0.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
+                      <Sparkles className="w-3 h-3" />
+                      AI Enhanced
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-[9px] text-gray-500 bg-gray-900/30 border border-gray-700 rounded-full px-2 py-0.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-500 inline-block" />
+                      <Cpu className="w-3 h-3" />
+                      Template Mode
+                    </span>
+                  )}
+                </div>
               </div>
 
-              {(store.marketNews?.length ?? 0) === 0 ? (
+              {/* LLM stats bar (when active) */}
+              {llmState.loadState === 'ready' && (llmState.totalCalls > 0 || llmState.cacheHits > 0) && (
+                <div className="flex items-center gap-3 mb-3 text-[9px] text-gray-500">
+                  {llmState.model && <span className="font-mono">{llmState.model}</span>}
+                  {llmState.backend && <span className="uppercase text-[8px] px-1.5 py-0.5 rounded bg-gray-800 border border-gray-700">{llmState.backend}</span>}
+                  {llmState.averageGenTimeMs > 0 && <span>Avg {llmState.averageGenTimeMs.toFixed(0)}ms</span>}
+                  {llmState.totalCalls > 0 && <span>{llmState.totalCalls} calls</span>}
+                  {llmState.cacheHits > 0 && <span>{llmState.cacheHits} cached</span>}
+                </div>
+              )}
+
+              {/* Filter row */}
+              <div className="flex items-center gap-1.5 flex-wrap mb-3">
+                {([
+                  { key: 'all' as const, label: 'All' },
+                  { key: 'price_move' as const, label: 'Price' },
+                  { key: 'volatility' as const, label: 'Volatility' },
+                  { key: 'sector' as const, label: 'Sector' },
+                  { key: 'trade' as const, label: 'Trade' },
+                ]).map(f => (
+                  <button
+                    key={f.key}
+                    onClick={() => setNewsFilter(f.key)}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] ${
+                      newsFilter === f.key
+                        ? 'bg-amber-900/30 text-amber-400 border border-amber-500/30'
+                        : 'bg-card text-gray-500 border border-gray-800 hover:text-gray-300'
+                    }`}
+                  >
+                    {f.label}
+                    {f.key !== 'all' && (
+                      <span className="ml-1 text-[8px] opacity-60">
+                        ({(store.marketNews ?? []).filter(n => n.category === f.key).length})
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {/* News list */}
+              {filteredNews.length === 0 ? (
                 <div className="text-center py-8">
                   <Newspaper className="w-10 h-10 text-gray-700 mx-auto mb-2" />
-                  <p className="text-xs text-gray-500">No market news yet. News will appear as prices move and events occur.</p>
-                  <p className="text-[10px] text-gray-600 mt-1">Start producing and trading to generate market activity.</p>
+                  <p className="text-xs text-gray-500">
+                    {(store.marketNews?.length ?? 0) === 0
+                      ? 'No market news yet. News will appear as prices move and events occur.'
+                      : 'No news matching this filter.'}
+                  </p>
+                  {(store.marketNews?.length ?? 0) === 0 && (
+                    <p className="text-[10px] text-gray-600 mt-1">Start producing and trading to generate market activity.</p>
+                  )}
                 </div>
               ) : (
-                <div className="space-y-2 max-h-[500px] overflow-y-auto game-scrollbar scroll-fade">
-                  {(store.marketNews ?? []).map(news => {
+                <div className="space-y-2 max-h-[500px] overflow-y-auto game-scrollbar">
+                  {filteredNews.map(news => {
+                    const severityBorder = news.severity === 'high' ? 'border-l-red-500' : news.severity === 'medium' ? 'border-l-yellow-500' : 'border-l-gray-600';
                     const style = getSeverityStyle(news.severity);
+                    const isLLM = news.textSource === 'llm';
                     return (
-                      <div key={news.id} className={`rounded-lg p-3 border ${style.border} ${style.bg}`}>
+                      <div key={news.id} className={`rounded-lg p-3 border ${style.border} ${style.bg} border-l-2 ${severityBorder}`}>
                         <div className="flex items-start gap-2">
                           <span className="text-sm mt-0.5">{getCategoryIcon(news.category)}</span>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                               <span className={`text-xs font-bold ${style.color}`}>{news.title}</span>
-                              <span className={`inline-block w-1.5 h-1.5 rounded-full ${style.dot} flex-shrink-0`} />
+                              {isLLM ? (
+                                <span className="inline-flex items-center gap-0.5 text-[8px] px-1.5 py-0.5 rounded-full bg-green-900/30 text-green-400 border border-green-500/30 font-bold flex-shrink-0">
+                                  <Sparkles className="w-2.5 h-2.5" /> AI
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-0.5 text-[8px] px-1.5 py-0.5 rounded-full bg-gray-800 text-gray-500 border border-gray-700 font-bold flex-shrink-0">
+                                  Template
+                                </span>
+                              )}
                             </div>
                             <p className="text-[10px] text-gray-400 leading-relaxed">{news.description}</p>
-                            <div className="flex items-center gap-2 mt-1.5">
+                            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                              <span className="text-[9px] text-gray-600">{getCategoryIcon(news.category)} {news.category.replace('_', ' ')}</span>
+                              <span className="text-[9px] text-gray-600">·</span>
                               <span className="text-[9px] text-gray-600 font-mono">Impact: {news.impactSummary}</span>
                               <span className="text-[9px] text-gray-600">·</span>
                               <span className="text-[9px] text-gray-600">Tick {news.gameTick}</span>
