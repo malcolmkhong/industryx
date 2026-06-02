@@ -618,9 +618,6 @@ function createInitialState(): GameState {
     activeTab: 'dashboard',
     selectedBuilding: null,
     notifications: [],
-    computedProductionRates: {},
-    computedConsumptionRates: {},
-    computedActualConsumptionRates: {},
     productionSnapshot: emptyProductionSnapshot(),
   };
 }
@@ -799,10 +796,10 @@ export const useGameStore = create<GameStore>()(
         const newStats = { ...state.stats, playTime: state.stats.playTime + 1 };
         const notifications: GameNotification[] = [];
 
-        // Computed rate trackers (updated during building processing)
-        const computedProdRates: Record<string, number> = {};
-        const computedConsRates: Record<string, number> = {};
-        const computedActualConsRates: Record<string, number> = {}; // Only actual consumption (excludes stalled demand)
+        // Snapshot rate trackers (built during building processing, written to productionSnapshot)
+        const snapshotProduction: Record<string, number> = {};
+        const snapshotConsumption: Record<string, number> = {};
+        const snapshotActualConsumption: Record<string, number> = {};
 
         // === Phase 2: Production Calculator (Single Source of Truth) ===
         const cache = buildMultipliers(state);
@@ -818,10 +815,10 @@ export const useGameStore = create<GameStore>()(
         const powerResult = computePowerGrid(state, cache, newResources, newTick);
         cache.powerEfficiency = powerResult.efficiency;
 
-        // Track fuel consumption in legacy computed rates
+        // Track fuel consumption in snapshot rate maps
         for (const fc of powerResult.fuelConsumption) {
-          computedConsRates[fc.resource] = (computedConsRates[fc.resource] || 0) + fc.amount;
-          computedActualConsRates[fc.resource] = (computedActualConsRates[fc.resource] || 0) + fc.actualAmount;
+          snapshotConsumption[fc.resource] = (snapshotConsumption[fc.resource] || 0) + fc.amount;
+          snapshotActualConsumption[fc.resource] = (snapshotActualConsumption[fc.resource] || 0) + fc.actualAmount;
         }
 
         const totalProduction = powerResult.totalProduction;
@@ -866,14 +863,14 @@ export const useGameStore = create<GameStore>()(
               const capacity = newResources[res] + output.amount;
               newResources[res] = Math.min(getCapacity(state, res, researchSet), capacity);
               newStats.totalResourcesProduced[res] += output.amount;
-              computedProdRates[res] = (computedProdRates[res] || 0) + output.amount;
+              snapshotProduction[res] = (snapshotProduction[res] || 0) + output.amount;
             }
           }
 
           if (def.category === 'factory') {
             // Track demand (inputs) regardless of whether factory can produce
             for (const input of result.inputs) {
-              computedConsRates[input.resource] = (computedConsRates[input.resource] || 0) + input.amount;
+              snapshotConsumption[input.resource] = (snapshotConsumption[input.resource] || 0) + input.amount;
             }
 
             if (result.canProduce) {
@@ -881,7 +878,7 @@ export const useGameStore = create<GameStore>()(
               for (const input of result.actualInputs) {
                 const res = input.resource as ResourceType;
                 newResources[res] -= input.amount;
-                computedActualConsRates[res] = (computedActualConsRates[res] || 0) + input.amount;
+                snapshotActualConsumption[res] = (snapshotActualConsumption[res] || 0) + input.amount;
               }
               // Produce outputs
               for (const output of result.outputs) {
@@ -889,7 +886,7 @@ export const useGameStore = create<GameStore>()(
                 const capacity = newResources[res] + output.amount;
                 newResources[res] = Math.min(getCapacity(state, res, researchSet), capacity);
                 newStats.totalResourcesProduced[res] += output.amount;
-                computedProdRates[res] = (computedProdRates[res] || 0) + output.amount;
+                snapshotProduction[res] = (snapshotProduction[res] || 0) + output.amount;
               }
             }
           }
@@ -1464,9 +1461,9 @@ export const useGameStore = create<GameStore>()(
         // === Assemble ProductionSnapshot ===
         const payoutSnapshot = computePayout(state, cache);
         const productionSnapshot: ProductionSnapshot = {
-          production: { ...computedProdRates },
-          consumption: { ...computedConsRates },
-          actualConsumption: { ...computedActualConsRates },
+          production: { ...snapshotProduction },
+          consumption: { ...snapshotConsumption },
+          actualConsumption: { ...snapshotActualConsumption },
           buildings: snapshotBuildings,
           powerProduction: powerResult.totalProduction,
           powerConsumption: powerResult.totalConsumption,
@@ -1514,9 +1511,6 @@ export const useGameStore = create<GameStore>()(
             ...state.prestigeState,
             corporationPoints: state.prestigeState.corporationPoints + corpGained,
           } : state.prestigeState,
-          computedProductionRates: computedProdRates,
-          computedConsumptionRates: computedConsRates,
-          computedActualConsumptionRates: computedActualConsRates,
           productionSnapshot,
         });
 

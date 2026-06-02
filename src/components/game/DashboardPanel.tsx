@@ -54,7 +54,7 @@ export function DashboardPanel() {
 
   // Production rates — use store's computed rates which include all bonuses
   // (mega project, prestige, research, worker, event, weather, etc.)
-  const productionRates = store.computedProductionRates;
+  const productionRates = store.productionSnapshot.production;
 
   // Production rate summary items
   const topProductionRates = useMemo(() => {

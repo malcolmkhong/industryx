@@ -403,12 +403,12 @@ export default function AIAdvisorPanel() {
     const powerScore = Math.round(Math.min(25, store.powerGrid.efficiency * 25));
 
     // Production Score (0-25) — resource balance
-    const allResources = Object.keys(store.computedProductionRates) as ResourceType[];
+    const allResources = Object.keys(store.productionSnapshot.production) as ResourceType[];
     let balancedCount = 0;
     let totalChecked = 0;
     for (const res of allResources) {
-      const consumption = store.computedConsumptionRates[res] ?? 0;
-      const production = store.computedProductionRates[res] ?? 0;
+      const consumption = store.productionSnapshot.consumption[res] ?? 0;
+      const production = store.productionSnapshot.production[res] ?? 0;
       if (consumption > 0 || production > 0) {
         totalChecked++;
         if (production >= consumption * 0.8) {
@@ -424,7 +424,7 @@ export default function AIAdvisorPanel() {
     for (const res of allResources) {
       const stock = store.resources[res] ?? 0;
       const capacity = store.resourceCapacity[res] ?? 1;
-      if (capacity > 0 && (stock > 0 || store.computedProductionRates[res] > 0)) {
+      if (capacity > 0 && (stock > 0 || store.productionSnapshot.production[res] > 0)) {
         storageCount++;
         const fillRatio = stock / capacity;
         // Ideal range: 20-80%, penalize >90% (overfull) and <5% (starved)
@@ -452,7 +452,7 @@ export default function AIAdvisorPanel() {
       activity: activityScore,
       total,
     };
-  }, [store.powerGrid, store.buildings, store.computedProductionRates, store.computedConsumptionRates, store.resources, store.resourceCapacity]);
+  }, [store.powerGrid, store.buildings, store.productionSnapshot, store.resources, store.resourceCapacity]);
 
   const healthScore = healthBreakdown.total;
 
@@ -561,9 +561,9 @@ export default function AIAdvisorPanel() {
 
     // ===== 2. BOTTLENECK FIX (Priority: Critical/Important) =====
     // Detects when a raw resource is stockpiling but its Tier 1 product isn't being produced
-    for (const res of Object.keys(store.computedProductionRates) as ResourceType[]) {
-      const production = store.computedProductionRates[res] ?? 0;
-      const consumption = store.computedConsumptionRates[res] ?? 0;
+    for (const res of Object.keys(store.productionSnapshot.production) as ResourceType[]) {
+      const production = store.productionSnapshot.production[res] ?? 0;
+      const consumption = store.productionSnapshot.consumption[res] ?? 0;
       const stock = store.resources[res] ?? 0;
       const capacity = store.resourceCapacity[res] ?? 1;
 
@@ -612,8 +612,8 @@ export default function AIAdvisorPanel() {
       for (const input of def.inputs) {
         if (input.resource === 'money') continue;
         const inputRes = input.resource as ResourceType;
-        const inputProduction = store.computedProductionRates[inputRes] ?? 0;
-        const inputConsumption = store.computedConsumptionRates[inputRes] ?? 0;
+        const inputProduction = store.productionSnapshot.production[inputRes] ?? 0;
+        const inputConsumption = store.productionSnapshot.consumption[inputRes] ?? 0;
 
         // Input is being consumed more than produced (or not produced at all)
         if (inputConsumption > inputProduction && inputProduction < inputConsumption * 0.5) {
@@ -775,9 +775,9 @@ export default function AIAdvisorPanel() {
 
     // ===== 7. EXISTING: Resource Deficits (Priority: Important) =====
     const deficitResources: ResourceType[] = [];
-    for (const res of Object.keys(store.computedConsumptionRates) as ResourceType[]) {
-      const consumption = store.computedConsumptionRates[res] ?? 0;
-      const production = store.computedProductionRates[res] ?? 0;
+    for (const res of Object.keys(store.productionSnapshot.consumption) as ResourceType[]) {
+      const consumption = store.productionSnapshot.consumption[res] ?? 0;
+      const production = store.productionSnapshot.production[res] ?? 0;
 
       if (consumption > production && consumption > 0.01) {
         deficitResources.push(res);
@@ -810,7 +810,7 @@ export default function AIAdvisorPanel() {
     }
 
     // ===== 8. EXISTING: Idle Resources / Stockpiled (Priority: Suggested) =====
-    for (const res of Object.keys(store.computedProductionRates) as ResourceType[]) {
+    for (const res of Object.keys(store.productionSnapshot.production) as ResourceType[]) {
       const stock = store.resources[res] ?? 0;
       const capacity = store.resourceCapacity[res] ?? 1;
       const fillRatio = stock / capacity;
@@ -941,7 +941,7 @@ export default function AIAdvisorPanel() {
     recs.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
 
     return recs;
-  }, [store.powerGrid, store.buildings, store.computedConsumptionRates, store.computedProductionRates, store.resources, store.resourceCapacity, store.activeResearch, store.completedResearch, store.researchPoints, store.market, store.money, store.prestigeState]);
+  }, [store.powerGrid, store.buildings, store.productionSnapshot, store.resources, store.resourceCapacity, store.activeResearch, store.completedResearch, store.researchPoints, store.market, store.money, store.prestigeState]);
 
   // Filter dismissed
   const visibleRecommendations = useMemo(() => {
@@ -952,14 +952,14 @@ export default function AIAdvisorPanel() {
   const activeBuildings = useMemo(() => store.buildings.filter(b => b.active).length, [store.buildings]);
   const deficitCount = useMemo(() => {
     let count = 0;
-    const allResources = Object.keys(store.computedConsumptionRates) as ResourceType[];
+    const allResources = Object.keys(store.productionSnapshot.consumption) as ResourceType[];
     for (const res of allResources) {
-      const consumption = store.computedConsumptionRates[res] ?? 0;
-      const production = store.computedProductionRates[res] ?? 0;
+      const consumption = store.productionSnapshot.consumption[res] ?? 0;
+      const production = store.productionSnapshot.production[res] ?? 0;
       if (consumption > production && consumption > 0.01) count++;
     }
     return count;
-  }, [store.computedConsumptionRates, store.computedProductionRates]);
+  }, [store.productionSnapshot]);
 
   const powerEfficiency = store.powerGrid.efficiency;
   const researchProgress = `${store.completedResearch.length}/${RESEARCH_TREE.length}`;
@@ -974,8 +974,8 @@ export default function AIAdvisorPanel() {
 
       const steps = chain.steps.map(stepRes => {
         const res = stepRes as ResourceType;
-        const production = store.computedProductionRates[res] ?? 0;
-        const consumption = store.computedConsumptionRates[res] ?? 0;
+        const production = store.productionSnapshot.production[res] ?? 0;
+        const consumption = store.productionSnapshot.consumption[res] ?? 0;
         const producer = findProducerForResource(res);
         const hasProducer = producer ? builtTypes.has(producer) : false;
         const hasPositiveNet = (production - consumption) > 0 || (production > 0 && consumption === 0);
@@ -1012,7 +1012,7 @@ export default function AIAdvisorPanel() {
     }
 
     return results;
-  }, [store.buildings, store.computedProductionRates, store.computedConsumptionRates, store.completedResearch, store.prestigeState]);
+  }, [store.buildings, store.productionSnapshot, store.completedResearch, store.prestigeState]);
 
   // Deduplicate chain statuses by name (keep highest status)
   const uniqueChainStatuses = useMemo(() => {

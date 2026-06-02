@@ -37,21 +37,13 @@ export function PrestigePanel() {
   const nextCPBuildings = store.buildings.length < 2 ? 2 - store.buildings.length : 0;
   const nextCPResearch = store.completedResearch.length < 1 ? 1 - store.completedResearch.length : 0;
 
-  // Current money production rate for tooltip calculations
+  // Current money production rate for tooltip calculations — derived from snapshot
+  // (payoutPerCycle / basePayoutInterval gives per-tick payout income + endgame passive)
   const moneyPerTick = useMemo(() => {
-    let rate = 0;
-    store.buildings.forEach(b => {
-      if (!b.active) return;
-      const def = BUILDING_DEFS[b.type];
-      if (!def?.outputs) return;
-      def.outputs.forEach(o => {
-        if (o.resource === 'money') {
-          rate += o.amount * b.level * b.efficiency * store.powerGrid.efficiency;
-        }
-      });
-    });
-    return rate;
-  }, [store.buildings, store.powerGrid.efficiency]);
+    const payoutPerTick = (store.productionSnapshot.payoutPerCycle ?? 0) / 100;
+    const endgameMoney = store.productionSnapshot.endgameMoney ?? 0;
+    return payoutPerTick + endgameMoney;
+  }, [store.productionSnapshot.payoutPerCycle, store.productionSnapshot.endgameMoney]);
 
   // Prestige bonus effect descriptions
   const bonusDetails: Record<string, {

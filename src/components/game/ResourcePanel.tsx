@@ -77,7 +77,7 @@ export function ResourcePanel() {
     return grouped;
   }, [store.buildings]);
 
-  // Production rates per resource — use store's computed rates which include all bonuses
+  // Production rates per resource — use productionSnapshot which includes all bonuses
   // (mega project, prestige, research, worker, event, weather, etc.)
   // Only include extractor-produced resources for the Raw Materials panel
   const productionRates = useMemo(() => {
@@ -89,17 +89,17 @@ export function ResourcePanel() {
       def.outputs.forEach(o => extractorResources.add(o.resource));
     });
     const rates: Record<string, number> = {};
-    Object.entries(store.computedProductionRates).forEach(([res, rate]) => {
+    Object.entries(store.productionSnapshot.production).forEach(([res, rate]) => {
       if (extractorResources.has(res)) {
         rates[res] = rate;
       }
     });
     return rates;
-  }, [store.buildings, store.computedProductionRates]);
+  }, [store.buildings, store.productionSnapshot.production]);
 
   // Consumption rates — use actual consumption for net rate, demand consumption for demand display
-  const consumptionRates = store.computedActualConsumptionRates;
-  const demandRates = store.computedConsumptionRates;
+  const consumptionRates = store.productionSnapshot.actualConsumption;
+  const demandRates = store.productionSnapshot.consumption;
 
   // Resource flow data
   const unlimited = useMemo(() => hasUnlimitedStorage(store.megaProjects), [store.megaProjects]);
@@ -113,7 +113,7 @@ export function ResourcePanel() {
     }).filter(r => r.rate > 0 || r.amount > 0);
   }, [productionRates, store.resources, store.resourceCapacity, unlimited]);
 
-  // Extraction tier production summary for SVG flow — uses store computed rates
+  // Extraction tier production summary for SVG flow — uses productionSnapshot
   const tierProductionSummary = useMemo(() => {
     const summary: Record<string, { production: number; resources: Set<string> }> = {
       basic: { production: 0, resources: new Set<string>() },
@@ -125,7 +125,7 @@ export function ResourcePanel() {
       const def = BUILDING_DEFS[b.type];
       if (!def?.outputs) return;
       def.outputs.forEach(o => {
-        const rate = store.computedProductionRates[o.resource] ?? 0;
+        const rate = store.productionSnapshot.production[o.resource] ?? 0;
         if (rate > 0) {
           summary.basic.production += rate;
           summary.basic.resources.add(o.resource);
@@ -137,7 +137,7 @@ export function ResourcePanel() {
       const def = BUILDING_DEFS[b.type];
       if (!def?.outputs) return;
       def.outputs.forEach(o => {
-        const rate = store.computedProductionRates[o.resource] ?? 0;
+        const rate = store.productionSnapshot.production[o.resource] ?? 0;
         if (rate > 0) {
           summary.advanced.production += rate;
           summary.advanced.resources.add(o.resource);
@@ -148,15 +148,13 @@ export function ResourcePanel() {
       });
     });
     return summary;
-  }, [extractorBuildings, store.computedProductionRates]);
+  }, [extractorBuildings, store.productionSnapshot.production]);
 
   // ─── Overview stats ─────────────────────────────────────────────────────
 
   const totalExtractors = extractorBuildings.length;
   const activeExtractors = extractorBuildings.filter(b => b.active).length;
-  const totalPowerConsumption = extractorBuildings
-    .filter(b => b.active)
-    .reduce((sum, b) => sum + BUILDING_DEFS[b.type].basePowerConsumption * b.level, 0);
+  const totalPowerConsumption = store.productionSnapshot.powerConsumption;
   const avgEfficiency = activeExtractors > 0
     ? extractorBuildings.filter(b => b.active).reduce((sum, b) => sum + b.efficiency, 0) / activeExtractors
     : 0;
@@ -693,14 +691,15 @@ export function ResourcePanel() {
                         if (!def) return null;
                         const upgradeCost = getBuildingCost(building.type, building.level);
                         const canUpgrade = store.money >= upgradeCost;
-                        const effectiveOutputs = def.outputs
-                          ? def.outputs.map(o => ({
+                        const buildingSnapshot = store.productionSnapshot.buildings[building.id];
+                        const effectiveOutputs = buildingSnapshot
+                          ? buildingSnapshot.outputs.map(o => ({
                               resource: o.resource,
-                              rate: o.amount * def.baseProductionRate * building.level * building.efficiency * store.powerGrid.efficiency,
+                              rate: o.amount,
                               meta: RESOURCE_META[o.resource],
                             }))
                           : [];
-                        const eff = building.efficiency * store.powerGrid.efficiency;
+                        const eff = buildingSnapshot?.efficiency ?? 0;
 
                         return (
                           <div

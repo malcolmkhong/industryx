@@ -89,12 +89,18 @@ export function PowerPanel() {
     return grouped;
   }, [powerPlants]);
 
-  // Actual production per plant type (accounting for fuel, weather)
-  const productionByType = useMemo(() => {
+  // Actual production per plant type — derived from snapshot
+  // Compute raw per-type ratios then scale to match snapshot total (which includes
+  // all multipliers: weather events, prestige power bonus, power optimization, etc.)
+  const { productionByType, powerScaleFactor } = useMemo(() => {
+    const snapshotTotal = store.productionSnapshot.powerProduction;
     const production: Record<string, number> = {};
+    let rawTotal = 0;
+    const rawByType: Record<string, number> = {};
+
     POWER_PLANT_TYPES.forEach(type => {
       const def = BUILDING_DEFS[type];
-      if (!def) return;
+      if (!def) { rawByType[type] = 0; return; }
       const instances = plantsByType[type];
       let totalType = 0;
       instances.forEach(b => {
@@ -115,31 +121,23 @@ export function PowerPanel() {
         }
         totalType += plantProduction;
       });
-      production[type] = totalType;
+      rawByType[type] = totalType;
+      rawTotal += totalType;
     });
-    return production;
-  }, [plantsByType, store.resources, store.gameTick]);
 
-  // Total real production
-  const totalRealProduction = useMemo(() =>
-    Object.values(productionByType).reduce((sum, v) => sum + v, 0),
-    [productionByType]
-  );
-
-  // Calculate real-time consumption from current building state (not stale from last tick)
-  const totalRealConsumption = useMemo(() => {
-    let consumption = 0;
-    store.buildings.forEach(b => {
-      if (!b.active) return;
-      const def = BUILDING_DEFS[b.type];
-      if (!def || def.category === 'power') return;
-      consumption += def.basePowerConsumption * b.level * b.efficiency;
+    // Scale raw values to match snapshot total (includes prestige bonus, weather events, etc.)
+    const scale = rawTotal > 0 ? snapshotTotal / rawTotal : 0;
+    POWER_PLANT_TYPES.forEach(type => {
+      production[type] = rawByType[type] * scale;
     });
-    // Apply energy efficiency research
-    const hasEffResearch = store.completedResearch.includes('energyEfficiency');
-    if (hasEffResearch) consumption *= 0.85;
-    return consumption;
-  }, [store.buildings, store.completedResearch]);
+    return { productionByType: production, powerScaleFactor: scale };
+  }, [plantsByType, store.resources, store.gameTick, store.productionSnapshot.powerProduction]);
+
+  // Total real production — from snapshot (single source of truth)
+  const totalRealProduction = store.productionSnapshot.powerProduction;
+
+  // Total real consumption — from snapshot (includes research reductions, event multipliers, worker savings)
+  const totalRealConsumption = store.productionSnapshot.powerConsumption;
 
   // Real-time effective power efficiency
   const realtimeEfficiency = totalRealProduction > 0
@@ -749,27 +747,32 @@ export function PowerPanel() {
                   const upgradeCost = getBuildingCost(plant.type, plant.level);
                   const canUpgrade = store.money >= upgradeCost;
 
-                  // When plant is off, show 0 production clearly
-                  let actualProduction = plant.active ? def.basePowerProduction * plant.level * plant.efficiency : 0;
+                  // Per-plant actual production — derived from snapshot via scale factor
+                  // (powerScaleFactor ensures per-plant values sum to snapshot powerProduction)
+                  let actualProduction = 0;
                   let productionNote = plant.active ? '' : 'OFFLINE';
                   let isDerated = false;
 
-                  if (plant.active && def.fuel && def.fuelRate) {
-                    if (store.resources[def.fuel] < def.fuelRate * plant.level) {
-                      actualProduction *= 0.1;
-                      productionNote = 'Low fuel!';
-                      isDerated = true;
+                  if (plant.active) {
+                    let rawProduction = def.basePowerProduction * plant.level * plant.efficiency;
+                    if (def.fuel && def.fuelRate) {
+                      if (store.resources[def.fuel] < def.fuelRate * plant.level) {
+                        rawProduction *= 0.1;
+                        productionNote = 'Low fuel!';
+                        isDerated = true;
+                      }
                     }
-                  }
-                  if (plant.active && plant.type === 'solarPanel') {
-                    const factor = Math.max(0.2, 0.5 + 0.5 * Math.sin(store.gameTick * 0.01));
-                    actualProduction *= factor;
-                    productionNote = factor > 0.7 ? 'Peak sun' : factor > 0.4 ? 'Moderate' : 'Low light';
-                  }
-                  if (plant.active && plant.type === 'windTurbine') {
-                    const factor = Math.max(0.3, 0.5 + 0.5 * Math.sin(store.gameTick * 0.007 + Math.PI / 3));
-                    actualProduction *= factor;
-                    productionNote = factor > 0.7 ? 'Strong wind' : factor > 0.4 ? 'Moderate' : 'Low wind';
+                    if (plant.type === 'solarPanel') {
+                      const factor = Math.max(0.2, 0.5 + 0.5 * Math.sin(store.gameTick * 0.01));
+                      rawProduction *= factor;
+                      productionNote = factor > 0.7 ? 'Peak sun' : factor > 0.4 ? 'Moderate' : 'Low light';
+                    }
+                    if (plant.type === 'windTurbine') {
+                      const factor = Math.max(0.3, 0.5 + 0.5 * Math.sin(store.gameTick * 0.007 + Math.PI / 3));
+                      rawProduction *= factor;
+                      productionNote = factor > 0.7 ? 'Strong wind' : factor > 0.4 ? 'Moderate' : 'Low wind';
+                    }
+                    actualProduction = rawProduction * powerScaleFactor;
                   }
 
                   const maxProduction = def.basePowerProduction * plant.level;

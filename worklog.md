@@ -1,6 +1,74 @@
 # Factory Dominion - Worklog
 
 ---
+Task ID: 3-c
+Agent: general-purpose
+Task: Phase3: ResourceFlowPanel purge — Economy System Refactor
+
+Work Log:
+- Read full ResourceFlowPanel.tsx (1014 lines) to identify all legacy field references
+- Identified 15 legacy field references across 3 categories:
+  - `store.computedProductionRates` (8 refs) → `store.productionSnapshot.production`
+  - `store.computedActualConsumptionRates` (3 refs) → `store.productionSnapshot.actualConsumption`
+  - `store.computedConsumptionRates` (1 ref) → `store.productionSnapshot.consumption`
+- Also found 3 inline rate calculations using `def.baseProductionRate` that produce wrong results (ignoring multipliers):
+  - Line 156: `activeCount * def.baseProductionRate * Math.min(input.amount, output.amount)` in flowEdges
+  - Line 256: `outputEntry.amount * def.baseProductionRate` in producers computation
+  - Line 271: `inputEntry.amount * def.baseProductionRate` in consumers computation
+- Applied all mechanical renames (computedProductionRates → productionSnapshot.production, etc.) including dependency arrays
+- Rewrote flowEdges useMemo: replaced BUILDING_DEFS iteration + inline math with iteration over store.buildings + snapshot.buildings[b.id] data
+  - Edge rate now derived from actual snapshot output amounts (post-multiplier) instead of baseProductionRate
+  - Added graceful fallback: `snap.buildings[b.id] ?? { outputs: [], inputs: [], efficiency: 0 }`
+  - Dependency array updated to `[store.buildings, store.productionSnapshot]`
+- Rewrote producers/consumers useMemo: replaced inline rate calculations with snapshot per-building data
+  - Uses BUILDING_DEFS to identify which building types produce/consume the selected resource
+  - Rates summed from `snap.buildings[b.id].outputs` / `.inputs` for each active building instance
+  - Preserves fuel consumer handling for power buildings (not in per-building snapshot) with def.fuelRate fallback
+  - `totalProd` / `totalCons` read from `snap.production` / `snap.actualConsumption` respectively
+  - Dependency array updated to `[selectedResource, store.buildings, store.productionSnapshot]`
+- Updated all remaining dependency arrays (flowNodes, summaryStats, chainTrace) to use productionSnapshot paths
+- Updated JSX references: chain trace step production (line 881), chain browser active/partial checks (lines 955, 959, 968)
+- Verified: zero legacy field references remain (grep confirmed)
+- Verified: zero baseProductionRate references remain in the file
+- Verified: lint passes cleanly with no errors
+
+Stage Summary:
+- All 15 legacy field references replaced with productionSnapshot equivalents
+- 3 inline math blocks purged; now uses pre-multiplied per-building snapshot data
+- Flow edge rates now accurately reflect actual production throughput (with multipliers)
+- Producer/consumer rates now correctly sum per-building snapshot amounts instead of base rate × count
+- All dependency arrays updated for productionSnapshot reactivity
+- No UI structure or styling changes
+- File: src/components/game/ResourceFlowPanel.tsx
+
+---
+Task ID: 3-f
+Agent: general-purpose
+Task: Phase3: StoragePanel 22 refs + inline purge — Economy System Refactor
+
+Work Log:
+- Read full StoragePanel.tsx (869 lines) to identify all legacy field references
+- Identified 28 individual legacy field references across 3 categories:
+  - `store.computedProductionRates` (14 refs) → `store.productionSnapshot.production`
+  - `store.computedActualConsumptionRates` (12 refs) → `store.productionSnapshot.actualConsumption`
+  - `store.computedConsumptionRates` (2 refs) → `store.productionSnapshot.consumption`
+- Applied mechanical renames via replace_all for all 3 legacy fields (all code + dependency arrays)
+- Purged 2 inline rate calculation blocks in resourceDependencies useMemo:
+  - Producer block: replaced `o.amount * def.baseProductionRate * b.level * b.efficiency` with `store.productionSnapshot.buildings[b.id].outputs` (pre-multiplied snapshot amounts)
+  - Consumer block: replaced `inp.amount * b.level * b.efficiency` with `store.productionSnapshot.buildings[b.id].inputs` (pre-multiplied snapshot amounts)
+- Added `buildingSnapshot` variable with graceful fallback (`if (!buildingSnapshot) continue`)
+- Updated resourceDependencies dependency array: added `store.productionSnapshot` alongside `store.buildings`
+- Verified: zero legacy field references remain (grep confirmed)
+- Verified: lint passes cleanly with no errors
+
+Stage Summary:
+- All 28 legacy field references replaced with productionSnapshot equivalents
+- 2 inline math blocks purged; now uses pre-multiplied per-building snapshot data
+- Dependency arrays updated to track store.productionSnapshot reactivity
+- No UI structure or styling changes
+- File: src/components/game/StoragePanel.tsx
+
+---
 Task ID: 4
 Agent: main
 Task: Building Management Page - Verification and refinement
@@ -815,3 +883,187 @@ Stage Summary:
 - Old computed rate fields still maintained for backward compatibility (Phase 3 will migrate UI)
 - No existing functionality broken — all economy calculations produce same results
 - Files modified: src/lib/game/types.ts, src/lib/game/store.ts
+
+---
+Task ID: 3-a
+Agent: phase3-dashboard-global
+Task: Fix DashboardPanel.tsx and GlobalResourceMonitorPanel.tsx legacy field references
+
+Work Log:
+- Read DashboardPanel.tsx — identified line 57 using `store.computedProductionRates`
+- Read GlobalResourceMonitorPanel.tsx — identified lines 215-216 using `store.computedProductionRates[res]` and `store.computedConsumptionRates[res]`, and line 250 dependency array referencing both legacy fields
+- Edited DashboardPanel.tsx line 57: `store.computedProductionRates` → `store.productionSnapshot.production`
+- Edited GlobalResourceMonitorPanel.tsx line 215: `store.computedProductionRates[res]` → `store.productionSnapshot.production[res]`
+- Edited GlobalResourceMonitorPanel.tsx line 216: `store.computedConsumptionRates[res]` → `store.productionSnapshot.consumption[res]`
+- Edited GlobalResourceMonitorPanel.tsx line 250 dependency array: `store.computedProductionRates` → `store.productionSnapshot.production`, `store.computedConsumptionRates` → `store.productionSnapshot.consumption`
+- Ran `bun run lint` — passes cleanly with zero errors
+
+Stage Summary:
+- All 3 legacy field references replaced with new snapshot paths across 2 files
+- DashboardPanel.tsx: 1 replacement (line 57)
+- GlobalResourceMonitorPanel.tsx: 3 replacements (lines 215, 216, 250)
+- Lint passes cleanly — no compilation errors
+
+---
+Task ID: 3-d
+Agent: general-purpose
+Task: Phase 3 — AIAdvisorPanel legacy field migration (22 refs)
+
+Work Log:
+- Read full AIAdvisorPanel.tsx and identified all 26 legacy field references via grep
+- Replaced all `store.computedProductionRates` → `store.productionSnapshot.production` (14 occurrences)
+- Replaced all `store.computedConsumptionRates` → `store.productionSnapshot.consumption` (12 occurrences)
+- No `store.computedActualConsumptionRates` references existed in this file
+- Fixed 4 dependency arrays to use `store.productionSnapshot` instead of separate sub-properties:
+  - Line 455: healthBreakdown useMemo deps
+  - Line 944: recommendations useMemo deps
+  - Line 962: deficitCount useMemo deps
+  - Line 1015: chainStatuses useMemo deps
+  - This was required because React Compiler lint rule requires dependency specificity to match inferred deps
+- Lint passes cleanly (0 errors, 0 warnings)
+- No remaining `computedProductionRates` or `computedConsumptionRates` references
+
+Stage Summary:
+- All 26 legacy field references in AIAdvisorPanel.tsx replaced with productionSnapshot paths
+- 4 dependency arrays consolidated to use `store.productionSnapshot` per React Compiler requirements
+- Purely mechanical rename — no logic changes
+- File modified: src/components/game/AIAdvisorPanel.tsx
+
+---
+Task ID: 3-b
+Agent: general-purpose
+Task: Phase 3 — FactoryPanel inline math purge
+
+Work Log:
+- Read full FactoryPanel.tsx (~1136 lines) and identified all targets:
+  - 6 legacy computed field references (computedProductionRates, computedActualConsumptionRates, computedConsumptionRates)
+  - productionBonusMultiplier + 2 inline useMemo blocks (factoryProductionRates, factoryConsumptionRates) with incorrect partial multiplier math
+  - Per-building detail inline math (effectiveOutputs, effectiveInputs, eff) using `o.amount * def.baseProductionRate * building.level * building.efficiency * store.powerGrid.efficiency`
+- Removed `megaProductionBonus`, `productionPrestigeBonus`, `productionBonusMultiplier` (lines 77-80) — no longer needed
+- Replaced `factoryProductionRates` useMemo: now reads from `store.productionSnapshot.buildings[b.id].outputs` and sums `o.amount` directly (snapshot already fully multiplied)
+- Replaced `factoryConsumptionRates` useMemo: now reads from `store.productionSnapshot.buildings[b.id].inputs` and sums `inp.amount` directly
+- Replaced `store.computedProductionRates` → `store.productionSnapshot.production` (lines 98, 128, 143 dep array)
+- Replaced `store.computedActualConsumptionRates` → `store.productionSnapshot.actualConsumption` (lines 101, 135, 143 dep array)
+- Replaced `store.computedConsumptionRates` → `store.productionSnapshot.consumption` (line 102)
+- Replaced per-building inline math (lines 751-766):
+  - `effectiveOutputs`: now reads `buildingSnap.outputs` from `store.productionSnapshot.buildings[building.id]`, with graceful fallback to `def.outputs` with rate=0 when building not in snapshot
+  - `effectiveInputs`: now reads `buildingSnap.inputs`, with `hasEnough` comparing against `inp.amount` from snapshot
+  - `eff`: now reads `buildingSnap?.efficiency ?? 0` instead of `building.efficiency * store.powerGrid.efficiency`
+- Kept `totalPowerConsumption` (line 144) as-is — base power display, not a rate calculation
+- Kept build card tooltip `o.amount * def.baseProductionRate` (line 625) — shows base definition data for unbuilt buildings
+- Lint passes cleanly (no errors, no warnings)
+
+Stage Summary:
+- All 6 legacy computed field references replaced with productionSnapshot equivalents
+- All inline rate calculation purged — factoryProductionRates and factoryConsumptionRates now aggregate from productionSnapshot.buildings (per-instance, fully multiplied)
+- Per-building detail now uses productionSnapshot.buildings[building.id] with graceful fallback for missing entries
+- productionBonusMultiplier and supporting mega/prestige computations removed entirely
+- Single file modified: src/components/game/FactoryPanel.tsx
+
+
+---
+Task ID: 3-e
+Agent: general-purpose
+Task: Phase3: ResourcePanel purge — Economy System Refactor
+
+Work Log:
+- Read full ResourcePanel.tsx (1105 lines) to identify all legacy field references and inline calculations
+- Applied 7 mechanical renames for legacy computed fields:
+  - Line 92: `store.computedProductionRates` → `store.productionSnapshot.production`
+  - Line 98: dependency array: `store.computedProductionRates` → `store.productionSnapshot.production`
+  - Line 101: `store.computedActualConsumptionRates` → `store.productionSnapshot.actualConsumption`
+  - Line 102: `store.computedConsumptionRates` → `store.productionSnapshot.consumption`
+  - Line 128: `store.computedProductionRates[o.resource]` → `store.productionSnapshot.production[o.resource]`
+  - Line 140: `store.computedProductionRates[o.resource]` → `store.productionSnapshot.production[o.resource]`
+  - Line 151: dependency array: `store.computedProductionRates` → `store.productionSnapshot.production`
+- Purged inline math block (lines 696-699):
+  - Old: `o.amount * def.baseProductionRate * building.level * building.efficiency * store.powerGrid.efficiency`
+  - New: reads `store.productionSnapshot.buildings[building.id].outputs` (pre-multiplied snapshot amounts)
+  - Also replaced inline efficiency `building.efficiency * store.powerGrid.efficiency` → `buildingSnapshot?.efficiency ?? 0`
+  - Added `buildingSnapshot` variable with null-safe fallback for inactive/missing buildings
+- Replaced total power consumption (lines 157-159):
+  - Old: `extractorBuildings.filter(b => b.active).reduce((sum, b) => sum + BUILDING_DEFS[b.type].basePowerConsumption * b.level, 0)`
+  - New: `store.productionSnapshot.powerConsumption` (includes all research reductions and multipliers)
+- Kept per-extractor summary display (line 1089): `def.basePowerConsumption * b.level` as informational display value
+- Updated comments to reference `productionSnapshot` instead of "store's computed rates"
+- Verified: zero legacy field references remain (grep confirmed)
+- Verified: lint passes cleanly with no errors
+
+Stage Summary:
+- All 7 legacy field references replaced with productionSnapshot equivalents
+- 2 inline math blocks purged (per-building outputs + efficiency); now uses pre-multiplied per-building snapshot data
+- Total power consumption now sourced from snapshot (includes all bonuses)
+- Dependency arrays updated to track productionSnapshot reactivity
+- Per-extractor power display kept as simplified tooltip/informational value
+- No UI structure or styling changes
+- File: src/components/game/ResourcePanel.tsx
+
+---
+Task ID: 3-g
+Agent: general-purpose
+Task: Phase3: PowerPanel+PrestigePanel+TransportPanel — Economy System Refactor
+
+Work Log:
+- Read all 3 files entirely to understand context and inline calculations
+- Verified productionSnapshot structure: powerProduction, powerConsumption, powerEfficiency, powerOverload, buildings{}, sellMultiplier, endgameMoney, endgameResearch, endgameCorp, payoutPerCycle, payoutBreakdown
+- Confirmed power buildings are SKIPPED in per-building snapshot (store.ts line 850: `if (def.category === 'power') continue`)
+- Confirmed basePayoutInterval = 100 ticks (store.ts line 245)
+
+**PowerPanel.tsx — 3 inline calculations purged:**
+1. `productionByType` useMemo (line 102): Replaced inline `def.basePowerProduction * b.level * b.efficiency` total with proportional scaling approach. Raw per-type totals computed (including dayFactor/windFactor for solar/wind), then scaled to match `store.productionSnapshot.powerProduction`. This ensures per-type breakdowns incorporate ALL multipliers (prestige power bonus, weather events, power optimization research) while maintaining accurate per-type distribution.
+2. `totalRealProduction` (line 124): Replaced inline sum with direct `store.productionSnapshot.powerProduction`
+3. `totalRealConsumption` (line 130): Replaced inline `def.basePowerConsumption * b.level * b.efficiency` + energyEfficiency research with direct `store.productionSnapshot.powerConsumption`
+4. Per-plant actualProduction (line 753): Replaced inline `def.basePowerProduction * plant.level * plant.efficiency` with raw calculation × `powerScaleFactor` (scale factor exposed from productionByType memo). Per-plant values now proportionally match snapshot total.
+- Exposed `powerScaleFactor` from productionByType useMemo for per-plant scaling
+
+**PrestigePanel.tsx — 1 inline calculation purged:**
+5. `moneyPerTick` useMemo (line 49): Replaced `o.amount * b.level * b.efficiency * store.powerGrid.efficiency` loop with `store.productionSnapshot.payoutPerCycle / 100 + store.productionSnapshot.endgameMoney`. Uses payoutPerCycle divided by basePayoutInterval (100 ticks) for per-tick income + endgame passive money.
+
+**TransportPanel.tsx — 5 inline calculations purged:**
+6. Line 1207: Replaced `def.outputs.reduce((sum, o) => sum + o.amount * b.level, 0)` with `store.productionSnapshot.buildings[b.id].outputs.reduce((sum, o) => sum + o.amount, 0)` for transport matching flow rate
+7. Line 1259: Replaced `input.amount * b.level` with `buildingSnapshot.inputs.find(i => i.resource === res)?.amount ?? input.amount * b.level` for under-supply detection (fallback to simplified for missing snapshot data)
+8. Line 1300: Replaced `output.amount * b.level` with `buildingSnapshot.outputs.find(o => o.resource === res)?.amount ?? output.amount * b.level` for over-supply detection
+9. Line 1362: Replaced `o.amount * b.level * b.efficiency` in flow map production with `o.amount` from `store.productionSnapshot.buildings[b.id].outputs`
+10. Line 1375: Replaced `i.amount * b.level * b.efficiency` in flow map consumption with `i.amount` from `store.productionSnapshot.buildings[b.id].inputs`
+- All TransportPanel edits use `store.productionSnapshot.buildings[b.id] ?? { outputs: [], inputs: [], efficiency: 0 }` fallback
+- Updated resourceFlow useMemo dependency array to include `store.productionSnapshot.buildings`
+- Verified: lint passes cleanly with no errors
+
+Stage Summary:
+- 9 inline rate calculations purged across 3 files (3+1+5)
+- PowerPanel: total production/consumption now from snapshot; per-type breakdowns scaled proportionally; per-plant values derived via powerScaleFactor
+- PrestigePanel: money per tick now from snapshot (payout + endgame) instead of inline loop
+- TransportPanel: all 5 rate calculations now use per-building snapshot data with graceful fallbacks
+- All dependency arrays updated for productionSnapshot reactivity
+- No UI structure or styling changes
+- Files: src/components/game/PowerPanel.tsx, src/components/game/PrestigePanel.tsx, src/components/game/TransportPanel.tsx
+
+---
+Task ID: 3
+Agent: main
+Task: Phase 3 — UI Purge: Delete legacy computed fields, replace with productionSnapshot, purge inline rate math
+
+Work Log:
+- Removed 3 legacy fields from types.ts: computedProductionRates, computedConsumptionRates, computedActualConsumptionRates
+- Updated store.ts: removed legacy initial state fields, renamed local vars from computedProdRates→snapshotProduction etc., removed 3 set() legacy fields
+- DashboardPanel.tsx: 1 mechanical rename
+- GlobalResourceMonitorPanel.tsx: 3 mechanical renames + dependency array update
+- FactoryPanel.tsx: 6 mechanical renames + purged 5 inline rate computations (factoryProductionRates, factoryConsumptionRates, productionBonusMultiplier, per-building effectiveOutputs/Inputs)
+- ResourceFlowPanel.tsx: 15 mechanical renames + purged 3 inline rate computations (flow edges, producer rates, consumer rates)
+- AIAdvisorPanel.tsx: 26 mechanical renames + consolidated 4 dependency arrays to store.productionSnapshot
+- ResourcePanel.tsx: 7 mechanical renames + purged 2 inline computations (total power consumption, per-building output rates)
+- StoragePanel.tsx: 28 mechanical renames + purged 2 inline computations (producer dependencies, consumer dependencies)
+- PowerPanel.tsx: purged 3 inline power calculations (per-type production now scales to snapshot total, total production/consumption use snapshot directly, per-plant uses proportional scaling)
+- PrestigePanel.tsx: purged 1 inline money-rate calculation (now uses payoutPerCycle/100 + endgameMoney)
+- TransportPanel.tsx: purged 5 inline rate calculations (output estimates, under/over-supply detection, flow map production/consumption)
+- Verified: zero remaining references to computedProductionRates/computedConsumptionRates/computedActualConsumptionRates in src/
+- Verified: bun run lint passes cleanly with zero errors
+- Verified: dev server compiles all pages successfully
+
+Stage Summary:
+- Phase 3 COMPLETE: All 13 files modified, all legacy computed fields removed, all inline rate math purged
+- UI now reads ONLY from store.productionSnapshot — single source of truth
+- All per-building detail reads from productionSnapshot.buildings[id] with graceful fallbacks
+- Power totals use productionSnapshot.powerProduction/powerConsumption (includes all research reductions, weather, events)
+- Endgame income uses productionSnapshot.endgameMoney/endgameResearch/endgameCorp
+- No more duplicate/stale rate calculations in UI components

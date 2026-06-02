@@ -119,9 +119,9 @@ export default function ResourceFlowPanel() {
     const allResources = Object.keys(RESOURCE_META) as ResourceType[];
     return allResources
       .map(res => {
-        const prodRate = store.computedProductionRates[res] ?? 0;
-        const consRate = store.computedActualConsumptionRates[res] ?? 0;
-        const demandRate = store.computedConsumptionRates[res] ?? 0;
+        const prodRate = store.productionSnapshot.production[res] ?? 0;
+        const consRate = store.productionSnapshot.actualConsumption[res] ?? 0;
+        const demandRate = store.productionSnapshot.consumption[res] ?? 0;
         const amount = store.resources[res] ?? 0;
         const cap = store.resourceCapacity[res] ?? 50;
         return {
@@ -138,23 +138,32 @@ export default function ResourceFlowPanel() {
         };
       })
       .filter(n => n.productionRate > 0 || n.consumptionRate > 0 || n.currentAmount > 0);
-  }, [store.computedProductionRates, store.computedActualConsumptionRates, store.computedConsumptionRates, store.resources, store.resourceCapacity]);
+  }, [store.productionSnapshot.production, store.productionSnapshot.actualConsumption, store.productionSnapshot.consumption, store.resources, store.resourceCapacity]);
 
   // ─── Compute flow edges ──────────────────────────────────────
   const flowEdges = useMemo<FlowEdge[]>(() => {
     const edges: FlowEdge[] = [];
-    for (const def of Object.values(BUILDING_DEFS)) {
-      if (!def.inputs || !def.outputs) continue;
-      for (const input of def.inputs) {
-        for (const output of def.outputs) {
+    const snap = store.productionSnapshot;
+
+    for (const b of store.buildings) {
+      if (!b.active) continue;
+      const bSnap = snap.buildings[b.id] ?? { outputs: [], inputs: [], efficiency: 0 };
+      if (bSnap.outputs.length === 0 && bSnap.inputs.length === 0) continue;
+
+      const def = BUILDING_DEFS[b.type];
+      if (!def) continue;
+
+      for (const input of bSnap.inputs) {
+        for (const output of bSnap.outputs) {
           const inRes = input.resource as ResourceType;
           const outRes = output.resource as ResourceType;
           // Skip money as resource
           if (inRes === 'money' || outRes === 'money') continue;
-          // Compute rate based on active buildings
-          const activeCount = store.buildings.filter(b => b.type === def.type && b.active).length;
-          const rate = activeCount * def.baseProductionRate * Math.min(input.amount, output.amount);
-          // Check if this edge already exists
+
+          // Use actual output rate from snapshot (includes all multipliers)
+          const rate = output.amount;
+
+          // Aggregate into existing edge for same from→to+building
           const existing = edges.find(e => e.from === inRes && e.to === outRes && e.viaBuilding === def.name);
           if (existing) {
             existing.rate += rate;
@@ -176,7 +185,7 @@ export default function ResourceFlowPanel() {
       const toMeta = RESOURCE_META[e.to as ResourceType];
       return fromMeta && toMeta;
     });
-  }, [store.buildings]);
+  }, [store.buildings, store.productionSnapshot]);
 
   // ─── Node positions in SVG ───────────────────────────────────
   const nodePositions = useMemo(() => {
@@ -223,7 +232,7 @@ export default function ResourceFlowPanel() {
     const activeChains = PRODUCTION_CHAINS.filter(chain => {
       return chain.steps.every((step: string) => {
         const r = step as ResourceType;
-        return store.computedProductionRates[r] > 0 || store.resources[r] > 0;
+        return store.productionSnapshot.production[r] > 0 || store.resources[r] > 0;
       });
     }).length;
 
@@ -236,7 +245,7 @@ export default function ResourceFlowPanel() {
       activeChains,
       totalChains: PRODUCTION_CHAINS.length,
     };
-  }, [flowNodes, store.computedProductionRates, store.resources]);
+  }, [flowNodes, store.productionSnapshot.production, store.resources]);
 
   // ─── Producers/Consumers for selected resource ───────────────
   const { producers, consumers, totalProduction, totalConsumption, netRate } = useMemo(() => {
@@ -246,52 +255,54 @@ export default function ResourceFlowPanel() {
     const producerList: ProducerInfo[] = [];
     const consumerList: ConsumerInfo[] = [];
 
+    const snap = store.productionSnapshot;
+
     for (const def of Object.values(BUILDING_DEFS)) {
-      // Check outputs
-      if (def.outputs) {
-        const outputEntry = def.outputs.find(o => o.resource === selectedResource);
-        if (outputEntry) {
-          const count = store.buildings.filter(b => b.type === def.type).length;
-          const activeCount = store.buildings.filter(b => b.type === def.type && b.active).length;
-          const ratePerBuilding = outputEntry.amount * def.baseProductionRate;
-          producerList.push({
-            def,
-            count,
-            activeCount,
-            rate: ratePerBuilding * activeCount,
-          });
+      const buildings = store.buildings.filter(b => b.type === def.type);
+      if (buildings.length === 0) continue;
+
+      const count = buildings.length;
+      const activeBuildings = buildings.filter(b => b.active);
+      const activeCount = activeBuildings.length;
+
+      // Check outputs — use definition to identify producers, snapshot for actual rates
+      if (def.outputs?.some(o => o.resource === selectedResource)) {
+        let rate = 0;
+        for (const b of activeBuildings) {
+          const bSnap = snap.buildings[b.id] ?? { outputs: [], inputs: [], efficiency: 0 };
+          const outputEntry = bSnap.outputs.find(o => o.resource === selectedResource);
+          if (outputEntry) rate += outputEntry.amount;
         }
+        producerList.push({ def, count, activeCount, rate });
       }
-      // Check inputs
-      if (def.inputs) {
-        const inputEntry = def.inputs.find(i => i.resource === selectedResource);
-        if (inputEntry) {
-          const count = store.buildings.filter(b => b.type === def.type).length;
-          const activeCount = store.buildings.filter(b => b.type === def.type && b.active).length;
-          const ratePerBuilding = inputEntry.amount * def.baseProductionRate;
+
+      // Check inputs — use definition to identify consumers, snapshot for actual rates
+      if (def.inputs?.some(i => i.resource === selectedResource)) {
+        let rate = 0;
+        for (const b of activeBuildings) {
+          const bSnap = snap.buildings[b.id] ?? { outputs: [], inputs: [], efficiency: 0 };
+          const inputEntry = bSnap.inputs.find(i => i.resource === selectedResource);
+          if (inputEntry) rate += inputEntry.amount;
+        }
+        consumerList.push({ def, count, activeCount, rate });
+      }
+
+      // Check fuel (power buildings are not in per-building snapshot, so use def rate)
+      if (def.fuel === selectedResource && def.fuelRate) {
+        // Only add if not already tracked as consumer via inputs above
+        if (!def.inputs?.some(i => i.resource === selectedResource)) {
           consumerList.push({
             def,
             count,
             activeCount,
-            rate: ratePerBuilding * activeCount,
+            rate: def.fuelRate * activeCount,
           });
         }
       }
-      // Check fuel
-      if (def.fuel === selectedResource && def.fuelRate) {
-        const count = store.buildings.filter(b => b.type === def.type).length;
-        const activeCount = store.buildings.filter(b => b.type === def.type && b.active).length;
-        consumerList.push({
-          def,
-          count,
-          activeCount,
-          rate: def.fuelRate * activeCount,
-        });
-      }
     }
 
-    const totalProd = store.computedProductionRates[selectedResource] ?? 0;
-    const totalCons = store.computedActualConsumptionRates[selectedResource] ?? 0;
+    const totalProd = snap.production[selectedResource] ?? 0;
+    const totalCons = snap.actualConsumption[selectedResource] ?? 0;
 
     return {
       producers: producerList.sort((a, b) => b.rate - a.rate),
@@ -300,7 +311,7 @@ export default function ResourceFlowPanel() {
       totalConsumption: totalCons,
       netRate: totalProd - totalCons,
     };
-  }, [selectedResource, store.buildings, store.computedProductionRates, store.computedActualConsumptionRates]);
+  }, [selectedResource, store.buildings, store.productionSnapshot]);
 
   // ─── Production chain tracing ────────────────────────────────
   const chainTrace = useMemo(() => {
@@ -328,7 +339,7 @@ export default function ResourceFlowPanel() {
       // Check for broken chains (missing production at any step)
       for (let i = 0; i < chain.steps.length - 1; i++) {
         const step = chain.steps[i] as ResourceType;
-        const prodRate = store.computedProductionRates[step] ?? 0;
+        const prodRate = store.productionSnapshot.production[step] ?? 0;
         if (prodRate === 0 && store.resources[step] === 0) {
           brokenChains.push(chain.name);
           break;
@@ -337,7 +348,7 @@ export default function ResourceFlowPanel() {
     }
 
     return { backward, forward, brokenChains: [...new Set(brokenChains)] };
-  }, [selectedResource, store.computedProductionRates, store.resources]);
+  }, [selectedResource, store.productionSnapshot.production, store.resources]);
 
   // ─── Market price for selected resource ──────────────────────
   const marketPrice = useMemo(() => {
@@ -878,7 +889,7 @@ export default function ResourceFlowPanel() {
                               const isCurrentStep = si === idx;
                               const isUpstream = si < idx;
                               const isDownstream = si > idx;
-                              const stepProd = store.computedProductionRates[stepRes] ?? 0;
+                              const stepProd = store.productionSnapshot.production[stepRes] ?? 0;
                               const stepHasStock = (store.resources[stepRes] ?? 0) > 0;
                               const stepActive = stepProd > 0 || stepHasStock;
 
@@ -952,11 +963,11 @@ export default function ResourceFlowPanel() {
               {PRODUCTION_CHAINS.map((chain, i) => {
                 const chainActive = chain.steps.every((step: string) => {
                   const r = step as ResourceType;
-                  return (store.computedProductionRates[r] ?? 0) > 0 || (store.resources[r] ?? 0) > 0;
+                  return (store.productionSnapshot.production[r] ?? 0) > 0 || (store.resources[r] ?? 0) > 0;
                 });
                 const chainPartial = chain.steps.some((step: string) => {
                   const r = step as ResourceType;
-                  return (store.computedProductionRates[r] ?? 0) > 0;
+                  return (store.productionSnapshot.production[r] ?? 0) > 0;
                 });
                 return (
                   <button
@@ -965,7 +976,7 @@ export default function ResourceFlowPanel() {
                       // Select the first resource in the chain that has activity, or the first step
                       const firstActive = chain.steps.find((s: string) => {
                         const r = s as ResourceType;
-                        return (store.computedProductionRates[r] ?? 0) > 0;
+                        return (store.productionSnapshot.production[r] ?? 0) > 0;
                       }) as ResourceType | undefined;
                       setSelectedResource(firstActive ?? (chain.steps[0] as ResourceType));
                       setHighlightChain(i);

@@ -74,47 +74,41 @@ export function FactoryPanel() {
     4: factoryBuildings.filter(b => TIER_4_FACTORIES.includes(b.type as FactoryType)),
   }), [factoryBuildings]);
 
-  // Mega project and prestige bonus multipliers for production
-  const megaProductionBonus = store.megaProjects.filter(p => p.completed && p.bonus.type === 'productionMultiplier').reduce((sum, p) => sum + p.bonus.value, 0);
-  const productionPrestigeBonus = store.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'productionMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
-  const productionBonusMultiplier = 1 + megaProductionBonus + productionPrestigeBonus;
-
-  // Production rates for factories (only factory outputs, used for "Top Outputs" display)
+  // Production rates for factories — aggregated from productionSnapshot (single source of truth)
   const factoryProductionRates = useMemo(() => {
     const rates: Record<string, number> = {};
     factoryBuildings.forEach(b => {
       if (!b.active) return;
-      const def = BUILDING_DEFS[b.type];
-      if (!def || !def.outputs) return;
-      def.outputs.forEach(o => {
-        rates[o.resource] = (rates[o.resource] || 0) + o.amount * def.baseProductionRate * b.level * b.efficiency * store.powerGrid.efficiency * productionBonusMultiplier;
+      const snap = store.productionSnapshot.buildings[b.id];
+      if (!snap) return;
+      snap.outputs.forEach(o => {
+        rates[o.resource] = (rates[o.resource] || 0) + o.amount;
       });
     });
     return rates;
-  }, [factoryBuildings, store.powerGrid.efficiency, productionBonusMultiplier]);
+  }, [factoryBuildings, store.productionSnapshot.buildings]);
 
-  // Production rates from ALL buildings — use store's computed rates which include all bonuses
+  // Production rates from ALL buildings — read from snapshot which includes all bonuses
   // (mega project, prestige, research, worker, event, weather, etc.)
-  const allProductionRates = store.computedProductionRates;
+  const allProductionRates = store.productionSnapshot.production;
 
   // Consumption rates — actual consumption for net rate display, demand for input demand display
-  const allActualConsumptionRates = store.computedActualConsumptionRates;
-  const allDemandRates = store.computedConsumptionRates;
+  const allActualConsumptionRates = store.productionSnapshot.actualConsumption;
+  const allDemandRates = store.productionSnapshot.consumption;
 
-  // Consumption rates for factories only (kept for backward compat with factory-specific views)
-  // Includes mega project and prestige bonuses
+  // Consumption rates for factories — aggregated from productionSnapshot
   const factoryConsumptionRates = useMemo(() => {
     const rates: Record<string, number> = {};
     factoryBuildings.forEach(b => {
       if (!b.active) return;
-      const def = BUILDING_DEFS[b.type];
-      if (!def || !def.inputs) return;
-      def.inputs.forEach(input => {
-        rates[input.resource] = (rates[input.resource] || 0) + input.amount * b.level * b.efficiency * store.powerGrid.efficiency * productionBonusMultiplier;
+      const snap = store.productionSnapshot.buildings[b.id];
+      if (!snap) return;
+      snap.inputs.forEach(inp => {
+        rates[inp.resource] = (rates[inp.resource] || 0) + inp.amount;
       });
     });
     return rates;
-  }, [factoryBuildings, store.powerGrid.efficiency, productionBonusMultiplier]);
+  }, [factoryBuildings, store.productionSnapshot.buildings]);
 
   // Aggregate rates by tier for flow diagram (includes all buildings for accurate tier 0/raw rates)
   const tierProductionSummary = useMemo(() => {
@@ -125,14 +119,14 @@ export function FactoryPanel() {
       3: { production: 0, consumption: 0, resources: new Set<string>() },
       4: { production: 0, consumption: 0, resources: new Set<string>() },
     };
-    Object.entries(store.computedProductionRates).forEach(([res, rate]) => {
+    Object.entries(store.productionSnapshot.production).forEach(([res, rate]) => {
       const tier = getResourceTier(res as ResourceType);
       if (summary[tier]) {
         summary[tier].production += rate;
         summary[tier].resources.add(res);
       }
     });
-    Object.entries(store.computedActualConsumptionRates).forEach(([res, rate]) => {
+    Object.entries(store.productionSnapshot.actualConsumption).forEach(([res, rate]) => {
       const tier = getResourceTier(res as ResourceType);
       if (summary[tier]) {
         summary[tier].consumption += rate;
@@ -140,7 +134,7 @@ export function FactoryPanel() {
       }
     });
     return summary;
-  }, [store.computedProductionRates, store.computedActualConsumptionRates]);
+  }, [store.productionSnapshot.production, store.productionSnapshot.actualConsumption]);
 
   // Factory overview stats
   const totalFactories = factoryBuildings.length;
@@ -748,22 +742,32 @@ export function FactoryPanel() {
                         if (!def) return null;
                         const upgradeCost = getBuildingCost(building.type, building.level);
                         const canUpgrade = store.money >= upgradeCost;
-                        const effectiveOutputs = def.outputs
-                          ? def.outputs.map(o => ({
+                        const buildingSnap = store.productionSnapshot.buildings[building.id];
+                        const effectiveOutputs = buildingSnap
+                          ? buildingSnap.outputs.map(o => ({
                               resource: o.resource,
-                              rate: o.amount * def.baseProductionRate * building.level * building.efficiency * store.powerGrid.efficiency,
+                              rate: o.amount,
                               meta: RESOURCE_META[o.resource],
                             }))
-                          : [];
-                        const effectiveInputs = def.inputs
-                          ? def.inputs.map(inp => ({
+                          : (def.outputs ?? []).map(o => ({
+                              resource: o.resource,
+                              rate: 0,
+                              meta: RESOURCE_META[o.resource],
+                            }));
+                        const effectiveInputs = buildingSnap
+                          ? buildingSnap.inputs.map(inp => ({
                               resource: inp.resource,
-                              rate: inp.amount * building.level * building.efficiency * store.powerGrid.efficiency,
+                              rate: inp.amount,
                               meta: RESOURCE_META[inp.resource],
-                              hasEnough: store.resources[inp.resource] >= inp.amount * building.level * building.efficiency * store.powerGrid.efficiency,
+                              hasEnough: store.resources[inp.resource] >= inp.amount,
                             }))
-                          : [];
-                        const eff = building.efficiency * store.powerGrid.efficiency;
+                          : (def.inputs ?? []).map(inp => ({
+                              resource: inp.resource,
+                              rate: 0,
+                              meta: RESOURCE_META[inp.resource],
+                              hasEnough: true,
+                            }));
+                        const eff = buildingSnap?.efficiency ?? 0;
 
                         return (
                           <div

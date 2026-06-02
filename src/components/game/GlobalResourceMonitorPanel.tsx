@@ -212,8 +212,8 @@ export default function GlobalResourceMonitorPanel() {
       const meta = RESOURCE_META[res];
       const amount = store.resources[res] ?? 0;
       const capacity = unlimited ? Infinity : (store.resourceCapacity[res] ?? 50);
-      const prodRate = store.computedProductionRates[res] ?? 0;
-      const consRate = store.computedConsumptionRates[res] ?? 0;
+      const prodRate = store.productionSnapshot.production[res] ?? 0;
+      const consRate = store.productionSnapshot.consumption[res] ?? 0;
       const netRate = prodRate - consRate;
       const fillPct = capacity === Infinity ? 0 : (amount / capacity) * 100;
 
@@ -247,7 +247,7 @@ export default function GlobalResourceMonitorPanel() {
         fillPct,
       };
     });
-  }, [store.resources, store.resourceCapacity, store.computedProductionRates, store.computedConsumptionRates, store.megaProjects]);
+  }, [store.resources, store.resourceCapacity, store.productionSnapshot.production, store.productionSnapshot.consumption, store.megaProjects]);
 
   // ─── Filter & sort ──────────────────────────────────────────────────────
   const filteredResources = useMemo(() => {

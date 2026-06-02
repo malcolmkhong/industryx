@@ -65,34 +65,33 @@ export function StoragePanel() {
       deps[res] = { producers: [], consumers: [], chains: [] };
     }
 
-    // Map buildings to their inputs/outputs
+    // Map buildings to their inputs/outputs (from production snapshot)
     for (const b of store.buildings) {
       if (!b.active) continue;
       const def = BUILDING_DEFS[b.type];
       if (!def) continue;
 
-      if (def.outputs) {
-        for (const o of def.outputs) {
-          if (o.resource === 'money') continue;
-          if (deps[o.resource]) {
-            deps[o.resource].producers.push({
-              building: def.name,
-              type: b.type,
-              amount: o.amount * def.baseProductionRate * b.level * b.efficiency,
-            });
-          }
+      const buildingSnapshot = store.productionSnapshot.buildings[b.id];
+      if (!buildingSnapshot) continue;
+
+      for (const o of buildingSnapshot.outputs) {
+        if (o.resource === 'money') continue;
+        if (deps[o.resource]) {
+          deps[o.resource].producers.push({
+            building: def.name,
+            type: b.type,
+            amount: o.amount,
+          });
         }
       }
-      if (def.inputs) {
-        for (const inp of def.inputs) {
-          if (inp.resource === 'money') continue;
-          if (deps[inp.resource]) {
-            deps[inp.resource].consumers.push({
-              building: def.name,
-              type: b.type,
-              amount: inp.amount * b.level * b.efficiency,
-            });
-          }
+      for (const inp of buildingSnapshot.inputs) {
+        if (inp.resource === 'money') continue;
+        if (deps[inp.resource]) {
+          deps[inp.resource].consumers.push({
+            building: def.name,
+            type: b.type,
+            amount: inp.amount,
+          });
         }
       }
     }
@@ -107,7 +106,7 @@ export function StoragePanel() {
     }
 
     return deps;
-  }, [store.buildings, allResources]);
+  }, [store.buildings, store.productionSnapshot, allResources]);
 
   // Compute alerts
   const alerts = useMemo(() => {
@@ -116,9 +115,9 @@ export function StoragePanel() {
     for (const res of allResources) {
       const amount = store.resources[res] ?? 0;
       const capacity = store.resourceCapacity[res] ?? 100;
-      const prodRate = store.computedProductionRates[res] ?? 0;
-      const consRate = store.computedActualConsumptionRates[res] ?? 0;
-      const demandRate = store.computedConsumptionRates[res] ?? 0;
+      const prodRate = store.productionSnapshot.production[res] ?? 0;
+      const consRate = store.productionSnapshot.actualConsumption[res] ?? 0;
+      const demandRate = store.productionSnapshot.consumption[res] ?? 0;
       const netRate = prodRate - consRate;
       const fillPct = capacity > 0 ? (amount / capacity) * 100 : 0;
 
@@ -144,7 +143,7 @@ export function StoragePanel() {
     }
 
     return list.sort((a, b) => b.severity - a.severity);
-  }, [store.resources, store.resourceCapacity, store.computedProductionRates, store.computedActualConsumptionRates, store.computedConsumptionRates, allResources, unlimited]);
+  }, [store.resources, store.resourceCapacity, store.productionSnapshot.production, store.productionSnapshot.actualConsumption, store.productionSnapshot.consumption, allResources, unlimited]);
 
   // ─── Filtered & Sorted Resources ──────────────────────────────────────────
   const filteredResources = useMemo(() => {
@@ -168,8 +167,8 @@ export function StoragePanel() {
       switch (sortMode) {
         case 'stock': return (store.resources[b] ?? 0) - (store.resources[a] ?? 0);
         case 'rate': {
-          const netA = (store.computedProductionRates[a] ?? 0) - (store.computedActualConsumptionRates[a] ?? 0);
-          const netB = (store.computedProductionRates[b] ?? 0) - (store.computedActualConsumptionRates[b] ?? 0);
+          const netA = (store.productionSnapshot.production[a] ?? 0) - (store.productionSnapshot.actualConsumption[a] ?? 0);
+          const netB = (store.productionSnapshot.production[b] ?? 0) - (store.productionSnapshot.actualConsumption[b] ?? 0);
           return netB - netA;
         }
         case 'capacity': {
@@ -187,7 +186,7 @@ export function StoragePanel() {
     }
 
     return groups;
-  }, [filteredResources, sortMode, store.resources, store.resourceCapacity, store.computedProductionRates, store.computedActualConsumptionRates]);
+  }, [filteredResources, sortMode, store.resources, store.resourceCapacity, store.productionSnapshot.production, store.productionSnapshot.actualConsumption]);
 
   // ─── Summary Stats ────────────────────────────────────────────────────────
   const summaryStats = useMemo(() => {
@@ -201,12 +200,12 @@ export function StoragePanel() {
       const capacity = store.resourceCapacity[res] ?? 100;
       totalStock += amount;
       if (!unlimited) totalCapacity += capacity;
-      if (amount > 0 || (store.computedProductionRates[res] ?? 0) > 0) activeResources++;
+      if (amount > 0 || (store.productionSnapshot.production[res] ?? 0) > 0) activeResources++;
       if (!unlimited && capacity > 0 && amount >= capacity) maxedResources++;
     }
 
     return { totalStock, totalCapacity, activeResources, maxedResources, totalTypes: allResources.length };
-  }, [store.resources, store.resourceCapacity, store.computedProductionRates, allResources, unlimited]);
+  }, [store.resources, store.resourceCapacity, store.productionSnapshot.production, allResources, unlimited]);
 
   // ─── Handlers ─────────────────────────────────────────────────────────────
   const handleUpgrade = useCallback((resource: ResourceType) => {
@@ -261,8 +260,8 @@ export function StoragePanel() {
 
     const amount = store.resources[res] ?? 0;
     const capacity = store.resourceCapacity[res] ?? 100;
-    const prodRate = store.computedProductionRates[res] ?? 0;
-    const consRate = store.computedActualConsumptionRates[res] ?? 0;
+    const prodRate = store.productionSnapshot.production[res] ?? 0;
+    const consRate = store.productionSnapshot.actualConsumption[res] ?? 0;
     const netRate = prodRate - consRate;
     const fillPct = unlimited ? 0 : (capacity > 0 ? (amount / capacity) * 100 : 0);
     const upgradeLevel = store.storageUpgradeLevels[res] ?? 0;
@@ -481,8 +480,8 @@ export function StoragePanel() {
 
     const amount = store.resources[res] ?? 0;
     const capacity = store.resourceCapacity[res] ?? 100;
-    const prodRate = store.computedProductionRates[res] ?? 0;
-    const consRate = store.computedActualConsumptionRates[res] ?? 0;
+    const prodRate = store.productionSnapshot.production[res] ?? 0;
+    const consRate = store.productionSnapshot.actualConsumption[res] ?? 0;
     const netRate = prodRate - consRate;
     const fillPct = unlimited ? 0 : (capacity > 0 ? (amount / capacity) * 100 : 0);
     const isExpanded = expandedResource === res;
@@ -610,8 +609,8 @@ export function StoragePanel() {
     // Build a visual dependency map for all active resources
     const activeResources = allResources.filter(r => {
       const amount = store.resources[r] ?? 0;
-      const prodRate = store.computedProductionRates[r] ?? 0;
-      const consRate = store.computedActualConsumptionRates[r] ?? 0;
+      const prodRate = store.productionSnapshot.production[r] ?? 0;
+      const consRate = store.productionSnapshot.actualConsumption[r] ?? 0;
       return amount > 0 || prodRate > 0 || consRate > 0;
     });
 
@@ -643,8 +642,8 @@ export function StoragePanel() {
                 {chain.steps.map((step, si) => {
                   const stepMeta = RESOURCE_META[step as ResourceType];
                   const stepActive = activeResources.includes(step as ResourceType);
-                  const stepProd = store.computedProductionRates[step] ?? 0;
-                  const stepCons = store.computedActualConsumptionRates[step] ?? 0;
+                  const stepProd = store.productionSnapshot.production[step] ?? 0;
+                  const stepCons = store.productionSnapshot.actualConsumption[step] ?? 0;
                   const stepNet = stepProd - stepCons;
 
                   return (
@@ -689,8 +688,8 @@ export function StoragePanel() {
         const resources = groupedResources[tier];
         const activeInTier = resources.filter(r => {
           const amount = store.resources[r] ?? 0;
-          const prodRate = store.computedProductionRates[r] ?? 0;
-          const consRate = store.computedActualConsumptionRates[r] ?? 0;
+          const prodRate = store.productionSnapshot.production[r] ?? 0;
+          const consRate = store.productionSnapshot.actualConsumption[r] ?? 0;
           return amount > 0 || prodRate > 0 || consRate > 0;
         });
 
@@ -716,10 +715,10 @@ export function StoragePanel() {
               <span className="text-[10px] font-mono text-gray-500">
                 {(() => {
                   const tierNet = activeInTier.reduce((sum, r) => {
-                    return sum + (store.computedProductionRates[r] ?? 0) - (store.computedActualConsumptionRates[r] ?? 0);
+                    return sum + (store.productionSnapshot.production[r] ?? 0) - (store.productionSnapshot.actualConsumption[r] ?? 0);
                   }, 0);
-                  const tierProd = activeInTier.reduce((sum, r) => sum + (store.computedProductionRates[r] ?? 0), 0);
-                  const tierCons = activeInTier.reduce((sum, r) => sum + (store.computedActualConsumptionRates[r] ?? 0), 0);
+                  const tierProd = activeInTier.reduce((sum, r) => sum + (store.productionSnapshot.production[r] ?? 0), 0);
+                  const tierCons = activeInTier.reduce((sum, r) => sum + (store.productionSnapshot.actualConsumption[r] ?? 0), 0);
                   if (tierNet === 0 && tierProd > 0 && tierCons > 0) return '±0';
                   return tierNet >= 0 ? `+${formatNumber(tierNet)}` : formatNumber(tierNet);
                 })()}/t

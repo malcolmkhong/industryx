@@ -490,13 +490,8 @@ export interface GameState {
   selectedBuilding: string | null;
   notifications: GameNotification[];
 
-  // Computed rates (updated each tick)
-  computedProductionRates: Record<string, number>;
-  computedConsumptionRates: Record<string, number>;
-  computedActualConsumptionRates: Record<string, number>; // Only actual consumption (excludes stalled factory demand)
-
-  // Production snapshot — single source of truth for all economy data (Phase 2)
-  // UI should read from this instead of the three computed* fields above
+  // Production snapshot — single source of truth for all economy data
+  // UI reads from this ONLY — never recalculates production/consumption inline
   productionSnapshot: import('./productionCalculator').ProductionSnapshot;
 }
 

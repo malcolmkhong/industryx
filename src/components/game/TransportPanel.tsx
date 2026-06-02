@@ -1204,7 +1204,8 @@ export function TransportPanel() {
         const outLines = store.transportLines.filter(l => l.fromBuilding === b.id && l.active);
         if (outLines.length === 0 && producingBuildings.some(pb => pb.id === b.id)) {
           const outputResources = def.outputs.map(o => o.resource as ResourceType);
-          const totalOutput = def.outputs.reduce((sum, o) => sum + o.amount * b.level, 0);
+          const buildingSnapshot = store.productionSnapshot.buildings[b.id] ?? { outputs: [], inputs: [], efficiency: 0 };
+          const totalOutput = buildingSnapshot.outputs.reduce((sum, o) => sum + o.amount, 0);
           const matchingConsumers = consumingBuildings.filter(cb => {
             const cbDef = BUILDING_DEFS[cb.type];
             return cbDef?.inputs?.some(i => outputResources.includes(i.resource as ResourceType));
@@ -1251,12 +1252,14 @@ export function TransportPanel() {
 
       // 3. Consumer missing inbound transport (Under-supplied)
       if (def.inputs && def.inputs.length > 0) {
+        const buildingSnapshot = store.productionSnapshot.buildings[b.id] ?? { outputs: [], inputs: [], efficiency: 0 };
         def.inputs.forEach(input => {
           if (input.resource === 'money') return;
           const res = input.resource as ResourceType;
           const inLines = store.transportLines.filter(l => l.toBuilding === b.id && l.carriesResource === res && l.active);
           const totalInboundRate = inLines.reduce((s, l) => s + l.throughput, 0);
-          const consumptionRate = input.amount * b.level;
+          // Use snapshot input rate (includes all multipliers: efficiency, research, events)
+          const consumptionRate = buildingSnapshot.inputs.find(i => i.resource === res)?.amount ?? input.amount * b.level;
 
           if (inLines.length === 0) {
             const producers = producingBuildings.filter(pb => {
@@ -1294,10 +1297,12 @@ export function TransportPanel() {
 
       // 4. Over-supplied detection (outbound exceeds consumer needs)
       if (def.outputs && def.outputs.length > 0) {
+        const buildingSnapshot = store.productionSnapshot.buildings[b.id] ?? { outputs: [], inputs: [], efficiency: 0 };
         def.outputs.forEach(output => {
           if (output.resource === 'money') return;
           const res = output.resource as ResourceType;
-          const productionRate = output.amount * b.level;
+          // Use snapshot output rate (includes all multipliers: efficiency, research, events)
+          const productionRate = buildingSnapshot.outputs.find(o => o.resource === res)?.amount ?? output.amount * b.level;
           const outLines = store.transportLines.filter(l => l.fromBuilding === b.id && l.carriesResource === res && l.active);
           const totalOutboundCapacity = outLines.reduce((s, l) => s + l.maxThroughput, 0);
           const totalOutboundThroughput = outLines.reduce((s, l) => s + l.throughput, 0);
@@ -1351,28 +1356,26 @@ export function TransportPanel() {
   const resourceFlow = useMemo(() => {
     const flowMap = new Map<ResourceType, { production: number; consumption: number; surplus: number; name: string; icon: string; tier: number; color: string }>();
 
-    // Calculate production rates from producing buildings
+    // Calculate production rates from producing buildings — use snapshot data
     producingBuildings.forEach(b => {
-      const def = BUILDING_DEFS[b.type];
-      if (!def?.outputs) return;
-      def.outputs.forEach(o => {
+      const buildingSnapshot = store.productionSnapshot.buildings[b.id] ?? { outputs: [], inputs: [], efficiency: 0 };
+      buildingSnapshot.outputs.forEach(o => {
         if (o.resource === 'money') return;
         const res = o.resource as ResourceType;
         const existing = flowMap.get(res) ?? { production: 0, consumption: 0, surplus: 0, name: RESOURCE_META[res]?.name ?? res, icon: RESOURCE_META[res]?.icon ?? '', tier: RESOURCE_META[res]?.tier ?? 0, color: RESOURCE_META[res]?.color ?? '#888' };
-        existing.production += o.amount * b.level * b.efficiency;
+        existing.production += o.amount;
         flowMap.set(res, existing);
       });
     });
 
-    // Calculate consumption rates from consuming buildings
+    // Calculate consumption rates from consuming buildings — use snapshot data
     consumingBuildings.forEach(b => {
-      const def = BUILDING_DEFS[b.type];
-      if (!def?.inputs) return;
-      def.inputs.forEach(i => {
+      const buildingSnapshot = store.productionSnapshot.buildings[b.id] ?? { outputs: [], inputs: [], efficiency: 0 };
+      buildingSnapshot.inputs.forEach(i => {
         if (i.resource === 'money') return;
         const res = i.resource as ResourceType;
         const existing = flowMap.get(res) ?? { production: 0, consumption: 0, surplus: 0, name: RESOURCE_META[res]?.name ?? res, icon: RESOURCE_META[res]?.icon ?? '', tier: RESOURCE_META[res]?.tier ?? 0, color: RESOURCE_META[res]?.color ?? '#888' };
-        existing.consumption += i.amount * b.level * b.efficiency;
+        existing.consumption += i.amount;
         flowMap.set(res, existing);
       });
     });
@@ -1381,7 +1384,7 @@ export function TransportPanel() {
     return Array.from(flowMap.entries())
       .map(([resource, data]) => ({ resource, ...data }))
       .sort((a, b) => a.tier - b.tier || a.name.localeCompare(b.name));
-  }, [producingBuildings, consumingBuildings]);
+  }, [producingBuildings, consumingBuildings, store.productionSnapshot.buildings]);
 
   // --- Throughput by Type ---
   const throughputByType = useMemo(() => {
