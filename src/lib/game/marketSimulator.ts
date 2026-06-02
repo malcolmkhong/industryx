@@ -220,6 +220,19 @@ const MAX_INJECTION_EFFECT = 0.05;        // ±5% max per tick
 const MAX_NEWS_ITEMS = 30;
 const MAX_NARRATIVE_ITEMS = 20;
 
+// ── News Throttling Constants ─────────────────────────────────────────────
+// Prevents news spam — ensures headlines feel like a real newspaper,
+// not a firehose. Inspired by 24-hour news cycle pacing.
+
+const RESOURCE_NEWS_COOLDOWN_TICKS = 50;     // min ticks between news about the same resource (~50s at 1x)
+const SECTOR_NEWS_COOLDOWN_TICKS = 100;       // min ticks between sector-level news (~100s at 1x)
+const CATEGORY_NEWS_COOLDOWN_TICKS = 25;      // min ticks between same-category news (~25s at 1x)
+const MAX_NEWS_PER_TICK = 3;                  // max news items per simulation step
+const MAX_NARRATIVES_PER_TICK = 3;            // max narratives per simulation step
+const PRICE_MOVE_THRESHOLD_HIGH = 0.06;       // raised threshold: 6% change (was 4%) for low-severity
+const VOLATILITY_NEWS_MIN_INTENSITY = 0.3;    // only report volatility with moderate+ intensity (was 0.2)
+const GAME_DAY_TICKS = 600;                   // 1 game day = 600 ticks (~10 min at 1x speed)
+
 function generateMicroInjection(resource: ResourceType): VolatilityInjection {
   const direction = Math.random() > 0.5 ? 1 : -1;
   const intensity = 0.05 + Math.random() * 0.15; // 0.05–0.20
@@ -567,6 +580,10 @@ export interface MarketSimulationState {
   ticksInPhase: number;
   // MVIL state
   volatilityInjections: Partial<Record<ResourceType, VolatilityInjection>>;
+  // ── News Cooldown State ──
+  lastNewsTick: Partial<Record<ResourceType, number>>;     // last tick each resource appeared in news
+  lastSectorNewsTick: Partial<Record<MarketSector, number>>; // last tick each sector appeared in news
+  lastCategoryNewsTick: Partial<Record<string, number>>;   // last tick each category emitted news
 }
 
 export function createInitialSimState(): MarketSimulationState {
@@ -582,6 +599,9 @@ export function createInitialSimState(): MarketSimulationState {
     recentPlayerBuys: {},
     ticksInPhase: 0,
     volatilityInjections: {},
+    lastNewsTick: {},
+    lastSectorNewsTick: {},
+    lastCategoryNewsTick: {},
   };
 }
 
@@ -895,10 +915,30 @@ export function simulateMarketTick(input: MarketSimulationInput): MarketSimulati
   }
 
   // ═════════════════════════════════════════════════════════════════════════
-  // OVERLAY 2: Generate Market News (Hybrid Pipeline)
+  // OVERLAY 2: Generate Market News (Hybrid Pipeline with Throttling)
   // Pipeline: EventPacket → newsBuilder (fallback text) → [async LLM enhancement]
+  // Throttling: Cooldowns per resource/sector/category + dedup + per-tick caps
   // ═════════════════════════════════════════════════════════════════════════
   const generatedNews: MarketNews[] = [];
+
+  // Initialize cooldown state from previous sim state
+  const lastNewsTick = { ...(simState.lastNewsTick ?? {}) };
+  const lastSectorNewsTick = { ...(simState.lastSectorNewsTick ?? {}) };
+  const lastCategoryNewsTick = { ...(simState.lastCategoryNewsTick ?? {}) };
+
+  // Helper: Check if a resource/sector/category is on cooldown
+  function isOnResourceCooldown(resource: string): boolean {
+    const lastTick = lastNewsTick[resource as ResourceType];
+    return lastTick !== undefined && (gameTick - lastTick) < RESOURCE_NEWS_COOLDOWN_TICKS;
+  }
+  function isOnSectorCooldown(sector: MarketSector): boolean {
+    const lastTick = lastSectorNewsTick[sector];
+    return lastTick !== undefined && (gameTick - lastTick) < SECTOR_NEWS_COOLDOWN_TICKS;
+  }
+  function isOnCategoryCooldown(category: string): boolean {
+    const lastTick = lastCategoryNewsTick[category];
+    return lastTick !== undefined && (gameTick - lastTick) < CATEGORY_NEWS_COOLDOWN_TICKS;
+  }
 
   // Helper: Build MarketNews from EventPacket using enhanced templates
   function newsFromPacket(
@@ -923,21 +963,29 @@ export function simulateMarketTick(input: MarketSimulationInput): MarketSimulati
     };
   }
 
+  // ── Phase 1: Collect ALL candidate news items (before throttling) ──
+  const candidates: MarketNews[] = [];
+
   // News from significant price movements (via EventPacket)
+  // RAISED THRESHOLD: Only 6%+ changes for low-severity, 4%+ for medium/high
   for (const m of newMarket) {
     const changeRatio = priceChanges[m.resource] ?? 0;
+    const absChange = Math.abs(changeRatio);
+    // Dynamic threshold: higher severity requires less change, low severity requires more
+    if (absChange < PRICE_MOVE_THRESHOLD_HIGH) continue; // skip minor price movements
     const oldPrice = m.currentPrice / (1 + changeRatio);
     const packet = buildEventPacketFromPriceMove(m.resource, oldPrice, m.currentPrice, m.basePrice);
     if (packet) {
-      generatedNews.push(newsFromPacket(packet, [m.resource], gameTick, 'price_move'));
+      candidates.push(newsFromPacket(packet, [m.resource], gameTick, 'price_move'));
     }
   }
 
   // News from new MVIL injection events (via EventPacket)
+  // RAISED THRESHOLD: Only macro events and moderate+ intensity (0.3+)
   for (const { resource, injection } of newInjectionEvents) {
-    if (injection.source === 'macro' || injection.intensity > 0.2) {
+    if (injection.source === 'macro' || injection.intensity >= VOLATILITY_NEWS_MIN_INTENSITY) {
       const packet = buildEventPacketFromVolatility(resource, injection);
-      generatedNews.push(newsFromPacket(packet, [resource], gameTick, 'volatility'));
+      candidates.push(newsFromPacket(packet, [resource], gameTick, 'volatility'));
     }
   }
 
@@ -954,7 +1002,7 @@ export function simulateMarketTick(input: MarketSimulationInput): MarketSimulati
     const avgChange = totalChange / sectorRes.length;
     const packet = buildEventPacketFromSector(sector, trend, avgChange);
     if (packet) {
-      generatedNews.push(newsFromPacket(packet, sectorRes, gameTick, 'sector'));
+      candidates.push(newsFromPacket(packet, sectorRes, gameTick, 'sector'));
     }
   }
 
@@ -964,26 +1012,102 @@ export function simulateMarketTick(input: MarketSimulationInput): MarketSimulati
     const buys = newSimState.recentPlayerBuys[m.resource] ?? 0;
     const packet = buildEventPacketFromTrade(m.resource, sells, buys);
     if (packet) {
-      generatedNews.push(newsFromPacket(packet, [m.resource], gameTick, 'trade'));
+      candidates.push(newsFromPacket(packet, [m.resource], gameTick, 'trade'));
     }
   }
 
+  // ── Phase 2: Deduplication — same resource, keep highest severity ──
+  // If a resource appears in multiple categories (price_move + volatility + trade),
+  // keep only the most significant one (high > medium > low)
+  const severityRank: Record<string, number> = { high: 3, medium: 2, low: 1 };
+  const bestByResource: Map<string, MarketNews> = new Map();
+  const sectorNewsCandidates: MarketNews[] = []; // sector news uses sector key, not resource
+
+  for (const news of candidates) {
+    if (news.category === 'sector') {
+      // Sector news keyed by sector name (from first affected resource's sector)
+      sectorNewsCandidates.push(news);
+      continue;
+    }
+    // Key by primary resource
+    const key = news.affectedResources[0] ?? news.id;
+    const existing = bestByResource.get(key);
+    if (!existing || severityRank[news.severity] > severityRank[existing.severity]) {
+      bestByResource.set(key, news);
+    } else if (
+      severityRank[news.severity] === severityRank[existing.severity] &&
+      // Same severity — prefer price_move over volatility over trade
+      (news.category === 'price_move' && existing.category !== 'price_move')
+    ) {
+      bestByResource.set(key, news);
+    }
+  }
+
+  // ── Phase 3: Apply cooldowns and emit ──
+  // Sort by severity (high first), then apply cooldowns and per-tick cap
+  const deduped = [...bestByResource.values(), ...sectorNewsCandidates];
+  deduped.sort((a, b) => (severityRank[b.severity] ?? 0) - (severityRank[a.severity] ?? 0));
+
+  for (const news of deduped) {
+    if (generatedNews.length >= MAX_NEWS_PER_TICK) break;
+
+    // Check cooldowns
+    if (news.category === 'sector') {
+      // Sector cooldown
+      const sectorKey = news.affectedResources.length > 0
+        ? RESOURCE_SECTOR[news.affectedResources[0]]
+        : null;
+      if (sectorKey && isOnSectorCooldown(sectorKey)) continue;
+      // Also check category cooldown
+      if (isOnCategoryCooldown('sector')) continue;
+
+      generatedNews.push(news);
+      if (sectorKey) lastSectorNewsTick[sectorKey] = gameTick;
+      lastCategoryNewsTick['sector'] = gameTick;
+    } else {
+      // Resource-level cooldown
+      const resource = news.affectedResources[0];
+      if (resource && isOnResourceCooldown(resource)) continue;
+      // Category cooldown
+      if (isOnCategoryCooldown(news.category)) continue;
+
+      generatedNews.push(news);
+      if (resource) lastNewsTick[resource] = gameTick;
+      lastCategoryNewsTick[news.category] = gameTick;
+    }
+  }
+
+  // Store updated cooldown state
+  newSimState.lastNewsTick = lastNewsTick;
+  newSimState.lastSectorNewsTick = lastSectorNewsTick;
+  newSimState.lastCategoryNewsTick = lastCategoryNewsTick;
+
   // ═════════════════════════════════════════════════════════════════════════
   // OVERLAY 3: Generate Player-driven Narratives (player behavior only)
+  // Throttled: Max MAX_NARRATIVES_PER_TICK per simulation step
   // ═════════════════════════════════════════════════════════════════════════
   const generatedNarratives: MarketNarrative[] = [];
 
-  // Production narratives
+  // Production narratives (limit: only high-severity or first few)
+  let productionNarratives = 0;
   for (const m of newMarket) {
+    if (generatedNarratives.length >= MAX_NARRATIVES_PER_TICK) break;
     const prodRate = production[m.resource] ?? 0;
     const narrative = generateProductionNarrative(m.resource, prodRate, gameTick);
-    if (narrative) generatedNarratives.push(narrative);
+    if (narrative) {
+      // Only emit production narratives for significant rates or every 100 ticks
+      if (narrative.severity !== 'low' || productionNarratives === 0) {
+        generatedNarratives.push(narrative);
+        productionNarratives++;
+      }
+    }
   }
 
   // Consumption narratives (limit to avoid spam)
   let consumptionNarratives = 0;
   for (const m of newMarket) {
-    if (consumptionNarratives >= 3) break;
+    if (generatedNarratives.length >= MAX_NARRATIVES_PER_TICK) break;
+    if (consumptionNarratives >= 2) break;
     const consRate = consumption[m.resource] ?? 0;
     const narrative = generateConsumptionNarrative(m.resource, consRate, gameTick);
     if (narrative) {
@@ -992,10 +1116,11 @@ export function simulateMarketTick(input: MarketSimulationInput): MarketSimulati
     }
   }
 
-  // Trade narratives
+  // Trade narratives (limit to avoid spam)
   let tradeNarratives = 0;
   for (const m of newMarket) {
-    if (tradeNarratives >= 2) break;
+    if (generatedNarratives.length >= MAX_NARRATIVES_PER_TICK) break;
+    if (tradeNarratives >= 1) break;
     const sells = newSimState.recentPlayerSells[m.resource] ?? 0;
     const buys = newSimState.recentPlayerBuys[m.resource] ?? 0;
     const narrative = generateTradeNarrative(m.resource, sells, buys, gameTick);
@@ -1005,10 +1130,11 @@ export function simulateMarketTick(input: MarketSimulationInput): MarketSimulati
     }
   }
 
-  // Hoarding narratives
+  // Hoarding narratives (limit to avoid spam)
   let hoardingNarratives = 0;
   for (const m of newMarket) {
-    if (hoardingNarratives >= 2) break;
+    if (generatedNarratives.length >= MAX_NARRATIVES_PER_TICK) break;
+    if (hoardingNarratives >= 1) break;
     const held = resources[m.resource] ?? 0;
     const cap = resourceCapacity[m.resource] ?? 0;
     const narrative = generateHoardingNarrative(m.resource, held, cap, gameTick);
