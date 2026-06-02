@@ -9,6 +9,11 @@
  * - Price has memory → trends emerge, enabling strategic timing
  * - Elasticity per resource → luxuries are elastic, basics are inelastic
  *
+ * Overlay Layers (ADD-ON ONLY — base system untouched):
+ * - MVIL: Market Volatility Injection Layer — short-term dynamism
+ * - News: Market News System — human-readable explanations
+ * - Narrative: Player-driven Market Narrative — player impact storytelling
+ *
  * NO gameSpeed multiplication — ticks already fire faster.
  */
 
@@ -26,7 +31,7 @@ export type MarketSector =
   | 'advanced'        // engine, advancedAlloy, electronics, tungsten, titanium, weapons, medicalTech, jewellery
   | 'high_tech'       // aiChip, robotics, neuralNetwork, scanDrone, artifactDetector, quantumPart
   | 'endgame'         // singularityCore, darkMatterCell, warpDrive, antimatter, chronoPart, plasmaCore, megaStructure, voidCrystal, nanoMaterial
-  | 'agriculture'     // fertilizer, insecticide, fossilFuel;
+  | 'agriculture';    // fertilizer, insecticide, fossilFuel
 
 export const RESOURCE_SECTOR: Record<ResourceType, MarketSector> = {
   // Raw minerals
@@ -186,7 +191,361 @@ const PHASE_MULTIPLIERS: Record<CyclePhase, number> = {
   recovery:  0.95,   // prices recovering, near base
 };
 
-// ─── Simulation State ──────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// OVERLAY LAYER 1: MVIL — Market Volatility Injection Layer
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface VolatilityInjection {
+  intensity: number;      // 0-1
+  direction: number;      // -1 to +1
+  decay: number;          // per simulation step decay rate
+  duration: number;       // simulation steps remaining
+  source: 'micro' | 'macro' | 'chain';
+  label?: string;         // short description for news
+}
+
+// MVIL probability constants
+const MICRO_EVENT_CHANCE = 0.03;          // 3% per resource per step
+const MACRO_EVENT_CHANCE = 0.015;         // 1.5% per step globally
+const CHAIN_REACTION_THRESHOLD = 0.08;    // 8% price change triggers chain
+const MAX_INJECTION_EFFECT = 0.05;        // ±5% max per tick
+const MAX_NEWS_ITEMS = 30;
+const MAX_NARRATIVE_ITEMS = 20;
+
+function generateMicroInjection(resource: ResourceType): VolatilityInjection {
+  const direction = Math.random() > 0.5 ? 1 : -1;
+  const intensity = 0.05 + Math.random() * 0.15; // 0.05–0.20
+  const duration = 1 + Math.floor(Math.random() * 3); // 1–3 steps
+  const labels = direction > 0
+    ? ['Supply disruption', 'Demand spike', 'Logistics delay', 'Quality premium']
+    : ['Oversupply detected', 'Demand softening', 'Import surge', 'Storage overflow'];
+  return {
+    intensity,
+    direction,
+    decay: 0.15 + Math.random() * 0.1,
+    duration,
+    source: 'micro',
+    label: labels[Math.floor(Math.random() * labels.length)],
+  };
+}
+
+function generateMacroInjection(sector: MarketSector): Array<{ resource: ResourceType; injection: VolatilityInjection }> {
+  const direction = Math.random() > 0.4 ? 1 : -1; // slight positive bias
+  const intensity = 0.3 + Math.random() * 0.4; // 0.3–0.7
+  const duration = 4 + Math.floor(Math.random() * 8); // 4–11 steps
+  const sectorResources = Object.entries(RESOURCE_SECTOR)
+    .filter(([, s]) => s === sector)
+    .map(([r]) => r as ResourceType);
+  const labels = direction > 0
+    ? [`${getSectorInfo(sector).name} boom`, 'Trade agreement signed', 'Subsidy program launched', 'Infrastructure investment']
+    : [`${getSectorInfo(sector).name} downturn`, 'Trade restrictions imposed', 'Regulatory crackdown', 'Global demand slump'];
+  const label = labels[Math.floor(Math.random() * labels.length)];
+  return sectorResources.map(resource => ({
+    resource,
+    injection: {
+      intensity: intensity * (0.7 + Math.random() * 0.3), // per-resource variance
+      direction,
+      decay: 0.08 + Math.random() * 0.05,
+      duration,
+      source: 'macro',
+      label,
+    },
+  }));
+}
+
+function generateChainInjections(
+  triggerResource: ResourceType,
+  priceChangeRatio: number,
+): Array<{ resource: ResourceType; injection: VolatilityInjection }> {
+  const direction = priceChangeRatio > 0 ? 1 : -1;
+  const results: Array<{ resource: ResourceType; injection: VolatilityInjection }> = [];
+
+  // Find downstream correlations
+  for (const corr of PRICE_CORRELATIONS) {
+    if (corr.from !== triggerResource) continue;
+    const chainIntensity = Math.min(0.5, Math.abs(priceChangeRatio) * corr.strength * 0.6);
+    if (chainIntensity < 0.02) continue;
+    results.push({
+      resource: corr.to,
+      injection: {
+        intensity: chainIntensity,
+        direction,
+        decay: 0.12,
+        duration: 2 + Math.floor(Math.random() * 4), // 2–5 steps
+        source: 'chain',
+        label: `Cascade from ${RESOURCE_META[triggerResource]?.name ?? triggerResource}`,
+      },
+    });
+  }
+  return results;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// OVERLAY LAYER 2: Market News System (Explanation Layer)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface MarketNews {
+  id: string;
+  title: string;
+  description: string;
+  affectedResources: ResourceType[];
+  impactSummary: string;
+  severity: 'low' | 'medium' | 'high';
+  gameTick: number;
+  category: 'price_move' | 'volatility' | 'correlation' | 'sector' | 'trade';
+}
+
+function generateNewsId(): string {
+  return 'nws-' + Math.random().toString(36).substring(2, 8);
+}
+
+// News template generators — derive from simulation outputs ONLY
+function generatePriceMoveNews(
+  resource: ResourceType,
+  oldPrice: number,
+  newPrice: number,
+  basePrice: number,
+  gameTick: number,
+): MarketNews | null {
+  const changeRatio = (newPrice - oldPrice) / oldPrice;
+  const absChange = Math.abs(changeRatio);
+  if (absChange < 0.04) return null; // threshold: 4% change
+
+  const name = RESOURCE_META[resource]?.name ?? resource;
+  const direction = changeRatio > 0 ? 'up' : 'down';
+  const pctStr = (absChange * 100).toFixed(1);
+  const priceRatio = newPrice / basePrice;
+
+  let title: string;
+  let description: string;
+
+  if (direction === 'up') {
+    if (priceRatio > 2.0) {
+      title = `${name} Market Frenzy`;
+      description = `${name} prices surge ${pctStr}% as speculative buying intensifies. Market watchers warn of bubble conditions.`;
+    } else if (priceRatio > 1.3) {
+      title = `${name} Supply Tightness`;
+      description = `${name} prices climb ${pctStr}% as supply struggles to meet demand. Traders report limited availability.`;
+    } else {
+      title = `${name} Price Increase`;
+      description = `${name} values rose ${pctStr}% in recent trading. Moderate demand pressure observed.`;
+    }
+  } else {
+    if (priceRatio < 0.4) {
+      title = `${name} Market Crash`;
+      description = `${name} prices plummet ${pctStr}% amid heavy sell-off. Market circuit breakers considered.`;
+    } else if (priceRatio < 0.7) {
+      title = `${name} Oversupply Alert`;
+      description = `${name} prices drop ${pctStr}% as excess supply floods the market. Producers scaling back operations.`;
+    } else {
+      title = `${name} Price Decline`;
+      description = `${name} values slipped ${pctStr}% in recent trading. Demand softening observed.`;
+    }
+  }
+
+  return {
+    id: generateNewsId(),
+    title,
+    description,
+    affectedResources: [resource],
+    impactSummary: `${name} ${direction === 'up' ? '▲' : '▼'} ${pctStr}%`,
+    severity: absChange > 0.1 ? 'high' : absChange > 0.06 ? 'medium' : 'low',
+    gameTick,
+    category: 'price_move',
+  };
+}
+
+function generateVolatilityNews(
+  resource: ResourceType,
+  injection: VolatilityInjection,
+  gameTick: number,
+): MarketNews {
+  const name = RESOURCE_META[resource]?.name ?? resource;
+  const direction = injection.direction > 0 ? 'upward' : 'downward';
+  const intensityLabel = injection.intensity > 0.5 ? 'severe' : injection.intensity > 0.2 ? 'moderate' : 'minor';
+
+  const sourceDescriptions: Record<string, string> = {
+    micro: `A localized ${intensityLabel} disruption is pushing ${name} prices ${direction}. ${injection.label ?? 'Short-term volatility expected.'}`,
+    macro: `A macro-economic event is driving ${direction} pressure across the sector. ${injection.label ?? 'Market-wide impact detected.'}`,
+    chain: `Cascading market effects are pushing ${name} prices ${direction}. ${injection.label ?? 'Correlation-driven movement.'}`,
+  };
+
+  return {
+    id: generateNewsId(),
+    title: injection.source === 'macro'
+      ? `Macro Event: ${injection.label ?? 'Sector Shock'}`
+      : injection.source === 'chain'
+        ? `Chain Reaction: ${name} Volatility`
+        : `${name} Volatility Spike`,
+    description: sourceDescriptions[injection.source] ?? sourceDescriptions.micro,
+    affectedResources: [resource],
+    impactSummary: `${name} ${injection.direction > 0 ? '▲' : '▼'} ${intensityLabel} volatility`,
+    severity: injection.intensity > 0.5 ? 'high' : injection.intensity > 0.2 ? 'medium' : 'low',
+    gameTick,
+    category: 'volatility',
+  };
+}
+
+function generateSectorNews(
+  sector: MarketSector,
+  trend: 'up' | 'down' | 'stable',
+  avgChange: number,
+  resources: ResourceType[],
+  gameTick: number,
+): MarketNews | null {
+  const absChange = Math.abs(avgChange);
+  if (absChange < 0.03) return null; // threshold: 3% sector movement
+
+  const info = getSectorInfo(sector);
+  const direction = trend === 'up' ? 'rallying' : 'declining';
+
+  return {
+    id: generateNewsId(),
+    title: `${info.name} Sector ${trend === 'up' ? 'Rally' : 'Downturn'}`,
+    description: `${info.name} sector is ${direction} with an average price change of ${(avgChange * 100).toFixed(1)}%. ${trend === 'up' ? 'Investor confidence rising.' : 'Market participants exercising caution.'}`,
+    affectedResources: resources,
+    impactSummary: `${info.name} ${trend === 'up' ? '▲' : '▼'} ${(absChange * 100).toFixed(1)}%`,
+    severity: absChange > 0.08 ? 'high' : absChange > 0.05 ? 'medium' : 'low',
+    gameTick,
+    category: 'sector',
+  };
+}
+
+function generateTradeNews(
+  resource: ResourceType,
+  recentSells: number,
+  recentBuys: number,
+  gameTick: number,
+): MarketNews | null {
+  const totalVolume = recentSells + recentBuys;
+  const imbalance = Math.abs(recentSells - recentBuys);
+  if (totalVolume < 20 || imbalance / totalVolume < 0.6) return null; // threshold
+
+  const name = RESOURCE_META[resource]?.name ?? resource;
+  const dominantSide = recentBuys > recentSells ? 'buying' : 'selling';
+
+  return {
+    id: generateNewsId(),
+    title: `Unusual ${name} Trading Volume`,
+    description: `Heavy ${dominantSide} activity detected in ${name} market. Volume is ${totalVolume.toFixed(0)} units with significant imbalance. ${dominantSide === 'buying' ? 'Demand pressure building.' : 'Supply pressure mounting.'}`,
+    affectedResources: [resource],
+    impactSummary: `${name} ${dominantSide === 'buying' ? '▲' : '▼'} volume spike`,
+    severity: totalVolume > 100 ? 'high' : 'medium',
+    gameTick,
+    category: 'trade',
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// OVERLAY LAYER 3: Player-driven Market Narrative Layer
+// ═══════════════════════════════════════════════════════════════════════════
+
+export interface MarketNarrative {
+  id: string;
+  title: string;
+  description: string;
+  playerAction: string;
+  marketEffect: string;
+  severity: 'low' | 'medium' | 'high';
+  gameTick: number;
+}
+
+function generateNarrativeId(): string {
+  return 'nrr-' + Math.random().toString(36).substring(2, 8);
+}
+
+function generateProductionNarrative(
+  resource: ResourceType,
+  productionRate: number,
+  gameTick: number,
+): MarketNarrative | null {
+  if (productionRate < 2) return null; // threshold
+
+  const name = RESOURCE_META[resource]?.name ?? resource;
+  const sector = RESOURCE_SECTOR[resource];
+  const sectorInfo = getSectorInfo(sector);
+  const intensity = productionRate > 20 ? 'massive' : productionRate > 8 ? 'significant' : 'moderate';
+
+  return {
+    id: generateNarrativeId(),
+    title: 'Industrial Expansion Detected',
+    description: `Your ${intensity} ${name} production operation is creating notable supply pressure in the ${sectorInfo.name} sector. Market prices are adjusting to your industrial output.`,
+    playerAction: `Producing ${productionRate.toFixed(1)} ${name}/s`,
+    marketEffect: `Increasing supply pressure → downward price pressure`,
+    severity: productionRate > 20 ? 'high' : productionRate > 8 ? 'medium' : 'low',
+    gameTick,
+  };
+}
+
+function generateConsumptionNarrative(
+  resource: ResourceType,
+  consumptionRate: number,
+  gameTick: number,
+): MarketNarrative | null {
+  if (consumptionRate < 2) return null; // threshold
+
+  const name = RESOURCE_META[resource]?.name ?? resource;
+  const intensity = consumptionRate > 20 ? 'massive' : consumptionRate > 8 ? 'significant' : 'moderate';
+
+  return {
+    id: generateNarrativeId(),
+    title: 'Demand Surge Observed',
+    description: `Your ${intensity} ${name} consumption is creating notable demand in the market. Supply chains are straining to keep up with your factory requirements.`,
+    playerAction: `Consuming ${consumptionRate.toFixed(1)} ${name}/s`,
+    marketEffect: `Increasing demand pressure → upward price pressure`,
+    severity: consumptionRate > 20 ? 'high' : consumptionRate > 8 ? 'medium' : 'low',
+    gameTick,
+  };
+}
+
+function generateTradeNarrative(
+  resource: ResourceType,
+  recentSells: number,
+  recentBuys: number,
+  gameTick: number,
+): MarketNarrative | null {
+  const totalTrades = recentSells + recentBuys;
+  if (totalTrades < 30) return null;
+
+  const name = RESOURCE_META[resource]?.name ?? resource;
+  const dominant = recentBuys > recentSells ? 'buying' : 'selling';
+
+  return {
+    id: generateNarrativeId(),
+    title: 'Speculative Trading Activity Rising',
+    description: `Unusual ${dominant} volume in ${name} market detected from your trading activity. Market participants are adjusting their positions in response.`,
+    playerAction: `${dominant === 'buying' ? 'Bought' : 'Sold'} ${totalTrades.toFixed(0)} units of ${name}`,
+    marketEffect: `Trade-driven ${dominant === 'buying' ? 'demand' : 'supply'} shock → volatility spike`,
+    severity: totalTrades > 100 ? 'high' : 'medium',
+    gameTick,
+  };
+}
+
+function generateHoardingNarrative(
+  resource: ResourceType,
+  held: number,
+  capacity: number,
+  gameTick: number,
+): MarketNarrative | null {
+  const fillRatio = capacity > 0 ? held / capacity : 0;
+  if (fillRatio < 0.9 || held < 20) return null;
+
+  const name = RESOURCE_META[resource]?.name ?? resource;
+
+  return {
+    id: generateNarrativeId(),
+    title: 'Resource Stockpiling Detected',
+    description: `Your ${name} reserves are at ${(fillRatio * 100).toFixed(0)}% capacity. Market observers note your strategic accumulation of ${name}.`,
+    playerAction: `Holding ${held.toFixed(0)}/${capacity} ${name}`,
+    marketEffect: `Reduced market supply from hoarding → upward price pressure`,
+    severity: fillRatio > 0.95 ? 'high' : 'medium',
+    gameTick,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SIMULATION STATE
+// ═══════════════════════════════════════════════════════════════════════════
 
 export interface MarketSimulationState {
   cycle: MarketCycle;
@@ -195,6 +554,8 @@ export interface MarketSimulationState {
   recentPlayerSells: Record<ResourceType, number>;     // total units sold by player recently (rolling window)
   recentPlayerBuys: Record<ResourceType, number>;      // total units bought by player recently
   ticksInPhase: number;
+  // MVIL state
+  volatilityInjections: Partial<Record<ResourceType, VolatilityInjection>>;
 }
 
 export function createInitialSimState(): MarketSimulationState {
@@ -209,6 +570,7 @@ export function createInitialSimState(): MarketSimulationState {
     recentPlayerSells: {},
     recentPlayerBuys: {},
     ticksInPhase: 0,
+    volatilityInjections: {},
   };
 }
 
@@ -220,12 +582,17 @@ export interface MarketSimulationInput {
   consumption: Partial<Record<ResourceType, number>>; // player consumption rate per tick
   activeEvents: Array<{ effects: Array<{ type: string; target?: string; value: number }> }>;
   simState: MarketSimulationState;
+  gameTick: number;
+  resources: Partial<Record<ResourceType, number>>;
+  resourceCapacity: Partial<Record<ResourceType, number>>;
 }
 
 export interface MarketSimulationOutput {
   market: MarketPrice[];
   simState: MarketSimulationState;
   sectorTrends: Record<MarketSector, 'up' | 'down' | 'stable'>;
+  news: MarketNews[];
+  narratives: MarketNarrative[];
 }
 
 /**
@@ -233,7 +600,7 @@ export interface MarketSimulationOutput {
  * Called from the game tick, throttled to every 5 ticks for performance.
  */
 export function simulateMarketTick(input: MarketSimulationInput): MarketSimulationOutput {
-  const { market, production, consumption, activeEvents, simState } = input;
+  const { market, production, consumption, activeEvents, simState, gameTick, resources, resourceCapacity } = input;
 
   // ── 1. Advance Market Cycle ──
   const newSimState = { ...simState };
@@ -311,10 +678,10 @@ export function simulateMarketTick(input: MarketSimulationInput): MarketSimulati
 
   const newMomentum = { ...newSimState.sectorMomentum };
   for (const sector of Object.keys(sectorResources) as MarketSector[]) {
-    const resources = sectorResources[sector] ?? [];
+    const resList = sectorResources[sector] ?? [];
     let sectorPriceChange = 0;
     let count = 0;
-    for (const res of resources) {
+    for (const res of resList) {
       const m = market.find(x => x.resource === res);
       if (!m || m.priceHistory.length < 2) continue;
       const prev = m.priceHistory[m.priceHistory.length - 1];
@@ -329,7 +696,77 @@ export function simulateMarketTick(input: MarketSimulationInput): MarketSimulati
   }
   newSimState.sectorMomentum = newMomentum;
 
+  // ═════════════════════════════════════════════════════════════════════════
+  // OVERLAY 1: MVIL — Process existing injections + generate new ones
+  // ═════════════════════════════════════════════════════════════════════════
+
+  const newInjections: Record<string, VolatilityInjection | undefined> = {
+    ...(simState.volatilityInjections ?? {}),
+  };
+
+  // Decay existing injections
+  for (const key of Object.keys(newInjections)) {
+    const inj = newInjections[key];
+    if (!inj) continue;
+    inj.intensity *= (1 - inj.decay);
+    inj.duration -= 1;
+    if (inj.duration <= 0 || inj.intensity < 0.01) {
+      newInjections[key] = undefined; // remove expired
+    }
+  }
+
+  // Track newly generated injections for news
+  const newInjectionEvents: Array<{ resource: ResourceType; injection: VolatilityInjection }> = [];
+
+  // Source A: Micro random events — frequent, low intensity, single resource
+  for (const m of market) {
+    if (newInjections[m.resource]) continue; // max 1 per resource
+    if (Math.random() < MICRO_EVENT_CHANCE) {
+      const injection = generateMicroInjection(m.resource);
+      newInjections[m.resource] = injection;
+      newInjectionEvents.push({ resource: m.resource, injection });
+    }
+  }
+
+  // Source B: Macro system events — sector-wide, medium/high intensity
+  if (Math.random() < MACRO_EVENT_CHANCE) {
+    const sectors: MarketSector[] = ['raw_minerals', 'raw_organic', 'basic_materials', 'components', 'advanced', 'high_tech', 'endgame', 'agriculture'];
+    const targetSector = sectors[Math.floor(Math.random() * sectors.length)];
+    const macroResults = generateMacroInjection(targetSector);
+    for (const { resource, injection } of macroResults) {
+      // Don't override existing micro injection
+      if (!newInjections[resource]) {
+        newInjections[resource] = injection;
+        newInjectionEvents.push({ resource, injection });
+      }
+    }
+  }
+
+  // Source C: Chain reaction events — triggered by extreme price movement
+  for (const m of market) {
+    if (m.priceHistory.length < 2) continue;
+    const prev = m.priceHistory[m.priceHistory.length - 1];
+    const changeRatio = m.currentPrice / prev - 1;
+    if (Math.abs(changeRatio) >= CHAIN_REACTION_THRESHOLD) {
+      const chainResults = generateChainInjections(m.resource, changeRatio);
+      for (const { resource, injection } of chainResults) {
+        if (!newInjections[resource]) {
+          newInjections[resource] = injection;
+          newInjectionEvents.push({ resource, injection });
+        }
+      }
+    }
+  }
+
+  // Clean up undefined entries
+  const cleanInjections: Partial<Record<ResourceType, VolatilityInjection>> = {};
+  for (const [key, val] of Object.entries(newInjections)) {
+    if (val) cleanInjections[key as ResourceType] = val;
+  }
+  newSimState.volatilityInjections = cleanInjections;
+
   // ── 6. Compute new prices ──
+  const priceChanges: Record<string, number> = {}; // for news generation
   const newMarket = market.map(m => {
     const elasticity = RESOURCE_ELASTICITY[m.resource];
     const sector = RESOURCE_SECTOR[m.resource];
@@ -360,7 +797,6 @@ export function simulateMarketTick(input: MarketSimulationInput): MarketSimulati
     const corrEffect = corrImpact * elasticity;
 
     // G) Event effects
-    let eventEffect = 0;
     let eventOverride = 0;
     for (const event of activeEvents) {
       for (const effect of event.effects) {
@@ -373,8 +809,23 @@ export function simulateMarketTick(input: MarketSimulationInput): MarketSimulati
       }
     }
 
-    // Total fractional price change this tick
-    const totalChange = noise + cycleEffect + momentumEffect + productionPressure + tradeImpact + corrEffect;
+    // ═════════════════════════════════════════════════════════════════════
+    // BASE SYSTEM totalChange (UNCHANGED from original)
+    // ═════════════════════════════════════════════════════════════════════
+    const baseTotalChange = noise + cycleEffect + momentumEffect + productionPressure + tradeImpact + corrEffect;
+
+    // ═════════════════════════════════════════════════════════════════════
+    // MVIL OVERLAY: Add injection effect (ADD-ON ONLY)
+    // ═════════════════════════════════════════════════════════════════════
+    let injectionEffect = 0;
+    const injection = cleanInjections[m.resource];
+    if (injection && injection.duration > 0) {
+      injectionEffect = injection.intensity * injection.direction * elasticity * (0.5 + Math.random());
+      // Safety clamp: ±0.05 per tick
+      injectionEffect = Math.max(-MAX_INJECTION_EFFECT, Math.min(MAX_INJECTION_EFFECT, injectionEffect));
+    }
+
+    const totalChange = baseTotalChange + injectionEffect;
 
     let newPrice = m.currentPrice * (1 + totalChange);
 
@@ -389,6 +840,9 @@ export function simulateMarketTick(input: MarketSimulationInput): MarketSimulati
 
     // I) Hard bounds: 20% to 500% of base price
     newPrice = Math.max(m.basePrice * 0.2, Math.min(m.basePrice * 5, newPrice));
+
+    // Track price change for news
+    priceChanges[m.resource] = (newPrice - m.currentPrice) / m.currentPrice;
 
     // ── Update demand/supply based on actual player activity ──
     const prod = production[m.resource] ?? 0;
@@ -429,10 +883,105 @@ export function simulateMarketTick(input: MarketSimulationInput): MarketSimulati
     else sectorTrends[sector] = 'stable';
   }
 
+  // ═════════════════════════════════════════════════════════════════════════
+  // OVERLAY 2: Generate Market News (purely from simulation outputs)
+  // ═════════════════════════════════════════════════════════════════════════
+  const generatedNews: MarketNews[] = [];
+
+  // News from significant price movements
+  for (const m of newMarket) {
+    const changeRatio = priceChanges[m.resource] ?? 0;
+    const oldPrice = m.currentPrice / (1 + changeRatio);
+    const news = generatePriceMoveNews(m.resource, oldPrice, m.currentPrice, m.basePrice, gameTick);
+    if (news) generatedNews.push(news);
+  }
+
+  // News from new MVIL injection events
+  for (const { resource, injection } of newInjectionEvents) {
+    if (injection.source === 'macro' || injection.intensity > 0.2) {
+      generatedNews.push(generateVolatilityNews(resource, injection, gameTick));
+    }
+  }
+
+  // News from sector-wide movements
+  for (const sector of Object.keys(sectorTrends) as MarketSector[]) {
+    const sectorRes = sectorResources[sector] ?? [];
+    if (sectorRes.length === 0) continue;
+    const trend = sectorTrends[sector] as 'up' | 'down' | 'stable';
+    if (trend === 'stable') continue;
+    let totalChange = 0;
+    for (const res of sectorRes) {
+      totalChange += priceChanges[res] ?? 0;
+    }
+    const avgChange = totalChange / sectorRes.length;
+    const news = generateSectorNews(sector, trend, avgChange, sectorRes, gameTick);
+    if (news) generatedNews.push(news);
+  }
+
+  // News from trade imbalances
+  for (const m of newMarket) {
+    const sells = newSimState.recentPlayerSells[m.resource] ?? 0;
+    const buys = newSimState.recentPlayerBuys[m.resource] ?? 0;
+    const news = generateTradeNews(m.resource, sells, buys, gameTick);
+    if (news) generatedNews.push(news);
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // OVERLAY 3: Generate Player-driven Narratives (player behavior only)
+  // ═════════════════════════════════════════════════════════════════════════
+  const generatedNarratives: MarketNarrative[] = [];
+
+  // Production narratives
+  for (const m of newMarket) {
+    const prodRate = production[m.resource] ?? 0;
+    const narrative = generateProductionNarrative(m.resource, prodRate, gameTick);
+    if (narrative) generatedNarratives.push(narrative);
+  }
+
+  // Consumption narratives (limit to avoid spam)
+  let consumptionNarratives = 0;
+  for (const m of newMarket) {
+    if (consumptionNarratives >= 3) break;
+    const consRate = consumption[m.resource] ?? 0;
+    const narrative = generateConsumptionNarrative(m.resource, consRate, gameTick);
+    if (narrative) {
+      generatedNarratives.push(narrative);
+      consumptionNarratives++;
+    }
+  }
+
+  // Trade narratives
+  let tradeNarratives = 0;
+  for (const m of newMarket) {
+    if (tradeNarratives >= 2) break;
+    const sells = newSimState.recentPlayerSells[m.resource] ?? 0;
+    const buys = newSimState.recentPlayerBuys[m.resource] ?? 0;
+    const narrative = generateTradeNarrative(m.resource, sells, buys, gameTick);
+    if (narrative) {
+      generatedNarratives.push(narrative);
+      tradeNarratives++;
+    }
+  }
+
+  // Hoarding narratives
+  let hoardingNarratives = 0;
+  for (const m of newMarket) {
+    if (hoardingNarratives >= 2) break;
+    const held = resources[m.resource] ?? 0;
+    const cap = resourceCapacity[m.resource] ?? 0;
+    const narrative = generateHoardingNarrative(m.resource, held, cap, gameTick);
+    if (narrative) {
+      generatedNarratives.push(narrative);
+      hoardingNarratives++;
+    }
+  }
+
   return {
     market: newMarket,
     simState: newSimState,
     sectorTrends: sectorTrends as Record<MarketSector, 'up' | 'down' | 'stable'>,
+    news: generatedNews,
+    narratives: generatedNarratives,
   };
 }
 
@@ -470,5 +1019,25 @@ export function getSectorInfo(sector: MarketSector): { name: string; color: stri
     case 'high_tech':       return { name: 'High Tech', color: 'text-fuchsia-400', icon: 'gi:processor' };
     case 'endgame':         return { name: 'Endgame', color: 'text-purple-400', icon: 'gi:atomic-slashes' };
     case 'agriculture':     return { name: 'Agriculture', color: 'text-lime-400', icon: 'gi:fertilizer-bag' };
+  }
+}
+
+// ─── Helper: Get news/narrative severity color ─────────────────────────────
+
+export function getSeverityStyle(severity: 'low' | 'medium' | 'high'): { color: string; bg: string; border: string; dot: string } {
+  switch (severity) {
+    case 'high':   return { color: 'text-red-400', bg: 'bg-red-900/10', border: 'border-red-500/20', dot: 'bg-red-500' };
+    case 'medium': return { color: 'text-yellow-400', bg: 'bg-yellow-900/10', border: 'border-yellow-500/20', dot: 'bg-yellow-500' };
+    case 'low':    return { color: 'text-gray-400', bg: 'bg-gray-900/10', border: 'border-gray-500/20', dot: 'bg-gray-500' };
+  }
+}
+
+export function getCategoryIcon(category: MarketNews['category']): string {
+  switch (category) {
+    case 'price_move':  return '📈';
+    case 'volatility':  return '⚡';
+    case 'correlation': return '🔗';
+    case 'sector':      return '📊';
+    case 'trade':       return '💰';
   }
 }

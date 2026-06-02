@@ -39,7 +39,7 @@ import {
 } from './productionCalculator';
 
 // --- Save Version ---
-const SAVE_VERSION = 16;
+const SAVE_VERSION = 17;
 
 // --- Utility Functions ---
 function generateId(): string {
@@ -511,6 +511,12 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
     (state as Record<string, unknown>).sectorTrends = {};
   }
 
+  // V16 → V17: Add marketNews + marketNarratives (MVIL + News + Narrative overlay layers)
+  if (version < 17) {
+    (state as Record<string, unknown>).marketNews = [];
+    (state as Record<string, unknown>).marketNarratives = [];
+  }
+
   state._version = SAVE_VERSION;
   return state;
 }
@@ -564,6 +570,8 @@ function createInitialState(): GameState {
     market: INITIAL_MARKET.map(m => ({ ...m })),
     marketSimState: createInitialSimState(),
     sectorTrends: {},
+    marketNews: [],
+    marketNarratives: [],
     contracts: [],
     completedContracts: 0,
     automationUnlocks: AUTOMATION_UNLOCKS.map(a => ({ ...a })),
@@ -932,10 +940,25 @@ export const useGameStore = create<GameStore>()(
             consumption: playerConsumption,
             activeEvents: state.activeEvents,
             simState: state.marketSimState,
+            gameTick: newTick,
+            resources: newResources,
+            resourceCapacity: state.resourceCapacity,
           });
           newMarket = simResult.market;
           newMarketSimState = simResult.simState;
           newSectorTrends = simResult.sectorTrends;
+
+          // Append news and narratives (cap to prevent unbounded growth)
+          if (simResult.news.length > 0 || simResult.narratives.length > 0) {
+            const MAX_NEWS = 30;
+            const MAX_NARRATIVES = 20;
+            const existingNews = state.marketNews ?? [];
+            const existingNarratives = state.marketNarratives ?? [];
+            set({
+              marketNews: [...simResult.news, ...existingNews].slice(0, MAX_NEWS),
+              marketNarratives: [...simResult.narratives, ...existingNarratives].slice(0, MAX_NARRATIVES),
+            });
+          }
         }
 
         // Process research

@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   TrendingUp, TrendingDown, Minus, ShoppingCart, DollarSign,
   ArrowUpRight, ArrowDownRight, BarChart3, Wallet, Activity,
-  Zap, Flame, Package, RefreshCw, Link2, Layers
+  Zap, Flame, Package, RefreshCw, Link2, Layers, Newspaper, AlertTriangle
 } from 'lucide-react';
 import { ResourceType } from '@/lib/game/types';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
@@ -17,7 +17,8 @@ import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
 import { GameIcon } from '@/components/game/shared/GameIcon';
 import {
   RESOURCE_SECTOR, RESOURCE_ELASTICITY, PRICE_CORRELATIONS,
-  getSectorInfo, MarketSector,
+  getSectorInfo, getSeverityStyle, getCategoryIcon, MarketSector,
+  MarketNews, MarketNarrative, VolatilityInjection,
 } from '@/lib/game/marketSimulator';
 
 // --- Bezier Sparkline Component ---
@@ -179,7 +180,7 @@ export function MarketPanel() {
   const [tradeAmount, setTradeAmount] = useState<number>(1);
   const [filter, setFilter] = useState<'all' | MarketSector>('all');
   const [tradeMode, setTradeMode] = useState<'sell' | 'buy'>('sell');
-  const [viewMode, setViewMode] = useState<'market' | 'sectors' | 'chains'>('market');
+  const [viewMode, setViewMode] = useState<'market' | 'sectors' | 'chains' | 'news'>('market');
 
   const filteredMarket = useMemo(() => {
     return store.market.filter(m => {
@@ -351,6 +352,7 @@ export function MarketPanel() {
           { key: 'market', label: 'Market', icon: <BarChart3 className="w-3 h-3" /> },
           { key: 'sectors', label: 'Sectors', icon: <Layers className="w-3 h-3" /> },
           { key: 'chains', label: 'Chains', icon: <Link2 className="w-3 h-3" /> },
+          { key: 'news', label: 'News', icon: <Newspaper className="w-3 h-3" /> },
         ] as const).map(v => (
           <button
             key={v.key}
@@ -362,6 +364,9 @@ export function MarketPanel() {
             }`}
           >
             {v.icon} {v.label}
+            {v.key === 'news' && (store.marketNews?.length ?? 0) > 0 && (
+              <span className="w-2 h-2 rounded-full bg-amber-400 inline-block animate-pulse" />
+            )}
           </button>
         ))}
       </div>
@@ -530,6 +535,7 @@ export function MarketPanel() {
                 const elasticity = RESOURCE_ELASTICITY[m.resource];
                 const prod = store.productionSnapshot?.production[m.resource] ?? 0;
                 const cons = store.productionSnapshot?.actualConsumption[m.resource] ?? 0;
+                const activeInjection = store.marketSimState?.volatilityInjections?.[m.resource];
 
                 return (
                   <GameItemTooltip
@@ -545,6 +551,7 @@ export function MarketPanel() {
                       { label: 'Demand', value: `${m.demand.toFixed(2)}x`, color: 'text-orange-400' },
                       { label: 'Supply', value: `${m.supply.toFixed(2)}x`, color: 'text-cyan-400' },
                       { label: 'Elasticity', value: `${(elasticity * 100).toFixed(0)}%`, color: elasticity > 0.5 ? 'text-red-400' : 'text-gray-300' },
+                      { label: 'Volatility', value: activeInjection ? `⚡ ${activeInjection.source} (${activeInjection.intensity.toFixed(2)})` : 'None', color: activeInjection ? 'text-amber-400' : 'text-gray-500' },
                       { label: 'Your Production', value: prod > 0 ? `${prod.toFixed(1)}/s` : '—', color: prod > 0 ? 'text-green-400' : 'text-gray-500' },
                       { label: 'Your Consumption', value: cons > 0 ? `${cons.toFixed(1)}/s` : '—', color: cons > 0 ? 'text-orange-400' : 'text-gray-500' },
                       { label: 'Auto-Sell', value: isAutoSell ? 'Enabled' : 'Disabled', color: isAutoSell ? 'text-green-400' : 'text-gray-500' },
@@ -570,6 +577,18 @@ export function MarketPanel() {
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5">
+                        {activeInjection && (
+                          <span className={`text-[8px] px-1.5 py-0.5 rounded-full border font-bold inline-flex items-center gap-0.5 ${
+                            activeInjection.source === 'macro'
+                              ? 'bg-red-900/30 text-red-400 border-red-500/30'
+                              : activeInjection.source === 'chain'
+                                ? 'bg-purple-900/30 text-purple-400 border-purple-500/30'
+                                : 'bg-amber-900/30 text-amber-400 border-amber-500/30'
+                          }`}>
+                            <AlertTriangle className="w-2.5 h-2.5" />
+                            {activeInjection.source === 'macro' ? 'MACRO' : activeInjection.source === 'chain' ? 'CHAIN' : '⚡'}
+                          </span>
+                        )}
                         {priceRatio > 1.5 && (
                           <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-orange-900/30 text-orange-400 border border-orange-500/30 font-bold inline-flex items-center gap-0.5"><GameIcon icon="gi:flame" size={10} /> HOT</span>
                         )}
@@ -911,6 +930,146 @@ export function MarketPanel() {
                 <p className="text-xs text-gray-500">Select a resource to trade</p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* News & Narrative View */}
+      {viewMode === 'news' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* News Feed */}
+          <div className="lg:col-span-2 space-y-3">
+            <div className="game-card rounded-xl bg-card p-4 border border-amber-900/20">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Newspaper className="w-4 h-4 text-amber-400" />
+                  <h3 className="text-sm font-semibold text-amber-400">Market News</h3>
+                </div>
+                <Badge variant="outline" className="border-amber-500/30 text-amber-400 bg-amber-900/10 text-[9px]">
+                  {(store.marketNews?.length ?? 0)} stories
+                </Badge>
+              </div>
+
+              {(store.marketNews?.length ?? 0) === 0 ? (
+                <div className="text-center py-8">
+                  <Newspaper className="w-10 h-10 text-gray-700 mx-auto mb-2" />
+                  <p className="text-xs text-gray-500">No market news yet. News will appear as prices move and events occur.</p>
+                  <p className="text-[10px] text-gray-600 mt-1">Start producing and trading to generate market activity.</p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-[500px] overflow-y-auto game-scrollbar scroll-fade">
+                  {(store.marketNews ?? []).map(news => {
+                    const style = getSeverityStyle(news.severity);
+                    return (
+                      <div key={news.id} className={`rounded-lg p-3 border ${style.border} ${style.bg}`}>
+                        <div className="flex items-start gap-2">
+                          <span className="text-sm mt-0.5">{getCategoryIcon(news.category)}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`text-xs font-bold ${style.color}`}>{news.title}</span>
+                              <span className={`inline-block w-1.5 h-1.5 rounded-full ${style.dot} flex-shrink-0`} />
+                            </div>
+                            <p className="text-[10px] text-gray-400 leading-relaxed">{news.description}</p>
+                            <div className="flex items-center gap-2 mt-1.5">
+                              <span className="text-[9px] text-gray-600 font-mono">Impact: {news.impactSummary}</span>
+                              <span className="text-[9px] text-gray-600">·</span>
+                              <span className="text-[9px] text-gray-600">Tick {news.gameTick}</span>
+                            </div>
+                            {news.affectedResources.length > 0 && (
+                              <div className="flex items-center gap-1 mt-1 flex-wrap">
+                                {news.affectedResources.slice(0, 5).map(r => (
+                                  <span key={r} className="text-[8px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 border border-gray-700">
+                                    {RESOURCE_META[r]?.name ?? r}
+                                  </span>
+                                ))}
+                                {news.affectedResources.length > 5 && (
+                                  <span className="text-[8px] text-gray-500">+{news.affectedResources.length - 5} more</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Narrative + Active Volatility Panel */}
+          <div className="space-y-3">
+            {/* Active Volatility Injections */}
+            <div className="game-card rounded-xl bg-card p-4 border border-amber-900/20">
+              <div className="flex items-center gap-2 mb-3">
+                <AlertTriangle className="w-4 h-4 text-amber-400" />
+                <h3 className="text-sm font-semibold text-amber-400">Active Volatility</h3>
+              </div>
+              {(() => {
+                const injections = store.marketSimState?.volatilityInjections ?? {};
+                const activeList = Object.entries(injections).filter(([, v]) => v) as [string, VolatilityInjection][];
+                if (activeList.length === 0) {
+                  return <div className="text-[10px] text-gray-500 text-center py-3">No active volatility injections</div>;
+                }
+                return (
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto game-scrollbar">
+                    {activeList.map(([resource, inj]) => {
+                      const meta = RESOURCE_META[resource as ResourceType];
+                      const style = inj.source === 'macro' ? 'border-red-500/20 bg-red-900/5' : inj.source === 'chain' ? 'border-purple-500/20 bg-purple-900/5' : 'border-amber-500/20 bg-amber-900/5';
+                      return (
+                        <div key={resource} className={`rounded-lg p-2 border ${style}`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                              <GameIcon icon={meta?.icon} size={12} />
+                              <span className="text-[10px] text-gray-300">{meta?.name ?? resource}</span>
+                            </div>
+                            <span className={`text-[8px] px-1.5 py-0.5 rounded-full border font-bold ${
+                              inj.source === 'macro' ? 'border-red-500/30 text-red-400' : inj.source === 'chain' ? 'border-purple-500/30 text-purple-400' : 'border-amber-500/30 text-amber-400'
+                            }`}>{inj.source.toUpperCase()}</span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1 text-[9px] text-gray-500">
+                            <span>{inj.direction > 0 ? '▲' : '▼'} {(inj.intensity * 100).toFixed(0)}%</span>
+                            <span>·</span>
+                            <span>{inj.duration} steps left</span>
+                            {inj.label && <><span>·</span><span className="text-gray-400">{inj.label}</span></>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Player Narratives */}
+            <div className="game-card rounded-xl bg-card p-4 border border-cyan-900/20">
+              <div className="flex items-center gap-2 mb-3">
+                <Zap className="w-4 h-4 text-cyan-400" />
+                <h3 className="text-sm font-semibold text-cyan-400">Your Market Influence</h3>
+              </div>
+              {(store.marketNarratives?.length ?? 0) === 0 ? (
+                <div className="text-[10px] text-gray-500 text-center py-3">
+                  Your actions will shape market narratives as you grow your industrial empire.
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto game-scrollbar">
+                  {(store.marketNarratives ?? []).map(narrative => {
+                    const style = getSeverityStyle(narrative.severity);
+                    return (
+                      <div key={narrative.id} className={`rounded-lg p-2.5 border ${style.border} ${style.bg}`}>
+                        <div className={`text-[10px] font-bold ${style.color} mb-0.5`}>{narrative.title}</div>
+                        <p className="text-[9px] text-gray-400 leading-relaxed">{narrative.description}</p>
+                        <div className="flex items-center gap-1 mt-1 flex-wrap">
+                          <span className="text-[8px] text-cyan-500">🏭 {narrative.playerAction}</span>
+                          <span className="text-[8px] text-gray-600">→</span>
+                          <span className="text-[8px] text-amber-400">{narrative.marketEffect}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

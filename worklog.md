@@ -1442,3 +1442,28 @@ Stage Summary:
   - demand/supply fields are purely cosmetic (not used in any price formula)
   - Market classified as "Major Supporting System"
   - Price bounded [0.2×base, 5×base] via hard clamp + 3% mean reversion
+
+---
+Task ID: market-overlay-layers
+Agent: main
+Task: Implement MVIL + News + Narrative overlay layers for the market system
+
+Work Log:
+- Created complete MVIL (Market Volatility Injection Layer) with 3 injection sources: micro, macro, chain-reaction
+- Implemented Market News System as explanation layer derived purely from simulation outputs
+- Implemented Player-driven Market Narrative Layer interpreting player behavior signals
+- Added VolatilityInjection, MarketNews, MarketNarrative interfaces to marketSimulator.ts
+- Extended MarketSimulationState with volatilityInjections field
+- Extended MarketSimulationInput with gameTick, resources, resourceCapacity
+- Extended MarketSimulationOutput with news and narratives arrays
+- Updated types.ts: added marketNews and marketNarratives to GameState
+- Updated store.ts: SAVE_VERSION 16→17, added V16→V17 migration, wired new state from simulation output
+- Updated MarketPanel.tsx: added 4th "News" view mode, news feed UI, narrative display, volatility injection badges on resource cards
+- All 3 overlay layers verified working via agent-browser test: 13 news stories, 5 volatility badges, 3 active MVIL events
+
+Stage Summary:
+- MVIL: 3 injection sources (micro 3%/resource/step, macro 1.5%/step global, chain at 8% price change threshold), max ±5% per tick, decay system, max 1 active per resource
+- News: 5 categories (price_move, volatility, correlation, sector, trade), severity-based styling, 30-item cap
+- Narrative: 4 types (production, consumption, trade, hoarding), player behavior interpretation, 20-item cap
+- Pipeline: Base System → MVIL → Price Calc → Mean Reversion → Clamp → News → Narrative → UI
+- No modifications to base price formula, mean reversion, clamps, supply/demand, momentum, or correlation systems
