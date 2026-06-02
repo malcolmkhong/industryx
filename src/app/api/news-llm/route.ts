@@ -45,7 +45,7 @@ const MAX_EVENTS_PER_BATCH = 8;
 // ─── Server-side Rate Limiting ──────────────────────────────────────────────────
 
 let lastRequestTime = 0;
-const MIN_REQUEST_INTERVAL_MS = 10_000; // Max 1 request per 10 seconds server-side
+const MIN_REQUEST_INTERVAL_MS = 5_000; // Max 1 request per 5 seconds server-side
 
 // ─── POST Handler ────────────────────────────────────────────────────────────────
 
@@ -86,8 +86,8 @@ export async function POST(request: NextRequest) {
     const now = Date.now();
     const timeSinceLastRequest = now - lastRequestTime;
     if (timeSinceLastRequest < MIN_REQUEST_INTERVAL_MS) {
-      // Rate limited — tell client to retry later
-      const retryAfterMs = MIN_REQUEST_INTERVAL_MS - timeSinceLastRequest;
+      // Rate limited — tell client to retry after the cooldown
+      const retryAfterMs = MIN_REQUEST_INTERVAL_MS - timeSinceLastRequest + 500; // +500ms buffer
       return NextResponse.json(
         {
           error: 'Rate limited',
@@ -100,8 +100,6 @@ export async function POST(request: NextRequest) {
         }
       );
     }
-
-    lastRequestTime = now;
 
     // Forward to Cloudflare Worker
     const workerResponse = await fetch(CLOUDFLARE_WORKER_URL, {

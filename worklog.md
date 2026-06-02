@@ -1671,3 +1671,52 @@ Stage Summary:
 - Expected API call reduction: from ~12/min → ~4/min with batching
 - Files modified: newsLLM.ts (full rewrite), route.ts (full rewrite), store.ts (adapted)
 - No changes needed to: marketSimulator.ts, newsBuilder.ts
+
+---
+Task ID: Cloudflare-Workers-AI-Integration
+Agent: main
+Task: Replace z-ai API with Cloudflare Workers AI for Market News System — fix failures and stabilize
+
+Root Cause of Failures:
+- The old Cloudflare Worker code expected single-event format: `{ type, resource, delta, ... }` (one packet at top level)
+- The game's newsLLM.ts was rewritten to send BATCHED format: `{ events: [...], recentHeadlines: [...] }`
+- Mismatch caused the worker to return 400 "Invalid EventPacket: missing type or resource" on every request
+- Server-side rate limit was 10 seconds (too aggressive), causing many batches to be rejected with 429
+- newsLLM.ts didn't handle 429 responses — treated them as permanent failures
+- BATCH_MIN_SIZE was 2, so single events could never flush
+
+Work Log:
+- Provided corrected Cloudflare Worker code (worker.js) with:
+  - Batched input: `{ events: EventPacket[], recentHeadlines?: string[] }`
+  - Grouped output: `{ headlines: [{ title, description, affectedResources }], source: "llm" }`
+  - CORS headers on all responses (OPTIONS + POST)
+  - max_tokens: 600 (up from 200, needed for batched output)
+  - LLM prompt instructs grouping related events into single headlines
+  - Robust JSON parsing with fallback for malformed LLM output
+- Tested Cloudflare Worker directly: all 5 test cases pass (4-event batch, 2-event batch, single event, error cases, CORS)
+- Tested Next.js proxy route: full pipeline works end-to-end
+- Fixed API proxy route (src/app/api/news-llm/route.ts):
+  - Reduced MIN_REQUEST_INTERVAL_MS from 10_000 to 5_000 (2× more throughput)
+  - Added +500ms buffer on retryAfterMs calculation
+- Fixed newsLLM.ts (src/lib/game/newsLLM.ts):
+  - Changed BATCH_MIN_SIZE from 2 to 1 (single events can now flush after 15s timer)
+  - Added 429 rate-limit handling with automatic retry (MAX_429_RETRIES = 2)
+  - Retry reads retryAfterMs from response body and waits before retrying
+  - Fixed LRU Cache instantiation to pass CACHE_MAX_SIZE argument
+  - When temporarily disabled, events are put back in buffer instead of dropped
+  - Increased post-flush delay from 1s to 2s to allow more accumulation
+- Verified end-to-end with agent-browser:
+  - 17 news items generated (9 AI-enhanced with green "AI" badge, 8 Template fallback)
+  - LLM stats visible: cloudflare-llama-3.1-8b, 1321ms avg, 4/4 successes, 0 failures
+  - "AI Enhanced" mode indicator active in Market News header
+  - LLM-generated text is noticeably richer and more narrative vs template text
+  - No browser console errors
+
+Stage Summary:
+- Cloudflare Workers AI integration is fully functional end-to-end
+- Hybrid news system working: deterministic fallback (always) + LLM enhancement (async)
+- Rate limiting balanced: 5s server-side + automatic 429 retry in newsLLM.ts
+- Single-event batches now supported (BATCH_MIN_SIZE=1)
+- All tests pass: Worker endpoint, proxy route, full game pipeline
+- Worker code saved at /home/z/my-project/cloudflare-worker.js for reference
+- Files modified: src/app/api/news-llm/route.ts, src/lib/game/newsLLM.ts

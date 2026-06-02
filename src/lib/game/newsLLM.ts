@@ -9,7 +9,7 @@
 // Architecture: BATCHED event processing
 //   - Events accumulate in a buffer
 //   - Auto-flush every 15 seconds OR when buffer reaches capacity
-//   - ONE API call sends 3-8 events → receives 1-5 grouped headlines
+//   - ONE API call sends 1-8 events → receives 1-5 grouped headlines
 //   - Dramatically reduces API calls vs per-event approach
 //
 // Key Design Principles:
@@ -20,6 +20,7 @@
 //   - Cache repeated outputs for similar event patterns
 //   - 24-hour cycle budget cap (max 200 AI calls per game day)
 //   - If LLM fails/slow/unavailable → instant deterministic fallback
+//   - Handles 429 rate-limit with automatic retry
 // ============================================
 
 import { ResourceType } from './types';
@@ -110,12 +111,13 @@ let updateCallback: NewsUpdateCallback | null = null;
 
 const BATCH_FLUSH_INTERVAL_MS = 15_000;  // Auto-flush every 15 seconds
 const BATCH_MAX_SIZE = 8;                  // Max events per batch
-const BATCH_MIN_SIZE = 2;                  // Min events before flushing (unless high severity)
+const BATCH_MIN_SIZE = 1;                  // Min events before flushing (1 = flush even single events)
 const MAX_CALLS_PER_GAME_DAY = 200;        // 24-hour budget cap
 const LLM_CALL_TIMEOUT_MS = 15_000;        // Timeout for API call
 const SLOW_LLM_THRESHOLD_MS = 10_000;      // Disable if avg too slow
 const DISABLE_DURATION_MS = 60_000;         // 1 minute cooldown if too slow
 const CACHE_MAX_SIZE = 200;
+const MAX_429_RETRIES = 2;                 // Max retries on 429 rate-limit
 const API_ROUTE = '/api/news-llm';
 let disabledUntil = 0;                      // Timestamp when LLM was temporarily disabled
 
@@ -158,7 +160,7 @@ class LRUCache<K, V> {
   }
 }
 
-const newsCache = new LRUCache<string, BatchHeadline[]>();
+const newsCache = new LRUCache<string, BatchHeadline[]>(CACHE_MAX_SIZE);
 
 // ─── Hashing ──────────────────────────────────────────────────────────────────
 
@@ -176,6 +178,7 @@ function hashBatch(packets: EventPacket[]): string {
 
 async function callCloudflareWorker(
   packets: EventPacket[],
+  retryCount = 0,
 ): Promise<BatchHeadline[] | null> {
   const startTime = performance.now();
 
@@ -189,6 +192,21 @@ async function callCloudflareWorker(
       }),
       signal: AbortSignal.timeout(LLM_CALL_TIMEOUT_MS),
     });
+
+    // ── Handle 429 Rate Limit ──
+    if (response.status === 429 && retryCount < MAX_429_RETRIES) {
+      let retryAfterMs = 6_000; // default retry delay
+      try {
+        const data = await response.json();
+        if (data.retryAfterMs && typeof data.retryAfterMs === 'number') {
+          retryAfterMs = data.retryAfterMs;
+        }
+      } catch { /* ignore parse error */ }
+
+      console.log(`[NewsLLM] Rate limited (429). Retrying after ${retryAfterMs}ms (attempt ${retryCount + 1}/${MAX_429_RETRIES})`);
+      await new Promise(resolve => setTimeout(resolve, retryAfterMs));
+      return callCloudflareWorker(packets, retryCount + 1);
+    }
 
     const elapsed = performance.now() - startTime;
     recordGenTime(elapsed);
@@ -242,12 +260,14 @@ async function flushBatch(): Promise<void> {
   try {
     // Check if LLM is ready
     if (engineState.loadState !== 'ready') {
-      // Not ready — all events keep fallback text
       return;
     }
 
     // Check if temporarily disabled
     if (Date.now() < disabledUntil) {
+      // Put events back so they can be tried later
+      pendingBatch.unshift(...batchToSend);
+      engineState.pendingBatchSize = pendingBatch.length;
       return;
     }
 
@@ -265,7 +285,7 @@ async function flushBatch(): Promise<void> {
       return;
     }
 
-    // Call Cloudflare Worker
+    // Call Cloudflare Worker (with 429 retry built in)
     const headlines = await callCloudflareWorker(packets);
     engineState.totalCalls++;
     engineState.callsThisGameDay++;
@@ -308,7 +328,7 @@ async function flushBatch(): Promise<void> {
 
     // If more events accumulated while we were flushing, schedule another flush
     if (pendingBatch.length >= BATCH_MIN_SIZE) {
-      setTimeout(() => flushBatch(), 1000); // small delay to let more events accumulate
+      setTimeout(() => flushBatch(), 2000); // 2s delay to let more events accumulate
     }
   }
 }
@@ -436,7 +456,7 @@ export function addEventToBatch(packet: EventPacket, newsId: string): void {
     // Start the timer — will flush after interval unless more events arrive
     scheduleFlush(BATCH_FLUSH_INTERVAL_MS);
   } else if (!flushTimer) {
-    // Not enough events yet — start timer to give them time to accumulate
+    // Even a single event gets a timer — it will flush after the interval
     scheduleFlush(BATCH_FLUSH_INTERVAL_MS);
   }
 }
