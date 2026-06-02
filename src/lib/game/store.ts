@@ -6,6 +6,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import {
+  simulateMarketTick, recordPlayerSell, recordPlayerBuy, createInitialSimState,
+  MarketSimulationState, MarketSector,
+} from './marketSimulator';
+import {
   GameState, GameTab, ResourceType, BuildingInstance, BuildingType,
   TransportLine, TransportType, Worker, WorkerType, Contract,
   GameEvent, GameNotification, PowerGrid, MarketPrice, MegaProjectType, MegaProjectBonusType,
@@ -35,7 +39,7 @@ import {
 } from './productionCalculator';
 
 // --- Save Version ---
-const SAVE_VERSION = 15;
+const SAVE_VERSION = 16;
 
 // --- Utility Functions ---
 function generateId(): string {
@@ -501,6 +505,12 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
     (state as Record<string, unknown>).productionSnapshot = emptyProductionSnapshot();
   }
 
+  // V15 → V16: Add marketSimState + sectorTrends (supply-demand market model)
+  if (version < 16) {
+    (state as Record<string, unknown>).marketSimState = createInitialSimState();
+    (state as Record<string, unknown>).sectorTrends = {};
+  }
+
   state._version = SAVE_VERSION;
   return state;
 }
@@ -552,6 +562,8 @@ function createInitialState(): GameState {
     researchProgress: 0,
     workers: [],
     market: INITIAL_MARKET.map(m => ({ ...m })),
+    marketSimState: createInitialSimState(),
+    sectorTrends: {},
     contracts: [],
     completedContracts: 0,
     automationUnlocks: AUTOMATION_UNLOCKS.map(a => ({ ...a })),
@@ -897,44 +909,34 @@ export const useGameStore = create<GameStore>()(
         // megaMarketBonus (used by auto-sell pricing below)
         const megaMarketBonus = cache.marketBonus - (cache.hasMarketAnalysis ? 0.2 : 0) - state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'marketMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
 
-        // Update market prices (throttled to every 5 ticks for performance)
-        const newMarket = (newTick % 5 === 0) ? state.market.map(m => {
-          const volatility = m.volatility;
-          const change = (Math.random() - 0.5) * 2 * volatility;
-          let newPrice = m.currentPrice * (1 + change * 0.1);
-          
-          state.activeEvents.forEach(event => {
-            event.effects.forEach(effect => {
-              if (effect.type === 'marketPriceMultiplier') {
-                if (!effect.target || effect.target === m.resource) {
-                  newPrice = m.basePrice * effect.value * (0.8 + Math.random() * 0.4);
-                }
-              }
-            });
-          });
-
-          newPrice = newPrice * 0.95 + m.basePrice * 0.05;
-          newPrice = Math.max(m.basePrice * 0.2, Math.min(m.basePrice * 5, newPrice));
-
-          const newHistory = [...m.priceHistory, m.currentPrice].slice(-50);
-
-          let trend: 'up' | 'down' | 'stable' = 'stable';
-          if (newHistory.length >= 5) {
-            const recent = newHistory.slice(-5);
-            const avg = recent.reduce((a, b) => a + b, 0) / recent.length;
-            if (newPrice > avg * 1.05) trend = 'up';
-            else if (newPrice < avg * 0.95) trend = 'down';
+        // Update market prices using supply-demand simulator (throttled to every 5 ticks)
+        let newMarket = state.market;
+        let newMarketSimState = state.marketSimState;
+        let newSectorTrends = state.sectorTrends;
+        if (newTick % 5 === 0) {
+          // Get player production/consumption rates from snapshot
+          const playerProduction: Partial<Record<ResourceType, number>> = {};
+          const playerConsumption: Partial<Record<ResourceType, number>> = {};
+          if (state.productionSnapshot) {
+            for (const [res, rate] of Object.entries(state.productionSnapshot.production)) {
+              if (rate > 0) playerProduction[res as ResourceType] = rate;
+            }
+            for (const [res, rate] of Object.entries(state.productionSnapshot.actualConsumption)) {
+              if (rate > 0) playerConsumption[res as ResourceType] = rate;
+            }
           }
 
-          return {
-            ...m,
-            currentPrice: Math.round(newPrice * 100) / 100,
-            priceHistory: newHistory,
-            demand: Math.max(0.3, Math.min(2, m.demand + (Math.random() - 0.5) * 0.05)),
-            supply: Math.max(0.3, Math.min(2, m.supply + (Math.random() - 0.5) * 0.05)),
-            trend,
-          };
-        }) : state.market;
+          const simResult = simulateMarketTick({
+            market: state.market,
+            production: playerProduction,
+            consumption: playerConsumption,
+            activeEvents: state.activeEvents,
+            simState: state.marketSimState,
+          });
+          newMarket = simResult.market;
+          newMarketSimState = simResult.simState;
+          newSectorTrends = simResult.sectorTrends;
+        }
 
         // Process research
         let newResearchProgress = state.researchProgress;
@@ -1183,6 +1185,7 @@ export const useGameStore = create<GameStore>()(
         }
 
         // Auto-sell specific resources when > 80% capacity
+        let autoSellSimState = newMarketSimState;
         if (state.autoSellResources.length > 0) {
           // Build market lookup Map for O(1) access
           const marketMap = new Map(newMarket.map(m => [m.resource, m]));
@@ -1197,9 +1200,12 @@ export const useGameStore = create<GameStore>()(
                 newResources[r] -= sellAmount;
                 moneyEarned += sellAmount * sellPrice;
                 newStats.totalResourcesSold[r] += sellAmount;
+                // Record auto-sell in market simulator
+                autoSellSimState = recordPlayerSell(autoSellSimState, r, sellAmount);
               }
             }
           });
+          newMarketSimState = autoSellSimState;
         }
 
         const currentEfficiency = effectivePowerEfficiency * transportEfficiency * eventProductionMultiplier;
@@ -1490,6 +1496,8 @@ export const useGameStore = create<GameStore>()(
             plants: powerBuildings,
           },
           market: newMarket,
+          marketSimState: newMarketSimState,
+          sectorTrends: newSectorTrends,
           researchPoints: newResearchPoints,
           completedResearch: newCompletedResearch,
           activeResearch: newActiveResearch,
@@ -1856,11 +1864,15 @@ export const useGameStore = create<GameStore>()(
 
         const sellPrice = marketItem.currentPrice * amount * computeSellMultiplier(state, buildMultipliers(state));
 
+        // Record player sell in market simulator (affects future prices)
+        const newSimState = recordPlayerSell(state.marketSimState, resource, amount);
+
         set({
           resources: { ...state.resources, [resource]: state.resources[resource] - amount },
           money: state.money + sellPrice,
           totalMoneyEarned: state.totalMoneyEarned + sellPrice,
           stats: { ...state.stats, totalResourcesSold: { ...state.stats.totalResourcesSold, [resource]: state.stats.totalResourcesSold[resource] + amount } },
+          marketSimState: newSimState,
         });
         soundEngine.play('moneyEarned', 'production');
         get().addNotification('success', `Sold ${formatNumber(amount)} ${RESOURCE_META[resource].name} for $${formatNumber(sellPrice)}`);
@@ -1886,9 +1898,13 @@ export const useGameStore = create<GameStore>()(
           return;
         }
 
+        // Record player buy in market simulator (affects future prices)
+        const newSimState = recordPlayerBuy(state.marketSimState, resource, amount);
+
         set({
           resources: { ...state.resources, [resource]: newAmount },
           money: state.money - cost,
+          marketSimState: newSimState,
         });
         get().addNotification('info', `Bought ${formatNumber(amount)} ${RESOURCE_META[resource].name} for $${formatNumber(cost)}`);
       },

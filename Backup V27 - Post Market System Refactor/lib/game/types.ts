@@ -407,6 +407,8 @@ export interface GameState {
   
   // Market
   market: MarketPrice[];
+  marketSimState: import('./marketSimulator').MarketSimulationState;
+  sectorTrends: Partial<Record<import('./marketSimulator').MarketSector, 'up' | 'down' | 'stable'>>;
   
   // Contracts
   contracts: Contract[];

@@ -1375,3 +1375,51 @@ Stage Summary:
 - `/s` label retained but now means "per in-game second" not "per real second"
 - No game logic, store logic, or tick calculations changed
 - Files modified: TransportPanel.tsx, AIAdvisorPanel.tsx, PrestigePanel.tsx, FactoryMapPanel.tsx
+
+---
+Task ID: Market System Refactor
+Agent: main
+Task: Replace random-walk market with supply-demand model (industry standard)
+
+Work Log:
+- Created `marketSimulator.ts` — complete supply-demand market simulation engine with:
+  - 8 market sectors with individual momentum and trend tracking
+  - Per-resource elasticity (how much price responds to supply/demand imbalance)
+  - 40+ price correlation chains (upstream→downstream, e.g. oil→plastic→carbon)
+  - Market cycle phases: expansion → peak → recession → recovery
+  - Player production creates supply pressure (pushes prices down)
+  - Player consumption creates demand pressure (pushes prices up)
+  - Player sell/buy actions recorded and decay over time (rolling window)
+  - Correlation propagation: when iron price changes, iron plate & steel follow
+  - Events now smoothly blend toward target price instead of random jumps
+- Added `marketSimState` and `sectorTrends` to GameState (types.ts)
+- Integrated market simulator into store tick (replaces old random walk code)
+- Updated sellResource/buyResource to record player trades in simulator
+- Updated auto-sell logic to record trades in simulator
+- Added V15→V16 save migration for new fields
+- Overhauled MarketPanel.tsx with 3 view modes:
+  - **Market View**: Resource cards with supply/demand bars, player impact indicators, elasticity labels, sector tags, base-price reference lines on sparklines
+  - **Sectors View**: 8 sector cards showing average price index and trend arrows
+  - **Chains View**: Interactive price correlation network showing upstream/downstream links with strength percentages
+- New UI elements:
+  - Market Cycle indicator card (expansion/peak/recession/recovery with progress bar)
+  - Supply/Demand mini bars on each resource card
+  - Player Market Impact panel (production/consumption/price effect)
+  - Price Links panel (correlation chain quick view)
+  - Elasticity stat replacing Volatility in detail panel
+  - Large trade warning ("Large sell may depress market price")
+  - Sector filter buttons replacing raw/processed toggle
+- Lint passes cleanly
+- Dev server compiles without errors
+- Agent-browser verified all features working correctly
+
+Stage Summary:
+- Complete supply-demand market system replacing pure random walk
+- Player actions now meaningfully affect prices (producing iron → iron price drops)
+- 8 market sectors with individual trends and momentum
+- 40+ price correlation chains for realistic ripple effects
+- Market cycle adds strategic depth (buy during recession, sell during peak)
+- MarketPanel UI completely overhauled with 3 views, sector filters, impact indicators
+- Files modified: marketSimulator.ts (new), types.ts, store.ts, MarketPanel.tsx
+- SAVE_VERSION: 15 → 16
+- Backup: V27 - Post Market System Refactor
