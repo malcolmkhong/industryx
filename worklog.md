@@ -746,3 +746,29 @@ Stage Summary:
 - Icon system (GameIcon, iconMap, IconPreloader) fully restored
 - productionCalculator.ts Phase 1 complete (additive, no store changes yet)
 - Ready for Phase 2: Store integration
+
+---
+Task ID: backup-v25
+Agent: main
+Task: Create full backup (V25) before Phase 2 Store Integration
+
+Work Log:
+- Created "Backup V25 - Pre Phase2" directory with complete project snapshot
+- Backed up: src/ (110 files), prisma/, mini-services/, public/, package.json, tsconfig.json, next.config.ts, tailwind.config.ts, components.json, Caddyfile, bun.lock
+- Total backup: 121 files, 2.4M
+- Verified all 6 critical game files are IDENTICAL between live and backup:
+  - src/lib/game/productionCalculator.ts ✅
+  - src/lib/game/store.ts ✅
+  - src/lib/game/data.ts ✅
+  - src/lib/game/types.ts ✅
+  - src/lib/game/iconMap.ts ✅
+  - src/app/page.tsx ✅
+- Verified all 44 game component .tsx files match between live and backup
+- Lint passes cleanly
+- Dev server compiles without errors
+
+Stage Summary:
+- Full backup V25 created at /home/z/my-project/Backup V25 - Pre Phase2/
+- All files verified identical between live project and backup
+- Project is in a stable, compilable state with Phase 1 (productionCalculator.ts) complete
+- Ready to proceed with Phase 2: Store Integration (replace inline math with calculator calls)
