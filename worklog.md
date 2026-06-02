@@ -1630,3 +1630,44 @@ Stage Summary:
 - Success rate ~67% (rate limiting causes some failures, which gracefully fall back to templates)
 - Average LLM response time ~1.3-2.1 seconds
 
+
+---
+Task ID: CF-Worker-AI-Integration
+Agent: main
+Task: Replace z-ai API with Cloudflare Workers AI for news generation (batched system)
+
+Work Log:
+- Provided user with new Cloudflare Worker code (batched input, grouped headlines, CORS headers) — user needs to deploy
+- Rewrote `src/lib/game/newsLLM.ts`:
+  - Removed single-event queue system (generationQueue, processQueue, callLLMAPI)
+  - Added batch collection buffer: events accumulate, auto-flush every 15s or when ≥6 events
+  - Replaced z-ai client with `callCloudflareWorker()` that sends batched EventPackets
+  - Added 24-hour cycle budget (max 200 AI calls per game day)
+  - Added recent headlines tracking for anti-repetition context
+  - Added `registerUpdateCallback()` for store updates when batch results arrive
+  - Added `addEventToBatch()` as the new public API (replaces `generateNewsText()`)
+  - Added `updateGameDay()` for budget tracking
+  - Kept LRU cache with batch-aware hash keys
+- Rewrote `src/app/api/news-llm/route.ts`:
+  - Removed z-ai-web-dev-sdk import entirely
+  - Converted to proxy route that forwards to Cloudflare Worker
+  - Added server-side rate limiting (max 1 request per 10 seconds)
+  - Added timeout handling and error forwarding
+- Updated `src/lib/game/store.ts`:
+  - Changed import from `generateNewsText, resetTickBudget` to `addEventToBatch, registerUpdateCallback, updateGameDay`
+  - Replaced `enhanceNewsInBackground()` with `initLLMIfNeeded()` + callback registration
+  - Changed news enhancement flow: push events to batch buffer instead of per-item processing
+  - Added `refreshNewsFromLLM` action for callback-driven store updates
+  - Removed `resetTickBudget()` call (no longer applicable)
+- Lint: all 3 modified files pass with zero errors
+- Agent browser verification: game loads, market news shows fallback text, LLM engine shows "cloudflare-llama-3.1-8b" backend
+- Note: Cloudflare Worker still running OLD code — 502 errors expected until user deploys new worker.js
+
+Stage Summary:
+- Game fully functional with fallback news (deterministic templates)
+- All z-ai code removed from the codebase
+- Batch system ready — will activate once user deploys updated Cloudflare Worker
+- 24-hour budget: max 200 calls/day (vs previous ~17,000/day with z-ai)
+- Expected API call reduction: from ~12/min → ~4/min with batching
+- Files modified: newsLLM.ts (full rewrite), route.ts (full rewrite), store.ts (adapted)
+- No changes needed to: marketSimulator.ts, newsBuilder.ts

@@ -9,7 +9,7 @@ import {
   simulateMarketTick, recordPlayerSell, recordPlayerBuy, createInitialSimState,
   MarketSimulationState, MarketSector,
 } from './marketSimulator';
-import { generateNewsText, initNewsLLM, resetTickBudget, getLLMState, LLMEngineState } from './newsLLM';
+import { initNewsLLM, addEventToBatch, registerUpdateCallback, updateGameDay, getLLMState, LLMEngineState } from './newsLLM';
 import {
   GameState, GameTab, ResourceType, BuildingInstance, BuildingType,
   TransportLine, TransportType, Worker, WorkerType, Contract,
@@ -751,6 +751,7 @@ interface GameActions {
 
   // LLM News State
   getNewsLLMState: () => import('./newsLLM').LLMEngineState;
+  refreshNewsFromLLM: (updates: Array<{ id: string; title: string; description: string; affectedResources?: string[]; textSource: 'llm' }>) => void;
 }
 
 export type GameStore = GameState & GameActions;
@@ -812,36 +813,41 @@ if (typeof window !== 'undefined') {
 
 let llmInitialized = false;
 
-async function enhanceNewsInBackground(
-  newsItems: Array<{ id: string; eventPacket: import('./newsBuilder').EventPacket }>,
-): Promise<void> {
-  // Initialize LLM once (lazy init)
+// Register the LLM update callback once so batch results can update the store
+let llmCallbackRegistered = false;
+
+function ensureLLMCallback(): void {
+  if (llmCallbackRegistered) return;
+  llmCallbackRegistered = true;
+
+  registerUpdateCallback((updates) => {
+    // When LLM batch results arrive, update the corresponding news items in the store
+    try {
+      const store = useGameStore.getState();
+      const updatedNews = store.marketNews.map(n => {
+        const update = updates.find(u => u.id === n.id);
+        if (update) {
+          return {
+            ...n,
+            title: update.title,
+            description: update.description,
+            textSource: 'llm' as const,
+          };
+        }
+        return n;
+      });
+      useGameStore.setState({ marketNews: updatedNews });
+    } catch {
+      // Store update failed — non-critical, keep fallback text
+    }
+  });
+}
+
+async function initLLMIfNeeded(): Promise<void> {
   if (!llmInitialized) {
     llmInitialized = true;
     await initNewsLLM().catch(() => { /* LLM not available — fallback mode */ });
-  }
-
-  // Process up to 2 items per tick to avoid rate limiting (429 errors)
-  const itemsToProcess = newsItems.slice(0, 2);
-
-  for (const item of itemsToProcess) {
-    try {
-      const result = await generateNewsText(item.eventPacket);
-      if (result.source === 'llm' && result.title && result.description) {
-        // Update the specific news item in the store
-        const store = useGameStore.getState();
-        const updatedNews = store.marketNews.map(n =>
-          n.id === item.id
-            ? { ...n, title: result.title, description: result.description, textSource: 'llm' as const }
-            : n
-        );
-        useGameStore.setState({ marketNews: updatedNews });
-      }
-      // Small delay between requests to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 300));
-    } catch {
-      // LLM failed for this item — keep fallback text, no gameplay impact
-    }
+    ensureLLMCallback();
   }
 }
 
@@ -1008,9 +1014,16 @@ export const useGameStore = create<GameStore>()(
             // Only processes news items that have eventPackets and haven't been enhanced yet
             const newsToEnhance = simResult.news.filter(n => n.eventPacket && n.textSource === 'fallback');
             if (newsToEnhance.length > 0) {
-              resetTickBudget();
-              // Fire and forget — the enhancement will update news in background
-              enhanceNewsInBackground(newsToEnhance);
+              // Update game day for budget tracking
+              updateGameDay(Math.floor(newTick / 86400));
+              // Initialize LLM if needed (lazy, once)
+              initLLMIfNeeded();
+              // Push events to batch buffer — the batch system handles timing and API calls
+              for (const news of newsToEnhance) {
+                if (news.eventPacket) {
+                  addEventToBatch(news.eventPacket, news.id);
+                }
+              }
             }
           }
         }
@@ -2400,6 +2413,18 @@ export const useGameStore = create<GameStore>()(
       resetGame: () => set(createInitialState()),
 
       getNewsLLMState: () => getLLMState(),
+
+      refreshNewsFromLLM: (updates) => {
+        const state = get();
+        const updatedNews = state.marketNews.map(n => {
+          const update = updates.find(u => u.id === n.id);
+          if (update) {
+            return { ...n, title: update.title, description: update.description, textSource: 'llm' as const };
+          }
+          return n;
+        });
+        set({ marketNews: updatedNews });
+      },
 
       // --- PAYOUT ACTIONS ---
       collectPayout: () => {
