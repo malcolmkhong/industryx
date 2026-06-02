@@ -26,6 +26,7 @@ import {
   buildEventPacketFromTrade,
   generateFallbackText,
   EventPacket,
+  NEWS_CONFIG,
 } from './newsBuilder';
 
 // ─── Sector Definitions ────────────────────────────────────────────────────
@@ -215,23 +216,23 @@ export interface VolatilityInjection {
 // MVIL probability constants
 const MICRO_EVENT_CHANCE = 0.03;          // 3% per resource per step
 const MACRO_EVENT_CHANCE = 0.015;         // 1.5% per step globally
-const CHAIN_REACTION_THRESHOLD = 0.08;    // 8% price change triggers chain
 const MAX_INJECTION_EFFECT = 0.05;        // ±5% max per tick
-const MAX_NEWS_ITEMS = 30;
-const MAX_NARRATIVE_ITEMS = 20;
 
-// ── News Throttling Constants ─────────────────────────────────────────────
-// Prevents news spam — ensures headlines feel like a real newspaper,
-// not a firehose. Inspired by 24-hour news cycle pacing.
+// ── News Throttling & Simulation Constants ──────────────────────────────────
+// All tunable game-balance thresholds come from NEWS_CONFIG in newsBuilder.ts.
+// Only non-game-balance MVIL internals remain hardcoded here.
 
-const RESOURCE_NEWS_COOLDOWN_TICKS = 50;     // min ticks between news about the same resource (~50s at 1x)
-const SECTOR_NEWS_COOLDOWN_TICKS = 100;       // min ticks between sector-level news (~100s at 1x)
-const CATEGORY_NEWS_COOLDOWN_TICKS = 25;      // min ticks between same-category news (~25s at 1x)
-const MAX_NEWS_PER_TICK = 3;                  // max news items per simulation step
-const MAX_NARRATIVES_PER_TICK = 3;            // max narratives per simulation step
-const PRICE_MOVE_THRESHOLD_HIGH = 0.06;       // raised threshold: 6% change (was 4%) for low-severity
-const VOLATILITY_NEWS_MIN_INTENSITY = 0.3;    // only report volatility with moderate+ intensity (was 0.2)
-const GAME_DAY_TICKS = 600;                   // 1 game day = 600 ticks (~10 min at 1x speed)
+const CHAIN_REACTION_THRESHOLD = NEWS_CONFIG.simulation.chainReactionThreshold;
+const MAX_NEWS_ITEMS = NEWS_CONFIG.simulation.maxNewsItems;
+const MAX_NARRATIVE_ITEMS = NEWS_CONFIG.simulation.maxNarrativeItems;
+const RESOURCE_NEWS_COOLDOWN_TICKS = NEWS_CONFIG.simulation.resourceCooldownTicks;
+const SECTOR_NEWS_COOLDOWN_TICKS = NEWS_CONFIG.simulation.sectorCooldownTicks;
+const CATEGORY_NEWS_COOLDOWN_TICKS = NEWS_CONFIG.simulation.categoryCooldownTicks;
+const MAX_NEWS_PER_TICK = NEWS_CONFIG.simulation.maxNewsPerTick;
+const MAX_NARRATIVES_PER_TICK = NEWS_CONFIG.simulation.maxNarrativesPerTick;
+const PRICE_MOVE_THRESHOLD_HIGH = NEWS_CONFIG.simulation.priceMoveThresholdHigh;
+const VOLATILITY_NEWS_MIN_INTENSITY = NEWS_CONFIG.volatility.minIntensity;
+const GAME_DAY_TICKS = NEWS_CONFIG.simulation.gameDayTicks;
 
 function generateMicroInjection(resource: ResourceType): VolatilityInjection {
   const direction = Math.random() > 0.5 ? 1 : -1;
@@ -333,7 +334,7 @@ function generatePriceMoveNews(
 ): MarketNews | null {
   const changeRatio = (newPrice - oldPrice) / oldPrice;
   const absChange = Math.abs(changeRatio);
-  if (absChange < 0.04) return null; // threshold: 4% change
+  if (absChange < NEWS_CONFIG.priceMove.threshold) return null; // threshold from config
 
   const name = RESOURCE_META[resource]?.name ?? resource;
   const direction = changeRatio > 0 ? 'up' : 'down';
@@ -344,10 +345,10 @@ function generatePriceMoveNews(
   let description: string;
 
   if (direction === 'up') {
-    if (priceRatio > 2.0) {
+    if (priceRatio > NEWS_CONFIG.priceMove.causeRatio.bubble) {
       title = `${name} Market Frenzy`;
       description = `${name} prices surge ${pctStr}% as speculative buying intensifies. Market watchers warn of bubble conditions.`;
-    } else if (priceRatio > 1.3) {
+    } else if (priceRatio > NEWS_CONFIG.priceMove.causeRatio.shortage) {
       title = `${name} Supply Tightness`;
       description = `${name} prices climb ${pctStr}% as supply struggles to meet demand. Traders report limited availability.`;
     } else {
@@ -355,10 +356,10 @@ function generatePriceMoveNews(
       description = `${name} values rose ${pctStr}% in recent trading. Moderate demand pressure observed.`;
     }
   } else {
-    if (priceRatio < 0.4) {
+    if (priceRatio < NEWS_CONFIG.priceMove.causeRatio.crash) {
       title = `${name} Market Crash`;
       description = `${name} prices plummet ${pctStr}% amid heavy sell-off. Market circuit breakers considered.`;
-    } else if (priceRatio < 0.7) {
+    } else if (priceRatio < NEWS_CONFIG.priceMove.causeRatio.oversupply) {
       title = `${name} Oversupply Alert`;
       description = `${name} prices drop ${pctStr}% as excess supply floods the market. Producers scaling back operations.`;
     } else {
@@ -373,7 +374,7 @@ function generatePriceMoveNews(
     description,
     affectedResources: [resource],
     impactSummary: `${name} ${direction === 'up' ? '▲' : '▼'} ${pctStr}%`,
-    severity: absChange > 0.1 ? 'high' : absChange > 0.06 ? 'medium' : 'low',
+    severity: absChange > NEWS_CONFIG.priceMove.severity.high ? 'high' : absChange > NEWS_CONFIG.priceMove.severity.medium ? 'medium' : 'low',
     gameTick,
     category: 'price_move',
   };
@@ -386,7 +387,7 @@ function generateVolatilityNews(
 ): MarketNews {
   const name = RESOURCE_META[resource]?.name ?? resource;
   const direction = injection.direction > 0 ? 'upward' : 'downward';
-  const intensityLabel = injection.intensity > 0.5 ? 'severe' : injection.intensity > 0.2 ? 'moderate' : 'minor';
+  const intensityLabel = injection.intensity > NEWS_CONFIG.volatility.severity.high ? 'severe' : injection.intensity > NEWS_CONFIG.volatility.severity.medium ? 'moderate' : 'minor';
 
   const sourceDescriptions: Record<string, string> = {
     micro: `A localized ${intensityLabel} disruption is pushing ${name} prices ${direction}. ${injection.label ?? 'Short-term volatility expected.'}`,
@@ -404,7 +405,7 @@ function generateVolatilityNews(
     description: sourceDescriptions[injection.source] ?? sourceDescriptions.micro,
     affectedResources: [resource],
     impactSummary: `${name} ${injection.direction > 0 ? '▲' : '▼'} ${intensityLabel} volatility`,
-    severity: injection.intensity > 0.5 ? 'high' : injection.intensity > 0.2 ? 'medium' : 'low',
+    severity: injection.intensity > NEWS_CONFIG.volatility.severity.high ? 'high' : injection.intensity > NEWS_CONFIG.volatility.severity.medium ? 'medium' : 'low',
     gameTick,
     category: 'volatility',
   };
@@ -418,7 +419,7 @@ function generateSectorNews(
   gameTick: number,
 ): MarketNews | null {
   const absChange = Math.abs(avgChange);
-  if (absChange < 0.03) return null; // threshold: 3% sector movement
+  if (absChange < NEWS_CONFIG.sector.threshold) return null; // threshold from config
 
   const info = getSectorInfo(sector);
   const direction = trend === 'up' ? 'rallying' : 'declining';
@@ -429,7 +430,7 @@ function generateSectorNews(
     description: `${info.name} sector is ${direction} with an average price change of ${(avgChange * 100).toFixed(1)}%. ${trend === 'up' ? 'Investor confidence rising.' : 'Market participants exercising caution.'}`,
     affectedResources: resources,
     impactSummary: `${info.name} ${trend === 'up' ? '▲' : '▼'} ${(absChange * 100).toFixed(1)}%`,
-    severity: absChange > 0.08 ? 'high' : absChange > 0.05 ? 'medium' : 'low',
+    severity: absChange > NEWS_CONFIG.sector.severity.high ? 'high' : absChange > NEWS_CONFIG.sector.severity.medium ? 'medium' : 'low',
     gameTick,
     category: 'sector',
   };
@@ -443,7 +444,7 @@ function generateTradeNews(
 ): MarketNews | null {
   const totalVolume = recentSells + recentBuys;
   const imbalance = Math.abs(recentSells - recentBuys);
-  if (totalVolume < 20 || imbalance / totalVolume < 0.6) return null; // threshold
+  if (totalVolume < NEWS_CONFIG.trade.minVolume || imbalance / totalVolume < NEWS_CONFIG.trade.imbalanceRatio) return null; // threshold from config
 
   const name = RESOURCE_META[resource]?.name ?? resource;
   const dominantSide = recentBuys > recentSells ? 'buying' : 'selling';
@@ -454,7 +455,7 @@ function generateTradeNews(
     description: `Heavy ${dominantSide} activity detected in ${name} market. Volume is ${totalVolume.toFixed(0)} units with significant imbalance. ${dominantSide === 'buying' ? 'Demand pressure building.' : 'Supply pressure mounting.'}`,
     affectedResources: [resource],
     impactSummary: `${name} ${dominantSide === 'buying' ? '▲' : '▼'} volume spike`,
-    severity: totalVolume > 100 ? 'high' : 'medium',
+    severity: totalVolume > NEWS_CONFIG.trade.highVolumeThreshold ? 'high' : 'medium',
     gameTick,
     category: 'trade',
   };

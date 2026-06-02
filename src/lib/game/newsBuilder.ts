@@ -17,6 +17,79 @@ import { ResourceType } from './types';
 import { RESOURCE_META } from './data';
 
 // ═══════════════════════════════════════════════════════════════════════════
+// News System Configuration — Tunable Game-Balance Parameters
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// All game-balance knobs for the news system in one place.
+// System-level constants (timeouts, cache sizes, rate limits) stay in their
+// respective modules — only gameplay-affecting thresholds live here.
+//
+// Why extract these?
+//   - Difficulty settings: easy mode could show all 2%+ moves, hard mode only 8%+
+//   - Late-game tuning: endgame resources are more volatile, may need different thresholds
+//   - Player feedback: "too much news" / "too little news" becomes a config change
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const NEWS_CONFIG = {
+  // ── Price Move News ────────────────────────────────────────────────────
+  priceMove: {
+    threshold: 0.04,            // Min % change to generate news (0.04 = 4%)
+    severity: {
+      medium: 0.06,            // >6% change = medium severity
+      high: 0.10,              // >10% change = high severity
+    },
+    causeRatio: {
+      bubble: 2.0,             // Price >2× base → speculative bubble
+      shortage: 1.3,           // Price >1.3× base & rising → supply shortage
+      oversupply: 0.7,         // Price <0.7× base & falling → oversupply
+      crash: 0.4,              // Price <0.4× base & falling → market crash
+    },
+  },
+
+  // ── Volatility News ────────────────────────────────────────────────────
+  volatility: {
+    minIntensity: 0.3,          // Min injection intensity to generate news
+    severity: {
+      medium: 0.2,             // >0.2 intensity = medium severity
+      high: 0.5,               // >0.5 intensity = high severity
+    },
+  },
+
+  // ── Sector News ────────────────────────────────────────────────────────
+  sector: {
+    threshold: 0.03,            // Min avg sector change to generate news (0.03 = 3%)
+    severity: {
+      medium: 0.05,            // >5% avg change = medium severity
+      high: 0.08,              // >8% avg change = high severity
+    },
+  },
+
+  // ── Trade News ─────────────────────────────────────────────────────────
+  trade: {
+    minVolume: 20,              // Min total trade volume to generate news
+    imbalanceRatio: 0.6,        // Min buy/sell imbalance ratio (0.6 = 60%)
+    highVolumeThreshold: 100,   // Volume above this = high severity
+  },
+
+  // ── Simulation Engine Throttling ───────────────────────────────────────
+  simulation: {
+    priceMoveThresholdHigh: 0.06,  // Skip price moves below this in sim (6%)
+    chainReactionThreshold: 0.08,   // Price change that triggers chain reactions (8%)
+    resourceCooldownTicks: 50,      // Min ticks between same-resource news
+    sectorCooldownTicks: 100,       // Min ticks between same-sector news
+    categoryCooldownTicks: 25,      // Min ticks between same-category news
+    maxNewsPerTick: 3,              // Max news items per simulation step
+    maxNarrativesPerTick: 3,        // Max narratives per simulation step
+    maxNewsItems: 30,               // Max news items stored
+    maxNarrativeItems: 20,          // Max narrative items stored
+    gameDayTicks: 600,              // 1 game day = 600 ticks (~10 min at 1x)
+  },
+} as const;
+
+/** Type for the config so other modules can import it */
+export type NewsConfig = typeof NEWS_CONFIG;
+
+// ═══════════════════════════════════════════════════════════════════════════
 // EventPacket Type
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -68,7 +141,7 @@ function resourceName(resource: string): string {
 
 /**
  * Build an EventPacket from a price movement.
- * Returns null if the change is less than 4% (same threshold as existing).
+ * Returns null if the change is less than NEWS_CONFIG.priceMove.threshold.
  */
 export function buildEventPacketFromPriceMove(
   resource: ResourceType,
@@ -79,8 +152,8 @@ export function buildEventPacketFromPriceMove(
   const changeRatio = (newPrice - oldPrice) / oldPrice;
   const absChange = Math.abs(changeRatio);
 
-  // Threshold: skip changes below 4%
-  if (absChange < 0.04) return null;
+  // Threshold: skip changes below configured minimum
+  if (absChange < NEWS_CONFIG.priceMove.threshold) return null;
 
   // Delta as percentage string like "+6.2%" or "-3.1%"
   const sign = changeRatio > 0 ? '+' : '';
@@ -88,7 +161,9 @@ export function buildEventPacketFromPriceMove(
 
   // Severity from change magnitude
   const severity: 'low' | 'medium' | 'high' =
-    absChange > 0.10 ? 'high' : absChange > 0.06 ? 'medium' : 'low';
+    absChange > NEWS_CONFIG.priceMove.severity.high ? 'high'
+    : absChange > NEWS_CONFIG.priceMove.severity.medium ? 'medium'
+    : 'low';
 
   // Price ratio relative to base
   const priceRatio = newPrice / basePrice;
@@ -96,13 +171,13 @@ export function buildEventPacketFromPriceMove(
 
   // Cause inference
   let cause: string;
-  if (priceRatio > 2.0) {
+  if (priceRatio > NEWS_CONFIG.priceMove.causeRatio.bubble) {
     cause = 'speculative bubble';
-  } else if (priceRatio > 1.3 && goingUp) {
+  } else if (priceRatio > NEWS_CONFIG.priceMove.causeRatio.shortage && goingUp) {
     cause = 'supply shortage';
-  } else if (priceRatio < 0.4 && !goingUp) {
+  } else if (priceRatio < NEWS_CONFIG.priceMove.causeRatio.crash && !goingUp) {
     cause = 'market crash';
-  } else if (priceRatio < 0.7 && !goingUp) {
+  } else if (priceRatio < NEWS_CONFIG.priceMove.causeRatio.oversupply && !goingUp) {
     cause = 'oversupply';
   } else {
     cause = 'normal trading';
@@ -132,7 +207,9 @@ export function buildEventPacketFromVolatility(
 ): EventPacket {
   const direction = injection.direction > 0 ? 'up' : 'down';
   const intensityLabel =
-    injection.intensity > 0.5 ? 'high' : injection.intensity > 0.2 ? 'medium' : 'low';
+    injection.intensity > NEWS_CONFIG.volatility.severity.high ? 'high'
+    : injection.intensity > NEWS_CONFIG.volatility.severity.medium ? 'medium'
+    : 'low';
   const sign = injection.direction > 0 ? '+' : '';
   const delta = `${sign}${(injection.intensity * injection.direction * 100).toFixed(1)}%`;
 
@@ -152,7 +229,7 @@ export function buildEventPacketFromVolatility(
 
 /**
  * Build an EventPacket from a sector-wide movement.
- * Returns null if avgChange is less than 3%.
+ * Returns null if avgChange is less than NEWS_CONFIG.sector.threshold.
  */
 export function buildEventPacketFromSector(
   sector: MarketSector,
@@ -161,13 +238,15 @@ export function buildEventPacketFromSector(
 ): EventPacket | null {
   const absChange = Math.abs(avgChange);
 
-  // Threshold: skip sector movements below 3%
-  if (absChange < 0.03 || trend === 'stable') return null;
+  // Threshold: skip sector movements below configured minimum
+  if (absChange < NEWS_CONFIG.sector.threshold || trend === 'stable') return null;
 
   const sign = avgChange > 0 ? '+' : '';
   const delta = `${sign}${(avgChange * 100).toFixed(1)}%`;
   const severity: 'low' | 'medium' | 'high' =
-    absChange > 0.08 ? 'high' : absChange > 0.05 ? 'medium' : 'low';
+    absChange > NEWS_CONFIG.sector.severity.high ? 'high'
+    : absChange > NEWS_CONFIG.sector.severity.medium ? 'medium'
+    : 'low';
 
   return {
     type: 'sector',
@@ -184,7 +263,7 @@ export function buildEventPacketFromSector(
 
 /**
  * Build an EventPacket from trade volume imbalance.
- * Returns null if thresholds not met (totalVolume < 20 or imbalance ratio < 0.6).
+ * Returns null if thresholds not met (see NEWS_CONFIG.trade).
  */
 export function buildEventPacketFromTrade(
   resource: ResourceType,
@@ -195,12 +274,13 @@ export function buildEventPacketFromTrade(
   const imbalance = Math.abs(recentSells - recentBuys);
 
   // Threshold: skip low volume or low imbalance
-  if (totalVolume < 20 || imbalance / totalVolume < 0.6) return null;
+  if (totalVolume < NEWS_CONFIG.trade.minVolume || imbalance / totalVolume < NEWS_CONFIG.trade.imbalanceRatio) return null;
 
   const dominantSide = recentBuys > recentSells ? 'buy' : 'sell';
   const sign = dominantSide === 'buy' ? '+' : '-';
   const delta = `${sign}${((imbalance / totalVolume) * 100).toFixed(1)}%`;
-  const severity: 'low' | 'medium' | 'high' = totalVolume > 100 ? 'high' : 'medium';
+  const severity: 'low' | 'medium' | 'high' =
+    totalVolume > NEWS_CONFIG.trade.highVolumeThreshold ? 'high' : 'medium';
 
   return {
     type: 'trade',
