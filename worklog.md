@@ -1242,3 +1242,136 @@ Stage Summary:
 - All rates now display as /s (per second) with gameSpeed multiplication
 - Lint passes cleanly
 - Dev server compiles successfully
+
+---
+Task ID: 2-a
+Agent: gameSpeed-removal-agent-1
+Task: Remove * gameSpeed from PowerPanel, ProductionChainPanel, FactoryPanel, DashboardPanel display code
+
+Work Log:
+- Read worklog.md for context — previous tasks converted /t→/s and added * store.gameSpeed for per-second display
+- **PowerPanel.tsx** (2 edits):
+  - Line 608: `(def.fuelRate * store.gameSpeed).toFixed(1)` → `(def.fuelRate).toFixed(1)` (build card tooltip fuel rate)
+  - Line 873: `(def.fuelRate || 0) * plant.level * store.gameSpeed` → `(def.fuelRate || 0) * plant.level` (per-plant fuel consumption)
+- **ProductionChainPanel.tsx** (4 edits):
+  - Line 381: `+{(rate * store.gameSpeed).toFixed(1)}/s` → `+{(rate).toFixed(1)}/s` (SVG positive rate label)
+  - Line 394: `{(rate * store.gameSpeed).toFixed(1)}/s` → `{(rate).toFixed(1)}/s` (SVG negative rate label)
+  - Line 509: `+{(rate * store.gameSpeed).toFixed(1)}/s` → `+{(rate).toFixed(1)}/s` (chain browser positive rate)
+  - Line 513: `{(rate * store.gameSpeed).toFixed(1)}/s` → `{(rate).toFixed(1)}/s` (chain browser negative rate)
+- **FactoryPanel.tsx** (10 edits):
+  - Line 362: `(tierProductionSummary[i + 1]?.production ?? 0) * store.gameSpeed` → `(tierProductionSummary[i + 1]?.production ?? 0)` (SVG tier connection rate)
+  - Line 447: `(summary?.production ?? 0) * store.gameSpeed` → `(summary?.production ?? 0)` (SVG tier node rate)
+  - Line 514: Both `net * store.gameSpeed` in ternary → `net` (flow node detail net rates)
+  - Line 624: `inp.amount * store.gameSpeed` → `inp.amount` (tooltip input rate)
+  - Line 625: `o.amount * def.baseProductionRate * store.gameSpeed` → `o.amount * def.baseProductionRate` (tooltip output rate)
+  - Line 815: `rate * store.gameSpeed` → `rate` (effective input rate)
+  - Line 826: `rate * store.gameSpeed` → `rate` (effective output rate)
+  - Line 970: Both `net * store.gameSpeed` in ternary → `net` (production chain step net rates)
+  - Line 1064: `rate * store.gameSpeed` → `rate` (Top Production rate)
+  - Line 1108: `rate * store.gameSpeed` → `rate` (Input Demand rate)
+  - Line 1114: Both `net * store.gameSpeed` in ternary → `net` (Input Demand net display)
+- **DashboardPanel.tsx** (2 edits):
+  - Line 500: `productionRates[resource] * store.gameSpeed` → `productionRates[resource]` (resource production rate badge)
+  - Line 545: `rate * store.gameSpeed` → `rate` (top production PanelStatCard)
+- Verified: zero `* store.gameSpeed` or `* gameSpeed` references remain in any of the 4 panel files (grep confirmed)
+- /s labels remain unchanged — now means "per in-game second" not "per real second"
+- No game logic, store logic, or tick calculations were modified
+
+Stage Summary:
+- Removed all `* store.gameSpeed` multipliers from display/rate expressions in 4 panel files (18 total edits)
+- Implements Factorio model: displayed rates are per in-game second and do NOT change when game speed changes
+- /s label retained but semantics changed to "per in-game second"
+- Files modified: PowerPanel.tsx, ProductionChainPanel.tsx, FactoryPanel.tsx, DashboardPanel.tsx
+
+---
+Task ID: 2-b
+Agent: gameSpeed-removal-agent-2
+Task: Remove * gameSpeed from ResourcePanel, StoragePanel, GlobalResourceMonitorPanel, ResourceFlowPanel display code
+
+Work Log:
+- Read worklog.md for context and all 4 target files
+- Grepped all 4 files for `* store.gameSpeed` patterns to identify exact locations
+- **ResourcePanel.tsx** (9 edits):
+  - Line 358: SVG rate label `(tierProductionSummary[...] ?? 0) * store.gameSpeed` → removed `* store.gameSpeed`
+  - Line 443: SVG tier node rate `(summary?.production ?? 0) * store.gameSpeed` → removed `* store.gameSpeed`
+  - Line 511: Flow node detail net rate `net * store.gameSpeed` (2 occurrences in ternary) → both removed
+  - Line 594: Tooltip Production Rate `def.baseProductionRate * store.gameSpeed` → removed `* store.gameSpeed`
+  - Line 595: Tooltip Output rate `o.amount * def.baseProductionRate * store.gameSpeed` → removed `* store.gameSpeed`
+  - Line 633: Inline output card `out.amount * def.baseProductionRate * store.gameSpeed` → removed `* store.gameSpeed`
+  - Line 745: Active extractor output `rate * store.gameSpeed` → removed `* store.gameSpeed`
+  - Line 868: Storage card net rate `netRate * store.gameSpeed` → removed `* store.gameSpeed`
+  - Line 1016: Resource Flow net rate `net * store.gameSpeed` (2 occurrences in ternary) → both removed
+- **StoragePanel.tsx** (8 edits):
+  - Line 229: renderRateBadge positive `rate * store.gameSpeed` → removed
+  - Line 230: renderRateBadge negative `rate * store.gameSpeed` → removed
+  - Line 297: Rate Breakdown Production `prodRate * store.gameSpeed` → removed
+  - Line 302: Rate Breakdown Consumption `consRate * store.gameSpeed` → removed
+  - Line 308: Rate Breakdown Net `netRate * store.gameSpeed` → removed
+  - Line 443: Producer dependency `p.amount * store.gameSpeed` → removed
+  - Line 459: Consumer dependency `c.amount * store.gameSpeed` → removed
+  - Line 723: Tier aggregate net `tierNet * store.gameSpeed` (2 occurrences) → both removed
+- **GlobalResourceMonitorPanel.tsx** (4 edits):
+  - Line 441: Summary bar Total Production `totalProduction * store.gameSpeed` → removed
+  - Line 447: Summary bar Total Consumption `totalConsumption * store.gameSpeed` → removed
+  - Line 454: Summary bar Net `Math.abs(totalNet) * store.gameSpeed` → removed
+  - Line 662: Hovered row net rate `Math.abs(hoveredRow.netRate) * store.gameSpeed` → removed
+- **ResourceFlowPanel.tsx** (5 edits):
+  - Line 659: SVG node net rate `node.netRate * store.gameSpeed` (2 in ternary) → both removed
+  - Line 801: Producers badge `totalProduction * store.gameSpeed` → removed
+  - Line 817: Per-producer rate `rate * store.gameSpeed` → removed
+  - Line 832: Consumers badge `totalConsumption * store.gameSpeed` → removed
+  - Line 848: Per-consumer rate `rate * store.gameSpeed` → removed
+- Verified: zero `* store.gameSpeed` or `* gameSpeed` remaining in any of the 4 files (grep confirmed)
+- Verified: no new TypeScript errors introduced (all errors are pre-existing in backup directory)
+
+Stage Summary:
+- Removed all `* store.gameSpeed` multipliers from UI display code in 4 panel files (26 total edits)
+- Displayed rates now show per-tick values with `/s` label (meaning "per in-game second")
+- The `/s` label is preserved but now means "per in-game second" not "per real second" (Factorio model)
+- No game logic, store logic, or tick calculations were changed
+- No speed controls or speed indicators were modified
+- Files modified: ResourcePanel.tsx, StoragePanel.tsx, GlobalResourceMonitorPanel.tsx, ResourceFlowPanel.tsx
+
+---
+Task ID: 2-c
+Agent: gameSpeed-removal-agent-3
+Task: Remove * gameSpeed from TransportPanel, AIAdvisorPanel, PrestigePanel, FactoryMapPanel display code
+
+Work Log:
+- **TransportPanel.tsx** (11 edits):
+  - Removed `gameSpeed` prop from NetworkGraph component signature: `{ nodes, relations, gameSpeed }` → `{ nodes, relations }`
+  - Line 768: SVG throughput badge: `rel.totalThroughput * gameSpeed` → `rel.totalThroughput`
+  - Line 1287: Under-supplied reason: `totalInboundRate * store.gameSpeed` and `consumptionRate * store.gameSpeed` → bare `.toFixed(1)`
+  - Line 1313: Over-supplied reason: `productionRate * store.gameSpeed` and `totalOutboundThroughput * store.gameSpeed` → bare `.toFixed(1)`
+  - Line 1522: Total throughput badge: `totalThroughput * store.gameSpeed` → `totalThroughput`
+  - Line 1715: Definition tooltip: `def.baseThroughput * store.gameSpeed` → `def.baseThroughput`
+  - Line 1813: Preview estimated throughput: `previewData.estimatedThroughput * store.gameSpeed` → `previewData.estimatedThroughput`
+  - Line 1961: Per-type throughput/capacity: both `* store.gameSpeed` removed
+  - Line 1994: Total network throughput: both `* store.gameSpeed` removed
+  - Line 2082: Bottleneck flow/required: both `* store.gameSpeed` removed
+  - Line 1596: Removed `gameSpeed={store.gameSpeed}` prop from NetworkGraph JSX call
+
+- **AIAdvisorPanel.tsx** (2 edits):
+  - Line 798: Deficit description: `consumption * store.gameSpeed` and `production * store.gameSpeed` → `consumption.toFixed(1)` and `production.toFixed(1)`
+  - Line 944: Removed `store.gameSpeed` from recommendations useMemo dependency array (only use was rate display)
+
+- **PrestigePanel.tsx** (1 edit):
+  - Line 57: Production bonus currentValue: `moneyPerTick * ...bonus value... * store.gameSpeed` → removed `* store.gameSpeed` at end of expression
+
+- **FactoryMapPanel.tsx** (1 edit):
+  - Line 338: Selected building output rate: `rate * store.gameSpeed` → `rate`
+  - Line 1589 speed indicator (`${store.gameSpeed}x`) left unchanged — correct, it's a speed indicator not a rate
+
+Verification:
+- TypeScript check: zero errors in all 4 modified source files (errors only in backup directory)
+- Grep confirmed zero `* gameSpeed` or `* store.gameSpeed` remaining in any display expressions across all 4 files
+- Preserved: `/s` labels (now means "per in-game second"), speed indicators ("2x"), game logic
+
+Stage Summary:
+- Removed all `* gameSpeed` / `* store.gameSpeed` from UI display code in 4 panel files (15 total edits)
+- NetworkGraph component no longer receives `gameSpeed` prop — prop fully removed
+- AIAdvisorPanel dependency array cleaned: `store.gameSpeed` removed from useMemo deps
+- Factorio model: displayed rates now show per-in-game-second values that don't change with game speed
+- `/s` label retained but now means "per in-game second" not "per real second"
+- No game logic, store logic, or tick calculations changed
+- Files modified: TransportPanel.tsx, AIAdvisorPanel.tsx, PrestigePanel.tsx, FactoryMapPanel.tsx

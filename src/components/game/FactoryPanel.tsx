@@ -359,7 +359,7 @@ export function FactoryPanel() {
                     fontFamily="monospace"
                     opacity="0.8"
                   >
-                    {formatNumber((tierProductionSummary[i + 1]?.production ?? 0) * store.gameSpeed)}/s
+                    {formatNumber((tierProductionSummary[i + 1]?.production ?? 0))}/s
                   </text>
                 </g>
               ) : null
@@ -444,7 +444,7 @@ export function FactoryPanel() {
                     fontSize="9"
                     fontFamily="monospace"
                   >
-                    {formatNumber((summary?.production ?? 0) * store.gameSpeed)}/s
+                    {formatNumber((summary?.production ?? 0))}/s
                   </text>
                   {/* Resource count */}
                   <text
@@ -511,7 +511,7 @@ export function FactoryPanel() {
                             <div className="min-w-0">
                               <div className="text-[10px] text-gray-300 font-medium truncate">{meta.name}</div>
                               <div className={`text-[9px] font-mono ${net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : prod > 0 && cons > 0 ? 'text-cyan-400' : 'text-gray-600'}`}>
-                                {net > 0 ? `+${formatNumber(net * store.gameSpeed)}/s` : net < 0 ? `${formatNumber(net * store.gameSpeed)}/s` : prod > 0 && cons > 0 ? '±0/s' : '—'}
+                                {net > 0 ? `+${formatNumber(net)}/s` : net < 0 ? `${formatNumber(net)}/s` : prod > 0 && cons > 0 ? '±0/s' : '—'}
                               </div>
                             </div>
                           </div>
@@ -621,8 +621,8 @@ export function FactoryPanel() {
                         category="Factory"
                         tier={def.tier}
                         details={[
-                          ...(def.inputs?.map(inp => ({ label: `Input: ${RESOURCE_META[inp.resource].name}`, value: `${(inp.amount * store.gameSpeed).toFixed(1)}/s`, color: 'text-red-400' })) ?? []),
-                          ...(def.outputs?.map(o => ({ label: `Output: ${RESOURCE_META[o.resource].name}`, value: `${(o.amount * def.baseProductionRate * store.gameSpeed).toFixed(1)}/s`, color: 'text-green-400' })) ?? []),
+                          ...(def.inputs?.map(inp => ({ label: `Input: ${RESOURCE_META[inp.resource].name}`, value: `${(inp.amount).toFixed(1)}/s`, color: 'text-red-400' })) ?? []),
+                          ...(def.outputs?.map(o => ({ label: `Output: ${RESOURCE_META[o.resource].name}`, value: `${(o.amount * def.baseProductionRate).toFixed(1)}/s`, color: 'text-green-400' })) ?? []),
                           { label: 'Power Consumption', value: `${def.basePowerConsumption} MW`, color: 'text-yellow-400' },
                           { label: 'Build Cost', value: `$${formatNumber(cost)}`, color: canAfford ? 'text-green-400' : 'text-red-400' },
                           { label: 'Cost Multiplier', value: `x${def.costMultiplier}` },
@@ -812,7 +812,7 @@ export function FactoryPanel() {
                                     }`}>
                                       <GameIcon icon={meta.icon} size={12} className="inline-flex" />
                                       <span className={`text-[8px] font-mono ${building.active ? (hasEnough ? 'text-red-300/80' : 'text-red-400') : 'text-gray-500'}`}>
-                                        -{formatNumber(rate * store.gameSpeed)}
+                                        -{formatNumber(rate)}
                                       </span>
                                     </div>
                                   ))}
@@ -823,7 +823,7 @@ export function FactoryPanel() {
                                     <div key={i} className="flex items-center gap-0.5 bg-green-900/15 rounded px-1 py-px">
                                       <GameIcon icon={meta.icon} size={12} className="inline-flex" />
                                       <span className={`text-[8px] font-mono ${building.active ? 'text-green-400' : 'text-gray-500'}`}>
-                                        +{formatNumber(rate * store.gameSpeed)}
+                                        +{formatNumber(rate)}
                                       </span>
                                     </div>
                                   ))}
@@ -967,7 +967,7 @@ export function FactoryPanel() {
                                 <span className={`text-[9px] font-mono ${
                                   net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : production > 0 && consumption > 0 ? 'text-cyan-400' : 'text-gray-600'
                                 }`}>
-                                  {net > 0 ? `+${formatNumber(net * store.gameSpeed)}/s` : net < 0 ? `${formatNumber(net * store.gameSpeed)}/s` : production > 0 && consumption > 0 ? '±0/s' : '—'}
+                                  {net > 0 ? `+${formatNumber(net)}/s` : net < 0 ? `${formatNumber(net)}/s` : production > 0 && consumption > 0 ? '±0/s' : '—'}
                                 </span>
                               </div>
                               {/* Stock bar */}
@@ -1061,7 +1061,7 @@ export function FactoryPanel() {
                         </div>
                         <div className="flex items-center gap-1">
                           <ArrowUpFromLine className="w-3 h-3 text-green-400" />
-                          <span className="text-xs text-green-400 font-mono font-bold">+{formatNumber(rate * store.gameSpeed)}</span>
+                          <span className="text-xs text-green-400 font-mono font-bold">+{formatNumber(rate)}</span>
                           <span className="text-[10px] text-gray-500">/s</span>
                         </div>
                       </div>
@@ -1105,13 +1105,13 @@ export function FactoryPanel() {
                           </div>
                           <div className="flex items-center gap-1.5">
                             <ArrowDownToLine className="w-3 h-3 text-red-400" />
-                            <span className="text-[10px] text-red-400 font-mono">-{formatNumber(rate * store.gameSpeed)}</span>
+                            <span className="text-[10px] text-red-400 font-mono">-{formatNumber(rate)}</span>
                           </div>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-[9px] text-gray-500">Stock: {formatNumber(stock)}</span>
                           <span className={`text-[9px] font-mono ${net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : production > 0 && rate > 0 ? 'text-cyan-400' : 'text-gray-600'}`}>
-                            {net > 0 ? `+${formatNumber(net * store.gameSpeed)}/s` : net < 0 ? `${formatNumber(net * store.gameSpeed)}/s` : production > 0 && rate > 0 ? '±0/s' : '—'} net
+                            {net > 0 ? `+${formatNumber(net)}/s` : net < 0 ? `${formatNumber(net)}/s` : production > 0 && rate > 0 ? '±0/s' : '—'} net
                           </span>
                         </div>
                       </div>

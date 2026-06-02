@@ -656,7 +656,7 @@ export default function ResourceFlowPanel() {
                       fontFamily="monospace"
                       opacity={isDimmed ? 0.15 : 0.8}
                     >
-                      {node.netRate > 0 ? `+${(node.netRate * store.gameSpeed).toFixed(1)}/s` : node.netRate < 0 ? `${(node.netRate * store.gameSpeed).toFixed(1)}/s` : '—'}
+                      {node.netRate > 0 ? `+${node.netRate.toFixed(1)}/s` : node.netRate < 0 ? `${node.netRate.toFixed(1)}/s` : '—'}
                     </text>
 
                     {/* Bottleneck badge */}
@@ -798,7 +798,7 @@ export default function ResourceFlowPanel() {
                     <TrendingUp className="w-3.5 h-3.5 text-green-400" />
                     <span className="text-green-400">PRODUCERS</span>
                     <Badge variant="outline" className="text-[9px] border-green-500/30 text-green-400 bg-green-900/10 ml-auto font-mono">
-                      +{(totalProduction * store.gameSpeed).toFixed(2)}/s
+                      +{totalProduction.toFixed(2)}/s
                     </Badge>
                   </CardTitle>
                 </CardHeader>
@@ -814,7 +814,7 @@ export default function ResourceFlowPanel() {
                             <p className="text-[11px] font-medium text-gray-200 truncate">{def.name}</p>
                             <p className="text-[9px] text-gray-500">{activeCount}/{count} active</p>
                           </div>
-                          <span className="text-[11px] font-mono text-green-400">+{(rate * store.gameSpeed).toFixed(2)}/s</span>
+                          <span className="text-[11px] font-mono text-green-400">+{(rate).toFixed(2)}/s</span>
                         </div>
                       ))}
                     </div>
@@ -829,7 +829,7 @@ export default function ResourceFlowPanel() {
                     <TrendingDown className="w-3.5 h-3.5 text-amber-400" />
                     <span className="text-amber-400">CONSUMERS</span>
                     <Badge variant="outline" className="text-[9px] border-amber-500/30 text-amber-400 bg-amber-900/10 ml-auto font-mono">
-                      -{(totalConsumption * store.gameSpeed).toFixed(2)}/s
+                      -{(totalConsumption).toFixed(2)}/s
                     </Badge>
                   </CardTitle>
                 </CardHeader>
@@ -845,7 +845,7 @@ export default function ResourceFlowPanel() {
                             <p className="text-[11px] font-medium text-gray-200 truncate">{def.name}</p>
                             <p className="text-[9px] text-gray-500">{activeCount}/{count} active{def.fuel === selectedResource ? ' (fuel)' : ''}</p>
                           </div>
-                          <span className="text-[11px] font-mono text-amber-400">-{(rate * store.gameSpeed).toFixed(2)}/s</span>
+                          <span className="text-[11px] font-mono text-amber-400">-{(rate).toFixed(2)}/s</span>
                         </div>
                       ))}
                     </div>

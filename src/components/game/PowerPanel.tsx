@@ -605,7 +605,7 @@ export function PowerPanel() {
                 { label: 'Power Production', value: `${def.basePowerProduction} MW`, color: 'text-green-400' },
                 { label: 'Power Consumption', value: `${def.basePowerConsumption} MW` },
                 ...(def.fuel ? [{ label: 'Fuel Type', value: RESOURCE_META[def.fuel].name, color: 'text-orange-400' }] : []),
-                ...(def.fuelRate ? [{ label: 'Fuel Rate', value: `${(def.fuelRate * store.gameSpeed).toFixed(1)}/s`, color: 'text-orange-400' }] : []),
+                ...(def.fuelRate ? [{ label: 'Fuel Rate', value: `${(def.fuelRate).toFixed(1)}/s`, color: 'text-orange-400' }] : []),
                 { label: 'Build Cost', value: `$${formatNumber(getBuildingCost(type, instances.length))}`, color: store.money >= getBuildingCost(type, instances.length) ? 'text-green-400' : 'text-red-400' },
                 { label: 'Current Output', value: `${formatNumber(output)} MW`, color: 'text-yellow-400' },
               ]}
@@ -870,7 +870,7 @@ export function PowerPanel() {
                                 <span className={`text-[9px] font-mono ${
                                   store.resources[def.fuel] < 50 ? 'text-red-400' : 'text-gray-400'
                                 }`}>
-                                  <GameIcon icon={RESOURCE_META[def.fuel].icon} size={14} className="inline-flex" /> {formatNumber(store.resources[def.fuel])} ({formatNumber((def.fuelRate || 0) * plant.level * store.gameSpeed)}/s)
+                                  <GameIcon icon={RESOURCE_META[def.fuel].icon} size={14} className="inline-flex" /> {formatNumber(store.resources[def.fuel])} ({formatNumber((def.fuelRate || 0) * plant.level)}/s)
                                 </span>
                               </div>
                             )}

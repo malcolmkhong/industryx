@@ -264,7 +264,7 @@ function assignPorts(
 }
 
 // --- Network Graph Component (Hierarchical Tier-Column Layout with Port-Based Edge Routing) ---
-function NetworkGraph({ nodes, relations, gameSpeed }: { nodes: ERDNode[]; relations: ERDRelation[]; gameSpeed: number }) {
+function NetworkGraph({ nodes, relations }: { nodes: ERDNode[]; relations: ERDRelation[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -765,7 +765,7 @@ function NetworkGraph({ nodes, relations, gameSpeed }: { nodes: ERDNode[]; relat
                       fill={isActive ? '#fbbf24' : '#64748b'}
                       fontWeight={isActive ? '600' : '400'}
                     >
-                      {resEmojis}{moreN > 0 ? `+${moreN}` : ''} {formatNumber(rel.totalThroughput * gameSpeed)}/s
+                      {resEmojis}{moreN > 0 ? `+${moreN}` : ''} {formatNumber(rel.totalThroughput)}/s
                     </text>
                   </g>
                   {/* Line count badge */}
@@ -1284,7 +1284,7 @@ export function TransportPanel() {
           } else if (totalInboundRate < consumptionRate * 0.8) {
             issues.push({
               building: b,
-              reason: `Under-supplied ${RESOURCE_META[res]?.name ?? res}: ${(totalInboundRate * store.gameSpeed).toFixed(1)}/${(consumptionRate * store.gameSpeed).toFixed(1)}/s`,
+              reason: `Under-supplied ${RESOURCE_META[res]?.name ?? res}: ${totalInboundRate.toFixed(1)}/${consumptionRate.toFixed(1)}/s`,
               severity: 'warning',
               type: 'under-supplied',
               flowRate: totalInboundRate,
@@ -1310,7 +1310,7 @@ export function TransportPanel() {
           if (outLines.length > 0 && totalOutboundCapacity > productionRate * 2 && totalOutboundThroughput < productionRate * 0.5) {
             issues.push({
               building: b,
-              reason: `Over-supplied ${RESOURCE_META[res]?.name ?? res}: producing ${(productionRate * store.gameSpeed).toFixed(1)}/s but only ${(totalOutboundThroughput * store.gameSpeed).toFixed(1)}/s consumed`,
+              reason: `Over-supplied ${RESOURCE_META[res]?.name ?? res}: producing ${productionRate.toFixed(1)}/s but only ${totalOutboundThroughput.toFixed(1)}/s consumed`,
               severity: 'info',
               type: 'over-supplied',
               flowRate: totalOutboundThroughput,
@@ -1519,7 +1519,7 @@ export function TransportPanel() {
           </Badge>
           <Badge variant="outline" className="border-teal-800/50 text-teal-400 bg-teal-900/10 text-xs">
             <Gauge className="w-3 h-3 mr-1" />
-            {formatNumber(totalThroughput * store.gameSpeed)} u/s
+            {formatNumber(totalThroughput)} u/s
           </Badge>
         </div>
       </div>
@@ -1593,7 +1593,7 @@ export function TransportPanel() {
             <p className="text-[10px] text-gray-600 mt-1">Build transport lines to see the auto-generated network</p>
           </div>
         ) : (
-          <NetworkGraph nodes={erdNodes} relations={erdRelations} gameSpeed={store.gameSpeed} />
+          <NetworkGraph nodes={erdNodes} relations={erdRelations} />
         )}
       </div>
 
@@ -1712,7 +1712,7 @@ export function TransportPanel() {
                     description={def.description}
                     category="Transport"
                     details={[
-                      { label: 'Throughput', value: `${(def.baseThroughput * store.gameSpeed).toFixed(1)} u/s`, color: 'text-cyan-400' },
+                      { label: 'Throughput', value: `${def.baseThroughput.toFixed(1)} u/s`, color: 'text-cyan-400' },
                       { label: 'Base Cost', value: `$${formatNumber(cost)}`, color: 'text-green-400' },
                       { label: 'Upgrade x', value: `${def.upgradeMultiplier}`, color: 'text-purple-400' },
                     ]}
@@ -1810,7 +1810,7 @@ export function TransportPanel() {
                   <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
                     <div>
                       <span className="text-gray-500">Est. Throughput</span>
-                      <div className="text-cyan-400 font-mono font-bold">{(previewData.estimatedThroughput * store.gameSpeed).toFixed(1)} u/s</div>
+                      <div className="text-cyan-400 font-mono font-bold">{previewData.estimatedThroughput.toFixed(1)} u/s</div>
                     </div>
                     <div>
                       <span className="text-gray-500">Cost</span>
@@ -1958,7 +1958,7 @@ export function TransportPanel() {
                               <span className="text-[10px] text-gray-500">x{count}</span>
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="text-[10px] text-gray-400 font-mono">{formatNumber(throughput * store.gameSpeed)}/{formatNumber(capacity * store.gameSpeed)} u/s</span>
+                              <span className="text-[10px] text-gray-400 font-mono">{formatNumber(throughput)}/{formatNumber(capacity)} u/s</span>
                               <span className={`text-[10px] font-mono font-bold ${
                                 utilization > 80 ? 'text-red-400' : utilization > 50 ? 'text-yellow-400' : 'text-green-400'
                               }`}>
@@ -1991,7 +1991,7 @@ export function TransportPanel() {
                       ))}
                       <div className="pt-2 border-t border-gray-800 flex items-center justify-between">
                         <span className="text-xs text-gray-400 font-medium">Total Network</span>
-                        <span className="text-xs text-cyan-400 font-mono font-bold">{formatNumber(totalThroughput * store.gameSpeed)}/{formatNumber(totalMaxThroughput * store.gameSpeed)} u/s</span>
+                        <span className="text-xs text-cyan-400 font-mono font-bold">{formatNumber(totalThroughput)}/{formatNumber(totalMaxThroughput)} u/s</span>
                       </div>
                     </div>
                   </div>
@@ -2079,7 +2079,7 @@ export function TransportPanel() {
                       <p className="text-[10px] text-gray-400 mb-1">{bn.reason}</p>
                       {bn.flowRate !== undefined && bn.requiredRate !== undefined && (
                         <div className="text-[9px] text-gray-500 mb-1">
-                          Flow: <span className="font-mono">{(bn.flowRate * store.gameSpeed).toFixed(1)}</span> / Required: <span className="font-mono">{(bn.requiredRate * store.gameSpeed).toFixed(1)}</span> /s
+                          Flow: <span className="font-mono">{bn.flowRate.toFixed(1)}</span> / Required: <span className="font-mono">{bn.requiredRate.toFixed(1)}</span> /s
                         </div>
                       )}
                       <p className="text-[9px] text-gray-500">{bn.solution}</p>

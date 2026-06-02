@@ -226,8 +226,8 @@ export function StoragePanel() {
 
   // ─── Render Helpers ───────────────────────────────────────────────────────
   const renderRateBadge = (rate: number, prodRate?: number, consRate?: number) => {
-    if (rate > 0) return <span className="text-green-400 font-mono text-[10px]">+{formatNumber(rate * store.gameSpeed)}/s</span>;
-    if (rate < 0) return <span className="text-red-400 font-mono text-[10px]">{formatNumber(rate * store.gameSpeed)}/s</span>;
+    if (rate > 0) return <span className="text-green-400 font-mono text-[10px]">+{formatNumber(rate)}/s</span>;
+    if (rate < 0) return <span className="text-red-400 font-mono text-[10px]">{formatNumber(rate)}/s</span>;
     // When net rate is 0 but the resource is being both produced and consumed (balanced flow),
     // show "±0/s" in cyan to distinguish from idle resources which show "—"
     if (prodRate !== undefined && consRate !== undefined && prodRate > 0 && consRate > 0) {
@@ -294,18 +294,18 @@ export function StoragePanel() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <div className="bg-green-900/10 border border-green-800/30 rounded-lg p-2 text-center">
                 <div className="text-[9px] text-green-500/70 uppercase tracking-wider">Production</div>
-                <div className="text-sm font-bold text-green-400 font-mono">+{formatNumber(prodRate * store.gameSpeed)}</div>
+                <div className="text-sm font-bold text-green-400 font-mono">+{formatNumber(prodRate)}</div>
                 <div className="text-[9px] text-green-600">per second</div>
               </div>
               <div className="bg-red-900/10 border border-red-800/30 rounded-lg p-2 text-center">
                 <div className="text-[9px] text-red-500/70 uppercase tracking-wider">Consumption</div>
-                <div className="text-sm font-bold text-red-400 font-mono">-{formatNumber(consRate * store.gameSpeed)}</div>
+                <div className="text-sm font-bold text-red-400 font-mono">-{formatNumber(consRate)}</div>
                 <div className="text-[9px] text-red-600">per second</div>
               </div>
               <div className={`${netRate >= 0 ? 'bg-green-900/10 border-green-800/30' : 'bg-orange-900/10 border-orange-800/30'} border rounded-lg p-2 text-center`}>
                 <div className="text-[9px] text-gray-500 uppercase tracking-wider">Net Balance</div>
                 <div className={`text-sm font-bold font-mono ${netRate > 0 ? 'text-green-400' : netRate < 0 ? 'text-red-400' : prodRate > 0 && consRate > 0 ? 'text-cyan-400' : 'text-gray-500'}`}>
-                  {netRate > 0 ? '+' : ''}{netRate === 0 && prodRate > 0 && consRate > 0 ? '±0' : formatNumber(netRate * store.gameSpeed)}
+                  {netRate > 0 ? '+' : ''}{netRate === 0 && prodRate > 0 && consRate > 0 ? '±0' : formatNumber(netRate)}
                 </div>
                 <div className="text-[9px] text-gray-600">per second</div>
               </div>
@@ -440,7 +440,7 @@ export function StoragePanel() {
                       {deps.producers.slice(0, 5).map((p, i) => (
                         <div key={i} className="flex items-center justify-between text-[10px]">
                           <span className="text-gray-300 truncate">{p.building}</span>
-                          <span className="text-green-400 font-mono ml-1">+{formatNumber(p.amount * store.gameSpeed)}/s</span>
+                          <span className="text-green-400 font-mono ml-1">+{formatNumber(p.amount)}/s</span>
                         </div>
                       ))}
                       {deps.producers.length > 5 && (
@@ -456,7 +456,7 @@ export function StoragePanel() {
                       {deps.consumers.slice(0, 5).map((c, i) => (
                         <div key={i} className="flex items-center justify-between text-[10px]">
                           <span className="text-gray-300 truncate">{c.building}</span>
-                          <span className="text-red-400 font-mono ml-1">-{formatNumber(c.amount * store.gameSpeed)}/s</span>
+                          <span className="text-red-400 font-mono ml-1">-{formatNumber(c.amount)}/s</span>
                         </div>
                       ))}
                       {deps.consumers.length > 5 && (
@@ -720,7 +720,7 @@ export function StoragePanel() {
                   const tierProd = activeInTier.reduce((sum, r) => sum + (store.productionSnapshot.production[r] ?? 0), 0);
                   const tierCons = activeInTier.reduce((sum, r) => sum + (store.productionSnapshot.actualConsumption[r] ?? 0), 0);
                   if (tierNet === 0 && tierProd > 0 && tierCons > 0) return '±0';
-                  return tierNet >= 0 ? `+${formatNumber(tierNet * store.gameSpeed)}` : formatNumber(tierNet * store.gameSpeed);
+                  return tierNet >= 0 ? `+${formatNumber(tierNet)}` : formatNumber(tierNet);
                 })()}/s
               </span>
               {isExpanded

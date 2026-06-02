@@ -438,20 +438,20 @@ export default function GlobalResourceMonitorPanel() {
         <div className="flex items-center gap-1.5 text-xs">
           <TrendingUp className="w-3.5 h-3.5 text-green-400" />
           <span className="text-gray-400">Total Prod:</span>
-          <span className="text-green-400 font-mono font-bold">{formatNumber(totalProduction * store.gameSpeed)}/s</span>
+          <span className="text-green-400 font-mono font-bold">{formatNumber(totalProduction)}/s</span>
         </div>
         <div className="w-px h-4 bg-gray-700" />
         <div className="flex items-center gap-1.5 text-xs">
           <TrendingDown className="w-3.5 h-3.5 text-red-400" />
           <span className="text-gray-400">Total Cons:</span>
-          <span className="text-red-400 font-mono font-bold">{formatNumber(totalConsumption * store.gameSpeed)}/s</span>
+          <span className="text-red-400 font-mono font-bold">{formatNumber(totalConsumption)}/s</span>
         </div>
         <div className="w-px h-4 bg-gray-700" />
         <div className="flex items-center gap-1.5 text-xs">
           <BarChart3 className="w-3.5 h-3.5 text-cyan-400" />
           <span className="text-gray-400">Net:</span>
           <span className={`font-mono font-bold ${totalNet >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-            {totalNet >= 0 ? '▲' : '▼'} {formatNumber(Math.abs(totalNet) * store.gameSpeed)}/s
+            {totalNet >= 0 ? '▲' : '▼'} {formatNumber(Math.abs(totalNet))}/s
           </span>
         </div>
       </div>
@@ -659,7 +659,7 @@ export default function GlobalResourceMonitorPanel() {
                   <span className="text-gray-400">Net Change:</span>
                   <span className={`font-mono font-bold ${hoveredRow.netRate > 0 ? 'text-green-400' : hoveredRow.netRate < 0 ? 'text-red-400' : 'text-gray-500'}`}>
                     {hoveredRow.netRate > 0 ? '▲' : hoveredRow.netRate < 0 ? '▼' : '—'}
-                    {hoveredRow.netRate !== 0 ? ` ${formatNumber(Math.abs(hoveredRow.netRate) * store.gameSpeed)}/s` : ' 0/s'}
+                    {hoveredRow.netRate !== 0 ? ` ${formatNumber(Math.abs(hoveredRow.netRate))}/s` : ' 0/s'}
                   </span>
                 </div>
               </div>

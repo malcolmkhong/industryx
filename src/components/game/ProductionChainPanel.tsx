@@ -378,7 +378,7 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
                       fontFamily="monospace"
                       dominantBaseline="middle"
                     >
-                      +{(rate * store.gameSpeed).toFixed(1)}/s
+                      +{(rate).toFixed(1)}/s
                     </text>
                   ) : rate < 0 ? (
                     <text
@@ -391,7 +391,7 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
                       fontFamily="monospace"
                       dominantBaseline="middle"
                     >
-                      {(rate * store.gameSpeed).toFixed(1)}/s
+                      {(rate).toFixed(1)}/s
                     </text>
                   ) : (
                     <text
@@ -506,11 +506,11 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
                             </span>
                             {rate > 0 ? (
                               <span className="text-[10px] text-green-400 font-mono font-bold">
-                                +{(rate * store.gameSpeed).toFixed(1)}/s
+                                +{(rate).toFixed(1)}/s
                               </span>
                             ) : rate < 0 ? (
                               <span className="text-[10px] text-red-400 font-mono font-bold">
-                                {(rate * store.gameSpeed).toFixed(1)}/s
+                                {(rate).toFixed(1)}/s
                               </span>
                             ) : (
                               <span className="text-[10px] text-gray-600 font-mono">

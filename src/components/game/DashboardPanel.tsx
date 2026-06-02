@@ -497,7 +497,7 @@ export function DashboardPanel() {
                         <span className="text-gray-500 font-mono text-[10px]">{formatNumber(capacity)}</span>
                         {productionRates[resource] > 0 && (
                           <span className="text-green-400/70 text-[10px]">
-                            +{formatNumber(productionRates[resource] * store.gameSpeed)}/s
+                            +{formatNumber(productionRates[resource])}/s
                           </span>
                         )}
                       </div>
@@ -542,7 +542,7 @@ export function DashboardPanel() {
                       key={resource}
                       icon={<GameIcon icon={meta.icon} size={14} />}
                       label={meta.name}
-                      value={`+${formatNumber(rate * store.gameSpeed)}`}
+                      value={`+${formatNumber(rate)}`}
                       subtext="per second"
                       color="green"
                       trend="up"
