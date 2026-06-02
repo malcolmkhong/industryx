@@ -32,8 +32,6 @@ export type ExtractorType = 'miningDrill' | 'oilPump' | 'waterExtractor' | 'quar
 export type FactoryType = 'smelter' | 'wireMill' | 'chemicalPlant' | 'glassFurnace' | 'carbonProcessor' | 'brickFactory' | 'concreteFactory' | 'fertilizerFactory' | 'steelForge' | 'oilRefinery' | 'gearFactory' | 'circuitFactory' | 'engineFactory' | 'batteryFactory' | 'siliconRefinery' | 'aluminiumFactory' | 'insecticideFactory' | 'copperRefinery' | 'titaniumRefinery' | 'coolantPlant' | 'opticsLab' | 'solarCellFactory' | 'displayFactory' | 'hydrogenPlant' | 'aiLab' | 'roboticsBay' | 'quantumLab' | 'alloyForge' | 'nanoLab' | 'electronicsFactory' | 'medicalTechLab' | 'goldsmith' | 'tungstenSmelter' | 'armsFactory' | 'droneShipyard' | 'detectorFactory' | 'neuralLab' | 'singularityForge' | 'darkMatterLab' | 'warpDriveFactory' | 'antimatterReactor' | 'chronoLab' | 'plasmaForge' | 'megaStructureFactory' | 'voidCrystallizer' | 'dysonCollector' | 'quantumTeleporter' | 'dimensionalGateway' | 'timeDistorter' | 'galacticForge';
 export type PowerPlantType = 'coalGenerator' | 'solarPanel' | 'windTurbine' | 'nuclearReactor' | 'fusionReactor' | 'antimatterPowerPlant';
 
-export type BuildingConditionStatus = 'pristine' | 'good' | 'worn' | 'damaged' | 'critical' | 'broken';
-
 export interface BuildingInstance {
   id: string;
   type: BuildingType;
@@ -41,132 +39,7 @@ export interface BuildingInstance {
   active: boolean;
   efficiency: number; // 0-1, affected by power, workers, transport
   placedAt: number; // tick when placed
-  // Condition System Fields
-  condition: number;       // 0-100, starts at 100 for new buildings
-  lastDamageTick: number;  // game tick when last damaged (for repair cooldowns)
-  deteriorationRate: number; // base deterioration per tick cycle (default: 0.01)
-  // Map System Fields
-  gridRow?: number;    // Row position on the grid (0-based)
-  gridCol?: number;    // Column position on the grid (0-based)
-  regionId?: string;   // Which region this building is placed in
 }
-
-// Safe condition value - ensures condition is always a valid number (0-100)
-// null/undefined/NaN are treated as 100 (pristine), consistent with UI normalization
-export function safeCondition(condition: number | null | undefined): number {
-  if (condition == null || !Number.isFinite(condition)) return 100;
-  return Math.max(0, Math.min(100, condition));
-}
-
-// Condition thresholds helper
-export function getConditionStatus(condition: number): BuildingConditionStatus {
-  if (condition >= 100) return 'pristine';
-  if (condition >= 75) return 'good';
-  if (condition >= 50) return 'worn';
-  if (condition >= 25) return 'damaged';
-  if (condition >= 1) return 'critical';
-  return 'broken';
-}
-
-export function getConditionColor(condition: number): string {
-  if (condition >= 75) return '#4ade80';   // green
-  if (condition >= 50) return '#facc15';   // yellow
-  if (condition >= 25) return '#f97316';   // orange
-  if (condition >= 1) return '#ef4444';    // red
-  return '#991b1b';                         // dark red (broken)
-}
-
-export function getConditionStatusLabel(status: BuildingConditionStatus): string {
-  switch (status) {
-    case 'pristine': return 'Pristine';
-    case 'good': return 'Good';
-    case 'worn': return 'Worn';
-    case 'damaged': return 'Damaged';
-    case 'critical': return 'Critical';
-    case 'broken': return 'Broken';
-  }
-}
-
-// --- Building Size / Footprint ---
-export type BuildingFootprintSize = 1 | 2 | 3 | 4 | 5;
-
-export interface BuildingFootprint {
-  width: BuildingFootprintSize;
-  height: BuildingFootprintSize;
-  cells: number; // width * height, convenience
-}
-
-// --- Grid Map System ---
-export interface GridTile {
-  row: number;
-  col: number;
-  occupiedBy: string | null; // building instance ID
-  regionId: string;
-  terrain: 'flat' | 'rocky' | 'water' | 'forest' | 'mountain';
-  bonus?: TileBonus;
-}
-
-export interface TileBonus {
-  type: 'production' | 'power' | 'extraction' | 'efficiency';
-  value: number; // multiplier bonus
-  description: string;
-}
-
-// --- Region System ---
-export type RegionId = 'grasslands' | 'industrial' | 'highlands' | 'quantum' | 'cosmic';
-
-export interface Region {
-  id: RegionId;
-  name: string;
-  emoji: string;
-  description: string;
-  color: string;       // Primary color for UI
-  bgColor: string;     // Background color
-  borderColor: string; // Border color
-  gridRows: number;
-  gridCols: number;
-  maxBuildingSize: BuildingFootprintSize; // Largest building allowed
-  minGameTier: number;  // Player must be at least this tier
-  allowedCategories: Array<'extractor' | 'factory' | 'power' | 'storage'>;
-  allowedResourceTiers: [number, number]; // [min, max] resource tier
-  terrainDistribution: Record<GridTile['terrain'], number>; // 0-1 weights
-  unlockCost: number;   // Money cost to unlock the region
-  unlocked: boolean;
-  bonuses: RegionBonus[];
-  icon: string;         // Lucide icon name
-}
-
-export interface RegionBonus {
-  type: 'production' | 'power' | 'extraction' | 'efficiency' | 'capacity';
-  value: number;
-  description: string;
-  appliesTo?: string; // building type or category
-}
-
-// --- Logistics Route System ---
-export interface LogisticsRoute {
-  id: string;
-  fromBuildingId: string;  // Source building instance ID
-  toBuildingId: string;    // Destination building instance ID
-  carriesResource: ResourceType;
-  throughput: number;       // Units per tick
-  maxThroughput: number;
-  efficiency: number;      // 0-1 based on distance & upgrades
-  active: boolean;
-  routeType: 'conveyor' | 'pipe' | 'truck' | 'train' | 'drone';
-}
-
-export interface LogisticsNode {
-  buildingId: string;
-  regionId: string;
-  gridRow: number;
-  gridCol: number;
-  connections: string[]; // Route IDs connected to this node
-}
-
-// --- Map View State ---
-export type MapViewLayer = 'region' | 'grid' | 'logistics';
-export type MapViewMode = 'view' | 'build' | 'route' | 'demolish';
 
 export interface BuildingDefinition {
   type: BuildingType;
@@ -184,8 +57,7 @@ export interface BuildingDefinition {
   fuel?: ResourceType; // for coal generator
   fuelRate?: number; // fuel consumed per tick
   unlockRequirement?: { research?: string; level?: number; prestige?: number };
-  emoji: string;
-  footprint?: BuildingFootprint; // Grid footprint size (defaults to 1x1 if not set)
+  icon: string;
 }
 
 // --- Transport ---
@@ -210,12 +82,7 @@ export interface TransportDefinition {
   baseCost: ResourceAmount[];
   baseThroughput: number; // units per tick
   upgradeMultiplier: number;
-  emoji: string;
-  // Evolution System
-  evolutionTier: number; // 0=conveyor, 1=pipe, 2=truck, 3=cargo, 4=drone, 5=cargo ship
-  evolvesTo?: TransportType; // Next tier in the evolution chain
-  evolutionCost: number; // Money cost to evolve to next tier
-  evolutionBonus: string; // Description of what evolution unlocks
+  icon: string;
 }
 
 // --- Research ---
@@ -231,7 +98,7 @@ export interface ResearchNode {
   timeRequired: number; // ticks
   prerequisites: string[]; // research ids
   effects: ResearchEffect[];
-  emoji: string;
+  icon: string;
 }
 
 export interface ResearchEffect {
@@ -264,19 +131,15 @@ export interface WorkerDefinition {
     speed: number;
     maintenance: number;
   };
-  emoji: string;
+  icon: string;
 }
 
 // --- Contracts ---
-export type ContractDifficulty = 'easy' | 'medium' | 'hard' | 'legendary';
-
-export type ContractType = 'delivery' | 'supply' | 'construction' | 'military' | 'research';
-
 export interface Contract {
   id: string;
   name: string;
   description: string;
-  type: ContractType;
+  type: 'delivery' | 'supply' | 'construction' | 'military' | 'research';
   requiredResources: ResourceAmount[];
   timeLimit: number; // ticks
   timeRemaining: number;
@@ -284,16 +147,9 @@ export interface Contract {
   progress: number; // 0-1
   completed: boolean;
   failed: boolean;
-  difficulty: number; // 1-5 numeric (legacy)
-  difficultyTier: ContractDifficulty; // easy/medium/hard/legendary
-  gameTier?: number; // 0-4, determines when contract becomes available
-  emoji: string;
-  accepted: boolean; // whether player has accepted this contract
-  expiresAt: number; // tick when unaccepted contract expires from the board
-  // Architecture metadata (4-Layer System)
-  templateType: ContractType;     // Which base template was used
-  validationPassed: boolean;      // Did Layer 4 validation pass?
-  validationNotes?: string[];     // Any validation adjustments made
+  difficulty: number; // 1-5
+  gameTier?: number; // 0-3, determines when contract becomes available
+  icon: string;
 }
 
 export interface ContractReward {
@@ -302,58 +158,6 @@ export interface ContractReward {
   corporationPoints?: number;
   blueprints?: string[];
   unlockBuilding?: BuildingType;
-  rareResources?: { resource: ResourceType; amount: number }[];
-}
-
-export const CONTRACT_DIFFICULTY_META: Record<ContractDifficulty, { label: string; icon: string; color: string; bgColor: string; borderColor: string; minGameTier: number; materialCount: [number, number]; deadlineMultiplier: number; rewardMultiplier: number; emoji: string }> = {
-  easy: { label: 'Easy', icon: '🟢', color: '#22c55e', bgColor: 'bg-green-500/10', borderColor: 'border-green-500/30', minGameTier: 0, materialCount: [1, 2], deadlineMultiplier: 1.5, rewardMultiplier: 1.0, emoji: '📦' },
-  medium: { label: 'Medium', icon: '🟡', color: '#eab308', bgColor: 'bg-yellow-500/10', borderColor: 'border-yellow-500/30', minGameTier: 1, materialCount: [2, 4], deadlineMultiplier: 1.0, rewardMultiplier: 2.0, emoji: '📋' },
-  hard: { label: 'Hard', icon: '🔴', color: '#ef4444', bgColor: 'bg-red-500/10', borderColor: 'border-red-500/30', minGameTier: 2, materialCount: [3, 6], deadlineMultiplier: 0.7, rewardMultiplier: 3.5, emoji: '⚔️' },
-  legendary: { label: 'Legendary', icon: '💎', color: '#a855f7', bgColor: 'bg-purple-500/10', borderColor: 'border-purple-500/30', minGameTier: 3, materialCount: [5, 10], deadlineMultiplier: 0.4, rewardMultiplier: 6.0, emoji: '👑' },
-};
-
-// --- Contract Architecture (4-Layer System) ---
-
-// Layer 1: Base Template
-export interface ContractTypeTemplate {
-  type: ContractType;
-  namePatterns: string[];        // Name templates with {mat} placeholder
-  descriptionPatterns: string[]; // Description templates with {mats} placeholder
-  emoji: string;
-  deadlineModifier: number;      // Multiplier on base deadline
-  rewardModifier: number;        // Multiplier on base reward
-  rpBonus: number;               // Extra RP bonus
-  cpBonus: number;               // Extra CP bonus
-  spawnWeight: number;           // Probability weight for random selection
-}
-
-// Layer 2: Tier Rules
-export interface ContractTierRules {
-  materialCount: [number, number];
-  allowedResourceTiers: [number, number];
-  maxResourceTierWeight: number;
-  deadlineRange: [number, number];
-  deadlineScaleByMaterials: number;
-  rewardMultiplier: [number, number];
-  rpRange: [number, number];
-  cpRange: [number, number];
-  rareResourceChance: number;
-  rareResourceCount: [number, number];
-  boardSlotCount: number;
-  boardExpiration: number;
-  minGameTier: number;
-  spawnChance: number; // 0-1, for legendary only basically
-}
-
-// Layer 4: Validation
-export interface ContractValidationResult {
-  valid: boolean;
-  completable: boolean;       // Can player produce all materials?
-  chainSupported: boolean;    // Production chains exist?
-  economyBalanced: boolean;   // Rewards within economy limits?
-  notRedundant: boolean;      // Not too similar to existing contracts?
-  warnings: string[];         // Non-fatal issues
-  adjustments: string[];      // Changes made during validation
 }
 
 // --- Market ---
@@ -388,7 +192,7 @@ export interface GameEvent {
   duration: number; // ticks
   remaining: number;
   effects: EventEffect[];
-  emoji: string;
+  icon: string;
 }
 
 export interface EventEffect {
@@ -407,7 +211,7 @@ export interface AutomationUnlock {
   cost: number; // corporation points
   active: boolean;
   requiresResearch?: string;
-  emoji: string;
+  icon: string;
 }
 
 // --- Prestige / Global Expansion ---
@@ -446,12 +250,11 @@ export interface MegaProject {
   type: MegaProjectType;
   name: string;
   description: string;
-  emoji: string;
+  icon: string;
   stages: MegaProjectStage[];
   currentStage: number;
-  progress: number; // ticks completed for current stage
+  progress: number; // 0-1 for current stage
   active: boolean;
-  paused: boolean; // manually paused by player
   completed: boolean;
   bonus: {
     type: MegaProjectBonusType;
@@ -504,7 +307,7 @@ export interface WeatherState {
 
 export interface WeatherDefinition {
   name: string;
-  emoji: string;
+  icon: string;
   productionMultiplier: number;
   solarMultiplier: number;
   windMultiplier: number;
@@ -533,7 +336,7 @@ export interface Quest {
   completed: boolean;
   claimed: boolean;
   expiresAt?: number; // tick for daily/weekly quests
-  emoji: string;
+  icon: string;
   /** Optional target resource/building for specific tracking */
   targetResource?: ResourceType;
   targetBuilding?: BuildingType;
@@ -598,7 +401,6 @@ export interface GameState {
   completedResearch: string[];
   activeResearch: string | null;
   researchProgress: number;
-  researchQueue: string[]; // Max 5 queued research items
   
   // Workers
   workers: Worker[];
@@ -688,51 +490,13 @@ export interface GameState {
   selectedBuilding: string | null;
   notifications: GameNotification[];
 
-  // Map System (Hybrid Grid + Logistics + Region)
-  mapRegions: Region[];
-  mapGrids: Record<string, GridTile[]>; // regionId → tiles
-  logisticsRoutes: LogisticsRoute[];
-  activeRegion: RegionId | null;
-  mapViewLayer: MapViewLayer;
-  mapViewMode: MapViewMode;
-
   // Computed rates (updated each tick)
   computedProductionRates: Record<string, number>;
   computedConsumptionRates: Record<string, number>;
   computedActualConsumptionRates: Record<string, number>; // Only actual consumption (excludes stalled factory demand)
-
-  // Production snapshot (updated each tick by productionCalculator)
-  productionSnapshot: import('./productionCalculator').ProductionSnapshot;
-
-  // Maintenance Log
-  maintenanceLog: MaintenanceLogEntry[];
 }
 
-export type GameTab = 'dashboard' | 'factoryMap' | 'resources' | 'factories' | 'storage' | 'chains' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'buildingManagement' | 'contracts' | 'quests' | 'automation' | 'prestige' | 'events' | 'megaprojects' | 'statistics' | 'blueprints' | 'guide' | 'achievements' | 'leaderboard' | 'dailyRewards' | 'payouts' | 'droneDelivery' | 'notifications' | 'resourceMonitor' | 'settings';
-
-// --- Maintenance Log ---
-export interface MaintenanceLogEntry {
-  id: string;
-  tick: number;
-  buildingId: string;
-  buildingName: string;
-  eventType: 'storm_damage' | 'earthquake_damage' | 'power_overload_damage' | 'deterioration' | 'condition_warning' | 'critical_warning' | 'broken' | 'repair' | 'self_repair';
-  conditionChange: number; // negative for damage, positive for repair
-  conditionAfter: number;
-  repairCost?: number;
-  details?: string;
-}
-
-// --- Production Chain Categories ---
-export type ProductionChainCategory = 'basic' | 'industrial' | 'advanced' | 'hightech' | 'cosmic';
-
-export const CHAIN_CATEGORY_META: Record<ProductionChainCategory, { label: string; icon: string; color: string; order: number }> = {
-  basic: { label: 'Basic Materials', icon: '🪨', color: '#a0a0a0', order: 0 },
-  industrial: { label: 'Industrial Materials', icon: '🏭', color: '#8db4e2', order: 1 },
-  advanced: { label: 'Advanced Materials', icon: '⚙️', color: '#ff69b4', order: 2 },
-  hightech: { label: 'High-Tech / Quantum', icon: '🔮', color: '#9400d3', order: 3 },
-  cosmic: { label: 'Cosmic / Endgame', icon: '🌌', color: '#00ffcc', order: 4 },
-};
+export type GameTab = 'dashboard' | 'factoryMap' | 'resourceMonitor' | 'resources' | 'factories' | 'storage' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'contracts' | 'quests' | 'automation' | 'prestige' | 'events' | 'megaprojects' | 'statistics' | 'blueprints' | 'guide' | 'achievements' | 'leaderboard' | 'dailyRewards' | 'payouts' | 'droneDelivery' | 'notifications' | 'settings';
 
 // --- Drone Delivery ---
 export interface Drone {
@@ -743,9 +507,6 @@ export interface Drone {
   speedLevel: number;
   capacityLevel: number;
   fuelEfficiencyLevel: number;
-  // Auto-Assign System
-  autoAssign: boolean; // When true, drone will auto-pick best available mission
-  autoAssignPriority: 'profit' | 'speed' | 'research'; // Mission selection strategy
 }
 
 export interface DroneMission {

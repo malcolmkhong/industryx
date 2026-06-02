@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useReducedMotion } from '@/components/game/shared/useReducedMotion';
 
 interface Particle {
   id: number;
@@ -24,6 +25,7 @@ const PARTICLE_COLORS = [
 
 export default function AmbientParticles() {
   const [mounted, setMounted] = useState(false);
+  const reducedMotion = useReducedMotion();
 
   const particles = useMemo<Particle[]>(() => {
     const count = 18;
@@ -45,6 +47,27 @@ export default function AmbientParticles() {
 
   if (!mounted) {
     return <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true" />;
+  }
+
+  if (reducedMotion) {
+    return (
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+        {particles.map(p => (
+          <div
+            key={p.id}
+            className="absolute rounded-full"
+            style={{
+              left: `${p.x}%`,
+              top: `${p.y}%`,
+              width: `${p.size}px`,
+              height: `${p.size}px`,
+              backgroundColor: p.color,
+              opacity: p.opacity,
+            }}
+          />
+        ))}
+      </div>
+    );
   }
 
   return (

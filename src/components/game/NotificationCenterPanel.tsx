@@ -1,13 +1,78 @@
 'use client';
 
-import { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useGameStore } from '@/lib/game/store';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Bell, Check, CheckCheck, Trash2, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { GameIcon } from '@/components/game/shared/GameIcon';
 
 type NotificationFilter = 'all' | 'success' | 'warning' | 'error' | 'info';
+
+const typeColors = {
+  success: { border: 'border-l-green-500', bg: 'bg-green-900/10', text: 'text-green-400', icon: 'lucide:check' },
+  warning: { border: 'border-l-yellow-500', bg: 'bg-yellow-900/10', text: 'text-yellow-400', icon: 'lucide:alert-triangle' },
+  error: { border: 'border-l-red-500', bg: 'bg-red-900/10', text: 'text-red-400', icon: 'lucide:x' },
+  info: { border: 'border-l-cyan-500', bg: 'bg-cyan-900/10', text: 'text-cyan-400', icon: 'lucide:info' },
+};
+
+interface NotificationItemProps {
+  id: string;
+  type: 'success' | 'warning' | 'error' | 'info';
+  message: string;
+  gameTick: number;
+  read: boolean;
+  onMarkRead: (id: string) => void;
+}
+
+const MemoizedNotificationItem = React.memo(function MemoizedNotificationItem({
+  id,
+  type,
+  message,
+  gameTick,
+  read,
+  onMarkRead,
+}: NotificationItemProps) {
+  const tc = typeColors[type];
+  return (
+    <motion.div
+      onClick={() => {
+        if (!read) {
+          onMarkRead(id);
+        }
+      }}
+      className={`rounded-lg border-l-2 ${tc.border} ${tc.bg} border border-gray-800/50 p-3 flex items-start gap-3 hover:bg-opacity-20 cursor-pointer ${
+        !read ? 'bg-opacity-30' : 'bg-opacity-10'
+      }`}
+    >
+      <div className={`w-6 h-6 rounded-full ${tc.bg} flex items-center justify-center text-xs ${tc.text} flex-shrink-0`}>
+        <GameIcon icon={tc.icon} size={12} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className={`text-xs ${read ? 'text-gray-500' : 'text-gray-200'}`}>
+          {message}
+        </p>
+        <p className="text-[9px] text-gray-600 mt-1">
+          Tick {gameTick}
+          {!read && <span className="ml-2 inline-block w-1.5 h-1.5 rounded-full bg-cyan-400 pulse-dot" />}
+        </p>
+      </div>
+      {!read && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onMarkRead(id);
+          }}
+          className="flex-shrink-0 w-5 h-5 rounded flex items-center justify-center text-gray-600 hover:text-cyan-400 transition-colors"
+          title="Mark as read"
+        >
+          <Check className="w-3 h-3" />
+        </button>
+      )}
+    </motion.div>
+  );
+});
 
 export function NotificationCenterPanel() {
   const store = useGameStore();
@@ -28,13 +93,6 @@ export function NotificationCenterPanel() {
   const errorCount = store.notifications.filter(n => n.type === 'error').length;
   const infoCount = store.notifications.filter(n => n.type === 'info').length;
 
-  const typeColors = {
-    success: { border: 'border-l-green-500', bg: 'bg-green-900/10', text: 'text-green-400', icon: '✓' },
-    warning: { border: 'border-l-yellow-500', bg: 'bg-yellow-900/10', text: 'text-yellow-400', icon: '⚠' },
-    error: { border: 'border-l-red-500', bg: 'bg-red-900/10', text: 'text-red-400', icon: '✗' },
-    info: { border: 'border-l-cyan-500', bg: 'bg-cyan-900/10', text: 'text-cyan-400', icon: 'ℹ' },
-  };
-
   const filters: { id: NotificationFilter; label: string; count: number; color: string }[] = [
     { id: 'all', label: 'All', count: store.notifications.length, color: 'text-gray-400' },
     { id: 'success', label: 'Success', count: successCount, color: 'text-green-400' },
@@ -54,7 +112,7 @@ export function NotificationCenterPanel() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-cyan-400 flex items-center gap-2">
+        <h2 className="text-xl font-bold text-cyan-400 flex items-center gap-2">
           <Bell className="w-5 h-5" /> Notification Center
         </h2>
         <div className="flex items-center gap-2">
@@ -83,19 +141,19 @@ export function NotificationCenterPanel() {
 
       {/* Summary stats */}
       <div className="grid grid-cols-4 gap-2">
-        <div className="bg-[#111827]/50 border border-green-900/30 rounded-lg p-2 text-center">
+        <div className="bg-card/50 border border-green-900/30 rounded-lg p-3 text-center">
           <div className="text-lg font-bold text-green-400">{successCount}</div>
           <div className="text-[9px] text-gray-500">Success</div>
         </div>
-        <div className="bg-[#111827]/50 border border-yellow-900/30 rounded-lg p-2 text-center">
+        <div className="bg-card/50 border border-yellow-900/30 rounded-lg p-3 text-center">
           <div className="text-lg font-bold text-yellow-400">{warningCount}</div>
           <div className="text-[9px] text-gray-500">Warnings</div>
         </div>
-        <div className="bg-[#111827]/50 border border-red-900/30 rounded-lg p-2 text-center">
+        <div className="bg-card/50 border border-red-900/30 rounded-lg p-3 text-center">
           <div className="text-lg font-bold text-red-400">{errorCount}</div>
           <div className="text-[9px] text-gray-500">Errors</div>
         </div>
-        <div className="bg-[#111827]/50 border border-cyan-900/30 rounded-lg p-2 text-center">
+        <div className="bg-card/50 border border-cyan-900/30 rounded-lg p-3 text-center">
           <div className="text-lg font-bold text-cyan-400">{infoCount}</div>
           <div className="text-[9px] text-gray-500">Info</div>
         </div>
@@ -116,7 +174,7 @@ export function NotificationCenterPanel() {
           <button
             key={f.id}
             onClick={() => setFilter(f.id)}
-            className={`filter-transition text-[10px] px-2.5 py-1.5 rounded-lg border transition-colors whitespace-nowrap ${
+            className={`text-[10px] px-2.5 py-1.5 rounded-lg border whitespace-nowrap ${
               filter === f.id
                 ? `border-cyan-700 bg-cyan-900/20 ${f.color}`
                 : 'border-gray-800 text-gray-500 hover:border-gray-700 hover:text-gray-400'
@@ -128,53 +186,19 @@ export function NotificationCenterPanel() {
       </div>
 
       {/* Notification list */}
-      <div ref={listRef} className="space-y-1.5 max-h-[500px] overflow-y-auto game-scrollbar">
+      <div ref={listRef} className="space-y-1.5 max-h-[500px] overflow-y-auto game-scrollbar scroll-fade">
         <AnimatePresence mode="popLayout">
-          {notifications.map(notification => {
-            const tc = typeColors[notification.type];
-            return (
-              <motion.div
-                key={notification.id}
-                layout
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                onClick={() => {
-                  if (!notification.read) {
-                    store.markNotificationRead(notification.id);
-                  }
-                }}
-                className={`rounded-lg border-l-2 ${tc.border} ${tc.bg} border border-gray-800/50 p-3 flex items-start gap-3 transition-all hover:bg-opacity-20 cursor-pointer ${
-                  !notification.read ? 'bg-opacity-30' : 'bg-opacity-10'
-                }`}
-              >
-                <div className={`w-6 h-6 rounded-full ${tc.bg} flex items-center justify-center text-xs ${tc.text} flex-shrink-0`}>
-                  {tc.icon}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className={`text-xs ${notification.read ? 'text-gray-500' : 'text-gray-200'}`}>
-                    {notification.message}
-                  </p>
-                  <p className="text-[9px] text-gray-600 mt-1">
-                    Tick {notification.gameTick}
-                    {!notification.read && <span className="ml-2 inline-block w-1.5 h-1.5 rounded-full bg-cyan-400 pulse-dot" />}
-                  </p>
-                </div>
-                {!notification.read && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      store.markNotificationRead(notification.id);
-                    }}
-                    className="flex-shrink-0 w-5 h-5 rounded flex items-center justify-center text-gray-600 hover:text-cyan-400 transition-colors"
-                    title="Mark as read"
-                  >
-                    <Check className="w-3 h-3" />
-                  </button>
-                )}
-              </motion.div>
-            );
-          })}
+          {notifications.map(notification => (
+            <MemoizedNotificationItem
+              key={notification.id}
+              id={notification.id}
+              type={notification.type}
+              message={notification.message}
+              gameTick={notification.gameTick}
+              read={notification.read}
+              onMarkRead={store.markNotificationRead}
+            />
+          ))}
         </AnimatePresence>
 
         {notifications.length === 0 && (

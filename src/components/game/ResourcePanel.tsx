@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked, hasUnlimitedStorage } from '@/lib/game/store';
 import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE } from '@/lib/game/data';
 import { Button } from '@/components/ui/button';
@@ -10,11 +10,13 @@ import {
   Pickaxe, ChevronUp, Power, PowerOff, Hammer, ArrowRight,
   Package, TrendingUp, Zap, Clock, Lock, Layers, Droplets,
   Mountain, Drill, Container, Warehouse, ArrowDownToLine,
-  ArrowUpFromLine, Workflow, Gauge, X, Wrench,
+  ArrowUpFromLine, Workflow, Gauge, X,
 } from 'lucide-react';
-import { ResourceType, ExtractorType, getConditionColor, safeCondition } from '@/lib/game/types';
+import { ResourceType, ExtractorType } from '@/lib/game/types';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
+import { getTierColorClasses, type TierColor } from '@/components/game/shared/tierColors';
+import { GameIcon } from '@/components/game/shared/GameIcon';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -26,64 +28,17 @@ const ADVANCED_EXTRACTORS: ExtractorType[] = ['clayPit', 'limestoneQuarry', 'gra
 
 // Tab config for the tier selector
 const TAB_CONFIG = {
-  basic: { label: 'Basic Mining', shortLabel: 'Basic', color: 'amber' as const, icon: <Pickaxe className="w-4 h-4" />, emoji: '⛏️' },
-  advanced: { label: 'Advanced Mining', shortLabel: 'Advanced', color: 'orange' as const, icon: <Mountain className="w-4 h-4" />, emoji: '🏔️' },
+  basic: { label: 'Basic Mining', shortLabel: 'Basic', color: 'amber' as const, icon: 'gi:mining' },
+  advanced: { label: 'Advanced Mining', shortLabel: 'Advanced', color: 'orange' as const, icon: 'gi:peaks' },
 };
 
 type TabKey = 'basic' | 'advanced';
-type TabColor = 'amber' | 'orange';
-
-type TabColorClasses = {
-  text: string;
-  border: string;
-  bg: string;
-  hoverBorder: string;
-  glow: string;
-  buttonBorder: string;
-  buttonText: string;
-  buttonHover: string;
-  badge: string;
-  tabActive: string;
-  tabHover: string;
-};
-
-function getTabColorClasses(color: TabColor): TabColorClasses {
-  const map: Record<TabColor, TabColorClasses> = {
-    amber: {
-      text: 'text-amber-400',
-      border: 'border-amber-500/30',
-      bg: 'bg-amber-900/20',
-      hoverBorder: 'hover:border-amber-500/50',
-      glow: 'hover:shadow-[0_0_15px_rgba(245,158,11,0.1)]',
-      buttonBorder: 'border-amber-700/50',
-      buttonText: 'text-amber-400',
-      buttonHover: 'hover:bg-amber-900/30 hover:border-amber-500',
-      badge: 'border-amber-600/50',
-      tabActive: 'border-amber-500/60 bg-amber-900/25 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.15)]',
-      tabHover: 'hover:border-amber-700/50 hover:text-amber-300',
-    },
-    orange: {
-      text: 'text-orange-400',
-      border: 'border-orange-500/30',
-      bg: 'bg-orange-900/20',
-      hoverBorder: 'hover:border-orange-500/50',
-      glow: 'hover:shadow-[0_0_15px_rgba(249,115,22,0.1)]',
-      buttonBorder: 'border-orange-700/50',
-      buttonText: 'text-orange-400',
-      buttonHover: 'hover:bg-orange-900/30 hover:border-orange-500',
-      badge: 'border-orange-600/50',
-      tabActive: 'border-orange-500/60 bg-orange-900/25 text-orange-400 shadow-[0_0_12px_rgba(249,115,22,0.15)]',
-      tabHover: 'hover:border-orange-700/50 hover:text-orange-300',
-    },
-  };
-  return map[color];
-}
 
 // Extraction pipeline tiers for SVG flow diagram
 const EXTRACTION_TIERS = [
-  { key: 'basic', label: 'Basic Mining', emoji: '⛏️', color: '#f59e0b' },
-  { key: 'advanced', label: 'Advanced Mining', emoji: '🏔️', color: '#f97316' },
-  { key: 'specialized', label: 'Specialized', emoji: '💎', color: '#a855f7' },
+  { key: 'basic', label: 'Basic Mining', icon: 'gi:mining', color: '#f59e0b' },
+  { key: 'advanced', label: 'Advanced Mining', icon: 'gi:peaks', color: '#f97316' },
+  { key: 'specialized', label: 'Specialized', icon: 'gi:gem-chain', color: '#a855f7' },
 ] as const;
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -211,7 +166,7 @@ export function ResourcePanel() {
   const currentTabConfig = TAB_CONFIG[selectedTab];
   const currentExtractors = selectedTab === 'basic' ? BASIC_EXTRACTORS : ADVANCED_EXTRACTORS;
   const currentTabBuildings = extractorsByTab[selectedTab];
-  const currentColorClasses = getTabColorClasses(currentTabConfig.color);
+  const currentColorClasses = getTierColorClasses(currentTabConfig.color);
 
   // ─── Callbacks ──────────────────────────────────────────────────────────
 
@@ -318,7 +273,7 @@ export function ResourcePanel() {
       </div>
 
       {/* EXTRACTION PIPELINE - HERO SECTION */}
-      <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+      <div className="game-card rounded-xl bg-card p-4 border border-border">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Workflow className="w-4 h-4 text-amber-400" />
@@ -429,9 +384,7 @@ export function ResourcePanel() {
                       r={isSelected ? 58 : 54}
                       fill={tier.color}
                       fillOpacity="0.08"
-                    >
-                      <animate attributeName="r" values={isSelected ? "56;60;56" : "52;56;52"} dur="3s" repeatCount="indefinite" />
-                    </circle>
+                    />
                   )}
                   {/* Node border */}
                   <rect
@@ -466,7 +419,7 @@ export function ResourcePanel() {
                     fontWeight="bold"
                     dominantBaseline="middle"
                   >
-                    {tier.emoji}
+                    <GameIcon icon={tier.icon} size={11} />
                   </text>
                   {/* Tier name */}
                   <text
@@ -515,8 +468,7 @@ export function ResourcePanel() {
         </div>
 
         {/* Selected flow node detail panel */}
-        <AnimatePresence>
-          {selectedFlowNode && (() => {
+        {selectedFlowNode && (() => {
             const tierIdx = EXTRACTION_TIERS.findIndex(t => t.key === selectedFlowNode);
             const tierInfo = EXTRACTION_TIERS[tierIdx];
             const tierExtractors = tierIdx === 0 ? BASIC_EXTRACTORS : ADVANCED_EXTRACTORS;
@@ -532,11 +484,7 @@ export function ResourcePanel() {
             });
 
             return (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.25 }}
+              <div
                 className="overflow-hidden"
               >
                 <div className="mt-3 bg-[#0a0e17] rounded-lg p-3 border" style={{ borderColor: `${tierInfo.color}33` }}>
@@ -558,7 +506,7 @@ export function ResourcePanel() {
                         const net = prod - cons;
                         return (
                           <div key={res} className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 border" style={{ borderColor: `${meta.color}22`, backgroundColor: `${meta.color}08` }}>
-                            <span className="text-sm">{meta.emoji}</span>
+                            <GameIcon icon={meta.icon} size={14} className="inline-flex" />
                             <div className="min-w-0">
                               <div className="text-[10px] text-gray-300 font-medium truncate">{meta.name}</div>
                               <div className={`text-[9px] font-mono ${net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : prod > 0 && cons > 0 ? 'text-cyan-400' : 'text-gray-600'}`}>
@@ -571,10 +519,9 @@ export function ResourcePanel() {
                     </div>
                   )}
                 </div>
-              </motion.div>
+              </div>
             );
           })()}
-        </AnimatePresence>
       </div>
 
       {/* MAIN CONTENT: Extractor Grid + Sidebar */}
@@ -582,10 +529,10 @@ export function ResourcePanel() {
         {/* LEFT: Extractor Grid with Tab Selector */}
         <div className="lg:col-span-2 space-y-3">
           {/* TAB SELECTOR */}
-          <div className="flex items-center gap-1 p-1 bg-[#111827] rounded-xl border border-[#1e293b]">
+          <div className="flex items-center gap-1 p-1 bg-card rounded-xl border border-border">
             {(['basic', 'advanced'] as const).map(tab => {
               const config = TAB_CONFIG[tab];
-              const colors = getTabColorClasses(config.color);
+              const colors = getTierColorClasses(config.color);
               const tabBuildings = extractorsByTab[tab];
               const isActive = selectedTab === tab;
 
@@ -593,14 +540,14 @@ export function ResourcePanel() {
                 <button
                   key={tab}
                   onClick={() => setSelectedTab(tab)}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border transition-all text-xs font-semibold ${
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border text-xs font-semibold ${
                     isActive
                       ? colors.tabActive
                       : `border-transparent text-gray-500 ${colors.tabHover}`
                   }`}
                 >
                   <div className={`w-6 h-6 rounded-md flex items-center justify-center ${isActive ? colors.bg : 'bg-gray-800/50'}`}>
-                    {config.icon}
+                    <GameIcon icon={config.icon} size={16} />
                   </div>
                   <span className="hidden sm:inline">{config.label}</span>
                   <span className="sm:hidden">{config.shortLabel}</span>
@@ -613,19 +560,12 @@ export function ResourcePanel() {
           </div>
 
           {/* EXTRACTOR BUILD CARDS for selected tab */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={selectedTab}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
-            >
-              <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div key={selectedTab}>
+              <div className="game-card rounded-xl bg-card p-4 border border-border">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <div className={`w-7 h-7 rounded-lg ${currentColorClasses.bg} flex items-center justify-center ${currentColorClasses.text}`}>
-                      {currentTabConfig.icon}
+                      <GameIcon icon={currentTabConfig.icon} size={16} />
                     </div>
                     <h3 className={`text-sm font-semibold ${currentColorClasses.text}`}>{currentTabConfig.label}</h3>
                   </div>
@@ -648,13 +588,13 @@ export function ResourcePanel() {
                       <GameItemTooltip
                         key={type}
                         name={def.name}
-                        emoji={def.emoji}
+                        icon={def.icon}
                         description={def.description}
                         category="Extractor"
                         tier={def.tier}
                         details={[
                           { label: 'Production Rate', value: `${def.baseProductionRate}/t` },
-                          ...(def.outputs?.map(o => ({ label: `Output: ${RESOURCE_META[o.resource].name}`, value: `${o.amount}/t`, color: 'text-green-400' })) ?? []),
+                          ...(def.outputs?.map(o => ({ label: `Output: ${RESOURCE_META[o.resource].name}`, value: `${(o.amount * def.baseProductionRate).toFixed(1)}/t`, color: 'text-green-400' })) ?? []),
                           { label: 'Power Consumption', value: `${def.basePowerConsumption} MW`, color: 'text-yellow-400' },
                           { label: 'Build Cost', value: `$${formatNumber(cost)}`, color: canAfford ? 'text-green-400' : 'text-red-400' },
                           { label: 'Cost Multiplier', value: `x${def.costMultiplier}` },
@@ -666,7 +606,7 @@ export function ResourcePanel() {
                         side="bottom"
                       >
                       <div
-                        className={`relative rounded-lg p-2.5 border bg-[#0a0e17] transition-all duration-200 ${
+                        className={`relative rounded-lg p-3 border bg-[#0a0e17] ${
                           !unlocked
                             ? 'border-gray-800 opacity-60'
                             : canAfford
@@ -681,7 +621,7 @@ export function ResourcePanel() {
                         )}
                         {/* Header: emoji + name */}
                         <div className="flex items-start gap-2 mb-1.5">
-                          <span className="text-lg leading-none mt-0.5">{def.emoji}</span>
+                          <GameIcon icon={def.icon} size={20} />
                           <div className="flex-1 min-w-0">
                             <p className="text-[11px] text-gray-200 font-medium leading-tight truncate">{def.name}</p>
                           </div>
@@ -692,7 +632,7 @@ export function ResourcePanel() {
                           <div className="flex items-center gap-0.5 flex-wrap">
                             {def.outputs?.map((out, i) => (
                               <span key={i} className="text-[8px] text-green-300/80 bg-green-900/20 rounded px-1 py-px">
-                                {RESOURCE_META[out.resource].emoji}{out.amount}/t
+                                <GameIcon icon={RESOURCE_META[out.resource].icon} size={10} className="inline-flex" />{out.amount}/t
                               </span>
                             ))}
                           </div>
@@ -756,22 +696,16 @@ export function ResourcePanel() {
                         const effectiveOutputs = def.outputs
                           ? def.outputs.map(o => ({
                               resource: o.resource,
-                              rate: o.amount * building.level * building.efficiency * store.powerGrid.efficiency,
+                              rate: o.amount * def.baseProductionRate * building.level * building.efficiency * store.powerGrid.efficiency,
                               meta: RESOURCE_META[o.resource],
                             }))
                           : [];
                         const eff = building.efficiency * store.powerGrid.efficiency;
 
                         return (
-                          <motion.div
+                          <div
                             key={building.id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className={`rounded-lg bg-[#0a0e17] p-2.5 border transition-all duration-200 ${
-                              recentlyBuilt.has(building.id) ? 'build-construct' : ''
-                            } ${
-                              recentlyUpgraded.has(building.id) ? 'upgrade-flash' : ''
-                            } ${
+                            className={`rounded-lg bg-[#0a0e17] p-2.5 border ${
                               building.active
                                 ? `${currentColorClasses.border}`
                                 : 'border-gray-800 opacity-60'
@@ -780,14 +714,13 @@ export function ResourcePanel() {
                             <div className="flex items-center gap-2">
                               {/* Toggle + Emoji */}
                               <button
-                                onClick={() => { if ((safeCondition(building.condition)) > 0) handleToggle(building.id); }}
-                                disabled={(safeCondition(building.condition)) <= 0}
-                                className={`text-base transition-transform duration-200 hover:scale-110 flex-shrink-0 ${
-                                  (safeCondition(building.condition)) <= 0 ? 'opacity-30 cursor-not-allowed' : building.active ? 'opacity-100' : 'grayscale opacity-50'
+                                onClick={() => handleToggle(building.id)}
+                                className={`text-base hover:scale-110 flex-shrink-0 ${
+                                  building.active ? 'opacity-100' : 'grayscale opacity-50'
                                 }`}
-                                title={(safeCondition(building.condition)) <= 0 ? 'Broken! Repair first' : building.active ? 'Click to disable' : 'Click to enable'}
+                                title={building.active ? 'Click to disable' : 'Click to enable'}
                               >
-                                {def.emoji}
+                                <GameIcon icon={def.icon} size={16} />
                               </button>
 
                               {/* Name + Level + Status + I/O + Efficiency */}
@@ -808,7 +741,7 @@ export function ResourcePanel() {
                                 <div className="flex items-center gap-1 flex-wrap">
                                   {effectiveOutputs.map(({ resource: _r, rate, meta }, i) => (
                                     <div key={i} className="flex items-center gap-0.5 bg-green-900/15 rounded px-1 py-px">
-                                      <span className="text-[10px]">{meta.emoji}</span>
+                                      <GameIcon icon={meta.icon} size={10} className="inline-flex" />
                                       <span className={`text-[8px] font-mono ${building.active ? 'text-green-400' : 'text-gray-500'}`}>
                                         +{formatNumber(rate)}
                                       </span>
@@ -820,15 +753,13 @@ export function ResourcePanel() {
                                 <div className="flex items-center gap-1.5 mt-1">
                                   <span className="text-[8px] text-gray-500">Eff</span>
                                   <div className="flex-1 h-1 bg-gray-800 rounded-full overflow-hidden">
-                                    <motion.div
+                                    <div
                                       className={`h-full rounded-full ${
                                         eff >= 0.8 ? 'bg-gradient-to-r from-green-600 to-green-400' :
                                         eff >= 0.5 ? 'bg-gradient-to-r from-yellow-600 to-yellow-400' :
                                         'bg-gradient-to-r from-red-600 to-red-400'
                                       }`}
-                                      initial={{ width: 0 }}
-                                      animate={{ width: `${eff * 100}%` }}
-                                      transition={{ duration: 0.5 }}
+                                      style={{ width: `${eff * 100}%` }}
                                     />
                                   </div>
                                   <span className={`text-[8px] font-mono ${
@@ -850,38 +781,15 @@ export function ResourcePanel() {
                               {/* Upgrade + Toggle - compact */}
                               <div className="flex flex-col items-end gap-1 flex-shrink-0">
                                 <button
-                                  onClick={() => { if ((safeCondition(building.condition)) > 0) handleToggle(building.id); }}
-                                  disabled={(safeCondition(building.condition)) <= 0}
-                                  className={`w-6 h-6 rounded-full flex items-center justify-center border transition-all ${
-                                    (safeCondition(building.condition)) <= 0
-                                      ? 'border-red-500/30 bg-red-900/20 text-red-400 cursor-not-allowed'
-                                      : building.active
-                                        ? 'border-green-500/50 bg-green-900/20 text-green-400'
-                                        : 'border-gray-700 bg-gray-800 text-gray-500'
+                                  onClick={() => handleToggle(building.id)}
+                                  className={`w-6 h-6 rounded-full flex items-center justify-center border ${
+                                    building.active
+                                      ? 'border-green-500/50 bg-green-900/20 text-green-400'
+                                      : 'border-gray-700 bg-gray-800 text-gray-500'
                                   }`}
-                                  title={(safeCondition(building.condition)) <= 0 ? 'Broken! Repair first' : building.active ? 'Disable' : 'Enable'}
                                 >
-                                  {(safeCondition(building.condition)) <= 0 ? <span className="text-[8px]">💀</span> : building.active ? <Power className="w-3 h-3" /> : <PowerOff className="w-3 h-3" />}
+                                  {building.active ? <Power className="w-3 h-3" /> : <PowerOff className="w-3 h-3" />}
                                 </button>
-                                {/* Repair button when damaged */}
-                                {(safeCondition(building.condition)) < 100 && (() => {
-                                  const bDef = BUILDING_DEFS[building.type];
-                                  const baseCost = bDef?.baseCost.find(c => c.resource === 'money')?.amount ?? 100;
-                                  const rCost = Math.max(1, Math.floor(baseCost * (100 - (safeCondition(building.condition))) / 100 * building.level));
-                                  const canR = store.money >= rCost;
-                                  return (
-                                    <button
-                                      onClick={() => store.repairBuilding(building.id)}
-                                      disabled={!canR}
-                                      className={`w-6 h-6 rounded-full flex items-center justify-center border transition-all ${
-                                        canR ? 'border-orange-500/50 bg-orange-900/20 text-orange-400 hover:bg-orange-800/30' : 'border-gray-700 bg-gray-800 text-gray-500 cursor-not-allowed'
-                                      }`}
-                                      title={canR ? `Repair $${formatNumber(rCost)}` : `Need $${formatNumber(rCost)}`}
-                                    >
-                                      <Wrench className="w-3 h-3" />
-                                    </button>
-                                  );
-                                })()}
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -900,7 +808,7 @@ export function ResourcePanel() {
                                 </span>
                               </div>
                             </div>
-                          </motion.div>
+                          </div>
                         );
                       })}
                     </div>
@@ -910,21 +818,20 @@ export function ResourcePanel() {
                 {/* Empty state when no extractors built */}
                 {currentTabBuildings.length === 0 && (
                   <div className="game-card-empty rounded-xl p-6 text-center">
-                    <div className="text-4xl mb-3">{currentTabConfig.emoji}</div>
+                    <div className="text-4xl mb-3"><GameIcon icon={currentTabConfig.icon} size={32} /></div>
                     <h3 className="text-base font-bold text-amber-400 mb-2">No {currentTabConfig.label} Extractors</h3>
                     <p className="text-sm text-gray-400 mb-1">Build your first extractor to start mining resources</p>
                     <p className="text-xs text-gray-500 mt-2">Extractors gather raw materials from the earth. Start with a Mining Drill!</p>
                   </div>
                 )}
               </div>
-            </motion.div>
-          </AnimatePresence>
+            </div>
         </div>
 
         {/* RIGHT: Resource Inventory, Flow & Summary */}
         <div className="space-y-4">
           {/* RAW MATERIALS INVENTORY */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Warehouse className="w-4 h-4 text-amber-400" />
@@ -954,7 +861,7 @@ export function ResourcePanel() {
                     {/* Header */}
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-sm">{meta.emoji}</span>
+                        <GameIcon icon={meta.icon} size={14} className="inline-flex" />
                         <span className="text-[11px] text-gray-200 font-medium">{meta.name}</span>
                       </div>
                       {netRate !== 0 ? (
@@ -1051,7 +958,7 @@ export function ResourcePanel() {
           </div>
 
           {/* RESOURCE FLOW VISUALIZATION */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-green-400" />
@@ -1061,7 +968,7 @@ export function ResourcePanel() {
             </div>
             {resourceFlow.length === 0 ? (
               <div className="game-card-empty rounded-xl p-6 text-center">
-                <div className="text-3xl mb-2">📊</div>
+                <div className="mb-2"><GameIcon icon="gi:chart" size={28} /></div>
                 <h3 className="text-sm font-bold text-green-400 mb-1">No Resource Flow Yet</h3>
                 <p className="text-xs text-gray-400">Build extractors to generate resources and see the flow visualization</p>
               </div>
@@ -1085,7 +992,7 @@ export function ResourcePanel() {
                     return (
                       <div key={resource} className="bg-[#0a0e17] rounded-lg p-2">
                         <div className="flex items-center gap-2 mb-1.5">
-                          <span className="text-sm">{meta.emoji}</span>
+                          <GameIcon icon={meta.icon} size={14} className="inline-flex" />
                           <span className="text-[11px] text-gray-300 flex-1 flex items-center gap-1.5">
                             {meta.name}
                             {isFull && (
@@ -1095,12 +1002,12 @@ export function ResourcePanel() {
                             )}
                             {!isFull && isAlmostFull && (
                               <span className="inline-flex items-center gap-0.5 text-[8px] text-red-400">
-                                🔴 <span className="text-red-300">Almost full!</span>
+                                <span className="w-2 h-2 rounded-full bg-red-500"></span> <span className="text-red-300">Almost full!</span>
                               </span>
                             )}
                             {!isAlmostFull && isNearing && (
                               <span className="inline-flex items-center gap-0.5 text-[8px] text-yellow-400">
-                                ⚠ <span className="text-yellow-300">Nearing capacity</span>
+                                <GameIcon icon="gi:hazard-sign" size={14} className="inline" /> <span className="text-yellow-300">Nearing capacity</span>
                               </span>
                             )}
                           </span>
@@ -1144,7 +1051,7 @@ export function ResourcePanel() {
           </div>
 
           {/* EXTRACTOR SUMMARY */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
               <Container className="w-4 h-4 text-amber-400" />
               <h3 className="text-sm font-semibold text-amber-400">Extractor Summary</h3>
@@ -1160,7 +1067,7 @@ export function ResourcePanel() {
 
                 return (
                   <div key={type} className="flex items-center gap-2 bg-[#0a0e17] rounded-lg p-2">
-                    <span className="text-base">{def.emoji}</span>
+                    <GameIcon icon={def.icon} size={16} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-0.5">
                         <span className={`text-[11px] font-medium ${unlocked ? 'text-gray-200' : 'text-gray-600'}`}>

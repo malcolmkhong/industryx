@@ -5,6 +5,7 @@ import { useGameStore, formatNumber } from '@/lib/game/store';
 import { RANK_THRESHOLDS } from '@/lib/game/data';
 import { LeaderboardEntry } from '@/lib/game/types';
 import { Trophy, ChevronDown, ChevronUp, Building2, FlaskConical, ScrollText, Coins, Clock, RotateCcw } from 'lucide-react';
+import { GameIcon } from '@/components/game/shared/GameIcon';
 
 export default function LeaderboardPanel() {
   const store = useGameStore();
@@ -62,7 +63,7 @@ export default function LeaderboardPanel() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Trophy className="w-5 h-5 text-amber-400" />
-          <h2 className="text-lg font-bold text-amber-400 neon-glow-cyan" style={{ textShadow: '0 0 10px rgba(251,191,36,0.4)' }}>
+          <h2 className="text-xl font-bold text-amber-400 neon-glow-cyan">
             LEADERBOARD
           </h2>
         </div>
@@ -75,7 +76,7 @@ export default function LeaderboardPanel() {
       <div className={`rounded-lg border p-3 ${
         isInTop10 && entries.length > 0
           ? 'bg-cyan-900/15 border-cyan-500/40'
-          : 'bg-[#111827] border-cyan-900/20'
+          : 'bg-card border-cyan-900/20'
       }`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -85,7 +86,7 @@ export default function LeaderboardPanel() {
             <div>
               <div className="text-xs font-bold text-cyan-400">Current Run</div>
               <div className="text-[10px] text-gray-500">
-                {getRankForScore(currentScore).emoji} {getRankForScore(currentScore).name}
+                <GameIcon icon={getRankForScore(currentScore).icon} size={14} className="inline-flex" /> {getRankForScore(currentScore).name}
               </div>
             </div>
           </div>
@@ -96,15 +97,15 @@ export default function LeaderboardPanel() {
         </div>
         {isInTop10 && entries.length > 0 && (
           <div className="mt-2 text-[10px] text-cyan-400/70 text-center">
-            🏆 This run qualifies for the leaderboard!
+            <GameIcon icon="gi:trophy" size={16} className="inline" /> This run qualifies for the leaderboard!
           </div>
         )}
       </div>
 
       {/* Leaderboard Table */}
       {entries.length === 0 ? (
-        <div className="rounded-lg border border-cyan-900/20 bg-[#111827] p-8 text-center">
-          <div className="text-3xl mb-3">🏆</div>
+        <div className="rounded-lg border border-cyan-900/20 bg-card p-8 text-center">
+          <div className="mb-3"><GameIcon icon="gi:trophy" size={28} /></div>
           <div className="text-sm text-gray-400 font-medium">No entries yet</div>
           <div className="text-xs text-gray-600 mt-1">
             Prestige (Global Expand) to record your first run!
@@ -118,15 +119,16 @@ export default function LeaderboardPanel() {
             return (
               <div
                 key={entry.id}
-                className={`rounded-lg border transition-all duration-200 ${
+                className={`rounded-lg border ${
                   entry.rank <= 3
                     ? getRankBadgeBg(entry.rank)
-                    : 'bg-[#111827] border-cyan-900/20'
+                    : 'bg-card border-cyan-900/20'
                 } ${isExpanded ? 'ring-1 ring-cyan-900/30' : ''}`}
               >
                 {/* Main Row */}
                 <button
                   onClick={() => toggleExpand(entry.id)}
+                  aria-expanded={isExpanded}
                   className="w-full flex items-center gap-3 p-3 text-left hover:bg-white/[0.02] transition-colors"
                 >
                   {/* Rank Badge */}
@@ -143,7 +145,7 @@ export default function LeaderboardPanel() {
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-bold text-gray-200 truncate">{entry.corporationName}</span>
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-800/80 text-gray-400 flex-shrink-0">
-                        {rankInfo.emoji} {entry.rankName}
+                        <GameIcon icon={rankInfo.icon} size={12} className="inline-flex" /> {entry.rankName}
                       </span>
                     </div>
                     <div className="flex items-center gap-3 mt-0.5 text-[10px] text-gray-500">
@@ -173,39 +175,42 @@ export default function LeaderboardPanel() {
 
                 {/* Expanded Details */}
                 {isExpanded && (
+                  <div
+                    className="overflow-hidden"
+                  >
                   <div className="px-3 pb-3 pt-0 border-t border-gray-800/50">
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
-                      <div className="bg-[#0a0e17] rounded-md p-2">
+                      <div className="bg-[#0a0e17] rounded-lg p-3">
                         <div className="text-[10px] text-gray-500 flex items-center gap-1">
                           <Coins className="w-3 h-3 text-green-400" /> Money Earned
                         </div>
                         <div className="text-xs font-mono text-green-400">${formatNumber(entry.totalMoneyEarned)}</div>
                       </div>
-                      <div className="bg-[#0a0e17] rounded-md p-2">
+                      <div className="bg-[#0a0e17] rounded-lg p-3">
                         <div className="text-[10px] text-gray-500 flex items-center gap-1">
                           <Building2 className="w-3 h-3 text-cyan-400" /> Buildings
                         </div>
                         <div className="text-xs font-mono text-cyan-400">{entry.buildingsBuilt}</div>
                       </div>
-                      <div className="bg-[#0a0e17] rounded-md p-2">
+                      <div className="bg-[#0a0e17] rounded-lg p-3">
                         <div className="text-[10px] text-gray-500 flex items-center gap-1">
                           <FlaskConical className="w-3 h-3 text-purple-400" /> Research
                         </div>
                         <div className="text-xs font-mono text-purple-400">{entry.researchCompleted}</div>
                       </div>
-                      <div className="bg-[#0a0e17] rounded-md p-2">
+                      <div className="bg-[#0a0e17] rounded-lg p-3">
                         <div className="text-[10px] text-gray-500 flex items-center gap-1">
                           <ScrollText className="w-3 h-3 text-rose-400" /> Contracts
                         </div>
                         <div className="text-xs font-mono text-rose-400">{entry.contractsCompleted}</div>
                       </div>
-                      <div className="bg-[#0a0e17] rounded-md p-2">
+                      <div className="bg-[#0a0e17] rounded-lg p-3">
                         <div className="text-[10px] text-gray-500 flex items-center gap-1">
                           <Clock className="w-3 h-3 text-yellow-400" /> Play Time
                         </div>
                         <div className="text-xs font-mono text-yellow-400">{formatPlayTime(entry.playTime)}</div>
                       </div>
-                      <div className="bg-[#0a0e17] rounded-md p-2">
+                      <div className="bg-[#0a0e17] rounded-lg p-3">
                         <div className="text-[10px] text-gray-500 flex items-center gap-1">
                           <RotateCcw className="w-3 h-3 text-fuchsia-400" /> Prestiges
                         </div>
@@ -216,6 +221,7 @@ export default function LeaderboardPanel() {
                       Recorded at Tick #{formatNumber(entry.achievedAt)}
                     </div>
                   </div>
+                  </div>
                 )}
               </div>
             );
@@ -225,7 +231,7 @@ export default function LeaderboardPanel() {
 
       {/* Stats Summary */}
       {entries.length > 0 && (
-        <div className="rounded-lg border border-cyan-900/20 bg-[#111827] p-3">
+        <div className="rounded-lg border border-cyan-900/20 bg-card p-3">
           <div className="text-xs text-gray-400 font-medium mb-2">Leaderboard Stats</div>
           <div className="grid grid-cols-3 gap-3">
             <div className="text-center">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback, useRef, useState } from 'react';
+import { useEffect, useCallback, useRef, useState, useMemo } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
 import { BUILDING_DEFS, RESOURCE_META, WEATHER_DEFS } from '@/lib/game/data';
 import { GameTab, ResourceType } from '@/lib/game/types';
@@ -22,7 +22,7 @@ import { AchievementPanel } from '@/components/game/AchievementPanel';
 import { MegaProjectPanel } from '@/components/game/MegaProjectPanel';
 import { SettingsPanel } from '@/components/game/SettingsPanel';
 import StatisticsPanel from '@/components/game/StatisticsPanel';
-import HybridMapPanel from '@/components/game/HybridMapPanel';
+import FactoryMapPanel from '@/components/game/FactoryMapPanel';
 import GameToast from '@/components/game/GameToast';
 import FloatingNumbers from '@/components/game/FloatingNumbers';
 import KeyboardShortcutsHelp from '@/components/game/KeyboardShortcutsHelp';
@@ -34,9 +34,7 @@ import { NotificationCenterPanel } from '@/components/game/NotificationCenterPan
 import { PayoutPanel } from '@/components/game/PayoutPanel';
 import DroneDeliveryPanel from '@/components/game/DroneDeliveryPanel';
 import { StoragePanel } from '@/components/game/StoragePanel';
-import { ProductionChainsHub } from '@/components/game/ProductionChainsHub';
-import { BuildingManagementPanel } from '@/components/game/BuildingManagementPanel';
-import { GlobalResourceMonitor } from '@/components/game/GlobalResourceMonitor';
+import GlobalResourceMonitorPanel from '@/components/game/GlobalResourceMonitorPanel';
 import {
   Play, Pause, RotateCcw, Bell, X,
   Download, Upload, Copy, Check,
@@ -59,7 +57,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { GameSidebar, MobileNav, KEY_TAB_MAP } from '@/components/game/GameSidebar';
+import { GameSidebar, KEY_TAB_MAP } from '@/components/game/GameSidebar';
+import { GameIcon } from '@/components/game/shared/GameIcon';
+import { BottomNavigationBar } from '@/components/game/BottomNavigationBar';
+import { FloatingActionButton } from '@/components/game/FloatingActionButton';
+import { useSettingsStore } from '@/lib/game/settingsStore';
 
 // Navigation is now managed by GameSidebar component
 // KEY_TAB_MAP is imported from GameSidebar
@@ -67,10 +69,55 @@ import { GameSidebar, MobileNav, KEY_TAB_MAP } from '@/components/game/GameSideb
 const SPEED_OPTIONS = [1, 2, 5, 10];
 
 export default function Home() {
-  const store = useGameStore();
+  // Select only the state slices needed (instead of subscribing to entire store)
+  // This prevents re-renders from unrelated state changes (~80% fewer re-renders/tick)
+  const gameTick = useGameStore(s => s.gameTick);
+  const gameSpeed = useGameStore(s => s.gameSpeed);
+  const prestigeSpeedBonus = useGameStore(s => s.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'gameSpeed').reduce((sum, b) => sum + b.effect.value, 0));
+  const effectiveSpeed = gameSpeed * (1 + prestigeSpeedBonus);
+  const paused = useGameStore(s => s.paused);
+  const money = useGameStore(s => s.money);
+  const totalMoneyEarned = useGameStore(s => s.totalMoneyEarned);
+  const researchPoints = useGameStore(s => s.researchPoints);
+  const prestigeState = useGameStore(s => s.prestigeState);
+  const buildings = useGameStore(s => s.buildings);
+  const powerGrid = useGameStore(s => s.powerGrid);
+  const pendingPayout = useGameStore(s => s.pendingPayout);
+  const payoutConfig = useGameStore(s => s.payoutConfig);
+  const notifications = useGameStore(s => s.notifications);
+  const activeEvents = useGameStore(s => s.activeEvents);
+  const weather = useGameStore(s => s.weather);
+  const activeTab = useGameStore(s => s.activeTab);
+  const transportLines = useGameStore(s => s.transportLines);
+
+  // Get action references (stable across renders)
+  const gameTickAction = useGameStore(s => s.gameTickAction);
+  const setActiveTab = useGameStore(s => s.setActiveTab);
+  const togglePause = useGameStore(s => s.togglePause);
+  const setGameSpeed = useGameStore(s => s.setGameSpeed);
+  const selectBuilding = useGameStore(s => s.selectBuilding);
+  const exportSave = useGameStore(s => s.exportSave);
+  const importSave = useGameStore(s => s.importSave);
+  const resetGame = useGameStore(s => s.resetGame);
+  const calculateOfflineProgress = useGameStore(s => s.calculateOfflineProgress);
+  const checkDailyLogin = useGameStore(s => s.checkDailyLogin);
+  const loginStreak = useGameStore(s => s.loginStreak);
+  const collectPayout = useGameStore(s => s.collectPayout);
   const tickRef = useRef<NodeJS.Timeout | null>(null);
   const notifRef = useRef<HTMLDivElement>(null);
   const hasAutoOpenedGuide = useRef(false);
+  const headerRef = useRef<HTMLElement>(null);
+  const [headerHeight, setHeaderHeight] = useState(52); // default fallback
+
+  // Sync reduced motion setting to body class for CSS-based animation disabling
+  const reducedMotion = useSettingsStore(state => state.reducedMotion);
+  useEffect(() => {
+    if (reducedMotion) {
+      document.body.classList.add('reduce-motion');
+    } else {
+      document.body.classList.remove('reduce-motion');
+    }
+  }, [reducedMotion]);
 
   // Hydration guard: prevent rendering dynamic game UI during SSR
   // This avoids hydration mismatch because Zustand persist rehydrates from localStorage on client
@@ -81,6 +128,20 @@ export default function Home() {
     return () => clearTimeout(t);
   }, []);
 
+  // Track header height dynamically so the fixed header's spacer always matches
+  // Depends on `mounted` because the header ref is only attached after hydration
+  useEffect(() => {
+    if (!mounted) return;
+    const el = headerRef.current;
+    if (!el) return;
+    const updateHeight = () => setHeaderHeight(el.offsetHeight);
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(el);
+    // Also update on initial mount
+    updateHeight();
+    return () => observer.disconnect();
+  }, [mounted]);
+
   // Save system state
   const [lastSaveTime, setLastSaveTime] = useState<number | null>(null);
   const [showSavedFlash, setShowSavedFlash] = useState(false);
@@ -90,8 +151,8 @@ export default function Home() {
   const [importString, setImportString] = useState('');
   const [importError, setImportError] = useState('');
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
-  const prevGameTickRef = useRef(store.gameTick);
-  const prevMoneyRef = useRef(store.money);
+  const prevGameTickRef = useRef(gameTick);
+  const prevMoneyRef = useRef(money);
   const [moneyGlow, setMoneyGlow] = useState(false);
 
   // Offline earnings state
@@ -107,12 +168,12 @@ export default function Home() {
   useEffect(() => {
     if (hasCheckedOffline.current) return;
     // Wait for store to be rehydrated (gameTick > 0 means a save exists)
-    if (store.gameTick === 0 && store.buildings.length === 0) {
+    if (gameTick === 0 && buildings.length === 0) {
       hasCheckedOffline.current = true;
       return;
     }
     hasCheckedOffline.current = true;
-    const result = store.calculateOfflineProgress();
+    const result = calculateOfflineProgress();
     if (result && (result.money > 0 || Object.values(result.resources).some(v => v > 0))) {
       // Defer state updates to avoid cascading renders
       const timer = setTimeout(() => {
@@ -121,24 +182,56 @@ export default function Home() {
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [store]);
+  }, [gameTick, buildings.length, calculateOfflineProgress]);
 
   // Check daily login on mount
   useEffect(() => {
     if (hasCheckedDailyLogin.current) return;
     hasCheckedDailyLogin.current = true;
     const timer = setTimeout(() => {
-      store.checkDailyLogin();
+      checkDailyLogin();
       // Check if today's reward is unclaimed
-      const ls = store.loginStreak;
-      const currentDay = ((ls.currentStreak - 1) % 7) + 1;
-      const todayReward = ls.weeklyRewards.find(r => r.day === currentDay && !r.claimed);
+      const currentDay = ((loginStreak.currentStreak - 1) % 7) + 1;
+      const todayReward = loginStreak.weeklyRewards.find(r => r.day === currentDay && !r.claimed);
       if (todayReward) {
         setDailyRewardDialogOpen(true);
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [store]);
+  }, [checkDailyLogin, loginStreak]);  // Global UI Interaction Hardening: Prevent native drag on non-input elements
+  // CSS handles -webkit-user-drag and -webkit-touch-callout, but the HTML5 drag API
+  // requires a JS event listener to fully prevent drag ghost previews
+  useEffect(() => {
+    const handleDragStart = (e: DragEvent) => {
+      // Allow drag on inputs (e.g., text selection drag within inputs)
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
+      }
+      e.preventDefault();
+    };
+    document.addEventListener('dragstart', handleDragStart);
+    return () => document.removeEventListener('dragstart', handleDragStart);
+  }, []);
+
+  // Global UI Interaction Hardening: Prevent context menu on game elements
+  // Long-press on mobile can trigger context menus which interfere with gameplay
+  useEffect(() => {
+    const handleContextMenu = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      // Allow context menu on inputs (right-click copy/paste)
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
+      }
+      // Allow context menu on links (open in new tab, etc.)
+      if (target.closest('a')) {
+        return;
+      }
+      e.preventDefault();
+    };
+    document.addEventListener('contextmenu', handleContextMenu);
+    return () => document.removeEventListener('contextmenu', handleContextMenu);
+  }, []);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -152,76 +245,77 @@ export default function Home() {
       // Number keys 1-9: switch tabs
       if (KEY_TAB_MAP[e.key]) {
         e.preventDefault();
-        store.setActiveTab(KEY_TAB_MAP[e.key]);
+        setActiveTab(KEY_TAB_MAP[e.key]);
         return;
       }
 
       // Space: toggle pause
       if (e.key === ' ') {
         e.preventDefault();
-        store.togglePause();
+        togglePause();
         return;
       }
 
       // + / = : increase speed
       if (e.key === '+' || e.key === '=') {
         e.preventDefault();
-        const currentIdx = SPEED_OPTIONS.indexOf(store.gameSpeed);
+        const currentIdx = SPEED_OPTIONS.indexOf(gameSpeed);
         const nextIdx = Math.min(SPEED_OPTIONS.length - 1, currentIdx + 1);
-        store.setGameSpeed(SPEED_OPTIONS[nextIdx]);
+        setGameSpeed(SPEED_OPTIONS[nextIdx]);
         return;
       }
 
       // - : decrease speed
       if (e.key === '-' || e.key === '_') {
         e.preventDefault();
-        const currentIdx = SPEED_OPTIONS.indexOf(store.gameSpeed);
+        const currentIdx = SPEED_OPTIONS.indexOf(gameSpeed);
         const prevIdx = Math.max(0, currentIdx - 1);
-        store.setGameSpeed(SPEED_OPTIONS[prevIdx]);
+        setGameSpeed(SPEED_OPTIONS[prevIdx]);
         return;
       }
 
       // Escape: deselect building
       if (e.key === 'Escape') {
-        store.selectBuilding(null);
+        selectBuilding(null);
         return;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [store]);
+  }, [setActiveTab, togglePause, setGameSpeed, selectBuilding, gameSpeed]);
 
   // Auto-open Guide for new players
   useEffect(() => {
-    if (!hasAutoOpenedGuide.current && store.buildings.length === 0 && store.gameTick < 5) {
+    if (!hasAutoOpenedGuide.current && buildings.length === 0 && gameTick < 5) {
       hasAutoOpenedGuide.current = true;
-      store.setActiveTab('guide');
+      setActiveTab('guide');
     }
-  }, [store.buildings.length, store.gameTick]);
+  }, [buildings.length, gameTick, setActiveTab]);
 
-  // Game tick loop
+  // Game tick loop — removed gameTick from deps to eliminate interval thrashing
+  // Uses getState() for action call (actions are stable references)
   useEffect(() => {
-    const speed = store.gameSpeed;
+    const speed = effectiveSpeed;
     const interval = Math.max(50, 1000 / speed);
 
     if (tickRef.current) clearInterval(tickRef.current);
-    if (!store.paused) {
+    if (!paused) {
       tickRef.current = setInterval(() => {
-        store.gameTickAction();
+        useGameStore.getState().gameTickAction();
       }, interval);
     }
 
     return () => {
       if (tickRef.current) clearInterval(tickRef.current);
     };
-  }, [store.gameSpeed, store.paused, store.gameTick]);
+  }, [effectiveSpeed, paused]);
 
   // Auto-save indicator: detect when Zustand persists (gameTick changes)
   useEffect(() => {
-    if (prevGameTickRef.current !== store.gameTick && store.gameTick > 0) {
+    if (prevGameTickRef.current !== gameTick && gameTick > 0) {
       // Show save indicator every 50 ticks
-      if (store.gameTick % 50 === 0) {
+      if (gameTick % 50 === 0) {
         const now = Date.now();
         // Use setTimeout to defer state updates out of the effect body
         const t1 = setTimeout(() => setLastSaveTime(now), 0);
@@ -230,26 +324,26 @@ export default function Home() {
         return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
       }
     }
-    prevGameTickRef.current = store.gameTick;
-  }, [store.gameTick]);
+    prevGameTickRef.current = gameTick;
+  }, [gameTick]);
 
   // Money glow effect when money increases significantly
   useEffect(() => {
-    if (store.money > prevMoneyRef.current + 10) {
+    if (money > prevMoneyRef.current + 10) {
       const t1 = setTimeout(() => setMoneyGlow(true), 0);
       const t2 = setTimeout(() => setMoneyGlow(false), 1000);
-      prevMoneyRef.current = store.money;
+      prevMoneyRef.current = money;
       return () => { clearTimeout(t1); clearTimeout(t2); };
     }
-    prevMoneyRef.current = store.money;
-  }, [store.money]);
+    prevMoneyRef.current = money;
+  }, [money]);
 
   const handleExport = useCallback(() => {
-    const saveStr = store.exportSave();
+    const saveStr = exportSave();
     setExportString(saveStr);
     setExportDialogOpen(true);
     setCopiedToClipboard(false);
-  }, [store]);
+  }, [exportSave]);
 
   const handleCopyToClipboard = useCallback(async () => {
     try {
@@ -273,7 +367,7 @@ export default function Home() {
       setImportError('Please paste a save string.');
       return;
     }
-    const success = store.importSave(importString.trim());
+    const success = importSave(importString.trim());
     if (success) {
       setImportDialogOpen(false);
       setImportString('');
@@ -281,30 +375,29 @@ export default function Home() {
     } else {
       setImportError('Invalid save data. Please check your save string and try again.');
     }
-  }, [store, importString]);
+  }, [importSave, importString]);
 
   const handleReset = useCallback(() => {
     if (confirm('Are you sure you want to reset? All progress will be lost!')) {
-      store.resetGame();
+      resetGame();
     }
-  }, [store]);
+  }, [resetGame]);
 
-  const unreadNotifications = store.notifications.filter(n => !n.read).length;
+  const unreadNotifications = notifications.filter(n => !n.read).length;
 
   const renderPanel = () => {
-    switch (store.activeTab) {
+    switch (activeTab) {
       case 'dashboard': return <DashboardPanel />;
-      case 'factoryMap': return <HybridMapPanel />;
+      case 'factoryMap': return <FactoryMapPanel />;
+      case 'resourceMonitor': return <GlobalResourceMonitorPanel />;
       case 'resources': return <ResourcePanel />;
       case 'factories': return <FactoryPanel />;
       case 'storage': return <StoragePanel />;
-      case 'chains': return <ProductionChainsHub />;
       case 'transport': return <TransportPanel />;
       case 'power': return <PowerPanel />;
       case 'market': return <MarketPanel />;
       case 'research': return <ResearchPanel />;
       case 'workers': return <WorkerPanel />;
-      case 'buildingManagement': return <BuildingManagementPanel />;
       case 'contracts': return <ContractPanel />;
       case 'automation': return <AutomationPanel />;
       case 'prestige': return <PrestigePanel />;
@@ -320,46 +413,46 @@ export default function Home() {
       case 'droneDelivery': return <DroneDeliveryPanel />;
       case 'quests': return <QuestPanel />;
       case 'notifications': return <NotificationCenterPanel />;
-      case 'resourceMonitor': return <GlobalResourceMonitor />;
       case 'settings': return <SettingsPanel />;
       default: return <DashboardPanel />;
     }
   };
 
-  const powerPercent = store.powerGrid.totalConsumption > 0
-    ? Math.min(100, (store.powerGrid.totalProduction / store.powerGrid.totalConsumption) * 100)
-    : store.powerGrid.totalProduction > 0 ? 100 : 0;
+  const powerPercent = powerGrid.totalConsumption > 0
+    ? Math.min(100, (powerGrid.totalProduction / powerGrid.totalConsumption) * 100)
+    : powerGrid.totalProduction > 0 ? 100 : 0;
 
-  // Compute income per minute estimate for tooltip
-  const incomePerMinute = (() => {
-    const activeBuildings = store.buildings.filter(b => b.active);
+  // Memoized income per minute estimate for tooltip
+  const incomePerMinute = useMemo(() => {
+    const activeBuildings = buildings.filter(b => b.active);
     const extractors = activeBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'extractor');
     const factories = activeBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory');
     const powerPlants = activeBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power');
-    const extractorRate = 2;
-    const factoryRate = 5;
-    const powerRate = 1;
+    const extractorRate = 20;
+    const factoryRate = 50;
+    const powerRate = 10;
     const extractorIncome = extractors.reduce((sum, b) => sum + extractorRate * b.level * b.efficiency, 0);
     const factoryIncome = factories.reduce((sum, b) => sum + factoryRate * b.level * b.efficiency, 0);
     const powerIncome = powerPlants.reduce((sum, b) => sum + powerRate * b.level * b.efficiency, 0);
-    const rawPayoutPerCycle = (extractorIncome + factoryIncome + powerIncome) * store.powerGrid.efficiency * store.gameSpeed;
-    const cyclesPerMinute = (60 / (store.payoutConfig.basePayoutInterval / store.gameSpeed));
+    // NOTE: Do NOT multiply by gameSpeed — ticks already fire faster, so payouts occur more frequently
+    const rawPayoutPerCycle = (extractorIncome + factoryIncome + powerIncome) * powerGrid.efficiency;
+    const cyclesPerMinute = effectiveSpeed / payoutConfig.basePayoutInterval * 60;
     return Math.floor(rawPayoutPerCycle * cyclesPerMinute);
-  })();
+  }, [buildings, powerGrid.efficiency, effectiveSpeed, payoutConfig.basePayoutInterval]);
 
-  // Compute overall factory efficiency for indicator
-  const factoryEfficiency = (() => {
-    const activeBuildings = store.buildings.filter(b => b.active);
+  // Memoized overall factory efficiency for indicator
+  const factoryEfficiency = useMemo(() => {
+    const activeBuildings = buildings.filter(b => b.active);
     if (activeBuildings.length === 0) return 0;
-    return activeBuildings.reduce((sum, b) => sum + b.efficiency, 0) / activeBuildings.length * store.powerGrid.efficiency;
-  })();
+    return activeBuildings.reduce((sum, b) => sum + b.efficiency, 0) / activeBuildings.length * powerGrid.efficiency;
+  }, [buildings, powerGrid.efficiency]);
 
   // Show loading skeleton during SSR to prevent hydration mismatch
   // Zustand persist rehydrates from localStorage on client, causing different initial state
   if (!mounted) {
     return (
-      <div className="min-h-screen flex flex-col bg-[#0a0e17] text-gray-100 overflow-hidden safe-area-container">
-        <header className="sticky top-0 z-50 border-b border-cyan-900/30 px-2 lg:px-3 py-1.5 lg:py-2">
+      <div className="h-screen flex flex-col bg-[#0a0e17] text-gray-100 overflow-hidden safe-area-container">
+        <header className="fixed top-0 left-0 right-0 z-50 border-b border-cyan-900/30 px-2 lg:px-3 py-1.5 lg:py-2 bg-[#0a0e17]">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-base font-bold shadow-[0_0_12px_rgba(0,255,242,0.2)]">
               FD
@@ -375,7 +468,9 @@ export default function Home() {
             </div>
           </div>
         </header>
-        <div className="flex flex-1 overflow-hidden">
+        {/* Spacer for fixed header */}
+        <div className="flex-shrink-0" style={{ height: headerHeight }} />
+        <div className="flex flex-1 min-h-0 overflow-hidden">
           <nav className="hidden lg:block w-44 flex-shrink-0 bg-[#0d1220] border-r border-cyan-900/20">
             <div className="flex flex-col py-1 gap-1 px-3">
               {[1,2,3,4,5,6,7,8].map(i => (
@@ -383,10 +478,10 @@ export default function Home() {
               ))}
             </div>
           </nav>
-          <main className="flex-1 p-4 flex items-center justify-center">
+          <main className="flex-1 min-h-0 p-4 flex items-center justify-center">
             <div className="text-center loading-skeleton-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-cyan-500/20 to-teal-600/20 flex items-center justify-center text-3xl loading-icon-pulse">
-                🏭
+                <GameIcon ui="production" size={32} />
               </div>
               <p className="text-cyan-400 font-bold text-lg">Loading Factory...</p>
               <p className="text-gray-500 text-xs mt-1">Initializing industrial empire</p>
@@ -402,9 +497,9 @@ export default function Home() {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen flex flex-col bg-[#0a0e17] text-gray-100 overflow-hidden safe-area-container">
+      <div className="h-screen flex flex-col bg-[#0a0e17] text-gray-100 overflow-hidden safe-area-container">
         {/* TOP BAR */}
-        <header className="sticky top-0 z-50 top-bar-gradient border-b border-cyan-900/30 px-2 lg:px-3 py-1.5 lg:py-2">
+        <header ref={headerRef} className="fixed top-0 left-0 right-0 z-50 top-bar-gradient border-b border-cyan-900/30 px-2 lg:px-3 py-1.5 lg:py-2">
           {/* Desktop header row */}
           <div className="hidden lg:flex items-center justify-between gap-4 flex-wrap">
             {/* Logo & Money */}
@@ -423,33 +518,33 @@ export default function Home() {
               <div className="flex items-center gap-4 text-xs">
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className={`stat-badge stat-badge-money bg-[#111827] rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default ${moneyGlow ? 'money-glow' : ''}`}>
-                      <span className="text-gray-500">💰 </span>
-                      <span className="text-green-400 font-mono font-bold text-sm">${formatNumber(store.money)}</span>
-                      {store.pendingPayout > 0 && !store.payoutConfig.autoCollect && (
+                    <div className={`stat-badge stat-badge-money bg-card rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default ${moneyGlow ? 'money-glow' : ''}`}>
+                      <span className="text-gray-500 inline-flex items-center gap-1"><GameIcon ui="money" size={14} /></span>
+                      <span className="text-green-400 font-mono font-bold text-sm">${formatNumber(money)}</span>
+                      {pendingPayout > 0 && !payoutConfig.autoCollect && (
                         <button
-                          onClick={store.collectPayout}
+                          onClick={collectPayout}
                           className="ml-2 animate-pulse inline-flex items-center gap-1 bg-green-900/40 hover:bg-green-800/50 text-green-400 text-[10px] px-1.5 py-0.5 rounded-md border border-green-500/30 transition-colors"
                           title="Click to collect pending payout"
                         >
-                          💰 ${formatNumber(store.pendingPayout)}
+                          <GameIcon ui="money" size={12} className="inline-flex" /> ${formatNumber(pendingPayout)}
                         </button>
                       )}
                     </div>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="w-64 bg-[#111827] border-cyan-900/30 p-0 overflow-hidden">
+                  <TooltipContent side="bottom" className="w-64 bg-card border-cyan-900/30 p-0 overflow-hidden">
                     <div className="bg-gradient-to-r from-green-900/30 to-emerald-900/20 px-3 py-2 border-b border-cyan-900/20">
-                      <p className="text-xs font-bold text-green-300">💰 Financial Overview</p>
+                      <p className="text-xs font-bold text-green-300 inline-flex items-center gap-1"><GameIcon ui="money" size={14} className="inline-flex" /> Financial Overview</p>
                     </div>
                     <div className="px-3 py-2 space-y-1.5">
                       <div className="flex justify-between text-xs">
                         <span className="text-gray-400">Current Balance</span>
-                        <span className="text-green-400 font-mono font-bold">${formatNumber(store.money)}</span>
+                        <span className="text-green-400 font-mono font-bold">${formatNumber(money)}</span>
                       </div>
-                      {store.pendingPayout > 0 && (
+                      {pendingPayout > 0 && (
                         <div className="flex justify-between text-xs">
                           <span className="text-gray-400">Pending Payout</span>
-                          <span className="text-yellow-400 font-mono">${formatNumber(store.pendingPayout)}</span>
+                          <span className="text-yellow-400 font-mono">${formatNumber(pendingPayout)}</span>
                         </div>
                       )}
                       <div className="flex justify-between text-xs">
@@ -458,18 +553,18 @@ export default function Home() {
                       </div>
                       <div className="flex justify-between text-xs">
                         <span className="text-gray-400">Total Earned</span>
-                        <span className="text-emerald-400 font-mono">${formatNumber(store.totalMoneyEarned)}</span>
+                        <span className="text-emerald-400 font-mono">${formatNumber(totalMoneyEarned)}</span>
                       </div>
                     </div>
                   </TooltipContent>
                 </Tooltip>
-                <div className={`stat-badge stat-badge-power bg-[#111827] rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default ${store.powerGrid.overload ? 'warning-pulse' : ''}`}>
-                  <span className="text-gray-500">⚡ </span>
+                <div className={`stat-badge stat-badge-power bg-card rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default ${powerGrid.overload ? 'warning-pulse' : ''}`}>
+                  <span className="text-gray-500 inline-flex items-center gap-1"><GameIcon ui="power" size={14} /></span>
                   <span className={`text-sm ${powerPercent >= 80 ? 'text-yellow-400' : powerPercent >= 50 ? 'text-orange-400' : 'text-red-400'}`}>
-                    {formatNumber(store.powerGrid.totalProduction)}MW
+                    {formatNumber(powerGrid.totalProduction)}MW
                   </span>
                   <span className="text-gray-600"> / </span>
-                  <span className="text-gray-400 text-sm">{formatNumber(store.powerGrid.totalConsumption)}MW</span>
+                  <span className="text-gray-400 text-sm">{formatNumber(powerGrid.totalConsumption)}MW</span>
                   {/* Efficiency indicator dot */}
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -480,10 +575,10 @@ export default function Home() {
                             : factoryEfficiency >= 0.5
                               ? 'bg-yellow-400 shadow-[0_0_6px_rgba(250,204,21,0.6)]'
                               : 'bg-red-400 shadow-[0_0_6px_rgba(248,113,113,0.6)]'
-                        } ${store.buildings.filter(b => b.active).length > 0 ? 'animate-pulse' : ''}`}
+                        } ${buildings.filter(b => b.active).length > 0 ? 'animate-pulse' : ''}`}
                       />
                     </TooltipTrigger>
-                    <TooltipContent side="bottom" className="bg-[#111827] border-cyan-900/30">
+                    <TooltipContent side="bottom" className="bg-card border-cyan-900/30">
                       <p className="text-xs font-semibold mb-1" style={{ color: factoryEfficiency >= 0.8 ? '#4ade80' : factoryEfficiency >= 0.5 ? '#facc15' : '#f87171' }}>
                         Factory Efficiency: {(factoryEfficiency * 100).toFixed(0)}%
                       </p>
@@ -495,13 +590,13 @@ export default function Home() {
                 </div>
                 {/* Separator */}
                 <div className="stat-badge-separator" />
-                <div className="stat-badge stat-badge-rp bg-[#111827] rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default">
-                  <span className="text-gray-500">🔬 </span>
-                  <span className="text-purple-400 font-mono text-sm">{formatNumber(store.researchPoints)} RP</span>
+                <div className="stat-badge stat-badge-rp bg-card rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default">
+                  <span className="text-gray-500 inline-flex items-center gap-1"><GameIcon ui="researchPoints" size={14} /></span>
+                  <span className="text-purple-400 font-mono text-sm">{formatNumber(researchPoints)} RP</span>
                 </div>
-                <div className="stat-badge stat-badge-cp bg-[#111827] rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default">
-                  <span className="text-gray-500">🏢 </span>
-                  <span className="text-fuchsia-400 font-mono text-sm">{store.prestigeState.corporationPoints} CP</span>
+                <div className="stat-badge stat-badge-cp bg-card rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default">
+                  <span className="text-gray-500 inline-flex items-center gap-1"><GameIcon ui="corporationPoints" size={14} /></span>
+                  <span className="text-fuchsia-400 font-mono text-sm">{prestigeState.corporationPoints} CP</span>
                 </div>
               </div>
             </div>
@@ -519,23 +614,23 @@ export default function Home() {
               </div>
 
               {/* Speed controls */}
-              <div className="flex items-center bg-[#111827] rounded-lg border border-cyan-900/20 overflow-hidden">
+              <div className="flex items-center bg-card rounded-lg border border-cyan-900/20 overflow-hidden">
                 <Button
                   variant="ghost"
                   size="sm"
                   className="h-7 px-2 text-xs"
-                  onClick={store.togglePause}
-                  aria-label={store.paused ? "Resume game" : "Pause game"}
+                  onClick={togglePause}
+                  aria-label={paused ? "Resume game" : "Pause game"}
                 >
-                  {store.paused ? <Play className="w-3 h-3 text-green-400" /> : <Pause className="w-3 h-3 text-yellow-400" />}
+                  {paused ? <Play className="w-3 h-3 text-green-400" /> : <Pause className="w-3 h-3 text-yellow-400" />}
                 </Button>
                 {[1, 2, 5, 10].map(speed => (
                   <Button
                     key={speed}
                     variant="ghost"
                     size="sm"
-                    className={`h-7 px-2 text-xs ${store.gameSpeed === speed ? 'text-cyan-400 bg-cyan-900/20' : 'text-gray-500'}`}
-                    onClick={() => store.setGameSpeed(speed)}
+                    className={`h-7 px-2 text-xs ${gameSpeed === speed ? 'text-cyan-400 bg-cyan-900/20' : 'text-gray-500'}`}
+                    onClick={() => setGameSpeed(speed)}
                   >
                     {speed}x
                   </Button>
@@ -544,7 +639,7 @@ export default function Home() {
 
               {/* Tick counter */}
               <div className="text-[10px] text-gray-500 font-mono">
-                Tick: {formatNumber(store.gameTick)}
+                Tick: {formatNumber(gameTick)}
               </div>
 
               {/* Notifications */}
@@ -554,8 +649,8 @@ export default function Home() {
                     <Bell className="w-3.5 h-3.5 text-gray-400" />
                     {unreadNotifications > 0 && (
                       <span className={`absolute -top-0.5 -right-0.5 h-4 rounded-full text-[8px] text-white flex items-center justify-center px-1 ${
-                        store.notifications[0]?.type === 'error' ? 'bg-red-500' :
-                        store.notifications[0]?.type === 'warning' ? 'bg-orange-500' :
+                        notifications[0]?.type === 'error' ? 'bg-red-500' :
+                        notifications[0]?.type === 'warning' ? 'bg-orange-500' :
                         'bg-cyan-500'
                       }`}>
                         {unreadNotifications > 9 ? '9+' : unreadNotifications}
@@ -563,18 +658,18 @@ export default function Home() {
                     )}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="w-80 max-h-60 overflow-y-auto game-scrollbar bg-[#111827] border-cyan-900/30">
-                  {store.notifications.length === 0 ? (
+                <TooltipContent side="bottom" className="w-80 max-h-60 overflow-y-auto game-scrollbar bg-card border-cyan-900/30">
+                  {notifications.length === 0 ? (
                     <p className="text-xs text-gray-500">No notifications</p>
                   ) : (
                     <>
                       <div className="flex items-center gap-2 mb-2 pb-1.5 border-b border-gray-800">
                         <Bell className="w-3 h-3 text-gray-400" />
                         <span className="text-[10px] font-semibold text-gray-300">
-                          {unreadNotifications > 0 ? `${unreadNotifications} New ${store.notifications[0]?.type === 'error' ? 'Alert' : store.notifications[0]?.type === 'warning' ? 'Warning' : 'Event'}${unreadNotifications > 1 ? 's' : ''}` : 'No New Notifications'}
+                          {unreadNotifications > 0 ? `${unreadNotifications} New ${notifications[0]?.type === 'error' ? 'Alert' : notifications[0]?.type === 'warning' ? 'Warning' : 'Event'}${unreadNotifications > 1 ? 's' : ''}` : 'No New Notifications'}
                         </span>
                       </div>
-                      {store.notifications.slice(0, 10).map(n => (
+                      {notifications.slice(0, 10).map(n => (
                         <div key={n.id} className={`text-xs py-1 border-b border-gray-800 last:border-0 ${
                           n.type === 'success' ? 'text-green-400' :
                           n.type === 'warning' ? 'text-yellow-400' :
@@ -589,16 +684,16 @@ export default function Home() {
               </Tooltip>
 
               {/* Active events */}
-              {store.activeEvents.length > 0 && (
+              {activeEvents.length > 0 && (
                 <div className="flex items-center gap-1">
-                  {store.activeEvents.map(e => (
+                  {activeEvents.map(e => (
                     <Tooltip key={e.id}>
                       <TooltipTrigger asChild>
                         <Badge variant="outline" className="text-[10px] border-orange-500/50 text-orange-400 bg-orange-900/20 px-1.5 py-0 neon-pulse">
-                          {e.emoji} {e.remaining <= 50 ? `${e.remaining}t` : e.name}
+                          <GameIcon icon={e.icon} size={12} className="inline-flex" /> {e.remaining <= 50 ? `${e.remaining}t` : e.name}
                         </Badge>
                       </TooltipTrigger>
-                      <TooltipContent side="bottom" className="bg-[#111827] border-cyan-900/30">
+                      <TooltipContent side="bottom" className="bg-card border-cyan-900/30">
                         <p className="text-xs font-medium text-orange-300">{e.name}</p>
                         <p className="text-[10px] text-gray-400 mt-0.5">{e.description}</p>
                         <p className="text-[10px] text-gray-500 mt-1">Remaining: {e.remaining} ticks</p>
@@ -612,18 +707,18 @@ export default function Home() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${
-                    store.weather.current === 'clear'
+                    weather.current === 'clear'
                       ? 'border-gray-700 text-gray-500 bg-gray-900/20'
                       : 'border-sky-500/50 text-sky-400 bg-sky-900/20'
                   }`}>
-                    {WEATHER_DEFS[store.weather.current]?.emoji} {WEATHER_DEFS[store.weather.current]?.name}
+                    <GameIcon icon={WEATHER_DEFS[weather.current]?.icon} size={12} className="inline-flex" /> {WEATHER_DEFS[weather.current]?.name}
                   </Badge>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="bg-[#111827] border-cyan-900/30">
-                  <p className="text-xs font-medium text-sky-300">{WEATHER_DEFS[store.weather.current]?.name}</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">{WEATHER_DEFS[store.weather.current]?.description}</p>
-                  {store.weather.remaining > 0 && <p className="text-[10px] text-gray-500 mt-1">Remaining: {store.weather.remaining} ticks</p>}
-                  {store.weather.current === 'clear' && <p className="text-[10px] text-gray-500 mt-1">Weather changes over time and affects production</p>}
+                <TooltipContent side="bottom" className="bg-card border-cyan-900/30">
+                  <p className="text-xs font-medium text-sky-300">{WEATHER_DEFS[weather.current]?.name}</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">{WEATHER_DEFS[weather.current]?.description}</p>
+                  {weather.remaining > 0 && <p className="text-[10px] text-gray-500 mt-1">Remaining: {weather.remaining} ticks</p>}
+                  {weather.current === 'clear' && <p className="text-[10px] text-gray-500 mt-1">Weather changes over time and affects production</p>}
                 </TooltipContent>
               </Tooltip>
 
@@ -640,7 +735,7 @@ export default function Home() {
                     <Download className="w-3 h-3" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="bg-[#111827] border-cyan-900/30">
+                <TooltipContent side="bottom" className="bg-card border-cyan-900/30">
                   <p className="text-xs">Export Save</p>
                 </TooltipContent>
               </Tooltip>
@@ -652,7 +747,7 @@ export default function Home() {
                     <Upload className="w-3 h-3" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="bg-[#111827] border-cyan-900/30">
+                <TooltipContent side="bottom" className="bg-card border-cyan-900/30">
                   <p className="text-xs">Import Save</p>
                 </TooltipContent>
               </Tooltip>
@@ -677,45 +772,45 @@ export default function Home() {
 
               {/* Compact stats */}
               <div className="flex items-center gap-1 text-[10px] flex-shrink-0">
-                <span className="text-green-400 font-mono font-bold">${formatNumber(store.money)}</span>
-                {store.pendingPayout > 0 && !store.payoutConfig.autoCollect && (
+                <span className="text-green-400 font-mono font-bold">${formatNumber(money)}</span>
+                {pendingPayout > 0 && !payoutConfig.autoCollect && (
                   <button
-                    onClick={store.collectPayout}
+                    onClick={collectPayout}
                     className="animate-pulse inline-flex items-center bg-green-900/40 text-green-400 text-[9px] px-1 py-0 rounded border border-green-500/30"
                     title="Click to collect pending payout"
                   >
-                    💰${formatNumber(store.pendingPayout)}
+                    <GameIcon ui="money" size={12} className="inline-flex" />${formatNumber(pendingPayout)}
                   </button>
                 )}
                 <span className="text-gray-600">|</span>
                 <span className={powerPercent >= 80 ? 'text-yellow-400' : powerPercent >= 50 ? 'text-orange-400' : 'text-red-400'}>
-                  ⚡{formatNumber(store.powerGrid.totalProduction)}/{formatNumber(store.powerGrid.totalConsumption)}
+                  <GameIcon ui="power" size={12} className="inline-flex" />{formatNumber(powerGrid.totalProduction)}/{formatNumber(powerGrid.totalConsumption)}
                 </span>
                 <span className="text-gray-600">|</span>
-                <span className="text-purple-400 font-mono">🔬{formatNumber(store.researchPoints)}</span>
+                <span className="text-purple-400 font-mono inline-flex items-center gap-0.5"><GameIcon ui="researchPoints" size={12} className="inline-flex" />{formatNumber(researchPoints)}</span>
               </div>
             </div>
 
             {/* Row 2: Speed controls + actions */}
             <div className="flex items-center justify-between gap-1">
               {/* Speed controls - compact */}
-              <div className="flex items-center bg-[#111827] rounded-md border border-cyan-900/20 overflow-hidden">
+              <div className="flex items-center bg-card rounded-md border border-cyan-900/20 overflow-hidden">
                 <Button
                   variant="ghost"
                   size="sm"
                   className="h-6 w-6 p-0 min-w-[24px] flex items-center justify-center"
-                  onClick={store.togglePause}
-                  aria-label={store.paused ? "Resume game" : "Pause game"}
+                  onClick={togglePause}
+                  aria-label={paused ? "Resume game" : "Pause game"}
                 >
-                  {store.paused ? <Play className="w-3 h-3 text-green-400" /> : <Pause className="w-3 h-3 text-yellow-400" />}
+                  {paused ? <Play className="w-3 h-3 text-green-400" /> : <Pause className="w-3 h-3 text-yellow-400" />}
                 </Button>
                 {[1, 2, 5, 10].map(speed => (
                   <Button
                     key={speed}
                     variant="ghost"
                     size="sm"
-                    className={`h-6 px-1.5 text-[10px] min-w-[28px] min-h-[24px] ${store.gameSpeed === speed ? 'text-cyan-400 bg-cyan-900/20' : 'text-gray-500'}`}
-                    onClick={() => store.setGameSpeed(speed)}
+                    className={`h-6 px-1.5 text-[10px] min-w-[28px] min-h-[24px] ${gameSpeed === speed ? 'text-cyan-400 bg-cyan-900/20' : 'text-gray-500'}`}
+                    onClick={() => setGameSpeed(speed)}
                   >
                     {speed}x
                   </Button>
@@ -746,19 +841,19 @@ export default function Home() {
               </div>
 
               {/* Active events badge */}
-              {store.activeEvents.length > 0 && (
+              {activeEvents.length > 0 && (
                 <Badge variant="outline" className="text-[9px] border-orange-500/50 text-orange-400 bg-orange-900/20 px-1 py-0 h-5">
-                  {store.activeEvents[0].emoji} {store.activeEvents.length}
+                  <GameIcon icon={activeEvents[0].icon} size={12} className="inline-flex" /> {activeEvents.length}
                 </Badge>
               )}
 
               {/* Weather badge - mobile */}
               <Badge variant="outline" className={`text-[9px] px-1 py-0 h-5 ${
-                store.weather.current === 'clear'
+                weather.current === 'clear'
                   ? 'border-gray-700 text-gray-500 bg-gray-900/20'
                   : 'border-sky-500/50 text-sky-400 bg-sky-900/20'
               }`}>
-                {WEATHER_DEFS[store.weather.current]?.emoji}
+                <GameIcon icon={WEATHER_DEFS[weather.current]?.icon} size={12} className="inline-flex" />
               </Badge>
 
               {/* Export */}
@@ -777,42 +872,47 @@ export default function Home() {
               </Button>
             </div>
           </div>
-        </header>
-
-        {/* News Ticker - desktop only */}
-        <div className="hidden lg:block bg-[#0a0e17] border-b border-cyan-900/20 overflow-hidden h-6">
-          <div className="flex items-center h-full px-3">
-            <span className="text-[10px] text-cyan-400 font-bold mr-3 flex-shrink-0">📰 NEWS</span>
-            <div className="overflow-hidden flex-1 relative">
-              <div className="news-ticker-content text-[10px] text-gray-400">
-                {store.notifications.slice(0, 8).map((n, i) => (
-                  <span key={n.id}>
-                    {i > 0 && <span className="text-cyan-700 mx-3">•</span>}
-                    {n.message}
-                  </span>
-                ))}
-                {store.notifications.length === 0 && 'Welcome to Factory Dominion! Build your first Mining Drill to start producing resources.'}
+          {/* News Ticker - desktop only, inside fixed header */}
+          <div className="hidden lg:block bg-[#0a0e17] border-t border-cyan-900/20 overflow-hidden h-6">
+            <div className="flex items-center h-full px-3">
+              <span className="text-[10px] text-cyan-400 font-bold mr-3 flex-shrink-0">📰 NEWS</span>
+              <div className="overflow-hidden flex-1 relative">
+                <div className="news-ticker-content text-[10px] text-gray-400">
+                  {notifications.slice(0, 8).map((n, i) => (
+                    <span key={n.id}>
+                      {i > 0 && <span className="text-cyan-700 mx-3">•</span>}
+                      {n.message}
+                    </span>
+                  ))}
+                  {notifications.length === 0 && 'Welcome to Factory Dominion! Build your first Mining Drill to start producing resources.'}
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </header>
+
+        {/* Spacer for fixed header — height tracks header dynamically via ResizeObserver */}
+        <div className="flex-shrink-0" style={{ height: headerHeight }} />
 
         {/* MAIN CONTENT */}
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 min-h-0 overflow-hidden">
           {/* SIDEBAR NAV - desktop only (grouped categories) */}
-          <GameSidebar activeTab={store.activeTab} onTabChange={store.setActiveTab} />
+          <GameSidebar activeTab={activeTab} onTabChange={setActiveTab} />
 
           {/* PANEL AREA */}
-          <main className="flex-1 overflow-y-auto game-scrollbar p-2 lg:p-4 game-grid-bg relative">
+          <main className="flex-1 min-h-0 overflow-y-auto game-scrollbar p-2 lg:p-4 game-grid-bg relative pb-24 lg:pb-4">
             <AmbientParticles />
-            <div className="relative z-10 game-content-appear" key={store.activeTab}>
+            <div className="relative z-10 game-content-appear" key={activeTab}>
               {renderPanel()}
             </div>
           </main>
         </div>
 
-        {/* MOBILE NAVIGATION - category-based instead of More overflow */}
-        <MobileNav activeTab={store.activeTab} onTabChange={store.setActiveTab} />
+        {/* Fixed bottom navigation (mobile only) */}
+        <BottomNavigationBar activeTab={activeTab} onTabChange={setActiveTab} />
+
+        {/* Floating action button (mobile only) */}
+        <FloatingActionButton onTabChange={setActiveTab} />
 
         {/* Floating production numbers */}
         <FloatingNumbers />
@@ -821,7 +921,7 @@ export default function Home() {
 
       {/* Export Save Dialog - full-screen on mobile */}
       <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
-        <DialogContent className="bg-[#111827] border-cyan-900/30 text-gray-100 max-w-lg w-[calc(100%-1rem)] lg:w-full h-auto lg:h-auto max-h-[90vh] lg:max-h-none p-4 lg:p-6">
+        <DialogContent className="bg-card border-cyan-900/30 text-gray-100 max-w-lg w-[calc(100%-1rem)] lg:w-full h-auto lg:h-auto max-h-[90vh] lg:max-h-none p-4 lg:p-6">
           <DialogHeader>
             <DialogTitle className="text-cyan-400 flex items-center gap-2 text-sm lg:text-base">
               <Download className="w-4 h-4" /> Export Save
@@ -868,7 +968,7 @@ export default function Home() {
 
       {/* Import Save Dialog - full-screen on mobile */}
       <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
-        <DialogContent className="bg-[#111827] border-cyan-900/30 text-gray-100 max-w-lg w-[calc(100%-1rem)] lg:w-full h-auto lg:h-auto max-h-[90vh] lg:max-h-none p-4 lg:p-6">
+        <DialogContent className="bg-card border-cyan-900/30 text-gray-100 max-w-lg w-[calc(100%-1rem)] lg:w-full h-auto lg:h-auto max-h-[90vh] lg:max-h-none p-4 lg:p-6">
           <DialogHeader>
             <DialogTitle className="text-cyan-400 flex items-center gap-2 text-sm lg:text-base">
               <Upload className="w-4 h-4" /> Import Save
@@ -915,7 +1015,7 @@ export default function Home() {
 
       {/* Offline Earnings Dialog */}
       <Dialog open={offlineDialogOpen} onOpenChange={setOfflineDialogOpen}>
-        <DialogContent className="bg-[#111827] border-cyan-900/30 text-gray-100 max-w-md w-[calc(100%-1rem)] p-5">
+        <DialogContent className="bg-card border-cyan-900/30 text-gray-100 max-w-md w-[calc(100%-1rem)] p-5">
           <DialogHeader>
             <DialogTitle className="text-cyan-400 flex items-center gap-2 text-lg">
               <span className="text-2xl">👋</span> Welcome Back!
@@ -964,7 +1064,7 @@ export default function Home() {
                       return (
                         <div key={resource} className="flex items-center justify-between text-xs">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-sm">{meta?.emoji ?? '📦'}</span>
+                            <span className="text-sm inline-flex items-center"><GameIcon icon={meta?.icon} size={16} /></span>
                             <span className="text-gray-300">{meta?.name ?? resource}</span>
                           </div>
                           <span className="text-cyan-400 font-mono">+{formatNumber(amount)}</span>
@@ -988,7 +1088,7 @@ export default function Home() {
                 className="w-full bg-cyan-600 hover:bg-cyan-700 text-white min-h-[44px]"
                 onClick={() => {
                   if (offlineData) {
-                    store.collectOfflineProgress(offlineData as { resources: Record<string, number>; money: number; ticksElapsed: number });
+                    useGameStore.getState().collectOfflineProgress(offlineData as { resources: Record<string, number>; money: number; ticksElapsed: number });
                     setOfflineDialogOpen(false);
                     setOfflineData(null);
                   }

@@ -10,6 +10,7 @@ import {
   ArrowUpRight, Zap, TrendingUp, FlaskConical, Package,
   Database, Shield, Factory, AlertTriangle, ChevronRight
 } from 'lucide-react';
+import { GameIcon } from './shared/GameIcon';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
   DialogDescription, DialogFooter, DialogClose
@@ -17,7 +18,6 @@ import {
 import {
   Tooltip, TooltipTrigger, TooltipContent
 } from '@/components/ui/tooltip';
-import { motion, AnimatePresence } from 'framer-motion';
 
 export function PrestigePanel() {
   const store = useGameStore();
@@ -162,7 +162,7 @@ export function PrestigePanel() {
       </div>
 
       {/* Progress Indicator - toward next CP */}
-      <div className="game-card rounded-xl bg-[#111827] p-4 border border-fuchsia-900/20">
+      <div className="game-card rounded-xl bg-card p-4 border border-fuchsia-900/20">
         <div className="flex items-center gap-2 mb-2">
           <Star className="w-4 h-4 text-fuchsia-400" />
           <h3 className="text-sm font-semibold text-fuchsia-400">Progress to Next CP</h3>
@@ -170,7 +170,7 @@ export function PrestigePanel() {
         </div>
         <div className="h-3 bg-gray-800 rounded-full overflow-hidden mb-2">
           <div
-            className="h-full rounded-full transition-all duration-700 bg-gradient-to-r from-fuchsia-600 to-fuchsia-400"
+            className="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-fuchsia-600 to-fuchsia-400"
             style={{ width: `${Math.min(100, (pointsEarned / Math.max(1, pointsEarned + 2)) * 100)}%` }}
           >
             <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent" />
@@ -194,10 +194,10 @@ export function PrestigePanel() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Main Prestige Card */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="game-card rounded-xl bg-[#111827] p-6 border border-fuchsia-900/30">
+          <div className="game-card rounded-xl bg-card p-6 border border-fuchsia-900/30">
             <div className="text-center mb-6">
-              <div className="w-20 h-20 rounded-2xl bg-fuchsia-900/20 flex items-center justify-center text-4xl mx-auto mb-3 neon-pulse">
-                🌍
+              <div className="w-20 h-20 rounded-2xl bg-fuchsia-900/20 flex items-center justify-center mx-auto mb-3 neon-pulse">
+                <GameIcon icon="gi:planet-core" size={48} />
               </div>
               <h3 className="text-lg font-bold text-fuchsia-400 neon-glow-cyan">Global Expansion</h3>
               <p className="text-xs text-gray-400 mt-1 max-w-md mx-auto">
@@ -209,7 +209,7 @@ export function PrestigePanel() {
             {/* What you keep */}
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div className="bg-green-900/10 rounded-lg p-3 border border-green-900/30">
-                <div className="text-[10px] text-green-400 font-medium mb-1">✅ You Keep</div>
+                <div className="text-[10px] text-green-400 font-medium mb-1"><GameIcon icon="gi:check-mark" size={12} className="inline" /> You Keep</div>
                 <ul className="text-[11px] text-gray-400 space-y-0.5">
                   <li>• Completed research</li>
                   <li>• Corporation Points</li>
@@ -218,7 +218,7 @@ export function PrestigePanel() {
                 </ul>
               </div>
               <div className="bg-red-900/10 rounded-lg p-3 border border-red-900/30">
-                <div className="text-[10px] text-red-400 font-medium mb-1">❌ You Lose</div>
+                <div className="text-[10px] text-red-400 font-medium mb-1"><GameIcon icon="gi:cross-mark" size={12} className="inline" /> You Lose</div>
                 <ul className="text-[11px] text-gray-400 space-y-0.5">
                   <li>• All buildings</li>
                   <li>• All resources</li>
@@ -255,7 +255,7 @@ export function PrestigePanel() {
           </div>
 
           {/* Prestige Bonuses with Tooltips */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
               <Star className="w-4 h-4 text-fuchsia-400" />
               <h3 className="text-sm font-semibold text-fuchsia-400">Permanent Bonuses</h3>
@@ -271,7 +271,7 @@ export function PrestigePanel() {
                   <Tooltip key={bonus.id}>
                     <TooltipTrigger asChild>
                       <div
-                        className={`rounded-lg p-3 border transition-all cursor-help ${
+                        className={`rounded-lg p-3 border cursor-help ${
                           bonus.purchased
                             ? 'bg-fuchsia-900/10 border-fuchsia-900/30'
                             : canAfford
@@ -294,7 +294,7 @@ export function PrestigePanel() {
                           <Button
                             onClick={(e) => { e.stopPropagation(); store.purchasePrestigeBonus(bonus.id); }}
                             disabled={!canAfford}
-                            className={`w-full mt-2 text-[10px] h-6 ${
+                            className={`w-full mt-2 text-[10px] h-6 min-h-[36px] ${
                               canAfford ? 'bg-fuchsia-600 hover:bg-fuchsia-500 text-white' : 'bg-gray-800 text-gray-500'
                             }`}
                             size="sm"
@@ -304,7 +304,7 @@ export function PrestigePanel() {
                         )}
                         {bonus.purchased && (
                           <div className="mt-2 text-center text-[10px] text-fuchsia-400/60">
-                            ✅ Active
+                            <GameIcon icon="gi:check-mark" size={12} className="inline" /> Active
                           </div>
                         )}
                       </div>
@@ -338,7 +338,7 @@ export function PrestigePanel() {
         {/* Sidebar */}
         <div className="space-y-4">
           {/* Current Stats */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
               <Award className="w-4 h-4 text-fuchsia-400" />
               <h3 className="text-sm font-semibold text-fuchsia-400">Expansion Stats</h3>
@@ -373,7 +373,7 @@ export function PrestigePanel() {
 
           {/* Active Bonuses Summary */}
           {purchasedBonuses > 0 && (
-            <div className="game-card rounded-xl bg-[#111827] p-4 border border-fuchsia-900/30">
+            <div className="game-card rounded-xl bg-card p-4 border border-fuchsia-900/30">
               <div className="flex items-center gap-2 mb-3">
                 <Zap className="w-4 h-4 text-green-400" />
                 <h3 className="text-sm font-semibold text-green-400">Active Bonuses</h3>
@@ -390,7 +390,7 @@ export function PrestigePanel() {
           )}
 
           {/* Strategy Tips */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
               <Rocket className="w-4 h-4 text-gray-400" />
               <h3 className="text-sm font-semibold text-gray-400">Strategy Tips</h3>
@@ -410,11 +410,11 @@ export function PrestigePanel() {
 
       {/* Prestige Preview Dialog */}
       <Dialog open={showPrestigeDialog} onOpenChange={handleDialogClose}>
-        <DialogContent className="bg-[#111827] border-fuchsia-900/50 text-gray-200 max-w-md">
+        <DialogContent className="bg-card border-fuchsia-900/50 text-gray-200 max-w-md">
           <DialogHeader>
             <DialogTitle className="text-fuchsia-400 flex items-center gap-2">
               <Globe className="w-5 h-5" />
-              {confirmStep === 0 ? 'Confirm Global Expansion' : '⚠️ Double Confirm'}
+              {confirmStep === 0 ? 'Confirm Global Expansion' : <><GameIcon icon="gi:hazard-sign" size={14} className="inline" /> Double Confirm</>}
             </DialogTitle>
             <DialogDescription className="text-gray-400">
               {confirmStep === 0
@@ -432,7 +432,7 @@ export function PrestigePanel() {
 
             {/* What you keep */}
             <div className="bg-green-900/10 rounded-lg p-3 border border-green-900/30">
-              <div className="text-[10px] text-green-400 font-medium mb-1">✅ You will keep</div>
+              <div className="text-[10px] text-green-400 font-medium mb-1"><GameIcon icon="gi:check-mark" size={12} className="inline" /> You will keep</div>
               <ul className="text-[11px] text-gray-400 space-y-0.5">
                 <li>• Completed research ({store.completedResearch.length} nodes)</li>
                 <li>• Corporation Points ({store.prestigeState.corporationPoints} + {pointsEarned} new)</li>
@@ -443,7 +443,7 @@ export function PrestigePanel() {
 
             {/* What you lose */}
             <div className="bg-red-900/10 rounded-lg p-3 border border-red-900/30">
-              <div className="text-[10px] text-red-400 font-medium mb-1">❌ You will lose</div>
+              <div className="text-[10px] text-red-400 font-medium mb-1"><GameIcon icon="gi:cross-mark" size={12} className="inline" /> You will lose</div>
               <ul className="text-[11px] text-gray-400 space-y-0.5">
                 <li>• All {store.buildings.length} buildings</li>
                 <li>• All resources</li>
@@ -455,7 +455,7 @@ export function PrestigePanel() {
             {/* Permanent bonuses that will apply */}
             {purchasedBonuses > 0 && (
               <div className="bg-fuchsia-900/10 rounded-lg p-3 border border-fuchsia-900/30">
-                <div className="text-[10px] text-fuchsia-400 font-medium mb-1">🌟 Permanent bonuses will apply</div>
+                <div className="text-[10px] text-fuchsia-400 font-medium mb-1"><GameIcon icon="gi:sparkles" size={12} className="inline" /> Permanent bonuses will apply</div>
                 <div className="space-y-0.5">
                   {store.prestigeState.bonuses.filter(b => b.purchased).map(bonus => (
                     <div key={bonus.id} className="text-[11px] text-gray-400">
@@ -468,15 +468,13 @@ export function PrestigePanel() {
 
             {/* Double-confirm warning */}
             {confirmStep === 1 && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
+              <div
                 className="bg-red-900/20 rounded-lg p-3 border border-red-600/50 text-center"
               >
                 <AlertTriangle className="w-6 h-6 text-red-400 mx-auto mb-2" />
                 <p className="text-sm text-red-400 font-bold">FINAL WARNING</p>
                 <p className="text-xs text-gray-400 mt-1">Click &quot;Confirm Expansion&quot; to permanently reset your factory.</p>
-              </motion.div>
+              </div>
             )}
           </div>
 

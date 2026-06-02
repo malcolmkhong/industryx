@@ -3,71 +3,71 @@
 // Game Data Definitions
 // ============================================
 
-import { BuildingDefinition, TransportDefinition, WorkerDefinition, ResearchNode, MarketPrice, AutomationUnlock, PrestigeBonus, ResourceType, MegaProject, DailyReward, WeatherType, WeatherDefinition, Quest, ContractDifficulty, CONTRACT_DIFFICULTY_META, ContractReward, CostResourceType, Contract, ResourceAmount, ContractType, ContractTypeTemplate, ContractTierRules, ContractValidationResult, BuildingInstance, BuildingFootprint, BuildingFootprintSize, Region, RegionId, GridTile } from './types';
+import { BuildingDefinition, TransportDefinition, WorkerDefinition, ResearchNode, MarketPrice, AutomationUnlock, PrestigeBonus, ResourceType, MegaProject, DailyReward, WeatherType, WeatherDefinition, Quest } from './types';
 
 // --- Resource Metadata ---
-export const RESOURCE_META: Record<ResourceType, { name: string; emoji: string; tier: number; color: string }> = {
+export const RESOURCE_META: Record<ResourceType, { name: string; icon: string; tier: number; color: string }> = {
   // Raw
-  iron: { name: 'Iron Ore', emoji: '⛏️', tier: 0, color: '#a0a0a0' },
-  copper: { name: 'Copper Ore', emoji: '🟤', tier: 0, color: '#b87333' },
-  coal: { name: 'Coal', emoji: '🖤', tier: 0, color: '#333333' },
-  oil: { name: 'Crude Oil', emoji: '🛢️', tier: 0, color: '#1a1a2e' },
-  sand: { name: 'Sand', emoji: '🏖️', tier: 0, color: '#c2b280' },
-  lithium: { name: 'Lithium', emoji: '💎', tier: 0, color: '#7b68ee' },
-  water: { name: 'Water', emoji: '💧', tier: 0, color: '#4488ff' },
-  rareEarth: { name: 'Rare Earth', emoji: '✨', tier: 0, color: '#9932cc' },
-  clay: { name: 'Clay', emoji: '🧱', tier: 0, color: '#c2855a' },
-  limestone: { name: 'Limestone', emoji: '🪨', tier: 0, color: '#d4c5a9' },
-  gravel: { name: 'Gravel', emoji: '🪨', tier: 0, color: '#8b8b8b' },
-  bauxite: { name: 'Bauxite', emoji: '🟫', tier: 0, color: '#cd853f' },
-  wolframite: { name: 'Wolframite', emoji: '⬛', tier: 0, color: '#4a4a4a' },
+  iron: { name: 'Iron Ore', icon: 'gi:mine-wagon', tier: 0, color: '#a0a0a0' },
+  copper: { name: 'Copper Ore', icon: 'gi:ore', tier: 0, color: '#b87333' },
+  coal: { name: 'Coal', icon: 'gi:coal-wagon', tier: 0, color: '#333333' },
+  oil: { name: 'Crude Oil', icon: 'gi:oil-rig', tier: 0, color: '#1a1a2e' },
+  sand: { name: 'Sand', icon: 'gi:desert', tier: 0, color: '#c2b280' },
+  lithium: { name: 'Lithium', icon: 'gi:crystal-cluster', tier: 0, color: '#7b68ee' },
+  water: { name: 'Water', icon: 'gi:water-drop', tier: 0, color: '#4488ff' },
+  rareEarth: { name: 'Rare Earth', icon: 'gi:sparkles', tier: 0, color: '#9932cc' },
+  clay: { name: 'Clay', icon: 'gi:brick-pile', tier: 0, color: '#c2855a' },
+  limestone: { name: 'Limestone', icon: 'gi:stone-pile', tier: 0, color: '#d4c5a9' },
+  gravel: { name: 'Gravel', icon: 'gi:stone-block', tier: 0, color: '#8b8b8b' },
+  bauxite: { name: 'Bauxite', icon: 'gi:peaks', tier: 0, color: '#cd853f' },
+  wolframite: { name: 'Wolframite', icon: 'gi:dark-squad', tier: 0, color: '#4a4a4a' },
   // Tier 1
-  ironPlate: { name: 'Iron Plate', emoji: '🔩', tier: 1, color: '#c0c0c0' },
-  copperWire: { name: 'Copper Wire', emoji: '🔌', tier: 1, color: '#daa520' },
-  plastic: { name: 'Plastic', emoji: '🧴', tier: 1, color: '#ff6b6b' },
-  glass: { name: 'Glass', emoji: '🪟', tier: 1, color: '#87ceeb' },
-  carbon: { name: 'Carbon Fiber', emoji: '🖤', tier: 1, color: '#2d2d2d' },
-  bricks: { name: 'Bricks', emoji: '🧱', tier: 1, color: '#b5533a' },
-  concrete: { name: 'Concrete', emoji: '🏗️', tier: 1, color: '#95a5a6' },
-  fertilizer: { name: 'Fertilizer', emoji: '🌱', tier: 1, color: '#7cb342' },
-  steel: { name: 'Steel', emoji: '🛡️', tier: 1, color: '#708090' },
-  fossilFuel: { name: 'Fossil Fuel', emoji: '⛽', tier: 1, color: '#3e2723' },
+  ironPlate: { name: 'Iron Plate', icon: 'gi:metal-plate', tier: 1, color: '#c0c0c0' },
+  copperWire: { name: 'Copper Wire', icon: 'gi:electric', tier: 1, color: '#daa520' },
+  plastic: { name: 'Plastic', icon: 'gi:plastic-duck', tier: 1, color: '#ff6b6b' },
+  glass: { name: 'Glass', icon: 'gi:glass-celebration', tier: 1, color: '#87ceeb' },
+  carbon: { name: 'Carbon Fiber', icon: 'gi:coal-pile', tier: 1, color: '#2d2d2d' },
+  bricks: { name: 'Bricks', icon: 'gi:brick-wall', tier: 1, color: '#b5533a' },
+  concrete: { name: 'Concrete', icon: 'gi:concrete-bag', tier: 1, color: '#95a5a6' },
+  fertilizer: { name: 'Fertilizer', icon: 'gi:fertilizer-bag', tier: 1, color: '#7cb342' },
+  steel: { name: 'Steel', icon: 'gi:steel-claws', tier: 1, color: '#708090' },
+  fossilFuel: { name: 'Fossil Fuel', icon: 'gi:fuel-tank', tier: 1, color: '#3e2723' },
   // Tier 2
-  circuit: { name: 'Circuit Board', emoji: '💚', tier: 2, color: '#00cc66' },
-  engine: { name: 'Engine', emoji: '🔧', tier: 2, color: '#ff8c00' },
-  battery: { name: 'Battery', emoji: '🔋', tier: 2, color: '#32cd32' },
-  gear: { name: 'Gear', emoji: '⚙️', tier: 2, color: '#808080' },
-  silicon: { name: 'Silicon', emoji: '💠', tier: 2, color: '#8db4e2' },
-  aluminium: { name: 'Aluminium', emoji: '🪙', tier: 2, color: '#c0c0c0' },
-  insecticide: { name: 'Insecticide', emoji: '🧪', tier: 2, color: '#76ff03' },
-  copperIngot: { name: 'Copper Ingot', emoji: '🟠', tier: 2, color: '#e67e22' },
-  titanium: { name: 'Titanium', emoji: '🔷', tier: 2, color: '#778899' },
-  coolant: { name: 'Coolant', emoji: '❄️', tier: 2, color: '#00bfff' },
-  fiberOptics: { name: 'Fiber Optics', emoji: '💡', tier: 2, color: '#f0e68c' },
-  solarCell: { name: 'Solar Cell', emoji: '☀️', tier: 2, color: '#ffd700' },
+  circuit: { name: 'Circuit Board', icon: 'gi:circuitry', tier: 2, color: '#00cc66' },
+  engine: { name: 'Engine', icon: 'gi:gear-stick', tier: 2, color: '#ff8c00' },
+  battery: { name: 'Battery', icon: 'gi:battery-75', tier: 2, color: '#32cd32' },
+  gear: { name: 'Gear', icon: 'gi:big-gear', tier: 2, color: '#808080' },
+  silicon: { name: 'Silicon', icon: 'gi:processor', tier: 2, color: '#8db4e2' },
+  aluminium: { name: 'Aluminium', icon: 'gi:metal-disc', tier: 2, color: '#c0c0c0' },
+  insecticide: { name: 'Insecticide', icon: 'gi:poison', tier: 2, color: '#76ff03' },
+  copperIngot: { name: 'Copper Ingot', icon: 'gi:gold-bar', tier: 2, color: '#e67e22' },
+  titanium: { name: 'Titanium', icon: 'gi:shield-impact', tier: 2, color: '#778899' },
+  coolant: { name: 'Coolant', icon: 'gi:snowflake-2', tier: 2, color: '#00bfff' },
+  fiberOptics: { name: 'Fiber Optics', icon: 'gi:laser-burst', tier: 2, color: '#f0e68c' },
+  solarCell: { name: 'Solar Cell', icon: 'gi:solar-power', tier: 2, color: '#ffd700' },
   // Tier 3
-  aiChip: { name: 'AI Chip', emoji: '🧠', tier: 3, color: '#00ffff' },
-  robotics: { name: 'Robotics', emoji: '🤖', tier: 3, color: '#ff69b4' },
-  quantumPart: { name: 'Quantum Part', emoji: '⚛️', tier: 3, color: '#9400d3' },
-  advancedAlloy: { name: 'Adv. Alloy', emoji: '💠', tier: 3, color: '#4169e1' },
-  nanoMaterial: { name: 'Nano Material', emoji: '🔮', tier: 3, color: '#ff1493' },
-  electronics: { name: 'Electronics', emoji: '📱', tier: 3, color: '#00cc66' },
-  medicalTech: { name: 'Medical Tech', emoji: '🏥', tier: 3, color: '#ff6b6b' },
-  jewellery: { name: 'Jewellery', emoji: '💎', tier: 3, color: '#e91e63' },
-  tungsten: { name: 'Tungsten', emoji: '⬛', tier: 3, color: '#5c5c5c' },
-  weapons: { name: 'Weapons', emoji: '🔫', tier: 3, color: '#b71c1c' },
-  scanDrone: { name: 'Scan Drone', emoji: '🛸', tier: 3, color: '#00e5ff' },
-  artifactDetector: { name: 'Artifact Detector', emoji: '📡', tier: 3, color: '#ff6f00' },
-  neuralNetwork: { name: 'Neural Network', emoji: '🌐', tier: 3, color: '#ff6347' },
+  aiChip: { name: 'AI Chip', icon: 'gi:brain', tier: 3, color: '#00ffff' },
+  robotics: { name: 'Robotics', icon: 'gi:robot-grab', tier: 3, color: '#ff69b4' },
+  quantumPart: { name: 'Quantum Part', icon: 'gi:atom', tier: 3, color: '#9400d3' },
+  advancedAlloy: { name: 'Adv. Alloy', icon: 'gi:metal-bar', tier: 3, color: '#4169e1' },
+  nanoMaterial: { name: 'Nano Material', icon: 'gi:nano-bot', tier: 3, color: '#ff1493' },
+  electronics: { name: 'Electronics', icon: 'gi:smartphone', tier: 3, color: '#00cc66' },
+  medicalTech: { name: 'Medical Tech', icon: 'gi:hospital-cross', tier: 3, color: '#ff6b6b' },
+  jewellery: { name: 'Jewellery', icon: 'gi:diamond-ring', tier: 3, color: '#e91e63' },
+  tungsten: { name: 'Tungsten', icon: 'gi:iron-cross', tier: 3, color: '#5c5c5c' },
+  weapons: { name: 'Weapons', icon: 'gi:ak47', tier: 3, color: '#b71c1c' },
+  scanDrone: { name: 'Scan Drone', icon: 'gi:space-shuttle', tier: 3, color: '#00e5ff' },
+  artifactDetector: { name: 'Artifact Detector', icon: 'gi:satellite', tier: 3, color: '#ff6f00' },
+  neuralNetwork: { name: 'Neural Network', icon: 'gi:thought-bubble', tier: 3, color: '#ff6347' },
   // Tier 4
-  singularityCore: { name: 'Singularity Core', emoji: '🌀', tier: 4, color: '#00ffcc' },
-  darkMatterCell: { name: 'Dark Matter Cell', emoji: '🕳️', tier: 4, color: '#1a0033' },
-  warpDrive: { name: 'Warp Drive', emoji: '🚀', tier: 4, color: '#ff4500' },
-  antimatter: { name: 'Antimatter', emoji: '⚡', tier: 4, color: '#ff00ff' },
-  chronoPart: { name: 'Chrono Part', emoji: '⏳', tier: 4, color: '#ffd700' },
-  plasmaCore: { name: 'Plasma Core', emoji: '🔥', tier: 4, color: '#ff6600' },
-  megaStructure: { name: 'Mega Structure', emoji: '🏗️', tier: 4, color: '#4169e1' },
-  voidCrystal: { name: 'Void Crystal', emoji: '💎', tier: 4, color: '#9400d3' },
+  singularityCore: { name: 'Singularity Core', icon: 'gi:vortex', tier: 4, color: '#00ffcc' },
+  darkMatterCell: { name: 'Dark Matter Cell', icon: 'gi:hole', tier: 4, color: '#1a0033' },
+  warpDrive: { name: 'Warp Drive', icon: 'gi:rocket-thruster', tier: 4, color: '#ff4500' },
+  antimatter: { name: 'Antimatter', icon: 'gi:lightning-frequency', tier: 4, color: '#ff00ff' },
+  chronoPart: { name: 'Chrono Part', icon: 'gi:hourglass', tier: 4, color: '#ffd700' },
+  plasmaCore: { name: 'Plasma Core', icon: 'gi:flame-tunnel', tier: 4, color: '#ff6600' },
+  megaStructure: { name: 'Mega Structure', icon: 'gi:castle', tier: 4, color: '#4169e1' },
+  voidCrystal: { name: 'Void Crystal', icon: 'gi:implosion', tier: 4, color: '#9400d3' },
 };
 
 // --- Building Definitions ---
@@ -85,7 +85,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     basePowerProduction: 0,
     baseProductionRate: 2,
     outputs: [{ resource: 'iron', amount: 1 }, { resource: 'copper', amount: 0.3 }, { resource: 'coal', amount: 0.5 }],
-    emoji: '⛏️',
+    icon: 'gi:mining',
   },
   oilPump: {
     type: 'oilPump',
@@ -99,7 +99,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     basePowerProduction: 0,
     baseProductionRate: 1.5,
     outputs: [{ resource: 'oil', amount: 1 }],
-    emoji: '🛢️',
+    icon: 'gi:oil-rig',
   },
   waterExtractor: {
     type: 'waterExtractor',
@@ -113,7 +113,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     basePowerProduction: 0,
     baseProductionRate: 3,
     outputs: [{ resource: 'water', amount: 1 }],
-    emoji: '💧',
+    icon: 'gi:water-recycling',
   },
   quarry: {
     type: 'quarry',
@@ -128,7 +128,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     baseProductionRate: 1,
     outputs: [{ resource: 'sand', amount: 0.8 }, { resource: 'lithium', amount: 0.4 }, { resource: 'rareEarth', amount: 0.2 }],
     unlockRequirement: { level: 5 },
-    emoji: '🏔️',
+    icon: 'gi:mountain-cave',
   },
   clayPit: {
     type: 'clayPit',
@@ -142,7 +142,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     basePowerProduction: 0,
     baseProductionRate: 3,
     outputs: [{ resource: 'clay', amount: 1 }],
-    emoji: '🧱',
+    icon: 'gi:clay-brick',
   },
   limestoneQuarry: {
     type: 'limestoneQuarry',
@@ -156,7 +156,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     basePowerProduction: 0,
     baseProductionRate: 2,
     outputs: [{ resource: 'limestone', amount: 1 }],
-    emoji: '🪨',
+    icon: 'gi:stone-bridge',
   },
   gravelPit: {
     type: 'gravelPit',
@@ -170,7 +170,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     basePowerProduction: 0,
     baseProductionRate: 2.5,
     outputs: [{ resource: 'gravel', amount: 1 }],
-    emoji: '🪨',
+    icon: 'gi:stone-crafting',
   },
   bauxiteMine: {
     type: 'bauxiteMine',
@@ -185,7 +185,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     baseProductionRate: 1,
     outputs: [{ resource: 'bauxite', amount: 1 }],
     unlockRequirement: { level: 8 },
-    emoji: '🟫',
+    icon: 'gi:mining-helmet',
   },
   wolframiteMine: {
     type: 'wolframiteMine',
@@ -200,7 +200,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     baseProductionRate: 0.5,
     outputs: [{ resource: 'wolframite', amount: 1 }],
     unlockRequirement: { research: 'advancedMetallurgy' },
-    emoji: '⬛',
+    icon: 'gi:obelisk',
   },
   rareEarthExtractor: {
     type: 'rareEarthExtractor',
@@ -215,7 +215,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     baseProductionRate: 0.8,
     outputs: [{ resource: 'rareEarth', amount: 1 }],
     unlockRequirement: { research: 'advancedMetallurgy' },
-    emoji: '✨',
+    icon: 'gi:crystal-shine',
   },
   // Tier 1 Factories
   smelter: {
@@ -231,7 +231,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     baseProductionRate: 1,
     inputs: [{ resource: 'iron', amount: 2 }],
     outputs: [{ resource: 'ironPlate', amount: 1 }],
-    emoji: '🔥',
+    icon: 'gi:furnace',
   },
   wireMill: {
     type: 'wireMill',
@@ -246,7 +246,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     baseProductionRate: 1,
     inputs: [{ resource: 'copper', amount: 1.5 }],
     outputs: [{ resource: 'copperWire', amount: 1 }],
-    emoji: '🔌',
+    icon: 'gi:wire-coil',
   },
   chemicalPlant: {
     type: 'chemicalPlant',
@@ -261,7 +261,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     baseProductionRate: 1,
     inputs: [{ resource: 'oil', amount: 1.5 }, { resource: 'water', amount: 1 }],
     outputs: [{ resource: 'plastic', amount: 1 }],
-    emoji: '🧪',
+    icon: 'gi:chemical-drop',
   },
   glassFurnace: {
     type: 'glassFurnace',
@@ -276,7 +276,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     baseProductionRate: 1,
     inputs: [{ resource: 'sand', amount: 2 }],
     outputs: [{ resource: 'glass', amount: 1 }],
-    emoji: '🪟',
+    icon: 'gi:glass-celebration',
   },
   steelForge: {
     type: 'steelForge',
@@ -291,7 +291,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     baseProductionRate: 1,
     inputs: [{ resource: 'iron', amount: 3 }, { resource: 'coal', amount: 2 }],
     outputs: [{ resource: 'steel', amount: 1 }],
-    emoji: '🛡️',
+    icon: 'gi:anvil-impact',
   },
   carbonProcessor: {
     type: 'carbonProcessor',
@@ -306,7 +306,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     baseProductionRate: 1,
     inputs: [{ resource: 'coal', amount: 3 }],
     outputs: [{ resource: 'carbon', amount: 1 }],
-    emoji: '🖤',
+    icon: 'gi:coal-pile',
   },
   brickFactory: {
     type: 'brickFactory',
@@ -321,7 +321,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     baseProductionRate: 1,
     inputs: [{ resource: 'clay', amount: 3 }],
     outputs: [{ resource: 'bricks', amount: 2 }],
-    emoji: '🧱',
+    icon: 'gi:brick-wall',
   },
   concreteFactory: {
     type: 'concreteFactory',
@@ -336,7 +336,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     baseProductionRate: 1,
     inputs: [{ resource: 'gravel', amount: 3 }, { resource: 'limestone', amount: 2 }],
     outputs: [{ resource: 'concrete', amount: 1 }],
-    emoji: '🏗️',
+    icon: 'gi:concrete-bag',
   },
   fertilizerFactory: {
     type: 'fertilizerFactory',
@@ -351,7 +351,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     baseProductionRate: 1,
     inputs: [{ resource: 'limestone', amount: 2 }, { resource: 'water', amount: 1 }],
     outputs: [{ resource: 'fertilizer', amount: 1 }],
-    emoji: '🌱',
+    icon: 'gi:seedling',
   },
   oilRefinery: {
     type: 'oilRefinery',
@@ -366,7 +366,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     baseProductionRate: 1,
     inputs: [{ resource: 'oil', amount: 2 }],
     outputs: [{ resource: 'fossilFuel', amount: 1 }],
-    emoji: '⛽',
+    icon: 'gi:refinery',
   },
   // Tier 2 Factories
   gearFactory: {
@@ -383,7 +383,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'ironPlate', amount: 2 }],
     outputs: [{ resource: 'gear', amount: 1 }],
     unlockRequirement: { research: 'basicMachining' },
-    emoji: '⚙️',
+    icon: 'gi:big-gear',
   },
   circuitFactory: {
     type: 'circuitFactory',
@@ -399,7 +399,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'copperWire', amount: 2 }, { resource: 'plastic', amount: 1 }, { resource: 'silicon', amount: 0.5 }],
     outputs: [{ resource: 'circuit', amount: 1 }],
     unlockRequirement: { research: 'electronics' },
-    emoji: '💚',
+    icon: 'gi:circuitry',
   },
   engineFactory: {
     type: 'engineFactory',
@@ -415,7 +415,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'gear', amount: 3 }, { resource: 'steel', amount: 2 }],
     outputs: [{ resource: 'engine', amount: 1 }],
     unlockRequirement: { research: 'mechanicalEngineering' },
-    emoji: '🔧',
+    icon: 'gi:gear-stick',
   },
   batteryFactory: {
     type: 'batteryFactory',
@@ -431,7 +431,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'lithium', amount: 2 }, { resource: 'carbon', amount: 1 }, { resource: 'aluminium', amount: 0.5 }],
     outputs: [{ resource: 'battery', amount: 1 }],
     unlockRequirement: { research: 'energyStorage' },
-    emoji: '🔋',
+    icon: 'gi:battery-75',
   },
   siliconRefinery: {
     type: 'siliconRefinery',
@@ -447,7 +447,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'sand', amount: 3 }, { resource: 'clay', amount: 1 }, { resource: 'fossilFuel', amount: 1 }],
     outputs: [{ resource: 'silicon', amount: 1 }],
     unlockRequirement: { research: 'electronics' },
-    emoji: '💠',
+    icon: 'gi:processor',
   },
   aluminiumFactory: {
     type: 'aluminiumFactory',
@@ -463,7 +463,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'bauxite', amount: 3 }],
     outputs: [{ resource: 'aluminium', amount: 1 }],
     unlockRequirement: { research: 'basicMachining' },
-    emoji: '🪙',
+    icon: 'gi:metal-disc',
   },
   insecticideFactory: {
     type: 'insecticideFactory',
@@ -479,7 +479,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'copper', amount: 1 }, { resource: 'limestone', amount: 1 }, { resource: 'fertilizer', amount: 1 }],
     outputs: [{ resource: 'insecticide', amount: 1 }],
     unlockRequirement: { research: 'basicMachining' },
-    emoji: '🧪',
+    icon: 'gi:poison',
   },
   copperRefinery: {
     type: 'copperRefinery',
@@ -495,7 +495,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'copper', amount: 3 }],
     outputs: [{ resource: 'copperIngot', amount: 1 }],
     unlockRequirement: { research: 'electronics' },
-    emoji: '🟠',
+    icon: 'gi:metal-scales',
   },
   titaniumRefinery: {
     type: 'titaniumRefinery',
@@ -511,7 +511,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'rareEarth', amount: 3 }, { resource: 'fossilFuel', amount: 1 }],
     outputs: [{ resource: 'titanium', amount: 1 }],
     unlockRequirement: { research: 'advancedMetallurgy' },
-    emoji: '🔷',
+    icon: 'gi:shield-impact',
   },
   coolantPlant: {
     type: 'coolantPlant',
@@ -526,7 +526,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     baseProductionRate: 1,
     inputs: [{ resource: 'water', amount: 2 }, { resource: 'oil', amount: 0.5 }],
     outputs: [{ resource: 'coolant', amount: 1 }],
-    emoji: '❄️',
+    icon: 'gi:snowflake-2',
   },
   opticsLab: {
     type: 'opticsLab',
@@ -542,7 +542,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'glass', amount: 2 }, { resource: 'copperWire', amount: 1 }],
     outputs: [{ resource: 'fiberOptics', amount: 1 }],
     unlockRequirement: { research: 'electronics' },
-    emoji: '💡',
+    icon: 'gi:laser-burst',
   },
   solarCellFactory: {
     type: 'solarCellFactory',
@@ -558,7 +558,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'glass', amount: 2 }, { resource: 'silicon', amount: 1 }],
     outputs: [{ resource: 'solarCell', amount: 1 }],
     unlockRequirement: { research: 'energyStorage' },
-    emoji: '☀️',
+    icon: 'gi:solar-power',
   },
   displayFactory: {
     type: 'displayFactory',
@@ -574,7 +574,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'glass', amount: 2 }, { resource: 'copperWire', amount: 1 }, { resource: 'plastic', amount: 1 }],
     outputs: [{ resource: 'fiberOptics', amount: 0.5 }, { resource: 'circuit', amount: 0.5 }],
     unlockRequirement: { research: 'electronics' },
-    emoji: '📺',
+    icon: 'gi:tv',
   },
   hydrogenPlant: {
     type: 'hydrogenPlant',
@@ -590,7 +590,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'water', amount: 3 }, { resource: 'carbon', amount: 1 }],
     outputs: [{ resource: 'fossilFuel', amount: 1 }, { resource: 'coolant', amount: 0.5 }],
     unlockRequirement: { research: 'energyStorage' },
-    emoji: '⛽',
+    icon: 'gi:h2o',
   },
   // Tier 3 Factories
   aiLab: {
@@ -607,7 +607,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'circuit', amount: 3 }, { resource: 'battery', amount: 2 }],
     outputs: [{ resource: 'aiChip', amount: 1 }],
     unlockRequirement: { research: 'artificialIntelligence' },
-    emoji: '🧠',
+    icon: 'gi:brain',
   },
   roboticsBay: {
     type: 'roboticsBay',
@@ -623,7 +623,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'aiChip', amount: 2 }, { resource: 'engine', amount: 1 }, { resource: 'electronics', amount: 1 }],
     outputs: [{ resource: 'robotics', amount: 1 }],
     unlockRequirement: { research: 'roboticsTech' },
-    emoji: '🤖',
+    icon: 'gi:robot-grab',
   },
   quantumLab: {
     type: 'quantumLab',
@@ -639,7 +639,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'aiChip', amount: 3 }, { resource: 'rareEarth', amount: 4 }, { resource: 'artifactDetector', amount: 1 }],
     outputs: [{ resource: 'quantumPart', amount: 1 }],
     unlockRequirement: { research: 'quantumPhysics' },
-    emoji: '⚛️',
+    icon: 'gi:atom',
   },
   alloyForge: {
     type: 'alloyForge',
@@ -655,7 +655,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'steel', amount: 3 }, { resource: 'lithium', amount: 2 }],
     outputs: [{ resource: 'advancedAlloy', amount: 1 }],
     unlockRequirement: { research: 'advancedMetallurgy' },
-    emoji: '💠',
+    icon: 'gi:metal-bar',
   },
   nanoLab: {
     type: 'nanoLab',
@@ -671,7 +671,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'advancedAlloy', amount: 2 }, { resource: 'quantumPart', amount: 1 }, { resource: 'neuralNetwork', amount: 0.5 }],
     outputs: [{ resource: 'nanoMaterial', amount: 1 }],
     unlockRequirement: { research: 'nanotechnology' },
-    emoji: '🔮',
+    icon: 'gi:nano-bot',
   },
   electronicsFactory: {
     type: 'electronicsFactory',
@@ -687,7 +687,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'circuit', amount: 2 }, { resource: 'plastic', amount: 1 }, { resource: 'silicon', amount: 1 }],
     outputs: [{ resource: 'electronics', amount: 1 }],
     unlockRequirement: { research: 'artificialIntelligence' },
-    emoji: '📱',
+    icon: 'gi:smartphone',
   },
   medicalTechLab: {
     type: 'medicalTechLab',
@@ -703,7 +703,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'titanium', amount: 1 }, { resource: 'plastic', amount: 1 }, { resource: 'electronics', amount: 1 }, { resource: 'insecticide', amount: 1 }],
     outputs: [{ resource: 'medicalTech', amount: 1 }],
     unlockRequirement: { research: 'advancedMetallurgy' },
-    emoji: '🏥',
+    icon: 'gi:hospital-cross',
   },
   goldsmith: {
     type: 'goldsmith',
@@ -719,7 +719,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'rareEarth', amount: 3 }, { resource: 'copperIngot', amount: 2 }],
     outputs: [{ resource: 'jewellery', amount: 1 }],
     unlockRequirement: { research: 'nanotechnology' },
-    emoji: '💎',
+    icon: 'gi:diamond-ring',
   },
   tungstenSmelter: {
     type: 'tungstenSmelter',
@@ -735,7 +735,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'wolframite', amount: 3 }, { resource: 'fossilFuel', amount: 1 }, { resource: 'limestone', amount: 1 }],
     outputs: [{ resource: 'tungsten', amount: 1 }],
     unlockRequirement: { research: 'advancedMetallurgy' },
-    emoji: '⬛',
+    icon: 'gi:iron-cross',
   },
   armsFactory: {
     type: 'armsFactory',
@@ -751,7 +751,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'steel', amount: 2 }, { resource: 'aluminium', amount: 1 }, { resource: 'battery', amount: 1 }],
     outputs: [{ resource: 'weapons', amount: 1 }],
     unlockRequirement: { research: 'mechanicalEngineering' },
-    emoji: '🔫',
+    icon: 'gi:ak47',
   },
   droneShipyard: {
     type: 'droneShipyard',
@@ -767,7 +767,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'electronics', amount: 2 }, { resource: 'titanium', amount: 1 }, { resource: 'battery', amount: 1 }, { resource: 'medicalTech', amount: 1 }],
     outputs: [{ resource: 'scanDrone', amount: 1 }],
     unlockRequirement: { research: 'roboticsTech' },
-    emoji: '🛸',
+    icon: 'gi:space-shuttle',
   },
   detectorFactory: {
     type: 'detectorFactory',
@@ -783,7 +783,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'battery', amount: 2 }, { resource: 'electronics', amount: 2 }, { resource: 'tungsten', amount: 1 }, { resource: 'scanDrone', amount: 1 }],
     outputs: [{ resource: 'artifactDetector', amount: 1 }],
     unlockRequirement: { research: 'quantumPhysics' },
-    emoji: '📡',
+    icon: 'gi:satellite',
   },
   neuralLab: {
     type: 'neuralLab',
@@ -799,7 +799,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'fiberOptics', amount: 3 }, { resource: 'aiChip', amount: 2 }],
     outputs: [{ resource: 'neuralNetwork', amount: 1 }],
     unlockRequirement: { research: 'artificialIntelligence' },
-    emoji: '🌐',
+    icon: 'gi:thought-bubble',
   },
   // Tier 4 Factories — Singularity & Beyond
   singularityForge: {
@@ -816,7 +816,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'quantumPart', amount: 2 }, { resource: 'nanoMaterial', amount: 1 }, { resource: 'aiChip', amount: 3 }],
     outputs: [{ resource: 'singularityCore', amount: 1 }],
     unlockRequirement: { research: 'singularityTheory' },
-    emoji: '🌀',
+    icon: 'gi:vortex',
   },
   darkMatterLab: {
     type: 'darkMatterLab',
@@ -832,7 +832,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'nanoMaterial', amount: 2 }, { resource: 'advancedAlloy', amount: 3 }, { resource: 'coolant', amount: 5 }],
     outputs: [{ resource: 'darkMatterCell', amount: 1 }],
     unlockRequirement: { research: 'voidCrystallography' },
-    emoji: '🕳️',
+    icon: 'gi:hole',
   },
   warpDriveFactory: {
     type: 'warpDriveFactory',
@@ -848,7 +848,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'engine', amount: 5 }, { resource: 'robotics', amount: 2 }, { resource: 'quantumPart', amount: 3 }, { resource: 'weapons', amount: 1 }],
     outputs: [{ resource: 'warpDrive', amount: 1 }],
     unlockRequirement: { research: 'warpTechnology' },
-    emoji: '🚀',
+    icon: 'gi:rocket-thruster',
   },
   antimatterReactor: {
     type: 'antimatterReactor',
@@ -864,7 +864,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'electronics', amount: 3 }, { resource: 'quantumPart', amount: 1 }, { resource: 'coolant', amount: 5 }, { resource: 'rareEarth', amount: 5 }],
     outputs: [{ resource: 'antimatter', amount: 1 }],
     unlockRequirement: { research: 'antimatterPhysics' },
-    emoji: '⚡',
+    icon: 'gi:lightning-frequency',
   },
   chronoLab: {
     type: 'chronoLab',
@@ -880,7 +880,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'singularityCore', amount: 2 }, { resource: 'neuralNetwork', amount: 3 }],
     outputs: [{ resource: 'chronoPart', amount: 1 }],
     unlockRequirement: { research: 'chronoEngineering' },
-    emoji: '⏳',
+    icon: 'gi:hourglass',
   },
   plasmaForge: {
     type: 'plasmaForge',
@@ -896,7 +896,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'advancedAlloy', amount: 3 }, { resource: 'fossilFuel', amount: 5 }, { resource: 'coolant', amount: 5 }, { resource: 'electronics', amount: 1 }],
     outputs: [{ resource: 'plasmaCore', amount: 1 }],
     unlockRequirement: { research: 'plasmaDynamics' },
-    emoji: '🔥',
+    icon: 'gi:flame-tunnel',
   },
   megaStructureFactory: {
     type: 'megaStructureFactory',
@@ -912,7 +912,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'concrete', amount: 8 }, { resource: 'bricks', amount: 5 }, { resource: 'steel', amount: 8 }, { resource: 'advancedAlloy', amount: 2 }, { resource: 'robotics', amount: 1 }],
     outputs: [{ resource: 'megaStructure', amount: 1 }],
     unlockRequirement: { research: 'megaConstruction' },
-    emoji: '🏗️',
+    icon: 'gi:castle',
   },
   voidCrystallizer: {
     type: 'voidCrystallizer',
@@ -928,7 +928,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     inputs: [{ resource: 'rareEarth', amount: 8 }, { resource: 'nanoMaterial', amount: 2 }, { resource: 'quantumPart', amount: 2 }, { resource: 'jewellery', amount: 1 }],
     outputs: [{ resource: 'voidCrystal', amount: 1 }],
     unlockRequirement: { research: 'voidCrystallography' },
-    emoji: '💎',
+    icon: 'gi:implosion',
   },
   // Tier 4 Endgame Buildings — Ultimate Production
   dysonCollector: {
@@ -943,7 +943,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     basePowerProduction: 500,
     baseProductionRate: 1,
     unlockRequirement: { research: 'dimensionalPhysics', prestige: 2 },
-    emoji: '☀️',
+    icon: 'gi:solar-system',
   },
   quantumTeleporter: {
     type: 'quantumTeleporter',
@@ -957,7 +957,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     basePowerProduction: 0,
     baseProductionRate: 1,
     unlockRequirement: { research: 'dimensionalPhysics', prestige: 2 },
-    emoji: '🌀',
+    icon: 'gi:teleport',
   },
   dimensionalGateway: {
     type: 'dimensionalGateway',
@@ -971,7 +971,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     basePowerProduction: 0,
     baseProductionRate: 1,
     unlockRequirement: { research: 'dimensionalPhysics', prestige: 3 },
-    emoji: '🕳️',
+    icon: 'gi:portal',
   },
   timeDistorter: {
     type: 'timeDistorter',
@@ -985,7 +985,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     basePowerProduction: 0,
     baseProductionRate: 1,
     unlockRequirement: { research: 'galacticManufacturing', prestige: 3 },
-    emoji: '⏳',
+    icon: 'gi:hourglass',
   },
   galacticForge: {
     type: 'galacticForge',
@@ -999,7 +999,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     basePowerProduction: 1000,
     baseProductionRate: 1,
     unlockRequirement: { research: 'galacticManufacturing', prestige: 5 },
-    emoji: '🌌',
+    icon: 'gi:galaxy',
   },
   // Power Plants
   coalGenerator: {
@@ -1015,7 +1015,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     baseProductionRate: 1,
     fuel: 'coal',
     fuelRate: 0.5,
-    emoji: '🏭',
+    icon: 'gi:factory',
   },
   solarPanel: {
     type: 'solarPanel',
@@ -1026,9 +1026,9 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     baseCost: [{ resource: 'money', amount: 600 }],
     costMultiplier: 1.1,
     basePowerConsumption: 0,
-    basePowerProduction: 12,
+    basePowerProduction: 8,
     baseProductionRate: 1,
-    emoji: '☀️',
+    icon: 'gi:solar-power',
   },
   windTurbine: {
     type: 'windTurbine',
@@ -1039,9 +1039,9 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     baseCost: [{ resource: 'money', amount: 800 }],
     costMultiplier: 1.1,
     basePowerConsumption: 0,
-    basePowerProduction: 16,
+    basePowerProduction: 12,
     baseProductionRate: 1,
-    emoji: '🌀',
+    icon: 'gi:wind-turbine',
   },
   nuclearReactor: {
     type: 'nuclearReactor',
@@ -1055,7 +1055,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     basePowerProduction: 100,
     baseProductionRate: 1,
     unlockRequirement: { research: 'nuclearPower' },
-    emoji: '☢️',
+    icon: 'gi:nuclear',
   },
   fusionReactor: {
     type: 'fusionReactor',
@@ -1069,7 +1069,7 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     basePowerProduction: 500,
     baseProductionRate: 1,
     unlockRequirement: { research: 'fusionEnergy' },
-    emoji: '🌟',
+    icon: 'gi:reactor',
   },
   antimatterPowerPlant: {
     type: 'antimatterPowerPlant',
@@ -1083,23 +1083,10 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     basePowerProduction: 2000,
     baseProductionRate: 1,
     fuel: 'antimatter',
-    fuelRate: 0.01,
+    fuelRate: 0.1,
     unlockRequirement: { research: 'antimatterPhysics' },
-    emoji: '⚡',
+    icon: 'gi:lightning-frequency',
   },
-};
-
-// --- Transport Evolution Hierarchy ---
-// conveyorBelt → pipe → truck → cargoTrain → drone → cargoShip
-export const TRANSPORT_EVOLUTION_CHAIN: TransportType[] = ['conveyorBelt', 'pipe', 'truck', 'cargoTrain', 'drone', 'cargoShip'];
-
-export const TRANSPORT_EVOLUTION_META: Record<TransportType, { tier: number; tierName: string; tierColor: string; tierBg: string }> = {
-  conveyorBelt: { tier: 0, tierName: 'Tier I', tierColor: '#9ca3af', tierBg: 'bg-gray-900/20' },
-  pipe:         { tier: 1, tierName: 'Tier II', tierColor: '#22d3ee', tierBg: 'bg-cyan-900/20' },
-  truck:        { tier: 2, tierName: 'Tier III', tierColor: '#4ade80', tierBg: 'bg-green-900/20' },
-  cargoTrain:   { tier: 3, tierName: 'Tier IV', tierColor: '#c084fc', tierBg: 'bg-purple-900/20' },
-  drone:        { tier: 4, tierName: 'Tier V', tierColor: '#38bdf8', tierBg: 'bg-sky-900/20' },
-  cargoShip:    { tier: 5, tierName: 'Tier VI', tierColor: '#fbbf24', tierBg: 'bg-yellow-900/20' },
 };
 
 // --- Transport Definitions ---
@@ -1111,11 +1098,7 @@ export const TRANSPORT_DEFS: Record<string, TransportDefinition> = {
     baseCost: [{ resource: 'money', amount: 100 }],
     baseThroughput: 5,
     upgradeMultiplier: 1.5,
-    emoji: '➡️',
-    evolutionTier: 0,
-    evolvesTo: 'pipe',
-    evolutionCost: 200,
-    evolutionBonus: '+60% throughput, liquid/gas transport',
+    icon: 'gi:tread',
   },
   pipe: {
     type: 'pipe',
@@ -1124,11 +1107,7 @@ export const TRANSPORT_DEFS: Record<string, TransportDefinition> = {
     baseCost: [{ resource: 'money', amount: 80 }],
     baseThroughput: 8,
     upgradeMultiplier: 1.4,
-    emoji: '🔧',
-    evolutionTier: 1,
-    evolvesTo: 'truck',
-    evolutionCost: 800,
-    evolutionBonus: '+87% throughput, motorized transport',
+    icon: 'gi:pipes',
   },
   truck: {
     type: 'truck',
@@ -1137,11 +1116,7 @@ export const TRANSPORT_DEFS: Record<string, TransportDefinition> = {
     baseCost: [{ resource: 'money', amount: 500 }],
     baseThroughput: 15,
     upgradeMultiplier: 1.6,
-    emoji: '🚚',
-    evolutionTier: 2,
-    evolvesTo: 'cargoTrain',
-    evolutionCost: 3000,
-    evolutionBonus: '+167% throughput, rail transport system',
+    icon: 'gi:cargo-ship',
   },
   cargoTrain: {
     type: 'cargoTrain',
@@ -1150,11 +1125,7 @@ export const TRANSPORT_DEFS: Record<string, TransportDefinition> = {
     baseCost: [{ resource: 'money', amount: 2000 }],
     baseThroughput: 40,
     upgradeMultiplier: 1.7,
-    emoji: '🚂',
-    evolutionTier: 3,
-    evolvesTo: 'drone',
-    evolutionCost: 5000,
-    evolutionBonus: 'Aerial flexibility, cross-region transport',
+    icon: 'gi:steam-locomotive',
   },
   drone: {
     type: 'drone',
@@ -1163,23 +1134,16 @@ export const TRANSPORT_DEFS: Record<string, TransportDefinition> = {
     baseCost: [{ resource: 'money', amount: 3000 }],
     baseThroughput: 10,
     upgradeMultiplier: 1.5,
-    emoji: '🚁',
-    evolutionTier: 4,
-    evolvesTo: 'cargoShip',
-    evolutionCost: 12000,
-    evolutionBonus: '+700% throughput, massive bulk capacity',
+    icon: 'gi:ufo',
   },
   cargoShip: {
     type: 'cargoShip',
     name: 'Cargo Ship',
-    description: 'Massive maritime transport for bulk materials — the pinnacle of logistics evolution',
+    description: 'Massive maritime transport for bulk materials',
     baseCost: [{ resource: 'money', amount: 8000 }],
     baseThroughput: 80,
     upgradeMultiplier: 1.8,
-    emoji: '🚢',
-    evolutionTier: 5,
-    evolutionCost: 0,
-    evolutionBonus: 'Maximum tier — no further evolution',
+    icon: 'gi:cargo-ship',
   },
 };
 
@@ -1196,7 +1160,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 30,
     prerequisites: [],
     effects: [{ type: 'productionSpeed', target: 'extractor', value: 0.15 }],
-    emoji: '🤖',
+    icon: 'gi:gear-hammer',
   },
   {
     id: 'advancedAutomation',
@@ -1208,7 +1172,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 60,
     prerequisites: ['basicAutomation'],
     effects: [{ type: 'productionSpeed', target: 'factory', value: 0.25 }],
-    emoji: '🦾',
+    icon: 'gi:mechanical-arm',
   },
   {
     id: 'basicMachining',
@@ -1220,7 +1184,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 45,
     prerequisites: [],
     effects: [{ type: 'unlockBuilding', target: 'gearFactory', value: 1 }],
-    emoji: '⚙️',
+    icon: 'gi:gear-hammer',
   },
   // Logistics
   {
@@ -1233,7 +1197,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 40,
     prerequisites: [],
     effects: [{ type: 'transportSpeed', value: 0.2 }],
-    emoji: '🚚',
+    icon: 'gi:truck',
   },
   {
     id: 'advancedLogistics',
@@ -1245,7 +1209,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 80,
     prerequisites: ['logistics1'],
     effects: [{ type: 'transportSpeed', value: 0.3 }, { type: 'unlockTransport', target: 'cargoTrain', value: 1 }],
-    emoji: '🚂',
+    icon: 'gi:steam-locomotive',
   },
   // Energy
   {
@@ -1258,7 +1222,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 35,
     prerequisites: [],
     effects: [{ type: 'powerEfficiency', value: 0.15 }],
-    emoji: '⚡',
+    icon: 'gi:lightning-storm',
   },
   {
     id: 'nuclearPower',
@@ -1270,7 +1234,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 120,
     prerequisites: ['energyEfficiency'],
     effects: [{ type: 'unlockBuilding', target: 'nuclearReactor', value: 1 }],
-    emoji: '☢️',
+    icon: 'gi:nuclear',
   },
   {
     id: 'fusionEnergy',
@@ -1282,7 +1246,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 300,
     prerequisites: ['nuclearPower', 'quantumPhysics'],
     effects: [{ type: 'unlockBuilding', target: 'fusionReactor', value: 1 }],
-    emoji: '🌟',
+    icon: 'gi:reactor',
   },
   // Electronics & AI
   {
@@ -1295,7 +1259,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 50,
     prerequisites: [],
     effects: [{ type: 'unlockBuilding', target: 'circuitFactory', value: 1 }],
-    emoji: '💚',
+    icon: 'gi:circuitry',
   },
   {
     id: 'energyStorage',
@@ -1307,7 +1271,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 70,
     prerequisites: ['electronics'],
     effects: [{ type: 'unlockBuilding', target: 'batteryFactory', value: 1 }],
-    emoji: '🔋',
+    icon: 'gi:battery-75',
   },
   {
     id: 'artificialIntelligence',
@@ -1319,7 +1283,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 100,
     prerequisites: ['electronics', 'energyStorage'],
     effects: [{ type: 'unlockBuilding', target: 'aiLab', value: 1 }],
-    emoji: '🧠',
+    icon: 'gi:brain',
   },
   // Robotics
   {
@@ -1332,7 +1296,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 60,
     prerequisites: ['basicMachining'],
     effects: [{ type: 'unlockBuilding', target: 'engineFactory', value: 1 }],
-    emoji: '🔧',
+    icon: 'gi:wrench',
   },
   {
     id: 'roboticsTech',
@@ -1344,7 +1308,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 150,
     prerequisites: ['artificialIntelligence', 'mechanicalEngineering'],
     effects: [{ type: 'unlockBuilding', target: 'roboticsBay', value: 1 }],
-    emoji: '🤖',
+    icon: 'gi:robot-grab',
   },
   {
     id: 'advancedMetallurgy',
@@ -1356,7 +1320,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 100,
     prerequisites: ['basicMachining'],
     effects: [{ type: 'unlockBuilding', target: 'alloyForge', value: 1 }],
-    emoji: '💠',
+    icon: 'gi:metal-bar',
   },
   // T2 Bonus Researches
   {
@@ -1369,7 +1333,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 80,
     prerequisites: ['basicAutomation'],
     effects: [{ type: 'productionSpeed', target: 'extractor', value: 0.2 }],
-    emoji: '⛏️',
+    icon: 'gi:mining',
   },
   {
     id: 'efficientSmelting',
@@ -1381,7 +1345,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 70,
     prerequisites: ['basicAutomation'],
     effects: [{ type: 'productionSpeed', target: 't1Factory', value: 0.15 }],
-    emoji: '🔥',
+    icon: 'gi:furnace',
   },
   {
     id: 'advancedElectronics',
@@ -1393,7 +1357,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 90,
     prerequisites: ['electronics'],
     effects: [{ type: 'productionSpeed', target: 't2Factory', value: 0.15 }],
-    emoji: '💚',
+    icon: 'gi:processor',
   },
   {
     id: 'powerOptimization',
@@ -1405,7 +1369,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 60,
     prerequisites: ['energyEfficiency'],
     effects: [{ type: 'powerEfficiency', value: 0.1 }],
-    emoji: '⚡',
+    icon: 'gi:lightning-frequency',
   },
   {
     id: 'cargoDrones',
@@ -1417,7 +1381,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 100,
     prerequisites: ['advancedLogistics'],
     effects: [{ type: 'transportSpeed', value: 0.25 }, { type: 'unlockTransport', target: 'drone', value: 1 }],
-    emoji: '🚁',
+    icon: 'gi:ufo',
   },
   // Quantum
   {
@@ -1430,7 +1394,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 200,
     prerequisites: ['artificialIntelligence'],
     effects: [{ type: 'unlockBuilding', target: 'quantumLab', value: 1 }],
-    emoji: '⚛️',
+    icon: 'gi:atom',
   },
   {
     id: 'nanotechnology',
@@ -1442,7 +1406,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 400,
     prerequisites: ['quantumPhysics', 'advancedMetallurgy'],
     effects: [{ type: 'unlockBuilding', target: 'nanoLab', value: 1 }],
-    emoji: '🔮',
+    icon: 'gi:nano-bot',
   },
   // Market & Bonuses
   {
@@ -1455,7 +1419,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 40,
     prerequisites: [],
     effects: [{ type: 'marketBonus', value: 0.2 }],
-    emoji: '📈',
+    icon: 'gi:profit',
   },
   {
     id: 'workerTraining',
@@ -1467,7 +1431,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 80,
     prerequisites: ['basicAutomation'],
     effects: [{ type: 'workerEfficiency', value: 0.25 }],
-    emoji: '👷',
+    icon: 'gi:overhead',
   },
   {
     id: 'storageExpansion',
@@ -1479,7 +1443,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 60,
     prerequisites: ['logistics1'],
     effects: [{ type: 'storageBonus', value: 0.5 }],
-    emoji: '📦',
+    icon: 'gi:warehouse',
   },
   // T3 Bonus Researches
   {
@@ -1492,7 +1456,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 200,
     prerequisites: ['artificialIntelligence'],
     effects: [{ type: 'productionSpeed', target: 'aiLab', value: 0.2 }, { type: 'productionSpeed', target: 'neuralLab', value: 0.2 }],
-    emoji: '🧠',
+    icon: 'gi:brain',
   },
   {
     id: 'advancedRobotics',
@@ -1504,7 +1468,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 250,
     prerequisites: ['roboticsTech'],
     effects: [{ type: 'productionSpeed', target: 'roboticsBay', value: 0.25 }, { type: 'productionSpeed', target: 'droneShipyard', value: 0.25 }],
-    emoji: '🤖',
+    icon: 'gi:robot-golem',
   },
   {
     id: 'quantumComputing',
@@ -1516,7 +1480,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 300,
     prerequisites: ['quantumPhysics'],
     effects: [{ type: 'productionSpeed', target: 'quantumLab', value: 0.3 }],
-    emoji: '⚛️',
+    icon: 'gi:cpu',
   },
   {
     id: 'metabolicEngineering',
@@ -1528,7 +1492,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 250,
     prerequisites: ['advancedAutomation'],
     effects: [{ type: 'productionSpeed', target: 't3Factory', value: 0.2 }],
-    emoji: '🧬',
+    icon: 'gi:dna1',
   },
   {
     id: 'megaStorage',
@@ -1540,7 +1504,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 200,
     prerequisites: ['storageExpansion'],
     effects: [{ type: 'storageBonus', value: 1.0 }],
-    emoji: '🗄️',
+    icon: 'gi:warehouse',
   },
   // Tier 4 Research — Singularity & Beyond
   {
@@ -1553,7 +1517,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 500,
     prerequisites: ['nanotechnology'],
     effects: [{ type: 'unlockBuilding', target: 'singularityForge', value: 1 }],
-    emoji: '🌀',
+    icon: 'gi:vortex',
   },
   {
     id: 'antimatterPhysics',
@@ -1565,7 +1529,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 600,
     prerequisites: ['fusionEnergy'],
     effects: [{ type: 'unlockBuilding', target: 'antimatterReactor', value: 1 }, { type: 'unlockBuilding', target: 'antimatterPowerPlant', value: 1 }],
-    emoji: '⚡',
+    icon: 'gi:lightning-frequency',
   },
   {
     id: 'warpTechnology',
@@ -1577,7 +1541,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 700,
     prerequisites: ['singularityTheory', 'roboticsTech'],
     effects: [{ type: 'unlockBuilding', target: 'warpDriveFactory', value: 1 }],
-    emoji: '🚀',
+    icon: 'gi:rocket-thruster',
   },
   {
     id: 'plasmaDynamics',
@@ -1589,7 +1553,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 550,
     prerequisites: ['fusionEnergy', 'advancedMetallurgy'],
     effects: [{ type: 'unlockBuilding', target: 'plasmaForge', value: 1 }],
-    emoji: '🔥',
+    icon: 'gi:flame-tunnel',
   },
   {
     id: 'chronoEngineering',
@@ -1601,7 +1565,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 800,
     prerequisites: ['singularityTheory'],
     effects: [{ type: 'unlockBuilding', target: 'chronoLab', value: 1 }],
-    emoji: '⏳',
+    icon: 'gi:hourglass',
   },
   {
     id: 'voidCrystallography',
@@ -1613,7 +1577,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 750,
     prerequisites: ['singularityTheory', 'quantumPhysics'],
     effects: [{ type: 'unlockBuilding', target: 'voidCrystallizer', value: 1 }, { type: 'unlockBuilding', target: 'darkMatterLab', value: 1 }],
-    emoji: '💎',
+    icon: 'gi:implosion',
   },
   {
     id: 'megaConstruction',
@@ -1625,7 +1589,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 650,
     prerequisites: ['advancedMetallurgy', 'nanotechnology'],
     effects: [{ type: 'unlockBuilding', target: 'megaStructureFactory', value: 1 }],
-    emoji: '🏗️',
+    icon: 'gi:castle',
   },
   {
     id: 'dimensionalPhysics',
@@ -1637,7 +1601,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 1000,
     prerequisites: ['chronoEngineering', 'voidCrystallography'],
     effects: [{ type: 'unlockBuilding', target: 'dysonCollector', value: 1 }, { type: 'unlockBuilding', target: 'quantumTeleporter', value: 1 }, { type: 'unlockBuilding', target: 'dimensionalGateway', value: 1 }],
-    emoji: '🕳️',
+    icon: 'gi:portal',
   },
   {
     id: 'galacticManufacturing',
@@ -1649,7 +1613,7 @@ export const RESEARCH_TREE: ResearchNode[] = [
     timeRequired: 1500,
     prerequisites: ['dimensionalPhysics'],
     effects: [{ type: 'unlockBuilding', target: 'timeDistorter', value: 1 }, { type: 'unlockBuilding', target: 'galacticForge', value: 1 }],
-    emoji: '🌌',
+    icon: 'gi:galaxy',
   },
 ];
 
@@ -1661,7 +1625,7 @@ export const WORKER_DEFS: Record<string, WorkerDefinition> = {
     description: 'Boosts factory production speed and efficiency',
     baseHireCost: 500,
     effects: { efficiency: 0.05, speed: 0.08, maintenance: 0.02 },
-    emoji: '👷',
+    icon: 'gi:overhead',
   },
   mechanic: {
     type: 'mechanic',
@@ -1669,7 +1633,7 @@ export const WORKER_DEFS: Record<string, WorkerDefinition> = {
     description: 'Reduces maintenance costs and prevents breakdowns',
     baseHireCost: 400,
     effects: { efficiency: 0.03, speed: 0.05, maintenance: 0.10 },
-    emoji: '🔧',
+    icon: 'gi:wrench',
   },
   transportManager: {
     type: 'transportManager',
@@ -1677,7 +1641,7 @@ export const WORKER_DEFS: Record<string, WorkerDefinition> = {
     description: 'Optimizes transport routes and increases throughput',
     baseHireCost: 600,
     effects: { efficiency: 0.04, speed: 0.12, maintenance: 0.01 },
-    emoji: '📋',
+    icon: 'gi:railway',
   },
   aiSupervisor: {
     type: 'aiSupervisor',
@@ -1685,7 +1649,7 @@ export const WORKER_DEFS: Record<string, WorkerDefinition> = {
     description: 'Enhances automation systems and AI optimization',
     baseHireCost: 1000,
     effects: { efficiency: 0.08, speed: 0.06, maintenance: 0.03 },
-    emoji: '🤖',
+    icon: 'gi:robot-golem',
   },
 };
 
@@ -1751,13 +1715,13 @@ export const INITIAL_MARKET: MarketPrice[] = [
 
 // --- Automation Unlocks ---
 export const AUTOMATION_UNLOCKS: AutomationUnlock[] = [
-  { type: 'autoRouting', name: 'Auto-Routing', description: 'Automatically optimizes transport routes', cost: 10, active: false, requiresResearch: 'advancedLogistics', emoji: '🔄' },
-  { type: 'autoBalancing', name: 'Auto-Balancing', description: 'Balances production across factories', cost: 15, active: false, requiresResearch: 'advancedAutomation', emoji: '⚖️' },
-  { type: 'selfRepair', name: 'Self-Repair Bots', description: 'Buildings automatically repair over time', cost: 20, active: false, requiresResearch: 'roboticsTech', emoji: '🛠️' },
-  { type: 'autoTrading', name: 'Auto-Trading', description: 'AI trades resources on the market automatically', cost: 25, active: false, requiresResearch: 'marketAnalysis', emoji: '💹' },
-  { type: 'autoExpansion', name: 'Auto-Expansion', description: 'AI suggests and builds new production lines', cost: 50, active: false, requiresResearch: 'artificialIntelligence', emoji: '🏗️' },
-  { type: 'smartStorage', name: 'Smart Storage', description: 'Automatically distributes resources to where they are needed', cost: 12, active: false, requiresResearch: 'storageExpansion', emoji: '📦' },
-  { type: 'aiOptimization', name: 'AI Optimization', description: 'Full AI control over factory optimization', cost: 100, active: false, requiresResearch: 'artificialIntelligence', emoji: '🧠' },
+  { type: 'autoRouting', name: 'Auto-Routing', description: 'Automatically optimizes transport routes', cost: 10, active: false, requiresResearch: 'advancedLogistics', icon: 'gi:tread' },
+  { type: 'autoBalancing', name: 'Auto-Balancing', description: 'Balances production across factories', cost: 15, active: false, requiresResearch: 'advancedAutomation', icon: 'gi:scales' },
+  { type: 'selfRepair', name: 'Self-Repair Bots', description: 'Buildings automatically repair over time', cost: 20, active: false, requiresResearch: 'roboticsTech', icon: 'gi:wrench' },
+  { type: 'autoTrading', name: 'Auto-Trading', description: 'AI trades resources on the market automatically', cost: 25, active: false, requiresResearch: 'marketAnalysis', icon: 'gi:profit' },
+  { type: 'autoExpansion', name: 'Auto-Expansion', description: 'AI suggests and builds new production lines', cost: 50, active: false, requiresResearch: 'artificialIntelligence', icon: 'gi:castle' },
+  { type: 'smartStorage', name: 'Smart Storage', description: 'Automatically distributes resources to where they are needed', cost: 12, active: false, requiresResearch: 'storageExpansion', icon: 'gi:warehouse' },
+  { type: 'aiOptimization', name: 'AI Optimization', description: 'Full AI control over factory optimization', cost: 100, active: false, requiresResearch: 'artificialIntelligence', icon: 'gi:brain' },
 ];
 
 // --- Prestige Bonuses ---
@@ -1790,7 +1754,7 @@ export const EVENT_TEMPLATES = [
       { type: 'productionMultiplier' as const, target: 'oilPump', value: 0.5 },
       { type: 'marketPriceMultiplier' as const, target: 'oil', value: 2.5 },
     ],
-    emoji: '🛢️',
+    icon: 'gi:oil-rig',
   },
   {
     type: 'energyShortage' as const,
@@ -1800,7 +1764,7 @@ export const EVENT_TEMPLATES = [
     effects: [
       { type: 'powerMultiplier' as const, value: 1.3 },
     ],
-    emoji: '⚡',
+    icon: 'gi:lightning-storm',
   },
   {
     type: 'aiRevolution' as const,
@@ -1811,7 +1775,7 @@ export const EVENT_TEMPLATES = [
       { type: 'researchSpeed' as const, value: 2.0 },
       { type: 'marketPriceMultiplier' as const, target: 'aiChip', value: 2.0 },
     ],
-    emoji: '🧠',
+    icon: 'gi:brain',
   },
   {
     type: 'economicBoom' as const,
@@ -1821,7 +1785,7 @@ export const EVENT_TEMPLATES = [
     effects: [
       { type: 'marketPriceMultiplier' as const, value: 1.5 },
     ],
-    emoji: '📈',
+    icon: 'gi:profit',
   },
   {
     type: 'naturalDisaster' as const,
@@ -1831,7 +1795,7 @@ export const EVENT_TEMPLATES = [
     effects: [
       { type: 'productionMultiplier' as const, value: 0.75 },
     ],
-    emoji: '🌪️',
+    icon: 'gi:tornado',
   },
   {
     type: 'techBreakthrough' as const,
@@ -1841,7 +1805,7 @@ export const EVENT_TEMPLATES = [
     effects: [
       { type: 'researchSpeed' as const, value: 1.5 },
     ],
-    emoji: '🔬',
+    icon: 'gi:erlenmeyer',
   },
   {
     type: 'tradeWar' as const,
@@ -1852,7 +1816,7 @@ export const EVENT_TEMPLATES = [
       { type: 'marketPriceMultiplier' as const, target: 'rareEarth', value: 2.0 },
       { type: 'marketPriceMultiplier' as const, target: 'lithium', value: 1.8 },
     ],
-    emoji: '⚔️',
+    icon: 'gi:sword-clash',
   },
   {
     type: 'greenInitiative' as const,
@@ -1864,7 +1828,7 @@ export const EVENT_TEMPLATES = [
       { type: 'productionMultiplier' as const, target: 'windTurbine', value: 1.5 },
       { type: 'marketPriceMultiplier' as const, target: 'coal', value: 0.6 },
     ],
-    emoji: '🌿',
+    icon: 'gi:sprout',
   },
   {
     type: 'spaceRace' as const,
@@ -1876,7 +1840,7 @@ export const EVENT_TEMPLATES = [
       { type: 'marketPriceMultiplier' as const, target: 'nanoMaterial', value: 3.0 },
       { type: 'marketPriceMultiplier' as const, target: 'advancedAlloy', value: 2.0 },
     ],
-    emoji: '🚀',
+    icon: 'gi:rocket-thruster',
   },
   {
     type: 'marketCrash' as const,
@@ -1886,814 +1850,137 @@ export const EVENT_TEMPLATES = [
     effects: [
       { type: 'marketPriceMultiplier' as const, value: 0.6 },
     ],
-    emoji: '📉',
+    icon: 'gi:falling',
   },
 ];
 
 // --- Tier Info ---
-export const TIER_INFO: Record<number, { name: string; emoji: string; color: string; bgColor: string; borderColor: string; description: string }> = {
-  0: { name: 'Startup', emoji: '🏗️', color: '#a0a0a0', bgColor: 'rgba(160,160,160,0.08)', borderColor: 'rgba(160,160,160,0.3)', description: 'Raw resources & basic extraction' },
-  1: { name: 'Basic Processing', emoji: '🔧', color: '#22d3ee', bgColor: 'rgba(34,211,238,0.08)', borderColor: 'rgba(34,211,238,0.3)', description: 'Smelting, wire drawing, chemical processing' },
-  2: { name: 'Advanced Mfg.', emoji: '⚙️', color: '#f97316', bgColor: 'rgba(249,115,22,0.08)', borderColor: 'rgba(249,115,22,0.3)', description: 'Circuits, engines, batteries, gears' },
-  3: { name: 'High-Tech', emoji: '🧠', color: '#a855f7', bgColor: 'rgba(168,85,247,0.08)', borderColor: 'rgba(168,85,247,0.3)', description: 'AI, robotics, quantum, nano materials' },
-  4: { name: 'Singularity', emoji: '🌌', color: '#00ffcc', bgColor: 'rgba(0,255,204,0.08)', borderColor: 'rgba(0,255,204,0.3)', description: 'Singularity cores, dark matter, warp drives, chrono tech' },
+export const TIER_INFO: Record<number, { name: string; icon: string; color: string; bgColor: string; borderColor: string; description: string }> = {
+  0: { name: 'Startup', icon: 'gi:mining', color: '#a0a0a0', bgColor: 'rgba(160,160,160,0.08)', borderColor: 'rgba(160,160,160,0.3)', description: 'Raw resources & basic extraction' },
+  1: { name: 'Basic Processing', icon: 'gi:wrench', color: '#22d3ee', bgColor: 'rgba(34,211,238,0.08)', borderColor: 'rgba(34,211,238,0.3)', description: 'Smelting, wire drawing, chemical processing' },
+  2: { name: 'Advanced Mfg.', icon: 'gi:big-gear', color: '#f97316', bgColor: 'rgba(249,115,22,0.08)', borderColor: 'rgba(249,115,22,0.3)', description: 'Circuits, engines, batteries, gears' },
+  3: { name: 'High-Tech', icon: 'gi:brain', color: '#a855f7', bgColor: 'rgba(168,85,247,0.08)', borderColor: 'rgba(168,85,247,0.3)', description: 'AI, robotics, quantum, nano materials' },
+  4: { name: 'Singularity', icon: 'gi:galaxy', color: '#00ffcc', bgColor: 'rgba(0,255,204,0.08)', borderColor: 'rgba(0,255,204,0.3)', description: 'Singularity cores, dark matter, warp drives, chrono tech' },
 };
 
 // --- Contract Templates (Tier-Based) ---
 // Tier 0: Startup (raw resources) | Tier 1: Basic Processing | Tier 2: Advanced Manufacturing | Tier 3: High-Tech/Endgame
 export const CONTRACT_TEMPLATES = [
   // === Tier 0: Startup Contracts (raw resources + basic extraction) ===
-  { name: 'Iron Ore Delivery', description: 'Deliver iron ore to the steel foundry', type: 'delivery' as const, requiredResources: [{ resource: 'iron' as ResourceType, amount: 100 }], timeLimit: 200, difficulty: 1, gameTier: 0, emoji: '⛏️' },
-  { name: 'Coal Supply Run', description: 'Supply coal for the regional power stations', type: 'supply' as const, requiredResources: [{ resource: 'coal' as ResourceType, amount: 80 }], timeLimit: 200, difficulty: 1, gameTier: 0, emoji: '🖤' },
-  { name: 'Water Distribution', description: 'Deliver purified water to the industrial zone', type: 'delivery' as const, requiredResources: [{ resource: 'water' as ResourceType, amount: 150 }], timeLimit: 180, difficulty: 1, gameTier: 0, emoji: '💧' },
-  { name: 'Copper Shipment', description: 'Ship copper ore to the wire mill', type: 'supply' as const, requiredResources: [{ resource: 'copper' as ResourceType, amount: 60 }], timeLimit: 220, difficulty: 1, gameTier: 0, emoji: '🟤' },
-  { name: 'Basic Materials Package', description: 'Deliver a mixed package of iron and coal', type: 'delivery' as const, requiredResources: [{ resource: 'iron' as ResourceType, amount: 50 }, { resource: 'coal' as ResourceType, amount: 30 }], timeLimit: 250, difficulty: 1, gameTier: 0, emoji: '📦' },
+  { name: 'Iron Ore Delivery', description: 'Deliver iron ore to the steel foundry', type: 'delivery' as const, requiredResources: [{ resource: 'iron' as ResourceType, amount: 100 }], timeLimit: 200, difficulty: 1, gameTier: 0, icon: 'gi:mine-wagon' },
+  { name: 'Coal Supply Run', description: 'Supply coal for the regional power stations', type: 'supply' as const, requiredResources: [{ resource: 'coal' as ResourceType, amount: 80 }], timeLimit: 200, difficulty: 1, gameTier: 0, icon: 'gi:coal-wagon' },
+  { name: 'Water Distribution', description: 'Deliver purified water to the industrial zone', type: 'delivery' as const, requiredResources: [{ resource: 'water' as ResourceType, amount: 150 }], timeLimit: 180, difficulty: 1, gameTier: 0, icon: 'gi:water-drop' },
+  { name: 'Copper Shipment', description: 'Ship copper ore to the wire mill', type: 'supply' as const, requiredResources: [{ resource: 'copper' as ResourceType, amount: 60 }], timeLimit: 220, difficulty: 1, gameTier: 0, icon: 'gi:ore' },
+  { name: 'Basic Materials Package', description: 'Deliver a mixed package of iron and coal', type: 'delivery' as const, requiredResources: [{ resource: 'iron' as ResourceType, amount: 50 }, { resource: 'coal' as ResourceType, amount: 30 }], timeLimit: 250, difficulty: 1, gameTier: 0, icon: 'gi:wooden-crate' },
 
   // === Tier 1: Basic Processing Contracts ===
-  { name: 'Iron Plate Order', description: 'Deliver iron plates for the construction firm', type: 'delivery' as const, requiredResources: [{ resource: 'ironPlate' as ResourceType, amount: 50 }], timeLimit: 300, difficulty: 2, gameTier: 1, emoji: '🔩' },
-  { name: 'Copper Wire Supply', description: 'Supply copper wire for the electronics assembly', type: 'supply' as const, requiredResources: [{ resource: 'copperWire' as ResourceType, amount: 40 }], timeLimit: 280, difficulty: 2, gameTier: 1, emoji: '🔌' },
-  { name: 'Glass Delivery', description: 'Deliver glass panes for the commercial district', type: 'delivery' as const, requiredResources: [{ resource: 'glass' as ResourceType, amount: 60 }], timeLimit: 250, difficulty: 2, gameTier: 1, emoji: '🪟' },
-  { name: 'Steel Shipment', description: 'Ship steel to the heavy machinery plant', type: 'supply' as const, requiredResources: [{ resource: 'steel' as ResourceType, amount: 50 }], timeLimit: 300, difficulty: 2, gameTier: 1, emoji: '🛡️' },
-  { name: 'Plastic Export', description: 'Export plastic for consumer goods manufacturing', type: 'delivery' as const, requiredResources: [{ resource: 'plastic' as ResourceType, amount: 40 }], timeLimit: 280, difficulty: 2, gameTier: 1, emoji: '🧴' },
+  { name: 'Iron Plate Order', description: 'Deliver iron plates for the construction firm', type: 'delivery' as const, requiredResources: [{ resource: 'ironPlate' as ResourceType, amount: 50 }], timeLimit: 300, difficulty: 2, gameTier: 1, icon: 'gi:metal-plate' },
+  { name: 'Copper Wire Supply', description: 'Supply copper wire for the electronics assembly', type: 'supply' as const, requiredResources: [{ resource: 'copperWire' as ResourceType, amount: 40 }], timeLimit: 280, difficulty: 2, gameTier: 1, icon: 'gi:electric' },
+  { name: 'Glass Delivery', description: 'Deliver glass panes for the commercial district', type: 'delivery' as const, requiredResources: [{ resource: 'glass' as ResourceType, amount: 60 }], timeLimit: 250, difficulty: 2, gameTier: 1, icon: 'gi:glass-celebration' },
+  { name: 'Steel Shipment', description: 'Ship steel to the heavy machinery plant', type: 'supply' as const, requiredResources: [{ resource: 'steel' as ResourceType, amount: 50 }], timeLimit: 300, difficulty: 2, gameTier: 1, icon: 'gi:steel-claws' },
+  { name: 'Plastic Export', description: 'Export plastic for consumer goods manufacturing', type: 'delivery' as const, requiredResources: [{ resource: 'plastic' as ResourceType, amount: 40 }], timeLimit: 280, difficulty: 2, gameTier: 1, icon: 'gi:plastic-duck' },
 
   // === Tier 2: Advanced Manufacturing Contracts ===
-  { name: 'Gear Supply', description: 'Supply precision gears for the manufacturing plant', type: 'supply' as const, requiredResources: [{ resource: 'gear' as ResourceType, amount: 80 }], timeLimit: 300, difficulty: 3, gameTier: 2, emoji: '⚙️' },
-  { name: 'Circuit Board Order', description: 'Supply circuits for the electronics plant', type: 'supply' as const, requiredResources: [{ resource: 'circuit' as ResourceType, amount: 30 }], timeLimit: 250, difficulty: 3, gameTier: 2, emoji: '💚' },
-  { name: 'Engine Contract', description: 'Deliver engines for military vehicles', type: 'military' as const, requiredResources: [{ resource: 'engine' as ResourceType, amount: 20 }], timeLimit: 400, difficulty: 3, gameTier: 2, emoji: '🔧' },
-  { name: 'Battery Shipment', description: 'Ship batteries for the energy storage project', type: 'delivery' as const, requiredResources: [{ resource: 'battery' as ResourceType, amount: 50 }], timeLimit: 350, difficulty: 3, gameTier: 2, emoji: '🔋' },
-  { name: 'Electronics Export', description: 'Export consumer electronics abroad', type: 'delivery' as const, requiredResources: [{ resource: 'circuit' as ResourceType, amount: 100 }, { resource: 'plastic' as ResourceType, amount: 50 }], timeLimit: 600, difficulty: 3, gameTier: 2, emoji: '📱' },
+  { name: 'Gear Supply', description: 'Supply precision gears for the manufacturing plant', type: 'supply' as const, requiredResources: [{ resource: 'gear' as ResourceType, amount: 80 }], timeLimit: 300, difficulty: 3, gameTier: 2, icon: 'gi:big-gear' },
+  { name: 'Circuit Board Order', description: 'Supply circuits for the electronics plant', type: 'supply' as const, requiredResources: [{ resource: 'circuit' as ResourceType, amount: 30 }], timeLimit: 250, difficulty: 3, gameTier: 2, icon: 'gi:circuitry' },
+  { name: 'Engine Contract', description: 'Deliver engines for military vehicles', type: 'military' as const, requiredResources: [{ resource: 'engine' as ResourceType, amount: 20 }], timeLimit: 400, difficulty: 3, gameTier: 2, icon: 'gi:gear-stick' },
+  { name: 'Battery Shipment', description: 'Ship batteries for the energy storage project', type: 'delivery' as const, requiredResources: [{ resource: 'battery' as ResourceType, amount: 50 }], timeLimit: 350, difficulty: 3, gameTier: 2, icon: 'gi:battery-75' },
+  { name: 'Electronics Export', description: 'Export consumer electronics abroad', type: 'delivery' as const, requiredResources: [{ resource: 'circuit' as ResourceType, amount: 100 }, { resource: 'plastic' as ResourceType, amount: 50 }], timeLimit: 600, difficulty: 3, gameTier: 2, icon: 'gi:smartphone' },
 
   // === Tier 3: High-Tech/Endgame Contracts ===
-  { name: 'AI Server Build', description: 'Build AI servers with chips and batteries', type: 'construction' as const, requiredResources: [{ resource: 'aiChip' as ResourceType, amount: 10 }, { resource: 'battery' as ResourceType, amount: 15 }], timeLimit: 500, difficulty: 4, gameTier: 3, emoji: '🖥️' },
-  { name: 'Military Robotics', description: 'Fulfill robotics order for the defense contractor', type: 'military' as const, requiredResources: [{ resource: 'robotics' as ResourceType, amount: 8 }, { resource: 'engine' as ResourceType, amount: 10 }], timeLimit: 600, difficulty: 4, gameTier: 3, emoji: '🤖' },
-  { name: 'Quantum Research', description: 'Supply quantum parts for the research laboratory', type: 'research' as const, requiredResources: [{ resource: 'quantumPart' as ResourceType, amount: 5 }], timeLimit: 800, difficulty: 5, gameTier: 3, emoji: '⚛️' },
-  { name: 'Nano Materials', description: 'Deliver nano materials for a classified project', type: 'military' as const, requiredResources: [{ resource: 'nanoMaterial' as ResourceType, amount: 3 }], timeLimit: 1000, difficulty: 5, gameTier: 3, emoji: '🔮' },
-  { name: 'Advanced Alloy Delivery', description: 'Ship advanced alloys for aerospace applications', type: 'delivery' as const, requiredResources: [{ resource: 'advancedAlloy' as ResourceType, amount: 15 }], timeLimit: 700, difficulty: 4, gameTier: 3, emoji: '💠' },
+  { name: 'AI Server Build', description: 'Build AI servers with chips and batteries', type: 'construction' as const, requiredResources: [{ resource: 'aiChip' as ResourceType, amount: 10 }, { resource: 'battery' as ResourceType, amount: 15 }], timeLimit: 500, difficulty: 4, gameTier: 3, icon: 'gi:brain' },
+  { name: 'Military Robotics', description: 'Fulfill robotics order for the defense contractor', type: 'military' as const, requiredResources: [{ resource: 'robotics' as ResourceType, amount: 8 }, { resource: 'engine' as ResourceType, amount: 10 }], timeLimit: 600, difficulty: 4, gameTier: 3, icon: 'gi:robot-grab' },
+  { name: 'Quantum Research', description: 'Supply quantum parts for the research laboratory', type: 'research' as const, requiredResources: [{ resource: 'quantumPart' as ResourceType, amount: 5 }], timeLimit: 800, difficulty: 5, gameTier: 3, icon: 'gi:atom' },
+  { name: 'Nano Materials', description: 'Deliver nano materials for a classified project', type: 'military' as const, requiredResources: [{ resource: 'nanoMaterial' as ResourceType, amount: 3 }], timeLimit: 1000, difficulty: 5, gameTier: 3, icon: 'gi:nano-bot' },
+  { name: 'Advanced Alloy Delivery', description: 'Ship advanced alloys for aerospace applications', type: 'delivery' as const, requiredResources: [{ resource: 'advancedAlloy' as ResourceType, amount: 15 }], timeLimit: 700, difficulty: 4, gameTier: 3, icon: 'gi:metal-bar' },
   // Tier 0: New Raw Material Contracts
-  { name: 'Clay Delivery', description: 'Deliver clay for the construction project', type: 'delivery' as const, requiredResources: [{ resource: 'clay' as ResourceType, amount: 120 }], timeLimit: 200, difficulty: 1, gameTier: 0, emoji: '🧱' },
-  { name: 'Limestone Shipment', description: 'Ship limestone for the chemical plant', type: 'supply' as const, requiredResources: [{ resource: 'limestone' as ResourceType, amount: 80 }], timeLimit: 220, difficulty: 1, gameTier: 0, emoji: '🪨' },
-  { name: 'Gravel Supply', description: 'Supply gravel for road construction', type: 'supply' as const, requiredResources: [{ resource: 'gravel' as ResourceType, amount: 150 }], timeLimit: 180, difficulty: 1, gameTier: 0, emoji: '🪨' },
+  { name: 'Clay Delivery', description: 'Deliver clay for the construction project', type: 'delivery' as const, requiredResources: [{ resource: 'clay' as ResourceType, amount: 120 }], timeLimit: 200, difficulty: 1, gameTier: 0, icon: 'gi:brick-pile' },
+  { name: 'Limestone Shipment', description: 'Ship limestone for the chemical plant', type: 'supply' as const, requiredResources: [{ resource: 'limestone' as ResourceType, amount: 80 }], timeLimit: 220, difficulty: 1, gameTier: 0, icon: 'gi:stone-pile' },
+  { name: 'Gravel Supply', description: 'Supply gravel for road construction', type: 'supply' as const, requiredResources: [{ resource: 'gravel' as ResourceType, amount: 150 }], timeLimit: 180, difficulty: 1, gameTier: 0, icon: 'gi:stone-block' },
   // Tier 1: New Processing Contracts
-  { name: 'Brick Order', description: 'Deliver bricks for the new housing development', type: 'delivery' as const, requiredResources: [{ resource: 'bricks' as ResourceType, amount: 80 }], timeLimit: 300, difficulty: 2, gameTier: 1, emoji: '🧱' },
-  { name: 'Concrete Delivery', description: 'Supply concrete for the mega project foundation', type: 'delivery' as const, requiredResources: [{ resource: 'concrete' as ResourceType, amount: 60 }], timeLimit: 280, difficulty: 2, gameTier: 1, emoji: '🏗️' },
-  { name: 'Fertilizer Contract', description: 'Supply fertilizer for the agricultural expansion', type: 'supply' as const, requiredResources: [{ resource: 'fertilizer' as ResourceType, amount: 50 }], timeLimit: 250, difficulty: 2, gameTier: 1, emoji: '🌱' },
-  { name: 'Fossil Fuel Delivery', description: 'Deliver fossil fuel for the power grid', type: 'delivery' as const, requiredResources: [{ resource: 'fossilFuel' as ResourceType, amount: 40 }], timeLimit: 280, difficulty: 2, gameTier: 1, emoji: '⛽' },
+  { name: 'Brick Order', description: 'Deliver bricks for the new housing development', type: 'delivery' as const, requiredResources: [{ resource: 'bricks' as ResourceType, amount: 80 }], timeLimit: 300, difficulty: 2, gameTier: 1, icon: 'gi:brick-wall' },
+  { name: 'Concrete Delivery', description: 'Supply concrete for the mega project foundation', type: 'delivery' as const, requiredResources: [{ resource: 'concrete' as ResourceType, amount: 60 }], timeLimit: 280, difficulty: 2, gameTier: 1, icon: 'gi:concrete-bag' },
+  { name: 'Fertilizer Contract', description: 'Supply fertilizer for the agricultural expansion', type: 'supply' as const, requiredResources: [{ resource: 'fertilizer' as ResourceType, amount: 50 }], timeLimit: 250, difficulty: 2, gameTier: 1, icon: 'gi:fertilizer-bag' },
+  { name: 'Fossil Fuel Delivery', description: 'Deliver fossil fuel for the power grid', type: 'delivery' as const, requiredResources: [{ resource: 'fossilFuel' as ResourceType, amount: 40 }], timeLimit: 280, difficulty: 2, gameTier: 1, icon: 'gi:fuel-tank' },
   // Tier 2: New Advanced Contracts
-  { name: 'Silicon Wafers', description: 'Supply silicon for the semiconductor plant', type: 'supply' as const, requiredResources: [{ resource: 'silicon' as ResourceType, amount: 30 }], timeLimit: 300, difficulty: 3, gameTier: 2, emoji: '💠' },
-  { name: 'Aluminium Order', description: 'Deliver aluminium for the aerospace program', type: 'delivery' as const, requiredResources: [{ resource: 'aluminium' as ResourceType, amount: 25 }], timeLimit: 280, difficulty: 3, gameTier: 2, emoji: '🪙' },
-  { name: 'Coolant Supply', description: 'Deliver coolant for the reactor cooling system', type: 'supply' as const, requiredResources: [{ resource: 'coolant' as ResourceType, amount: 40 }], timeLimit: 250, difficulty: 3, gameTier: 2, emoji: '❄️' },
-  { name: 'Fiber Optic Installation', description: 'Supply fiber optics for the communications network', type: 'supply' as const, requiredResources: [{ resource: 'fiberOptics' as ResourceType, amount: 30 }], timeLimit: 280, difficulty: 3, gameTier: 2, emoji: '💡' },
-  { name: 'Solar Panel Production', description: 'Deliver solar cells for the renewable energy project', type: 'delivery' as const, requiredResources: [{ resource: 'solarCell' as ResourceType, amount: 20 }], timeLimit: 300, difficulty: 3, gameTier: 2, emoji: '☀️' },
-  { name: 'Titanium Alloy Contract', description: 'Supply titanium for the deep-sea exploration program', type: 'supply' as const, requiredResources: [{ resource: 'titanium' as ResourceType, amount: 15 }], timeLimit: 350, difficulty: 3, gameTier: 2, emoji: '🔷' },
+  { name: 'Silicon Wafers', description: 'Supply silicon for the semiconductor plant', type: 'supply' as const, requiredResources: [{ resource: 'silicon' as ResourceType, amount: 30 }], timeLimit: 300, difficulty: 3, gameTier: 2, icon: 'gi:processor' },
+  { name: 'Aluminium Order', description: 'Deliver aluminium for the aerospace program', type: 'delivery' as const, requiredResources: [{ resource: 'aluminium' as ResourceType, amount: 25 }], timeLimit: 280, difficulty: 3, gameTier: 2, icon: 'gi:metal-disc' },
+  { name: 'Coolant Supply', description: 'Deliver coolant for the reactor cooling system', type: 'supply' as const, requiredResources: [{ resource: 'coolant' as ResourceType, amount: 40 }], timeLimit: 250, difficulty: 3, gameTier: 2, icon: 'gi:snowflake-2' },
+  { name: 'Fiber Optic Installation', description: 'Supply fiber optics for the communications network', type: 'supply' as const, requiredResources: [{ resource: 'fiberOptics' as ResourceType, amount: 30 }], timeLimit: 280, difficulty: 3, gameTier: 2, icon: 'gi:laser-burst' },
+  { name: 'Solar Panel Production', description: 'Deliver solar cells for the renewable energy project', type: 'delivery' as const, requiredResources: [{ resource: 'solarCell' as ResourceType, amount: 20 }], timeLimit: 300, difficulty: 3, gameTier: 2, icon: 'gi:solar-power' },
+  { name: 'Titanium Alloy Contract', description: 'Supply titanium for the deep-sea exploration program', type: 'supply' as const, requiredResources: [{ resource: 'titanium' as ResourceType, amount: 15 }], timeLimit: 350, difficulty: 3, gameTier: 2, icon: 'gi:shield-impact' },
   // Tier 3: New Endgame Contracts
-  { name: 'Electronics Export', description: 'Export advanced electronics for the global market', type: 'delivery' as const, requiredResources: [{ resource: 'electronics' as ResourceType, amount: 15 }], timeLimit: 500, difficulty: 4, gameTier: 3, emoji: '📱' },
-  { name: 'Medical Tech Research', description: 'Deliver medical tech for the biotech research facility', type: 'research' as const, requiredResources: [{ resource: 'medicalTech' as ResourceType, amount: 8 }], timeLimit: 600, difficulty: 4, gameTier: 3, emoji: '🏥' },
-  { name: 'Jewellery Auction', description: 'Supply precious jewellery for the international auction', type: 'delivery' as const, requiredResources: [{ resource: 'jewellery' as ResourceType, amount: 5 }], timeLimit: 700, difficulty: 5, gameTier: 3, emoji: '💎' },
-  { name: 'Tungsten Defense', description: 'Supply tungsten for the defense shielding program', type: 'military' as const, requiredResources: [{ resource: 'tungsten' as ResourceType, amount: 10 }], timeLimit: 600, difficulty: 4, gameTier: 3, emoji: '⬛' },
-  { name: 'Arms Deal', description: 'Fulfill the weapons contract for the military', type: 'military' as const, requiredResources: [{ resource: 'weapons' as ResourceType, amount: 8 }, { resource: 'steel' as ResourceType, amount: 20 }], timeLimit: 700, difficulty: 5, gameTier: 3, emoji: '🔫' },
-  { name: 'Drone Fleet', description: 'Deliver scan drones for the orbital survey', type: 'construction' as const, requiredResources: [{ resource: 'scanDrone' as ResourceType, amount: 3 }], timeLimit: 800, difficulty: 5, gameTier: 3, emoji: '🛸' },
-  { name: 'Detector Array', description: 'Supply artifact detectors for the archaeological dig', type: 'research' as const, requiredResources: [{ resource: 'artifactDetector' as ResourceType, amount: 2 }], timeLimit: 1000, difficulty: 5, gameTier: 3, emoji: '📡' },
-  { name: 'Neural Interface', description: 'Deliver neural networks for the AI integration project', type: 'construction' as const, requiredResources: [{ resource: 'neuralNetwork' as ResourceType, amount: 3 }, { resource: 'aiChip' as ResourceType, amount: 5 }], timeLimit: 800, difficulty: 5, gameTier: 3, emoji: '🌐' },
+  { name: 'Electronics Export', description: 'Export advanced electronics for the global market', type: 'delivery' as const, requiredResources: [{ resource: 'electronics' as ResourceType, amount: 15 }], timeLimit: 500, difficulty: 4, gameTier: 3, icon: 'gi:smartphone' },
+  { name: 'Medical Tech Research', description: 'Deliver medical tech for the biotech research facility', type: 'research' as const, requiredResources: [{ resource: 'medicalTech' as ResourceType, amount: 8 }], timeLimit: 600, difficulty: 4, gameTier: 3, icon: 'gi:hospital-cross' },
+  { name: 'Jewellery Auction', description: 'Supply precious jewellery for the international auction', type: 'delivery' as const, requiredResources: [{ resource: 'jewellery' as ResourceType, amount: 5 }], timeLimit: 700, difficulty: 5, gameTier: 3, icon: 'gi:diamond-ring' },
+  { name: 'Tungsten Defense', description: 'Supply tungsten for the defense shielding program', type: 'military' as const, requiredResources: [{ resource: 'tungsten' as ResourceType, amount: 10 }], timeLimit: 600, difficulty: 4, gameTier: 3, icon: 'gi:iron-cross' },
+  { name: 'Arms Deal', description: 'Fulfill the weapons contract for the military', type: 'military' as const, requiredResources: [{ resource: 'weapons' as ResourceType, amount: 8 }, { resource: 'steel' as ResourceType, amount: 20 }], timeLimit: 700, difficulty: 5, gameTier: 3, icon: 'gi:ak47' },
+  { name: 'Drone Fleet', description: 'Deliver scan drones for the orbital survey', type: 'construction' as const, requiredResources: [{ resource: 'scanDrone' as ResourceType, amount: 3 }], timeLimit: 800, difficulty: 5, gameTier: 3, icon: 'gi:space-shuttle' },
+  { name: 'Detector Array', description: 'Supply artifact detectors for the archaeological dig', type: 'research' as const, requiredResources: [{ resource: 'artifactDetector' as ResourceType, amount: 2 }], timeLimit: 1000, difficulty: 5, gameTier: 3, icon: 'gi:satellite' },
+  { name: 'Neural Interface', description: 'Deliver neural networks for the AI integration project', type: 'construction' as const, requiredResources: [{ resource: 'neuralNetwork' as ResourceType, amount: 3 }, { resource: 'aiChip' as ResourceType, amount: 5 }], timeLimit: 800, difficulty: 5, gameTier: 3, icon: 'gi:thought-bubble' },
   // === Tier 4: Singularity/Endgame Contracts ===
-  { name: 'Singularity Core Order', description: 'Deliver singularity cores for the interstellar research program', type: 'research' as const, requiredResources: [{ resource: 'singularityCore' as ResourceType, amount: 2 }], timeLimit: 1200, difficulty: 5, gameTier: 4, emoji: '🌀' },
-  { name: 'Dark Matter Supply', description: 'Supply dark matter cells for the FTL propulsion project', type: 'supply' as const, requiredResources: [{ resource: 'darkMatterCell' as ResourceType, amount: 1 }], timeLimit: 1500, difficulty: 5, gameTier: 4, emoji: '🕳️' },
-  { name: 'Warp Drive Contract', description: 'Fulfill the warp drive order for the colonial fleet', type: 'military' as const, requiredResources: [{ resource: 'warpDrive' as ResourceType, amount: 1 }], timeLimit: 1800, difficulty: 5, gameTier: 4, emoji: '🚀' },
-  { name: 'Antimatter Delivery', description: 'Deliver antimatter for the energy research facility', type: 'delivery' as const, requiredResources: [{ resource: 'antimatter' as ResourceType, amount: 2 }], timeLimit: 1200, difficulty: 5, gameTier: 4, emoji: '⚡' },
-  { name: 'Void Crystal Research', description: 'Supply void crystals for the dimensional physics experiment', type: 'research' as const, requiredResources: [{ resource: 'voidCrystal' as ResourceType, amount: 1 }, { resource: 'quantumPart' as ResourceType, amount: 5 }], timeLimit: 2000, difficulty: 5, gameTier: 4, emoji: '💎' },
-  { name: 'Chrono Parts', description: 'Deliver chrono parts for the temporal research initiative', type: 'research' as const, requiredResources: [{ resource: 'chronoPart' as ResourceType, amount: 1 }], timeLimit: 1800, difficulty: 5, gameTier: 4, emoji: '⏳' },
-  { name: 'Plasma Core Export', description: 'Export plasma cores for the stellar engineering project', type: 'delivery' as const, requiredResources: [{ resource: 'plasmaCore' as ResourceType, amount: 3 }], timeLimit: 1000, difficulty: 5, gameTier: 4, emoji: '🔥' },
-  { name: 'Mega Structure Build', description: 'Deliver mega structures for the orbital habitat construction', type: 'construction' as const, requiredResources: [{ resource: 'megaStructure' as ResourceType, amount: 2 }], timeLimit: 1500, difficulty: 5, gameTier: 4, emoji: '🏗️' },
+  { name: 'Singularity Core Order', description: 'Deliver singularity cores for the interstellar research program', type: 'research' as const, requiredResources: [{ resource: 'singularityCore' as ResourceType, amount: 2 }], timeLimit: 1200, difficulty: 5, gameTier: 4, icon: 'gi:vortex' },
+  { name: 'Dark Matter Supply', description: 'Supply dark matter cells for the FTL propulsion project', type: 'supply' as const, requiredResources: [{ resource: 'darkMatterCell' as ResourceType, amount: 1 }], timeLimit: 1500, difficulty: 5, gameTier: 4, icon: 'gi:hole' },
+  { name: 'Warp Drive Contract', description: 'Fulfill the warp drive order for the colonial fleet', type: 'military' as const, requiredResources: [{ resource: 'warpDrive' as ResourceType, amount: 1 }], timeLimit: 1800, difficulty: 5, gameTier: 4, icon: 'gi:rocket-thruster' },
+  { name: 'Antimatter Delivery', description: 'Deliver antimatter for the energy research facility', type: 'delivery' as const, requiredResources: [{ resource: 'antimatter' as ResourceType, amount: 2 }], timeLimit: 1200, difficulty: 5, gameTier: 4, icon: 'gi:lightning-frequency' },
+  { name: 'Void Crystal Research', description: 'Supply void crystals for the dimensional physics experiment', type: 'research' as const, requiredResources: [{ resource: 'voidCrystal' as ResourceType, amount: 1 }, { resource: 'quantumPart' as ResourceType, amount: 5 }], timeLimit: 2000, difficulty: 5, gameTier: 4, icon: 'gi:implosion' },
+  { name: 'Chrono Parts', description: 'Deliver chrono parts for the temporal research initiative', type: 'research' as const, requiredResources: [{ resource: 'chronoPart' as ResourceType, amount: 1 }], timeLimit: 1800, difficulty: 5, gameTier: 4, icon: 'gi:hourglass' },
+  { name: 'Plasma Core Export', description: 'Export plasma cores for the stellar engineering project', type: 'delivery' as const, requiredResources: [{ resource: 'plasmaCore' as ResourceType, amount: 3 }], timeLimit: 1000, difficulty: 5, gameTier: 4, icon: 'gi:flame-tunnel' },
+  { name: 'Mega Structure Build', description: 'Deliver mega structures for the orbital habitat construction', type: 'construction' as const, requiredResources: [{ resource: 'megaStructure' as ResourceType, amount: 2 }], timeLimit: 1500, difficulty: 5, gameTier: 4, icon: 'gi:castle' },
 ];
 
-// ============================================
-// 4-LAYER CONTRACT GENERATION ENGINE
-// ============================================
-
-// Resources grouped by tier for contract generation
-const RESOURCES_BY_TIER: Record<number, ResourceType[]> = {
-  0: ['iron', 'copper', 'coal', 'oil', 'sand', 'lithium', 'water', 'rareEarth', 'clay', 'limestone', 'gravel', 'bauxite', 'wolframite'],
-  1: ['ironPlate', 'copperWire', 'plastic', 'glass', 'carbon', 'bricks', 'concrete', 'fertilizer', 'steel', 'fossilFuel'],
-  2: ['circuit', 'engine', 'battery', 'gear', 'silicon', 'aluminium', 'insecticide', 'copperIngot', 'titanium', 'coolant', 'fiberOptics', 'solarCell'],
-  3: ['aiChip', 'robotics', 'quantumPart', 'advancedAlloy', 'nanoMaterial', 'electronics', 'medicalTech', 'jewellery', 'tungsten', 'weapons', 'scanDrone', 'artifactDetector', 'neuralNetwork'],
-  4: ['singularityCore', 'darkMatterCell', 'warpDrive', 'antimatter', 'chronoPart', 'plasmaCore', 'megaStructure', 'voidCrystal'],
-};
-
-// Quantity ranges by material tier (base amounts before scaling)
-const QUANTITY_BY_RESOURCE_TIER: Record<number, [number, number]> = {
-  0: [50, 200],   // Raw: 50-200
-  1: [20, 100],   // T1: 20-100
-  2: [10, 50],    // T2: 10-50
-  3: [3, 20],     // T3: 3-20
-  4: [1, 5],      // T4: 1-5
-};
-
-// Rare resource reward pool for hard/legendary contracts
-const RARE_RESOURCE_REWARDS: ResourceType[] = [
-  'rareEarth', 'titanium', 'fiberOptics', 'solarCell', 'electronics',
-  'aiChip', 'quantumPart', 'nanoMaterial', 'neuralNetwork',
-];
-
-function randomInt(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function randomChoice<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-function randomFloat(min: number, max: number): number {
-  return Math.random() * (max - min) + min;
-}
-
-function shuffleArray<T>(arr: T[]): T[] {
-  const result = [...arr];
-  for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [result[i], result[j]] = [result[j], result[i]];
-  }
-  return result;
-}
-
-// ─── Layer 1: Base Templates ───────────────────
-export const CONTRACT_TYPE_TEMPLATES: Record<ContractType, ContractTypeTemplate> = {
-  delivery: {
-    type: 'delivery',
-    namePatterns: ['{mat} Delivery', '{mat} Shipment', '{mat} Export', '{mat} Transport', '{mat} Supply Run', 'Urgent {mat} Delivery', '{mat} Freight Contract'],
-    descriptionPatterns: ['Deliver {mats} to the industrial sector', 'Transport {mats} to the distribution hub', 'Ship {mats} to the regional warehouse', 'Freight {mats} to the commercial district'],
-    emoji: '📦',
-    deadlineModifier: 0.9,
-    rewardModifier: 1.0,
-    rpBonus: 0,
-    cpBonus: 0,
-    spawnWeight: 30,
-  },
-  supply: {
-    type: 'supply',
-    namePatterns: ['{mat} Supply Contract', '{mat} Provision Order', '{mat} Replenishment', '{mat} Stock Order', '{mat} Procurement', '{mat} Restock Mission'],
-    descriptionPatterns: ['Supply {mats} for the manufacturing line', 'Provide {mats} to the production facility', 'Restock {mats} at the central depot', 'Procure {mats} for the assembly plant'],
-    emoji: '📋',
-    deadlineModifier: 1.0,
-    rewardModifier: 1.0,
-    rpBonus: 0,
-    cpBonus: 0,
-    spawnWeight: 25,
-  },
-  construction: {
-    type: 'construction',
-    namePatterns: ['{mat} Build Project', '{mat} Assembly Contract', '{mat} Fabrication Order', '{mat} Construction Bid', '{mat} Infrastructure Project'],
-    descriptionPatterns: ['Assemble {mats} for the building project', 'Fabricate {mats} for the infrastructure upgrade', 'Construct with {mats} for the development zone'],
-    emoji: '🏗️',
-    deadlineModifier: 1.2,
-    rewardModifier: 1.1,
-    rpBonus: 0,
-    cpBonus: 2,
-    spawnWeight: 20,
-  },
-  military: {
-    type: 'military',
-    namePatterns: ['{mat} Defense Contract', '{mat} Military Order', '{mat} Tactical Supply', '{mat} Armament Deal', '{mat} Strategic Reserve'],
-    descriptionPatterns: ['Furnish {mats} for the defense initiative', 'Supply {mats} for the tactical operation', 'Deliver {mats} for the strategic reserve'],
-    emoji: '⚔️',
-    deadlineModifier: 0.7,
-    rewardModifier: 1.3,
-    rpBonus: 5,
-    cpBonus: 1,
-    spawnWeight: 15,
-  },
-  research: {
-    type: 'research',
-    namePatterns: ['{mat} Research Grant', '{mat} Lab Supply', '{mat} Experiment Materials', '{mat} Scientific Procurement', '{mat} Study Commission'],
-    descriptionPatterns: ['Provide {mats} for the research laboratory', 'Supply {mats} for the scientific study', 'Procure {mats} for the experimental program'],
-    emoji: '🔬',
-    deadlineModifier: 1.4,
-    rewardModifier: 0.9,
-    rpBonus: 15,
-    cpBonus: 0,
-    spawnWeight: 10,
-  },
-};
-
-// ─── Layer 2: Tier Rules ───────────────────────
-export const CONTRACT_TIER_RULES: Record<ContractDifficulty, ContractTierRules> = {
-  easy: {
-    materialCount: [1, 2],
-    allowedResourceTiers: [0, 1],
-    maxResourceTierWeight: 1,
-    deadlineRange: [400, 800],
-    deadlineScaleByMaterials: 50,
-    rewardMultiplier: [0.8, 1.2],
-    rpRange: [3, 8],
-    cpRange: [0, 0],
-    rareResourceChance: 0,
-    rareResourceCount: [0, 0],
-    boardSlotCount: 2,
-    boardExpiration: 1200,
-    minGameTier: 0,
-    spawnChance: 1.0,
-  },
-  medium: {
-    materialCount: [2, 4],
-    allowedResourceTiers: [0, 2],
-    maxResourceTierWeight: 2,
-    deadlineRange: [300, 600],
-    deadlineScaleByMaterials: 60,
-    rewardMultiplier: [1.5, 2.5],
-    rpRange: [10, 25],
-    cpRange: [1, 4],
-    rareResourceChance: 0,
-    rareResourceCount: [0, 0],
-    boardSlotCount: 2,
-    boardExpiration: 1000,
-    minGameTier: 1,
-    spawnChance: 1.0,
-  },
-  hard: {
-    materialCount: [3, 6],
-    allowedResourceTiers: [1, 3],
-    maxResourceTierWeight: 3,
-    deadlineRange: [200, 450],
-    deadlineScaleByMaterials: 40,
-    rewardMultiplier: [3.0, 4.5],
-    rpRange: [30, 60],
-    cpRange: [4, 10],
-    rareResourceChance: 0.15,
-    rareResourceCount: [1, 1],
-    boardSlotCount: 1,
-    boardExpiration: 800,
-    minGameTier: 2,
-    spawnChance: 1.0,
-  },
-  legendary: {
-    materialCount: [5, 10],
-    allowedResourceTiers: [2, 4],
-    maxResourceTierWeight: 4,
-    deadlineRange: [120, 300],
-    deadlineScaleByMaterials: 25,
-    rewardMultiplier: [5.0, 8.0],
-    rpRange: [80, 150],
-    cpRange: [10, 25],
-    rareResourceChance: 0.5,
-    rareResourceCount: [1, 3],
-    boardSlotCount: 1,
-    boardExpiration: 600,
-    minGameTier: 3,
-    spawnChance: 0.3,
-  },
-};
-
-// ─── Layer 3: Procedural Fill Helpers ──────────
-
-// Building-to-resource mapping for validation (built from BUILDING_DEFS)
-const BUILDING_RESOURCE_MAP: Record<string, ResourceType[]> = {};
-for (const [buildingType, def] of Object.entries(BUILDING_DEFS)) {
-  BUILDING_RESOURCE_MAP[buildingType] = (def.outputs ?? []).map(o => o.resource as ResourceType);
-}
-
-// Resource-to-chain mapping for validation (built from PRODUCTION_CHAINS)
-const RESOURCE_CHAIN_MAP: Map<ResourceType, string[][]> = new Map();
-// Build after PRODUCTION_CHAINS is defined (initialized lazily)
-let resourceChainMapInitialized = false;
-function ensureResourceChainMap() {
-  if (resourceChainMapInitialized) return;
-  resourceChainMapInitialized = true;
-  for (const chain of PRODUCTION_CHAINS) {
-    for (let i = 1; i < chain.steps.length; i++) {
-      const producible = chain.steps[i] as ResourceType;
-      const prerequisiteSteps = chain.steps.slice(0, i);
-      if (!RESOURCE_CHAIN_MAP.has(producible)) {
-        RESOURCE_CHAIN_MAP.set(producible, []);
-      }
-      RESOURCE_CHAIN_MAP.get(producible)!.push(prerequisiteSteps);
-    }
-  }
-}
-
-// Pick a contract type based on weighted random selection
-function pickContractType(): ContractType {
-  const types: ContractType[] = ['delivery', 'supply', 'construction', 'military', 'research'];
-  const weights = types.map(t => CONTRACT_TYPE_TEMPLATES[t].spawnWeight);
-  const totalWeight = weights.reduce((a, b) => a + b, 0);
-  let roll = Math.random() * totalWeight;
-  for (let i = 0; i < types.length; i++) {
-    roll -= weights[i];
-    if (roll <= 0) return types[i];
-  }
-  return 'delivery';
-}
-
-// Select N unique materials from allowed tiers, weighted
-function selectMaterials(tierRules: ContractTierRules): ResourceType[] {
-  const [minTier, maxTier] = tierRules.allowedResourceTiers;
-  const clampedMaxTier = Math.min(maxTier, 4);
-
-  // Build weighted pool from allowed resource tiers
-  const weightedPool: { resource: ResourceType; weight: number }[] = [];
-  for (let tier = minTier; tier <= clampedMaxTier; tier++) {
-    const resources = RESOURCES_BY_TIER[tier] ?? [];
-    for (const res of resources) {
-      const resTier = RESOURCE_META[res]?.tier ?? tier;
-      // Higher tiers get more weight for harder contracts, capped by maxResourceTierWeight
-      let weight = 1;
-      if (resTier >= clampedMaxTier) {
-        weight = tierRules.maxResourceTierWeight;
-      } else if (resTier >= (minTier + clampedMaxTier) / 2) {
-        weight = Math.ceil(tierRules.maxResourceTierWeight / 2);
-      }
-      weightedPool.push({ resource: res, weight });
-    }
-  }
-
-  if (weightedPool.length === 0) return [];
-
-  // Pick N unique materials
-  const [minMats, maxMats] = tierRules.materialCount;
-  const count = randomInt(minMats, maxMats);
-  const selected: ResourceType[] = [];
-  const available = [...weightedPool];
-
-  for (let i = 0; i < count && available.length > 0; i++) {
-    // Weighted random selection
-    const totalW = available.reduce((sum, item) => sum + item.weight, 0);
-    let roll = Math.random() * totalW;
-    let idx = 0;
-    for (let j = 0; j < available.length; j++) {
-      roll -= available[j].weight;
-      if (roll <= 0) { idx = j; break; }
-    }
-    selected.push(available[idx].resource);
-    available.splice(idx, 1); // Remove to ensure uniqueness
-  }
-
-  return selected;
-}
-
-// Calculate quantity for a resource based on its tier, difficulty, and progression
-function calculateQuantity(resource: ResourceType, tierRules: ContractTierRules, gameTier: number, buildingCount: number): number {
-  const resMeta = RESOURCE_META[resource];
-  if (!resMeta) return 10;
-
-  const [baseMin, baseMax] = QUANTITY_BY_RESOURCE_TIER[resMeta.tier] ?? [10, 50];
-
-  // Difficulty scale based on reward multiplier midpoint
-  const [rewardMin, rewardMax] = tierRules.rewardMultiplier;
-  const difficultyScale = 0.5 + (rewardMin + rewardMax) / 4;
-
-  // Progression scale (more buildings = larger orders)
-  const progressionScale = 1 + Math.min(buildingCount / 30, 2);
-
-  const min = Math.max(1, Math.floor(baseMin * difficultyScale * progressionScale));
-  const max = Math.max(min + 1, Math.floor(baseMax * difficultyScale * progressionScale));
-
-  // Add ±20% random variance
-  const base = randomInt(min, max);
-  const variance = base * randomFloat(-0.2, 0.2);
-  return Math.max(1, Math.floor(base + variance));
-}
-
-// Calculate reward for a contract
-function calculateContractReward(
-  requiredResources: ResourceAmount[],
-  tierRules: ContractTierRules,
-  template: ContractTypeTemplate,
-  gameTier: number,
-): ContractReward {
-  // Base money from market value of required resources
-  let baseMoney = 0;
-  for (const req of requiredResources) {
-    const marketItem = INITIAL_MARKET.find(m => m.resource === req.resource);
-    const price = marketItem?.basePrice ?? 10;
-    baseMoney += price * req.amount;
-  }
-
-  // Apply reward multiplier from tier rules
-  const [rewardMin, rewardMax] = tierRules.rewardMultiplier;
-  const rewardMult = randomFloat(rewardMin, rewardMax);
-
-  // Apply template reward modifier
-  const money = Math.floor(baseMoney * rewardMult * template.rewardModifier);
-
-  // Research points from tier rules range + template bonus + game tier scaling
-  const [rpMin, rpMax] = tierRules.rpRange;
-  const researchPoints = Math.floor(randomInt(rpMin, rpMax) * (1 + gameTier * 0.3) + template.rpBonus);
-
-  // Corporation points from tier rules range + template bonus
-  const [cpMin, cpMax] = tierRules.cpRange;
-  const corporationPoints = Math.max(0, randomInt(cpMin, cpMax) + template.cpBonus);
-
-  // Rare resources
-  let rareResources: { resource: ResourceType; amount: number }[] | undefined;
-  if (Math.random() < tierRules.rareResourceChance) {
-    const [rareMin, rareMax] = tierRules.rareResourceCount;
-    const rareCount = randomInt(rareMin, rareMax);
-    rareResources = [];
-    const shuffled = shuffleArray([...RARE_RESOURCE_REWARDS]);
-    for (let i = 0; i < rareCount && i < shuffled.length; i++) {
-      rareResources.push({ resource: shuffled[i], amount: randomInt(1, 3) });
-    }
-  }
-
-  return {
-    money,
-    researchPoints,
-    corporationPoints,
-    rareResources,
-  };
-}
-
-// ─── Layer 4: Validation ───────────────────────
-
-function validateContract(
-  contract: Contract,
-  playerBuildings: BuildingInstance[],
-  existingContracts: Contract[],
-  playerIncomePerTick: number,
-  totalRPEarned: number,
-): ContractValidationResult {
-  const warnings: string[] = [];
-  const adjustments: string[] = [];
-  let completable = true;
-  let chainSupported = true;
-  let economyBalanced = true;
-  let notRedundant = true;
-
-  ensureResourceChainMap();
-
-  // 1. Completability Check: Can the player physically produce all required materials?
-  const playerBuildingTypes = new Set(playerBuildings.map(b => b.type));
-  const playerProducedResources = new Set<ResourceType>();
-
-  // Resources the player can directly produce
-  for (const buildingType of playerBuildingTypes) {
-    const outputs = BUILDING_RESOURCE_MAP[buildingType] ?? [];
-    for (const res of outputs) {
-      playerProducedResources.add(res);
-    }
-  }
-
-  // If no buildings, skip completability check (new player)
-  const hasBuildings = playerBuildings.length > 0;
-
-  for (const req of contract.requiredResources) {
-    const res = req.resource as ResourceType;
-    if (hasBuildings && !playerProducedResources.has(res)) {
-      // Check production chains
-      const chains = RESOURCE_CHAIN_MAP.get(res);
-      if (!chains || chains.length === 0) {
-        // Raw resource or no chain — still potentially completable via market
-        warnings.push(`Resource ${res} not directly produced by player buildings`);
-      } else {
-        // Check if any chain's first building step is available
-        const hasChainSupport = chains.some(chain =>
-          chain.some(step => playerProducedResources.has(step as ResourceType))
-        );
-        if (!hasChainSupport) {
-          chainSupported = false;
-          warnings.push(`No production chain support for ${res}`);
-        }
-      }
-    }
-  }
-
-  // 2. Economy Limit Check: Is the reward within economy limits?
-  if (hasBuildings && playerIncomePerTick > 0) {
-    const maxReasonableReward = playerIncomePerTick * 10 * contract.timeLimit;
-    if (contract.reward.money > maxReasonableReward) {
-      economyBalanced = false;
-      warnings.push(`Reward ${contract.reward.money} exceeds 10x income per tick * deadline`);
-    }
-  }
-
-  if (totalRPEarned > 0 && (contract.reward.researchPoints ?? 0) > totalRPEarned * 0.2) {
-    economyBalanced = false;
-    warnings.push(`RP reward exceeds 20% of total RP earned`);
-  }
-
-  // 3. Redundancy Check: Is this contract too similar to existing ones?
-  for (const existing of existingContracts) {
-    if (existing.completed || existing.failed) continue;
-    const existingResources = new Set(existing.requiredResources.map(r => r.resource));
-    const newResources = new Set(contract.requiredResources.map(r => r.resource));
-    const overlap = [...newResources].filter(r => existingResources.has(r)).length;
-    const total = new Set([...existingResources, ...newResources]).size;
-    if (total > 0 && overlap / total > 0.6) {
-      notRedundant = false;
-      warnings.push(`Over ${Math.round(overlap / total * 100)}% material overlap with existing contract`);
-      break;
-    }
-  }
-
-  const valid = completable && economyBalanced && notRedundant;
-
-  return {
-    valid,
-    completable,
-    chainSupported,
-    economyBalanced,
-    notRedundant,
-    warnings,
-    adjustments,
-  };
-}
-
-// Try to adjust a contract that failed validation
-function adjustContract(
-  contract: Contract,
-  validationResult: ContractValidationResult,
-  tierRules: ContractTierRules,
-  gameTier: number,
-  playerBuildings: BuildingInstance[],
-): { contract: Contract; notes: string[] } {
-  const notes: string[] = [];
-  const adjustedContract = { ...contract, validationNotes: [...(contract.validationNotes ?? [])] };
-
-  // Adjust economy: scale down reward multiplier
-  if (!validationResult.economyBalanced) {
-    const adjustedReward = { ...adjustedContract.reward };
-    adjustedReward.money = Math.floor(adjustedReward.money * 0.6);
-    adjustedReward.researchPoints = Math.floor((adjustedReward.researchPoints ?? 0) * 0.6);
-    adjustedContract.reward = adjustedReward;
-    notes.push('Reward scaled down to fit economy limits');
-  }
-
-  // Adjust for unsupported chains: try to replace unreachable resources
-  if (!validationResult.chainSupported && playerBuildings.length > 0) {
-    const playerBuildingTypes = new Set(playerBuildings.map(b => b.type));
-    const playerProducedResources = new Set<ResourceType>();
-    for (const buildingType of playerBuildingTypes) {
-      const outputs = BUILDING_RESOURCE_MAP[buildingType] ?? [];
-      for (const res of outputs) playerProducedResources.add(res);
-    }
-
-    const newResources: ResourceAmount[] = [];
-    for (const req of adjustedContract.requiredResources) {
-      const res = req.resource as ResourceType;
-      if (playerProducedResources.has(res)) {
-        newResources.push(req);
-      } else {
-        // Try to find a replacement from the same tier that the player CAN produce
-        const resTier = RESOURCE_META[res]?.tier ?? 0;
-        const sameTierResources = (RESOURCES_BY_TIER[resTier] ?? []).filter(r => playerProducedResources.has(r));
-        if (sameTierResources.length > 0) {
-          const replacement = randomChoice(sameTierResources);
-          newResources.push({ resource: replacement as CostResourceType, amount: req.amount });
-          notes.push(`Replaced ${res} with ${replacement} for chain support`);
-        } else {
-          // Keep original — player may acquire production later
-          newResources.push(req);
-          notes.push(`Could not find replacement for ${res}`);
-        }
-      }
-    }
-    adjustedContract.requiredResources = newResources;
-  }
-
-  return { contract: adjustedContract, notes };
-}
-
-// ─── Layer 3: Procedural Fill (Main Generation) ──────
-
-// Generate a single dynamic contract using the 4-layer architecture
-export function generateDynamicContract(
-  difficultyTier: ContractDifficulty,
-  gameTier: number,
-  buildingCount: number,
-  currentTick: number,
-  existingContractIds: Set<string>,
-  playerBuildings?: BuildingInstance[],
-  existingContracts?: Contract[],
-  playerMoney?: number,
-): Contract | null {
-  const tierRules = CONTRACT_TIER_RULES[difficultyTier];
-
-  // Don't generate if player tier is too low
-  if (gameTier < tierRules.minGameTier) return null;
-
-  // Layer 1: Pick contract type based on weighted random
-  const contractType = pickContractType();
-  const template = CONTRACT_TYPE_TEMPLATES[contractType];
-
-  // Layer 3 Step 1: Select materials using tier rules
-  const selectedResources = selectMaterials(tierRules);
-  if (selectedResources.length === 0) return null;
-
-  // Layer 3 Step 2: Calculate quantities
-  const requiredResources: ResourceAmount[] = selectedResources.map(res => ({
-    resource: res as CostResourceType,
-    amount: calculateQuantity(res, tierRules, gameTier, buildingCount),
-  }));
-
-  // Layer 3 Step 3: Generate name and description from template
-  const nameTemplate = randomChoice(template.namePatterns);
-  const descTemplate = randomChoice(template.descriptionPatterns);
-
-  const firstMatName = RESOURCE_META[selectedResources[0] as ResourceType]?.name ?? selectedResources[0];
-  const matListStr = requiredResources.map(r => {
-    const name = RESOURCE_META[r.resource as ResourceType]?.name ?? r.resource;
-    return `${r.amount} ${name}`;
-  }).join(', ');
-
-  const name = nameTemplate.replace('{mat}', firstMatName);
-  const description = descTemplate.replace('{mats}', matListStr);
-
-  // Layer 3 Step 4: Calculate deadline from tier rules + material count bonus
-  const [deadlineMin, deadlineMax] = tierRules.deadlineRange;
-  const baseDeadline = randomInt(deadlineMin, deadlineMax);
-  const materialBonus = (requiredResources.length - tierRules.materialCount[0]) * tierRules.deadlineScaleByMaterials;
-  const deadline = Math.floor((baseDeadline + materialBonus) * template.deadlineModifier);
-
-  // Layer 3 Step 5: Calculate rewards
-  const reward = calculateContractReward(requiredResources, tierRules, template, gameTier);
-
-  // Difficulty number (legacy)
-  const difficultyMap: Record<ContractDifficulty, number> = { easy: 1, medium: 2, hard: 4, legendary: 5 };
-
-  // Generate unique ID
-  const id = `dyn-${difficultyTier}-${currentTick}-${Math.random().toString(36).substring(2, 7)}`;
-  if (existingContractIds.has(id)) return null;
-
-  // Determine the effective game tier for this contract
-  const maxResourceTier = Math.min(gameTier, tierRules.allowedResourceTiers[1]);
-
-  const contract: Contract = {
-    id,
-    name,
-    description,
-    type: contractType,
-    requiredResources,
-    timeLimit: deadline,
-    timeRemaining: deadline,
-    reward,
-    progress: 0,
-    completed: false,
-    failed: false,
-    difficulty: difficultyMap[difficultyTier],
-    difficultyTier,
-    gameTier: maxResourceTier,
-    emoji: template.emoji,
-    accepted: false,
-    expiresAt: currentTick + tierRules.boardExpiration,
-    templateType: contractType,
-    validationPassed: true,
-    validationNotes: [],
-  };
-
-  // Layer 4: Validation (if player data available)
-  if (playerBuildings && playerBuildings.length > 0 && (existingContracts ?? []).length >= 0) {
-    const playerIncomePerTick = playerMoney ? playerMoney / Math.max(1, currentTick) : 0;
-    const totalRPEarned = 0; // We don't have this easily, pass 0 to skip RP check when unknown
-
-    const validationResult = validateContract(
-      contract,
-      playerBuildings,
-      existingContracts ?? [],
-      playerIncomePerTick,
-      totalRPEarned,
-    );
-
-    if (!validationResult.valid) {
-      // Try to adjust the contract
-      const { contract: adjustedContract, notes } = adjustContract(
-        contract,
-        validationResult,
-        tierRules,
-        gameTier,
-        playerBuildings,
-      );
-
-      adjustedContract.validationPassed = validationResult.economyBalanced && validationResult.notRedundant;
-      adjustedContract.validationNotes = [...validationResult.warnings, ...notes];
-
-      return adjustedContract;
-    }
-
-    contract.validationNotes = validationResult.warnings.length > 0 ? validationResult.warnings : undefined;
-  }
-
-  return contract;
-}
-
-// Generate a batch of contracts for the contract board using tier rules
-export function generateContractBoard(
-  gameTier: number,
-  buildingCount: number,
-  currentTick: number,
-  existingContractIds: Set<string>,
-  playerBuildings?: BuildingInstance[],
-  existingContracts?: Contract[],
-  playerMoney?: number,
-): Contract[] {
-  const contracts: Contract[] = [];
-  const difficulties: ContractDifficulty[] = ['easy', 'medium', 'hard', 'legendary'];
-
-  for (const difficulty of difficulties) {
-    const tierRules = CONTRACT_TIER_RULES[difficulty];
-
-    // Check if player meets minimum game tier
-    if (gameTier < tierRules.minGameTier) continue;
-
-    // Check spawn chance (mainly for legendary)
-    if (Math.random() > tierRules.spawnChance) continue;
-
-    // Generate contracts based on board slot count
-    for (let i = 0; i < tierRules.boardSlotCount; i++) {
-      const c = generateDynamicContract(
-        difficulty,
-        gameTier,
-        buildingCount,
-        currentTick,
-        existingContractIds,
-        playerBuildings,
-        existingContracts,
-        playerMoney,
-      );
-      if (c) {
-        contracts.push(c);
-        existingContractIds.add(c.id);
-      }
-    }
-  }
-
-  return contracts;
-}
-
-// ============================================
-// END 4-LAYER CONTRACT ENGINE
-// ============================================
+// --- Rank Thresholds ---
 export const RANK_THRESHOLDS = [
-  { name: 'Apprentice', minScore: 0, emoji: '👷', color: '#a0a0a0' },
-  { name: 'Foreman', minScore: 100, emoji: '🧑‍🏭', color: '#4ade80' },
-  { name: 'Manager', minScore: 500, emoji: '👔', color: '#22d3ee' },
-  { name: 'Director', minScore: 2000, emoji: '🎖️', color: '#facc15' },
-  { name: 'VP of Operations', minScore: 8000, emoji: '🏅', color: '#fb923c' },
-  { name: 'CEO', minScore: 25000, emoji: '👑', color: '#f472b6' },
-  { name: 'Tycoon', minScore: 100000, emoji: '💎', color: '#a78bfa' },
-  { name: 'Magnate', minScore: 500000, emoji: '🌟', color: '#fbbf24' },
-  { name: 'Industrial Legend', minScore: 2000000, emoji: '⚡', color: '#00fff2' },
-  { name: 'Cosmic Industrialist', minScore: 10000000, emoji: '🌍', color: '#00ffcc' },
-  { name: 'Galactic Emperor', minScore: 50000000, emoji: '👑', color: '#ff4500' },
-  { name: 'Universal Dominion', minScore: 200000000, emoji: '🌌', color: '#ff00ff' },
+  { name: 'Apprentice', minScore: 0, icon: 'gi:overhead', color: '#a0a0a0' },
+  { name: 'Foreman', minScore: 100, icon: 'gi:heavy-helm', color: '#4ade80' },
+  { name: 'Manager', minScore: 500, icon: 'gi:tie', color: '#22d3ee' },
+  { name: 'Director', minScore: 2000, icon: 'gi:medal', color: '#facc15' },
+  { name: 'VP of Operations', minScore: 8000, icon: 'gi:trophy', color: '#fb923c' },
+  { name: 'CEO', minScore: 25000, icon: 'gi:crown', color: '#f472b6' },
+  { name: 'Tycoon', minScore: 100000, icon: 'gi:diamond-ring', color: '#a78bfa' },
+  { name: 'Magnate', minScore: 500000, icon: 'gi:star-formation', color: '#fbbf24' },
+  { name: 'Industrial Legend', minScore: 2000000, icon: 'gi:lightning-frequency', color: '#00fff2' },
+  { name: 'Cosmic Industrialist', minScore: 10000000, icon: 'gi:crystal-growth', color: '#00ffcc' },
+  { name: 'Galactic Emperor', minScore: 50000000, icon: 'gi:imperial-crown', color: '#ff4500' },
+  { name: 'Universal Dominion', minScore: 200000000, icon: 'gi:galaxy', color: '#ff00ff' },
 ];
 
 export const PRODUCTION_CHAINS = [
-  // ─── Basic Materials ─────────────────────────────────────
-  { name: 'Iron', steps: ['iron', 'ironPlate', 'gear', 'engine'], color: '#a0a0a0', category: 'basic' as const },
-  { name: 'Iron Smelting', steps: ['iron', 'ironPlate'], color: '#b0b0b0', category: 'basic' as const },
-  { name: 'Steel', steps: ['iron', 'coal', 'steel', 'advancedAlloy'], color: '#708090', category: 'basic' as const },
-  { name: 'Bricks', steps: ['clay', 'bricks'], color: '#b5533a', category: 'basic' as const },
-  { name: 'Concrete', steps: ['gravel', 'limestone', 'concrete'], color: '#95a5a6', category: 'basic' as const },
-  { name: 'Fertilizer', steps: ['limestone', 'water', 'fertilizer'], color: '#7cb342', category: 'basic' as const },
-  { name: 'Crude Oil', steps: ['oil', 'fossilFuel'], color: '#3e2723', category: 'basic' as const },
-  { name: 'Carbon', steps: ['coal', 'carbon'], color: '#2d2d2d', category: 'basic' as const },
-  { name: 'Plastic', steps: ['oil', 'water', 'plastic'], color: '#ff6b6b', category: 'basic' as const },
-  { name: 'Lithium', steps: ['lithium', 'carbon', 'battery'], color: '#e0c040', category: 'basic' as const },
-  { name: 'Hydrogen Fuel', steps: ['water', 'carbon', 'fossilFuel', 'coolant'], color: '#20b2aa', category: 'basic' as const },
-
-  // ─── Industrial Materials ─────────────────────────────────
-  { name: 'Electronics', steps: ['copper', 'copperWire', 'circuit', 'aiChip', 'electronics'], color: '#00cc66', category: 'industrial' as const },
-  { name: 'Copper Wire', steps: ['copper', 'copperWire'], color: '#d4883a', category: 'industrial' as const },
-  { name: 'Silicon', steps: ['sand', 'clay', 'fossilFuel', 'silicon'], color: '#8db4e2', category: 'industrial' as const },
-  { name: 'Aluminium', steps: ['bauxite', 'aluminium', 'battery'], color: '#c0c0c0', category: 'industrial' as const },
-  { name: 'Copper', steps: ['copper', 'copperIngot', 'jewellery'], color: '#e67e22', category: 'industrial' as const },
-  { name: 'Titanium', steps: ['rareEarth', 'fossilFuel', 'titanium'], color: '#778899', category: 'industrial' as const },
-  { name: 'Glass Production', steps: ['sand', 'glass'], color: '#87ceeb', category: 'industrial' as const },
-  { name: 'Coolant', steps: ['water', 'oil', 'coolant'], color: '#00bfff', category: 'industrial' as const },
-  { name: 'Solar Panels', steps: ['sand', 'glass', 'silicon', 'solarCell'], color: '#ffd700', category: 'industrial' as const },
-  { name: 'Advanced Alloy', steps: ['iron', 'steel', 'lithium', 'advancedAlloy'], color: '#4169e1', category: 'industrial' as const },
-  { name: 'Fiber Optics', steps: ['sand', 'glass', 'copperWire', 'fiberOptics', 'neuralNetwork'], color: '#4fc3f7', category: 'industrial' as const },
-  { name: 'Circuit Assembly', steps: ['copperWire', 'plastic', 'silicon', 'circuit'], color: '#3ddc84', category: 'industrial' as const },
-
-  // ─── Advanced Materials ───────────────────────────────────
-  { name: 'Quantum Components', steps: ['rareEarth', 'aiChip', 'artifactDetector', 'quantumPart', 'nanoMaterial'], color: '#9400d3', category: 'advanced' as const },
-  { name: 'Robotics', steps: ['gear', 'engine', 'aiChip', 'electronics', 'robotics'], color: '#ff69b4', category: 'advanced' as const },
-  { name: 'Tungsten', steps: ['wolframite', 'fossilFuel', 'limestone', 'tungsten'], color: '#5c5c5c', category: 'advanced' as const },
-  { name: 'Weapons', steps: ['steel', 'aluminium', 'battery', 'weapons'], color: '#b71c1c', category: 'advanced' as const },
-  { name: 'Scan Drones', steps: ['electronics', 'titanium', 'battery', 'medicalTech', 'scanDrone'], color: '#00e5ff', category: 'advanced' as const },
-  { name: 'Medical Tech', steps: ['titanium', 'plastic', 'electronics', 'insecticide', 'medicalTech'], color: '#ff6b6b', category: 'advanced' as const },
-  { name: 'Neural Processors', steps: ['copper', 'copperWire', 'fiberOptics', 'aiChip', 'neuralNetwork'], color: '#ff6347', category: 'advanced' as const },
-  { name: 'Jewellery', steps: ['rareEarth', 'copperIngot', 'jewellery'], color: '#e91e63', category: 'advanced' as const },
-  { name: 'Insecticide', steps: ['copper', 'limestone', 'fertilizer', 'insecticide'], color: '#76ff03', category: 'advanced' as const },
-  { name: 'Artifact Detection', steps: ['tungsten', 'battery', 'electronics', 'scanDrone', 'artifactDetector'], color: '#8b4513', category: 'advanced' as const },
-  { name: 'AI Processing', steps: ['circuit', 'battery', 'aiChip'], color: '#00e5ff', category: 'advanced' as const },
-
-  // ─── High-Tech / Quantum ─────────────────────────────────
-  { name: 'Singularity Core', steps: ['quantumPart', 'nanoMaterial', 'aiChip', 'singularityCore', 'chronoPart'], color: '#00ffcc', category: 'hightech' as const },
-  { name: 'Dark Matter Cell', steps: ['nanoMaterial', 'advancedAlloy', 'coolant', 'darkMatterCell'], color: '#1a0033', category: 'hightech' as const },
-  { name: 'Warp Drive', steps: ['engine', 'robotics', 'quantumPart', 'weapons', 'warpDrive'], color: '#ff4500', category: 'hightech' as const },
-  { name: 'Antimatter', steps: ['electronics', 'quantumPart', 'coolant', 'rareEarth', 'antimatter'], color: '#ff00ff', category: 'hightech' as const },
-  { name: 'Plasma Core', steps: ['fossilFuel', 'coolant', 'advancedAlloy', 'electronics', 'plasmaCore'], color: '#ff6600', category: 'hightech' as const },
-  { name: 'Chrono Components', steps: ['singularityCore', 'neuralNetwork', 'chronoPart'], color: '#ffd700', category: 'hightech' as const },
-  { name: 'Nano Materials', steps: ['advancedAlloy', 'quantumPart', 'neuralNetwork', 'nanoMaterial'], color: '#80cbc4', category: 'hightech' as const },
-  { name: 'Gear Production', steps: ['iron', 'ironPlate', 'gear'], color: '#8a8a8a', category: 'hightech' as const },
-
-  // ─── Cosmic / Endgame ────────────────────────────────────
-  { name: 'Mega Structure', steps: ['concrete', 'bricks', 'steel', 'advancedAlloy', 'robotics', 'megaStructure'], color: '#4169e1', category: 'cosmic' as const },
-  { name: 'Void Crystal', steps: ['rareEarth', 'nanoMaterial', 'quantumPart', 'jewellery', 'voidCrystal'], color: '#9400d3', category: 'cosmic' as const },
-  { name: 'Galactic Components', steps: ['singularityCore', 'darkMatterCell', 'warpDrive', 'voidCrystal', 'megaStructure'], color: '#00ffcc', category: 'cosmic' as const },
-  { name: 'Dyson Energy', steps: ['solarCell', 'fiberOptics', 'electronics', 'singularityCore', 'quantumPart'], color: '#ffdd00', category: 'cosmic' as const },
-  { name: 'Quantum Teleportation', steps: ['quantumPart', 'neuralNetwork', 'singularityCore', 'darkMatterCell'], color: '#00ff88', category: 'cosmic' as const },
-  { name: 'Dimensional Rift', steps: ['darkMatterCell', 'voidCrystal', 'antimatter', 'plasmaCore'], color: '#cc00ff', category: 'cosmic' as const },
-  { name: 'Temporal Compression', steps: ['chronoPart', 'singularityCore', 'warpDrive', 'quantumPart'], color: '#ff8800', category: 'cosmic' as const },
-  { name: 'Galactic Supremacy', steps: ['megaStructure', 'voidCrystal', 'antimatter', 'singularityCore'], color: '#ff0066', category: 'cosmic' as const },
+  { name: 'Basic Iron', steps: ['iron', 'ironPlate', 'gear', 'engine'], color: '#a0a0a0' },
+  { name: 'Steel Production', steps: ['iron', 'coal', 'steel', 'advancedAlloy'], color: '#708090' },
+  { name: 'Brick Making', steps: ['clay', 'bricks'], color: '#b5533a' },
+  { name: 'Concrete Production', steps: ['gravel', 'limestone', 'concrete'], color: '#95a5a6' },
+  { name: 'Fertilizer', steps: ['limestone', 'water', 'fertilizer'], color: '#7cb342' },
+  { name: 'Oil Refining', steps: ['oil', 'fossilFuel'], color: '#3e2723' },
+  { name: 'Carbon Fiber', steps: ['coal', 'carbon', 'battery'], color: '#2d2d2d' },
+  { name: 'Oil Products', steps: ['oil', 'plastic', 'circuit'], color: '#ff6b6b' },
+  { name: 'Electronics', steps: ['copper', 'copperWire', 'circuit', 'aiChip', 'electronics'], color: '#00cc66' },
+  { name: 'Silicon Tech', steps: ['sand', 'clay', 'silicon', 'circuit'], color: '#8db4e2' },
+  { name: 'Aluminium', steps: ['bauxite', 'aluminium', 'battery'], color: '#c0c0c0' },
+  { name: 'Copper Refining', steps: ['copper', 'copperIngot'], color: '#e67e22' },
+  { name: 'Titanium', steps: ['rareEarth', 'titanium', 'medicalTech'], color: '#778899' },
+  { name: 'Glass Production', steps: ['sand', 'glass', 'fiberOptics'], color: '#87ceeb' },
+  { name: 'Coolant Production', steps: ['water', 'oil', 'coolant'], color: '#00bfff' },
+  { name: 'Solar Energy', steps: ['sand', 'glass', 'silicon', 'solarCell'], color: '#ffd700' },
+  { name: 'Advanced Materials', steps: ['iron', 'steel', 'advancedAlloy', 'nanoMaterial'], color: '#4169e1' },
+  { name: 'Quantum Tech', steps: ['rareEarth', 'aiChip', 'quantumPart', 'nanoMaterial'], color: '#9400d3' },
+  { name: 'Robotics', steps: ['gear', 'engine', 'aiChip', 'electronics', 'robotics'], color: '#ff69b4' },
+  { name: 'Tungsten', steps: ['wolframite', 'fossilFuel', 'tungsten', 'artifactDetector'], color: '#5c5c5c' },
+  { name: 'Weapons', steps: ['steel', 'aluminium', 'battery', 'weapons'], color: '#b71c1c' },
+  { name: 'Scan Drones', steps: ['electronics', 'titanium', 'battery', 'scanDrone'], color: '#00e5ff' },
+  { name: 'Medical Technology', steps: ['titanium', 'plastic', 'electronics', 'medicalTech'], color: '#ff6b6b' },
+  { name: 'Neural Computing', steps: ['copper', 'copperWire', 'fiberOptics', 'aiChip', 'neuralNetwork'], color: '#ff6347' },
+  { name: 'Jewellery', steps: ['rareEarth', 'copper', 'jewellery'], color: '#e91e63' },
+  { name: 'Insecticide', steps: ['copper', 'limestone', 'insecticide'], color: '#76ff03' },
+  { name: 'Singularity', steps: ['quantumPart', 'nanoMaterial', 'aiChip', 'singularityCore', 'chronoPart'], color: '#00ffcc' },
+  { name: 'Dark Matter', steps: ['nanoMaterial', 'advancedAlloy', 'coolant', 'darkMatterCell'], color: '#1a0033' },
+  { name: 'Warp Drive', steps: ['gear', 'engine', 'robotics', 'quantumPart', 'warpDrive'], color: '#ff4500' },
+  { name: 'Antimatter', steps: ['rareEarth', 'battery', 'coolant', 'antimatter'], color: '#ff00ff' },
+  { name: 'Plasma Core', steps: ['oil', 'fossilFuel', 'coolant', 'advancedAlloy', 'plasmaCore'], color: '#ff6600' },
+  { name: 'Mega Structure', steps: ['gravel', 'limestone', 'concrete', 'steel', 'advancedAlloy', 'megaStructure'], color: '#4169e1' },
+  { name: 'Void Crystal', steps: ['rareEarth', 'nanoMaterial', 'quantumPart', 'voidCrystal'], color: '#9400d3' },
+  { name: 'Chrono Tech', steps: ['singularityCore', 'neuralNetwork', 'chronoPart'], color: '#ffd700' },
+  { name: 'Galactic Production', steps: ['singularityCore', 'darkMatterCell', 'warpDrive', 'voidCrystal', 'megaStructure'], color: '#00ffcc' },
 ];
 
 // --- MegaProject Definitions ---
@@ -2703,7 +1990,7 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
     type: 'spaceElevator',
     name: 'Space Elevator',
     description: 'Construct a towering tether to orbit, revolutionizing transport capacity across your entire empire.',
-    emoji: '🚀',
+    icon: 'gi:rocket-thruster',
     stages: [
       {
         name: 'Foundation & Base Tower',
@@ -2739,7 +2026,6 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
     currentStage: 0,
     progress: 0,
     active: false,
-    paused: false,
     completed: false,
     bonus: { type: 'transportMultiplier', description: '+50% transport throughput', value: 0.5 },
     unlockRequirement: { buildings: 20, research: 5 },
@@ -2748,7 +2034,7 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
     type: 'dysonSphere',
     name: 'Dyson Sphere',
     description: 'Encase a star in a megastructure to harvest unimaginable quantities of energy for your factories.',
-    emoji: '☀️',
+    icon: 'gi:solar-system',
     stages: [
       {
         name: 'Solar Collector Array',
@@ -2765,7 +2051,7 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
         requiredResources: [
           { resource: 'aiChip', amount: 1000 },
           { resource: 'robotics', amount: 500 },
-          { resource: 'fibreOptics', amount: 400 },
+          { resource: 'fiberOptics', amount: 400 },
         ],
         timeRequired: 1500,
         completed: false,
@@ -2784,7 +2070,6 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
     currentStage: 0,
     progress: 0,
     active: false,
-    paused: false,
     completed: false,
     bonus: { type: 'powerMultiplier', description: '+200% power generation', value: 2.0 },
     unlockRequirement: { buildings: 30, research: 10 },
@@ -2793,7 +2078,7 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
     type: 'quantumInternet',
     name: 'Quantum Internet',
     description: 'Build an interlocking quantum network that accelerates research beyond the speed of conventional computing.',
-    emoji: '🌐',
+    icon: 'gi:spider-web',
     stages: [
       {
         name: 'Quantum Node Network',
@@ -2810,7 +2095,7 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
         requiredResources: [
           { resource: 'quantumPart', amount: 200 },
           { resource: 'robotics', amount: 100 },
-          { resource: 'fibreOptics', amount: 300 },
+          { resource: 'fiberOptics', amount: 300 },
         ],
         timeRequired: 1200,
         completed: false,
@@ -2829,7 +2114,6 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
     currentStage: 0,
     progress: 0,
     active: false,
-    paused: false,
     completed: false,
     bonus: { type: 'researchMultiplier', description: '+100% research speed', value: 1.0 },
     unlockRequirement: { buildings: 15, research: 8 },
@@ -2838,7 +2122,7 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
     type: 'fusionCity',
     name: 'Fusion City',
     description: 'Construct a self-sustaining metropolis powered by fusion, doubling all production across your dominion.',
-    emoji: '🏙️',
+    icon: 'gi:bank',
     stages: [
       {
         name: 'City Foundation',
@@ -2884,7 +2168,6 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
     currentStage: 0,
     progress: 0,
     active: false,
-    paused: false,
     completed: false,
     bonus: { type: 'productionMultiplier', description: '+100% all production', value: 1.0 },
     unlockRequirement: { buildings: 40, research: 15, prestige: 2 },
@@ -2893,7 +2176,7 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
     type: 'terraformingEngine',
     name: 'Terraforming Engine',
     description: 'Reshape entire worlds to your specifications. Removes all resource storage limits forever.',
-    emoji: '🌍',
+    icon: 'gi:crystal-growth',
     stages: [
       {
         name: 'Atmospheric Processor',
@@ -2920,7 +2203,7 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
         requiredResources: [
           { resource: 'aiChip', amount: 500 },
           { resource: 'nanoMaterial', amount: 100 },
-          { resource: 'fibreOptics', amount: 600 },
+          { resource: 'fiberOptics', amount: 600 },
         ],
         timeRequired: 3500,
         completed: false,
@@ -2949,7 +2232,6 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
     currentStage: 0,
     progress: 0,
     active: false,
-    paused: false,
     completed: false,
     bonus: { type: 'unlimitedStorage', description: 'Unlimited resource storage', value: 1 },
     unlockRequirement: { buildings: 50, research: 20, prestige: 3 },
@@ -2958,7 +2240,7 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
     type: 'galacticTradeHub',
     name: 'Galactic Trade Hub',
     description: 'Construct an interstellar commerce nexus that commands premium prices across all galactic markets.',
-    emoji: '🏪',
+    icon: 'gi:shop',
     stages: [
       {
         name: 'Trade Spire Foundation',
@@ -2974,7 +2256,7 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
         name: 'Commerce Holographics',
         requiredResources: [
           { resource: 'electronics', amount: 400 },
-          { resource: 'fibreOptics', amount: 500 },
+          { resource: 'fiberOptics', amount: 500 },
           { resource: 'battery', amount: 600 },
         ],
         timeRequired: 1500,
@@ -2994,7 +2276,6 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
     currentStage: 0,
     progress: 0,
     active: false,
-    paused: false,
     completed: false,
     bonus: { type: 'marketMultiplier', description: '+50% market sell prices', value: 0.5 },
     unlockRequirement: { buildings: 25, research: 12 },
@@ -3003,7 +2284,7 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
     type: 'deepCoreExtractor',
     name: 'Deep Core Extractor',
     description: 'Bore into the planet\'s mantle with a mega-drill that dramatically accelerates all raw material extraction.',
-    emoji: '⛏️',
+    icon: 'gi:mining',
     stages: [
       {
         name: 'Bore Shaft Construction',
@@ -3030,7 +2311,7 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
         requiredResources: [
           { resource: 'battery', amount: 1000 },
           { resource: 'robotics', amount: 300 },
-          { resource: 'fibreOptics', amount: 400 },
+          { resource: 'fiberOptics', amount: 400 },
         ],
         timeRequired: 2500,
         completed: false,
@@ -3049,7 +2330,6 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
     currentStage: 0,
     progress: 0,
     active: false,
-    paused: false,
     completed: false,
     bonus: { type: 'extractionMultiplier', description: '+75% extraction speed', value: 0.75 },
     unlockRequirement: { buildings: 35, research: 14, prestige: 1 },
@@ -3058,14 +2338,14 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
     type: 'neuralCommandCenter',
     name: 'Neural Command Center',
     description: 'Deploy a planet-wide neural network that synchronizes and supercharges every worker in your empire.',
-    emoji: '🧠',
+    icon: 'gi:brain',
     stages: [
       {
         name: 'Neural Core Matrix',
         requiredResources: [
           { resource: 'aiChip', amount: 1200 },
           { resource: 'circuit', amount: 3000 },
-          { resource: 'fibreOptics', amount: 800 },
+          { resource: 'fiberOptics', amount: 800 },
         ],
         timeRequired: 1200,
         completed: false,
@@ -3094,7 +2374,6 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
     currentStage: 0,
     progress: 0,
     active: false,
-    paused: false,
     completed: false,
     bonus: { type: 'workerEfficiency', description: '+100% worker efficiency', value: 1.0 },
     unlockRequirement: { buildings: 30, research: 16, prestige: 2 },
@@ -3103,7 +2382,7 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
     type: 'nanoAssemblyMatrix',
     name: 'Nano Assembly Matrix',
     description: 'Build a molecular-scale fabrication swarm that slashes construction costs across your entire dominion.',
-    emoji: '🔬',
+    icon: 'gi:nano-bot',
     stages: [
       {
         name: 'Nanite Foundry',
@@ -3138,7 +2417,7 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
       {
         name: 'Universal Assembly',
         requiredResources: [
-          { resource: 'fibreOptics', amount: 700 },
+          { resource: 'fiberOptics', amount: 700 },
           { resource: 'battery', amount: 1500 },
           { resource: 'coolant', amount: 1200 },
         ],
@@ -3149,7 +2428,6 @@ export const INITIAL_MEGA_PROJECTS: MegaProject[] = [
     currentStage: 0,
     progress: 0,
     active: false,
-    paused: false,
     completed: false,
     bonus: { type: 'buildingCostReduction', description: '-25% building costs', value: 0.25 },
     unlockRequirement: { buildings: 45, research: 18, prestige: 3 },
@@ -3181,7 +2459,7 @@ export const SEASONAL_EVENTS = [
     id: 'doubleProduction',
     name: 'Production Frenzy',
     description: 'All factories produce 2x for a limited time!',
-    emoji: '🔥',
+    icon: 'gi:flame-tunnel',
     duration: 500,
     effects: [{ type: 'productionMultiplier' as const, value: 2.0 }],
     color: '#ff6600',
@@ -3191,7 +2469,7 @@ export const SEASONAL_EVENTS = [
     id: 'researchBoom',
     name: 'Research Boom',
     description: 'Research points accumulate 3x faster!',
-    emoji: '🧪',
+    icon: 'gi:erlenmeyer',
     duration: 300,
     effects: [{ type: 'researchSpeed' as const, value: 3.0 }],
     color: '#a855f7',
@@ -3201,7 +2479,7 @@ export const SEASONAL_EVENTS = [
     id: 'marketSurge',
     name: 'Market Surge',
     description: 'All sell prices increased by 50%!',
-    emoji: '📈',
+    icon: 'gi:profit',
     duration: 400,
     effects: [{ type: 'marketPriceMultiplier' as const, value: 1.5 }],
     color: '#22c55e',
@@ -3211,7 +2489,7 @@ export const SEASONAL_EVENTS = [
     id: 'powerBoost',
     name: 'Power Boost',
     description: 'All power plants produce 2x more energy!',
-    emoji: '⚡',
+    icon: 'gi:lightning-frequency',
     duration: 600,
     effects: [{ type: 'productionMultiplier' as const, target: 'powerPlant', value: 2.0 }],
     color: '#facc15',
@@ -3221,12 +2499,12 @@ export const SEASONAL_EVENTS = [
 
 // --- Weather Definitions ---
 export const WEATHER_DEFS: Record<WeatherType, WeatherDefinition> = {
-  clear: { name: 'Clear Skies', emoji: '☀️', productionMultiplier: 1.0, solarMultiplier: 1.0, windMultiplier: 1.0, description: 'Normal conditions. No weather effects.' },
-  sunny: { name: 'Sunny', emoji: '🌞', productionMultiplier: 1.05, solarMultiplier: 1.4, windMultiplier: 0.7, description: 'Bright sunshine! Solar output +40%, wind -30%, production +5%.' },
-  rainy: { name: 'Rainy', emoji: '🌧️', productionMultiplier: 0.9, solarMultiplier: 0.3, windMultiplier: 1.2, description: 'Heavy rain reduces solar by 70%. Wind +20%, production -10%.' },
-  stormy: { name: 'Stormy', emoji: '⛈️', productionMultiplier: 0.75, solarMultiplier: 0.1, windMultiplier: 1.8, description: 'Dangerous storm! Production -25%, solar -90%, but wind +80%!' },
-  foggy: { name: 'Foggy', emoji: '🌫️', productionMultiplier: 0.85, solarMultiplier: 0.5, windMultiplier: 0.6, description: 'Dense fog. Solar -50%, wind -40%, production -15%.' },
-  snowy: { name: 'Snowy', emoji: '❄️', productionMultiplier: 0.8, solarMultiplier: 0.4, windMultiplier: 0.8, description: 'Snowfall. Production -20%, solar -60%. Beautiful but cold.' },
+  clear: { name: 'Clear Skies', icon: 'gi:sun', productionMultiplier: 1.0, solarMultiplier: 1.0, windMultiplier: 1.0, description: 'Normal conditions. No weather effects.' },
+  sunny: { name: 'Sunny', icon: 'gi:sun', productionMultiplier: 1.05, solarMultiplier: 1.4, windMultiplier: 0.7, description: 'Bright sunshine! Solar output +40%, wind -30%, production +5%.' },
+  rainy: { name: 'Rainy', icon: 'gi:heavy-rain', productionMultiplier: 0.9, solarMultiplier: 0.3, windMultiplier: 1.2, description: 'Heavy rain reduces solar by 70%. Wind +20%, production -10%.' },
+  stormy: { name: 'Stormy', icon: 'gi:lightning-storm', productionMultiplier: 0.75, solarMultiplier: 0.1, windMultiplier: 1.8, description: 'Dangerous storm! Production -25%, solar -90%, but wind +80%!' },
+  foggy: { name: 'Foggy', icon: 'gi:fog', productionMultiplier: 0.85, solarMultiplier: 0.5, windMultiplier: 0.6, description: 'Dense fog. Solar -50%, wind -40%, production -15%.' },
+  snowy: { name: 'Snowy', icon: 'gi:snowflake-2', productionMultiplier: 0.8, solarMultiplier: 0.4, windMultiplier: 0.8, description: 'Snowfall. Production -20%, solar -60%. Beautiful but cold.' },
 };
 
 // --- Quest Definitions ---
@@ -3245,7 +2523,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 200, researchPoints: 10 },
     completed: false,
     claimed: false,
-    emoji: '🏗️',
+    icon: 'gi:mining',
     targetBuilding: 'miningDrill',
   },
   {
@@ -3259,7 +2537,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 300, researchPoints: 15 },
     completed: false,
     claimed: false,
-    emoji: '⚡',
+    icon: 'gi:factory',
     targetBuilding: 'coalGenerator',
   },
   {
@@ -3273,7 +2551,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 500, researchPoints: 20 },
     completed: false,
     claimed: false,
-    emoji: '💰',
+    icon: 'gi:coins',
   },
   {
     id: 'tut_extractor2',
@@ -3289,7 +2567,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 800, researchPoints: 25 },
     completed: false,
     claimed: false,
-    emoji: '⛏️',
+    icon: 'gi:mining',
   },
   {
     id: 'tut_oil_water',
@@ -3305,7 +2583,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 600, researchPoints: 15 },
     completed: false,
     claimed: false,
-    emoji: '🛢️',
+    icon: 'gi:oil-rig',
     targetBuilding: 'oilPump',
   },
   {
@@ -3319,7 +2597,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 500, researchPoints: 20 },
     completed: false,
     claimed: false,
-    emoji: '🔗',
+    icon: 'gi:tread',
   },
 
   // =====================================================
@@ -3336,7 +2614,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 800, researchPoints: 25 },
     completed: false,
     claimed: false,
-    emoji: '🔥',
+    icon: 'gi:furnace',
     targetBuilding: 'smelter',
   },
   {
@@ -3355,7 +2633,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 3000, researchPoints: 60 },
     completed: false,
     claimed: false,
-    emoji: '🏭',
+    icon: 'gi:factory',
   },
   {
     id: 't1_research',
@@ -3368,7 +2646,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 1000, researchPoints: 50 },
     completed: false,
     claimed: false,
-    emoji: '🔬',
+    icon: 'gi:erlenmeyer',
   },
   {
     id: 't1_steel_forge',
@@ -3381,7 +2659,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 1500, researchPoints: 30 },
     completed: false,
     claimed: false,
-    emoji: '🛡️',
+    icon: 'gi:anvil-impact',
     targetBuilding: 'steelForge',
   },
   {
@@ -3398,7 +2676,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 2500, researchPoints: 40 },
     completed: false,
     claimed: false,
-    emoji: '🏗️',
+    icon: 'gi:castle',
   },
   {
     id: 't1_produce_ironplate',
@@ -3411,7 +2689,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 1500, researchPoints: 30 },
     completed: false,
     claimed: false,
-    emoji: '🔩',
+    icon: 'gi:metal-plate',
     targetResource: 'ironPlate',
   },
   {
@@ -3425,7 +2703,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 2000, researchPoints: 30 },
     completed: false,
     claimed: false,
-    emoji: '💵',
+    icon: 'gi:coins',
   },
   {
     id: 't1_contract_first',
@@ -3438,7 +2716,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 2000, researchPoints: 40 },
     completed: false,
     claimed: false,
-    emoji: '📋',
+    icon: 'gi:scroll-unfurled',
   },
   {
     id: 't1_carbon',
@@ -3451,7 +2729,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 1800, researchPoints: 35 },
     completed: false,
     claimed: false,
-    emoji: '🖤',
+    icon: 'gi:coal-pile',
     targetBuilding: 'carbonProcessor',
   },
   {
@@ -3465,7 +2743,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 2000, researchPoints: 40 },
     completed: false,
     claimed: false,
-    emoji: '⛽',
+    icon: 'gi:refinery',
     targetBuilding: 'oilRefinery',
   },
   {
@@ -3479,7 +2757,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 1500, researchPoints: 30 },
     completed: false,
     claimed: false,
-    emoji: '🌱',
+    icon: 'gi:fertilizer-bag',
     targetBuilding: 'fertilizerFactory',
   },
   {
@@ -3493,7 +2771,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 1500, researchPoints: 30 },
     completed: false,
     claimed: false,
-    emoji: '🔌',
+    icon: 'gi:electric',
     targetResource: 'copperWire',
   },
   {
@@ -3507,7 +2785,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 1500, researchPoints: 30 },
     completed: false,
     claimed: false,
-    emoji: '🧴',
+    icon: 'gi:plastic-duck',
     targetResource: 'plastic',
   },
   {
@@ -3521,7 +2799,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 1500, researchPoints: 30 },
     completed: false,
     claimed: false,
-    emoji: '🪟',
+    icon: 'gi:glass-celebration',
     targetResource: 'glass',
   },
   {
@@ -3535,7 +2813,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 1800, researchPoints: 35 },
     completed: false,
     claimed: false,
-    emoji: '🛡️',
+    icon: 'gi:steel-claws',
     targetResource: 'steel',
   },
   {
@@ -3549,7 +2827,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 1200, researchPoints: 25 },
     completed: false,
     claimed: false,
-    emoji: '🧱',
+    icon: 'gi:brick-wall',
     targetResource: 'bricks',
   },
   {
@@ -3563,7 +2841,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 1500, researchPoints: 30 },
     completed: false,
     claimed: false,
-    emoji: '🏗️',
+    icon: 'gi:concrete-bag',
     targetResource: 'concrete',
   },
   {
@@ -3577,7 +2855,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 1800, researchPoints: 35 },
     completed: false,
     claimed: false,
-    emoji: '🖤',
+    icon: 'gi:coal-pile',
     targetResource: 'carbon',
   },
   {
@@ -3591,7 +2869,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 2000, researchPoints: 40 },
     completed: false,
     claimed: false,
-    emoji: '⛽',
+    icon: 'gi:fuel-tank',
     targetResource: 'fossilFuel',
   },
   {
@@ -3605,7 +2883,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 1500, researchPoints: 25 },
     completed: false,
     claimed: false,
-    emoji: '💰',
+    icon: 'gi:coins',
   },
   {
     id: 't1_daily_t1_sell',
@@ -3618,7 +2896,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 2000, researchPoints: 30 },
     completed: false,
     claimed: false,
-    emoji: '💵',
+    icon: 'gi:coins',
   },
 
   // =====================================================
@@ -3638,7 +2916,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 5000, researchPoints: 80 },
     completed: false,
     claimed: false,
-    emoji: '⚙️',
+    icon: 'gi:big-gear',
     targetBuilding: 'gearFactory',
   },
   {
@@ -3655,7 +2933,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 6000, researchPoints: 100 },
     completed: false,
     claimed: false,
-    emoji: '💚',
+    icon: 'gi:circuitry',
     targetBuilding: 'circuitFactory',
   },
   {
@@ -3672,7 +2950,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 7000, researchPoints: 100 },
     completed: false,
     claimed: false,
-    emoji: '🔋',
+    icon: 'gi:battery-75',
     targetBuilding: 'batteryFactory',
   },
   {
@@ -3689,7 +2967,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 8000, researchPoints: 120 },
     completed: false,
     claimed: false,
-    emoji: '🔧',
+    icon: 'gi:gear-stick',
     targetBuilding: 'engineFactory',
   },
   {
@@ -3706,7 +2984,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 8000, researchPoints: 120 },
     completed: false,
     claimed: false,
-    emoji: '☢️',
+    icon: 'gi:nuclear',
     targetBuilding: 'nuclearReactor',
   },
   {
@@ -3720,7 +2998,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 3000, researchPoints: 50 },
     completed: false,
     claimed: false,
-    emoji: '👷',
+    icon: 'gi:overhead',
   },
   {
     id: 't2_transport5',
@@ -3733,7 +3011,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 4000, researchPoints: 60 },
     completed: false,
     claimed: false,
-    emoji: '🚛',
+    icon: 'gi:truck',
   },
   {
     id: 't2_produce_circuit',
@@ -3746,7 +3024,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 5000, researchPoints: 80 },
     completed: false,
     claimed: false,
-    emoji: '💚',
+    icon: 'gi:circuitry',
     targetResource: 'circuit',
   },
   {
@@ -3760,7 +3038,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 6000, researchPoints: 80 },
     completed: false,
     claimed: false,
-    emoji: '📋',
+    icon: 'gi:scroll-unfurled',
   },
   {
     id: 't2_earn_50k',
@@ -3773,7 +3051,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 8000, researchPoints: 100, corporationPoints: 2 },
     completed: false,
     claimed: false,
-    emoji: '💰',
+    icon: 'gi:coins',
   },
   {
     id: 't2_aluminium',
@@ -3789,7 +3067,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 6000, researchPoints: 80 },
     completed: false,
     claimed: false,
-    emoji: '🪙',
+    icon: 'gi:metal-disc',
   },
   {
     id: 't2_silicon_refinery',
@@ -3805,7 +3083,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 7000, researchPoints: 100 },
     completed: false,
     claimed: false,
-    emoji: '💠',
+    icon: 'gi:processor',
     targetBuilding: 'siliconRefinery',
   },
   {
@@ -3822,7 +3100,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 5500, researchPoints: 80 },
     completed: false,
     claimed: false,
-    emoji: '🟠',
+    icon: 'gi:metal-scales',
     targetBuilding: 'copperRefinery',
   },
   {
@@ -3839,7 +3117,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 10000, researchPoints: 150 },
     completed: false,
     claimed: false,
-    emoji: '🔷',
+    icon: 'gi:shield-impact',
     targetBuilding: 'titaniumRefinery',
   },
   {
@@ -3853,7 +3131,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 4500, researchPoints: 70 },
     completed: false,
     claimed: false,
-    emoji: '❄️',
+    icon: 'gi:snowflake-2',
     targetBuilding: 'coolantPlant',
   },
   {
@@ -3870,7 +3148,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 5000, researchPoints: 80 },
     completed: false,
     claimed: false,
-    emoji: '💡',
+    icon: 'gi:laser-burst',
     targetBuilding: 'opticsLab',
   },
   {
@@ -3887,7 +3165,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 6000, researchPoints: 90 },
     completed: false,
     claimed: false,
-    emoji: '☀️',
+    icon: 'gi:solar-power',
     targetBuilding: 'solarCellFactory',
   },
   {
@@ -3904,7 +3182,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 4500, researchPoints: 70 },
     completed: false,
     claimed: false,
-    emoji: '📺',
+    icon: 'gi:tv',
     targetBuilding: 'displayFactory',
   },
   {
@@ -3921,7 +3199,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 5500, researchPoints: 85 },
     completed: false,
     claimed: false,
-    emoji: '⛽',
+    icon: 'gi:h2o',
     targetBuilding: 'hydrogenPlant',
   },
   {
@@ -3938,7 +3216,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 5500, researchPoints: 75 },
     completed: false,
     claimed: false,
-    emoji: '🧪',
+    icon: 'gi:poison',
     targetBuilding: 'insecticideFactory',
   },
   {
@@ -3952,7 +3230,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 4000, researchPoints: 60 },
     completed: false,
     claimed: false,
-    emoji: '🏔️',
+    icon: 'gi:mountain-cave',
     targetBuilding: 'quarry',
   },
   {
@@ -3969,7 +3247,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 8000, researchPoints: 120 },
     completed: false,
     claimed: false,
-    emoji: '⬛',
+    icon: 'gi:obelisk',
     targetBuilding: 'wolframiteMine',
   },
   {
@@ -3983,7 +3261,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 4000, researchPoints: 60 },
     completed: false,
     claimed: false,
-    emoji: '⚙️',
+    icon: 'gi:big-gear',
     targetResource: 'gear',
   },
   {
@@ -3997,7 +3275,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 5000, researchPoints: 70 },
     completed: false,
     claimed: false,
-    emoji: '💠',
+    icon: 'gi:processor',
     targetResource: 'silicon',
   },
   {
@@ -4011,7 +3289,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 5000, researchPoints: 70 },
     completed: false,
     claimed: false,
-    emoji: '🪙',
+    icon: 'gi:metal-disc',
     targetResource: 'aluminium',
   },
   {
@@ -4025,7 +3303,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 4000, researchPoints: 60 },
     completed: false,
     claimed: false,
-    emoji: '❄️',
+    icon: 'gi:snowflake-2',
     targetResource: 'coolant',
   },
   {
@@ -4039,7 +3317,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 5000, researchPoints: 70 },
     completed: false,
     claimed: false,
-    emoji: '💡',
+    icon: 'gi:laser-burst',
     targetResource: 'fiberOptics',
   },
   {
@@ -4053,7 +3331,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 5500, researchPoints: 80 },
     completed: false,
     claimed: false,
-    emoji: '☀️',
+    icon: 'gi:solar-power',
     targetResource: 'solarCell',
   },
   {
@@ -4067,7 +3345,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 5000, researchPoints: 70 },
     completed: false,
     claimed: false,
-    emoji: '🟠',
+    icon: 'gi:gold-bar',
     targetResource: 'copperIngot',
   },
   {
@@ -4081,7 +3359,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 4500, researchPoints: 65 },
     completed: false,
     claimed: false,
-    emoji: '🧪',
+    icon: 'gi:poison',
     targetResource: 'insecticide',
   },
 
@@ -4102,7 +3380,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 15000, researchPoints: 200 },
     completed: false,
     claimed: false,
-    emoji: '🧠',
+    icon: 'gi:brain',
     targetBuilding: 'aiLab',
   },
   {
@@ -4119,7 +3397,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 25000, researchPoints: 250 },
     completed: false,
     claimed: false,
-    emoji: '🤖',
+    icon: 'gi:robot-grab',
     targetBuilding: 'roboticsBay',
   },
   {
@@ -4136,7 +3414,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 20000, researchPoints: 250 },
     completed: false,
     claimed: false,
-    emoji: '⚛️',
+    icon: 'gi:atom',
     targetBuilding: 'quantumLab',
   },
   {
@@ -4150,7 +3428,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 18000, researchPoints: 200 },
     completed: false,
     claimed: false,
-    emoji: '📱',
+    icon: 'gi:smartphone',
     targetBuilding: 'electronicsFactory',
   },
   {
@@ -4167,7 +3445,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 20000, researchPoints: 200 },
     completed: false,
     claimed: false,
-    emoji: '💠',
+    icon: 'gi:metal-bar',
     targetBuilding: 'alloyForge',
   },
   {
@@ -4184,7 +3462,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 30000, researchPoints: 300 },
     completed: false,
     claimed: false,
-    emoji: '🌟',
+    icon: 'gi:reactor',
     targetBuilding: 'fusionReactor',
   },
   {
@@ -4201,7 +3479,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 25000, researchPoints: 300, corporationPoints: 5 },
     completed: false,
     claimed: false,
-    emoji: '🚀',
+    icon: 'gi:castle',
   },
   {
     id: 't3_efficiency',
@@ -4214,7 +3492,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 10000, researchPoints: 150, corporationPoints: 3 },
     completed: false,
     claimed: false,
-    emoji: '⚡',
+    icon: 'gi:lightning-frequency',
   },
   {
     id: 't3_produce_aichip',
@@ -4227,7 +3505,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 20000, researchPoints: 200 },
     completed: false,
     claimed: false,
-    emoji: '🧠',
+    icon: 'gi:brain',
     targetResource: 'aiChip',
   },
   {
@@ -4241,7 +3519,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 12000, researchPoints: 150, corporationPoints: 2 },
     completed: false,
     claimed: false,
-    emoji: '🚂',
+    icon: 'gi:steam-locomotive',
   },
   {
     id: 't3_contract5',
@@ -4254,7 +3532,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 15000, researchPoints: 150, corporationPoints: 3 },
     completed: false,
     claimed: false,
-    emoji: '📋',
+    icon: 'gi:scroll-unfurled',
   },
   {
     id: 't3_earn_500k',
@@ -4267,7 +3545,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 50000, researchPoints: 300, corporationPoints: 5 },
     completed: false,
     claimed: false,
-    emoji: '💰',
+    icon: 'gi:coins',
   },
   {
     id: 't3_nanola',
@@ -4283,7 +3561,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 40000, researchPoints: 350, corporationPoints: 5 },
     completed: false,
     claimed: false,
-    emoji: '🔮',
+    icon: 'gi:nano-bot',
     targetBuilding: 'nanoLab',
   },
   {
@@ -4300,7 +3578,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 30000, researchPoints: 250, corporationPoints: 4 },
     completed: false,
     claimed: false,
-    emoji: '🏥',
+    icon: 'gi:hospital-cross',
     targetBuilding: 'medicalTechLab',
   },
   {
@@ -4317,7 +3595,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 35000, researchPoints: 300, corporationPoints: 5 },
     completed: false,
     claimed: false,
-    emoji: '💎',
+    icon: 'gi:diamond-ring',
     targetBuilding: 'goldsmith',
   },
   {
@@ -4334,7 +3612,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 30000, researchPoints: 250, corporationPoints: 4 },
     completed: false,
     claimed: false,
-    emoji: '⬛',
+    icon: 'gi:iron-cross',
     targetBuilding: 'tungstenSmelter',
   },
   {
@@ -4351,7 +3629,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 35000, researchPoints: 280, corporationPoints: 5 },
     completed: false,
     claimed: false,
-    emoji: '🔫',
+    icon: 'gi:ak47',
     targetBuilding: 'armsFactory',
   },
   {
@@ -4368,7 +3646,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 45000, researchPoints: 350, corporationPoints: 6 },
     completed: false,
     claimed: false,
-    emoji: '🛸',
+    icon: 'gi:space-shuttle',
     targetBuilding: 'droneShipyard',
   },
   {
@@ -4385,7 +3663,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 50000, researchPoints: 400, corporationPoints: 7 },
     completed: false,
     claimed: false,
-    emoji: '📡',
+    icon: 'gi:satellite',
     targetBuilding: 'detectorFactory',
   },
   {
@@ -4402,7 +3680,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 40000, researchPoints: 320, corporationPoints: 5 },
     completed: false,
     claimed: false,
-    emoji: '🌐',
+    icon: 'gi:thought-bubble',
     targetBuilding: 'neuralLab',
   },
   {
@@ -4416,7 +3694,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 20000, researchPoints: 200, corporationPoints: 3 },
     completed: false,
     claimed: false,
-    emoji: '💠',
+    icon: 'gi:metal-bar',
     targetResource: 'advancedAlloy',
   },
   {
@@ -4430,7 +3708,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 30000, researchPoints: 300, corporationPoints: 5 },
     completed: false,
     claimed: false,
-    emoji: '🔮',
+    icon: 'gi:nano-bot',
     targetResource: 'nanoMaterial',
   },
   {
@@ -4444,7 +3722,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 25000, researchPoints: 250, corporationPoints: 4 },
     completed: false,
     claimed: false,
-    emoji: '🏥',
+    icon: 'gi:hospital-cross',
     targetResource: 'medicalTech',
   },
   {
@@ -4458,7 +3736,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 30000, researchPoints: 280, corporationPoints: 5 },
     completed: false,
     claimed: false,
-    emoji: '💎',
+    icon: 'gi:diamond-ring',
     targetResource: 'jewellery',
   },
   {
@@ -4472,7 +3750,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 25000, researchPoints: 220, corporationPoints: 4 },
     completed: false,
     claimed: false,
-    emoji: '⬛',
+    icon: 'gi:iron-cross',
     targetResource: 'tungsten',
   },
   {
@@ -4486,7 +3764,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 25000, researchPoints: 230, corporationPoints: 4 },
     completed: false,
     claimed: false,
-    emoji: '🔫',
+    icon: 'gi:ak47',
     targetResource: 'weapons',
   },
   {
@@ -4500,7 +3778,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 35000, researchPoints: 300, corporationPoints: 5 },
     completed: false,
     claimed: false,
-    emoji: '🛸',
+    icon: 'gi:space-shuttle',
     targetResource: 'scanDrone',
   },
   {
@@ -4514,7 +3792,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 40000, researchPoints: 350, corporationPoints: 6 },
     completed: false,
     claimed: false,
-    emoji: '📡',
+    icon: 'gi:satellite',
     targetResource: 'artifactDetector',
   },
   {
@@ -4528,7 +3806,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 30000, researchPoints: 280, corporationPoints: 5 },
     completed: false,
     claimed: false,
-    emoji: '🌐',
+    icon: 'gi:thought-bubble',
     targetResource: 'neuralNetwork',
   },
   {
@@ -4542,7 +3820,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 35000, researchPoints: 300, corporationPoints: 5 },
     completed: false,
     claimed: false,
-    emoji: '⚛️',
+    icon: 'gi:atom',
     targetResource: 'quantumPart',
   },
   {
@@ -4556,7 +3834,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 40000, researchPoints: 400, corporationPoints: 8 },
     completed: false,
     claimed: false,
-    emoji: '🔬',
+    icon: 'gi:erlenmeyer',
   },
   {
     id: 't3_earn_2m',
@@ -4569,7 +3847,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 100000, researchPoints: 500, corporationPoints: 10 },
     completed: false,
     claimed: false,
-    emoji: '💰',
+    icon: 'gi:coins',
   },
 
   // =====================================================
@@ -4589,7 +3867,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 100000, researchPoints: 500, corporationPoints: 10 },
     completed: false,
     claimed: false,
-    emoji: '🌀',
+    icon: 'gi:vortex',
     targetBuilding: 'singularityForge',
   },
   {
@@ -4606,7 +3884,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 120000, researchPoints: 600, corporationPoints: 12 },
     completed: false,
     claimed: false,
-    emoji: '🕳️',
+    icon: 'gi:hole',
     targetBuilding: 'darkMatterLab',
   },
   {
@@ -4623,7 +3901,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 150000, researchPoints: 700, corporationPoints: 15 },
     completed: false,
     claimed: false,
-    emoji: '🚀',
+    icon: 'gi:rocket-thruster',
     targetBuilding: 'warpDriveFactory',
   },
   {
@@ -4640,7 +3918,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 130000, researchPoints: 650, corporationPoints: 13 },
     completed: false,
     claimed: false,
-    emoji: '⚡',
+    icon: 'gi:lightning-frequency',
     targetBuilding: 'antimatterReactor',
   },
   {
@@ -4657,7 +3935,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 200000, researchPoints: 800, corporationPoints: 18 },
     completed: false,
     claimed: false,
-    emoji: '⏳',
+    icon: 'gi:hourglass',
     targetBuilding: 'chronoLab',
   },
   {
@@ -4674,7 +3952,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 110000, researchPoints: 550, corporationPoints: 11 },
     completed: false,
     claimed: false,
-    emoji: '🔥',
+    icon: 'gi:flame-tunnel',
     targetBuilding: 'plasmaForge',
   },
   {
@@ -4688,7 +3966,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 180000, researchPoints: 750, corporationPoints: 16 },
     completed: false,
     claimed: false,
-    emoji: '💎',
+    icon: 'gi:implosion',
     targetBuilding: 'voidCrystallizer',
   },
   {
@@ -4702,7 +3980,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 90000, researchPoints: 500, corporationPoints: 10 },
     completed: false,
     claimed: false,
-    emoji: '🏗️',
+    icon: 'gi:castle',
     targetBuilding: 'megaStructureFactory',
   },
   {
@@ -4716,7 +3994,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 300000, researchPoints: 1000, corporationPoints: 25 },
     completed: false,
     claimed: false,
-    emoji: '☀️',
+    icon: 'gi:solar-system',
     targetBuilding: 'dysonCollector',
   },
   {
@@ -4730,7 +4008,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 500000, researchPoints: 2000, corporationPoints: 50 },
     completed: false,
     claimed: false,
-    emoji: '🌌',
+    icon: 'gi:galaxy',
     targetBuilding: 'galacticForge',
   },
   {
@@ -4744,7 +4022,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 200000, researchPoints: 800, corporationPoints: 15 },
     completed: false,
     claimed: false,
-    emoji: '🌀',
+    icon: 'gi:vortex',
     targetResource: 'singularityCore',
   },
   {
@@ -4758,7 +4036,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 500000, researchPoints: 1000, corporationPoints: 20 },
     completed: false,
     claimed: false,
-    emoji: '💰',
+    icon: 'gi:coins',
   },
   {
     id: 't4_research_all',
@@ -4771,7 +4049,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 150000, researchPoints: 500, corporationPoints: 10 },
     completed: false,
     claimed: false,
-    emoji: '🔬',
+    icon: 'gi:erlenmeyer',
   },
   {
     id: 't4_prestige',
@@ -4784,7 +4062,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 50000, researchPoints: 500, corporationPoints: 10 },
     completed: false,
     claimed: false,
-    emoji: '🌍',
+    icon: 'gi:crystal-growth',
   },
   {
     id: 't4_antimatter_power',
@@ -4797,7 +4075,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 200000, researchPoints: 800, corporationPoints: 15 },
     completed: false,
     claimed: false,
-    emoji: '⚡',
+    icon: 'gi:lightning-frequency',
     targetBuilding: 'antimatterPowerPlant',
   },
   {
@@ -4815,7 +4093,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 400000, researchPoints: 1200, corporationPoints: 30 },
     completed: false,
     claimed: false,
-    emoji: '🌀',
+    icon: 'gi:teleport',
     targetBuilding: 'quantumTeleporter',
   },
   {
@@ -4833,7 +4111,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 600000, researchPoints: 1500, corporationPoints: 40 },
     completed: false,
     claimed: false,
-    emoji: '🕳️',
+    icon: 'gi:portal',
     targetBuilding: 'dimensionalGateway',
   },
   {
@@ -4851,7 +4129,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 800000, researchPoints: 2000, corporationPoints: 50 },
     completed: false,
     claimed: false,
-    emoji: '⏳',
+    icon: 'gi:hourglass',
     targetBuilding: 'timeDistorter',
   },
   {
@@ -4865,7 +4143,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 300000, researchPoints: 1000, corporationPoints: 20 },
     completed: false,
     claimed: false,
-    emoji: '🕳️',
+    icon: 'gi:hole',
     targetResource: 'darkMatterCell',
   },
   {
@@ -4879,7 +4157,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 350000, researchPoints: 1100, corporationPoints: 22 },
     completed: false,
     claimed: false,
-    emoji: '🚀',
+    icon: 'gi:rocket-thruster',
     targetResource: 'warpDrive',
   },
   {
@@ -4893,7 +4171,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 250000, researchPoints: 900, corporationPoints: 18 },
     completed: false,
     claimed: false,
-    emoji: '⚡',
+    icon: 'gi:lightning-frequency',
     targetResource: 'antimatter',
   },
   {
@@ -4907,7 +4185,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 400000, researchPoints: 1200, corporationPoints: 25 },
     completed: false,
     claimed: false,
-    emoji: '⏳',
+    icon: 'gi:hourglass',
     targetResource: 'chronoPart',
   },
   {
@@ -4921,7 +4199,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 200000, researchPoints: 800, corporationPoints: 15 },
     completed: false,
     claimed: false,
-    emoji: '🔥',
+    icon: 'gi:flame-tunnel',
     targetResource: 'plasmaCore',
   },
   {
@@ -4935,7 +4213,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 250000, researchPoints: 900, corporationPoints: 18 },
     completed: false,
     claimed: false,
-    emoji: '🏗️',
+    icon: 'gi:castle',
     targetResource: 'megaStructure',
   },
   {
@@ -4949,7 +4227,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 350000, researchPoints: 1100, corporationPoints: 22 },
     completed: false,
     claimed: false,
-    emoji: '💎',
+    icon: 'gi:implosion',
     targetResource: 'voidCrystal',
   },
   {
@@ -4963,7 +4241,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 200000, researchPoints: 800, corporationPoints: 15 },
     completed: false,
     claimed: false,
-    emoji: '🌍',
+    icon: 'gi:crystal-growth',
   },
   {
     id: 't4_research_all_complete',
@@ -4976,7 +4254,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 500000, researchPoints: 2000, corporationPoints: 30 },
     completed: false,
     claimed: false,
-    emoji: '🎓',
+    icon: 'gi:erlenmeyer',
   },
   {
     id: 't4_earn_50m',
@@ -4989,7 +4267,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 2000000, researchPoints: 3000, corporationPoints: 50 },
     completed: false,
     claimed: false,
-    emoji: '💰',
+    icon: 'gi:coins',
   },
   {
     id: 't4_build_50',
@@ -5002,7 +4280,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 300000, researchPoints: 1000, corporationPoints: 20 },
     completed: false,
     claimed: false,
-    emoji: '🏗️',
+    icon: 'gi:castle',
   },
   {
     id: 't4_contract_20',
@@ -5015,7 +4293,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 250000, researchPoints: 900, corporationPoints: 18 },
     completed: false,
     claimed: false,
-    emoji: '📋',
+    icon: 'gi:scroll-unfurled',
   },
 
   // =====================================================
@@ -5032,7 +4310,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 2000, researchPoints: 30 },
     completed: false,
     claimed: false,
-    emoji: '🏗️',
+    icon: 'gi:factory',
   },
   {
     id: 'daily_earn',
@@ -5045,7 +4323,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 3000, researchPoints: 40 },
     completed: false,
     claimed: false,
-    emoji: '💵',
+    icon: 'gi:coins',
   },
   {
     id: 'daily_sell',
@@ -5058,7 +4336,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 2500, researchPoints: 35 },
     completed: false,
     claimed: false,
-    emoji: '🏪',
+    icon: 'gi:shop',
   },
   {
     id: 'daily_contract',
@@ -5071,7 +4349,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 3500, researchPoints: 50 },
     completed: false,
     claimed: false,
-    emoji: '📋',
+    icon: 'gi:scroll-unfurled',
   },
   {
     id: 'daily_research',
@@ -5084,7 +4362,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 3000, researchPoints: 50 },
     completed: false,
     claimed: false,
-    emoji: '🔬',
+    icon: 'gi:erlenmeyer',
   },
   {
     id: 'daily_produce',
@@ -5097,7 +4375,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 2500, researchPoints: 40 },
     completed: false,
     claimed: false,
-    emoji: '📦',
+    icon: 'gi:wooden-crate',
   },
   {
     id: 'daily_power',
@@ -5110,7 +4388,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 3000, researchPoints: 45 },
     completed: false,
     claimed: false,
-    emoji: '⚡',
+    icon: 'gi:lightning-frequency',
   },
 
   // =====================================================
@@ -5131,7 +4409,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 15000, researchPoints: 200, corporationPoints: 5 },
     completed: false,
     claimed: false,
-    emoji: '🏭',
+    icon: 'gi:factory',
   },
   {
     id: 'weekly_researcher',
@@ -5147,7 +4425,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 20000, researchPoints: 300, corporationPoints: 8 },
     completed: false,
     claimed: false,
-    emoji: '🔬',
+    icon: 'gi:erlenmeyer',
   },
   {
     id: 'weekly_transport',
@@ -5163,7 +4441,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 12000, researchPoints: 150, corporationPoints: 4 },
     completed: false,
     claimed: false,
-    emoji: '🚛',
+    icon: 'gi:truck',
   },
   {
     id: 'weekly_mega',
@@ -5180,7 +4458,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 50000, researchPoints: 400, corporationPoints: 10 },
     completed: false,
     claimed: false,
-    emoji: '🏗️',
+    icon: 'gi:castle',
   },
   {
     id: 'weekly_singularity',
@@ -5197,7 +4475,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 200000, researchPoints: 800, corporationPoints: 20 },
     completed: false,
     claimed: false,
-    emoji: '🌌',
+    icon: 'gi:galaxy',
   },
   {
     id: 'weekly_arms_dealer',
@@ -5214,7 +4492,7 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 60000, researchPoints: 400, corporationPoints: 10 },
     completed: false,
     claimed: false,
-    emoji: '🔫',
+    icon: 'gi:ak47',
   },
   {
     id: 'weekly_void_explorer',
@@ -5232,260 +4510,6 @@ export const QUEST_DEFS: Quest[] = [
     reward: { money: 400000, researchPoints: 1500, corporationPoints: 25 },
     completed: false,
     claimed: false,
-    emoji: '🌌',
+    icon: 'gi:galaxy',
   },
 ];
-
-// ============================================
-// BUILDING FOOTPRINTS
-// ============================================
-
-function makeFootprint(size: BuildingFootprintSize): BuildingFootprint {
-  return { width: size, height: size, cells: size * size };
-}
-
-export const BUILDING_FOOTPRINTS: Record<string, BuildingFootprint> = {
-  // 1×1 — Small extractors
-  miningDrill: makeFootprint(1),
-  oilPump: makeFootprint(1),
-  waterExtractor: makeFootprint(1),
-  clayPit: makeFootprint(1),
-  limestoneQuarry: makeFootprint(1),
-  gravelPit: makeFootprint(1),
-
-  // 2×2 — Standard Extractors + Basic Power + Tier 1 Factories
-  quarry: makeFootprint(2),
-  bauxiteMine: makeFootprint(2),
-  wolframiteMine: makeFootprint(2),
-  rareEarthExtractor: makeFootprint(2),
-  coalGenerator: makeFootprint(2),
-  solarPanel: makeFootprint(2),
-  windTurbine: makeFootprint(2),
-  smelter: makeFootprint(2),
-  wireMill: makeFootprint(2),
-  chemicalPlant: makeFootprint(2),
-  glassFurnace: makeFootprint(2),
-  steelForge: makeFootprint(2),
-  carbonProcessor: makeFootprint(2),
-  brickFactory: makeFootprint(2),
-  concreteFactory: makeFootprint(2),
-  fertilizerFactory: makeFootprint(2),
-  oilRefinery: makeFootprint(2),
-
-  // 3×3 — Tier 2 Factories + Advanced Power
-  gearFactory: makeFootprint(3),
-  circuitFactory: makeFootprint(3),
-  engineFactory: makeFootprint(3),
-  batteryFactory: makeFootprint(3),
-  siliconRefinery: makeFootprint(3),
-  aluminiumFactory: makeFootprint(3),
-  insecticideFactory: makeFootprint(3),
-  copperRefinery: makeFootprint(3),
-  titaniumRefinery: makeFootprint(3),
-  coolantPlant: makeFootprint(3),
-  opticsLab: makeFootprint(3),
-  solarCellFactory: makeFootprint(3),
-  displayFactory: makeFootprint(3),
-  hydrogenPlant: makeFootprint(3),
-  nuclearReactor: makeFootprint(3),
-
-  // 4×4 — Tier 3 Factories
-  aiLab: makeFootprint(4),
-  roboticsBay: makeFootprint(4),
-  quantumLab: makeFootprint(4),
-  alloyForge: makeFootprint(4),
-  nanoLab: makeFootprint(4),
-  electronicsFactory: makeFootprint(4),
-  medicalTechLab: makeFootprint(4),
-  goldsmith: makeFootprint(4),
-  tungstenSmelter: makeFootprint(4),
-  armsFactory: makeFootprint(4),
-  droneShipyard: makeFootprint(4),
-  detectorFactory: makeFootprint(4),
-  neuralLab: makeFootprint(4),
-  fusionReactor: makeFootprint(4),
-
-  // 5×5 — Tier 4 Factories + Endgame + Ultimate Power
-  singularityForge: makeFootprint(5),
-  darkMatterLab: makeFootprint(5),
-  warpDriveFactory: makeFootprint(5),
-  antimatterReactor: makeFootprint(5),
-  chronoLab: makeFootprint(5),
-  plasmaForge: makeFootprint(5),
-  megaStructureFactory: makeFootprint(5),
-  voidCrystallizer: makeFootprint(5),
-  dysonCollector: makeFootprint(5),
-  quantumTeleporter: makeFootprint(5),
-  dimensionalGateway: makeFootprint(5),
-  timeDistorter: makeFootprint(5),
-  galacticForge: makeFootprint(5),
-  antimatterPowerPlant: makeFootprint(5),
-};
-
-export function getBuildingFootprint(type: string): BuildingFootprint {
-  return BUILDING_FOOTPRINTS[type] ?? { width: 1, height: 1, cells: 1 };
-}
-
-// ============================================
-// REGION DEFINITIONS
-// ============================================
-
-export const INITIAL_REGIONS: Region[] = [
-  {
-    id: 'grasslands',
-    name: 'Grasslands',
-    emoji: '🌿',
-    description: 'Fertile plains with rich soil — the starting region for your industrial empire. Suitable for basic extraction and early factory operations.',
-    color: '#22c55e',
-    bgColor: 'bg-green-900/30',
-    borderColor: 'border-green-500/40',
-    gridRows: 30,
-    gridCols: 30,
-    maxBuildingSize: 2,
-    minGameTier: 0,
-    allowedCategories: ['extractor', 'factory', 'power'],
-    allowedResourceTiers: [0, 1],
-    terrainDistribution: { flat: 0.7, rocky: 0.1, water: 0.05, forest: 0.1, mountain: 0.05 },
-    unlockCost: 0,
-    unlocked: true,
-    bonuses: [{ type: 'extraction', value: 0.1, description: '+10% extraction speed in rich soil' }],
-    icon: 'TreePine',
-  },
-  {
-    id: 'industrial',
-    name: 'Industrial Zone',
-    emoji: '🏭',
-    description: 'A rugged industrial district with rocky terrain and mountain resources. Dedicated to heavy manufacturing and advanced processing.',
-    color: '#f97316',
-    bgColor: 'bg-orange-900/30',
-    borderColor: 'border-orange-500/40',
-    gridRows: 25,
-    gridCols: 25,
-    maxBuildingSize: 3,
-    minGameTier: 1,
-    allowedCategories: ['extractor', 'factory', 'power'],
-    allowedResourceTiers: [0, 2],
-    terrainDistribution: { flat: 0.5, rocky: 0.2, water: 0.0, forest: 0.0, mountain: 0.3 },
-    unlockCost: 50000,
-    unlocked: true,
-    bonuses: [{ type: 'production', value: 0.15, description: '+15% factory production in dedicated zone' }],
-    icon: 'Factory',
-  },
-  {
-    id: 'highlands',
-    name: 'Highland Range',
-    emoji: '🏔️',
-    description: 'Mountainous highlands with scarce flat land but powerful efficiency bonuses from altitude. Home to advanced metallurgy and high-tech manufacturing.',
-    color: '#8b5cf6',
-    bgColor: 'bg-purple-900/30',
-    borderColor: 'border-purple-500/40',
-    gridRows: 25,
-    gridCols: 25,
-    maxBuildingSize: 4,
-    minGameTier: 2,
-    allowedCategories: ['factory', 'power'],
-    allowedResourceTiers: [1, 3],
-    terrainDistribution: { flat: 0.2, rocky: 0.4, water: 0.05, forest: 0.05, mountain: 0.3 },
-    unlockCost: 500000,
-    unlocked: true,
-    bonuses: [{ type: 'efficiency', value: 0.2, description: '+20% building efficiency at altitude' }],
-    icon: 'Mountain',
-  },
-  {
-    id: 'quantum',
-    name: 'Quantum Quarter',
-    emoji: '⚛️',
-    description: 'A strange region where quantum fields enhance production. Flat terrain with crystalline mountains, perfect for cutting-edge technology.',
-    color: '#06b6d4',
-    bgColor: 'bg-cyan-900/30',
-    borderColor: 'border-cyan-500/40',
-    gridRows: 20,
-    gridCols: 20,
-    maxBuildingSize: 5,
-    minGameTier: 3,
-    allowedCategories: ['factory', 'power'],
-    allowedResourceTiers: [2, 4],
-    terrainDistribution: { flat: 0.6, rocky: 0.1, water: 0.0, forest: 0.0, mountain: 0.3 },
-    unlockCost: 5000000,
-    unlocked: true,
-    bonuses: [{ type: 'production', value: 0.25, description: '+25% production in quantum field' }],
-    icon: 'Atom',
-  },
-  {
-    id: 'cosmic',
-    name: 'Cosmic Forge',
-    emoji: '🌌',
-    description: 'The final frontier — a vast cosmic plane where reality bends to industrial will. Unmatched bonuses for endgame mega-construction.',
-    color: '#eab308',
-    bgColor: 'bg-yellow-900/30',
-    borderColor: 'border-yellow-500/40',
-    gridRows: 25,
-    gridCols: 25,
-    maxBuildingSize: 5,
-    minGameTier: 4,
-    allowedCategories: ['factory', 'power'],
-    allowedResourceTiers: [3, 4],
-    terrainDistribution: { flat: 0.8, rocky: 0.0, water: 0.0, forest: 0.0, mountain: 0.2 },
-    unlockCost: 50000000,
-    unlocked: true,
-    bonuses: [
-      { type: 'production', value: 0.3, description: '+30% cosmic production' },
-      { type: 'efficiency', value: 0.15, description: '+15% cosmic efficiency' },
-    ],
-    icon: 'Sparkles',
-  },
-];
-
-// ============================================
-// GRID GENERATION
-// ============================================
-
-function weightedRandomTerrain(distribution: Record<GridTile['terrain'], number>): GridTile['terrain'] {
-  const terrains: GridTile['terrain'][] = ['flat', 'rocky', 'water', 'forest', 'mountain'];
-  const weights = terrains.map(t => distribution[t] ?? 0);
-  const total = weights.reduce((s, w) => s + w, 0);
-  let roll = Math.random() * total;
-  for (let i = 0; i < terrains.length; i++) {
-    roll -= weights[i];
-    if (roll <= 0) return terrains[i];
-  }
-  return 'flat';
-}
-
-export function generateRegionGrid(region: Region): GridTile[] {
-  const tiles: GridTile[] = [];
-  const { gridRows, gridCols, terrainDistribution, id } = region;
-
-  for (let row = 0; row < gridRows; row++) {
-    for (let col = 0; col < gridCols; col++) {
-      const terrain = weightedRandomTerrain(terrainDistribution);
-      let bonus: GridTile['bonus'] = undefined;
-
-      if (terrain === 'rocky' && Math.random() < 0.1) {
-        const value = Math.round((0.05 + Math.random() * 0.1) * 100) / 100; // 5-15%
-        bonus = { type: 'extraction', value, description: `+${Math.round(value * 100)}% extraction` };
-      } else if (terrain === 'flat' && Math.random() < 0.05) {
-        const value = Math.round((0.03 + Math.random() * 0.07) * 100) / 100; // 3-10%
-        bonus = { type: 'production', value, description: `+${Math.round(value * 100)}% production` };
-      } else if (terrain === 'mountain' && Math.random() < 0.15) {
-        const value = Math.round((0.05 + Math.random() * 0.15) * 100) / 100; // 5-20%
-        bonus = { type: 'efficiency', value, description: `+${Math.round(value * 100)}% efficiency` };
-      } else if (terrain === 'forest' && Math.random() < 0.1) {
-        const value = Math.round((0.05 + Math.random() * 0.05) * 100) / 100; // 5-10%
-        bonus = { type: 'efficiency', value, description: `+${Math.round(value * 100)}% capacity bonus` };
-      }
-      // water tiles: no bonus (and no building allowed — handled by absence of bonus + terrain type)
-
-      tiles.push({
-        row,
-        col,
-        occupiedBy: null,
-        regionId: id,
-        terrain,
-        bonus,
-      });
-    }
-  }
-
-  return tiles;
-}

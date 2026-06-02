@@ -9,6 +9,7 @@ import {
   RefreshCw, Scale, Wrench, TrendingUp, Building, Package
 } from 'lucide-react';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
+import { GameIcon } from '@/components/game/shared/GameIcon';
 
 const AUTO_ICONS: Record<string, React.ReactNode> = {
   autoRouting: <RefreshCw className="w-5 h-5" />,
@@ -46,7 +47,7 @@ export function AutomationPanel() {
       </div>
 
       {/* Progress */}
-      <div className="game-card rounded-xl bg-[#111827] p-4 border border-teal-900/30">
+      <div className="game-card rounded-xl bg-card p-4 border border-teal-900/30">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs text-gray-400">Automation Progress</span>
           <span className="text-xs text-teal-400 font-mono">{activeCount}/{totalCount}</span>
@@ -74,7 +75,7 @@ export function AutomationPanel() {
             <GameItemTooltip
               key={unlock.type}
               name={unlock.name}
-              emoji={unlock.emoji}
+              icon={unlock.icon}
               description={unlock.description}
               category="Automation"
               details={[
@@ -87,7 +88,7 @@ export function AutomationPanel() {
               side="bottom"
             >
             <div
-              className={`game-card rounded-xl bg-[#111827] p-4 border transition-all ${
+              className={`game-card rounded-xl bg-card p-4 border ${
                 isActive
                   ? 'border-teal-500/50 bg-teal-900/5'
                   : canActivate
@@ -141,7 +142,7 @@ export function AutomationPanel() {
                 <Button
                   onClick={() => store.activateAutomation(unlock.type)}
                   disabled={!canActivate}
-                  className={`w-full text-xs h-8 ${
+                  className={`w-full text-xs h-8 min-h-[36px] ${
                     canActivate ? 'bg-teal-600 hover:bg-teal-500 text-white' : 'bg-gray-800 text-gray-500'
                   }`}
                   size="sm"
@@ -158,7 +159,7 @@ export function AutomationPanel() {
 
               {isActive && (
                 <div className="text-center text-xs text-teal-400/60">
-                  ✨ Running automatically
+                  <GameIcon icon="gi:sparkles" size={14} className="inline" /> Running automatically
                 </div>
               )}
             </div>
@@ -168,7 +169,7 @@ export function AutomationPanel() {
       </div>
 
       {/* Info Section */}
-      <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+      <div className="game-card rounded-xl bg-card p-4 border border-border">
         <div className="flex items-center gap-2 mb-3">
           <Brain className="w-4 h-4 text-teal-400" />
           <h3 className="text-sm font-semibold text-teal-400">About Automation</h3>

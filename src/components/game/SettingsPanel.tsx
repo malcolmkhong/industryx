@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
-import { useSettingsStore, NumberFormat, AnimationSpeed, SpeedLimit } from '@/lib/game/settingsStore';
+import { useSettingsStore, NumberFormat, AnimationSpeed, SpeedLimit, BottomNavMode, QuickAccessShortcut, DEFAULT_QUICK_ACCESS_SHORTCUTS } from '@/lib/game/settingsStore';
 import { soundEngine } from '@/lib/game/soundEngine';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -44,7 +44,18 @@ import {
   ChevronDown,
   ChevronUp,
   Play,
+  Navigation,
+  Move,
+  GripVertical,
+  Plus,
+  Eye,
+  EyeOff,
+  LayoutGrid,
+  List,
 } from 'lucide-react';
+
+import { ICON_MAP } from '@/components/game/BottomNavigationBar';
+import { GameIcon } from '@/components/game/shared/GameIcon';
 
 // Collapsible section component
 function SettingsSection({
@@ -61,9 +72,10 @@ function SettingsSection({
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <div className="game-card rounded-xl bg-[#111827] border border-[#1e293b] overflow-hidden">
+    <div className="game-card rounded-xl bg-card border border-border overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
+        aria-expanded={open}
         className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-800/20 transition-colors"
       >
         <div className="flex items-center gap-2">
@@ -76,11 +88,15 @@ function SettingsSection({
           <ChevronDown className="w-4 h-4 text-gray-500" />
         )}
       </button>
-      {open && (
-        <div className="px-4 pb-4 space-y-4 border-t border-gray-800/50 pt-3">
-          {children}
-        </div>
-      )}
+        {open && (
+          <div
+            className="overflow-hidden"
+          >
+            <div className="px-4 pb-4 space-y-4 border-t border-gray-800/50 pt-3">
+              {children}
+            </div>
+          </div>
+        )}
     </div>
   );
 }
@@ -280,7 +296,7 @@ export function SettingsPanel() {
     <div className="space-y-4 max-w-2xl mx-auto">
       {/* HEADER */}
       <div>
-        <h2 className="text-xl font-bold text-gray-400 tracking-wide flex items-center gap-2">
+        <h2 className="text-xl font-bold text-gray-400 tracking-wide flex items-center gap-2 neon-glow-cyan">
           <Settings className="w-5 h-5" />
           Settings
         </h2>
@@ -332,7 +348,7 @@ export function SettingsPanel() {
             <SelectTrigger className="w-32 h-8 text-xs bg-[#0a0e17] border-gray-700">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-[#111827] border-gray-700">
+            <SelectContent className="bg-card border-gray-700">
               <SelectItem value="1" className="text-xs">1x Only</SelectItem>
               <SelectItem value="5" className="text-xs">Max 5x</SelectItem>
               <SelectItem value="10" className="text-xs">Max 10x</SelectItem>
@@ -353,7 +369,7 @@ export function SettingsPanel() {
             <SelectTrigger className="w-32 h-8 text-xs bg-[#0a0e17] border-gray-700">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-[#111827] border-gray-700">
+            <SelectContent className="bg-card border-gray-700">
               <SelectItem value="standard" className="text-xs">Standard (1.5K)</SelectItem>
               <SelectItem value="scientific" className="text-xs">Scientific (1.5e3)</SelectItem>
               <SelectItem value="compact" className="text-xs">Compact (1.5k)</SelectItem>
@@ -367,13 +383,13 @@ export function SettingsPanel() {
           <p className="text-[10px] text-gray-500 mb-3">Toggle which notification types appear as toasts</p>
           <div className="grid grid-cols-2 gap-2">
             {([
-              { key: 'success' as const, label: 'Success', color: 'text-green-400', emoji: '✅' },
-              { key: 'warning' as const, label: 'Warning', color: 'text-yellow-400', emoji: '⚠️' },
-              { key: 'error' as const, label: 'Error', color: 'text-red-400', emoji: '❌' },
-              { key: 'info' as const, label: 'Info', color: 'text-cyan-400', emoji: 'ℹ️' },
-            ]).map(({ key, label, color, emoji }) => (
+              { key: 'success' as const, label: 'Success', color: 'text-green-400', icon: 'lucide:check-circle' },
+              { key: 'warning' as const, label: 'Warning', color: 'text-yellow-400', icon: 'gi:hazard-sign' },
+              { key: 'error' as const, label: 'Error', color: 'text-red-400', icon: 'gi:cross-mark' },
+              { key: 'info' as const, label: 'Info', color: 'text-cyan-400', icon: 'gi:info' },
+            ]).map(({ key, label, color, icon }) => (
               <div key={key} className="flex items-center justify-between bg-[#0a0e17] rounded-lg px-3 py-2">
-                <span className={`text-xs ${color}`}>{emoji} {label}</span>
+                <span className={`text-xs ${color} inline-flex items-center gap-1`}><GameIcon icon={icon} size={14} className="inline" /> {label}</span>
                 <Switch
                   checked={settings.notificationFilters[key]}
                   onCheckedChange={(v) => settings.setNotificationFilter(key, v)}
@@ -548,7 +564,7 @@ export function SettingsPanel() {
             <SelectTrigger className="w-32 h-8 text-xs bg-[#0a0e17] border-gray-700">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-[#111827] border-gray-700">
+            <SelectContent className="bg-card border-gray-700">
               <SelectItem value="slow" className="text-xs">Slow</SelectItem>
               <SelectItem value="normal" className="text-xs">Normal</SelectItem>
               <SelectItem value="fast" className="text-xs">Fast</SelectItem>
@@ -559,13 +575,113 @@ export function SettingsPanel() {
         {/* Reduced motion */}
         <SettingRow
           label="Reduced Motion"
-          description="Minimize animations (auto-detects system preference)"
+          description="Disable animations for accessibility"
         >
           <Switch
             checked={settings.reducedMotion}
             onCheckedChange={settings.setReducedMotion}
           />
         </SettingRow>
+      </SettingsSection>
+
+      {/* ====== NAVIGATION & QUICK ACCESS ====== */}
+      <SettingsSection
+        title="Navigation & Quick Access"
+        icon={<Navigation className="w-4 h-4 text-cyan-400" />}
+      >
+        {/* Bottom Navigation Mode */}
+        <SettingRow
+          label="Bottom Navigation Mode"
+          description="Controls how the bottom nav bar appears on mobile"
+        >
+          <Select
+            value={settings.bottomNavMode}
+            onValueChange={(v) => settings.setBottomNavMode(v as BottomNavMode)}
+          >
+            <SelectTrigger className="w-36 h-8 text-xs bg-[#0a0e17] border-gray-700">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-card border-gray-700">
+              <SelectItem value="compact" className="text-xs">
+                <div className="flex items-center gap-2">
+                  <LayoutGrid className="w-3 h-3" />
+                  Compact (Icons + Labels)
+                </div>
+              </SelectItem>
+              <SelectItem value="quick" className="text-xs">
+                <div className="flex items-center gap-2">
+                  <List className="w-3 h-3" />
+                  Quick (Icons Only)
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </SettingRow>
+
+        {/* FAB Toggle */}
+        <SettingRow
+          label="Floating Action Button"
+          description="Quick access shortcut menu (mobile only)"
+        >
+          <Switch
+            checked={settings.fabEnabled}
+            onCheckedChange={settings.setFABEnabled}
+          />
+        </SettingRow>
+
+        {/* Max Shortcuts Slider */}
+        <SettingRow
+          label="Max Quick Access Shortcuts"
+          description={`Show up to ${settings.maxQuickAccessShortcuts} shortcuts in the FAB menu`}
+        >
+          <LabeledSlider
+            value={settings.maxQuickAccessShortcuts}
+            onValueChange={settings.setMaxQuickAccessShortcuts}
+            min={4}
+            max={12}
+            step={1}
+          />
+        </SettingRow>
+
+        {/* Shortcut List - reorderable */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs text-gray-200">Quick Access Shortcuts</p>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 text-[10px] text-gray-500 hover:text-cyan-400"
+              onClick={() => settings.resetQuickAccessShortcuts()}
+            >
+              <RotateCcw className="w-3 h-3 mr-1" />
+              Reset
+            </Button>
+          </div>
+          <div className="space-y-1">
+            {settings.quickAccessShortcuts.map((shortcut, index) => {
+              const IconComponent = ICON_MAP[shortcut.icon];
+              return (
+                <div
+                  key={shortcut.id}
+                  className="flex items-center gap-2 bg-[#0a0e17] rounded-lg px-3 py-2 group"
+                >
+                  <GripVertical className="w-3 h-3 text-gray-600 cursor-grab" />
+                  {IconComponent && <IconComponent className={`w-3.5 h-3.5 ${shortcut.color}`} />}
+                  <span className="text-xs text-gray-300 flex-1">{shortcut.label}</span>
+                  <span className="text-[9px] text-gray-600 font-mono">{shortcut.action}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 w-5 p-0 text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => settings.removeQuickAccessShortcut(shortcut.id)}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </SettingsSection>
 
       {/* ====== SAVE MANAGEMENT ====== */}
@@ -598,7 +714,7 @@ export function SettingsPanel() {
                 Import Save
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-[#111827] border-cyan-900/30 text-gray-100 max-w-md p-4">
+            <DialogContent className="bg-card border-cyan-900/30 text-gray-100 max-w-md p-4">
               <DialogHeader>
                 <DialogTitle className="text-amber-400 flex items-center gap-2 text-sm">
                   <Upload className="w-4 h-4" /> Import Save
@@ -612,7 +728,7 @@ export function SettingsPanel() {
                   value={importText}
                   onChange={(e) => { setImportText(e.target.value); setImportError(''); }}
                   placeholder="Paste your save string here..."
-                  className="w-full bg-[#0a0e17] border border-cyan-900/20 rounded-lg p-3 text-xs font-mono text-gray-300 min-h-24 max-h-36 game-scrollbar placeholder:text-gray-600 focus:outline-none focus:border-cyan-500/50"
+                  className="w-full bg-[#0a0e17] border border-cyan-900/20 rounded-lg p-3 text-xs font-mono text-gray-300 min-h-24 max-h-36 overflow-y-auto game-scrollbar placeholder:text-gray-600 focus:outline-none focus:border-cyan-500/50"
                 />
                 {importError && (
                   <p className="text-xs text-red-400">{importError}</p>
@@ -648,7 +764,7 @@ export function SettingsPanel() {
                 Clear Save Data
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-[#111827] border-orange-900/30 text-gray-100 max-w-sm p-4">
+            <DialogContent className="bg-card border-orange-900/30 text-gray-100 max-w-sm p-4">
               <DialogHeader>
                 <DialogTitle className="text-orange-400 text-sm">Clear Save Data?</DialogTitle>
                 <DialogDescription className="text-gray-400 text-xs">
@@ -688,10 +804,10 @@ export function SettingsPanel() {
                 Reset Game
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-[#111827] border-red-900/30 text-gray-100 max-w-sm p-4">
+            <DialogContent className="bg-card border-red-900/30 text-gray-100 max-w-sm p-4">
               <DialogHeader>
                 <DialogTitle className="text-red-400 text-sm">
-                  {resetDoubleConfirm ? '⚠️ FINAL CONFIRMATION' : 'Reset Game?'}
+                  {resetDoubleConfirm ? <><GameIcon icon="gi:hazard-sign" size={16} className="inline" /> FINAL CONFIRMATION</> : 'Reset Game?'}
                 </DialogTitle>
                 <DialogDescription className="text-gray-400 text-xs">
                   {resetDoubleConfirm

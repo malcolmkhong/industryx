@@ -2,16 +2,21 @@
 
 import { ReactNode } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { GameIcon } from '@/components/game/shared/GameIcon';
 
 interface TooltipRow {
   label: string;
   value: string | number;
-  color?: string; // tailwind text color class
+  color?: string; // tailwind text color class or raw CSS color when isStyle is true
+  isStyle?: boolean; // if true, apply color as inline style instead of className
 }
 
 interface GameItemTooltipProps {
   children: ReactNode;
   name: string;
+  /** Iconify icon ID — rendered with GameIcon */
+  icon?: string;
+  /** @deprecated Use icon instead. Legacy emoji string — will be rendered as text fallback. */
   emoji?: string;
   description?: string;
   category?: string;
@@ -25,6 +30,7 @@ interface GameItemTooltipProps {
 export function GameItemTooltip({
   children,
   name,
+  icon,
   emoji,
   description,
   category,
@@ -41,11 +47,11 @@ export function GameItemTooltip({
       <TooltipTrigger asChild>
         {children}
       </TooltipTrigger>
-      <TooltipContent side={side} className="w-72 bg-[#111827] border border-cyan-900/40 shadow-[0_0_20px_rgba(0,255,242,0.1)] p-0 overflow-hidden">
+      <TooltipContent side={side} className="w-72 bg-card border border-cyan-900/40 shadow-[0_0_20px_rgba(0,255,242,0.1)] p-0 overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-cyan-900/30 to-teal-900/20 px-3 py-2 border-b border-cyan-900/30">
           <div className="flex items-center gap-2">
-            {emoji && <span className="text-lg">{emoji}</span>}
+            {icon ? <GameIcon icon={icon} size={20} /> : emoji ? <span className="text-lg">{emoji}</span> : null}
             <div>
               <p className="text-sm font-bold text-cyan-300">{name}</p>
               <div className="flex items-center gap-2 mt-0.5">
@@ -71,7 +77,7 @@ export function GameItemTooltip({
               {details.map((row, i) => (
                 <div key={i} className="flex items-center justify-between text-xs">
                   <span className="text-gray-400">{row.label}</span>
-                  <span className={row.color || 'text-gray-200'}>{row.value}</span>
+                  <span className={row.isStyle ? 'text-gray-200' : (row.color || 'text-gray-200')} style={row.isStyle && row.color ? { color: row.color } : undefined}>{row.value}</span>
                 </div>
               ))}
             </div>
@@ -86,7 +92,7 @@ export function GameItemTooltip({
               {requirements.map((row, i) => (
                 <div key={i} className="flex items-center justify-between text-xs">
                   <span className="text-gray-400">{row.label}</span>
-                  <span className={row.color || 'text-gray-200'}>{row.value}</span>
+                  <span className={row.isStyle ? 'text-gray-200' : (row.color || 'text-gray-200')} style={row.isStyle && row.color ? { color: row.color } : undefined}>{row.value}</span>
                 </div>
               ))}
             </div>

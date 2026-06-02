@@ -115,7 +115,7 @@ export default function GameToast() {
   }, []);
 
   return (
-    <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none" style={{ maxWidth: '360px' }}>
+    <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none" role="status" aria-live="polite" style={{ maxWidth: '360px' }}>
       <AnimatePresence mode="popLayout">
         {toasts.map(toast => {
           const colors = TOAST_COLORS[toast.type];
@@ -123,12 +123,7 @@ export default function GameToast() {
           return (
             <motion.div
               key={toast.id}
-              layout
-              initial={{ x: 100, opacity: 0, scale: 0.9 }}
-              animate={{ x: 0, opacity: 1, scale: 1 }}
-              exit={{ x: 80, opacity: 0, scale: 0.85 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-              className={`game-toast pointer-events-auto flex items-start gap-2.5 p-3 rounded-lg bg-[#111827] border ${colors.border} shadow-lg ${colors.glow}`}
+              className={`game-toast pointer-events-auto flex items-start gap-2.5 p-3 rounded-lg bg-card border ${colors.border} shadow-lg ${colors.glow}`}
             >
               <Icon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${colors.icon}`} />
               <p className="text-xs text-gray-200 leading-relaxed flex-1 min-w-0 break-words">
@@ -136,6 +131,7 @@ export default function GameToast() {
               </p>
               <button
                 onClick={() => dismissToast(toast.id)}
+                aria-label="Close notification"
                 className="flex-shrink-0 p-0.5 rounded hover:bg-white/10 transition-colors"
               >
                 <X className="w-3 h-3 text-gray-500 hover:text-gray-300" />

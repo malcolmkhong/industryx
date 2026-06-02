@@ -44,28 +44,20 @@ export default function KeyboardShortcutsHelp() {
   }, [isOpen, toggle]);
 
   return (
-    <AnimatePresence>
+    <>
       {isOpen && (
         <>
           {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+          <div
             className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm"
             onClick={() => setIsOpen(false)}
           />
 
           {/* Modal */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ duration: 0.25, ease: 'easeOut' }}
+          <div
             className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none"
           >
-            <div className="pointer-events-auto w-full max-w-md bg-[#111827] border border-cyan-900/40 rounded-xl shadow-2xl shadow-cyan-900/20 overflow-hidden">
+            <div className="pointer-events-auto w-full max-w-md bg-card border border-cyan-900/40 rounded-xl shadow-2xl shadow-cyan-900/20 overflow-hidden">
               {/* Header */}
               <div className="flex items-center justify-between px-5 py-3 border-b border-cyan-900/30 bg-gradient-to-r from-cyan-900/20 to-transparent">
                 <div className="flex items-center gap-2">
@@ -74,6 +66,7 @@ export default function KeyboardShortcutsHelp() {
                 </div>
                 <button
                   onClick={() => setIsOpen(false)}
+                  aria-label="Close keyboard shortcuts help"
                   className="text-gray-500 hover:text-gray-300 transition-colors p-1 rounded-md hover:bg-gray-800/50"
                 >
                   <X className="w-4 h-4" />
@@ -108,9 +101,9 @@ export default function KeyboardShortcutsHelp() {
                 </p>
               </div>
             </div>
-          </motion.div>
+          </div>
         </>
       )}
-    </AnimatePresence>
+    </>
   );
 }

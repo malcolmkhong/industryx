@@ -3,7 +3,7 @@
 import { useMemo, useState, useRef, useEffect } from 'react';
 import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/store';
 import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE, RANK_THRESHOLDS, WEATHER_DEFS } from '@/lib/game/data';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -12,10 +12,13 @@ import {
   Activity, Pickaxe, Cog, Shield, Clock, Bell,
   ArrowUpRight, ArrowDownRight, Minus, Timer, Power, Sparkles,
   Database, Wrench, Globe, ArrowRight, Trophy, Package,
-  Hammer, CheckCircle2, XCircle, Flame, CloudSun, Pin, X as XIcon
+  Hammer, CheckCircle2, XCircle, Flame, CloudSun, Pin, X as XIcon,
+  Gauge
 } from 'lucide-react';
-import { BuildingType, ResourceType, WeatherType, getConditionStatus, getConditionColor, safeCondition } from '@/lib/game/types';
+import { BuildingType, ResourceType, WeatherType } from '@/lib/game/types';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ProductionChainPanel } from '@/components/game/ProductionChainPanel';
+import { GameIcon } from '@/components/game/shared/GameIcon';
 
 export function DashboardPanel() {
   const store = useGameStore();
@@ -72,7 +75,7 @@ export function DashboardPanel() {
     if (!node) return null;
     return {
       name: node.name,
-      emoji: node.emoji,
+      icon: node.icon,
       progress: Math.min(100, (store.researchProgress / node.timeRequired) * 100),
       timeRequired: node.timeRequired,
     };
@@ -85,10 +88,10 @@ export function DashboardPanel() {
   const activityFeed = useMemo(() => {
     return store.notifications.slice(0, 8).map(n => ({
       ...n,
-      icon: n.type === 'success' ? <CheckCircle2 className="w-3 h-3" /> :
-            n.type === 'warning' ? <AlertTriangle className="w-3 h-3" /> :
-            n.type === 'error' ? <XCircle className="w-3 h-3" /> :
-            <Bell className="w-3 h-3" />,
+      icon: n.type === 'success' ? 'lucide:check-circle-2' :
+            n.type === 'warning' ? 'lucide:alert-triangle' :
+            n.type === 'error' ? 'lucide:x-circle' :
+            'lucide:bell',
     }));
   }, [store.notifications]);
 
@@ -121,10 +124,10 @@ export function DashboardPanel() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, type: 'spring' }}
           onClick={() => store.setActiveTab('dailyRewards')}
-          className="w-full bg-gradient-to-r from-pink-900/25 via-purple-900/20 to-fuchsia-900/25 border border-pink-500/30 rounded-xl p-3 flex items-center justify-between group hover:border-pink-400/50 transition-colors cursor-pointer"
+          className="w-full bg-gradient-to-r from-pink-900/25 via-purple-900/20 to-fuchsia-900/25 border border-pink-500/30 rounded-xl p-3 flex items-center justify-between group hover:border-pink-400/50 cursor-pointer"
         >
           <div className="flex items-center gap-3">
-            <span className="text-2xl animate-bounce">🎁</span>
+            <GameIcon icon="gi:present" size={24} className="animate-bounce" />
             <div className="text-left">
               <p className="text-sm font-bold text-pink-300 group-hover:text-pink-200 transition-colors">Daily Reward Available!</p>
               <p className="text-[10px] text-gray-400">Click to claim your daily login bonus</p>
@@ -150,9 +153,6 @@ export function DashboardPanel() {
         const currentStep = trackedQuestData.steps.find(s => !s.completed);
         return (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
             className="bg-gradient-to-r from-cyan-900/15 to-teal-900/10 border border-cyan-500/25 rounded-xl p-3"
           >
             <div className="flex items-center justify-between mb-1.5">
@@ -168,7 +168,7 @@ export function DashboardPanel() {
               </button>
             </div>
             <div className="flex items-center gap-2.5">
-              <span className="text-lg">{trackedQuestData.emoji}</span>
+              <GameIcon icon={trackedQuestData.icon} size={20} className="inline-flex" />
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-gray-200 font-medium truncate">{trackedQuestData.name}</p>
                 {currentStep && (
@@ -183,9 +183,9 @@ export function DashboardPanel() {
               </div>
             </div>
             <div className="flex items-center gap-2 mt-1.5 text-[9px]">
-              {trackedQuestData.reward.money > 0 && <span className="text-green-400">💰 ${formatNumber(trackedQuestData.reward.money)}</span>}
-              {trackedQuestData.reward.researchPoints && trackedQuestData.reward.researchPoints > 0 && <span className="text-purple-400">🔬 {trackedQuestData.reward.researchPoints}RP</span>}
-              {trackedQuestData.reward.corporationPoints && trackedQuestData.reward.corporationPoints > 0 && <span className="text-fuchsia-400">🏢 {trackedQuestData.reward.corporationPoints}CP</span>}
+              {trackedQuestData.reward.money > 0 && <span className="text-green-400"><GameIcon icon="gi:money-stack" size={14} className="inline" /> ${formatNumber(trackedQuestData.reward.money)}</span>}
+              {trackedQuestData.reward.researchPoints && trackedQuestData.reward.researchPoints > 0 && <span className="text-purple-400"><GameIcon icon="gi:magnifying-glass" size={14} className="inline" /> {trackedQuestData.reward.researchPoints}RP</span>}
+              {trackedQuestData.reward.corporationPoints && trackedQuestData.reward.corporationPoints > 0 && <span className="text-fuchsia-400"><GameIcon icon="gi:briefcase" size={14} className="inline" /> {trackedQuestData.reward.corporationPoints}CP</span>}
             </div>
           </motion.div>
         );
@@ -198,17 +198,14 @@ export function DashboardPanel() {
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,255,242,0.06)_0%,transparent_70%)]" />
           {/* Decorative background elements */}
           <div className="absolute inset-0 opacity-5">
-            <div className="absolute top-4 left-8 text-6xl">⛏️</div>
-            <div className="absolute bottom-4 right-8 text-6xl">🏭</div>
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-8xl">🏗️</div>
+            <div className="absolute top-4 left-8"><GameIcon icon="gi:mining" size={48} /></div>
+            <div className="absolute bottom-4 right-8"><GameIcon icon="gi:factory" size={48} /></div>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"><GameIcon icon="gi:castle" size={64} /></div>
           </div>
           <div className="relative z-10">
             <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.5, type: 'spring' }}
             >
-              <div className="text-6xl mb-4">🏗️</div>
+              <div className="mb-4"><GameIcon icon="gi:castle" size={48} /></div>
             </motion.div>
             <h3 className="text-xl font-bold text-cyan-400 neon-glow-cyan mb-2">Build Your First Factory!</h3>
             <p className="text-sm text-gray-400 mb-6 max-w-md mx-auto">
@@ -232,17 +229,17 @@ export function DashboardPanel() {
             </div>
             <div className="mt-6 flex items-center justify-center gap-6 text-[10px] text-gray-500">
               <div className="flex items-center gap-1.5">
-                <span className="text-lg">1️⃣</span>
+                <span className="text-lg font-bold text-amber-400">1</span>
                 <span>Build Power</span>
               </div>
               <div className="text-gray-700">→</div>
               <div className="flex items-center gap-1.5">
-                <span className="text-lg">2️⃣</span>
+                <span className="text-lg font-bold text-amber-400">2</span>
                 <span>Build Drills</span>
               </div>
               <div className="text-gray-700">→</div>
               <div className="flex items-center gap-1.5">
-                <span className="text-lg">3️⃣</span>
+                <span className="text-lg font-bold text-amber-400">3</span>
                 <span>Build Factories</span>
               </div>
             </div>
@@ -258,9 +255,6 @@ export function DashboardPanel() {
               {activeBuildings > 0 && (
                 <motion.span
                   className="inline-flex items-center gap-1"
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.3 }}
                 >
                   <span className="relative flex h-2.5 w-2.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
@@ -289,54 +283,43 @@ export function DashboardPanel() {
         </div>
       </div>
 
-      {/* TOP STATS ROW - Enhanced with gradients and trend indicators */}
+      {/* TOP STATS ROW */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[0, 1, 2, 3].map(i => (
           <motion.div
             key={i}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, delay: i * 0.08, ease: 'easeOut' }}
           >
-            {i === 0 && <StatCard
-              icon={<Factory className="w-5 h-5" />}
+            {i === 0 && <PanelStatCard
+              icon={<Factory className="w-4 h-4" />}
               label="Buildings"
               value={totalBuildings.toString()}
               subtext={totalBuildings === 0 ? 'None built yet' : `${activeBuildings} active of ${totalBuildings} built`}
               color="cyan"
-              gradient="from-cyan-900/25 to-cyan-800/5"
-              trend={store.stats.factoriesBuilt > 0 ? 'up' : 'stable'}
-              trendValue={`${store.stats.factoriesBuilt} built`}
+              trend={store.stats.factoriesBuilt > 0 ? 'up' : 'neutral'}
             />}
-            {i === 1 && <StatCard
-              icon={<Users className="w-5 h-5" />}
+            {i === 1 && <PanelStatCard
+              icon={<Users className="w-4 h-4" />}
               label="Workers"
               value={totalWorkers.toString()}
               subtext={totalWorkers === 0 ? 'No workers yet' : `${assignedWorkers} assigned of ${totalWorkers} hired`}
               color="green"
-              gradient="from-green-900/25 to-green-800/5"
-              trend={workerEfficiency >= 1 ? 'up' : workerEfficiency > 0 ? 'stable' : 'down'}
-              trendValue={totalWorkers === 0 ? 'Hire in Workers tab' : `Eff: ${(workerEfficiency * 100).toFixed(0)}%`}
+              trend={workerEfficiency >= 1 ? 'up' : workerEfficiency > 0 ? 'neutral' : 'down'}
             />}
-            {i === 2 && <StatCard
-              icon={<Activity className="w-5 h-5" />}
+            {i === 2 && <PanelStatCard
+              icon={<Activity className="w-4 h-4" />}
               label="Efficiency"
               value={store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption === 0 ? 'N/A' : `${(store.powerGrid.efficiency * 100).toFixed(0)}%`}
               subtext={store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption === 0 ? 'No power grid' : store.powerGrid.overload ? 'Overloaded!' : 'Optimal'}
               color={store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption === 0 ? 'orange' : store.powerGrid.efficiency >= 0.8 ? 'green' : store.powerGrid.efficiency >= 0.5 ? 'orange' : 'red'}
-              gradient="from-yellow-900/25 to-yellow-800/5"
-              trend={store.powerGrid.efficiency >= 0.8 ? 'up' : store.powerGrid.efficiency >= 0.5 ? 'stable' : 'down'}
-              trendValue={store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption === 0 ? 'Build a generator' : `${powerSurplus >= 0 ? '+' : ''}${formatNumber(powerSurplus)} MW`}
+              trend={store.powerGrid.efficiency >= 0.8 ? 'up' : store.powerGrid.efficiency >= 0.5 ? 'neutral' : 'down'}
             />}
-            {i === 3 && <StatCard
-              icon={<FlaskConical className="w-5 h-5" />}
+            {i === 3 && <PanelStatCard
+              icon={<FlaskConical className="w-4 h-4" />}
               label="Research"
               value={store.completedResearch.length.toString()}
               subtext={`${formatNumber(store.researchPoints)} RP`}
               color="purple"
-              gradient="from-purple-900/25 to-purple-800/5"
-              trend={rpPerTick > 0.1 ? 'up' : 'stable'}
-              trendValue={`+${rpPerTick.toFixed(1)} RP/t`}
+              trend={rpPerTick > 0.1 ? 'up' : 'neutral'}
             />}
           </motion.div>
         ))}
@@ -347,7 +330,7 @@ export function DashboardPanel() {
         {/* LEFT COLUMN */}
         <div className="lg:col-span-2 space-y-4">
           {/* POWER GRID STATUS */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Zap className="w-4 h-4 text-yellow-400" />
@@ -376,7 +359,7 @@ export function DashboardPanel() {
             {/* No Power Grid State */}
             {store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption === 0 ? (
               <div className="text-center py-4">
-                <div className="text-3xl mb-2">⚡</div>
+                <div className="mb-2"><GameIcon icon="gi:lightning-frequency" size={28} /></div>
                 <p className="text-sm text-gray-400 font-medium mb-1">NO POWER GRID</p>
                 <p className="text-xs text-gray-500 mb-3">Build a Coal Generator or Solar Panel to start generating power</p>
                 <Button
@@ -429,64 +412,36 @@ export function DashboardPanel() {
             </div>
 
             {/* Power breakdown mini-stats */}
-            <div className="grid grid-cols-3 gap-2">
-              <div className="bg-[#0a0e17] rounded-lg p-2 text-center">
-                <div className="text-[10px] text-gray-500 mb-0.5">Efficiency</div>
-                <div className={`text-sm font-bold font-mono ${
-                  store.powerGrid.efficiency >= 0.8 ? 'text-green-400' :
-                  store.powerGrid.efficiency >= 0.5 ? 'text-yellow-400' : 'text-red-400'
-                }`}>
-                  {(store.powerGrid.efficiency * 100).toFixed(1)}%
-                </div>
-              </div>
-              <div className="bg-[#0a0e17] rounded-lg p-2 text-center">
-                <div className="text-[10px] text-gray-500 mb-0.5">Peak</div>
-                <div className="text-sm font-bold font-mono text-cyan-400">
-                  {(store.stats.peakEfficiency * 100).toFixed(1)}%
-                </div>
-              </div>
-              <div className="bg-[#0a0e17] rounded-lg p-2 text-center">
-                <div className="text-[10px] text-gray-500 mb-0.5">Load</div>
-                <div className={`text-sm font-bold font-mono ${
-                  powerPercent >= 80 ? 'text-green-400' :
-                  powerPercent >= 50 ? 'text-yellow-400' : 'text-red-400'
-                }`}>
-                  {powerPercent.toFixed(0)}%
-                </div>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <PanelStatCard
+                icon={<Gauge className="w-4 h-4" />}
+                label="Efficiency"
+                value={`${(store.powerGrid.efficiency * 100).toFixed(1)}%`}
+                subtext="Current"
+                color={store.powerGrid.efficiency >= 0.8 ? 'green' : store.powerGrid.efficiency >= 0.5 ? 'yellow' : 'red'}
+                trend={store.powerGrid.efficiency >= 0.8 ? 'up' : store.powerGrid.efficiency >= 0.5 ? 'neutral' : 'down'}
+              />
+              <PanelStatCard
+                icon={<TrendingUp className="w-4 h-4" />}
+                label="Peak"
+                value={`${(store.stats.peakEfficiency * 100).toFixed(1)}%`}
+                subtext="All-time best"
+                color="cyan"
+              />
+              <PanelStatCard
+                icon={<Zap className="w-4 h-4" />}
+                label="Load"
+                value={`${powerPercent.toFixed(0)}%`}
+                subtext="Utilization"
+                color={powerPercent >= 80 ? 'green' : powerPercent >= 50 ? 'yellow' : 'red'}
+              />
             </div>
-            {/* Power Generation Failure Alert */}
-            {store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption > 0 && (() => {
-              const activePlants = store.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power' && b.active);
-              const brokenPlants = store.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power' && safeCondition(b.condition) <= 0);
-              const offlinePlants = store.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power' && !b.active && safeCondition(b.condition) > 0);
-              return (
-                <div className="mt-2 p-2.5 rounded-lg bg-red-900/20 border border-red-500/30">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
-                    <span className="text-[10px] font-bold text-red-400">POWER GENERATION FAILURE</span>
-                  </div>
-                  <div className="text-[9px] text-red-300/80 space-y-0.5">
-                    {activePlants.length > 0 && <p>⚡ {activePlants.length} plant(s) active but producing 0 MW — efficiency may be zero</p>}
-                    {brokenPlants.length > 0 && <p>💀 {brokenPlants.length} plant(s) broken — repair required</p>}
-                    {offlinePlants.length > 0 && <p>🔌 {offlinePlants.length} plant(s) offline — enable to generate power</p>}
-                  </div>
-                  <Button
-                    className="mt-1.5 h-6 text-[9px] bg-red-900/40 hover:bg-red-800/50 text-red-400 border border-red-500/30"
-                    onClick={() => store.setActiveTab('power')}
-                  >
-                    <Zap className="w-2.5 h-2.5 mr-1" />
-                    Diagnose in Power Grid
-                  </Button>
-                </div>
-              );
-            })()}
             </>
             )}
           </div>
 
           {/* TOP RESOURCES */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Database className="w-4 h-4 text-cyan-400" />
@@ -500,7 +455,7 @@ export function DashboardPanel() {
               const totalCapacity = topResources.reduce((sum, r) => sum + r.capacity, 0);
               const overallPct = totalCapacity > 0 ? (totalStored / totalCapacity) * 100 : 0;
               return (
-                <div className="mb-3 bg-[#0a0e17] rounded-lg p-2.5">
+                <div className="mb-3 bg-[#0a0e17] rounded-lg p-3">
                   <div className="flex items-center justify-between text-[10px] mb-1.5">
                     <div className="flex items-center gap-3">
                       <span className="text-gray-400">Total Stored: <span className="text-cyan-300 font-mono font-bold">{formatNumber(totalStored)}</span></span>
@@ -531,7 +486,7 @@ export function DashboardPanel() {
                   <div key={resource} className="group">
                     <div className="flex items-center justify-between text-xs mb-1">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-sm">{meta.emoji}</span>
+                        <GameIcon icon={meta.icon} size={14} className="inline-flex" />
                         <span className="text-gray-300 font-medium">{meta.name}</span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -564,7 +519,7 @@ export function DashboardPanel() {
           </div>
 
           {/* PRODUCTION RATE SUMMARY */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-green-400" />
@@ -579,31 +534,30 @@ export function DashboardPanel() {
                 <p className="text-[10px] text-gray-600 mt-1">Build extractors and factories to start producing</p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {topProductionRates.map(([resource, rate]) => {
                   const meta = RESOURCE_META[resource];
                   return (
-                    <div key={resource} className="flex items-center justify-between bg-[#0a0e17] rounded-lg px-3 py-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm">{meta.emoji}</span>
-                        <span className="text-xs text-gray-300">{meta.name}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <ArrowUpRight className="w-3 h-3 text-green-400" />
-                        <span className="text-xs text-green-400 font-mono font-bold">+{formatNumber(rate)}</span>
-                        <span className="text-[10px] text-gray-500">/t</span>
-                      </div>
-                    </div>
+                    <PanelStatCard
+                      key={resource}
+                      icon={<GameIcon icon={meta.icon} size={14} />}
+                      label={meta.name}
+                      value={`+${formatNumber(rate)}`}
+                      subtext="per tick"
+                      color="green"
+                      trend="up"
+                    />
                   );
                 })}
               </div>
             )}
           </div>
 
-          {/* PRODUCTION CHAINS — See dedicated Chains tab for full visualization */}
+          {/* PRODUCTION CHAINS VISUALIZATION - SVG flow diagram with building details */}
+          <ProductionChainPanel productionRates={productionRates} />
 
           {/* ACTIVITY FEED */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Activity className="w-4 h-4 text-cyan-400" />
@@ -623,10 +577,6 @@ export function DashboardPanel() {
                   {activityFeed.map((entry, i) => (
                     <motion.div
                       key={entry.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      transition={{ duration: 0.25, delay: i * 0.03 }}
                       className={`flex items-start gap-2 py-1.5 px-2 rounded text-[11px] border-l-2 ${
                         entry.type === 'success' ? 'text-green-400 bg-green-900/5 border-l-green-500' :
                         entry.type === 'warning' ? 'text-yellow-400 bg-yellow-900/5 border-l-yellow-500' :
@@ -634,8 +584,11 @@ export function DashboardPanel() {
                         'text-gray-400 bg-gray-900/5 border-l-gray-600'
                       }`}
                     >
-                      <div className="flex-shrink-0 mt-0.5">
-                        {entry.icon}
+                      <div className="flex-shrink-0 mt-0.5 text-current">
+                        {entry.type === 'success' && <CheckCircle2 className="w-3.5 h-3.5" />}
+                        {entry.type === 'warning' && <AlertTriangle className="w-3.5 h-3.5" />}
+                        {entry.type === 'error' && <XCircle className="w-3.5 h-3.5" />}
+                        {entry.type === 'info' && <Bell className="w-3.5 h-3.5" />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <span className="truncate block">{entry.message}</span>
@@ -654,7 +607,7 @@ export function DashboardPanel() {
         {/* RIGHT COLUMN */}
         <div className="space-y-4">
           {/* BUILDING BREAKDOWN */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
               <Factory className="w-4 h-4 text-cyan-400" />
               <h3 className="text-sm font-semibold text-cyan-400">Building Breakdown</h3>
@@ -687,108 +640,11 @@ export function DashboardPanel() {
             </div>
           </div>
 
-          {/* BUILDING CONDITION STATUS */}
-          {(() => {
-            const buildings = store.buildings;
-            const pristineCount = buildings.filter(b => b.condition >= 100).length;
-            const goodCount = buildings.filter(b => b.condition >= 75 && b.condition < 100).length;
-            const wornCount = buildings.filter(b => b.condition >= 50 && b.condition < 75).length;
-            const damagedCount = buildings.filter(b => b.condition >= 25 && b.condition < 50).length;
-            const criticalCount = buildings.filter(b => b.condition >= 1 && b.condition < 25).length;
-            const brokenCount = buildings.filter(b => safeCondition(b.condition) <= 0).length;
-            const damagedBuildings = buildings.filter(b => b.condition < 100);
-
-            let totalRepairCost = 0;
-            for (const b of damagedBuildings) {
-              const def = BUILDING_DEFS[b.type];
-              if (!def) continue;
-              const baseRepairCost = def.baseCost.find(c => c.resource === 'money')?.amount ?? 100;
-              totalRepairCost += Math.max(1, Math.floor(baseRepairCost * (100 - b.condition) / 100 * b.level));
-            }
-
-            if (buildings.length === 0) return null;
-
-            return (
-              <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Wrench className="w-4 h-4 text-orange-400" />
-                    <h3 className="text-sm font-semibold text-orange-400">Building Condition</h3>
-                  </div>
-                  {damagedBuildings.length > 0 && (
-                    <span className="text-[10px] text-gray-500">{damagedBuildings.length} need maintenance</span>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  {pristineCount > 0 && (
-                    <div className="flex items-center justify-between text-[10px]">
-                      <span className="text-gray-400">✨ Pristine</span>
-                      <span className="text-green-400 font-mono">{pristineCount}</span>
-                    </div>
-                  )}
-                  {goodCount > 0 && (
-                    <div className="flex items-center justify-between text-[10px]">
-                      <span className="text-gray-400">👍 Good</span>
-                      <span className="text-green-300 font-mono">{goodCount}</span>
-                    </div>
-                  )}
-                  {wornCount > 0 && (
-                    <div className="flex items-center justify-between text-[10px]">
-                      <span className="text-gray-400">🔧 Worn</span>
-                      <span className="text-yellow-400 font-mono">{wornCount}</span>
-                    </div>
-                  )}
-                  {damagedCount > 0 && (
-                    <div className="flex items-center justify-between text-[10px]">
-                      <span className="text-gray-400">⚠️ Damaged</span>
-                      <span className="text-orange-400 font-mono">{damagedCount}</span>
-                    </div>
-                  )}
-                  {criticalCount > 0 && (
-                    <div className="flex items-center justify-between text-[10px]">
-                      <span className="text-gray-400">🔴 Critical</span>
-                      <span className="text-red-400 font-mono">{criticalCount}</span>
-                    </div>
-                  )}
-                  {brokenCount > 0 && (
-                    <div className="flex items-center justify-between text-[10px]">
-                      <span className="text-gray-400">💥 Broken</span>
-                      <span className="text-red-600 font-mono font-bold">{brokenCount}</span>
-                    </div>
-                  )}
-                  {damagedBuildings.length === 0 && (
-                    <div className="text-center py-2">
-                      <p className="text-xs text-green-400">All buildings at 100%</p>
-                    </div>
-                  )}
-                </div>
-                {damagedBuildings.length > 0 && (
-                  <div className="mt-3 pt-2 border-t border-gray-800">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] text-gray-500">Total Repair Cost</span>
-                      <span className="text-xs text-orange-400 font-mono font-bold">${formatNumber(totalRepairCost)}</span>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className={`w-full h-7 text-[10px] ${store.money >= totalRepairCost ? 'border-orange-800/50 text-orange-400 hover:bg-orange-900/20' : 'border-gray-700 text-gray-500'}`}
-                      onClick={() => store.repairAllBuildings()}
-                      disabled={store.money < totalRepairCost}
-                    >
-                      <Wrench className="w-3 h-3 mr-1.5" />
-                      Repair All (${formatNumber(totalRepairCost)})
-                    </Button>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-
           {/* WEATHER INFO CARD */}
           <WeatherInfoCard store={store} />
 
           {/* ACTIVE RESEARCH */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
               <FlaskConical className="w-4 h-4 text-purple-400" />
               <h3 className="text-sm font-semibold text-purple-400">Active Research</h3>
@@ -796,7 +652,7 @@ export function DashboardPanel() {
             {activeResearchInfo ? (
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg">{activeResearchInfo.emoji}</span>
+                  <GameIcon icon={activeResearchInfo.icon} size={20} className="inline-flex" />
                   <div>
                     <p className="text-xs text-gray-200 font-medium">{activeResearchInfo.name}</p>
                     <p className="text-[10px] text-gray-500">
@@ -827,7 +683,7 @@ export function DashboardPanel() {
           </div>
 
           {/* ACTIVE EVENTS TICKER */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
               <AlertTriangle className="w-4 h-4 text-orange-400" />
               <h3 className="text-sm font-semibold text-orange-400">Active Events</h3>
@@ -841,9 +697,9 @@ export function DashboardPanel() {
             ) : (
               <div className="space-y-2 max-h-48 overflow-y-auto game-scrollbar">
                 {store.activeEvents.map(event => (
-                  <div key={event.id} className="bg-[#0a0e17] rounded-lg p-2.5 border border-orange-900/30">
+                  <div key={event.id} className="bg-[#0a0e17] rounded-lg p-3 border border-orange-900/30">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm">{event.emoji}</span>
+                      <GameIcon icon={event.icon} size={14} className="inline-flex" />
                       <span className="text-xs text-orange-300 font-medium">{event.name}</span>
                     </div>
                     <p className="text-[10px] text-gray-400 mb-1.5 line-clamp-2">{event.description}</p>
@@ -866,7 +722,7 @@ export function DashboardPanel() {
           </div>
 
           {/* RECENT NOTIFICATIONS */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Bell className="w-4 h-4 text-gray-400" />
@@ -907,7 +763,7 @@ export function DashboardPanel() {
           </div>
 
           {/* QUICK ACTIONS */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
               <Wrench className="w-4 h-4 text-cyan-400" />
               <h3 className="text-sm font-semibold text-cyan-400">Quick Build</h3>
@@ -935,7 +791,7 @@ export function DashboardPanel() {
                     onClick={() => handleBuild(type)}
                     disabled={!canAfford || !unlocked}
                   >
-                    <span className="text-base">{def.emoji}</span>
+                    <GameIcon icon={def.icon} size={16} />
                     <span className="font-medium">{def.name}</span>
                     <span className="text-[9px] text-gray-500">${formatNumber(cost)}</span>
                   </Button>
@@ -945,7 +801,7 @@ export function DashboardPanel() {
           </div>
 
           {/* PRESTIGE / GLOBAL STATS */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
               <Globe className="w-4 h-4 text-fuchsia-400" />
               <h3 className="text-sm font-semibold text-fuchsia-400">Empire Stats</h3>
@@ -984,77 +840,6 @@ export function DashboardPanel() {
 }
 
 // --- Sub-components ---
-
-function StatCard({
-  icon,
-  label,
-  value,
-  subtext,
-  color,
-  gradient,
-  trend,
-  trendValue,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  subtext: string;
-  color: 'cyan' | 'green' | 'orange' | 'red' | 'purple';
-  gradient?: string;
-  trend?: 'up' | 'down' | 'stable';
-  trendValue?: string;
-}) {
-  const colorMap = {
-    cyan: { icon: 'text-cyan-400', value: 'text-cyan-400', border: 'border-cyan-900/30', bg: 'bg-cyan-900/10' },
-    green: { icon: 'text-green-400', value: 'text-green-400', border: 'border-green-900/30', bg: 'bg-green-900/10' },
-    orange: { icon: 'text-orange-400', value: 'text-orange-400', border: 'border-orange-900/30', bg: 'bg-orange-900/10' },
-    red: { icon: 'text-red-400', value: 'text-red-400', border: 'border-red-900/30', bg: 'bg-red-900/10' },
-    purple: { icon: 'text-purple-400', value: 'text-purple-400', border: 'border-purple-900/30', bg: 'bg-purple-900/10' },
-  };
-  const c = colorMap[color];
-
-  const trendIcon = trend === 'up' ? (
-    <ArrowUpRight className="w-3 h-3 text-green-400" />
-  ) : trend === 'down' ? (
-    <ArrowDownRight className="w-3 h-3 text-red-400" />
-  ) : (
-    <Minus className="w-3 h-3 text-gray-500" />
-  );
-
-  return (
-    <div className={`stat-card-gradient game-card rounded-xl bg-[#111827] p-4 sm:p-5 border ${c.border} relative overflow-hidden group`}> 
-      {/* Subtle gradient background */}
-      {gradient && (
-        <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-60`} />
-      )}
-      <div className="relative z-10">
-        <div className="flex items-center gap-2.5 mb-2">
-          <div className={`w-9 h-9 rounded-xl ${c.bg} flex items-center justify-center shadow-lg`} style={{ boxShadow: `0 0 12px ${c.value === 'text-cyan-400' ? 'rgba(0,255,242,0.15)' : c.value === 'text-green-400' ? 'rgba(57,255,20,0.15)' : c.value === 'text-orange-400' ? 'rgba(255,166,0,0.15)' : c.value === 'text-red-400' ? 'rgba(255,0,64,0.15)' : 'rgba(191,0,255,0.15)'}` }}>
-            <div className={c.icon}>{icon}</div>
-          </div>
-          <div className="flex-1">
-            <span className="text-[11px] text-gray-500 uppercase tracking-wider block">{label}</span>
-            {/* Trend indicator */}
-            {trend && (
-              <div className="flex items-center gap-0.5 mt-0.5">
-                {trendIcon}
-                {trendValue && (
-                  <span className="text-[9px] text-gray-500 font-mono">{trendValue}</span>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-        <div className={`text-xl sm:text-2xl font-bold font-mono ${c.value}`}>{value}</div>
-        <div className="mt-1">
-          <div className="text-[11px] text-gray-400">{subtext}</div>
-        </div>
-      </div>
-      {/* Hover glow border effect */}
-      <div className="absolute inset-0 rounded-xl border border-transparent group-hover:border-cyan-500/20 group-hover:shadow-[0_0_15px_rgba(0,255,242,0.08)] transition-all duration-300 pointer-events-none" />
-    </div>
-  );
-}
 
 function BuildingCategoryRow({
   icon,
@@ -1098,7 +883,7 @@ function RankBar({ store }: { store: ReturnType<typeof useGameStore> }) {
 
   return (
     <div
-      className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b] relative overflow-hidden"
+      className="game-card rounded-xl bg-card p-4 border border-border relative overflow-hidden"
       style={{ borderColor: `${rank.color}30` }}
     >
       {/* Background glow */}
@@ -1117,7 +902,7 @@ function RankBar({ store }: { store: ReturnType<typeof useGameStore> }) {
             boxShadow: `0 0 20px ${rank.color}20`,
           }}
         >
-          {rank.emoji}
+          <GameIcon icon={rank.icon} size={24} />
         </div>
 
         {/* Rank info */}
@@ -1136,7 +921,7 @@ function RankBar({ store }: { store: ReturnType<typeof useGameStore> }) {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[10px] text-gray-500">
-                  Next: {RANK_THRESHOLDS.find(r => r.minScore === rank.nextRankScore)?.emoji} {RANK_THRESHOLDS.find(r => r.minScore === rank.nextRankScore)?.name}
+                  Next: <GameIcon icon={RANK_THRESHOLDS.find(r => r.minScore === rank.nextRankScore)?.icon} size={14} className="inline-flex" /> {RANK_THRESHOLDS.find(r => r.minScore === rank.nextRankScore)?.name}
                 </span>
                 <span className="text-[10px] font-mono" style={{ color: rank.color }}>
                   {formatNumber(rank.nextRankScore - rank.score)} pts to go
@@ -1255,7 +1040,7 @@ function WeatherInfoCard({ store }: { store: ReturnType<typeof useGameStore> }) 
   };
 
   return (
-    <div className={`weather-card-${currentWeather} game-card rounded-xl bg-gradient-to-br ${weatherGradients[currentWeather] || ''} p-4 border ${weatherBorders[currentWeather] || 'border-[#1e293b]'} relative overflow-hidden`}>
+    <div className={`weather-card-${currentWeather} game-card rounded-xl bg-gradient-to-br ${weatherGradients[currentWeather] || ''} p-4 border ${weatherBorders[currentWeather] || 'border-border'} relative overflow-hidden`}>
       {/* Animated weather particles */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {renderWeatherParticles()}
@@ -1276,7 +1061,7 @@ function WeatherInfoCard({ store }: { store: ReturnType<typeof useGameStore> }) 
 
         {/* Current weather display */}
         <div className="flex items-center gap-3 mb-3">
-          <div className="text-3xl">{weatherDef.emoji}</div>
+          <div className="text-3xl"><GameIcon icon={weatherDef.icon} size={32} /></div>
           <div>
             <p className="text-sm font-bold text-gray-200">{weatherDef.name}</p>
             <p className="text-[10px] text-gray-400 line-clamp-2">{weatherDef.description}</p>
@@ -1285,7 +1070,7 @@ function WeatherInfoCard({ store }: { store: ReturnType<typeof useGameStore> }) 
 
         {/* Multiplier effects */}
         <div className="grid grid-cols-3 gap-2 mb-3">
-          <div className="bg-[#0a0e17]/60 rounded-lg p-2 text-center">
+          <div className="bg-[#0a0e17]/60 rounded-lg p-3 text-center">
             <div className="text-[9px] text-gray-500 mb-0.5">Production</div>
             <div className={`text-xs font-bold font-mono flex items-center justify-center gap-0.5 ${
               prodEffect > 0 ? 'text-green-400' : prodEffect < 0 ? 'text-red-400' : 'text-gray-400'
@@ -1294,7 +1079,7 @@ function WeatherInfoCard({ store }: { store: ReturnType<typeof useGameStore> }) 
               {prodEffect >= 0 ? '+' : ''}{(prodEffect * 100).toFixed(0)}%
             </div>
           </div>
-          <div className="bg-[#0a0e17]/60 rounded-lg p-2 text-center">
+          <div className="bg-[#0a0e17]/60 rounded-lg p-3 text-center">
             <div className="text-[9px] text-gray-500 mb-0.5">Solar</div>
             <div className={`text-xs font-bold font-mono flex items-center justify-center gap-0.5 ${
               solarEffect > 0 ? 'text-green-400' : solarEffect < 0 ? 'text-red-400' : 'text-gray-400'
@@ -1303,7 +1088,7 @@ function WeatherInfoCard({ store }: { store: ReturnType<typeof useGameStore> }) 
               {solarEffect >= 0 ? '+' : ''}{(solarEffect * 100).toFixed(0)}%
             </div>
           </div>
-          <div className="bg-[#0a0e17]/60 rounded-lg p-2 text-center">
+          <div className="bg-[#0a0e17]/60 rounded-lg p-3 text-center">
             <div className="text-[9px] text-gray-500 mb-0.5">Wind</div>
             <div className={`text-xs font-bold font-mono flex items-center justify-center gap-0.5 ${
               windEffect > 0 ? 'text-green-400' : windEffect < 0 ? 'text-red-400' : 'text-gray-400'

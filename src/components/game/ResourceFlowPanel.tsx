@@ -14,6 +14,7 @@ import {
   X, ArrowRight, Zap, AlertCircle
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { GameIcon } from '@/components/game/shared/GameIcon';
 
 // ─── Types ──────────────────────────────────────────────────────
 interface FlowNode {
@@ -162,7 +163,7 @@ export default function ResourceFlowPanel() {
               from: inRes,
               to: outRes,
               viaBuilding: def.name,
-              viaBuildingEmoji: def.emoji,
+              viaBuildingEmoji: def.icon,
               rate,
               maxRate: Math.max(rate, 1),
             });
@@ -400,32 +401,32 @@ export default function ResourceFlowPanel() {
           <GitBranch className="w-5 h-5 text-teal-400" />
         </div>
         <div className="flex-1">
-          <h2 className="text-lg font-bold text-teal-400 tracking-wide">Resource Flow Tracer</h2>
+          <h2 className="text-xl font-bold text-teal-400 tracking-wide">Resource Flow Tracer</h2>
           <p className="text-xs text-gray-500">Visualize production chains, detect bottlenecks, optimize your factory</p>
         </div>
       </div>
 
       {/* ─── Summary Stats Bar ─────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <div className="bg-[#111827] rounded-lg p-3 border border-cyan-900/20">
+        <div className="bg-card rounded-lg p-3 border border-cyan-900/20">
           <p className="text-[9px] text-gray-500 uppercase tracking-wider">Active Chains</p>
           <p className="text-lg font-mono font-bold text-cyan-400">{summaryStats.activeChains}<span className="text-gray-600 text-sm">/{summaryStats.totalChains}</span></p>
         </div>
-        <div className="bg-[#111827] rounded-lg p-3 border border-cyan-900/20">
+        <div className="bg-card rounded-lg p-3 border border-cyan-900/20">
           <p className="text-[9px] text-gray-500 uppercase tracking-wider">Bottlenecks</p>
           <p className={`text-lg font-mono font-bold ${summaryStats.bottleneckCount > 0 ? 'text-red-400' : 'text-green-400'}`}>
             {summaryStats.bottleneckCount + summaryStats.notProducedCount}
           </p>
         </div>
-        <div className="bg-[#111827] rounded-lg p-3 border border-cyan-900/20">
+        <div className="bg-card rounded-lg p-3 border border-cyan-900/20">
           <p className="text-[9px] text-gray-500 uppercase tracking-wider">Most Constrained</p>
           <p className="text-sm font-bold text-orange-400 truncate">
             {summaryStats.mostConstrained
-              ? `${RESOURCE_META[summaryStats.mostConstrained.resource].emoji} ${RESOURCE_META[summaryStats.mostConstrained.resource].name}`
+              ? <><GameIcon icon={RESOURCE_META[summaryStats.mostConstrained.resource].icon} size={14} className="inline-flex" /> {RESOURCE_META[summaryStats.mostConstrained.resource].name}</>
               : '—'}
           </p>
         </div>
-        <div className="bg-[#111827] rounded-lg p-3 border border-cyan-900/20">
+        <div className="bg-card rounded-lg p-3 border border-cyan-900/20">
           <p className="text-[9px] text-gray-500 uppercase tracking-wider">Throughput</p>
           <p className="text-lg font-mono font-bold text-green-400">{formatNumber(summaryStats.totalThroughput)}</p>
         </div>
@@ -446,7 +447,7 @@ export default function ResourceFlowPanel() {
                   placeholder="Search..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="h-7 w-32 text-[11px] bg-[#111827] border-cyan-900/30 text-gray-200 placeholder-gray-600"
+                  className="h-7 w-32 text-[11px] bg-card border-cyan-900/30 text-gray-200 placeholder-gray-600"
                 />
                 {selectedResource && (
                   <Button
@@ -469,7 +470,7 @@ export default function ResourceFlowPanel() {
               <span className="ml-auto text-gray-600">Click a node for details</span>
             </div>
           </CardHeader>
-          <CardContent className="p-0 relative" style={{ height: Math.max(400, flowNodes.length * 8 + 100) }}>
+          <CardContent className="p-0 relative max-h-[600px] overflow-y-auto game-scrollbar" style={{ height: Math.max(400, flowNodes.length * 8 + 100) }}>
             <svg
               ref={svgRef}
               width="100%"
@@ -477,6 +478,9 @@ export default function ResourceFlowPanel() {
               viewBox={`0 0 ${svgDims.w} ${svgDims.h}`}
               className="select-none"
               style={{ minHeight: 400 }}
+              role="img"
+              aria-label="Resource flow diagram showing production and consumption connections"
+              tabIndex={0}
             >
               <defs>
                 {/* Glow filter for selected nodes */}
@@ -618,7 +622,7 @@ export default function ResourceFlowPanel() {
                       fontSize={isSelected ? 14 : 11}
                       opacity={isDimmed ? 0.3 : 1}
                     >
-                      {meta.emoji}
+                      <GameIcon icon={meta.icon} size={14} className="inline-flex" />
                     </text>
 
                     {/* Resource name label */}
@@ -680,14 +684,10 @@ export default function ResourceFlowPanel() {
           {selectedResource && selectedMeta && (
             <motion.div
               key={selectedResource}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.2 }}
               className="w-full lg:w-80 flex-shrink-0 space-y-3"
             >
               {/* Selected Resource Header */}
-              <Card className="bg-[#111827] border-cyan-900/30">
+              <Card className="bg-card border-cyan-900/30">
                 <CardContent className="p-3">
                   <div className="flex items-center gap-3">
                     <div
@@ -697,7 +697,7 @@ export default function ResourceFlowPanel() {
                         border: `1px solid ${RESOURCE_META[selectedResource].color}44`,
                       }}
                     >
-                      {selectedMeta.emoji}
+                      <GameIcon icon={selectedMeta.icon} size={16} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-gray-200">{selectedMeta.name}</p>
@@ -726,15 +726,15 @@ export default function ResourceFlowPanel() {
 
                   {/* Net rate */}
                   <div className="mt-3 grid grid-cols-3 gap-2">
-                    <div className="bg-green-900/10 rounded-lg p-2 text-center border border-green-900/20">
+                    <div className="bg-green-900/10 rounded-lg p-3 text-center border border-green-900/20">
                       <p className="text-[9px] text-gray-500">PROD</p>
                       <p className="text-sm font-mono font-bold text-green-400">+{totalProduction.toFixed(2)}</p>
                     </div>
-                    <div className="bg-amber-900/10 rounded-lg p-2 text-center border border-amber-900/20">
+                    <div className="bg-amber-900/10 rounded-lg p-3 text-center border border-amber-900/20">
                       <p className="text-[9px] text-gray-500">CONS</p>
                       <p className="text-sm font-mono font-bold text-amber-400">-{totalConsumption.toFixed(2)}</p>
                     </div>
-                    <div className={`rounded-lg p-2 text-center border ${netRate >= 0 ? 'bg-green-900/10 border-green-900/20' : 'bg-red-900/10 border-red-900/20'}`}>
+                    <div className={`rounded-lg p-3 text-center border ${netRate >= 0 ? 'bg-green-900/10 border-green-900/20' : 'bg-red-900/10 border-red-900/20'}`}>
                       <p className="text-[9px] text-gray-500">NET</p>
                       <p className={`text-sm font-mono font-bold ${netRate >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                         {netRate >= 0 ? '+' : ''}{netRate.toFixed(2)}
@@ -781,9 +781,9 @@ export default function ResourceFlowPanel() {
               </Card>
 
               {/* Producers */}
-              <Card className="bg-[#111827] border-green-900/30">
+              <Card className="bg-card border-green-900/30">
                 <CardHeader className="py-2 px-3">
-                  <CardTitle className="text-xs font-semibold flex items-center gap-2">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
                     <TrendingUp className="w-3.5 h-3.5 text-green-400" />
                     <span className="text-green-400">PRODUCERS</span>
                     <Badge variant="outline" className="text-[9px] border-green-500/30 text-green-400 bg-green-900/10 ml-auto font-mono">
@@ -798,7 +798,7 @@ export default function ResourceFlowPanel() {
                     <div className="space-y-1.5 max-h-40 overflow-y-auto game-scrollbar pr-1">
                       {producers.map(({ def, count, activeCount, rate }) => (
                         <div key={def.type} className="flex items-center gap-2 p-1.5 rounded-md bg-green-900/10 border border-green-900/20">
-                          <span className="text-sm">{def.emoji}</span>
+                          <GameIcon icon={def.icon} size={14} className="inline-flex" />
                           <div className="flex-1 min-w-0">
                             <p className="text-[11px] font-medium text-gray-200 truncate">{def.name}</p>
                             <p className="text-[9px] text-gray-500">{activeCount}/{count} active</p>
@@ -812,9 +812,9 @@ export default function ResourceFlowPanel() {
               </Card>
 
               {/* Consumers */}
-              <Card className="bg-[#111827] border-amber-900/30">
+              <Card className="bg-card border-amber-900/30">
                 <CardHeader className="py-2 px-3">
-                  <CardTitle className="text-xs font-semibold flex items-center gap-2">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
                     <TrendingDown className="w-3.5 h-3.5 text-amber-400" />
                     <span className="text-amber-400">CONSUMERS</span>
                     <Badge variant="outline" className="text-[9px] border-amber-500/30 text-amber-400 bg-amber-900/10 ml-auto font-mono">
@@ -829,7 +829,7 @@ export default function ResourceFlowPanel() {
                     <div className="space-y-1.5 max-h-40 overflow-y-auto game-scrollbar pr-1">
                       {consumers.map(({ def, count, activeCount, rate }) => (
                         <div key={def.type} className="flex items-center gap-2 p-1.5 rounded-md bg-amber-900/10 border border-amber-900/20">
-                          <span className="text-sm">{def.emoji}</span>
+                          <GameIcon icon={def.icon} size={14} className="inline-flex" />
                           <div className="flex-1 min-w-0">
                             <p className="text-[11px] font-medium text-gray-200 truncate">{def.name}</p>
                             <p className="text-[9px] text-gray-500">{activeCount}/{count} active{def.fuel === selectedResource ? ' (fuel)' : ''}</p>
@@ -843,9 +843,9 @@ export default function ResourceFlowPanel() {
               </Card>
 
               {/* Production Chain Trace */}
-              <Card className="bg-[#111827] border-cyan-900/30">
+              <Card className="bg-card border-cyan-900/30">
                 <CardHeader className="py-2 px-3">
-                  <CardTitle className="text-xs font-semibold flex items-center gap-2">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
                     <GitBranch className="w-3.5 h-3.5 text-teal-400" />
                     <span className="text-teal-400">PRODUCTION CHAINS</span>
                   </CardTitle>
@@ -896,7 +896,7 @@ export default function ResourceFlowPanel() {
                                             : 'border-gray-800 text-gray-500'
                                     }`}
                                   >
-                                    <span>{stepMeta?.emoji}</span>
+                                    <GameIcon icon={stepMeta?.icon} size={14} className="inline-flex" />
                                     <span>{stepMeta?.name ?? step}</span>
                                   </div>
                                 </div>
@@ -912,23 +912,23 @@ export default function ResourceFlowPanel() {
 
               {/* Suggestions */}
               {netRate < 0 && producers.length > 0 && (
-                <div className="flex items-start gap-2 p-2.5 rounded-lg bg-yellow-900/10 border border-yellow-900/20">
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-yellow-900/10 border border-yellow-900/20">
                   <Lightbulb className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="text-[11px] font-semibold text-yellow-400">Production Deficit</p>
                     <p className="text-[10px] text-yellow-300/80">
-                      Build more {producers[0].def.emoji} {producers[0].def.name} or reduce {consumers[0]?.def.emoji} {consumers[0]?.def.name} consumption.
+                      Build more <GameIcon icon={producers[0].def.icon} size={14} className="inline-flex" /> {producers[0].def.name} or reduce <GameIcon icon={consumers[0]?.def.icon} size={14} className="inline-flex" /> {consumers[0]?.def.name} consumption.
                     </p>
                   </div>
                 </div>
               )}
               {netRate > 0 && consumers.some(c => c.count === 0) && (
-                <div className="flex items-start gap-2 p-2.5 rounded-lg bg-green-900/10 border border-green-900/20">
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-green-900/10 border border-green-900/20">
                   <Lightbulb className="w-3.5 h-3.5 text-green-400 flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="text-[11px] font-semibold text-green-400">Surplus Available</p>
                     <p className="text-[10px] text-green-300/80">
-                      Build {consumers.find(c => c.count === 0)?.def.emoji} {consumers.find(c => c.count === 0)?.def.name} to use excess {selectedMeta.name}.
+                      Build <GameIcon icon={consumers.find(c => c.count === 0)?.def.icon} size={14} className="inline-flex" /> {consumers.find(c => c.count === 0)?.def.name} to use excess {selectedMeta.name}.
                     </p>
                   </div>
                 </div>
@@ -940,7 +940,7 @@ export default function ResourceFlowPanel() {
 
       {/* ─── Chain Quick Select (when no resource selected) ──── */}
       {!selectedResource && (
-        <Card className="bg-[#111827] border-cyan-900/30">
+        <Card className="bg-card border-cyan-900/30">
           <CardHeader className="py-2 px-4">
             <CardTitle className="text-sm font-semibold text-gray-300 flex items-center gap-2">
               <Zap className="w-4 h-4 text-yellow-400" />
@@ -970,7 +970,7 @@ export default function ResourceFlowPanel() {
                       setSelectedResource(firstActive ?? (chain.steps[0] as ResourceType));
                       setHighlightChain(i);
                     }}
-                    className={`text-left p-2.5 rounded-lg border transition-all duration-200 hover:scale-[1.01] ${
+                    className={`text-left p-3 rounded-lg border ${
                       highlightChain === i
                         ? 'border-cyan-400/40 bg-cyan-900/10'
                         : chainActive
@@ -995,7 +995,7 @@ export default function ResourceFlowPanel() {
                         return (
                           <div key={si} className="flex items-center gap-0.5">
                             {si > 0 && <ArrowRight className="w-2 h-2 text-gray-700" />}
-                            <span className="text-[10px]">{stepMeta?.emoji}</span>
+                            <GameIcon icon={stepMeta?.icon} size={10} className="inline-flex" />
                           </div>
                         );
                       })}

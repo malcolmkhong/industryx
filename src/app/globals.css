@@ -1,3 +1,25 @@
+/* Typography Scale:
+   - Panel titles: text-xl font-bold
+   - Section headings: text-sm font-semibold  
+   - Subheadings: text-xs font-medium
+   - Labels: text-[10px] uppercase tracking-wider
+   - Values: text-lg font-bold font-mono
+   - Badges: text-[8px] font-bold
+   - Micro: text-[7px] (chain badges only)
+*/
+
+/* z-index System:
+   - z-base: 0 (normal flow)
+   - z-sidebar: 40 (sidebar navigation)
+   - z-header: 50 (top bar, stat badges)
+   - z-overlay: 90 (floating numbers)
+   - z-toast: 100 (game toast notifications)
+   - z-modal: 110 (keyboard shortcuts modal)
+   - z-celebration: 120 (celebration overlay)
+   Current usage: FloatingNumbers=90, GameToast=100, CelebrationOverlay=100,
+                  KeyboardShortcutsHelp backdrop=100, modal=101
+*/
+
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -57,6 +79,10 @@
 }
 
 :root {
+  --duration-micro: 150ms;
+  --duration-button: 200ms;
+  --duration-card: 300ms;
+  --duration-progress: 500ms;
   --radius: 0.625rem;
   --background: oklch(0.07 0.02 260);
   --foreground: oklch(0.92 0.01 260);
@@ -136,6 +162,138 @@
   }
 }
 
+/* ===== Global UI Interaction Hardening (Web Game Standard) ===== */
+/* Prevents unintended browser-native behaviors that interfere with gameplay.
+   Applied globally via CSS system-level rules. No per-component patches. */
+
+/* --- 1. Disable text selection highlight on all game UI --- */
+/* Non-input game elements should never show text selection cursors or highlights */
+*:not(input):not(textarea):not([contenteditable="true"]):not([contenteditable=""]) {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Restore text selection for input fields, textareas, and editable content */
+input,
+textarea,
+[contenteditable="true"],
+[contenteditable=""] {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* --- 2. Disable image and element dragging --- */
+/* Prevents browser-native drag behavior and drag ghost preview */
+img,
+svg,
+video,
+canvas,
+.game-card,
+.game-card-premium,
+.game-card-empty,
+.factory-grid-cell {
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none; /* iOS: prevent callout on long-press */
+}
+
+/* Also prevent drag on all non-interactive elements to avoid ghost images */
+*:not(input):not(textarea):not(a):not([contenteditable="true"]):not([contenteditable=""]) {
+  -webkit-touch-callout: none;
+}
+
+/* --- 3. Remove mobile tap highlight globally --- */
+/* Disables the blue/gray flash effect on tap across all elements */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* --- 4. Prevent scroll/gesture interference in game areas --- */
+/* Disable overscroll bounce (Chrome/Safari/Edge) */
+html {
+  overscroll-behavior: none;
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: none;
+}
+
+body {
+  overscroll-behavior: none;
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: none;
+}
+
+/* Prevent pull-to-refresh and overscroll on game content areas (mobile only) */
+/* On desktop, 'contain' blocks scroll chaining — wheel events get trapped
+   and don't propagate to the main scroll container. Desktop uses 'auto' to
+   allow normal scroll chaining. Mobile keeps 'contain' to prevent
+   pull-to-refresh inside cards. */
+@media (max-width: 1023px) {
+  .game-grid-bg,
+  .game-card,
+  .game-card-premium,
+  .game-card-empty,
+  .factory-grid-cell,
+  .stat-badge,
+  .sidebar-nav-item {
+    overscroll-behavior: contain;
+  }
+}
+
+/* --- 5. Standardize interaction feel --- */
+/* Consistent pointer behavior across all game elements */
+.game-card,
+.game-card-premium,
+.game-card-empty,
+.factory-grid-cell,
+.factory-grid-cell-empty,
+.sidebar-nav-item,
+.stat-badge,
+.quest-card-hover {
+  cursor: default;
+}
+
+/* Buttons and links retain their native pointer cursor */
+button,
+[role="button"],
+a,
+[tabindex]:not([tabindex="-1"]) {
+  cursor: pointer;
+}
+
+/* Touch-action: prevent double-tap zoom, allow scroll and pinch-zoom */
+/* This is the right balance for gameplay — prevents accidental zoom while keeping scroll */
+.game-card,
+.game-card-premium,
+.game-card-empty,
+.factory-grid-cell,
+.stat-badge,
+.sidebar-nav-item,
+.quest-card-hover {
+  touch-action: manipulation;
+}
+
+/* SVG/Canvas interactive areas: prevent all default touch actions to avoid
+   scroll interference during pan/zoom (e.g., network graph) */
+svg canvas,
+[data-game-interactive] {
+  touch-action: none;
+}
+
+/* ===== End: Global UI Interaction Hardening ===== */
+
+/* ===== Accessibility: Focus-Visible Ring ===== */
+button:focus-visible,
+[role="button"]:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 2px solid rgba(0, 255, 242, 0.5);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 /* Custom scrollbar for the game */
 .game-scrollbar::-webkit-scrollbar {
   width: 6px;
@@ -151,6 +309,12 @@
 }
 .game-scrollbar::-webkit-scrollbar-thumb:hover {
   background: oklch(0.75 0.18 180);
+}
+
+/* Scroll fade indicator — hints that more content exists below */
+.scroll-fade {
+  mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
 }
 
 /* Neon glow effects */
@@ -169,6 +333,9 @@
 .neon-glow-red {
   text-shadow: 0 0 7px #ff0040, 0 0 10px #ff0040;
 }
+.neon-glow-yellow {
+  text-shadow: 0 0 7px rgba(255,255,0,0.6), 0 0 10px rgba(255,255,0,0.4), 0 0 21px rgba(255,255,0,0.2);
+}
 
 .neon-border-cyan {
   box-shadow: 0 0 5px oklch(0.75 0.18 180 / 0.3), inset 0 0 5px oklch(0.75 0.18 180 / 0.1);
@@ -185,6 +352,22 @@
 .neon-border-purple {
   box-shadow: 0 0 5px #bf00ff / 0.3, inset 0 0 5px #bf00ff / 0.1;
   border-color: #bf00ff / 0.5;
+}
+
+/* Resource focus highlight — used by Quick Navigate system in Global Resource Monitor */
+/* CSS-only effect that auto-expires — MUST NOT modify DOM structure */
+@keyframes resourceFocusHighlight {
+  0% { box-shadow: 0 0 0 0 rgba(0, 255, 242, 0.6), 0 0 15px rgba(0, 255, 242, 0.3); }
+  50% { box-shadow: 0 0 0 4px rgba(0, 255, 242, 0.4), 0 0 25px rgba(0, 255, 242, 0.2); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 255, 242, 0), 0 0 0 rgba(0, 255, 242, 0); }
+}
+.resource-focus-highlight {
+  animation: resourceFocusHighlight 3s ease-out forwards;
+  outline: 2px solid rgba(0, 255, 242, 0.5);
+  outline-offset: 2px;
+  border-radius: 8px;
+  position: relative;
+  z-index: 5;
 }
 
 /* Conveyor belt animation */
@@ -288,7 +471,6 @@
 .floating-number {
   animation: floatUp 1.5s ease-out forwards;
   pointer-events: none;
-  user-select: none;
   text-shadow: 0 0 8px rgba(57, 255, 20, 0.4);
 }
 
@@ -371,7 +553,7 @@
 /* ===== Improved Game Card Hover ===== */
 .game-card {
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid oklch(0.25 0.03 260);
+  border: 1px solid var(--border);
 }
 .game-card:hover {
   border-color: oklch(0.75 0.18 180 / 0.4);
@@ -390,7 +572,60 @@
 /* Mobile bottom tab bar */
 .mobile-bottom-bar {
   padding-bottom: env(safe-area-inset-bottom);
-  background: #0d1220;
+  background: #0a0e17;
+}
+
+/* ===== Floating Action Button (FAB) ===== */
+@keyframes fabPulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(0, 255, 242, 0.3), 0 0 20px rgba(0, 255, 242, 0.1); }
+  50% { box-shadow: 0 0 16px rgba(0, 255, 242, 0.5), 0 0 30px rgba(0, 255, 242, 0.2); }
+}
+.fab-pulse {
+  animation: fabPulse 3s ease-in-out infinite;
+}
+
+/* FAB dragging state */
+.fab-dragging {
+  cursor: grabbing !important;
+  transition: none !important;
+}
+
+/* FAB shortcut item hover */
+.fab-shortcut-item {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.fab-shortcut-item:hover {
+  transform: scale(1.1);
+}
+.fab-shortcut-item:active {
+  transform: scale(0.95);
+}
+
+/* ===== Bottom Navigation Bar ===== */
+@keyframes bottomNavSlideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.bottom-nav-enter {
+  animation: bottomNavSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Bottom nav sub-panel animation */
+@keyframes subPanelSlideUp {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.sub-panel-enter {
+  animation: subPanelSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Bottom nav active indicator */
+@keyframes bottomNavIndicator {
+  0% { transform: scaleX(0); }
+  100% { transform: scaleX(1); }
+}
+.bottom-nav-indicator {
+  animation: bottomNavIndicator 0.25s ease-out forwards;
 }
 
 /* Mobile tab scroll - hide scrollbar for cleaner look on mobile */
@@ -407,7 +642,7 @@
 /* Disable hover effects on touch devices to prevent sticky hover */
 @media (hover: none) and (pointer: coarse) {
   .game-card:hover {
-    border-color: oklch(0.25 0.03 260);
+    border-color: var(--border);
     box-shadow: none;
     transform: none;
   }
@@ -453,14 +688,6 @@
   .overflow-y-auto {
     overflow-x: hidden;
   }
-}
-
-/* Prevent text selection on game UI elements for better touch UX */
-.mobile-bottom-bar,
-.mobile-bottom-bar * {
-  -webkit-user-select: none;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
 }
 
 /* Active state feedback for bottom tab items */
@@ -567,7 +794,7 @@
 /* ===== Card Hover Enhancement ===== */
 .game-card-premium {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid oklch(0.25 0.03 260);
+  border: 1px solid var(--border);
   position: relative;
 }
 .game-card-premium::before {
@@ -752,7 +979,7 @@
 
 /* ===== Top Bar Gradient Background ===== */
 .top-bar-gradient {
-  background: linear-gradient(180deg, rgba(0, 255, 242, 0.03) 0%, rgba(13, 18, 32, 1) 100%);
+  background: linear-gradient(180deg, rgba(0, 255, 242, 0.03) 0%, #0a0e17 100%);
 }
 
 /* ===== Stat Badge Separator ===== */
@@ -786,6 +1013,20 @@
 .glow-button-cyan:hover {
   box-shadow: 0 0 20px rgba(0, 255, 242, 0.3), 0 0 40px rgba(0, 255, 242, 0.1);
   transform: translateY(-1px);
+}
+
+/* ===== Press Feedback for Buttons Only ===== */
+button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* ===== Reduced Motion: User Setting Override ===== */
+body.reduce-motion *,
+body.reduce-motion *::before,
+body.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
 }
 
 /* ===== Reduced Motion Support ===== */
@@ -879,10 +1120,7 @@ button:disabled, .btn-disabled {
   animation: pulseDot 2s ease-in-out infinite;
 }
 
-/* Smooth fade for filter changes */
-.filter-transition {
-  transition: all 0.2s ease;
-}
+/* Filter tabs - instant state change, no click animation */
 
 /* ===== Quest Card Hover Effect ===== */
 .quest-card-hover {

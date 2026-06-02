@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ResourceType } from '@/lib/game/types';
+import { GameIcon } from '@/components/game/shared/GameIcon';
 
 // Tier color scheme for SVG nodes
 const TIER_COLORS = [
@@ -39,14 +40,14 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
 
   // Compute which buildings produce each resource step
   const stepBuildings = useMemo(() => {
-    const map: Record<string, { type: string; name: string; emoji: string; count: number; activeCount: number }[]> = {};
+    const map: Record<string, { type: string; name: string; icon: string; count: number; activeCount: number }[]> = {};
     chain.steps.forEach(step => {
-      const producers: { type: string; name: string; emoji: string; count: number; activeCount: number }[] = [];
+      const producers: { type: string; name: string; icon: string; count: number; activeCount: number }[] = [];
       Object.values(BUILDING_DEFS).forEach(def => {
         if (def.outputs?.some(o => o.resource === step)) {
           const count = store.buildings.filter(b => b.type === def.type).length;
           const activeCount = store.buildings.filter(b => b.type === def.type && b.active).length;
-          producers.push({ type: def.type, name: def.name, emoji: def.emoji, count, activeCount });
+          producers.push({ type: def.type, name: def.name, icon: def.icon, count, activeCount });
         }
       });
       map[step] = producers;
@@ -68,7 +69,7 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
 
   return (
     <div
-      className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]"
+      className="game-card rounded-xl bg-card p-4 border border-border"
       style={{ borderColor: `${chain.color}33` }}
     >
       {/* Header */}
@@ -110,7 +111,7 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
       </div>
 
       {/* Chain Selector Pills */}
-      <div className="flex gap-1.5 overflow-x-auto pb-2 mb-3 game-scrollbar">
+      <div className="flex gap-1.5 overflow-x-auto pb-2 mb-3 game-scrollbar scroll-fade">
         {PRODUCTION_CHAINS.map((c, i) => {
           const cBottlenecks = c.steps.filter(step => (productionRates[step as ResourceType] ?? 0) <= 0);
           const cAllProducing = c.steps.every(step => (productionRates[step as ResourceType] ?? 0) > 0);
@@ -118,7 +119,7 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
             <button
               key={c.name}
               onClick={() => setSelectedChain(i)}
-              className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] font-medium transition-all duration-200 border relative ${
+              className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] font-medium border relative ${
                 i === selectedChain
                   ? 'text-white border-transparent shadow-lg'
                   : 'text-gray-400 border-gray-700/50 bg-gray-800/50 hover:border-gray-600 hover:text-gray-300'
@@ -139,14 +140,9 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
       </div>
 
       {/* SVG Flow Diagram */}
-      <AnimatePresence mode="wait">
-        <motion.div
+      <div
           key={chain.name + (showDetailView ? '-detail' : '-compact')}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.25 }}
-          className="overflow-x-auto game-scrollbar"
+          className="overflow-x-auto game-scrollbar max-w-full"
         >
           <svg
             width={totalWidth}
@@ -154,6 +150,9 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
             viewBox={`0 0 ${totalWidth} ${svgHeight}`}
             className="min-w-full"
             style={{ maxHeight: svgHeight }}
+            role="img"
+            aria-label={`Production chain visualization for ${chain.name}`}
+            tabIndex={0}
           >
             {/* Defs for gradients and markers */}
             <defs>
@@ -305,16 +304,15 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
                     </rect>
                   )}
 
-                  {/* Resource emoji */}
-                  <text
-                    x={x + NODE_W / 2}
-                    y={y + 22}
-                    textAnchor="middle"
-                    fontSize="18"
-                    dominantBaseline="middle"
+                  {/* Resource icon via foreignObject */}
+                  <foreignObject
+                    x={x + NODE_W / 2 - 12}
+                    y={y + 8}
+                    width={24}
+                    height={24}
                   >
-                    {meta.emoji}
-                  </text>
+                    <GameIcon icon={meta.icon} size={20} color={meta.color} className="flex items-center justify-center" />
+                  </foreignObject>
 
                   {/* Resource name */}
                   <text
@@ -461,13 +459,9 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
           </svg>
 
           {/* Detailed building info (shown below SVG when toggled) */}
-          <AnimatePresence>
+          <>
             {showDetailView && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.2 }}
+              <div
                 className="overflow-hidden"
               >
                 <div className="mt-3 space-y-2">
@@ -483,7 +477,7 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
                     return (
                       <div
                         key={step}
-                        className={`rounded-lg p-2.5 border transition-all duration-200 ${
+                        className={`rounded-lg p-3 border ${
                           isBottleneck
                             ? 'bg-red-900/10 border-red-900/30'
                             : 'bg-[#0a0e17] border-gray-800'
@@ -491,7 +485,7 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
                       >
                         <div className="flex items-center justify-between mb-1.5">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm">{meta.emoji}</span>
+                            <GameIcon icon={meta.icon} size={14} className="inline-flex" />
                             <span className="text-[11px] font-semibold" style={{ color: isBottleneck ? '#ef4444' : tier.text }}>
                               {meta.name}
                             </span>
@@ -539,7 +533,7 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
                                     : 'border-gray-800 bg-gray-900/30 text-gray-500'
                                 }`}
                               >
-                                <span>{b.emoji}</span>
+                                <GameIcon icon={b.icon} size={16} />
                                 <span className="font-medium">{b.name}</span>
                                 <span className="text-gray-500">
                                   ({b.activeCount}/{b.count})
@@ -556,11 +550,10 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
                     );
                   })}
                 </div>
-              </motion.div>
+              </div>
             )}
-          </AnimatePresence>
-        </motion.div>
-      </AnimatePresence>
+          </>
+        </div>
 
       {/* Chain completion summary */}
       <div className="mt-3 flex items-center justify-between text-[10px]">

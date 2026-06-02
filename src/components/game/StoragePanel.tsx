@@ -14,14 +14,15 @@ import {
   Gauge, Warehouse, CircleDot,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { GameIcon } from '@/components/game/shared/GameIcon';
 
 // ─── Tier Config ──────────────────────────────────────────────────────────────
 const TIER_CONFIG: Record<number, { label: string; color: string; bg: string; border: string }> = {
   0: { label: 'Raw Materials', color: '#a0a0a0', bg: 'bg-gray-900/30', border: 'border-gray-700/40' },
-  1: { label: 'Tier 1 — Refined', color: '#60a5fa', bg: 'bg-blue-900/20', border: 'border-blue-700/40' },
-  2: { label: 'Tier 2 — Manufactured', color: '#a78bfa', bg: 'bg-purple-900/20', border: 'border-purple-700/40' },
-  3: { label: 'Tier 3 — High-Tech', color: '#f472b6', bg: 'bg-pink-900/20', border: 'border-pink-700/40' },
-  4: { label: 'Tier 4 — Singularity', color: '#34d399', bg: 'bg-emerald-900/20', border: 'border-emerald-700/40' },
+  1: { label: 'Tier 1 — Refined', color: '#22d3ee', bg: 'bg-cyan-900/20', border: 'border-cyan-700/40' },
+  2: { label: 'Tier 2 — Manufactured', color: '#f97316', bg: 'bg-orange-900/20', border: 'border-orange-700/40' },
+  3: { label: 'Tier 3 — High-Tech', color: '#a855f7', bg: 'bg-purple-900/20', border: 'border-purple-700/40' },
+  4: { label: 'Tier 4 — Singularity', color: '#00ffcc', bg: 'bg-emerald-900/20', border: 'border-emerald-700/40' },
 };
 
 type ViewMode = 'overview' | 'dependencies' | 'alerts';
@@ -281,21 +282,17 @@ export function StoragePanel() {
     }
 
     return (
-      <motion.div
-        initial={{ height: 0, opacity: 0 }}
-        animate={{ height: 'auto', opacity: 1 }}
-        exit={{ height: 0, opacity: 0 }}
-        transition={{ duration: 0.2 }}
+      <div
         className="overflow-hidden"
       >
-        <div className="mt-2 bg-[#080c14] rounded-lg p-3 border border-gray-800/50 space-y-3">
+        <div className="mt-2 bg-[#0a0e17] rounded-lg p-3 border border-gray-800/50 space-y-3">
           {/* Rate Breakdown */}
           <div>
             <div className="flex items-center gap-1.5 mb-2">
               <Activity className="w-3 h-3 text-cyan-400" />
               <span className="text-[10px] font-semibold text-cyan-400 uppercase tracking-wider">Rate Breakdown — {meta.name}</span>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <div className="bg-green-900/10 border border-green-800/30 rounded-lg p-2 text-center">
                 <div className="text-[9px] text-green-500/70 uppercase tracking-wider">Production</div>
                 <div className="text-sm font-bold text-green-400 font-mono">+{formatNumber(prodRate)}</div>
@@ -316,7 +313,7 @@ export function StoragePanel() {
             </div>
             {etaLabel && (
               <div className={`mt-1.5 text-[10px] font-mono text-center ${netRate > 0 ? 'text-cyan-500' : 'text-orange-400'}`}>
-                ⏱ {etaLabel}
+                <GameIcon icon="gi:clockwork" size={12} className="inline" /> {etaLabel}
               </div>
             )}
           </div>
@@ -327,7 +324,7 @@ export function StoragePanel() {
               <Warehouse className="w-3 h-3 text-amber-400" />
               <span className="text-[10px] font-semibold text-amber-400 uppercase tracking-wider">Storage Capacity — {meta.name}</span>
             </div>
-            <div className="bg-gray-900/50 border border-gray-700/40 rounded-lg p-2.5">
+            <div className="bg-gray-900/50 border border-gray-700/40 rounded-lg p-3">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-gray-400">Current:</span>
@@ -351,7 +348,7 @@ export function StoragePanel() {
                     <button
                       onClick={() => handleUpgrade(res)}
                       disabled={!canAfford}
-                      className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-[10px] font-medium transition-all ${
+                      className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-[10px] font-medium ${
                         canAfford
                           ? 'bg-amber-600/20 text-amber-300 border border-amber-500/40 hover:bg-amber-600/30 hover:border-amber-500/60'
                           : 'bg-gray-800/30 text-gray-600 border border-gray-700/30 cursor-not-allowed'
@@ -363,7 +360,7 @@ export function StoragePanel() {
                     <button
                       onClick={() => handleUpgrade5(res)}
                       disabled={store.money < upgradeCost5}
-                      className={`flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-[10px] font-medium transition-all ${
+                      className={`flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-[10px] font-medium ${
                         store.money >= upgradeCost5
                           ? 'bg-cyan-600/20 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-600/30 hover:border-cyan-500/60'
                           : 'bg-gray-800/30 text-gray-600 border border-gray-700/30 cursor-not-allowed'
@@ -414,7 +411,7 @@ export function StoragePanel() {
                             {chain?.steps.map((step, j) => (
                               <span key={j} className="flex items-center gap-1">
                                 <span style={{ color: RESOURCE_META[step as ResourceType]?.color ?? '#999' }}>
-                                  {RESOURCE_META[step as ResourceType]?.emoji} {RESOURCE_META[step as ResourceType]?.name ?? step}
+                                  <GameIcon icon={RESOURCE_META[step as ResourceType]?.icon} size={14} className="inline-flex" /> {RESOURCE_META[step as ResourceType]?.name ?? step}
                                 </span>
                                 {j < chain.steps.length - 1 && <ArrowRight className="w-2.5 h-2.5 text-gray-600" />}
                               </span>
@@ -436,7 +433,7 @@ export function StoragePanel() {
                 <CircleDot className="w-3 h-3 text-blue-400" />
                 <span className="text-[10px] font-semibold text-blue-400 uppercase tracking-wider">Dependency Map — {meta.name}</span>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {deps.producers.length > 0 && (
                   <div className="bg-green-900/10 border border-green-800/30 rounded-lg p-2">
                     <div className="text-[9px] text-green-500 uppercase tracking-wider mb-1.5">Produced By</div>
@@ -473,7 +470,7 @@ export function StoragePanel() {
             </div>
           )}
         </div>
-      </motion.div>
+      </div>
     );
   };
 
@@ -505,7 +502,7 @@ export function StoragePanel() {
 
           {/* Emoji + Name */}
           <div className="flex items-center gap-1.5 min-w-[120px]">
-            <span className="text-sm">{meta.emoji}</span>
+            <GameIcon icon={meta.icon} size={14} className="inline-flex" />
             <span className="text-xs font-medium text-gray-200 truncate">{meta.name}</span>
             {hasAlert && <AlertCircle className="w-3 h-3 text-orange-400 flex-shrink-0" />}
           </div>
@@ -533,9 +530,7 @@ export function StoragePanel() {
             : <ChevronRight className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
           }
         </button>
-        <AnimatePresence>
-          {isExpanded && renderResourceDetail(res)}
-        </AnimatePresence>
+        {isExpanded && renderResourceDetail(res)}
       </div>
     );
   };
@@ -577,18 +572,15 @@ export function StoragePanel() {
           };
 
           return (
-            <motion.div
+            <div
               key={alert.resource + alert.type}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.05 }}
               className={`flex items-start gap-3 p-3 rounded-lg border ${colorMap[alert.type]}`}
             >
               <div className="mt-0.5">{iconMap[alert.type]}</div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-sm">{meta.emoji}</span>
-                  <span className="text-xs font-semibold text-gray-200">{meta.name}</span>
+                  <GameIcon icon={meta.icon} size={14} className="inline-flex" />
+                  <span className="text-sm font-semibold text-gray-200">{meta.name}</span>
                   <span className={`text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
                     alert.type === 'critical' ? 'bg-red-500/20 text-red-400' :
                     alert.type === 'shortage' ? 'bg-orange-500/20 text-orange-400' :
@@ -606,7 +598,7 @@ export function StoragePanel() {
               >
                 View →
               </button>
-            </motion.div>
+            </div>
           );
         })}
       </div>
@@ -632,18 +624,15 @@ export function StoragePanel() {
           const bottleneck = chain.steps.find(s => !activeResources.includes(s as ResourceType));
 
           return (
-            <motion.div
+            <div
               key={chain.name}
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: ci * 0.03 }}
               className={`rounded-lg border p-3 ${
                 allActive ? 'bg-gray-900/40 border-green-700/30' : 'bg-gray-900/30 border-gray-700/30'
               }`}
             >
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: chain.color }} />
-                <span className="text-xs font-semibold" style={{ color: chain.color }}>{chain.name}</span>
+                <span className="text-sm font-semibold" style={{ color: chain.color }}>{chain.name}</span>
                 {allActive ? (
                   <span className="text-[8px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded font-bold">ACTIVE</span>
                 ) : bottleneck ? (
@@ -665,7 +654,7 @@ export function StoragePanel() {
                           ? 'bg-gray-800/50 border-gray-600/40'
                           : 'bg-red-900/10 border-red-800/30'
                       }`}>
-                        <span>{stepMeta?.emoji}</span>
+                        <GameIcon icon={stepMeta?.icon} size={14} className="inline-flex" />
                         <span className={stepActive ? 'text-gray-200' : 'text-red-400/70'}>{stepMeta?.name ?? step}</span>
                         {stepActive && (
                           <span className={`font-mono ${stepNet > 0 ? 'text-green-400' : stepNet < 0 ? 'text-red-400' : stepProd > 0 && stepCons > 0 ? 'text-cyan-400' : 'text-gray-600'}`}>
@@ -682,10 +671,10 @@ export function StoragePanel() {
               </div>
               {!allActive && bottleneck && (
                 <div className="mt-1.5 text-[10px] text-red-400/70">
-                  ⚠ Blocked at {RESOURCE_META[bottleneck as ResourceType]?.name ?? bottleneck} — no production
+                  <GameIcon icon="gi:hazard-sign" size={12} className="inline" /> Blocked at {RESOURCE_META[bottleneck as ResourceType]?.name ?? bottleneck} — no production
                 </div>
               )}
-            </motion.div>
+            </div>
           );
         })}
       </div>
@@ -718,7 +707,7 @@ export function StoragePanel() {
               style={{ backgroundColor: `${config.color}08` }}
             >
               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: config.color }} />
-              <span className="text-xs font-semibold" style={{ color: config.color }}>{config.label}</span>
+              <span className="text-sm font-semibold" style={{ color: config.color }}>{config.label}</span>
               <span className="text-[10px] text-gray-500">
                 {activeInTier.length}/{resources.length} active
               </span>
@@ -742,13 +731,9 @@ export function StoragePanel() {
             </button>
 
             {/* Tier Resources */}
-            <AnimatePresence>
+            <>
               {isExpanded && (
-                <motion.div
-                  initial={{ height: 0 }}
-                  animate={{ height: 'auto' }}
-                  exit={{ height: 0 }}
-                  transition={{ duration: 0.2 }}
+                <div
                   className="overflow-hidden"
                 >
                   {activeInTier.length === 0 && searchQuery.trim() ? (
@@ -756,9 +741,9 @@ export function StoragePanel() {
                   ) : (
                     activeInTier.map(res => renderResourceRow(res))
                   )}
-                </motion.div>
+                </div>
               )}
-            </AnimatePresence>
+            </>
           </div>
         );
       })}
@@ -767,31 +752,31 @@ export function StoragePanel() {
 
   // ─── Main Render ──────────────────────────────────────────────────────────
   return (
-    <div className="h-full flex flex-col gap-3 p-3 lg:p-4 overflow-hidden">
+    <div className="h-full flex flex-col gap-3 p-4 overflow-hidden">
       {/* Header */}
       <div className="flex-shrink-0">
         <div className="flex items-center gap-2 mb-3">
           <Database className="w-5 h-5 text-amber-400" />
-          <h2 className="text-lg font-bold text-gray-100">Storage Management</h2>
+          <h2 className="text-xl font-bold text-gray-100 neon-glow-cyan">Storage Management</h2>
         </div>
 
         {/* Summary Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-          <div className="bg-gray-900/50 border border-gray-700/40 rounded-lg p-2.5">
+          <div className="bg-gray-900/50 border border-gray-700/40 rounded-lg p-3">
             <div className="text-[9px] text-gray-500 uppercase tracking-wider">Total Stock</div>
-            <div className="text-sm font-bold font-mono text-gray-200">{formatNumber(summaryStats.totalStock)}</div>
+            <div className="text-lg font-bold font-mono text-gray-200">{formatNumber(summaryStats.totalStock)}</div>
           </div>
-          <div className="bg-gray-900/50 border border-gray-700/40 rounded-lg p-2.5">
+          <div className="bg-gray-900/50 border border-gray-700/40 rounded-lg p-3">
             <div className="text-[9px] text-gray-500 uppercase tracking-wider">Total Capacity</div>
-            <div className="text-sm font-bold font-mono text-gray-200">{unlimited ? '∞' : formatNumber(summaryStats.totalCapacity)}</div>
+            <div className="text-lg font-bold font-mono text-gray-200">{unlimited ? '∞' : formatNumber(summaryStats.totalCapacity)}</div>
           </div>
-          <div className="bg-gray-900/50 border border-gray-700/40 rounded-lg p-2.5">
+          <div className="bg-gray-900/50 border border-gray-700/40 rounded-lg p-3">
             <div className="text-[9px] text-gray-500 uppercase tracking-wider">Active Materials</div>
-            <div className="text-sm font-bold font-mono text-cyan-400">{summaryStats.activeResources}<span className="text-gray-600">/{summaryStats.totalTypes}</span></div>
+            <div className="text-lg font-bold font-mono text-cyan-400">{summaryStats.activeResources}<span className="text-gray-600">/{summaryStats.totalTypes}</span></div>
           </div>
-          <div className="bg-gray-900/50 border border-gray-700/40 rounded-lg p-2.5">
+          <div className="bg-gray-900/50 border border-gray-700/40 rounded-lg p-3">
             <div className="text-[9px] text-gray-500 uppercase tracking-wider">Alerts</div>
-            <div className={`text-sm font-bold font-mono ${alerts.length > 0 ? 'text-orange-400' : 'text-emerald-400'}`}>{alerts.length}</div>
+            <div className={`text-lg font-bold font-mono ${alerts.length > 0 ? 'text-orange-400' : 'text-emerald-400'}`}>{alerts.length}</div>
           </div>
         </div>
 
@@ -807,7 +792,7 @@ export function StoragePanel() {
               <button
                 key={tab.mode}
                 onClick={() => setViewMode(tab.mode)}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[10px] font-medium transition-all ${
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[10px] font-medium ${
                   viewMode === tab.mode
                     ? 'bg-cyan-600/20 text-cyan-300 border border-cyan-500/30'
                     : 'text-gray-500 hover:text-gray-300 border border-transparent'
@@ -831,7 +816,7 @@ export function StoragePanel() {
                 <button
                   key={tab.mode}
                   onClick={() => setSortMode(tab.mode)}
-                  className={`px-2 py-1 rounded-md text-[10px] font-medium transition-all ${
+                  className={`px-2 py-1 rounded-md text-[10px] font-medium ${
                     sortMode === tab.mode
                       ? 'bg-amber-600/20 text-amber-300 border border-amber-500/30'
                       : 'text-gray-500 hover:text-gray-300 border border-transparent'

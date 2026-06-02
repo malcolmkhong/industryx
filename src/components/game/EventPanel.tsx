@@ -1,6 +1,7 @@
 'use client';
 
 import { useGameStore, formatNumber } from '@/lib/game/store';
+import { motion } from 'framer-motion';
 import { EVENT_TEMPLATES, RESOURCE_META } from '@/lib/game/data';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,7 @@ import {
   AlertTriangle, Clock, Zap, TrendingUp, TrendingDown,
   Factory, FlaskConical, Truck, Shield, Activity, Globe
 } from 'lucide-react';
+import { GameIcon } from '@/components/game/shared/GameIcon';
 
 const EVENT_COLORS: Record<string, string> = {
   oilCrisis: 'border-amber-600/50 bg-amber-900/10',
@@ -50,16 +52,15 @@ export function EventPanel() {
       </div>
 
       {/* Active Events */}
-      <div className="game-card rounded-xl bg-[#111827] p-4 border border-orange-900/30">
+      <div className="game-card rounded-xl bg-card p-4 border border-orange-900/30">
         <div className="flex items-center gap-2 mb-3">
           <Activity className="w-4 h-4 text-orange-400 neon-pulse" />
           <h3 className="text-sm font-semibold text-orange-400">Active Events</h3>
         </div>
         {store.activeEvents.length === 0 ? (
-          <div className="text-center py-10">
-            <Shield className="w-12 h-12 text-gray-700 mx-auto mb-2" />
-            <p className="text-xs text-gray-500">No active events right now</p>
-            <p className="text-[10px] text-gray-600 mt-1">Events occur periodically — some beneficial, some challenging</p>
+          <div className="flex flex-col items-center justify-center py-8 text-gray-500">
+            <Shield className="w-8 h-8 mb-2 opacity-50" />
+            <p className="text-sm">No active events. Check back later!</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -69,9 +70,11 @@ export function EventPanel() {
 
               return (
                 <div key={event.id} className={`rounded-xl p-4 border ${colorClass}`}>
+                  <motion.div
+                  >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3">
-                      <div className="text-3xl neon-pulse">{event.emoji}</div>
+                      <div className="text-3xl neon-pulse"><GameIcon icon={event.icon} size={32} className="inline-flex" /></div>
                       <div>
                         <h4 className="text-sm font-bold text-gray-200">{event.name}</h4>
                         <p className="text-xs text-gray-400 mt-0.5">{event.description}</p>
@@ -106,7 +109,14 @@ export function EventPanel() {
                   {/* Timer */}
                   <div className="flex items-center gap-3">
                     <Clock className="w-3.5 h-3.5 text-gray-500" />
-                    <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+                    <div
+                      className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden"
+                      role="progressbar"
+                      aria-valuenow={Math.round(timePct)}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-label={`${event.name} time remaining`}
+                    >
                       <div
                         className={`h-full rounded-full transition-all ${
                           timePct < 25 ? 'bg-red-500 neon-pulse' : 'bg-orange-500'
@@ -118,6 +128,7 @@ export function EventPanel() {
                       {formatNumber(event.remaining)} / {formatNumber(event.duration)} ticks
                     </span>
                   </div>
+                  </motion.div>
                 </div>
               );
             })}
@@ -126,7 +137,7 @@ export function EventPanel() {
       </div>
 
       {/* Event Catalog */}
-      <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+      <div className="game-card rounded-xl bg-card p-4 border border-border">
         <div className="flex items-center gap-2 mb-3">
           <Globe className="w-4 h-4 text-gray-400" />
           <h3 className="text-sm font-semibold text-gray-400">Possible Events</h3>
@@ -144,7 +155,7 @@ export function EventPanel() {
                 }`}
               >
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-base">{template.emoji}</span>
+                  <GameIcon icon={template.icon} size={16} className="inline-flex" />
                   <span className="text-xs font-medium text-gray-200">{template.name}</span>
                   {isActive && (
                     <Badge className="text-[8px] bg-orange-900/20 text-orange-400 border-0 ml-auto">ACTIVE</Badge>
@@ -163,15 +174,15 @@ export function EventPanel() {
 
       {/* Event Log */}
       {store.eventLog.length > 0 && (
-        <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+        <div className="game-card rounded-xl bg-card p-4 border border-border">
           <div className="flex items-center gap-2 mb-3">
             <Clock className="w-4 h-4 text-gray-400" />
             <h3 className="text-sm font-semibold text-gray-400">Event History</h3>
           </div>
-          <div className="space-y-1 max-h-36 overflow-y-auto game-scrollbar">
+          <div className="space-y-1 max-h-60 overflow-y-auto game-scrollbar scroll-fade">
             {store.eventLog.slice(-20).reverse().map((event, i) => (
               <div key={i} className="flex items-center gap-2 text-[11px] text-gray-500 py-1 border-b border-gray-800/50">
-                <span>{event.emoji}</span>
+                <GameIcon icon={event.icon} size={14} className="inline-flex" />
                 <span>{event.name}</span>
                 <span className="ml-auto text-[9px] text-gray-600">Tick {event.remaining}</span>
               </div>

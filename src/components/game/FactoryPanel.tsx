@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/store';
 import { BUILDING_DEFS, RESOURCE_META, PRODUCTION_CHAINS, RESEARCH_TREE } from '@/lib/game/data';
 import { Button } from '@/components/ui/button';
@@ -12,11 +12,13 @@ import {
   Brain, ArrowDownToLine,
   ArrowUpFromLine, Package, Workflow,
   Gauge, Box,
-  Pickaxe, Sparkles, X, Search, Wrench,
+  Pickaxe, Sparkles, X, Search,
 } from 'lucide-react';
-import { FactoryType, ResourceType, getConditionStatus, getConditionColor, safeCondition } from '@/lib/game/types';
+import { FactoryType, ResourceType } from '@/lib/game/types';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
+import { getTierColorClasses, type TierColor } from '@/components/game/shared/tierColors';
+import { GameIcon } from '@/components/game/shared/GameIcon';
 
 // Factory types organized by tier
 const TIER_1_FACTORIES: FactoryType[] = ['smelter', 'wireMill', 'chemicalPlant', 'glassFurnace', 'carbonProcessor', 'brickFactory', 'concreteFactory', 'fertilizerFactory', 'steelForge', 'oilRefinery'];
@@ -25,85 +27,13 @@ const TIER_3_FACTORIES: FactoryType[] = ['aiLab', 'roboticsBay', 'quantumLab', '
 const TIER_4_FACTORIES: FactoryType[] = ['singularityForge', 'darkMatterLab', 'warpDriveFactory', 'antimatterReactor', 'chronoLab', 'plasmaForge', 'megaStructureFactory', 'voidCrystallizer', 'dysonCollector', 'quantumTeleporter', 'dimensionalGateway', 'timeDistorter', 'galacticForge'];
 
 const TIER_CONFIG = {
-  1: { label: 'T1 — Processing', shortLabel: 'T1', color: 'cyan', icon: <Flame className="w-4 h-4" />, borderColor: 'border-cyan-900/40', hex: '#22d3ee' },
-  2: { label: 'T2 — Manufacturing', shortLabel: 'T2', color: 'orange', icon: <Cog className="w-4 h-4" />, borderColor: 'border-orange-900/40', hex: '#f97316' },
-  3: { label: 'T3 — High-Tech', shortLabel: 'T3', color: 'purple', icon: <Brain className="w-4 h-4" />, borderColor: 'border-purple-900/40', hex: '#a855f7' },
-  4: { label: 'T4 — Singularity', shortLabel: 'T4', color: 'emerald', icon: <Sparkles className="w-4 h-4" />, borderColor: 'border-emerald-900/40', hex: '#00ffcc' },
+  1: { label: 'T1 — Processing', shortLabel: 'T1', color: 'cyan', icon: 'gi:flame-tunnel', borderColor: 'border-cyan-900/40', hex: '#22d3ee' },
+  2: { label: 'T2 — Manufacturing', shortLabel: 'T2', color: 'orange', icon: 'gi:big-gear', borderColor: 'border-orange-900/40', hex: '#f97316' },
+  3: { label: 'T3 — High-Tech', shortLabel: 'T3', color: 'purple', icon: 'gi:brain', borderColor: 'border-purple-900/40', hex: '#a855f7' },
+  4: { label: 'T4 — Singularity', shortLabel: 'T4', color: 'emerald', icon: 'gi:sparkles', borderColor: 'border-emerald-900/40', hex: '#00ffcc' },
 };
 
-type TierColor = 'cyan' | 'orange' | 'purple' | 'emerald';
 
-type TierColorClasses = {
-  text: string;
-  border: string;
-  bg: string;
-  hoverBorder: string;
-  glow: string;
-  buttonBorder: string;
-  buttonText: string;
-  buttonHover: string;
-  badge: string;
-  tabActive: string;
-  tabHover: string;
-};
-
-function getTierColorClasses(color: TierColor): TierColorClasses {
-  const map: Record<TierColor, TierColorClasses> = {
-    emerald: {
-      text: 'text-emerald-400',
-      border: 'border-emerald-500/30',
-      bg: 'bg-emerald-900/20',
-      hoverBorder: 'hover:border-emerald-500/50',
-      glow: 'hover:shadow-[0_0_15px_rgba(0,255,204,0.1)]',
-      buttonBorder: 'border-emerald-700/50',
-      buttonText: 'text-emerald-400',
-      buttonHover: 'hover:bg-emerald-900/30 hover:border-emerald-500',
-      badge: 'border-emerald-600/50',
-      tabActive: 'border-emerald-500/60 bg-emerald-900/25 text-emerald-400 shadow-[0_0_12px_rgba(0,255,204,0.15)]',
-      tabHover: 'hover:border-emerald-700/50 hover:text-emerald-300',
-    },
-    cyan: {
-      text: 'text-cyan-400',
-      border: 'border-cyan-500/30',
-      bg: 'bg-cyan-900/20',
-      hoverBorder: 'hover:border-cyan-500/50',
-      glow: 'hover:shadow-[0_0_15px_rgba(0,255,242,0.1)]',
-      buttonBorder: 'border-cyan-700/50',
-      buttonText: 'text-cyan-400',
-      buttonHover: 'hover:bg-cyan-900/30 hover:border-cyan-500',
-      badge: 'border-cyan-600/50',
-      tabActive: 'border-cyan-500/60 bg-cyan-900/25 text-cyan-400 shadow-[0_0_12px_rgba(0,255,242,0.15)]',
-      tabHover: 'hover:border-cyan-700/50 hover:text-cyan-300',
-    },
-    orange: {
-      text: 'text-orange-400',
-      border: 'border-orange-500/30',
-      bg: 'bg-orange-900/20',
-      hoverBorder: 'hover:border-orange-500/50',
-      glow: 'hover:shadow-[0_0_15px_rgba(255,102,0,0.1)]',
-      buttonBorder: 'border-orange-700/50',
-      buttonText: 'text-orange-400',
-      buttonHover: 'hover:bg-orange-900/30 hover:border-orange-500',
-      badge: 'border-orange-600/50',
-      tabActive: 'border-orange-500/60 bg-orange-900/25 text-orange-400 shadow-[0_0_12px_rgba(249,115,22,0.15)]',
-      tabHover: 'hover:border-orange-700/50 hover:text-orange-300',
-    },
-    purple: {
-      text: 'text-purple-400',
-      border: 'border-purple-500/30',
-      bg: 'bg-purple-900/20',
-      hoverBorder: 'hover:border-purple-500/50',
-      glow: 'hover:shadow-[0_0_15px_rgba(191,0,255,0.1)]',
-      buttonBorder: 'border-purple-700/50',
-      buttonText: 'text-purple-400',
-      buttonHover: 'hover:bg-purple-900/30 hover:border-purple-500',
-      badge: 'border-purple-600/50',
-      tabActive: 'border-purple-500/60 bg-purple-900/25 text-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.15)]',
-      tabHover: 'hover:border-purple-700/50 hover:text-purple-300',
-    },
-  };
-  return map[color];
-}
 
 // Flow diagram tier nodes
 const FLOW_TIERS = [
@@ -122,6 +52,7 @@ function getResourceTier(res: ResourceType): number {
 export function FactoryPanel() {
   const store = useGameStore();
   const [selectedTier, setSelectedTier] = useState<number>(1);
+  const [selectedChain, setSelectedChain] = useState<number>(0);
   const [selectedFlowNode, setSelectedFlowNode] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -214,15 +145,6 @@ export function FactoryPanel() {
   // Factory overview stats
   const totalFactories = factoryBuildings.length;
   const activeFactories = factoryBuildings.filter(b => b.active).length;
-  const brokenFactories = factoryBuildings.filter(b => (safeCondition(b.condition)) <= 0).length;
-  const damagedFactories = factoryBuildings.filter(b => (safeCondition(b.condition)) < 100 && (safeCondition(b.condition)) > 0).length;
-  const totalRepairCost = factoryBuildings.reduce((sum, b) => {
-    const condition = safeCondition(b.condition);
-    if (condition >= 100) return sum;
-    const def = BUILDING_DEFS[b.type];
-    const baseCost = def?.baseCost.find(c => c.resource === 'money')?.amount ?? 100;
-    return sum + Math.max(1, Math.floor(baseCost * (100 - condition) / 100 * b.level));
-  }, 0);
   const totalPowerConsumption = factoryBuildings
     .filter(b => b.active)
     .reduce((sum, b) => sum + BUILDING_DEFS[b.type].basePowerConsumption * b.level, 0);
@@ -358,63 +280,8 @@ export function FactoryPanel() {
         />
       </div>
 
-      {/* BROKEN / DAMAGED BUILDING ALERT */}
-      {store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption > 0 && (
-        <div className="rounded-lg p-3 border bg-red-900/20 border-red-500/30 flex items-center gap-3">
-          <Zap className="w-5 h-5 text-red-400 shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-red-400">Power Grid Failure</p>
-            <p className="text-[10px] text-red-300/80">Factories cannot run without power. Check the Power Grid tab for diagnostics.</p>
-          </div>
-          <Button
-            size="sm"
-            className="h-7 text-[10px] bg-red-900/40 hover:bg-red-800/50 text-red-400 border border-red-500/30 shrink-0"
-            onClick={() => store.setActiveTab('power')}
-          >
-            <Zap className="w-2.5 h-2.5 mr-1" />
-            Power Grid
-          </Button>
-        </div>
-      )}
-      {(brokenFactories > 0 || damagedFactories > 0) && (
-        <div className={`rounded-lg p-3 border flex items-center justify-between gap-3 ${
-          brokenFactories > 0
-            ? 'bg-red-900/20 border-red-500/30'
-            : 'bg-yellow-900/20 border-yellow-500/30'
-        }`}>
-          <div className="flex items-center gap-2">
-            <span className="text-sm">{brokenFactories > 0 ? '💥' : '⚠️'}</span>
-            <div>
-              <span className={`text-xs font-semibold ${brokenFactories > 0 ? 'text-red-400' : 'text-yellow-400'}`}>
-                {brokenFactories > 0
-                  ? `${brokenFactories} factory${brokenFactories > 1 ? 'ies' : 'y'} broken!`
-                  : `${damagedFactories} factor${damagedFactories > 1 ? 'ies need' : 'y needs'} maintenance`}
-              </span>
-              {totalRepairCost > 0 && (
-                <span className="text-[10px] text-gray-400 ml-2">
-                  Repair cost: ${formatNumber(totalRepairCost)}
-                </span>
-              )}
-            </div>
-          </div>
-          <Button
-            size="sm"
-            className={`h-7 text-[10px] ${
-              brokenFactories > 0
-                ? 'bg-red-900/40 hover:bg-red-800/50 text-red-400 border border-red-500/30'
-                : 'bg-orange-900/40 hover:bg-orange-800/50 text-orange-400 border border-orange-500/30'
-            }`}
-            onClick={() => store.repairAllBuildings()}
-            disabled={store.money < totalRepairCost}
-          >
-            <Wrench className="w-3 h-3 mr-1" />
-            Repair All (${formatNumber(totalRepairCost)})
-          </Button>
-        </div>
-      )}
-
       {/* PRODUCTION FLOW DIAGRAM - HERO SECTION */}
-      <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+      <div className="game-card rounded-xl bg-card p-4 border border-border">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Workflow className="w-4 h-4 text-cyan-400" />
@@ -525,9 +392,7 @@ export function FactoryPanel() {
                       r={isSelected ? 58 : 54}
                       fill={tier.color}
                       fillOpacity="0.08"
-                    >
-                      <animate attributeName="r" values={isSelected ? "56;60;56" : "52;56;52"} dur="3s" repeatCount="indefinite" />
-                    </circle>
+                    />
                   )}
                   {/* Node border */}
                   <rect
@@ -562,7 +427,7 @@ export function FactoryPanel() {
                     fontWeight="bold"
                     dominantBaseline="middle"
                   >
-                    {tier.key === 'raw' ? '⛏️' : tier.key === 't1' ? '🔥' : tier.key === 't2' ? '⚙️' : tier.key === 't3' ? '✨' : '🌀'}
+                    {tier.key === 'raw' ? <GameIcon icon="gi:mining" size={14} className="inline-flex" /> : tier.key === 't1' ? <GameIcon icon="gi:anvil-impact" size={14} className="inline-flex" /> : tier.key === 't2' ? <GameIcon icon="gi:big-gear" size={14} className="inline-flex" /> : tier.key === 't3' ? <GameIcon icon="gi:sparkles" size={14} className="inline-flex" /> : <GameIcon icon="gi:vortex" size={14} className="inline-flex" />}
                   </text>
                   {/* Tier name */}
                   <text
@@ -611,8 +476,7 @@ export function FactoryPanel() {
         </div>
 
         {/* Selected flow node detail panel */}
-        <AnimatePresence>
-          {selectedFlowNode && (() => {
+        {selectedFlowNode && (() => {
             const tierIdx = FLOW_TIERS.findIndex(t => t.key === selectedFlowNode);
             const tierInfo = FLOW_TIERS[tierIdx];
             const tierNum = tierIdx; // 0=raw, 1=T1, 2=T2, 3=T3
@@ -627,11 +491,7 @@ export function FactoryPanel() {
               }, {});
 
             return (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.25 }}
+              <div
                 className="overflow-hidden"
               >
                 <div className="mt-3 bg-[#0a0e17] rounded-lg p-3 border" style={{ borderColor: `${tierInfo.color}33` }}>
@@ -653,7 +513,7 @@ export function FactoryPanel() {
                         const net = prod - cons;
                         return (
                           <div key={res} className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 border" style={{ borderColor: `${meta.color}22`, backgroundColor: `${meta.color}08` }}>
-                            <span className="text-sm">{meta.emoji}</span>
+                            <GameIcon icon={meta.icon} size={14} className="inline-flex" />
                             <div className="min-w-0">
                               <div className="text-[10px] text-gray-300 font-medium truncate">{meta.name}</div>
                               <div className={`text-[9px] font-mono ${net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : prod > 0 && cons > 0 ? 'text-cyan-400' : 'text-gray-600'}`}>
@@ -666,10 +526,9 @@ export function FactoryPanel() {
                     </div>
                   )}
                 </div>
-              </motion.div>
+              </div>
             );
           })()}
-        </AnimatePresence>
       </div>
 
       {/* MAIN CONTENT: Factory Grid + Sidebar */}
@@ -677,7 +536,7 @@ export function FactoryPanel() {
         {/* LEFT: Factory Grid with Tab-based Tier Selector */}
         <div className="lg:col-span-2 space-y-3">
           {/* TIER TAB SELECTOR */}
-          <div className="flex items-center gap-1 p-1 bg-[#111827] rounded-xl border border-[#1e293b]">
+          <div className="flex items-center gap-1 p-1 bg-card rounded-xl border border-border">
             {([1, 2, 3, 4] as const).map(tier => {
               const config = TIER_CONFIG[tier];
               const colors = getTierColorClasses(config.color as TierColor);
@@ -688,14 +547,14 @@ export function FactoryPanel() {
                 <button
                   key={tier}
                   onClick={() => setSelectedTier(tier)}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border transition-all text-xs font-semibold ${
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border text-xs font-semibold ${
                     isActive
                       ? colors.tabActive
                       : `border-transparent text-gray-500 ${colors.tabHover}`
                   }`}
                 >
                   <div className={`w-6 h-6 rounded-md flex items-center justify-center ${isActive ? colors.bg : 'bg-gray-800/50'}`}>
-                    {config.icon}
+                    <GameIcon icon={config.icon} size={16} />
                   </div>
                   <span className="hidden sm:inline">{config.label}</span>
                   <span className="sm:hidden">{config.shortLabel}</span>
@@ -708,19 +567,12 @@ export function FactoryPanel() {
           </div>
 
           {/* FACTORY BUILD CARDS for selected tier */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={selectedTier}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
-            >
-              <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div key={selectedTier}>
+              <div className="game-card rounded-xl bg-card p-4 border border-border">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <div className={`w-7 h-7 rounded-lg ${currentColorClasses.bg} flex items-center justify-center ${currentColorClasses.text}`}>
-                      {currentTierConfig.icon}
+                      <GameIcon icon={currentTierConfig.icon} size={16} />
                     </div>
                     <h3 className={`text-sm font-semibold ${currentColorClasses.text}`}>{currentTierConfig.label}</h3>
                   </div>
@@ -770,13 +622,13 @@ export function FactoryPanel() {
                       <GameItemTooltip
                         key={type}
                         name={def.name}
-                        emoji={def.emoji}
+                        icon={def.icon}
                         description={def.description}
                         category="Factory"
                         tier={def.tier}
                         details={[
                           ...(def.inputs?.map(inp => ({ label: `Input: ${RESOURCE_META[inp.resource].name}`, value: `${inp.amount}/t`, color: 'text-red-400' })) ?? []),
-                          ...(def.outputs?.map(o => ({ label: `Output: ${RESOURCE_META[o.resource].name}`, value: `${o.amount}/t`, color: 'text-green-400' })) ?? []),
+                          ...(def.outputs?.map(o => ({ label: `Output: ${RESOURCE_META[o.resource].name}`, value: `${(o.amount * def.baseProductionRate).toFixed(1)}/t`, color: 'text-green-400' })) ?? []),
                           { label: 'Power Consumption', value: `${def.basePowerConsumption} MW`, color: 'text-yellow-400' },
                           { label: 'Build Cost', value: `$${formatNumber(cost)}`, color: canAfford ? 'text-green-400' : 'text-red-400' },
                           { label: 'Cost Multiplier', value: `x${def.costMultiplier}` },
@@ -787,7 +639,7 @@ export function FactoryPanel() {
                         side="bottom"
                       >
                       <div
-                        className={`relative rounded-lg p-2.5 border bg-[#0a0e17] transition-all duration-200 ${
+                        className={`relative rounded-lg p-3 border bg-[#0a0e17] ${
                           !unlocked
                             ? 'border-gray-800 opacity-60'
                             : canAfford
@@ -802,7 +654,7 @@ export function FactoryPanel() {
                         )}
                         {/* Header: emoji + name + chain badge */}
                         <div className="flex items-start gap-2 mb-1.5">
-                          <span className="text-lg leading-none mt-0.5">{def.emoji}</span>
+                          <GameIcon icon={def.icon} size={20} />
                           <div className="flex-1 min-w-0">
                             <p className="text-[11px] text-gray-200 font-medium leading-tight truncate">{def.name}</p>
                             {/* Chain pipeline badge */}
@@ -826,7 +678,7 @@ export function FactoryPanel() {
                           <div className="flex items-center gap-0.5 flex-wrap">
                             {def.inputs?.map((inp, i) => (
                               <span key={i} className="text-[8px] text-red-300/80 bg-red-900/20 rounded px-1 py-px">
-                                {RESOURCE_META[inp.resource].emoji}{inp.amount}
+                                <GameIcon icon={RESOURCE_META[inp.resource].icon} size={10} className="inline-flex" />{inp.amount}
                               </span>
                             ))}
                             {def.inputs && def.inputs.length > 0 && (
@@ -834,7 +686,7 @@ export function FactoryPanel() {
                             )}
                             {def.outputs?.map((out, i) => (
                               <span key={i} className="text-[8px] text-green-300/80 bg-green-900/20 rounded px-1 py-px">
-                                {RESOURCE_META[out.resource].emoji}{out.amount}
+                                <GameIcon icon={RESOURCE_META[out.resource].icon} size={10} className="inline-flex" />{out.amount}
                               </span>
                             ))}
                           </div>
@@ -906,48 +758,32 @@ export function FactoryPanel() {
                         const effectiveInputs = def.inputs
                           ? def.inputs.map(inp => ({
                               resource: inp.resource,
-                              rate: inp.amount * def.baseProductionRate * building.level * building.efficiency * store.powerGrid.efficiency,
+                              rate: inp.amount * building.level * building.efficiency * store.powerGrid.efficiency,
                               meta: RESOURCE_META[inp.resource],
-                              hasEnough: store.resources[inp.resource] >= inp.amount * def.baseProductionRate * building.level * building.efficiency * store.powerGrid.efficiency,
+                              hasEnough: store.resources[inp.resource] >= inp.amount * building.level * building.efficiency * store.powerGrid.efficiency,
                             }))
                           : [];
                         const eff = building.efficiency * store.powerGrid.efficiency;
-                        const isBroken = (safeCondition(building.condition)) <= 0;
-                        const condition = safeCondition(building.condition);
-                        const conditionStatus = getConditionStatus(condition);
-                        const conditionColor = getConditionColor(condition);
-                        const baseRepairCost = def.baseCost.find(c => c.resource === 'money')?.amount ?? 100;
-                        const repairCost = condition >= 100 ? 0 : Math.max(1, Math.floor(baseRepairCost * (100 - condition) / 100 * building.level));
-                        const canRepair = store.money >= repairCost && condition < 100;
 
                         return (
-                          <motion.div
+                          <div
                             key={building.id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className={`rounded-lg bg-[#0a0e17] p-2.5 border transition-all duration-200 ${
-                              recentlyBuilt.has(building.id) ? 'build-construct' : ''
-                            } ${
-                              recentlyUpgraded.has(building.id) ? 'upgrade-flash' : ''
-                            } ${
-                              isBroken
-                                ? 'border-red-900/50'
-                                : building.active
-                                  ? `${currentColorClasses.border}`
-                                  : 'border-gray-800 opacity-60'
+                            className={`rounded-lg bg-[#0a0e17] p-2.5 border ${
+                              building.active
+                                ? `${currentColorClasses.border}`
+                                : 'border-gray-800 opacity-60'
                             }`}
                           >
                             <div className="flex items-center gap-2">
                               {/* Toggle + Emoji */}
                               <button
-                                onClick={() => !isBroken && handleToggle(building.id)}
-                                disabled={isBroken}
-                                className={`text-base transition-transform duration-200 hover:scale-110 flex-shrink-0 ${
-                                  isBroken ? 'opacity-30 cursor-not-allowed' : building.active ? 'opacity-100' : 'grayscale opacity-50'
+                                onClick={() => handleToggle(building.id)}
+                                className={`text-base hover:scale-110 flex-shrink-0 ${
+                                  building.active ? 'opacity-100' : 'grayscale opacity-50'
                                 }`}
-                                title={isBroken ? 'Broken! Repair first' : building.active ? 'Click to disable' : 'Click to enable'}
+                                title={building.active ? 'Click to disable' : 'Click to enable'}
                               >
-                                {def.emoji}
+                                <GameIcon icon={def.icon} size={16} />
                               </button>
 
                               {/* Name + Level + Status */}
@@ -957,12 +793,7 @@ export function FactoryPanel() {
                                   <Badge variant="outline" className={`text-[8px] ${currentColorClasses.badge} ${currentColorClasses.text} px-1 py-0`}>
                                     Lv.{building.level}
                                   </Badge>
-                                  {isBroken && (
-                                    <Badge variant="outline" className="text-[8px] border-red-500/50 text-red-400 bg-red-900/30 px-1 py-0 animate-pulse">
-                                      BROKEN
-                                    </Badge>
-                                  )}
-                                  {!building.active && !isBroken && (
+                                  {!building.active && (
                                     <Badge variant="outline" className="text-[8px] border-gray-600 text-gray-500 px-1 py-0">
                                       OFF
                                     </Badge>
@@ -975,7 +806,7 @@ export function FactoryPanel() {
                                     <div key={i} className={`flex items-center gap-0.5 rounded px-1 py-px ${
                                       hasEnough ? 'bg-red-900/15' : 'bg-red-900/30 border border-red-800/50'
                                     }`}>
-                                      <span className="text-[10px]">{meta.emoji}</span>
+                                      <GameIcon icon={meta.icon} size={12} className="inline-flex" />
                                       <span className={`text-[8px] font-mono ${building.active ? (hasEnough ? 'text-red-300/80' : 'text-red-400') : 'text-gray-500'}`}>
                                         -{formatNumber(rate)}
                                       </span>
@@ -986,7 +817,7 @@ export function FactoryPanel() {
                                   )}
                                   {effectiveOutputs.map(({ resource: _r, rate, meta }, i) => (
                                     <div key={i} className="flex items-center gap-0.5 bg-green-900/15 rounded px-1 py-px">
-                                      <span className="text-[10px]">{meta.emoji}</span>
+                                      <GameIcon icon={meta.icon} size={12} className="inline-flex" />
                                       <span className={`text-[8px] font-mono ${building.active ? 'text-green-400' : 'text-gray-500'}`}>
                                         +{formatNumber(rate)}
                                       </span>
@@ -998,15 +829,13 @@ export function FactoryPanel() {
                                 <div className="flex items-center gap-1.5 mt-1">
                                   <span className="text-[8px] text-gray-500">Eff</span>
                                   <div className="flex-1 h-1 bg-gray-800 rounded-full overflow-hidden">
-                                    <motion.div
+                                    <div
                                       className={`h-full rounded-full ${
                                         eff >= 0.8 ? 'bg-gradient-to-r from-green-600 to-green-400' :
                                         eff >= 0.5 ? 'bg-gradient-to-r from-yellow-600 to-yellow-400' :
                                         'bg-gradient-to-r from-red-600 to-red-400'
                                       }`}
-                                      initial={{ width: 0 }}
-                                      animate={{ width: `${eff * 100}%` }}
-                                      transition={{ duration: 0.5 }}
+                                      style={{ width: `${eff * 100}%` }}
                                     />
                                   </div>
                                   <span className={`text-[8px] font-mono ${
@@ -1015,55 +844,20 @@ export function FactoryPanel() {
                                     {(eff * 100).toFixed(0)}%
                                   </span>
                                 </div>
-
-                                {/* Condition bar - only show if damaged */}
-                                {condition < 95 && (
-                                  <div className="flex items-center gap-1.5 mt-0.5">
-                                    <span className="text-[8px] text-gray-500">HP</span>
-                                    <div className="flex-1 h-1 bg-gray-800 rounded-full overflow-hidden">
-                                      <div
-                                        className="h-full rounded-full transition-all duration-300"
-                                        style={{ width: `${Math.max(1, condition)}%`, backgroundColor: conditionColor }}
-                                      />
-                                    </div>
-                                    <span className="text-[8px] font-mono" style={{ color: conditionColor }}>
-                                      {Math.round(condition)}%
-                                    </span>
-                                  </div>
-                                )}
                               </div>
 
-                              {/* Upgrade + Toggle + Repair - compact */}
+                              {/* Upgrade + Toggle - compact */}
                               <div className="flex flex-col items-end gap-1 flex-shrink-0">
                                 <button
-                                  onClick={() => !isBroken && handleToggle(building.id)}
-                                  disabled={isBroken}
-                                  className={`w-6 h-6 rounded-full flex items-center justify-center border transition-all ${
-                                    isBroken
-                                      ? 'border-red-500/30 bg-red-900/20 text-red-400 cursor-not-allowed'
-                                      : building.active
-                                        ? 'border-green-500/50 bg-green-900/20 text-green-400'
-                                        : 'border-gray-700 bg-gray-800 text-gray-500'
+                                  onClick={() => handleToggle(building.id)}
+                                  className={`w-6 h-6 rounded-full flex items-center justify-center border ${
+                                    building.active
+                                      ? 'border-green-500/50 bg-green-900/20 text-green-400'
+                                      : 'border-gray-700 bg-gray-800 text-gray-500'
                                   }`}
-                                  title={isBroken ? 'Broken! Repair first' : building.active ? 'Disable' : 'Enable'}
                                 >
-                                  {isBroken ? <span className="text-[8px]">💀</span> : building.active ? <Power className="w-3 h-3" /> : <PowerOff className="w-3 h-3" />}
+                                  {building.active ? <Power className="w-3 h-3" /> : <PowerOff className="w-3 h-3" />}
                                 </button>
-                                {/* Repair button - only show when damaged */}
-                                {condition < 100 && (
-                                  <button
-                                    onClick={() => store.repairBuilding(building.id)}
-                                    disabled={!canRepair}
-                                    className={`w-6 h-6 rounded-full flex items-center justify-center border transition-all ${
-                                      canRepair
-                                        ? 'border-orange-500/50 bg-orange-900/20 text-orange-400 hover:bg-orange-800/30'
-                                        : 'border-gray-700 bg-gray-800 text-gray-500 cursor-not-allowed'
-                                    }`}
-                                    title={canRepair ? `Repair for $${formatNumber(repairCost)}` : `Need $${formatNumber(repairCost)} to repair`}
-                                  >
-                                    <Wrench className="w-3 h-3" />
-                                  </button>
-                                )}
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -1082,7 +876,7 @@ export function FactoryPanel() {
                                 </span>
                               </div>
                             </div>
-                          </motion.div>
+                          </div>
                         );
                       })}
                     </div>
@@ -1093,36 +887,130 @@ export function FactoryPanel() {
                 {currentTierBuildings.length === 0 && (
                   <div className="game-card-empty rounded-xl p-6 text-center">
                     <div className="text-4xl mb-3">
-                      {selectedTier === 1 ? '🔥' : selectedTier === 2 ? '⚙️' : selectedTier === 3 ? '✨' : '🌀'}
+                      {selectedTier === 1 ? <GameIcon icon="gi:anvil-impact" size={14} className="inline-flex" /> : selectedTier === 2 ? <GameIcon icon="gi:big-gear" size={14} className="inline-flex" /> : selectedTier === 3 ? <GameIcon icon="gi:sparkles" size={14} className="inline-flex" /> : <GameIcon icon="gi:vortex" size={14} className="inline-flex" />}
                     </div>
                     <h3 className="text-base font-bold text-cyan-400 mb-2">No {currentTierConfig.label} Factories</h3>
                     <p className="text-sm text-gray-400 mb-1">Build your first factory to start processing materials</p>
                   </div>
                 )}
               </div>
-            </motion.div>
-          </AnimatePresence>
+            </div>
         </div>
 
-        {/* RIGHT: Factory Stats */}
+        {/* RIGHT: Production Chains & Stats */}
         <div className="space-y-4">
-          {/* PRODUCTION CHAINS — Link to dedicated hub */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-violet-900/30">
-            <div className="flex items-center gap-2 mb-2">
-              <Workflow className="w-4 h-4 text-violet-400" />
-              <h3 className="text-sm font-semibold text-violet-400">Production Chains</h3>
+          {/* PRODUCTION CHAIN VISUALIZATION */}
+          <div className="game-card rounded-xl bg-card p-4 border border-border">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Workflow className="w-4 h-4 text-cyan-400" />
+                <h3 className="text-sm font-semibold text-cyan-400">Production Chains</h3>
+              </div>
+              <span className="text-[10px] text-gray-500">{PRODUCTION_CHAINS.length} chains</span>
             </div>
-            <p className="text-[10px] text-gray-500 mb-2">View all {PRODUCTION_CHAINS.length} production chains with detailed flow diagrams, building requirements, and dependency maps.</p>
-            <button
-              onClick={() => useGameStore.getState().setActiveTab('chains')}
-              className="w-full text-[10px] py-2 rounded-md border border-violet-500/30 bg-violet-900/10 text-violet-400 hover:bg-violet-900/20 transition-colors"
-            >
-              Open Production Chains Hub →
-            </button>
+
+            {/* Chain selector tabs */}
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {PRODUCTION_CHAINS.map((chain, idx) => (
+                <button
+                  key={chain.name}
+                  onClick={() => setSelectedChain(idx)}
+                  className={`text-[9px] px-2 py-1 rounded-md border ${
+                    selectedChain === idx
+                      ? 'border-cyan-500/50 bg-cyan-900/20 text-cyan-400'
+                      : 'border-gray-800 text-gray-500 hover:border-gray-600 hover:text-gray-300'
+                  }`}
+                >
+                  {chain.name}
+                </button>
+              ))}
+            </div>
+
+            {/* Selected chain visualization */}
+            {PRODUCTION_CHAINS[selectedChain] && (
+              <div className="bg-[#0a0e17] rounded-lg p-3">
+                <div className="flex items-center gap-1 mb-2">
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: PRODUCTION_CHAINS[selectedChain].color }} />
+                  <span className="text-xs text-gray-300 font-medium">{PRODUCTION_CHAINS[selectedChain].name}</span>
+                </div>
+
+                {/* Chain steps with animated flow */}
+                <div className="space-y-1">
+                  {PRODUCTION_CHAINS[selectedChain].steps.map((resource, idx) => {
+                    const meta = RESOURCE_META[resource as ResourceType];
+                    const production = allProductionRates[resource] || 0;
+                    const consumption = allActualConsumptionRates[resource] || 0;
+                    const net = production - consumption;
+                    const stock = store.resources[resource as ResourceType];
+                    const capacity = store.resourceCapacity[resource as ResourceType];
+                    const fillPct = capacity > 0 ? (stock / capacity) * 100 : 0;
+
+                    return (
+                      <div key={resource}>
+                        <div className="flex items-center gap-2">
+                          {/* Step node */}
+                          <div
+                            className="flex items-center gap-2 flex-1 rounded-lg p-2 border"
+                            style={{
+                              borderColor: `${meta.color}33`,
+                              backgroundColor: `${meta.color}0a`,
+                            }}
+                          >
+                            <GameIcon icon={meta.icon} size={14} className="inline-flex" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] text-gray-200 font-medium">{meta.name}</span>
+                                <span className={`text-[9px] font-mono ${
+                                  net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : production > 0 && consumption > 0 ? 'text-cyan-400' : 'text-gray-600'
+                                }`}>
+                                  {net > 0 ? `+${formatNumber(net)}/t` : net < 0 ? `${formatNumber(net)}/t` : production > 0 && consumption > 0 ? '±0/t' : '—'}
+                                </span>
+                              </div>
+                              {/* Stock bar */}
+                              <div className="h-1 bg-gray-800 rounded-full overflow-hidden mt-1">
+                                <div
+                                  className="h-full rounded-full"
+                                  style={{ backgroundColor: meta.color, width: `${Math.min(100, fillPct)}%` }}
+                                />
+                              </div>
+                              <div className="flex justify-between mt-0.5">
+                                <span className="text-[8px] text-gray-500 font-mono">{formatNumber(stock)}</span>
+                                <span className="text-[8px] text-gray-600 font-mono">{formatNumber(capacity)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Animated arrow between steps */}
+                        {idx < PRODUCTION_CHAINS[selectedChain].steps.length - 1 && (
+                          <div className="flex items-center justify-center py-1">
+                            <div className="flex flex-col items-center">
+                              <div>
+                                <ArrowRight
+                                  className="w-3.5 h-3.5 rotate-90"
+                                  style={{ color: PRODUCTION_CHAINS[selectedChain].color }}
+                                />
+                              </div>
+                              {/* Neon flow line */}
+                              <div className="w-px h-2 relative overflow-hidden">
+                                <div
+                                  className="w-full h-full"
+                                  style={{ backgroundColor: PRODUCTION_CHAINS[selectedChain].color }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* FACTORY OVERVIEW STATS */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
               <Gauge className="w-4 h-4 text-orange-400" />
               <h3 className="text-sm font-semibold text-orange-400">Factory Overview</h3>
@@ -1140,7 +1028,7 @@ export function FactoryPanel() {
           </div>
 
           {/* TOP PRODUCING FACTORIES */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <ArrowUpFromLine className="w-4 h-4 text-green-400" />
@@ -1164,7 +1052,7 @@ export function FactoryPanel() {
                     return (
                       <div key={resource} className="flex items-center justify-between bg-[#0a0e17] rounded-lg px-3 py-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm">{meta.emoji}</span>
+                          <GameIcon icon={meta.icon} size={14} className="inline-flex" />
                           <span className="text-xs text-gray-300">{meta.name}</span>
                         </div>
                         <div className="flex items-center gap-1">
@@ -1180,7 +1068,7 @@ export function FactoryPanel() {
           </div>
 
           {/* INPUT REQUIREMENTS */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <ArrowDownToLine className="w-4 h-4 text-red-400" />
@@ -1205,10 +1093,10 @@ export function FactoryPanel() {
                     const net = production - actualCons;
                     const stock = store.resources[resource];
                     return (
-                      <div key={resource} className="bg-[#0a0e17] rounded-lg p-2.5">
+                      <div key={resource} className="bg-[#0a0e17] rounded-lg p-3">
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-sm">{meta.emoji}</span>
+                            <GameIcon icon={meta.icon} size={14} className="inline-flex" />
                             <span className="text-xs text-gray-300">{meta.name}</span>
                           </div>
                           <div className="flex items-center gap-1.5">

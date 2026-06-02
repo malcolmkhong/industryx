@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
 import { RESOURCE_META } from '@/lib/game/data';
 import { ResourceType } from '@/lib/game/types';
 import { BarChart3, TrendingUp, TrendingDown, Minus, Zap, DollarSign, Activity } from 'lucide-react';
+import { GameIcon } from '@/components/game/shared/GameIcon';
 
 type TimeRange = 50 | 100 | 200;
 
@@ -42,7 +43,7 @@ function LineChart({
 }) {
   if (data.length < 2) {
     return (
-      <div className="flex items-center justify-center text-gray-500 text-xs" style={{ width, height }}>
+      <div className="flex items-center justify-center text-gray-500 text-xs w-full" style={{ height }}>
         Not enough data yet
       </div>
     );
@@ -74,7 +75,7 @@ function LineChart({
   });
 
   return (
-    <svg width={width} height={height} className="overflow-visible">
+    <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet" className="w-full h-auto overflow-visible" role="img" aria-label={`${label} line chart`} tabIndex={0}>
       {/* Grid lines */}
       {gridYs.map(({ y, val }, i) => (
         <g key={i}>
@@ -159,7 +160,7 @@ function AreaChart({
 }) {
   if (productionData.length < 2) {
     return (
-      <div className="flex items-center justify-center text-gray-500 text-xs" style={{ width, height }}>
+      <div className="flex items-center justify-center text-gray-500 text-xs w-full" style={{ height }}>
         Not enough data yet
       </div>
     );
@@ -199,7 +200,7 @@ function AreaChart({
   });
 
   return (
-    <svg width={width} height={height} className="overflow-visible">
+    <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet" className="w-full h-auto overflow-visible" role="img" aria-label="Power grid production and consumption area chart" tabIndex={0}>
       {/* Grid lines */}
       {gridYs.map(({ y, val }, i) => (
         <g key={i}>
@@ -251,7 +252,7 @@ function EfficiencyChart({
 }) {
   if (data.length < 2) {
     return (
-      <div className="flex items-center justify-center text-gray-500 text-xs" style={{ width, height }}>
+      <div className="flex items-center justify-center text-gray-500 text-xs w-full" style={{ height }}>
         Not enough data yet
       </div>
     );
@@ -274,7 +275,7 @@ function EfficiencyChart({
   const areaD = `${pathD} L ${points[points.length - 1].x.toFixed(1)} ${padding.top + chartH} L ${points[0].x.toFixed(1)} ${padding.top + chartH} Z`;
 
   return (
-    <svg width={width} height={height} className="overflow-visible">
+    <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet" className="w-full h-auto overflow-visible" role="img" aria-label="Power efficiency over time line chart" tabIndex={0}>
       {/* Threshold line at 80% */}
       <line
         x1={padding.left}
@@ -321,6 +322,21 @@ function EfficiencyChart({
 export default function StatisticsPanel() {
   const [timeRange, setTimeRange] = useState<TimeRange>(100);
   const store = useGameStore();
+
+  // Responsive chart width
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [chartWidth, setChartWidth] = useState(600);
+
+  useEffect(() => {
+    const updateWidth = () => {
+      if (containerRef.current) {
+        setChartWidth(Math.max(300, containerRef.current.offsetWidth - 40));
+      }
+    };
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
 
   const history = useMemo(() => {
     return store.productionHistory.slice(-timeRange);
@@ -371,15 +387,14 @@ export default function StatisticsPanel() {
     return 'stable';
   };
 
-  const chartWidth = 600;
   const chartHeight = 200;
 
   return (
-    <div className="space-y-4">
+    <div ref={containerRef} className="space-y-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-cyan-400 flex items-center gap-2">
+          <h2 className="text-xl font-bold text-cyan-400 flex items-center gap-2">
             <BarChart3 className="w-5 h-5" />
             Factory Analytics
           </h2>
@@ -391,7 +406,8 @@ export default function StatisticsPanel() {
             <button
               key={r}
               onClick={() => setTimeRange(r)}
-              className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
+              aria-pressed={timeRange === r}
+              className={`px-2.5 py-1 text-xs rounded-md border ${
                 timeRange === r
                   ? 'bg-cyan-900/30 border-cyan-500/50 text-cyan-400'
                   : 'border-gray-700 text-gray-400 hover:border-gray-500 hover:text-gray-300'
@@ -419,7 +435,7 @@ export default function StatisticsPanel() {
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Money Chart */}
-        <div className="bg-[#0d1220] rounded-lg border border-cyan-900/20 p-4">
+        <div className="bg-[#0a0e17] rounded-lg border border-cyan-900/20 p-4">
           <h3 className="text-sm font-semibold text-green-400 flex items-center gap-1.5 mb-3">
             <DollarSign className="w-4 h-4" />
             Money Accumulation
@@ -437,7 +453,7 @@ export default function StatisticsPanel() {
         </div>
 
         {/* Power Chart */}
-        <div className="bg-[#0d1220] rounded-lg border border-cyan-900/20 p-4">
+        <div className="bg-[#0a0e17] rounded-lg border border-cyan-900/20 p-4">
           <h3 className="text-sm font-semibold text-yellow-400 flex items-center gap-1.5 mb-3">
             <Zap className="w-4 h-4" />
             Power Grid
@@ -453,7 +469,7 @@ export default function StatisticsPanel() {
         </div>
 
         {/* Efficiency Chart */}
-        <div className="bg-[#0d1220] rounded-lg border border-cyan-900/20 p-4">
+        <div className="bg-[#0a0e17] rounded-lg border border-cyan-900/20 p-4">
           <h3 className="text-sm font-semibold text-teal-400 flex items-center gap-1.5 mb-3">
             <Activity className="w-4 h-4" />
             Efficiency Timeline
@@ -468,18 +484,18 @@ export default function StatisticsPanel() {
         </div>
 
         {/* Top Resource Production Chart */}
-        <div className="bg-[#0d1220] rounded-lg border border-cyan-900/20 p-4">
+        <div className="bg-[#0a0e17] rounded-lg border border-cyan-900/20 p-4">
           <h3 className="text-sm font-semibold text-cyan-400 flex items-center gap-1.5 mb-3">
             <TrendingUp className="w-4 h-4" />
             Top Resources Over Time
           </h3>
           <div className="overflow-x-auto">
             {history.length < 2 ? (
-              <div className="flex items-center justify-center text-gray-500 text-xs" style={{ width: chartWidth, height: chartHeight }}>
+              <div className="flex items-center justify-center text-gray-500 text-xs w-full" style={{ height: chartHeight }}>
                 Not enough data yet
               </div>
             ) : (
-              <svg width={chartWidth} height={chartHeight} className="overflow-visible">
+              <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} preserveAspectRatio="xMidYMid meet" className="w-full h-auto overflow-visible" role="img" aria-label="Top resources over time line chart" tabIndex={0}>
                 {(() => {
                   const padding = { top: 10, right: 10, bottom: 20, left: 50 };
                   const cW = chartWidth - padding.left - padding.right;
@@ -541,7 +557,7 @@ export default function StatisticsPanel() {
       </div>
 
       {/* Resource Summary Table */}
-      <div className="bg-[#0d1220] rounded-lg border border-cyan-900/20 p-4">
+      <div className="bg-[#0a0e17] rounded-lg border border-cyan-900/20 p-4">
         <h3 className="text-sm font-semibold text-cyan-400 mb-3">Resource Summary</h3>
         <div className="max-h-96 overflow-y-auto game-scrollbar">
           <table className="w-full text-xs">
@@ -571,7 +587,7 @@ export default function StatisticsPanel() {
                     <td className="py-1.5 px-2">
                       <div className="flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: meta.color }} />
-                        <span className="text-gray-300">{meta.emoji} {meta.name}</span>
+                        <span className="text-gray-300"><GameIcon icon={meta.icon} size={14} className="inline-flex" /> {meta.name}</span>
                       </div>
                     </td>
                     <td className="py-1.5 px-2 text-right font-mono text-gray-300">{formatNumber(amount)}</td>
@@ -608,15 +624,15 @@ export default function StatisticsPanel() {
 
       {/* Quick Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-[#0d1220] rounded-lg border border-cyan-900/20 p-3">
+        <div className="bg-[#0a0e17] rounded-lg border border-cyan-900/20 p-3">
           <p className="text-[10px] text-gray-500 uppercase tracking-wider">Current Money</p>
           <p className="text-sm font-bold text-green-400 font-mono">${formatNumber(store.money)}</p>
         </div>
-        <div className="bg-[#0d1220] rounded-lg border border-cyan-900/20 p-3">
+        <div className="bg-[#0a0e17] rounded-lg border border-cyan-900/20 p-3">
           <p className="text-[10px] text-gray-500 uppercase tracking-wider">Total Earned</p>
           <p className="text-sm font-bold text-emerald-400 font-mono">${formatNumber(store.totalMoneyEarned)}</p>
         </div>
-        <div className="bg-[#0d1220] rounded-lg border border-cyan-900/20 p-3">
+        <div className="bg-[#0a0e17] rounded-lg border border-cyan-900/20 p-3">
           <p className="text-[10px] text-gray-500 uppercase tracking-wider">Power Efficiency</p>
           <p className={`text-sm font-bold font-mono ${
             store.powerGrid.efficiency >= 0.8 ? 'text-green-400' :
@@ -625,7 +641,7 @@ export default function StatisticsPanel() {
             {(store.powerGrid.efficiency * 100).toFixed(1)}%
           </p>
         </div>
-        <div className="bg-[#0d1220] rounded-lg border border-cyan-900/20 p-3">
+        <div className="bg-[#0a0e17] rounded-lg border border-cyan-900/20 p-3">
           <p className="text-[10px] text-gray-500 uppercase tracking-wider">Peak Efficiency</p>
           <p className="text-sm font-bold text-teal-400 font-mono">{(store.stats.peakEfficiency * 100).toFixed(1)}%</p>
         </div>

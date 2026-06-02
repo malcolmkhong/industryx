@@ -8,7 +8,7 @@ import {
   Save, Bell, BookOpen, Trophy, BarChart3,
   Map as MapIcon, Gift, Scroll, DollarSign, Plane,
   Settings, ChevronDown, ChevronRight, Home, Wrench, Swords, Coins, Database,
-  GitBranch, Activity,
+  Activity,
 } from 'lucide-react';
 import { LucideIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -41,7 +41,7 @@ export const NAV_GROUPS: NavGroup[] = [
     tabs: [
       { id: 'dashboard', label: 'Dashboard', icon: Factory, color: 'text-cyan-400' },
       { id: 'factoryMap', label: 'Factory Map', icon: MapIcon, color: 'text-emerald-400' },
-      { id: 'resourceMonitor', label: 'Resource Monitor', icon: Activity, color: 'text-teal-400' },
+      { id: 'resourceMonitor', label: 'Monitor', icon: Activity, color: 'text-teal-400' },
       { id: 'guide', label: 'Guide', icon: BookOpen, color: 'text-lime-400' },
     ],
   },
@@ -53,11 +53,9 @@ export const NAV_GROUPS: NavGroup[] = [
     tabs: [
       { id: 'resources', label: 'Extraction', icon: Pickaxe, color: 'text-amber-400' },
       { id: 'factories', label: 'Factories', icon: Cog, color: 'text-orange-400' },
-      { id: 'chains', label: 'Chains', icon: GitBranch, color: 'text-violet-400' },
       { id: 'storage', label: 'Storage', icon: Database, color: 'text-amber-300' },
       { id: 'power', label: 'Power Grid', icon: Zap, color: 'text-yellow-400' },
       { id: 'workers', label: 'Workers', icon: Users, color: 'text-sky-400' },
-      { id: 'buildingManagement', label: 'Building Mgmt', icon: Wrench, color: 'text-orange-400' },
     ],
   },
   {
@@ -170,7 +168,7 @@ export function GameSidebar({ activeTab, onTabChange }: GameSidebarProps) {
   const activeGroup = getGroupForTab(activeTab);
 
   return (
-    <nav className="hidden lg:flex flex-col w-52 flex-shrink-0 bg-[#0d1220] border-r border-cyan-900/20 overflow-y-auto game-scrollbar">
+    <nav className="hidden lg:flex flex-col w-52 flex-shrink-0 bg-[#0a0e17] border-r border-cyan-900/20 overflow-y-auto game-scrollbar">
       <div className="flex flex-col py-2 gap-0.5 px-2">
         {NAV_GROUPS.map(group => {
           const isExpanded = expandedGroups.has(group.id);
@@ -182,7 +180,8 @@ export function GameSidebar({ activeTab, onTabChange }: GameSidebarProps) {
               {/* Group header */}
               <button
                 onClick={() => toggleGroup(group.id)}
-                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200 ${
+                aria-expanded={isExpanded}
+                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
                   isActiveGroup
                     ? `${group.color} bg-white/[0.03]`
                     : 'text-gray-600 hover:text-gray-400 hover:bg-white/[0.02]'
@@ -208,7 +207,7 @@ export function GameSidebar({ activeTab, onTabChange }: GameSidebarProps) {
                       <button
                         key={tab.id}
                         onClick={() => onTabChange(tab.id)}
-                        className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                        className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium focus-visible:ring-2 focus-visible:ring-cyan-500/50 focus-visible:ring-offset-1 focus-visible:ring-offset-gray-900 ${
                           isActive
                             ? `${tab.color} bg-white/[0.05] border border-white/[0.08] shadow-[0_0_8px_rgba(34,211,238,0.05)]`
                             : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.03] border border-transparent'
@@ -296,7 +295,7 @@ export function MobileNav({ activeTab, onTabChange }: MobileNavProps) {
   }, [onTabChange]);
 
   return (
-    <div className="flex lg:hidden flex-col border-t border-cyan-900/20 bg-[#0d1220] mobile-bottom-bar">
+    <div className="flex lg:hidden flex-col border-t border-cyan-900/20 bg-[#0a0e17] mobile-bottom-bar">
       {/* Gradient accent line at top */}
       <div className="h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent flex-shrink-0" />
 
@@ -321,8 +320,7 @@ export function MobileNav({ activeTab, onTabChange }: MobileNavProps) {
               onClick={() => handleCategoryChange(group.id)}
               className={`
                 relative flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-semibold
-                whitespace-nowrap transition-all duration-200 min-h-[44px] min-w-[44px]
-                active:scale-95 active:opacity-80
+                whitespace-nowrap min-h-[44px] min-w-[44px]
                 ${isActive
                   ? `${group.color} bg-white/[0.08] shadow-[0_0_12px_rgba(0,255,242,0.08)] border border-white/[0.06]`
                   : isTabActive
@@ -340,10 +338,8 @@ export function MobileNav({ activeTab, onTabChange }: MobileNavProps) {
               )}
               {/* Animated indicator dot below active category */}
               {isActive && (
-                <motion.span
-                  layoutId="categoryIndicator"
+                <span
                   className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-cyan-400"
-                  transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                 />
               )}
             </button>
@@ -362,18 +358,13 @@ export function MobileNav({ activeTab, onTabChange }: MobileNavProps) {
       />
 
       {/* Tabs for selected category - with slide animation */}
-      <div className="flex items-center gap-1 px-2 py-2 overflow-x-auto mobile-tab-scroll bg-[#111827]/80"
+      <div className="flex items-center gap-1 px-2 py-2 overflow-x-auto mobile-tab-scroll bg-card/80"
         style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}
       >
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={activeCategory}
-            className="flex items-center gap-1"
-            initial={{ opacity: 0, x: 12 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -12 }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
-          >
+        <div
+          key={activeCategory}
+          className="flex items-center gap-1"
+        >
             {currentGroup.tabs.map(tab => {
               const TabIcon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -384,8 +375,7 @@ export function MobileNav({ activeTab, onTabChange }: MobileNavProps) {
                   onClick={() => handleTabChange(tab.id)}
                   className={`
                     flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-medium
-                    whitespace-nowrap transition-all duration-200 min-h-[44px] min-w-[44px]
-                    active:scale-95 active:opacity-80
+                    whitespace-nowrap min-h-[44px] min-w-[44px]
                     ${isActive
                       ? `${tab.color} bg-white/[0.07] border border-white/[0.1] shadow-[0_0_10px_rgba(0,255,242,0.06)]`
                       : 'text-gray-400 hover:text-gray-200 hover:bg-white/[0.03] border border-transparent'
@@ -397,8 +387,7 @@ export function MobileNav({ activeTab, onTabChange }: MobileNavProps) {
                 </button>
               );
             })}
-          </motion.div>
-        </AnimatePresence>
+          </div>
       </div>
     </div>
   );

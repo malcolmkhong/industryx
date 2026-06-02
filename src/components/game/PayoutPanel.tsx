@@ -16,7 +16,8 @@ import {
   DollarSign, Clock, TrendingUp, Zap, Factory, Pickaxe,
   Sun, Wind, Coins, Info, ChevronDown, ChevronUp,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
+import { GameIcon } from '@/components/game/shared/GameIcon';
 
 export function PayoutPanel() {
   const store = useGameStore();
@@ -28,9 +29,9 @@ export function PayoutPanel() {
   const factories = activeBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory');
   const powerPlants = activeBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power');
 
-  const extractorRate = 2;
-  const factoryRate = 5;
-  const powerRate = 1;
+  const extractorRate = 20;
+  const factoryRate = 50;
+  const powerRate = 10;
 
   // Calculate income breakdown
   const extractorIncome = extractors.reduce((sum, b) => sum + extractorRate * b.level * b.efficiency, 0);
@@ -44,34 +45,37 @@ export function PayoutPanel() {
     : 0;
 
   // Estimated next payout (without event/weather modifiers, just base calc)
+  // NOTE: Do NOT multiply by gameSpeed — ticks already fire faster
+  const effectiveSpeed = store.gameSpeed * (1 + store.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'gameSpeed').reduce((sum, b) => sum + b.effect.value, 0));
   const estimatedPayout = Math.floor(
-    totalRawIncome * store.gameSpeed * avgEfficiency
+    totalRawIncome * avgEfficiency
   );
 
   // Payout timer
   const ticksSinceLastPayout = store.gameTick - store.payoutConfig.lastPayoutTick;
   const ticksUntilPayout = Math.max(0, store.payoutConfig.basePayoutInterval - ticksSinceLastPayout);
   const payoutProgress = Math.min(100, (ticksSinceLastPayout / store.payoutConfig.basePayoutInterval) * 100);
-  const secondsUntilPayout = Math.floor(ticksUntilPayout / store.gameSpeed);
+  const secondsUntilPayout = Math.floor(ticksUntilPayout / effectiveSpeed);
 
   // Income per minute estimate
-  const payoutsPerMinute = 60 / store.payoutConfig.basePayoutInterval * store.gameSpeed;
+  // NOTE: Do NOT multiply by gameSpeed — ticks already fire faster
+  const payoutsPerMinute = 60 / store.payoutConfig.basePayoutInterval * effectiveSpeed;
   const incomePerMinute = estimatedPayout * payoutsPerMinute;
 
   // Tips
   const tips = (() => {
-    const result: string[] = [];
+    const result: ReactNode[] = [];
     if (store.buildings.length === 0) {
-      result.push('🏗️ Build your first building to start receiving payouts!');
+      result.push(<><GameIcon icon="gi:castle" size={14} className="inline" /> Build your first building to start receiving payouts!</>);
     } else {
-      if (factories.length === 0) result.push('🏭 Build factories to increase your payout — they earn $5/tick per building!');
-      if (extractors.length === 0) result.push('⛏️ Build extractors to earn $2/tick per building from raw material production!');
-      if (avgEfficiency < 0.8) result.push('⚡ Improve power efficiency to boost payouts — build more power plants!');
-      if (store.payoutConfig.autoCollect) result.push('🔄 Auto-collect is ON — payouts go directly to your balance.');
-      else result.push('👆 Click "Collect" to claim your pending payout, or enable auto-collect.');
-      if (factories.length > extractors.length * 2) result.push('⚖️ Consider building more extractors to supply your factories.');
-      if (store.gameSpeed === 1) result.push('⏩ Increase game speed to receive payouts more frequently!');
-      if (estimatedPayout < 10) result.push('📈 Build more buildings or upgrade existing ones to increase payout amounts.');
+      if (factories.length === 0) result.push(<><GameIcon icon="gi:factory" size={14} className="inline" /> Build factories to increase your payout — they earn $50/cycle per building!</>);
+      if (extractors.length === 0) result.push(<><GameIcon icon="gi:mining" size={14} className="inline" /> Build extractors to earn $20/cycle per building from raw material production!</>);
+      if (avgEfficiency < 0.8) result.push(<><GameIcon icon="gi:lightning-frequency" size={14} className="inline" /> Improve power efficiency to boost payouts — build more power plants!</>);
+      if (store.payoutConfig.autoCollect) result.push(<><GameIcon icon="gi:spinning-wheel" size={14} className="inline" /> Auto-collect is ON — payouts go directly to your balance.</>);
+      else result.push(<>👆 Click "Collect" to claim your pending payout, or enable auto-collect.</>);
+      if (factories.length > extractors.length * 2) result.push(<><GameIcon icon="gi:scales" size={14} className="inline" /> Consider building more extractors to supply your factories.</>);
+      if (store.gameSpeed === 1) result.push(<><GameIcon icon="gi:fast-forward-button" size={14} className="inline" /> Increase game speed to receive payouts more frequently!</>);
+      if (estimatedPayout < 10) result.push(<><GameIcon icon="gi:profit" size={14} className="inline" /> Build more buildings or upgrade existing ones to increase payout amounts.</>);
     }
     return result;
   })();
@@ -79,7 +83,7 @@ export function PayoutPanel() {
   return (
     <div className="space-y-4">
       {/* Money Balance Header */}
-      <Card className="bg-[#111827] border-cyan-900/30 overflow-hidden">
+      <Card className="bg-card border-cyan-900/30 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-green-900/10 via-transparent to-emerald-900/10 pointer-events-none" />
         <CardContent className="p-4 relative">
           <div className="flex items-center justify-between">
@@ -104,7 +108,7 @@ export function PayoutPanel() {
       {/* Payout Timer + Pending */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Timer Card */}
-        <Card className="bg-[#111827] border-cyan-900/30">
+        <Card className="bg-card border-cyan-900/30">
           <CardHeader className="pb-2 pt-4 px-4">
             <CardTitle className="text-xs text-cyan-400 flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5" /> Next Payout
@@ -130,7 +134,7 @@ export function PayoutPanel() {
         </Card>
 
         {/* Pending Payout Card */}
-        <Card className="bg-[#111827] border-cyan-900/30">
+        <Card className="bg-card border-cyan-900/30">
           <CardHeader className="pb-2 pt-4 px-4">
             <CardTitle className="text-xs text-green-400 flex items-center gap-1.5">
               <Coins className="w-3.5 h-3.5" /> Pending Payout
@@ -148,7 +152,7 @@ export function PayoutPanel() {
                     className="bg-green-600 hover:bg-green-500 text-white text-xs h-8 animate-pulse"
                     onClick={store.collectPayout}
                   >
-                    💰 Collect
+                    Collect
                   </Button>
                 )}
                 {store.payoutConfig.autoCollect && (
@@ -176,7 +180,7 @@ export function PayoutPanel() {
       </div>
 
       {/* Income Breakdown */}
-      <Card className="bg-[#111827] border-cyan-900/30">
+      <Card className="bg-card border-cyan-900/30">
         <CardHeader className="pb-2 pt-4 px-4">
           <CardTitle className="text-xs text-cyan-400 flex items-center gap-1.5">
             <TrendingUp className="w-3.5 h-3.5" /> Income Breakdown
@@ -192,7 +196,7 @@ export function PayoutPanel() {
                 </div>
                 <div>
                   <p className="text-xs text-amber-300">Extractors</p>
-                  <p className="text-[10px] text-gray-500">{extractors.length} active • ${extractorRate}/tick each</p>
+                  <p className="text-[10px] text-gray-500">{extractors.length} active • ${extractorRate}/cycle each</p>
                 </div>
               </div>
               <span className="text-sm font-mono text-amber-400">${formatNumber(extractorIncome)}</span>
@@ -206,7 +210,7 @@ export function PayoutPanel() {
                 </div>
                 <div>
                   <p className="text-xs text-orange-300">Factories</p>
-                  <p className="text-[10px] text-gray-500">{factories.length} active • ${factoryRate}/tick each</p>
+                  <p className="text-[10px] text-gray-500">{factories.length} active • ${factoryRate}/cycle each</p>
                 </div>
               </div>
               <span className="text-sm font-mono text-orange-400">${formatNumber(factoryIncome)}</span>
@@ -220,7 +224,7 @@ export function PayoutPanel() {
                 </div>
                 <div>
                   <p className="text-xs text-yellow-300">Power Plants</p>
-                  <p className="text-[10px] text-gray-500">{powerPlants.length} active • ${powerRate}/tick each</p>
+                  <p className="text-[10px] text-gray-500">{powerPlants.length} active • ${powerRate}/cycle each</p>
                 </div>
               </div>
               <span className="text-sm font-mono text-yellow-400">${formatNumber(powerIncome)}</span>
@@ -234,7 +238,7 @@ export function PayoutPanel() {
               </div>
               <div className="flex items-center justify-between mt-1">
                 <span className="text-xs text-gray-400">Speed Multiplier</span>
-                <span className="text-xs font-mono text-cyan-400">×{store.gameSpeed}</span>
+                <span className="text-xs font-mono text-cyan-400">×{effectiveSpeed.toFixed(1)}</span>
               </div>
               <div className="flex items-center justify-between mt-1">
                 <span className="text-xs text-gray-400">Avg Efficiency</span>
@@ -273,19 +277,19 @@ export function PayoutPanel() {
 
       {/* Payout Stats */}
       <div className="grid grid-cols-3 gap-3">
-        <Card className="bg-[#111827] border-cyan-900/30">
+        <Card className="bg-card border-cyan-900/30">
           <CardContent className="p-3 text-center">
             <p className="text-[10px] text-gray-500 uppercase">Total Payouts</p>
             <p className="text-lg font-bold text-cyan-400 font-mono">{store.payoutConfig.totalPayoutsReceived}</p>
           </CardContent>
         </Card>
-        <Card className="bg-[#111827] border-cyan-900/30">
+        <Card className="bg-card border-cyan-900/30">
           <CardContent className="p-3 text-center">
             <p className="text-[10px] text-gray-500 uppercase">Active Buildings</p>
             <p className="text-lg font-bold text-cyan-400 font-mono">{activeBuildings.length}</p>
           </CardContent>
         </Card>
-        <Card className="bg-[#111827] border-cyan-900/30">
+        <Card className="bg-card border-cyan-900/30">
           <CardContent className="p-3 text-center">
             <p className="text-[10px] text-gray-500 uppercase">Income/Min</p>
             <p className="text-lg font-bold text-green-400 font-mono">${formatNumber(incomePerMinute)}</p>
@@ -294,11 +298,12 @@ export function PayoutPanel() {
       </div>
 
       {/* Payout History */}
-      <Card className="bg-[#111827] border-cyan-900/30">
+      <Card className="bg-card border-cyan-900/30">
         <CardHeader className="pb-2 pt-4 px-4">
           <button
             className="w-full flex items-center justify-between"
             onClick={() => setHistoryExpanded(!historyExpanded)}
+            aria-expanded={historyExpanded}
           >
             <CardTitle className="text-xs text-cyan-400 flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5" /> Payout History
@@ -311,6 +316,7 @@ export function PayoutPanel() {
           </button>
         </CardHeader>
         {(historyExpanded || store.payoutHistory.length === 0) && (
+          <div className="overflow-hidden">
           <CardContent className="px-4 pb-4">
             {store.payoutHistory.length === 0 ? (
               <p className="text-xs text-gray-600 text-center py-3">No payouts yet. Build buildings to start earning!</p>
@@ -336,15 +342,17 @@ export function PayoutPanel() {
               </div>
             )}
           </CardContent>
+          </div>
         )}
       </Card>
 
       {/* Income Tips */}
-      <Card className="bg-[#111827] border-cyan-900/30">
+      <Card className="bg-card border-cyan-900/30">
         <CardHeader className="pb-2 pt-4 px-4">
           <button
             className="w-full flex items-center justify-between"
             onClick={() => setTipsExpanded(!tipsExpanded)}
+            aria-expanded={tipsExpanded}
           >
             <CardTitle className="text-xs text-cyan-400 flex items-center gap-1.5">
               <Info className="w-3.5 h-3.5" /> Income Tips
@@ -357,6 +365,7 @@ export function PayoutPanel() {
           </button>
         </CardHeader>
         {tipsExpanded && (
+          <div className="overflow-hidden">
           <CardContent className="px-4 pb-4">
             <div className="space-y-2">
               {tips.map((tip, idx) => (
@@ -366,16 +375,17 @@ export function PayoutPanel() {
               ))}
             </div>
           </CardContent>
+          </div>
         )}
       </Card>
 
       {/* How Payouts Work */}
-      <Card className="bg-[#111827] border-cyan-900/30">
+      <Card className="bg-card border-cyan-900/30">
         <CardContent className="p-4">
           <p className="text-[10px] text-gray-600 leading-relaxed">
-            💡 <span className="text-gray-500">How Payouts Work:</span> Every {store.payoutConfig.basePayoutInterval} ticks, 
-            your factory generates a payout based on active buildings. Extractors earn ${extractorRate}/tick, 
-            Factories earn ${factoryRate}/tick, and Power Plants earn ${powerRate}/tick per building (scaled by level and efficiency). 
+            <GameIcon icon="gi:light-bulb" size={14} className="inline" /> <span className="text-gray-500">How Payouts Work:</span> Every {store.payoutConfig.basePayoutInterval} ticks, 
+            your factory generates a payout based on active buildings. Extractors earn ${extractorRate}/cycle, 
+            Factories earn ${factoryRate}/cycle, and Power Plants earn ${powerRate}/cycle per building (scaled by level and efficiency). 
             The total is modified by game speed, average building efficiency, prestige bonuses, and active events.
           </p>
         </CardContent>

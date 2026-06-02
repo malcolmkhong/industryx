@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
-import { TRANSPORT_DEFS, BUILDING_DEFS, RESOURCE_META, WEATHER_DEFS, TRANSPORT_EVOLUTION_CHAIN, TRANSPORT_EVOLUTION_META } from '@/lib/game/data';
+import { TRANSPORT_DEFS, BUILDING_DEFS, RESOURCE_META, WEATHER_DEFS } from '@/lib/game/data';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -11,20 +11,46 @@ import {
   BarChart3, X, Cloud, CheckCircle2, XCircle, Activity,
   Network, ShieldAlert, TrendingUp, TrendingDown, Minus,
   ZapOff, Play, Pause, ChevronDown, ChevronRight, Link2,
-  Dna, ArrowUpRight, Rocket
+  Database, ZoomIn, ZoomOut, Maximize2, Move
 } from 'lucide-react';
 import { TransportType, ResourceType, BuildingInstance } from '@/lib/game/types';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
+import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
 import { motion, AnimatePresence } from 'framer-motion';
+import { GameIcon } from '@/components/game/shared/GameIcon';
 
 // --- Tier Color Map ---
 const TIER_COLORS: Record<number, { fill: string; stroke: string; text: string; bg: string; label: string }> = {
-  0: { fill: '#78350f', stroke: '#d97706', text: 'text-amber-400', bg: 'bg-amber-900/20', label: 'Raw' },
+  0: { fill: '#374151', stroke: '#a0a0a0', text: 'text-gray-400', bg: 'bg-gray-900/20', label: 'Raw' },
   1: { fill: '#164e63', stroke: '#22d3ee', text: 'text-cyan-400', bg: 'bg-cyan-900/20', label: 'T1' },
-  2: { fill: '#14532d', stroke: '#4ade80', text: 'text-green-400', bg: 'bg-green-900/20', label: 'T2' },
-  3: { fill: '#3b0764', stroke: '#c084fc', text: 'text-purple-400', bg: 'bg-purple-900/20', label: 'T3' },
-  4: { fill: '#422006', stroke: '#fbbf24', text: 'text-yellow-400', bg: 'bg-yellow-900/20', label: 'T4' },
+  2: { fill: '#431407', stroke: '#f97316', text: 'text-orange-400', bg: 'bg-orange-900/20', label: 'T2' },
+  3: { fill: '#3b0764', stroke: '#a855f7', text: 'text-purple-400', bg: 'bg-purple-900/20', label: 'T3' },
+  4: { fill: '#022c22', stroke: '#00ffcc', text: 'text-emerald-400', bg: 'bg-emerald-900/20', label: 'T4' },
 };
+
+// --- ERD Data Types ---
+interface ERDNode {
+  id: string;
+  type: 'extractor' | 'factory' | 'power' | 'storage' | 'hub';
+  label: string;
+  buildingType: string;
+  tier: number;
+  icon: string;
+  inputs: string[];   // resource names
+  outputs: string[];  // resource names
+  active: boolean;
+  level: number;
+}
+
+interface ERDRelation {
+  id: string;
+  fromId: string;
+  toId: string;
+  resources: { resource: ResourceType; throughput: number; maxThroughput: number }[];
+  totalThroughput: number;
+  active: boolean;
+  lineCount: number;
+}
 
 function getBuildingTier(b: BuildingInstance): number {
   const def = BUILDING_DEFS[b.type];
@@ -42,23 +68,6 @@ function getUpgradeCost(line: { type: TransportType; level: number }): number {
   return Math.floor(def.baseCost.reduce((s, c) => s + (c.resource === 'money' ? c.amount : 0), 0) * Math.pow(1.3, line.level));
 }
 
-function getTypeUpgradeCost(line: { type: TransportType; level: number }, newType: TransportType): number {
-  const currentDef = TRANSPORT_DEFS[line.type];
-  const newDef = TRANSPORT_DEFS[newType];
-  const currentBase = currentDef.baseCost.reduce((s, c) => s + (c.resource === 'money' ? c.amount : 0), 0);
-  const newBase = newDef.baseCost.reduce((s, c) => s + (c.resource === 'money' ? c.amount : 0), 0);
-  return Math.max(0, Math.floor((newBase - currentBase * 0.5) * Math.pow(1.2, line.level - 1)));
-}
-
-// Recommend transport type based on required throughput
-function recommendTransportType(requiredThroughput: number): TransportType {
-  const types: TransportType[] = ['conveyorBelt', 'pipe', 'truck', 'cargoTrain', 'drone', 'cargoShip'];
-  for (const type of types) {
-    if (TRANSPORT_DEFS[type].baseThroughput >= requiredThroughput) return type;
-  }
-  return 'cargoShip'; // Highest capacity
-}
-
 const TRANSPORT_TYPES: TransportType[] = ['conveyorBelt', 'pipe', 'truck', 'cargoTrain', 'drone', 'cargoShip'];
 
 const CHEAPEST_TYPE = TRANSPORT_TYPES.reduce((best, type) => {
@@ -67,13 +76,883 @@ const CHEAPEST_TYPE = TRANSPORT_TYPES.reduce((best, type) => {
   return cost < bestCost ? type : best;
 }, 'conveyorBelt' as TransportType);
 
-// Transport type hierarchy for upgrade paths
-const TYPE_HIERARCHY: TransportType[] = ['conveyorBelt', 'pipe', 'truck', 'cargoTrain', 'drone', 'cargoShip'];
+// --- Port/Anchor System for Network Graph ---
+// Each node container has anchor points (ports) around its boundary for clean, precise edge routing.
+// Ports prevent line overlap by distributing connections across multiple anchor positions.
 
-function getNextUpgradeType(current: TransportType): TransportType | null {
-  const idx = TYPE_HIERARCHY.indexOf(current);
-  if (idx < 0 || idx >= TYPE_HIERARCHY.length - 1) return null;
-  return TYPE_HIERARCHY[idx + 1];
+type PortSide = 'top' | 'right' | 'bottom' | 'left';
+type PortId = string; // e.g. 'right-top', 'right-center', 'right-bottom', 'top-left', etc.
+
+interface PortDef {
+  id: PortId;
+  side: PortSide;
+  /** Position as fraction along that side (0 = start, 1 = end) */
+  fraction: number;
+}
+
+/** Standard port definitions for a node — 12 anchor points total */
+const PORT_DEFS: PortDef[] = [
+  // Right side (primary output — most edges go right in hierarchical layout)
+  { id: 'right-top', side: 'right', fraction: 0.2 },
+  { id: 'right-center', side: 'right', fraction: 0.5 },
+  { id: 'right-bottom', side: 'right', fraction: 0.8 },
+  // Left side (primary input)
+  { id: 'left-top', side: 'left', fraction: 0.2 },
+  { id: 'left-center', side: 'left', fraction: 0.5 },
+  { id: 'left-bottom', side: 'left', fraction: 0.8 },
+  // Top side (cross-tier upward, same-column)
+  { id: 'top-left', side: 'top', fraction: 0.25 },
+  { id: 'top-center', side: 'top', fraction: 0.5 },
+  { id: 'top-right', side: 'top', fraction: 0.75 },
+  // Bottom side (cross-tier downward, same-column)
+  { id: 'bottom-left', side: 'bottom', fraction: 0.25 },
+  { id: 'bottom-center', side: 'bottom', fraction: 0.5 },
+  { id: 'bottom-right', side: 'bottom', fraction: 0.75 },
+];
+
+/** Compute absolute (x, y) for a port on a node of given dimensions */
+function getPortXY(port: PortDef, w: number, h: number): { x: number; y: number } {
+  switch (port.side) {
+    case 'top': return { x: w * port.fraction, y: 0 };
+    case 'right': return { x: w, y: h * port.fraction };
+    case 'bottom': return { x: w * port.fraction, y: h };
+    case 'left': return { x: 0, y: h * port.fraction };
+  }
+}
+
+// --- Layout Engine Configuration ---
+// The graph uses a **Hierarchical Tier-Column Layout Engine**:
+// Nodes are grouped by tier (0–4) and arranged in left-to-right columns.
+// Each column is vertically stacked with guaranteed minimum spacing.
+// A collision detection post-pass ensures no overlap under any condition.
+
+const LAYOUT_CONFIG = {
+  // Node sizing
+  collapsedWidth: 110,
+  expandedWidth: 156,
+  collapsedHeight: 24,
+  headerHeight: 20,
+  rowHeight: 13,
+  nodePadding: 3,
+
+  // Column spacing (horizontal gap between tier columns)
+  columnGap: 160,
+
+  // Row spacing (vertical gap between nodes in same column)
+  rowGapCollapsed: 10,
+  rowGapExpanded: 14,
+
+  // Collision prevention — minimum guaranteed gap between ANY two node bounding boxes
+  minNodeSpacing: 12,
+
+  // Port configuration
+  portPadding: 4,          // Distance from corners to nearest port
+  maxPortsPerSide: 3,      // Maximum anchor points per side
+
+  // Canvas padding
+  canvasPadX: 16,
+  canvasPadY: 16,
+};
+
+// --- Port Assignment Algorithm ---
+// For each relation (edge), determine the best source and target port based on:
+// 1. Direction: Which side of each node faces the other
+// 2. Spatial position: Avoid overlapping edges by distributing across available ports
+// 3. Relationship logic: Output → right ports, Input → left ports (default for left-to-right flow)
+
+function assignPorts(
+  relations: ERDRelation[],
+  nodePositions: Map<string, { x: number; y: number }>,
+  nodeDims: Map<string, { w: number; h: number; expanded: boolean }>,
+): Map<string, { fromPort: PortDef; toPort: PortDef }> {
+  const portMap = new Map<string, { fromPort: PortDef; toPort: PortDef }>();
+
+  // Track which ports are already used per node (to distribute evenly)
+  const usedPorts = new Map<string, Map<string, number>>(); // nodeId → portId → count
+
+  const getUsedCount = (nodeId: string, portId: string): number => {
+    return usedPorts.get(nodeId)?.get(portId) ?? 0;
+  };
+
+  const markUsed = (nodeId: string, portId: string) => {
+    if (!usedPorts.has(nodeId)) usedPorts.set(nodeId, new Map());
+    const nodePorts = usedPorts.get(nodeId)!;
+    nodePorts.set(portId, (nodePorts.get(portId) ?? 0) + 1);
+  };
+
+  relations.forEach(rel => {
+    const fromPos = nodePositions.get(rel.fromId);
+    const toPos = nodePositions.get(rel.toId);
+    const fromD = nodeDims.get(rel.fromId);
+    const toD = nodeDims.get(rel.toId);
+
+    if (!fromPos || !toPos || !fromD || !toD) return;
+
+    const fromCX = fromPos.x + fromD.w / 2;
+    const fromCY = fromPos.y + fromD.h / 2;
+    const toCX = toPos.x + toD.w / 2;
+    const toCY = toPos.y + toD.h / 2;
+
+    const dx = toCX - fromCX;
+    const dy = toCY - fromCY;
+
+    // Determine the primary direction from source to target
+    let fromSide: PortSide;
+    let toSide: PortSide;
+
+    if (Math.abs(dx) > Math.abs(dy)) {
+      // Horizontal dominance
+      if (dx > 0) {
+        // Target is to the right → source outputs right, target inputs left
+        fromSide = 'right';
+        toSide = 'left';
+      } else {
+        // Target is to the left → source outputs left, target inputs right
+        fromSide = 'left';
+        toSide = 'right';
+      }
+    } else {
+      // Vertical dominance
+      if (dy > 0) {
+        // Target is below → source outputs bottom, target inputs top
+        fromSide = 'bottom';
+        toSide = 'top';
+      } else {
+        // Target is above → source outputs top, target inputs bottom
+        fromSide = 'top';
+        toSide = 'bottom';
+      }
+    }
+
+    // Get available ports for the determined sides
+    const fromPorts = PORT_DEFS.filter(p => p.side === fromSide);
+    const toPorts = PORT_DEFS.filter(p => p.side === toSide);
+
+    // Pick the port with the least usage (distributes edges evenly)
+    // For vertical edges, also consider the relative horizontal position
+    const selectBestPort = (ports: PortDef[], nodeId: string, nodeW: number, nodeH: number, relCY: number, nodeCY: number): PortDef => {
+      if (ports.length === 1) return ports[0];
+
+      // Sort by: (1) least usage count, (2) closest fraction to relative position
+      const sorted = [...ports].sort((a, b) => {
+        const usageDiff = getUsedCount(nodeId, a.id) - getUsedCount(nodeId, b.id);
+        if (usageDiff !== 0) return usageDiff;
+
+        // For horizontal sides (top/bottom), prefer ports closer to the target's horizontal position
+        if (a.side === 'top' || a.side === 'bottom') {
+          const relFractionX = Math.max(0, Math.min(1, (relCY - (nodeCY - nodeH / 2)) / nodeH));
+          return Math.abs(a.fraction - relFractionX) - Math.abs(b.fraction - relFractionX);
+        }
+        // For vertical sides (left/right), prefer ports closer to the target's vertical position
+        const relFractionY = Math.max(0, Math.min(1, (relCY - (nodeCY - nodeH / 2)) / nodeH));
+        return Math.abs(a.fraction - relFractionY) - Math.abs(b.fraction - relFractionY);
+      });
+
+      return sorted[0];
+    };
+
+    const fromPort = selectBestPort(fromPorts, rel.fromId, fromD.w, fromD.h, toCY, fromCY);
+    const toPort = selectBestPort(toPorts, rel.toId, toD.w, toD.h, fromCY, toCY);
+
+    markUsed(rel.fromId, fromPort.id);
+    markUsed(rel.toId, toPort.id);
+
+    portMap.set(rel.id, { fromPort, toPort });
+  });
+
+  return portMap;
+}
+
+// --- Network Graph Component (Hierarchical Tier-Column Layout with Port-Based Edge Routing) ---
+function NetworkGraph({ nodes, relations }: { nodes: ERDNode[]; relations: ERDRelation[] }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const panStartRef = useRef({ mx: 0, my: 0, px: 0, py: 0 });
+  const didDragRef = useRef(false); // Track if a drag occurred — suppress click exit if so
+  const [expandedNodeIds, setExpandedNodeIds] = useState<Set<string>>(new Set());
+  const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
+
+  const CFG = LAYOUT_CONFIG;
+
+  // Wheel zoom (non-passive to allow preventDefault)
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const handler = (e: WheelEvent) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.08 : 0.08;
+      setZoom(prev => Math.max(0.25, Math.min(2.5, Math.round((prev + delta) * 100) / 100)));
+    };
+    el.addEventListener('wheel', handler, { passive: false });
+    return () => el.removeEventListener('wheel', handler);
+  }, []);
+
+  // Build adjacency map
+  const adjacency = useMemo(() => {
+    const adj = new Map<string, Set<string>>();
+    nodes.forEach(n => adj.set(n.id, new Set()));
+    relations.forEach(r => {
+      adj.get(r.fromId)?.add(r.toId);
+      adj.get(r.toId)?.add(r.fromId);
+    });
+    return adj;
+  }, [nodes, relations]);
+
+  // Compute node dimensions
+  const nodeDims = useMemo(() => {
+    const dims = new Map<string, { w: number; h: number; expanded: boolean }>();
+    nodes.forEach(n => {
+      const isExpanded = expandedNodeIds.has(n.id);
+      if (isExpanded) {
+        let rows = 2;
+        if (n.outputs.length > 0) rows += 1;
+        if (n.inputs.length > 0) rows += 1;
+        rows += 1;
+        dims.set(n.id, { w: CFG.expandedWidth, h: CFG.headerHeight + rows * CFG.rowHeight + CFG.nodePadding * 2, expanded: true });
+      } else {
+        dims.set(n.id, { w: CFG.collapsedWidth, h: CFG.collapsedHeight, expanded: false });
+      }
+    });
+    return dims;
+  }, [nodes, expandedNodeIds, CFG]);
+
+  // Compute positions by tier columns with collision-free spacing
+  const nodePositions = useMemo(() => {
+    const positions = new Map<string, { x: number; y: number }>();
+    const tierGroups = new Map<number, ERDNode[]>();
+    nodes.forEach(n => {
+      if (!tierGroups.has(n.tier)) tierGroups.set(n.tier, []);
+      tierGroups.get(n.tier)!.push(n);
+    });
+
+    const sortedTiers = Array.from(tierGroups.entries()).sort((a, b) => a[0] - b[0]);
+
+    // Phase 1: Assign initial positions by tier column
+    sortedTiers.forEach(([, tierNodes], colIdx) => {
+      let yOffset = CFG.canvasPadY;
+      tierNodes.forEach(n => {
+        const d = nodeDims.get(n.id);
+        const h = d?.h ?? CFG.collapsedHeight;
+        const isExpanded = d?.expanded ?? false;
+        // Use expanded gap for expanded nodes, with minimum spacing enforced
+        const baseGap = isExpanded ? CFG.rowGapExpanded : CFG.rowGapCollapsed;
+        const effectiveGap = Math.max(baseGap, CFG.minNodeSpacing);
+
+        positions.set(n.id, { x: CFG.canvasPadX + colIdx * CFG.columnGap, y: yOffset });
+        yOffset += h + effectiveGap;
+      });
+    });
+
+    // Phase 2: Collision detection post-pass — ensure no two nodes overlap
+    // Check all node pairs and push apart if bounding boxes intersect or are too close
+    const allNodeIds = nodes.map(n => n.id);
+    let iterations = 0;
+    const MAX_ITERATIONS = 5; // Converge quickly — layout is mostly correct from Phase 1
+
+    while (iterations < MAX_ITERATIONS) {
+      let hasCollision = false;
+
+      for (let i = 0; i < allNodeIds.length; i++) {
+        for (let j = i + 1; j < allNodeIds.length; j++) {
+          const idA = allNodeIds[i];
+          const idB = allNodeIds[j];
+          const posA = positions.get(idA);
+          const posB = positions.get(idB);
+          const dimA = nodeDims.get(idA);
+          const dimB = nodeDims.get(idB);
+          if (!posA || !posB || !dimA || !dimB) continue;
+
+          // Bounding boxes with minimum spacing buffer
+          const buffer = CFG.minNodeSpacing / 2;
+          const aLeft = posA.x - buffer;
+          const aRight = posA.x + dimA.w + buffer;
+          const aTop = posA.y - buffer;
+          const aBottom = posA.y + dimA.h + buffer;
+
+          const bLeft = posB.x - buffer;
+          const bRight = posB.x + dimB.w + buffer;
+          const bTop = posB.y - buffer;
+          const bBottom = posB.y + dimB.h + buffer;
+
+          // Check for overlap (AABB intersection)
+          if (aLeft < bRight && aRight > bLeft && aTop < bBottom && aBottom > bTop) {
+            hasCollision = true;
+
+            // Determine push direction — prefer vertical push for same-column, horizontal for cross-column
+            const overlapX = Math.min(aRight - bLeft, bRight - aLeft);
+            const overlapY = Math.min(aBottom - bTop, bBottom - aTop);
+
+            if (overlapY <= overlapX) {
+              // Push vertically — move B down (preserve column order)
+              const push = overlapY + CFG.minNodeSpacing / 2;
+              posB.y += push;
+            } else {
+              // Push horizontally — move B right
+              const push = overlapX + CFG.minNodeSpacing / 2;
+              posB.x += push;
+            }
+          }
+        }
+      }
+
+      if (!hasCollision) break;
+      iterations++;
+    }
+
+    return positions;
+  }, [nodes, nodeDims, CFG]);
+
+  // Assign ports to each relation (edge)
+  const portAssignments = useMemo(() => {
+    return assignPorts(relations, nodePositions, nodeDims);
+  }, [relations, nodePositions, nodeDims]);
+
+  // SVG content size
+  const svgSize = useMemo(() => {
+    let maxX = 0;
+    let maxY = 0;
+    nodePositions.forEach((pos, id) => {
+      const d = nodeDims.get(id);
+      if (pos.x + (d?.w ?? CFG.collapsedWidth) > maxX) maxX = pos.x + (d?.w ?? CFG.collapsedWidth);
+      if (pos.y + (d?.h ?? CFG.collapsedHeight) > maxY) maxY = pos.y + (d?.h ?? CFG.collapsedHeight);
+    });
+    return { width: Math.max(400, maxX + CFG.canvasPadX), height: Math.max(250, maxY + CFG.canvasPadY) };
+  }, [nodePositions, nodeDims, CFG]);
+
+  // Nodes connected to the focused node (for dimming)
+  const focusSet = useMemo(() => {
+    const set = new Set<string>();
+    if (focusedNodeId) {
+      set.add(focusedNodeId);
+      adjacency.get(focusedNodeId)?.forEach(id => set.add(id));
+    }
+    return set;
+  }, [focusedNodeId, adjacency]);
+
+  const hasFocus = focusSet.size > 0;
+
+  // Click node: expand self + neighbors, collapse others
+  const handleClickNode = useCallback((id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (expandedNodeIds.has(id) && focusedNodeId === id) {
+      // Clicking same focused node: collapse all
+      setExpandedNodeIds(new Set());
+      setFocusedNodeId(null);
+    } else {
+      const next = new Set<string>();
+      next.add(id);
+      adjacency.get(id)?.forEach(neighborId => next.add(neighborId));
+      setExpandedNodeIds(next);
+      setFocusedNodeId(id);
+    }
+  }, [adjacency, expandedNodeIds, focusedNodeId]);
+
+  const handleClickBg = useCallback(() => {
+    setExpandedNodeIds(new Set());
+    setFocusedNodeId(null);
+  }, []);
+
+  // Pan handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    const target = e.target as Element;
+    if (target.closest('.ng-node') || target.closest('.ng-rel')) return;
+    didDragRef.current = false; // Reset drag flag at the start of each interaction
+    setIsPanning(true);
+    panStartRef.current = { mx: e.clientX, my: e.clientY, px: pan.x, py: pan.y };
+  }, [pan]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isPanning) return;
+    const dx = (e.clientX - panStartRef.current.mx) / zoom;
+    const dy = (e.clientY - panStartRef.current.my) / zoom;
+    // Mark as drag if mouse moved beyond a small threshold (distinguish from click)
+    if (Math.abs(e.clientX - panStartRef.current.mx) > 3 || Math.abs(e.clientY - panStartRef.current.my) > 3) {
+      didDragRef.current = true;
+    }
+    setPan({ x: panStartRef.current.px + dx, y: panStartRef.current.py + dy });
+  }, [isPanning, zoom]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsPanning(false);
+  // Don't reset didDragRef here — the click event fires after mouseup,
+    // so we need the flag to persist until the click handler reads it.
+  }, []);
+
+  const handleResetView = useCallback(() => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  }, []);
+
+  // Category label (short form)
+  const catLabel = (type: ERDNode['type']) => {
+    const m: Record<string, string> = { extractor: 'EXT', factory: 'FAC', power: 'PWR', storage: 'STO', hub: 'HUB' };
+    return m[type] ?? type;
+  };
+
+  // Tier column labels for visual reference
+  const tierColumns = useMemo(() => {
+    const cols = new Map<number, { x: number; label: string; color: string }>();
+    const tierGroups = new Map<number, ERDNode[]>();
+    nodes.forEach(n => {
+      if (!tierGroups.has(n.tier)) tierGroups.set(n.tier, []);
+      tierGroups.get(n.tier)!.push(n);
+    });
+    const sorted = Array.from(tierGroups.entries()).sort((a, b) => a[0] - b[0]);
+    sorted.forEach(([, tierNodes], colIdx) => {
+      if (tierNodes.length > 0) {
+        const x = CFG.canvasPadX + colIdx * CFG.columnGap;
+        const tc = TIER_COLORS[tierNodes[0].tier] ?? TIER_COLORS[0];
+        cols.set(tierNodes[0].tier, { x, label: tc.label, color: tc.stroke });
+      }
+    });
+    return cols;
+  }, [nodes, CFG]);
+
+  // Compute edge paths with port-based routing
+  const edgePaths = useMemo(() => {
+    const paths: {
+      relId: string;
+      fromId: string;
+      toId: string;
+      x1: number; y1: number;
+      x2: number; y2: number;
+      cx1: number; cy1: number;
+      cx2: number; cy2: number;
+      fromPortId: string;
+      toPortId: string;
+    }[] = [];
+
+    relations.forEach(rel => {
+      const fromPos = nodePositions.get(rel.fromId);
+      const toPos = nodePositions.get(rel.toId);
+      const fromD = nodeDims.get(rel.fromId);
+      const toD = nodeDims.get(rel.toId);
+      const assignment = portAssignments.get(rel.id);
+
+      if (!fromPos || !toPos || !fromD || !toD || !assignment) return;
+
+      // Get port anchor positions in absolute SVG coordinates
+      const fromPortXY = getPortXY(assignment.fromPort, fromD.w, fromD.h);
+      const toPortXY = getPortXY(assignment.toPort, toD.w, toD.h);
+
+      const x1 = fromPos.x + fromPortXY.x;
+      const y1 = fromPos.y + fromPortXY.y;
+      const x2 = toPos.x + toPortXY.x;
+      const y2 = toPos.y + toPortXY.y;
+
+      // Compute intelligent Bezier control points based on port sides
+      const fromSide = assignment.fromPort.side;
+      const toSide = assignment.toPort.side;
+
+      const EDGE_LEAD = 40; // How far the curve leads out from the port before bending
+
+      let cx1: number, cy1: number, cx2: number, cy2: number;
+
+      // Control point 1 extends from the source port's side
+      switch (fromSide) {
+        case 'right': cx1 = x1 + EDGE_LEAD; cy1 = y1; break;
+        case 'left': cx1 = x1 - EDGE_LEAD; cy1 = y1; break;
+        case 'top': cx1 = x1; cy1 = y1 - EDGE_LEAD; break;
+        case 'bottom': cx1 = x1; cy1 = y1 + EDGE_LEAD; break;
+      }
+
+      // Control point 2 extends from the target port's side
+      switch (toSide) {
+        case 'right': cx2 = x2 + EDGE_LEAD; cy2 = y2; break;
+        case 'left': cx2 = x2 - EDGE_LEAD; cy2 = y2; break;
+        case 'top': cx2 = x2; cy2 = y2 - EDGE_LEAD; break;
+        case 'bottom': cx2 = x2; cy2 = y2 + EDGE_LEAD; break;
+      }
+
+      paths.push({
+        relId: rel.id, fromId: rel.fromId, toId: rel.toId,
+        x1, y1, x2, y2, cx1, cy1, cx2, cy2,
+        fromPortId: assignment.fromPort.id,
+        toPortId: assignment.toPort.id,
+      });
+    });
+
+    return paths;
+  }, [relations, nodePositions, nodeDims, portAssignments]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="bg-[#060a12] rounded-lg overflow-hidden relative border border-gray-800/40 w-full"
+      style={{ aspectRatio: '1 / 1', maxHeight: '560px' }}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+    >
+      {/* Zoom Controls */}
+      <div className="absolute top-2 right-2 z-10 flex flex-col gap-1">
+        <button
+          className="w-7 h-7 rounded-md bg-gray-900/90 hover:bg-gray-800 text-gray-400 hover:text-gray-200 flex items-center justify-center border border-gray-700/50 transition-colors"
+          onClick={() => setZoom(z => Math.min(2.5, Math.round((z + 0.15) * 100) / 100))}
+          title="Zoom In"
+        >
+          <ZoomIn className="w-3.5 h-3.5" />
+        </button>
+        <button
+          className="w-7 h-7 rounded-md bg-gray-900/90 hover:bg-gray-800 text-gray-400 hover:text-gray-200 flex items-center justify-center border border-gray-700/50 transition-colors"
+          onClick={() => setZoom(z => Math.max(0.25, Math.round((z - 0.15) * 100) / 100))}
+          title="Zoom Out"
+        >
+          <ZoomOut className="w-3.5 h-3.5" />
+        </button>
+        <button
+          className="w-7 h-7 rounded-md bg-gray-900/90 hover:bg-gray-800 text-gray-400 hover:text-gray-200 flex items-center justify-center border border-gray-700/50 transition-colors"
+          onClick={handleResetView}
+          title="Reset View"
+        >
+          <Maximize2 className="w-3 h-3" />
+        </button>
+      </div>
+
+      {/* Zoom Level Indicator */}
+      <div className="absolute bottom-2 right-2 z-10 text-[9px] text-gray-500 bg-gray-900/80 px-1.5 py-0.5 rounded font-mono">
+        {Math.round(zoom * 100)}%
+      </div>
+
+      {/* Legend */}
+      <div className="absolute top-2 left-2 z-10 flex items-center gap-2">
+        {Array.from(tierColumns.values()).map(col => (
+          <div key={col.label} className="flex items-center gap-1">
+            <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: col.color }} />
+            <span className="text-[8px] text-gray-500 font-medium">{col.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Canvas */}
+      <div
+        className="w-full h-full overflow-hidden"
+        data-game-interactive
+        style={{ cursor: isPanning ? 'grabbing' : 'grab', touchAction: 'none' }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onClick={(e) => {
+          // If user was dragging (panning), don't exit focus — only a clean click should deactivate
+          if (didDragRef.current) {
+            didDragRef.current = false;
+            return;
+          }
+          const target = e.target as Element;
+          if (!target.closest('.ng-node') && !target.closest('.ng-rel')) {
+            handleClickBg();
+          }
+        }}
+      >
+        <svg
+          width={svgSize.width}
+          height={svgSize.height}
+          style={{
+            transform: `translate(${pan.x * zoom}px, ${pan.y * zoom}px) scale(${zoom})`,
+            transformOrigin: '0 0',
+            transition: isPanning ? 'none' : 'transform 0.18s ease-out',
+            minWidth: svgSize.width,
+          }}
+        >
+          {/* Defs */}
+          <defs>
+            <pattern id="ng-grid" width={CFG.columnGap} height={40} patternUnits="userSpaceOnUse">
+              <path d={`M ${CFG.columnGap} 0 L 0 0 0 40`} fill="none" stroke="#111827" strokeWidth={0.5} />
+            </pattern>
+            <marker id="ng-arr" markerWidth="6" markerHeight="4" refX="6" refY="2" orient="auto">
+              <polygon points="0 0, 6 2, 0 4" fill="#4b5563" />
+            </marker>
+            <marker id="ng-arr-act" markerWidth="6" markerHeight="4" refX="6" refY="2" orient="auto">
+              <polygon points="0 0, 6 2, 0 4" fill="#2dd4bf" />
+            </marker>
+            <marker id="ng-arr-hl" markerWidth="6" markerHeight="4" refX="6" refY="2" orient="auto">
+              <polygon points="0 0, 6 2, 0 4" fill="#fbbf24" />
+            </marker>
+            {/* Port dot filter — subtle glow */}
+            <filter id="port-glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="1.5" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
+          {/* Background grid */}
+          <rect width="100%" height="100%" fill="url(#ng-grid)" opacity={0.4} />
+
+          {/* Tier column labels */}
+          {Array.from(tierColumns.entries()).map(([, col]) => (
+            <text
+              key={col.label}
+              x={col.x + 2}
+              y={10}
+              fontSize="7"
+              fill={col.color}
+              opacity={0.3}
+              fontWeight="600"
+              letterSpacing="1"
+            >
+              {col.label}
+            </text>
+          ))}
+
+          {/* Relations — only visible when a node is focused/clicked */}
+          <g className="relations-layer">
+            {relations.map(rel => {
+              // Only show relations connected to the focused node
+              const isConnected = focusedNodeId === rel.fromId || focusedNodeId === rel.toId;
+              if (!isConnected) return null;
+
+              const edge = edgePaths.find(p => p.relId === rel.id);
+              if (!edge) return null;
+
+              const isActive = rel.active;
+              const lineColor = isActive ? '#fbbf24' : '#2a3040';
+              const arrowUrl = isActive ? 'url(#ng-arr-hl)' : 'url(#ng-arr)';
+
+              const pathD = `M ${edge.x1} ${edge.y1} C ${edge.cx1} ${edge.cy1}, ${edge.cx2} ${edge.cy2}, ${edge.x2} ${edge.y2}`;
+
+              // Midpoint on the Bezier (approximate at t=0.5)
+              const mx = 0.125 * edge.x1 + 0.375 * edge.cx1 + 0.375 * edge.cx2 + 0.125 * edge.x2;
+              const my = 0.125 * edge.y1 + 0.375 * edge.cy1 + 0.375 * edge.cy2 + 0.125 * edge.y2;
+
+              const resEmojis = rel.resources.slice(0, 2).map(r => RESOURCE_META[r.resource]?.icon ?? '').join('');
+              const moreN = rel.resources.length > 2 ? rel.resources.length - 2 : 0;
+
+              return (
+                <g
+                  key={rel.id}
+                  className="ng-rel"
+                  opacity={1}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {/* Hit area (wider invisible path for easier hover) */}
+                  <path
+                    d={pathD}
+                    fill="none"
+                    stroke="transparent"
+                    strokeWidth={10}
+                  />
+                  {/* Visible path — port-based routing */}
+                  <path
+                    d={pathD}
+                    fill="none"
+                    stroke={lineColor}
+                    strokeWidth={isActive ? 2 : rel.lineCount > 1 ? 0.8 + rel.lineCount * 0.3 : 0.8}
+                    markerEnd={arrowUrl}
+                    strokeDasharray={!isActive ? '3 2' : undefined}
+                  />
+                  {/* Port anchor dots — small circles at source and target ports */}
+                  <circle cx={edge.x1} cy={edge.y1} r={2} fill={lineColor} opacity={isActive ? 0.7 : 0.3} />
+                  <circle cx={edge.x2} cy={edge.y2} r={2} fill={lineColor} opacity={isActive ? 0.7 : 0.3} />
+                  {/* Throughput badge */}
+                  <g>
+                    <rect
+                      x={mx - 24} y={my - 7}
+                      width={48} height={13}
+                      rx={3}
+                      fill="#060a12"
+                      fillOpacity={0.95}
+                      stroke={lineColor}
+                      strokeWidth={0.4}
+                      strokeOpacity={0.5}
+                    />
+                    <text
+                      x={mx} y={my + 2}
+                      textAnchor="middle"
+                      fontSize="6.5"
+                      fill={isActive ? '#fbbf24' : '#64748b'}
+                      fontWeight={isActive ? '600' : '400'}
+                    >
+                      {resEmojis}{moreN > 0 ? `+${moreN}` : ''} {formatNumber(rel.totalThroughput)}/t
+                    </text>
+                  </g>
+                  {/* Line count badge */}
+                  {rel.lineCount > 1 && (
+                    <g>
+                      <circle cx={mx} cy={my - 13} r={5} fill="#060a12" stroke={lineColor} strokeWidth={0.4} />
+                      <text x={mx} y={my - 10.5} textAnchor="middle" fontSize="6" fill={lineColor} fontWeight="bold">
+                        ×{rel.lineCount}
+                      </text>
+                    </g>
+                  )}
+                </g>
+              );
+            })}
+          </g>
+
+          {/* Nodes — sorted so focused node renders last (highest z-index) */}
+          <g className="nodes-layer">
+            {[...nodes]
+              .sort((a, b) => {
+                if (a.id === focusedNodeId) return 1;
+                if (b.id === focusedNodeId) return -1;
+                const aInFocus = focusSet.has(a.id);
+                const bInFocus = focusSet.has(b.id);
+                if (aInFocus && !bInFocus) return 1;
+                if (!aInFocus && bInFocus) return -1;
+                return 0;
+              })
+              .map(node => {
+              const pos = nodePositions.get(node.id);
+              if (!pos) return null;
+              const d = nodeDims.get(node.id);
+              const isExpanded = d?.expanded ?? false;
+              const w = d?.w ?? CFG.collapsedWidth;
+              const h = d?.h ?? CFG.collapsedHeight;
+              const tc = TIER_COLORS[node.tier] ?? TIER_COLORS[0];
+
+              const isInFocus = hasFocus && focusSet.has(node.id);
+              const isDim = hasFocus && !isInFocus;
+              const isFocused = focusedNodeId === node.id;
+
+              // Get ports used by visible relations for this node
+              const activePortIds = new Set<string>();
+              if (isInFocus) {
+                edgePaths.forEach(ep => {
+                  if (ep.fromId === node.id) activePortIds.add(ep.fromPortId);
+                  if (ep.toId === node.id) activePortIds.add(ep.toPortId);
+                });
+              }
+
+              return (
+                <g
+                  key={node.id}
+                  className="ng-node"
+                  style={{
+                    transform: `translate(${pos.x}px, ${pos.y}px)`,
+                    cursor: 'pointer',
+                    opacity: isDim ? 0.15 : 1,
+                    pointerEvents: isDim ? 'none' : 'auto',
+                  }}
+                  onClick={(e) => handleClickNode(node.id, e)}
+                >
+                  {/* Invisible hit area — extends clickable region beyond visible bounds */}
+                  <rect
+                    x={-CFG.minNodeSpacing / 2}
+                    y={-CFG.minNodeSpacing / 2}
+                    width={w + CFG.minNodeSpacing}
+                    height={h + CFG.minNodeSpacing}
+                    fill="transparent"
+                    style={{ pointerEvents: 'all' }}
+                  />
+                  {/* Focus ring — enhanced with glow for focused node */}
+                  {isFocused && (
+                    <>
+                      <rect x={-4} y={-4} width={w + 8} height={h + 8} rx={6}
+                        fill="none" stroke={tc.stroke} strokeWidth={1.5} opacity={0.2}
+                        style={{ filter: `drop-shadow(0 0 6px ${tc.stroke})` }}
+                      />
+                      <rect x={-2} y={-2} width={w + 4} height={h + 4} rx={5}
+                        fill="none" stroke={tc.stroke} strokeWidth={1} opacity={0.5}
+                      />
+                    </>
+                  )}
+                  {/* Neighbor highlight ring */}
+                  {isInFocus && !isFocused && (
+                    <rect x={-1} y={-1} width={w + 2} height={h + 2} rx={4}
+                      fill="none" stroke={tc.stroke} strokeWidth={0.5} opacity={0.25}
+                    />
+                  )}
+                  {/* Node body */}
+                  <rect
+                    x={0} y={0} width={w} height={h} rx={3}
+                    fill={isFocused ? '#0f1729' : '#0c1220'}
+                    stroke={isInFocus ? tc.stroke : '#1a2030'}
+                    strokeWidth={isInFocus ? (isFocused ? 1.5 : 1) : 0.5}
+                    style={{ pointerEvents: 'all' }}
+                  />
+                  {/* Tier accent bar */}
+                  <rect x={0} y={0} width={2.5} height={h} rx={1} fill={tc.stroke} opacity={0.65}
+                    style={{ pointerEvents: 'none' }}
+                  />
+
+                  {/* Port anchor indicators — visible when node is in focus */}
+                  {isInFocus && PORT_DEFS.map(port => {
+                    const pxy = getPortXY(port, w, h);
+                    const isActivePort = activePortIds.has(port.id);
+                    return (
+                      <g key={port.id}>
+                        {/* Active port — solid dot with glow */}
+                        {isActivePort && (
+                          <circle
+                            cx={pxy.x} cy={pxy.y} r={2.5}
+                            fill={tc.stroke}
+                            opacity={0.8}
+                            style={{ pointerEvents: 'none', filter: isActivePort ? 'url(#port-glow)' : undefined }}
+                          />
+                        )}
+                        {/* Inactive port — subtle hollow dot */}
+                        {!isActivePort && (
+                          <circle
+                            cx={pxy.x} cy={pxy.y} r={1.5}
+                            fill="none"
+                            stroke={tc.stroke}
+                            strokeWidth={0.5}
+                            opacity={0.15}
+                            style={{ pointerEvents: 'none' }}
+                          />
+                        )}
+                      </g>
+                    );
+                  })}
+
+                  {isExpanded ? (
+                    /* ===== EXPANDED VIEW ===== */
+                    <g style={{ pointerEvents: 'none' }}>
+                      <rect x={2.5} y={0} width={w - 2.5} height={CFG.headerHeight} rx={0} fill={tc.fill} opacity={0.5} />
+                      <rect x={2.5} y={CFG.headerHeight - 2} width={w - 2.5} height={2} fill={tc.fill} opacity={0.5} />
+                      <text x={7} y={CFG.headerHeight - 5} fontSize="8" fontWeight="bold" fill="white">
+                        {node.label.length > 17 ? node.label.slice(0, 16) + '…' : node.label}
+                      </text>
+                      <text x={w - 8} y={CFG.headerHeight - 5} fontSize="6" fill="#6b7280">▼</text>
+                      <line x1={2.5} y1={CFG.headerHeight} x2={w} y2={CFG.headerHeight} stroke="#1e293b" strokeWidth={0.5} />
+                      {(() => {
+                        const rows: { label: string; value: string; color?: string }[] = [
+                          { label: 'Type', value: catLabel(node.type) },
+                          { label: 'Tier', value: tc.label, color: tc.stroke },
+                        ];
+                        if (node.outputs.length > 0) {
+                          rows.push({ label: 'OUT', value: node.outputs.slice(0, 3).map(r => RESOURCE_META[r as ResourceType]?.icon ?? r).join(' ') + (node.outputs.length > 3 ? ' …' : '') });
+                        }
+                        if (node.inputs.length > 0) {
+                          rows.push({ label: 'IN', value: node.inputs.slice(0, 3).map(r => RESOURCE_META[r as ResourceType]?.icon ?? r).join(' ') + (node.inputs.length > 3 ? ' …' : '') });
+                        }
+                        const statusIcon = node.active ? '●' : '○';
+                        rows.push({ label: `Lv${node.level}`, value: `${statusIcon} ${node.active ? 'ON' : 'OFF'}`, color: node.active ? '#4ade80' : '#6b7280' });
+                        return rows.map((row, idx) => (
+                          <g key={idx} style={{ opacity: 1 }}>
+                            <text x={7} y={CFG.headerHeight + CFG.nodePadding + idx * CFG.rowHeight + CFG.rowHeight - 2} fontSize="6.5" fill="#4b5563" fontWeight="500">
+                              {row.label}
+                            </text>
+                            <text x={30} y={CFG.headerHeight + CFG.nodePadding + idx * CFG.rowHeight + CFG.rowHeight - 2} fontSize="6.5" fill={row.color ?? '#c9d1d9'}>
+                              {row.value}
+                            </text>
+                          </g>
+                        ));
+                      })()}
+                    </g>
+                  ) : (
+                    /* ===== COLLAPSED VIEW ===== */
+                    <g style={{ pointerEvents: 'none' }}>
+                      <text x={7} y={h / 2 + 3} fontSize="7.5" fontWeight="600" fill="#d1d5db">
+                        {node.label.length > 11 ? node.label.slice(0, 10) + '…' : node.label}
+                      </text>
+                      <text x={w - 8} y={h / 2 + 2} fontSize="5" fill="#3b4252">►</text>
+                      {node.active && (
+                        <circle cx={w - 4} cy={4} r={2} fill="#4ade80" opacity={0.6} />
+                      )}
+                    </g>
+                  )}
+                </g>
+              );
+            })}
+          </g>
+        </svg>
+      </div>
+    </div>
+  );
 }
 
 export function TransportPanel() {
@@ -84,9 +963,7 @@ export function TransportPanel() {
   const [carriesResource, setCarriesResource] = useState<ResourceType | ''>('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showConnectAllDialog, setShowConnectAllDialog] = useState(false);
-  const [connectAllType, setConnectAllType] = useState<TransportType>('conveyorBelt');
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({ lines: true, throughput: true });
-  const [upgradingLineId, setUpgradingLineId] = useState<string | null>(null);
 
   // --- Derived Data ---
   const activeLines = useMemo(() => store.transportLines.filter(l => l.active), [store.transportLines]);
@@ -158,9 +1035,7 @@ export function TransportPanel() {
     const estimatedThroughput = Math.min(def.baseThroughput, outputAmount * fromB.level, inputAmount * toB.level);
     const cost = getTransportCost(selectedType);
     const canAfford = store.money >= cost;
-    const recommendedType = recommendTransportType(Math.max(outputAmount * fromB.level, inputAmount * toB.level));
-    const isRecommended = selectedType === recommendedType;
-    return { fromDef, toDef, estimatedThroughput, cost, canAfford, outputAmount, inputAmount, recommendedType, isRecommended };
+    return { fromDef, toDef, estimatedThroughput, cost, canAfford, outputAmount, inputAmount };
   }, [fromBuilding, toBuilding, carriesResource, selectedType, store.buildings, store.money]);
 
   // --- Route Suggestions ---
@@ -220,32 +1095,19 @@ export function TransportPanel() {
         });
       });
     });
-    const totalCost = routes.length * getTransportCost(connectAllType);
+    const totalCost = routes.length * getTransportCost(CHEAPEST_TYPE);
     return { routes, totalCost, canAfford: store.money >= totalCost };
-  }, [consumingBuildings, producingBuildings, store.transportLines, store.money, connectAllType]);
+  }, [consumingBuildings, producingBuildings, store.transportLines, store.money]);
 
   const handleConnectAll = useCallback(() => {
     connectAllData.routes.forEach(r => {
-      store.buildTransportLine(connectAllType, r.from, r.to, r.resource);
+      store.buildTransportLine(CHEAPEST_TYPE, r.from, r.to, r.resource);
     });
     setShowConnectAllDialog(false);
-  }, [connectAllData.routes, store, connectAllType]);
+  }, [connectAllData.routes, store]);
 
   const handleCreateSuggestedRoute = useCallback((from: string, to: string, resource: ResourceType) => {
-    // Smart type selection: find the optimal transport type based on throughput needs
-    const fromB = store.buildings.find(b => b.id === from);
-    const toB = store.buildings.find(b => b.id === to);
-    if (!fromB || !toB) {
-      store.buildTransportLine(CHEAPEST_TYPE, from, to, resource);
-      return;
-    }
-    const fromDef = BUILDING_DEFS[fromB.type];
-    const toDef = BUILDING_DEFS[toB.type];
-    const outputAmount = fromDef?.outputs?.find(o => o.resource === resource)?.amount ?? 0;
-    const inputAmount = toDef?.inputs?.find(i => i.resource === resource)?.amount ?? 0;
-    const requiredThroughput = Math.max(outputAmount * fromB.level, inputAmount * toB.level);
-    const bestType = recommendTransportType(requiredThroughput);
-    store.buildTransportLine(bestType, from, to, resource);
+    store.buildTransportLine(CHEAPEST_TYPE, from, to, resource);
   }, [store]);
 
   const handleBuild = useCallback(() => {
@@ -258,7 +1120,7 @@ export function TransportPanel() {
 
   // --- Production Chain Overview ---
   const productionChain = useMemo(() => {
-    const tiers: { tier: number; label: string; buildings: { id: string; name: string; emoji: string; connected: boolean }[] }[] = [];
+    const tiers: { tier: number; label: string; buildings: { id: string; name: string; icon: string; connected: boolean }[] }[] = [];
     for (let t = 0; t <= 4; t++) {
       const tierBuildings = store.buildings.filter(b => getBuildingTier(b) === t);
       if (tierBuildings.length === 0) continue;
@@ -269,7 +1131,7 @@ export function TransportPanel() {
         return {
           id: b.id,
           name: def?.name ?? '',
-          emoji: def?.emoji ?? '',
+          icon: def?.icon ?? '',
           connected: hasOut || hasIn,
         };
       });
@@ -487,7 +1349,7 @@ export function TransportPanel() {
 
   // --- Resource Flow Summary ---
   const resourceFlow = useMemo(() => {
-    const flowMap = new Map<ResourceType, { production: number; consumption: number; surplus: number; name: string; emoji: string; tier: number; color: string }>();
+    const flowMap = new Map<ResourceType, { production: number; consumption: number; surplus: number; name: string; icon: string; tier: number; color: string }>();
 
     // Calculate production rates from producing buildings
     producingBuildings.forEach(b => {
@@ -496,7 +1358,7 @@ export function TransportPanel() {
       def.outputs.forEach(o => {
         if (o.resource === 'money') return;
         const res = o.resource as ResourceType;
-        const existing = flowMap.get(res) ?? { production: 0, consumption: 0, surplus: 0, name: RESOURCE_META[res]?.name ?? res, emoji: RESOURCE_META[res]?.emoji ?? '', tier: RESOURCE_META[res]?.tier ?? 0, color: RESOURCE_META[res]?.color ?? '#888' };
+        const existing = flowMap.get(res) ?? { production: 0, consumption: 0, surplus: 0, name: RESOURCE_META[res]?.name ?? res, icon: RESOURCE_META[res]?.icon ?? '', tier: RESOURCE_META[res]?.tier ?? 0, color: RESOURCE_META[res]?.color ?? '#888' };
         existing.production += o.amount * b.level * b.efficiency;
         flowMap.set(res, existing);
       });
@@ -509,7 +1371,7 @@ export function TransportPanel() {
       def.inputs.forEach(i => {
         if (i.resource === 'money') return;
         const res = i.resource as ResourceType;
-        const existing = flowMap.get(res) ?? { production: 0, consumption: 0, surplus: 0, name: RESOURCE_META[res]?.name ?? res, emoji: RESOURCE_META[res]?.emoji ?? '', tier: RESOURCE_META[res]?.tier ?? 0, color: RESOURCE_META[res]?.color ?? '#888' };
+        const existing = flowMap.get(res) ?? { production: 0, consumption: 0, surplus: 0, name: RESOURCE_META[res]?.name ?? res, icon: RESOURCE_META[res]?.icon ?? '', tier: RESOURCE_META[res]?.tier ?? 0, color: RESOURCE_META[res]?.color ?? '#888' };
         existing.consumption += i.amount * b.level * b.efficiency;
         flowMap.set(res, existing);
       });
@@ -537,67 +1399,83 @@ export function TransportPanel() {
       .filter(t => t.count > 0);
   }, [store.transportLines]);
 
-  // --- Enhanced Route Diagram Nodes (organized by tier) ---
-  const routeDiagram = useMemo(() => {
-    const connectedBuildingIds = new Set<string>();
+  // --- ERD Nodes (auto-generate from buildings connected to transport) ---
+  const erdNodes = useMemo(() => {
+    const connectedIds = new Set<string>();
     store.transportLines.forEach(l => {
-      connectedBuildingIds.add(l.fromBuilding);
-      connectedBuildingIds.add(l.toBuilding);
+      connectedIds.add(l.fromBuilding);
+      connectedIds.add(l.toBuilding);
     });
 
-    const connectedBuildings = store.buildings.filter(b => connectedBuildingIds.has(b.id));
-    if (connectedBuildings.length === 0) return { nodes: [], width: 300, height: 200 };
-
-    // Group by tier
-    const tierGroups = new Map<number, BuildingInstance[]>();
-    connectedBuildings.forEach(b => {
-      const tier = getBuildingTier(b);
-      if (!tierGroups.has(tier)) tierGroups.set(tier, []);
-      tierGroups.get(tier)!.push(b);
-    });
-
-    const sortedTiers = Array.from(tierGroups.entries()).sort((a, b) => a[0] - b[0]);
-    const nodeW = 48;
-    const nodeH = 48;
-    const colGap = 140;
-    const rowGap = 68;
-    const padX = 40;
-    const padY = 40;
-
-    const nodes: { id: string; emoji: string; name: string; x: number; y: number; tier: number }[] = [];
-    sortedTiers.forEach(([, buildings], colIdx) => {
-      buildings.forEach((b, rowIdx) => {
+    return store.buildings
+      .filter(b => connectedIds.has(b.id))
+      .map(b => {
         const def = BUILDING_DEFS[b.type];
-        if (!def) return;
-        nodes.push({
+        if (!def) return null;
+        const nodeType: ERDNode['type'] = (def.category === 'extractor' || def.category === 'factory' || def.category === 'power' || def.category === 'storage')
+          ? def.category
+          : 'hub';
+        return {
           id: b.id,
-          emoji: def.emoji,
-          name: def.name,
-          x: padX + colIdx * colGap,
-          y: padY + rowIdx * rowGap,
+          type: nodeType,
+          label: def.name,
+          buildingType: b.type,
           tier: getBuildingTier(b),
+          icon: def.icon,
+          inputs: def.inputs?.filter(i => i.resource !== 'money').map(i => i.resource as string) ?? [],
+          outputs: def.outputs?.filter(o => o.resource !== 'money').map(o => o.resource as string) ?? [],
+          active: b.active,
+          level: b.level,
+        } as ERDNode;
+      })
+      .filter(Boolean) as ERDNode[];
+  }, [store.buildings, store.transportLines]);
+
+  // --- ERD Relations (auto-generate from transport lines, grouped by from->to) ---
+  const erdRelations = useMemo(() => {
+    const relMap = new Map<string, ERDRelation>();
+
+    store.transportLines.forEach(line => {
+      const key = `${line.fromBuilding}->${line.toBuilding}`;
+      if (!relMap.has(key)) {
+        relMap.set(key, {
+          id: key,
+          fromId: line.fromBuilding,
+          toId: line.toBuilding,
+          resources: [],
+          totalThroughput: 0,
+          active: false,
+          lineCount: 0,
         });
-      });
+      }
+      const rel = relMap.get(key)!;
+      rel.lineCount += 1;
+      rel.totalThroughput += line.throughput;
+      if (line.active) rel.active = true;
+
+      const existingRes = rel.resources.find(r => r.resource === line.carriesResource);
+      if (existingRes) {
+        existingRes.throughput += line.throughput;
+        existingRes.maxThroughput += line.maxThroughput;
+      } else {
+        rel.resources.push({ resource: line.carriesResource, throughput: line.throughput, maxThroughput: line.maxThroughput });
+      }
     });
 
-    const maxCol = sortedTiers.length - 1;
-    const maxRowsInCol = Math.max(...sortedTiers.map(([, b]) => b.length));
-    const width = Math.max(300, padX * 2 + maxCol * colGap + nodeW);
-    const height = Math.max(200, padY * 2 + (maxRowsInCol - 1) * rowGap + nodeH);
-
-    return { nodes, width, height };
-  }, [store.buildings, store.transportLines]);
+    return Array.from(relMap.values());
+  }, [store.transportLines]);
 
   // --- Weather Effects ---
   const weatherDef = WEATHER_DEFS[store.weather.current];
 
   // --- Bulk Operations ---
   const handleUpgradeAllType = useCallback((type: TransportType) => {
-    store.upgradeTransportLinesByType(type);
-  }, [store]);
-
-  const handleUpgradeAll = useCallback(() => {
-    store.upgradeAllTransportLines();
+    store.transportLines.filter(l => l.type === type).forEach(l => {
+      const cost = getUpgradeCost(l);
+      if (store.money >= cost) {
+        store.upgradeTransportLine(l.id);
+      }
+    });
   }, [store]);
 
   const handleActivateAll = useCallback(() => {
@@ -607,37 +1485,6 @@ export function TransportPanel() {
   const handleDeactivateAll = useCallback(() => {
     store.transportLines.filter(l => l.active).forEach(l => store.toggleTransportLine(l.id));
   }, [store]);
-
-  // --- Bulk upgrade cost computation ---
-  const bulkUpgradeData = useMemo(() => {
-    let totalCost = 0;
-    let upgradeableCount = 0;
-    for (const line of store.transportLines) {
-      const cost = getUpgradeCost(line);
-      if (store.money >= totalCost + cost) {
-        totalCost += cost;
-        upgradeableCount++;
-      }
-    }
-    return { totalCost, upgradeableCount };
-  }, [store.transportLines, store.money]);
-
-  const bulkUpgradeByTypeData = useMemo(() => {
-    const data: Record<string, { count: number; totalCost: number; upgradeableCount: number }> = {};
-    for (const type of TRANSPORT_TYPES) {
-      const lines = store.transportLines.filter(l => l.type === type);
-      if (lines.length === 0) continue;
-      let totalCost = 0;
-      let upgradeableCount = 0;
-      for (const line of lines) {
-        const cost = getUpgradeCost(line);
-        totalCost += cost;
-        if (store.money >= cost) upgradeableCount++;
-      }
-      data[type] = { count: lines.length, totalCost, upgradeableCount };
-    }
-    return data;
-  }, [store.transportLines, store.money]);
 
   const toggleSection = useCallback((key: string) => {
     setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }));
@@ -652,7 +1499,7 @@ export function TransportPanel() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h2 className="text-xl font-bold text-cyan-400 tracking-wide" style={{ textShadow: '0 0 10px rgba(34,211,238,0.3)' }}>
+          <h2 className="text-xl font-bold text-cyan-400 tracking-wide neon-glow-cyan">
             Transport & Logistics
           </h2>
           <p className="text-xs text-gray-500 mt-0.5">Manage supply chains and logistics networks</p>
@@ -660,7 +1507,7 @@ export function TransportPanel() {
         <div className="flex items-center gap-2 flex-wrap">
           {/* Weather Indicator */}
           <Badge variant="outline" className="border-amber-800/50 text-amber-400 bg-amber-900/10 text-[10px]">
-            <span className="mr-1">{weatherDef.emoji}</span>
+            <GameIcon icon={weatherDef.icon} size={14} className="inline-flex mr-1" />
             {weatherDef.name}
           </Badge>
           <Badge variant="outline" className="border-cyan-800/50 text-cyan-400 bg-cyan-900/10 text-xs">
@@ -675,9 +1522,9 @@ export function TransportPanel() {
       </div>
 
       {/* Network Health Gauge + Quick Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
         {/* Network Health - Large gauge */}
-        <div className="game-card rounded-xl bg-[#111827] p-3 border border-cyan-900/30 col-span-2 sm:col-span-1 flex flex-col items-center justify-center relative overflow-hidden">
+        <div className="game-card rounded-xl bg-card p-3 border border-cyan-900/30 col-span-2 sm:col-span-1 flex flex-col items-center justify-center relative overflow-hidden">
           <div className="absolute inset-0 opacity-[0.03]" style={{ background: 'radial-gradient(ellipse at 50% 50%, #22d3ee, transparent 70%)' }} />
           <div className="relative z-10 flex flex-col items-center">
             <div className="text-[10px] text-gray-500 mb-1">Network Health</div>
@@ -701,27 +1548,137 @@ export function TransportPanel() {
             </div>
           </div>
         </div>
-        <div className="game-card rounded-xl bg-[#111827] p-3 border border-cyan-900/30 relative overflow-hidden">
-          <div className="absolute inset-0 opacity-[0.03]" style={{ background: 'radial-gradient(ellipse at 30% 50%, #22d3ee, transparent 70%)' }} />
-          <div className="relative z-10">
-            <div className="text-[10px] text-gray-500 mb-1">Active Lines</div>
-            <div className="text-lg font-bold font-mono text-cyan-400">{activeLines.length}<span className="text-xs text-gray-500">/{store.transportLines.length}</span></div>
-          </div>
+        <PanelStatCard
+          icon={<Route className="w-4 h-4" />}
+          label="Active Lines"
+          value={`${activeLines.length}/${store.transportLines.length}`}
+          subtext="Transport routes"
+          color="cyan"
+          trend={activeLines.length > 0 ? 'up' : 'neutral'}
+        />
+        <PanelStatCard
+          icon={<Gauge className="w-4 h-4" />}
+          label="Throughput"
+          value={formatNumber(totalThroughput)}
+          subtext={`Max: ${formatNumber(totalMaxThroughput)}`}
+          color="teal"
+          trend={totalThroughput > 0 ? 'up' : 'neutral'}
+        />
+        <PanelStatCard
+          icon={<AlertTriangle className="w-4 h-4" />}
+          label="Bottlenecks"
+          value={bottlenecks.length.toString()}
+          subtext={bottlenecks.length === 0 ? 'All clear' : 'Issues found'}
+          color={bottlenecks.length > 0 ? 'red' : 'green'}
+          trend={bottlenecks.length > 0 ? 'down' : 'neutral'}
+        />
+      </div>
+
+      {/* Network Graph — Full Width */}
+      <div className="game-card rounded-xl bg-card p-4 border border-border">
+        <div className="flex items-center gap-2 mb-3">
+          <Database className="w-4 h-4 text-cyan-400" />
+          <h3 className="text-sm font-semibold text-cyan-400">Network Graph</h3>
+          <span className="text-[10px] text-gray-500 ml-auto">
+            {erdNodes.length} nodes · {erdRelations.length} edges · click node to reveal connections · scroll to zoom · drag to pan
+          </span>
         </div>
-        <div className="game-card rounded-xl bg-[#111827] p-3 border border-teal-900/30 relative overflow-hidden">
-          <div className="absolute inset-0 opacity-[0.03]" style={{ background: 'radial-gradient(ellipse at 30% 50%, #2dd4bf, transparent 70%)' }} />
-          <div className="relative z-10">
-            <div className="text-[10px] text-gray-500 mb-1">Throughput</div>
-            <div className="text-lg font-bold font-mono text-teal-400">{formatNumber(totalThroughput)}<span className="text-[10px] text-gray-500">/{formatNumber(totalMaxThroughput)}</span></div>
+        {store.transportLines.length === 0 ? (
+          <div className="text-center py-8 border border-dashed border-gray-800 rounded-lg">
+            <Database className="w-10 h-10 text-gray-700 mx-auto mb-2" />
+            <p className="text-xs text-gray-500">No network connections yet</p>
+            <p className="text-[10px] text-gray-600 mt-1">Build transport lines to see the auto-generated network</p>
           </div>
-        </div>
-        <div className="game-card rounded-xl bg-[#111827] p-3 border border-red-900/30 relative overflow-hidden">
-          <div className="absolute inset-0 opacity-[0.03]" style={{ background: 'radial-gradient(ellipse at 30% 50%, #ef4444, transparent 70%)' }} />
-          <div className="relative z-10">
-            <div className="text-[10px] text-gray-500 mb-1">Bottlenecks</div>
-            <div className={`text-lg font-bold font-mono ${bottlenecks.length > 0 ? 'text-red-400' : 'text-green-400'}`}>
-              {bottlenecks.length}
+        ) : (
+          <NetworkGraph nodes={erdNodes} relations={erdRelations} />
+        )}
+      </div>
+
+      {/* Weather & Production Chain — Below Graph */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Weather Effects */}
+        <div className="game-card rounded-xl bg-card p-4 border border-amber-900/30">
+          <div className="flex items-center gap-2 mb-3">
+            <Cloud className="w-4 h-4 text-amber-400" />
+            <h3 className="text-sm font-semibold text-amber-400">Weather Effects</h3>
+          </div>
+          <div className="bg-[#0a0e17] rounded-lg p-3 border border-amber-900/20">
+            <div className="flex items-center gap-2 mb-2">
+              <GameIcon icon={weatherDef.icon} size={24} />
+              <div>
+                <div className="text-xs text-gray-200 font-medium">{weatherDef.name}</div>
+                <div className="text-[10px] text-gray-500">Intensity: {(store.weather.intensity * 100).toFixed(0)}%</div>
+              </div>
             </div>
+            <p className="text-[10px] text-gray-400 mb-2">{weatherDef.description}</p>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div>
+                <div className="text-[9px] text-gray-500">Production</div>
+                <div className={`text-[11px] font-mono font-bold ${weatherDef.productionMultiplier >= 1 ? 'text-green-400' : weatherDef.productionMultiplier > 0.85 ? 'text-yellow-400' : 'text-red-400'}`}>
+                  {(weatherDef.productionMultiplier * 100).toFixed(0)}%
+                </div>
+              </div>
+              <div>
+                <div className="text-[9px] text-gray-500">Solar</div>
+                <div className={`text-[11px] font-mono font-bold ${weatherDef.solarMultiplier >= 1 ? 'text-green-400' : weatherDef.solarMultiplier > 0.5 ? 'text-yellow-400' : 'text-red-400'}`}>
+                  {(weatherDef.solarMultiplier * 100).toFixed(0)}%
+                </div>
+              </div>
+              <div>
+                <div className="text-[9px] text-gray-500">Wind</div>
+                <div className={`text-[11px] font-mono font-bold ${weatherDef.windMultiplier >= 1 ? 'text-green-400' : weatherDef.windMultiplier > 0.5 ? 'text-yellow-400' : 'text-red-400'}`}>
+                  {(weatherDef.windMultiplier * 100).toFixed(0)}%
+                </div>
+              </div>
+            </div>
+            {store.weather.current !== 'clear' && (
+              <div className="mt-2 text-[10px] text-gray-500">
+                Changes in {store.weather.remaining} ticks
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Production Chain Overview */}
+        <div className="game-card rounded-xl bg-card p-4 border border-border">
+          <div className="flex items-center gap-2 mb-3">
+            <Link2 className="w-4 h-4 text-cyan-400" />
+            <h3 className="text-sm font-semibold text-cyan-400">Production Chain</h3>
+            <span className="text-[10px] text-gray-500 ml-auto">{productionChain.completeness.toFixed(0)}% connected</span>
+          </div>
+          {/* Completeness bar */}
+          <div className="h-2 bg-gray-800 rounded-full overflow-hidden mb-3">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-cyan-700 to-cyan-400 transition-all duration-700"
+              style={{ width: `${Math.min(100, productionChain.completeness)}%` }}
+            />
+          </div>
+          <div className="space-y-2 max-h-48 overflow-y-auto game-scrollbar">
+            {productionChain.tiers.map(tier => {
+              const tc = TIER_COLORS[tier.tier] ?? TIER_COLORS[0];
+              return (
+                <div key={tier.tier} className="bg-[#0a0e17] rounded-lg p-2 border border-gray-800/50">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Badge variant="outline" className={`text-[9px] px-1.5 ${tc.text} border-current`}>
+                      {tc.label}
+                    </Badge>
+                    <span className="text-[10px] text-gray-400">{tier.buildings.filter(b => b.connected).length}/{tier.buildings.length} connected</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1">
+                    {tier.buildings.map(b => (
+                      <div key={b.id} className="flex items-center gap-1 text-[10px]">
+                        {b.connected ? (
+                          <CheckCircle2 className="w-3 h-3 text-green-400 flex-shrink-0" />
+                        ) : (
+                          <XCircle className="w-3 h-3 text-red-400 flex-shrink-0" />
+                        )}
+                        <span className="truncate"><GameIcon icon={b.icon} size={14} className="inline-flex" /> {b.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -731,82 +1688,8 @@ export function TransportPanel() {
         {/* LEFT COLUMN */}
         <div className="lg:col-span-2 space-y-4">
 
-          {/* Route Diagram */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
-            <div className="flex items-center gap-2 mb-3">
-              <Network className="w-4 h-4 text-cyan-400" />
-              <h3 className="text-sm font-semibold text-cyan-400">Route Diagram</h3>
-              <span className="text-[10px] text-gray-500 ml-auto">{store.transportLines.length} connections</span>
-            </div>
-            {store.transportLines.length === 0 ? (
-              <div className="text-center py-8 border border-dashed border-gray-800 rounded-lg">
-                <Route className="w-10 h-10 text-gray-700 mx-auto mb-2" />
-                <p className="text-xs text-gray-500">No routes built yet</p>
-                <p className="text-[10px] text-gray-600 mt-1">Build transport lines to see them visualized here</p>
-              </div>
-            ) : (
-              <div className="bg-[#0a0e17] rounded-lg p-2 overflow-x-auto game-scrollbar">
-                <svg
-                  width={routeDiagram.width}
-                  height={routeDiagram.height}
-                  className="w-full"
-                  style={{ minWidth: '300px' }}
-                >
-                  {/* Grid lines */}
-                  {Array.from({ length: Math.ceil(routeDiagram.height / 68) }).map((_, i) => (
-                    <line key={`grid-h-${i}`} x1="0" y1={40 + i * 68} x2={routeDiagram.width} y2={40 + i * 68} stroke="#1e293b" strokeWidth="0.5" strokeDasharray="4 8" />
-                  ))}
-                  {/* Transport connections */}
-                  {store.transportLines.map(line => {
-                    const fromNode = routeDiagram.nodes.find(n => n.id === line.fromBuilding);
-                    const toNode = routeDiagram.nodes.find(n => n.id === line.toBuilding);
-                    if (!fromNode || !toNode) return null;
-                    const util = line.throughput / line.maxThroughput;
-                    const lineColor = !line.active ? '#374151' : util > 0.8 ? '#ef4444' : util > 0.5 ? '#eab308' : '#22d3ee';
-                    const cx1 = fromNode.x + 24;
-                    const cy1 = fromNode.y + 24;
-                    const cx2 = toNode.x + 24;
-                    const cy2 = toNode.y + 24;
-                    return (
-                      <g key={line.id}>
-                        <line x1={cx1} y1={cy1} x2={cx2} y2={cy2} stroke={lineColor} strokeWidth={2} strokeDasharray={line.active ? 'none' : '4 4'} opacity={line.active ? 0.7 : 0.3} />
-                        {line.active && (
-                          <circle r="3" fill={lineColor}>
-                            <animateMotion dur="2s" repeatCount="indefinite" path={`M${cx1},${cy1} L${cx2},${cy2}`} />
-                          </circle>
-                        )}
-                        <text
-                          x={(cx1 + cx2) / 2}
-                          y={(cy1 + cy2) / 2 - 8}
-                          textAnchor="middle"
-                          fontSize="10"
-                          opacity={line.active ? 0.8 : 0.3}
-                        >
-                          {RESOURCE_META[line.carriesResource]?.emoji || ''}
-                        </text>
-                      </g>
-                    );
-                  })}
-                  {/* Building nodes */}
-                  {routeDiagram.nodes.map(node => {
-                    const tc = TIER_COLORS[node.tier] ?? TIER_COLORS[0];
-                    return (
-                      <g key={node.id}>
-                        <rect x={node.x} y={node.y} width={48} height={48} rx={6} fill={tc.fill} stroke={tc.stroke} strokeWidth={1.5} />
-                        <text x={node.x + 24} y={node.y + 30} textAnchor="middle" fontSize="18">{node.emoji}</text>
-                        <text x={node.x + 24} y={node.y + 58} textAnchor="middle" fontSize="7" fill="#9ca3af">
-                          {node.name.length > 12 ? node.name.slice(0, 11) + '…' : node.name}
-                        </text>
-                      </g>
-                    );
-                  })}
-                </svg>
-              </div>
-            )}
-          </div>
-
           {/* Smart Route Builder */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
               <Truck className="w-4 h-4 text-cyan-400" />
               <h3 className="text-sm font-semibold text-cyan-400">Smart Route Builder</h3>
@@ -818,12 +1701,11 @@ export function TransportPanel() {
                 const def = TRANSPORT_DEFS[type];
                 const isSelected = selectedType === type;
                 const cost = getTransportCost(type);
-                const isRecommended = previewData?.recommendedType === type;
                 return (
                   <GameItemTooltip
                     key={type}
                     name={def.name}
-                    emoji={def.emoji}
+                    icon={def.icon}
                     description={def.description}
                     category="Transport"
                     details={[
@@ -835,39 +1717,20 @@ export function TransportPanel() {
                   >
                     <button
                       onClick={() => setSelectedType(type)}
-                      className={`p-2 rounded-lg border text-center transition-all w-full relative ${
+                      className={`p-2 rounded-lg border text-center w-full ${
                         isSelected
                           ? 'border-cyan-500/50 bg-cyan-900/20 text-cyan-400'
-                          : isRecommended
-                            ? 'border-green-500/50 bg-green-900/10 text-green-400'
-                            : 'border-gray-800 bg-[#0a0e17] text-gray-400 hover:border-gray-600'
+                          : 'border-gray-800 bg-[#0a0e17] text-gray-400 hover:border-gray-600'
                       }`}
                     >
-                      {isRecommended && !isSelected && (
-                        <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full text-[7px] text-white flex items-center justify-center font-bold">✓</span>
-                      )}
-                      <div className="text-lg">{def.emoji}</div>
+                      <GameIcon icon={def.icon} size={20} />
                       <div className="text-[10px] font-medium mt-0.5">{def.name}</div>
                       <div className="text-[9px] text-gray-500">${formatNumber(cost)}</div>
-                      <div className="text-[8px] text-gray-600">{def.baseThroughput} u/t</div>
                     </button>
                   </GameItemTooltip>
                 );
               })}
             </div>
-            {previewData && !previewData.isRecommended && (
-              <div className="flex items-center gap-2 mb-3 bg-green-900/10 border border-green-500/20 rounded-lg px-3 py-1.5 text-[10px]">
-                <Lightbulb className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
-                <span className="text-green-400">Recommended: </span>
-                <button
-                  className="text-green-300 font-bold hover:text-green-200 underline"
-                  onClick={() => setSelectedType(previewData.recommendedType)}
-                >
-                  {TRANSPORT_DEFS[previewData.recommendedType].emoji} {TRANSPORT_DEFS[previewData.recommendedType].name}
-                </button>
-                <span className="text-gray-500">(${TRANSPORT_DEFS[previewData.recommendedType].baseThroughput} u/t)</span>
-              </div>
-            )}
 
             {/* Route Configuration - Smart Filtering */}
             <div className="space-y-3">
@@ -883,7 +1746,7 @@ export function TransportPanel() {
                     <option value="">Select source...</option>
                     {producingBuildings.map(b => (
                       <option key={b.id} value={b.id}>
-                        {BUILDING_DEFS[b.type]?.emoji} {BUILDING_DEFS[b.type]?.name} Lv.{b.level}
+                        {BUILDING_DEFS[b.type]?.name} Lv.{b.level}
                       </option>
                     ))}
                   </select>
@@ -900,7 +1763,7 @@ export function TransportPanel() {
                     {!fromBuilding && <option value="">Select source first...</option>}
                     {fromBuildingOutputs.map(r => (
                       <option key={r} value={r}>
-                        {RESOURCE_META[r]?.emoji} {RESOURCE_META[r]?.name}
+                        {RESOURCE_META[r]?.name}
                       </option>
                     ))}
                   </select>
@@ -918,7 +1781,7 @@ export function TransportPanel() {
                     {carriesResource && <option value="">Select destination...</option>}
                     {filteredToBuildings.map(b => (
                       <option key={b.id} value={b.id}>
-                        {BUILDING_DEFS[b.type]?.emoji} {BUILDING_DEFS[b.type]?.name} Lv.{b.level}
+                        {BUILDING_DEFS[b.type]?.name} Lv.{b.level}
                       </option>
                     ))}
                   </select>
@@ -927,20 +1790,18 @@ export function TransportPanel() {
 
               {/* Live Preview */}
               {previewData && (
-                <motion.div
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
+                <div
                   className="bg-[#0a0e17] rounded-lg p-3 border border-cyan-900/30"
                 >
                   <div className="text-[10px] text-cyan-400 font-semibold mb-2">ROUTE PREVIEW</div>
                   <div className="flex items-center gap-2 mb-2 text-xs">
-                    <span>{previewData.fromDef?.emoji}</span>
+                    <GameIcon icon={previewData.fromDef?.icon} size={16} />
                     <span className="text-gray-300">{previewData.fromDef?.name}</span>
                     <ArrowRight className="w-3 h-3 text-cyan-400" />
-                    <span>{RESOURCE_META[carriesResource as ResourceType]?.emoji}</span>
+                    <GameIcon icon={RESOURCE_META[carriesResource as ResourceType]?.icon} size={16} />
                     <span className="text-gray-300">{RESOURCE_META[carriesResource as ResourceType]?.name}</span>
                     <ArrowRight className="w-3 h-3 text-cyan-400" />
-                    <span>{previewData.toDef?.emoji}</span>
+                    <GameIcon icon={previewData.toDef?.icon} size={16} />
                     <span className="text-gray-300">{previewData.toDef?.name}</span>
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
@@ -954,10 +1815,10 @@ export function TransportPanel() {
                     </div>
                     <div>
                       <span className="text-gray-500">Transport</span>
-                      <div className="text-cyan-400 font-mono font-bold">{TRANSPORT_DEFS[selectedType].emoji} {TRANSPORT_DEFS[selectedType].name}</div>
+                      <div className="text-cyan-400 font-mono font-bold"><GameIcon icon={TRANSPORT_DEFS[selectedType].icon} size={14} className="inline-flex" /> {TRANSPORT_DEFS[selectedType].name}</div>
                     </div>
                   </div>
-                </motion.div>
+                </div>
               )}
 
               {/* Build Button */}
@@ -973,162 +1834,8 @@ export function TransportPanel() {
             </div>
           </div>
 
-          {/* Logistics Evolution Tree */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-purple-900/30">
-            <div className="flex items-center gap-2 mb-3">
-              <Dna className="w-4 h-4 text-purple-400" />
-              <h3 className="text-sm font-semibold text-purple-400">Logistics Evolution</h3>
-              <span className="text-[10px] text-gray-500">conveyor → pipe → truck → cargo → drone → ship</span>
-            </div>
-
-            {/* Evolution chain visualization */}
-            <div className="flex items-center gap-0 overflow-x-auto pb-2 game-scrollbar">
-              {TRANSPORT_EVOLUTION_CHAIN.map((type, idx) => {
-                const def = TRANSPORT_DEFS[type];
-                const meta = TRANSPORT_EVOLUTION_META[type];
-                const linesOfType = store.transportLines.filter(l => l.type === type);
-                const activeLinesOfType = linesOfType.filter(l => l.active);
-                const throughput = activeLinesOfType.reduce((s, l) => s + l.throughput, 0);
-                const isUnlocked = linesOfType.length > 0;
-                const canEvolve = def.evolvesTo && linesOfType.length > 0;
-                const nextDef = def.evolvesTo ? TRANSPORT_DEFS[def.evolvesTo] : null;
-                const totalEvolutionCost = canEvolve
-                  ? linesOfType.reduce((s, l) => s + Math.floor(def.evolutionCost * Math.pow(1.3, l.level - 1)), 0)
-                  : 0;
-                const affordableEvolveCount = canEvolve
-                  ? (() => {
-                      let cost = 0;
-                      let count = 0;
-                      for (const line of linesOfType) {
-                        const c = Math.floor(def.evolutionCost * Math.pow(1.3, line.level - 1));
-                        if (store.money >= cost + c) { cost += c; count++; }
-                      }
-                      return count;
-                    })()
-                  : 0;
-
-                return (
-                  <div key={type} className="flex items-center flex-shrink-0">
-                    {/* Transport Type Node */}
-                    <div className={`relative rounded-xl border p-3 min-w-[120px] transition-all ${
-                      isUnlocked
-                        ? 'border-purple-500/30 bg-purple-900/10'
-                        : 'border-gray-800 bg-gray-900/30 opacity-50'
-                    }`}>
-                      {/* Tier badge */}
-                      <div
-                        className="absolute -top-2 -left-1 px-1.5 py-0 rounded-full text-[8px] font-bold"
-                        style={{ backgroundColor: meta.tierColor + '30', color: meta.tierColor, border: `1px solid ${meta.tierColor}50` }}
-                      >
-                        {meta.tierName}
-                      </div>
-
-                      <div className="text-center mt-1">
-                        <div className="text-2xl mb-1">{def.emoji}</div>
-                        <div className="text-[10px] font-bold text-gray-300 truncate">{def.name}</div>
-                        <div className="text-[9px] text-gray-500 mt-0.5">{def.baseThroughput} u/t</div>
-
-                        {isUnlocked ? (
-                          <div className="mt-2 space-y-1">
-                            <div className="text-[9px] text-gray-400">
-                              <span className="text-purple-400 font-mono">{linesOfType.length}</span> line{linesOfType.length !== 1 ? 's' : ''}
-                            </div>
-                            <div className="text-[9px] text-gray-400">
-                              <span className="text-cyan-400 font-mono">{formatNumber(throughput)}</span> u/t active
-                            </div>
-                            {/* Evolve button for this type */}
-                            {canEvolve && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-5 text-[8px] px-1.5 border-purple-500/40 text-purple-300 hover:bg-purple-900/30 mt-1 w-full"
-                                onClick={() => store.evolveTransportLinesByType(type)}
-                                disabled={affordableEvolveCount === 0}
-                                title={`Evolve all ${def.name} → ${nextDef?.name} (${affordableEvolveCount}/${linesOfType.length} affordable — $${formatNumber(totalEvolutionCost)})`}
-                              >
-                                <Dna className="w-2.5 h-2.5 mr-0.5" />
-                                → {nextDef?.emoji} {affordableEvolveCount}/{linesOfType.length}
-                              </Button>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="mt-2 text-[9px] text-gray-600">No lines built</div>
-                        )}
-
-                        {/* Evolution bonus tooltip */}
-                        {def.evolutionBonus && isUnlocked && (
-                          <div className="mt-1 text-[8px] text-gray-600 italic truncate" title={def.evolutionBonus}>
-                            {def.evolutionBonus}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Arrow connector between nodes */}
-                    {idx < TRANSPORT_EVOLUTION_CHAIN.length - 1 && (
-                      <div className="flex items-center px-1 flex-shrink-0">
-                        <div className="flex items-center gap-0.5">
-                          <div className="w-3 h-[2px] bg-gradient-to-r from-purple-500/40 to-purple-500/20" />
-                          <ArrowUpRight className="w-3 h-3 text-purple-500/40" />
-                          <div className="w-3 h-[2px] bg-gradient-to-r from-purple-500/20 to-purple-500/40" />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Evolution stats */}
-            <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <div className="bg-[#0a0e17] rounded-lg p-2 text-center border border-purple-900/20">
-                <div className="text-[9px] text-gray-500">Evolution Tier</div>
-                <div className="text-sm font-bold font-mono text-purple-400">
-                  {store.transportLines.length > 0
-                    ? Math.max(...store.transportLines.map(l => TRANSPORT_DEFS[l.type]?.evolutionTier ?? 0))
-                    : 0
-                  }/5
-                </div>
-              </div>
-              <div className="bg-[#0a0e17] rounded-lg p-2 text-center border border-purple-900/20">
-                <div className="text-[9px] text-gray-500">Evolvable Lines</div>
-                <div className="text-sm font-bold font-mono text-cyan-400">
-                  {store.transportLines.filter(l => TRANSPORT_DEFS[l.type]?.evolvesTo).length}
-                </div>
-              </div>
-              <div className="bg-[#0a0e17] rounded-lg p-2 text-center border border-purple-900/20">
-                <div className="text-[9px] text-gray-500">Max Tier Lines</div>
-                <div className="text-sm font-bold font-mono text-yellow-400">
-                  {store.transportLines.filter(l => l.type === 'cargoShip').length}
-                </div>
-              </div>
-              <div className="bg-[#0a0e17] rounded-lg p-2 text-center border border-purple-900/20">
-                <div className="text-[9px] text-gray-500">Total Evolution Cost</div>
-                <div className="text-sm font-bold font-mono text-green-400">
-                  ${formatNumber(store.transportLines
-                    .filter(l => TRANSPORT_DEFS[l.type]?.evolvesTo)
-                    .reduce((s, l) => s + Math.floor((TRANSPORT_DEFS[l.type]?.evolutionCost ?? 0) * Math.pow(1.3, l.level - 1)), 0)
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Evolve All button */}
-            {store.transportLines.some(l => TRANSPORT_DEFS[l.type]?.evolvesTo) && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full h-8 text-xs mt-3 border-purple-500/40 text-purple-300 hover:bg-purple-900/20"
-                onClick={() => store.evolveAllTransportLines()}
-              >
-                <Dna className="w-3.5 h-3.5 mr-1.5" />
-                Evolve All Lines to Next Tier
-              </Button>
-            )}
-          </div>
-
           {/* Active Transport Lines */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
               <Route className="w-4 h-4 text-cyan-400" />
               <h3 className="text-sm font-semibold text-cyan-400">Transport Lines</h3>
@@ -1137,9 +1844,9 @@ export function TransportPanel() {
                 {expandedSections.lines ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
               </button>
             </div>
-            <AnimatePresence>
+            <>
               {expandedSections.lines && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+                <div>
                   {store.transportLines.length === 0 ? (
                     <div className="text-center py-8">
                       <Truck className="w-10 h-10 text-gray-700 mx-auto mb-2" />
@@ -1156,25 +1863,22 @@ export function TransportPanel() {
                         const toDef = toB ? BUILDING_DEFS[toB.type] : null;
                         const upgradeCost = getUpgradeCost(line);
                         const throughputPct = line.maxThroughput > 0 ? (line.throughput / line.maxThroughput) * 100 : 0;
-                        const nextType = getNextUpgradeType(line.type);
-                        const typeUpgradeCost = nextType ? getTypeUpgradeCost(line, nextType) : null;
-                        const showTypeUpgrade = upgradingLineId === line.id;
 
                         return (
-                          <div key={line.id} className={`bg-[#0a0e17] rounded-lg p-3 border transition-all ${line.active ? 'border-cyan-900/30 hover:border-cyan-800/50' : 'border-gray-800 opacity-60'}`}>
+                          <div key={line.id} className={`bg-[#0a0e17] rounded-lg p-3 border ${line.active ? 'border-cyan-900/30 hover:border-cyan-800/50' : 'border-gray-800 opacity-60'}`}>
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-1.5 flex-1 min-w-0">
                                 <div className="flex items-center gap-1 bg-gray-800/50 rounded px-1.5 py-0.5 min-w-0">
-                                  <span className="text-xs">{fromDef?.emoji}</span>
+                                  <GameIcon icon={fromDef?.icon} size={12} />
                                   <span className="text-[10px] text-gray-300 truncate max-w-[70px]">{fromDef?.name}</span>
                                 </div>
                                 <div className="flex items-center gap-0.5 flex-shrink-0">
                                   <ArrowRight className="w-3 h-3 text-gray-600" />
-                                  <span className="text-xs">{RESOURCE_META[line.carriesResource]?.emoji}</span>
+                                  <GameIcon icon={RESOURCE_META[line.carriesResource]?.icon} size={12} />
                                   <ArrowRight className="w-3 h-3 text-cyan-400" />
                                 </div>
                                 <div className="flex items-center gap-1 bg-gray-800/50 rounded px-1.5 py-0.5 min-w-0">
-                                  <span className="text-xs">{toDef?.emoji}</span>
+                                  <GameIcon icon={toDef?.icon} size={12} />
                                   <span className="text-[10px] text-gray-300 truncate max-w-[70px]">{toDef?.name}</span>
                                 </div>
                               </div>
@@ -1192,14 +1896,14 @@ export function TransportPanel() {
                             </div>
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
-                                <span className="text-sm">{def.emoji}</span>
+                                <GameIcon icon={def.icon} size={14} className="inline-flex" />
                                 <Badge variant="outline" className="text-[9px] border-gray-700 text-gray-400 px-1">
                                   Lv.{line.level}
                                 </Badge>
                                 <span className="text-[9px] text-gray-500 font-mono">{line.throughput.toFixed(1)}/{line.maxThroughput.toFixed(1)}</span>
                                 <button
                                   onClick={() => store.toggleTransportLine(line.id)}
-                                  className={`w-5 h-5 rounded-full border text-[10px] flex items-center justify-center transition-colors ${
+                                  className={`w-5 h-5 rounded-full border text-[10px] flex items-center justify-center ${
                                     line.active ? 'border-green-500/50 text-green-400 bg-green-900/20 hover:bg-green-900/40' : 'border-gray-600 text-gray-500 hover:bg-gray-800'
                                   }`}
                                   title={line.active ? 'Deactivate' : 'Activate'}
@@ -1207,103 +1911,30 @@ export function TransportPanel() {
                                   <Power className="w-3 h-3" />
                                 </button>
                               </div>
-                              <div className="flex items-center gap-1">
-                                {/* Level Upgrade */}
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 text-[9px] px-2 text-cyan-400 hover:text-cyan-300"
-                                  onClick={() => store.upgradeTransportLine(line.id)}
-                                  disabled={store.money < upgradeCost}
-                                  title={`Upgrade to Lv.${line.level + 1} ($${formatNumber(upgradeCost)})`}
-                                >
-                                  <ChevronUp className="w-3 h-3 mr-0.5" />
-                                  ${formatNumber(upgradeCost)}
-                                </Button>
-                                {/* Type Upgrade toggle */}
-                                {nextType && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 text-[9px] px-1.5 text-purple-400 hover:text-purple-300"
-                                    onClick={() => setUpgradingLineId(showTypeUpgrade ? null : line.id)}
-                                    title="Upgrade transport type"
-                                  >
-                                    ➡️
-                                  </Button>
-                                )}
-                                {/* Evolve button (one-tier evolution) */}
-                                {def.evolvesTo && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 text-[9px] px-1.5 text-purple-400 hover:text-purple-300"
-                                    onClick={() => store.evolveTransportLine(line.id)}
-                                    disabled={store.money < Math.floor(def.evolutionCost * Math.pow(1.3, line.level - 1))}
-                                    title={`Evolve → ${TRANSPORT_DEFS[def.evolvesTo].name} ($${formatNumber(Math.floor(def.evolutionCost * Math.pow(1.3, line.level - 1)))})`}
-                                  >
-                                    <Dna className="w-3 h-3 mr-0.5" />
-                                    🧬
-                                  </Button>
-                                )}
-                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 text-[10px] px-2 text-cyan-400 hover:text-cyan-300"
+                                onClick={() => store.upgradeTransportLine(line.id)}
+                                disabled={store.money < upgradeCost}
+                              >
+                                <ChevronUp className="w-3 h-3 mr-0.5" />
+                                ${formatNumber(upgradeCost)}
+                              </Button>
                             </div>
-                            {/* Type upgrade panel */}
-                            <AnimatePresence>
-                              {showTypeUpgrade && (
-                                <motion.div
-                                  initial={{ opacity: 0, height: 0 }}
-                                  animate={{ opacity: 1, height: 'auto' }}
-                                  exit={{ opacity: 0, height: 0 }}
-                                  transition={{ duration: 0.15 }}
-                                  className="mt-2 pt-2 border-t border-gray-800"
-                                >
-                                  <div className="text-[9px] text-gray-500 mb-1.5">Upgrade Transport Type:</div>
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    {TYPE_HIERARCHY.filter(t => t !== line.type).map(newType => {
-                                      const newDef = TRANSPORT_DEFS[newType];
-                                      const cost = getTypeUpgradeCost(line, newType);
-                                      const canAfford = store.money >= cost;
-                                      const isNext = newType === nextType;
-                                      return (
-                                        <button
-                                          key={newType}
-                                          onClick={() => {
-                                            store.upgradeTransportType(line.id, newType);
-                                            setUpgradingLineId(null);
-                                          }}
-                                          disabled={!canAfford}
-                                          className={`flex items-center gap-1 px-2 py-1 rounded-md border text-[9px] transition-colors ${
-                                            isNext
-                                              ? 'border-purple-500/50 bg-purple-900/20 text-purple-400 hover:bg-purple-900/30'
-                                              : 'border-gray-700 bg-gray-800/30 text-gray-400 hover:bg-gray-800/50'
-                                          } ${!canAfford ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
-                                          title={`Upgrade to ${newDef.name} — $${formatNumber(cost)}`}
-                                        >
-                                          <span>{newDef.emoji}</span>
-                                          <span>{newDef.name}</span>
-                                          <span className="text-green-400 font-mono">${formatNumber(cost)}</span>
-                                          <span className="text-gray-600">{newDef.baseThroughput}u/t</span>
-                                        </button>
-                                      );
-                                    })}
-                                  </div>
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
                           </div>
                         );
                       })}
                     </div>
                   )}
-                </motion.div>
+                </div>
               )}
-            </AnimatePresence>
+            </>
           </div>
 
           {/* Throughput by Type */}
           {throughputByType.length > 0 && (
-            <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+            <div className="game-card rounded-xl bg-card p-4 border border-border">
               <div className="flex items-center gap-2 mb-3">
                 <BarChart3 className="w-4 h-4 text-cyan-400" />
                 <h3 className="text-sm font-semibold text-cyan-400">Throughput by Type</h3>
@@ -1311,17 +1942,15 @@ export function TransportPanel() {
                   {expandedSections.throughput ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                 </button>
               </div>
-              <AnimatePresence>
+              <>
                 {expandedSections.throughput && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+                  <div>
                     <div className="space-y-3">
-                      {throughputByType.map(({ type, def, count, throughput, capacity, utilization, totalUpgradeCost }) => {
-                        const bulkData = bulkUpgradeByTypeData[type];
-                        return (
+                      {throughputByType.map(({ type, def, count, throughput, capacity, utilization, totalUpgradeCost }) => (
                         <div key={type}>
                           <div className="flex items-center justify-between mb-1">
                             <div className="flex items-center gap-2">
-                              <span className="text-sm">{def.emoji}</span>
+                              <GameIcon icon={def.icon} size={14} className="inline-flex" />
                               <span className="text-xs text-gray-300">{def.name}</span>
                               <span className="text-[10px] text-gray-500">x{count}</span>
                             </div>
@@ -1337,11 +1966,11 @@ export function TransportPanel() {
                                 size="sm"
                                 className="h-5 text-[9px] px-1.5 text-purple-400 hover:text-purple-300"
                                 onClick={() => handleUpgradeAllType(type)}
-                                disabled={!bulkData || bulkData.upgradeableCount === 0}
-                                title={`Upgrade all ${def.name} lines (Lv+1, ${bulkData?.upgradeableCount ?? 0}/${count} affordable — $${formatNumber(bulkData?.totalCost ?? 0)})`}
+                                disabled={store.money < totalUpgradeCost}
+                                title={`Upgrade all ${def.name} lines ($${formatNumber(totalUpgradeCost)})`}
                               >
                                 <ChevronUp className="w-2.5 h-2.5 mr-0.5" />
-                                All ({bulkData?.upgradeableCount ?? 0})
+                                All
                               </Button>
                             </div>
                           </div>
@@ -1356,16 +1985,15 @@ export function TransportPanel() {
                             />
                           </div>
                         </div>
-                        );
-                      })}
+                      ))}
                       <div className="pt-2 border-t border-gray-800 flex items-center justify-between">
                         <span className="text-xs text-gray-400 font-medium">Total Network</span>
                         <span className="text-xs text-cyan-400 font-mono font-bold">{formatNumber(totalThroughput)}/{formatNumber(totalMaxThroughput)} u/t</span>
                       </div>
                     </div>
-                  </motion.div>
+                  </div>
                 )}
-              </AnimatePresence>
+              </>
             </div>
           )}
         </div>
@@ -1373,94 +2001,8 @@ export function TransportPanel() {
         {/* RIGHT SIDEBAR */}
         <div className="space-y-4">
 
-          {/* Weather Effects */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-amber-900/30">
-            <div className="flex items-center gap-2 mb-3">
-              <Cloud className="w-4 h-4 text-amber-400" />
-              <h3 className="text-sm font-semibold text-amber-400">Weather Effects</h3>
-            </div>
-            <div className="bg-[#0a0e17] rounded-lg p-3 border border-amber-900/20">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xl">{weatherDef.emoji}</span>
-                <div>
-                  <div className="text-xs text-gray-200 font-medium">{weatherDef.name}</div>
-                  <div className="text-[10px] text-gray-500">Intensity: {(store.weather.intensity * 100).toFixed(0)}%</div>
-                </div>
-              </div>
-              <p className="text-[10px] text-gray-400 mb-2">{weatherDef.description}</p>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div>
-                  <div className="text-[9px] text-gray-500">Production</div>
-                  <div className={`text-[11px] font-mono font-bold ${weatherDef.productionMultiplier >= 1 ? 'text-green-400' : weatherDef.productionMultiplier > 0.85 ? 'text-yellow-400' : 'text-red-400'}`}>
-                    {(weatherDef.productionMultiplier * 100).toFixed(0)}%
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[9px] text-gray-500">Solar</div>
-                  <div className={`text-[11px] font-mono font-bold ${weatherDef.solarMultiplier >= 1 ? 'text-green-400' : weatherDef.solarMultiplier > 0.5 ? 'text-yellow-400' : 'text-red-400'}`}>
-                    {(weatherDef.solarMultiplier * 100).toFixed(0)}%
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[9px] text-gray-500">Wind</div>
-                  <div className={`text-[11px] font-mono font-bold ${weatherDef.windMultiplier >= 1 ? 'text-green-400' : weatherDef.windMultiplier > 0.5 ? 'text-yellow-400' : 'text-red-400'}`}>
-                    {(weatherDef.windMultiplier * 100).toFixed(0)}%
-                  </div>
-                </div>
-              </div>
-              {store.weather.current !== 'clear' && (
-                <div className="mt-2 text-[10px] text-gray-500">
-                  Changes in {store.weather.remaining} ticks
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Production Chain Overview */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
-            <div className="flex items-center gap-2 mb-3">
-              <Link2 className="w-4 h-4 text-cyan-400" />
-              <h3 className="text-sm font-semibold text-cyan-400">Production Chain</h3>
-              <span className="text-[10px] text-gray-500 ml-auto">{productionChain.completeness.toFixed(0)}% connected</span>
-            </div>
-            {/* Completeness bar */}
-            <div className="h-2 bg-gray-800 rounded-full overflow-hidden mb-3">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-cyan-700 to-cyan-400 transition-all duration-700"
-                style={{ width: `${Math.min(100, productionChain.completeness)}%` }}
-              />
-            </div>
-            <div className="space-y-2 max-h-48 overflow-y-auto game-scrollbar">
-              {productionChain.tiers.map(tier => {
-                const tc = TIER_COLORS[tier.tier] ?? TIER_COLORS[0];
-                return (
-                  <div key={tier.tier} className="bg-[#0a0e17] rounded-lg p-2 border border-gray-800/50">
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <Badge variant="outline" className={`text-[9px] px-1.5 ${tc.text} border-current`}>
-                        {tc.label}
-                      </Badge>
-                      <span className="text-[10px] text-gray-400">{tier.buildings.filter(b => b.connected).length}/{tier.buildings.length} connected</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-1">
-                      {tier.buildings.map(b => (
-                        <div key={b.id} className="flex items-center gap-1 text-[10px]">
-                          {b.connected ? (
-                            <CheckCircle2 className="w-3 h-3 text-green-400 flex-shrink-0" />
-                          ) : (
-                            <XCircle className="w-3 h-3 text-red-400 flex-shrink-0" />
-                          )}
-                          <span className="truncate">{b.emoji} {b.name}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
           {/* Resource Flow Summary */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
               <Activity className="w-4 h-4 text-cyan-400" />
               <h3 className="text-sm font-semibold text-cyan-400">Resource Flow</h3>
@@ -1484,7 +2026,7 @@ export function TransportPanel() {
                   const isDeficit = r.surplus < -0.01;
                   return (
                     <div key={r.resource} className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-x-2 text-[10px] items-center px-1 py-0.5 hover:bg-gray-800/30 rounded">
-                      <span>{r.emoji}</span>
+                      <GameIcon icon={r.icon} size={16} />
                       <span className="text-gray-300 truncate">{r.name}</span>
                       <span className="text-green-400 font-mono text-right">{r.production.toFixed(1)}</span>
                       <span className="text-red-400 font-mono text-right">{r.consumption.toFixed(1)}</span>
@@ -1501,7 +2043,7 @@ export function TransportPanel() {
           </div>
 
           {/* Bottleneck Detection */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-orange-900/30">
+          <div className="game-card rounded-xl bg-card p-4 border border-orange-900/30">
             <div className="flex items-center gap-2 mb-3">
               <ShieldAlert className="w-4 h-4 text-orange-400" />
               <h3 className="text-sm font-semibold text-orange-400">Bottleneck Detection</h3>
@@ -1525,11 +2067,11 @@ export function TransportPanel() {
                   const sevIcon = bn.severity === 'critical' ? <XCircle className="w-3 h-3 text-red-400" /> : bn.severity === 'warning' ? <AlertTriangle className="w-3 h-3 text-yellow-400" /> : <CircleDot className="w-3 h-3 text-gray-400" />;
                   const typeIcon = bn.type === 'under-supplied' ? <TrendingDown className="w-3 h-3 text-red-400" /> : bn.type === 'over-supplied' ? <TrendingUp className="w-3 h-3 text-yellow-400" /> : bn.type === 'capacity' ? <Zap className="w-3 h-3 text-orange-400" /> : bn.type === 'power' ? <ZapOff className="w-3 h-3 text-yellow-400" /> : <Route className="w-3 h-3 text-red-400" />;
                   return (
-                    <div key={i} className={`bg-[#0a0e17] rounded-lg p-2.5 border ${sevColor}`}>
+                    <div key={i} className={`bg-[#0a0e17] rounded-lg p-3 border ${sevColor}`}>
                       <div className="flex items-center gap-1.5 mb-1.5">
                         {sevIcon}
                         {typeIcon}
-                        <span className="text-[10px] text-gray-300 font-medium">{bDef?.emoji} {bDef?.name}</span>
+                        <span className="text-[10px] text-gray-300 font-medium"><GameIcon icon={bDef?.icon} size={14} className="inline-flex" /> {bDef?.name}</span>
                       </div>
                       <p className="text-[10px] text-gray-400 mb-1">{bn.reason}</p>
                       {bn.flowRate !== undefined && bn.requiredRate !== undefined && (
@@ -1555,7 +2097,7 @@ export function TransportPanel() {
           </div>
 
           {/* Bulk Operations + Auto-Connect */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
               <Package className="w-4 h-4 text-cyan-400" />
               <h3 className="text-sm font-semibold text-cyan-400">Bulk Operations</h3>
@@ -1581,89 +2123,7 @@ export function TransportPanel() {
                 <Pause className="w-3 h-3 mr-1" />
                 Deactivate All Lines
               </Button>
-              <div className="border-t border-gray-800 pt-2 space-y-2">
-                <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Upgrades</div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full h-7 text-[10px] border-purple-800/50 text-purple-400 hover:bg-purple-900/20"
-                  onClick={handleUpgradeAll}
-                  disabled={bulkUpgradeData.upgradeableCount === 0}
-                >
-                  <ChevronUp className="w-3 h-3 mr-1" />
-                  Upgrade All ({bulkUpgradeData.upgradeableCount} lines — ${formatNumber(bulkUpgradeData.totalCost)})
-                </Button>
-                {/* Per-type bulk upgrades */}
-                {Object.entries(bulkUpgradeByTypeData).map(([type, data]) => {
-                  const def = TRANSPORT_DEFS[type];
-                  if (!def || data.count === 0) return null;
-                  return (
-                    <Button
-                      key={type}
-                      variant="outline"
-                      size="sm"
-                      className="w-full h-7 text-[10px] border-purple-800/30 text-purple-300 hover:bg-purple-900/10 justify-start"
-                      onClick={() => handleUpgradeAllType(type as TransportType)}
-                      disabled={data.upgradeableCount === 0}
-                    >
-                      <span className="mr-1">{def.emoji}</span>
-                      Upgrade All {def.name} ({data.upgradeableCount}/{data.count} — ${formatNumber(data.totalCost)})
-                    </Button>
-                  );
-                })}
-              </div>
-              {/* Bulk Evolution Section */}
-              {store.transportLines.some(l => TRANSPORT_DEFS[l.type]?.evolvesTo) && (
-                <div className="border-t border-purple-800/30 pt-2 space-y-2">
-                  <div className="text-[9px] text-purple-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                    <Dna className="w-3 h-3" />
-                    Evolution
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full h-7 text-[10px] border-purple-500/40 text-purple-300 hover:bg-purple-900/20"
-                    onClick={() => store.evolveAllTransportLines()}
-                  >
-                    <Dna className="w-3 h-3 mr-1" />
-                    Evolve All to Next Tier
-                  </Button>
-                  {/* Per-type bulk evolution */}
-                  {TRANSPORT_EVOLUTION_CHAIN.filter(type => {
-                    const def = TRANSPORT_DEFS[type];
-                    return def?.evolvesTo && store.transportLines.some(l => l.type === type);
-                  }).map(type => {
-                    const def = TRANSPORT_DEFS[type];
-                    if (!def?.evolvesTo) return null;
-                    const nextDef = TRANSPORT_DEFS[def.evolvesTo];
-                    const lines = store.transportLines.filter(l => l.type === type);
-                    let affordableCount = 0;
-                    let totalEvoCost = 0;
-                    let runningCost = 0;
-                    for (const line of lines) {
-                      const c = Math.floor(def.evolutionCost * Math.pow(1.3, line.level - 1));
-                      totalEvoCost += c;
-                      if (store.money >= runningCost + c) { runningCost += c; affordableCount++; }
-                    }
-                    return (
-                      <Button
-                        key={type}
-                        variant="outline"
-                        size="sm"
-                        className="w-full h-7 text-[10px] border-purple-500/30 text-purple-300 hover:bg-purple-900/10 justify-start"
-                        onClick={() => store.evolveTransportLinesByType(type)}
-                        disabled={affordableCount === 0}
-                      >
-                        <Dna className="w-2.5 h-2.5 mr-1" />
-                        <span className="mr-1">{def.emoji}</span>
-                        {def.emoji}→{nextDef.emoji} Evolve {def.name} ({affordableCount}/{lines.length} — ${formatNumber(totalEvoCost)})
-                      </Button>
-                    );
-                  })}
-                </div>
-              )}
-              <div className="border-t border-gray-800 pt-2 space-y-2">
-                <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Auto-Connect</div>
+              <div className="border-t border-gray-800 pt-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -1673,44 +2133,22 @@ export function TransportPanel() {
                   <Lightbulb className="w-3 h-3 mr-1" />
                   Route Suggestions ({routeSuggestions.length})
                 </Button>
-                <div>
-                  <label className="text-[9px] text-gray-500 block mb-1">Connect All — Transport Type:</label>
-                  <div className="flex items-center gap-1 mb-2">
-                    {TRANSPORT_TYPES.map(type => {
-                      const def = TRANSPORT_DEFS[type];
-                      const isSelected = connectAllType === type;
-                      return (
-                        <button
-                          key={type}
-                          onClick={() => setConnectAllType(type)}
-                          className={`px-1.5 py-1 rounded border text-[9px] transition-colors ${
-                            isSelected
-                              ? 'border-cyan-500/50 bg-cyan-900/20 text-cyan-400'
-                              : 'border-gray-700 text-gray-500 hover:border-gray-500'
-                          }`}
-                        >
-                          {def.emoji} {def.name.split(' ')[0]}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full h-7 text-[10px] border-purple-800/50 text-purple-400 hover:bg-purple-900/20"
-                    onClick={() => setShowConnectAllDialog(true)}
-                    disabled={connectAllData.routes.length === 0}
-                  >
-                    <Link2 className="w-3 h-3 mr-1" />
-                    Connect All ({connectAllData.routes.length} routes — ${formatNumber(connectAllData.totalCost)})
-                  </Button>
-                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full h-7 text-[10px] border-purple-800/50 text-purple-400 hover:bg-purple-900/20 mt-2"
+                  onClick={() => setShowConnectAllDialog(true)}
+                  disabled={connectAllData.routes.length === 0}
+                >
+                  <Link2 className="w-3 h-3 mr-1" />
+                  Connect All ({connectAllData.routes.length} routes — ${formatNumber(connectAllData.totalCost)})
+                </Button>
               </div>
             </div>
           </div>
 
           {/* Network Health Details */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
               <Gauge className="w-4 h-4 text-cyan-400" />
               <h3 className="text-sm font-semibold text-cyan-400">Health Breakdown</h3>
@@ -1725,7 +2163,7 @@ export function TransportPanel() {
                 <div key={item.label}>
                   <div className="flex items-center justify-between mb-0.5">
                     <div className="flex items-center gap-1 text-[10px] text-gray-400">
-                      {item.icon}
+                      <GameIcon icon={item.icon} size={16} />
                       {item.label}
                     </div>
                     <span className={`text-[10px] font-mono font-bold ${
@@ -1750,15 +2188,11 @@ export function TransportPanel() {
       </div>
 
       {/* Auto-Route Suggestions Overlay */}
-      <AnimatePresence>
+      <>
         {showSuggestions && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25 }}
+          <div
           >
-            <div className="game-card rounded-xl bg-[#111827] p-4 border border-cyan-900/30">
+            <div className="game-card rounded-xl bg-card p-4 border border-cyan-900/30">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Lightbulb className="w-4 h-4 text-cyan-400" />
@@ -1786,12 +2220,12 @@ export function TransportPanel() {
                     return (
                       <div key={i} className="bg-[#0a0e17] rounded-lg p-3 border border-cyan-900/20">
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="text-sm">{fromDef?.emoji}</span>
+                          <GameIcon icon={fromDef?.icon} size={14} className="inline-flex" />
                           <span className="text-xs text-gray-300 truncate max-w-[80px]">{fromDef?.name}</span>
                           <ArrowRight className="w-3 h-3 text-cyan-400 flex-shrink-0" />
-                          <span className="text-sm">{resMeta?.emoji}</span>
+                          <GameIcon icon={resMeta?.icon} size={14} className="inline-flex" />
                           <ArrowRight className="w-3 h-3 text-cyan-400 flex-shrink-0" />
-                          <span className="text-sm">{toDef?.emoji}</span>
+                          <GameIcon icon={toDef?.icon} size={14} className="inline-flex" />
                           <span className="text-xs text-gray-300 truncate max-w-[80px]">{toDef?.name}</span>
                         </div>
                         <div className="flex items-center justify-between">
@@ -1811,25 +2245,19 @@ export function TransportPanel() {
                 </div>
               )}
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
+      </>
 
       {/* Connect All Confirmation Dialog */}
-      <AnimatePresence>
+      <>
         {showConnectAllDialog && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+          <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
             onClick={() => setShowConnectAllDialog(false)}
           >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-[#111827] rounded-xl border border-cyan-900/50 p-6 max-w-md w-full mx-4 shadow-[0_0_40px_rgba(34,211,238,0.15)]"
+            <div
+              className="bg-card rounded-xl border border-cyan-900/50 p-6 max-w-md w-full mx-4 shadow-[0_0_40px_rgba(34,211,238,0.15)]"
               onClick={e => e.stopPropagation()}
             >
               <div className="flex items-center gap-2 mb-4">
@@ -1837,7 +2265,7 @@ export function TransportPanel() {
                 <h3 className="text-base font-bold text-cyan-400">Connect All Routes</h3>
               </div>
               <p className="text-xs text-gray-400 mb-3">
-                This will create <span className="text-cyan-400 font-bold">{connectAllData.routes.length}</span> transport lines using {TRANSPORT_DEFS[CHEAPEST_TYPE].emoji} {TRANSPORT_DEFS[CHEAPEST_TYPE].name} (cheapest).
+                This will create <span className="text-cyan-400 font-bold">{connectAllData.routes.length}</span> transport lines using <GameIcon icon={TRANSPORT_DEFS[CHEAPEST_TYPE].icon} size={14} className="inline-flex" /> {TRANSPORT_DEFS[CHEAPEST_TYPE].name} (cheapest).
               </p>
               <div className="bg-[#0a0e17] rounded-lg p-3 mb-4 max-h-40 overflow-y-auto game-scrollbar">
                 {connectAllData.routes.slice(0, 20).map((r, i) => (
@@ -1879,10 +2307,10 @@ export function TransportPanel() {
                   Connect All
                 </Button>
               </div>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
         )}
-      </AnimatePresence>
+      </>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
+import { LoadingSpinner } from '@/components/game/shared/LoadingSpinner';
 import { useGameStore, formatNumber } from '@/lib/game/store';
 import { RESOURCE_META } from '@/lib/game/data';
 import { Button } from '@/components/ui/button';
@@ -8,10 +9,12 @@ import { Badge } from '@/components/ui/badge';
 import {
   TrendingUp, TrendingDown, Minus, ShoppingCart, DollarSign,
   ArrowUpRight, ArrowDownRight, BarChart3, Wallet, Activity,
-  Zap, Flame
+  Zap, Flame, Package
 } from 'lucide-react';
 import { ResourceType } from '@/lib/game/types';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
+import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
+import { GameIcon } from '@/components/game/shared/GameIcon';
 
 // --- Bezier Sparkline Component ---
 function BezierSparkline({
@@ -99,10 +102,10 @@ export function MarketPanel() {
     const prices = store.market.map(m => ({ resource: m.resource, ratio: m.currentPrice / m.basePrice, trend: m.trend }));
     const avgRatio = prices.reduce((sum, p) => sum + p.ratio, 0) / prices.length;
     const sentiment = avgRatio > 1.15 ? 'Bullish' : avgRatio < 0.85 ? 'Bearish' : 'Neutral';
-    const sentimentEmoji = avgRatio > 1.15 ? '🟢' : avgRatio < 0.85 ? '🔴' : '🟡';
+    const sentimentDot = avgRatio > 1.15 ? 'bg-green-500' : avgRatio < 0.85 ? 'bg-red-500' : 'bg-yellow-500';
     const bestSell = prices.reduce((best, p) => p.ratio > best.ratio ? p : best, prices[0]);
     const bestSellMeta = RESOURCE_META[bestSell.resource as ResourceType];
-    return { avgRatio, sentiment, sentimentEmoji, bestSell, bestSellMeta };
+    return { avgRatio, sentiment, sentimentDot, bestSell, bestSellMeta };
   }, [store.market]);
 
   const selected = selectedResource ? store.market.find(m => m.resource === selectedResource) : null;
@@ -114,15 +117,24 @@ export function MarketPanel() {
     return prev > 0 ? ((selected.currentPrice - prev) / prev) * 100 : 0;
   }, [selected]);
 
+  const [isSelling, setIsSelling] = useState(false);
+  const [isBuying, setIsBuying] = useState(false);
+
   const handleSell = () => {
     if (!selectedResource) return;
     const amount = Math.min(tradeAmount, store.resources[selectedResource]);
-    if (amount > 0) store.sellResource(selectedResource, amount);
+    if (amount > 0) {
+      setIsSelling(true);
+      store.sellResource(selectedResource, amount);
+      setTimeout(() => setIsSelling(false), 300);
+    }
   };
 
   const handleBuy = () => {
     if (!selectedResource) return;
+    setIsBuying(true);
     store.buyResource(selectedResource, tradeAmount);
+    setTimeout(() => setIsBuying(false), 300);
   };
 
   const maxSell = selectedResource ? Math.floor(store.resources[selectedResource]) : 0;
@@ -150,7 +162,7 @@ export function MarketPanel() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="bg-gradient-to-r from-green-900/10 to-transparent -m-0 p-0 rounded-xl">
-          <h2 className="text-xl font-bold text-green-400 tracking-wide" style={{ textShadow: '0 0 7px #4ade80, 0 0 10px #4ade8040' }}>
+          <h2 className="text-xl font-bold text-green-400 tracking-wide neon-glow-green">
             Global Market
           </h2>
           <p className="text-xs text-gray-500 mt-0.5">Buy and sell resources on the open market</p>
@@ -168,30 +180,31 @@ export function MarketPanel() {
       </div>
 
       {/* Market Summary Bar */}
-      <div className="game-card rounded-xl bg-[#111827] p-3 border border-green-900/30">
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-[#0a0e17] rounded-lg p-2.5 text-center">
-            <div className="text-[10px] text-gray-500 mb-1">Price Index</div>
-            <div className="text-sm font-bold font-mono text-cyan-400">{(marketSummary.avgRatio * 100).toFixed(0)}%</div>
-            <div className="text-[9px] text-gray-600">avg vs base</div>
-          </div>
-          <div className="bg-[#0a0e17] rounded-lg p-2.5 text-center">
-            <div className="text-[10px] text-gray-500 mb-1">Sentiment</div>
-            <div className={`text-sm font-bold ${
-              marketSummary.sentiment === 'Bullish' ? 'text-green-400' :
-              marketSummary.sentiment === 'Bearish' ? 'text-red-400' : 'text-yellow-400'
-            }`}>
-              {marketSummary.sentimentEmoji} {marketSummary.sentiment}
-            </div>
-          </div>
-          <div className="bg-[#0a0e17] rounded-lg p-2.5 text-center">
-            <div className="text-[10px] text-gray-500 mb-1">Best Sell</div>
-            <div className="text-sm font-bold text-green-400">
-              {marketSummary.bestSellMeta?.emoji} {(marketSummary.bestSell?.ratio * 100).toFixed(0)}%
-            </div>
-            <div className="text-[9px] text-gray-600">{marketSummary.bestSellMeta?.name}</div>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <PanelStatCard
+          icon={<BarChart3 className="w-4 h-4" />}
+          label="Price Index"
+          value={`${(marketSummary.avgRatio * 100).toFixed(0)}%`}
+          subtext="Avg vs base"
+          color="cyan"
+          trend={marketSummary.avgRatio > 1 ? 'up' : marketSummary.avgRatio < 1 ? 'down' : 'neutral'}
+        />
+        <PanelStatCard
+          icon={<TrendingUp className="w-4 h-4" />}
+          label="Sentiment"
+          value={<><span className={`inline-block w-2.5 h-2.5 rounded-full ${marketSummary.sentimentDot}`} /> {marketSummary.sentiment}</>}
+          subtext="Market mood"
+          color={marketSummary.sentiment === 'Bullish' ? 'green' : marketSummary.sentiment === 'Bearish' ? 'red' : 'yellow'}
+          trend={marketSummary.sentiment === 'Bullish' ? 'up' : marketSummary.sentiment === 'Bearish' ? 'down' : 'neutral'}
+        />
+        <PanelStatCard
+          icon={<DollarSign className="w-4 h-4" />}
+          label="Best Sell"
+          value={<><GameIcon icon={marketSummary.bestSellMeta?.icon} size={14} className="inline-flex" /> {(marketSummary.bestSell?.ratio * 100).toFixed(0)}%</>}
+          subtext={marketSummary.bestSellMeta?.name ?? ''}
+          color="green"
+          trend="up"
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -203,10 +216,11 @@ export function MarketPanel() {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-3 py-1 rounded-lg text-xs transition-all ${
+                aria-pressed={filter === f}
+                className={`px-3 py-1 rounded-lg text-xs ${
                   filter === f
                     ? 'bg-green-900/30 text-green-400 border border-green-500/30'
-                    : 'bg-[#111827] text-gray-500 border border-gray-800 hover:text-gray-300'
+                    : 'bg-card text-gray-500 border border-gray-800 hover:text-gray-300'
                 }`}
               >
                 {f === 'all' ? 'All' : f === 'raw' ? 'Raw Materials' : 'Processed'}
@@ -215,7 +229,13 @@ export function MarketPanel() {
           </div>
 
           {/* Resource Cards with Sparklines */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[600px] overflow-y-auto game-scrollbar">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[500px] overflow-y-auto game-scrollbar scroll-fade">
+            {filteredMarket.length === 0 && (
+              <div className="col-span-full flex flex-col items-center justify-center py-8 text-gray-500">
+                <Package className="w-8 h-8 mb-2 opacity-50" />
+                <p className="text-sm">No resources available. Build extractors to start producing!</p>
+              </div>
+            )}
             {filteredMarket.map(m => {
               const meta = RESOURCE_META[m.resource];
               const held = store.resources[m.resource];
@@ -230,7 +250,7 @@ export function MarketPanel() {
                 <GameItemTooltip
                   key={m.resource}
                   name={meta.name}
-                  emoji={meta.emoji}
+                  icon={meta.icon}
                   category={meta.tier === 0 ? 'Raw Material' : `Tier ${meta.tier}`}
                   tier={meta.tier}
                   details={[
@@ -246,13 +266,13 @@ export function MarketPanel() {
                 >
                 <button
                   onClick={() => setSelectedResource(m.resource)}
-                  className={`game-card rounded-lg p-3 text-left transition-all w-full ${
-                    isSelected ? 'border-cyan-500/50 bg-cyan-900/10' : 'bg-[#111827] border-[#1e293b] hover:border-gray-600'
+                  className={`game-card rounded-lg p-3 text-left w-full ${
+                    isSelected ? 'border-cyan-500/50 bg-cyan-900/10' : 'bg-card border-border hover:border-gray-600'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-base">{meta.emoji}</span>
+                      <GameIcon icon={meta.icon} size={16} />
                       <div>
                         <div className="text-xs text-gray-200 font-medium">{meta.name}</div>
                         <div className="text-[9px] text-gray-500">Tier {meta.tier}</div>
@@ -261,14 +281,18 @@ export function MarketPanel() {
                     <div className="flex items-center gap-1.5">
                       {/* Price Alert Badges */}
                       {priceRatio > 1.5 && (
-                        <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-orange-900/30 text-orange-400 border border-orange-500/30 font-bold">🔥 HOT</span>
+                        <span
+                          key={`hot-${m.resource}`}
+                          className="text-[8px] px-1.5 py-0.5 rounded-full bg-orange-900/30 text-orange-400 border border-orange-500/30 font-bold inline-flex items-center gap-0.5"><GameIcon icon="gi:flame" size={10} /> HOT</span>
                       )}
                       {priceRatio < 0.5 && (
-                        <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-blue-900/30 text-blue-400 border border-blue-500/30 font-bold">📉 LOW</span>
+                        <span
+                          key={`low-${m.resource}`}
+                          className="text-[8px] px-1.5 py-0.5 rounded-full bg-blue-900/30 text-blue-400 border border-blue-500/30 font-bold inline-flex items-center gap-0.5"><GameIcon icon="gi:falling" size={10} /> LOW</span>
                       )}
                       {/* Trend Arrow with animation */}
-                      {m.trend === 'up' && <span className="text-xs trend-arrow-bounce" style={{ filter: 'drop-shadow(0 0 3px rgba(74,222,128,0.5))' }}>⬆️</span>}
-                      {m.trend === 'down' && <span className="text-xs trend-arrow-bounce" style={{ filter: 'drop-shadow(0 0 3px rgba(248,113,113,0.5))' }}>⬇️</span>}
+                      {m.trend === 'up' && <span className="text-xs trend-arrow-bounce inline-flex items-center" style={{ filter: 'drop-shadow(0 0 3px rgba(74,222,128,0.5))' }}><GameIcon icon="gi:fast-arrow" size={12} className="text-green-400 rotate-[-90deg]" /></span>}
+                      {m.trend === 'down' && <span className="text-xs trend-arrow-bounce inline-flex items-center" style={{ filter: 'drop-shadow(0 0 3px rgba(248,113,113,0.5))' }}><GameIcon icon="gi:fast-arrow" size={12} className="text-red-400 rotate-90" /></span>}
                       {/* Auto-sell indicator */}
                       {isAutoSell && (
                         <span className="text-[8px] px-1 py-0.5 rounded bg-green-900/30 text-green-400 border border-green-500/30">AUTO</span>
@@ -320,10 +344,10 @@ export function MarketPanel() {
           {selected && selectedMeta ? (
             <>
               {/* Selected Resource Detail */}
-              <div className="game-card rounded-xl bg-[#111827] p-4 border border-cyan-900/30">
+              <div className="game-card rounded-xl bg-card p-4 border border-cyan-900/30">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-12 h-12 rounded-xl bg-[#0a0e17] flex items-center justify-center text-2xl">
-                    {selectedMeta.emoji}
+                    <GameIcon icon={selectedMeta.icon} size={24} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-bold text-gray-200">{selectedMeta.name}</h3>
@@ -339,36 +363,50 @@ export function MarketPanel() {
                   {/* Auto-sell toggle */}
                   <button
                     onClick={(e) => { e.stopPropagation(); store.toggleAutoSell(selected.resource); }}
-                    className={`px-2 py-1 rounded text-[9px] font-bold border transition-all ${
+                    aria-pressed={store.autoSellResources.includes(selected.resource)}
+                    className={`px-2 py-1 rounded text-[9px] font-bold border ${
                       store.autoSellResources.includes(selected.resource)
                         ? 'bg-green-900/30 text-green-400 border-green-500/30'
                         : 'bg-gray-900 text-gray-500 border-gray-700 hover:border-gray-500'
                     }`}
                     title="Auto-sell when storage > 80%"
                   >
-                    {store.autoSellResources.includes(selected.resource) ? '🔄 AUTO' : 'AUTO'}
+                    {store.autoSellResources.includes(selected.resource) ? <><GameIcon icon="gi:spinning-wheel" size={14} className="inline" /> AUTO</> : 'AUTO'}
                   </button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 mb-3">
-                  <div className="bg-[#0a0e17] rounded-lg p-2 text-center">
-                    <div className="text-[10px] text-gray-500">Base Price</div>
-                    <div className="text-xs font-mono text-gray-300">${selected.basePrice.toFixed(2)}</div>
-                  </div>
-                  <div className="bg-[#0a0e17] rounded-lg p-2 text-center">
-                    <div className="text-[10px] text-gray-500">Volatility</div>
-                    <div className={`text-xs font-mono ${selected.volatility > 0.2 ? 'text-red-400' : 'text-gray-300'}`}>
-                      {(selected.volatility * 100).toFixed(0)}%
-                    </div>
-                  </div>
-                  <div className="bg-[#0a0e17] rounded-lg p-2 text-center">
-                    <div className="text-[10px] text-gray-500">Demand</div>
-                    <div className="text-xs font-mono text-orange-400">{selected.demand.toFixed(2)}x</div>
-                  </div>
-                  <div className="bg-[#0a0e17] rounded-lg p-2 text-center">
-                    <div className="text-[10px] text-gray-500">Supply</div>
-                    <div className="text-xs font-mono text-cyan-400">{selected.supply.toFixed(2)}x</div>
-                  </div>
+                  <PanelStatCard
+                    icon={<DollarSign className="w-4 h-4" />}
+                    label="Base Price"
+                    value={`$${selected.basePrice.toFixed(2)}`}
+                    subtext="Reference price"
+                    color="cyan"
+                  />
+                  <PanelStatCard
+                    icon={<Activity className="w-4 h-4" />}
+                    label="Volatility"
+                    value={`${(selected.volatility * 100).toFixed(0)}%`}
+                    subtext="Price swing"
+                    color={selected.volatility > 0.2 ? 'red' : 'sky'}
+                    trend={selected.volatility > 0.2 ? 'down' : 'neutral'}
+                  />
+                  <PanelStatCard
+                    icon={<TrendingUp className="w-4 h-4" />}
+                    label="Demand"
+                    value={`${selected.demand.toFixed(2)}x`}
+                    subtext="Buy pressure"
+                    color="orange"
+                    trend={selected.demand > 1 ? 'up' : 'down'}
+                  />
+                  <PanelStatCard
+                    icon={<ShoppingCart className="w-4 h-4" />}
+                    label="Supply"
+                    value={`${selected.supply.toFixed(2)}x`}
+                    subtext="Sell pressure"
+                    color="cyan"
+                    trend={selected.supply > 1 ? 'down' : 'up'}
+                  />
                 </div>
 
                 {/* Price History Chart - Large with Bezier */}
@@ -390,22 +428,26 @@ export function MarketPanel() {
               </div>
 
               {/* Trade Controls */}
-              <div className="game-card rounded-xl bg-[#111827] p-4 border border-green-900/30">
+              <div className="game-card rounded-xl bg-card p-4 border border-green-900/30">
                 <div className="flex items-center gap-2 mb-3">
                   <DollarSign className="w-4 h-4 text-green-400" />
                   <h3 className="text-sm font-semibold text-green-400">Trade</h3>
                 </div>
 
-                <div className="bg-[#0a0e17] rounded-lg p-2 mb-3 text-center">
-                  <div className="text-[10px] text-gray-500">You Hold</div>
-                  <div className="text-lg font-bold font-mono text-cyan-400">{formatNumber(store.resources[selectedResource!])}</div>
-                </div>
+                <PanelStatCard
+                  icon={<Package className="w-4 h-4" />}
+                  label="You Hold"
+                  value={formatNumber(store.resources[selectedResource!])}
+                  subtext="Current inventory"
+                  color="cyan"
+                />
 
                 {/* Buy/Sell mode tabs */}
                 <div className="flex items-center gap-1 mb-3">
                   <button
                     onClick={() => setTradeMode('sell')}
-                    className={`flex-1 py-1.5 rounded text-[10px] font-bold transition-all ${
+                    aria-pressed={tradeMode === 'sell'}
+                    className={`flex-1 py-1.5 rounded text-[10px] font-bold ${
                       tradeMode === 'sell'
                         ? 'bg-green-900/30 text-green-400 border border-green-500/30'
                         : 'bg-[#0a0e17] text-gray-500 border border-gray-800'
@@ -415,7 +457,8 @@ export function MarketPanel() {
                   </button>
                   <button
                     onClick={() => setTradeMode('buy')}
-                    className={`flex-1 py-1.5 rounded text-[10px] font-bold transition-all ${
+                    aria-pressed={tradeMode === 'buy'}
+                    className={`flex-1 py-1.5 rounded text-[10px] font-bold ${
                       tradeMode === 'buy'
                         ? 'bg-orange-900/30 text-orange-400 border border-orange-500/30'
                         : 'bg-[#0a0e17] text-gray-500 border border-gray-800'
@@ -431,7 +474,7 @@ export function MarketPanel() {
                     <button
                       key={amt}
                       onClick={() => setTradeAmount(amt)}
-                      className={`flex-1 py-1.5 rounded text-[10px] font-mono transition-all ${
+                      className={`flex-1 py-1.5 rounded text-[10px] font-mono ${
                         tradeAmount === amt
                           ? 'bg-cyan-900/30 text-cyan-400 border border-cyan-500/30'
                           : 'bg-[#0a0e17] text-gray-500 border border-gray-800 hover:text-gray-300'
@@ -442,7 +485,7 @@ export function MarketPanel() {
                   ))}
                   <button
                     onClick={() => setTradeAmount(tradeMode === 'sell' ? maxSell : maxBuy)}
-                    className={`flex-1 py-1.5 rounded text-[10px] font-mono transition-all ${
+                    className={`flex-1 py-1.5 rounded text-[10px] font-mono ${
                       tradeAmount === (tradeMode === 'sell' ? maxSell : maxBuy)
                         ? 'bg-cyan-900/30 text-cyan-400 border border-cyan-500/30'
                         : 'bg-[#0a0e17] text-gray-500 border border-gray-800 hover:text-gray-300'
@@ -488,27 +531,27 @@ export function MarketPanel() {
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     onClick={handleSell}
-                    disabled={maxSell < tradeAmount}
+                    disabled={maxSell < tradeAmount || isSelling}
                     className="bg-green-600 hover:bg-green-500 text-white text-xs"
                     size="sm"
                   >
-                    <ArrowUpRight className="w-3 h-3 mr-1" />
+                    {isSelling ? <LoadingSpinner /> : <ArrowUpRight className="w-3 h-3 mr-1" />}
                     Sell
                   </Button>
                   <Button
                     onClick={handleBuy}
-                    disabled={store.money < buyCost || maxBuy < tradeAmount}
+                    disabled={store.money < buyCost || maxBuy < tradeAmount || isBuying}
                     className="bg-orange-600 hover:bg-orange-500 text-white text-xs"
                     size="sm"
                   >
-                    <ArrowDownRight className="w-3 h-3 mr-1" />
+                    {isBuying ? <LoadingSpinner /> : <ArrowDownRight className="w-3 h-3 mr-1" />}
                     Buy
                   </Button>
                 </div>
               </div>
             </>
           ) : (
-            <div className="game-card rounded-xl bg-[#111827] p-6 border border-[#1e293b] text-center">
+            <div className="game-card rounded-xl bg-card p-6 border border-border text-center">
               <Activity className="w-10 h-10 text-gray-700 mx-auto mb-2" />
               <p className="text-xs text-gray-500">Select a resource to trade</p>
             </div>

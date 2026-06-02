@@ -5,22 +5,25 @@ import { RESOURCE_META, getStreakMultiplier } from '@/lib/game/data';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Gift, Flame, Lock, Check, Sparkles, Trophy, Calendar, TrendingUp } from 'lucide-react';
+import { useReducedMotion } from '@/components/game/shared/useReducedMotion';
+import { GameIcon } from '@/components/game/shared/GameIcon';
 
 export default function DailyRewardsPanel() {
   const store = useGameStore();
   const { loginStreak, claimDailyReward } = store;
+  const prefersReducedMotion = useReducedMotion();
 
   const currentDay = ((loginStreak.currentStreak - 1) % 7) + 1;
   const multiplier = getStreakMultiplier(loginStreak.currentStreak);
 
   const getRewardIcon = (type: string, isJackpot: boolean) => {
-    if (isJackpot) return '🎰';
+    if (isJackpot) return <GameIcon icon="gi:slot-machine" size={24} />;
     switch (type) {
-      case 'money': return '💰';
-      case 'researchPoints': return '🔬';
-      case 'resources': return '📦';
-      case 'corporationPoints': return '🏆';
-      default: return '🎁';
+      case 'money': return <GameIcon icon="gi:money-stack" size={24} />;
+      case 'researchPoints': return <GameIcon icon="gi:erlenmeyer" size={24} />;
+      case 'resources': return <GameIcon icon="gi:cardboard-box" size={24} />;
+      case 'corporationPoints': return <GameIcon icon="gi:trophy" size={24} />;
+      default: return <GameIcon icon="gi:present" size={24} />;
     }
   };
 
@@ -53,23 +56,23 @@ export default function DailyRewardsPanel() {
   const nextRewardDesc = nextReward ? getRewardDescription(nextReward) : 'Day 1 Reward';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center shadow-[0_0_12px_rgba(236,72,153,0.3)]">
           <Gift className="w-5 h-5 text-white" />
         </div>
         <div>
-          <h2 className="text-lg font-bold text-pink-400 tracking-wider">DAILY REWARDS</h2>
+          <h2 className="text-xl font-bold text-pink-400 tracking-wider neon-glow-cyan">DAILY REWARDS</h2>
           <p className="text-xs text-gray-500">Log in daily for streak bonuses!</p>
         </div>
       </div>
 
       {/* Streak Counter */}
-      <div className="bg-[#111827] border border-pink-900/30 rounded-xl p-4 flex flex-col sm:flex-row items-center gap-4">
+      <div className="bg-card border border-pink-900/30 rounded-xl p-4 flex flex-col sm:flex-row items-center gap-4">
         <div className="flex items-center gap-3">
           <div className={`text-3xl ${getStreakColor()} transition-colors`}>
-            🔥
+            <GameIcon icon="gi:flame" size={28} className="inline" />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -89,7 +92,7 @@ export default function DailyRewardsPanel() {
         <div className="flex items-center gap-4 sm:ml-auto">
           <div className="text-center px-3">
             <div className="text-xs text-gray-500">Longest</div>
-            <div className="text-sm font-bold text-amber-400">{loginStreak.longestStreak} 🔥</div>
+            <div className="text-sm font-bold text-amber-400">{loginStreak.longestStreak} <GameIcon icon="gi:flame" size={14} className="inline" /></div>
           </div>
           <div className="w-px h-8 bg-gray-800" />
           <div className="text-center px-3">
@@ -107,7 +110,7 @@ export default function DailyRewardsPanel() {
       </div>
 
       {/* Streak Progress Bar */}
-      <div className="bg-[#111827] border border-pink-900/20 rounded-lg p-3">
+      <div className="bg-card border border-pink-900/20 rounded-lg p-3">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs text-gray-400">Weekly Progress</span>
           <span className="text-xs text-pink-400">Day {currentDay} of 7</span>
@@ -122,7 +125,7 @@ export default function DailyRewardsPanel() {
                 key={day}
                 className={`flex-1 h-2 rounded-full transition-all ${
                   isCompleted ? 'bg-pink-500' :
-                  isCurrent ? 'bg-pink-400/60 animate-pulse' :
+                  isCurrent ? `bg-pink-400/60${prefersReducedMotion ? '' : ' animate-pulse'}` :
                   'bg-gray-800'
                 }`}
               />
@@ -131,7 +134,7 @@ export default function DailyRewardsPanel() {
         </div>
         <div className="flex gap-1 mt-1">
           {Array.from({ length: 7 }, (_, i) => (
-            <div key={i} className="flex-1 text-center text-[9px] text-gray-600">
+            <div key={i} className="flex-1 text-center text-[9px] text-gray-400">
               {i + 1}
             </div>
           ))}
@@ -151,14 +154,14 @@ export default function DailyRewardsPanel() {
             <div
               key={reward.day}
               className={`
-                relative rounded-xl p-3 transition-all duration-300
+                relative rounded-xl p-3
                 ${isJackpot && !isClaimed
                   ? 'bg-gradient-to-br from-amber-900/40 via-yellow-900/30 to-amber-900/40 border-2 border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.2)]'
                   : isToday && !isClaimed
-                    ? 'bg-[#111827] border-2 border-pink-500/60 shadow-[0_0_16px_rgba(236,72,153,0.25)]'
+                    ? 'bg-card border-2 border-pink-500/60 shadow-[0_0_16px_rgba(236,72,153,0.25)]'
                     : isClaimed
                       ? 'bg-[#0a0e17] border border-green-900/30 opacity-60'
-                      : 'bg-[#111827] border border-gray-800'
+                      : 'bg-card border border-gray-800'
                 }
               `}
             >
@@ -204,7 +207,7 @@ export default function DailyRewardsPanel() {
               {isJackpot && (
                 <div className="text-center mb-2">
                   <span className="text-[9px] font-bold text-amber-400 tracking-wider bg-amber-900/30 px-2 py-0.5 rounded">
-                    ✨ JACKPOT ✨
+                    <GameIcon icon="gi:sparkles" size={16} className="inline" /> JACKPOT <GameIcon icon="gi:sparkles" size={16} className="inline" />
                   </span>
                 </div>
               )}
@@ -213,7 +216,7 @@ export default function DailyRewardsPanel() {
               {isToday && !isClaimed && (
                 <Button
                   onClick={() => claimDailyReward(reward.day)}
-                  className="w-full bg-pink-600 hover:bg-pink-500 text-white text-xs h-8 animate-pulse"
+                  className={`w-full bg-pink-600 hover:bg-pink-500 text-white text-xs h-8${prefersReducedMotion ? '' : ' animate-pulse'}`}
                 >
                   CLAIM
                 </Button>
@@ -240,7 +243,7 @@ export default function DailyRewardsPanel() {
 
       {/* No rewards generated yet */}
       {loginStreak.weeklyRewards.length === 0 && (
-        <div className="bg-[#111827] border border-gray-800 rounded-xl p-8 text-center">
+        <div className="bg-card border border-gray-800 rounded-xl p-8 text-center">
           <Calendar className="w-12 h-12 text-gray-600 mx-auto mb-3" />
           <p className="text-gray-400 text-sm">Start your streak by logging in tomorrow!</p>
           <p className="text-gray-600 text-xs mt-1">Daily rewards will appear here.</p>
@@ -248,7 +251,7 @@ export default function DailyRewardsPanel() {
       )}
 
       {/* Streak Multiplier Info */}
-      <div className="bg-[#111827] border border-pink-900/20 rounded-xl p-4">
+      <div className="bg-card border border-pink-900/20 rounded-xl p-4">
         <h3 className="text-sm font-bold text-pink-400 mb-3 flex items-center gap-2">
           <Flame className="w-4 h-4" />
           Streak Bonuses
@@ -279,9 +282,9 @@ export default function DailyRewardsPanel() {
       </div>
 
       {/* Come Back Message */}
-      <div className="bg-[#111827] border border-cyan-900/20 rounded-xl p-4 text-center">
+      <div className="bg-card border border-cyan-900/20 rounded-xl p-4 text-center">
         <p className="text-sm text-gray-400">
-          🎁 Come back tomorrow for <span className="text-pink-400 font-medium">Day {nextDayOfWeek}</span> reward!
+          <GameIcon icon="gi:present" size={14} className="inline" /> Come back tomorrow for <span className="text-pink-400 font-medium">Day {nextDayOfWeek}</span> reward!
         </p>
         <p className="text-xs text-gray-600 mt-1">
           {nextRewardDesc}

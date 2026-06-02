@@ -5,10 +5,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore, formatNumber } from '@/lib/game/store';
 import { RESOURCE_META } from '@/lib/game/data';
 import { ResourceType } from '@/lib/game/types';
+import { useReducedMotion } from '@/components/game/shared/useReducedMotion';
+import { GameIcon } from '@/components/game/shared/GameIcon';
 
 interface FloatingEntry {
   id: string;
-  emoji: string;
+  icon: string;
   amount: number;
   xOffset: number;
 }
@@ -25,6 +27,7 @@ export default function FloatingNumbers() {
   const resources = useGameStore(s => s.resources);
   const money = useGameStore(s => s.money);
   const [entries, setEntries] = useState<FloatingEntry[]>([]);
+  const reducedMotion = useReducedMotion();
   const prevRef = useRef<{ resources: Record<string, number>; money: number }>({
     resources: {},
     money: 0,
@@ -54,7 +57,7 @@ export default function FloatingNumbers() {
         const meta = RESOURCE_META[key];
         newEntries.push({
           id: `fn-${idCounter.current++}`,
-          emoji: meta?.emoji ?? '📦',
+          icon: meta?.icon ?? 'gi:cardboard-box',
           amount: diff,
           xOffset: X_OFFSETS[offsetIdx % X_OFFSETS.length],
         });
@@ -67,7 +70,7 @@ export default function FloatingNumbers() {
     if (moneyDiff >= 1) {
       newEntries.push({
         id: `fn-money-${idCounter.current++}`,
-        emoji: '💰',
+        icon: 'gi:money-stack',
         amount: moneyDiff,
         xOffset: X_OFFSETS[offsetIdx % X_OFFSETS.length],
       });
@@ -100,17 +103,17 @@ export default function FloatingNumbers() {
         {entries.map(entry => (
           <motion.div
             key={entry.id}
-            initial={{ opacity: 0.95, y: 4, scale: 0.85 }}
-            animate={{ opacity: 0, y: -28, scale: 1.05 }}
+            initial={reducedMotion ? { opacity: 0.9 } : { opacity: 0.95, y: 4, scale: 0.85 }}
+            animate={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -28, scale: 1.05 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 1.5, ease: 'easeOut' }}
+            transition={reducedMotion ? { duration: 0.3 } : { duration: 1.5, ease: 'easeOut' }}
             className="floating-number absolute text-xs font-mono font-bold whitespace-nowrap"
             style={{ left: entry.xOffset }}
           >
             <span className="text-green-400 drop-shadow-[0_0_4px_rgba(57,255,20,0.5)]">
               +{formatNumber(entry.amount)}
             </span>
-            <span className="ml-0.5">{entry.emoji}</span>
+            <span className="ml-0.5"><GameIcon icon={entry.icon} size={12} className="inline-flex" /></span>
           </motion.div>
         ))}
       </AnimatePresence>

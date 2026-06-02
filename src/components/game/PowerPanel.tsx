@@ -11,20 +11,22 @@ import {
   AlertTriangle, Flame, Sun, Wind, Atom, Sparkles,
   ArrowUpRight, ArrowDownRight, Shield,
   Gauge, Plug, Fuel, Activity,
-  CircleAlert, Minus, Lock, Lightbulb, TrendingUp, Wrench
+  CircleAlert, Minus, Lock, Lightbulb, TrendingUp, Clock
 } from 'lucide-react';
-import { PowerPlantType, BuildingInstance, getConditionColor, safeCondition } from '@/lib/game/types';
+import { PowerPlantType, BuildingInstance } from '@/lib/game/types';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
+import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
+import { GameIcon } from '@/components/game/shared/GameIcon';
 
 const POWER_PLANT_TYPES: PowerPlantType[] = ['coalGenerator', 'solarPanel', 'windTurbine', 'nuclearReactor', 'fusionReactor', 'antimatterPowerPlant'];
 
-const POWER_PLANT_META: Record<PowerPlantType, { icon: React.ReactNode; color: string; label: string; glowClass: string; emoji: string }> = {
-  coalGenerator: { icon: <Flame className="w-4 h-4" />, color: '#ff6600', label: 'Coal', glowClass: 'text-orange-400', emoji: '🔥' },
-  solarPanel: { icon: <Sun className="w-4 h-4" />, color: '#ffff00', label: 'Solar', glowClass: 'text-yellow-400', emoji: '☀️' },
-  windTurbine: { icon: <Wind className="w-4 h-4" />, color: '#00ccff', label: 'Wind', glowClass: 'text-cyan-400', emoji: '💨' },
-  nuclearReactor: { icon: <Atom className="w-4 h-4" />, color: '#00ff66', label: 'Nuclear', glowClass: 'text-green-400', emoji: '☢️' },
-  fusionReactor: { icon: <Sparkles className="w-4 h-4" />, color: '#bf00ff', label: 'Fusion', glowClass: 'text-purple-400', emoji: '⚡' },
-  antimatterPowerPlant: { icon: <Zap className="w-4 h-4" />, color: '#ff00ff', label: 'Antimatter', glowClass: 'text-fuchsia-400', emoji: '⚡' },
+const POWER_PLANT_META: Record<PowerPlantType, { icon: React.ReactNode; color: string; label: string; glowClass: string; icon: string }> = {
+  coalGenerator: { icon: <Flame className="w-4 h-4" />, color: '#ff6600', label: 'Coal', glowClass: 'text-orange-400', icon: 'gi:fire' },
+  solarPanel: { icon: <Sun className="w-4 h-4" />, color: '#ffff00', label: 'Solar', glowClass: 'text-yellow-400', icon: 'gi:sun' },
+  windTurbine: { icon: <Wind className="w-4 h-4" />, color: '#00ccff', label: 'Wind', glowClass: 'text-cyan-400', icon: 'gi:air-zigzag' },
+  nuclearReactor: { icon: <Atom className="w-4 h-4" />, color: '#00ff66', label: 'Nuclear', glowClass: 'text-green-400', icon: 'gi:nuclear' },
+  fusionReactor: { icon: <Sparkles className="w-4 h-4" />, color: '#bf00ff', label: 'Fusion', glowClass: 'text-purple-400', icon: 'gi:lightning-frequency' },
+  antimatterPowerPlant: { icon: <Zap className="w-4 h-4" />, color: '#ff00ff', label: 'Antimatter', glowClass: 'text-fuchsia-400', icon: 'gi:lightning-frequency' },
 };
 
 // --- Mini sparkline for power history ---
@@ -97,7 +99,7 @@ export function PowerPanel() {
       let totalType = 0;
       instances.forEach(b => {
         if (!b.active) return;
-        let plantProduction = def.basePowerProduction * b.level * (b.efficiency > 0 ? b.efficiency : 1);
+        let plantProduction = def.basePowerProduction * b.level * b.efficiency;
         if (def.fuel && def.fuelRate) {
           if (store.resources[def.fuel] < def.fuelRate * b.level) {
             plantProduction *= 0.1;
@@ -131,7 +133,7 @@ export function PowerPanel() {
       if (!b.active) return;
       const def = BUILDING_DEFS[b.type];
       if (!def || def.category === 'power') return;
-      consumption += def.basePowerConsumption * b.level * (b.efficiency > 0 ? b.efficiency : 1);
+      consumption += def.basePowerConsumption * b.level * b.efficiency;
     });
     // Apply energy efficiency research
     const hasEffResearch = store.completedResearch.includes('energyEfficiency');
@@ -180,12 +182,12 @@ export function PowerPanel() {
   // Efficiency tip
   const efficiencyTip = useMemo(() => {
     if (powerStatus === 'overloaded' || powerStatus === 'deficit') {
-      return { icon: '⚠️', text: 'Build more power plants or deactivate some buildings!', color: 'text-red-400', bg: 'bg-red-900/20 border-red-800/40' };
+      return { icon: 'lucide:alert-triangle', text: 'Build more power plants or deactivate some buildings!', color: 'text-red-400', bg: 'bg-red-900/20 border-red-800/40' };
     }
     if (powerStatus === 'balanced') {
-      return { icon: '💡', text: 'Consider adding surplus capacity for expansion', color: 'text-yellow-400', bg: 'bg-yellow-900/20 border-yellow-800/40' };
+      return { icon: 'lucide:lightbulb', text: 'Consider adding surplus capacity for expansion', color: 'text-yellow-400', bg: 'bg-yellow-900/20 border-yellow-800/40' };
     }
-    return { icon: '✅', text: 'Great! You have room to expand production', color: 'text-green-400', bg: 'bg-green-900/20 border-green-800/40' };
+    return { icon: 'lucide:check-circle', text: 'Great! You have room to expand production', color: 'text-green-400', bg: 'bg-green-900/20 border-green-800/40' };
   }, [powerStatus]);
 
   // Power production history from productionHistory
@@ -227,7 +229,7 @@ export function PowerPanel() {
       {/* HEADER */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h2 className="text-xl font-bold text-yellow-400 tracking-wide flex items-center gap-2" style={{ textShadow: '0 0 7px #ffff00, 0 0 10px #ffff0040' }}>
+          <h2 className="text-xl font-bold text-yellow-400 tracking-wide flex items-center gap-2 neon-glow-yellow">
             <Zap className="w-5 h-5" />
             Power Grid
           </h2>
@@ -259,7 +261,7 @@ export function PowerPanel() {
       </div>
 
       {/* POWER GAUGE */}
-      <div className={`game-card rounded-xl bg-[#111827] p-4 border ${
+      <div className={`game-card rounded-xl bg-card p-4 border ${
         powerStatus === 'surplus' ? 'border-green-900/40' :
         powerStatus === 'balanced' ? 'border-yellow-900/40' :
         'border-red-900/40'
@@ -268,10 +270,6 @@ export function PowerPanel() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <motion.div
-              animate={{
-                scale: powerStatus === 'overloaded' ? [1, 1.2, 1] : 1,
-              }}
-              transition={{ duration: 0.8, repeat: powerStatus === 'overloaded' ? Infinity : 0 }}
             >
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                 powerStatus === 'surplus' ? 'bg-green-900/20' :
@@ -365,58 +363,50 @@ export function PowerPanel() {
         </div>
 
         {/* Power stats grid */}
-        <div className="grid grid-cols-4 gap-2">
-          <div className="bg-[#0a0e17] rounded-lg p-2 text-center">
-            <div className="text-[10px] text-gray-500 mb-0.5">Efficiency</div>
-            <motion.div
-              className={`text-sm font-bold font-mono ${
-                realtimeEfficiency >= 0.8 ? 'text-green-400' :
-                realtimeEfficiency >= 0.5 ? 'text-yellow-400' : 'text-red-400'
-              }`}
-              animate={realtimeEfficiency < 0.5 ? { opacity: [1, 0.5, 1] } : {}}
-              transition={{ duration: 1.5, repeat: Infinity }}
-            >
-              {(realtimeEfficiency * 100).toFixed(1)}%
-            </motion.div>
-          </div>
-          <div className="bg-[#0a0e17] rounded-lg p-2 text-center relative">
-            <div className="text-[10px] text-gray-500 mb-0.5">Surplus</div>
-            <div className={`text-sm font-bold font-mono ${
-              powerBalance >= 0 ? 'text-green-400' : 'text-red-400'
-            }`}>
-              {powerBalance >= 0 ? '+' : ''}{formatNumber(powerBalance)}
-            </div>
-            {powerBalance > 0 && (
-              <div className="absolute inset-0 rounded-lg pointer-events-none" style={{ boxShadow: '0 0 12px rgba(57, 255, 20, 0.15), inset 0 0 8px rgba(57, 255, 20, 0.05)' }} />
-            )}
-          </div>
-          <div className="bg-[#0a0e17] rounded-lg p-2 text-center">
-            <div className="text-[10px] text-gray-500 mb-0.5">Plants</div>
-            <div className="text-sm font-bold font-mono text-yellow-400">{activePowerPlants.length}</div>
-          </div>
-          <div className="bg-[#0a0e17] rounded-lg p-2 text-center">
-            <div className="text-[10px] text-gray-500 mb-0.5">Capacity</div>
-            <div className={`text-sm font-bold font-mono ${
-              powerRatio >= 1.3 ? 'text-green-400' :
-              powerRatio >= 1 ? 'text-yellow-400' : 'text-red-400'
-            }`}>
-              {(powerRatio * 100).toFixed(0)}%
-            </div>
-          </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <PanelStatCard
+            icon={<Gauge className="w-4 h-4" />}
+            label="Efficiency"
+            value={`${(realtimeEfficiency * 100).toFixed(1)}%`}
+            subtext="Current"
+            color={realtimeEfficiency >= 0.8 ? 'green' : realtimeEfficiency >= 0.5 ? 'yellow' : 'red'}
+            trend={realtimeEfficiency >= 0.8 ? 'up' : realtimeEfficiency >= 0.5 ? 'neutral' : 'down'}
+          />
+          <PanelStatCard
+            icon={<ArrowUpRight className="w-4 h-4" />}
+            label="Surplus"
+            value={`${powerBalance >= 0 ? '+' : ''}${formatNumber(powerBalance)}`}
+            subtext="MW net"
+            color={powerBalance >= 0 ? 'green' : 'red'}
+            trend={powerBalance > 0 ? 'up' : powerBalance < 0 ? 'down' : 'neutral'}
+          />
+          <PanelStatCard
+            icon={<Zap className="w-4 h-4" />}
+            label="Plants"
+            value={activePowerPlants.length.toString()}
+            subtext={`${powerPlants.length} total`}
+            color="amber"
+          />
+          <PanelStatCard
+            icon={<Plug className="w-4 h-4" />}
+            label="Capacity"
+            value={`${(powerRatio * 100).toFixed(0)}%`}
+            subtext="Reserve"
+            color={powerRatio >= 1.3 ? 'green' : powerRatio >= 1 ? 'yellow' : 'red'}
+            trend={powerRatio >= 1.3 ? 'up' : powerRatio >= 1 ? 'neutral' : 'down'}
+          />
         </div>
 
         {/* Efficiency Tip */}
-        <div className={`mt-3 flex items-center gap-2 rounded-lg p-2.5 border ${efficiencyTip.bg}`}>
-          <span className="text-sm flex-shrink-0">{efficiencyTip.icon}</span>
+        <div className={`mt-3 flex items-center gap-2 rounded-lg p-3 border ${efficiencyTip.bg}`}>
+          <GameIcon icon={efficiencyTip.icon} size={14} className="inline-flex" />
           <span className={`text-xs ${efficiencyTip.color}`}>{efficiencyTip.text}</span>
         </div>
 
         {/* Overload warning */}
         {realtimeOverload && (
           <motion.div
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-3 flex items-center gap-2 bg-red-900/20 border border-red-800/40 rounded-lg p-2.5"
+            className="mt-3 flex items-center gap-2 bg-red-900/20 border border-red-800/40 rounded-lg p-3"
           >
             <CircleAlert className="w-4 h-4 text-red-400 flex-shrink-0" />
             <div>
@@ -428,7 +418,7 @@ export function PowerPanel() {
       </div>
 
       {/* POWER FLOW VISUALIZATION */}
-      <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+      <div className="game-card rounded-xl bg-card p-4 border border-border">
         <div className="flex items-center gap-2 mb-3">
           <Activity className="w-4 h-4 text-cyan-400" />
           <h3 className="text-sm font-semibold text-cyan-400">Power Flow Diagram</h3>
@@ -454,7 +444,7 @@ export function PowerPanel() {
                 if (output <= 0) return null;
                 return (
                   <div key={type} className="flex items-center gap-1">
-                    <span className="text-xs">{meta.emoji}</span>
+                    <GameIcon icon={meta.icon} size={12} />
                     <span className={`text-[9px] font-mono ${meta.glowClass}`}>{formatNumber(output)}</span>
                   </div>
                 );
@@ -558,7 +548,7 @@ export function PowerPanel() {
             <div className="flex flex-col items-center justify-center gap-1">
               <div className="text-[9px] text-gray-500 mb-1 font-bold uppercase tracking-wider">Consumers</div>
               <div className="flex items-center gap-1">
-                <span className="text-xs">🏭</span>
+                <span className="text-xs"><GameIcon icon="gi:castle" size={14} className="inline" /></span>
                 <span className="text-[9px] font-mono text-orange-400">{formatNumber(totalRealConsumption)} MW</span>
               </div>
               <div className="text-[9px] text-gray-500">{store.buildings.filter(b => BUILDING_DEFS[b.type]?.category !== 'power' && b.active).length} buildings</div>
@@ -601,7 +591,7 @@ export function PowerPanel() {
           let fuelLow = false;
           if (type === 'coalGenerator' && activeInstances.length > 0) {
             const hoursRemaining = coalFuelStatus.ticksRemaining === Infinity ? '∞' : formatNumber(coalFuelStatus.ticksRemaining);
-            fuelLabel = `${RESOURCE_META.coal.emoji} ${formatNumber(coalFuelStatus.stock)} (${hoursRemaining}t)`;
+            fuelLabel = `${formatNumber(coalFuelStatus.stock)} (${hoursRemaining}t)`;
             fuelLow = coalFuelStatus.isLow;
           }
 
@@ -609,7 +599,7 @@ export function PowerPanel() {
             <GameItemTooltip
               key={type}
               name={def.name}
-              emoji={def.emoji}
+              icon={def.icon}
               description={def.description}
               category="Power Plant"
               tier={def.tier}
@@ -627,9 +617,9 @@ export function PowerPanel() {
               side="bottom"
             >
             <div
-              className={`game-card rounded-xl bg-[#111827] p-3 border transition-all ${
+              className={`game-card rounded-xl bg-card p-3 border ${
                 !unlocked ? 'border-gray-800 opacity-50' :
-                output > 0 ? 'border-yellow-900/30' : 'border-[#1e293b]'
+                output > 0 ? 'border-yellow-900/30' : 'border-border'
               }`}
             >
               {/* Header */}
@@ -637,7 +627,7 @@ export function PowerPanel() {
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-[#0a0e17] ${
                   unlocked ? meta.glowClass : 'text-gray-600'
                 }`}>
-                  {meta.icon}
+                  <GameIcon icon={meta.icon} size={16} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-medium text-gray-200 truncate">{def.name}</div>
@@ -657,12 +647,9 @@ export function PowerPanel() {
 
               {/* Mini production bar */}
               <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden mb-1.5">
-                <motion.div
+                <div
                   className="h-full rounded-full"
-                  style={{ backgroundColor: meta.color }}
-                  initial={{ width: 0 }}
-                  animate={{ width: `${totalRealProduction > 0 ? (output / totalRealProduction) * 100 : 0}%` }}
-                  transition={{ duration: 0.5 }}
+                  style={{ backgroundColor: meta.color, width: `${totalRealProduction > 0 ? (output / totalRealProduction) * 100 : 0}%` }}
                 />
               </div>
 
@@ -711,142 +698,9 @@ export function PowerPanel() {
         })}
       </div>
 
-      {/* Power Generation Diagnostics */}
-      <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
-        <div className="flex items-center gap-2 mb-3">
-          <Activity className="w-4 h-4 text-cyan-400" />
-          <h3 className="text-sm font-semibold text-cyan-400">Power Generation Diagnostics</h3>
-        </div>
-        <div className="space-y-2">
-          {POWER_PLANT_TYPES.map(type => {
-            const def = BUILDING_DEFS[type];
-            if (!def) return null;
-            const meta = POWER_PLANT_META[type];
-            const instances = plantsByType[type] || [];
-            const activeInstances = instances.filter(b => b.active);
-            const totalOutput = productionByType[type] || 0;
-            const maxOutput = activeInstances.reduce((sum, b) => sum + def.basePowerProduction * b.level, 0);
-            
-            // Determine status
-            let status: 'generating' | 'offline' | 'no_instances' | 'low_output' | 'broken' | 'low_fuel' = 'no_instances';
-            let statusLabel = '';
-            let statusColor = 'text-gray-500';
-            let statusBg = 'bg-gray-900/30';
-            let statusBorder = 'border-gray-700/30';
-            
-            if (instances.length === 0) {
-              status = 'no_instances';
-              statusLabel = 'Not Built';
-              statusColor = 'text-gray-500';
-              statusBg = 'bg-gray-900/20';
-              statusBorder = 'border-gray-700/20';
-            } else if (activeInstances.length === 0) {
-              const brokenCount = instances.filter(b => safeCondition(b.condition) <= 0).length;
-              if (brokenCount === instances.length && instances.length > 0) {
-                status = 'broken';
-                statusLabel = `${brokenCount} Broken — Repair Required`;
-                statusColor = 'text-red-400';
-                statusBg = 'bg-red-900/20';
-                statusBorder = 'border-red-500/30';
-              } else {
-                status = 'offline';
-                statusLabel = `${instances.length} Plant(s) Offline — Enable to Generate`;
-                statusColor = 'text-yellow-400';
-                statusBg = 'bg-yellow-900/10';
-                statusBorder = 'border-yellow-500/20';
-              }
-            } else if (def.fuel && def.fuelRate && store.resources[def.fuel] < def.fuelRate * activeInstances.length) {
-              status = 'low_fuel';
-              statusLabel = `Low Fuel — ${RESOURCE_META[def.fuel].emoji} ${formatNumber(store.resources[def.fuel])} remaining`;
-              statusColor = 'text-orange-400';
-              statusBg = 'bg-orange-900/10';
-              statusBorder = 'border-orange-500/20';
-            } else if (maxOutput > 0 && totalOutput < maxOutput * 0.5) {
-              status = 'low_output';
-              if (type === 'solarPanel') {
-                statusLabel = `Low Output — ${solarFactor > 0.4 ? 'Moderate' : 'Low'} Sunlight (${(solarFactor * 100).toFixed(0)}%)`;
-              } else if (type === 'windTurbine') {
-                statusLabel = `Low Output — ${windFactor > 0.4 ? 'Moderate' : 'Low'} Wind (${(windFactor * 100).toFixed(0)}%)`;
-              } else {
-                statusLabel = `Low Output — ${formatNumber(totalOutput)} / ${formatNumber(maxOutput)} MW`;
-              }
-              statusColor = 'text-yellow-400';
-              statusBg = 'bg-yellow-900/10';
-              statusBorder = 'border-yellow-500/20';
-            } else {
-              status = 'generating';
-              statusLabel = `Generating ${formatNumber(totalOutput)} MW`;
-              statusColor = 'text-green-400';
-              statusBg = 'bg-green-900/10';
-              statusBorder = 'border-green-500/20';
-            }
-
-            return (
-              <div key={type} className={`flex items-center gap-3 p-2.5 rounded-lg border ${statusBg} ${statusBorder}`}>
-                <span className="text-lg">{meta.emoji}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-gray-200">{def.name}</span>
-                    <span className="text-[9px] text-gray-500">
-                      {activeInstances.length}/{instances.length} active
-                    </span>
-                  </div>
-                  <div className={`text-[10px] font-medium ${statusColor} mt-0.5`}>
-                    {statusLabel}
-                  </div>
-                </div>
-                <div className="text-right shrink-0">
-                  <div className={`text-xs font-mono font-bold ${totalOutput > 0 ? meta.glowClass : 'text-gray-600'}`}>
-                    {formatNumber(totalOutput)} MW
-                  </div>
-                  {maxOutput > 0 && (
-                    <div className="w-16 h-1 bg-gray-800 rounded-full mt-1 overflow-hidden">
-                      <div 
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{ 
-                          width: `${Math.min(100, maxOutput > 0 ? (totalOutput / maxOutput) * 100 : 0)}%`,
-                          backgroundColor: status === 'generating' ? meta.color : status === 'low_output' ? '#facc15' : '#4b5563'
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        
-        {/* Summary diagnostic */}
-        {totalRealProduction === 0 && totalRealConsumption > 0 && (
-          <div className="mt-3 p-2.5 rounded-lg bg-red-900/20 border border-red-500/30">
-            <div className="flex items-center gap-2 mb-1">
-              <CircleAlert className="w-3.5 h-3.5 text-red-400" />
-              <span className="text-xs font-bold text-red-400">Power Generation Failure</span>
-            </div>
-            <p className="text-[10px] text-red-300/80">
-              Your power plants are producing 0 MW while buildings demand {formatNumber(totalRealConsumption)} MW. 
-              {!activePowerPlants.length ? ' No power plants are active — enable power plants to restore electricity.' : 
-               ' Active power plants may have zero efficiency — try toggling them off and on again.'}
-            </p>
-          </div>
-        )}
-        {totalRealProduction === 0 && totalRealConsumption === 0 && (
-          <div className="mt-3 p-2.5 rounded-lg bg-gray-900/30 border border-gray-700/20">
-            <div className="flex items-center gap-2 mb-1">
-              <Lightbulb className="w-3.5 h-3.5 text-gray-400" />
-              <span className="text-xs font-medium text-gray-400">Getting Started</span>
-            </div>
-            <p className="text-[10px] text-gray-500">
-              Build and activate power plants to supply electricity to your factories and extractors.
-              Start with a Coal Generator, Solar Panel, or Wind Turbine.
-            </p>
-          </div>
-        )}
-      </div>
-
       {/* Power History Mini-Chart */}
       {powerHistory.length > 1 && (
-        <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+        <div className="game-card rounded-xl bg-card p-4 border border-border">
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp className="w-4 h-4 text-green-400" />
             <h3 className="text-sm font-semibold text-green-400">Power Production History</h3>
@@ -866,7 +720,7 @@ export function PowerPanel() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* LEFT: Active Power Plants List */}
         <div className="lg:col-span-2">
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Plug className="w-4 h-4 text-yellow-400" />
@@ -896,13 +750,9 @@ export function PowerPanel() {
                   const canUpgrade = store.money >= upgradeCost;
 
                   // When plant is off, show 0 production clearly
-                  let actualProduction = plant.active ? def.basePowerProduction * plant.level * (plant.efficiency > 0 ? plant.efficiency : 1) : 0;
+                  let actualProduction = plant.active ? def.basePowerProduction * plant.level * plant.efficiency : 0;
                   let productionNote = plant.active ? '' : 'OFFLINE';
                   let isDerated = false;
-                  if (plant.active && (plant.efficiency == null || plant.efficiency <= 0)) {
-                    productionNote = 'No output (eff=0)';
-                    isDerated = true;
-                  }
 
                   if (plant.active && def.fuel && def.fuelRate) {
                     if (store.resources[def.fuel] < def.fuelRate * plant.level) {
@@ -926,11 +776,9 @@ export function PowerPanel() {
                   const productionPct = maxProduction > 0 ? (actualProduction / maxProduction) * 100 : 0;
 
                   return (
-                    <motion.div
+                    <div
                       key={plant.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className={`rounded-lg bg-[#0a0e17] p-3 border transition-all duration-200 ${
+                      className={`rounded-lg bg-[#0a0e17] p-3 border ${
                         plant.active
                           ? isDerated ? 'border-red-900/40' : 'border-yellow-900/30'
                           : 'border-gray-800 opacity-60'
@@ -939,28 +787,23 @@ export function PowerPanel() {
                       <div className="flex items-start gap-3">
                         <div className="flex flex-col items-center gap-1.5">
                           <button
-                            onClick={() => { if ((safeCondition(plant.condition)) > 0) handleToggle(plant.id); }}
-                            disabled={(safeCondition(plant.condition)) <= 0}
-                            className={`text-xl transition-transform duration-200 hover:scale-110 ${
-                              (safeCondition(plant.condition)) <= 0 ? 'opacity-30 cursor-not-allowed' : plant.active ? 'opacity-100' : 'grayscale opacity-50'
+                            onClick={() => handleToggle(plant.id)}
+                            className={`text-xl hover:scale-110 ${
+                              plant.active ? 'opacity-100' : 'grayscale opacity-50'
                             }`}
-                            title={(safeCondition(plant.condition)) <= 0 ? 'Broken! Repair first' : plant.active ? 'Click to disable' : 'Click to enable'}
+                            title={plant.active ? 'Click to disable' : 'Click to enable'}
                           >
-                            {def.emoji}
+                            <GameIcon icon={def.icon} size={16} />
                           </button>
                           <button
-                            onClick={() => { if ((safeCondition(plant.condition)) > 0) handleToggle(plant.id); }}
-                            disabled={(safeCondition(plant.condition)) <= 0}
-                            className={`w-6 h-6 rounded-full flex items-center justify-center border transition-all ${
-                              (safeCondition(plant.condition)) <= 0
-                                ? 'border-red-500/30 bg-red-900/20 text-red-400 cursor-not-allowed'
-                                : plant.active
-                                  ? 'border-green-500/50 bg-green-900/20 text-green-400'
-                                  : 'border-gray-700 bg-gray-800 text-gray-500'
+                            onClick={() => handleToggle(plant.id)}
+                            className={`w-6 h-6 rounded-full flex items-center justify-center border ${
+                              plant.active
+                                ? 'border-green-500/50 bg-green-900/20 text-green-400'
+                                : 'border-gray-700 bg-gray-800 text-gray-500'
                             }`}
-                            title={(safeCondition(plant.condition)) <= 0 ? 'Broken! Repair first' : plant.active ? 'Disable' : 'Enable'}
                           >
-                            {(safeCondition(plant.condition)) <= 0 ? <span className="text-[8px]">💀</span> : plant.active ? <Power className="w-3 h-3" /> : <PowerOff className="w-3 h-3" />}
+                            {plant.active ? <Power className="w-3 h-3" /> : <PowerOff className="w-3 h-3" />}
                           </button>
                         </div>
 
@@ -970,12 +813,7 @@ export function PowerPanel() {
                             <Badge variant="outline" className="text-[9px] border-yellow-600/50 text-yellow-400 px-1.5 py-0">
                               Lv.{plant.level}
                             </Badge>
-                            {!plant.active && (safeCondition(plant.condition)) <= 0 && (
-                              <Badge variant="outline" className="text-[9px] border-red-500/50 text-red-400 bg-red-900/30 px-1.5 py-0 animate-pulse">
-                                BROKEN
-                              </Badge>
-                            )}
-                            {!plant.active && (safeCondition(plant.condition)) > 0 && (
+                            {!plant.active && (
                               <Badge variant="outline" className="text-[9px] border-gray-600 text-gray-500 px-1.5 py-0">
                                 OFFLINE
                               </Badge>
@@ -998,25 +836,21 @@ export function PowerPanel() {
                               </div>
                             </div>
                             <div className="h-2 bg-gray-800 rounded-full overflow-hidden relative">
-                              <motion.div
+                              <div
                                 className={`h-full rounded-full ${
                                   isDerated ? 'bg-gradient-to-r from-red-700 to-red-500' :
                                   productionPct >= 80 ? 'bg-gradient-to-r from-green-700 to-green-400' :
                                   productionPct >= 50 ? 'bg-gradient-to-r from-yellow-700 to-yellow-400' :
                                   'bg-gradient-to-r from-cyan-700 to-cyan-400'
                                 }`}
-                                initial={{ width: 0 }}
-                                animate={{ width: `${productionPct}%` }}
-                                transition={{ duration: 0.5 }}
+                                style={{ width: `${productionPct}%` }}
                               >
                                 <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent" />
-                              </motion.div>
+                              </div>
                               {plant.active && !isDerated && (
                                 <div className="absolute inset-0 overflow-hidden rounded-full">
-                                  <motion.div
+                                  <div
                                     className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
-                                    animate={{ x: ['-100%', '100%'] }}
-                                    transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
                                   />
                                 </div>
                               )}
@@ -1033,7 +867,7 @@ export function PowerPanel() {
                                 <span className={`text-[9px] font-mono ${
                                   store.resources[def.fuel] < 50 ? 'text-red-400' : 'text-gray-400'
                                 }`}>
-                                  {RESOURCE_META[def.fuel].emoji} {formatNumber(store.resources[def.fuel])} ({formatNumber((def.fuelRate || 0) * plant.level)}/t)
+                                  <GameIcon icon={RESOURCE_META[def.fuel].icon} size={14} className="inline-flex" /> {formatNumber(store.resources[def.fuel])} ({formatNumber((def.fuelRate || 0) * plant.level)}/t)
                                 </span>
                               </div>
                             )}
@@ -1041,27 +875,6 @@ export function PowerPanel() {
                         </div>
 
                         <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                          {/* Repair button when damaged */}
-                          {(safeCondition(plant.condition)) < 100 && (() => {
-                            const baseCost = def.baseCost.find(c => c.resource === 'money')?.amount ?? 100;
-                            const rCost = Math.max(1, Math.floor(baseCost * (100 - (safeCondition(plant.condition))) / 100 * plant.level));
-                            const canR = store.money >= rCost;
-                            return (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className={`h-7 text-[10px] ${
-                                  canR ? 'border-orange-500/50 text-orange-400 hover:bg-orange-900/30' : 'border-gray-700 text-gray-500 cursor-not-allowed'
-                                }`}
-                                onClick={() => store.repairBuilding(plant.id)}
-                                disabled={!canR}
-                                title={canR ? `Repair for $${formatNumber(rCost)}` : `Need $${formatNumber(rCost)}`}
-                              >
-                                <Wrench className="w-3 h-3 mr-0.5" />
-                                Repair ${formatNumber(rCost)}
-                              </Button>
-                            );
-                          })()}
                           <Button
                             variant="outline"
                             size="sm"
@@ -1081,7 +894,7 @@ export function PowerPanel() {
                           </span>
                         </div>
                       </div>
-                    </motion.div>
+                    </div>
                   );
                 })}
               </div>
@@ -1092,7 +905,7 @@ export function PowerPanel() {
         {/* RIGHT: Production Breakdown + Coal Fuel */}
         <div className="space-y-4">
           {/* PRODUCTION BREAKDOWN */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
               <Gauge className="w-4 h-4 text-yellow-400" />
               <h3 className="text-sm font-semibold text-yellow-400">Production Breakdown</h3>
@@ -1109,9 +922,9 @@ export function PowerPanel() {
                 const unlocked = isBuildingUnlocked(type, store.completedResearch, store.prestigeState);
 
                 return (
-                  <div key={type} className="bg-[#0a0e17] rounded-lg p-2.5">
+                  <div key={type} className="bg-[#0a0e17] rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-1.5">
-                      <div className={meta.glowClass}>{meta.icon}</div>
+                      <div className={meta.glowClass}><GameIcon icon={meta.icon} size={16} /></div>
                       <span className={`text-xs font-medium flex-1 ${unlocked ? 'text-gray-200' : 'text-gray-600'}`}>
                         {def.name}
                       </span>
@@ -1120,12 +933,9 @@ export function PowerPanel() {
                       </span>
                     </div>
                     <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden mb-1">
-                      <motion.div
+                      <div
                         className="h-full rounded-full"
-                        style={{ backgroundColor: meta.color }}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${pct}%` }}
-                        transition={{ duration: 0.5 }}
+                        style={{ backgroundColor: meta.color, width: `${pct}%` }}
                       />
                     </div>
                     <div className="flex items-center justify-between">
@@ -1152,7 +962,7 @@ export function PowerPanel() {
           </div>
 
           {/* COAL FUEL STATUS */}
-          <div className="game-card rounded-xl bg-[#111827] p-4 border border-[#1e293b]">
+          <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Fuel className="w-4 h-4 text-orange-400" />
@@ -1166,11 +976,11 @@ export function PowerPanel() {
             </div>
 
             <div className="space-y-2.5">
-              <div className="bg-[#0a0e17] rounded-lg p-2.5">
+              <div className="bg-[#0a0e17] rounded-lg p-3">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-xs text-gray-400">Coal Stock</span>
                   <div className="flex items-center gap-1">
-                    <span className="text-sm">{RESOURCE_META.coal.emoji}</span>
+                    <GameIcon icon={RESOURCE_META.coal.icon} size={14} className="inline-flex" />
                     <span className={`text-xs font-mono font-bold ${
                       coalFuelStatus.stock < 50 ? 'text-red-400' : 'text-gray-200'
                     }`}>
@@ -1191,23 +1001,22 @@ export function PowerPanel() {
                 </div>
               </div>
 
-              <div className="bg-[#0a0e17] rounded-lg p-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-400">Consumption</span>
-                  <span className="text-xs font-mono text-orange-400">{formatNumber(coalFuelStatus.consumptionRate)}/t</span>
-                </div>
-              </div>
+              <PanelStatCard
+                icon={<Fuel className="w-4 h-4" />}
+                label="Consumption"
+                value={formatNumber(coalFuelStatus.consumptionRate)}
+                subtext="per tick"
+                color="orange"
+              />
 
-              <div className="bg-[#0a0e17] rounded-lg p-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-400">Remaining</span>
-                  <span className={`text-xs font-mono font-bold ${
-                    coalFuelStatus.ticksRemaining < 500 ? 'text-red-400' : 'text-gray-200'
-                  }`}>
-                    {coalFuelStatus.ticksRemaining === Infinity ? '∞' : formatNumber(coalFuelStatus.ticksRemaining)} ticks
-                  </span>
-                </div>
-              </div>
+              <PanelStatCard
+                icon={<Clock className="w-4 h-4" />}
+                label="Remaining"
+                value={coalFuelStatus.ticksRemaining === Infinity ? '∞' : formatNumber(coalFuelStatus.ticksRemaining)}
+                subtext="ticks of fuel"
+                color={coalFuelStatus.ticksRemaining < 500 ? 'red' : 'sky'}
+                trend={coalFuelStatus.ticksRemaining < 500 ? 'down' : 'neutral'}
+              />
             </div>
           </div>
         </div>

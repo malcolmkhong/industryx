@@ -709,3 +709,40 @@ Stage Summary:
 - Auto-assign processes every 10 game ticks automatically
 - Purple visual theme distinguishes auto-assigned drones from manual drones
 - SAVE_VERSION: 25 with V24→V25 migration for new drone fields
+
+---
+Task ID: rollback-1
+Agent: main
+Task: Roll back to Backup V23 and re-apply all economy fixes + productionCalculator
+
+Work Log:
+- Found backups at /tmp/my-project/ (Backup V14-V23)
+- Current project had lost: GameIcon.tsx, iconMap.ts, IconPreloader.tsx, GameCard.tsx, LoadingSpinner.tsx, useReducedMotion.ts, BottomNavigationBar.tsx, FloatingActionButton.tsx, GlobalResourceMonitorPanel.tsx
+- Rolled back entire src/ from Backup V23
+- Installed @iconify/react package (was missing)
+- Re-applied 9 boost/multiplier fixes to store.ts:
+  1. cargoDrones bonus added to transportBonus
+  2. prestige storageMultiplier added to getCapacity()
+  3. Mega Factory prestige endgame bonus chain
+  4. Event productionMultiplier split into global/targeted
+  5. Event powerMultiplier applied to consumption
+  6. Worker efficiency stat multiplies production
+  7. Worker maintenance stat reduces power consumption (capped 50%)
+  8. Auto-trading uses full market bonus chain (0.9 + marketBonus + prestigeMarketBonus + megaMarketBonus)
+  9. sellResource uses full market bonus chain
+- Re-applied P0 economy fixes:
+  - P0-1: Removed quadratic gameSpeed from payout
+  - P0-2: Fixed PayoutPanel rates (2/5/1 → 20/50/10), removed quadratic speed, added effectiveSpeed
+  - P0-3: Added baseProductionRate to ResourcePanel extractor output
+  - Fixed FactoryPanel: removed baseProductionRate from input rates (backend doesn't apply it to inputs)
+  - Fixed FactoryPanel tooltip: outputs show (amount × baseProductionRate).toFixed(1)/t
+- Re-applied page.tsx fixes: effectiveSpeed for tick interval + incomePerMinute
+- Re-created productionCalculator.ts with all 6 functions + ProductionSnapshot type
+- All ESLint checks pass
+- Dev server compiles without errors
+
+Stage Summary:
+- Project restored to Backup V23 state with all economy fixes re-applied
+- Icon system (GameIcon, iconMap, IconPreloader) fully restored
+- productionCalculator.ts Phase 1 complete (additive, no store changes yet)
+- Ready for Phase 2: Store integration

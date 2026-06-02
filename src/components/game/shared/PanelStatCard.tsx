@@ -26,9 +26,11 @@ interface PanelStatCardProps {
   value: string;
   subtext: string;
   color: StatColor;
+  /** Optional trend indicator */
+  trend?: 'up' | 'down' | 'neutral';
 }
 
-export function PanelStatCard({ icon, label, value, subtext, color }: PanelStatCardProps) {
+export function PanelStatCard({ icon, label, value, subtext, color, trend }: PanelStatCardProps) {
   const c = COLOR_MAP[color];
 
   return (
@@ -41,7 +43,11 @@ export function PanelStatCard({ icon, label, value, subtext, color }: PanelStatC
         </div>
         <span className="text-[10px] text-gray-500 uppercase tracking-wider">{label}</span>
       </div>
-      <div className={`text-lg font-bold font-mono ${c.value} transition-all duration-200`}>{value}</div>
+      <div className="flex items-center gap-1.5">
+        <div className={`text-lg font-bold font-mono ${c.value} transition-all duration-200`}>{value}</div>
+        {trend === 'up' && <span className="text-[10px] text-green-400">▲</span>}
+        {trend === 'down' && <span className="text-[10px] text-red-400">▼</span>}
+      </div>
       <div className="text-[10px] text-gray-500 mt-0.5">{subtext}</div>
     </div>
   );

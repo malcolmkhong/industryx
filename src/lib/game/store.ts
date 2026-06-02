@@ -7,13 +7,10 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import {
   GameState, GameTab, ResourceType, BuildingInstance, BuildingType,
-  TransportLine, TransportType, Worker, WorkerType, Contract, ContractDifficulty,
+  TransportLine, TransportType, Worker, WorkerType, Contract,
   GameEvent, GameNotification, PowerGrid, MarketPrice, MegaProjectType, MegaProjectBonusType,
   Blueprint, LeaderboardEntry, LoginStreak, DailyReward,
   WeatherType, PayoutConfig, PayoutRecord, Drone, DroneMission,
-  Region, RegionId, GridTile, LogisticsRoute, MapViewLayer, MapViewMode, BuildingFootprint,
-  BuildingConditionStatus, getConditionStatus, getConditionColor, getConditionStatusLabel,
-  MaintenanceLogEntry, safeCondition,
 } from './types';
 import {
   BUILDING_DEFS, TRANSPORT_DEFS, WORKER_DEFS, INITIAL_MARKET,
@@ -22,24 +19,11 @@ import {
   INITIAL_MEGA_PROJECTS, RANK_THRESHOLDS, SEASONAL_EVENTS,
   WEEKLY_DAILY_REWARDS, getStreakMultiplier,
   WEATHER_DEFS, QUEST_DEFS,
-  generateDynamicContract, generateContractBoard,
-  INITIAL_REGIONS, generateRegionGrid, BUILDING_FOOTPRINTS, getBuildingFootprint,
-  TRANSPORT_EVOLUTION_CHAIN, TRANSPORT_EVOLUTION_META,
 } from './data';
 import { soundEngine } from './soundEngine';
-import {
-  buildMultipliers,
-  computePowerGrid,
-  computeProduction,
-  computeSellMultiplierFull,
-  computePayout,
-  computeEndgameIncome,
-  emptyProductionSnapshot,
-} from './productionCalculator';
-import type { ProductionSnapshot, MultiplierCache, BuildResult, PowerResult, PayoutResult, EndgameResult } from './productionCalculator';
 
 // --- Save Version ---
-const SAVE_VERSION = 25;
+const SAVE_VERSION = 14;
 
 // --- Utility Functions ---
 function generateId(): string {
@@ -92,15 +76,18 @@ function isBuildingUnlocked(type: BuildingType, completedResearch: string[], pre
   return true;
 }
 
-function getCapacity(state: GameState, resource: ResourceType): number {
+function getCapacity(state: GameState, resource: ResourceType, researchSet?: Set<string>): number {
   // Unlimited storage from Terraforming Engine mega project
   const hasUnlimitedStorage = state.megaProjects.some(p => p.completed && p.bonus.type === 'unlimitedStorage');
   if (hasUnlimitedStorage) return Infinity;
 
   const baseCapacity = state.resourceCapacity[resource] ?? 50;
   // Apply Storage Expansion research bonus (+50% capacity)
-  const storageBonus = state.completedResearch.includes('storageExpansion') ? 0.5 : 0;
-  return Math.floor(baseCapacity * (1 + storageBonus));
+  const rs = researchSet ?? new Set(state.completedResearch);
+  const storageBonus = rs.has('storageExpansion') ? 0.5 : 0;
+  const megaStorageBonus = rs.has('megaStorage') ? 1.0 : 0;
+  const prestigeStorageBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'storageMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
+  return Math.floor(baseCapacity * (1 + storageBonus + megaStorageBonus + prestigeStorageBonus));
 }
 
 // --- Drone Mission Generator ---
@@ -167,112 +154,6 @@ function generateDroneMissionsFromState(state: GameState): DroneMission[] {
   }
 
   return missions.slice(0, 8); // Max 8 missions at a time
-}
-
-// --- Building Region Assignment ---
-
-// Preferred region order (highest to lowest) for each building tier/category combo
-function getPreferredRegionOrder(buildingType: BuildingType): RegionId[] {
-  const def = BUILDING_DEFS[buildingType];
-  if (!def) return ['grasslands'];
-
-  const footprint = getBuildingFootprint(buildingType);
-  const size = footprint.width; // width === height for square footprints
-
-  // 5×5 endgame buildings → cosmic first
-  if (size === 5) {
-    return ['cosmic', 'quantum', 'highlands', 'industrial', 'grasslands'];
-  }
-
-  // Extractors always go to grasslands
-  if (def.category === 'extractor') {
-    return ['grasslands'];
-  }
-
-  // Power buildings by tier
-  if (def.category === 'power') {
-    if (def.tier === 0) return ['grasslands'];
-    if (def.tier === 2) return ['industrial', 'grasslands'];
-    if (def.tier === 3) return ['highlands', 'industrial', 'grasslands'];
-    if (def.tier === 4) return ['quantum', 'highlands', 'industrial', 'grasslands'];
-  }
-
-  // Factory buildings by tier
-  if (def.category === 'factory') {
-    if (def.tier === 0 || def.tier === 1) return ['grasslands'];
-    if (def.tier === 2) return ['industrial', 'grasslands'];
-    if (def.tier === 3) return ['highlands', 'industrial', 'grasslands'];
-    if (def.tier === 4) return ['quantum', 'highlands', 'industrial', 'grasslands'];
-  }
-
-  // Default fallback
-  return ['grasslands'];
-}
-
-function autoAssignBuildingToMap(
-  buildingType: BuildingType,
-  buildings: BuildingInstance[],
-  mapRegions: Region[],
-  mapGrids: Record<string, GridTile[]>
-): { regionId: string; gridRow: number; gridCol: number } | null {
-  const footprint = getBuildingFootprint(buildingType);
-  const preferredOrder = getPreferredRegionOrder(buildingType);
-  const def = BUILDING_DEFS[buildingType];
-  if (!def) return null;
-
-  for (const regionId of preferredOrder) {
-    const region = mapRegions.find(r => r.id === regionId);
-    if (!region || !region.unlocked) continue;
-
-    // Check category and size allowed
-    if (!region.allowedCategories.includes(def.category)) continue;
-    if (footprint.width > region.maxBuildingSize || footprint.height > region.maxBuildingSize) continue;
-
-    // Ensure grid exists for this region
-    let grid = mapGrids[regionId];
-    if (!grid) {
-      grid = generateRegionGrid(region);
-      mapGrids[regionId] = grid;
-    }
-
-    // Build a set of occupied cells from existing buildings in this region
-    const occupiedCells = new Set<string>();
-    for (const b of buildings) {
-      if (b.regionId === regionId && b.gridRow !== undefined && b.gridCol !== undefined) {
-        const bFootprint = getBuildingFootprint(b.type);
-        for (let dr = 0; dr < bFootprint.height; dr++) {
-          for (let dc = 0; dc < bFootprint.width; dc++) {
-            occupiedCells.add(`${b.gridRow + dr},${b.gridCol + dc}`);
-          }
-        }
-      }
-    }
-
-    // Scan grid left-to-right, top-to-bottom for first available position
-    for (let row = 0; row <= region.gridRows - footprint.height; row++) {
-      for (let col = 0; col <= region.gridCols - footprint.width; col++) {
-        let fits = true;
-        for (let dr = 0; dr < footprint.height && fits; dr++) {
-          for (let dc = 0; dc < footprint.width && fits; dc++) {
-            const r = row + dr;
-            const c = col + dc;
-            // Check grid tile terrain (water = not buildable)
-            const tile = grid.find(t => t.row === r && t.col === c);
-            if (!tile || tile.terrain === 'water') {
-              fits = false;
-            } else if (occupiedCells.has(`${r},${c}`)) {
-              fits = false;
-            }
-          }
-        }
-        if (fits) {
-          return { regionId, gridRow: row, gridCol: col };
-        }
-      }
-    }
-  }
-
-  return null; // No space found anywhere
 }
 
 // --- Save Migration ---
@@ -603,651 +484,6 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
     });
   }
 
-  // V14 → V15: Mega project progress changed from 0-1 float to integer ticks, added paused field
-  if (version < 15) {
-    const existingProjects = (state.megaProjects || []) as { type: string; progress: number; paused?: boolean; stages: { timeRequired: number }[]; currentStage: number }[];
-    state.megaProjects = (state.megaProjects || []).map((p: typeof existingProjects[0]) => {
-      // Old progress was 0-1 float, new progress is 0-timeRequired integer
-      const stage = p.stages[p.currentStage];
-      const newProgress = (stage && p.progress > 0 && p.progress < 1)
-        ? Math.floor(p.progress * stage.timeRequired)
-        : 0;
-      return { ...p, progress: newProgress, paused: p.paused ?? false };
-    });
-  }
-
-  // V15 → V16: Added research queue + dynamic contracts
-  if (version < 16) {
-    if (!state.researchQueue) {
-      state.researchQueue = [];
-    }
-    // Migrate existing contracts to new format
-    if (Array.isArray(state.contracts)) {
-      state.contracts = (state.contracts as Contract[]).map((c: Contract) => ({
-        ...c,
-        difficultyTier: (c.difficultyTier || (c.difficulty <= 1 ? 'easy' : c.difficulty <= 2 ? 'medium' : c.difficulty <= 3 ? 'hard' : 'legendary')) as ContractDifficulty,
-        accepted: c.accepted ?? !!(c.progress > 0 || c.completed), // Old contracts with progress were implicitly accepted
-        expiresAt: c.expiresAt ?? 0,
-        templateType: c.templateType ?? c.type ?? 'delivery',
-        validationPassed: c.validationPassed ?? true,
-        validationNotes: c.validationNotes ?? [],
-      }));
-    }
-  }
-
-  // V16 → V17: Hybrid Map System (Grid + Logistics + Region)
-  if (version < 17) {
-    // Add map system fields
-    if (!state.mapRegions) {
-      state.mapRegions = INITIAL_REGIONS.map(r => ({ ...r }));
-    }
-    if (!state.mapGrids) {
-      const grids: Record<string, GridTile[]> = {};
-      INITIAL_REGIONS.forEach(r => {
-        grids[r.id] = generateRegionGrid(r);
-      });
-      state.mapGrids = grids;
-    }
-    if (!state.logisticsRoutes) {
-      state.logisticsRoutes = [];
-    }
-    if (!state.activeRegion) {
-      state.activeRegion = 'grasslands';
-    }
-    if (!state.mapViewLayer) {
-      state.mapViewLayer = 'region';
-    }
-    if (!state.mapViewMode) {
-      state.mapViewMode = 'view';
-    }
-
-    // Migrate existing buildings — auto-assign to grasslands
-    if (Array.isArray(state.buildings)) {
-      state.buildings = (state.buildings as BuildingInstance[]).map((b: BuildingInstance) => ({
-        ...b,
-        gridRow: b.gridRow ?? undefined,
-        gridCol: b.gridCol ?? undefined,
-        regionId: b.regionId ?? undefined,
-      }));
-    }
-  }
-
-  // V17 → V18: Auto-assign existing buildings to map regions + grid positions
-  if (version < 18) {
-    // Ensure map system fields exist
-    if (!state.mapRegions) {
-      state.mapRegions = INITIAL_REGIONS.map(r => ({ ...r }));
-    }
-    if (!state.mapGrids) {
-      const grids: Record<string, GridTile[]> = {};
-      INITIAL_REGIONS.forEach(r => {
-        grids[r.id] = generateRegionGrid(r);
-      });
-      state.mapGrids = grids;
-    }
-    if (!state.logisticsRoutes) {
-      state.logisticsRoutes = [];
-    }
-
-    // Auto-assign existing buildings that don't have a regionId
-    if (Array.isArray(state.buildings)) {
-      const buildings = state.buildings as BuildingInstance[];
-      const mapRegions = (state.mapRegions || INITIAL_REGIONS) as Region[];
-      const mapGrids = (state.mapGrids || {}) as Record<string, GridTile[]>;
-
-      // Ensure grids exist for all regions
-      for (const region of mapRegions) {
-        if (!mapGrids[region.id]) {
-          mapGrids[region.id] = generateRegionGrid(region);
-        }
-      }
-
-      // Build occupied cells tracker from already-assigned buildings
-      const occupiedCellsMap: Record<string, Set<string>> = {};
-      for (const region of mapRegions) {
-        occupiedCellsMap[region.id] = new Set<string>();
-      }
-      for (const b of buildings) {
-        if (b.regionId && b.gridRow !== undefined && b.gridCol !== undefined) {
-          const bFootprint = getBuildingFootprint(b.type);
-          if (!occupiedCellsMap[b.regionId]) occupiedCellsMap[b.regionId] = new Set<string>();
-          for (let dr = 0; dr < bFootprint.height; dr++) {
-            for (let dc = 0; dc < bFootprint.width; dc++) {
-              occupiedCellsMap[b.regionId].add(`${b.gridRow + dr},${b.gridCol + dc}`);
-            }
-          }
-        }
-      }
-
-      // Assign unplaced buildings
-      const updatedBuildings = buildings.map((b: BuildingInstance) => {
-        if (b.regionId !== undefined) return b;
-
-        const assignment = autoAssignBuildingToMap(b.type, buildings, mapRegions, mapGrids);
-        if (assignment) {
-          // Mark cells as occupied for subsequent buildings
-          const footprint = getBuildingFootprint(b.type);
-          if (!occupiedCellsMap[assignment.regionId]) occupiedCellsMap[assignment.regionId] = new Set<string>();
-          for (let dr = 0; dr < footprint.height; dr++) {
-            for (let dc = 0; dc < footprint.width; dc++) {
-              occupiedCellsMap[assignment.regionId].add(`${assignment.gridRow + dr},${assignment.gridCol + dc}`);
-            }
-          }
-          return { ...b, regionId: assignment.regionId, gridRow: assignment.gridRow, gridCol: assignment.gridCol };
-        }
-        return b;
-      });
-
-      state.buildings = updatedBuildings;
-
-      // Update grid tiles to reflect occupied cells
-      for (const region of mapRegions) {
-        const grid = mapGrids[region.id];
-        if (!grid) continue;
-        const regionBuildings = updatedBuildings.filter(
-          (b: BuildingInstance) => b.regionId === region.id && b.gridRow !== undefined && b.gridCol !== undefined
-        );
-        if (regionBuildings.length > 0) {
-          mapGrids[region.id] = grid.map(t => {
-            for (const b of regionBuildings) {
-              const footprint = getBuildingFootprint(b.type);
-              if (t.row >= (b.gridRow ?? 0) && t.row < (b.gridRow ?? 0) + footprint.height &&
-                  t.col >= (b.gridCol ?? 0) && t.col < (b.gridCol ?? 0) + footprint.width) {
-                return { ...t, occupiedBy: b.id };
-              }
-            }
-            return t;
-          });
-        }
-      }
-
-      state.mapGrids = mapGrids;
-
-      // Auto-generate logistics routes
-      const activeBuildings = updatedBuildings.filter((b: BuildingInstance) => b.active);
-      const routes = (state.logisticsRoutes || []) as LogisticsRoute[];
-      const existingRouteKeys = new Set(
-        routes.map(r => `${r.fromBuildingId}->${r.toBuildingId}:${r.carriesResource}`)
-      );
-
-      for (const consumer of activeBuildings) {
-        const consumerDef = BUILDING_DEFS[consumer.type];
-        if (!consumerDef?.inputs) continue;
-
-        for (const input of consumerDef.inputs) {
-          if (input.resource === 'money') continue;
-          const resource = input.resource as ResourceType;
-
-          const producers = activeBuildings.filter((b: BuildingInstance) => {
-            const bDef = BUILDING_DEFS[b.type];
-            return bDef?.outputs?.some(o => o.resource === resource);
-          });
-
-          let closestProducer: BuildingInstance | null = null;
-          let closestDist = Infinity;
-
-          for (const producer of producers) {
-            if (producer.id === consumer.id) continue;
-            const routeKey = `${producer.id}->${consumer.id}:${resource}`;
-            if (existingRouteKeys.has(routeKey)) continue;
-
-            const sameRegion = producer.regionId === consumer.regionId && producer.regionId !== undefined;
-            let dist: number;
-            if (sameRegion) {
-              dist = Math.abs((producer.gridRow ?? 0) - (consumer.gridRow ?? 0)) +
-                     Math.abs((producer.gridCol ?? 0) - (consumer.gridCol ?? 0));
-            } else {
-              dist = 100;
-            }
-
-            if (dist < closestDist) {
-              closestDist = dist;
-              closestProducer = producer;
-            }
-          }
-
-          if (closestProducer) {
-            const sameRegion = closestProducer.regionId === consumer.regionId && consumer.regionId !== undefined;
-            let routeType: LogisticsRoute['routeType'];
-            let efficiency: number;
-
-            if (!sameRegion) {
-              routeType = 'drone';
-              efficiency = 0.5;
-            } else if (closestDist <= 3) {
-              routeType = 'conveyor';
-              efficiency = Math.max(0.3, 1 - closestDist * 0.05);
-            } else if (closestDist <= 8) {
-              routeType = 'truck';
-              efficiency = Math.max(0.3, 1 - closestDist * 0.05);
-            } else if (closestDist <= 15) {
-              routeType = 'train';
-              efficiency = Math.max(0.3, 1 - closestDist * 0.05);
-            } else {
-              routeType = 'drone';
-              efficiency = Math.max(0.3, 1 - closestDist * 0.05);
-            }
-
-            const producerDef = BUILDING_DEFS[closestProducer.type];
-            const outputEntry = producerDef?.outputs?.find(o => o.resource === resource);
-            const outputRate = outputEntry ? outputEntry.amount * (producerDef?.baseProductionRate ?? 1) : 1;
-
-            const routeKey = `${closestProducer.id}->${consumer.id}:${resource}`;
-            existingRouteKeys.add(routeKey);
-
-            routes.push({
-              id: Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
-              fromBuildingId: closestProducer.id,
-              toBuildingId: consumer.id,
-              carriesResource: resource,
-              throughput: outputRate * efficiency,
-              maxThroughput: outputRate * 2,
-              efficiency,
-              active: true,
-              routeType,
-            });
-          }
-        }
-      }
-
-      state.logisticsRoutes = routes;
-    }
-  }
-
-  // V18 → V19: Enlarged map grids — regenerate grids with new sizes
-  if (version < 19) {
-    // Regenerate all region grids with new larger sizes
-    const newRegions = INITIAL_REGIONS;
-    const newGrids: Record<string, GridTile[]> = {};
-    for (const region of newRegions) {
-      newGrids[region.id] = generateRegionGrid(region);
-    }
-
-    // Update mapRegions with new grid sizes (preserve unlock status)
-    if (Array.isArray(state.mapRegions)) {
-      const oldRegions = state.mapRegions as Region[];
-      state.mapRegions = newRegions.map(r => {
-        const old = oldRegions.find(o => o.id === r.id);
-        return { ...r, unlocked: old?.unlocked ?? r.unlocked };
-      });
-    } else {
-      state.mapRegions = newRegions.map(r => ({ ...r }));
-    }
-
-    // Replace grids with new larger ones
-    state.mapGrids = newGrids;
-
-    // Re-assign all existing buildings to the new grids
-    if (Array.isArray(state.buildings)) {
-      const buildings = state.buildings as BuildingInstance[];
-      const mapRegions = (state.mapRegions || INITIAL_REGIONS) as Region[];
-
-      // Build occupied cells tracker
-      const occupiedCellsMap: Record<string, Set<string>> = {};
-      for (const region of mapRegions) {
-        occupiedCellsMap[region.id] = new Set<string>();
-      }
-
-      // Reset all building positions
-      const updatedBuildings = buildings.map((b: BuildingInstance) => {
-        // Clear old position
-        return { ...b, gridRow: undefined, gridCol: undefined, regionId: undefined };
-      });
-
-      // Auto-assign buildings to regions and grid positions
-      for (const b of updatedBuildings) {
-        const assignment = autoAssignBuildingToMap(b.type, updatedBuildings, mapRegions, newGrids);
-        if (assignment) {
-          const footprint = getBuildingFootprint(b.type);
-          if (!occupiedCellsMap[assignment.regionId]) occupiedCellsMap[assignment.regionId] = new Set<string>();
-          for (let dr = 0; dr < footprint.height; dr++) {
-            for (let dc = 0; dc < footprint.width; dc++) {
-              occupiedCellsMap[assignment.regionId].add(`${assignment.gridRow + dr},${assignment.gridCol + dc}`);
-            }
-          }
-          b.regionId = assignment.regionId;
-          b.gridRow = assignment.gridRow;
-          b.gridCol = assignment.gridCol;
-        }
-      }
-
-      state.buildings = updatedBuildings;
-
-      // Update grid tiles to reflect occupied cells
-      for (const region of mapRegions) {
-        const grid = newGrids[region.id];
-        if (!grid) continue;
-        const regionBuildings = updatedBuildings.filter(
-          (b: BuildingInstance) => b.regionId === region.id && b.gridRow !== undefined && b.gridCol !== undefined
-        );
-        if (regionBuildings.length > 0) {
-          newGrids[region.id] = grid.map(t => {
-            for (const b of regionBuildings) {
-              const footprint = getBuildingFootprint(b.type);
-              if (t.row >= (b.gridRow ?? 0) && t.row < (b.gridRow ?? 0) + footprint.height &&
-                  t.col >= (b.gridCol ?? 0) && t.col < (b.gridCol ?? 0) + footprint.width) {
-                return { ...t, occupiedBy: b.id };
-              }
-            }
-            return t;
-          });
-        }
-      }
-
-      state.mapGrids = newGrids;
-
-      // Re-generate logistics routes
-      const activeBuildings = updatedBuildings.filter((b: BuildingInstance) => b.active);
-      const routes: LogisticsRoute[] = [];
-      const existingRouteKeys = new Set<string>();
-
-      for (const consumer of activeBuildings) {
-        const consumerDef = BUILDING_DEFS[consumer.type];
-        if (!consumerDef?.inputs) continue;
-
-        for (const input of consumerDef.inputs) {
-          if (input.resource === 'money') continue;
-          const resource = input.resource as ResourceType;
-
-          const producers = activeBuildings.filter((b: BuildingInstance) => {
-            const bDef = BUILDING_DEFS[b.type];
-            return bDef?.outputs?.some(o => o.resource === resource);
-          });
-
-          let closestProducer: BuildingInstance | null = null;
-          let closestDist = Infinity;
-
-          for (const producer of producers) {
-            if (producer.id === consumer.id) continue;
-            const routeKey = `${producer.id}->${consumer.id}:${resource}`;
-            if (existingRouteKeys.has(routeKey)) continue;
-
-            const sameRegion = producer.regionId === consumer.regionId && producer.regionId !== undefined;
-            let dist: number;
-            if (sameRegion) {
-              dist = Math.abs((producer.gridRow ?? 0) - (consumer.gridRow ?? 0)) +
-                     Math.abs((producer.gridCol ?? 0) - (consumer.gridCol ?? 0));
-            } else {
-              dist = 100;
-            }
-
-            if (dist < closestDist) {
-              closestDist = dist;
-              closestProducer = producer;
-            }
-          }
-
-          if (closestProducer) {
-            const sameRegion = closestProducer.regionId === consumer.regionId && consumer.regionId !== undefined;
-            let routeType: LogisticsRoute['routeType'];
-            let efficiency: number;
-
-            if (!sameRegion) {
-              routeType = 'drone';
-              efficiency = 0.5;
-            } else if (closestDist <= 3) {
-              routeType = 'conveyor';
-              efficiency = Math.max(0.3, 1 - closestDist * 0.05);
-            } else if (closestDist <= 8) {
-              routeType = 'truck';
-              efficiency = Math.max(0.3, 1 - closestDist * 0.05);
-            } else if (closestDist <= 15) {
-              routeType = 'train';
-              efficiency = Math.max(0.3, 1 - closestDist * 0.05);
-            } else {
-              routeType = 'drone';
-              efficiency = Math.max(0.3, 1 - closestDist * 0.05);
-            }
-
-            const producerDef = BUILDING_DEFS[closestProducer.type];
-            const outputEntry = producerDef?.outputs?.find(o => o.resource === resource);
-            const outputRate = outputEntry ? outputEntry.amount * (producerDef?.baseProductionRate ?? 1) : 1;
-
-            const routeKey = `${closestProducer.id}->${consumer.id}:${resource}`;
-            existingRouteKeys.add(routeKey);
-
-            routes.push({
-              id: Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
-              fromBuildingId: closestProducer.id,
-              toBuildingId: consumer.id,
-              carriesResource: resource,
-              throughput: outputRate * efficiency,
-              maxThroughput: outputRate * 2,
-              efficiency,
-              active: true,
-              routeType,
-            });
-          }
-        }
-      }
-
-      state.logisticsRoutes = routes;
-    }
-  }
-
-  // V19 → V20: Enlarged grids, new building footprints, all 66 buildings auto-placed, all regions unlocked
-  if (version < 20) {
-    // Regenerate all region grids with new larger sizes and unlocked regions
-    const newRegions = INITIAL_REGIONS;
-    const newGrids: Record<string, GridTile[]> = {};
-    for (const region of newRegions) {
-      newGrids[region.id] = generateRegionGrid(region);
-    }
-
-    // Update mapRegions with new grid sizes and unlock all regions
-    if (Array.isArray(state.mapRegions)) {
-      state.mapRegions = newRegions.map(r => ({ ...r, unlocked: true }));
-    } else {
-      state.mapRegions = newRegions.map(r => ({ ...r, unlocked: true }));
-    }
-
-    // Replace grids with new larger ones
-    state.mapGrids = newGrids;
-
-    // Reset all existing building positions and re-assign
-    if (Array.isArray(state.buildings)) {
-      const buildings = state.buildings as BuildingInstance[];
-      const mapRegions = (state.mapRegions || INITIAL_REGIONS) as Region[];
-
-      // Build occupied cells tracker
-      const occupiedCellsMap: Record<string, Set<string>> = {};
-      for (const region of mapRegions) {
-        occupiedCellsMap[region.id] = new Set<string>();
-      }
-
-      // Reset all building positions
-      const updatedBuildings = buildings.map((b: BuildingInstance) => {
-        return { ...b, gridRow: undefined, gridCol: undefined, regionId: undefined };
-      });
-
-      // Auto-assign buildings to regions and grid positions
-      for (const b of updatedBuildings) {
-        const assignment = autoAssignBuildingToMap(b.type, updatedBuildings, mapRegions, newGrids);
-        if (assignment) {
-          const footprint = getBuildingFootprint(b.type);
-          if (!occupiedCellsMap[assignment.regionId]) occupiedCellsMap[assignment.regionId] = new Set<string>();
-          for (let dr = 0; dr < footprint.height; dr++) {
-            for (let dc = 0; dc < footprint.width; dc++) {
-              occupiedCellsMap[assignment.regionId].add(`${assignment.gridRow + dr},${assignment.gridCol + dc}`);
-            }
-          }
-          b.regionId = assignment.regionId;
-          b.gridRow = assignment.gridRow;
-          b.gridCol = assignment.gridCol;
-        }
-      }
-
-      state.buildings = updatedBuildings;
-
-      // Update grid tiles to reflect occupied cells
-      for (const region of mapRegions) {
-        const grid = newGrids[region.id];
-        if (!grid) continue;
-        const regionBuildings = updatedBuildings.filter(
-          (b: BuildingInstance) => b.regionId === region.id && b.gridRow !== undefined && b.gridCol !== undefined
-        );
-        if (regionBuildings.length > 0) {
-          newGrids[region.id] = grid.map(t => {
-            for (const b of regionBuildings) {
-              const footprint = getBuildingFootprint(b.type);
-              if (t.row >= (b.gridRow ?? 0) && t.row < (b.gridRow ?? 0) + footprint.height &&
-                  t.col >= (b.gridCol ?? 0) && t.col < (b.gridCol ?? 0) + footprint.width) {
-                return { ...t, occupiedBy: b.id };
-              }
-            }
-            return t;
-          });
-        }
-      }
-
-      state.mapGrids = newGrids;
-
-      // Re-generate logistics routes
-      const activeBuildings = updatedBuildings.filter((b: BuildingInstance) => b.active);
-      const routes: LogisticsRoute[] = [];
-      const existingRouteKeys = new Set<string>();
-
-      for (const consumer of activeBuildings) {
-        const consumerDef = BUILDING_DEFS[consumer.type];
-        if (!consumerDef?.inputs) continue;
-
-        for (const input of consumerDef.inputs) {
-          if (input.resource === 'money') continue;
-          const resource = input.resource as ResourceType;
-
-          const producers = activeBuildings.filter((b: BuildingInstance) => {
-            const bDef = BUILDING_DEFS[b.type];
-            return bDef?.outputs?.some(o => o.resource === resource);
-          });
-
-          let closestProducer: BuildingInstance | null = null;
-          let closestDist = Infinity;
-
-          for (const producer of producers) {
-            if (producer.id === consumer.id) continue;
-            const routeKey = `${producer.id}->${consumer.id}:${resource}`;
-            if (existingRouteKeys.has(routeKey)) continue;
-
-            const sameRegion = producer.regionId === consumer.regionId && producer.regionId !== undefined;
-            let dist: number;
-            if (sameRegion) {
-              dist = Math.abs((producer.gridRow ?? 0) - (consumer.gridRow ?? 0)) +
-                     Math.abs((producer.gridCol ?? 0) - (consumer.gridCol ?? 0));
-            } else {
-              dist = 100;
-            }
-
-            if (dist < closestDist) {
-              closestDist = dist;
-              closestProducer = producer;
-            }
-          }
-
-          if (closestProducer) {
-            const sameRegion = closestProducer.regionId === consumer.regionId && consumer.regionId !== undefined;
-            let routeType: LogisticsRoute['routeType'];
-            let efficiency: number;
-
-            if (!sameRegion) {
-              routeType = 'drone';
-              efficiency = 0.5;
-            } else if (closestDist <= 3) {
-              routeType = 'conveyor';
-              efficiency = Math.max(0.3, 1 - closestDist * 0.05);
-            } else if (closestDist <= 8) {
-              routeType = 'truck';
-              efficiency = Math.max(0.3, 1 - closestDist * 0.05);
-            } else if (closestDist <= 15) {
-              routeType = 'train';
-              efficiency = Math.max(0.3, 1 - closestDist * 0.05);
-            } else {
-              routeType = 'drone';
-              efficiency = Math.max(0.3, 1 - closestDist * 0.05);
-            }
-
-            const producerDef = BUILDING_DEFS[closestProducer.type];
-            const outputEntry = producerDef?.outputs?.find(o => o.resource === resource);
-            const outputRate = outputEntry ? outputEntry.amount * (producerDef?.baseProductionRate ?? 1) : 1;
-
-            const routeKey = `${closestProducer.id}->${consumer.id}:${resource}`;
-            existingRouteKeys.add(routeKey);
-
-            routes.push({
-              id: Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
-              fromBuildingId: closestProducer.id,
-              toBuildingId: consumer.id,
-              carriesResource: resource,
-              throughput: outputRate * efficiency,
-              maxThroughput: outputRate * 2,
-              efficiency,
-              active: true,
-              routeType,
-            });
-          }
-        }
-      }
-
-      state.logisticsRoutes = routes;
-    }
-  }
-
-  // V20 → V21: Building Condition System
-  if (version < 21) {
-    // Add condition fields to all existing buildings
-    if (Array.isArray(state.buildings)) {
-      state.buildings = (state.buildings as BuildingInstance[]).map((b: BuildingInstance) => ({
-        ...b,
-        condition: b.condition ?? 100,
-        lastDamageTick: b.lastDamageTick ?? 0,
-        deteriorationRate: b.deteriorationRate ?? 0.01,
-        efficiency: b.efficiency ?? 0,
-      }));
-    }
-  }
-
-  // V21 → V22: Maintenance Log
-  if (version < 22) {
-    if (!state.maintenanceLog) {
-      state.maintenanceLog = [];
-    }
-  }
-
-  // V22 → V23: Re-validate all building condition fields (fix null/undefined/NaN)
-  if (version < 23) {
-    if (Array.isArray(state.buildings)) {
-      state.buildings = (state.buildings as BuildingInstance[]).map((b: BuildingInstance) => ({
-        ...b,
-        condition: b.condition == null || !Number.isFinite(b.condition) ? 100 : Math.max(0, Math.min(100, b.condition)),
-        lastDamageTick: b.lastDamageTick ?? 0,
-        deteriorationRate: b.deteriorationRate == null || !Number.isFinite(b.deteriorationRate) ? 0.01 : b.deteriorationRate,
-        efficiency: b.efficiency == null || !Number.isFinite(b.efficiency) ? 1 : Math.max(0, Math.min(2, b.efficiency)),
-      }));
-    }
-  }
-
-  // V23 → V24: Fix buildings with zero efficiency that are active
-  if (version < 24) {
-    if (Array.isArray(state.buildings)) {
-      state.buildings = (state.buildings as BuildingInstance[]).map((b: BuildingInstance) => ({
-        ...b,
-        // Active buildings with zero/null efficiency get set to 1
-        efficiency: b.active && (b.efficiency == null || !Number.isFinite(b.efficiency) || b.efficiency <= 0) ? 1 : b.efficiency,
-      }));
-    }
-  }
-
-  // V24 → V25: Add auto-assign fields to drones
-  if (version < 25) {
-    if (state.drones && Array.isArray((state.drones as { fleet: Drone[] }).fleet)) {
-      const drones = state.drones as { fleet: Drone[]; completedMissions: number; totalEarned: number };
-      drones.fleet = drones.fleet.map((d: Drone) => ({
-        ...d,
-        autoAssign: d.autoAssign ?? false,
-        autoAssignPriority: d.autoAssignPriority ?? 'profit',
-      }));
-    }
-  }
-
   state._version = SAVE_VERSION;
   return state;
 }
@@ -1282,171 +518,6 @@ const initialCapacity: Record<ResourceType, number> = {
 };
 
 function createInitialState(): GameState {
-  // Build all 66 building instances
-  const allBuildingTypes = Object.keys(BUILDING_DEFS) as BuildingType[];
-
-  // Buildings that are active by default (no inputs needed)
-  const activeByDefaultTypes = new Set<string>([
-    // Extractors - produce on their own
-    'miningDrill', 'oilPump', 'waterExtractor', 'quarry', 'clayPit', 'limestoneQuarry',
-    'gravelPit', 'bauxiteMine', 'wolframiteMine', 'rareEarthExtractor',
-    // Basic power plants - produce on their own
-    'coalGenerator', 'solarPanel', 'windTurbine',
-  ]);
-
-  const initialBuildings: BuildingInstance[] = allBuildingTypes.map(type => {
-    const isActive = activeByDefaultTypes.has(type);
-    return {
-      id: `${type}-starter`,
-      type,
-      level: 1,
-      active: isActive,
-      efficiency: isActive ? 0.8 : 0,
-      placedAt: 0,
-      condition: 100,
-      lastDamageTick: 0,
-      deteriorationRate: 0.01,
-      gridRow: undefined as number | undefined,
-      gridCol: undefined as number | undefined,
-      regionId: undefined as string | undefined,
-    };
-  });
-
-  // Generate region grids
-  const mapRegions = INITIAL_REGIONS.map(r => ({ ...r }));
-  const mapGrids: Record<string, GridTile[]> = {};
-  for (const region of INITIAL_REGIONS) {
-    mapGrids[region.id] = generateRegionGrid(region);
-  }
-
-  // Auto-assign all buildings to the map
-  const occupiedCellsMap: Record<string, Set<string>> = {};
-  for (const region of mapRegions) {
-    occupiedCellsMap[region.id] = new Set<string>();
-  }
-
-  for (const b of initialBuildings) {
-    const assignment = autoAssignBuildingToMap(b.type, initialBuildings, mapRegions, mapGrids);
-    if (assignment) {
-      const footprint = getBuildingFootprint(b.type);
-      if (!occupiedCellsMap[assignment.regionId]) occupiedCellsMap[assignment.regionId] = new Set<string>();
-      for (let dr = 0; dr < footprint.height; dr++) {
-        for (let dc = 0; dc < footprint.width; dc++) {
-          occupiedCellsMap[assignment.regionId].add(`${assignment.gridRow + dr},${assignment.gridCol + dc}`);
-        }
-      }
-      b.regionId = assignment.regionId;
-      b.gridRow = assignment.gridRow;
-      b.gridCol = assignment.gridCol;
-    }
-  }
-
-  // Update grid tiles to reflect occupied cells
-  for (const region of mapRegions) {
-    const grid = mapGrids[region.id];
-    if (!grid) continue;
-    const regionBuildings = initialBuildings.filter(
-      b => b.regionId === region.id && b.gridRow !== undefined && b.gridCol !== undefined
-    );
-    if (regionBuildings.length > 0) {
-      mapGrids[region.id] = grid.map(t => {
-        for (const b of regionBuildings) {
-          const footprint = getBuildingFootprint(b.type);
-          if (t.row >= (b.gridRow ?? 0) && t.row < (b.gridRow ?? 0) + footprint.height &&
-              t.col >= (b.gridCol ?? 0) && t.col < (b.gridCol ?? 0) + footprint.width) {
-            return { ...t, occupiedBy: b.id };
-          }
-        }
-        return t;
-      });
-    }
-  }
-
-  // Generate logistics routes for active buildings
-  const activeBuildings = initialBuildings.filter(b => b.active);
-  const logisticsRoutes: LogisticsRoute[] = [];
-  const existingRouteKeys = new Set<string>();
-
-  for (const consumer of activeBuildings) {
-    const consumerDef = BUILDING_DEFS[consumer.type];
-    if (!consumerDef?.inputs) continue;
-
-    for (const input of consumerDef.inputs) {
-      if (input.resource === 'money') continue;
-      const resource = input.resource as ResourceType;
-
-      const producers = activeBuildings.filter(b => {
-        const bDef = BUILDING_DEFS[b.type];
-        return bDef?.outputs?.some(o => o.resource === resource);
-      });
-
-      let closestProducer: BuildingInstance | null = null;
-      let closestDist = Infinity;
-
-      for (const producer of producers) {
-        if (producer.id === consumer.id) continue;
-        const routeKey = `${producer.id}->${consumer.id}:${resource}`;
-        if (existingRouteKeys.has(routeKey)) continue;
-
-        const sameRegion = producer.regionId === consumer.regionId && producer.regionId !== undefined;
-        let dist: number;
-        if (sameRegion) {
-          dist = Math.abs((producer.gridRow ?? 0) - (consumer.gridRow ?? 0)) +
-                 Math.abs((producer.gridCol ?? 0) - (consumer.gridCol ?? 0));
-        } else {
-          dist = 100;
-        }
-
-        if (dist < closestDist) {
-          closestDist = dist;
-          closestProducer = producer;
-        }
-      }
-
-      if (closestProducer) {
-        const sameRegion = closestProducer.regionId === consumer.regionId && consumer.regionId !== undefined;
-        let routeType: LogisticsRoute['routeType'];
-        let efficiency: number;
-
-        if (!sameRegion) {
-          routeType = 'drone';
-          efficiency = 0.5;
-        } else if (closestDist <= 3) {
-          routeType = 'conveyor';
-          efficiency = Math.max(0.3, 1 - closestDist * 0.05);
-        } else if (closestDist <= 8) {
-          routeType = 'truck';
-          efficiency = Math.max(0.3, 1 - closestDist * 0.05);
-        } else if (closestDist <= 15) {
-          routeType = 'train';
-          efficiency = Math.max(0.3, 1 - closestDist * 0.05);
-        } else {
-          routeType = 'drone';
-          efficiency = Math.max(0.3, 1 - closestDist * 0.05);
-        }
-
-        const producerDef = BUILDING_DEFS[closestProducer.type];
-        const outputEntry = producerDef?.outputs?.find(o => o.resource === resource);
-        const outputRate = outputEntry ? outputEntry.amount * (producerDef?.baseProductionRate ?? 1) : 1;
-
-        const routeKey = `${closestProducer.id}->${consumer.id}:${resource}`;
-        existingRouteKeys.add(routeKey);
-
-        logisticsRoutes.push({
-          id: Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
-          fromBuildingId: closestProducer.id,
-          toBuildingId: consumer.id,
-          carriesResource: resource,
-          throughput: outputRate * efficiency,
-          maxThroughput: outputRate * 2,
-          efficiency,
-          active: true,
-          routeType,
-        });
-      }
-    }
-  }
-
   return {
     money: 1000,
     totalMoneyEarned: 0,
@@ -1455,14 +526,13 @@ function createInitialState(): GameState {
     paused: false,
     resources: { ...initialResources },
     resourceCapacity: { ...initialCapacity },
-    buildings: initialBuildings,
+    buildings: [],
     transportLines: [],
     powerGrid: { totalProduction: 0, totalConsumption: 0, efficiency: 1, overload: false, plants: [] },
     researchPoints: 0,
     completedResearch: [],
     activeResearch: null,
     researchProgress: 0,
-    researchQueue: [],
     workers: [],
     market: INITIAL_MARKET.map(m => ({ ...m })),
     contracts: [],
@@ -1524,8 +594,6 @@ function createInitialState(): GameState {
         speedLevel: 1,
         capacityLevel: 1,
         fuelEfficiencyLevel: 1,
-        autoAssign: false,
-        autoAssignPriority: 'profit' as const,
       }],
       completedMissions: 0,
       totalEarned: 0,
@@ -1533,18 +601,9 @@ function createInitialState(): GameState {
     activeTab: 'dashboard',
     selectedBuilding: null,
     notifications: [],
-    // Map System (Hybrid Grid + Logistics + Region)
-    mapRegions: mapRegions,
-    mapGrids: mapGrids,
-    logisticsRoutes: logisticsRoutes,
-    activeRegion: 'grasslands' as RegionId,
-    mapViewLayer: 'region' as MapViewLayer,
-    mapViewMode: 'view' as MapViewMode,
     computedProductionRates: {},
     computedConsumptionRates: {},
     computedActualConsumptionRates: {},
-    productionSnapshot: emptyProductionSnapshot(),
-    maintenanceLog: [],
   };
 }
 
@@ -1561,27 +620,14 @@ interface GameActions {
   upgradeBuilding: (id: string) => void;
   toggleBuilding: (id: string) => void;
   selectBuilding: (id: string | null) => void;
-  repairBuilding: (id: string) => void;
-  repairAllBuildings: () => void;
   
   // Transport
   buildTransportLine: (type: TransportType, from: string, to: string, resource: ResourceType) => void;
   upgradeTransportLine: (id: string) => void;
-  upgradeTransportType: (id: string, newType: TransportType) => void;
   toggleTransportLine: (id: string) => void;
-  upgradeAllTransportLines: () => void;
-  upgradeTransportLinesByType: (type: TransportType) => void;
-  // Transport Evolution
-  evolveTransportLine: (id: string) => void;
-  evolveAllTransportLines: () => void;
-  evolveTransportLinesByType: (type: TransportType) => void;
   
   // Research
   startResearch: (id: string) => void;
-  addToResearchQueue: (id: string) => void;
-  removeFromResearchQueue: (index: number) => void;
-  reorderResearchQueue: (fromIndex: number, toIndex: number) => void;
-  clearResearchQueue: () => void;
   
   // Workers
   hireWorker: (type: WorkerType) => void;
@@ -1594,10 +640,8 @@ interface GameActions {
   toggleAutoSell: (resource: ResourceType) => void;
   
   // Contracts
-  acceptContract: (contractId: string) => void;
+  acceptContract: (contract: Contract) => void;
   fulfillContract: (id: string) => void;
-  refreshContractBoard: () => void;
-  abandonContract: (id: string) => void;
   
   // Automation
   activateAutomation: (type: string) => void;
@@ -1612,9 +656,6 @@ interface GameActions {
   markAllNotificationsRead: () => void;
   clearNotifications: () => void;
 
-  // Maintenance Log
-  addMaintenanceLog: (entry: Omit<MaintenanceLogEntry, 'id'>) => void;
-
   // Celebrations (removed)
   
 
@@ -1625,8 +666,6 @@ interface GameActions {
   // MegaProjects
   startMegaProject: (type: MegaProjectType) => void;
   contributeToMegaProject: (type: MegaProjectType) => void;
-  pauseMegaProject: (type: MegaProjectType) => void;
-  resumeMegaProject: (type: MegaProjectType) => void;
 
   // Blueprints
   saveBlueprint: (name: string) => void;
@@ -1670,31 +709,62 @@ interface GameActions {
   sendDrone: (missionId: string, droneId: string) => void;
   upgradeDrone: (droneId: string, type: 'speed' | 'capacity' | 'fuelEfficiency') => void;
   generateDroneMissions: () => DroneMission[];
-  // Drone Auto-Assign
-  toggleDroneAutoAssign: (droneId: string) => void;
-  setDroneAutoAssignPriority: (droneId: string, priority: 'profit' | 'speed' | 'research') => void;
-  autoAssignAllDrones: () => void;
-  processAutoAssignDrones: () => void;
-
-  // Map System (Hybrid Grid + Logistics + Region)
-  setActiveRegion: (regionId: RegionId) => void;
-  setMapViewLayer: (layer: MapViewLayer) => void;
-  setMapViewMode: (mode: MapViewMode) => void;
-  unlockRegion: (regionId: RegionId) => void;
-  placeBuildingOnGrid: (buildingId: string, regionId: string, row: number, col: number) => boolean;
-  removeBuildingFromGrid: (buildingId: string) => void;
-  canPlaceBuilding: (buildingType: BuildingType, regionId: string, row: number, col: number) => boolean;
-  addLogisticsRoute: (fromBuildingId: string, toBuildingId: string, resource: ResourceType) => string | null;
-  removeLogisticsRoute: (routeId: string) => void;
-  getRegionForBuilding: (buildingType: BuildingType) => RegionId[];
-  autoGenerateLogisticsRoutes: () => void;
-  autoAssignAllBuildings: () => void;
 
   // Reset
   resetGame: () => void;
 }
 
 export type GameStore = GameState & GameActions;
+
+// --- Debounced localStorage for Zustand persist ---
+// Reduces write frequency from every tick to every 5 seconds (~40% tick CPU reduction)
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+const DEBOUNCE_MS = 5000;
+
+const debouncedStorage: Storage = {
+  getItem: (name: string) => typeof window !== 'undefined' ? localStorage.getItem(name) : null,
+  setItem: (name: string, value: string) => {
+    // Store the latest value to write
+    debouncedStorage.__pendingValue = value;
+    debouncedStorage.__pendingName = name;
+    if (!debounceTimer) {
+      debounceTimer = setTimeout(() => {
+        if (debouncedStorage.__pendingName) {
+          localStorage.setItem(debouncedStorage.__pendingName, debouncedStorage.__pendingValue);
+          debouncedStorage.__pendingName = null;
+          debouncedStorage.__pendingValue = null;
+        }
+        debounceTimer = null;
+      }, DEBOUNCE_MS);
+    }
+  },
+  removeItem: (name: string) => {
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+      debounceTimer = null;
+    }
+    if (typeof window !== 'undefined') localStorage.removeItem(name);
+  },
+  length: typeof window !== 'undefined' ? localStorage.length : 0,
+  key: (index: number) => typeof window !== 'undefined' ? localStorage.key(index) : null,
+  __pendingName: null as string | null,
+  __pendingValue: null as string | null,
+};
+
+// Force-save on page unload to prevent data loss
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+      debounceTimer = null;
+    }
+    if (debouncedStorage.__pendingName && debouncedStorage.__pendingValue) {
+      localStorage.setItem(debouncedStorage.__pendingName, debouncedStorage.__pendingValue);
+      debouncedStorage.__pendingName = null;
+      debouncedStorage.__pendingValue = null;
+    }
+  });
+}
 
 export const useGameStore = create<GameStore>()(
   persist(
@@ -1716,325 +786,261 @@ export const useGameStore = create<GameStore>()(
         const computedConsRates: Record<string, number> = {};
         const computedActualConsRates: Record<string, number> = {}; // Only actual consumption (excludes stalled demand)
 
-        // Build multiplier cache from weather, events, research, prestige, mega, transport, workers
-        const cache = buildMultipliers(state);
-
-        // Calculate power grid using calculator
-        const powerResult = computePowerGrid(state, cache, newResources, newTick);
-        let totalProduction = powerResult.totalProduction;
-        let totalConsumption = powerResult.totalConsumption;
-        const effectivePowerEfficiency = powerResult.efficiency;
-        const overload = powerResult.overload;
-
-        // Track fuel consumption rates from power grid
-        for (const fc of powerResult.fuelConsumption) {
-          computedConsRates[fc.resource] = (computedConsRates[fc.resource] || 0) + fc.amount;
-          computedActualConsRates[fc.resource] = (computedActualConsRates[fc.resource] || 0) + fc.actualAmount;
+        // Weather production multiplier (calculated early for power grid)
+        const weatherDef = WEATHER_DEFS[state.weather.current as WeatherType];
+        let weatherProductionMultiplier = 1;
+        let weatherSolarMultiplier = 1;
+        let weatherWindMultiplier = 1;
+        let droneRpEarned = 0;
+        if (weatherDef) {
+          weatherProductionMultiplier = weatherDef.productionMultiplier;
+          weatherSolarMultiplier = weatherDef.solarMultiplier;
+          weatherWindMultiplier = weatherDef.windMultiplier;
         }
+
+        // Calculate power grid
+        let totalProduction = 0;
+        let totalConsumption = 0;
+        const powerBuildings = state.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power' && b.active);
+        const consumingBuildings = state.buildings.filter(b => { const d = BUILDING_DEFS[b.type]; return d && d.category !== 'power' && b.active; });
+
+        powerBuildings.forEach(b => {
+          const def = BUILDING_DEFS[b.type];
+          if (!def) return;
+          let production = def.basePowerProduction * b.level * b.efficiency;
+          if (def.fuel && def.fuelRate) {
+            const fuelConsumed = def.fuelRate * b.level;
+            if (newResources[def.fuel] >= fuelConsumed) {
+              newResources[def.fuel] -= fuelConsumed;
+              totalProduction += production;
+              computedConsRates[def.fuel] = (computedConsRates[def.fuel] || 0) + fuelConsumed;
+              computedActualConsRates[def.fuel] = (computedActualConsRates[def.fuel] || 0) + fuelConsumed;
+            } else {
+              production *= 0.1;
+              totalProduction += production;
+              const actuallyConsumed = newResources[def.fuel] || 0;
+              computedConsRates[def.fuel] = (computedConsRates[def.fuel] || 0) + actuallyConsumed;
+              computedActualConsRates[def.fuel] = (computedActualConsRates[def.fuel] || 0) + actuallyConsumed;
+            }
+          } else {
+            if (b.type === 'solarPanel') {
+              const dayFactor = 0.5 + 0.5 * Math.sin(newTick * 0.01);
+              production *= Math.max(0.2, dayFactor) * weatherSolarMultiplier;
+            }
+            if (b.type === 'windTurbine') {
+              const windFactor = 0.5 + 0.5 * Math.sin(newTick * 0.007 + Math.PI / 3);
+              production *= Math.max(0.3, windFactor) * weatherWindMultiplier;
+            }
+            totalProduction += production;
+          }
+        });
+
+        consumingBuildings.forEach(b => {
+          const def = BUILDING_DEFS[b.type];
+          if (!def) return;
+          totalConsumption += def.basePowerConsumption * b.level * b.efficiency;
+        });
+
+        // Apply event effects (processed early for power consumption modifier)
+        let eventProductionMultiplier = 1; // global (untargeted) production multiplier
+        let eventResearchMultiplier = 1;
+        const targetedEventMultipliers = new Map<string, number>(); // building type → multiplier
+        let eventPowerConsumptionMultiplier = 1; // for powerMultiplier event effects
+        state.activeEvents.forEach(event => {
+          event.effects.forEach(effect => {
+            if (effect.type === 'productionMultiplier') {
+              if (effect.target) {
+                // Targeted: only affects specific building types
+                const existing = targetedEventMultipliers.get(effect.target) ?? 1;
+                targetedEventMultipliers.set(effect.target, existing * effect.value);
+              } else {
+                // Untargeted: affects all buildings
+                eventProductionMultiplier *= effect.value;
+              }
+            }
+            if (effect.type === 'researchSpeed') eventResearchMultiplier *= effect.value;
+            if (effect.type === 'powerMultiplier') eventPowerConsumptionMultiplier *= effect.value;
+          });
+        });
+
+        // Build research Set for O(1) lookups (replaces 17× .includes())
+        const researchSet = new Set(state.completedResearch);
+        const powerEfficiencyResearch = researchSet.has('energyEfficiency') ? 0.15 : 0;
+        const powerOptimizationResearch = researchSet.has('powerOptimization') ? 0.10 : 0;
+        totalConsumption *= (1 - powerEfficiencyResearch) * (1 - powerOptimizationResearch) * eventPowerConsumptionMultiplier;
+
+        const overload = totalConsumption > totalProduction;
 
         // Play power overload sound when overload newly detected
         if (overload && !state.powerGrid.overload) {
           soundEngine.play('powerOverload', 'events');
         }
 
-        // Map event research multiplier from cache (still needed for research processing)
-        const eventResearchMultiplier = cache.eventResearch;
-        const eventProductionMultiplier = cache.eventProductionGlobal;
+        // Production speed bonuses from research (using Set.has for O(1))
+        const extractorSpeedBonus = researchSet.has('basicAutomation') ? 0.15 : 0;
+        const factorySpeedBonus = researchSet.has('advancedAutomation') ? 0.25 : 0;
+        const workerEfficiencyBonus = researchSet.has('workerTraining') ? 0.25 : 0;
+        const logistics1Bonus = researchSet.has('logistics1') ? 0.2 : 0;
+        const advancedLogisticsBonus = researchSet.has('advancedLogistics') ? 0.3 : 0;
+        const cargoDronesBonus = researchSet.has('cargoDrones') ? 0.25 : 0;
+        const transportBonus = logistics1Bonus + advancedLogisticsBonus + cargoDronesBonus;
+        const advancedDrillingBonus = researchSet.has('advancedDrilling') ? 0.20 : 0;
+        const efficientSmeltingBonus = researchSet.has('efficientSmelting') ? 0.15 : 0;
+        const advancedElectronicsBonus = researchSet.has('advancedElectronics') ? 0.15 : 0;
+        const metabolicEngineeringBonus = researchSet.has('metabolicEngineering') ? 0.20 : 0;
+        const aiOptimizationBonus = researchSet.has('aiOptimization') ? 0.20 : 0;
+        const advancedRoboticsBonus = researchSet.has('advancedRobotics') ? 0.25 : 0;
+        const quantumComputingBonus = researchSet.has('quantumComputing') ? 0.30 : 0;
 
-        // researchSet still needed for getCapacity() calls
-        const researchSet = new Set(state.completedResearch);
+        // Prestige bonuses
+        const productionPrestigeBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'productionMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
+        const powerPrestigeBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'powerMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
 
-        let droneRpEarned = 0;
+        // MegaProject bonuses (single-pass loop instead of 8× filter)
+        let megaProductionBonus = 0, megaPowerBonus = 0, megaResearchBonus = 0,
+            megaExtractionBonus = 0, megaWorkerBonus = 0, megaTransportBonus = 0,
+            megaMarketBonus = 0, megaBuildingCostReduction = 0;
+        for (const p of state.megaProjects) {
+          if (!p.completed) continue;
+          switch (p.bonus.type) {
+            case 'productionMultiplier': megaProductionBonus += p.bonus.value; break;
+            case 'powerMultiplier': megaPowerBonus += p.bonus.value; break;
+            case 'researchMultiplier': megaResearchBonus += p.bonus.value; break;
+            case 'extractionMultiplier': megaExtractionBonus += p.bonus.value; break;
+            case 'workerEfficiency': megaWorkerBonus += p.bonus.value; break;
+            case 'transportMultiplier': megaTransportBonus += p.bonus.value; break;
+            case 'marketMultiplier': megaMarketBonus += p.bonus.value; break;
+            case 'buildingCostReduction': megaBuildingCostReduction += p.bonus.value; break;
+          }
+        }
+
+        totalProduction *= (1 + powerPrestigeBonus + megaPowerBonus);
+        const effectivePowerEfficiency = totalProduction > 0 ? Math.max(0.10, Math.min(1, totalProduction / Math.max(0.001, totalConsumption))) : 0.10;
+
+        // Transport efficiency — calculated here so it can be applied to production
+        const transportEfficiency = state.transportLines.length > 0
+          ? (state.transportLines.filter(t => t.active).length / Math.max(1, state.transportLines.length)) * (1 + transportBonus + megaTransportBonus)
+          : 1;
+        // Transport bonus: additive 25% of excess efficiency as production bonus (Option B)
+        const transportProductionBonus = 1 + 0.25 * Math.max(0, transportEfficiency - 1);
 
         // Process buildings
-        let updatedBuildings = state.buildings.map(b => ({ ...b }));
-
-        // === Runtime Safety: Fix any buildings with invalid condition values ===
-        updatedBuildings = updatedBuildings.map(b => {
-          if (b.condition == null || !Number.isFinite(b.condition)) {
-            return { ...b, condition: 100, lastDamageTick: b.lastDamageTick ?? 0, deteriorationRate: b.deteriorationRate ?? 0.01 };
-          }
-          return b;
-        });
-
-        // === Building Condition Deterioration (every 10 ticks) ===
-        let selfRepairActive = state.automationUnlocks.find(a => a.type === 'selfRepair' && a.active);
-        let selfRepairCostTotal = 0;
-        const maintenanceLogEntries: Omit<MaintenanceLogEntry, 'id'>[] = [];
-
-        if (newTick % 10 === 0) {
-          updatedBuildings = updatedBuildings.map(b => {
-            if (!b.active || safeCondition(b.condition) <= 0) return b;
-
-            const def = BUILDING_DEFS[b.type];
-            if (!def) return b;
-
-            // Base deterioration rate
-            let detRate = b.deteriorationRate;
-
-            // Age factor: older buildings deteriorate faster
-            const ageInTicks = newTick - b.placedAt;
-            const ageFactor = 1 + Math.min(2, ageInTicks / 100000); // Up to 3x after ~100k ticks
-            detRate *= ageFactor;
-
-            // Weather factor: storms and rain increase deterioration
-            if (state.weather.current === 'stormy') detRate *= 2.5;
-            else if (state.weather.current === 'rainy') detRate *= 1.5;
-            else if (state.weather.current === 'snowy') detRate *= 1.3;
-
-            // Power overload: faster deterioration
-            if (overload) detRate *= 1.5;
-
-            // Worker maintenance: slower deterioration if workers assigned
-            const assignedWorkersCount = state.workers.filter(w => w.assignedTo === b.id).length;
-            if (assignedWorkersCount > 0) detRate *= 0.5;
-
-            let newCondition = Math.max(0, b.condition - detRate);
-
-            // Self-repair automation: slowly repair over time
-            if (selfRepairActive && newCondition < 100) {
-              const repairRate = 0.1; // 0.1 condition per tick cycle
-              const canRepair = newCondition > 0; // Can't repair broken buildings automatically
-              if (canRepair) {
-                const actualRepair = Math.min(repairRate, 100 - newCondition);
-                newCondition = Math.min(100, newCondition + actualRepair);
-                // Cost: 50% of normal repair cost
-                const baseRepairCost = def.baseCost.find(c => c.resource === 'money')?.amount ?? 100;
-                const costPerPoint = baseRepairCost * 0.5 / 100 * b.level;
-                selfRepairCostTotal += actualRepair * costPerPoint;
-                maintenanceLogEntries.push({
-                  tick: newTick,
-                  buildingId: b.id,
-                  buildingName: def.name,
-                  eventType: 'self_repair',
-                  conditionChange: Math.round(actualRepair * 100) / 100,
-                  conditionAfter: Math.round(newCondition * 100) / 100,
-                  repairCost: Math.round(actualRepair * costPerPoint * 100) / 100,
-                });
-              }
-            }
-
-            // Track damage for notifications
-            const prevStatus = getConditionStatus(b.condition);
-            const newStatus = getConditionStatus(newCondition);
-
-            // Notification: building dropped to critical
-            if (prevStatus !== 'critical' && newStatus === 'critical') {
-              notifications.push({ id: generateId(), type: 'warning', message: `⚠️ ${def.emoji} ${def.name} condition is CRITICAL (${Math.round(newCondition)}%)`, gameTick: newTick, read: false });
-              maintenanceLogEntries.push({
-                tick: newTick,
-                buildingId: b.id,
-                buildingName: def.name,
-                eventType: 'critical_warning',
-                conditionChange: Math.round((newCondition - b.condition) * 100) / 100,
-                conditionAfter: Math.round(newCondition * 100) / 100,
-                details: `Condition dropped to ${Math.round(newCondition)}%`,
-              });
-            }
-            // Notification: building broke
-            if (newCondition === 0 && b.condition > 0) {
-              notifications.push({ id: generateId(), type: 'error', message: `💥 ${def.emoji} ${def.name} has BROKEN DOWN! Repair it to resume production.`, gameTick: newTick, read: false });
-              soundEngine.play('powerOverload', 'events');
-              maintenanceLogEntries.push({
-                tick: newTick,
-                buildingId: b.id,
-                buildingName: def.name,
-                eventType: 'broken',
-                conditionChange: Math.round((0 - b.condition) * 100) / 100,
-                conditionAfter: 0,
-                details: 'Building broke down',
-              });
-            }
-            // Log condition warning when dropping below 75% for the first time
-            if (prevStatus === 'pristine' && newStatus === 'good') {
-              maintenanceLogEntries.push({
-                tick: newTick,
-                buildingId: b.id,
-                buildingName: def.name,
-                eventType: 'condition_warning',
-                conditionChange: Math.round((newCondition - b.condition) * 100) / 100,
-                conditionAfter: Math.round(newCondition * 100) / 100,
-                details: 'Condition dropped below 100%',
-              });
-            } else if (prevStatus === 'good' && (newStatus === 'worn' || newStatus === 'damaged')) {
-              maintenanceLogEntries.push({
-                tick: newTick,
-                buildingId: b.id,
-                buildingName: def.name,
-                eventType: 'condition_warning',
-                conditionChange: Math.round((newCondition - b.condition) * 100) / 100,
-                conditionAfter: Math.round(newCondition * 100) / 100,
-                details: `Condition dropped to ${Math.round(newCondition)}%`,
-              });
-            }
-            // Log deterioration if significant
-            if (detRate > 0.02 && b.condition - newCondition > 0.005) {
-              maintenanceLogEntries.push({
-                tick: newTick,
-                buildingId: b.id,
-                buildingName: def.name,
-                eventType: 'deterioration',
-                conditionChange: Math.round((newCondition - b.condition) * 100) / 100,
-                conditionAfter: Math.round(newCondition * 100) / 100,
-                details: `Rate: ${detRate.toFixed(4)}/cycle`,
-              });
-            }
-
-            return {
-              ...b,
-              condition: Math.round(newCondition * 100) / 100,
-              lastDamageTick: newCondition < b.condition ? newTick : b.lastDamageTick,
-            };
-          });
-        }
-
-        // === Event Damage ===
-        // Natural disasters damage all buildings
-        state.activeEvents.forEach(event => {
-          if (event.type === 'naturalDisaster' && event.remaining === event.duration) {
-            // Only apply damage once when the event starts (remaining equals duration at start)
-            // Actually events decrement remaining at the end of the tick, so check if it just started
-          }
-        });
-
-        // Apply earthquake damage when natural disaster event is active and at certain intervals
-        if (newTick % 50 === 0) { // Check every 50 ticks
-          state.activeEvents.forEach(event => {
-            if (event.type === 'naturalDisaster') {
-              // Earthquake: damage all buildings by 5-15 condition points
-              const damageAmount = 5 + Math.random() * 10;
-              updatedBuildings = updatedBuildings.map(b => {
-                if (safeCondition(b.condition) <= 0) return b;
-                const def = BUILDING_DEFS[b.type];
-                const newCondition = Math.max(0, Math.round((safeCondition(b.condition) - damageAmount) * 100) / 100);
-                if (newCondition === 0 && b.condition > 0 && def) {
-                  notifications.push({ id: generateId(), type: 'error', message: `💥 ${def.emoji} ${def.name} BROKEN by earthquake!`, gameTick: newTick, read: false });
-                  maintenanceLogEntries.push({
-                    tick: newTick,
-                    buildingId: b.id,
-                    buildingName: def.name,
-                    eventType: 'earthquake_damage',
-                    conditionChange: Math.round((newCondition - b.condition) * 100) / 100,
-                    conditionAfter: newCondition,
-                    details: `Earthquake: -${Math.round(damageAmount)} condition`,
-                  });
-                } else if (def && b.condition - newCondition > 0.5) {
-                  maintenanceLogEntries.push({
-                    tick: newTick,
-                    buildingId: b.id,
-                    buildingName: def.name,
-                    eventType: 'earthquake_damage',
-                    conditionChange: Math.round((newCondition - b.condition) * 100) / 100,
-                    conditionAfter: newCondition,
-                    details: `Earthquake: -${Math.round(damageAmount)} condition`,
-                  });
-                }
-                return {
-                  ...b,
-                  condition: newCondition,
-                  lastDamageTick: newTick,
-                };
-              });
-              notifications.push({ id: generateId(), type: 'warning', message: `🌪️ Earthquake! All buildings took ${Math.round(damageAmount)} damage.`, gameTick: newTick, read: false });
-            }
-          });
-
-          // Stormy weather: damage outdoor buildings (extractors, solar panels) every 50 ticks
-          if (state.weather.current === 'stormy') {
-            const stormDamage = 3 + Math.random() * 7;
-            updatedBuildings = updatedBuildings.map(b => {
-              if (safeCondition(b.condition) <= 0) return b;
-              const def = BUILDING_DEFS[b.type];
-              if (!def) return b;
-              // Outdoor buildings: extractors and solar panels
-              const isOutdoor = def.category === 'extractor' || b.type === 'solarPanel' || b.type === 'windTurbine';
-              if (!isOutdoor) return b;
-              const newCondition = Math.max(0, Math.round((b.condition - stormDamage) * 100) / 100);
-              if (newCondition === 0 && b.condition > 0) {
-                notifications.push({ id: generateId(), type: 'error', message: `💥 ${def.emoji} ${def.name} BROKEN by storm!`, gameTick: newTick, read: false });
-                maintenanceLogEntries.push({
-                  tick: newTick,
-                  buildingId: b.id,
-                  buildingName: def.name,
-                  eventType: 'broken',
-                  conditionChange: Math.round((0 - b.condition) * 100) / 100,
-                  conditionAfter: 0,
-                  details: `Storm: -${Math.round(stormDamage)} condition`,
-                });
-              } else {
-                maintenanceLogEntries.push({
-                  tick: newTick,
-                  buildingId: b.id,
-                  buildingName: def.name,
-                  eventType: 'storm_damage',
-                  conditionChange: Math.round((newCondition - b.condition) * 100) / 100,
-                  conditionAfter: newCondition,
-                  details: `Storm: -${Math.round(stormDamage)} condition`,
-                });
-              }
-              return {
-                ...b,
-                condition: newCondition,
-                lastDamageTick: newTick,
-              };
-            });
+        let workerPowerSavings = 0;
+        // Build worker→building lookup Map (O(n) build, O(1) per lookup instead of O(n²) total)
+        const workersByBuilding = new Map<string, Worker[]>();
+        for (const w of state.workers) {
+          if (w.assignedTo) {
+            const list = workersByBuilding.get(w.assignedTo);
+            if (list) list.push(w);
+            else workersByBuilding.set(w.assignedTo, [w]);
           }
         }
 
-        // Deduct self-repair costs (will be applied after moneyEarned is declared)
-        // selfRepairCostTotal is tracked above
+        state.buildings.forEach(b => {
+          if (!b.active) return;
+          const def = BUILDING_DEFS[b.type];
+          if (!def) return;
 
-        // Force broken buildings inactive (condition = 0)
-        updatedBuildings = updatedBuildings.map(b => {
-          if (safeCondition(b.condition) <= 0 && b.active) {
-            return { ...b, active: false, efficiency: 0 };
-          }
-          return b;
-        });
+          let efficiency = b.efficiency * effectivePowerEfficiency * eventProductionMultiplier * weatherProductionMultiplier * transportProductionBonus;
+          
+          if (def.category === 'extractor') efficiency *= (1 + extractorSpeedBonus + advancedDrillingBonus + megaExtractionBonus);
+          if (def.category === 'factory') efficiency *= (1 + factorySpeedBonus);
+          if (def.category === 'factory' && def.tier === 1) efficiency *= (1 + efficientSmeltingBonus);
+          if (def.category === 'factory' && def.tier === 2) efficiency *= (1 + advancedElectronicsBonus);
+          if (def.category === 'factory' && def.tier === 3) efficiency *= (1 + metabolicEngineeringBonus);
+          if (b.type === 'aiLab' || b.type === 'neuralLab') efficiency *= (1 + aiOptimizationBonus);
+          if (b.type === 'roboticsBay' || b.type === 'droneShipyard') efficiency *= (1 + advancedRoboticsBonus);
+          if (b.type === 'quantumLab') efficiency *= (1 + quantumComputingBonus);
 
-        // Fix buildings with zero efficiency that are active (toggled on from initial state)
-        updatedBuildings = updatedBuildings.map(b => {
-          if (b.active && (b.efficiency == null || !Number.isFinite(b.efficiency) || b.efficiency <= 0)) {
-            return { ...b, efficiency: 1 };
-          }
-          return b;
-        });
+          // Apply targeted event production multipliers
+          const targetedEventMult = targetedEventMultipliers.get(b.type);
+          if (targetedEventMult) efficiency *= targetedEventMult;
 
-        const buildingResults = new Map<string, BuildResult>();
-
-        for (const b of updatedBuildings) {
-          if (!b.active) continue;
-          const result = computeProduction(b, cache, newResources);
-          buildingResults.set(b.id, result);
-
-          if (result.canProduce) {
-            for (const inp of result.actualInputs) {
-              const res = inp.resource as ResourceType;
-              newResources[res] -= inp.amount;
-              computedConsRates[res] = (computedConsRates[res] || 0) + inp.amount;
-              computedActualConsRates[res] = (computedActualConsRates[res] || 0) + inp.amount;
+          let workerMaintenanceReduction = 0;
+          const assignedWorkers = workersByBuilding.get(b.id) ?? [];
+          assignedWorkers.forEach(w => {
+            const wDef = WORKER_DEFS[w.type];
+            if (wDef) {
+              efficiency *= (1 + wDef.effects.speed * w.level * (1 + workerEfficiencyBonus + megaWorkerBonus));
+              // Worker efficiency: increases building's base production efficiency
+              efficiency *= (1 + wDef.effects.efficiency * w.level * (1 + workerEfficiencyBonus + megaWorkerBonus));
+              // Worker maintenance: reduces building power consumption (Mechanic specialty)
+              workerMaintenanceReduction += wDef.effects.maintenance * w.level * (1 + workerEfficiencyBonus + megaWorkerBonus);
             }
-            for (const out of result.outputs) {
-              const res = out.resource as ResourceType;
-              const produced = out.amount;
+          });
+
+          // Apply worker maintenance power reduction (capped at 50% reduction)
+          const buildingPowerReduction = Math.min(0.5, workerMaintenanceReduction);
+          if (buildingPowerReduction > 0 && def.basePowerConsumption > 0) {
+            workerPowerSavings += def.basePowerConsumption * b.level * b.efficiency * buildingPowerReduction;
+          }
+
+          efficiency *= (1 + productionPrestigeBonus + megaProductionBonus);
+
+          if (def.category === 'extractor' && def.outputs) {
+            def.outputs.forEach(output => {
+              if (output.resource === 'money') return;
+              const res = output.resource as ResourceType;
+              const produced = output.amount * def.baseProductionRate * b.level * efficiency;
               const capacity = newResources[res] + produced;
-              newResources[res] = Math.min(getCapacity(state, res), capacity);
+              newResources[res] = Math.min(getCapacity(state, res, researchSet), capacity);
               newStats.totalResourcesProduced[res] += produced;
               computedProdRates[res] = (computedProdRates[res] || 0) + produced;
-            }
-          } else {
-            // Track demand even when stalled
-            for (const inp of result.inputs) {
-              const res = inp.resource as ResourceType;
-              computedConsRates[res] = (computedConsRates[res] || 0) + inp.amount;
+            });
+          }
+
+          if (def.category === 'factory') {
+            if (def.inputs && def.outputs) {
+              let canProduce = true;
+              const adjustedInputs = def.inputs.map(input => {
+                if (input.resource === 'money') return { resource: input.resource, amount: 0 };
+                return {
+                  resource: input.resource,
+                  amount: input.amount * b.level * efficiency,
+                };
+              }).filter(i => i.resource !== 'money');
+
+              for (const input of adjustedInputs) {
+                const res = input.resource as ResourceType;
+                if (newResources[res] < input.amount) {
+                  canProduce = false;
+                  break;
+                }
+              }
+
+              if (canProduce) {
+                adjustedInputs.forEach(input => {
+                  const res = input.resource as ResourceType;
+                  newResources[res] -= input.amount;
+                  computedConsRates[res] = (computedConsRates[res] || 0) + input.amount;
+                  computedActualConsRates[res] = (computedActualConsRates[res] || 0) + input.amount;
+                });
+                def.outputs.forEach(output => {
+                  if (output.resource === 'money') return;
+                  const res = output.resource as ResourceType;
+                  const produced = output.amount * def.baseProductionRate * b.level * efficiency;
+                  const capacity = newResources[res] + produced;
+                  newResources[res] = Math.min(getCapacity(state, res, researchSet), capacity);
+                  newStats.totalResourcesProduced[res] += produced;
+                  computedProdRates[res] = (computedProdRates[res] || 0) + produced;
+                });
+              } else {
+                // Even if can't produce, still track attempted consumption for demand display
+                adjustedInputs.forEach(input => {
+                  const res = input.resource as ResourceType;
+                  computedConsRates[res] = (computedConsRates[res] || 0) + input.amount;
+                });
+              }
             }
           }
-        }
+        });
 
-        const transportEfficiency = cache.transportProductionBonus;
+        // Apply worker power savings to total consumption
+        const adjustedWorkerPowerSavings = workerPowerSavings * (1 - powerEfficiencyResearch) * (1 - powerOptimizationResearch) * eventPowerConsumptionMultiplier;
+        totalConsumption = Math.max(0, totalConsumption - adjustedWorkerPowerSavings);
 
-        // Update market prices
-        const newMarket = state.market.map(m => {
+        // Update market prices (throttled to every 5 ticks for performance)
+        const newMarket = (newTick % 5 === 0) ? state.market.map(m => {
           const volatility = m.volatility;
           const change = (Math.random() - 0.5) * 2 * volatility;
           let newPrice = m.currentPrice * (1 + change * 0.1);
@@ -2070,14 +1076,13 @@ export const useGameStore = create<GameStore>()(
             supply: Math.max(0.3, Math.min(2, m.supply + (Math.random() - 0.5) * 0.05)),
             trend,
           };
-        });
+        }) : state.market;
 
         // Process research
         let newResearchProgress = state.researchProgress;
         let newActiveResearch = state.activeResearch;
         let newCompletedResearch = [...state.completedResearch];
         let newResearchPoints = state.researchPoints;
-        let newResearchQueue = [...state.researchQueue];
 
         if (newActiveResearch) {
           const node = RESEARCH_TREE.find(r => r.id === newActiveResearch);
@@ -2086,92 +1091,57 @@ export const useGameStore = create<GameStore>()(
             newResearchProgress += researchSpeed;
             if (newResearchProgress >= node.timeRequired) {
               newCompletedResearch.push(newActiveResearch);
+              newActiveResearch = null;
+              newResearchProgress = 0;
               newResearchPoints += Math.floor(node.cost * 0.1);
               newStats.researchCompleted++;
               soundEngine.play('researchComplete', 'events');
               notifications.push({ id: generateId(), type: 'success', message: `Research complete: ${node.name}!`, gameTick: newTick, read: false });
-
-              // Auto-start next from queue
-              if (newResearchQueue.length > 0) {
-                const nextId = newResearchQueue[0];
-                const nextNode = RESEARCH_TREE.find(r => r.id === nextId);
-                // Validate the queued research is still valid
-                if (nextNode && !newCompletedResearch.includes(nextId) && isResearchUnlocked(nextId, newCompletedResearch) && newResearchPoints >= nextNode.cost) {
-                  newActiveResearch = nextId;
-                  newResearchProgress = 0;
-                  newResearchPoints -= nextNode.cost;
-                  newResearchQueue = newResearchQueue.slice(1);
-                  notifications.push({ id: generateId(), type: 'info', message: `Auto-started research: ${nextNode.name}`, gameTick: newTick, read: false });
-                } else {
-                  // Skip invalid queue entry, try next ones
-                  let started = false;
-                  let remainingQueue = [...newResearchQueue];
-                  while (remainingQueue.length > 0 && !started) {
-                    const skipId = remainingQueue[0];
-                    const skipNode = RESEARCH_TREE.find(r => r.id === skipId);
-                    if (skipNode && !newCompletedResearch.includes(skipId) && isResearchUnlocked(skipId, newCompletedResearch) && newResearchPoints >= skipNode.cost) {
-                      newActiveResearch = skipId;
-                      newResearchProgress = 0;
-                      newResearchPoints -= skipNode.cost;
-                      remainingQueue = remainingQueue.slice(1);
-                      started = true;
-                      notifications.push({ id: generateId(), type: 'info', message: `Auto-started research: ${skipNode.name}`, gameTick: newTick, read: false });
-                    } else {
-                      // Remove invalid/unaffordable entry from queue
-                      remainingQueue = remainingQueue.slice(1);
-                    }
-                  }
-                  newResearchQueue = remainingQueue;
-                  if (!started) {
-                    newActiveResearch = null;
-                    newResearchProgress = 0;
-                  }
-                }
-              } else {
-                newActiveResearch = null;
-                newResearchProgress = 0;
-              }
             }
           }
         }
 
-        newResearchPoints += 0.1 * (1 + state.buildings.filter(b => b.type === 'aiLab' && b.active).length * 0.5);
+        newResearchPoints += 0.5 * (1 + state.buildings.filter(b => b.type === 'aiLab' && b.active).length * 0.5);
 
         // Add drone RP rewards
         newResearchPoints += droneRpEarned;
 
-        // Process contracts - tick timers for accepted contracts only
-        const newContracts = state.contracts.map(c => {
-          if (c.completed || c.failed) return c;
-          if (c.accepted) {
-            const newRemaining = c.timeRemaining - 1;
-            if (newRemaining <= 0) {
-              return { ...c, timeRemaining: 0, failed: true };
-            }
-            // Update progress based on resource availability
-            const fulfilledResources = c.requiredResources.filter(r => {
-              if (r.resource === 'money') return true;
-              return (newResources[r.resource as ResourceType] ?? 0) >= r.amount;
-            });
-            const progress = c.requiredResources.length > 0 ? fulfilledResources.length / c.requiredResources.length : 0;
-            return { ...c, timeRemaining: newRemaining, progress };
-          } else {
-            // Unaccepted: check board expiration
-            if (c.expiresAt && newTick >= c.expiresAt) {
-              return { ...c, failed: true }; // Expired from board
-            }
-            return c;
+        // === Building RP Generation ===
+        // Buildings generate RP based on tier, scaled by power efficiency
+        // This provides active RP income beyond passive generation
+        const rpBuildingRates: Record<string, number> = {
+          extractor: 0.01,   // per extractor per tick
+          power: 0.01,       // per power plant per tick
+          'factory-t1': 0.02, // per T1 factory per tick
+          'factory-t2': 0.05, // per T2 factory per tick
+          'factory-t3': 0.10, // per T3 factory per tick
+          'factory-t4': 0.20, // per T4 factory per tick
+        };
+        state.buildings.forEach(b => {
+          if (!b.active) return;
+          const def = BUILDING_DEFS[b.type];
+          if (!def) return;
+          const tierKey = def.category === 'factory' ? `factory-t${def.tier}` : def.category;
+          const rpRate = rpBuildingRates[tierKey];
+          if (rpRate) {
+            newResearchPoints += rpRate * b.level * b.efficiency * effectivePowerEfficiency;
           }
         });
 
-        let moneyEarned = -Math.floor(selfRepairCostTotal);
-        let autoFulfillCP = 0;
+        // Process contracts
+        const newContracts = state.contracts.map(c => {
+          if (c.completed || c.failed) return c;
+          const newRemaining = c.timeRemaining - 1;
+          if (newRemaining <= 0) {
+            return { ...c, timeRemaining: 0, failed: true };
+          }
+          return { ...c, timeRemaining: newRemaining };
+        });
+
         const autoFulfill = state.automationUnlocks.find(a => a.type === 'autoTrading' && a.active);
         if (autoFulfill) {
-          let autoFulfillMoney = 0;
-          let autoFulfillRP = 0;
           newContracts.forEach(c => {
-            if (c.completed || c.failed || !c.accepted) return;
+            if (c.completed || c.failed) return;
             const canFulfill = c.requiredResources.every(r => {
               if (r.resource === 'money') return true;
               return (newResources[r.resource as ResourceType] ?? 0) >= r.amount;
@@ -2182,33 +1152,18 @@ export const useGameStore = create<GameStore>()(
                   newResources[r.resource as ResourceType] -= r.amount;
                 }
               });
-              // Grant rare resource rewards
-              if (c.reward.rareResources) {
-                c.reward.rareResources.forEach(rr => {
-                  newResources[rr.resource] = (newResources[rr.resource] ?? 0) + rr.amount;
-                });
-              }
               c.completed = true;
-              autoFulfillMoney += c.reward.money;
-              autoFulfillRP += c.reward.researchPoints ?? 0;
-              autoFulfillCP += c.reward.corporationPoints ?? 0;
+              const moneyReward = c.reward.money;
               newStats.contractsCompleted++;
-              // Build detailed reward notification
-              const rewardParts = [`+$${formatNumber(c.reward.money)}`];
-              if (c.reward.researchPoints) rewardParts.push(`+${c.reward.researchPoints} RP`);
-              if (c.reward.corporationPoints && c.reward.corporationPoints > 0) rewardParts.push(`+${c.reward.corporationPoints} CP`);
-              notifications.push({ id: generateId(), type: 'success', message: `Contract completed: ${c.name}! ${rewardParts.join(', ')}`, gameTick: newTick, read: false });
+              notifications.push({ id: generateId(), type: 'success', message: `Contract completed: ${c.name}! +$${formatNumber(moneyReward)}`, gameTick: newTick, read: false });
             }
           });
-          // Apply accumulated auto-fulfill rewards
-          moneyEarned += autoFulfillMoney;
-          newResearchPoints += autoFulfillRP;
         }
 
         // Update workers
         const newWorkers = state.workers.map(w => ({
           ...w,
-          experience: w.experience + 0.01 * (1 + cache.workerEfficiencyBonus),
+          experience: w.experience + 0.01 * (1 + workerEfficiencyBonus),
           efficiency: Math.min(2, w.efficiency + 0.001),
         }));
 
@@ -2236,7 +1191,7 @@ export const useGameStore = create<GameStore>()(
             duration: template.duration,
             remaining: template.duration,
             effects: template.effects,
-            emoji: template.emoji,
+            icon: template.icon,
           };
           newActiveEvents.push(newEvent);
           soundEngine.play('eventTriggered', 'events');
@@ -2256,7 +1211,7 @@ export const useGameStore = create<GameStore>()(
                 duration: seasonal.duration,
                 remaining: seasonal.duration,
                 effects: seasonal.effects,
-                emoji: seasonal.emoji,
+                icon: seasonal.icon,
               };
               newActiveEvents.push(seasonalEvent);
               soundEngine.play('eventTriggered', 'events');
@@ -2292,7 +1247,7 @@ export const useGameStore = create<GameStore>()(
           };
           if (selectedWeather !== 'clear') {
             const wDef = WEATHER_DEFS[selectedWeather];
-            notifications.push({ id: generateId(), type: 'info', message: `${wDef.emoji} Weather: ${wDef.name} - ${wDef.description}`, gameTick: newTick, read: false });
+            notifications.push({ id: generateId(), type: 'info', message: `Weather: ${wDef.name} - ${wDef.description}`, gameTick: newTick, read: false });
           }
         }
 
@@ -2304,23 +1259,65 @@ export const useGameStore = create<GameStore>()(
           return Math.min(3, Math.max(highestBuildingTier, researchTier));
         })();
 
-        // Generate new contracts using dynamic generation engine (every ~200 ticks)
+        // Generate new contracts (every ~150 ticks, tier-aware)
         let contractsToAdd: Contract[] = [];
-        const boardContracts = state.contracts.filter(c => !c.accepted && !c.completed && !c.failed);
-        if (newTick % 200 === 0 && boardContracts.length < 6) {
-          const existingIds = new Set(state.contracts.map(c => c.id));
-          const generatedContracts = generateContractBoard(playerGameTier, state.buildings.length, newTick, existingIds, state.buildings, state.contracts, state.money);
-          contractsToAdd = generatedContracts;
+        const activeContractCount = state.contracts.filter(c => !c.completed && !c.failed).length;
+        if (newTick % 150 === 0 && activeContractCount < 4) {
+          // Filter templates to only include tiers the player has access to
+          const availableTemplates = CONTRACT_TEMPLATES.filter(t => (t.gameTier ?? 0) <= playerGameTier);
+          // Weight towards current tier (60%) and below (40%)
+          const weightedTemplates = availableTemplates.flatMap(t => {
+            const tier = t.gameTier ?? 0;
+            const weight = tier === playerGameTier ? 3 : tier === playerGameTier - 1 ? 2 : 1;
+            return Array(weight).fill(t);
+          });
+          const template = weightedTemplates.length > 0
+            ? weightedTemplates[Math.floor(Math.random() * weightedTemplates.length)]
+            : CONTRACT_TEMPLATES[0]; // fallback to first template
+          const contractTier = template.gameTier ?? 0;
+          const difficulty = Math.max(1, Math.min(5, contractTier + 1 + Math.floor(state.buildings.length / 8)));
+          const tierMultiplier = 1 + contractTier * 0.5; // Higher tier = proportionally higher rewards
+          const reward = template.requiredResources.reduce((sum, r) => {
+            const marketItem = INITIAL_MARKET.find(m => m.resource === r.resource);
+            return sum + (marketItem?.basePrice ?? 10) * r.amount * tierMultiplier * (1 + difficulty * 0.15);
+          }, 0);
+          
+          const contract: Contract = {
+            id: generateId(),
+            name: template.name,
+            description: template.description,
+            type: template.type,
+            requiredResources: template.requiredResources.map(r => ({
+              resource: r.resource,
+              amount: Math.floor(r.amount * (1 + (difficulty - 1) * 0.15)),
+            })),
+            timeLimit: template.timeLimit,
+            timeRemaining: template.timeLimit,
+            reward: {
+              money: Math.floor(reward),
+              researchPoints: Math.floor(difficulty * 15 * tierMultiplier),
+              corporationPoints: contractTier >= 2 ? Math.floor((contractTier - 1) * 3 + difficulty) : 0,
+            },
+            progress: 0,
+            completed: false,
+            failed: false,
+            difficulty,
+            gameTier: contractTier,
+            icon: template.icon,
+          };
+          contractsToAdd = [contract];
         }
 
         // Passive income from selling excess (if auto-trading is on)
+        let moneyEarned = 0;
         if (autoFulfill) {
-          const autoSellMult = computeSellMultiplierFull(state, cache);
           (Object.keys(newResources) as ResourceType[]).forEach(r => {
-            const excess = newResources[r] - getCapacity(state, r) * 0.8;
+            const excess = newResources[r] - getCapacity(state, r, researchSet) * 0.8;
             if (excess > 0) {
               const marketPrice = newMarket.find(m => m.resource === r)?.currentPrice ?? 0;
-              const sellPrice = marketPrice * autoSellMult;
+              const marketBonus = researchSet.has('marketAnalysis') ? 0.2 : 0;
+              const prestigeMarketBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'marketMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
+              const sellPrice = marketPrice * (0.9 + marketBonus + prestigeMarketBonus + megaMarketBonus);
               const sellAmount = Math.min(excess, 5);
               newResources[r] -= sellAmount;
               moneyEarned += sellAmount * sellPrice;
@@ -2331,14 +1328,17 @@ export const useGameStore = create<GameStore>()(
 
         // Auto-sell specific resources when > 80% capacity
         if (state.autoSellResources.length > 0) {
-          const autoSellMult = computeSellMultiplierFull(state, cache);
+          // Build market lookup Map for O(1) access
+          const marketMap = new Map(newMarket.map(m => [m.resource, m]));
           state.autoSellResources.forEach(r => {
-            const threshold = getCapacity(state, r) * 0.8;
+            const threshold = getCapacity(state, r, researchSet) * 0.8;
             const excess = newResources[r] - threshold;
             if (excess > 0) {
-              const marketItem = newMarket.find(m => m.resource === r);
+              const marketItem = marketMap.get(r);
               if (marketItem) {
-                const sellPrice = marketItem.currentPrice * autoSellMult;
+                const marketBonus = researchSet.has('marketAnalysis') ? 0.2 : 0;
+                const prestigeMarketBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'marketMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
+                const sellPrice = marketItem.currentPrice * (0.9 + marketBonus + prestigeMarketBonus + megaMarketBonus);
                 const sellAmount = Math.min(excess, 10);
                 newResources[r] -= sellAmount;
                 moneyEarned += sellAmount * sellPrice;
@@ -2365,34 +1365,35 @@ export const useGameStore = create<GameStore>()(
         }
 
         // Process active MegaProjects
-        // Each tick: if all required materials have >= 1 unit, consume 1 of each and advance progress by 1 tick
+        // Progress only advances if ALL required resources for current stage are available
+        // Resources are deducted when a stage completes
         const megaProjectResourcesToDeduct: { resource: string; amount: number }[] = [];
         const newMegaProjects = state.megaProjects.map(mp => {
-          if (!mp.active || mp.completed || mp.paused) return mp;
+          if (!mp.active || mp.completed) return mp;
           const stage = mp.stages[mp.currentStage];
           if (!stage || stage.completed) return mp;
 
-          // Check if ALL required materials have at least 1 unit available
+          // Check if ALL required resources are currently available
           const allResourcesAvailable = stage.requiredResources.every(r => {
-            if (r.resource === 'money') return state.money >= 1;
-            return (newResources[r.resource as ResourceType] ?? 0) >= 1;
+            if (r.resource === 'money') return state.money >= r.amount;
+            return (newResources[r.resource as ResourceType] ?? 0) >= r.amount;
           });
 
-          // If any material is missing, progress pauses (no consumption, no increment)
+          // If resources are not available, progress pauses (no increment)
           if (!allResourcesAvailable) {
             return { ...mp, progress: mp.progress }; // paused
           }
 
-          // Consume 1 unit of each required material
-          stage.requiredResources.forEach(r => {
-            megaProjectResourcesToDeduct.push({ resource: r.resource, amount: 1 });
-          });
+          // Resources are available — increment progress
+          const increment = 1 / stage.timeRequired;
+          const newProgress = mp.progress + increment;
 
-          // Increment progress by 1 tick
-          const newProgress = mp.progress + 1;
+          if (newProgress >= 1) {
+            // Stage complete — deduct resources now
+            stage.requiredResources.forEach(r => {
+              megaProjectResourcesToDeduct.push({ resource: r.resource, amount: r.amount });
+            });
 
-          if (newProgress >= stage.timeRequired) {
-            // Stage complete
             const updatedStages = mp.stages.map((s, i) =>
               i === mp.currentStage ? { ...s, completed: true } : s
             );
@@ -2434,7 +1435,7 @@ export const useGameStore = create<GameStore>()(
           }
         });
         if (megaDeductMoney > 0) {
-          newMoney -= megaDeductMoney;
+          moneyEarned -= megaDeductMoney;
         }
 
         // --- Milestone detection ---
@@ -2454,12 +1455,43 @@ export const useGameStore = create<GameStore>()(
 
         const ticksSinceLastPayout = newTick - newPayoutConfig.lastPayoutTick;
         if (ticksSinceLastPayout >= newPayoutConfig.basePayoutInterval && state.buildings.length > 0) {
-          // Calculate payout using calculator
-          const payoutResult = computePayout(state, cache);
-          const payoutAmount = payoutResult.amountPerCycle;
+          // Calculate payout based on active buildings
+          const activeBuildings = state.buildings.filter(b => b.active);
+          const extractors = activeBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'extractor');
+          const factories = activeBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory');
+          const powerPlants = activeBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power');
+
+          // Base rates per building type per payout cycle (10x buff from original)
+          const extractorRate = 20;
+          const factoryRate = 50;
+          const powerRate = 10;
+
+          const extractorIncome = extractors.reduce((sum, b) => sum + extractorRate * b.level * b.efficiency, 0);
+          const factoryIncome = factories.reduce((sum, b) => sum + factoryRate * b.level * b.efficiency, 0);
+          const powerIncome = powerPlants.reduce((sum, b) => sum + powerRate * b.level * b.efficiency, 0);
+
+          let rawPayout = extractorIncome + factoryIncome + powerIncome;
+
+          // Apply average efficiency modifier
+          const avgEfficiency = activeBuildings.length > 0
+            ? activeBuildings.reduce((sum, b) => sum + b.efficiency, 0) / activeBuildings.length
+            : 0;
+          rawPayout *= avgEfficiency;
+
+          // Apply prestige bonuses
+          const payoutPrestigeBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'productionMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
+          const payoutMegaBonus = getMegaProjectBonus(state.megaProjects, 'productionMultiplier');
+          rawPayout *= (1 + payoutPrestigeBonus + payoutMegaBonus);
+
+          // Apply event production multiplier
+          rawPayout *= eventProductionMultiplier;
+
+          // Apply weather modifier
+          rawPayout *= weatherProductionMultiplier;
+
+          const payoutAmount = Math.floor(rawPayout);
 
           if (payoutAmount > 0) {
-            const activeBuildings = state.buildings.filter(b => b.active);
             if (newPayoutConfig.autoCollect) {
               // Auto-collect: add to money directly
               payoutMoneyEarned = payoutAmount;
@@ -2487,7 +1519,7 @@ export const useGameStore = create<GameStore>()(
               tick: newTick,
               amount: payoutAmount,
               buildingCount: activeBuildings.length,
-              efficiency: effectivePowerEfficiency,
+              efficiency: avgEfficiency,
             };
             newPayoutHistory = [...state.payoutHistory.slice(-9), record];
 
@@ -2563,21 +1595,41 @@ export const useGameStore = create<GameStore>()(
           }
         }
 
-        // --- Process Auto-Assign Drones (every 10 ticks) ---
-        if (newTick % 10 === 0 && newDrones.fleet.some(d => d.status === 'idle' && d.autoAssign)) {
-          // Schedule auto-assign processing after current tick completes
-          // Use setTimeout to avoid recursive state updates during tick
-          setTimeout(() => {
-            try { get().processAutoAssignDrones(); } catch {}
-          }, 0);
-        }
-
         // === Endgame Building Passive Income ===
-        let corpGained = autoFulfillCP;
-        const endgameResult = computeEndgameIncome(state, cache);
-        moneyEarned += endgameResult.moneyPerTick;
-        newResearchPoints += endgameResult.researchPerTick;
-        corpGained += endgameResult.corpPerTick;
+        let corpGained = 0;
+        const megaFactoryUnlocked = state.prestigeState.megaFactoryUnlocked;
+        const endgameBuildings = state.buildings.filter(b => b.active && [
+          'dysonCollector', 'quantumTeleporter', 'dimensionalGateway', 'timeDistorter', 'galacticForge'
+        ].includes(b.type));
+
+        for (const b of endgameBuildings) {
+          let endEff = b.efficiency * effectivePowerEfficiency;
+          if (megaFactoryUnlocked) {
+            endEff *= eventProductionMultiplier * weatherProductionMultiplier * transportProductionBonus;
+            endEff *= (1 + productionPrestigeBonus + megaProductionBonus);
+          }
+          const rate = b.level * endEff;
+          switch (b.type) {
+            case 'dysonCollector':
+              moneyEarned += Math.floor(8000 * rate);
+              break;
+            case 'quantumTeleporter':
+              newResearchPoints += Math.floor(10 * rate);
+              break;
+            case 'dimensionalGateway':
+              corpGained += Math.floor(1 * rate);
+              break;
+            case 'timeDistorter':
+              moneyEarned += Math.floor(5000 * rate);
+              newResearchPoints += Math.floor(5 * rate);
+              break;
+            case 'galacticForge':
+              moneyEarned += Math.floor(100000 * rate);
+              newResearchPoints += Math.floor(50 * rate);
+              corpGained += Math.floor(5 * rate);
+              break;
+          }
+        }
 
         // Rank change detection
         const prevScore = Math.floor(
@@ -2607,50 +1659,23 @@ export const useGameStore = create<GameStore>()(
           soundEngine.play('levelUp', 'events');
         }
 
-        const powerBuildingsForGrid = state.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power' && b.active);
-
-        // Build ProductionSnapshot for this tick
-        const snapshot: ProductionSnapshot = {
-          production: computedProdRates,
-          consumption: computedConsRates,
-          actualConsumption: computedActualConsRates,
-          buildings: Object.fromEntries(
-            state.buildings.map(b => {
-              const r = buildingResults.get(b.id);
-              return r ? [b.id, { outputs: r.outputs, inputs: r.inputs, efficiency: r.efficiency }] : [b.id, { outputs: [], inputs: [], efficiency: 0 }];
-            })
-          ),
-          powerProduction: totalProduction,
-          powerConsumption: totalConsumption,
-          powerEfficiency: effectivePowerEfficiency,
-          powerOverload: overload,
-          payoutPerCycle: computePayout(state, cache).amountPerCycle,
-          payoutBreakdown: computePayout(state, cache).breakdown,
-          sellMultiplier: computeSellMultiplierFull(state, cache),
-          endgameMoney: endgameResult.moneyPerTick,
-          endgameResearch: endgameResult.researchPerTick,
-          endgameCorp: endgameResult.corpPerTick,
-        };
-
         set({
           gameTick: newTick,
           resources: newResources,
           money: state.money + moneyEarned,
           totalMoneyEarned: state.totalMoneyEarned + moneyEarned,
-          buildings: updatedBuildings,
           powerGrid: {
             totalProduction,
             totalConsumption,
             efficiency: effectivePowerEfficiency,
             overload,
-            plants: powerBuildingsForGrid,
+            plants: powerBuildings,
           },
           market: newMarket,
           researchPoints: newResearchPoints,
           completedResearch: newCompletedResearch,
           activeResearch: newActiveResearch,
           researchProgress: newResearchProgress,
-          researchQueue: newResearchQueue,
           workers: newWorkers,
           contracts: [...newContracts, ...contractsToAdd],
           activeEvents: newActiveEvents,
@@ -2668,16 +1693,10 @@ export const useGameStore = create<GameStore>()(
             ...state.prestigeState,
             corporationPoints: state.prestigeState.corporationPoints + corpGained,
           } : state.prestigeState,
-          productionSnapshot: snapshot,
           computedProductionRates: computedProdRates,
           computedConsumptionRates: computedConsRates,
           computedActualConsumptionRates: computedActualConsRates,
         });
-
-        // --- Flush maintenance log entries collected during tick ---
-        for (const entry of maintenanceLogEntries) {
-          get().addMaintenanceLog(entry);
-        }
 
         // --- Update Quest Progress (periodic checks) ---
         // Check every 10 ticks to avoid performance overhead
@@ -2728,9 +1747,6 @@ export const useGameStore = create<GameStore>()(
           return;
         }
 
-        // Auto-assign building to region + grid position
-        const assignment = autoAssignBuildingToMap(type, state.buildings, state.mapRegions, state.mapGrids);
-
         const building: BuildingInstance = {
           id: generateId(),
           type,
@@ -2738,32 +1754,7 @@ export const useGameStore = create<GameStore>()(
           active: true,
           efficiency: 1,
           placedAt: state.gameTick,
-          condition: 100,
-          lastDamageTick: 0,
-          deteriorationRate: 0.01,
-          regionId: assignment?.regionId,
-          gridRow: assignment?.gridRow,
-          gridCol: assignment?.gridCol,
         };
-
-        // Update grid tiles to mark them as occupied
-        let newMapGrids = state.mapGrids;
-        if (assignment) {
-          const { regionId, gridRow, gridCol } = assignment;
-          const region = state.mapRegions.find(r => r.id === regionId);
-          const grid = state.mapGrids[regionId];
-          if (region && grid) {
-            const footprint = getBuildingFootprint(type);
-            const updatedGrid = grid.map(t => {
-              if (t.row >= gridRow && t.row < gridRow + footprint.height &&
-                  t.col >= gridCol && t.col < gridCol + footprint.width) {
-                return { ...t, occupiedBy: building.id };
-              }
-              return t;
-            });
-            newMapGrids = { ...state.mapGrids, [regionId]: updatedGrid };
-          }
-        }
 
         // First building
         if (state.buildings.length === 0) {
@@ -2773,11 +1764,10 @@ export const useGameStore = create<GameStore>()(
         set({
           money: state.money - cost,
           buildings: [...state.buildings, building],
-          mapGrids: newMapGrids,
           stats: { ...state.stats, factoriesBuilt: state.stats.factoriesBuilt + 1 },
         });
         soundEngine.play('buildingPlaced', 'building');
-        get().addNotification('success', `Built ${def.name} for $${formatNumber(cost)}` + (assignment ? ` at ${assignment.regionId}` : ''));
+        get().addNotification('success', `Built ${def.name} for $${formatNumber(cost)}`);
         get().updateQuestProgress('build', 1, type);
       },
 
@@ -2811,22 +1801,10 @@ export const useGameStore = create<GameStore>()(
         const building = state.buildings.find(b => b.id === id);
         if (!building) return;
         const def = BUILDING_DEFS[building.type];
-
-        // Prevent enabling broken buildings (condition <= 0) — must repair first
-        if (safeCondition(building.condition) <= 0 && !building.active) {
-          get().addNotification('warning', `⚡ ${def?.name ?? 'Building'} is broken! Repair it first before enabling.`);
-          return;
-        }
-
         const newActive = !building.active;
-        const newBuildings = state.buildings.map(b => {
-          if (b.id !== id) return b;
-          // When enabling a building, fix zero/invalid efficiency
-          if (newActive && (b.efficiency == null || !Number.isFinite(b.efficiency) || b.efficiency <= 0)) {
-            return { ...b, active: newActive, efficiency: 1 };
-          }
-          return { ...b, active: newActive };
-        });
+        const newBuildings = state.buildings.map(b =>
+          b.id === id ? { ...b, active: newActive } : b
+        );
 
         // Recalculate power grid immediately so UI updates without waiting for next tick
         let totalProduction = 0;
@@ -2838,7 +1816,7 @@ export const useGameStore = create<GameStore>()(
         powerBuildings.forEach(b => {
           const bDef = BUILDING_DEFS[b.type];
           if (!bDef) return;
-          let production = bDef.basePowerProduction * b.level * (b.efficiency > 0 ? b.efficiency : 1);
+          let production = bDef.basePowerProduction * b.level * b.efficiency;
           if (bDef.fuel && bDef.fuelRate) {
             if (state.resources[bDef.fuel] >= bDef.fuelRate * b.level) {
               totalProduction += production;
@@ -2866,13 +1844,14 @@ export const useGameStore = create<GameStore>()(
         });
 
         const powerEfficiencyResearch = state.completedResearch.includes('energyEfficiency') ? 0.15 : 0;
-        totalConsumption *= (1 - powerEfficiencyResearch);
+        const powerOptimizationResearch = state.completedResearch.includes('powerOptimization') ? 0.10 : 0;
+        totalConsumption *= (1 - powerEfficiencyResearch) * (1 - powerOptimizationResearch);
 
         const powerPrestigeBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'powerMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
         const megaPowerBonusRecalc = getMegaProjectBonus(state.megaProjects, 'powerMultiplier');
         totalProduction *= (1 + powerPrestigeBonus + megaPowerBonusRecalc);
 
-        const effectivePowerEfficiency = totalProduction > 0 ? Math.min(1, totalProduction / Math.max(0.001, totalConsumption)) : 0;
+        const effectivePowerEfficiency = totalProduction > 0 ? Math.max(0.10, Math.min(1, totalProduction / Math.max(0.001, totalConsumption))) : 0.10;
         const overload = totalConsumption > totalProduction;
 
         // Play sound for power toggle
@@ -2893,94 +1872,6 @@ export const useGameStore = create<GameStore>()(
       },
 
       selectBuilding: (id: string | null) => set({ selectedBuilding: id }),
-
-      repairBuilding: (id: string) => {
-        const state = get();
-        const building = state.buildings.find(b => b.id === id);
-        if (!building) return;
-        const def = BUILDING_DEFS[building.type];
-        if (!def) return;
-        if (building.condition >= 100) return;
-
-        // Cost formula: baseRepairCost * (100 - currentCondition) / 100 * buildingLevel
-        const baseRepairCost = def.baseCost.find(c => c.resource === 'money')?.amount ?? 100;
-        const repairCost = Math.max(1, Math.floor(baseRepairCost * (100 - building.condition) / 100 * building.level));
-
-        if (state.money < repairCost) {
-          soundEngine.play('error', 'ui');
-          get().addNotification('error', `Not enough money! Need $${formatNumber(repairCost)} to repair ${def.name}`);
-          return;
-        }
-
-        const wasBroken = safeCondition(building.condition) <= 0;
-        const conditionChange = 100 - building.condition;
-        set({
-          money: state.money - repairCost,
-          buildings: state.buildings.map(b =>
-            b.id === id ? { ...b, condition: 100, active: wasBroken ? true : b.active, efficiency: wasBroken ? 1 : b.efficiency } : b
-          ),
-        });
-        soundEngine.play('buildingPlaced', 'building');
-        get().addNotification('success', `🔧 Repaired ${def.name} for $${formatNumber(repairCost)}` + (wasBroken ? ' — back online!' : ''));
-        get().addMaintenanceLog({
-          tick: state.gameTick,
-          buildingId: id,
-          buildingName: def.name,
-          eventType: 'repair',
-          conditionChange: Math.round(conditionChange * 100) / 100,
-          conditionAfter: 100,
-          repairCost,
-          details: wasBroken ? 'Full repair (was broken)' : 'Full repair',
-        });
-      },
-
-      repairAllBuildings: () => {
-        const state = get();
-        const damagedBuildings = state.buildings.filter(b => b.condition < 100);
-        if (damagedBuildings.length === 0) return;
-
-        let totalCost = 0;
-        const repairs: { id: string; wasBroken: boolean; conditionChange: number; name: string; cost: number }[] = [];
-
-        for (const b of damagedBuildings) {
-          const def = BUILDING_DEFS[b.type];
-          if (!def) continue;
-          const baseRepairCost = def.baseCost.find(c => c.resource === 'money')?.amount ?? 100;
-          const repairCost = Math.max(1, Math.floor(baseRepairCost * (100 - b.condition) / 100 * b.level));
-          totalCost += repairCost;
-          repairs.push({ id: b.id, wasBroken: safeCondition(b.condition) <= 0, conditionChange: 100 - safeCondition(b.condition), name: def.name, cost: repairCost });
-        }
-
-        if (state.money < totalCost) {
-          soundEngine.play('error', 'ui');
-          get().addNotification('error', `Not enough money! Need $${formatNumber(totalCost)} to repair all buildings`);
-          return;
-        }
-
-        set({
-          money: state.money - totalCost,
-          buildings: state.buildings.map(b => {
-            if (b.condition >= 100) return b;
-            const wasBroken = safeCondition(b.condition) <= 0;
-            return { ...b, condition: 100, active: wasBroken ? true : b.active, efficiency: wasBroken ? 1 : b.efficiency };
-          }),
-        });
-        soundEngine.play('buildingPlaced', 'building');
-        get().addNotification('success', `🔧 Repaired ${repairs.length} building${repairs.length !== 1 ? 's' : ''} for $${formatNumber(totalCost)}`);
-        // Log each repair
-        for (const r of repairs) {
-          get().addMaintenanceLog({
-            tick: state.gameTick,
-            buildingId: r.id,
-            buildingName: r.name,
-            eventType: 'repair',
-            conditionChange: Math.round(r.conditionChange * 100) / 100,
-            conditionAfter: 100,
-            repairCost: r.cost,
-            details: 'Repair All',
-          });
-        }
-      },
 
       // --- TRANSPORT ACTIONS ---
       buildTransportLine: (type: TransportType, from: string, to: string, resource: ResourceType) => {
@@ -3055,286 +1946,19 @@ export const useGameStore = create<GameStore>()(
         });
       },
 
-      upgradeTransportType: (id: string, newType: TransportType) => {
-        const state = get();
-        const line = state.transportLines.find(l => l.id === id);
-        if (!line) return;
-
-        const newDef = TRANSPORT_DEFS[newType];
-        if (!newDef) return;
-        if (line.type === newType) return; // Same type, no-op
-
-        // Cost: difference between new type base cost and current type base cost, scaled by level
-        const currentDef = TRANSPORT_DEFS[line.type];
-        const currentBaseCost = currentDef.baseCost.reduce((sum, c) => sum + (c.resource === 'money' ? c.amount : 0), 0);
-        const newBaseCost = newDef.baseCost.reduce((sum, c) => sum + (c.resource === 'money' ? c.amount : 0), 0);
-        const upgradeCost = Math.max(0, Math.floor((newBaseCost - currentBaseCost * 0.5) * Math.pow(1.2, line.level - 1)));
-
-        if (state.money < upgradeCost) {
-          soundEngine.play('error', 'ui');
-          get().addNotification('error', `Need $${formatNumber(upgradeCost)} to upgrade to ${newDef.name}!`);
-          return;
-        }
-
-        const logistics1Bonus = state.completedResearch.includes('logistics1') ? 0.2 : 0;
-        const advancedLogisticsBonus = state.completedResearch.includes('advancedLogistics') ? 0.3 : 0;
-        const transportBonus = logistics1Bonus + advancedLogisticsBonus;
-
-        set({
-          money: state.money - upgradeCost,
-          transportLines: state.transportLines.map(l =>
-            l.id === id ? {
-              ...l,
-              type: newType,
-              throughput: Math.min(l.maxThroughput, newDef.baseThroughput * Math.pow(newDef.upgradeMultiplier, l.level - 1) * (1 + transportBonus)),
-              maxThroughput: newDef.baseThroughput * 3 * Math.pow(newDef.upgradeMultiplier, l.level - 1),
-            } : l
-          ),
-        });
-        soundEngine.play('buildingPlaced', 'building');
-        get().addNotification('success', `Upgraded to ${newDef.name} for $${formatNumber(upgradeCost)}`);
-      },
-
-      upgradeAllTransportLines: () => {
-        const state = get();
-        let totalCost = 0;
-        const linesToUpgrade: string[] = [];
-
-        for (const line of state.transportLines) {
-          const def = TRANSPORT_DEFS[line.type];
-          if (!def) continue;
-          const cost = Math.floor(def.baseCost.reduce((sum, c) => sum + (c.resource === 'money' ? c.amount : 0), 0) * Math.pow(1.3, line.level));
-          if (state.money - totalCost >= cost) {
-            totalCost += cost;
-            linesToUpgrade.push(line.id);
-          }
-        }
-
-        if (linesToUpgrade.length === 0) {
-          get().addNotification('warning', 'No transport lines can be upgraded!');
-          return;
-        }
-
-        const logistics1Bonus = state.completedResearch.includes('logistics1') ? 0.2 : 0;
-        const advancedLogisticsBonus = state.completedResearch.includes('advancedLogistics') ? 0.3 : 0;
-        const transportBonus = logistics1Bonus + advancedLogisticsBonus;
-
-        set({
-          money: state.money - totalCost,
-          transportLines: state.transportLines.map(l => {
-            if (!linesToUpgrade.includes(l.id)) return l;
-            const def = TRANSPORT_DEFS[l.type];
-            if (!def) return l;
-            return {
-              ...l,
-              level: l.level + 1,
-              throughput: Math.min(l.maxThroughput, def.baseThroughput * Math.pow(def.upgradeMultiplier, l.level) * (1 + transportBonus)),
-            };
-          }),
-        });
-        get().addNotification('success', `Upgraded ${linesToUpgrade.length} transport lines for $${formatNumber(totalCost)}`);
-      },
-
-      upgradeTransportLinesByType: (type: TransportType) => {
-        const state = get();
-        let totalCost = 0;
-        const linesToUpgrade: string[] = [];
-        const def = TRANSPORT_DEFS[type];
-        if (!def) return;
-
-        for (const line of state.transportLines) {
-          if (line.type !== type) continue;
-          const cost = Math.floor(def.baseCost.reduce((sum, c) => sum + (c.resource === 'money' ? c.amount : 0), 0) * Math.pow(1.3, line.level));
-          if (state.money - totalCost >= cost) {
-            totalCost += cost;
-            linesToUpgrade.push(line.id);
-          }
-        }
-
-        if (linesToUpgrade.length === 0) {
-          get().addNotification('warning', `No ${def.name} lines can be upgraded!`);
-          return;
-        }
-
-        const logistics1Bonus = state.completedResearch.includes('logistics1') ? 0.2 : 0;
-        const advancedLogisticsBonus = state.completedResearch.includes('advancedLogistics') ? 0.3 : 0;
-        const transportBonus = logistics1Bonus + advancedLogisticsBonus;
-
-        set({
-          money: state.money - totalCost,
-          transportLines: state.transportLines.map(l => {
-            if (!linesToUpgrade.includes(l.id)) return l;
-            return {
-              ...l,
-              level: l.level + 1,
-              throughput: Math.min(l.maxThroughput, def.baseThroughput * Math.pow(def.upgradeMultiplier, l.level) * (1 + transportBonus)),
-            };
-          }),
-        });
-        get().addNotification('success', `Upgraded ${linesToUpgrade.length} ${def.name} line(s) for $${formatNumber(totalCost)}`);
-      },
-
-      // --- TRANSPORT EVOLUTION ACTIONS ---
-      evolveTransportLine: (id: string) => {
-        const state = get();
-        const line = state.transportLines.find(l => l.id === id);
-        if (!line) return;
-
-        const currentDef = TRANSPORT_DEFS[line.type];
-        if (!currentDef?.evolvesTo) {
-          get().addNotification('warning', `${currentDef.name} is already at max evolution tier!`);
-          return;
-        }
-
-        const nextType = currentDef.evolvesTo;
-        const nextDef = TRANSPORT_DEFS[nextType];
-        if (!nextDef) return;
-
-        // Evolution cost: scales with current line level
-        const evolutionCost = Math.floor(currentDef.evolutionCost * Math.pow(1.3, line.level - 1));
-        if (state.money < evolutionCost) {
-          soundEngine.play('error', 'ui');
-          get().addNotification('error', `Need $${formatNumber(evolutionCost)} to evolve ${currentDef.name} → ${nextDef.name}!`);
-          return;
-        }
-
-        const logistics1Bonus = state.completedResearch.includes('logistics1') ? 0.2 : 0;
-        const advancedLogisticsBonus = state.completedResearch.includes('advancedLogistics') ? 0.3 : 0;
-        const transportBonus = logistics1Bonus + advancedLogisticsBonus;
-
-        const newThroughput = Math.min(
-          nextDef.baseThroughput * 3 * Math.pow(nextDef.upgradeMultiplier, line.level - 1),
-          nextDef.baseThroughput * Math.pow(nextDef.upgradeMultiplier, line.level - 1) * (1 + transportBonus)
-        );
-        const newMaxThroughput = nextDef.baseThroughput * 3 * Math.pow(nextDef.upgradeMultiplier, line.level - 1);
-
-        set({
-          money: state.money - evolutionCost,
-          transportLines: state.transportLines.map(l =>
-            l.id === id ? {
-              ...l,
-              type: nextType,
-              throughput: newThroughput,
-              maxThroughput: newMaxThroughput,
-            } : l
-          ),
-        });
-        soundEngine.play('buildingPlaced', 'building');
-        get().addNotification('success', `🧬 Evolved ${currentDef.emoji} ${currentDef.name} → ${nextDef.emoji} ${nextDef.name} for $${formatNumber(evolutionCost)}`);
-      },
-
-      evolveAllTransportLines: () => {
-        const state = get();
-        let totalCost = 0;
-        const linesToEvolve: string[] = [];
-
-        for (const line of state.transportLines) {
-          const def = TRANSPORT_DEFS[line.type];
-          if (!def?.evolvesTo) continue;
-          const cost = Math.floor(def.evolutionCost * Math.pow(1.3, line.level - 1));
-          if (state.money - totalCost >= cost) {
-            totalCost += cost;
-            linesToEvolve.push(line.id);
-          }
-        }
-
-        if (linesToEvolve.length === 0) {
-          get().addNotification('warning', 'No transport lines can be evolved!');
-          return;
-        }
-
-        const logistics1Bonus = state.completedResearch.includes('logistics1') ? 0.2 : 0;
-        const advancedLogisticsBonus = state.completedResearch.includes('advancedLogistics') ? 0.3 : 0;
-        const transportBonus = logistics1Bonus + advancedLogisticsBonus;
-
-        set({
-          money: state.money - totalCost,
-          transportLines: state.transportLines.map(l => {
-            if (!linesToEvolve.includes(l.id)) return l;
-            const def = TRANSPORT_DEFS[l.type];
-            if (!def?.evolvesTo) return l;
-            const nextDef = TRANSPORT_DEFS[def.evolvesTo];
-            if (!nextDef) return l;
-            const newThroughput = Math.min(
-              nextDef.baseThroughput * 3 * Math.pow(nextDef.upgradeMultiplier, l.level - 1),
-              nextDef.baseThroughput * Math.pow(nextDef.upgradeMultiplier, l.level - 1) * (1 + transportBonus)
-            );
-            const newMaxThroughput = nextDef.baseThroughput * 3 * Math.pow(nextDef.upgradeMultiplier, l.level - 1);
-            return {
-              ...l,
-              type: def.evolvesTo,
-              throughput: newThroughput,
-              maxThroughput: newMaxThroughput,
-            };
-          }),
-        });
-        get().addNotification('success', `🧬 Evolved ${linesToEvolve.length} transport line(s) for $${formatNumber(totalCost)}`);
-      },
-
-      evolveTransportLinesByType: (type: TransportType) => {
-        const state = get();
-        const def = TRANSPORT_DEFS[type];
-        if (!def?.evolvesTo) {
-          get().addNotification('warning', `${def?.name ?? type} is already at max evolution tier!`);
-          return;
-        }
-
-        let totalCost = 0;
-        const linesToEvolve: string[] = [];
-
-        for (const line of state.transportLines) {
-          if (line.type !== type) continue;
-          const cost = Math.floor(def.evolutionCost * Math.pow(1.3, line.level - 1));
-          if (state.money - totalCost >= cost) {
-            totalCost += cost;
-            linesToEvolve.push(line.id);
-          }
-        }
-
-        if (linesToEvolve.length === 0) {
-          get().addNotification('warning', `No ${def.name} lines can be evolved!`);
-          return;
-        }
-
-        const nextDef = TRANSPORT_DEFS[def.evolvesTo];
-        const logistics1Bonus = state.completedResearch.includes('logistics1') ? 0.2 : 0;
-        const advancedLogisticsBonus = state.completedResearch.includes('advancedLogistics') ? 0.3 : 0;
-        const transportBonus = logistics1Bonus + advancedLogisticsBonus;
-
-        set({
-          money: state.money - totalCost,
-          transportLines: state.transportLines.map(l => {
-            if (!linesToEvolve.includes(l.id)) return l;
-            const newThroughput = Math.min(
-              nextDef.baseThroughput * 3 * Math.pow(nextDef.upgradeMultiplier, l.level - 1),
-              nextDef.baseThroughput * Math.pow(nextDef.upgradeMultiplier, l.level - 1) * (1 + transportBonus)
-            );
-            const newMaxThroughput = nextDef.baseThroughput * 3 * Math.pow(nextDef.upgradeMultiplier, l.level - 1);
-            return {
-              ...l,
-              type: def.evolvesTo!,
-              throughput: newThroughput,
-              maxThroughput: newMaxThroughput,
-            };
-          }),
-        });
-        get().addNotification('success', `🧬 Evolved ${linesToEvolve.length} ${def.emoji} ${def.name} → ${nextDef.emoji} ${nextDef.name} for $${formatNumber(totalCost)}`);
-      },
-
       // --- RESEARCH ACTIONS ---
       startResearch: (id: string) => {
         const state = get();
+        if (state.activeResearch) {
+          get().addNotification('warning', 'Research already in progress!');
+          return;
+        }
+
         const node = RESEARCH_TREE.find(r => r.id === id);
         if (!node) return;
 
         if (state.completedResearch.includes(id)) {
           get().addNotification('warning', 'Already researched!');
-          return;
-        }
-
-        // Already in queue or active
-        if (state.activeResearch === id || state.researchQueue.includes(id)) {
-          get().addNotification('warning', 'Already queued or active!');
           return;
         }
 
@@ -3349,112 +1973,14 @@ export const useGameStore = create<GameStore>()(
           return;
         }
 
-        if (state.activeResearch) {
-          // Add to queue if research is already active
-          if (state.researchQueue.length >= 5) {
-            get().addNotification('warning', 'Research queue is full! (Max 5)');
-            return;
-          }
-          set({
-            researchPoints: state.researchPoints - node.cost,
-            researchQueue: [...state.researchQueue, id],
-          });
-          soundEngine.play('buttonClick', 'ui');
-          get().addNotification('info', `Queued research: ${node.name} (Position ${state.researchQueue.length + 1})`);
-        } else {
-          // Start immediately
-          set({
-            researchPoints: state.researchPoints - node.cost,
-            activeResearch: id,
-            researchProgress: 0,
-          });
-          soundEngine.play('buttonClick', 'ui');
-          get().addNotification('info', `Started research: ${node.name}`);
-          get().updateQuestProgress('research', 1);
-        }
-      },
-
-      addToResearchQueue: (id: string) => {
-        const state = get();
-        const node = RESEARCH_TREE.find(r => r.id === id);
-        if (!node) return;
-
-        if (state.completedResearch.includes(id)) {
-          get().addNotification('warning', 'Already researched!');
-          return;
-        }
-
-        if (state.activeResearch === id || state.researchQueue.includes(id)) {
-          get().addNotification('warning', 'Already queued or active!');
-          return;
-        }
-
-        if (state.researchQueue.length >= 5) {
-          get().addNotification('warning', 'Research queue is full! (Max 5)');
-          return;
-        }
-
-        if (state.researchPoints < node.cost) {
-          soundEngine.play('error', 'ui');
-          get().addNotification('error', `Need ${formatNumber(node.cost)} RP! Have ${formatNumber(state.researchPoints)}`);
-          return;
-        }
-
         set({
           researchPoints: state.researchPoints - node.cost,
-          researchQueue: [...state.researchQueue, id],
+          activeResearch: id,
+          researchProgress: 0,
         });
         soundEngine.play('buttonClick', 'ui');
-        get().addNotification('info', `Queued research: ${node.name} (Position ${state.researchQueue.length + 1})`);
-      },
-
-      removeFromResearchQueue: (index: number) => {
-        const state = get();
-        if (index < 0 || index >= state.researchQueue.length) return;
-
-        const removedId = state.researchQueue[index];
-        const node = RESEARCH_TREE.find(r => r.id === removedId);
-        const newQueue = [...state.researchQueue];
-        newQueue.splice(index, 1);
-
-        // Refund RP
-        const refund = node ? node.cost : 0;
-        set({
-          researchQueue: newQueue,
-          researchPoints: state.researchPoints + refund,
-        });
-        if (node) {
-          get().addNotification('info', `Removed from queue: ${node.name} (+${formatNumber(refund)} RP refunded)`);
-        }
-      },
-
-      reorderResearchQueue: (fromIndex: number, toIndex: number) => {
-        const state = get();
-        if (fromIndex < 0 || fromIndex >= state.researchQueue.length) return;
-        if (toIndex < 0 || toIndex >= state.researchQueue.length) return;
-        if (fromIndex === toIndex) return;
-
-        const newQueue = [...state.researchQueue];
-        const [moved] = newQueue.splice(fromIndex, 1);
-        newQueue.splice(toIndex, 0, moved);
-        set({ researchQueue: newQueue });
-      },
-
-      clearResearchQueue: () => {
-        const state = get();
-        // Refund all RP from queue
-        let totalRefund = 0;
-        state.researchQueue.forEach(id => {
-          const node = RESEARCH_TREE.find(r => r.id === id);
-          if (node) totalRefund += node.cost;
-        });
-        set({
-          researchQueue: [],
-          researchPoints: state.researchPoints + totalRefund,
-        });
-        if (totalRefund > 0) {
-          get().addNotification('info', `Cleared research queue (+${formatNumber(totalRefund)} RP refunded)`);
-        }
+        get().addNotification('info', `Started research: ${node.name}`);
+        get().updateQuestProgress('research', 1);
       },
 
       // --- WORKER ACTIONS ---
@@ -3512,9 +2038,10 @@ export const useGameStore = create<GameStore>()(
         const marketItem = state.market.find(m => m.resource === resource);
         if (!marketItem) return;
 
-        const cache = buildMultipliers(state);
-        const sellMult = computeSellMultiplierFull(state, cache);
-        const sellPrice = marketItem.currentPrice * amount * sellMult;
+        const marketBonus = state.completedResearch.includes('marketAnalysis') ? 0.2 : 0;
+        const prestigeMarketBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'marketMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
+        const megaMarketBonusManual = getMegaProjectBonus(state.megaProjects, 'marketMultiplier');
+        const sellPrice = marketItem.currentPrice * amount * (0.9 + marketBonus + prestigeMarketBonus + megaMarketBonusManual);
 
         set({
           resources: { ...state.resources, [resource]: state.resources[resource] - amount },
@@ -3564,30 +2091,20 @@ export const useGameStore = create<GameStore>()(
       },
 
       // --- CONTRACT ACTIONS ---
-      acceptContract: (contractId: string) => {
+      acceptContract: (contract: Contract) => {
         const state = get();
-        const contract = state.contracts.find(c => c.id === contractId);
-        if (!contract || contract.accepted || contract.completed || contract.failed) return;
-
-        const activeAccepted = state.contracts.filter(c => c.accepted && !c.completed && !c.failed).length;
-        if (activeAccepted >= 5) {
-          get().addNotification('warning', 'Too many active contracts! (Max 5)');
+        if (state.contracts.filter(c => !c.completed && !c.failed).length >= 5) {
+          get().addNotification('warning', 'Too many active contracts!');
           return;
         }
-
-        set({
-          contracts: state.contracts.map(c =>
-            c.id === contractId ? { ...c, accepted: true } : c
-          ),
-        });
-        soundEngine.play('buttonClick', 'ui');
+        set({ contracts: [...state.contracts, contract] });
         get().addNotification('info', `Accepted contract: ${contract.name}`);
       },
 
       fulfillContract: (id: string) => {
         const state = get();
         const contract = state.contracts.find(c => c.id === id);
-        if (!contract || contract.completed || contract.failed || !contract.accepted) return;
+        if (!contract || contract.completed || contract.failed) return;
 
         const canFulfill = contract.requiredResources.every(r => {
           if (r.resource === 'money') return true;
@@ -3606,13 +2123,6 @@ export const useGameStore = create<GameStore>()(
           }
         });
 
-        // Apply rare resource rewards
-        if (contract.reward.rareResources) {
-          contract.reward.rareResources.forEach(rr => {
-            newResources[rr.resource] = (newResources[rr.resource] ?? 0) + rr.amount;
-          });
-        }
-
         set({
           resources: newResources,
           money: state.money + contract.reward.money,
@@ -3629,51 +2139,8 @@ export const useGameStore = create<GameStore>()(
           stats: { ...state.stats, contractsCompleted: state.stats.contractsCompleted + 1 },
         });
         soundEngine.play('contractCompleted', 'events');
-        // Build detailed reward notification
-        const rewardParts = [`+$${formatNumber(contract.reward.money)}`];
-        if (contract.reward.researchPoints) rewardParts.push(`+${contract.reward.researchPoints} RP`);
-        if (contract.reward.corporationPoints && contract.reward.corporationPoints > 0) rewardParts.push(`+${contract.reward.corporationPoints} CP`);
-        if (contract.reward.rareResources && contract.reward.rareResources.length > 0) {
-          contract.reward.rareResources.forEach(rr => {
-            const rrMeta = RESOURCE_META[rr.resource];
-            rewardParts.push(`+${rr.amount} ${rrMeta?.emoji ?? ''} ${rrMeta?.name ?? rr.resource}`);
-          });
-        }
-        get().addNotification('success', `Contract fulfilled: ${contract.name}! ${rewardParts.join(', ')}`);
+        get().addNotification('success', `Contract fulfilled: ${contract.name}! +$${formatNumber(contract.reward.money)}`);
         get().updateQuestProgress('contract', 1);
-      },
-
-      refreshContractBoard: () => {
-        const state = get();
-        const playerGameTier = (() => {
-          if (state.buildings.length === 0) return 0;
-          const highestBuildingTier = Math.max(0, ...state.buildings.map(b => BUILDING_DEFS[b.type]?.tier ?? 0));
-          const researchTier = Math.floor(state.completedResearch.length / 3);
-          return Math.min(4, Math.max(highestBuildingTier, researchTier));
-        })();
-
-        // Remove all unaccepted, non-expired contracts from the board
-        const keptContracts = state.contracts.filter(c => c.accepted || c.completed || c.failed);
-        const existingIds = new Set(keptContracts.map(c => c.id));
-        const newBoard = generateContractBoard(playerGameTier, state.buildings.length, state.gameTick, existingIds, state.buildings, state.contracts, state.money);
-
-        set({ contracts: [...keptContracts, ...newBoard] });
-        get().addNotification('info', 'Contract board refreshed!');
-      },
-
-      abandonContract: (id: string) => {
-        const state = get();
-        const contract = state.contracts.find(c => c.id === id);
-        if (!contract || contract.completed || contract.failed) return;
-
-        set({
-          contracts: state.contracts.map(c =>
-            c.id === id ? { ...c, failed: true } : c
-          ),
-        });
-        if (contract.accepted) {
-          get().addNotification('warning', `Abandoned contract: ${contract.name}`);
-        }
       },
 
       // --- AUTOMATION ACTIONS ---
@@ -3813,15 +2280,6 @@ export const useGameStore = create<GameStore>()(
       markAllNotificationsRead: () => {
         set(state => ({
           notifications: state.notifications.map(n => ({ ...n, read: true })),
-        }));
-      },
-
-      addMaintenanceLog: (entry: Omit<MaintenanceLogEntry, 'id'>) => {
-        set(state => ({
-          maintenanceLog: [
-            { ...entry, id: generateId() },
-            ...state.maintenanceLog,
-          ].slice(0, 200),
         }));
       },
 
@@ -4035,544 +2493,6 @@ export const useGameStore = create<GameStore>()(
 
       resetGame: () => set(createInitialState()),
 
-      // --- MAP SYSTEM ACTIONS (Hybrid Grid + Logistics + Region) ---
-      setActiveRegion: (regionId: RegionId) => {
-        const state = get();
-        const region = state.mapRegions.find(r => r.id === regionId);
-        if (!region || !region.unlocked) return;
-        set({ activeRegion: regionId, mapViewLayer: 'grid' });
-      },
-
-      setMapViewLayer: (layer: MapViewLayer) => {
-        set({ mapViewLayer: layer });
-      },
-
-      setMapViewMode: (mode: MapViewMode) => {
-        set({ mapViewMode: mode });
-      },
-
-      unlockRegion: (regionId: RegionId) => {
-        const state = get();
-        const region = state.mapRegions.find(r => r.id === regionId);
-        if (!region || region.unlocked) return;
-        if (state.money < region.unlockCost) {
-          get().addNotification('error', `Not enough money to unlock ${region.name}! Need $${formatNumber(region.unlockCost)}`);
-          return;
-        }
-        // Generate grid for the new region
-        const newGrid = generateRegionGrid(region);
-        set({
-          money: state.money - region.unlockCost,
-          mapRegions: state.mapRegions.map(r =>
-            r.id === regionId ? { ...r, unlocked: true } : r
-          ),
-          mapGrids: { ...state.mapGrids, [regionId]: newGrid },
-          activeRegion: regionId,
-          mapViewLayer: 'grid',
-        });
-        soundEngine.play('buttonClick', 'ui');
-        get().addNotification('success', `🗺️ Region unlocked: ${region.emoji} ${region.name}! ${region.description}`);
-      },
-
-      placeBuildingOnGrid: (buildingId: string, regionId: string, row: number, col: number): boolean => {
-        const state = get();
-        const building = state.buildings.find(b => b.id === buildingId);
-        if (!building) return false;
-
-        const region = state.mapRegions.find(r => r.id === regionId);
-        if (!region || !region.unlocked) return false;
-
-        const def = BUILDING_DEFS[building.type];
-        if (!def) return false;
-
-        // Check if building category is allowed in this region
-        if (!region.allowedCategories.includes(def.category)) return false;
-
-        // Check if building size is allowed in this region
-        const footprint = getBuildingFootprint(building.type);
-        if (footprint.width > region.maxBuildingSize || footprint.height > region.maxBuildingSize) return false;
-
-        // Check if all tiles are available
-        const grid = state.mapGrids[regionId];
-        if (!grid) return false;
-
-        for (let dr = 0; dr < footprint.height; dr++) {
-          for (let dc = 0; dc < footprint.width; dc++) {
-            const r = row + dr;
-            const c = col + dc;
-            if (r >= region.gridRows || c >= region.gridCols) return false;
-            const tile = grid.find(t => t.row === r && t.col === c);
-            if (!tile || tile.occupiedBy !== null || tile.terrain === 'water') return false;
-          }
-        }
-
-        // Place the building
-        const newGrid = grid.map(t => {
-          const tr = t.row;
-          const tc = t.col;
-          if (tr >= row && tr < row + footprint.height && tc >= col && tc < col + footprint.width) {
-            return { ...t, occupiedBy: buildingId };
-          }
-          return t;
-        });
-
-        set({
-          mapGrids: { ...state.mapGrids, [regionId]: newGrid },
-          buildings: state.buildings.map(b =>
-            b.id === buildingId ? { ...b, gridRow: row, gridCol: col, regionId } : b
-          ),
-        });
-
-        return true;
-      },
-
-      removeBuildingFromGrid: (buildingId: string) => {
-        const state = get();
-        const building = state.buildings.find(b => b.id === buildingId);
-        if (!building || !building.regionId) return;
-
-        const regionId = building.regionId;
-        const grid = state.mapGrids[regionId];
-        if (!grid) return;
-
-        const footprint = getBuildingFootprint(building.type);
-        const row = building.gridRow ?? 0;
-        const col = building.gridCol ?? 0;
-
-        const newGrid = grid.map(t => {
-          const tr = t.row;
-          const tc = t.col;
-          if (tr >= row && tr < row + footprint.height && tc >= col && tc < col + footprint.width) {
-            return { ...t, occupiedBy: null };
-          }
-          return t;
-        });
-
-        // Also remove logistics routes connected to this building
-        const newRoutes = state.logisticsRoutes.filter(
-          r => r.fromBuildingId !== buildingId && r.toBuildingId !== buildingId
-        );
-
-        set({
-          mapGrids: { ...state.mapGrids, [regionId]: newGrid },
-          buildings: state.buildings.map(b =>
-            b.id === buildingId ? { ...b, gridRow: undefined, gridCol: undefined, regionId: undefined } : b
-          ),
-          logisticsRoutes: newRoutes,
-        });
-      },
-
-      canPlaceBuilding: (buildingType: BuildingType, regionId: string, row: number, col: number): boolean => {
-        const state = get();
-        const region = state.mapRegions.find(r => r.id === regionId);
-        if (!region || !region.unlocked) return false;
-
-        const def = BUILDING_DEFS[buildingType];
-        if (!def) return false;
-
-        if (!region.allowedCategories.includes(def.category)) return false;
-
-        const footprint = getBuildingFootprint(buildingType);
-        if (footprint.width > region.maxBuildingSize || footprint.height > region.maxBuildingSize) return false;
-
-        const grid = state.mapGrids[regionId];
-        if (!grid) return false;
-
-        for (let dr = 0; dr < footprint.height; dr++) {
-          for (let dc = 0; dc < footprint.width; dc++) {
-            const r = row + dr;
-            const c = col + dc;
-            if (r >= region.gridRows || c >= region.gridCols) return false;
-            const tile = grid.find(t => t.row === r && t.col === c);
-            if (!tile || tile.occupiedBy !== null || tile.terrain === 'water') return false;
-          }
-        }
-
-        return true;
-      },
-
-      addLogisticsRoute: (fromBuildingId: string, toBuildingId: string, resource: ResourceType): string | null => {
-        const state = get();
-        const fromBuilding = state.buildings.find(b => b.id === fromBuildingId);
-        const toBuilding = state.buildings.find(b => b.id === toBuildingId);
-        if (!fromBuilding || !toBuilding) return null;
-
-        // Check that source produces the resource
-        const fromDef = BUILDING_DEFS[fromBuilding.type];
-        const toDef = BUILDING_DEFS[toBuilding.type];
-        if (!fromDef?.outputs?.some(o => o.resource === resource) && !fromDef?.outputs?.some(o => o.resource !== 'money')) return null;
-        if (!toDef?.inputs?.some(i => i.resource === resource)) return null;
-
-        // Check not already connected
-        const exists = state.logisticsRoutes.some(
-          r => r.fromBuildingId === fromBuildingId && r.toBuildingId === toBuildingId && r.carriesResource === resource
-        );
-        if (exists) return null;
-
-        // Calculate efficiency based on distance
-        const fromRow = fromBuilding.gridRow ?? 0;
-        const fromCol = fromBuilding.gridCol ?? 0;
-        const toRow = toBuilding.gridRow ?? 0;
-        const toCol = toBuilding.gridCol ?? 0;
-        const manhattanDist = Math.abs(fromRow - toRow) + Math.abs(fromCol - toCol);
-        const efficiency = Math.max(0.5, 1 - manhattanDist * 0.05);
-
-        // Determine route type based on distance and building tier
-        const routeType = manhattanDist <= 5 ? 'conveyor' as const : manhattanDist <= 15 ? 'truck' as const : 'train' as const;
-
-        const routeId = generateId();
-        const baseThroughput = 10;
-
-        const route: LogisticsRoute = {
-          id: routeId,
-          fromBuildingId,
-          toBuildingId,
-          carriesResource: resource,
-          throughput: baseThroughput * efficiency,
-          maxThroughput: baseThroughput * 2,
-          efficiency,
-          active: true,
-          routeType,
-        };
-
-        set({ logisticsRoutes: [...state.logisticsRoutes, route] });
-        return routeId;
-      },
-
-      removeLogisticsRoute: (routeId: string) => {
-        const state = get();
-        set({ logisticsRoutes: state.logisticsRoutes.filter(r => r.id !== routeId) });
-      },
-
-      getRegionForBuilding: (buildingType: BuildingType): RegionId[] => {
-        const state = get();
-        const def = BUILDING_DEFS[buildingType];
-        if (!def) return [];
-
-        const footprint = getBuildingFootprint(buildingType);
-        return state.mapRegions
-          .filter(r =>
-            r.unlocked &&
-            r.allowedCategories.includes(def.category) &&
-            footprint.width <= r.maxBuildingSize &&
-            footprint.height <= r.maxBuildingSize
-          )
-          .map(r => r.id);
-      },
-
-      autoGenerateLogisticsRoutes: () => {
-        const state = get();
-        const newRoutes: LogisticsRoute[] = [...state.logisticsRoutes];
-        const activeBuildings = state.buildings.filter(b => b.active);
-        const existingRouteKeys = new Set(
-          state.logisticsRoutes.map(r => `${r.fromBuildingId}->${r.toBuildingId}:${r.carriesResource}`)
-        );
-
-        // For each active building with inputs, find the closest active building that outputs a matching resource
-        for (const consumer of activeBuildings) {
-          const consumerDef = BUILDING_DEFS[consumer.type];
-          if (!consumerDef?.inputs) continue;
-
-          for (const input of consumerDef.inputs) {
-            if (input.resource === 'money') continue;
-            const resource = input.resource as ResourceType;
-
-            // Find all active buildings that output this resource
-            const producers = activeBuildings.filter(b => {
-              const bDef = BUILDING_DEFS[b.type];
-              return bDef?.outputs?.some(o => o.resource === resource);
-            });
-
-            // Find closest producer
-            let closestProducer: BuildingInstance | null = null;
-            let closestDist = Infinity;
-
-            for (const producer of producers) {
-              if (producer.id === consumer.id) continue;
-
-              const routeKey = `${producer.id}->${consumer.id}:${resource}`;
-              if (existingRouteKeys.has(routeKey)) continue;
-
-              const sameRegion = producer.regionId === consumer.regionId && producer.regionId !== undefined;
-              const pRow = producer.gridRow ?? 0;
-              const pCol = producer.gridCol ?? 0;
-              const cRow = consumer.gridRow ?? 0;
-              const cCol = consumer.gridCol ?? 0;
-
-              let dist: number;
-              if (sameRegion) {
-                dist = Math.abs(pRow - cRow) + Math.abs(pCol - cCol);
-              } else {
-                // Cross-region: use a large distance to simulate far apart
-                dist = 100;
-              }
-
-              if (dist < closestDist) {
-                closestDist = dist;
-                closestProducer = producer;
-              }
-            }
-
-            if (closestProducer) {
-              const sameRegion = closestProducer.regionId === consumer.regionId && consumer.regionId !== undefined;
-
-              // Route type based on distance
-              let routeType: LogisticsRoute['routeType'];
-              let efficiency: number;
-
-              if (!sameRegion) {
-                routeType = 'drone';
-                efficiency = 0.5;
-              } else if (closestDist <= 3) {
-                routeType = 'conveyor';
-                efficiency = Math.max(0.3, 1 - closestDist * 0.05);
-              } else if (closestDist <= 8) {
-                routeType = 'truck';
-                efficiency = Math.max(0.3, 1 - closestDist * 0.05);
-              } else if (closestDist <= 15) {
-                routeType = 'train';
-                efficiency = Math.max(0.3, 1 - closestDist * 0.05);
-              } else {
-                routeType = 'drone';
-                efficiency = Math.max(0.3, 1 - closestDist * 0.05);
-              }
-
-              // Throughput = output rate × efficiency
-              const producerDef = BUILDING_DEFS[closestProducer.type];
-              const outputEntry = producerDef?.outputs?.find(o => o.resource === resource);
-              const outputRate = outputEntry ? outputEntry.amount * (producerDef?.baseProductionRate ?? 1) : 1;
-
-              const routeKey = `${closestProducer.id}->${consumer.id}:${resource}`;
-              existingRouteKeys.add(routeKey);
-
-              newRoutes.push({
-                id: generateId(),
-                fromBuildingId: closestProducer.id,
-                toBuildingId: consumer.id,
-                carriesResource: resource,
-                throughput: outputRate * efficiency,
-                maxThroughput: outputRate * 2,
-                efficiency,
-                active: true,
-                routeType,
-              });
-            }
-          }
-        }
-
-        if (newRoutes.length > state.logisticsRoutes.length) {
-          set({ logisticsRoutes: newRoutes });
-        }
-      },
-
-      autoAssignAllBuildings: () => {
-        const state = get();
-        const mapRegions = state.mapRegions.length > 0
-          ? state.mapRegions.map(r => ({ ...r, unlocked: true })) // Unlock all regions for auto-assign
-          : INITIAL_REGIONS.map(r => ({ ...r, unlocked: true }));
-        const mapGrids = { ...state.mapGrids };
-
-        // Ensure grids exist for all regions
-        for (const region of mapRegions) {
-          if (!mapGrids[region.id]) {
-            mapGrids[region.id] = generateRegionGrid(region);
-          }
-        }
-
-        // Clear grid tile occupancy
-        for (const region of mapRegions) {
-          if (mapGrids[region.id]) {
-            mapGrids[region.id] = mapGrids[region.id].map(t => ({ ...t, occupiedBy: undefined }));
-          }
-        }
-
-        // Build a global occupied cells tracker that persists across all assignments
-        const occupiedCellsMap: Record<string, Set<string>> = {};
-        for (const region of mapRegions) {
-          occupiedCellsMap[region.id] = new Set<string>();
-        }
-
-        // Clear all existing placements so we reassign everything fresh
-        const updatedBuildings: BuildingInstance[] = state.buildings.map(b => ({
-          ...b,
-          regionId: undefined as string | undefined,
-          gridRow: undefined as number | undefined,
-          gridCol: undefined as number | undefined,
-        }));
-
-        // Sort buildings: largest footprint first to avoid fragmentation
-        const sortedIndices = updatedBuildings
-          .map((b, i) => ({ idx: i, fp: getBuildingFootprint(b.type) }))
-          .sort((a, b) => (b.fp.width * b.fp.height) - (a.fp.width * a.fp.height))
-          .map(x => x.idx);
-
-        // Assign all buildings to regions and grid positions one by one
-        for (const i of sortedIndices) {
-          const b = updatedBuildings[i];
-          const def = BUILDING_DEFS[b.type];
-          if (!def) continue;
-
-          const footprint = getBuildingFootprint(b.type);
-          const preferredOrder = getPreferredRegionOrder(b.type);
-          let assigned = false;
-
-          for (const regionId of preferredOrder) {
-            const region = mapRegions.find(r => r.id === regionId);
-            if (!region) continue;
-
-            // Check category and size allowed (skip maxBuildingSize check for auto-assign to be more flexible)
-            if (!region.allowedCategories.includes(def.category)) continue;
-
-            const grid = mapGrids[regionId];
-            if (!grid) continue;
-
-            // Scan grid for first available position
-            for (let row = 0; row <= region.gridRows - footprint.height && !assigned; row++) {
-              for (let col = 0; col <= region.gridCols - footprint.width && !assigned; col++) {
-                let fits = true;
-                for (let dr = 0; dr < footprint.height && fits; dr++) {
-                  for (let dc = 0; dc < footprint.width && fits; dc++) {
-                    const r = row + dr;
-                    const c = col + dc;
-                    // Check grid tile terrain (water = not buildable)
-                    const tile = grid.find(t => t.row === r && t.col === c);
-                    if (!tile || tile.terrain === 'water') {
-                      fits = false;
-                    } else if (occupiedCellsMap[regionId]?.has(`${r},${c}`)) {
-                      fits = false;
-                    }
-                  }
-                }
-                if (fits) {
-                  // Mark cells as occupied
-                  if (!occupiedCellsMap[regionId]) occupiedCellsMap[regionId] = new Set<string>();
-                  for (let dr = 0; dr < footprint.height; dr++) {
-                    for (let dc = 0; dc < footprint.width; dc++) {
-                      occupiedCellsMap[regionId].add(`${row + dr},${col + dc}`);
-                    }
-                  }
-                  updatedBuildings[i] = { ...b, regionId, gridRow: row, gridCol: col };
-                  assigned = true;
-                }
-              }
-            }
-          }
-
-          // Fallback: if preferred regions didn't work, try ANY region that accepts this category
-          if (!assigned) {
-            for (const region of mapRegions) {
-              if (!region.allowedCategories.includes(def.category)) continue;
-              const grid = mapGrids[region.id];
-              if (!grid) continue;
-
-              for (let row = 0; row <= region.gridRows - footprint.height && !assigned; row++) {
-                for (let col = 0; col <= region.gridCols - footprint.width && !assigned; col++) {
-                  let fits = true;
-                  for (let dr = 0; dr < footprint.height && fits; dr++) {
-                    for (let dc = 0; dc < footprint.width && fits; dc++) {
-                      const r = row + dr;
-                      const c = col + dc;
-                      const tile = grid.find(t => t.row === r && t.col === c);
-                      if (!tile || tile.terrain === 'water') {
-                        fits = false;
-                      } else if (occupiedCellsMap[region.id]?.has(`${r},${c}`)) {
-                        fits = false;
-                      }
-                    }
-                  }
-                  if (fits) {
-                    if (!occupiedCellsMap[region.id]) occupiedCellsMap[region.id] = new Set<string>();
-                    for (let dr = 0; dr < footprint.height; dr++) {
-                      for (let dc = 0; dc < footprint.width; dc++) {
-                        occupiedCellsMap[region.id].add(`${row + dr},${col + dc}`);
-                      }
-                    }
-                    updatedBuildings[i] = { ...b, regionId: region.id, gridRow: row, gridCol: col };
-                    assigned = true;
-                  }
-                }
-              }
-              if (assigned) break;
-            }
-          }
-
-          // Last resort: force-place on any non-water tile in any region (ignoring category)
-          if (!assigned) {
-            for (const region of mapRegions) {
-              const grid = mapGrids[region.id];
-              if (!grid) continue;
-
-              for (let row = 0; row <= region.gridRows - footprint.height && !assigned; row++) {
-                for (let col = 0; col <= region.gridCols - footprint.width && !assigned; col++) {
-                  let fits = true;
-                  for (let dr = 0; dr < footprint.height && fits; dr++) {
-                    for (let dc = 0; dc < footprint.width && fits; dc++) {
-                      const r = row + dr;
-                      const c = col + dc;
-                      const tile = grid.find(t => t.row === r && t.col === c);
-                      if (!tile || tile.terrain === 'water') {
-                        fits = false;
-                      } else if (occupiedCellsMap[region.id]?.has(`${r},${c}`)) {
-                        fits = false;
-                      }
-                    }
-                  }
-                  if (fits) {
-                    if (!occupiedCellsMap[region.id]) occupiedCellsMap[region.id] = new Set<string>();
-                    for (let dr = 0; dr < footprint.height; dr++) {
-                      for (let dc = 0; dc < footprint.width; dc++) {
-                        occupiedCellsMap[region.id].add(`${row + dr},${col + dc}`);
-                      }
-                    }
-                    updatedBuildings[i] = { ...b, regionId: region.id, gridRow: row, gridCol: col };
-                    assigned = true;
-                  }
-                }
-              }
-              if (assigned) break;
-            }
-          }
-        }
-
-        // Update grid tiles to reflect occupied cells
-        for (const region of mapRegions) {
-          const grid = mapGrids[region.id];
-          if (!grid) continue;
-          const regionBuildings = updatedBuildings.filter(
-            b => b.regionId === region.id && b.gridRow !== undefined && b.gridCol !== undefined
-          );
-          if (regionBuildings.length > 0) {
-            mapGrids[region.id] = grid.map(t => {
-              for (const b of regionBuildings) {
-                const fp = getBuildingFootprint(b.type);
-                if (t.row >= (b.gridRow ?? 0) && t.row < (b.gridRow ?? 0) + fp.height &&
-                    t.col >= (b.gridCol ?? 0) && t.col < (b.gridCol ?? 0) + fp.width) {
-                  return { ...t, occupiedBy: b.id };
-                }
-              }
-              return t;
-            });
-          }
-        }
-
-        set({
-          buildings: updatedBuildings,
-          mapRegions,
-          mapGrids,
-        });
-
-        // Auto-generate logistics routes after reassignment
-        get().autoGenerateLogisticsRoutes();
-
-        const assignedCount = updatedBuildings.filter(b => b.regionId !== undefined).length;
-        const unassignedCount = updatedBuildings.length - assignedCount;
-        if (unassignedCount > 0) {
-          get().addNotification('warning', `🏗️ Auto-assigned ${assignedCount}/${updatedBuildings.length} buildings. ${unassignedCount} could not be placed.`);
-        } else {
-          get().addNotification('success', `🏗️ Auto-assigned all ${assignedCount} buildings to map regions!`);
-        }
-      },
-
       // --- PAYOUT ACTIONS ---
       collectPayout: () => {
         const state = get();
@@ -4614,8 +2534,6 @@ export const useGameStore = create<GameStore>()(
           speedLevel: 1,
           capacityLevel: 1,
           fuelEfficiencyLevel: 1,
-          autoAssign: false,
-          autoAssignPriority: 'profit',
         };
         set({
           money: state.money - cost,
@@ -4703,110 +2621,6 @@ export const useGameStore = create<GameStore>()(
 
       generateDroneMissions: () => {
         return generateDroneMissionsFromState(get());
-      },
-
-      // --- DRONE AUTO-ASSIGN ACTIONS ---
-      toggleDroneAutoAssign: (droneId: string) => {
-        const state = get();
-        const updatedFleet = state.drones.fleet.map(d =>
-          d.id === droneId
-            ? { ...d, autoAssign: !d.autoAssign, autoAssignPriority: d.autoAssignPriority ?? 'profit' }
-            : d
-        );
-        set({
-          drones: { ...state.drones, fleet: updatedFleet },
-        });
-      },
-
-      setDroneAutoAssignPriority: (droneId: string, priority: 'profit' | 'speed' | 'research') => {
-        const state = get();
-        const updatedFleet = state.drones.fleet.map(d =>
-          d.id === droneId ? { ...d, autoAssignPriority: priority } : d
-        );
-        set({
-          drones: { ...state.drones, fleet: updatedFleet },
-        });
-      },
-
-      autoAssignAllDrones: () => {
-        const state = get();
-        const missions = generateDroneMissionsFromState(state);
-        if (missions.length === 0) return;
-
-        // Enable auto-assign for all idle drones
-        const updatedFleet = state.drones.fleet.map(d => ({
-          ...d,
-          autoAssign: true,
-          autoAssignPriority: d.autoAssignPriority ?? 'profit' as const,
-        }));
-        set({ drones: { ...state.drones, fleet: updatedFleet } });
-
-        // Immediately assign idle drones
-        get().processAutoAssignDrones();
-        get().addNotification('success', `🚁 Auto-assign enabled for all drones`);
-      },
-
-      processAutoAssignDrones: () => {
-        const state = get();
-        const missions = generateDroneMissionsFromState(state);
-        if (missions.length === 0) return;
-
-        const idleAutoAssignDrones = state.drones.fleet.filter(d => d.status === 'idle' && d.autoAssign);
-        if (idleAutoAssignDrones.length === 0) return;
-
-        // Sort missions by different strategies
-        const sortedMissionsByPriority: Record<string, DroneMission[]> = {
-          profit: [...missions].sort((a, b) => b.reward.money - a.reward.money),
-          speed: [...missions].sort((a, b) => a.baseTicks - b.baseTicks),
-          research: [...missions].sort((a, b) => (b.reward.researchPoints ?? 0) - (a.reward.researchPoints ?? 0)),
-        };
-
-        const usedMissionIds = new Set<string>();
-        let assignments = 0;
-
-        const updatedFleet = state.drones.fleet.map(d => {
-          if (d.status !== 'idle' || !d.autoAssign) return d;
-
-          const sortedMissions = sortedMissionsByPriority[d.autoAssignPriority ?? 'profit'];
-          // Find the best mission this drone can afford
-          for (const mission of sortedMissions) {
-            if (usedMissionIds.has(mission.id)) continue;
-            const fuelCost = Math.ceil(mission.fuelCost / (1 + (d.fuelEfficiencyLevel - 1) * 0.15));
-            if (state.money < fuelCost) continue;
-
-            const deliveryTicks = Math.max(10, Math.floor(mission.baseTicks / (1 + (d.speedLevel - 1) * 0.2)));
-            usedMissionIds.add(mission.id);
-            assignments++;
-
-            // Deduct fuel cost - we'll batch this after
-            return {
-              ...d,
-              status: 'delivering' as const,
-              missionEndTick: state.gameTick + deliveryTicks,
-              missionId: mission.id,
-            };
-          }
-          return d;
-        });
-
-        if (assignments > 0) {
-          // Calculate total fuel cost
-          let totalFuelCost = 0;
-          const assignedDrones = updatedFleet.filter((d, i) => d.status === 'delivering' && state.drones.fleet[i].status === 'idle');
-          for (const d of assignedDrones) {
-            if (d.missionId) {
-              const mission = missions.find(m => m.id === d.missionId);
-              if (mission) {
-                totalFuelCost += Math.ceil(mission.fuelCost / (1 + (d.fuelEfficiencyLevel - 1) * 0.15));
-              }
-            }
-          }
-
-          set({
-            money: Math.max(0, state.money - totalFuelCost),
-            drones: { ...state.drones, fleet: updatedFleet },
-          });
-        }
       },
 
       // --- LEADERBOARD ACTIONS ---
@@ -5017,51 +2831,68 @@ export const useGameStore = create<GameStore>()(
         const offlineResources: Record<ResourceType, number> = { ...initialResources };
         let offlineMoney = 0;
 
-        // Build multiplier cache and adjust for offline context
-        const cache = buildMultipliers(state);
+        // Apply 50% offline rate
         const offlineRate = 0.5;
+
+        // Offline production bonus from prestige
         const offlinePrestigeBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'offlineMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
-        const effectiveOfflineRate = offlineRate * (1 + offlinePrestigeBonus + getMegaProjectBonus(state.megaProjects, 'productionMultiplier'));
+        const offlineMegaProductionBonus = getMegaProjectBonus(state.megaProjects, 'productionMultiplier');
+        const effectiveOfflineRate = offlineRate * (1 + offlinePrestigeBonus + offlineMegaProductionBonus);
 
-        // Adjust cache's powerEfficiency for offline context
-        const offlineCache = { ...cache, powerEfficiency: cache.powerEfficiency * effectiveOfflineRate };
-
+        // Calculate production per tick for each building
         const offlineTempResources: Record<string, number> = { ...state.resources };
         state.buildings.forEach(b => {
           if (!b.active) return;
           const def = BUILDING_DEFS[b.type];
           if (!def || !def.outputs) return;
 
-          const result = computeProduction(b, offlineCache, offlineTempResources);
-
           if (def.category === 'extractor') {
-            for (const out of result.outputs) {
-              if (out.resource === 'money') continue;
-              const res = out.resource as ResourceType;
-              const produced = out.amount * ticksElapsed;
+            def.outputs.forEach(output => {
+              if (output.resource === 'money') return;
+              const res = output.resource as ResourceType;
+              const produced = output.amount * def.baseProductionRate * b.level * b.efficiency * effectiveOfflineRate * ticksElapsed;
               offlineResources[res] += produced;
               offlineTempResources[res] = (offlineTempResources[res] ?? 0) + produced;
-            }
+            });
           }
 
-          if (def.category === 'factory' && result.canProduce) {
-            // Consume inputs
-            for (const inp of result.actualInputs) {
-              if (inp.resource === 'money') continue;
-              const res = inp.resource as ResourceType;
-              const consumed = inp.amount * ticksElapsed;
-              offlineTempResources[res] = (offlineTempResources[res] ?? 0) - consumed;
-              if (offlineResources[res] !== undefined) {
-                offlineResources[res] = Math.max(0, offlineResources[res] - consumed);
+          if (def.category === 'factory' && def.inputs && def.outputs) {
+            // Check if factory can produce (has enough input resources)
+            const adjustedInputs = def.inputs.map(input => {
+              if (input.resource === 'money') return { resource: input.resource, amount: 0 };
+              return {
+                resource: input.resource,
+                amount: input.amount * b.level * b.efficiency * effectiveOfflineRate * ticksElapsed,
+              };
+            }).filter(i => i.resource !== 'money');
+
+            let canProduce = true;
+            for (const input of adjustedInputs) {
+              const res = input.resource as ResourceType;
+              if ((offlineTempResources[res] ?? 0) < input.amount) {
+                canProduce = false;
+                break;
               }
             }
-            // Produce outputs
-            for (const out of result.outputs) {
-              if (out.resource === 'money') continue;
-              const res = out.resource as ResourceType;
-              const produced = out.amount * ticksElapsed;
-              offlineResources[res] += produced;
-              offlineTempResources[res] = (offlineTempResources[res] ?? 0) + produced;
+
+            if (canProduce) {
+              // Consume inputs
+              adjustedInputs.forEach(input => {
+                const res = input.resource as ResourceType;
+                offlineTempResources[res] = (offlineTempResources[res] ?? 0) - input.amount;
+                // Also reduce offline resources for inputs (they came from stock)
+                if (offlineResources[res] !== undefined) {
+                  offlineResources[res] = Math.max(0, offlineResources[res] - input.amount);
+                }
+              });
+              // Produce outputs
+              def.outputs.forEach(output => {
+                if (output.resource === 'money') return;
+                const res = output.resource as ResourceType;
+                const produced = output.amount * def.baseProductionRate * b.level * b.efficiency * effectiveOfflineRate * ticksElapsed;
+                offlineResources[res] += produced;
+                offlineTempResources[res] = (offlineTempResources[res] ?? 0) + produced;
+              });
             }
           }
         });
@@ -5132,7 +2963,7 @@ export const useGameStore = create<GameStore>()(
 
         return {
           name: currentRank.name,
-          emoji: currentRank.emoji,
+          icon: currentRank.icon,
           color: currentRank.color,
           score,
           nextRankScore: nextRank ? nextRank.minScore : null,
@@ -5185,7 +3016,7 @@ export const useGameStore = create<GameStore>()(
             p.type === type ? { ...p, active: true } : p
           ),
         });
-        get().addNotification('info', `Mega Project started: ${project.name}! Each tick consumes 1 of each required material and advances progress by 1 tick.`);
+        get().addNotification('info', `Mega Project started: ${project.name}! Maintain required resources to keep construction progressing.`);
       },
 
       contributeToMegaProject: (type: MegaProjectType) => {
@@ -5196,79 +3027,21 @@ export const useGameStore = create<GameStore>()(
         const stage = project.stages[project.currentStage];
         if (!stage || stage.completed) return;
 
-        // Check if player has at least 1 unit of each required material
+        // Check if player has all required resources
         const canContribute = stage.requiredResources.every(r => {
-          if (r.resource === 'money') return state.money >= 1;
-          return state.resources[r.resource as ResourceType] >= 1;
+          if (r.resource === 'money') return state.money >= r.amount;
+          return state.resources[r.resource as ResourceType] >= r.amount;
         });
 
         if (!canContribute) {
-          get().addNotification('error', `Not enough materials for ${project.name}! Need at least 1 of each required material.`);
+          get().addNotification('error', `Not enough resources for ${stage.name}! Resources must be held for construction to progress.`);
           return;
         }
 
-        // Consume 1 unit of each required material
-        const newResources = { ...state.resources };
-        let deductMoney = 0;
-        stage.requiredResources.forEach(r => {
-          if (r.resource === 'money') {
-            deductMoney += 1;
-          } else {
-            newResources[r.resource as ResourceType] = Math.max(0, (newResources[r.resource as ResourceType] ?? 0) - 1);
-          }
-        });
-
-        // Advance progress by 1 tick
-        const newProgress = project.progress + 1;
-        let updatedProject: typeof project;
-
-        if (newProgress >= stage.timeRequired) {
-          // Stage complete
-          const updatedStages = project.stages.map((s, i) =>
-            i === project.currentStage ? { ...s, completed: true } : s
-          );
-          const nextStage = project.currentStage + 1;
-          const isCompleted = nextStage >= project.stages.length;
-
-          get().addNotification('success', isCompleted
-            ? `🏆 MEGA PROJECT COMPLETE: ${project.name}! ${project.bonus.description}`
-            : `⚡ ${project.name} - Stage ${nextStage}/${project.stages.length}: ${stage.name} complete!`
-          );
-
-          updatedProject = {
-            ...project,
-            stages: updatedStages,
-            currentStage: nextStage,
-            progress: 0,
-            completed: isCompleted,
-            active: !isCompleted,
-          };
-        } else {
-          get().addNotification('info', `${project.name}: ${stage.name} — Material contributed! Progress: ${newProgress}/${stage.timeRequired}`);
-          updatedProject = { ...project, progress: newProgress };
-        }
-
-        set({
-          resources: newResources,
-          money: state.money - deductMoney,
-          megaProjects: state.megaProjects.map(p => p.type === type ? updatedProject : p),
-        });
-      },
-
-      pauseMegaProject: (type: MegaProjectType) => {
-        const state = get();
-        const project = state.megaProjects.find(p => p.type === type);
-        if (!project || !project.active || project.completed || project.paused) return;
-        set({ megaProjects: state.megaProjects.map(p => p.type === type ? { ...p, paused: true } : p) });
-        get().addNotification('info', `${project.name} construction paused.`);
-      },
-
-      resumeMegaProject: (type: MegaProjectType) => {
-        const state = get();
-        const project = state.megaProjects.find(p => p.type === type);
-        if (!project || !project.active || project.completed || !project.paused) return;
-        set({ megaProjects: state.megaProjects.map(p => p.type === type ? { ...p, paused: false } : p) });
-        get().addNotification('info', `${project.name} construction resumed.`);
+        // Resources are NOT deducted upfront — they must be maintained throughout construction.
+        // Progress auto-ticks each game tick as long as all required resources are available.
+        // Resources are deducted only when the stage completes.
+        get().addNotification('info', `${project.name}: ${stage.name} — Resources confirmed. Construction will progress as long as resources remain available.`);
       },
 
       // --- BLUEPRINT ACTIONS ---
@@ -5343,9 +3116,6 @@ export const useGameStore = create<GameStore>()(
               active: true,
               efficiency: 1,
               placedAt: state.gameTick,
-              condition: 100,
-              lastDamageTick: 0,
-              deteriorationRate: 0.01,
             };
 
             state.money -= cost;
@@ -5440,6 +3210,7 @@ export const useGameStore = create<GameStore>()(
     }),
     {
       name: 'factory-dominion-save',
+      storage: debouncedStorage,
       partialize: (state) => ({
         money: state.money,
         totalMoneyEarned: state.totalMoneyEarned,
@@ -5471,7 +3242,6 @@ export const useGameStore = create<GameStore>()(
         payoutHistory: state.payoutHistory,
         trackedQuest: state.trackedQuest,
         drones: state.drones,
-        researchQueue: state.researchQueue,
         _version: SAVE_VERSION,
       }),
       version: 11,

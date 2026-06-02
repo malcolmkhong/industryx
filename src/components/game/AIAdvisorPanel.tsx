@@ -9,6 +9,7 @@ import { Brain, Zap, AlertTriangle, Lightbulb, TrendingUp, X, ChevronRight, Fact
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { GameIcon } from '@/components/game/shared/GameIcon';
 
 // --- Types ---
 type Priority = 'critical' | 'important' | 'suggested' | 'optional';
@@ -37,11 +38,11 @@ interface Recommendation {
 }
 
 // --- Priority Config ---
-const PRIORITY_CONFIG: Record<Priority, { label: string; color: string; bgColor: string; borderColor: string; glowColor: string; dotColor: string }> = {
-  critical: { label: 'CRITICAL', color: 'text-red-400', bgColor: 'bg-red-900/20', borderColor: 'border-red-500/40', glowColor: 'rgba(248,113,113,0.15)', dotColor: 'bg-red-400' },
-  important: { label: 'IMPORTANT', color: 'text-amber-400', bgColor: 'bg-amber-900/20', borderColor: 'border-amber-500/40', glowColor: 'rgba(251,191,36,0.12)', dotColor: 'bg-amber-400' },
-  suggested: { label: 'SUGGESTED', color: 'text-cyan-400', bgColor: 'bg-cyan-900/20', borderColor: 'border-cyan-500/40', glowColor: 'rgba(34,211,238,0.10)', dotColor: 'bg-cyan-400' },
-  optional: { label: 'OPTIONAL', color: 'text-gray-400', bgColor: 'bg-gray-900/20', borderColor: 'border-gray-500/40', glowColor: 'rgba(156,163,175,0.08)', dotColor: 'bg-gray-400' },
+const PRIORITY_CONFIG: Record<Priority, { label: string; color: string; bgColor: string; hoverBg: string; borderColor: string; glowColor: string; dotColor: string }> = {
+  critical: { label: 'CRITICAL', color: 'text-red-400', bgColor: 'bg-red-900/20', hoverBg: 'hover:bg-red-900/30', borderColor: 'border-red-500/40', glowColor: 'rgba(248,113,113,0.15)', dotColor: 'bg-red-400' },
+  important: { label: 'IMPORTANT', color: 'text-amber-400', bgColor: 'bg-amber-900/20', hoverBg: 'hover:bg-amber-900/30', borderColor: 'border-amber-500/40', glowColor: 'rgba(251,191,36,0.12)', dotColor: 'bg-amber-400' },
+  suggested: { label: 'SUGGESTED', color: 'text-cyan-400', bgColor: 'bg-cyan-900/20', hoverBg: 'hover:bg-cyan-900/30', borderColor: 'border-cyan-500/40', glowColor: 'rgba(34,211,238,0.10)', dotColor: 'bg-cyan-400' },
+  optional: { label: 'OPTIONAL', color: 'text-gray-400', bgColor: 'bg-gray-900/20', hoverBg: 'hover:bg-gray-900/30', borderColor: 'border-gray-500/40', glowColor: 'rgba(156,163,175,0.08)', dotColor: 'bg-gray-400' },
 };
 
 // --- Helper: find building that produces a resource ---
@@ -234,17 +235,13 @@ function RecommendationCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 20, height: 0 }}
-      transition={{ duration: 0.3, delay: index * 0.05 }}
       layout
     >
-      <Card className={`${config.bgColor} ${config.borderColor} border backdrop-blur-sm transition-all hover:scale-[1.01]`} style={{ boxShadow: `0 0 20px ${config.glowColor}` }}>
+      <Card className={`${config.bgColor} ${config.borderColor} border backdrop-blur-sm`} style={{ boxShadow: `0 0 20px ${config.glowColor}` }}>
         <CardContent className="p-3 sm:p-4">
           <div className="flex items-start gap-3">
             {/* Icon */}
-            <span className="text-xl flex-shrink-0 mt-0.5">{rec.icon}</span>
+            <GameIcon icon={rec.icon} size={24} />
 
             {/* Content */}
             <div className="flex-1 min-w-0">
@@ -262,7 +259,7 @@ function RecommendationCard({
                   <Button
                     size="sm"
                     variant="outline"
-                    className={`${config.color} ${config.borderColor} text-[10px] h-7 px-2.5 hover:${config.bgColor} gap-1`}
+                    className={`${config.color} ${config.borderColor} text-[10px] h-7 px-2.5 ${config.hoverBg} gap-1`}
                     onClick={(e) => {
                       e.stopPropagation();
                       onQuickAction(rec.quickAction!);
@@ -309,7 +306,7 @@ function RecommendationCard({
               <Button
                 size="sm"
                 variant="outline"
-                className={`${config.color} ${config.borderColor} text-[10px] h-7 px-2 hover:${config.bgColor}`}
+                className={`${config.color} ${config.borderColor} text-[10px] h-7 px-2 ${config.hoverBg}`}
                 onClick={() => onAction(rec.actionTab)}
               >
                 {rec.actionLabel}
@@ -333,7 +330,7 @@ function RecommendationCard({
 // --- Quick Stat Card ---
 function QuickStatCard({ icon: Icon, label, value, color, subtext }: { icon: React.ElementType; label: string; value: string; color: string; subtext?: string }) {
   return (
-    <div className="bg-[#0d1220] rounded-lg border border-cyan-900/20 p-3 flex flex-col gap-1">
+    <div className="bg-[#0a0e17] rounded-lg border border-cyan-900/20 p-3 flex flex-col gap-1">
       <div className="flex items-center gap-1.5">
         <Icon className={`w-3.5 h-3.5 ${color}`} />
         <span className="text-[10px] text-gray-500 uppercase tracking-wider">{label}</span>
@@ -476,7 +473,7 @@ export default function AIAdvisorPanel() {
       recs.push({
         id: `no-power-${recId++}`,
         priority: 'critical',
-        icon: '🔴',
+        icon: 'gi:lightning-storm',
         title: 'No Power Plants!',
         description: 'You have buildings but no power plants! Buildings without power run at only 10% efficiency. Build a Coal Generator now.',
         actionTab: 'power',
@@ -510,7 +507,7 @@ export default function AIAdvisorPanel() {
       recs.push({
         id: `power-critical-${recId++}`,
         priority: 'critical',
-        icon: '🔴',
+        icon: 'gi:lightning-storm',
         title: 'Power Grid Critical!',
         description: `Factories running at ${pct}% efficiency! Build another ${cheapestType ? BUILDING_DEFS[cheapestType]?.name : 'power plant'} immediately to restore power.`,
         actionTab: 'power',
@@ -544,7 +541,7 @@ export default function AIAdvisorPanel() {
       recs.push({
         id: `power-warning-${recId++}`,
         priority: 'important',
-        icon: '⚡',
+        icon: 'gi:lightning-frequency',
         title: `Power Grid at ${pct}%`,
         description: `Power consumption is ${pct}% of production — build another ${cheapestType ? BUILDING_DEFS[cheapestType]?.name : 'power plant'} before expanding further.`,
         actionTab: 'power',
@@ -588,7 +585,7 @@ export default function AIAdvisorPanel() {
           recs.push({
             id: `bottleneck-${res}-${recId++}`,
             priority: 'important',
-            icon: '🔧',
+            icon: 'gi:wrench',
             title: `Build a ${consumerDef?.name ?? 'Processor'}`,
             description: `You're producing ${meta.name} but have no ${outputName}. Build a ${consumerDef?.name} to process your ${meta.name} into ${outputName}.`,
             actionTab: consumerDef?.category === 'extractor' ? 'resources' : 'factories',
@@ -634,7 +631,7 @@ export default function AIAdvisorPanel() {
             recs.push({
               id: `prod-gap-${building.type}-${inputRes}-${recId++}`,
               priority: 'important',
-              icon: '⚠️',
+              icon: 'gi:hazard-sign',
               title: `Your ${def.name} is Waiting for ${inputMeta?.name ?? inputRes}`,
               description: `Build a ${producerName} to supply ${inputMeta?.name ?? inputRes} — your ${def.name} can't run without it.`,
               actionTab: BUILDING_DEFS[producerType]?.category === 'extractor' ? 'resources' : 'factories',
@@ -666,7 +663,7 @@ export default function AIAdvisorPanel() {
         recs.push({
           id: `storage-full-${res}-${recId++}`,
           priority: 'important',
-          icon: '📦',
+          icon: 'gi:cardboard-box',
           title: `${meta?.name ?? res} at ${Math.round(fillRatio * 100)}% Capacity`,
           description: `${meta?.name ?? res} storage is almost full (${formatNumber(stock)}/${formatNumber(capacity)}). Sell some or upgrade storage to avoid wasted production.`,
           actionTab: 'market',
@@ -706,7 +703,7 @@ export default function AIAdvisorPanel() {
       recs.push({
         id: `idle-${building.id}-${recId++}`,
         priority: 'important',
-        icon: '💤',
+        icon: 'gi:sleepy',
         title: `Your ${def.name} is Idle`,
         description: `${def.name} is built but inactive — ${reason}.`,
         actionTab: def.category === 'power' ? 'power' : def.category === 'extractor' ? 'resources' : 'factories',
@@ -759,7 +756,7 @@ export default function AIAdvisorPanel() {
           recs.push({
             id: `chain-complete-${chain.name}-${recId++}`,
             priority: 'suggested',
-            icon: '🔗',
+            icon: 'gi:linked-rings',
             title: `Complete the ${chain.name} Chain`,
             description: `Build a ${nextProducerName} to produce ${missingMeta?.name ?? missingResource}. You already have the prerequisites!`,
             actionTab: BUILDING_DEFS[nextProducer]?.category === 'extractor' ? 'resources' : 'factories',
@@ -796,7 +793,7 @@ export default function AIAdvisorPanel() {
         recs.push({
           id: `deficit-${res}-${recId++}`,
           priority: 'important',
-          icon: '⚠️',
+          icon: 'gi:hazard-sign',
           title: `${meta?.name ?? res} Deficit`,
           description: `Consuming ${consumption.toFixed(1)}/t but only producing ${production.toFixed(1)}/t.${producerName ? ` Build more ${producerName}s.` : ''}`,
           actionTab: producerType && BUILDING_DEFS[producerType]?.category === 'extractor' ? 'resources' : 'factories',
@@ -833,7 +830,7 @@ export default function AIAdvisorPanel() {
           recs.push({
             id: `idle-${res}-${recId++}`,
             priority: 'suggested',
-            icon: '💡',
+            icon: 'gi:light-bulb',
             title: `${meta?.name ?? res} Stockpiled`,
             description: `You have ${formatNumber(stock)} ${meta?.name ?? res} stockpiled (${(fillRatio * 100).toFixed(0)}% full).${consumerName ? ` Build a ${consumerName} to process it.` : ' Consider selling on the market.'}`,
             actionTab: consumerType ? 'factories' : 'market',
@@ -868,7 +865,7 @@ export default function AIAdvisorPanel() {
         recs.push({
           id: `research-${recId++}`,
           priority: 'suggested',
-          icon: '🔬',
+          icon: 'gi:chemical-drop',
           title: 'Research Available',
           description: `You have ${availableResearch.length} unlocked research available. Start researching ${bestResearch.name} for its benefits.`,
           actionTab: 'research',
@@ -887,7 +884,7 @@ export default function AIAdvisorPanel() {
       recs.push({
         id: `research-start-${recId++}`,
         priority: 'suggested',
-        icon: '🔬',
+        icon: 'gi:chemical-drop',
         title: 'Start Researching',
         description: `You have ${formatNumber(store.researchPoints)} RP but no active research. Research unlocks powerful bonuses and new buildings.`,
         actionTab: 'research',
@@ -912,7 +909,7 @@ export default function AIAdvisorPanel() {
           recs.push({
             id: `market-sell-${m.resource}-${recId++}`,
             priority: 'optional',
-            icon: '📈',
+            icon: 'gi:profit',
             title: `${meta?.name ?? m.resource} Price Surge`,
             description: `${meta?.name ?? m.resource} prices are ${pricePercent}% above base! You have ${formatNumber(held)} units. Consider selling now.`,
             actionTab: 'market',
@@ -927,7 +924,7 @@ export default function AIAdvisorPanel() {
           recs.push({
             id: `market-opportunity-${m.resource}-${recId++}`,
             priority: 'optional',
-            icon: '📈',
+            icon: 'gi:profit',
             title: `${meta?.name ?? m.resource} Price High`,
             description: `${meta?.name ?? m.resource} prices are ${pricePercent}% above base. If you can produce it, now is a good time to sell.`,
             actionTab: 'market',
@@ -1050,7 +1047,7 @@ export default function AIAdvisorPanel() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-emerald-400 flex items-center gap-2">
+          <h2 className="text-xl font-bold text-emerald-400 flex items-center gap-2 neon-glow-cyan">
             <Brain className="w-5 h-5" />
             AI Advisor
           </h2>
@@ -1078,7 +1075,7 @@ export default function AIAdvisorPanel() {
       {/* Health Score + Quick Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-4">
         {/* Health Score */}
-        <Card className="bg-[#0d1220] border border-cyan-900/20">
+        <Card className="bg-[#0a0e17] border border-cyan-900/20">
           <CardContent className="p-4 flex items-center justify-center">
             <HealthGauge score={healthScore} breakdown={healthBreakdown} />
           </CardContent>
@@ -1119,9 +1116,9 @@ export default function AIAdvisorPanel() {
 
       {/* Production Chain Status */}
       {uniqueChainStatuses.length > 0 && (
-        <Card className="bg-[#0d1220] border border-cyan-900/20">
+        <Card className="bg-[#0a0e17] border border-cyan-900/20">
           <CardHeader className="pb-2 pt-3 px-4">
-            <CardTitle className="text-xs font-semibold text-gray-300 flex items-center gap-2">
+            <CardTitle className="text-sm font-semibold text-gray-300 flex items-center gap-2">
               <Link2 className="w-3.5 h-3.5 text-cyan-400" />
               Production Chain Status
               <span className="ml-auto text-[9px] text-gray-500">
@@ -1158,9 +1155,9 @@ export default function AIAdvisorPanel() {
         </h3>
 
         {visibleRecommendations.length === 0 ? (
-          <Card className="bg-[#0d1220] border border-cyan-900/20">
+          <Card className="bg-[#0a0e17] border border-cyan-900/20">
             <CardContent className="p-6 text-center">
-              <div className="text-3xl mb-2">✅</div>
+              <div className="text-3xl mb-2"><GameIcon icon="gi:check-mark" size={28} /></div>
               <p className="text-sm text-gray-400 font-medium">All systems operational!</p>
               <p className="text-xs text-gray-600 mt-1">No urgent recommendations at this time. Keep expanding your factory!</p>
             </CardContent>

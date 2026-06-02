@@ -12,7 +12,7 @@ import {
   Hammer, X, RotateCcw, Power, PowerOff,
   ZoomIn, ZoomOut, Grid3X3, Eye, Sun, Cloud, CloudRain,
   CloudLightning, CloudFog, Snowflake, ChevronDown, ChevronRight,
-  Search, Clock, Flame, GitBranch, LayoutGrid, MapPin,
+  Search, Clock, Flame, GitBranch, LayoutGrid,
 } from 'lucide-react';
 import {
   Tooltip,
@@ -20,6 +20,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
+import { GameIcon } from '@/components/game/shared/GameIcon';
 
 // --- Constants ---
 const GRID_COLS = 16;
@@ -59,27 +60,27 @@ function getEffColor(eff: number): string {
 // --- Building Palette for Build Mode ---
 const BUILD_CATEGORIES = [
   {
-    label: '⛏️ Extraction',
+    label: <><GameIcon icon="gi:mining" size={14} className="inline" /> Extraction</>,
     types: ['miningDrill', 'oilPump', 'waterExtractor', 'quarry'] as BuildingType[],
   },
   {
-    label: '🔥 T1 Factory',
+    label: <><GameIcon icon="gi:flame" size={14} className="inline" /> T1 Factory</>,
     types: ['smelter', 'wireMill', 'chemicalPlant', 'glassFurnace', 'steelForge', 'carbonProcessor'] as BuildingType[],
   },
   {
-    label: '⚙️ T2 Factory',
+    label: <><GameIcon icon="gi:big-gear" size={14} className="inline" /> T2 Factory</>,
     types: ['gearFactory', 'circuitFactory', 'engineFactory', 'batteryFactory'] as BuildingType[],
   },
   {
-    label: '🧪 T3 Factory',
+    label: <><GameIcon icon="gi:chemical-drop" size={14} className="inline" /> T3 Factory</>,
     types: ['aiLab', 'roboticsBay', 'quantumLab', 'alloyForge', 'nanoLab'] as BuildingType[],
   },
   {
-    label: '🌀 T4 Factory',
+    label: <><GameIcon icon="gi:vortex" size={14} className="inline" /> T4 Factory</>,
     types: ['singularityForge', 'darkMatterLab', 'warpDriveFactory', 'antimatterReactor', 'chronoLab', 'plasmaForge', 'megaStructureFactory', 'voidCrystallizer', 'dysonCollector', 'quantumTeleporter', 'dimensionalGateway', 'timeDistorter', 'galacticForge'] as BuildingType[],
   },
   {
-    label: '⚡ Power',
+    label: <><GameIcon icon="gi:lightning-frequency" size={14} className="inline" /> Power</>,
     types: ['coalGenerator', 'solarPanel', 'windTurbine', 'nuclearReactor', 'fusionReactor', 'antimatterPowerPlant'] as BuildingType[],
   },
 ];
@@ -163,28 +164,19 @@ const MapBuildingTile = memo(function MapBuildingTile({
         <motion.div
           onClick={(e) => { e.stopPropagation(); onClick(); }}
           className={`
-            relative w-full h-full rounded-md border-2 cursor-pointer transition-all duration-200 overflow-hidden select-none
-            ${style.bg} ${isSelected ? 'animate-factory-map-pulse-ring' : ''}
+            relative w-full h-full rounded-lg border-2 cursor-pointer overflow-hidden select-none
+            ${style.bg}
             ${!building.active ? 'opacity-40 grayscale' : 'hover:brightness-125 hover:scale-[1.05]'}
           `}
           style={{ borderColor: isSelected ? '#22d3ee' : style.fill }}
-          whileTap={{ scale: 0.92 }}
-          animate={building.active ? {
-            boxShadow: isPower
-              ? [`0 0 6px rgba(250,204,21,0.2)`, `0 0 16px rgba(250,204,21,0.5)`, `0 0 6px rgba(250,204,21,0.2)`]
-              : [`0 0 3px rgba(0,255,242,0.1)`, `0 0 8px rgba(0,255,242,0.3)`, `0 0 3px rgba(0,255,242,0.1)`],
-          } : {}}
-          transition={building.active ? { boxShadow: { duration: 2, repeat: Infinity, ease: 'easeInOut' } } : {}}
+
         >
           {/* Power glow */}
           {isPower && building.active && (
             <div className="absolute inset-0 bg-yellow-400/10 animate-factory-map-glow" />
           )}
 
-          {/* Upgrade flash */}
-          {recentlyUpgraded && (
-            <div className="absolute inset-0 animate-factory-map-upgrade-flash pointer-events-none z-20 rounded-md" />
-          )}
+
 
           {/* Production particles - 3 particles instead of 2 */}
           {building.active && building.efficiency > 0.5 && def.outputs && (
@@ -212,7 +204,7 @@ const MapBuildingTile = memo(function MapBuildingTile({
           {/* Content */}
           <div className="relative z-10 flex flex-col items-center justify-center h-full p-0.5 gap-0">
             {/* Emoji */}
-            <span className="text-lg leading-none">{def.emoji}</span>
+            <GameIcon icon={def.icon} size={20} />
             {/* Level badge */}
             <div className="flex items-center gap-0.5 mt-0.5">
               <Badge className="text-[6px] px-0.5 py-0 h-3 min-w-[12px] bg-gray-800/80 text-gray-300 border-gray-600/50">
@@ -246,10 +238,10 @@ const MapBuildingTile = memo(function MapBuildingTile({
           </div>
         </motion.div>
       </TooltipTrigger>
-      <TooltipContent side="top" className="bg-[#111827] border-cyan-900/30 w-48 p-2">
+      <TooltipContent side="top" className="bg-card border-cyan-900/30 w-48 p-2">
         <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-sm">{def.emoji}</span>
+            <GameIcon icon={def.icon} size={14} className="inline-flex" />
             <span className={`text-[11px] font-semibold ${style.text}`}>{def.name}</span>
             <Badge variant="outline" className="text-[8px] border-gray-600 text-gray-400 h-4 px-1">
               Lv{building.level}
@@ -290,20 +282,17 @@ function SelectedBuildingPanel({
   const canAffordUpgrade = store.money >= upgradeCost;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 20 }}
-      className="game-card rounded-xl bg-[#111827] p-3 border border-[#1e293b] space-y-3"
+    <div
+      className="game-card rounded-xl bg-card p-3 border border-border space-y-3"
     >
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-xl">{def.emoji}</span>
+          <GameIcon icon={def.icon} size={24} />
           <div>
             <h3 className={`text-sm font-semibold ${style.text}`}>{def.name}</h3>
             <p className="text-[10px] text-gray-500">
-              Lv {building.level} • {building.active ? '🟢 Active' : '🔴 Off'}
+              Lv {building.level} • {building.active ? <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500"></span>Active</span> : <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500"></span>Off</span>}
             </p>
           </div>
         </div>
@@ -316,13 +305,13 @@ function SelectedBuildingPanel({
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-1.5">
-        <div className="bg-[#0a0e17] rounded-md p-1.5 text-center">
+        <div className="bg-[#0a0e17] rounded-lg p-1.5 text-center">
           <div className="text-[8px] text-gray-500">Efficiency</div>
           <div className="text-sm font-bold font-mono" style={{ color: getEffColor(building.efficiency) }}>
             {Math.round(building.efficiency * 100)}%
           </div>
         </div>
-        <div className="bg-[#0a0e17] rounded-md p-1.5 text-center">
+        <div className="bg-[#0a0e17] rounded-lg p-1.5 text-center">
           <div className="text-[8px] text-gray-500">Power</div>
           <div className={`text-sm font-bold font-mono ${building.active ? 'text-yellow-400' : 'text-gray-600'}`}>
             {def.basePowerProduction > 0
@@ -343,7 +332,7 @@ function SelectedBuildingPanel({
               return (
                 <div key={i} className="flex items-center justify-between bg-[#0a0e17] rounded px-1.5 py-0.5">
                   <div className="flex items-center gap-1">
-                    <span className="text-[10px]">{meta?.emoji ?? ''}</span>
+                    <span className="text-[10px]">{meta?.icon ?? ''}</span>
                     <span className="text-[9px]" style={{ color: meta?.color }}>{meta?.name ?? output.resource}</span>
                   </div>
                   <span className="text-[9px] text-green-400 font-mono">+{formatNumber(rate)}/t</span>
@@ -367,7 +356,7 @@ function SelectedBuildingPanel({
               return (
                 <div key={i} className="flex items-center justify-between bg-[#0a0e17] rounded px-1.5 py-0.5">
                   <div className="flex items-center gap-1">
-                    <span className="text-[10px]">{meta?.emoji ?? ''}</span>
+                    <span className="text-[10px]">{meta?.icon ?? ''}</span>
                     <span className="text-[9px]" style={{ color: meta?.color }}>{meta?.name ?? input.resource}</span>
                   </div>
                   <span className={`text-[9px] font-mono ${enough ? 'text-gray-400' : 'text-red-400'}`}>
@@ -410,7 +399,7 @@ function SelectedBuildingPanel({
           ${formatNumber(upgradeCost)}
         </Button>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -431,7 +420,9 @@ function ConnectionOverlay({
   return (
     <svg className="absolute inset-0 pointer-events-none z-0"
          width={GRID_COLS * cellWidth}
-         height={GRID_ROWS * cellHeight}>
+         height={GRID_ROWS * cellHeight}
+         role="img"
+         aria-label="Factory map connection lines showing building links">
       <defs>
         {/* Glow filters */}
         <filter id="connection-glow" x="-50%" y="-50%" width="200%" height="200%">
@@ -778,7 +769,7 @@ export default function FactoryMapPanel() {
       types: cat.types.filter(type => {
         const def = BUILDING_DEFS[type];
         if (!def) return false;
-        return def.name.toLowerCase().includes(q) || def.emoji.includes(q) || def.description.toLowerCase().includes(q);
+        return def.name.toLowerCase().includes(q) || def.icon.includes(q) || def.description.toLowerCase().includes(q);
       }),
     })).filter(cat => cat.types.length > 0);
   }, [buildSearch]);
@@ -1106,7 +1097,7 @@ export default function FactoryMapPanel() {
       </div>
 
       {/* BUILD MODE TOOLBAR */}
-      <div className="game-card rounded-xl bg-[#111827] border border-[#1e293b] overflow-hidden">
+      <div className="game-card rounded-xl bg-card border border-border overflow-hidden">
         {/* Top row: mode toggles + zoom */}
         <div className="flex items-center justify-between px-3 py-2 border-b border-cyan-900/20">
           <div className="flex items-center gap-2">
@@ -1121,7 +1112,7 @@ export default function FactoryMapPanel() {
             </Button>
             {buildMode && selectedBuildType && (
               <Badge className="text-[9px] bg-cyan-900/30 text-cyan-400 border border-cyan-500/30 px-1.5 py-0">
-                Placing: {BUILDING_DEFS[selectedBuildType]?.emoji} {BUILDING_DEFS[selectedBuildType]?.name}
+                Placing: <GameIcon icon={BUILDING_DEFS[selectedBuildType]?.icon} size={14} className="inline-flex" /> {BUILDING_DEFS[selectedBuildType]?.name}
               </Badge>
             )}
             {buildMode && !selectedBuildType && (
@@ -1154,16 +1145,6 @@ export default function FactoryMapPanel() {
             >
               <LayoutGrid className="w-3 h-3" />
             </Button>
-            {/* Auto Assign to Regions button */}
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-6 w-6 p-0 text-gray-400 hover:text-amber-400"
-              onClick={() => store.autoAssignAllBuildings()}
-              title="Auto Assign: Assign all buildings to map regions & grid positions"
-            >
-              <MapPin className="w-3 h-3" />
-            </Button>
             {/* Connection count badge */}
             {autoConnectEnabled && autoConnections.length > 0 && (
               <Badge className="text-[7px] px-1 py-0 h-4 bg-cyan-900/40 text-cyan-400 border border-cyan-500/30">
@@ -1189,12 +1170,9 @@ export default function FactoryMapPanel() {
         </div>
 
         {/* Build palette (only in build mode) */}
-        <AnimatePresence>
+        <>
           {buildMode && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
+            <div
               className="overflow-hidden"
             >
               <div className="px-3 py-2 space-y-2">
@@ -1230,13 +1208,13 @@ export default function FactoryMapPanel() {
                           <button
                             key={`recent-${type}`}
                             className={`
-                              relative flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-md border transition-all text-center
+                              relative flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg border text-center
                               ${isSelected ? 'border-cyan-400 bg-cyan-900/30 shadow-[0_0_10px_rgba(0,255,242,0.3)]' : 'border-cyan-800/30 bg-cyan-900/10 hover:border-cyan-700/50'}
                               ${!affordable ? 'opacity-60' : ''}
                             `}
                             onClick={() => setSelectedBuildType(isSelected ? null : type)}
                           >
-                            <span className="text-lg leading-none">{def.emoji}</span>
+                            <GameIcon icon={def.icon} size={20} />
                             <span className="text-[8px] text-gray-400 leading-tight max-w-[48px] truncate">{def.name}</span>
                             <span className={`text-[7px] font-mono ${affordable ? 'text-green-400' : 'text-red-400'}`}>${formatNumber(cost)}</span>
                           </button>
@@ -1271,7 +1249,7 @@ export default function FactoryMapPanel() {
                               <TooltipTrigger asChild>
                                 <button
                                   className={`
-                                    relative flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-md border transition-all text-center
+                                    relative flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg border text-center
                                     ${isSelected ? 'border-cyan-400 bg-cyan-900/30 shadow-[0_0_10px_rgba(0,255,242,0.3)]' : ''}
                                     ${!unlocked ? 'border-gray-800 bg-gray-900/20 opacity-40' : ''}
                                     ${unlocked && !isSelected ? 'border-gray-700 bg-gray-800/30 hover:border-gray-600 hover:bg-gray-800/50' : ''}
@@ -1282,7 +1260,7 @@ export default function FactoryMapPanel() {
                                     setSelectedBuildType(isSelected ? null : type);
                                   }}
                                 >
-                                  <span className="text-lg leading-none">{def.emoji}</span>
+                                  <GameIcon icon={def.icon} size={20} />
                                   <span className="text-[8px] text-gray-400 leading-tight max-w-[48px] truncate">{def.name}</span>
                                   <span className={`text-[7px] font-mono ${affordable ? 'text-green-400' : 'text-red-400'}`}>${formatNumber(cost)}</span>
                                   {count > 0 && (
@@ -1291,16 +1269,16 @@ export default function FactoryMapPanel() {
                                     </span>
                                   )}
                                   {!unlocked && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-gray-900/60 rounded-md">
-                                      <span className="text-[8px] text-red-400">🔒</span>
+                                    <div className="absolute inset-0 flex items-center justify-center bg-gray-900/60 rounded-lg">
+                                      <span className="text-[8px] text-red-400"><GameIcon icon="gi:padlock" size={8} /></span>
                                     </div>
                                   )}
                                 </button>
                               </TooltipTrigger>
-                              <TooltipContent side="bottom" className="bg-[#111827] border-cyan-900/30 w-52 p-2">
+                              <TooltipContent side="bottom" className="bg-card border-cyan-900/30 w-52 p-2">
                                 <div className="space-y-1">
                                   <div className="flex items-center gap-1.5">
-                                    <span>{def.emoji}</span>
+                                    <GameIcon icon={def.icon} size={16} />
                                     <span className="text-xs font-semibold text-cyan-400">{def.name}</span>
                                   </div>
                                   <p className="text-[9px] text-gray-400">{def.description}</p>
@@ -1311,17 +1289,17 @@ export default function FactoryMapPanel() {
                                   </div>
                                   {def.outputs && (
                                     <div className="text-[8px] text-gray-500">
-                                      Produces: {def.outputs.map(o => RESOURCE_META[o.resource as keyof typeof RESOURCE_META]?.emoji).join(' ')}
+                                      Produces: {def.outputs.map(o => <GameIcon key={o.resource} icon={RESOURCE_META[o.resource as keyof typeof RESOURCE_META]?.icon} size={10} className="inline-flex" />)}
                                     </div>
                                   )}
                                   {def.inputs && (
                                     <div className="text-[8px] text-gray-500">
-                                      Requires: {def.inputs.map(inp => RESOURCE_META[inp.resource as keyof typeof RESOURCE_META]?.emoji).join(' ')}
+                                      Requires: {def.inputs.map(inp => <GameIcon key={inp.resource} icon={RESOURCE_META[inp.resource as keyof typeof RESOURCE_META]?.icon} size={10} className="inline-flex" />)}
                                     </div>
                                   )}
                                   {!unlocked && (
                                     <div className="text-[9px] text-red-400">
-                                      🔒 Requires: {def.unlockRequirement?.research ?? 'Unknown'}
+                                      <GameIcon icon="gi:padlock" size={12} className="inline" /> Requires: {def.unlockRequirement?.research ?? 'Unknown'}
                                     </div>
                                   )}
                                 </div>
@@ -1334,15 +1312,22 @@ export default function FactoryMapPanel() {
                   </div>
                 ))}
               </div>
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
+        </>
       </div>
 
       {/* MAP + DETAIL PANEL */}
       <div className="flex flex-col lg:flex-row gap-3">
         {/* Map Area */}
-        <div className="flex-1 game-card rounded-xl bg-[#0d1220] border border-[#1e293b] overflow-hidden relative" style={{ minHeight: 400 }}>
+        <div className="flex-1 game-card rounded-xl bg-[#0a0e17] border border-border overflow-hidden relative" style={{ minHeight: 400 }}>
+          {/* Landscape hint for small screens */}
+          <div className="sm:hidden flex items-center gap-1.5 px-3 py-1.5 bg-cyan-900/20 border-b border-cyan-800/30 text-[10px] text-cyan-400">
+            <GameIcon icon="gi:smartphone" size={14} />
+            <span>Use landscape for best experience. Pinch or scroll to zoom.</span>
+          </div>
+          {/* Scrollable map wrapper for mobile */}
+          <div className="overflow-x-auto">
           {/* Weather overlay */}
           {store.weather.current !== 'clear' && (
             <div className={`absolute inset-0 pointer-events-none z-20 transition-opacity duration-1000 ${
@@ -1357,7 +1342,7 @@ export default function FactoryMapPanel() {
           {/* Map container with zoom/pan */}
           <div
             ref={mapRef}
-            className="w-full h-full overflow-hidden cursor-crosshair"
+            className="w-full h-full overflow-hidden cursor-crosshair min-w-[600px]"
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
@@ -1422,7 +1407,7 @@ export default function FactoryMapPanel() {
                       ) : (
                         <div
                           className={`
-                            w-full h-full rounded-md border transition-all duration-150 factory-blueprint-grid
+                            w-full h-full rounded-lg border factory-blueprint-grid
                             ${canPlace && isHovered
                               ? 'border-cyan-500/60 bg-cyan-900/20 shadow-[0_0_10px_rgba(0,255,242,0.2)]'
                               : canPlace
@@ -1442,7 +1427,7 @@ export default function FactoryMapPanel() {
                           {/* Build ghost preview */}
                           {canPlace && isHovered && selectedBuildType && BUILDING_DEFS[selectedBuildType] && (
                             <div className="w-full h-full flex flex-col items-center justify-center opacity-50" style={{ filter: 'drop-shadow(0 0 6px rgba(0,255,242,0.4))' }}>
-                              <span className="text-lg">{BUILDING_DEFS[selectedBuildType].emoji}</span>
+                              <GameIcon icon={BUILDING_DEFS[selectedBuildType].icon} size={20} />
                               <span className="text-[7px] text-cyan-400">Place here</span>
                             </div>
                           )}
@@ -1460,6 +1445,7 @@ export default function FactoryMapPanel() {
               )}
             </div>
           </div>
+          </div>{/* end overflow-x-auto wrapper */}
 
           {/* Grid coordinates overlay */}
           <div className="absolute bottom-1 left-1 flex items-center gap-1 text-[8px] text-gray-600 font-mono">
@@ -1470,7 +1456,7 @@ export default function FactoryMapPanel() {
 
         {/* Right Panel: Selected Building / Quick Stats */}
         <div className="lg:w-64 flex-shrink-0 space-y-3">
-          <AnimatePresence mode="wait">
+          <>
             {selectedBuilding ? (
               <SelectedBuildingPanel
                 key={selectedBuilding.id}
@@ -1478,52 +1464,50 @@ export default function FactoryMapPanel() {
                 onClose={() => setSelectedBuildingId(null)}
               />
             ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="game-card rounded-xl bg-[#111827] p-3 border border-[#1e293b] text-center"
+              <div
+                className="game-card rounded-xl bg-card p-3 border border-border text-center"
               >
                 <MapIcon className="w-8 h-8 text-gray-700 mx-auto mb-2" />
                 <p className="text-[10px] text-gray-500">Click a building on the map</p>
                 <p className="text-[9px] text-gray-600 mt-0.5">to view details & actions</p>
                 <p className="text-[9px] text-gray-600 mt-2">or use <span className="text-emerald-400">Build</span> mode to place new buildings</p>
-              </motion.div>
+              </div>
             )}
-          </AnimatePresence>
+          </>
 
           {/* Quick Stats */}
-          <div className="game-card rounded-xl bg-[#111827] p-3 border border-[#1e293b]">
+          <div className="game-card rounded-xl bg-card p-3 border border-border">
             <h4 className="text-[10px] text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
               <Activity className="w-3 h-3" /> Factory Stats
             </h4>
             <div className="grid grid-cols-2 gap-2">
-              <div className="bg-[#0a0e17] rounded-md p-1.5 text-center">
+              <div className="bg-[#0a0e17] rounded-lg p-1.5 text-center">
                 <div className="text-[8px] text-gray-500">Buildings</div>
                 <div className="text-sm font-bold text-cyan-400 font-mono">{totalBuildings}</div>
               </div>
-              <div className="bg-[#0a0e17] rounded-md p-1.5 text-center">
+              <div className="bg-[#0a0e17] rounded-lg p-1.5 text-center">
                 <div className="text-[8px] text-gray-500">Active</div>
                 <div className="text-sm font-bold text-green-400 font-mono">{activeBuildings}</div>
               </div>
-              <div className="bg-[#0a0e17] rounded-md p-1.5 text-center">
+              <div className="bg-[#0a0e17] rounded-lg p-1.5 text-center">
                 <div className="text-[8px] text-gray-500 flex items-center justify-center gap-0.5">
                   <Pickaxe className="w-2 h-2" /> Extract
                 </div>
                 <div className="text-sm font-bold text-amber-400 font-mono">{extractorCount}</div>
               </div>
-              <div className="bg-[#0a0e17] rounded-md p-1.5 text-center">
+              <div className="bg-[#0a0e17] rounded-lg p-1.5 text-center">
                 <div className="text-[8px] text-gray-500 flex items-center justify-center gap-0.5">
                   <Factory className="w-2 h-2" /> Factory
                 </div>
                 <div className="text-sm font-bold text-orange-400 font-mono">{factoryCount}</div>
               </div>
-              <div className="bg-[#0a0e17] rounded-md p-1.5 text-center">
+              <div className="bg-[#0a0e17] rounded-lg p-1.5 text-center">
                 <div className="text-[8px] text-gray-500 flex items-center justify-center gap-0.5">
                   <Zap className="w-2 h-2" /> Power
                 </div>
                 <div className="text-sm font-bold text-yellow-400 font-mono">{powerCount}</div>
               </div>
-              <div className="bg-[#0a0e17] rounded-md p-1.5 text-center">
+              <div className="bg-[#0a0e17] rounded-lg p-1.5 text-center">
                 <div className="text-[8px] text-gray-500">Grid</div>
                 <div className="text-[10px] font-bold font-mono">
                   <span className="text-green-400">{formatNumber(store.powerGrid.totalProduction)}</span>
@@ -1597,15 +1581,15 @@ export default function FactoryMapPanel() {
 
             {/* Tick rate indicator + Balance */}
             <div className="mt-2 grid grid-cols-2 gap-1.5">
-              <div className="bg-[#0a0e17] rounded-md p-1.5 text-center">
+              <div className="bg-[#0a0e17] rounded-lg p-1.5 text-center">
                 <div className="text-[8px] text-gray-500 flex items-center justify-center gap-0.5">
                   <Clock className="w-2 h-2" /> Tick Rate
                 </div>
                 <div className={`text-[10px] font-bold font-mono ${store.paused ? 'text-red-400' : 'text-cyan-400'}`}>
-                  {store.paused ? '⏸' : `${store.gameSpeed}x`}
+                  {store.paused ? <GameIcon icon="gi:pause-button" size={14} className="inline" /> : `${store.gameSpeed}x`}
                 </div>
               </div>
-              <div className="bg-[#0a0e17] rounded-md p-1.5 text-center">
+              <div className="bg-[#0a0e17] rounded-lg p-1.5 text-center">
                 <div className="text-[8px] text-gray-500">Balance</div>
                 <div className="text-[10px] font-bold text-green-400 font-mono">${formatNumber(store.money)}</div>
               </div>
@@ -1631,7 +1615,7 @@ export default function FactoryMapPanel() {
           </div>
 
           {/* Legend */}
-          <div className="game-card rounded-xl bg-[#111827] p-3 border border-[#1e293b]">
+          <div className="game-card rounded-xl bg-card p-3 border border-border">
             <h4 className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">Legend</h4>
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-[9px]">
