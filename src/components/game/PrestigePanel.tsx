@@ -52,9 +52,9 @@ export function PrestigePanel() {
     scalingNote: string;
   }> = {
     productionMultiplier: {
-      plainLanguage: 'Increases the production rate of all buildings. Every building produces resources faster, meaning more output per tick.',
+      plainLanguage: 'Increases the production rate of all buildings. Every building produces resources faster, meaning more output per second.',
       currentValue: store.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'productionMultiplier').length > 0
-        ? `+${(store.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'productionMultiplier').reduce((s, b) => s + b.effect.value, 0) * 100).toFixed(0)}% production → currently +$${formatNumber(moneyPerTick * store.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'productionMultiplier').reduce((s, b) => s + b.effect.value, 0))}/tick`
+        ? `+${(store.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'productionMultiplier').reduce((s, b) => s + b.effect.value, 0) * 100).toFixed(0)}% production → currently +$${formatNumber(moneyPerTick * store.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'productionMultiplier').reduce((s, b) => s + b.effect.value, 0) * store.gameSpeed)}/s`
         : 'No production bonus active yet',
       scalingNote: 'Stacks additively: Production Boost I (+25%) + Production Boost II (+50%) = +75% total',
     },

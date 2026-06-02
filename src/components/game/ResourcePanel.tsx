@@ -355,7 +355,7 @@ export function ResourcePanel() {
                     fontFamily="monospace"
                     opacity="0.8"
                   >
-                    {formatNumber(tierProductionSummary[EXTRACTION_TIERS[i + 1].key]?.production ?? 0)}/t
+                    {formatNumber((tierProductionSummary[EXTRACTION_TIERS[i + 1].key]?.production ?? 0) * store.gameSpeed)}/s
                   </text>
                 </g>
               ) : null
@@ -440,7 +440,7 @@ export function ResourcePanel() {
                     fontSize="9"
                     fontFamily="monospace"
                   >
-                    {formatNumber(summary?.production ?? 0)}/t
+                    {formatNumber((summary?.production ?? 0) * store.gameSpeed)}/s
                   </text>
                   {/* Resource count */}
                   <text
@@ -508,7 +508,7 @@ export function ResourcePanel() {
                             <div className="min-w-0">
                               <div className="text-[10px] text-gray-300 font-medium truncate">{meta.name}</div>
                               <div className={`text-[9px] font-mono ${net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : prod > 0 && cons > 0 ? 'text-cyan-400' : 'text-gray-600'}`}>
-                                {net > 0 ? `+${formatNumber(net)}/t` : net < 0 ? `${formatNumber(net)}/t` : prod > 0 && cons > 0 ? '±0/t' : '—'}
+                                {net > 0 ? `+${formatNumber(net * store.gameSpeed)}/s` : net < 0 ? `${formatNumber(net * store.gameSpeed)}/s` : prod > 0 && cons > 0 ? '±0/s' : '—'}
                               </div>
                             </div>
                           </div>
@@ -591,8 +591,8 @@ export function ResourcePanel() {
                         category="Extractor"
                         tier={def.tier}
                         details={[
-                          { label: 'Production Rate', value: `${def.baseProductionRate}/t` },
-                          ...(def.outputs?.map(o => ({ label: `Output: ${RESOURCE_META[o.resource].name}`, value: `${(o.amount * def.baseProductionRate).toFixed(1)}/t`, color: 'text-green-400' })) ?? []),
+                          { label: 'Production Rate', value: `${(def.baseProductionRate * store.gameSpeed).toFixed(1)}/s` },
+                          ...(def.outputs?.map(o => ({ label: `Output: ${RESOURCE_META[o.resource].name}`, value: `${(o.amount * def.baseProductionRate * store.gameSpeed).toFixed(1)}/s`, color: 'text-green-400' })) ?? []),
                           { label: 'Power Consumption', value: `${def.basePowerConsumption} MW`, color: 'text-yellow-400' },
                           { label: 'Build Cost', value: `$${formatNumber(cost)}`, color: canAfford ? 'text-green-400' : 'text-red-400' },
                           { label: 'Cost Multiplier', value: `x${def.costMultiplier}` },
@@ -630,7 +630,7 @@ export function ResourcePanel() {
                           <div className="flex items-center gap-0.5 flex-wrap">
                             {def.outputs?.map((out, i) => (
                               <span key={i} className="text-[8px] text-green-300/80 bg-green-900/20 rounded px-1 py-px">
-                                <GameIcon icon={RESOURCE_META[out.resource].icon} size={10} className="inline-flex" />{out.amount}/t
+                                <GameIcon icon={RESOURCE_META[out.resource].icon} size={10} className="inline-flex" />{(out.amount * store.gameSpeed).toFixed(1)}/s
                               </span>
                             ))}
                           </div>
@@ -865,10 +865,10 @@ export function ResourcePanel() {
                       </div>
                       {netRate !== 0 ? (
                         <span className={`text-[9px] font-mono ${netRate > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          {netRate > 0 ? '+' : ''}{formatNumber(netRate)}/t
+                          {netRate > 0 ? '+' : ''}{formatNumber(netRate * store.gameSpeed)}/s
                         </span>
                       ) : prodRate > 0 ? (
-                        <span className="text-[9px] text-yellow-400 font-mono">±0/t</span>
+                        <span className="text-[9px] text-yellow-400 font-mono">±0/s</span>
                       ) : (
                         <span className="text-[9px] text-gray-600 font-mono">—</span>
                       )}
@@ -963,7 +963,7 @@ export function ResourcePanel() {
                 <TrendingUp className="w-4 h-4 text-green-400" />
                 <h3 className="text-sm font-semibold text-green-400">Resource Flow</h3>
               </div>
-              <span className="text-[10px] text-gray-500">net/t</span>
+              <span className="text-[10px] text-gray-500">net/s</span>
             </div>
             {resourceFlow.length === 0 ? (
               <div className="game-card-empty rounded-xl p-6 text-center">
@@ -1013,7 +1013,7 @@ export function ResourcePanel() {
                           <span className={`text-[10px] font-mono font-bold ${
                             net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : rate > 0 && consRate > 0 ? 'text-cyan-400' : 'text-gray-600'
                           }`}>
-                            {net > 0 ? `+${formatNumber(net)}/t` : net < 0 ? `${formatNumber(net)}/t` : rate > 0 && consRate > 0 ? '±0/t' : '—'}
+                            {net > 0 ? `+${formatNumber(net * store.gameSpeed)}/s` : net < 0 ? `${formatNumber(net * store.gameSpeed)}/s` : rate > 0 && consRate > 0 ? '±0/s' : '—'}
                           </span>
                         </div>
 

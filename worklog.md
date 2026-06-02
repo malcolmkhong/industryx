@@ -1,6 +1,92 @@
 # Factory Dominion - Worklog
 
 ---
+Task ID: /t→/s: PowerPanel+TransportPanel+GlobalResourceMonitor
+Agent: general-purpose
+Task: Replace all /t (per tick) UI labels with /s (per second) and multiply displayed rates by store.gameSpeed
+
+Work Log:
+- **PowerPanel.tsx** (3 edits):
+  - Line 608: Build card tooltip fuel rate: `${def.fuelRate}/t` → `${(def.fuelRate * store.gameSpeed).toFixed(1)}/s`
+  - Line 873: Per-plant fuel consumption display: `({formatNumber((def.fuelRate || 0) * plant.level)}/t)` → multiplied by `store.gameSpeed` → `/s`
+  - Line 1011: `subtext="per tick"` → `subtext="per second"`
+
+- **TransportPanel.tsx** (12 edits):
+  - Added `gameSpeed` prop to NetworkGraph component signature and passed `store.gameSpeed` from parent
+  - Line 768: SVG throughput badge: `{formatNumber(rel.totalThroughput)}/t` → `{formatNumber(rel.totalThroughput * gameSpeed)}/s`
+  - Line 1287: Under-supplied reason string: rates multiplied by `store.gameSpeed`, `/t` → `/s`
+  - Line 1313: Over-supplied reason string: rates multiplied by `store.gameSpeed`, `/t` → `/s`
+  - Line 1522: Total throughput badge: `{formatNumber(totalThroughput)} u/t` → `{formatNumber(totalThroughput * store.gameSpeed)} u/s`
+  - Line 1715: Definition tooltip: `${def.baseThroughput} u/t` → `${(def.baseThroughput * store.gameSpeed).toFixed(1)} u/s`
+  - Line 1813: Preview estimated throughput: `previewData.estimatedThroughput.toFixed(1)} u/t` → multiplied by `store.gameSpeed` → `u/s`
+  - Line 1961: Per-type throughput/capacity: both multiplied by `store.gameSpeed`, `u/t` → `u/s`
+  - Line 1994: Total network throughput: both multiplied by `store.gameSpeed`, `u/t` → `u/s`
+  - Line 2082: Bottleneck flow/required display: both multiplied by `store.gameSpeed`, `/t` → `/s`
+
+- **GlobalResourceMonitorPanel.tsx** (4 edits):
+  - Line 441: Total production: `{formatNumber(totalProduction)}/t` → `{formatNumber(totalProduction * store.gameSpeed)}/s`
+  - Line 447: Total consumption: `{formatNumber(totalConsumption)}/t` → `{formatNumber(totalConsumption * store.gameSpeed)}/s`
+  - Line 454: Net rate: `{formatNumber(Math.abs(totalNet))}/t` → multiplied by `store.gameSpeed` → `/s`
+  - Line 662: Hovered row net rate: multiplied by `store.gameSpeed`, `/t` → `/s`, `0/t` → `0/s`
+
+Verification:
+- Lint passes on all 3 modified files (only pre-existing AIAdvisorPanel memoization warning, unrelated)
+- No new lint errors introduced
+- Internal game engine calculations unchanged — only UI display layer affected
+
+Stage Summary:
+- All `/t` UI labels changed to `/s` across 3 panel files (19 total edits)
+- All displayed rate values multiplied by `store.gameSpeed` for correct per-second display
+- NetworkGraph component now receives `gameSpeed` as a prop instead of accessing store directly
+- `per tick` descriptive text changed to `per second`
+- Files modified: PowerPanel.tsx, TransportPanel.tsx, GlobalResourceMonitorPanel.tsx
+
+---
+Task ID: /t→/s Terminology Standardization
+Agent: general-purpose
+Task: Replace all /t (per tick) UI labels with /s (per second) and multiply displayed rates by store.gameSpeed
+
+Work Log:
+- **FactoryPanel.tsx** (12 edits):
+  - SVG flow diagram rate labels: `formatNumber(production)/t` → `formatNumber(production * store.gameSpeed)/s` (2 locations: tier connection lines, tier node production)
+  - Flow node detail net rates: `formatNumber(net)/t` → `formatNumber(net * store.gameSpeed)/s`, `±0/t` → `±0/s`
+  - Tooltip building definition rates: `inp.amount}/t` → `${(inp.amount * store.gameSpeed).toFixed(1)}/s`, `(o.amount * def.baseProductionRate).toFixed(1)}/t` → multiplied by gameSpeed → `/s`
+  - Production chain step net rates (line 970): same `/t` → `/s` with gameSpeed multiplication
+  - Section headers: `per tick` → `per second` (2 locations: Top Production, Input Demand)
+  - Top Production rate value (line 1064): `formatNumber(rate)` → `formatNumber(rate * store.gameSpeed)` with `/t` → `/s`
+  - Input Demand rate value (line 1108): `formatNumber(rate)` → `formatNumber(rate * store.gameSpeed)`
+  - Input Demand net display (line 1114): `formatNumber(net)/t` → `formatNumber(net * store.gameSpeed)/s`, `±0/t` → `±0/s`
+
+- **ResourcePanel.tsx** (10 edits):
+  - SVG extraction pipeline rate labels: `formatNumber(production)/t` → multiplied by gameSpeed → `/s` (2 locations)
+  - Flow node detail net rates: `formatNumber(net)/t` → multiplied by gameSpeed → `/s`, `±0/t` → `±0/s`
+  - Tooltip extractor definition rates: `baseProductionRate}/t` → multiplied by gameSpeed → `/s`, `(o.amount * def.baseProductionRate).toFixed(1)}/t` → multiplied by gameSpeed → `/s`
+  - Inline output card: `out.amount}/t` → `${(out.amount * store.gameSpeed).toFixed(1)}/s`
+  - Storage card net rate: `formatNumber(netRate)}/t` → multiplied by gameSpeed → `/s`, `±0/t` → `±0/s`
+  - Resource Flow section: `net/t` → `net/s`
+  - Resource Flow list net rates: `formatNumber(net)/t` → multiplied by gameSpeed → `/s`, `±0/t` → `±0/s`
+
+- **StoragePanel.tsx** (9 edits):
+  - renderRateBadge helper: `formatNumber(rate)}/t` → `formatNumber(rate * store.gameSpeed)}/s` (positive/negative), `±0/t` → `±0/s`, comment updated
+  - Rate Breakdown section: `formatNumber(prodRate)`, `formatNumber(consRate)`, `formatNumber(netRate)` all multiplied by `store.gameSpeed`
+  - `per tick` → `per second` (3 locations: Production, Consumption, Net Balance)
+  - Producer dependency: `formatNumber(p.amount)}/t` → `formatNumber(p.amount * store.gameSpeed)}/s`
+  - Consumer dependency: `formatNumber(c.amount)}/t` → `formatNumber(c.amount * store.gameSpeed)}/s`
+  - Tier aggregate net rate: `formatNumber(tierNet)}/t` → multiplied by gameSpeed → `/s`
+
+Verification:
+- Grep confirmed zero `/t` rate labels remain in all 3 files (only import paths and closing tags match)
+- Grep confirmed zero `per tick` text remains in all game components
+- Lint passes (only pre-existing AIAdvisorPanel memoization warning, unrelated to this change)
+
+Stage Summary:
+- All `/t` UI labels changed to `/s` across 3 panel files (31 total edits)
+- All displayed rate values multiplied by `store.gameSpeed` for correct per-second display
+- Internal game engine calculations unchanged — only UI display layer affected
+- `per tick` descriptive text changed to `per second`
+- Files modified: FactoryPanel.tsx, ResourcePanel.tsx, StoragePanel.tsx
+
+---
 Task ID: 3-c
 Agent: general-purpose
 Task: Phase3: ResourceFlowPanel purge — Economy System Refactor
@@ -1067,3 +1153,92 @@ Stage Summary:
 - Power totals use productionSnapshot.powerProduction/powerConsumption (includes all research reductions, weather, events)
 - Endgame income uses productionSnapshot.endgameMoney/endgameResearch/endgameCorp
 - No more duplicate/stale rate calculations in UI components
+
+---
+Task ID: /t→/s Phase 2
+Agent: general-purpose
+Task: Replace all /t (per tick) UI labels with /s (per second) and multiply displayed rates by store.gameSpeed across 8 panel files
+
+Work Log:
+- **DashboardPanel.tsx** (4 edits):
+  - Line 500: `+{formatNumber(productionRates[resource])}/t` → `+{formatNumber(productionRates[resource] * store.gameSpeed)}/s`
+  - Line 528: `per tick` header → `per second`
+  - Line 545: Production rate value `formatNumber(rate)` → `formatNumber(rate * store.gameSpeed)`
+  - Line 546: `subtext="per tick"` → `subtext="per second"`
+
+- **ResourceFlowPanel.tsx** (5 edits):
+  - Line 659: SVG node net rate `node.netRate.toFixed(1)/t` → `(node.netRate * store.gameSpeed).toFixed(1)/s` (positive and negative cases)
+  - Line 801: Producers badge `+{totalProduction.toFixed(2)}/t` → `+{(totalProduction * store.gameSpeed).toFixed(2)}/s`
+  - Line 817: Per-producer rate `+{rate.toFixed(2)}/t` → `+{(rate * store.gameSpeed).toFixed(2)}/s`
+  - Line 832: Consumers badge `-{totalConsumption.toFixed(2)}/t` → `-{(totalConsumption * store.gameSpeed).toFixed(2)}/s`
+  - Line 848: Per-consumer rate `-{rate.toFixed(2)}/t` → `-{(rate * store.gameSpeed).toFixed(2)}/s`
+
+- **ProductionChainPanel.tsx** (4 edits):
+  - Line 381: SVG node positive rate `+{rate.toFixed(1)}/t` → `+{(rate * store.gameSpeed).toFixed(1)}/s`
+  - Line 394: SVG node negative rate `{rate.toFixed(1)}/t` → `{(rate * store.gameSpeed).toFixed(1)}/s`
+  - Line 509: Detail view positive rate `+{rate.toFixed(1)}/t` → `+{(rate * store.gameSpeed).toFixed(1)}/s`
+  - Line 513: Detail view negative rate `{rate.toFixed(1)}/t` → `{(rate * store.gameSpeed).toFixed(1)}/s`
+
+- **FactoryMapPanel.tsx** (1 edit):
+  - Line 338: Building output rate `+{formatNumber(rate)}/t` → `+{formatNumber(rate * store.gameSpeed)}/s`
+
+- **AIAdvisorPanel.tsx** (2 edits):
+  - Line 798: Deficit description `Consuming ${consumption.toFixed(1)}/t but only producing ${production.toFixed(1)}/t` → multiplied both by `store.gameSpeed` and changed to `/s`
+  - Line 944: Added `store.gameSpeed` to useMemo dependency array (lint fix — React Compiler detected new dependency)
+
+- **PrestigePanel.tsx** (2 edits):
+  - Line 55: `more output per tick` → `more output per second` (plain language description)
+  - Line 57: `/tick` in production bonus currentValue display → multiplied by `store.gameSpeed` and changed to `/s`
+
+- **MegaProjectPanel.tsx** (1 edit):
+  - Line 52: `yielding more raw materials per tick` → `yielding more raw materials per second` (BONUS_DETAILS for extractionMultiplier)
+
+- **StatisticsPanel.tsx** (verified, no changes needed):
+  - Line 364: Already computes per-second rate from wall-clock timestamps: `(diff / tickSpan) * 1000; // per second`
+  - Line 569: Header already shows `Rate/s`
+  - Math is correct — uses timestamp diffs (ms), not tick counts
+
+Verification:
+- Lint passes cleanly (0 errors, 0 warnings) after adding `store.gameSpeed` to AIAdvisorPanel useMemo deps
+- All 8 files processed as specified
+- `store` was already available in all components via `useGameStore()` — no new imports needed
+
+Stage Summary:
+- All `/t` UI labels changed to `/s` across 7 panel files (19 total edits)
+- All displayed rate values multiplied by `store.gameSpeed` for correct per-second display
+- Internal game engine calculations unchanged — only UI display layer affected
+- `per tick` descriptive text changed to `per second` in PrestigePanel and MegaProjectPanel
+- StatisticsPanel verified as already correct (wall-clock-based per-second calculation)
+- Fixed React Compiler lint error by adding `store.gameSpeed` to AIAdvisorPanel useMemo dependency array
+
+---
+Task ID: 4
+Agent: main
+Task: Replace all /t with /s and standardize terminology — "per tick" displayed as "per second"
+
+Work Log:
+- Audited all UI files for /t, "per tick", "u/t" labels
+- Found /t labels in 13 UI components and "per tick" text in 6 components
+- FactoryPanel.tsx: 12 edits — SVG rates, build card tooltips, net rate displays, section headers
+- ResourcePanel.tsx: 10 edits — SVG pipeline rates, extractor tooltips, net rate displays
+- StoragePanel.tsx: 9 edits — renderRateBadge helper, rate breakdowns, "per tick"→"per second"
+- PowerPanel.tsx: 3 edits — fuel rate tooltip, per-plant fuel display, subtext
+- TransportPanel.tsx: 12 edits — SVG badges, reason strings, throughput labels, bottleneck display, added gameSpeed prop to NetworkGraph
+- GlobalResourceMonitorPanel.tsx: 4 edits — total production/consumption/net rates
+- DashboardPanel.tsx: 4 edits — rate labels, "per tick"→"per second"
+- ResourceFlowPanel.tsx: 5 edits — SVG node rates, producer/consumer badges
+- ProductionChainPanel.tsx: 4 edits — SVG chain rates
+- FactoryMapPanel.tsx: 1 edit — building output rate
+- AIAdvisorPanel.tsx: 2 edits — deficit description rates + memo dep fix
+- PrestigePanel.tsx: 2 edits — description text + bonus display
+- MegaProjectPanel.tsx: 1 edit — description text
+- StatisticsPanel.tsx: Already correct (uses wall-clock timestamps for per-second)
+- Formula applied consistently: displayRate = perTickRate * store.gameSpeed
+- Internal engine calculations UNCHANGED — only UI display layer affected
+
+Stage Summary:
+- Zero /t labels remain in UI components (grep confirmed)
+- Zero "per tick" text remains in user-visible UI (grep confirmed)
+- All rates now display as /s (per second) with gameSpeed multiplication
+- Lint passes cleanly
+- Dev server compiles successfully

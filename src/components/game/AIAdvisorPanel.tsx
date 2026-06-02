@@ -795,7 +795,7 @@ export default function AIAdvisorPanel() {
           priority: 'important',
           icon: 'gi:hazard-sign',
           title: `${meta?.name ?? res} Deficit`,
-          description: `Consuming ${consumption.toFixed(1)}/t but only producing ${production.toFixed(1)}/t.${producerName ? ` Build more ${producerName}s.` : ''}`,
+          description: `Consuming ${(consumption * store.gameSpeed).toFixed(1)}/s but only producing ${(production * store.gameSpeed).toFixed(1)}/s.${producerName ? ` Build more ${producerName}s.` : ''}`,
           actionTab: producerType && BUILDING_DEFS[producerType]?.category === 'extractor' ? 'resources' : 'factories',
           actionLabel: producerName ?? 'Factories',
           quickAction: producerType ? {
@@ -941,7 +941,7 @@ export default function AIAdvisorPanel() {
     recs.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
 
     return recs;
-  }, [store.powerGrid, store.buildings, store.productionSnapshot, store.resources, store.resourceCapacity, store.activeResearch, store.completedResearch, store.researchPoints, store.market, store.money, store.prestigeState]);
+  }, [store.powerGrid, store.buildings, store.productionSnapshot, store.resources, store.resourceCapacity, store.activeResearch, store.completedResearch, store.researchPoints, store.market, store.money, store.prestigeState, store.gameSpeed]);
 
   // Filter dismissed
   const visibleRecommendations = useMemo(() => {

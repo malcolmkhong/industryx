@@ -49,7 +49,7 @@ const BONUS_DETAILS: Record<string, string> = {
   productionMultiplier: 'All building production rates are boosted across your entire empire.',
   unlimitedStorage: 'Resource storage capacity is removed — store unlimited amounts of any resource forever.',
   marketMultiplier: 'All market sell prices are increased, generating more income from every sale.',
-  extractionMultiplier: 'All extractor production rates are boosted, yielding more raw materials per tick.',
+  extractionMultiplier: 'All extractor production rates are boosted, yielding more raw materials per second.',
   workerEfficiency: 'All assigned workers become significantly more effective at boosting building output.',
   buildingCostReduction: 'All building construction and upgrade costs are reduced, making expansion cheaper.',
 };

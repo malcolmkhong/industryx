@@ -335,7 +335,7 @@ function SelectedBuildingPanel({
                     <span className="text-[10px]">{meta?.icon ?? ''}</span>
                     <span className="text-[9px]" style={{ color: meta?.color }}>{meta?.name ?? output.resource}</span>
                   </div>
-                  <span className="text-[9px] text-green-400 font-mono">+{formatNumber(rate)}/t</span>
+                  <span className="text-[9px] text-green-400 font-mono">+{formatNumber(rate * store.gameSpeed)}/s</span>
                 </div>
               );
             })}

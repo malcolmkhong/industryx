@@ -497,7 +497,7 @@ export function DashboardPanel() {
                         <span className="text-gray-500 font-mono text-[10px]">{formatNumber(capacity)}</span>
                         {productionRates[resource] > 0 && (
                           <span className="text-green-400/70 text-[10px]">
-                            +{formatNumber(productionRates[resource])}/t
+                            +{formatNumber(productionRates[resource] * store.gameSpeed)}/s
                           </span>
                         )}
                       </div>
@@ -525,7 +525,7 @@ export function DashboardPanel() {
                 <TrendingUp className="w-4 h-4 text-green-400" />
                 <h3 className="text-sm font-semibold text-green-400">Production Rates</h3>
               </div>
-              <span className="text-[10px] text-gray-500">per tick</span>
+              <span className="text-[10px] text-gray-500">per second</span>
             </div>
             {topProductionRates.length === 0 ? (
               <div className="text-center py-6">
@@ -542,8 +542,8 @@ export function DashboardPanel() {
                       key={resource}
                       icon={<GameIcon icon={meta.icon} size={14} />}
                       label={meta.name}
-                      value={`+${formatNumber(rate)}`}
-                      subtext="per tick"
+                      value={`+${formatNumber(rate * store.gameSpeed)}`}
+                      subtext="per second"
                       color="green"
                       trend="up"
                     />
