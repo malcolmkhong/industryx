@@ -1423,3 +1423,22 @@ Stage Summary:
 - Files modified: marketSimulator.ts (new), types.ts, store.ts, MarketPanel.tsx
 - SAVE_VERSION: 15 → 16
 - Backup: V27 - Post Market System Refactor
+
+---
+Task ID: backup-v28
+Agent: main
+Task: Create full backup V28 after market audit analysis
+
+Work Log:
+- Created "Backup V28 - Post Market Audit" at /home/z/my-project/Backup V28 - Post Market Audit/
+- 2,596 files, 60M total
+- Verified all 5 critical game files are IDENTICAL between live and backup
+- 92 component .tsx files backed up
+
+Stage Summary:
+- Backup V28 created and verified
+- Captures state after market audit (Part 1: price formula trace, Part 2: gameplay impact classification)
+- Key findings from audit preserved in conversation context:
+  - demand/supply fields are purely cosmetic (not used in any price formula)
+  - Market classified as "Major Supporting System"
+  - Price bounded [0.2×base, 5×base] via hard clamp + 3% mean reversion
