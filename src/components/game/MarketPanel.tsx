@@ -197,7 +197,7 @@ export function MarketPanel() {
     return allNews.filter(n => n.category === newsFilter);
   }, [store.marketNews, newsFilter]);
 
-  const llmState = store.getNewsLLMState?.() ?? { loadState: 'idle', model: null, backend: null, averageGenTimeMs: 0, totalCalls: 0, cacheHits: 0 };
+  const llmState = store.getNewsLLMState?.() ?? { loadState: 'idle', model: null, backend: null, averageGenTimeMs: 0, totalCalls: 0, cacheHits: 0, llmSuccesses: 0, llmFailures: 0 };
 
   const portfolioValue = useMemo(() => {
     return (Object.entries(store.resources) as [ResourceType, number][])
@@ -983,6 +983,8 @@ export function MarketPanel() {
                   {llmState.backend && <span className="uppercase text-[8px] px-1.5 py-0.5 rounded bg-gray-800 border border-gray-700">{llmState.backend}</span>}
                   {llmState.averageGenTimeMs > 0 && <span>Avg {llmState.averageGenTimeMs.toFixed(0)}ms</span>}
                   {llmState.totalCalls > 0 && <span>{llmState.totalCalls} calls</span>}
+                  {llmState.llmSuccesses > 0 && <span className="text-green-400">{llmState.llmSuccesses} ✓</span>}
+                  {llmState.llmFailures > 0 && <span className="text-red-400">{llmState.llmFailures} ✗</span>}
                   {llmState.cacheHits > 0 && <span>{llmState.cacheHits} cached</span>}
                 </div>
               )}

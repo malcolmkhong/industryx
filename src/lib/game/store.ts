@@ -818,10 +818,13 @@ async function enhanceNewsInBackground(
   // Initialize LLM once (lazy init)
   if (!llmInitialized) {
     llmInitialized = true;
-    initNewsLLM().catch(() => { /* LLM not available — fallback mode */ });
+    await initNewsLLM().catch(() => { /* LLM not available — fallback mode */ });
   }
 
-  for (const item of newsItems) {
+  // Process up to 2 items per tick to avoid rate limiting (429 errors)
+  const itemsToProcess = newsItems.slice(0, 2);
+
+  for (const item of itemsToProcess) {
     try {
       const result = await generateNewsText(item.eventPacket);
       if (result.source === 'llm' && result.title && result.description) {
@@ -834,6 +837,8 @@ async function enhanceNewsInBackground(
         );
         useGameStore.setState({ marketNews: updatedNews });
       }
+      // Small delay between requests to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 300));
     } catch {
       // LLM failed for this item — keep fallback text, no gameplay impact
     }

@@ -545,7 +545,7 @@ export function generateFallbackText(
 ): { title: string; description: string } {
   const name = resourceName(packet.resource);
   const trend = (packet.context.trend ?? 'stable') as 'up' | 'down' | 'stable';
-  const pct = packet.delta.replace(/[+-]/, ''); // raw percentage number for templates
+  const pct = packet.delta.replace(/[+-]/, '').replace(/%$/, ''); // raw percentage number for templates
   const cause = packet.context.cause ?? 'market forces';
   const insight = getInsight(trend);
   const outlook = getOutlook(trend);

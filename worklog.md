@@ -1604,3 +1604,29 @@ Stage Summary:
 - No other parts of MarketPanel.tsx modified
 - File: src/components/game/MarketPanel.tsx
 
+---
+Task ID: LLM-News-Activation
+Agent: main
+Task: Activate the LLM news generation system — switch from broken browser-local TinyLlama to working server-side z-ai-web-dev-sdk
+
+Work Log:
+- Diagnosed that the existing newsLLM.ts tried to load @huggingface/transformers (TinyLlama 1.1B) in-browser, but the package was NOT installed
+- Engine state was stuck at 'unsupported' — all news used deterministic fallback templates
+- Rewrote newsLLM.ts to call /api/news-llm API route instead of loading a local model
+- Created /src/app/api/news-llm/route.ts — server-side API using z-ai-web-dev-sdk
+- API route includes: strict financial news system prompt, EventPacket→prompt builder, JSON output parser, retry with backoff for 429 rate limits
+- Updated store.ts enhanceNewsInBackground: limit to 2 items per tick, 300ms delay between requests, await init
+- Updated MarketPanel.tsx: added llmSuccesses/llmFailures counters to stats bar
+- Fixed %% formatting bug in newsBuilder.ts (pct variable already contained %)
+- Removed 'checking' load state since health check is no longer needed
+- Verified via agent-browser: "AI Enhanced" badge showing, 6/9 LLM calls succeeding (67%)
+- LLM-generated news confirmed: e.g. "Iron Plate prices increased by 4.1% to $20.79 due to a supply shortage, marking an upward trend from the previous price of $19.97."
+
+Stage Summary:
+- LLM news generation is now ACTIVE and working via server-side z-ai-web-dev-sdk
+- Hybrid system: deterministic templates as fallback, LLM enhancement when available
+- Files created: src/app/api/news-llm/route.ts
+- Files modified: src/lib/game/newsLLM.ts, src/lib/game/store.ts, src/components/game/MarketPanel.tsx, src/lib/game/newsBuilder.ts
+- Success rate ~67% (rate limiting causes some failures, which gracefully fall back to templates)
+- Average LLM response time ~1.3-2.1 seconds
+
