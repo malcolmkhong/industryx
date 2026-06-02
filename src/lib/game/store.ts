@@ -27,6 +27,16 @@ import {
   TRANSPORT_EVOLUTION_CHAIN, TRANSPORT_EVOLUTION_META,
 } from './data';
 import { soundEngine } from './soundEngine';
+import {
+  buildMultipliers,
+  computePowerGrid,
+  computeProduction,
+  computeSellMultiplierFull,
+  computePayout,
+  computeEndgameIncome,
+  emptyProductionSnapshot,
+} from './productionCalculator';
+import type { ProductionSnapshot, MultiplierCache, BuildResult, PowerResult, PayoutResult, EndgameResult } from './productionCalculator';
 
 // --- Save Version ---
 const SAVE_VERSION = 25;
@@ -1533,6 +1543,7 @@ function createInitialState(): GameState {
     computedProductionRates: {},
     computedConsumptionRates: {},
     computedActualConsumptionRates: {},
+    productionSnapshot: emptyProductionSnapshot(),
     maintenanceLog: [],
   };
 }
@@ -1705,105 +1716,35 @@ export const useGameStore = create<GameStore>()(
         const computedConsRates: Record<string, number> = {};
         const computedActualConsRates: Record<string, number> = {}; // Only actual consumption (excludes stalled demand)
 
-        // Weather production multiplier (calculated early for power grid)
-        const weatherDef = WEATHER_DEFS[state.weather.current as WeatherType];
-        let weatherProductionMultiplier = 1;
-        let weatherSolarMultiplier = 1;
-        let weatherWindMultiplier = 1;
-        let droneRpEarned = 0;
-        if (weatherDef) {
-          weatherProductionMultiplier = weatherDef.productionMultiplier;
-          weatherSolarMultiplier = weatherDef.solarMultiplier;
-          weatherWindMultiplier = weatherDef.windMultiplier;
+        // Build multiplier cache from weather, events, research, prestige, mega, transport, workers
+        const cache = buildMultipliers(state);
+
+        // Calculate power grid using calculator
+        const powerResult = computePowerGrid(state, cache, newResources, newTick);
+        let totalProduction = powerResult.totalProduction;
+        let totalConsumption = powerResult.totalConsumption;
+        const effectivePowerEfficiency = powerResult.efficiency;
+        const overload = powerResult.overload;
+
+        // Track fuel consumption rates from power grid
+        for (const fc of powerResult.fuelConsumption) {
+          computedConsRates[fc.resource] = (computedConsRates[fc.resource] || 0) + fc.amount;
+          computedActualConsRates[fc.resource] = (computedActualConsRates[fc.resource] || 0) + fc.actualAmount;
         }
-
-        // Calculate power grid
-        let totalProduction = 0;
-        let totalConsumption = 0;
-        const powerBuildings = state.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power' && b.active);
-        const consumingBuildings = state.buildings.filter(b => { const d = BUILDING_DEFS[b.type]; return d && d.category !== 'power' && b.active; });
-
-        powerBuildings.forEach(b => {
-          const def = BUILDING_DEFS[b.type];
-          if (!def) return;
-          let production = def.basePowerProduction * b.level * (b.efficiency > 0 ? b.efficiency : 1);
-          if (def.fuel && def.fuelRate) {
-            const fuelConsumed = def.fuelRate * b.level;
-            if (newResources[def.fuel] >= fuelConsumed) {
-              newResources[def.fuel] -= fuelConsumed;
-              totalProduction += production;
-              computedConsRates[def.fuel] = (computedConsRates[def.fuel] || 0) + fuelConsumed;
-              computedActualConsRates[def.fuel] = (computedActualConsRates[def.fuel] || 0) + fuelConsumed;
-            } else {
-              production *= 0.1;
-              totalProduction += production;
-              const actuallyConsumed = newResources[def.fuel] || 0;
-              computedConsRates[def.fuel] = (computedConsRates[def.fuel] || 0) + actuallyConsumed;
-              computedActualConsRates[def.fuel] = (computedActualConsRates[def.fuel] || 0) + actuallyConsumed;
-            }
-          } else {
-            if (b.type === 'solarPanel') {
-              const dayFactor = 0.5 + 0.5 * Math.sin(newTick * 0.01);
-              production *= Math.max(0.2, dayFactor) * weatherSolarMultiplier;
-            }
-            if (b.type === 'windTurbine') {
-              const windFactor = 0.5 + 0.5 * Math.sin(newTick * 0.007 + Math.PI / 3);
-              production *= Math.max(0.3, windFactor) * weatherWindMultiplier;
-            }
-            totalProduction += production;
-          }
-        });
-
-        consumingBuildings.forEach(b => {
-          const def = BUILDING_DEFS[b.type];
-          if (!def) return;
-          totalConsumption += def.basePowerConsumption * b.level * b.efficiency;
-        });
-
-        const powerEfficiencyResearch = state.completedResearch.includes('energyEfficiency') ? 0.15 : 0;
-        totalConsumption *= (1 - powerEfficiencyResearch);
-
-        const overload = totalConsumption > totalProduction;
 
         // Play power overload sound when overload newly detected
         if (overload && !state.powerGrid.overload) {
           soundEngine.play('powerOverload', 'events');
         }
 
-        // Apply event effects
-        let eventProductionMultiplier = 1;
-        let eventResearchMultiplier = 1;
-        state.activeEvents.forEach(event => {
-          event.effects.forEach(effect => {
-            if (effect.type === 'productionMultiplier') eventProductionMultiplier *= effect.value;
-            if (effect.type === 'researchSpeed') eventResearchMultiplier *= effect.value;
-          });
-        });
+        // Map event research multiplier from cache (still needed for research processing)
+        const eventResearchMultiplier = cache.eventResearch;
+        const eventProductionMultiplier = cache.eventProductionGlobal;
 
-        // Production speed bonuses from research
-        const extractorSpeedBonus = state.completedResearch.includes('basicAutomation') ? 0.15 : 0;
-        const factorySpeedBonus = state.completedResearch.includes('advancedAutomation') ? 0.25 : 0;
-        const workerEfficiencyBonus = state.completedResearch.includes('workerTraining') ? 0.25 : 0;
-        const logistics1Bonus = state.completedResearch.includes('logistics1') ? 0.2 : 0;
-        const advancedLogisticsBonus = state.completedResearch.includes('advancedLogistics') ? 0.3 : 0;
-        const transportBonus = logistics1Bonus + advancedLogisticsBonus;
+        // researchSet still needed for getCapacity() calls
+        const researchSet = new Set(state.completedResearch);
 
-        // Prestige bonuses
-        const productionPrestigeBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'productionMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
-        const powerPrestigeBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'powerMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
-
-        // MegaProject bonuses (applied from completed mega projects)
-        const megaProductionBonus = getMegaProjectBonus(state.megaProjects, 'productionMultiplier');
-        const megaPowerBonus = getMegaProjectBonus(state.megaProjects, 'powerMultiplier');
-        const megaResearchBonus = getMegaProjectBonus(state.megaProjects, 'researchMultiplier');
-        const megaExtractionBonus = getMegaProjectBonus(state.megaProjects, 'extractionMultiplier');
-        const megaWorkerBonus = getMegaProjectBonus(state.megaProjects, 'workerEfficiency');
-        const megaTransportBonus = getMegaProjectBonus(state.megaProjects, 'transportMultiplier');
-        const megaMarketBonus = getMegaProjectBonus(state.megaProjects, 'marketMultiplier');
-        const megaBuildingCostReduction = getMegaProjectBonus(state.megaProjects, 'buildingCostReduction');
-
-        totalProduction *= (1 + powerPrestigeBonus + megaPowerBonus);
-        const effectivePowerEfficiency = totalProduction > 0 ? Math.min(1, totalProduction / Math.max(0.001, totalConsumption)) : 0;
+        let droneRpEarned = 0;
 
         // Process buildings
         let updatedBuildings = state.buildings.map(b => ({ ...b }));
@@ -2059,94 +2000,38 @@ export const useGameStore = create<GameStore>()(
           return b;
         });
 
-        updatedBuildings.forEach(b => {
-          if (!b.active) return;
-          const def = BUILDING_DEFS[b.type];
-          if (!def) return;
+        const buildingResults = new Map<string, BuildResult>();
 
-          let efficiency = b.efficiency * effectivePowerEfficiency * eventProductionMultiplier * weatherProductionMultiplier;
+        for (const b of updatedBuildings) {
+          if (!b.active) continue;
+          const result = computeProduction(b, cache, newResources);
+          buildingResults.set(b.id, result);
 
-          // Condition affects efficiency: below 75%, proportional penalty
-          const conditionEfficiency = safeCondition(b.condition) >= 75 ? 1.0 : safeCondition(b.condition) / 75;
-          efficiency *= conditionEfficiency;
-          
-          if (def.category === 'extractor') efficiency *= (1 + extractorSpeedBonus + megaExtractionBonus);
-          if (def.category === 'factory') efficiency *= (1 + factorySpeedBonus);
-          
-          const assignedWorkers = state.workers.filter(w => w.assignedTo === b.id);
-          let workerBonus = 0;
-          assignedWorkers.forEach(w => {
-            const wDef = WORKER_DEFS[w.type];
-            if (wDef) {
-              // Additive stacking (capped) instead of multiplicative to prevent exponential growth
-              workerBonus += wDef.effects.speed * Math.min(w.level, 10) * (1 + workerEfficiencyBonus + megaWorkerBonus);
+          if (result.canProduce) {
+            for (const inp of result.actualInputs) {
+              const res = inp.resource as ResourceType;
+              newResources[res] -= inp.amount;
+              computedConsRates[res] = (computedConsRates[res] || 0) + inp.amount;
+              computedActualConsRates[res] = (computedActualConsRates[res] || 0) + inp.amount;
             }
-          });
-          efficiency *= (1 + Math.min(workerBonus, 2.0)); // Cap worker bonus at 200%
-
-          efficiency *= (1 + productionPrestigeBonus + megaProductionBonus);
-
-          if (def.category === 'extractor' && def.outputs) {
-            def.outputs.forEach(output => {
-              if (output.resource === 'money') return;
-              const res = output.resource as ResourceType;
-              const produced = output.amount * def.baseProductionRate * b.level * efficiency;
+            for (const out of result.outputs) {
+              const res = out.resource as ResourceType;
+              const produced = out.amount;
               const capacity = newResources[res] + produced;
               newResources[res] = Math.min(getCapacity(state, res), capacity);
               newStats.totalResourcesProduced[res] += produced;
               computedProdRates[res] = (computedProdRates[res] || 0) + produced;
-            });
-          }
-
-          if (def.category === 'factory') {
-            if (def.inputs && def.outputs) {
-              let canProduce = true;
-              const adjustedInputs = def.inputs.map(input => {
-                if (input.resource === 'money') return { resource: input.resource, amount: 0 };
-                return {
-                  resource: input.resource,
-                  amount: input.amount * def.baseProductionRate * b.level * efficiency,
-                };
-              }).filter(i => i.resource !== 'money');
-
-              for (const input of adjustedInputs) {
-                const res = input.resource as ResourceType;
-                if (newResources[res] < input.amount) {
-                  canProduce = false;
-                  break;
-                }
-              }
-
-              if (canProduce) {
-                adjustedInputs.forEach(input => {
-                  const res = input.resource as ResourceType;
-                  newResources[res] -= input.amount;
-                  computedConsRates[res] = (computedConsRates[res] || 0) + input.amount;
-                  computedActualConsRates[res] = (computedActualConsRates[res] || 0) + input.amount;
-                });
-                def.outputs.forEach(output => {
-                  if (output.resource === 'money') return;
-                  const res = output.resource as ResourceType;
-                  const produced = output.amount * def.baseProductionRate * b.level * efficiency;
-                  const capacity = newResources[res] + produced;
-                  newResources[res] = Math.min(getCapacity(state, res), capacity);
-                  newStats.totalResourcesProduced[res] += produced;
-                  computedProdRates[res] = (computedProdRates[res] || 0) + produced;
-                });
-              } else {
-                // Even if can't produce, still track attempted consumption for demand display
-                adjustedInputs.forEach(input => {
-                  const res = input.resource as ResourceType;
-                  computedConsRates[res] = (computedConsRates[res] || 0) + input.amount;
-                });
-              }
+            }
+          } else {
+            // Track demand even when stalled
+            for (const inp of result.inputs) {
+              const res = inp.resource as ResourceType;
+              computedConsRates[res] = (computedConsRates[res] || 0) + inp.amount;
             }
           }
-        });
+        }
 
-        const transportEfficiency = state.transportLines.length > 0
-          ? (state.transportLines.filter(t => t.active).length / Math.max(1, state.transportLines.length)) * (1 + transportBonus + megaTransportBonus)
-          : 1;
+        const transportEfficiency = cache.transportProductionBonus;
 
         // Update market prices
         const newMarket = state.market.map(m => {
@@ -2323,7 +2208,7 @@ export const useGameStore = create<GameStore>()(
         // Update workers
         const newWorkers = state.workers.map(w => ({
           ...w,
-          experience: w.experience + 0.01 * (1 + workerEfficiencyBonus),
+          experience: w.experience + 0.01 * (1 + cache.workerEfficiencyBonus),
           efficiency: Math.min(2, w.efficiency + 0.001),
         }));
 
@@ -2430,11 +2315,12 @@ export const useGameStore = create<GameStore>()(
 
         // Passive income from selling excess (if auto-trading is on)
         if (autoFulfill) {
+          const autoSellMult = computeSellMultiplierFull(state, cache);
           (Object.keys(newResources) as ResourceType[]).forEach(r => {
             const excess = newResources[r] - getCapacity(state, r) * 0.8;
             if (excess > 0) {
               const marketPrice = newMarket.find(m => m.resource === r)?.currentPrice ?? 0;
-              const sellPrice = marketPrice * 0.9;
+              const sellPrice = marketPrice * autoSellMult;
               const sellAmount = Math.min(excess, 5);
               newResources[r] -= sellAmount;
               moneyEarned += sellAmount * sellPrice;
@@ -2445,16 +2331,14 @@ export const useGameStore = create<GameStore>()(
 
         // Auto-sell specific resources when > 80% capacity
         if (state.autoSellResources.length > 0) {
+          const autoSellMult = computeSellMultiplierFull(state, cache);
           state.autoSellResources.forEach(r => {
             const threshold = getCapacity(state, r) * 0.8;
             const excess = newResources[r] - threshold;
             if (excess > 0) {
               const marketItem = newMarket.find(m => m.resource === r);
               if (marketItem) {
-                const marketBonus = state.completedResearch.includes('marketAnalysis') ? 0.2 : 0;
-                const prestigeMarketBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'marketMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
-                const megaMarketBonusTick = getMegaProjectBonus(state.megaProjects, 'marketMultiplier');
-                const sellPrice = marketItem.currentPrice * (0.9 + marketBonus + prestigeMarketBonus + megaMarketBonusTick);
+                const sellPrice = marketItem.currentPrice * autoSellMult;
                 const sellAmount = Math.min(excess, 10);
                 newResources[r] -= sellAmount;
                 moneyEarned += sellAmount * sellPrice;
@@ -2570,56 +2454,12 @@ export const useGameStore = create<GameStore>()(
 
         const ticksSinceLastPayout = newTick - newPayoutConfig.lastPayoutTick;
         if (ticksSinceLastPayout >= newPayoutConfig.basePayoutInterval && state.buildings.length > 0) {
-          // Calculate payout based on active buildings
-          const activeBuildings = state.buildings.filter(b => b.active);
-          const extractors = activeBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'extractor');
-          const factories = activeBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory');
-          const powerPlants = activeBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power');
-
-          // Base rates per building type per payout cycle, scaled by tier
-          const extractorBaseRate = 2;
-          const factoryBaseRate = 5;
-          const powerBaseRate = 1;
-
-          const extractorIncome = extractors.reduce((sum, b) => {
-            const tier = BUILDING_DEFS[b.type]?.tier ?? 0;
-            const tierMult = 1 + tier * 2; // Tier 0=1x, 1=3x, 2=5x, 3=7x, 4=9x
-            return sum + extractorBaseRate * tierMult * b.level;
-          }, 0);
-          const factoryIncome = factories.reduce((sum, b) => {
-            const tier = BUILDING_DEFS[b.type]?.tier ?? 0;
-            const tierMult = 1 + tier * 2; // Tier 0=1x, 1=3x, 2=5x, 3=7x, 4=9x
-            return sum + factoryBaseRate * tierMult * b.level;
-          }, 0);
-          const powerIncome = powerPlants.reduce((sum, b) => {
-            const tier = BUILDING_DEFS[b.type]?.tier ?? 0;
-            const tierMult = 1 + tier * 2;
-            return sum + powerBaseRate * tierMult * b.level;
-          }, 0);
-
-          let rawPayout = extractorIncome + factoryIncome + powerIncome;
-
-          // Apply game speed multiplier
-          rawPayout *= state.gameSpeed;
-
-          // Apply power grid efficiency modifier (not double-dipping per-building efficiency)
-          const powerGridMod = effectivePowerEfficiency;
-          rawPayout *= powerGridMod;
-
-          // Apply prestige bonuses
-          const payoutPrestigeBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'productionMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
-          const payoutMegaBonus = getMegaProjectBonus(state.megaProjects, 'productionMultiplier');
-          rawPayout *= (1 + payoutPrestigeBonus + payoutMegaBonus);
-
-          // Apply event production multiplier
-          rawPayout *= eventProductionMultiplier;
-
-          // Apply weather modifier
-          rawPayout *= weatherProductionMultiplier;
-
-          const payoutAmount = Math.floor(rawPayout);
+          // Calculate payout using calculator
+          const payoutResult = computePayout(state, cache);
+          const payoutAmount = payoutResult.amountPerCycle;
 
           if (payoutAmount > 0) {
+            const activeBuildings = state.buildings.filter(b => b.active);
             if (newPayoutConfig.autoCollect) {
               // Auto-collect: add to money directly
               payoutMoneyEarned = payoutAmount;
@@ -2734,34 +2574,10 @@ export const useGameStore = create<GameStore>()(
 
         // === Endgame Building Passive Income ===
         let corpGained = autoFulfillCP;
-        const endgameBuildings = state.buildings.filter(b => b.active && [
-          'dysonCollector', 'quantumTeleporter', 'dimensionalGateway', 'timeDistorter', 'galacticForge'
-        ].includes(b.type));
-
-        for (const b of endgameBuildings) {
-          const eff = b.efficiency * effectivePowerEfficiency;
-          const rate = b.level * eff;
-          switch (b.type) {
-            case 'dysonCollector':
-              moneyEarned += Math.floor(8000 * rate);
-              break;
-            case 'quantumTeleporter':
-              newResearchPoints += Math.floor(10 * rate);
-              break;
-            case 'dimensionalGateway':
-              corpGained += Math.floor(1 * rate);
-              break;
-            case 'timeDistorter':
-              moneyEarned += Math.floor(5000 * rate);
-              newResearchPoints += Math.floor(5 * rate);
-              break;
-            case 'galacticForge':
-              moneyEarned += Math.floor(100000 * rate);
-              newResearchPoints += Math.floor(50 * rate);
-              corpGained += Math.floor(5 * rate);
-              break;
-          }
-        }
+        const endgameResult = computeEndgameIncome(state, cache);
+        moneyEarned += endgameResult.moneyPerTick;
+        newResearchPoints += endgameResult.researchPerTick;
+        corpGained += endgameResult.corpPerTick;
 
         // Rank change detection
         const prevScore = Math.floor(
@@ -2791,6 +2607,31 @@ export const useGameStore = create<GameStore>()(
           soundEngine.play('levelUp', 'events');
         }
 
+        const powerBuildingsForGrid = state.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power' && b.active);
+
+        // Build ProductionSnapshot for this tick
+        const snapshot: ProductionSnapshot = {
+          production: computedProdRates,
+          consumption: computedConsRates,
+          actualConsumption: computedActualConsRates,
+          buildings: Object.fromEntries(
+            state.buildings.map(b => {
+              const r = buildingResults.get(b.id);
+              return r ? [b.id, { outputs: r.outputs, inputs: r.inputs, efficiency: r.efficiency }] : [b.id, { outputs: [], inputs: [], efficiency: 0 }];
+            })
+          ),
+          powerProduction: totalProduction,
+          powerConsumption: totalConsumption,
+          powerEfficiency: effectivePowerEfficiency,
+          powerOverload: overload,
+          payoutPerCycle: computePayout(state, cache).amountPerCycle,
+          payoutBreakdown: computePayout(state, cache).breakdown,
+          sellMultiplier: computeSellMultiplierFull(state, cache),
+          endgameMoney: endgameResult.moneyPerTick,
+          endgameResearch: endgameResult.researchPerTick,
+          endgameCorp: endgameResult.corpPerTick,
+        };
+
         set({
           gameTick: newTick,
           resources: newResources,
@@ -2802,7 +2643,7 @@ export const useGameStore = create<GameStore>()(
             totalConsumption,
             efficiency: effectivePowerEfficiency,
             overload,
-            plants: powerBuildings,
+            plants: powerBuildingsForGrid,
           },
           market: newMarket,
           researchPoints: newResearchPoints,
@@ -2827,6 +2668,7 @@ export const useGameStore = create<GameStore>()(
             ...state.prestigeState,
             corporationPoints: state.prestigeState.corporationPoints + corpGained,
           } : state.prestigeState,
+          productionSnapshot: snapshot,
           computedProductionRates: computedProdRates,
           computedConsumptionRates: computedConsRates,
           computedActualConsumptionRates: computedActualConsRates,
@@ -3670,10 +3512,9 @@ export const useGameStore = create<GameStore>()(
         const marketItem = state.market.find(m => m.resource === resource);
         if (!marketItem) return;
 
-        const marketBonus = state.completedResearch.includes('marketAnalysis') ? 0.2 : 0;
-        const prestigeMarketBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'marketMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
-        const megaMarketBonusManual = getMegaProjectBonus(state.megaProjects, 'marketMultiplier');
-        const sellPrice = marketItem.currentPrice * amount * (0.9 + marketBonus + prestigeMarketBonus + megaMarketBonusManual);
+        const cache = buildMultipliers(state);
+        const sellMult = computeSellMultiplierFull(state, cache);
+        const sellPrice = marketItem.currentPrice * amount * sellMult;
 
         set({
           resources: { ...state.resources, [resource]: state.resources[resource] - amount },
@@ -5176,68 +5017,51 @@ export const useGameStore = create<GameStore>()(
         const offlineResources: Record<ResourceType, number> = { ...initialResources };
         let offlineMoney = 0;
 
-        // Apply 50% offline rate
+        // Build multiplier cache and adjust for offline context
+        const cache = buildMultipliers(state);
         const offlineRate = 0.5;
-
-        // Offline production bonus from prestige
         const offlinePrestigeBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'offlineMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
-        const offlineMegaProductionBonus = getMegaProjectBonus(state.megaProjects, 'productionMultiplier');
-        const effectiveOfflineRate = offlineRate * (1 + offlinePrestigeBonus + offlineMegaProductionBonus);
+        const effectiveOfflineRate = offlineRate * (1 + offlinePrestigeBonus + getMegaProjectBonus(state.megaProjects, 'productionMultiplier'));
 
-        // Calculate production per tick for each building
+        // Adjust cache's powerEfficiency for offline context
+        const offlineCache = { ...cache, powerEfficiency: cache.powerEfficiency * effectiveOfflineRate };
+
         const offlineTempResources: Record<string, number> = { ...state.resources };
         state.buildings.forEach(b => {
           if (!b.active) return;
           const def = BUILDING_DEFS[b.type];
           if (!def || !def.outputs) return;
 
+          const result = computeProduction(b, offlineCache, offlineTempResources);
+
           if (def.category === 'extractor') {
-            def.outputs.forEach(output => {
-              if (output.resource === 'money') return;
-              const res = output.resource as ResourceType;
-              const produced = output.amount * def.baseProductionRate * b.level * b.efficiency * effectiveOfflineRate * ticksElapsed;
+            for (const out of result.outputs) {
+              if (out.resource === 'money') continue;
+              const res = out.resource as ResourceType;
+              const produced = out.amount * ticksElapsed;
               offlineResources[res] += produced;
               offlineTempResources[res] = (offlineTempResources[res] ?? 0) + produced;
-            });
+            }
           }
 
-          if (def.category === 'factory' && def.inputs && def.outputs) {
-            // Check if factory can produce (has enough input resources)
-            const adjustedInputs = def.inputs.map(input => {
-              if (input.resource === 'money') return { resource: input.resource, amount: 0 };
-              return {
-                resource: input.resource,
-                amount: input.amount * def.baseProductionRate * b.level * b.efficiency * effectiveOfflineRate * ticksElapsed,
-              };
-            }).filter(i => i.resource !== 'money');
-
-            let canProduce = true;
-            for (const input of adjustedInputs) {
-              const res = input.resource as ResourceType;
-              if ((offlineTempResources[res] ?? 0) < input.amount) {
-                canProduce = false;
-                break;
+          if (def.category === 'factory' && result.canProduce) {
+            // Consume inputs
+            for (const inp of result.actualInputs) {
+              if (inp.resource === 'money') continue;
+              const res = inp.resource as ResourceType;
+              const consumed = inp.amount * ticksElapsed;
+              offlineTempResources[res] = (offlineTempResources[res] ?? 0) - consumed;
+              if (offlineResources[res] !== undefined) {
+                offlineResources[res] = Math.max(0, offlineResources[res] - consumed);
               }
             }
-
-            if (canProduce) {
-              // Consume inputs
-              adjustedInputs.forEach(input => {
-                const res = input.resource as ResourceType;
-                offlineTempResources[res] = (offlineTempResources[res] ?? 0) - input.amount;
-                // Also reduce offline resources for inputs (they came from stock)
-                if (offlineResources[res] !== undefined) {
-                  offlineResources[res] = Math.max(0, offlineResources[res] - input.amount);
-                }
-              });
-              // Produce outputs
-              def.outputs.forEach(output => {
-                if (output.resource === 'money') return;
-                const res = output.resource as ResourceType;
-                const produced = output.amount * def.baseProductionRate * b.level * b.efficiency * effectiveOfflineRate * ticksElapsed;
-                offlineResources[res] += produced;
-                offlineTempResources[res] = (offlineTempResources[res] ?? 0) + produced;
-              });
+            // Produce outputs
+            for (const out of result.outputs) {
+              if (out.resource === 'money') continue;
+              const res = out.resource as ResourceType;
+              const produced = out.amount * ticksElapsed;
+              offlineResources[res] += produced;
+              offlineTempResources[res] = (offlineTempResources[res] ?? 0) + produced;
             }
           }
         });

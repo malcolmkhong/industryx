@@ -701,6 +701,9 @@ export interface GameState {
   computedConsumptionRates: Record<string, number>;
   computedActualConsumptionRates: Record<string, number>; // Only actual consumption (excludes stalled factory demand)
 
+  // Production snapshot (updated each tick by productionCalculator)
+  productionSnapshot: import('./productionCalculator').ProductionSnapshot;
+
   // Maintenance Log
   maintenanceLog: MaintenanceLogEntry[];
 }
