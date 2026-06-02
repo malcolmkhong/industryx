@@ -21,9 +21,21 @@ import {
   WEATHER_DEFS, QUEST_DEFS,
 } from './data';
 import { soundEngine } from './soundEngine';
+import {
+  buildMultipliers,
+  computePowerGrid,
+  computeProduction,
+  computeSellMultiplier,
+  computePayout,
+  computeEndgameIncome,
+  emptyProductionSnapshot,
+  MultiplierCache,
+  BuildResult,
+  ProductionSnapshot,
+} from './productionCalculator';
 
 // --- Save Version ---
-const SAVE_VERSION = 14;
+const SAVE_VERSION = 15;
 
 // --- Utility Functions ---
 function generateId(): string {
@@ -484,6 +496,11 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
     });
   }
 
+  // V14 → V15: Add productionSnapshot to GameState (economy refactor Phase 2)
+  if (version < 15) {
+    (state as Record<string, unknown>).productionSnapshot = emptyProductionSnapshot();
+  }
+
   state._version = SAVE_VERSION;
   return state;
 }
@@ -604,6 +621,7 @@ function createInitialState(): GameState {
     computedProductionRates: {},
     computedConsumptionRates: {},
     computedActualConsumptionRates: {},
+    productionSnapshot: emptyProductionSnapshot(),
   };
 }
 
@@ -786,258 +804,101 @@ export const useGameStore = create<GameStore>()(
         const computedConsRates: Record<string, number> = {};
         const computedActualConsRates: Record<string, number> = {}; // Only actual consumption (excludes stalled demand)
 
-        // Weather production multiplier (calculated early for power grid)
-        const weatherDef = WEATHER_DEFS[state.weather.current as WeatherType];
-        let weatherProductionMultiplier = 1;
-        let weatherSolarMultiplier = 1;
-        let weatherWindMultiplier = 1;
+        // === Phase 2: Production Calculator (Single Source of Truth) ===
+        const cache = buildMultipliers(state);
+        const researchSet = new Set(state.completedResearch);
+
+        // Local aliases from cache (used by non-production parts of tick)
+        const weatherProductionMultiplier = cache.weatherProduction;
+        const eventProductionMultiplier = cache.eventProductionGlobal;
+        const eventResearchMultiplier = cache.eventResearch;
         let droneRpEarned = 0;
-        if (weatherDef) {
-          weatherProductionMultiplier = weatherDef.productionMultiplier;
-          weatherSolarMultiplier = weatherDef.solarMultiplier;
-          weatherWindMultiplier = weatherDef.windMultiplier;
+
+        // === Power Grid (via calculator) ===
+        const powerResult = computePowerGrid(state, cache, newResources, newTick);
+        cache.powerEfficiency = powerResult.efficiency;
+
+        // Track fuel consumption in legacy computed rates
+        for (const fc of powerResult.fuelConsumption) {
+          computedConsRates[fc.resource] = (computedConsRates[fc.resource] || 0) + fc.amount;
+          computedActualConsRates[fc.resource] = (computedActualConsRates[fc.resource] || 0) + fc.actualAmount;
         }
 
-        // Calculate power grid
-        let totalProduction = 0;
-        let totalConsumption = 0;
+        const totalProduction = powerResult.totalProduction;
+        const totalConsumption = powerResult.totalConsumption;
+        const effectivePowerEfficiency = powerResult.efficiency;
+        const overload = powerResult.overload;
         const powerBuildings = state.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power' && b.active);
-        const consumingBuildings = state.buildings.filter(b => { const d = BUILDING_DEFS[b.type]; return d && d.category !== 'power' && b.active; });
 
-        powerBuildings.forEach(b => {
-          const def = BUILDING_DEFS[b.type];
-          if (!def) return;
-          let production = def.basePowerProduction * b.level * b.efficiency;
-          if (def.fuel && def.fuelRate) {
-            const fuelConsumed = def.fuelRate * b.level;
-            if (newResources[def.fuel] >= fuelConsumed) {
-              newResources[def.fuel] -= fuelConsumed;
-              totalProduction += production;
-              computedConsRates[def.fuel] = (computedConsRates[def.fuel] || 0) + fuelConsumed;
-              computedActualConsRates[def.fuel] = (computedActualConsRates[def.fuel] || 0) + fuelConsumed;
-            } else {
-              production *= 0.1;
-              totalProduction += production;
-              const actuallyConsumed = newResources[def.fuel] || 0;
-              computedConsRates[def.fuel] = (computedConsRates[def.fuel] || 0) + actuallyConsumed;
-              computedActualConsRates[def.fuel] = (computedActualConsRates[def.fuel] || 0) + actuallyConsumed;
-            }
-          } else {
-            if (b.type === 'solarPanel') {
-              const dayFactor = 0.5 + 0.5 * Math.sin(newTick * 0.01);
-              production *= Math.max(0.2, dayFactor) * weatherSolarMultiplier;
-            }
-            if (b.type === 'windTurbine') {
-              const windFactor = 0.5 + 0.5 * Math.sin(newTick * 0.007 + Math.PI / 3);
-              production *= Math.max(0.3, windFactor) * weatherWindMultiplier;
-            }
-            totalProduction += production;
-          }
-        });
-
-        consumingBuildings.forEach(b => {
-          const def = BUILDING_DEFS[b.type];
-          if (!def) return;
-          totalConsumption += def.basePowerConsumption * b.level * b.efficiency;
-        });
-
-        // Apply event effects (processed early for power consumption modifier)
-        let eventProductionMultiplier = 1; // global (untargeted) production multiplier
-        let eventResearchMultiplier = 1;
-        const targetedEventMultipliers = new Map<string, number>(); // building type → multiplier
-        let eventPowerConsumptionMultiplier = 1; // for powerMultiplier event effects
-        state.activeEvents.forEach(event => {
-          event.effects.forEach(effect => {
-            if (effect.type === 'productionMultiplier') {
-              if (effect.target) {
-                // Targeted: only affects specific building types
-                const existing = targetedEventMultipliers.get(effect.target) ?? 1;
-                targetedEventMultipliers.set(effect.target, existing * effect.value);
-              } else {
-                // Untargeted: affects all buildings
-                eventProductionMultiplier *= effect.value;
-              }
-            }
-            if (effect.type === 'researchSpeed') eventResearchMultiplier *= effect.value;
-            if (effect.type === 'powerMultiplier') eventPowerConsumptionMultiplier *= effect.value;
-          });
-        });
-
-        // Build research Set for O(1) lookups (replaces 17× .includes())
-        const researchSet = new Set(state.completedResearch);
-        const powerEfficiencyResearch = researchSet.has('energyEfficiency') ? 0.15 : 0;
-        const powerOptimizationResearch = researchSet.has('powerOptimization') ? 0.10 : 0;
-        totalConsumption *= (1 - powerEfficiencyResearch) * (1 - powerOptimizationResearch) * eventPowerConsumptionMultiplier;
-
-        const overload = totalConsumption > totalProduction;
-
-        // Play power overload sound when overload newly detected
         if (overload && !state.powerGrid.overload) {
           soundEngine.play('powerOverload', 'events');
         }
 
-        // Production speed bonuses from research (using Set.has for O(1))
-        const extractorSpeedBonus = researchSet.has('basicAutomation') ? 0.15 : 0;
-        const factorySpeedBonus = researchSet.has('advancedAutomation') ? 0.25 : 0;
-        const workerEfficiencyBonus = researchSet.has('workerTraining') ? 0.25 : 0;
+        // Transport efficiency (for peak efficiency tracking — not production math)
         const logistics1Bonus = researchSet.has('logistics1') ? 0.2 : 0;
         const advancedLogisticsBonus = researchSet.has('advancedLogistics') ? 0.3 : 0;
         const cargoDronesBonus = researchSet.has('cargoDrones') ? 0.25 : 0;
         const transportBonus = logistics1Bonus + advancedLogisticsBonus + cargoDronesBonus;
-        const advancedDrillingBonus = researchSet.has('advancedDrilling') ? 0.20 : 0;
-        const efficientSmeltingBonus = researchSet.has('efficientSmelting') ? 0.15 : 0;
-        const advancedElectronicsBonus = researchSet.has('advancedElectronics') ? 0.15 : 0;
-        const metabolicEngineeringBonus = researchSet.has('metabolicEngineering') ? 0.20 : 0;
-        const aiOptimizationBonus = researchSet.has('aiOptimization') ? 0.20 : 0;
-        const advancedRoboticsBonus = researchSet.has('advancedRobotics') ? 0.25 : 0;
-        const quantumComputingBonus = researchSet.has('quantumComputing') ? 0.30 : 0;
-
-        // Prestige bonuses
-        const productionPrestigeBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'productionMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
-        const powerPrestigeBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'powerMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
-
-        // MegaProject bonuses (single-pass loop instead of 8× filter)
-        let megaProductionBonus = 0, megaPowerBonus = 0, megaResearchBonus = 0,
-            megaExtractionBonus = 0, megaWorkerBonus = 0, megaTransportBonus = 0,
-            megaMarketBonus = 0, megaBuildingCostReduction = 0;
-        for (const p of state.megaProjects) {
-          if (!p.completed) continue;
-          switch (p.bonus.type) {
-            case 'productionMultiplier': megaProductionBonus += p.bonus.value; break;
-            case 'powerMultiplier': megaPowerBonus += p.bonus.value; break;
-            case 'researchMultiplier': megaResearchBonus += p.bonus.value; break;
-            case 'extractionMultiplier': megaExtractionBonus += p.bonus.value; break;
-            case 'workerEfficiency': megaWorkerBonus += p.bonus.value; break;
-            case 'transportMultiplier': megaTransportBonus += p.bonus.value; break;
-            case 'marketMultiplier': megaMarketBonus += p.bonus.value; break;
-            case 'buildingCostReduction': megaBuildingCostReduction += p.bonus.value; break;
-          }
-        }
-
-        totalProduction *= (1 + powerPrestigeBonus + megaPowerBonus);
-        const effectivePowerEfficiency = totalProduction > 0 ? Math.max(0.10, Math.min(1, totalProduction / Math.max(0.001, totalConsumption))) : 0.10;
-
-        // Transport efficiency — calculated here so it can be applied to production
         const transportEfficiency = state.transportLines.length > 0
-          ? (state.transportLines.filter(t => t.active).length / Math.max(1, state.transportLines.length)) * (1 + transportBonus + megaTransportBonus)
+          ? (state.transportLines.filter(t => t.active).length / Math.max(1, state.transportLines.length)) * (1 + transportBonus + cache.transportMegaBonus)
           : 1;
-        // Transport bonus: additive 25% of excess efficiency as production bonus (Option B)
-        const transportProductionBonus = 1 + 0.25 * Math.max(0, transportEfficiency - 1);
 
-        // Process buildings
-        let workerPowerSavings = 0;
-        // Build worker→building lookup Map (O(n) build, O(1) per lookup instead of O(n²) total)
-        const workersByBuilding = new Map<string, Worker[]>();
-        for (const w of state.workers) {
-          if (w.assignedTo) {
-            const list = workersByBuilding.get(w.assignedTo);
-            if (list) list.push(w);
-            else workersByBuilding.set(w.assignedTo, [w]);
-          }
-        }
+        // === Building Production (via calculator) ===
+        const snapshotBuildings: ProductionSnapshot['buildings'] = {};
 
-        state.buildings.forEach(b => {
-          if (!b.active) return;
+        for (const b of state.buildings) {
+          if (!b.active) continue;
           const def = BUILDING_DEFS[b.type];
-          if (!def) return;
+          if (!def) continue;
+          if (def.category === 'power') continue; // Handled by power grid
 
-          let efficiency = b.efficiency * effectivePowerEfficiency * eventProductionMultiplier * weatherProductionMultiplier * transportProductionBonus;
-          
-          if (def.category === 'extractor') efficiency *= (1 + extractorSpeedBonus + advancedDrillingBonus + megaExtractionBonus);
-          if (def.category === 'factory') efficiency *= (1 + factorySpeedBonus);
-          if (def.category === 'factory' && def.tier === 1) efficiency *= (1 + efficientSmeltingBonus);
-          if (def.category === 'factory' && def.tier === 2) efficiency *= (1 + advancedElectronicsBonus);
-          if (def.category === 'factory' && def.tier === 3) efficiency *= (1 + metabolicEngineeringBonus);
-          if (b.type === 'aiLab' || b.type === 'neuralLab') efficiency *= (1 + aiOptimizationBonus);
-          if (b.type === 'roboticsBay' || b.type === 'droneShipyard') efficiency *= (1 + advancedRoboticsBonus);
-          if (b.type === 'quantumLab') efficiency *= (1 + quantumComputingBonus);
+          const result = computeProduction(b, cache, newResources);
 
-          // Apply targeted event production multipliers
-          const targetedEventMult = targetedEventMultipliers.get(b.type);
-          if (targetedEventMult) efficiency *= targetedEventMult;
+          snapshotBuildings[b.id] = {
+            outputs: result.outputs,
+            inputs: result.inputs,
+            efficiency: result.efficiency,
+          };
 
-          let workerMaintenanceReduction = 0;
-          const assignedWorkers = workersByBuilding.get(b.id) ?? [];
-          assignedWorkers.forEach(w => {
-            const wDef = WORKER_DEFS[w.type];
-            if (wDef) {
-              efficiency *= (1 + wDef.effects.speed * w.level * (1 + workerEfficiencyBonus + megaWorkerBonus));
-              // Worker efficiency: increases building's base production efficiency
-              efficiency *= (1 + wDef.effects.efficiency * w.level * (1 + workerEfficiencyBonus + megaWorkerBonus));
-              // Worker maintenance: reduces building power consumption (Mechanic specialty)
-              workerMaintenanceReduction += wDef.effects.maintenance * w.level * (1 + workerEfficiencyBonus + megaWorkerBonus);
-            }
-          });
-
-          // Apply worker maintenance power reduction (capped at 50% reduction)
-          const buildingPowerReduction = Math.min(0.5, workerMaintenanceReduction);
-          if (buildingPowerReduction > 0 && def.basePowerConsumption > 0) {
-            workerPowerSavings += def.basePowerConsumption * b.level * b.efficiency * buildingPowerReduction;
-          }
-
-          efficiency *= (1 + productionPrestigeBonus + megaProductionBonus);
-
-          if (def.category === 'extractor' && def.outputs) {
-            def.outputs.forEach(output => {
-              if (output.resource === 'money') return;
+          if (def.category === 'extractor' && result.canProduce) {
+            for (const output of result.outputs) {
               const res = output.resource as ResourceType;
-              const produced = output.amount * def.baseProductionRate * b.level * efficiency;
-              const capacity = newResources[res] + produced;
+              const capacity = newResources[res] + output.amount;
               newResources[res] = Math.min(getCapacity(state, res, researchSet), capacity);
-              newStats.totalResourcesProduced[res] += produced;
-              computedProdRates[res] = (computedProdRates[res] || 0) + produced;
-            });
+              newStats.totalResourcesProduced[res] += output.amount;
+              computedProdRates[res] = (computedProdRates[res] || 0) + output.amount;
+            }
           }
 
           if (def.category === 'factory') {
-            if (def.inputs && def.outputs) {
-              let canProduce = true;
-              const adjustedInputs = def.inputs.map(input => {
-                if (input.resource === 'money') return { resource: input.resource, amount: 0 };
-                return {
-                  resource: input.resource,
-                  amount: input.amount * b.level * efficiency,
-                };
-              }).filter(i => i.resource !== 'money');
+            // Track demand (inputs) regardless of whether factory can produce
+            for (const input of result.inputs) {
+              computedConsRates[input.resource] = (computedConsRates[input.resource] || 0) + input.amount;
+            }
 
-              for (const input of adjustedInputs) {
+            if (result.canProduce) {
+              // Consume actual inputs
+              for (const input of result.actualInputs) {
                 const res = input.resource as ResourceType;
-                if (newResources[res] < input.amount) {
-                  canProduce = false;
-                  break;
-                }
+                newResources[res] -= input.amount;
+                computedActualConsRates[res] = (computedActualConsRates[res] || 0) + input.amount;
               }
-
-              if (canProduce) {
-                adjustedInputs.forEach(input => {
-                  const res = input.resource as ResourceType;
-                  newResources[res] -= input.amount;
-                  computedConsRates[res] = (computedConsRates[res] || 0) + input.amount;
-                  computedActualConsRates[res] = (computedActualConsRates[res] || 0) + input.amount;
-                });
-                def.outputs.forEach(output => {
-                  if (output.resource === 'money') return;
-                  const res = output.resource as ResourceType;
-                  const produced = output.amount * def.baseProductionRate * b.level * efficiency;
-                  const capacity = newResources[res] + produced;
-                  newResources[res] = Math.min(getCapacity(state, res, researchSet), capacity);
-                  newStats.totalResourcesProduced[res] += produced;
-                  computedProdRates[res] = (computedProdRates[res] || 0) + produced;
-                });
-              } else {
-                // Even if can't produce, still track attempted consumption for demand display
-                adjustedInputs.forEach(input => {
-                  const res = input.resource as ResourceType;
-                  computedConsRates[res] = (computedConsRates[res] || 0) + input.amount;
-                });
+              // Produce outputs
+              for (const output of result.outputs) {
+                const res = output.resource as ResourceType;
+                const capacity = newResources[res] + output.amount;
+                newResources[res] = Math.min(getCapacity(state, res, researchSet), capacity);
+                newStats.totalResourcesProduced[res] += output.amount;
+                computedProdRates[res] = (computedProdRates[res] || 0) + output.amount;
               }
             }
           }
-        });
+        }
 
-        // Apply worker power savings to total consumption
-        const adjustedWorkerPowerSavings = workerPowerSavings * (1 - powerEfficiencyResearch) * (1 - powerOptimizationResearch) * eventPowerConsumptionMultiplier;
-        totalConsumption = Math.max(0, totalConsumption - adjustedWorkerPowerSavings);
+        // Worker XP bonus (research-only, NOT including mega — used by worker update below)
+        const workerEfficiencyBonus = researchSet.has('workerTraining') ? 0.25 : 0;
+        // megaMarketBonus (used by auto-sell pricing below)
+        const megaMarketBonus = cache.marketBonus - (cache.hasMarketAnalysis ? 0.2 : 0) - state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'marketMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
 
         // Update market prices (throttled to every 5 ticks for performance)
         const newMarket = (newTick % 5 === 0) ? state.market.map(m => {
@@ -1087,7 +948,7 @@ export const useGameStore = create<GameStore>()(
         if (newActiveResearch) {
           const node = RESEARCH_TREE.find(r => r.id === newActiveResearch);
           if (node) {
-            const researchSpeed = eventResearchMultiplier * (1 + state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'researchMultiplier').reduce((sum, b) => sum + b.effect.value, 0) + megaResearchBonus);
+            const researchSpeed = cache.eventResearch * (1 + cache.researchBonus);
             newResearchProgress += researchSpeed;
             if (newResearchProgress >= node.timeRequired) {
               newCompletedResearch.push(newActiveResearch);
@@ -1315,9 +1176,7 @@ export const useGameStore = create<GameStore>()(
             const excess = newResources[r] - getCapacity(state, r, researchSet) * 0.8;
             if (excess > 0) {
               const marketPrice = newMarket.find(m => m.resource === r)?.currentPrice ?? 0;
-              const marketBonus = researchSet.has('marketAnalysis') ? 0.2 : 0;
-              const prestigeMarketBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'marketMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
-              const sellPrice = marketPrice * (0.9 + marketBonus + prestigeMarketBonus + megaMarketBonus);
+              const sellPrice = marketPrice * computeSellMultiplier(state, cache);
               const sellAmount = Math.min(excess, 5);
               newResources[r] -= sellAmount;
               moneyEarned += sellAmount * sellPrice;
@@ -1336,9 +1195,7 @@ export const useGameStore = create<GameStore>()(
             if (excess > 0) {
               const marketItem = marketMap.get(r);
               if (marketItem) {
-                const marketBonus = researchSet.has('marketAnalysis') ? 0.2 : 0;
-                const prestigeMarketBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'marketMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
-                const sellPrice = marketItem.currentPrice * (0.9 + marketBonus + prestigeMarketBonus + megaMarketBonus);
+                const sellPrice = marketItem.currentPrice * computeSellMultiplier(state, cache);
                 const sellAmount = Math.min(excess, 10);
                 newResources[r] -= sellAmount;
                 moneyEarned += sellAmount * sellPrice;
@@ -1455,41 +1312,15 @@ export const useGameStore = create<GameStore>()(
 
         const ticksSinceLastPayout = newTick - newPayoutConfig.lastPayoutTick;
         if (ticksSinceLastPayout >= newPayoutConfig.basePayoutInterval && state.buildings.length > 0) {
-          // Calculate payout based on active buildings
+          // Calculate payout via calculator (single source of truth)
+          const payoutResult = computePayout(state, cache);
+          const payoutAmount = payoutResult.amountPerCycle;
+
+          // avgEfficiency for payout history record
           const activeBuildings = state.buildings.filter(b => b.active);
-          const extractors = activeBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'extractor');
-          const factories = activeBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory');
-          const powerPlants = activeBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power');
-
-          // Base rates per building type per payout cycle (10x buff from original)
-          const extractorRate = 20;
-          const factoryRate = 50;
-          const powerRate = 10;
-
-          const extractorIncome = extractors.reduce((sum, b) => sum + extractorRate * b.level * b.efficiency, 0);
-          const factoryIncome = factories.reduce((sum, b) => sum + factoryRate * b.level * b.efficiency, 0);
-          const powerIncome = powerPlants.reduce((sum, b) => sum + powerRate * b.level * b.efficiency, 0);
-
-          let rawPayout = extractorIncome + factoryIncome + powerIncome;
-
-          // Apply average efficiency modifier
           const avgEfficiency = activeBuildings.length > 0
             ? activeBuildings.reduce((sum, b) => sum + b.efficiency, 0) / activeBuildings.length
             : 0;
-          rawPayout *= avgEfficiency;
-
-          // Apply prestige bonuses
-          const payoutPrestigeBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'productionMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
-          const payoutMegaBonus = getMegaProjectBonus(state.megaProjects, 'productionMultiplier');
-          rawPayout *= (1 + payoutPrestigeBonus + payoutMegaBonus);
-
-          // Apply event production multiplier
-          rawPayout *= eventProductionMultiplier;
-
-          // Apply weather modifier
-          rawPayout *= weatherProductionMultiplier;
-
-          const payoutAmount = Math.floor(rawPayout);
 
           if (payoutAmount > 0) {
             if (newPayoutConfig.autoCollect) {
@@ -1595,41 +1426,12 @@ export const useGameStore = create<GameStore>()(
           }
         }
 
-        // === Endgame Building Passive Income ===
+        // === Endgame Building Passive Income (via calculator) ===
         let corpGained = 0;
-        const megaFactoryUnlocked = state.prestigeState.megaFactoryUnlocked;
-        const endgameBuildings = state.buildings.filter(b => b.active && [
-          'dysonCollector', 'quantumTeleporter', 'dimensionalGateway', 'timeDistorter', 'galacticForge'
-        ].includes(b.type));
-
-        for (const b of endgameBuildings) {
-          let endEff = b.efficiency * effectivePowerEfficiency;
-          if (megaFactoryUnlocked) {
-            endEff *= eventProductionMultiplier * weatherProductionMultiplier * transportProductionBonus;
-            endEff *= (1 + productionPrestigeBonus + megaProductionBonus);
-          }
-          const rate = b.level * endEff;
-          switch (b.type) {
-            case 'dysonCollector':
-              moneyEarned += Math.floor(8000 * rate);
-              break;
-            case 'quantumTeleporter':
-              newResearchPoints += Math.floor(10 * rate);
-              break;
-            case 'dimensionalGateway':
-              corpGained += Math.floor(1 * rate);
-              break;
-            case 'timeDistorter':
-              moneyEarned += Math.floor(5000 * rate);
-              newResearchPoints += Math.floor(5 * rate);
-              break;
-            case 'galacticForge':
-              moneyEarned += Math.floor(100000 * rate);
-              newResearchPoints += Math.floor(50 * rate);
-              corpGained += Math.floor(5 * rate);
-              break;
-          }
-        }
+        const endgameResult = computeEndgameIncome(state, cache);
+        moneyEarned += endgameResult.moneyPerTick;
+        newResearchPoints += endgameResult.researchPerTick;
+        corpGained += endgameResult.corpPerTick;
 
         // Rank change detection
         const prevScore = Math.floor(
@@ -1658,6 +1460,25 @@ export const useGameStore = create<GameStore>()(
         if (newRankName !== prevRankName) {
           soundEngine.play('levelUp', 'events');
         }
+
+        // === Assemble ProductionSnapshot ===
+        const payoutSnapshot = computePayout(state, cache);
+        const productionSnapshot: ProductionSnapshot = {
+          production: { ...computedProdRates },
+          consumption: { ...computedConsRates },
+          actualConsumption: { ...computedActualConsRates },
+          buildings: snapshotBuildings,
+          powerProduction: powerResult.totalProduction,
+          powerConsumption: powerResult.totalConsumption,
+          powerEfficiency: powerResult.efficiency,
+          powerOverload: powerResult.overload,
+          payoutPerCycle: payoutSnapshot.amountPerCycle,
+          payoutBreakdown: payoutSnapshot.breakdown,
+          sellMultiplier: computeSellMultiplier(state, cache),
+          endgameMoney: endgameResult.moneyPerTick,
+          endgameResearch: endgameResult.researchPerTick,
+          endgameCorp: endgameResult.corpPerTick,
+        };
 
         set({
           gameTick: newTick,
@@ -1696,6 +1517,7 @@ export const useGameStore = create<GameStore>()(
           computedProductionRates: computedProdRates,
           computedConsumptionRates: computedConsRates,
           computedActualConsumptionRates: computedActualConsRates,
+          productionSnapshot,
         });
 
         // --- Update Quest Progress (periodic checks) ---
@@ -2038,10 +1860,7 @@ export const useGameStore = create<GameStore>()(
         const marketItem = state.market.find(m => m.resource === resource);
         if (!marketItem) return;
 
-        const marketBonus = state.completedResearch.includes('marketAnalysis') ? 0.2 : 0;
-        const prestigeMarketBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'marketMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
-        const megaMarketBonusManual = getMegaProjectBonus(state.megaProjects, 'marketMultiplier');
-        const sellPrice = marketItem.currentPrice * amount * (0.9 + marketBonus + prestigeMarketBonus + megaMarketBonusManual);
+        const sellPrice = marketItem.currentPrice * amount * computeSellMultiplier(state, buildMultipliers(state));
 
         set({
           resources: { ...state.resources, [resource]: state.resources[resource] - amount },

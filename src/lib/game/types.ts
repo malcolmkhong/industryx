@@ -494,6 +494,10 @@ export interface GameState {
   computedProductionRates: Record<string, number>;
   computedConsumptionRates: Record<string, number>;
   computedActualConsumptionRates: Record<string, number>; // Only actual consumption (excludes stalled factory demand)
+
+  // Production snapshot — single source of truth for all economy data (Phase 2)
+  // UI should read from this instead of the three computed* fields above
+  productionSnapshot: import('./productionCalculator').ProductionSnapshot;
 }
 
 export type GameTab = 'dashboard' | 'factoryMap' | 'resourceMonitor' | 'resources' | 'factories' | 'storage' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'contracts' | 'quests' | 'automation' | 'prestige' | 'events' | 'megaprojects' | 'statistics' | 'blueprints' | 'guide' | 'achievements' | 'leaderboard' | 'dailyRewards' | 'payouts' | 'droneDelivery' | 'notifications' | 'settings';
