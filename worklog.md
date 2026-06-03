@@ -1720,3 +1720,55 @@ Stage Summary:
 - All tests pass: Worker endpoint, proxy route, full game pipeline
 - Worker code saved at /home/z/my-project/cloudflare-worker.js for reference
 - Files modified: src/app/api/news-llm/route.ts, src/lib/game/newsLLM.ts
+
+---
+Task ID: Market System Audit
+Agent: main
+Task: Comprehensive audit of the Market Trends → Events → News flow, selling system, and trade→price→news relationship
+
+Work Log:
+- Read all game engine files: marketSimulator.ts, newsBuilder.ts, newsLLM.ts, store.ts, route.ts
+- Traced the complete data flow from market simulation through news generation to LLM enhancement
+- Analyzed auto-sell system (80% threshold, 10 unit cap)
+- Verified trade→price→trends→news chain is properly connected
+- Identified and fixed issues:
+
+**Issue 1: DEAD CODE — Duplicate news generators in marketSimulator.ts (FIXED)**
+- marketSimulator.ts had 4 old template generator functions (generatePriceMoveNews, generateVolatilityNews, generateSectorNews, generateTradeNews) that were NEVER called — superseded by the EventPacket pipeline in newsBuilder.ts
+- These ~140 lines of dead code created confusion about which code path was active
+- Removed all 4 functions and the local generateNewsId(), replaced with a comment explaining the new pipeline
+- Exported generateNewsId from newsBuilder.ts and imported it in marketSimulator.ts to eliminate duplication
+
+**Issue 2: Auto-sell cap too low (FIXED)**
+- Old code: `Math.min(excess, 10)` — flat 10-unit cap per tick
+- If a resource had high production (e.g., 20 iron/tick from 5 mines), only 10 was sold per tick, causing resources to stay at max capacity indefinitely
+- New code: `Math.max(1, Math.min(Math.ceil(excess * 0.5), Math.ceil(capacity * 0.1)))` — sells 50% of excess, clamped to [1, 10% of capacity]
+- Example: 90 iron in 100-cap → excess=10, sell=5. 100 iron in 500-cap → excess=100, sell=10 (capped at 10% = 50). Much more responsive.
+
+**Issue 3: Duplicate generateNewsId (FIXED)**
+- Both marketSimulator.ts and newsBuilder.ts defined generateNewsId()
+- Now exported from newsBuilder.ts and imported in marketSimulator.ts
+
+**Verified: The full trade→price→news chain IS properly connected:**
+1. Player sells 100 iron → recordPlayerSell() adds to recentPlayerSells
+2. Next simulateMarketTick (every 5 ticks): tradeImpact = (-recentSells * 0.001 + recentBuys * 0.001) * elasticity → price adjusts
+3. Price changes tracked in priceChanges → if >6%, buildEventPacketFromPriceMove creates EventPacket
+4. EventPacket → newsFromPacket() → MarketNews with textSource='fallback' + eventPacket for LLM
+5. News stored in state.marketNews → pushed to LLM batch → Cloudflare Worker returns enhanced text
+6. LLM callback updates news items with AI-generated headlines
+
+**Verified: Auto-sell properly records into market simulator:**
+- Auto-sell calls recordPlayerSell() → adds to recentPlayerSells
+- This means auto-sells ARE reflected in trade impact on prices and trade news generation
+- However, auto-sell amounts are small (now proportional), so they rarely trigger trade news alone
+
+**Verified: productionSnapshot IS written every tick (not every 50 ticks)**
+- productionHistory is written every 50 ticks (historical archive)
+- productionSnapshot is written every tick (live rates for market sim) — this was correct
+
+Stage Summary:
+- Removed ~140 lines of dead code from marketSimulator.ts
+- Improved auto-sell from flat 10-unit cap to proportional (50% of excess, max 10% capacity)
+- Eliminated duplicate generateNewsId between marketSimulator.ts and newsBuilder.ts
+- Full trade→price→trends→news chain is properly connected — no missing links found
+- Files modified: marketSimulator.ts, newsBuilder.ts, store.ts

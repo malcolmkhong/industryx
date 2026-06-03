@@ -1274,24 +1274,30 @@ export const useGameStore = create<GameStore>()(
           });
         }
 
-        // Auto-sell specific resources when > 80% capacity
+        // Auto-sell specific resources when above threshold capacity
+        // Sells 50% of excess per tick, clamped to [1, capacity*0.1] to prevent
+        // market flooding while still draining faster than the old flat-10 cap.
         let autoSellSimState = newMarketSimState;
         if (state.autoSellResources.length > 0) {
           // Build market lookup Map for O(1) access
           const marketMap = new Map(newMarket.map(m => [m.resource, m]));
           state.autoSellResources.forEach(r => {
-            const threshold = getCapacity(state, r, researchSet) * 0.8;
-            const excess = newResources[r] - threshold;
+            const capacity = getCapacity(state, r, researchSet);
+            const threshold = capacity * 0.8;
+            const held = newResources[r];
+            const excess = held - threshold;
             if (excess > 0) {
               const marketItem = marketMap.get(r);
               if (marketItem) {
                 const sellPrice = marketItem.currentPrice * computeSellMultiplier(state, cache);
-                const sellAmount = Math.min(excess, 10);
-                newResources[r] -= sellAmount;
-                moneyEarned += sellAmount * sellPrice;
-                newStats.totalResourcesSold[r] += sellAmount;
+                // Sell 50% of excess, but at least 1 and at most 10% of capacity
+                const sellAmount = Math.max(1, Math.min(Math.ceil(excess * 0.5), Math.ceil(capacity * 0.1)));
+                const actualSell = Math.min(sellAmount, held); // can't sell more than we have
+                newResources[r] -= actualSell;
+                moneyEarned += actualSell * sellPrice;
+                newStats.totalResourcesSold[r] += actualSell;
                 // Record auto-sell in market simulator
-                autoSellSimState = recordPlayerSell(autoSellSimState, r, sellAmount);
+                autoSellSimState = recordPlayerSell(autoSellSimState, r, actualSell);
               }
             }
           });

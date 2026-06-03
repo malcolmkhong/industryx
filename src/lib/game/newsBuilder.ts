@@ -746,7 +746,7 @@ export function generateFallbackText(
 // Utility: Build a full MarketNews from an EventPacket (deterministic path)
 // ═══════════════════════════════════════════════════════════════════════════
 
-function generateNewsId(): string {
+export function generateNewsId(): string {
   return 'nws-' + Math.random().toString(36).substring(2, 8);
 }
 

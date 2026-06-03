@@ -25,6 +25,7 @@ import {
   buildEventPacketFromSector,
   buildEventPacketFromTrade,
   generateFallbackText,
+  generateNewsId,
   EventPacket,
   NEWS_CONFIG,
 } from './newsBuilder';
@@ -320,146 +321,15 @@ export interface MarketNews {
   eventPacket?: import('./newsBuilder').EventPacket; // structured data for LLM re-generation
 }
 
-function generateNewsId(): string {
-  return 'nws-' + Math.random().toString(36).substring(2, 8);
-}
-
-// News template generators — derive from simulation outputs ONLY
-function generatePriceMoveNews(
-  resource: ResourceType,
-  oldPrice: number,
-  newPrice: number,
-  basePrice: number,
-  gameTick: number,
-): MarketNews | null {
-  const changeRatio = (newPrice - oldPrice) / oldPrice;
-  const absChange = Math.abs(changeRatio);
-  if (absChange < NEWS_CONFIG.priceMove.threshold) return null; // threshold from config
-
-  const name = RESOURCE_META[resource]?.name ?? resource;
-  const direction = changeRatio > 0 ? 'up' : 'down';
-  const pctStr = (absChange * 100).toFixed(1);
-  const priceRatio = newPrice / basePrice;
-
-  let title: string;
-  let description: string;
-
-  if (direction === 'up') {
-    if (priceRatio > NEWS_CONFIG.priceMove.causeRatio.bubble) {
-      title = `${name} Market Frenzy`;
-      description = `${name} prices surge ${pctStr}% as speculative buying intensifies. Market watchers warn of bubble conditions.`;
-    } else if (priceRatio > NEWS_CONFIG.priceMove.causeRatio.shortage) {
-      title = `${name} Supply Tightness`;
-      description = `${name} prices climb ${pctStr}% as supply struggles to meet demand. Traders report limited availability.`;
-    } else {
-      title = `${name} Price Increase`;
-      description = `${name} values rose ${pctStr}% in recent trading. Moderate demand pressure observed.`;
-    }
-  } else {
-    if (priceRatio < NEWS_CONFIG.priceMove.causeRatio.crash) {
-      title = `${name} Market Crash`;
-      description = `${name} prices plummet ${pctStr}% amid heavy sell-off. Market circuit breakers considered.`;
-    } else if (priceRatio < NEWS_CONFIG.priceMove.causeRatio.oversupply) {
-      title = `${name} Oversupply Alert`;
-      description = `${name} prices drop ${pctStr}% as excess supply floods the market. Producers scaling back operations.`;
-    } else {
-      title = `${name} Price Decline`;
-      description = `${name} values slipped ${pctStr}% in recent trading. Demand softening observed.`;
-    }
-  }
-
-  return {
-    id: generateNewsId(),
-    title,
-    description,
-    affectedResources: [resource],
-    impactSummary: `${name} ${direction === 'up' ? '▲' : '▼'} ${pctStr}%`,
-    severity: absChange > NEWS_CONFIG.priceMove.severity.high ? 'high' : absChange > NEWS_CONFIG.priceMove.severity.medium ? 'medium' : 'low',
-    gameTick,
-    category: 'price_move',
-  };
-}
-
-function generateVolatilityNews(
-  resource: ResourceType,
-  injection: VolatilityInjection,
-  gameTick: number,
-): MarketNews {
-  const name = RESOURCE_META[resource]?.name ?? resource;
-  const direction = injection.direction > 0 ? 'upward' : 'downward';
-  const intensityLabel = injection.intensity > NEWS_CONFIG.volatility.severity.high ? 'severe' : injection.intensity > NEWS_CONFIG.volatility.severity.medium ? 'moderate' : 'minor';
-
-  const sourceDescriptions: Record<string, string> = {
-    micro: `A localized ${intensityLabel} disruption is pushing ${name} prices ${direction}. ${injection.label ?? 'Short-term volatility expected.'}`,
-    macro: `A macro-economic event is driving ${direction} pressure across the sector. ${injection.label ?? 'Market-wide impact detected.'}`,
-    chain: `Cascading market effects are pushing ${name} prices ${direction}. ${injection.label ?? 'Correlation-driven movement.'}`,
-  };
-
-  return {
-    id: generateNewsId(),
-    title: injection.source === 'macro'
-      ? `Macro Event: ${injection.label ?? 'Sector Shock'}`
-      : injection.source === 'chain'
-        ? `Chain Reaction: ${name} Volatility`
-        : `${name} Volatility Spike`,
-    description: sourceDescriptions[injection.source] ?? sourceDescriptions.micro,
-    affectedResources: [resource],
-    impactSummary: `${name} ${injection.direction > 0 ? '▲' : '▼'} ${intensityLabel} volatility`,
-    severity: injection.intensity > NEWS_CONFIG.volatility.severity.high ? 'high' : injection.intensity > NEWS_CONFIG.volatility.severity.medium ? 'medium' : 'low',
-    gameTick,
-    category: 'volatility',
-  };
-}
-
-function generateSectorNews(
-  sector: MarketSector,
-  trend: 'up' | 'down' | 'stable',
-  avgChange: number,
-  resources: ResourceType[],
-  gameTick: number,
-): MarketNews | null {
-  const absChange = Math.abs(avgChange);
-  if (absChange < NEWS_CONFIG.sector.threshold) return null; // threshold from config
-
-  const info = getSectorInfo(sector);
-  const direction = trend === 'up' ? 'rallying' : 'declining';
-
-  return {
-    id: generateNewsId(),
-    title: `${info.name} Sector ${trend === 'up' ? 'Rally' : 'Downturn'}`,
-    description: `${info.name} sector is ${direction} with an average price change of ${(avgChange * 100).toFixed(1)}%. ${trend === 'up' ? 'Investor confidence rising.' : 'Market participants exercising caution.'}`,
-    affectedResources: resources,
-    impactSummary: `${info.name} ${trend === 'up' ? '▲' : '▼'} ${(absChange * 100).toFixed(1)}%`,
-    severity: absChange > NEWS_CONFIG.sector.severity.high ? 'high' : absChange > NEWS_CONFIG.sector.severity.medium ? 'medium' : 'low',
-    gameTick,
-    category: 'sector',
-  };
-}
-
-function generateTradeNews(
-  resource: ResourceType,
-  recentSells: number,
-  recentBuys: number,
-  gameTick: number,
-): MarketNews | null {
-  const totalVolume = recentSells + recentBuys;
-  const imbalance = Math.abs(recentSells - recentBuys);
-  if (totalVolume < NEWS_CONFIG.trade.minVolume || imbalance / totalVolume < NEWS_CONFIG.trade.imbalanceRatio) return null; // threshold from config
-
-  const name = RESOURCE_META[resource]?.name ?? resource;
-  const dominantSide = recentBuys > recentSells ? 'buying' : 'selling';
-
-  return {
-    id: generateNewsId(),
-    title: `Unusual ${name} Trading Volume`,
-    description: `Heavy ${dominantSide} activity detected in ${name} market. Volume is ${totalVolume.toFixed(0)} units with significant imbalance. ${dominantSide === 'buying' ? 'Demand pressure building.' : 'Supply pressure mounting.'}`,
-    affectedResources: [resource],
-    impactSummary: `${name} ${dominantSide === 'buying' ? '▲' : '▼'} volume spike`,
-    severity: totalVolume > NEWS_CONFIG.trade.highVolumeThreshold ? 'high' : 'medium',
-    gameTick,
-    category: 'trade',
-  };
-}
+// NOTE: The old news template generators (generatePriceMoveNews, generateVolatilityNews,
+// generateSectorNews, generateTradeNews) have been REMOVED. They were superseded by the
+// EventPacket pipeline in newsBuilder.ts, which provides:
+//   1. Structured EventPackets (buildEventPacketFromPriceMove, etc.)
+//   2. Enhanced fallback templates (generateFallbackText)
+//   3. LLM enhancement via the batch system (newsLLM.ts)
+//
+// The newsFromPacket() helper below bridges EventPackets → MarketNews objects.
+// All news generation now flows through this single pipeline.
 
 // ═══════════════════════════════════════════════════════════════════════════
 // OVERLAY LAYER 3: Player-driven Market Narrative Layer
