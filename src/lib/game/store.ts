@@ -40,7 +40,7 @@ import {
 } from './productionCalculator';
 
 // --- Save Version ---
-const SAVE_VERSION = 17;
+const SAVE_VERSION = 18;
 
 // --- Utility Functions ---
 function generateId(): string {
@@ -516,6 +516,14 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
   if (version < 17) {
     (state as Record<string, unknown>).marketNews = [];
     (state as Record<string, unknown>).marketNarratives = [];
+  }
+
+  // V17 → V18: Add lastTradeTick to marketSimState (trade freshness tracking)
+  if (version < 18) {
+    const simState = state.marketSimState as Record<string, unknown> | undefined;
+    if (simState && !simState.lastTradeTick) {
+      simState.lastTradeTick = {};
+    }
   }
 
   state._version = SAVE_VERSION;
@@ -1296,8 +1304,8 @@ export const useGameStore = create<GameStore>()(
                 newResources[r] -= actualSell;
                 moneyEarned += actualSell * sellPrice;
                 newStats.totalResourcesSold[r] += actualSell;
-                // Record auto-sell in market simulator
-                autoSellSimState = recordPlayerSell(autoSellSimState, r, actualSell);
+                // Record auto-sell in market simulator (pass gameTick for freshness tracking)
+                autoSellSimState = recordPlayerSell(autoSellSimState, r, actualSell, newTick);
               }
             }
           });
@@ -1960,8 +1968,8 @@ export const useGameStore = create<GameStore>()(
 
         const sellPrice = marketItem.currentPrice * amount * computeSellMultiplier(state, buildMultipliers(state));
 
-        // Record player sell in market simulator (affects future prices)
-        const newSimState = recordPlayerSell(state.marketSimState, resource, amount);
+        // Record player sell in market simulator (affects future prices + freshness tracking)
+        const newSimState = recordPlayerSell(state.marketSimState, resource, amount, state.gameTick);
 
         set({
           resources: { ...state.resources, [resource]: state.resources[resource] - amount },
@@ -1994,8 +2002,8 @@ export const useGameStore = create<GameStore>()(
           return;
         }
 
-        // Record player buy in market simulator (affects future prices)
-        const newSimState = recordPlayerBuy(state.marketSimState, resource, amount);
+        // Record player buy in market simulator (affects future prices + freshness tracking)
+        const newSimState = recordPlayerBuy(state.marketSimState, resource, amount, state.gameTick);
 
         set({
           resources: { ...state.resources, [resource]: newAmount },

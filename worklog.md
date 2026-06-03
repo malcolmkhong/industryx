@@ -1772,3 +1772,38 @@ Stage Summary:
 - Eliminated duplicate generateNewsId between marketSimulator.ts and newsBuilder.ts
 - Full trade→price→trends→news chain is properly connected — no missing links found
 - Files modified: marketSimulator.ts, newsBuilder.ts, store.ts
+
+---
+Task ID: trade-news-persistence-fix
+Agent: main
+Task: Fix "heavy selling" news persisting after player stops selling
+
+Root Cause Analysis:
+The `recentPlayerSells` decay rate of 0.95 per simulation step was too slow. When a player sells 100 iron once and stops:
+- With 0.95 decay, it takes 31 simulation steps (155 ticks) for the volume to drop below the trade-news threshold of 20
+- The resource cooldown is only 50 ticks, so the same sell action generated 4-5 repeated "heavy selling" news items
+- Additionally, auto-sell keeps adding to `recentPlayerSells` every tick, meaning the sell volume NEVER fully decays while auto-sell is active, causing perpetual "heavy selling" news
+
+Fix Applied (3 changes in marketSimulator.ts + store.ts):
+
+1. **Faster decay rate**: Changed from 0.95 to 0.80 per simulation step
+   - 100 units now drops below 20 threshold in ~7 steps (35 ticks) — before the 50-tick cooldown expires
+   - A single large sell now generates trade news at most ONCE
+
+2. **Zero-out threshold**: When decayed value drops below 2, set to 0
+   - Prevents tiny floating-point residuals from lingering forever
+
+3. **Trade freshness check**: Added `lastTradeTick` to `MarketSimulationState`
+   - Trade news is only generated if trades happened within the last cooldown period
+   - Without this, stale accumulated sell volume could still trigger news if the decay hadn't fully cleared it
+   - `recordPlayerSell` and `recordPlayerBuy` now accept optional `gameTick` parameter
+   - All 3 callers updated: manual sell, manual buy, auto-sell
+
+4. **Save migration**: V17→V18 adds `lastTradeTick: {}` to existing `marketSimState`
+
+Verification:
+- Agent-browser tested: sold 150 iron → only 1 trade news generated, no duplicates over 400+ ticks
+- Second heavy sell batch → 1 new trade news, no repeated "heavy selling"
+- Game loads correctly, market news system works, no console errors
+
+Files modified: marketSimulator.ts, store.ts

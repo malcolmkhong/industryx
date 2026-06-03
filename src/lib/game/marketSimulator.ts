@@ -455,6 +455,8 @@ export interface MarketSimulationState {
   lastNewsTick: Partial<Record<ResourceType, number>>;     // last tick each resource appeared in news
   lastSectorNewsTick: Partial<Record<MarketSector, number>>; // last tick each sector appeared in news
   lastCategoryNewsTick: Partial<Record<string, number>>;   // last tick each category emitted news
+  // ── Trade Freshness Tracking ──
+  lastTradeTick: Partial<Record<ResourceType, number>>;    // last tick when a sell/buy occurred (prevents stale news)
 }
 
 export function createInitialSimState(): MarketSimulationState {
@@ -473,6 +475,7 @@ export function createInitialSimState(): MarketSimulationState {
     lastNewsTick: {},
     lastSectorNewsTick: {},
     lastCategoryNewsTick: {},
+    lastTradeTick: {},
   };
 }
 
@@ -544,11 +547,19 @@ export function simulateMarketTick(input: MarketSimulationInput): MarketSimulati
   }
 
   // ── 3. Decay recent player trades (rolling window) ──
+  // Decay rate 0.80 per sim step (every 5 ticks) — fast enough that a single
+  // large sell decays below the trade-news threshold before the cooldown expires.
+  // Old rate 0.95 was too slow: 100 units took 31 steps (155 ticks) to reach 20,
+  // causing repeated "heavy selling" news long after the player stopped.
+  const TRADE_DECAY_RATE = 0.80;
+  const TRADE_DECAY_ZERO_THRESHOLD = 2; // below this → zero out (no lingering residuals)
   const decayedSells: Record<string, number> = {};
   const decayedBuys: Record<string, number> = {};
   for (const m of market) {
-    decayedSells[m.resource] = (newSimState.recentPlayerSells[m.resource] ?? 0) * 0.95;
-    decayedBuys[m.resource] = (newSimState.recentPlayerBuys[m.resource] ?? 0) * 0.95;
+    const rawSell = (newSimState.recentPlayerSells[m.resource] ?? 0) * TRADE_DECAY_RATE;
+    const rawBuy = (newSimState.recentPlayerBuys[m.resource] ?? 0) * TRADE_DECAY_RATE;
+    decayedSells[m.resource] = rawSell < TRADE_DECAY_ZERO_THRESHOLD ? 0 : rawSell;
+    decayedBuys[m.resource] = rawBuy < TRADE_DECAY_ZERO_THRESHOLD ? 0 : rawBuy;
   }
   newSimState.recentPlayerSells = decayedSells as Record<ResourceType, number>;
   newSimState.recentPlayerBuys = decayedBuys as Record<ResourceType, number>;
@@ -878,9 +889,16 @@ export function simulateMarketTick(input: MarketSimulationInput): MarketSimulati
   }
 
   // News from trade imbalances (via EventPacket)
+  // Freshness gate: only generate trade news if trades actually happened recently.
+  // Without this, stale accumulated sell volume keeps generating "heavy selling" news
+  // long after the player stopped trading — the decay alone wasn't fast enough.
+  const TRADE_FRESHNESS_TICKS = RESOURCE_NEWS_COOLDOWN_TICKS; // must have traded within last cooldown period
   for (const m of newMarket) {
     const sells = newSimState.recentPlayerSells[m.resource] ?? 0;
     const buys = newSimState.recentPlayerBuys[m.resource] ?? 0;
+    // Skip if no recent trade activity (prevents stale volume from generating news)
+    const lastTrade = newSimState.lastTradeTick?.[m.resource] ?? 0;
+    if (gameTick - lastTrade > TRADE_FRESHNESS_TICKS) continue;
     const packet = buildEventPacketFromTrade(m.resource, sells, buys);
     if (packet) {
       candidates.push(newsFromPacket(packet, [m.resource], gameTick, 'trade'));
@@ -988,10 +1006,13 @@ export function simulateMarketTick(input: MarketSimulationInput): MarketSimulati
   }
 
   // Trade narratives (limit to avoid spam)
+  // Same freshness gate as trade news: only for recent activity
   let tradeNarratives = 0;
   for (const m of newMarket) {
     if (generatedNarratives.length >= MAX_NARRATIVES_PER_TICK) break;
     if (tradeNarratives >= 1) break;
+    const lastTrade = newSimState.lastTradeTick?.[m.resource] ?? 0;
+    if (gameTick - lastTrade > TRADE_FRESHNESS_TICKS) continue;
     const sells = newSimState.recentPlayerSells[m.resource] ?? 0;
     const buys = newSimState.recentPlayerBuys[m.resource] ?? 0;
     const narrative = generateTradeNarrative(m.resource, sells, buys, gameTick);
@@ -1026,24 +1047,40 @@ export function simulateMarketTick(input: MarketSimulationInput): MarketSimulati
 
 // ─── Helper: Record a player trade ─────────────────────────────────────────
 
-export function recordPlayerSell(simState: MarketSimulationState, resource: ResourceType, amount: number): MarketSimulationState {
-  return {
+export function recordPlayerSell(simState: MarketSimulationState, resource: ResourceType, amount: number, gameTick?: number): MarketSimulationState {
+  const result: MarketSimulationState = {
     ...simState,
     recentPlayerSells: {
       ...simState.recentPlayerSells,
       [resource]: (simState.recentPlayerSells[resource] ?? 0) + amount,
     },
   };
+  // Track freshness: update lastTradeTick so trade news only fires for recent activity
+  if (gameTick !== undefined) {
+    result.lastTradeTick = {
+      ...simState.lastTradeTick,
+      [resource]: gameTick,
+    };
+  }
+  return result;
 }
 
-export function recordPlayerBuy(simState: MarketSimulationState, resource: ResourceType, amount: number): MarketSimulationState {
-  return {
+export function recordPlayerBuy(simState: MarketSimulationState, resource: ResourceType, amount: number, gameTick?: number): MarketSimulationState {
+  const result: MarketSimulationState = {
     ...simState,
     recentPlayerBuys: {
       ...simState.recentPlayerBuys,
       [resource]: (simState.recentPlayerBuys[resource] ?? 0) + amount,
     },
   };
+  // Track freshness: update lastTradeTick so trade news only fires for recent activity
+  if (gameTick !== undefined) {
+    result.lastTradeTick = {
+      ...simState.lastTradeTick,
+      [resource]: gameTick,
+    };
+  }
+  return result;
 }
 
 // ─── Helper: Get sector display info ───────────────────────────────────────
