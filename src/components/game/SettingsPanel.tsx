@@ -867,12 +867,11 @@ export function SettingsPanel() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-lg
-                  bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500
+                  bg-gradient-to-r from-amber-600 to-orange-600
                   text-white text-xs font-semibold
-                  shadow-[0_0_16px_rgba(245,158,11,0.15)] hover:shadow-[0_0_20px_rgba(245,158,11,0.25)]
-                  transition-all duration-200 group"
+                  shadow-[0_0_16px_rgba(245,158,11,0.15)]"
               >
-                <Coffee className="w-3.5 h-3.5 group-hover:scale-110 transition-transform duration-200" />
+                <Coffee className="w-3.5 h-3.5" />
                 Buy me a coffee
                 <ExternalLink className="w-3 h-3 opacity-60" />
               </a>
@@ -889,7 +888,7 @@ export function SettingsPanel() {
               <img
                 src="/bmc_qr.png"
                 alt="Scan QR code to support on Buy Me a Coffee"
-                className="w-28 h-28 rounded-lg opacity-70 hover:opacity-100 transition-opacity duration-200"
+                className="w-28 h-28 rounded-lg opacity-70"
               />
             </a>
           </div>
