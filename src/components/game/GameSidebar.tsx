@@ -8,7 +8,7 @@ import {
   Save, Bell, BookOpen, Trophy, BarChart3,
   Map as MapIcon, Gift, Scroll, DollarSign, Plane,
   Settings, ChevronDown, ChevronRight, Home, Wrench, Swords, Coins, Database,
-  Activity,
+  Activity, Coffee, Heart,
 } from 'lucide-react';
 import { LucideIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -167,9 +167,12 @@ export function GameSidebar({ activeTab, onTabChange }: GameSidebarProps) {
   // Find which group contains the active tab, auto-expand it if collapsed
   const activeGroup = getGroupForTab(activeTab);
 
+  // ── Buy Me a Coffee URL (update this with your actual profile) ──
+  const BUYMEACOFFEE_URL = 'https://buymeacoffee.com/YOUR_USERNAME';
+
   return (
-    <nav className="hidden lg:flex flex-col w-52 flex-shrink-0 bg-[#0a0e17] border-r border-cyan-900/20 overflow-y-auto game-scrollbar">
-      <div className="flex flex-col py-2 gap-0.5 px-2">
+    <nav className="hidden lg:flex flex-col w-52 flex-shrink-0 bg-[#0a0e17] border-r border-cyan-900/20">
+      <div className="flex flex-col py-2 gap-0.5 px-2 flex-1 overflow-y-auto game-scrollbar">
         {NAV_GROUPS.map(group => {
           const isExpanded = expandedGroups.has(group.id);
           const isActiveGroup = group.id === activeGroup?.id;
@@ -223,6 +226,24 @@ export function GameSidebar({ activeTab, onTabChange }: GameSidebarProps) {
             </div>
           );
         })}
+      </div>
+
+      {/* ── Support footer (always visible at sidebar bottom) ── */}
+      <div className="flex-shrink-0 border-t border-cyan-900/20 px-2 pt-2 pb-3">
+        <a
+          href={BUYMEACOFFEE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium
+            text-amber-600/70 hover:text-amber-400
+            hover:bg-amber-500/[0.06] border border-transparent hover:border-amber-500/10
+            transition-all duration-200"
+          aria-label="Support the developer on Buy Me a Coffee"
+        >
+          <Coffee className="w-4 h-4 flex-shrink-0 group-hover:scale-110 transition-transform duration-200" />
+          <span className="truncate">Buy me a coffee</span>
+          <Heart className="w-3 h-3 ml-auto opacity-0 group-hover:opacity-100 text-rose-500 transition-opacity duration-200" />
+        </a>
       </div>
     </nav>
   );

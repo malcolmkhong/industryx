@@ -24,6 +24,9 @@ import {
 } from '@/components/ui/dialog';
 import {
   Settings,
+  Coffee,
+  Heart,
+  ExternalLink,
   Volume2,
   VolumeX,
   Monitor,
@@ -291,6 +294,9 @@ export function SettingsPanel() {
 
   // Game version
   const gameVersion = '1.2.0';
+
+  // ── Buy Me a Coffee URL (update with your actual profile) ──
+  const BUYMEACOFFEE_URL = 'https://buymeacoffee.com/YOUR_USERNAME';
 
   return (
     <div className="space-y-4 max-w-2xl mx-auto">
@@ -837,6 +843,41 @@ export function SettingsPanel() {
               </div>
             </DialogContent>
           </Dialog>
+        </div>
+      </SettingsSection>
+
+      {/* ====== SUPPORT THE DEVELOPER ====== */}
+      <SettingsSection
+        title="Support the Developer"
+        icon={<Coffee className="w-4 h-4 text-amber-400" />}
+        defaultOpen={true}
+      >
+        <div className="bg-[#0a0e17] rounded-lg p-4 border border-amber-900/20">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <Coffee className="w-4.5 h-4.5 text-amber-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-gray-300 leading-relaxed">
+                Factory Dominion is a free, open-source passion project built with love.
+                If you're enjoying the game, a small coffee helps keep the servers running and fuels new features!
+              </p>
+              <a
+                href={BUYMEACOFFEE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-lg
+                  bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500
+                  text-white text-xs font-semibold
+                  shadow-[0_0_16px_rgba(245,158,11,0.15)] hover:shadow-[0_0_20px_rgba(245,158,11,0.25)]
+                  transition-all duration-200 group"
+              >
+                <Coffee className="w-3.5 h-3.5 group-hover:scale-110 transition-transform duration-200" />
+                Buy me a coffee
+                <ExternalLink className="w-3 h-3 opacity-60" />
+              </a>
+            </div>
+          </div>
         </div>
       </SettingsSection>
 
