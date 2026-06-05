@@ -867,7 +867,7 @@ export function SettingsPanel() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-lg
-                  bg-gradient-to-r from-amber-600 to-orange-600
+                  bg-gradient-to-r from-amber-500 to-orange-500
                   text-white text-xs font-semibold
                   shadow-[0_0_16px_rgba(245,158,11,0.15)]"
               >
@@ -888,7 +888,7 @@ export function SettingsPanel() {
               <img
                 src="/bmc_qr.png"
                 alt="Scan QR code to support on Buy Me a Coffee"
-                className="w-28 h-28 rounded-lg opacity-70"
+                className="w-28 h-28 rounded-lg opacity-90"
               />
             </a>
           </div>

@@ -235,12 +235,12 @@ export function GameSidebar({ activeTab, onTabChange }: GameSidebarProps) {
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium
-            text-amber-600/70 border border-transparent"
+            text-amber-400 border border-transparent"
           aria-label="Support the developer on Buy Me a Coffee"
         >
-          <Coffee className="w-4 h-4 flex-shrink-0" />
-          <span className="truncate">Buy me a coffee</span>
-          <Heart className="w-3 h-3 ml-auto text-rose-500" />
+          <Coffee className="w-4 h-4 flex-shrink-0 text-amber-400" />
+          <span className="truncate text-amber-400">Buy me a coffee</span>
+          <Heart className="w-3 h-3 ml-auto text-rose-400" />
         </a>
         {/* QR Code hint */}
         <div className="mt-1.5 px-2.5 pb-1">
@@ -253,7 +253,7 @@ export function GameSidebar({ activeTab, onTabChange }: GameSidebarProps) {
             <img
               src="/bmc_qr.png"
               alt="Scan QR code to support on Buy Me a Coffee"
-              className="w-16 h-16 rounded-md mx-auto opacity-70"
+              className="w-16 h-16 rounded-md mx-auto opacity-90"
             />
           </a>
         </div>
