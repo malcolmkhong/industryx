@@ -167,8 +167,8 @@ export function GameSidebar({ activeTab, onTabChange }: GameSidebarProps) {
   // Find which group contains the active tab, auto-expand it if collapsed
   const activeGroup = getGroupForTab(activeTab);
 
-  // ── Buy Me a Coffee URL (update this with your actual profile) ──
-  const BUYMEACOFFEE_URL = 'https://buymeacoffee.com/YOUR_USERNAME';
+  // ── Buy Me a Coffee ──
+  const BUYMEACOFFEE_URL = 'https://buymeacoffee.com/malcolmkhod';
 
   return (
     <nav className="hidden lg:flex flex-col w-52 flex-shrink-0 bg-[#0a0e17] border-r border-cyan-900/20">
@@ -244,6 +244,21 @@ export function GameSidebar({ activeTab, onTabChange }: GameSidebarProps) {
           <span className="truncate">Buy me a coffee</span>
           <Heart className="w-3 h-3 ml-auto opacity-0 group-hover:opacity-100 text-rose-500 transition-opacity duration-200" />
         </a>
+        {/* QR Code hint */}
+        <div className="mt-1.5 px-2.5 pb-1">
+          <a
+            href={BUYMEACOFFEE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block"
+          >
+            <img
+              src="/bmc_qr.png"
+              alt="Scan QR code to support on Buy Me a Coffee"
+              className="w-16 h-16 rounded-md mx-auto opacity-50 hover:opacity-100 transition-opacity duration-200"
+            />
+          </a>
+        </div>
       </div>
     </nav>
   );

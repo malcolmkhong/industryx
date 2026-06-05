@@ -295,8 +295,8 @@ export function SettingsPanel() {
   // Game version
   const gameVersion = '1.2.0';
 
-  // ── Buy Me a Coffee URL (update with your actual profile) ──
-  const BUYMEACOFFEE_URL = 'https://buymeacoffee.com/YOUR_USERNAME';
+  // ── Buy Me a Coffee ──
+  const BUYMEACOFFEE_URL = 'https://buymeacoffee.com/malcolmkhod';
 
   return (
     <div className="space-y-4 max-w-2xl mx-auto">
@@ -877,6 +877,21 @@ export function SettingsPanel() {
                 <ExternalLink className="w-3 h-3 opacity-60" />
               </a>
             </div>
+          </div>
+          {/* QR Code */}
+          <div className="mt-4 pt-3 border-t border-amber-900/20 flex flex-col items-center gap-2">
+            <p className="text-[10px] text-gray-500">Or scan to support</p>
+            <a
+              href={BUYMEACOFFEE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <img
+                src="/bmc_qr.png"
+                alt="Scan QR code to support on Buy Me a Coffee"
+                className="w-28 h-28 rounded-lg opacity-70 hover:opacity-100 transition-opacity duration-200"
+              />
+            </a>
           </div>
         </div>
       </SettingsSection>
