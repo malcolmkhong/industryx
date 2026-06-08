@@ -110,3 +110,11 @@ https://nextjs.org/telemetry
  POST /api/news-llm 502 in 855ms (compile: 3ms, render: 852ms)
  POST /api/news-llm 502 in 623ms (compile: 2ms, render: 621ms)
  GET / 200 in 26ms (compile: 3ms, render: 22ms)
+ GET / 200 in 30ms (compile: 4ms, render: 26ms)
+ GET / 200 in 26ms (compile: 3ms, render: 23ms)
+ GET /api/icons?t=1780880443966 200 in 6ms (compile: 2ms, render: 4ms)
+ POST /api/news-llm 502 in 1832ms (compile: 2ms, render: 1830ms)
+ POST /api/news-llm 502 in 631ms (compile: 2ms, render: 629ms)
+  Reload env: .env
+ GET / 200 in 181ms (compile: 145ms, render: 36ms)
+✓ Compiled in 834ms
