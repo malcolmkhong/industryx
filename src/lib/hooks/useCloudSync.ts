@@ -12,10 +12,12 @@ interface CloudSyncState {
   isSyncing: boolean;
   resolveConflict: (choice: 'local' | 'cloud') => Promise<{ success: boolean; error?: string }>;
   pendingConflict: { localTick: number; cloudTick: number; localMoney: number; cloudMoney: number } | null;
+  serverStateHash: string | null;
+  isServerAuthoritative: boolean;
 }
 
-// Auto-save interval in milliseconds (60 seconds)
-const AUTO_SAVE_INTERVAL = 60_000;
+// Auto-save interval in milliseconds (increased to 2 minutes to reduce Supabase load)
+const AUTO_SAVE_INTERVAL = 120_000;
 
 export function useCloudSync(): CloudSyncState {
   const { user } = useAuth();
@@ -27,7 +29,10 @@ export function useCloudSync(): CloudSyncState {
   const [lastSyncAtState, setLastSyncAtState] = useState<number | null>(null);
   const [isSyncingState, setIsSyncingState] = useState(false);
   const [pendingConflict, setPendingConflict] = useState<CloudSyncState['pendingConflict']>(null);
+  const [serverStateHash, setServerStateHash] = useState<string | null>(null);
+  const [isServerAuthoritative, setIsServerAuthoritative] = useState(false);
   const cloudDataRef = useRef<unknown>(null);
+  const initialLoadDone = useRef(false);
 
   const saveToCloud = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
     if (!user) return { success: false, error: 'Not authenticated' };
@@ -76,42 +81,30 @@ export function useCloudSync(): CloudSyncState {
         paused: state.paused,
       } as Record<string, unknown>;
 
-      const displayName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Commander';
-
-      const res = await fetch('/api/player', {
+      // Try the authoritative server_game_state endpoint first
+      const res = await fetch('/api/game/state', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, gameState, displayName }),
+        body: JSON.stringify({
+          userId: user.id,
+          gameState,
+          clientChecksum: serverStateHash || undefined,
+        }),
       });
 
-      if (res.status === 401) {
-        return { success: false, error: 'Session expired. Please sign in again.' };
+      if (res.status === 400) {
+        const data = await res.json();
+        if (data.code === 'VALIDATION_FAILED') {
+          // Server rejected the save — state is invalid
+          return { success: false, error: `Save rejected: ${data.violations?.join(', ') || 'validation failed'}` };
+        }
+        if (data.code === 'CHECKSUM_MISMATCH') {
+          return { success: false, error: 'Checksum mismatch — please reload from server' };
+        }
+        if (data.code === 'ACCOUNT_LOCKED') {
+          return { success: false, error: 'Account locked for suspicious activity' };
+        }
       }
-      if (res.status === 403) {
-        return { success: false, error: 'Access denied. You can only save your own data.' };
-      }
-
-      const data = await res.json();
-      if (data.saved) {
-        lastSyncAt.current = Date.now();
-        lastSavedGameTick.current = state.gameTick;
-        setLastSyncAtState(lastSyncAt.current);
-        return { success: true };
-      }
-      return { success: false, error: data.error || 'Save failed' };
-    } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : 'Network error' };
-    } finally {
-      isSyncing.current = false;
-      setIsSyncingState(false);
-    }
-  }, [user]);
-
-  const loadFromCloud = useCallback(async (): Promise<{ success: boolean; data?: unknown; error?: string; isNew?: boolean; conflict?: 'local' | 'cloud' }> => {
-    if (!user) return { success: false, error: 'Not authenticated' };
-
-    try {
-      const res = await fetch(`/api/player?userId=${user.id}`);
 
       if (res.status === 401) {
         return { success: false, error: 'Session expired. Please sign in again.' };
@@ -121,44 +114,99 @@ export function useCloudSync(): CloudSyncState {
       }
 
       const data = await res.json();
+      if (data.saved) {
+        lastSyncAt.current = Date.now();
+        lastSavedGameTick.current = state.gameTick;
+        setLastSyncAtState(lastSyncAt.current);
+        if (data.stateHash) {
+          setServerStateHash(data.stateHash);
+        }
+        setIsServerAuthoritative(true);
+        return { success: true };
+      }
+
+      // Fallback to legacy player endpoint
+      const fallbackRes = await fetch('/api/player', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          gameState,
+          displayName: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Commander',
+        }),
+      });
+
+      if (fallbackRes.ok) {
+        const fallbackData = await fallbackRes.json();
+        if (fallbackData.saved) {
+          lastSyncAt.current = Date.now();
+          lastSavedGameTick.current = state.gameTick;
+          setLastSyncAtState(lastSyncAt.current);
+          return { success: true };
+        }
+      }
+
+      return { success: false, error: data.error || 'Save failed' };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : 'Network error' };
+    } finally {
+      isSyncing.current = false;
+      setIsSyncingState(false);
+    }
+  }, [user, serverStateHash]);
+
+  const loadFromCloud = useCallback(async (): Promise<{ success: boolean; data?: unknown; error?: string; isNew?: boolean; conflict?: 'local' | 'cloud' }> => {
+    if (!user) return { success: false, error: 'Not authenticated' };
+
+    try {
+      // Try the authoritative server_game_state endpoint first
+      const res = await fetch(`/api/game/state?userId=${user.id}`);
+
+      if (res.status === 401) {
+        return { success: false, error: 'Session expired. Please sign in again.' };
+      }
+      if (res.status === 403) {
+        const data = await res.json();
+        if (data.code === 'ACCOUNT_LOCKED') {
+          return { success: false, error: data.reason || 'Account locked for suspicious activity' };
+        }
+        return { success: false, error: 'Access denied.' };
+      }
+
+      const data = await res.json();
 
       if (data.isNew) {
         return { success: true, isNew: true };
       }
 
-      if (data.data?.game_state) {
-        const cloudState = data.data.game_state as Record<string, unknown>;
+      if (data.data?.fullState) {
+        const cloudState = data.data.fullState as Record<string, unknown>;
         const localState = useGameStore.getState();
-        const cloudTick = (cloudState.gameTick as number) || 0;
+        const cloudTick = data.data.gameTick as number || 0;
         const localTick = localState.gameTick;
-        const cloudMoney = (cloudState.money as number) || 0;
+        const cloudMoney = data.data.money as number || 0;
         const localMoney = localState.money;
 
-        // Conflict resolution: compare gameTick (progress indicator)
-        // If cloud is significantly behind local (< 90% of local tick), auto-resolve to local
-        // If cloud is significantly ahead (> 110% of local tick), auto-resolve to cloud
-        // If they're close (within 10%), check money as tiebreaker
+        // Store the server state hash for future checksum validation
+        if (data.data.stateHash) {
+          setServerStateHash(data.data.stateHash);
+        }
+        setIsServerAuthoritative(true);
+
+        // Conflict resolution: compare gameTick
         if (localTick > 0 && cloudTick > 0) {
           const tickRatio = cloudTick / localTick;
 
           if (tickRatio < 0.9) {
-            // Local is significantly ahead — keep local
             lastSyncAt.current = Date.now();
             setLastSyncAtState(lastSyncAt.current);
             return { success: true, data: cloudState, conflict: 'local' };
           } else if (tickRatio > 1.1) {
-            // Cloud is significantly ahead — use cloud
             lastSyncAt.current = Date.now();
             setLastSyncAtState(lastSyncAt.current);
             return { success: true, data: cloudState, conflict: 'cloud' };
           } else {
-            // Close — show conflict dialog for user to choose
-            setPendingConflict({
-              localTick,
-              cloudTick,
-              localMoney,
-              cloudMoney,
-            });
+            setPendingConflict({ localTick, cloudTick, localMoney, cloudMoney });
             cloudDataRef.current = cloudState;
             lastSyncAt.current = Date.now();
             setLastSyncAtState(lastSyncAt.current);
@@ -166,7 +214,6 @@ export function useCloudSync(): CloudSyncState {
           }
         }
 
-        // One side has 0 tick (fresh start) — use the non-zero one
         if (cloudTick > 0 && localTick === 0) {
           return { success: true, data: cloudState, conflict: 'cloud' };
         }
@@ -179,6 +226,53 @@ export function useCloudSync(): CloudSyncState {
         return { success: true, data: cloudState };
       }
 
+      // Fallback to legacy player endpoint
+      const fallbackRes = await fetch(`/api/player?userId=${user.id}`);
+      if (fallbackRes.ok) {
+        const fallbackData = await fallbackRes.json();
+        if (fallbackData.isNew) {
+          return { success: true, isNew: true };
+        }
+        if (fallbackData.data?.game_state) {
+          const cloudState = fallbackData.data.game_state as Record<string, unknown>;
+          const localState = useGameStore.getState();
+          const cloudTick = (cloudState.gameTick as number) || 0;
+          const localTick = localState.gameTick;
+          const cloudMoney = (cloudState.money as number) || 0;
+          const localMoney = localState.money;
+
+          if (localTick > 0 && cloudTick > 0) {
+            const tickRatio = cloudTick / localTick;
+            if (tickRatio < 0.9) {
+              lastSyncAt.current = Date.now();
+              setLastSyncAtState(lastSyncAt.current);
+              return { success: true, data: cloudState, conflict: 'local' };
+            } else if (tickRatio > 1.1) {
+              lastSyncAt.current = Date.now();
+              setLastSyncAtState(lastSyncAt.current);
+              return { success: true, data: cloudState, conflict: 'cloud' };
+            } else {
+              setPendingConflict({ localTick, cloudTick, localMoney, cloudMoney });
+              cloudDataRef.current = cloudState;
+              lastSyncAt.current = Date.now();
+              setLastSyncAtState(lastSyncAt.current);
+              return { success: true, data: cloudState };
+            }
+          }
+
+          if (cloudTick > 0 && localTick === 0) {
+            return { success: true, data: cloudState, conflict: 'cloud' };
+          }
+          if (localTick > 0 && cloudTick === 0) {
+            return { success: true, data: cloudState, conflict: 'local' };
+          }
+
+          lastSyncAt.current = Date.now();
+          setLastSyncAtState(lastSyncAt.current);
+          return { success: true, data: cloudState };
+        }
+      }
+
       return { success: false, error: 'No game state found' };
     } catch (err) {
       return { success: false, error: err instanceof Error ? err.message : 'Network error' };
@@ -189,28 +283,41 @@ export function useCloudSync(): CloudSyncState {
     setPendingConflict(null);
 
     if (choice === 'cloud' && cloudDataRef.current) {
-      // Cloud chosen — save cloud data to store (this is handled by the caller)
-      // Just clear the conflict state
       cloudDataRef.current = null;
       return { success: true };
     }
 
-    // Local chosen — push local state to cloud
     cloudDataRef.current = null;
     return saveToCloud();
   }, [saveToCloud]);
 
-  // Auto-save effect: every 60 seconds, save if logged in and state has changed
+  // Auto-load from server on login (first load only)
+  useEffect(() => {
+    if (!user || initialLoadDone.current) return;
+    initialLoadDone.current = true;
+
+    (async () => {
+      const result = await loadFromCloud();
+      if (result.success && result.data && result.conflict === 'cloud') {
+        // Auto-apply cloud state if it's ahead
+        try {
+          useGameStore.getState().importSave(JSON.stringify(result.data));
+        } catch {
+          // If import fails, the local state stays
+        }
+      }
+    })();
+  }, [user, loadFromCloud]);
+
+  // Auto-save effect: every 2 minutes, save if logged in and state has changed
   useEffect(() => {
     if (!user) return;
 
     const interval = setInterval(async () => {
-      // Don't auto-save if already syncing
       if (isSyncing.current) return;
 
       const currentGameTick = useGameStore.getState().gameTick;
 
-      // Only save if the game state has changed since last save
       if (lastSavedGameTick.current !== null && lastSavedGameTick.current === currentGameTick) {
         return;
       }
@@ -233,5 +340,7 @@ export function useCloudSync(): CloudSyncState {
     isSyncing: isSyncingState,
     resolveConflict,
     pendingConflict,
+    serverStateHash,
+    isServerAuthoritative,
   };
 }

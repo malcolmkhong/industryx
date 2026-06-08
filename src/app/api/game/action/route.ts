@@ -30,7 +30,8 @@ import {
 
 interface ActionRequest {
   userId?: string;
-  action: 'build' | 'sell' | 'buy' | 'research' | 'upgrade' | 'transport';
+  actionType?: string; // New field matching client-side
+  action?: string; // Legacy field
   payload: Record<string, unknown>;
   gameState: Partial<GameState>;
 }
@@ -303,7 +304,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const { userId, action, payload, gameState } = body;
+  const { userId, action: legacyAction, actionType, payload, gameState } = body;
+  const action = legacyAction || actionType; // Support both field names
 
   // ✅ Ownership check: userId in request must match authenticated user
   if (userId && userId !== auth.userId) {
@@ -314,8 +316,12 @@ export async function POST(request: Request) {
     );
   }
 
-  // Validate action type
-  const validActions = ['build', 'sell', 'buy', 'research', 'upgrade', 'transport'];
+  // Validate action type (expanded to support new types)
+  const validActions = ['build', 'sell', 'buy', 'research', 'upgrade', 'transport',
+    'set_game_speed', 'sell_market', 'buy_market', 'prestige', 'import',
+    'claim_quest', 'hire_worker', 'assign_worker', 'upgrade_worker',
+    'start_drone_mission', 'collect_drone', 'toggle_building',
+    'bulk_build', 'bulk_sell'];
   if (!action || !validActions.includes(action)) {
     return NextResponse.json(
       { valid: false, error: `Invalid action "${action}". Must be one of: ${validActions.join(', ')}` } satisfies ActionResponse,
@@ -372,11 +378,34 @@ export async function POST(request: Request) {
       result = { valid: false, error: `Unhandled action: ${action}` };
   }
 
-  // ✅ Audit log the action
+  // ✅ Write to validated_actions table (new server-authoritative record)
+  const supabase = createServiceRoleClient();
+  try {
+    await supabase.from('validated_actions').insert({
+      user_id: auth.userId,
+      action_type: action,
+      payload,
+      game_tick: Number(gameState.gameTick) || 0,
+      money_before: Number(gameState.money) || 0,
+      money_after: Number(gameState.money) || 0, // Will be updated when applied
+      is_valid: result.valid,
+      rejection_reason: result.valid ? null : result.error || null,
+      validation_risk: result.valid ? 'none' : 'high',
+      status: result.valid ? 'validated' : 'rejected',
+      processed_at: new Date().toISOString(),
+      client_ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || null,
+      user_agent: request.headers.get('user-agent') || null,
+    });
+  } catch (err) {
+    console.error('[ActionAPI] Failed to write validated_actions:', err);
+    // Don't fail the request — audit logging is best-effort
+  }
+
+  // ✅ Audit log the action (legacy)
   const clientInfo = extractClientInfo(request);
   logActionAsync({
     userId: auth.userId,
-    actionType: action as 'build' | 'sell' | 'buy' | 'research' | 'upgrade' | 'transport',
+    actionType: action as 'build',
     payload,
     gameTick: Number(gameState.gameTick) || 0,
     moneyBefore: Number(gameState.money) || 0,

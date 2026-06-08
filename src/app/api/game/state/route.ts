@@ -1,12 +1,7 @@
 // ============================================
-// IndustriaX: Player Progress API
-// GET/POST endpoint for cloud save
-// SERVER-AUTHORITATIVE UPGRADE
-// - Fetches previous state for delta validation
-// - Rejects high-risk saves (not just critical)
-// - Validates game speed
-// - Syncs to both player_progress AND server_game_state
-// - Auto-locks accounts after cheat threshold
+// IndustriaX: Server Game State API
+// GET/POST endpoint for authoritative server state
+// This is the SOURCE OF TRUTH for logged-in users
 // ============================================
 
 import { NextResponse } from 'next/server';
@@ -17,12 +12,11 @@ import {
   validateGameState,
   logActionAsync,
   extractClientInfo,
-  fetchPreviousServerState,
   isAccountLocked,
   flagCheatAttempt,
 } from '@/lib/auth/gameStateValidator';
 
-// GET /api/player?userId=xxx - Load player progress
+// GET /api/game/state?userId=xxx - Load authoritative server game state
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('userId');
@@ -31,15 +25,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'userId is required' }, { status: 400 });
   }
 
-  // ✅ Auth check: Verify the requesting user owns this data
   const auth = await verifyAuthAndOwnership(userId);
   if (!auth.success) return auth.response;
 
-  // ✅ Rate limit check
-  const rateLimitResponse = checkRateLimit(auth.userId, RATE_LIMITS.player, '/api/player');
+  const rateLimitResponse = checkRateLimit(auth.userId, RATE_LIMITS.player, '/api/game/state');
   if (rateLimitResponse) return rateLimitResponse;
 
-  // ✅ Check if account is locked
   const lockStatus = await isAccountLocked(auth.userId);
   if (lockStatus.locked) {
     return NextResponse.json(
@@ -50,61 +41,25 @@ export async function GET(request: Request) {
 
   const supabase = createServiceRoleClient();
 
-  // Try server_game_state first (authoritative), then fall back to player_progress
-  const { data: sgs, error: sgsError } = await supabase
-    .from('server_game_state')
-    .select('full_state, money, game_tick, game_speed, state_hash, last_saved_at, state_version')
-    .eq('user_id', userId)
-    .single();
-
-  if (sgs?.full_state) {
-    // Audit log the load
-    const clientInfo = extractClientInfo(request);
-    logActionAsync({
-      userId: auth.userId,
-      actionType: 'load',
-      payload: { source: 'server_game_state' },
-      gameTick: sgs.game_tick || 0,
-      moneyBefore: 0,
-      moneyAfter: sgs.money || 0,
-      isValid: true,
-      ...clientInfo,
-    });
-
-    return NextResponse.json({
-      data: {
-        game_state: sgs.full_state,
-        game_tick: sgs.game_tick,
-        money: sgs.money,
-        last_saved_at: sgs.last_saved_at,
-        state_hash: sgs.state_hash,
-      },
-      source: 'server_game_state',
-      isNew: false,
-    });
-  }
-
-  // Fallback to player_progress
   const { data, error } = await supabase
-    .from('player_progress')
+    .from('server_game_state')
     .select('*')
     .eq('user_id', userId)
     .single();
 
   if (error) {
     if (error.code === 'PGRST116') {
-      // No rows found - new player
       return NextResponse.json({ data: null, isNew: true });
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Audit log the load
+  // Audit log
   const clientInfo = extractClientInfo(request);
   logActionAsync({
     userId: auth.userId,
     actionType: 'load',
-    payload: { source: 'player_progress' },
+    payload: { source: 'server_game_state' },
     gameTick: data.game_tick || 0,
     moneyBefore: 0,
     moneyAfter: data.money || 0,
@@ -112,33 +67,55 @@ export async function GET(request: Request) {
     ...clientInfo,
   });
 
-  return NextResponse.json({ data, source: 'player_progress', isNew: false });
+  return NextResponse.json({
+    data: {
+      fullState: data.full_state,
+      money: data.money,
+      totalMoneyEarned: data.total_money_earned,
+      researchPoints: data.research_points,
+      buildings: data.buildings,
+      buildingsCount: data.buildings_count,
+      completedResearch: data.completed_research,
+      resources: data.resources,
+      workers: data.workers,
+      gameTick: data.game_tick,
+      gameSpeed: data.game_speed,
+      stateHash: data.state_hash,
+      stateVersion: data.state_version,
+      lastTickAt: data.last_tick_at,
+      lastSavedAt: data.last_saved_at,
+      cheatFlagCount: data.cheat_flag_count,
+    },
+    isNew: false,
+  });
 }
 
-// POST /api/player - Save player progress (SERVER-AUTHORITATIVE)
+// POST /api/game/state - Sync game state to server (authoritative)
 export async function POST(request: Request) {
-  let body: { userId?: string; gameState?: Record<string, unknown>; displayName?: string; clientChecksum?: string };
+  let body: {
+    userId?: string;
+    gameState?: Record<string, unknown>;
+    clientChecksum?: string;
+  };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const { userId, gameState, displayName, clientChecksum } = body;
+  const { userId, gameState, clientChecksum } = body;
 
   if (!userId || !gameState) {
     return NextResponse.json({ error: 'userId and gameState are required' }, { status: 400 });
   }
 
-  // ✅ Auth check: Verify the requesting user owns this data
   const auth = await verifyAuthAndOwnership(userId);
   if (!auth.success) return auth.response;
 
-  // ✅ Rate limit check
-  const rateLimitResponse = checkRateLimit(auth.userId, RATE_LIMITS.player, '/api/player');
+  const rateLimitResponse = checkRateLimit(auth.userId, RATE_LIMITS.player, '/api/game/state');
   if (rateLimitResponse) return rateLimitResponse;
 
-  // ✅ Check if account is locked
+  // Check if account is locked
   const lockStatus = await isAccountLocked(auth.userId);
   if (lockStatus.locked) {
     return NextResponse.json(
@@ -147,31 +124,33 @@ export async function POST(request: Request) {
     );
   }
 
-  // ✅ Fetch previous server state for delta validation
-  const previousState = await fetchPreviousServerState(auth.userId);
+  const supabase = createServiceRoleClient();
 
-  // ✅ Validate game state with delta checks
+  // Fetch current server state for delta validation
+  const { data: currentServerState } = await supabase
+    .from('server_game_state')
+    .select('full_state, state_hash, game_tick, cheat_flag_count')
+    .eq('user_id', userId)
+    .single();
+
+  const previousState = currentServerState?.full_state as Record<string, unknown> | null;
+
+  // Validate the incoming state
   const validation = validateGameState(gameState, previousState || undefined);
-  if (!validation.isValid) {
-    console.warn(`[PlayerAPI] Game state validation FAILED for ${auth.userId}:`, validation.violations);
-  }
 
-  // For critical OR high-risk violations, reject the save
   if (validation.riskLevel === 'critical' || validation.riskLevel === 'high') {
-    // Flag the cheat attempt
     await flagCheatAttempt(
       auth.userId,
       validation.riskLevel === 'critical' ? 'state_tampering' : 'money_manipulation',
-      `Save rejected: ${validation.violations.join('; ')}`,
+      `Server state sync rejected: ${validation.violations.join('; ')}`,
       validation.riskLevel,
     );
 
-    // Audit log the rejected save
     const clientInfo = extractClientInfo(request);
     logActionAsync({
       userId: auth.userId,
       actionType: 'save',
-      payload: { violations: validation.violations, riskLevel: validation.riskLevel },
+      payload: { source: 'server_game_state', violations: validation.violations, riskLevel: validation.riskLevel },
       gameTick: Number(gameState.gameTick) || 0,
       moneyBefore: previousState ? Number(previousState.money) || 0 : 0,
       moneyAfter: Number(gameState.money) || 0,
@@ -183,7 +162,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        error: 'Game state validation failed — save rejected',
+        error: 'Game state validation failed',
         code: 'VALIDATION_FAILED',
         violations: validation.violations,
         riskLevel: validation.riskLevel,
@@ -192,47 +171,26 @@ export async function POST(request: Request) {
     );
   }
 
-  // Check client checksum against server-generated checksum
+  // Check client checksum
   if (clientChecksum && clientChecksum !== validation.checksum) {
     await flagCheatAttempt(
       auth.userId,
       'state_tampering',
-      `Client checksum mismatch. Client: ${clientChecksum}, Server: ${validation.checksum}`,
+      `Client checksum mismatch on server state sync. Client: ${clientChecksum}, Server: ${validation.checksum}`,
       'high',
     );
 
     return NextResponse.json(
-      { error: 'Checksum mismatch — possible state tampering', code: 'CHECKSUM_MISMATCH' },
+      { error: 'Checksum mismatch', code: 'CHECKSUM_MISMATCH' },
       { status: 400 },
     );
   }
 
-  const supabase = createServiceRoleClient();
-
-  // Upsert to player_progress (legacy table, still used)
   const buildingsCount = ((gameState as Record<string, unknown>).buildings as unknown[])?.length || 0;
-  const { data: ppData, error: ppError } = await supabase
-    .from('player_progress')
-    .upsert({
-      user_id: userId,
-      display_name: displayName || 'Commander',
-      game_state: gameState,
-      last_saved_at: new Date().toISOString(),
-      total_money_earned: (gameState as Record<string, unknown>).totalMoneyEarned as number || 0,
-      game_tick: (gameState as Record<string, unknown>).gameTick as number || 0,
-      buildings_count: buildingsCount,
-      save_checksum: validation.checksum,
-    }, { onConflict: 'user_id' })
-    .select()
-    .single();
+  const currentVersion = currentServerState ? (currentServerState as Record<string, unknown>).state_version as number || 0 : 0;
 
-  if (ppError) {
-    console.error('[PlayerAPI] player_progress upsert error:', ppError);
-    // Don't fail the whole request — server_game_state is more important
-  }
-
-  // Upsert to server_game_state (authoritative table)
-  const { data: sgsData, error: sgsError } = await supabase
+  // Upsert to server_game_state
+  const { data: upsertData, error: upsertError } = await supabase
     .from('server_game_state')
     .upsert({
       user_id: userId,
@@ -248,27 +206,41 @@ export async function POST(request: Request) {
       game_speed: Number(gameState.gameSpeed) || 1,
       full_state: gameState,
       state_hash: validation.checksum,
+      state_version: currentVersion + 1,
       last_tick_at: new Date().toISOString(),
       last_saved_at: new Date().toISOString(),
     }, { onConflict: 'user_id' })
     .select()
     .single();
 
-  if (sgsError) {
-    console.error('[PlayerAPI] server_game_state upsert error:', sgsError);
-    // Still return success if player_progress saved
+  if (upsertError) {
+    console.error('[GameStateAPI] server_game_state upsert error:', upsertError);
+    return NextResponse.json({ error: upsertError.message }, { status: 500 });
   }
 
-  // Audit log the successful save
+  // Also sync to player_progress for backwards compatibility
+  await supabase
+    .from('player_progress')
+    .upsert({
+      user_id: userId,
+      game_state: gameState,
+      last_saved_at: new Date().toISOString(),
+      total_money_earned: Number(gameState.totalMoneyEarned) || 0,
+      game_tick: Number(gameState.gameTick) || 0,
+      buildings_count: buildingsCount,
+      save_checksum: validation.checksum,
+    }, { onConflict: 'user_id' });
+
+  // Audit log
   const clientInfo = extractClientInfo(request);
   logActionAsync({
     userId: auth.userId,
     actionType: 'save',
     payload: {
+      source: 'server_game_state',
       buildingsCount,
       riskLevel: validation.riskLevel,
-      violations: validation.violations.length > 0 ? validation.violations : undefined,
-      savedTo: sgsError ? 'player_progress_only' : 'both',
+      stateVersion: currentVersion + 1,
     },
     gameTick: Number(gameState.gameTick) || 0,
     moneyBefore: previousState ? Number(previousState.money) || 0 : 0,
@@ -279,13 +251,12 @@ export async function POST(request: Request) {
   });
 
   return NextResponse.json({
-    data: ppData,
     saved: true,
-    serverStateSaved: !sgsError,
+    stateHash: validation.checksum,
+    stateVersion: currentVersion + 1,
     validation: {
       isValid: validation.isValid,
       riskLevel: validation.riskLevel,
-      checksum: validation.checksum,
       ...(validation.violations.length > 0 ? { violations: validation.violations } : {}),
     },
   });

@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
+import { initServerValidation, disableServerValidation } from '@/lib/game/serverActions';
 
 interface AuthState {
   user: User | null;
@@ -36,6 +37,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+
+      // Initialize server validation if logged in
+      if (session?.user?.id) {
+        initServerValidation(session.user.id);
+      }
     });
 
     // Listen for auth changes
@@ -44,6 +50,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // Update server validation state
+        if (session?.user?.id) {
+          initServerValidation(session.user.id);
+        } else {
+          disableServerValidation();
+        }
       }
     );
 
@@ -63,6 +76,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [supabase.auth]);
 
   const signOut = useCallback(async () => {
+    // Disable server validation on sign out
+    disableServerValidation();
+
     const { error } = await supabase.auth.signOut();
     if (error) {
       console.error('Sign-out error:', error.message);
