@@ -110,8 +110,12 @@ export async function POST(request: NextRequest) {
     });
 
     if (!workerResponse.ok) {
-      const errorText = await workerResponse.text().catch(() => 'Unknown error');
-      console.warn(`[NewsLLM Proxy] Worker returned ${workerResponse.status}: ${errorText}`);
+      // Rate-limit server-side warnings — max once per 60 seconds
+      const now = Date.now();
+      if (now - lastRequestTime > 60_000 || workerResponse.status !== 502) {
+        const errorText = await workerResponse.text().catch(() => 'Unknown error');
+        console.warn(`[NewsLLM Proxy] Worker returned ${workerResponse.status}: ${errorText}`);
+      }
       return NextResponse.json(
         { error: 'Worker AI failed', source: 'fallback' },
         { status: 502 }
@@ -139,7 +143,11 @@ export async function POST(request: NextRequest) {
 
     // Check if it was a timeout
     if (errorMessage.includes('abort') || errorMessage.includes('timeout')) {
-      console.warn('[NewsLLM Proxy] Request to Cloudflare Worker timed out');
+      // Rate-limit timeout warnings
+      const now = Date.now();
+      if (now - lastRequestTime > 60_000) {
+        console.warn('[NewsLLM Proxy] Request to Cloudflare Worker timed out');
+      }
       return NextResponse.json(
         { error: 'Worker AI timeout', source: 'fallback' },
         { status: 504 }

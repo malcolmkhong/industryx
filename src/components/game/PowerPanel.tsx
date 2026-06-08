@@ -14,19 +14,38 @@ import {
   CircleAlert, Minus, Lock, Lightbulb, TrendingUp, Clock
 } from 'lucide-react';
 import { PowerPlantType, BuildingInstance } from '@/lib/game/types';
+import { getPowerPlantTypes } from '@/lib/game/buildingDiscovery';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
 import { GameIcon } from '@/components/game/shared/GameIcon';
 
-const POWER_PLANT_TYPES: PowerPlantType[] = ['coalGenerator', 'solarPanel', 'windTurbine', 'nuclearReactor', 'antimatterPowerPlant'];
+// Dynamic power plant types from BUILDING_DEFS (includes Supabase buildings)
+const POWER_PLANT_TYPES = getPowerPlantTypes() as PowerPlantType[];
 
-const POWER_PLANT_META: Record<PowerPlantType, { icon: React.ReactNode; color: string; label: string; glowClass: string; icon: string }> = {
+// Power plant metadata with fallback for dynamically added plants
+const POWER_PLANT_META: Record<string, { icon: React.ReactNode; color: string; label: string; glowClass: string; icon: string }> = {
   coalGenerator: { icon: <Flame className="w-4 h-4" />, color: '#ff6600', label: 'Coal', glowClass: 'text-orange-400', icon: 'gi:fire' },
   solarPanel: { icon: <Sun className="w-4 h-4" />, color: '#ffff00', label: 'Solar', glowClass: 'text-yellow-400', icon: 'gi:sun' },
   windTurbine: { icon: <Wind className="w-4 h-4" />, color: '#00ccff', label: 'Wind', glowClass: 'text-cyan-400', icon: 'gi:air-zigzag' },
   nuclearReactor: { icon: <Atom className="w-4 h-4" />, color: '#00ff66', label: 'Nuclear', glowClass: 'text-green-400', icon: 'gi:nuclear' },
   antimatterPowerPlant: { icon: <Zap className="w-4 h-4" />, color: '#ff00ff', label: 'Antimatter', glowClass: 'text-fuchsia-400', icon: 'gi:lightning-frequency' },
 };
+
+// Fallback meta for power plants not in the static map
+function getPowerPlantMeta(type: string) {
+  if (POWER_PLANT_META[type]) return POWER_PLANT_META[type];
+  // Generate fallback from building definition
+  const def = BUILDING_DEFS[type];
+  const tierColors = ['#22d3ee', '#f97316', '#a855f7', '#00ffcc'];
+  const color = tierColors[Math.min(def?.tier ?? 0, tierColors.length - 1)];
+  return {
+    icon: <Zap className="w-4 h-4" />,
+    color,
+    label: def?.name ?? type,
+    glowClass: 'text-cyan-400' as const,
+    icon: def?.icon ?? 'gi:lightning-frequency',
+  };
+}
 
 // --- Mini sparkline for power history ---
 function PowerSparkline({ data, color, width = 200, height = 40 }: { data: number[]; color: string; width?: number; height?: number }) {
@@ -436,7 +455,7 @@ export function PowerPanel() {
             <div className="flex flex-col items-center justify-center gap-1">
               <div className="text-[9px] text-gray-500 mb-1 font-bold uppercase tracking-wider">Producers</div>
               {POWER_PLANT_TYPES.map(type => {
-                const meta = POWER_PLANT_META[type];
+                const meta = getPowerPlantMeta(type);
                 const output = productionByType[type] || 0;
                 if (output <= 0) return null;
                 return (
@@ -562,11 +581,11 @@ export function PowerPanel() {
       </div>
 
       {/* GENERATOR STATUS CARDS + Power History */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
         {POWER_PLANT_TYPES.map(type => {
           const def = BUILDING_DEFS[type];
           if (!def) return null;
-          const meta = POWER_PLANT_META[type];
+          const meta = getPowerPlantMeta(type);
           const instances = plantsByType[type] || [];
           const activeInstances = instances.filter(b => b.active);
           const output = productionByType[type] || 0;
@@ -742,7 +761,7 @@ export function PowerPanel() {
                 {powerPlants.map(plant => {
                   const def = BUILDING_DEFS[plant.type];
                   if (!def) return null;
-                  const meta = POWER_PLANT_META[plant.type as PowerPlantType];
+                  const meta = getPowerPlantMeta(plant.type);
                   const upgradeCost = getBuildingCost(plant.type, plant.level);
                   const canUpgrade = store.money >= upgradeCost;
 
@@ -916,7 +935,7 @@ export function PowerPanel() {
               {POWER_PLANT_TYPES.map(type => {
                 const def = BUILDING_DEFS[type];
                 if (!def) return null;
-                const meta = POWER_PLANT_META[type];
+                const meta = getPowerPlantMeta(type);
                 const output = productionByType[type] || 0;
                 const instances = plantsByType[type] || [];
                 const activeInstances = instances.filter(b => b.active);

@@ -121,6 +121,16 @@ const MAX_429_RETRIES = 2;                 // Max retries on 429 rate-limit
 const API_ROUTE = '/api/news-llm';
 let disabledUntil = 0;                      // Timestamp when LLM was temporarily disabled
 
+// ─── Circuit Breaker ──────────────────────────────────────────────────────────
+// After consecutive failures, stop trying for an extended period to avoid
+// spamming the server with requests that will never succeed.
+const CIRCUIT_BREAKER_THRESHOLD = 3;       // Number of consecutive failures before opening
+const CIRCUIT_BREAKER_COOLDOWN_MS = 300_000; // 5 minutes cooldown after circuit opens
+let consecutiveFailures = 0;
+let circuitOpen = false;
+let lastCircuitBreakerLog = 0;             // Rate-limit circuit breaker log messages
+let lastApiFailureLog = 0;                 // Rate-limit 502/timeout log messages
+
 // ─── LRU Cache ────────────────────────────────────────────────────────────────
 
 class LRUCache<K, V> {
@@ -183,6 +193,15 @@ async function callCloudflareWorker(
   const startTime = performance.now();
 
   try {
+    // ── Circuit Breaker Check ──
+    if (circuitOpen) {
+      if (Date.now() < disabledUntil) {
+        return null; // Silently skip — circuit is open
+      }
+      // Cooldown elapsed — try one request to see if the service recovered
+      circuitOpen = false;
+    }
+
     const response = await fetch(API_ROUTE, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -212,9 +231,30 @@ async function callCloudflareWorker(
     recordGenTime(elapsed);
 
     if (!response.ok) {
-      console.warn(`[NewsLLM] API returned ${response.status}`);
+      consecutiveFailures++;
+      if (consecutiveFailures >= CIRCUIT_BREAKER_THRESHOLD) {
+        circuitOpen = true;
+        disabledUntil = Date.now() + CIRCUIT_BREAKER_COOLDOWN_MS;
+        // Rate-limit log messages — only log once per minute max
+        const now = Date.now();
+        if (now - lastCircuitBreakerLog > 60_000) {
+          console.warn(`[NewsLLM] Circuit breaker OPEN after ${consecutiveFailures} consecutive failures. Disabling for ${CIRCUIT_BREAKER_COOLDOWN_MS / 1000}s.`);
+          lastCircuitBreakerLog = now;
+        }
+      } else {
+        // Rate-limit individual failure logs — max once per 30s
+        const now = Date.now();
+        if (now - lastApiFailureLog > 30_000) {
+          console.warn(`[NewsLLM] API returned ${response.status} (failure ${consecutiveFailures}/${CIRCUIT_BREAKER_THRESHOLD})`);
+          lastApiFailureLog = now;
+        }
+      }
       return null;
     }
+
+    // ── Success — reset circuit breaker ──
+    consecutiveFailures = 0;
+    circuitOpen = false;
 
     const data = await response.json();
 
@@ -226,7 +266,16 @@ async function callCloudflareWorker(
   } catch (error) {
     const elapsed = performance.now() - startTime;
     recordGenTime(elapsed);
-    console.warn('[NewsLLM] API call failed:', error);
+    consecutiveFailures++;
+    if (consecutiveFailures >= CIRCUIT_BREAKER_THRESHOLD) {
+      circuitOpen = true;
+      disabledUntil = Date.now() + CIRCUIT_BREAKER_COOLDOWN_MS;
+      const now = Date.now();
+      if (now - lastCircuitBreakerLog > 60_000) {
+        console.warn(`[NewsLLM] Circuit breaker OPEN after ${consecutiveFailures} failures (timeout/error). Disabling for ${CIRCUIT_BREAKER_COOLDOWN_MS / 1000}s.`);
+        lastCircuitBreakerLog = now;
+      }
+    }
     return null;
   }
 }
@@ -521,6 +570,10 @@ export function shutdownNewsLLM(): void {
   newsCache.clear();
   genTimeSamples = [];
   disabledUntil = 0;
+  consecutiveFailures = 0;
+  circuitOpen = false;
+  lastCircuitBreakerLog = 0;
+  lastApiFailureLog = 0;
   recentHeadlines.length = 0;
   updateCallback = null;
   lastGameDay = -1;

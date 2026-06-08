@@ -50,3 +50,47 @@ The user reported: "i build a building and i refresh browser, and the game wont 
 2. Consider reducing the debounce interval from 5s to 2s for faster save persistence
 3. Add server-side auth verification to API routes (from previous audit)
 4. Add rate limiting to prevent API abuse
+---
+Task ID: 1
+Agent: Main Agent
+Task: Diagnose and fix loading bug; fix NewsLLM 502 spam; begin next phase improvements
+
+Work Log:
+- Read worklog.md and understood previous state (loading bug fixes already applied)
+- Tested current app with agent-browser — page loads successfully with existing save data
+- Built Iron Mine via JS click, waited for debounce save, reloaded page — LOADED SUCCESSFULLY
+- Confirmed loading bug fix from previous session is working
+- Identified NewsLLM 502 spam issue — Cloudflare Worker consistently down, causing ~100+ 502 errors/hour
+- Added circuit breaker to newsLLM.ts: after 3 consecutive failures, stops trying for 5 minutes
+- Added rate-limited logging — circuit breaker messages max once/minute, failure logs max once/30s
+- Added rate-limited server-side proxy logging in /api/news-llm/route.ts
+- Tested circuit breaker — after 3 failures, 502 requests stopped, only 1 log message
+- Identified critical UI issue: FactoryPanel uses hardcoded building type arrays (TIER_1_FACTORIES, etc.) that only include buildings from data.ts, not the 30+ buildings added by Supabase via configCache
+
+Stage Summary:
+- Loading bug fix confirmed working (build + refresh test passes)
+- NewsLLM circuit breaker implemented and tested (dramatic reduction in 502 spam)
+- Key architectural issue found: panels use hardcoded building arrays instead of dynamically deriving from BUILDING_DEFS
+- This means 30+ Supabase buildings are invisible in the UI even when connected
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Make building panels dynamic to show all Supabase buildings
+
+Work Log:
+- Created /src/lib/game/buildingDiscovery.ts with dynamic building type discovery functions
+- getExtractorTypes(), getBasicExtractors(), getAdvancedExtractors(), getSpecializedExtractors()
+- getFactoryTypesByTier(), getPowerPlantTypes()
+- All functions derive from BUILDING_DEFS instead of hardcoded arrays
+- Updated FactoryPanel.tsx: replaced TIER_1-4_FACTORIES hardcoded arrays with dynamic derivation
+- Updated ResourcePanel.tsx: replaced EXTRACTOR_TYPES/BASIC/ADVANCED with dynamic discovery, added "Specialized" tab for silver/gold mines
+- Updated PowerPanel.tsx: replaced POWER_PLANT_TYPES with dynamic discovery, added getPowerPlantMeta() fallback for unknown plants
+- Tested with agent-browser: Extraction panel now shows 3 tabs (Basic, Advanced, Specialized), Factory T2 tab shows 18 factory types
+- No compile errors, no runtime errors
+
+Stage Summary:
+- All building panels now dynamically derive available buildings from BUILDING_DEFS
+- This means all 96 buildings from Supabase are now visible in the UI
+- Added "Specialized" tab in Extraction panel for precious metal mines
+- Added fallback metadata system for dynamically added power plants

@@ -13,6 +13,7 @@ import {
   ArrowUpFromLine, Workflow, Gauge, X,
 } from 'lucide-react';
 import { ResourceType, ExtractorType } from '@/lib/game/types';
+import { getExtractorTypes, getBasicExtractors, getAdvancedExtractors, getSpecializedExtractors } from '@/lib/game/buildingDiscovery';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
 import { getTierColorClasses, type TierColor } from '@/components/game/shared/tierColors';
@@ -20,19 +21,22 @@ import { GameIcon } from '@/components/game/shared/GameIcon';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const EXTRACTOR_TYPES: ExtractorType[] = ['ironMine', 'copperMine', 'coalMine', 'oilPump', 'waterExtractor', 'sandMine', 'lithiumMine', 'clayPit', 'limestoneQuarry', 'gravelPit', 'bauxiteMine', 'wolframiteMine', 'rareEarthExtractor', 'silverMine', 'goldMine'];
-const RAW_RESOURCES: ResourceType[] = ['iron', 'copper', 'coal', 'oil', 'sand', 'lithium', 'water', 'rareEarth', 'clay', 'limestone', 'gravel', 'bauxite', 'wolframite'];
+// Dynamic extractor types from BUILDING_DEFS (includes Supabase buildings)
+const EXTRACTOR_TYPES = getExtractorTypes() as ExtractorType[];
+const BASIC_EXTRACTORS = getBasicExtractors() as ExtractorType[];
+const ADVANCED_EXTRACTORS = getAdvancedExtractors() as ExtractorType[];
+const SPECIALIZED_EXTRACTORS = getSpecializedExtractors() as ExtractorType[];
 
-const BASIC_EXTRACTORS: ExtractorType[] = ['ironMine', 'copperMine', 'coalMine', 'oilPump', 'waterExtractor', 'sandMine'];
-const ADVANCED_EXTRACTORS: ExtractorType[] = ['clayPit', 'limestoneQuarry', 'gravelPit', 'bauxiteMine', 'wolframiteMine', 'rareEarthExtractor'];
+const RAW_RESOURCES: ResourceType[] = ['iron', 'copper', 'coal', 'oil', 'sand', 'lithium', 'water', 'rareEarth', 'clay', 'limestone', 'gravel', 'bauxite', 'wolframite', 'silver', 'gold'];
 
 // Tab config for the tier selector
 const TAB_CONFIG = {
   basic: { label: 'Basic Mining', shortLabel: 'Basic', color: 'amber' as const, icon: 'gi:mining' },
   advanced: { label: 'Advanced Mining', shortLabel: 'Advanced', color: 'orange' as const, icon: 'gi:peaks' },
+  specialized: { label: 'Specialized', shortLabel: 'Special', color: 'purple' as const, icon: 'gi:gem-chain' },
 };
 
-type TabKey = 'basic' | 'advanced';
+type TabKey = 'basic' | 'advanced' | 'specialized';
 
 // Extraction pipeline tiers for SVG flow diagram
 const EXTRACTION_TIERS = [
@@ -66,6 +70,7 @@ export function ResourcePanel() {
   const extractorsByTab = useMemo(() => ({
     basic: extractorBuildings.filter(b => BASIC_EXTRACTORS.includes(b.type as ExtractorType)),
     advanced: extractorBuildings.filter(b => ADVANCED_EXTRACTORS.includes(b.type as ExtractorType)),
+    specialized: extractorBuildings.filter(b => SPECIALIZED_EXTRACTORS.includes(b.type as ExtractorType)),
   }), [extractorBuildings]);
 
   // Extractor instances grouped by type
@@ -162,7 +167,7 @@ export function ResourcePanel() {
 
   // Current tab data
   const currentTabConfig = TAB_CONFIG[selectedTab];
-  const currentExtractors = selectedTab === 'basic' ? BASIC_EXTRACTORS : ADVANCED_EXTRACTORS;
+  const currentExtractors = selectedTab === 'basic' ? BASIC_EXTRACTORS : selectedTab === 'advanced' ? ADVANCED_EXTRACTORS : SPECIALIZED_EXTRACTORS;
   const currentTabBuildings = extractorsByTab[selectedTab];
   const currentColorClasses = getTierColorClasses(currentTabConfig.color);
 
@@ -469,7 +474,7 @@ export function ResourcePanel() {
         {selectedFlowNode && (() => {
             const tierIdx = EXTRACTION_TIERS.findIndex(t => t.key === selectedFlowNode);
             const tierInfo = EXTRACTION_TIERS[tierIdx];
-            const tierExtractors = tierIdx === 0 ? BASIC_EXTRACTORS : ADVANCED_EXTRACTORS;
+            const tierExtractors = tierIdx === 0 ? BASIC_EXTRACTORS : tierIdx === 1 ? ADVANCED_EXTRACTORS : SPECIALIZED_EXTRACTORS;
             const relevantResources: Record<string, { prod: number; cons: number }> = {};
             tierExtractors.forEach(type => {
               const def = BUILDING_DEFS[type];
@@ -528,7 +533,7 @@ export function ResourcePanel() {
         <div className="lg:col-span-2 space-y-3">
           {/* TAB SELECTOR */}
           <div className="flex items-center gap-1 p-1 bg-card rounded-xl border border-border">
-            {(['basic', 'advanced'] as const).map(tab => {
+            {(['basic', 'advanced', 'specialized'] as const).map(tab => {
               const config = TAB_CONFIG[tab];
               const colors = getTierColorClasses(config.color);
               const tabBuildings = extractorsByTab[tab];
