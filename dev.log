@@ -4,6 +4,15 @@
 - Environments: .env
 
 ✓ Starting...
-✓ Ready in 650ms
- GET / 200 in 1981ms (compile: 1711ms, render: 270ms)
- GET /api/icons?t=1780888383054 200 in 131ms (compile: 57ms, render: 74ms)
+✓ Ready in 661ms
+v
+
+✓ Starting...
+✓ Ready in 661ms
+▲ Next.js 16.1.3 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://21.0.10.172:3000
+- Environments: .env
+
+✓ Starting...
+✓ Ready in 557ms

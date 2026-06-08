@@ -38,6 +38,7 @@ import GlobalResourceMonitorPanel from '@/components/game/GlobalResourceMonitorP
 import {
   Play, Pause, RotateCcw, Bell, X,
   Download, Upload, Copy, Check,
+  Cloud, CloudOff, Loader2, LogOut, LogIn, RefreshCw, Wifi, WifiOff,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -62,6 +63,9 @@ import { GameIcon } from '@/components/game/shared/GameIcon';
 import { BottomNavigationBar } from '@/components/game/BottomNavigationBar';
 import { FloatingActionButton } from '@/components/game/FloatingActionButton';
 import { useSettingsStore } from '@/lib/game/settingsStore';
+import { useAuth } from '@/components/providers/AuthProvider';
+import { useGameConfig } from '@/components/providers/GameConfigProvider';
+import { useCloudSync } from '@/lib/hooks/useCloudSync';
 
 // Navigation is now managed by GameSidebar component
 // KEY_TAB_MAP is imported from GameSidebar
@@ -154,6 +158,14 @@ export default function Home() {
   const prevGameTickRef = useRef(gameTick);
   const prevMoneyRef = useRef(money);
   const [moneyGlow, setMoneyGlow] = useState(false);
+
+  // Auth & cloud sync
+  const { user, signInWithGoogle, signOut, loading: authLoading } = useAuth();
+  const { isUsingSupabase, reload: reloadConfig } = useGameConfig();
+  const { saveToCloud, isSyncing: cloudSyncing } = useCloudSync();
+  const [cloudStatus, setCloudStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Commander';
+  const userAvatar = user?.user_metadata?.avatar_url;
 
   // Offline earnings state
   const [offlineDialogOpen, setOfflineDialogOpen] = useState(false);
@@ -455,11 +467,11 @@ export default function Home() {
         <header className="fixed top-0 left-0 right-0 z-50 border-b border-cyan-900/30 px-2 lg:px-3 py-1.5 lg:py-2 bg-[#0a0e17]">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-base font-bold shadow-[0_0_12px_rgba(0,255,242,0.2)]">
-              FD
+              IX
             </div>
             <div>
-              <h1 className="text-sm font-bold text-cyan-400 tracking-wider">FACTORY DOMINION</h1>
-              <p className="text-[10px] text-gray-500 -mt-0.5">Automated Empire</p>
+              <h1 className="text-sm font-bold text-cyan-400 tracking-wider">INDUSTRIAX</h1>
+              <p className="text-[10px] text-gray-500 -mt-0.5">Factory Dominion</p>
             </div>
             <div className="flex items-center gap-3 ml-4">
               <div className="h-5 w-24 bg-gray-800/60 rounded shimmer-loading" />
@@ -506,11 +518,11 @@ export default function Home() {
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-base font-bold shadow-[0_0_12px_rgba(0,255,242,0.2)]">
-                  FD
+                  IX
                 </div>
                 <div>
-                  <h1 className="text-sm font-bold text-cyan-400 neon-glow-cyan tracking-wider">FACTORY DOMINION</h1>
-                  <p className="text-[10px] text-gray-500 -mt-0.5">Automated Empire</p>
+                  <h1 className="text-sm font-bold text-cyan-400 neon-glow-cyan tracking-wider">INDUSTRIAX</h1>
+                  <p className="text-[10px] text-gray-500 -mt-0.5">Factory Dominion</p>
                 </div>
               </div>
               {/* Separator */}
@@ -756,6 +768,88 @@ export default function Home() {
               <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-gray-500" onClick={handleReset} aria-label="Reset game">
                 <RotateCcw className="w-3 h-3" />
               </Button>
+
+              {/* Config source indicator */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 cursor-default ${
+                    isUsingSupabase ? 'border-emerald-500/50 text-emerald-400 bg-emerald-900/20' : 'border-amber-500/50 text-amber-400 bg-amber-900/20'
+                  }`}>
+                    {isUsingSupabase ? <Wifi className="w-2.5 h-2.5 mr-0.5" /> : <WifiOff className="w-2.5 h-2.5 mr-0.5" />}
+                    {isUsingSupabase ? 'Live' : 'Local'}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="bg-card border-cyan-900/30">
+                  <p className="text-xs font-medium">{isUsingSupabase ? 'Supabase Connected' : 'Using Local Config'}</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">Game data source</p>
+                  <Button variant="ghost" size="sm" className="h-6 text-[10px] mt-1 w-full" onClick={reloadConfig}>
+                    <RefreshCw className="w-2.5 h-2.5 mr-1" /> Refresh Config
+                  </Button>
+                </TooltipContent>
+              </Tooltip>
+
+              {/* Cloud save button (only when logged in) */}
+              {user && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={async () => {
+                      setCloudStatus('saving');
+                      const result = await saveToCloud();
+                      setCloudStatus(result.success ? 'success' : 'error');
+                      setTimeout(() => setCloudStatus('idle'), 2000);
+                    }} disabled={cloudStatus === 'saving'}>
+                      {cloudStatus === 'saving' ? <Loader2 className="w-3 h-3 animate-spin" />
+                      : cloudStatus === 'success' ? <Cloud className="w-3 h-3 text-green-400" />
+                      : cloudStatus === 'error' ? <CloudOff className="w-3 h-3 text-red-400" />
+                      : <Cloud className="w-3 h-3 text-gray-400" />}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="bg-card border-cyan-900/30">
+                    <p className="text-xs">Save to Cloud</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+
+              {/* Auth button */}
+              {authLoading ? (
+                <Loader2 className="w-4 h-4 text-gray-500 animate-spin" />
+              ) : user ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button className="flex items-center gap-1.5 bg-card rounded-lg px-2 py-1 border border-cyan-900/20 hover:border-cyan-500/30 transition-colors cursor-pointer">
+                      {userAvatar ? (
+                        <img src={userAvatar} alt="" className="w-5 h-5 rounded-full" />
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-[9px] font-bold">
+                          {userName.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <span className="text-[10px] text-gray-300 max-w-[80px] truncate">{userName}</span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="w-56 bg-card border-cyan-900/30 p-0 overflow-hidden">
+                    <div className="bg-gradient-to-r from-cyan-900/30 to-teal-900/20 px-3 py-2 border-b border-cyan-900/20">
+                      <p className="text-xs font-bold text-cyan-300">{userName}</p>
+                      <p className="text-[10px] text-gray-400">{user.email}</p>
+                    </div>
+                    <div className="p-2 space-y-1">
+                      <Button variant="ghost" size="sm" className="w-full justify-start h-7 text-xs" onClick={async () => {
+                        setCloudStatus('saving');
+                        const result = await saveToCloud();
+                        setCloudStatus(result.success ? 'success' : 'error');
+                        setTimeout(() => setCloudStatus('idle'), 2000);
+                      }}><Cloud className="w-3 h-3 mr-1.5" /> Save to Cloud</Button>
+                      <Button variant="ghost" size="sm" className="w-full justify-start h-7 text-xs" onClick={reloadConfig}><RefreshCw className="w-3 h-3 mr-1.5" /> Reload Config</Button>
+                      <div className="border-t border-cyan-900/20 my-1" />
+                      <Button variant="ghost" size="sm" className="w-full justify-start h-7 text-xs text-red-400 hover:text-red-300" onClick={signOut}><LogOut className="w-3 h-3 mr-1.5" /> Sign Out</Button>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <Button variant="ghost" size="sm" className="h-7 px-3 text-xs text-cyan-400 hover:text-cyan-300 border border-cyan-900/30 hover:border-cyan-500/30 rounded-lg" onClick={signInWithGoogle}>
+                  <LogIn className="w-3 h-3 mr-1" /> Sign In
+                </Button>
+              )}
             </div>
           </div>
 
@@ -765,9 +859,9 @@ export default function Home() {
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5 min-w-0">
                 <div className="w-7 h-7 rounded-md bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-[10px] font-bold flex-shrink-0">
-                  FD
+                  IX
                 </div>
-                <span className="text-[11px] font-bold text-cyan-400 tracking-wider truncate">FACTORY DOMINION</span>
+                <span className="text-[11px] font-bold text-cyan-400 tracking-wider truncate">INDUSTRIAX</span>
               </div>
 
               {/* Compact stats */}
@@ -870,6 +964,35 @@ export default function Home() {
               <Button variant="ghost" size="sm" className="h-6 w-6 p-0 min-w-[24px] text-gray-500" onClick={handleReset} aria-label="Reset game">
                 <RotateCcw className="w-3 h-3" />
               </Button>
+
+              {/* Config source badge - mobile */}
+              <Badge variant="outline" className={`text-[8px] px-1 py-0 ${isUsingSupabase ? 'border-emerald-500/50 text-emerald-400' : 'border-amber-500/50 text-amber-400'}`}>
+                {isUsingSupabase ? 'Live' : 'Local'}
+              </Badge>
+
+              {/* Auth button - mobile */}
+              {authLoading ? (
+                <Loader2 className="w-3 h-3 text-gray-500 animate-spin" />
+              ) : user ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button onClick={async () => { await saveToCloud(); }} className="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-[9px] font-bold">
+                      {userName.charAt(0).toUpperCase()}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="w-48 bg-card border-cyan-900/30 p-2">
+                    <p className="text-xs font-medium text-cyan-300 mb-1">{userName}</p>
+                    <div className="space-y-1">
+                      <Button variant="ghost" size="sm" className="w-full justify-start h-6 text-[10px]" onClick={async () => { await saveToCloud(); }}><Cloud className="w-2.5 h-2.5 mr-1" /> Save</Button>
+                      <Button variant="ghost" size="sm" className="w-full justify-start h-6 text-[10px] text-red-400" onClick={signOut}><LogOut className="w-2.5 h-2.5 mr-1" /> Sign Out</Button>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-[9px] text-cyan-400" onClick={signInWithGoogle}>
+                  <LogIn className="w-2.5 h-2.5 mr-0.5" /> Sign In
+                </Button>
+              )}
             </div>
           </div>
           {/* News Ticker - desktop only, inside fixed header */}
@@ -884,7 +1007,7 @@ export default function Home() {
                       {n.message}
                     </span>
                   ))}
-                  {notifications.length === 0 && 'Welcome to Factory Dominion! Build your first Mining Drill to start producing resources.'}
+                  {notifications.length === 0 && 'Welcome to IndustriaX! Build your first Mining Drill to start producing resources.'}
                 </div>
               </div>
             </div>
