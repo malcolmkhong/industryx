@@ -34,3 +34,21 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# backup folders
+Backup */
+
+# uploaded/pasted images
+upload/
+
+# runtime files
+*.pid
+--timeout
+.zscripts/dev.pid
+
+# database
+*.db
+db/
+
+# agent context
+agent-ctx/
