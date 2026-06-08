@@ -118,3 +118,4 @@ https://nextjs.org/telemetry
   Reload env: .env
  GET / 200 in 181ms (compile: 145ms, render: 36ms)
 ✓ Compiled in 834ms
+ GET / 200 in 170ms (compile: 4ms, render: 166ms)
