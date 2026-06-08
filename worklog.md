@@ -254,3 +254,56 @@ Files Modified:
 - `src/lib/hooks/useCloudSync.ts` — Added auto-save, reactive state, lastAutoSaveAt tracking
 - `src/middleware.ts` — NEW: Supabase session refresh middleware
 - `supabase/migrations/001_player_progress.sql` — NEW: Migration documentation
+
+---
+Task ID: 9
+Agent: main
+Task: Add missing T2-T5 resources, cloud sync conflict resolution, config caching, T5 UI visibility
+
+Work Log:
+- Added 26 missing resources to `initialResources` and `initialCapacity` in store.ts:
+  - T0: silver, gold
+  - T2: powerCell, reinforcedConcrete, refinedSilver, refinedGold
+  - T3: carbonComposite, structuralFrame, fusionCell, solarPanel, creditChip
+  - T4: arcologyModule, habitatModule, stellarEnergy, luxuryGoods, tradeContract, teleporterNode
+  - T5: researchMatrix, worldCore, shieldMatrix, stellarForge, voidEnergy, marketDominance, corpCapital, dimensionalGate, armadaFleet
+- Added V18→V19 save migration for all new resources (resources, capacity, storageUpgradeLevels, stats tracking, market entries)
+- Bumped SAVE_VERSION from 18 to 19
+- Added 26 missing resources to RESOURCE_META in data.ts with names, icons, tiers, colors
+- Added TIER_INFO for Tier 5 (Transcendent) in data.ts: `{ name: 'Transcendent', icon: 'gi:galactic-carrier', color: '#ff1744' }`
+- Added 'red' TierColor to tierColors.ts for T5 buildings
+- Added T5 tier info to shared tierColors.ts TIER_INFO constant
+- Updated FactoryMapPanel.tsx:
+  - Added `factory_t5` category style (red theme)
+  - Added T5 tier mapping in getCategoryStyle()
+  - Updated BUILD_CATEGORIES to use Supabase building IDs (replaced old IDs like miningDrill→ironMine, quarry→sandMine)
+  - Added all T2-T4 missing buildings (siliconRefinery, aluminiumFactory, insecticideFactory, copperRefinery, etc.)
+  - Added new T5 Transcendent category with all 9 Supabase T5 buildings
+- Added cloud sync conflict resolution to useCloudSync.ts:
+  - Tick-based comparison: cloud tick ratio < 0.9 → keep local, > 1.1 → use cloud
+  - Close matches (within 10%) show conflict dialog for user to choose
+  - Added `pendingConflict` state and `resolveConflict()` method
+  - Added `_version` to saved game state for save migration tracking
+- Added client-side config caching to GameConfigProvider.tsx:
+  - localStorage cache with 5-minute TTL (`industriax_game_config` key)
+  - Stale-while-revalidate pattern: load from cache instantly, refresh in background
+  - Prevents re-fetching on every page load
+- Fixed next.config.ts: added '127.0.0.1' to allowedDevOrigins for agent-browser compatibility
+
+Stage Summary:
+- **26 missing resources** now visible in frontend (all tiers represented)
+- **T5 Transcendent tier** fully supported with color scheme, tier info, and building palette
+- **FactoryMapPanel** updated with ALL 96 Supabase building IDs across 7 categories
+- **Cloud sync conflict resolution** with tick-based auto-resolution and manual override
+- **Client-side config caching** eliminates redundant API fetches (5-min TTL, stale-while-revalidate)
+- **Save migration V19** handles all new resources for existing saves
+- Lint passes with no new errors in changed files
+
+Files Modified:
+- `src/lib/game/store.ts` — V19 save migration, new resources/capacity
+- `src/lib/game/data.ts` — 26 new RESOURCE_META entries, T5 TIER_INFO
+- `src/components/game/shared/tierColors.ts` — 'red' TierColor, T5 tier info
+- `src/components/game/FactoryMapPanel.tsx` — T5 styles, Supabase building IDs, all tiers
+- `src/lib/hooks/useCloudSync.ts` — Conflict resolution, resolveConflict(), _version in save
+- `src/components/providers/GameConfigProvider.tsx` — Client-side config caching
+- `next.config.ts` — allowedDevOrigins for 127.0.0.1

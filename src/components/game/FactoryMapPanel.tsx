@@ -33,6 +33,7 @@ const CATEGORY_STYLES: Record<string, { bg: string; border: string; glow: string
   factory_t2: { bg: 'bg-orange-900/50', border: 'border-orange-500/50', glow: 'shadow-orange-500/30', text: 'text-orange-400', fill: '#7c2d12' },
   factory_t3: { bg: 'bg-purple-900/50', border: 'border-purple-500/50', glow: 'shadow-purple-500/30', text: 'text-purple-400', fill: '#581c87' },
   factory_t4: { bg: 'bg-emerald-900/50', border: 'border-emerald-500/50', glow: 'shadow-emerald-500/30', text: 'text-emerald-400', fill: '#064e3b' },
+  factory_t5: { bg: 'bg-red-900/50', border: 'border-red-500/50', glow: 'shadow-red-500/30', text: 'text-red-400', fill: '#7f1d1d' },
   power: { bg: 'bg-yellow-900/50', border: 'border-yellow-500/50', glow: 'shadow-yellow-500/30', text: 'text-yellow-400', fill: '#713f12' },
 };
 
@@ -46,6 +47,7 @@ function getCategoryStyle(building: BuildingInstance) {
     if (def.tier === 2) return CATEGORY_STYLES.factory_t2;
     if (def.tier === 3) return CATEGORY_STYLES.factory_t3;
     if (def.tier === 4) return CATEGORY_STYLES.factory_t4;
+    if (def.tier >= 5) return CATEGORY_STYLES.factory_t5;
     return CATEGORY_STYLES.factory_t3;
   }
   return CATEGORY_STYLES.extractor;
@@ -61,23 +63,27 @@ function getEffColor(eff: number): string {
 const BUILD_CATEGORIES = [
   {
     label: <><GameIcon icon="gi:mining" size={14} className="inline" /> Extraction</>,
-    types: ['miningDrill', 'oilPump', 'waterExtractor', 'quarry'] as BuildingType[],
+    types: ['ironMine', 'copperMine', 'coalMine', 'oilPump', 'waterExtractor', 'sandMine', 'lithiumMine', 'clayPit', 'limestoneQuarry', 'gravelPit', 'bauxiteMine', 'wolframiteMine', 'silverMine', 'goldMine', 'rareEarthExtractor'] as BuildingType[],
   },
   {
     label: <><GameIcon icon="gi:flame" size={14} className="inline" /> T1 Factory</>,
-    types: ['smelter', 'wireMill', 'chemicalPlant', 'glassFurnace', 'steelForge', 'carbonProcessor'] as BuildingType[],
+    types: ['smelter', 'wireMill', 'chemicalPlant', 'glassFurnace', 'steelForge', 'carbonProcessor', 'brickFactory', 'concreteFactory', 'fertilizerFactory', 'oilRefinery'] as BuildingType[],
   },
   {
     label: <><GameIcon icon="gi:big-gear" size={14} className="inline" /> T2 Factory</>,
-    types: ['gearFactory', 'circuitFactory', 'engineFactory', 'batteryFactory'] as BuildingType[],
+    types: ['gearFactory', 'circuitFactory', 'engineFactory', 'batteryFactory', 'siliconRefinery', 'aluminiumFactory', 'insecticideFactory', 'copperRefinery', 'titaniumRefinery', 'coolantPlant', 'opticsLab', 'solarCellFactory', 'displayFactory', 'hydrogenPlant', 'reinforcedConcretePlant', 'powerCellPlant', 'silverRefinery', 'goldRefinery'] as BuildingType[],
   },
   {
-    label: <><GameIcon icon="gi:chemical-drop" size={14} className="inline" /> T3 Factory</>,
-    types: ['aiLab', 'roboticsBay', 'quantumLab', 'alloyForge', 'nanoLab'] as BuildingType[],
+    label: <><GameIcon icon="gi:brain" size={14} className="inline" /> T3 Factory</>,
+    types: ['aiLab', 'roboticsBay', 'quantumLab', 'quantumAssembler', 'alloyForge', 'nanoLab', 'electronicsFactory', 'medicalTechLab', 'jewelleryForge', 'tungstenSmelter', 'armsFactory', 'droneShipyard', 'detectorFactory', 'neuralLab', 'opticalComputingLab', 'carbonCompositePlant', 'structuralFrameFactory', 'fusionReactor', 'solarPanelFactory', 'creditMint'] as BuildingType[],
   },
   {
     label: <><GameIcon icon="gi:vortex" size={14} className="inline" /> T4 Factory</>,
-    types: ['singularityForge', 'darkMatterLab', 'warpDriveFactory', 'antimatterReactor', 'chronoLab', 'plasmaForge', 'megaStructureFactory', 'voidCrystallizer', 'dysonCollector', 'quantumTeleporter', 'dimensionalGateway', 'timeDistorter', 'galacticForge'] as BuildingType[],
+    types: ['singularityForge', 'darkMatterLab', 'warpDriveFactory', 'antimatterReactor', 'chronoLab', 'plasmaForge', 'megaStructureFactory', 'voidCrystallizer', 'quantumResonanceLab', 'arcologyBuilder', 'habitatModuleFactory', 'dysonCollector', 'luxuryGoodsFactory', 'tradeHub', 'teleporterGate', 'quantumTeleporter', 'dimensionalGateway', 'timeDistorter', 'galacticForge', 'antimatterPowerPlant'] as BuildingType[],
+  },
+  {
+    label: <><GameIcon icon="gi:galactic-carrier" size={14} className="inline" /> T5 Transcendent</>,
+    types: ['omniscienceArray', 'worldEngine', 'planetaryShield', 'starReactor', 'voidEngine', 'quantumExchange', 'megaCorpHQ', 'dimensionalNexus', 'galacticArmada'] as BuildingType[],
   },
   {
     label: <><GameIcon icon="gi:lightning-frequency" size={14} className="inline" /> Power</>,

@@ -21,6 +21,8 @@ export const RESOURCE_META: Record<ResourceType, { name: string; icon: string; t
   gravel: { name: 'Gravel', icon: 'gi:stone-block', tier: 0, color: '#8b8b8b' },
   bauxite: { name: 'Bauxite', icon: 'gi:peaks', tier: 0, color: '#cd853f' },
   wolframite: { name: 'Wolframite', icon: 'gi:dark-squad', tier: 0, color: '#4a4a4a' },
+  silver: { name: 'Silver', icon: 'gi:gem-chain', tier: 0, color: '#c0c0c0' },
+  gold: { name: 'Gold', icon: 'gi:gold-bar', tier: 0, color: '#ffd700' },
   // Tier 1
   ironPlate: { name: 'Iron Plate', icon: 'gi:metal-plate', tier: 1, color: '#c0c0c0' },
   copperWire: { name: 'Copper Wire', icon: 'gi:electric', tier: 1, color: '#daa520' },
@@ -45,6 +47,10 @@ export const RESOURCE_META: Record<ResourceType, { name: string; icon: string; t
   coolant: { name: 'Coolant', icon: 'gi:snowflake-2', tier: 2, color: '#00bfff' },
   fiberOptics: { name: 'Fiber Optics', icon: 'gi:laser-burst', tier: 2, color: '#f0e68c' },
   solarCell: { name: 'Solar Cell', icon: 'gi:solar-power', tier: 2, color: '#ffd700' },
+  powerCell: { name: 'Power Cell', icon: 'gi:battery-100', tier: 2, color: '#00e676' },
+  reinforcedConcrete: { name: 'Reinforced Concrete', icon: 'gi:concrete-bag', tier: 2, color: '#78909c' },
+  refinedSilver: { name: 'Refined Silver', icon: 'gi:gem-chain', tier: 2, color: '#e0e0e0' },
+  refinedGold: { name: 'Refined Gold', icon: 'gi:gold-bar', tier: 2, color: '#ffb300' },
   // Tier 3
   aiChip: { name: 'AI Chip', icon: 'gi:brain', tier: 3, color: '#00ffff' },
   robotics: { name: 'Robotics', icon: 'gi:robot-grab', tier: 3, color: '#ff69b4' },
@@ -59,6 +65,11 @@ export const RESOURCE_META: Record<ResourceType, { name: string; icon: string; t
   scanDrone: { name: 'Scan Drone', icon: 'gi:space-shuttle', tier: 3, color: '#00e5ff' },
   artifactDetector: { name: 'Artifact Detector', icon: 'gi:satellite', tier: 3, color: '#ff6f00' },
   neuralNetwork: { name: 'Neural Network', icon: 'gi:thought-bubble', tier: 3, color: '#ff6347' },
+  carbonComposite: { name: 'Carbon Composite', icon: 'gi:carbonite', tier: 3, color: '#37474f' },
+  structuralFrame: { name: 'Structural Frame', icon: 'gi:steel-claws', tier: 3, color: '#546e7a' },
+  fusionCell: { name: 'Fusion Cell', icon: 'gi:nuclear-bomb', tier: 3, color: '#ffab00' },
+  solarPanel: { name: 'Solar Panel', icon: 'gi:solar-power', tier: 3, color: '#ffc107' },
+  creditChip: { name: 'Credit Chip', icon: 'gi:credit-card', tier: 3, color: '#26a69a' },
   // Tier 4
   singularityCore: { name: 'Singularity Core', icon: 'gi:vortex', tier: 4, color: '#00ffcc' },
   darkMatterCell: { name: 'Dark Matter Cell', icon: 'gi:hole', tier: 4, color: '#1a0033' },
@@ -68,6 +79,22 @@ export const RESOURCE_META: Record<ResourceType, { name: string; icon: string; t
   plasmaCore: { name: 'Plasma Core', icon: 'gi:flame-tunnel', tier: 4, color: '#ff6600' },
   megaStructure: { name: 'Mega Structure', icon: 'gi:castle', tier: 4, color: '#4169e1' },
   voidCrystal: { name: 'Void Crystal', icon: 'gi:implosion', tier: 4, color: '#9400d3' },
+  arcologyModule: { name: 'Arcology Module', icon: 'gi:skyscraper', tier: 4, color: '#4fc3f7' },
+  habitatModule: { name: 'Habitat Module', icon: 'gi:apartment', tier: 4, color: '#81c784' },
+  stellarEnergy: { name: 'Stellar Energy', icon: 'gi:star-formation', tier: 4, color: '#fff176' },
+  luxuryGoods: { name: 'Luxury Goods', icon: 'gi:crown', tier: 4, color: '#f48fb1' },
+  tradeContract: { name: 'Trade Contract', icon: 'gi:scroll-unfurled', tier: 4, color: '#a5d6a7' },
+  teleporterNode: { name: 'Teleporter Node', icon: 'gi:teleport', tier: 4, color: '#b39ddb' },
+  // Tier 5
+  researchMatrix: { name: 'Research Matrix', icon: 'gi:matrix', tier: 5, color: '#00e5ff' },
+  worldCore: { name: 'World Core', icon: 'gi:planet-core', tier: 5, color: '#ff6e40' },
+  shieldMatrix: { name: 'Shield Matrix', icon: 'gi:shield', tier: 5, color: '#69f0ae' },
+  stellarForge: { name: 'Stellar Forge', icon: 'gi:forge', tier: 5, color: '#ffd740' },
+  voidEnergy: { name: 'Void Energy', icon: 'gi:void', tier: 5, color: '#7c4dff' },
+  marketDominance: { name: 'Market Dominance', icon: 'gi:dominion', tier: 5, color: '#ff5252' },
+  corpCapital: { name: 'Corp Capital', icon: 'gi:capitol', tier: 5, color: '#448aff' },
+  dimensionalGate: { name: 'Dimensional Gate', icon: 'gi:gate', tier: 5, color: '#e040fb' },
+  armadaFleet: { name: 'Armada Fleet', icon: 'gi:spaceship', tier: 5, color: '#ff6d00' },
 };
 
 // --- Building Definitions ---
@@ -1861,6 +1888,7 @@ export const TIER_INFO: Record<number, { name: string; icon: string; color: stri
   2: { name: 'Advanced Mfg.', icon: 'gi:big-gear', color: '#f97316', bgColor: 'rgba(249,115,22,0.08)', borderColor: 'rgba(249,115,22,0.3)', description: 'Circuits, engines, batteries, gears' },
   3: { name: 'High-Tech', icon: 'gi:brain', color: '#a855f7', bgColor: 'rgba(168,85,247,0.08)', borderColor: 'rgba(168,85,247,0.3)', description: 'AI, robotics, quantum, nano materials' },
   4: { name: 'Singularity', icon: 'gi:galaxy', color: '#00ffcc', bgColor: 'rgba(0,255,204,0.08)', borderColor: 'rgba(0,255,204,0.3)', description: 'Singularity cores, dark matter, warp drives, chrono tech' },
+  5: { name: 'Transcendent', icon: 'gi:galactic-carrier', color: '#ff1744', bgColor: 'rgba(255,23,68,0.08)', borderColor: 'rgba(255,23,68,0.3)', description: 'Omniscience arrays, world engines, dimensional gates, galactic armadas' },
 };
 
 // --- Contract Templates (Tier-Based) ---

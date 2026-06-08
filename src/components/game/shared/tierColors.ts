@@ -1,7 +1,7 @@
 // ─── Shared Tier Color System ──────────────────────────────────────────────────
 // Unified color class mappings used across FactoryPanel, ResourcePanel, and other panels
 
-export type TierColor = 'cyan' | 'orange' | 'purple' | 'emerald' | 'amber';
+export type TierColor = 'cyan' | 'orange' | 'purple' | 'emerald' | 'amber' | 'red';
 
 export interface TierColorClasses {
   text: string;
@@ -83,6 +83,19 @@ const TIER_COLOR_MAP: Record<TierColor, TierColorClasses> = {
     tabActive: 'border-amber-500/60 bg-amber-900/25 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.15)]',
     tabHover: 'hover:border-amber-700/50 hover:text-amber-300',
   },
+  red: {
+    text: 'text-red-400',
+    border: 'border-red-500/30',
+    bg: 'bg-red-900/20',
+    hoverBorder: 'hover:border-red-500/50',
+    glow: 'hover:shadow-[0_0_15px_rgba(255,23,68,0.1)]',
+    buttonBorder: 'border-red-700/50',
+    buttonText: 'text-red-400',
+    buttonHover: 'hover:bg-red-900/30 hover:border-red-500',
+    badge: 'border-red-600/50',
+    tabActive: 'border-red-500/60 bg-red-900/25 text-red-400 shadow-[0_0_12px_rgba(255,23,68,0.15)]',
+    tabHover: 'hover:border-red-700/50 hover:text-red-300',
+  },
 };
 
 export function getTierColorClasses(color: TierColor): TierColorClasses {
@@ -96,4 +109,5 @@ export const TIER_INFO = {
   2: { name: 'Advanced Mfg.', color: '#f97316', emoji: '⚙️' },
   3: { name: 'High-Tech', color: '#a855f7', emoji: '🧠' },
   4: { name: 'Singularity', color: '#00ffcc', emoji: '🌌' },
+  5: { name: 'Transcendent', color: '#ff1744', emoji: '🔮' },
 } as const;

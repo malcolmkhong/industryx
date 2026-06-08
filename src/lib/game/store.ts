@@ -41,7 +41,7 @@ import {
 } from './productionCalculator';
 
 // --- Save Version ---
-const SAVE_VERSION = 18;
+const SAVE_VERSION = 19;
 
 // --- Utility Functions ---
 function generateId(): string {
@@ -528,9 +528,86 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
   }
 
   // V17→V18+ Building ID migration (miningDrill→ironMine, quarry→sandMine, goldsmith→jewelleryForge)
-  if (version < SAVE_VERSION) {
+  if (version < 18) {
     if (Array.isArray(state.buildings)) {
       state.buildings = migrateSaveBuildings(state.buildings as any[]);
+    }
+  }
+
+  // V18 → V19: Add missing T2-T5 resources (silver, gold, powerCell, etc.)
+  if (version < 19) {
+    const newResourcesV19: Record<string, number> = {
+      // T0
+      silver: 0, gold: 0,
+      // T2
+      powerCell: 0, reinforcedConcrete: 0, refinedSilver: 0, refinedGold: 0,
+      // T3
+      carbonComposite: 0, structuralFrame: 0, fusionCell: 0, solarPanel: 0, creditChip: 0,
+      // T4
+      arcologyModule: 0, habitatModule: 0, stellarEnergy: 0, luxuryGoods: 0,
+      tradeContract: 0, teleporterNode: 0,
+      // T5
+      researchMatrix: 0, worldCore: 0, shieldMatrix: 0, stellarForge: 0,
+      voidEnergy: 0, marketDominance: 0, corpCapital: 0,
+      dimensionalGate: 0, armadaFleet: 0,
+    };
+    const newCapacitiesV19: Record<string, number> = {
+      silver: 100, gold: 100,
+      powerCell: 100, reinforcedConcrete: 200, refinedSilver: 50, refinedGold: 50,
+      carbonComposite: 25, structuralFrame: 25, fusionCell: 25, solarPanel: 50, creditChip: 25,
+      arcologyModule: 25, habitatModule: 25, stellarEnergy: 25, luxuryGoods: 25,
+      tradeContract: 25, teleporterNode: 25,
+      researchMatrix: 10, worldCore: 10, shieldMatrix: 10, stellarForge: 10,
+      voidEnergy: 10, marketDominance: 10, corpCapital: 10,
+      dimensionalGate: 10, armadaFleet: 10,
+    };
+
+    if (state.resources && typeof state.resources === 'object') {
+      const resources = state.resources as Record<string, number>;
+      Object.entries(newResourcesV19).forEach(([key, value]) => {
+        if (resources[key] === undefined) resources[key] = value;
+      });
+    }
+    if (state.resourceCapacity && typeof state.resourceCapacity === 'object') {
+      const cap = state.resourceCapacity as Record<string, number>;
+      Object.entries(newCapacitiesV19).forEach(([key, value]) => {
+        if (cap[key] === undefined) cap[key] = value;
+      });
+    }
+    if (state.storageUpgradeLevels && typeof state.storageUpgradeLevels === 'object') {
+      const upgrades = state.storageUpgradeLevels as Record<string, number>;
+      Object.keys(newResourcesV19).forEach(key => {
+        if (upgrades[key] === undefined) upgrades[key] = 0;
+      });
+    }
+    if (state.stats && typeof state.stats === 'object') {
+      const stats = state.stats as Record<string, unknown>;
+      if (stats.totalResourcesProduced && typeof stats.totalResourcesProduced === 'object') {
+        const produced = stats.totalResourcesProduced as Record<string, number>;
+        Object.keys(newResourcesV19).forEach(key => {
+          if (produced[key] === undefined) produced[key] = 0;
+        });
+      }
+      if (stats.totalResourcesSold && typeof stats.totalResourcesSold === 'object') {
+        const sold = stats.totalResourcesSold as Record<string, number>;
+        Object.keys(newResourcesV19).forEach(key => {
+          if (sold[key] === undefined) sold[key] = 0;
+        });
+      }
+    }
+
+    // Also add missing market entries for new resources
+    if (Array.isArray(state.market)) {
+      const existingResources = new Set((state.market as MarketPrice[]).map((m: MarketPrice) => m.resource));
+      const newMarketEntries: MarketPrice[] = [];
+      INITIAL_MARKET.forEach(m => {
+        if (!existingResources.has(m.resource)) {
+          newMarketEntries.push({ ...m });
+        }
+      });
+      if (newMarketEntries.length > 0) {
+        state.market = [...(state.market as MarketPrice[]), ...newMarketEntries];
+      }
     }
   }
 
@@ -540,31 +617,63 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
 
 // --- Initial State ---
 const initialResources: Record<ResourceType, number> = {
-  iron: 0, copper: 0, coal: 0, oil: 0, sand: 0, lithium: 0, water: 0, rareEarth: 0,
+  // T0 - Raw Resources
+  iron: 0, copper: 0, coal: 0, oil: 0, sand: 0, lithium: 0, water: 0,
   clay: 0, limestone: 0, gravel: 0, bauxite: 0, wolframite: 0,
+  silver: 0, gold: 0,
+  // T1 - Basic Processed
+  rareEarth: 0,
   ironPlate: 0, copperWire: 0, plastic: 0, glass: 0, carbon: 0,
   bricks: 0, concrete: 0, fertilizer: 0, steel: 0, fossilFuel: 0,
+  // T2 - Intermediate
   circuit: 0, engine: 0, battery: 0, gear: 0,
   silicon: 0, aluminium: 0, insecticide: 0, copperIngot: 0, titanium: 0,
   coolant: 0, fiberOptics: 0, solarCell: 0,
+  powerCell: 0, reinforcedConcrete: 0, refinedSilver: 0, refinedGold: 0,
+  // T3 - Advanced
   aiChip: 0, robotics: 0, quantumPart: 0, advancedAlloy: 0, nanoMaterial: 0,
   electronics: 0, medicalTech: 0, jewellery: 0, tungsten: 0, weapons: 0,
   scanDrone: 0, artifactDetector: 0, neuralNetwork: 0,
-  singularityCore: 0, darkMatterCell: 0, warpDrive: 0, antimatter: 0, chronoPart: 0, plasmaCore: 0, megaStructure: 0, voidCrystal: 0,
+  carbonComposite: 0, structuralFrame: 0, fusionCell: 0, solarPanel: 0, creditChip: 0,
+  // T4 - Endgame
+  singularityCore: 0, darkMatterCell: 0, warpDrive: 0, antimatter: 0, chronoPart: 0,
+  plasmaCore: 0, megaStructure: 0, voidCrystal: 0,
+  arcologyModule: 0, habitatModule: 0, stellarEnergy: 0, luxuryGoods: 0,
+  tradeContract: 0, teleporterNode: 0,
+  // T5 - Transcendent
+  researchMatrix: 0, worldCore: 0, shieldMatrix: 0, stellarForge: 0,
+  voidEnergy: 0, marketDominance: 0, corpCapital: 0,
+  dimensionalGate: 0, armadaFleet: 0,
 };
 
 const initialCapacity: Record<ResourceType, number> = {
-  iron: 100, copper: 100, coal: 100, oil: 100, sand: 100, lithium: 50, water: 200, rareEarth: 20,
+  // T0 - Raw Resources
+  iron: 100, copper: 100, coal: 100, oil: 100, sand: 100, lithium: 50, water: 200,
   clay: 500, limestone: 500, gravel: 500, bauxite: 200, wolframite: 100,
+  silver: 100, gold: 100,
+  // T1 - Basic Processed
+  rareEarth: 20,
   ironPlate: 50, copperWire: 50, plastic: 50, glass: 50, carbon: 30,
   bricks: 200, concrete: 200, fertilizer: 200, steel: 40, fossilFuel: 200,
+  // T2 - Intermediate
   circuit: 30, engine: 20, battery: 30, gear: 40,
   silicon: 100, aluminium: 100, insecticide: 100, copperIngot: 100, titanium: 100,
   coolant: 100, fiberOptics: 100, solarCell: 100,
+  powerCell: 100, reinforcedConcrete: 200, refinedSilver: 50, refinedGold: 50,
+  // T3 - Advanced
   aiChip: 10, robotics: 5, quantumPart: 5, advancedAlloy: 10, nanoMaterial: 3,
   electronics: 50, medicalTech: 50, jewellery: 25, tungsten: 50, weapons: 50,
   scanDrone: 25, artifactDetector: 25, neuralNetwork: 25,
-  singularityCore: 50, darkMatterCell: 50, warpDrive: 50, antimatter: 50, chronoPart: 50, plasmaCore: 50, megaStructure: 50, voidCrystal: 50,
+  carbonComposite: 25, structuralFrame: 25, fusionCell: 25, solarPanel: 50, creditChip: 25,
+  // T4 - Endgame
+  singularityCore: 50, darkMatterCell: 50, warpDrive: 50, antimatter: 50, chronoPart: 50,
+  plasmaCore: 50, megaStructure: 50, voidCrystal: 50,
+  arcologyModule: 25, habitatModule: 25, stellarEnergy: 25, luxuryGoods: 25,
+  tradeContract: 25, teleporterNode: 25,
+  // T5 - Transcendent
+  researchMatrix: 10, worldCore: 10, shieldMatrix: 10, stellarForge: 10,
+  voidEnergy: 10, marketDominance: 10, corpCapital: 10,
+  dimensionalGate: 10, armadaFleet: 10,
 };
 
 function createInitialState(): GameState {

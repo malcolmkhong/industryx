@@ -4,6 +4,44 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { fetchGameConfig, GameConfig } from '@/lib/game/config';
 import { updateFromSupabase, configSource, configVersion } from '@/lib/game/configCache';
 
+// Client-side config cache with 5-minute TTL
+const CONFIG_CACHE_KEY = 'industriax_game_config';
+const CONFIG_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+interface CachedConfig {
+  data: GameConfig;
+  timestamp: number;
+  version: number;
+}
+
+function getCachedConfig(): GameConfig | null {
+  try {
+    const cached = localStorage.getItem(CONFIG_CACHE_KEY);
+    if (!cached) return null;
+    const parsed = JSON.parse(cached) as CachedConfig;
+    if (Date.now() - parsed.timestamp > CONFIG_CACHE_TTL) {
+      localStorage.removeItem(CONFIG_CACHE_KEY);
+      return null;
+    }
+    return parsed.data;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedConfig(config: GameConfig): void {
+  try {
+    const cached: CachedConfig = {
+      data: config,
+      timestamp: Date.now(),
+      version: configVersion + 1,
+    };
+    localStorage.setItem(CONFIG_CACHE_KEY, JSON.stringify(cached));
+  } catch {
+    // localStorage full or unavailable — non-critical
+  }
+}
+
 // Fallback config — minimal, since configCache already has data.ts defaults
 function createFallbackConfig(): GameConfig {
   return {
@@ -62,12 +100,53 @@ export function GameConfigProvider({ children }: { children: React.ReactNode }) 
     setLoading(true);
     setError(null);
     try {
+      // 1. Try localStorage cache first (instant load)
+      const cachedConfig = getCachedConfig();
+      if (cachedConfig && cachedConfig.source === 'supabase') {
+        updateFromSupabase(cachedConfig);
+        setConfig(cachedConfig);
+        setLastUpdated(cachedConfig.loadedAt);
+        setLoading(false);
+        console.log('[GameConfigProvider] Loaded from cache:', Object.keys(cachedConfig.buildings).length, 'buildings');
+
+        // Still fetch fresh data in background (stale-while-revalidate)
+        fetchFreshConfig().then(freshConfig => {
+          if (freshConfig) {
+            updateFromSupabase(freshConfig);
+            setConfig(freshConfig);
+            setLastUpdated(Date.now());
+            setCachedConfig(freshConfig);
+          }
+        }).catch(() => {});
+        return;
+      }
+
+      // 2. No cache — fetch from API
+      const freshConfig = await fetchFreshConfig();
+      if (freshConfig) {
+        updateFromSupabase(freshConfig);
+        setConfig(freshConfig);
+        setLastUpdated(Date.now());
+        setCachedConfig(freshConfig);
+      } else {
+        setConfig(createFallbackConfig());
+      }
+    } catch (err) {
+      console.error('[GameConfigProvider] Error loading config:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      setConfig(createFallbackConfig());
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  async function fetchFreshConfig(): Promise<GameConfig | null> {
+    try {
       // Try the new /api/game/definitions endpoint first (processed config)
       const defsRes = await fetch('/api/game/definitions');
       if (defsRes.ok) {
         const defsData = await defsRes.json();
         if (defsData.buildings && Object.keys(defsData.buildings).length > 0) {
-          // Build a GameConfig from the processed definitions response
           const supabaseConfig: GameConfig = {
             buildings: defsData.buildings || {},
             resources: defsData.resources || {},
@@ -90,36 +169,23 @@ export function GameConfigProvider({ children }: { children: React.ReactNode }) 
             loadedAt: Date.now(),
             source: 'supabase',
           };
-
-          // Update the configCache (which feeds store.ts and all panels)
-          updateFromSupabase(supabaseConfig);
-
-          setConfig(supabaseConfig);
-          setLastUpdated(Date.now());
-          console.log('[GameConfigProvider] Loaded from /api/game/definitions:', Object.keys(defsData.buildings).length, 'buildings');
-          return;
+          console.log('[GameConfigProvider] Fetched fresh config:', Object.keys(defsData.buildings).length, 'buildings');
+          return supabaseConfig;
         }
       }
 
       // Fallback: try the old /api/config endpoint
       const supabaseConfig = await fetchGameConfig();
       if (supabaseConfig) {
-        // Update the configCache with Supabase data
-        updateFromSupabase(supabaseConfig);
-        setConfig(supabaseConfig);
-        setLastUpdated(Date.now());
-      } else {
-        // Use fallback — configCache already has data.ts defaults
-        setConfig(createFallbackConfig());
+        return supabaseConfig;
       }
+
+      return null;
     } catch (err) {
-      console.error('[GameConfigProvider] Error loading config:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
-      setConfig(createFallbackConfig());
-    } finally {
-      setLoading(false);
+      console.error('[GameConfigProvider] Fresh fetch error:', err);
+      return null;
     }
-  }, []);
+  }
 
   useEffect(() => {
     loadConfig();
