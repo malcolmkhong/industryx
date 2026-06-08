@@ -2,7 +2,7 @@
 
 import { useGameStore, formatNumber } from '@/lib/game/store';
 import { motion } from 'framer-motion';
-import { EVENT_TEMPLATES, RESOURCE_META } from '@/lib/game/data';
+import { EVENT_TEMPLATES, RESOURCE_META } from '@/lib/game/configCache';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {

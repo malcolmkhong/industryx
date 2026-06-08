@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
-import { WORKER_DEFS, BUILDING_DEFS } from '@/lib/game/data';
+import { WORKER_DEFS, BUILDING_DEFS } from '@/lib/game/configCache';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {

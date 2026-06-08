@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/store';
-import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE } from '@/lib/game/data';
+import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE } from '@/lib/game/configCache';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {

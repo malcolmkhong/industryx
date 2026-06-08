@@ -18,7 +18,7 @@
  */
 
 import { GameState, MarketPrice, ResourceType } from './types';
-import { RESOURCE_META, BUILDING_DEFS } from './data';
+import { RESOURCE_META, BUILDING_DEFS } from './configCache';
 import {
   buildEventPacketFromPriceMove,
   buildEventPacketFromVolatility,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useGameStore } from '@/lib/game/store';
 
@@ -8,19 +8,29 @@ interface CloudSyncState {
   saveToCloud: () => Promise<{ success: boolean; error?: string }>;
   loadFromCloud: () => Promise<{ success: boolean; data?: unknown; error?: string; isNew?: boolean }>;
   lastSyncAt: number | null;
+  lastAutoSaveAt: number | null;
   isSyncing: boolean;
 }
+
+// Auto-save interval in milliseconds (60 seconds)
+const AUTO_SAVE_INTERVAL = 60_000;
 
 export function useCloudSync(): CloudSyncState {
   const { user } = useAuth();
   const isSyncing = useRef(false);
   const lastSyncAt = useRef<number | null>(null);
+  const lastAutoSaveAt = useRef<number | null>(null);
+  const lastSavedGameTick = useRef<number | null>(null);
+  const [lastAutoSaveAtState, setLastAutoSaveAtState] = useState<number | null>(null);
+  const [lastSyncAtState, setLastSyncAtState] = useState<number | null>(null);
+  const [isSyncingState, setIsSyncingState] = useState(false);
 
   const saveToCloud = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
     if (!user) return { success: false, error: 'Not authenticated' };
     if (isSyncing.current) return { success: false, error: 'Already syncing' };
 
     isSyncing.current = true;
+    setIsSyncingState(true);
     try {
       const state = useGameStore.getState();
       const gameState = {
@@ -73,6 +83,8 @@ export function useCloudSync(): CloudSyncState {
       const data = await res.json();
       if (data.saved) {
         lastSyncAt.current = Date.now();
+        lastSavedGameTick.current = state.gameTick;
+        setLastSyncAtState(lastSyncAt.current);
         return { success: true };
       }
       return { success: false, error: data.error || 'Save failed' };
@@ -80,6 +92,7 @@ export function useCloudSync(): CloudSyncState {
       return { success: false, error: err instanceof Error ? err.message : 'Network error' };
     } finally {
       isSyncing.current = false;
+      setIsSyncingState(false);
     }
   }, [user]);
 
@@ -96,6 +109,7 @@ export function useCloudSync(): CloudSyncState {
 
       if (data.data?.game_state) {
         lastSyncAt.current = Date.now();
+        setLastSyncAtState(lastSyncAt.current);
         return { success: true, data: data.data.game_state };
       }
 
@@ -105,10 +119,36 @@ export function useCloudSync(): CloudSyncState {
     }
   }, [user]);
 
+  // Auto-save effect: every 60 seconds, save if logged in and state has changed
+  useEffect(() => {
+    if (!user) return;
+
+    const interval = setInterval(async () => {
+      // Don't auto-save if already syncing
+      if (isSyncing.current) return;
+
+      const currentGameTick = useGameStore.getState().gameTick;
+
+      // Only save if the game state has changed since last save
+      if (lastSavedGameTick.current !== null && lastSavedGameTick.current === currentGameTick) {
+        return;
+      }
+
+      const result = await saveToCloud();
+      if (result.success) {
+        lastAutoSaveAt.current = Date.now();
+        setLastAutoSaveAtState(lastAutoSaveAt.current);
+      }
+    }, AUTO_SAVE_INTERVAL);
+
+    return () => clearInterval(interval);
+  }, [user, saveToCloud]);
+
   return {
     saveToCloud,
     loadFromCloud,
-    lastSyncAt: lastSyncAt.current,
-    isSyncing: isSyncing.current,
+    lastSyncAt: lastSyncAtState,
+    lastAutoSaveAt: lastAutoSaveAtState,
+    isSyncing: isSyncingState,
   };
 }

@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
-import { WEATHER_DEFS, TIER_INFO } from '@/lib/game/data';
+import { WEATHER_DEFS, TIER_INFO } from '@/lib/game/configCache';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { Pin, PinOff, Clock, Lock, Filter, ChevronDown, ChevronRight, Sparkles, ScrollText } from 'lucide-react';
 import { GameCard } from '@/components/game/shared/GameCard';

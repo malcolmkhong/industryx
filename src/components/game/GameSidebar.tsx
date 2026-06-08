@@ -13,7 +13,7 @@ import {
 import { LucideIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/lib/game/store';
-import { BUILDING_DEFS } from '@/lib/game/data';
+import { BUILDING_DEFS } from '@/lib/game/configCache';
 
 // ─── Navigation Tab Definition ─────────────────────────────────────────────────
 

@@ -24,7 +24,8 @@ import {
   INITIAL_MEGA_PROJECTS, RANK_THRESHOLDS, SEASONAL_EVENTS,
   WEEKLY_DAILY_REWARDS, getStreakMultiplier,
   WEATHER_DEFS, QUEST_DEFS,
-} from './data';
+} from './configCache';
+import { migrateSaveBuildings } from './idMigration';
 import { soundEngine } from './soundEngine';
 import {
   buildMultipliers,
@@ -523,6 +524,13 @@ function migrateSaveState(savedState: Record<string, unknown>): Record<string, u
     const simState = state.marketSimState as Record<string, unknown> | undefined;
     if (simState && !simState.lastTradeTick) {
       simState.lastTradeTick = {};
+    }
+  }
+
+  // V17→V18+ Building ID migration (miningDrill→ironMine, quarry→sandMine, goldsmith→jewelleryForge)
+  if (version < SAVE_VERSION) {
+    if (Array.isArray(state.buildings)) {
+      state.buildings = migrateSaveBuildings(state.buildings as any[]);
     }
   }
 

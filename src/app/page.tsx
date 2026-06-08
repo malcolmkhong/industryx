@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback, useRef, useState, useMemo } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
-import { BUILDING_DEFS, RESOURCE_META, WEATHER_DEFS } from '@/lib/game/data';
+import { BUILDING_DEFS, RESOURCE_META, WEATHER_DEFS } from '@/lib/game/configCache';
 import { GameTab, ResourceType } from '@/lib/game/types';
 import { DashboardPanel } from '@/components/game/DashboardPanel';
 import { ResourcePanel } from '@/components/game/ResourcePanel';

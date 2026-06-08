@@ -10,7 +10,7 @@ import {
   ArrowUpDown, Package, BarChart3, Database, AlertCircle,
 } from 'lucide-react';
 import { useGameStore, formatNumber, hasUnlimitedStorage } from '@/lib/game/store';
-import { BUILDING_DEFS, RESOURCE_META } from '@/lib/game/data';
+import { BUILDING_DEFS, RESOURCE_META } from '@/lib/game/configCache';
 import { ResourceType, GameTab } from '@/lib/game/types';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
 import { GameIcon } from '@/components/game/shared/GameIcon';

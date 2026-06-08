@@ -1,7 +1,7 @@
 'use client';
 
 import { useGameStore, formatNumber } from '@/lib/game/store';
-import { AUTOMATION_UNLOCKS, RESEARCH_TREE } from '@/lib/game/data';
+import { AUTOMATION_UNLOCKS, RESEARCH_TREE } from '@/lib/game/configCache';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {

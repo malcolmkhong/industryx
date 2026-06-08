@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
-import { RESOURCE_META, BUILDING_DEFS, PRODUCTION_CHAINS } from '@/lib/game/data';
+import { RESOURCE_META, BUILDING_DEFS, PRODUCTION_CHAINS } from '@/lib/game/configCache';
 import { hasUnlimitedStorage } from '@/lib/game/store';
 import { ResourceType, BuildingType } from '@/lib/game/types';
 import { motion, AnimatePresence } from 'framer-motion';

@@ -1,7 +1,7 @@
 'use client';
 
 import { useGameStore, formatNumber } from '@/lib/game/store';
-import { RESOURCE_META, getStreakMultiplier } from '@/lib/game/data';
+import { RESOURCE_META, getStreakMultiplier } from '@/lib/game/configCache';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Gift, Flame, Lock, Check, Sparkles, Trophy, Calendar, TrendingUp } from 'lucide-react';

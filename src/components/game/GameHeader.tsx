@@ -5,7 +5,7 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { useGameConfig } from '@/components/providers/GameConfigProvider';
 import { useCloudSync } from '@/lib/hooks/useCloudSync';
 import { useGameStore, formatNumber } from '@/lib/game/store';
-import { BUILDING_DEFS, WEATHER_DEFS } from '@/lib/game/data';
+import { BUILDING_DEFS, WEATHER_DEFS } from '@/lib/game/configCache';
 import { GameIcon } from '@/components/game/shared/GameIcon';
 import {
   Play, Pause, Bell, Check, Download, Upload, RotateCcw,

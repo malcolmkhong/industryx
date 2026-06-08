@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
-import { RANK_THRESHOLDS } from '@/lib/game/data';
+import { RANK_THRESHOLDS } from '@/lib/game/configCache';
 import { LeaderboardEntry } from '@/lib/game/types';
 import { Trophy, ChevronDown, ChevronUp, Building2, FlaskConical, ScrollText, Coins, Clock, RotateCcw } from 'lucide-react';
 import { GameIcon } from '@/components/game/shared/GameIcon';

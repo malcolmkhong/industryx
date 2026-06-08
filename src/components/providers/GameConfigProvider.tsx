@@ -2,20 +2,16 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { fetchGameConfig, GameConfig } from '@/lib/game/config';
-import { BUILDING_DEFS, RESOURCE_META, WEATHER_DEFS } from '@/lib/game/data';
+import { updateFromSupabase, configSource, configVersion } from '@/lib/game/configCache';
 
-// Fallback config built from hardcoded data
+// Fallback config — minimal, since configCache already has data.ts defaults
 function createFallbackConfig(): GameConfig {
   return {
-    buildings: BUILDING_DEFS,
-    resources: Object.fromEntries(
-      Object.entries(RESOURCE_META).map(([key, val]) => [key, { ...val, category: '' }])
-    ),
+    buildings: {},
+    resources: {},
     research: [],
     market: [],
-    weather: Object.fromEntries(
-      Object.entries(WEATHER_DEFS).map(([key, val]) => [key, val])
-    ),
+    weather: {},
     workers: [],
     transport: [],
     automation: [],
@@ -66,28 +62,54 @@ export function GameConfigProvider({ children }: { children: React.ReactNode }) 
     setLoading(true);
     setError(null);
     try {
+      // Try the new /api/game/definitions endpoint first (processed config)
+      const defsRes = await fetch('/api/game/definitions');
+      if (defsRes.ok) {
+        const defsData = await defsRes.json();
+        if (defsData.buildings && Object.keys(defsData.buildings).length > 0) {
+          // Build a GameConfig from the processed definitions response
+          const supabaseConfig: GameConfig = {
+            buildings: defsData.buildings || {},
+            resources: defsData.resources || {},
+            research: defsData.research || [],
+            market: defsData.market || [],
+            weather: defsData.weather || {},
+            workers: defsData.workers || [],
+            transport: defsData.transport || [],
+            automation: defsData.automation || [],
+            prestigeBonuses: defsData.prestigeBonuses || [],
+            rankThresholds: defsData.rankThresholds || [],
+            quests: defsData.quests || [],
+            dailyRewards: defsData.dailyRewards || [],
+            eventTemplates: defsData.eventTemplates || [],
+            seasonalEvents: defsData.seasonalEvents || [],
+            megaProjects: defsData.megaProjects || [],
+            gameConfig: defsData.gameConfig || {},
+            balancingRules: defsData.balancingRules || [],
+            productionChains: defsData.productionChains || [],
+            loadedAt: Date.now(),
+            source: 'supabase',
+          };
+
+          // Update the configCache (which feeds store.ts and all panels)
+          updateFromSupabase(supabaseConfig);
+
+          setConfig(supabaseConfig);
+          setLastUpdated(Date.now());
+          console.log('[GameConfigProvider] Loaded from /api/game/definitions:', Object.keys(defsData.buildings).length, 'buildings');
+          return;
+        }
+      }
+
+      // Fallback: try the old /api/config endpoint
       const supabaseConfig = await fetchGameConfig();
       if (supabaseConfig) {
-        // Merge Supabase config with fallback for missing data
-        const merged: GameConfig = {
-          ...createFallbackConfig(),
-          ...supabaseConfig,
-          // For buildings, prefer Supabase but keep fallback entries not in Supabase
-          buildings: { ...BUILDING_DEFS, ...supabaseConfig.buildings },
-          // Same for resources
-          resources: {
-            ...Object.fromEntries(
-              Object.entries(RESOURCE_META).map(([key, val]) => [key, { ...val, category: '' }])
-            ),
-            ...supabaseConfig.resources,
-          },
-          // Same for weather
-          weather: { ...WEATHER_DEFS, ...supabaseConfig.weather },
-        };
-        setConfig(merged);
+        // Update the configCache with Supabase data
+        updateFromSupabase(supabaseConfig);
+        setConfig(supabaseConfig);
         setLastUpdated(Date.now());
       } else {
-        // Use fallback
+        // Use fallback — configCache already has data.ts defaults
         setConfig(createFallbackConfig());
       }
     } catch (err) {

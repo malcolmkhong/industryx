@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useGameStore, formatNumber, isResearchUnlocked } from '@/lib/game/store';
-import { RESEARCH_TREE, RESOURCE_META } from '@/lib/game/data';
+import { RESEARCH_TREE, RESOURCE_META } from '@/lib/game/configCache';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';

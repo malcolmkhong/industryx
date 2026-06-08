@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
-import { PRODUCTION_CHAINS, RESOURCE_META, BUILDING_DEFS } from '@/lib/game/data';
+import { PRODUCTION_CHAINS, RESOURCE_META, BUILDING_DEFS } from '@/lib/game/configCache';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowRight, ArrowUpRight, ArrowDownRight, Minus,

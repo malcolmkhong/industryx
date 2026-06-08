@@ -14,7 +14,7 @@ export interface SupabaseBuilding {
   description: string;
   category: string;
   tier: number;
-  base_cost: Record<string, number>; // e.g. { money: 500 }
+  base_cost: Record<string, number> | Array<{resource: string; amount: number}>; // e.g. { money: 500 } or [{resource: 'money', amount: 500}]
   cost_multiplier: number;
   base_power_consumption: number;
   base_power_production: number;
@@ -102,7 +102,7 @@ export interface SupabaseTransport {
   id: string;
   name: string;
   description: string;
-  base_cost: Record<string, number>;
+  base_cost: Record<string, number> | Array<{resource: string; amount: number}>;
   base_throughput: number;
   upgrade_multiplier: number;
   icon: string;
@@ -350,8 +350,16 @@ export interface GameConfig {
 
 // --- Data Transformers ---
 
-function parseCostMap(costMap: Record<string, number> | null): ResourceAmount[] {
+function parseCostMap(costMap: Record<string, number> | Array<{resource: string; amount: number}> | null): ResourceAmount[] {
   if (!costMap) return [{ resource: 'money', amount: 100 }];
+  // Handle array format from Supabase: [{resource: 'money', amount: 500}]
+  if (Array.isArray(costMap)) {
+    return costMap.map(item => ({
+      resource: item.resource as CostResourceType,
+      amount: item.amount,
+    }));
+  }
+  // Handle legacy object format: {money: 500}
   return Object.entries(costMap).map(([resource, amount]) => ({
     resource: resource as CostResourceType,
     amount,

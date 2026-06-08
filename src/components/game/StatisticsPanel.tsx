@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
-import { RESOURCE_META } from '@/lib/game/data';
+import { RESOURCE_META } from '@/lib/game/configCache';
 import { ResourceType } from '@/lib/game/types';
 import { BarChart3, TrendingUp, TrendingDown, Minus, Zap, DollarSign, Activity } from 'lucide-react';
 import { GameIcon } from '@/components/game/shared/GameIcon';

@@ -1,7 +1,7 @@
 'use client';
 
 import { useGameStore, formatNumber } from '@/lib/game/store';
-import { BUILDING_DEFS } from '@/lib/game/data';
+import { BUILDING_DEFS } from '@/lib/game/configCache';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

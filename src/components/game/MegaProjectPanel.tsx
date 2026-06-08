@@ -1,7 +1,7 @@
 'use client';
 
 import { useGameStore, formatNumber } from '@/lib/game/store';
-import { RESOURCE_META } from '@/lib/game/data';
+import { RESOURCE_META } from '@/lib/game/configCache';
 import { ResourceType } from '@/lib/game/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

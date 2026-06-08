@@ -76,20 +76,40 @@ async function getTableData(table: string, page: number, pageSize: number) {
     .select('*', { count: 'exact' })
     .range(from, to);
 
-  // Only order by sort_order for tables that have it
-  const tablesWithSortOrder = [
+  // Only order by sort_order for tables that have the column
+  const tablesWithSortOrder = new Set([
     'game_config_buildings', 'game_config_resources', 'game_config_research',
     'game_config_automation', 'game_config_workers', 'game_config_transport',
     'game_config_market', 'game_config_prestige_bonuses', 'game_config_quest_definitions',
     'game_config_event_templates', 'game_config_seasonal_events', 'game_config_mega_projects',
-    'game_config_weather', 'game_config_balancing_rules',
-  ];
+    'game_config_weather',
+  ]);
 
-  if (tablesWithSortOrder.includes(table)) {
-    query = query.order('sort_order', { ascending: true, nullsFirst: false });
+  let data, error, count;
+
+  if (tablesWithSortOrder.has(table)) {
+    // Try with sort_order first, fall back to no ordering if column doesn't exist
+    const withSort = await query.order('sort_order', { ascending: true, nullsFirst: false });
+    data = withSort.data;
+    error = withSort.error;
+    count = withSort.count;
+
+    if (error?.message?.includes('sort_order')) {
+      // Column doesn't exist, retry without ordering
+      const withoutSort = await supabase
+        .from(table)
+        .select('*', { count: 'exact' })
+        .range(from, to);
+      data = withoutSort.data;
+      error = withoutSort.error;
+      count = withoutSort.count;
+    }
+  } else {
+    const result = await query;
+    data = result.data;
+    error = result.error;
+    count = result.count;
   }
-
-  const { data, error, count } = await query;
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
-import { RESOURCE_META, CONTRACT_TEMPLATES, TIER_INFO } from '@/lib/game/data';
+import { RESOURCE_META, CONTRACT_TEMPLATES, TIER_INFO } from '@/lib/game/configCache';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {

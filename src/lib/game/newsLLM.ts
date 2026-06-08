@@ -24,7 +24,7 @@
 // ============================================
 
 import { ResourceType } from './types';
-import { RESOURCE_META } from './data';
+import { RESOURCE_META } from './configCache';
 import type { EventPacket } from './newsBuilder';
 
 // ─── Types ────────────────────────────────────────────────────────────────────

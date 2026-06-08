@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useCallback, useRef, useEffect, memo } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
-import { BUILDING_DEFS, RESOURCE_META } from '@/lib/game/data';
+import { BUILDING_DEFS, RESOURCE_META } from '@/lib/game/configCache';
 import { BuildingInstance, BuildingType } from '@/lib/game/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';

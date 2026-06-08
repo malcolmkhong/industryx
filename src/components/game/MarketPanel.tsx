@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { LoadingSpinner } from '@/components/game/shared/LoadingSpinner';
 import { useGameStore, formatNumber } from '@/lib/game/store';
-import { RESOURCE_META } from '@/lib/game/data';
+import { RESOURCE_META } from '@/lib/game/configCache';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {

@@ -22,7 +22,7 @@ import {
   BUILDING_DEFS,
   WORKER_DEFS,
   WEATHER_DEFS,
-} from './data';
+} from './configCache';
 
 // ─── Types ───────────────────────────────────────────────────────────
 

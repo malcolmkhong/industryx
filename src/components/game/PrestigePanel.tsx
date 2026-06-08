@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
-import { PRESTIGE_BONUSES, BUILDING_DEFS } from '@/lib/game/data';
+import { PRESTIGE_BONUSES, BUILDING_DEFS } from '@/lib/game/configCache';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {

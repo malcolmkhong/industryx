@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useRef, useEffect } from 'react';
 import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/store';
-import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE, RANK_THRESHOLDS, WEATHER_DEFS } from '@/lib/game/data';
+import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE, RANK_THRESHOLDS, WEATHER_DEFS } from '@/lib/game/configCache';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

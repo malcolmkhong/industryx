@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
-import { BUILDING_DEFS, RESOURCE_META, PRODUCTION_CHAINS } from '@/lib/game/data';
+import { BUILDING_DEFS, RESOURCE_META, PRODUCTION_CHAINS } from '@/lib/game/configCache';
 import { ResourceType, BuildingDefinition } from '@/lib/game/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

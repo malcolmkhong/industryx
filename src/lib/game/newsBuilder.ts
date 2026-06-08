@@ -14,7 +14,7 @@
 
 import { MarketNews, MarketNarrative, VolatilityInjection, MarketSector } from './marketSimulator';
 import { ResourceType } from './types';
-import { RESOURCE_META } from './data';
+import { RESOURCE_META } from './configCache';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // News System Configuration — Tunable Game-Balance Parameters

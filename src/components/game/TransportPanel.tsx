@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
-import { TRANSPORT_DEFS, BUILDING_DEFS, RESOURCE_META, WEATHER_DEFS } from '@/lib/game/data';
+import { TRANSPORT_DEFS, BUILDING_DEFS, RESOURCE_META, WEATHER_DEFS } from '@/lib/game/configCache';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {

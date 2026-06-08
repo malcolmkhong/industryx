@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/store';
-import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE, PRODUCTION_CHAINS } from '@/lib/game/data';
+import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE, PRODUCTION_CHAINS } from '@/lib/game/configCache';
 import { ResourceType, BuildingType, GameTab } from '@/lib/game/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Brain, Zap, AlertTriangle, Lightbulb, TrendingUp, X, ChevronRight, Factory, Activity, Shield, FlaskConical, Package, ArrowUp, DollarSign, Link2, Power } from 'lucide-react';
