@@ -18,9 +18,9 @@
 
 // Maps old hardcoded building IDs to new Supabase IDs
 export const BUILDING_ID_MAP: Record<string, string> = {
-  miningDrill: 'ironMine',
-  quarry: 'sandMine',       // quarry was a multi-resource extractor; Supabase splits into sandMine, lithiumMine
-  goldsmith: 'jewelleryForge',
+  miningDrill: 'ironMine',       // combo extractor → specialized single-resource
+  quarry: 'sandMine',            // combo extractor → specialized single-resource
+  goldsmith: 'jewelleryForge',   // raw inputs → refined inputs (refinedGold+refinedSilver)
 };
 
 // Reverse map: new Supabase ID → old hardcoded ID

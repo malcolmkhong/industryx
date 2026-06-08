@@ -20,10 +20,10 @@ import { GameIcon } from '@/components/game/shared/GameIcon';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const EXTRACTOR_TYPES: ExtractorType[] = ['miningDrill', 'oilPump', 'waterExtractor', 'quarry', 'clayPit', 'limestoneQuarry', 'gravelPit', 'bauxiteMine', 'wolframiteMine', 'rareEarthExtractor'];
+const EXTRACTOR_TYPES: ExtractorType[] = ['ironMine', 'copperMine', 'coalMine', 'oilPump', 'waterExtractor', 'sandMine', 'lithiumMine', 'clayPit', 'limestoneQuarry', 'gravelPit', 'bauxiteMine', 'wolframiteMine', 'rareEarthExtractor', 'silverMine', 'goldMine'];
 const RAW_RESOURCES: ResourceType[] = ['iron', 'copper', 'coal', 'oil', 'sand', 'lithium', 'water', 'rareEarth', 'clay', 'limestone', 'gravel', 'bauxite', 'wolframite'];
 
-const BASIC_EXTRACTORS: ExtractorType[] = ['miningDrill', 'oilPump', 'waterExtractor', 'quarry'];
+const BASIC_EXTRACTORS: ExtractorType[] = ['ironMine', 'copperMine', 'coalMine', 'oilPump', 'waterExtractor', 'sandMine'];
 const ADVANCED_EXTRACTORS: ExtractorType[] = ['clayPit', 'limestoneQuarry', 'gravelPit', 'bauxiteMine', 'wolframiteMine', 'rareEarthExtractor'];
 
 // Tab config for the tier selector

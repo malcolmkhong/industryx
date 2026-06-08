@@ -82,9 +82,9 @@ export let getStreakMultiplier: (streak: number) => number = _DEFAULT_getStreakM
 // ============================================
 
 export const BUILDING_ID_MIGRATION: Record<string, string> = {
-  miningDrill: 'ironMine',
-  quarry: 'sandMine',       // quarry was a multi-resource extractor; Supabase splits into sandMine, lithiumMine
-  goldsmith: 'jewelleryForge',
+  miningDrill: 'ironMine',       // combo extractor → specialized single-resource
+  quarry: 'sandMine',            // combo extractor → specialized single-resource
+  goldsmith: 'jewelleryForge',   // raw inputs → refined inputs (refinedGold+refinedSilver)
 };
 
 // ============================================

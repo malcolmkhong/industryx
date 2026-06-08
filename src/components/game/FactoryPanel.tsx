@@ -22,9 +22,9 @@ import { GameIcon } from '@/components/game/shared/GameIcon';
 
 // Factory types organized by tier
 const TIER_1_FACTORIES: FactoryType[] = ['smelter', 'wireMill', 'chemicalPlant', 'glassFurnace', 'carbonProcessor', 'brickFactory', 'concreteFactory', 'fertilizerFactory', 'steelForge', 'oilRefinery'];
-const TIER_2_FACTORIES: FactoryType[] = ['gearFactory', 'circuitFactory', 'engineFactory', 'batteryFactory', 'siliconRefinery', 'aluminiumFactory', 'insecticideFactory', 'copperRefinery', 'titaniumRefinery', 'coolantPlant', 'opticsLab', 'solarCellFactory', 'displayFactory', 'hydrogenPlant'];
-const TIER_3_FACTORIES: FactoryType[] = ['aiLab', 'roboticsBay', 'quantumLab', 'alloyForge', 'nanoLab', 'electronicsFactory', 'medicalTechLab', 'goldsmith', 'tungstenSmelter', 'armsFactory', 'droneShipyard', 'detectorFactory', 'neuralLab'];
-const TIER_4_FACTORIES: FactoryType[] = ['singularityForge', 'darkMatterLab', 'warpDriveFactory', 'antimatterReactor', 'chronoLab', 'plasmaForge', 'megaStructureFactory', 'voidCrystallizer', 'dysonCollector', 'quantumTeleporter', 'dimensionalGateway', 'timeDistorter', 'galacticForge'];
+const TIER_2_FACTORIES: FactoryType[] = ['gearFactory', 'circuitFactory', 'engineFactory', 'batteryFactory', 'siliconRefinery', 'aluminiumFactory', 'insecticideFactory', 'copperRefinery', 'titaniumRefinery', 'coolantPlant', 'opticsLab', 'solarCellFactory', 'displayFactory', 'hydrogenPlant', 'reinforcedConcretePlant', 'powerCellPlant', 'silverRefinery', 'goldRefinery'];
+const TIER_3_FACTORIES: FactoryType[] = ['aiLab', 'roboticsBay', 'quantumLab', 'alloyForge', 'nanoLab', 'electronicsFactory', 'medicalTechLab', 'jewelleryForge', 'tungstenSmelter', 'armsFactory', 'droneShipyard', 'detectorFactory', 'neuralLab', 'quantumAssembler', 'opticalComputingLab', 'carbonCompositePlant', 'structuralFrameFactory', 'fusionReactor', 'solarPanelFactory', 'creditMint'];
+const TIER_4_FACTORIES: FactoryType[] = ['singularityForge', 'darkMatterLab', 'warpDriveFactory', 'antimatterReactor', 'chronoLab', 'plasmaForge', 'megaStructureFactory', 'voidCrystallizer', 'quantumResonanceLab', 'arcologyBuilder', 'habitatModuleFactory', 'dysonCollector', 'luxuryGoodsFactory', 'tradeHub', 'teleporterGate', 'quantumTeleporter', 'dimensionalGateway', 'timeDistorter', 'galacticForge'];
 
 const TIER_CONFIG = {
   1: { label: 'T1 — Processing', shortLabel: 'T1', color: 'cyan', icon: 'gi:flame-tunnel', borderColor: 'border-cyan-900/40', hex: '#22d3ee' },

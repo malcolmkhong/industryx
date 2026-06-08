@@ -82,16 +82,21 @@ export const RESOURCE_ICON_MAP: Record<string, string> = {
 // Maps building type keys to Iconify icon IDs
 export const BUILDING_ICON_MAP: Record<string, string> = {
   // Extractors
-  miningDrill: 'gi:mining',
+  ironMine: 'gi:mine-wagon',
+  copperMine: 'gi:ore',
+  coalMine: 'gi:coal-wagon',
   oilPump: 'gi:oil-rig',
   waterExtractor: 'gi:water-recycling',
-  quarry: 'gi:mountain-cave',
+  sandMine: 'gi:desert',
+  lithiumMine: 'gi:crystal-cluster',
   clayPit: 'gi:clay-brick',
   limestoneQuarry: 'gi:stone-bridge',
   gravelPit: 'gi:stone-crafting',
   bauxiteMine: 'gi:mining-helmet',
   wolframiteMine: 'gi:obelisk',
   rareEarthExtractor: 'gi:crystal-shine',
+  silverMine: 'gi:round-silver-shield',
+  goldMine: 'gi:gold-bar',
 
   // Tier 1 Factories
   smelter: 'gi:furnace',
@@ -120,6 +125,10 @@ export const BUILDING_ICON_MAP: Record<string, string> = {
   solarCellFactory: 'gi:solar-power',
   displayFactory: 'gi:tv',
   hydrogenPlant: 'gi:h2o',
+  reinforcedConcretePlant: 'gi:concrete-bag',
+  powerCellPlant: 'gi:battery-100',
+  silverRefinery: 'gi:round-silver-shield',
+  goldRefinery: 'gi:gold-bar',
 
   // Tier 3 Factories
   aiLab: 'gi:brain',
@@ -129,12 +138,19 @@ export const BUILDING_ICON_MAP: Record<string, string> = {
   nanoLab: 'gi:nano-bot',
   electronicsFactory: 'gi:smartphone',
   medicalTechLab: 'gi:hospital-cross',
-  goldsmith: 'gi:diamond-ring',
+  jewelleryForge: 'gi:diamond-ring',
   tungstenSmelter: 'gi:iron-cross',
   armsFactory: 'gi:ak47',
   droneShipyard: 'gi:space-shuttle',
   detectorFactory: 'gi:satellite',
   neuralLab: 'gi:thought-bubble',
+  quantumAssembler: 'gi:atom',
+  opticalComputingLab: 'gi:laser-burst',
+  carbonCompositePlant: 'gi:carbon-fiber',
+  structuralFrameFactory: 'gi:bridge',
+  fusionReactor: 'gi:nuclear-bomb',
+  solarPanelFactory: 'gi:solar-power',
+  creditMint: 'gi:credit-card',
 
   // Tier 4 Factories
   singularityForge: 'gi:vortex',
@@ -145,6 +161,12 @@ export const BUILDING_ICON_MAP: Record<string, string> = {
   plasmaForge: 'gi:flame-tunnel',
   megaStructureFactory: 'gi:castle',
   voidCrystallizer: 'gi:implosion',
+  quantumResonanceLab: 'gi:atom',
+  arcologyBuilder: 'gi:city',
+  habitatModuleFactory: 'gi:home',
+  luxuryGoodsFactory: 'gi:diamond',
+  tradeHub: 'gi:handshake',
+  teleporterGate: 'gi:teleport',
 
   // Tier 4 Endgame Buildings
   dysonCollector: 'gi:solar-system',
@@ -153,12 +175,22 @@ export const BUILDING_ICON_MAP: Record<string, string> = {
   timeDistorter: 'gi:hourglass',
   galacticForge: 'gi:galaxy',
 
+  // Tier 5 Transcendent
+  omniscienceArray: 'gi:brain',
+  worldEngine: 'gi:earth',
+  planetaryShield: 'gi:shield',
+  starReactor: 'gi:star',
+  voidEngine: 'gi:hole',
+  quantumExchange: 'gi:chart',
+  megaCorpHQ: 'gi:bank',
+  dimensionalNexus: 'gi:portal',
+  galacticArmada: 'gi:spaceship',
+
   // Power Plants
   coalGenerator: 'gi:factory',
   solarPanel: 'gi:solar-power',
   windTurbine: 'gi:wind-turbine',
   nuclearReactor: 'gi:nuclear',
-  fusionReactor: 'gi:reactor',
   antimatterPowerPlant: 'gi:lightning-frequency',
 };
 

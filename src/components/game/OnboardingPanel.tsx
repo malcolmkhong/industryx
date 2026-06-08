@@ -43,7 +43,7 @@ const TUTORIAL_STEPS: TutorialStep[] = [
       'Mining Drills are your primary resource extractors. Each one produces iron, copper, and coal every tick. Iron is needed for iron plates and steel, copper for wire and circuits, and coal to fuel your generators. Build at least 2-3 drills to ensure a steady resource flow.',
     iconId: 'gi:mining',
     tip: 'Build multiple Mining Drills early. They produce a mix of resources, so having several ensures you never run short on raw materials.',
-    checkCompleted: (store) => store.buildings.some(b => b.type === 'miningDrill'),
+    checkCompleted: (store) => store.buildings.some(b => b.type === 'ironMine'),
   },
   {
     id: 'watch-resources',

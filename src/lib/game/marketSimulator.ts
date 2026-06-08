@@ -48,7 +48,7 @@ export const RESOURCE_SECTOR: Record<ResourceType, MarketSector> = {
   iron: 'raw_minerals', copper: 'raw_minerals', coal: 'raw_minerals',
   sand: 'raw_minerals', lithium: 'raw_minerals', clay: 'raw_minerals',
   limestone: 'raw_minerals', gravel: 'raw_minerals', bauxite: 'raw_minerals',
-  wolframite: 'raw_minerals',
+  wolframite: 'raw_minerals', silver: 'raw_minerals', gold: 'raw_minerals',
   // Raw organic
   oil: 'raw_organic', water: 'raw_organic', rareEarth: 'raw_organic',
   // Basic materials
@@ -61,10 +61,14 @@ export const RESOURCE_SECTOR: Record<ResourceType, MarketSector> = {
   gear: 'components', circuit: 'components', battery: 'components',
   coolant: 'components', fiberOptics: 'components', solarCell: 'components',
   copperIngot: 'components', silicon: 'components',
+  powerCell: 'components', refinedSilver: 'components', refinedGold: 'components',
+  reinforcedConcrete: 'basic_materials',
   // Advanced
   engine: 'advanced', advancedAlloy: 'advanced', electronics: 'advanced',
   tungsten: 'advanced', titanium: 'advanced', weapons: 'advanced',
   medicalTech: 'advanced', jewellery: 'advanced',
+  carbonComposite: 'advanced', structuralFrame: 'advanced',
+  fusionCell: 'advanced', solarPanel: 'components', creditChip: 'advanced',
   // High tech
   aiChip: 'high_tech', robotics: 'high_tech', neuralNetwork: 'high_tech',
   scanDrone: 'high_tech', artifactDetector: 'high_tech', quantumPart: 'high_tech',
@@ -72,6 +76,12 @@ export const RESOURCE_SECTOR: Record<ResourceType, MarketSector> = {
   singularityCore: 'endgame', darkMatterCell: 'endgame', warpDrive: 'endgame',
   antimatter: 'endgame', chronoPart: 'endgame', plasmaCore: 'endgame',
   megaStructure: 'endgame', voidCrystal: 'endgame', nanoMaterial: 'endgame',
+  arcologyModule: 'endgame', habitatModule: 'endgame', stellarEnergy: 'endgame',
+  luxuryGoods: 'endgame', tradeContract: 'endgame', teleporterNode: 'endgame',
+  // Tier 5 — Transcendent
+  researchMatrix: 'endgame', worldCore: 'endgame', shieldMatrix: 'endgame',
+  stellarForge: 'endgame', voidEnergy: 'endgame', marketDominance: 'endgame',
+  corpCapital: 'endgame', dimensionalGate: 'endgame', armadaFleet: 'endgame',
   // Agriculture
   fertilizer: 'agriculture', insecticide: 'agriculture', fossilFuel: 'agriculture',
 };
@@ -84,18 +94,23 @@ export const RESOURCE_ELASTICITY: Record<ResourceType, number> = {
   // Raw minerals — inelastic (always needed)
   iron: 0.3, copper: 0.3, coal: 0.25, sand: 0.2, lithium: 0.4,
   clay: 0.15, limestone: 0.15, gravel: 0.1, bauxite: 0.35, wolframite: 0.5,
+  silver: 0.5, gold: 0.6,
   // Raw organic — moderately elastic
   oil: 0.45, water: 0.1, rareEarth: 0.55,
   // Basic materials — slightly elastic
   ironPlate: 0.35, copperWire: 0.35, plastic: 0.4, glass: 0.3,
   carbon: 0.35, bricks: 0.2, concrete: 0.2, steel: 0.4, aluminium: 0.4,
+  reinforcedConcrete: 0.25,
   // Components — moderately elastic
   gear: 0.45, circuit: 0.5, battery: 0.45, coolant: 0.3,
   fiberOptics: 0.5, solarCell: 0.5, copperIngot: 0.35, silicon: 0.45,
+  powerCell: 0.5, refinedSilver: 0.55, refinedGold: 0.6,
   // Advanced — elastic (specialized markets)
   engine: 0.6, advancedAlloy: 0.6, electronics: 0.55,
   tungsten: 0.55, titanium: 0.55, weapons: 0.65,
   medicalTech: 0.6, jewellery: 0.8,  // Jewellery is very elastic (luxury)
+  carbonComposite: 0.6, structuralFrame: 0.55,
+  fusionCell: 0.7, solarPanel: 0.5, creditChip: 0.75,
   // High tech — very elastic
   aiChip: 0.7, robotics: 0.7, neuralNetwork: 0.7,
   scanDrone: 0.65, artifactDetector: 0.7, quantumPart: 0.8,
@@ -103,6 +118,12 @@ export const RESOURCE_ELASTICITY: Record<ResourceType, number> = {
   singularityCore: 0.9, darkMatterCell: 0.95, warpDrive: 0.95,
   antimatter: 0.85, chronoPart: 1.0, plasmaCore: 0.8,
   megaStructure: 0.75, voidCrystal: 0.95, nanoMaterial: 0.9,
+  arcologyModule: 0.85, habitatModule: 0.8, stellarEnergy: 0.9,
+  luxuryGoods: 0.95, tradeContract: 0.85, teleporterNode: 0.9,
+  // Tier 5 — Transcendent
+  researchMatrix: 1.0, worldCore: 0.95, shieldMatrix: 0.9,
+  stellarForge: 0.95, voidEnergy: 1.0, marketDominance: 0.95,
+  corpCapital: 1.0, dimensionalGate: 1.0, armadaFleet: 1.0,
   // Agriculture — inelastic
   fertilizer: 0.25, insecticide: 0.3, fossilFuel: 0.4,
 };
@@ -445,9 +466,9 @@ function generateHoardingNarrative(
 export interface MarketSimulationState {
   cycle: MarketCycle;
   sectorMomentum: Record<MarketSector, number>;   // -1 to 1, sector trend strength
-  lastCorrelationImpact: Record<ResourceType, number>; // accumulated correlation pressure
-  recentPlayerSells: Record<ResourceType, number>;     // total units sold by player recently (rolling window)
-  recentPlayerBuys: Record<ResourceType, number>;      // total units bought by player recently
+  lastCorrelationImpact: Partial<Record<ResourceType, number>>; // accumulated correlation pressure
+  recentPlayerSells: Partial<Record<ResourceType, number>>;     // total units sold by player recently (rolling window)
+  recentPlayerBuys: Partial<Record<ResourceType, number>>;      // total units bought by player recently
   ticksInPhase: number;
   // MVIL state
   volatilityInjections: Partial<Record<ResourceType, VolatilityInjection>>;

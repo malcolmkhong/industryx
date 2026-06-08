@@ -101,7 +101,7 @@ export function DashboardPanel() {
   }, [store.buildings]);
 
   // Quick build options
-  const quickBuildTypes: BuildingType[] = ['miningDrill', 'waterExtractor', 'coalGenerator', 'smelter'];
+  const quickBuildTypes: BuildingType[] = ['ironMine', 'waterExtractor', 'coalGenerator', 'smelter'];
 
   const handleBuild = (type: BuildingType) => {
     store.buildBuilding(type);

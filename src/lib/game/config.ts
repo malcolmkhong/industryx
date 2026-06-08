@@ -328,7 +328,7 @@ export interface GameConfig {
     unlockRequirement: Record<string, unknown>;
   }>;
   gameConfig: Record<string, unknown>;
-  balancingRules: Array<{
+  balancingRules?: Array<{
     id: string;
     name: string;
     description: string;

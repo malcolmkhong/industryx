@@ -307,3 +307,109 @@ Files Modified:
 - `src/lib/hooks/useCloudSync.ts` — Conflict resolution, resolveConflict(), _version in save
 - `src/components/providers/GameConfigProvider.tsx` — Client-side config caching
 - `next.config.ts` — allowedDevOrigins for 127.0.0.1
+
+---
+Task ID: 1+2+3+4
+Agent: data-sync
+Task: Update BUILDING_DEFS in data.ts to align with Supabase backend (96 buildings)
+
+Work Log:
+- **Replaced combo extractors with specialized ones**:
+  - `miningDrill` → `ironMine` (single iron output, aligned with Supabase)
+  - `quarry` → `sandMine` (single sand output, sandExtraction research unlock)
+- **Added 5 new extractors** after rareEarthExtractor:
+  - `copperMine` — extracts copper ore
+  - `coalMine` — mines coal
+  - `lithiumMine` — mines lithium (lithiumExtraction research unlock)
+  - `silverMine` — extracts silver (advancedMetallurgy research unlock)
+  - `goldMine` — mines gold (advancedMetallurgy research unlock)
+- **Replaced `goldsmith` with `jewelleryForge`** — now takes refinedGold + refinedSilver + rareEarth (3-input recipe aligned with Supabase)
+- **Added 4 missing T2 factories** after hydrogenPlant:
+  - `reinforcedConcretePlant` — concrete + steel → reinforcedConcrete
+  - `powerCellPlant` — battery + fossilFuel → powerCell
+  - `silverRefinery` — silver → refinedSilver
+  - `goldRefinery` — gold → refinedGold
+- **Added 8 missing T3 factories** after neuralLab:
+  - `quantumAssembler` — alternative quantum part path (AI chips + rare earth + fiber optics)
+  - `opticalComputingLab` — alternative AI chip path (fiber optics + silicon + battery)
+  - `carbonCompositePlant` — carbon + advancedAlloy → carbonComposite
+  - `structuralFrameFactory` — steel + reinforcedConcrete → structuralFrame
+  - `fusionReactor` — lithium + powerCell + coolant → fusionCell (moved from power to factory category, matching Supabase)
+  - `solarPanelFactory` — solarCell + circuit + aluminium → solarPanel
+  - `creditMint` — jewellery + electronics → creditChip
+- **Added 6 missing T4 factories** after voidCrystallizer:
+  - `quantumResonanceLab` — alternative quantum part path using plasmaCore
+  - `arcologyBuilder` — megaStructure + nanoMaterial + powerCell + habitatModule → arcologyModule
+  - `habitatModuleFactory` — carbonComposite + advancedAlloy + glass → habitatModule
+  - `luxuryGoodsFactory` — jewellery + carbonComposite + solarPanel → luxuryGoods
+  - `tradeHub` — creditChip + luxuryGoods + fiberOptics → tradeContract
+  - `teleporterGate` — quantumPart + fiberOptics + powerCell → teleporterNode
+- **Added 9 T5 factories** after galacticForge:
+  - `omniscienceArray`, `worldEngine`, `planetaryShield`, `starReactor`, `voidEngine`, `quantumExchange`, `megaCorpHQ`, `dimensionalNexus`, `galacticArmada`
+- **Removed `fusionReactor` from power section** — it's now a T3 factory that produces fusionCells, not a power plant
+- **Updated types.ts** to match:
+  - RawResource: added 'silver' | 'gold'
+  - Tier2Resource: added 'powerCell' | 'reinforcedConcrete' | 'refinedSilver' | 'refinedGold'
+  - Tier3Resource: added 'carbonComposite' | 'structuralFrame' | 'fusionCell' | 'solarPanel' | 'creditChip'
+  - Tier4Resource: added 'arcologyModule' | 'habitatModule' | 'stellarEnergy' | 'luxuryGoods' | 'tradeContract' | 'teleporterNode'
+  - Added Tier5Resource: 'researchMatrix' | 'worldCore' | 'shieldMatrix' | 'stellarForge' | 'voidEnergy' | 'marketDominance' | 'corpCapital' | 'dimensionalGate' | 'armadaFleet'
+  - Updated BuildingType, ExtractorType, FactoryType, PowerPlantType to reflect all new/changed buildings
+- **Updated quest references** in data.ts: miningDrill→ironMine, quarry→sandMine, goldsmith→jewelleryForge
+- **Updated marketSimulator.ts**: Added all 26 missing resources to RESOURCE_SECTOR and RESOURCE_ELASTICITY; changed Record<ResourceType, number> to Partial<Record<ResourceType, number>> for sparse state fields
+
+Stage Summary:
+- **96 buildings total** (15 extractors, 76 factories, 5 power plants) — matches Supabase count
+- **No TypeScript errors** in data.ts, types.ts, configCache.ts, idMigration.ts, or marketSimulator.ts
+- **All building IDs now match Supabase** (ironMine, sandMine, jewelleryForge, fusionReactor as factory)
+- **Complete T2-T5 resource chain** supported with proper sector/elasticity data for market simulation
+
+Files Modified:
+- `src/lib/game/data.ts` — BUILDING_DEFS restructured (96 buildings), quest references updated
+- `src/lib/game/types.ts` — ResourceType expanded (Tier2-5 additions, Tier5Resource), BuildingType updated
+- `src/lib/game/marketSimulator.ts` — RESOURCE_SECTOR, RESOURCE_ELASTICITY expanded, MarketSimulationState types fixed
+
+---
+Task ID: 10
+Agent: main
+Task: Building Audit & Fix — Align frontend data.ts with Supabase backend (96 buildings)
+
+Work Log:
+- Audited all 96 Supabase buildings vs 66 frontend buildings — identified 31 missing from frontend
+- Found 3 structural ID mismatches: miningDrill→ironMine, quarry→sandMine, goldsmith→jewelleryForge
+- Discovered combo extractor problem: miningDrill (iron+copper+coal) → Supabase splits into ironMine/copperMine/coalMine
+- Discovered quarry (sand+lithium+rareEarth) → Supabase splits into sandMine/lithiumMine
+- Discovered goldsmith uses raw gold/silver but jewelleryForge requires refinedGold+refinedSilver (2 extra processing steps)
+- Replaced miningDrill with ironMine in data.ts (single iron output)
+- Replaced quarry with sandMine in data.ts (single sand output)
+- Replaced goldsmith with jewelleryForge in data.ts (refinedGold+refinedSilver+rarEarth inputs)
+- Added 5 new extractors: copperMine, coalMine, lithiumMine, silverMine, goldMine
+- Added 4 T2 factories: reinforcedConcretePlant, powerCellPlant, silverRefinery, goldRefinery
+- Added 7 T3 factories: quantumAssembler, opticalComputingLab, carbonCompositePlant, structuralFrameFactory, fusionReactor, solarPanelFactory, creditMint
+- Added 6 T4 factories: quantumResonanceLab, arcologyBuilder, habitatModuleFactory, luxuryGoodsFactory, tradeHub, teleporterGate
+- Added 9 T5 factories: omniscienceArray, worldEngine, planetaryShield, starReactor, voidEngine, quantumExchange, megaCorpHQ, dimensionalNexus, galacticArmada
+- Moved fusionReactor from power to factory category (matching Supabase)
+- Updated types.ts: BuildingType, ExtractorType, FactoryType, PowerPlantType (fusionReactor removed from power)
+- Updated iconMap.ts: Replaced old IDs, added all 31 new building icons
+- Updated FactoryMapPanel.tsx BUILD_CATEGORIES: Fixed fusionReactor/antimatterPowerPlant placement, added all new buildings
+- Updated FactoryPanel.tsx: Added new buildings to TIER_2/3/4_FACTORIES arrays
+- Updated ResourcePanel.tsx: Updated EXTRACTOR_TYPES and BASIC_EXTRACTORS arrays
+- Updated PowerPanel.tsx: Removed fusionReactor from POWER_PLANT_TYPES and POWER_PLANT_META
+- Updated DashboardPanel.tsx: Changed quickBuildTypes from miningDrill to ironMine
+- Updated OnboardingPanel.tsx: Changed checkCompleted from miningDrill to ironMine
+- Updated configCache.ts: Updated BUILDING_ID_MIGRATION comments
+- Updated idMigration.ts: Updated BUILDING_ID_MAP comments
+- Updated definitions route: Fixed ID_MIGRATION_MAP (quarry→sandMine not array)
+- Updated config.ts: Made balancingRules optional in GameConfig type
+- Verified API returns 96 buildings matching Supabase exactly (15 extractors, 76 factories, 5 power)
+- Verified via agent-browser: Extraction panel shows all 15 extractors including new ones
+
+Stage Summary:
+- **96 buildings now defined** in both data.ts (fallback) and Supabase backend — fully aligned
+- **5 new extractors** added: copperMine, coalMine, lithiumMine, silverMine, goldMine
+- **3 combo extractors** replaced with specialized single-resource ones
+- **26 missing factories** added across T2-T5 tiers
+- **fusionReactor** moved from power to factory category (produces fusionCell)
+- **jewelleryForge** now uses refined metals (requires silverRefinery + goldRefinery as upstream)
+- **Complete production chains** now possible: silver→refinedSilver→jewellery, gold→refinedGold→jewellery, lithium→battery→powerCell→fusionCell, etc.
+- **All T5 content** now has building definitions in frontend fallback
+- Save migration already handled (V18: building IDs, V19: missing resources)

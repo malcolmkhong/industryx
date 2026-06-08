@@ -18,14 +18,13 @@ import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
 import { GameIcon } from '@/components/game/shared/GameIcon';
 
-const POWER_PLANT_TYPES: PowerPlantType[] = ['coalGenerator', 'solarPanel', 'windTurbine', 'nuclearReactor', 'fusionReactor', 'antimatterPowerPlant'];
+const POWER_PLANT_TYPES: PowerPlantType[] = ['coalGenerator', 'solarPanel', 'windTurbine', 'nuclearReactor', 'antimatterPowerPlant'];
 
 const POWER_PLANT_META: Record<PowerPlantType, { icon: React.ReactNode; color: string; label: string; glowClass: string; icon: string }> = {
   coalGenerator: { icon: <Flame className="w-4 h-4" />, color: '#ff6600', label: 'Coal', glowClass: 'text-orange-400', icon: 'gi:fire' },
   solarPanel: { icon: <Sun className="w-4 h-4" />, color: '#ffff00', label: 'Solar', glowClass: 'text-yellow-400', icon: 'gi:sun' },
   windTurbine: { icon: <Wind className="w-4 h-4" />, color: '#00ccff', label: 'Wind', glowClass: 'text-cyan-400', icon: 'gi:air-zigzag' },
   nuclearReactor: { icon: <Atom className="w-4 h-4" />, color: '#00ff66', label: 'Nuclear', glowClass: 'text-green-400', icon: 'gi:nuclear' },
-  fusionReactor: { icon: <Sparkles className="w-4 h-4" />, color: '#bf00ff', label: 'Fusion', glowClass: 'text-purple-400', icon: 'gi:lightning-frequency' },
   antimatterPowerPlant: { icon: <Zap className="w-4 h-4" />, color: '#ff00ff', label: 'Antimatter', glowClass: 'text-fuchsia-400', icon: 'gi:lightning-frequency' },
 };
 

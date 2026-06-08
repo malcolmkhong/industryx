@@ -79,7 +79,7 @@ const BUILD_CATEGORIES = [
   },
   {
     label: <><GameIcon icon="gi:vortex" size={14} className="inline" /> T4 Factory</>,
-    types: ['singularityForge', 'darkMatterLab', 'warpDriveFactory', 'antimatterReactor', 'chronoLab', 'plasmaForge', 'megaStructureFactory', 'voidCrystallizer', 'quantumResonanceLab', 'arcologyBuilder', 'habitatModuleFactory', 'dysonCollector', 'luxuryGoodsFactory', 'tradeHub', 'teleporterGate', 'quantumTeleporter', 'dimensionalGateway', 'timeDistorter', 'galacticForge', 'antimatterPowerPlant'] as BuildingType[],
+    types: ['singularityForge', 'darkMatterLab', 'warpDriveFactory', 'antimatterReactor', 'chronoLab', 'plasmaForge', 'megaStructureFactory', 'voidCrystallizer', 'quantumResonanceLab', 'arcologyBuilder', 'habitatModuleFactory', 'dysonCollector', 'luxuryGoodsFactory', 'tradeHub', 'teleporterGate', 'quantumTeleporter', 'dimensionalGateway', 'timeDistorter', 'galacticForge'] as BuildingType[],
   },
   {
     label: <><GameIcon icon="gi:galactic-carrier" size={14} className="inline" /> T5 Transcendent</>,
@@ -87,7 +87,7 @@ const BUILD_CATEGORIES = [
   },
   {
     label: <><GameIcon icon="gi:lightning-frequency" size={14} className="inline" /> Power</>,
-    types: ['coalGenerator', 'solarPanel', 'windTurbine', 'nuclearReactor', 'fusionReactor', 'antimatterPowerPlant'] as BuildingType[],
+    types: ['coalGenerator', 'solarPanel', 'windTurbine', 'nuclearReactor', 'antimatterPowerPlant'] as BuildingType[],
   },
 ];
 

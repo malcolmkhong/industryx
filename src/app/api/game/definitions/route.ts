@@ -43,9 +43,9 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 // Maps old building IDs to new IDs (for backwards compatibility)
 
 const ID_MIGRATION_MAP: Record<string, string | string[]> = {
-  miningDrill: 'ironMine',      // miningDrill → ironMine (extracts iron primarily)
-  quarry: ['sandMine'],         // quarry → sandMine (split into specialized mines)
-  goldsmith: 'jewelleryForge',  // goldsmith → jewelleryForge
+  miningDrill: 'ironMine',       // combo extractor → specialized single-resource
+  quarry: 'sandMine',            // combo extractor → specialized single-resource
+  goldsmith: 'jewelleryForge',   // raw inputs → refined inputs
 };
 
 // ─── Helper: Parse cost JSON ────────────────────────────────────────────
