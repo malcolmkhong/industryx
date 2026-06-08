@@ -52,3 +52,6 @@ db/
 
 # agent context
 agent-ctx/
+
+# MCP config (contains tokens)
+.vscode/mcp.json
