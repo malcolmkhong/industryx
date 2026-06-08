@@ -2,13 +2,14 @@
 // FACTORY DOMINION: Game Action Validation API
 // POST endpoint that validates player actions
 // using Supabase config (anti-cheat layer)
+// LEAN MVP — no validated_actions, no PII
 // ============================================
 
 import { NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { verifyAuth } from '@/lib/auth/verifyAuth';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
-import { logActionAsync, extractClientInfo } from '@/lib/auth/gameStateValidator';
+import { logActionAsync } from '@/lib/auth/gameStateValidator';
 import {
   SupabaseBuilding,
   SupabaseRecipe,
@@ -378,41 +379,16 @@ export async function POST(request: Request) {
       result = { valid: false, error: `Unhandled action: ${action}` };
   }
 
-  // ✅ Write to validated_actions table (new server-authoritative record)
-  const supabase = createServiceRoleClient();
-  try {
-    await supabase.from('validated_actions').insert({
-      user_id: auth.userId,
-      action_type: action,
-      payload,
-      game_tick: Number(gameState.gameTick) || 0,
-      money_before: Number(gameState.money) || 0,
-      money_after: Number(gameState.money) || 0, // Will be updated when applied
-      is_valid: result.valid,
-      rejection_reason: result.valid ? null : result.error || null,
-      validation_risk: result.valid ? 'none' : 'high',
-      status: result.valid ? 'validated' : 'rejected',
-      processed_at: new Date().toISOString(),
-      client_ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || null,
-      user_agent: request.headers.get('user-agent') || null,
-    });
-  } catch (err) {
-    console.error('[ActionAPI] Failed to write validated_actions:', err);
-    // Don't fail the request — audit logging is best-effort
-  }
-
-  // ✅ Audit log the action (legacy)
-  const clientInfo = extractClientInfo(request);
+  // ✅ Audit log the action (single write to player_actions only)
   logActionAsync({
     userId: auth.userId,
-    actionType: action as 'build',
+    actionType: action as 'build' | 'sell' | 'buy' | 'research' | 'upgrade' | 'transport' | 'save' | 'load' | 'tick' | 'prestige' | 'import' | 'claim_quest' | 'hire_worker' | 'assign_worker' | 'upgrade_worker' | 'start_drone_mission' | 'collect_drone' | 'buy_market' | 'sell_market' | 'toggle_building' | 'set_game_speed' | 'bulk_build' | 'bulk_sell',
     payload,
     gameTick: Number(gameState.gameTick) || 0,
-    moneyBefore: Number(gameState.money) || 0,
     moneyAfter: Number(gameState.money) || 0,
     isValid: result.valid,
+    validationRisk: result.valid ? 'none' : 'high',
     rejectionReason: result.valid ? undefined : result.error,
-    ...clientInfo,
   });
 
   return NextResponse.json(result);

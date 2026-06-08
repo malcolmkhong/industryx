@@ -2,6 +2,7 @@
 // IndustriaX: Server Game State API
 // GET/POST endpoint for authoritative server state
 // This is the SOURCE OF TRUTH for logged-in users
+// LEAN MVP — slim player_progress sync
 // ============================================
 
 import { NextResponse } from 'next/server';
@@ -11,7 +12,6 @@ import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 import {
   validateGameState,
   logActionAsync,
-  extractClientInfo,
   isAccountLocked,
   flagCheatAttempt,
 } from '@/lib/auth/gameStateValidator';
@@ -55,16 +55,14 @@ export async function GET(request: Request) {
   }
 
   // Audit log
-  const clientInfo = extractClientInfo(request);
   logActionAsync({
     userId: auth.userId,
     actionType: 'load',
     payload: { source: 'server_game_state' },
     gameTick: data.game_tick || 0,
-    moneyBefore: 0,
     moneyAfter: data.money || 0,
     isValid: true,
-    ...clientInfo,
+    validationRisk: 'none',
   });
 
   return NextResponse.json({
@@ -129,7 +127,7 @@ export async function POST(request: Request) {
   // Fetch current server state for delta validation
   const { data: currentServerState } = await supabase
     .from('server_game_state')
-    .select('full_state, state_hash, game_tick, cheat_flag_count')
+    .select('full_state, state_hash, game_tick, cheat_flag_count, state_version')
     .eq('user_id', userId)
     .single();
 
@@ -146,18 +144,16 @@ export async function POST(request: Request) {
       validation.riskLevel,
     );
 
-    const clientInfo = extractClientInfo(request);
     logActionAsync({
       userId: auth.userId,
       actionType: 'save',
       payload: { source: 'server_game_state', violations: validation.violations, riskLevel: validation.riskLevel },
       gameTick: Number(gameState.gameTick) || 0,
-      moneyBefore: previousState ? Number(previousState.money) || 0 : 0,
       moneyAfter: Number(gameState.money) || 0,
       checksum: validation.checksum,
       isValid: false,
+      validationRisk: validation.riskLevel,
       rejectionReason: `${validation.riskLevel} violation: ${validation.violations.join('; ')}`,
-      ...clientInfo,
     });
 
     return NextResponse.json(
@@ -187,9 +183,9 @@ export async function POST(request: Request) {
   }
 
   const buildingsCount = ((gameState as Record<string, unknown>).buildings as unknown[])?.length || 0;
-  const currentVersion = currentServerState ? (currentServerState as Record<string, unknown>).state_version as number || 0 : 0;
+  const currentVersion = (currentServerState?.state_version as number) || 0;
 
-  // Upsert to server_game_state
+  // Upsert to server_game_state (SOURCE OF TRUTH)
   const { data: upsertData, error: upsertError } = await supabase
     .from('server_game_state')
     .upsert({
@@ -218,21 +214,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: upsertError.message }, { status: 500 });
   }
 
-  // Also sync to player_progress for backwards compatibility
+  // Sync to player_progress for backwards compatibility (thin: user_id + game_state only)
   await supabase
     .from('player_progress')
     .upsert({
       user_id: userId,
       game_state: gameState,
-      last_saved_at: new Date().toISOString(),
-      total_money_earned: Number(gameState.totalMoneyEarned) || 0,
-      game_tick: Number(gameState.gameTick) || 0,
-      buildings_count: buildingsCount,
-      save_checksum: validation.checksum,
     }, { onConflict: 'user_id' });
 
   // Audit log
-  const clientInfo = extractClientInfo(request);
   logActionAsync({
     userId: auth.userId,
     actionType: 'save',
@@ -243,11 +233,10 @@ export async function POST(request: Request) {
       stateVersion: currentVersion + 1,
     },
     gameTick: Number(gameState.gameTick) || 0,
-    moneyBefore: previousState ? Number(previousState.money) || 0 : 0,
     moneyAfter: Number(gameState.money) || 0,
     checksum: validation.checksum,
     isValid: validation.isValid,
-    ...clientInfo,
+    validationRisk: validation.riskLevel,
   });
 
   return NextResponse.json({

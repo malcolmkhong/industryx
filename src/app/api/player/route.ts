@@ -1,12 +1,10 @@
 // ============================================
 // IndustriaX: Player Progress API
 // GET/POST endpoint for cloud save
-// SERVER-AUTHORITATIVE UPGRADE
-// - Fetches previous state for delta validation
-// - Rejects high-risk saves (not just critical)
-// - Validates game speed
-// - Syncs to both player_progress AND server_game_state
-// - Auto-locks accounts after cheat threshold
+// SERVER-AUTHORITATIVE — LEAN MVP
+// - player_progress is now a thin backwards-compat table
+//   (user_id, display_name, game_state only)
+// - server_game_state is the source of truth
 // ============================================
 
 import { NextResponse } from 'next/server';
@@ -16,7 +14,6 @@ import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 import {
   validateGameState,
   logActionAsync,
-  extractClientInfo,
   fetchPreviousServerState,
   isAccountLocked,
   flagCheatAttempt,
@@ -59,16 +56,14 @@ export async function GET(request: Request) {
 
   if (sgs?.full_state) {
     // Audit log the load
-    const clientInfo = extractClientInfo(request);
     logActionAsync({
       userId: auth.userId,
       actionType: 'load',
       payload: { source: 'server_game_state' },
       gameTick: sgs.game_tick || 0,
-      moneyBefore: 0,
       moneyAfter: sgs.money || 0,
       isValid: true,
-      ...clientInfo,
+      validationRisk: 'none',
     });
 
     return NextResponse.json({
@@ -84,7 +79,7 @@ export async function GET(request: Request) {
     });
   }
 
-  // Fallback to player_progress
+  // Fallback to player_progress (backwards compat — only game_state available)
   const { data, error } = await supabase
     .from('player_progress')
     .select('*')
@@ -99,17 +94,18 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  // Extract values from game_state JSONB (columns no longer exist as separate fields)
+  const gameState = data.game_state as Record<string, unknown> | null;
+
   // Audit log the load
-  const clientInfo = extractClientInfo(request);
   logActionAsync({
     userId: auth.userId,
     actionType: 'load',
     payload: { source: 'player_progress' },
-    gameTick: data.game_tick || 0,
-    moneyBefore: 0,
-    moneyAfter: data.money || 0,
+    gameTick: Number(gameState?.gameTick) || 0,
+    moneyAfter: Number(gameState?.money) || 0,
     isValid: true,
-    ...clientInfo,
+    validationRisk: 'none',
   });
 
   return NextResponse.json({ data, source: 'player_progress', isNew: false });
@@ -167,18 +163,16 @@ export async function POST(request: Request) {
     );
 
     // Audit log the rejected save
-    const clientInfo = extractClientInfo(request);
     logActionAsync({
       userId: auth.userId,
       actionType: 'save',
       payload: { violations: validation.violations, riskLevel: validation.riskLevel },
       gameTick: Number(gameState.gameTick) || 0,
-      moneyBefore: previousState ? Number(previousState.money) || 0 : 0,
       moneyAfter: Number(gameState.money) || 0,
       checksum: validation.checksum,
       isValid: false,
+      validationRisk: validation.riskLevel,
       rejectionReason: `${validation.riskLevel} violation: ${validation.violations.join('; ')}`,
-      ...clientInfo,
     });
 
     return NextResponse.json(
@@ -209,29 +203,8 @@ export async function POST(request: Request) {
 
   const supabase = createServiceRoleClient();
 
-  // Upsert to player_progress (legacy table, still used)
+  // Upsert to server_game_state (AUTHORITATIVE — source of truth)
   const buildingsCount = ((gameState as Record<string, unknown>).buildings as unknown[])?.length || 0;
-  const { data: ppData, error: ppError } = await supabase
-    .from('player_progress')
-    .upsert({
-      user_id: userId,
-      display_name: displayName || 'Commander',
-      game_state: gameState,
-      last_saved_at: new Date().toISOString(),
-      total_money_earned: (gameState as Record<string, unknown>).totalMoneyEarned as number || 0,
-      game_tick: (gameState as Record<string, unknown>).gameTick as number || 0,
-      buildings_count: buildingsCount,
-      save_checksum: validation.checksum,
-    }, { onConflict: 'user_id' })
-    .select()
-    .single();
-
-  if (ppError) {
-    console.error('[PlayerAPI] player_progress upsert error:', ppError);
-    // Don't fail the whole request — server_game_state is more important
-  }
-
-  // Upsert to server_game_state (authoritative table)
   const { data: sgsData, error: sgsError } = await supabase
     .from('server_game_state')
     .upsert({
@@ -256,11 +229,26 @@ export async function POST(request: Request) {
 
   if (sgsError) {
     console.error('[PlayerAPI] server_game_state upsert error:', sgsError);
-    // Still return success if player_progress saved
+    return NextResponse.json({ error: 'Failed to save game state' }, { status: 500 });
+  }
+
+  // Sync to player_progress (backwards compat — thin: user_id, display_name, game_state only)
+  const { data: ppData, error: ppError } = await supabase
+    .from('player_progress')
+    .upsert({
+      user_id: userId,
+      display_name: displayName || 'Commander',
+      game_state: gameState,
+    }, { onConflict: 'user_id' })
+    .select()
+    .single();
+
+  if (ppError) {
+    console.error('[PlayerAPI] player_progress upsert error:', ppError);
+    // Don't fail the whole request — server_game_state is the source of truth
   }
 
   // Audit log the successful save
-  const clientInfo = extractClientInfo(request);
   logActionAsync({
     userId: auth.userId,
     actionType: 'save',
@@ -268,14 +256,13 @@ export async function POST(request: Request) {
       buildingsCount,
       riskLevel: validation.riskLevel,
       violations: validation.violations.length > 0 ? validation.violations : undefined,
-      savedTo: sgsError ? 'player_progress_only' : 'both',
+      savedTo: ppError ? 'server_game_state_only' : 'both',
     },
     gameTick: Number(gameState.gameTick) || 0,
-    moneyBefore: previousState ? Number(previousState.money) || 0 : 0,
     moneyAfter: Number(gameState.money) || 0,
     checksum: validation.checksum,
     isValid: validation.isValid,
-    ...clientInfo,
+    validationRisk: validation.riskLevel,
   });
 
   return NextResponse.json({

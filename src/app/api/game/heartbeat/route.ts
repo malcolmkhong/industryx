@@ -1,7 +1,8 @@
 // ============================================
 // IndustriaX: Game Heartbeat API
-// POST endpoint for session tracking and
-// server-side tick verification
+// POST endpoint for session tracking
+// LEAN MVP — no PII, no player_progress update
+// (server_game_state is the source of truth for ticks)
 // ============================================
 
 import { NextResponse } from 'next/server';
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
 
   const supabase = createServiceRoleClient();
 
-  // Upsert session
+  // Upsert session (lean: no session_token, no client_ip, no user_agent)
   const { error: sessionError } = await supabase
     .from('player_sessions')
     .upsert({
@@ -47,25 +48,24 @@ export async function POST(request: Request) {
       is_online: true,
       last_heartbeat_at: now,
       disconnected_at: null,
-      client_ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || null,
-      user_agent: request.headers.get('user-agent') || null,
     }, { onConflict: 'user_id' });
 
   if (sessionError) {
     console.warn('[Heartbeat] Session upsert failed:', sessionError.message);
   }
 
-  // Update server-side tick tracking in player_progress
-  const { error: progressError } = await supabase
-    .from('player_progress')
+  // Update server_game_state tick tracking (source of truth)
+  // Only update last_tick_at — game_tick/money are updated on full saves
+  const { error: sgsError } = await supabase
+    .from('server_game_state')
     .update({
-      last_server_tick_at: now,
-      server_game_tick: gameTick || 0,
+      last_tick_at: now,
     })
     .eq('user_id', auth.userId);
 
-  if (progressError) {
-    console.warn('[Heartbeat] Progress update failed:', progressError.message);
+  if (sgsError) {
+    // Don't fail the heartbeat — server_game_state might not exist yet for new users
+    console.warn('[Heartbeat] server_game_state update failed:', sgsError.message);
   }
 
   // Return server time for client sync
