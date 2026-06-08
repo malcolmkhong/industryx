@@ -1839,3 +1839,141 @@ Stage Summary:
 - Files deleted: use-mobile.ts, use-toast.ts, sidebar.tsx, toast.tsx, toaster.tsx
 - Files modified: layout.tsx (removed Toaster import and mount)
 - Directory removed: src/hooks/
+
+---
+Task ID: 2-a
+Agent: backend-api-builder
+Task: Phase 2 — Create table config metadata + all CRUD API routes for the IndustriaX Backend Admin System
+
+Work Log:
+- Read existing project structure: middleware, supabase clients, dashboard page, admin_users migration
+- Created `/src/lib/config/tables.ts` with complete metadata for all 19 game_config tables:
+  - ColumnConfig and TableConfig interfaces
+  - Column factory helpers: pk(), col(), req(), jsonCol(), ts()
+  - All 19 tables organized by category (Core, Production, Economy, Events, System)
+  - Lookup helpers: getTableConfig(), isAllowedTable(), getAllowedTableIds(), getTablesByCategory()
+- Created `/src/lib/auth/admin.ts` shared auth utility:
+  - verifyAdmin() — verifies Supabase session + checks ADMIN_UIDS env var
+  - withSecurityHeaders() — adds rate limiting and security headers to responses
+- Created `/src/app/api/tables/route.ts`:
+  - GET — Lists all config tables with row counts, grouped by category
+  - Fetches row counts in parallel for all 19 tables using service role client
+- Created `/src/app/api/config/[table]/route.ts`:
+  - GET — List rows with pagination (page, pageSize), sorting (sort, sortOrder), text search (search), column filtering (filter)
+  - POST — Create new row with required field validation, JSON parsing, type coercion
+  - Validates table name against allowed list to prevent SQL injection
+- Created `/src/app/api/config/[table]/[id]/route.ts`:
+  - GET — Get single row by primary key
+  - PUT — Update row (only editable columns, with type coercion)
+  - DELETE — Delete row by primary key
+  - All routes handle 404, validate table name, use service role client
+- Created `/src/app/api/admins/route.ts`:
+  - GET — Lists admin users from admin_users table + ADMIN_UIDS env var, merged with source indicators
+  - POST — Add admin user by UUID with validation (UUID format, duplicate check, records added_by)
+- Created `/src/app/api/admins/[id]/route.ts`:
+  - DELETE — Remove admin user by admin_users table id
+  - Prevents removal of env-defined admins and self-removal
+
+Verification:
+- TypeScript compiles with no new errors (3 pre-existing errors in index.ts and backend/page.tsx)
+- ESLint shows no errors in any new source files
+- All files follow Next.js 16 App Router conventions with proper route handlers
+
+Stage Summary:
+- Complete Phase 2 backend API layer: 7 new files created
+- All 19 game_config tables have full CRUD support with validation
+- Admin user management API with env+database merge
+- Shared admin auth verification and security headers across all routes
+- Table name validation prevents SQL injection
+- Service role client bypasses RLS for admin operations
+- Files created: tables.ts, admin.ts, tables/route.ts, config/[table]/route.ts, config/[table]/[id]/route.ts, admins/route.ts, admins/[id]/route.ts
+
+---
+Task ID: 2-b
+Agent: frontend-builder
+Task: Build Config Tables page - comprehensive CRUD admin panel for Phase 2
+
+Work Log:
+- Read existing files: dashboard page, tables config, login page, globals.css, middleware.ts, API routes
+- Created `/home/z/my-project/mini-services/backend/src/app/config/page.tsx` (~1100 lines)
+- Full CRUD admin panel with:
+  - **Header**: Same as dashboard (logo, admin badge, user info, logout button)
+  - **Sidebar**: Navigation items (Dashboard link, Config Tables active, Security Log disabled/Phase 5), table list grouped by 5 categories (Core, Production, Economy, Events, System), each table shows icon + display name + row count badge, clicking selects and loads data, Phase 2 progress indicator
+  - **Mobile responsive**: Hamburger menu toggles sidebar with overlay on mobile
+  - **Data Grid**: Sortable column headers with sort direction indicators, search bar with debounce (300ms), primary key column highlighted in amber with "PK" badge, boolean columns as colored badges (green=true, red=false), JSON columns as collapsible preview (100 chars + expand/collapse), numeric columns right-aligned with mono font, row action buttons (Edit/Delete) appear on hover
+  - **Pagination**: 10/25/50/100 rows per page selector, smart page number generation with ellipsis, "Showing X-Y of Z" counter
+  - **Create/Edit Modal**: Fields rendered by type (text→input, number→number input with step, boolean→toggle switch, json→textarea with JSON validation + formatted preview, date→date picker), required fields marked with *, PK column labeled, Save/Cancel buttons with loading spinner
+  - **Delete Confirmation**: Dialog with row identifier, Cancel/Delete buttons with loading spinner
+  - **Toast Notifications**: Success (green), Error (red), Info (amber) with auto-dismiss after 4 seconds
+  - **API Integration**: GET /api/tables for sidebar, GET /api/config/[table] with pagination/sort/search, POST for create, PUT for update, DELETE for delete, all with error handling
+  - **Loading States**: Skeleton placeholders for sidebar and data grid
+  - **Empty States**: "Select a table" when none selected, "This table is empty" with create button, "No rows match your search"
+- Fixed TypeScript errors: textarea value unknown→string cast, number input value unknown→string cast
+- Verified: `npx tsc --noEmit` passes (only pre-existing errors in other files: index.ts ImportMeta.dir, backend/page.tsx JSX namespace)
+- Middleware already allows `/config` path (not in PUBLIC_PATHS or SKIP_AUTH_PATHS, goes through normal auth)
+
+Stage Summary:
+- Complete Config Tables CRUD admin panel created at `/config/page.tsx`
+- Full data grid with sort, search, pagination, column-type-aware rendering
+- Create/Edit modal with type-specific form fields and JSON validation
+- Delete confirmation dialog
+- Toast notification system
+- Mobile-responsive with hamburger sidebar
+- Dark theme consistent with existing dashboard (bg-[#0a0a0a], zinc, amber accents)
+- TypeScript compilation clean (no new errors)
+- No changes to middleware needed (auth flow covers /config automatically)
+
+---
+Task ID: 2-c
+Agent: admin-page-builder
+Task: Build Admin Management Page + Update Dashboard Navigation
+
+Work Log:
+
+1. **Created Admin Management Page** (`/mini-services/backend/src/app/admins/page.tsx`)
+   - Full "use client" component with same dark theme as other pages (bg-[#0a0a0a], zinc colors, amber accents)
+   - Header: same top bar with logo, "IndustriaX Backend" title, Admin badge, user info, logout button
+   - Left sidebar with nav items: Dashboard (link to /backend), Config Tables (link to /config), Admin (active), Security Log (disabled, Phase 5)
+   - Mobile responsive sidebar with hamburger menu toggle
+   - Phase indicator at bottom of sidebar: "Phase 2 — Config Tables"
+   - Main content: "Admin Users" title + "Add Admin" button
+   - Stats cards: Total Admins, Active Sessions, Super Admins count
+   - Desktop table view with columns: Avatar+Email, User ID (truncated with copy button), Role (badge), Source (ENV/DB/ENV+DB), Added date, Actions
+   - Mobile card view with same data in card layout
+   - "You" badge shown for current logged-in admin
+   - ENV-defined admins and current user cannot be removed (protected state shown)
+   - Add Admin Modal: User UUID input (with UUID validation), Email input, Role select (admin/super_admin/viewer), Save/Cancel buttons
+   - Remove Confirmation Modal: warning dialog with admin email/ID, Cancel/Remove buttons, loading state
+   - Toast notifications for success/error/info (inline implementation)
+   - Copy-to-clipboard for User IDs with visual feedback
+   - API integration: GET /api/admins, POST /api/admins, DELETE /api/admins/[id]
+   - Role badges: Super Admin (amber), Admin (emerald), Viewer (zinc)
+   - Source badges: ENV (purple), ENV+DB (sky), Database (zinc)
+
+2. **Updated Dashboard Page** (`/mini-services/backend/src/app/backend/page.tsx`)
+   - Updated navItems: Dashboard (active), Config Tables (enabled, links to /config), Admin (enabled, links to /admins), Security Log (disabled, Phase 5)
+   - Added `href` field to NavItem interface for navigation
+   - Replaced "Game API" nav item with "Admin" using users icon
+   - Made nav items clickable links using `<a href>` tags (disabled items remain `<div>`)
+   - Changed IconRenderer icon type from `JSX.Element` to `React.ReactNode` to fix TypeScript error
+   - Updated Phase indicator: "Phase 2 — Config Tables" (was "Phase 1 — Auth & Security")
+   - Updated progress bar: 60% (was 100%)
+   - Updated version: 0.2.0 (was 0.1.0)
+   - Updated Service Information phase: "2 — Config Tables"
+   - Made Supabase card clickable → links to /config
+   - Made Admin User card clickable → links to /admins
+
+3. **Updated Config Page** (`/mini-services/backend/src/app/config/page.tsx`)
+   - Added `IconUsers` SVG icon component
+   - Added "Admin" nav item to sidebar between Config Tables and Security Log
+   - Admin nav links to /admins page
+
+4. **TypeScript Verification**
+   - All custom code compiles cleanly (remaining errors are pre-existing in index.ts with Bun's ImportMeta.dir)
+
+Stage Summary:
+- Complete Admin Management page with add/remove admin functionality
+- All three pages (Dashboard, Config, Admin) now have consistent navigation with clickable links
+- Dashboard updated with Phase 2 branding, version 0.2.0, clickable stat cards
+- Files created: src/app/admins/page.tsx (~540 lines)
+- Files modified: src/app/backend/page.tsx, src/app/config/page.tsx

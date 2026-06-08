@@ -7,20 +7,21 @@ import type { User } from "@supabase/supabase-js";
 interface NavItem {
   label: string;
   icon: string;
+  href: string;
   active: boolean;
   disabled: boolean;
   phase: string;
 }
 
 const navItems: NavItem[] = [
-  { label: "Dashboard", icon: "layout-dashboard", active: true, disabled: false, phase: "" },
-  { label: "Config Tables", icon: "database", active: false, disabled: true, phase: "Phase 2" },
-  { label: "Game API", icon: "gamepad-2", active: false, disabled: true, phase: "Phase 4" },
-  { label: "Security Log", icon: "shield", active: false, disabled: true, phase: "Phase 5" },
+  { label: "Dashboard", icon: "layout-dashboard", href: "/backend", active: true, disabled: false, phase: "" },
+  { label: "Config Tables", icon: "database", href: "/config", active: false, disabled: false, phase: "" },
+  { label: "Admin", icon: "users", href: "/admins", active: false, disabled: false, phase: "" },
+  { label: "Security Log", icon: "shield", href: "", active: false, disabled: true, phase: "Phase 5" },
 ];
 
 function IconRenderer({ name }: { name: string }) {
-  const icons: Record<string, JSX.Element> = {
+  const icons: Record<string, React.ReactNode> = {
     "layout-dashboard": (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect width="7" height="7" x="3" y="3" rx="1" /><rect width="7" height="7" x="14" y="3" rx="1" /><rect width="7" height="7" x="14" y="14" rx="1" /><rect width="7" height="7" x="3" y="14" rx="1" />
@@ -31,9 +32,9 @@ function IconRenderer({ name }: { name: string }) {
         <ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5V19A9 3 0 0 0 21 19V5" /><path d="M3 12A9 3 0 0 0 21 12" />
       </svg>
     ),
-    "gamepad-2": (
+    users: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="6" x2="10" y1="11" y2="11" /><line x1="8" x2="8" y1="9" y2="13" /><line x1="15" x2="15.01" y1="12" y2="12" /><line x1="18" x2="18.01" y1="10" y2="10" /><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z" />
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
       </svg>
     ),
     shield: (
@@ -129,36 +130,45 @@ export default function BackendDashboard() {
         <aside className="hidden md:flex w-56 bg-zinc-900/50 border-r border-zinc-800 flex-col shrink-0">
           <nav className="flex-1 p-3 space-y-1">
             {navItems.map((item) => (
-              <div
-                key={item.label}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${
-                  item.active
-                    ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                    : item.disabled
-                    ? "text-zinc-600 cursor-not-allowed"
-                    : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
-                }`}
-              >
-                <IconRenderer name={item.icon} />
-                <span className="flex-1">{item.label}</span>
-                {item.phase && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-500">
-                    {item.phase}
-                  </span>
-                )}
-                {item.active && (
-                  <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                )}
-              </div>
+              item.disabled ? (
+                <div
+                  key={item.label}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-zinc-600 cursor-not-allowed"
+                >
+                  <IconRenderer name={item.icon} />
+                  <span className="flex-1">{item.label}</span>
+                  {item.phase && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-500">
+                      {item.phase}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${
+                    item.active
+                      ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                      : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+                  }`}
+                >
+                  <IconRenderer name={item.icon} />
+                  <span className="flex-1">{item.label}</span>
+                  {item.active && (
+                    <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                  )}
+                </a>
+              )
             ))}
           </nav>
 
           <div className="p-3 border-t border-zinc-800">
             <div className="p-3 bg-zinc-800/50 rounded-lg">
               <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Phase</p>
-              <p className="text-xs text-amber-400 font-medium">Phase 1 — Auth & Security</p>
+              <p className="text-xs text-amber-400 font-medium">Phase 2 — Config Tables</p>
               <div className="mt-2 w-full bg-zinc-700 rounded-full h-1.5">
-                <div className="bg-amber-500 h-1.5 rounded-full" style={{ width: "100%" }} />
+                <div className="bg-amber-500 h-1.5 rounded-full" style={{ width: "60%" }} />
               </div>
             </div>
           </div>
@@ -187,7 +197,7 @@ export default function BackendDashboard() {
           {/* Status Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
             {/* Supabase Connection */}
-            <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
+            <a href="/config" className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5 block hover:border-zinc-700 transition-colors">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-emerald-400">
@@ -215,10 +225,10 @@ export default function BackendDashboard() {
                   <span className="text-zinc-300">Google OAuth</span>
                 </div>
               </div>
-            </div>
+            </a>
 
             {/* Admin User */}
-            <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
+            <a href="/admins" className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5 block hover:border-zinc-700 transition-colors">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-400">
@@ -248,7 +258,7 @@ export default function BackendDashboard() {
                   </span>
                 </div>
               </div>
-            </div>
+            </a>
 
             {/* Security Status */}
             <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
@@ -288,8 +298,8 @@ export default function BackendDashboard() {
               <div className="space-y-3">
                 {[
                   { label: "Service", value: "IndustriaX Backend" },
-                  { label: "Version", value: "0.1.0" },
-                  { label: "Phase", value: "1 — Auth & Security" },
+                  { label: "Version", value: "0.2.0" },
+                  { label: "Phase", value: "2 — Config Tables" },
                   { label: "Port", value: "3001" },
                   { label: "Framework", value: "Next.js 16 + App Router" },
                   { label: "Database", value: "Supabase (PostgreSQL)" },

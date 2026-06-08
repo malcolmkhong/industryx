@@ -4,6 +4,9 @@ import { createServerClient } from "@supabase/ssr";
 const PUBLIC_PATHS = ["/auth/callback", "/login"];
 const SKIP_AUTH_PATHS = ["/api/health", "/_next", "/favicon.ico"];
 
+// API routes handle their own auth (return 401 JSON instead of redirecting to login)
+const API_PREFIX = "/api/";
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -14,6 +17,11 @@ export async function middleware(request: NextRequest) {
 
   // Skip auth for static assets and health check
   if (SKIP_AUTH_PATHS.some((path) => pathname.startsWith(path))) {
+    return NextResponse.next();
+  }
+
+  // API routes handle their own auth — let them through
+  if (pathname.startsWith(API_PREFIX)) {
     return NextResponse.next();
   }
 
