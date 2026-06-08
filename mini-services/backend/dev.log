@@ -1,0 +1,10 @@
+▲ Next.js 16.2.7 (webpack)
+- Local:         http://localhost:3001
+- Network:       http://21.0.10.172:3001
+- Environments: .env
+✓ Ready in 252ms
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (102kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (243kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ GET /api/health 200 in 1745ms (next.js: 1587ms, proxy.ts: 136ms, application-code: 22ms)
