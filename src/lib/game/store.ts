@@ -175,8 +175,8 @@ function generateDroneMissionsFromState(state: GameState): DroneMission[] {
 }
 
 // --- Save Migration ---
-function migrateSaveState(savedState: Record<string, unknown>): Record<string, unknown> {
-  const version = (savedState._version as number) || 1;
+function migrateSaveState(savedState: Record<string, unknown>, fromVersion?: number): Record<string, unknown> {
+  const version = (savedState._version as number) || fromVersion || 1;
   let state = { ...savedState };
 
   // V1 → V2: Add megaProjects field and productionHistory
@@ -881,26 +881,66 @@ interface GameActions {
 
 export type GameStore = GameState & GameActions;
 
-// --- Debounced localStorage for Zustand persist ---
-// Reduces write frequency from every tick to every 5 seconds (~40% tick CPU reduction)
+// --- Debounced PersistStorage for Zustand v5 persist ---
+// Zustand v5 persist expects a PersistStorage<S> that returns PARSED objects from
+// getItem and receives parsed objects in setItem (not raw strings like the old
+// Storage interface).  The previous implementation used the raw Storage API which
+// caused localStorage.setItem(name, objectValue) → "[object Object]" → total data
+// loss on every page refresh.
+//
+// This implementation wraps the raw localStorage with JSON serialization (like
+// createJSONStorage) AND adds debounced writes to reduce I/O frequency.
+
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 const DEBOUNCE_MS = 5000;
 
-const debouncedStorage: Storage = {
-  getItem: (name: string) => typeof window !== 'undefined' ? localStorage.getItem(name) : null,
-  setItem: (name: string, value: string) => {
-    // Store the latest value to write
-    debouncedStorage.__pendingValue = value;
-    debouncedStorage.__pendingName = name;
+interface PendingWrite {
+  name: string;
+  value: string; // JSON-serialized string
+}
+let pendingWrite: PendingWrite | null = null;
+
+function flushPendingWrite(): void {
+  if (pendingWrite) {
+    try {
+      localStorage.setItem(pendingWrite.name, pendingWrite.value);
+    } catch {
+      // localStorage full or unavailable — non-critical
+    }
+    pendingWrite = null;
+  }
+  debounceTimer = null;
+}
+
+/**
+ * Zustand v5 PersistStorage compatible wrapper with debounced writes.
+ *
+ * - getItem: reads from localStorage and parses JSON (same as createJSONStorage)
+ * - setItem: serializes to JSON, then debounces the actual localStorage write
+ * - removeItem: immediately removes from localStorage
+ *
+ * This fixes the critical bug where passing raw objects to the old Storage-based
+ * debouncedStorage caused `localStorage.setItem(name, object)` → "[object Object]"
+ * which made every page refresh lose all game state.
+ */
+const debouncedPersistStorage = {
+  getItem: (name: string) => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const str = localStorage.getItem(name);
+      if (str === null) return null;
+      return JSON.parse(str);
+    } catch {
+      // Corrupted or unreadable data — treat as no saved state
+      return null;
+    }
+  },
+  setItem: (name: string, value: unknown) => {
+    // Serialize to JSON immediately (captures current state snapshot)
+    const serialized = JSON.stringify(value);
+    pendingWrite = { name, value: serialized };
     if (!debounceTimer) {
-      debounceTimer = setTimeout(() => {
-        if (debouncedStorage.__pendingName) {
-          localStorage.setItem(debouncedStorage.__pendingName, debouncedStorage.__pendingValue);
-          debouncedStorage.__pendingName = null;
-          debouncedStorage.__pendingValue = null;
-        }
-        debounceTimer = null;
-      }, DEBOUNCE_MS);
+      debounceTimer = setTimeout(flushPendingWrite, DEBOUNCE_MS);
     }
   },
   removeItem: (name: string) => {
@@ -908,12 +948,11 @@ const debouncedStorage: Storage = {
       clearTimeout(debounceTimer);
       debounceTimer = null;
     }
-    if (typeof window !== 'undefined') localStorage.removeItem(name);
+    pendingWrite = null;
+    if (typeof window !== 'undefined') {
+      try { localStorage.removeItem(name); } catch { /* noop */ }
+    }
   },
-  length: typeof window !== 'undefined' ? localStorage.length : 0,
-  key: (index: number) => typeof window !== 'undefined' ? localStorage.key(index) : null,
-  __pendingName: null as string | null,
-  __pendingValue: null as string | null,
 };
 
 // Force-save on page unload to prevent data loss
@@ -923,11 +962,7 @@ if (typeof window !== 'undefined') {
       clearTimeout(debounceTimer);
       debounceTimer = null;
     }
-    if (debouncedStorage.__pendingName && debouncedStorage.__pendingValue) {
-      localStorage.setItem(debouncedStorage.__pendingName, debouncedStorage.__pendingValue);
-      debouncedStorage.__pendingName = null;
-      debouncedStorage.__pendingValue = null;
-    }
+    flushPendingWrite();
   });
 }
 
@@ -3274,7 +3309,7 @@ export const useGameStore = create<GameStore>()(
     }),
     {
       name: 'factory-dominion-save',
-      storage: debouncedStorage,
+      storage: debouncedPersistStorage,
       partialize: (state) => ({
         money: state.money,
         totalMoneyEarned: state.totalMoneyEarned,
@@ -3308,9 +3343,23 @@ export const useGameStore = create<GameStore>()(
         drones: state.drones,
         _version: SAVE_VERSION,
       }),
-      version: 11,
-      migrate: (persistedState: unknown) => {
-        return migrateSaveState(persistedState as Record<string, unknown>);
+      version: SAVE_VERSION,
+      migrate: (persistedState: unknown, savedVersion: number) => {
+        return migrateSaveState(persistedState as Record<string, unknown>, savedVersion);
+      },
+      onRehydrateStorage: () => {
+        return (_state, error) => {
+          if (error) {
+            console.error('[Zustand Persist] Rehydration error:', error);
+            // If rehydration fails due to corrupted data, clear the save
+            try {
+              localStorage.removeItem('factory-dominion-save');
+              console.warn('[Zustand Persist] Cleared corrupted save data');
+            } catch {
+              // Ignore
+            }
+          }
+        };
       },
     }
   )

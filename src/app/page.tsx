@@ -65,6 +65,7 @@ import { FloatingActionButton } from '@/components/game/FloatingActionButton';
 import { useSettingsStore } from '@/lib/game/settingsStore';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useGameConfig } from '@/components/providers/GameConfigProvider';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useCloudSync } from '@/lib/hooks/useCloudSync';
 
 // Navigation is now managed by GameSidebar component
@@ -125,11 +126,27 @@ export default function Home() {
 
   // Hydration guard: prevent rendering dynamic game UI during SSR
   // This avoids hydration mismatch because Zustand persist rehydrates from localStorage on client
-  // Using a slightly longer delay (50ms) ensures Zustand persist has fully rehydrated
+  // We use Zustand's persist.hasHydrated() to ensure data is loaded before rendering
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
-    const t = setTimeout(() => setMounted(true), 50);
-    return () => clearTimeout(t);
+    // Check if Zustand persist has already hydrated (synchronous check)
+    if (useGameStore.persist.hasHydrated()) {
+      setMounted(true);
+      return;
+    }
+    // If not yet hydrated, listen for the finishHydration event
+    const unsubFinishHydration = useGameStore.persist.onFinishHydration(() => {
+      setMounted(true);
+    });
+    // Safety fallback: if hydration takes too long (e.g., corrupted data),
+    // force mount after 3 seconds so the user isn't stuck forever
+    const safetyTimer = setTimeout(() => {
+      setMounted(true);
+    }, 3000);
+    return () => {
+      unsubFinishHydration();
+      clearTimeout(safetyTimer);
+    };
   }, []);
 
   // Track header height dynamically so the fixed header's spacer always matches
@@ -508,6 +525,7 @@ export default function Home() {
   }
 
   return (
+    <ErrorBoundary>
     <TooltipProvider>
       <div className="h-screen flex flex-col bg-[#0a0e17] text-gray-100 overflow-hidden safe-area-container">
         {/* TOP BAR */}
@@ -1224,5 +1242,6 @@ export default function Home() {
         </DialogContent>
       </Dialog>
     </TooltipProvider>
+    </ErrorBoundary>
   );
 }
