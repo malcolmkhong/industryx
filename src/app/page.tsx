@@ -67,6 +67,7 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { useGameConfig } from '@/components/providers/GameConfigProvider';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useCloudSync } from '@/lib/hooks/useCloudSync';
+import { OnlineCount } from '@/components/game/OnlineCount';
 
 // Navigation is now managed by GameSidebar component
 // KEY_TAB_MAP is imported from GameSidebar
@@ -787,6 +788,9 @@ export default function Home() {
                 <RotateCcw className="w-3 h-3" />
               </Button>
 
+              {/* Online player count */}
+              <OnlineCount />
+
               {/* Config source indicator */}
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -987,6 +991,9 @@ export default function Home() {
               <Badge variant="outline" className={`text-[8px] px-1 py-0 ${isUsingSupabase ? 'border-emerald-500/50 text-emerald-400' : 'border-amber-500/50 text-amber-400'}`}>
                 {isUsingSupabase ? 'Live' : 'Local'}
               </Badge>
+
+              {/* Online count - mobile */}
+              <OnlineCount compact />
 
               {/* Auth button - mobile */}
               {authLoading ? (

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useAdminPresence } from "@/lib/hooks/useOnlinePresence";
 import type { User } from "@supabase/supabase-js";
 
 interface NavItem {
@@ -69,6 +70,7 @@ export default function BackendDashboard() {
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [statsLoading, setStatsLoading] = useState(true);
+  const { onlineCount: presenceOnlineCount, loggedInCount: presenceLoggedInCount, isConnected: presenceConnected } = useAdminPresence();
   const [stats, setStats] = useState<{
     totalPlayers: number;
     onlinePlayers: number;
@@ -300,7 +302,7 @@ export default function BackendDashboard() {
               </div>
             </a>
 
-            {/* Online Now */}
+            {/* Online Now — real-time via Supabase Presence */}
             <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center">
@@ -311,13 +313,28 @@ export default function BackendDashboard() {
                 <div>
                   <p className="text-zinc-500 text-xs">Online Now</p>
                   <p className="text-white text-2xl font-bold">
-                    {statsLoading ? <span className="inline-block w-8 h-6 bg-zinc-800 rounded animate-pulse" /> : (stats?.onlinePlayers ?? 0)}
+                    {presenceOnlineCount !== null ? (
+                      presenceOnlineCount
+                    ) : statsLoading ? (
+                      <span className="inline-block w-8 h-6 bg-zinc-800 rounded animate-pulse" />
+                    ) : (
+                      stats?.onlinePlayers ?? 0
+                    )}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-                <span className="text-blue-400 text-xs">Active sessions</span>
+                {presenceConnected ? (
+                  <>
+                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-emerald-400 text-xs">Live ({presenceLoggedInCount} logged in)</span>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-2 h-2 rounded-full bg-blue-400" />
+                    <span className="text-blue-400 text-xs">Active sessions</span>
+                  </>
+                )}
               </div>
             </div>
 
