@@ -17,7 +17,8 @@ const navItems: NavItem[] = [
   { label: "Dashboard", icon: "layout-dashboard", href: "/backend", active: true, disabled: false, phase: "" },
   { label: "Players", icon: "user-person", href: "/players", active: false, disabled: false, phase: "" },
   { label: "Investigations", icon: "shield", href: "/investigations", active: false, disabled: false, phase: "" },
-  { label: "Audit Log", icon: "scroll", href: "/audit", active: false, disabled: false, phase: "" },
+  { label: "Player Actions", icon: "scroll", href: "/audit", active: false, disabled: false, phase: "" },
+  { label: "Admin Actions", icon: "gavel", href: "/admin-audit", active: false, disabled: false, phase: "" },
   { label: "Config Tables", icon: "database", href: "/config", active: false, disabled: false, phase: "" },
   { label: "Admin", icon: "users", href: "/admins", active: false, disabled: false, phase: "" },
 ];
@@ -52,6 +53,11 @@ function IconRenderer({ name }: { name: string }) {
     "user-person": (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="8" r="5" /><path d="M20 21a8 8 0 0 0-16 0" />
+      </svg>
+    ),
+    gavel: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="m14.5 12.5 2-2" /><path d="m14 5-8.5 8.5-1.5 5 5-1.5L17.5 3.5a2.12 2.12 0 0 1 3 3Z" /><path d="M2 19h20" />
       </svg>
     ),
   };
