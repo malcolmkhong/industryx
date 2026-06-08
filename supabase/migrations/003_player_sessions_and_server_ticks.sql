@@ -1,0 +1,21 @@
+-- Migration: 003_player_sessions_and_server_ticks
+-- Description: Add session tracking and server-side tick verification
+
+-- player_sessions table (already created via API, documented here)
+-- CREATE TABLE IF NOT EXISTS player_sessions (
+--   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+--   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+--   session_token TEXT,
+--   is_online BOOLEAN NOT NULL DEFAULT true,
+--   last_heartbeat_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+--   connected_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+--   disconnected_at TIMESTAMPTZ,
+--   client_ip TEXT,
+--   user_agent TEXT,
+--   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+-- );
+
+-- player_progress additions (already applied via API, documented here)
+-- ALTER TABLE player_progress ADD COLUMN IF NOT EXISTS last_server_tick_at TIMESTAMPTZ;
+-- ALTER TABLE player_progress ADD COLUMN IF NOT EXISTS server_game_tick BIGINT DEFAULT 0;
+-- ALTER TABLE player_progress ADD COLUMN IF NOT EXISTS save_checksum TEXT;

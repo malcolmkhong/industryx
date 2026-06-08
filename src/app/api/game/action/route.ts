@@ -6,6 +6,9 @@
 
 import { NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { verifyAuth } from '@/lib/auth/verifyAuth';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
+import { logActionAsync, extractClientInfo } from '@/lib/auth/gameStateValidator';
 import {
   SupabaseBuilding,
   SupabaseRecipe,
@@ -26,6 +29,7 @@ import {
 // ─── Types ──────────────────────────────────────────────────────────────
 
 interface ActionRequest {
+  userId?: string;
   action: 'build' | 'sell' | 'buy' | 'research' | 'upgrade' | 'transport';
   payload: Record<string, unknown>;
   gameState: Partial<GameState>;
@@ -34,6 +38,7 @@ interface ActionRequest {
 interface ActionResponse {
   valid: boolean;
   error?: string;
+  code?: string;
   correctedState?: Partial<GameState>;
 }
 
@@ -280,6 +285,14 @@ function handleTransportAction(
 // ─── Main POST Handler ──────────────────────────────────────────────────
 
 export async function POST(request: Request) {
+  // ✅ Auth check: Must be authenticated to validate actions
+  const auth = await verifyAuth();
+  if (!auth.success) return auth.response;
+
+  // ✅ Rate limit check
+  const rateLimitResponse = checkRateLimit(auth.userId, RATE_LIMITS.action, '/api/game/action');
+  if (rateLimitResponse) return rateLimitResponse;
+
   let body: ActionRequest;
   try {
     body = await request.json();
@@ -290,7 +303,16 @@ export async function POST(request: Request) {
     );
   }
 
-  const { action, payload, gameState } = body;
+  const { userId, action, payload, gameState } = body;
+
+  // ✅ Ownership check: userId in request must match authenticated user
+  if (userId && userId !== auth.userId) {
+    console.warn(`[ActionAPI] User ${auth.userId} attempted action for ${userId}`);
+    return NextResponse.json(
+      { valid: false, error: 'You can only perform actions for your own game', code: 'FORBIDDEN_OWNERSHIP' } satisfies ActionResponse,
+      { status: 403 },
+    );
+  }
 
   // Validate action type
   const validActions = ['build', 'sell', 'buy', 'research', 'upgrade', 'transport'];
@@ -349,6 +371,20 @@ export async function POST(request: Request) {
     default:
       result = { valid: false, error: `Unhandled action: ${action}` };
   }
+
+  // ✅ Audit log the action
+  const clientInfo = extractClientInfo(request);
+  logActionAsync({
+    userId: auth.userId,
+    actionType: action as 'build' | 'sell' | 'buy' | 'research' | 'upgrade' | 'transport',
+    payload,
+    gameTick: Number(gameState.gameTick) || 0,
+    moneyBefore: Number(gameState.money) || 0,
+    moneyAfter: Number(gameState.money) || 0,
+    isValid: result.valid,
+    rejectionReason: result.valid ? undefined : result.error,
+    ...clientInfo,
+  });
 
   return NextResponse.json(result);
 }

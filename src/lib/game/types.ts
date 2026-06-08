@@ -12,7 +12,7 @@ export type Tier4Resource = 'singularityCore' | 'darkMatterCell' | 'warpDrive' |
 export type Tier5Resource = 'researchMatrix' | 'worldCore' | 'shieldMatrix' | 'stellarForge' | 'voidEnergy' | 'marketDominance' | 'corpCapital' | 'dimensionalGate' | 'armadaFleet';
 export type ResourceType = RawResource | Tier1Resource | Tier2Resource | Tier3Resource | Tier4Resource | Tier5Resource;
 
-export type CostResourceType = ResourceType | 'money';
+export type CostResourceType = ResourceType | 'money' | 'researchPoints' | 'corporationPoints';
 
 export interface ResourceAmount {
   resource: CostResourceType;

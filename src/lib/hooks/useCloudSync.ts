@@ -74,8 +74,7 @@ export function useCloudSync(): CloudSyncState {
         notifications: state.notifications,
         gameSpeed: state.gameSpeed,
         paused: state.paused,
-        _version: state._version,
-      };
+      } as Record<string, unknown>;
 
       const displayName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Commander';
 
@@ -84,6 +83,13 @@ export function useCloudSync(): CloudSyncState {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id, gameState, displayName }),
       });
+
+      if (res.status === 401) {
+        return { success: false, error: 'Session expired. Please sign in again.' };
+      }
+      if (res.status === 403) {
+        return { success: false, error: 'Access denied. You can only save your own data.' };
+      }
 
       const data = await res.json();
       if (data.saved) {
@@ -106,6 +112,14 @@ export function useCloudSync(): CloudSyncState {
 
     try {
       const res = await fetch(`/api/player?userId=${user.id}`);
+
+      if (res.status === 401) {
+        return { success: false, error: 'Session expired. Please sign in again.' };
+      }
+      if (res.status === 403) {
+        return { success: false, error: 'Access denied.' };
+      }
+
       const data = await res.json();
 
       if (data.isNew) {

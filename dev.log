@@ -5,18 +5,10 @@
 
 ✓ Starting...
 ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
-✓ Ready in 685ms
- GET / 200 in 2.1s (compile: 1768ms, proxy.ts: 64ms, render: 301ms)
- GET /api/icons?t=1780901915223 200 in 239ms (compile: 57ms, proxy.ts: 6ms, render: 176ms)
- GET /api/game/definitions 200 in 354ms (compile: 60ms, proxy.ts: 5ms, render: 288ms)
-▲ Next.js 16.1.3 (Turbopack)
-- Local:         http://localhost:3000
-- Network:       http://21.0.10.172:3000
-- Environments: .env
-
-✓ Starting...
-⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
-✓ Ready in 649ms
- GET / 200 in 544ms (compile: 195ms, proxy.ts: 12ms, render: 337ms)
- GET / 200 in 84ms (compile: 7ms, proxy.ts: 5ms, render: 72ms)
- GET /api/icons?t=1780901900867 200 in 260ms (compile: 64ms, proxy.ts: 10ms, render: 186ms)
+✓ Ready in 684ms
+ GET / 200 in 2.2s (compile: 1802ms, proxy.ts: 62ms, render: 292ms)
+ GET /api/icons?t=1780907122246 200 in 211ms (compile: 62ms, proxy.ts: 8ms, render: 141ms)
+ GET /api/game/definitions 200 in 486ms (compile: 70ms, proxy.ts: 4ms, render: 411ms)
+ GET / 200 in 41ms (compile: 5ms, proxy.ts: 6ms, render: 30ms)
+ GET /api/icons?t=1780907063232 200 in 11ms (compile: 3ms, proxy.ts: 4ms, render: 4ms)
+ GET /api/game/definitions 200 in 10ms (compile: 1975µs, proxy.ts: 4ms, render: 4ms)

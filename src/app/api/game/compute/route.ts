@@ -6,6 +6,8 @@
 
 import { NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { verifyAuth } from '@/lib/auth/verifyAuth';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 import {
   SupabaseBuilding,
   SupabaseRecipe,
@@ -23,6 +25,7 @@ import { runServerTicks } from '@/lib/game/serverEngine';
 // ─── Types ──────────────────────────────────────────────────────────────
 
 interface ComputeRequest {
+  userId: string;
   gameState: GameState;
   ticks: number;
 }
@@ -215,6 +218,14 @@ async function loadFullConfig(): Promise<GameConfig | null> {
 // ─── Main POST Handler ──────────────────────────────────────────────────
 
 export async function POST(request: Request) {
+  // ✅ Auth check: Must be authenticated to compute ticks
+  const auth = await verifyAuth();
+  if (!auth.success) return auth.response;
+
+  // ✅ Rate limit check
+  const rateLimitResponse = checkRateLimit(auth.userId, RATE_LIMITS.compute, '/api/game/compute');
+  if (rateLimitResponse) return rateLimitResponse;
+
   let body: ComputeRequest;
   try {
     body = await request.json();
@@ -225,7 +236,16 @@ export async function POST(request: Request) {
     );
   }
 
-  const { gameState, ticks } = body;
+  const { userId, gameState, ticks } = body;
+
+  // ✅ Ownership check: userId in request must match authenticated user
+  if (userId && userId !== auth.userId) {
+    console.warn(`[ComputeAPI] User ${auth.userId} attempted compute for ${userId}`);
+    return NextResponse.json(
+      { error: 'You can only compute for your own game', code: 'FORBIDDEN_OWNERSHIP' },
+      { status: 403 },
+    );
+  }
 
   // Validate inputs
   if (!gameState || typeof gameState !== 'object') {
