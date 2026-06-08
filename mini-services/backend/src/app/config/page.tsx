@@ -82,6 +82,14 @@ function IconUser() {
   );
 }
 
+function IconPerson() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="5" /><path d="M20 21a8 8 0 0 0-16 0" />
+    </svg>
+  );
+}
+
 function IconLogout() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -656,6 +664,29 @@ export default function ConfigTablesPage() {
               <IconDashboard />
               <span>Dashboard</span>
             </a>
+            <a
+              href="/players"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-all"
+            >
+              <IconPerson />
+              <span>Players</span>
+            </a>
+            <a
+              href="/investigations"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-all"
+            >
+              <IconShield />
+              <span>Investigations</span>
+            </a>
+            <a
+              href="/audit"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-all"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M8 21h12a2 2 0 0 0 2-2v-2H10v2a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v3h4" /><path d="M19 3H9v7h14V5a2 2 0 0 0-2-2Z" />
+              </svg>
+              <span>Audit Log</span>
+            </a>
             <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm bg-amber-500/10 text-amber-400 border border-amber-500/20">
               <IconDatabase />
               <span className="flex-1">Config Tables</span>
@@ -668,11 +699,6 @@ export default function ConfigTablesPage() {
               <IconUsers />
               <span>Admin</span>
             </a>
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-zinc-600 cursor-not-allowed">
-              <IconShield />
-              <span className="flex-1">Security Log</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-500">Phase 5</span>
-            </div>
           </nav>
 
           {/* Table list by category */}
@@ -721,9 +747,9 @@ export default function ConfigTablesPage() {
           <div className="p-3 border-t border-zinc-800">
             <div className="p-3 bg-zinc-800/50 rounded-lg">
               <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Phase</p>
-              <p className="text-xs text-amber-400 font-medium">Phase 2 — Config Tables</p>
+              <p className="text-xs text-amber-400 font-medium">Phase 3 — Admin & Moderation</p>
               <div className="mt-2 w-full bg-zinc-700 rounded-full h-1.5">
-                <div className="bg-amber-500 h-1.5 rounded-full" style={{ width: "60%" }} />
+                <div className="bg-amber-500 h-1.5 rounded-full" style={{ width: "80%" }} />
               </div>
             </div>
           </div>

@@ -1,57 +1,26 @@
-# IndustriaX Worklog
-
 ---
 Task ID: 1
-Agent: Main Agent
-Task: Server-Authoritative Anti-Cheat Upgrade
+Agent: Main
+Task: Implement admin & moderation system for IndustriaX
 
 Work Log:
-- Analyzed current anti-cheat mechanisms and identified 6 critical gaps
-- Wrote comprehensive SQL migration (004_server_authoritative_upgrade.sql) with 10 parts
-- User ran the migration successfully in Supabase SQL Editor
-- Verified all 5 new tables created: server_game_state (0), validated_actions (0), research_prerequisites (44 rows seeded), cheat_investigations (0), admin_users (1)
-- Updated gameStateValidator.ts:
-  - HMAC-SHA256 checksums (was djb2 hash)
-  - Added previousState delta validation (tick regression, money jumps, tick rate)
-  - Changed high-risk violations from "flagged" to "rejected" (critical)
-  - Added game speed validation (only 1,2,5,10 allowed)
-  - Added research/building jump detection
-  - Added fetchPreviousServerState(), isAccountLocked(), flagCheatAttempt() functions
-  - Auto-lock accounts after 3 cheat flags
-- Updated player/route.ts:
-  - Fetches previousState from server_game_state for delta validation
-  - Rejects high-risk saves (not just critical)
-  - Checks account lock status before save/load
-  - Syncs to both player_progress AND server_game_state
-  - Flags cheat attempts automatically
-- Created /api/game/state/route.ts:
-  - GET: Load authoritative state from server_game_state
-  - POST: Sync state to server_game_state with full validation
-  - Rejects invalid states, checks checksums, auto-flags cheaters
-- Updated useCloudSync.ts:
-  - Auto-loads from server on login (first load)
-  - Saves to /api/game/state (authoritative endpoint) with fallback to /api/player
-  - Tracks serverStateHash for checksum validation
-  - Increased auto-save interval from 60s to 120s (reduce Supabase load)
-  - Added isServerAuthoritative flag
-- Created serverActions.ts:
-  - Client-side wrapper for server action validation
-  - submitActionToServer() for generic action validation
-  - Specific validators: validateBuildAction, validateResearchAction, validateSellAction, etc.
-  - validateImportSave() for import validation
-  - Graceful offline tolerance (allows local play on network errors)
-- Updated AuthProvider.tsx:
-  - Initializes server validation on login (initServerValidation)
-  - Disables on logout (disableServerValidation)
-- Updated action/route.ts:
-  - Extended action types (14 new types including set_game_speed, prestige, import)
-  - Supports both `action` and `actionType` fields
-  - Writes to validated_actions table on every action
-  - Keeps legacy audit logging
+- Analyzed entire codebase: 8 Supabase tables, 12 API routes, 45 game components, existing mini-backend
+- Designed lean MVP architecture: 1 new table, 3 restored columns, 6 API routes, 4 pages
+- Wrote SQL migration 006 (admin_actions table + cheat_investigations resolution columns)
+- Built 7 admin API routes in mini-services/backend/src/app/api/admin/
+- Built 4 admin pages: players list, player detail, investigations, audit log
+- Updated dashboard with live stats from /api/admin/stats
+- Updated sidebar navigation on ALL existing pages (backend, admins, config)
+- Fixed type errors: uuidRegex scoping, display_name column references, admin-helpers column mapping
+- Verified zero TypeScript errors in both main app and mini-backend
 
 Stage Summary:
-- Server-authoritative anti-cheat system is now implemented
-- Key improvements: delta validation, high-risk rejection, account locking, HMAC checksums
-- Game still works fully without login (local-only play)
-- Logged-in users now have server-validated state with auto-load on login
-- All code compiles and runs without errors
+- SQL migration ready at: supabase/migrations/006_admin_moderation_system.sql
+- New table: admin_actions (audit trail for admin operations)
+- Restored columns: cheat_investigations.resolved_by, resolution_note, resolved_at
+- 7 API routes: /api/admin/players, /api/admin/players/[id], /api/admin/players/[id]/lock, /api/admin/investigations, /api/admin/investigations/[id], /api/admin/actions, /api/admin/stats
+- 4 new pages: /players, /players/[id], /investigations, /audit
+- All pages follow existing dark theme design (zinc-900/80 cards, amber-500 accents)
+- Role-based access: viewer=read-only, admin=act, super_admin=manage admins + dangerous actions
+- No chat, no realtime, no analytics (deferred to future phases)
+- User still needs to run migration 006 in Supabase SQL Editor
