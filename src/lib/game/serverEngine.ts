@@ -582,6 +582,11 @@ export function buildProductionSnapshotServer(
   snapshot.endgameResearch = endgame.researchPerTick;
   snapshot.endgameCorp = endgame.corpPerTick;
 
+  // Currency income rates (server-side simplified — only endgame passive income tracked)
+  snapshot.moneyIncomeRate = endgame.moneyPerTick;
+  snapshot.rpIncomeRate = endgame.researchPerTick;
+  snapshot.cpIncomeRate = endgame.corpPerTick;
+
   return snapshot;
 }
 

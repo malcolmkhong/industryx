@@ -1211,10 +1211,13 @@ export const useGameStore = create<GameStore>()(
           }
         }
 
-        newResearchPoints += 0.5 * (1 + state.buildings.filter(b => b.type === 'aiLab' && b.active).length * 0.5);
+        const passiveRpIncome = 0.5 * (1 + state.buildings.filter(b => b.type === 'aiLab' && b.active).length * 0.5);
+        newResearchPoints += passiveRpIncome;
+        rpIncomeThisTick += passiveRpIncome;
 
         // Add drone RP rewards
         newResearchPoints += droneRpEarned;
+        rpIncomeThisTick += droneRpEarned;
 
         // === Building RP Generation ===
         // Buildings generate RP based on tier, scaled by power efficiency
@@ -1227,6 +1230,7 @@ export const useGameStore = create<GameStore>()(
           'factory-t3': 0.10, // per T3 factory per tick
           'factory-t4': 0.20, // per T4 factory per tick
         };
+        let buildingRpIncome = 0;
         state.buildings.forEach(b => {
           if (!b.active) return;
           const def = BUILDING_DEFS[b.type];
@@ -1234,9 +1238,12 @@ export const useGameStore = create<GameStore>()(
           const tierKey = def.category === 'factory' ? `factory-t${def.tier}` : def.category;
           const rpRate = rpBuildingRates[tierKey];
           if (rpRate) {
-            newResearchPoints += rpRate * b.level * b.efficiency * effectivePowerEfficiency;
+            const income = rpRate * b.level * b.efficiency * effectivePowerEfficiency;
+            newResearchPoints += income;
+            buildingRpIncome += income;
           }
         });
+        rpIncomeThisTick += buildingRpIncome;
 
         // Process contracts
         const newContracts = state.contracts.map(c => {
@@ -1418,6 +1425,14 @@ export const useGameStore = create<GameStore>()(
           contractsToAdd = [contract];
         }
 
+        // Currency rate trackers (income and expense separated for Currency Table)
+        let moneyIncomeThisTick = 0;
+        let moneyExpenseThisTick = 0;
+        let rpIncomeThisTick = 0;
+        let rpExpenseThisTick = 0;
+        let cpIncomeThisTick = 0;
+        let cpExpenseThisTick = 0;
+
         // Passive income from selling excess (if auto-trading is on)
         let moneyEarned = 0;
         if (autoFulfill) {
@@ -1428,7 +1443,9 @@ export const useGameStore = create<GameStore>()(
               const sellPrice = marketPrice * computeSellMultiplier(state, cache);
               const sellAmount = Math.min(excess, 5);
               newResources[r] -= sellAmount;
-              moneyEarned += sellAmount * sellPrice;
+              const earned = sellAmount * sellPrice;
+              moneyEarned += earned;
+              moneyIncomeThisTick += earned;
               newStats.totalResourcesSold[r] += sellAmount;
             }
           });
@@ -1454,7 +1471,9 @@ export const useGameStore = create<GameStore>()(
                 const sellAmount = Math.max(1, Math.min(Math.ceil(excess * 0.5), Math.ceil(capacity * 0.1)));
                 const actualSell = Math.min(sellAmount, held); // can't sell more than we have
                 newResources[r] -= actualSell;
-                moneyEarned += actualSell * sellPrice;
+                const autoSellEarned = actualSell * sellPrice;
+                moneyEarned += autoSellEarned;
+                moneyIncomeThisTick += autoSellEarned;
                 newStats.totalResourcesSold[r] += actualSell;
                 // Record auto-sell in market simulator (pass gameTick for freshness tracking)
                 autoSellSimState = recordPlayerSell(autoSellSimState, r, actualSell, newTick);
@@ -1552,6 +1571,7 @@ export const useGameStore = create<GameStore>()(
         });
         if (megaDeductMoney > 0) {
           moneyEarned -= megaDeductMoney;
+          moneyExpenseThisTick += megaDeductMoney;
         }
 
         // --- Milestone detection ---
@@ -1634,6 +1654,7 @@ export const useGameStore = create<GameStore>()(
         }
 
         moneyEarned += payoutMoneyEarned;
+        moneyIncomeThisTick += payoutMoneyEarned;
 
         // --- Process Drone Deliveries ---
         let droneMoneyEarned = 0;
@@ -1673,6 +1694,7 @@ export const useGameStore = create<GameStore>()(
           });
 
           moneyEarned += droneMoneyEarned;
+          moneyIncomeThisTick += droneMoneyEarned;
           if (droneMoneyEarned > 0) {
             soundEngine.play('moneyEarned', 'building');
             notifications.push({
@@ -1689,8 +1711,11 @@ export const useGameStore = create<GameStore>()(
         let corpGained = 0;
         const endgameResult = computeEndgameIncome(state, cache);
         moneyEarned += endgameResult.moneyPerTick;
+        moneyIncomeThisTick += endgameResult.moneyPerTick;
         newResearchPoints += endgameResult.researchPerTick;
+        rpIncomeThisTick += endgameResult.researchPerTick;
         corpGained += endgameResult.corpPerTick;
+        cpIncomeThisTick += endgameResult.corpPerTick;
 
         // Rank change detection
         const prevScore = Math.floor(
@@ -1737,6 +1762,12 @@ export const useGameStore = create<GameStore>()(
           endgameMoney: endgameResult.moneyPerTick,
           endgameResearch: endgameResult.researchPerTick,
           endgameCorp: endgameResult.corpPerTick,
+          moneyIncomeRate: moneyIncomeThisTick,
+          moneyExpenseRate: moneyExpenseThisTick,
+          rpIncomeRate: rpIncomeThisTick,
+          rpExpenseRate: rpExpenseThisTick,
+          cpIncomeRate: cpIncomeThisTick,
+          cpExpenseRate: cpExpenseThisTick,
         };
 
         set({

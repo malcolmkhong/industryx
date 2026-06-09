@@ -423,3 +423,55 @@ Stage Summary:
   - Skip checksum validation (logged)
 - Unlocking also resets cheat_flag_count to prevent immediate re-lock
 - All admin bypasses are audit-logged for accountability
+
+---
+Task ID: 11
+Agent: Main Agent
+Task: Add Currency Table to GlobalResourceMonitorPanel — split out Money, Research Points, Corp Points with Balance/Income/Expense/Net columns
+
+Work Log:
+- Analyzed available currency data in store: money (direct), researchPoints (direct), corporationPoints (in prestigeState)
+- Analyzed income/expense sources in game tick (store.ts gameTickAction):
+  - Money income: auto-trading excess, auto-sell resources, payout system, drone deliveries, endgame passive
+  - Money expense: mega project stage completions (deducted from moneyEarned)
+  - RP income: passive generation, building RP generation (tier-based), drone RP rewards, endgame passive
+  - RP expense: none per tick (research costs are one-time when starting)
+  - CP income: endgame passive only
+  - CP expense: none per tick (prestige bonus purchases are one-time)
+- Added 6 currency rate fields to ProductionSnapshot interface in productionCalculator.ts:
+  - moneyIncomeRate, moneyExpenseRate, rpIncomeRate, rpExpenseRate, cpIncomeRate, cpExpenseRate
+- Updated emptyProductionSnapshot() to initialize all new fields to 0
+- Added currency rate tracking variables in store.ts gameTickAction:
+  - moneyIncomeThisTick, moneyExpenseThisTick, rpIncomeThisTick, rpExpenseThisTick, cpIncomeThisTick, cpExpenseThisTick
+- Added income tracking at each source in the game tick:
+  - Auto-trading: moneyIncomeThisTick += earned
+  - Auto-sell: moneyIncomeThisTick += autoSellEarned
+  - Payout: moneyIncomeThisTick += payoutMoneyEarned
+  - Drone delivery: moneyIncomeThisTick += droneMoneyEarned
+  - Endgame passive: moneyIncomeThisTick += moneyPerTick, rpIncomeThisTick += researchPerTick, cpIncomeRate += corpPerTick
+  - Passive RP: rpIncomeThisTick += passiveRpIncome
+  - Building RP: rpIncomeThisTick += buildingRpIncome
+  - Drone RP: rpIncomeThisTick += droneRpEarned
+- Added expense tracking:
+  - Mega project deductions: moneyExpenseThisTick += megaDeductMoney
+- Populated all 6 rate fields in the ProductionSnapshot assembly at end of tick
+- Updated serverEngine.ts buildProductionSnapshotServer to populate currency rate fields (simplified: only endgame passive rates)
+- Added Currency table component to GlobalResourceMonitorPanel.tsx:
+  - Positioned between SUMMARY BAR and FILTERS & SEARCH section
+  - Table header: Currency | Balance | Income | Expense | Net
+  - Three rows: Money (Wallet icon, yellow), Research Points (FlaskConical icon, cyan), Corp Points (Building2 icon, purple)
+  - Money balance shows with $ prefix, others show plain numbers
+  - Income/Expense/Net with color coding (green/red/gray) and ▲▼— indicators
+  - Same dark theme styling as resource table (bg-[#111827], border-gray-700/30)
+  - Added Wallet, FlaskConical, Building2 icons to lucide-react imports
+- Verified via agent-browser + VLM: Currency table renders correctly on the Monitor tab
+- No Supabase schema changes required — all data comes from existing store fields + new ProductionSnapshot rate tracking
+- Dev server compiles without errors (GET / 200)
+
+Stage Summary:
+- Currency table fully implemented and verified in GlobalResourceMonitorPanel
+- No Supabase changes needed — all data computed from existing game state + new rate tracking
+- ProductionSnapshot extended with 6 currency rate fields (money/rp/cp × income/expense)
+- Rate tracking added to game tick covering all income/expense sources
+- Server engine also updated for consistency
+- Visual: dark themed table with icons, color-coded income/expense/net, consistent with resource table design

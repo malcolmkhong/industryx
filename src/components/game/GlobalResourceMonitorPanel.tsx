@@ -8,6 +8,7 @@ import {
   Activity, Search, AlertTriangle, TrendingUp, TrendingDown,
   Zap, Link2, Navigation, ChevronUp, ChevronDown, Filter,
   ArrowUpDown, Package, BarChart3, Database, AlertCircle,
+  Wallet, FlaskConical, Building2,
 } from 'lucide-react';
 import { useGameStore, formatNumber, hasUnlimitedStorage } from '@/lib/game/store';
 import { BUILDING_DEFS, RESOURCE_META } from '@/lib/game/configCache';
@@ -464,6 +465,89 @@ export default function GlobalResourceMonitorPanel() {
             {totalNet >= 0 ? '▲' : '▼'} {formatNumber(Math.abs(totalNet))}/s
           </span>
         </div>
+      </div>
+
+      {/* ─── CURRENCY TABLE ────────────────────────────────────────────── */}
+      <div className="bg-[#111827] rounded-xl border border-gray-700/30 overflow-hidden">
+        {/* Currency table header */}
+        <div className="grid grid-cols-[1.5rem_1fr_5rem_4rem_4rem_4rem] sm:grid-cols-[1.5rem_1fr_6rem_5rem_5rem_5rem] items-center gap-1 px-3 py-2 bg-[#0d1220] border-b border-gray-700/30 text-[10px] text-gray-500 uppercase tracking-wider select-none">
+          <div />
+          <div>Currency</div>
+          <div>Balance</div>
+          <div>Income</div>
+          <div>Expense</div>
+          <div>Net</div>
+        </div>
+
+        {/* Currency rows */}
+        {(() => {
+          const snapshot = store.productionSnapshot;
+          const currencyRows = [
+            {
+              icon: <Wallet className="w-3.5 h-3.5 text-yellow-400" />,
+              name: 'Money',
+              balance: store.money,
+              income: snapshot.moneyIncomeRate,
+              expense: snapshot.moneyExpenseRate,
+              net: snapshot.moneyIncomeRate - snapshot.moneyExpenseRate,
+              balanceColor: 'text-yellow-400',
+            },
+            {
+              icon: <FlaskConical className="w-3.5 h-3.5 text-cyan-400" />,
+              name: 'Research Points',
+              balance: store.researchPoints,
+              income: snapshot.rpIncomeRate,
+              expense: snapshot.rpExpenseRate,
+              net: snapshot.rpIncomeRate - snapshot.rpExpenseRate,
+              balanceColor: 'text-cyan-400',
+            },
+            {
+              icon: <Building2 className="w-3.5 h-3.5 text-purple-400" />,
+              name: 'Corp Points',
+              balance: store.prestigeState.corporationPoints,
+              income: snapshot.cpIncomeRate,
+              expense: snapshot.cpExpenseRate,
+              net: snapshot.cpIncomeRate - snapshot.cpExpenseRate,
+              balanceColor: 'text-purple-400',
+            },
+          ];
+
+          return currencyRows.map((row) => (
+            <div
+              key={row.name}
+              className="grid grid-cols-[1.5rem_1fr_5rem_4rem_4rem_4rem] sm:grid-cols-[1.5rem_1fr_6rem_5rem_5rem_5rem] items-center gap-1 px-3 py-2 border-b border-gray-800/50 transition-colors hover:bg-teal-900/10 cursor-default"
+            >
+              {/* Icon */}
+              <div className="flex items-center justify-center">{row.icon}</div>
+
+              {/* Name */}
+              <div className="text-xs text-gray-200 font-medium truncate">{row.name}</div>
+
+              {/* Balance */}
+              <div className={`text-[11px] font-mono font-bold ${row.balanceColor}`}>
+                {row.name === 'Money' ? `$${formatNumber(row.balance)}` : formatNumber(row.balance)}
+              </div>
+
+              {/* Income */}
+              <div className={`text-[10px] font-mono ${row.income > 0 ? 'text-green-400' : 'text-gray-600'}`}>
+                {row.income > 0 ? `+${formatNumber(row.income)}` : '0'}
+              </div>
+
+              {/* Expense */}
+              <div className={`text-[10px] font-mono ${row.expense > 0 ? 'text-red-400' : 'text-gray-600'}`}>
+                {row.expense > 0 ? `-${formatNumber(row.expense)}` : '0'}
+              </div>
+
+              {/* Net */}
+              <div className={`text-[10px] font-mono font-bold ${
+                row.net > 0 ? 'text-green-400' : row.net < 0 ? 'text-red-400' : 'text-gray-600'
+              }`}>
+                {row.net > 0 ? '▲' : row.net < 0 ? '▼' : '—'}
+                {row.net !== 0 ? formatNumber(Math.abs(row.net)) : ''}
+              </div>
+            </div>
+          ));
+        })()}
       </div>
 
       {/* ─── FILTERS & SEARCH ────────────────────────────────────────────── */}

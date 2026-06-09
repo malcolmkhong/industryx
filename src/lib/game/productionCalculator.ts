@@ -140,6 +140,14 @@ export interface ProductionSnapshot {
   endgameMoney: number;
   endgameResearch: number;
   endgameCorp: number;
+
+  // Currency income/expense rates (per tick)
+  moneyIncomeRate: number;
+  moneyExpenseRate: number;
+  rpIncomeRate: number;
+  rpExpenseRate: number;
+  cpIncomeRate: number;
+  cpExpenseRate: number;
 }
 
 // ─── Empty / Default ─────────────────────────────────────────────────
@@ -160,6 +168,12 @@ export function emptyProductionSnapshot(): ProductionSnapshot {
     endgameMoney: 0,
     endgameResearch: 0,
     endgameCorp: 0,
+    moneyIncomeRate: 0,
+    moneyExpenseRate: 0,
+    rpIncomeRate: 0,
+    rpExpenseRate: 0,
+    cpIncomeRate: 0,
+    cpExpenseRate: 0,
   };
 }
 
