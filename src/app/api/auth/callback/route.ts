@@ -1,54 +1,60 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
-import type { CookieOptions } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-  // if "next" is in param, use it as the redirect url
   const next = searchParams.get('next') ?? '/';
 
   if (code) {
+    const cookieStore = await cookies();
+
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
           getAll() {
-            return [];
+            return cookieStore.getAll();
           },
-          setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
-            // We'll handle cookies in the response
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            } catch {
+              // Can be ignored if middleware is refreshing sessions
+            }
           },
         },
       }
     );
 
     const { error } = await supabase.auth.exchangeCodeForSession(code);
+
     if (!error) {
-      const response = NextResponse.redirect(`${origin}${next}`);
-      // Set auth cookies from the session
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        response.cookies.set('sb-access-token', session.access_token, {
-          path: '/',
-          httpOnly: true,
-          secure: true,
-          sameSite: 'lax',
-          maxAge: 60 * 60 * 24 * 7, // 1 week
-        });
-        response.cookies.set('sb-refresh-token', session.refresh_token, {
-          path: '/',
-          httpOnly: true,
-          secure: true,
-          sameSite: 'lax',
-          maxAge: 60 * 60 * 24 * 7,
-        });
+      // Check if this is an admin login (redirected from /admin/login)
+      // by checking if the next param or referer indicates admin context
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      const adminUids = (process.env.ADMIN_UIDS || '')
+        .split(',')
+        .map((uid) => uid.trim())
+        .filter(Boolean);
+
+      if (user && adminUids.includes(user.id)) {
+        // Admin user → redirect to admin dashboard
+        return NextResponse.redirect(`${origin}/admin`);
       }
-      return response;
+
+      // Regular user → redirect to the game
+      return NextResponse.redirect(`${origin}${next}`);
     }
   }
 
-  // return the user to an error page with instructions
+  // Code exchange failed → redirect to home with error
   return NextResponse.redirect(`${origin}/?auth=error`);
 }
