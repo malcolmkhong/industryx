@@ -33,6 +33,7 @@ import { QuestPanel } from '@/components/game/QuestPanel';
 import { NotificationCenterPanel } from '@/components/game/NotificationCenterPanel';
 import { PayoutPanel } from '@/components/game/PayoutPanel';
 import DroneDeliveryPanel from '@/components/game/DroneDeliveryPanel';
+import { TradingPostPanel } from '@/components/game/TradingPostPanel';
 import { StoragePanel } from '@/components/game/StoragePanel';
 import GlobalResourceMonitorPanel from '@/components/game/GlobalResourceMonitorPanel';
 import {
@@ -441,6 +442,7 @@ export default function Home() {
       case 'dailyRewards': return <DailyRewardsPanel />;
       case 'payouts': return <PayoutPanel />;
       case 'droneDelivery': return <DroneDeliveryPanel />;
+      case 'tradePost': return <TradingPostPanel />;
       case 'quests': return <QuestPanel />;
       case 'notifications': return <NotificationCenterPanel />;
       case 'settings': return <SettingsPanel />;

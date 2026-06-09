@@ -8,7 +8,7 @@ import {
   Save, Bell, BookOpen, Trophy, BarChart3,
   Map as MapIcon, Gift, Scroll, DollarSign, Plane,
   Settings, ChevronDown, ChevronRight, Home, Wrench, Swords, Coins, Database,
-  Activity, Coffee, Heart,
+  Activity, Coffee, Heart, ArrowRightLeft,
 } from 'lucide-react';
 import { LucideIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -68,6 +68,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: 'market', label: 'Market', icon: TrendingUp, color: 'text-green-400' },
       { id: 'contracts', label: 'Contracts', icon: ScrollText, color: 'text-rose-400' },
       { id: 'droneDelivery', label: 'Drones', icon: Plane, color: 'text-sky-400' },
+      { id: 'tradePost', label: 'Trade Post', icon: ArrowRightLeft, color: 'text-violet-400' },
     ],
   },
   {

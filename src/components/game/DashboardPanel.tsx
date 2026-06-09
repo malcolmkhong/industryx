@@ -13,7 +13,7 @@ import {
   ArrowUpRight, ArrowDownRight, Minus, Timer, Power, Sparkles,
   Database, Wrench, Globe, ArrowRight, Trophy, Package,
   Hammer, CheckCircle2, XCircle, Flame, CloudSun, Pin, X as XIcon,
-  Gauge
+  Gauge, Wallet, BarChart3, CircleDot, DollarSign, Gem, Crown, Star
 } from 'lucide-react';
 import { BuildingType, ResourceType, WeatherType } from '@/lib/game/types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -115,6 +115,54 @@ export function DashboardPanel() {
     return ls.weeklyRewards.some(r => r.day === currentDay && !r.claimed);
   }, [store.loginStreak]);
 
+  // Empire Score calculation
+  const empireScore = useMemo(() => {
+    return Math.floor(
+      totalBuildings * 10 +
+      activeBuildings * 20 +
+      store.completedResearch.length * 50 +
+      store.money / 1000 +
+      store.totalMoneyEarned / 10000
+    );
+  }, [totalBuildings, activeBuildings, store.completedResearch.length, store.money, store.totalMoneyEarned]);
+
+  // Empire tier info
+  const empireTier = useMemo(() => {
+    if (empireScore >= 50000) return { name: 'Diamond', color: '#b9f2ff', bgColor: 'bg-cyan-100', borderColor: 'border-cyan-300', textColor: 'text-cyan-200', icon: <Gem className="w-4 h-4" />, nextThreshold: null, progress: 1 };
+    if (empireScore >= 10000) return { name: 'Platinum', color: '#e5e4e2', bgColor: 'bg-gray-200', borderColor: 'border-gray-400', textColor: 'text-gray-200', icon: <Crown className="w-4 h-4" />, nextThreshold: 50000, progress: (empireScore - 10000) / 40000 };
+    if (empireScore >= 2000) return { name: 'Gold', color: '#ffd700', bgColor: 'bg-yellow-400', borderColor: 'border-yellow-500', textColor: 'text-yellow-400', icon: <Trophy className="w-4 h-4" />, nextThreshold: 10000, progress: (empireScore - 2000) / 8000 };
+    if (empireScore >= 500) return { name: 'Silver', color: '#c0c0c0', bgColor: 'bg-gray-400', borderColor: 'border-gray-500', textColor: 'text-gray-300', icon: <Star className="w-4 h-4" />, nextThreshold: 2000, progress: (empireScore - 500) / 1500 };
+    return { name: 'Bronze', color: '#cd7f32', bgColor: 'bg-amber-600', borderColor: 'border-amber-600', textColor: 'text-amber-400', icon: <Shield className="w-4 h-4" />, nextThreshold: 500, progress: empireScore / 500 };
+  }, [empireScore]);
+
+  // Economy summary values
+  const economySummary = useMemo(() => {
+    const payoutPerCycle = store.productionSnapshot.payoutPerCycle || 0;
+    const netIncomePerMin = payoutPerCycle * 6; // 6 cycles per minute (tick every 10s)
+    
+    // Total assets: sum of resources * estimated value (tier-based pricing)
+    const resourceValues: Record<number, number> = { 0: 1, 1: 5, 2: 20, 3: 100 };
+    let totalAssetsValue = store.money;
+    for (const [res, amount] of Object.entries(store.resources)) {
+      const meta = RESOURCE_META[res as ResourceType];
+      if (meta && amount > 0) {
+        const valuePerUnit = resourceValues[meta.tier] || 1;
+        totalAssetsValue += amount * valuePerUnit;
+      }
+    }
+    
+    // Storage utilization
+    let totalStored = 0;
+    let totalCapacity = 0;
+    for (const res of Object.keys(store.resources) as ResourceType[]) {
+      totalStored += store.resources[res] || 0;
+      totalCapacity += store.resourceCapacity[res] || 0;
+    }
+    const storageUtilization = totalCapacity > 0 ? (totalStored / totalCapacity) * 100 : 0;
+    
+    return { netIncomePerMin, totalAssetsValue, storageUtilization };
+  }, [store.productionSnapshot.payoutPerCycle, store.money, store.resources, store.resourceCapacity]);
+
   return (
     <div className="space-y-4">
       {/* DAILY REWARD AVAILABLE BANNER */}
@@ -142,6 +190,102 @@ export function DashboardPanel() {
 
       {/* RANK BAR */}
       <RankBar store={store} />
+
+      {/* EMPIRE SCORE CARD */}
+      <motion.div
+        initial={{ opacity: 0, y: -5 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="game-card rounded-xl bg-card p-4 border border-border relative overflow-hidden"
+        style={{ borderColor: `${empireTier.color}30` }}
+      >
+        <div className="absolute inset-0 opacity-[0.03]" style={{ background: `radial-gradient(ellipse at 30% 50%, ${empireTier.color}, transparent 70%)` }} />
+        <div className="relative z-10 flex items-center gap-4">
+          {/* Tier icon */}
+          <div
+            className="w-16 h-16 rounded-xl flex items-center justify-center border"
+            style={{
+              borderColor: `${empireTier.color}44`,
+              backgroundColor: `${empireTier.color}15`,
+              boxShadow: `0 0 24px ${empireTier.color}20`,
+            }}
+          >
+            <div className="flex flex-col items-center">
+              <div style={{ color: empireTier.color }}>{empireTier.icon}</div>
+              <span className="text-[8px] font-bold mt-0.5" style={{ color: empireTier.color }}>{empireTier.name}</span>
+            </div>
+          </div>
+          {/* Score info */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="text-sm font-semibold text-gray-300">Empire Score</h3>
+              <Badge
+                variant="outline"
+                className="text-[9px] font-bold"
+                style={{
+                  borderColor: `${empireTier.color}55`,
+                  color: empireTier.color,
+                  backgroundColor: `${empireTier.color}15`,
+                }}
+              >
+                {empireTier.name}
+              </Badge>
+            </div>
+            <div className="flex items-baseline gap-2 mb-2">
+              <span className="text-2xl font-bold font-mono" style={{ color: empireTier.color }}>
+                {formatNumber(empireScore)}
+              </span>
+              <span className="text-[10px] text-gray-500">points</span>
+            </div>
+            {/* Progress bar to next tier */}
+            {empireTier.nextThreshold !== null ? (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] text-gray-500">Next: {empireTier.name === 'Bronze' ? 'Silver' : empireTier.name === 'Silver' ? 'Gold' : empireTier.name === 'Gold' ? 'Platinum' : 'Diamond'}</span>
+                  <span className="text-[10px] font-mono" style={{ color: empireTier.color }}>
+                    {formatNumber(empireTier.nextThreshold - empireScore)} pts to go
+                  </span>
+                </div>
+                <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full rounded-full"
+                    style={{
+                      backgroundColor: empireTier.color,
+                      boxShadow: `0 0 8px ${empireTier.color}66`,
+                    }}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(100, empireTier.progress * 100)}%` }}
+                    transition={{ duration: 1, ease: 'easeOut' }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold" style={{ color: empireTier.color }}>MAX TIER ACHIEVED</span>
+                <Sparkles className="w-3.5 h-3.5" style={{ color: empireTier.color }} />
+              </div>
+            )}
+          </div>
+          {/* Score breakdown mini-stats */}
+          <div className="hidden md:flex flex-col gap-1 text-[10px]">
+            <div className="flex items-center gap-1.5 text-gray-500">
+              <Factory className="w-3 h-3" />
+              <span>{totalBuildings}×10</span>
+              <span className="text-gray-400 font-mono">= {totalBuildings * 10}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-gray-500">
+              <Activity className="w-3 h-3" />
+              <span>{activeBuildings}×20</span>
+              <span className="text-gray-400 font-mono">= {activeBuildings * 20}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-gray-500">
+              <FlaskConical className="w-3 h-3" />
+              <span>{store.completedResearch.length}×50</span>
+              <span className="text-gray-400 font-mono">= {store.completedResearch.length * 50}</span>
+            </div>
+          </div>
+        </div>
+      </motion.div>
 
       {/* TRACKED QUEST INDICATOR */}
       {store.trackedQuest && (() => {
@@ -196,6 +340,24 @@ export function DashboardPanel() {
         <div className="relative rounded-xl p-8 text-center border border-cyan-500/20 bg-gradient-to-br from-cyan-900/15 via-[#111827] to-teal-900/10 overflow-hidden">
           {/* Radial gradient overlay for visual depth */}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,255,242,0.06)_0%,transparent_70%)]" />
+          {/* Animated diagonal line pattern background */}
+          <div className="absolute inset-0 overflow-hidden opacity-[0.03]">
+            <motion.div
+              className="absolute inset-0"
+              style={{
+                backgroundImage: `repeating-linear-gradient(
+                  -45deg,
+                  transparent,
+                  transparent 8px,
+                  rgba(0,255,242,0.4) 8px,
+                  rgba(0,255,242,0.4) 9px
+                )`,
+                backgroundSize: '20px 20px',
+              }}
+              animate={{ backgroundPositionX: ['0px', '28px'] }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+            />
+          </div>
           {/* Decorative background elements */}
           <div className="absolute inset-0 opacity-5">
             <div className="absolute top-4 left-8"><GameIcon icon="gi:mining" size={48} /></div>
@@ -204,6 +366,8 @@ export function DashboardPanel() {
           </div>
           <div className="relative z-10">
             <motion.div
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
             >
               <div className="mb-4"><GameIcon icon="gi:castle" size={48} /></div>
             </motion.div>
@@ -212,36 +376,57 @@ export function DashboardPanel() {
               Start by building a Coal Generator to power your empire, then add Mining Drills to extract resources.
             </p>
             <div className="flex items-center justify-center gap-3 flex-wrap">
-              <Button
-                className="glow-button-cyan bg-yellow-600 hover:bg-yellow-500 text-white font-semibold px-5 py-2.5 text-xs"
-                onClick={() => store.setActiveTab('power')}
+              <motion.div
+                animate={{ boxShadow: ['0 0 0px rgba(234,179,8,0)', '0 0 16px rgba(234,179,8,0.4)', '0 0 0px rgba(234,179,8,0)'] }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                className="rounded-md"
               >
-                <Zap className="w-4 h-4 mr-1.5" />
-                Build Power First
-              </Button>
-              <Button
-                className="glow-button-cyan bg-cyan-600 hover:bg-cyan-500 text-white font-semibold px-5 py-2.5 text-xs"
-                onClick={() => store.setActiveTab('resources')}
+                <Button
+                  className="bg-yellow-600 hover:bg-yellow-500 text-white font-semibold px-5 py-2.5 text-xs"
+                  onClick={() => store.setActiveTab('power')}
+                >
+                  <Zap className="w-4 h-4 mr-1.5" />
+                  Build Power First
+                </Button>
+              </motion.div>
+              <motion.div
+                animate={{ boxShadow: ['0 0 0px rgba(6,182,212,0)', '0 0 16px rgba(6,182,212,0.4)', '0 0 0px rgba(6,182,212,0)'] }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
+                className="rounded-md"
               >
-                <Pickaxe className="w-4 h-4 mr-1.5" />
-                Go to Extraction
-              </Button>
+                <Button
+                  className="bg-cyan-600 hover:bg-cyan-500 text-white font-semibold px-5 py-2.5 text-xs"
+                  onClick={() => store.setActiveTab('resources')}
+                >
+                  <Pickaxe className="w-4 h-4 mr-1.5" />
+                  Go to Extraction
+                </Button>
+              </motion.div>
             </div>
-            <div className="mt-6 flex items-center justify-center gap-6 text-[10px] text-gray-500">
-              <div className="flex items-center gap-1.5">
-                <span className="text-lg font-bold text-amber-400">1</span>
-                <span>Build Power</span>
-              </div>
-              <div className="text-gray-700">→</div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-lg font-bold text-amber-400">2</span>
-                <span>Build Drills</span>
-              </div>
-              <div className="text-gray-700">→</div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-lg font-bold text-amber-400">3</span>
-                <span>Build Factories</span>
-              </div>
+            <div className="mt-6 flex items-center justify-center gap-4 text-[10px] text-gray-500">
+              <motion.div
+                className="flex items-center gap-2 bg-yellow-900/20 border border-yellow-700/30 rounded-lg px-3 py-2"
+                whileHover={{ scale: 1.05, borderColor: 'rgba(234,179,8,0.5)' }}
+              >
+                <span className="w-5 h-5 rounded-full bg-yellow-600 text-white flex items-center justify-center text-[10px] font-bold">1</span>
+                <span className="text-yellow-400 font-medium">Build Power</span>
+              </motion.div>
+              <ArrowRight className="w-3 h-3 text-gray-700" />
+              <motion.div
+                className="flex items-center gap-2 bg-cyan-900/20 border border-cyan-700/30 rounded-lg px-3 py-2"
+                whileHover={{ scale: 1.05, borderColor: 'rgba(6,182,212,0.5)' }}
+              >
+                <span className="w-5 h-5 rounded-full bg-cyan-600 text-white flex items-center justify-center text-[10px] font-bold">2</span>
+                <span className="text-cyan-400 font-medium">Build Drills</span>
+              </motion.div>
+              <ArrowRight className="w-3 h-3 text-gray-700" />
+              <motion.div
+                className="flex items-center gap-2 bg-orange-900/20 border border-orange-700/30 rounded-lg px-3 py-2"
+                whileHover={{ scale: 1.05, borderColor: 'rgba(249,115,22,0.5)' }}
+              >
+                <span className="w-5 h-5 rounded-full bg-orange-600 text-white flex items-center justify-center text-[10px] font-bold">3</span>
+                <span className="text-orange-400 font-medium">Build Factories</span>
+              </motion.div>
             </div>
           </div>
         </div>
@@ -305,13 +490,9 @@ export function DashboardPanel() {
               color="green"
               trend={workerEfficiency >= 1 ? 'up' : workerEfficiency > 0 ? 'neutral' : 'down'}
             />}
-            {i === 2 && <PanelStatCard
-              icon={<Activity className="w-4 h-4" />}
-              label="Efficiency"
-              value={store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption === 0 ? 'N/A' : `${(store.powerGrid.efficiency * 100).toFixed(0)}%`}
-              subtext={store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption === 0 ? 'No power grid' : store.powerGrid.overload ? 'Overloaded!' : 'Optimal'}
-              color={store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption === 0 ? 'orange' : store.powerGrid.efficiency >= 0.8 ? 'green' : store.powerGrid.efficiency >= 0.5 ? 'orange' : 'red'}
-              trend={store.powerGrid.efficiency >= 0.8 ? 'up' : store.powerGrid.efficiency >= 0.5 ? 'neutral' : 'down'}
+            {i === 2 && <EfficiencyRing
+              efficiency={store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption === 0 ? -1 : store.powerGrid.efficiency}
+              overload={store.powerGrid.overload}
             />}
             {i === 3 && <PanelStatCard
               icon={<FlaskConical className="w-4 h-4" />}
@@ -438,6 +619,76 @@ export function DashboardPanel() {
             </div>
             </>
             )}
+          </div>
+
+          {/* ECONOMY SUMMARY */}
+          <div className="game-card rounded-xl bg-card p-4 border border-border">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-green-400" />
+                <h3 className="text-sm font-semibold text-green-400">Economy Summary</h3>
+              </div>
+              <span className="text-[10px] text-gray-500">financial overview</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Net Income */}
+              <div className="bg-[#0a0e17] rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <div className="w-6 h-6 rounded-md bg-green-900/30 flex items-center justify-center">
+                    <TrendingUp className="w-3.5 h-3.5 text-green-400" />
+                  </div>
+                  <span className="text-[10px] text-gray-500">Net Income</span>
+                </div>
+                <div className="text-sm font-bold font-mono text-green-400">
+                  ${formatNumber(economySummary.netIncomePerMin)}/min
+                </div>
+                <div className="text-[9px] text-gray-600 mt-0.5">
+                  {economySummary.netIncomePerMin > 0 ? 'Profitable' : economySummary.netIncomePerMin === 0 ? 'No income' : 'Losing money'}
+                </div>
+              </div>
+              {/* Total Assets */}
+              <div className="bg-[#0a0e17] rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <div className="w-6 h-6 rounded-md bg-cyan-900/30 flex items-center justify-center">
+                    <Wallet className="w-3.5 h-3.5 text-cyan-400" />
+                  </div>
+                  <span className="text-[10px] text-gray-500">Total Assets</span>
+                </div>
+                <div className="text-sm font-bold font-mono text-cyan-400">
+                  ${formatNumber(economySummary.totalAssetsValue)}
+                </div>
+                <div className="text-[9px] text-gray-600 mt-0.5">
+                  Cash: ${formatNumber(store.money)}
+                </div>
+              </div>
+              {/* Storage Utilization */}
+              <div className="bg-[#0a0e17] rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <div className="w-6 h-6 rounded-md bg-amber-900/30 flex items-center justify-center">
+                    <BarChart3 className="w-3.5 h-3.5 text-amber-400" />
+                  </div>
+                  <span className="text-[10px] text-gray-500">Storage Used</span>
+                </div>
+                <div className={`text-sm font-bold font-mono ${
+                  economySummary.storageUtilization > 90 ? 'text-red-400' :
+                  economySummary.storageUtilization > 70 ? 'text-orange-400' :
+                  economySummary.storageUtilization > 50 ? 'text-yellow-400' :
+                  'text-green-400'
+                }`}>
+                  {economySummary.storageUtilization.toFixed(1)}%
+                </div>
+                <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden mt-1.5">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      economySummary.storageUtilization > 90 ? 'bg-red-500' :
+                      economySummary.storageUtilization > 70 ? 'bg-orange-500' :
+                      'bg-green-500'
+                    }`}
+                    style={{ width: `${Math.min(100, economySummary.storageUtilization)}%` }}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* TOP RESOURCES */}
@@ -606,6 +857,9 @@ export function DashboardPanel() {
 
         {/* RIGHT COLUMN */}
         <div className="space-y-4">
+          {/* INCOME SPARKLINE CHART */}
+          <IncomeChart store={store} productionRates={productionRates} />
+
           {/* BUILDING BREAKDOWN */}
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
@@ -1124,4 +1378,204 @@ function formatTicksToTime(ticks: number): string {
   const hours = Math.floor(minutes / 60);
   const remMinutes = minutes % 60;
   return `~${hours}h ${remMinutes > 0 ? `${remMinutes}m` : ''}`;
+}
+
+// --- Income Sparkline Chart Component ---
+function IncomeChart({ store, productionRates }: { store: ReturnType<typeof useGameStore>; productionRates: Record<string, number> }) {
+  // Generate projected income data points for sparkline based on current rates
+  const sparklineData = useMemo(() => {
+    const payoutPerCycle = store.productionSnapshot.payoutPerCycle || 0;
+    const currentIncome = payoutPerCycle * 6; // per minute
+    const totalEarned = store.totalMoneyEarned;
+    
+    // Create a projected trend: simulate growth from low to current income
+    // Use current production rates to build a realistic curve
+    const points: number[] = [];
+    const numPoints = 30;
+    
+    if (totalEarned === 0 && currentIncome === 0) {
+      // No data - flat line at zero
+      return Array(numPoints).fill(0);
+    }
+    
+    // Build a growth curve: starts small, accelerates, reaches current rate
+    for (let i = 0; i < numPoints; i++) {
+      const t = i / (numPoints - 1); // 0 to 1
+      // Sigmoid-like growth curve that ends at currentIncome
+      const growthFactor = 1 / (1 + Math.exp(-6 * (t - 0.4)));
+      // Add some noise for visual interest
+      const noise = (Math.sin(i * 2.7 + totalEarned * 0.001) * 0.1 + 1);
+      const value = currentIncome * growthFactor * noise;
+      points.push(Math.max(0, value));
+    }
+    
+    return points;
+  }, [store.productionSnapshot.payoutPerCycle, store.totalMoneyEarned]);
+
+  const payoutPerCycle = store.productionSnapshot.payoutPerCycle || 0;
+  const incomePerMin = payoutPerCycle * 6;
+
+  // SVG sparkline dimensions
+  const width = 200;
+  const height = 60;
+  const padding = 4;
+  const chartWidth = width - padding * 2;
+  const chartHeight = height - padding * 2;
+
+  const maxVal = Math.max(...sparklineData, 1);
+  const minVal = Math.min(...sparklineData, 0);
+
+  // Generate SVG path
+  const points = sparklineData.map((val, i) => {
+    const x = padding + (i / (sparklineData.length - 1)) * chartWidth;
+    const y = padding + chartHeight - ((val - minVal) / (maxVal - minVal || 1)) * chartHeight;
+    return `${x},${y}`;
+  });
+
+  const linePath = `M${points.join(' L')}`;
+  const areaPath = `${linePath} L${padding + chartWidth},${padding + chartHeight} L${padding},${padding + chartHeight} Z`;
+
+  return (
+    <div className="game-card rounded-xl bg-card p-4 border border-border">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-green-400" />
+          <h3 className="text-sm font-semibold text-green-400">Income Trend</h3>
+        </div>
+        <span className="text-[10px] text-gray-500">projected</span>
+      </div>
+      <div className="flex items-center gap-4">
+        <svg width={width} height={height} className="flex-shrink-0">
+          <defs>
+            <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#22c55e" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#22c55e" stopOpacity="0.02" />
+            </linearGradient>
+            <linearGradient id="incomeLineGradient" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#16a34a" stopOpacity="0.5" />
+              <stop offset="50%" stopColor="#22c55e" />
+              <stop offset="100%" stopColor="#4ade80" />
+            </linearGradient>
+          </defs>
+          {/* Grid lines */}
+          {[0.25, 0.5, 0.75].map((ratio) => (
+            <line
+              key={ratio}
+              x1={padding}
+              y1={padding + chartHeight * ratio}
+              x2={padding + chartWidth}
+              y2={padding + chartHeight * ratio}
+              stroke="#1f2937"
+              strokeWidth="0.5"
+            />
+          ))}
+          {/* Area fill */}
+          <path d={areaPath} fill="url(#incomeGradient)" />
+          {/* Line */}
+          <path
+            d={linePath}
+            fill="none"
+            stroke="url(#incomeLineGradient)"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          {/* End dot */}
+          {points.length > 0 && (
+            <circle
+              cx={points[points.length - 1].split(',')[0]}
+              cy={points[points.length - 1].split(',')[1]}
+              r="3"
+              fill="#22c55e"
+              stroke="#0a0e17"
+              strokeWidth="1.5"
+            />
+          )}
+        </svg>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-bold text-green-400 font-mono">
+            ${formatNumber(incomePerMin)}/min
+          </div>
+          <div className="text-[10px] text-gray-500 mt-0.5">
+            Total earned: ${formatNumber(store.totalMoneyEarned)}
+          </div>
+          {incomePerMin > 0 && (
+            <div className="text-[9px] text-gray-600 mt-0.5">
+              ~${formatNumber(incomePerMin * 60)}/hr
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Production Efficiency Ring Component ---
+function EfficiencyRing({ efficiency, overload }: { efficiency: number; overload: boolean }) {
+  // efficiency: -1 means no power grid, 0-1 is the actual efficiency
+  const hasGrid = efficiency >= 0;
+  const pct = hasGrid ? Math.min(100, Math.max(0, efficiency * 100)) : 0;
+
+  // Color based on efficiency
+  const getColor = () => {
+    if (!hasGrid) return '#6b7280'; // gray
+    if (overload) return '#ef4444'; // red
+    if (pct >= 80) return '#22c55e'; // green
+    if (pct >= 60) return '#eab308'; // yellow
+    if (pct >= 30) return '#f97316'; // orange
+    return '#ef4444'; // red
+  };
+  const color = getColor();
+
+  // SVG ring dimensions
+  const size = 64;
+  const strokeWidth = 6;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (pct / 100) * circumference;
+
+  return (
+    <div className="game-card rounded-xl bg-card p-3 border border-border flex flex-col items-center justify-center" style={{ minHeight: '90px' }}>
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg width={size} height={size} className="-rotate-90">
+          {/* Background ring */}
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke="#1f2937"
+            strokeWidth={strokeWidth}
+          />
+          {/* Progress ring */}
+          {hasGrid && (
+            <motion.circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              fill="none"
+              stroke={color}
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+              strokeDasharray={circumference}
+              initial={{ strokeDashoffset: circumference }}
+              animate={{ strokeDashoffset }}
+              transition={{ duration: 1, ease: 'easeOut' }}
+              style={{ filter: `drop-shadow(0 0 4px ${color}66)` }}
+            />
+          )}
+        </svg>
+        {/* Center text */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className={`text-sm font-bold font-mono ${!hasGrid ? 'text-gray-500' : ''}`} style={hasGrid ? { color } : undefined}>
+            {!hasGrid ? 'N/A' : `${pct.toFixed(0)}%`}
+          </span>
+        </div>
+      </div>
+      <span className="text-[10px] text-gray-500 mt-1">Efficiency</span>
+      {hasGrid && overload && (
+        <span className="text-[8px] text-red-400 font-semibold">OVERLOAD</span>
+      )}
+    </div>
+  );
 }
