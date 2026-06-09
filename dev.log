@@ -1,11 +1,28 @@
 ▲ Next.js 16.1.3 (Turbopack)
 - Local:         http://localhost:3000
-- Network:       http://21.0.17.62:3000
+- Network:       http://21.0.13.226:3000
 - Environments: .env
 
 ✓ Starting...
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
 ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
-✓ Ready in 745ms
+✓ Ready in 915ms
 ○ Compiling / ...
- GET / 200 in 4.8s (compile: 4.5s, proxy.ts: 62ms, render: 301ms)
- 4.5s, proxy.ts: 62ms, render: 301ms)
+ GET / 200 in 5.3s (compile: 4.9s, proxy.ts: 62ms, render: 302ms)
+ GET /api/icons?t=1781004812981 200 in 496ms (compile: 306ms, proxy.ts: 5ms, render: 185ms)
+ GET /api/game/definitions 200 in 705ms (compile: 420ms, proxy.ts: 5ms, render: 280ms)
+⨯ Failed to start server
+Error: listen EADDRINUSE: address already in use :::3000
+    at <unknown> (Error: listen EADDRINUSE: address already in use :::3000)
+    at new Promise (<anonymous>) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 3000
+}
+[?25h
