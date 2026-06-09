@@ -1,6 +1,6 @@
-▲ Next.js 16.1.3 (Turbopack)
+▲ Next.js 16.1.3 (webpack)
 - Local:         http://localhost:3000
-- Network:       http://21.0.10.172:3000
+- Network:       http://0.0.0.0:3000
 - Environments: .env
 
 ✓ Starting...
@@ -10,7 +10,15 @@ You can learn more, including how to opt-out if you'd not like to participate in
 https://nextjs.org/telemetry
 
 ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
-✓ Ready in 982ms
+✓ Ready in 1059ms
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (102kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (243kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
 ○ Compiling / ...
- GET / 200 in 5.5s (compile: 5.2s, proxy.ts: 63ms, render: 297ms)
- 5.2s, proxy.ts: 63ms, render: 297ms)
+ GET / 200 in 7.7s (compile: 7.3s, proxy.ts: 113ms, render: 332ms)
+ GET / 200 in 3.6s (compile: 2.5s, proxy.ts: 759ms, render: 365ms)
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /api/game/definitions 200 in 3.4s (compile: 3.1s, proxy.ts: 19ms, render: 341ms)
+ GET /api/icons?t=1780965641320 200 in 3.4s (compile: 3.1s, proxy.ts: 19ms, render: 340ms)
+ GET / 200 in 2.3s (compile: 1855ms, proxy.ts: 24ms, render: 372ms)
+ GET /api/icons?t=1780965645754 200 in 19ms (compile: 6ms, proxy.ts: 7ms, render: 6ms)
+ GET /api/game/definitions 200 in 19ms (compile: 2ms, proxy.ts: 13ms, render: 5ms)
