@@ -23,6 +23,12 @@ import {
   EndgameResult,
   ProductionSnapshot,
   emptyProductionSnapshot,
+  GameDefs,
+  computePowerGrid,
+  computeProduction,
+  computeSellMultiplier,
+  computePayout,
+  computeEndgameIncome,
 } from './productionCalculator';
 import { GameConfig } from './config';
 import {
@@ -199,6 +205,7 @@ export function buildMultipliersServer(
 
   return {
     modifierEngine,
+    gameDefs: { buildings: config.buildings, workers: workerDefsMap } as GameDefs,
     eventProductionGlobal,
     eventProductionTargeted,
     eventPowerConsumption,
@@ -235,7 +242,7 @@ export function buildMultipliersServer(
   };
 }
 
-// ─── Power Grid (Server Version) ────────────────────────────────────────
+// ─── Power Grid (Server Version — delegates to shared productionCalculator) ──
 
 export function computePowerGridServer(
   state: GameState,
@@ -245,102 +252,10 @@ export function computePowerGridServer(
   buildings: Record<string, BuildingDefinition>,
   workerDefs: Record<string, WorkerDefinition>,
 ): PowerResult {
-  let totalProduction = 0;
-  let totalConsumption = 0;
-  const fuelConsumption: { resource: string; amount: number; actualAmount: number }[] = [];
-
-  const powerBuildings = state.buildings.filter(
-    b => {
-      const def = getBuildingDef(b.type, buildings);
-      return def?.category === 'power' && b.active;
-    }
-  );
-
-  for (const b of powerBuildings) {
-    const def = getBuildingDef(b.type, buildings);
-    if (!def) continue;
-    let production = def.basePowerProduction * b.level * b.efficiency;
-
-    if (def.fuel && def.fuelRate) {
-      const fuelConsumed = def.fuelRate * b.level;
-      if (resources[def.fuel] >= fuelConsumed) {
-        resources[def.fuel] -= fuelConsumed;
-        totalProduction += production;
-        fuelConsumption.push({ resource: def.fuel, amount: fuelConsumed, actualAmount: fuelConsumed });
-      } else {
-        production *= 0.1;
-        totalProduction += production;
-        const actuallyConsumed = resources[def.fuel] || 0;
-        fuelConsumption.push({ resource: def.fuel, amount: fuelConsumed, actualAmount: actuallyConsumed });
-      }
-    } else {
-      if (b.type === 'solarPanel') {
-        const dayFactor = 0.5 + 0.5 * Math.sin(currentTick * 0.01);
-        production *= Math.max(0.2, dayFactor) * cache.weatherSolar;
-      }
-      if (b.type === 'windTurbine') {
-        const windFactor = 0.5 + 0.5 * Math.sin(currentTick * 0.007 + Math.PI / 3);
-        production *= Math.max(0.3, windFactor) * cache.weatherWind;
-      }
-      totalProduction += production;
-    }
-  }
-
-  const consumingBuildings = state.buildings.filter(
-    b => { const d = getBuildingDef(b.type, buildings); return d && d.category !== 'power' && b.active; }
-  );
-
-  for (const b of consumingBuildings) {
-    const def = getBuildingDef(b.type, buildings);
-    if (!def) continue;
-    totalConsumption += def.basePowerConsumption * b.level * b.efficiency;
-  }
-
-  const energyEfficiencyReduction = cache.hasEnergyEfficiency ? 0.15 : 0;
-  const powerOptimizationReduction = cache.hasPowerOptimization ? 0.10 : 0;
-  totalConsumption *= (1 - energyEfficiencyReduction) * (1 - powerOptimizationReduction) * cache.eventPowerConsumption;
-
-  totalProduction *= (1 + cache.powerBonus);
-
-  const efficiency = totalProduction > 0
-    ? Math.max(0.10, Math.min(1, totalProduction / Math.max(0.001, totalConsumption)))
-    : 0.10;
-  const overload = totalConsumption > totalProduction;
-
-  // Worker power savings
-  let workerPowerSavings = 0;
-  for (const b of state.buildings) {
-    if (!b.active) continue;
-    const def = getBuildingDef(b.type, buildings);
-    if (!def || def.basePowerConsumption <= 0) continue;
-
-    const assignedWorkers = cache.workersByBuilding.get(b.id) ?? [];
-    let workerMaintenanceReduction = 0;
-    for (const w of assignedWorkers) {
-      const wDef = workerDefs[w.type];
-      if (wDef) {
-        workerMaintenanceReduction += wDef.effects.maintenance * w.level * (1 + cache.workerEfficiencyTotal);
-      }
-    }
-    const buildingPowerReduction = Math.min(0.5, workerMaintenanceReduction);
-    if (buildingPowerReduction > 0) {
-      workerPowerSavings += def.basePowerConsumption * b.level * b.efficiency * buildingPowerReduction;
-    }
-  }
-
-  const adjustedWorkerPowerSavings = workerPowerSavings * (1 - energyEfficiencyReduction) * (1 - powerOptimizationReduction) * cache.eventPowerConsumption;
-  totalConsumption = Math.max(0, totalConsumption - adjustedWorkerPowerSavings);
-
-  return {
-    totalProduction,
-    totalConsumption,
-    efficiency,
-    overload,
-    fuelConsumption,
-  };
+  return computePowerGrid(state, cache, resources, currentTick, { buildings, workers: workerDefs });
 }
 
-// ─── Production (Server Version) ────────────────────────────────────────
+// ─── Production (Server Version — delegates to shared productionCalculator) ──
 
 export function computeProductionServer(
   building: BuildingInstance,
@@ -349,184 +264,37 @@ export function computeProductionServer(
   buildings: Record<string, BuildingDefinition>,
   workerDefs: Record<string, WorkerDefinition>,
 ): BuildResult {
-  const def = getBuildingDef(building.type, buildings);
-  if (!def || !building.active) {
-    return { outputs: [], inputs: [], actualInputs: [], efficiency: 0, canProduce: false, workerPowerSavings: 0 };
-  }
-
-  let efficiency = building.efficiency
-    * cache.powerEfficiency
-    * cache.eventProductionGlobal
-    * cache.weatherProduction
-    * cache.transportProductionBonus;
-
-  const targetedEventMult = cache.eventProductionTargeted.get(building.type);
-  if (targetedEventMult) efficiency *= targetedEventMult;
-
-  if (def.category === 'extractor') efficiency *= (1 + cache.extractorBonus);
-  if (def.category === 'factory') efficiency *= (1 + cache.factoryBonus);
-  if (def.category === 'factory' && def.tier === 1) efficiency *= (1 + cache.t1FactoryBonus);
-  if (def.category === 'factory' && def.tier === 2) efficiency *= (1 + cache.t2FactoryBonus);
-  if (def.category === 'factory' && def.tier === 3) efficiency *= (1 + cache.t3FactoryBonus);
-
-  const specificBonus = cache.specificBuildingBonuses.get(building.type);
-  if (specificBonus) efficiency *= (1 + specificBonus);
-
-  const assignedWorkers = cache.workersByBuilding.get(building.id) ?? [];
-  let workerMaintenanceReduction = 0;
-  for (const w of assignedWorkers) {
-    const wDef = workerDefs[w.type];
-    if (wDef) {
-      efficiency *= (1 + wDef.effects.speed * w.level * (1 + cache.workerEfficiencyTotal));
-      efficiency *= (1 + wDef.effects.efficiency * w.level * (1 + cache.workerEfficiencyTotal));
-      workerMaintenanceReduction += wDef.effects.maintenance * w.level * (1 + cache.workerEfficiencyTotal);
-    }
-  }
-
-  const buildingPowerReduction = Math.min(0.5, workerMaintenanceReduction);
-  const workerPowerSavings = (buildingPowerReduction > 0 && def.basePowerConsumption > 0)
-    ? def.basePowerConsumption * building.level * building.efficiency * buildingPowerReduction
-    : 0;
-
-  efficiency *= (1 + cache.productionBonus);
-
-  if (def.category === 'extractor' && def.outputs) {
-    const outputs = def.outputs
-      .filter(o => o.resource !== 'money')
-      .map(o => ({
-        resource: o.resource,
-        amount: o.amount * def.baseProductionRate * building.level * efficiency,
-      }));
-    return { outputs, inputs: [], actualInputs: [], efficiency, canProduce: true, workerPowerSavings };
-  }
-
-  if (def.category === 'factory' && def.inputs && def.outputs) {
-    const adjustedInputs = def.inputs
-      .filter(i => i.resource !== 'money')
-      .map(i => ({
-        resource: i.resource,
-        amount: i.amount * building.level * efficiency,
-      }));
-
-    let canProduce = true;
-    for (const input of adjustedInputs) {
-      if ((availableResources[input.resource] ?? 0) < input.amount) {
-        canProduce = false;
-        break;
-      }
-    }
-
-    const outputs = def.outputs
-      .filter(o => o.resource !== 'money')
-      .map(o => ({
-        resource: o.resource,
-        amount: o.amount * def.baseProductionRate * building.level * efficiency,
-      }));
-
-    return {
-      outputs,
-      inputs: adjustedInputs,
-      actualInputs: canProduce ? adjustedInputs : [],
-      efficiency,
-      canProduce,
-      workerPowerSavings,
-    };
-  }
-
-  return { outputs: [], inputs: [], actualInputs: [], efficiency, canProduce: true, workerPowerSavings };
+  return computeProduction(building, cache, availableResources, { buildings, workers: workerDefs });
 }
 
-// ─── Sell Multiplier (Server Version) ────────────────────────────────────
+// ─── Sell Multiplier (Server Version — delegates to shared productionCalculator) ──
 
 export function computeSellMultiplierServer(
   _state: GameState,
   cache: MultiplierCache,
 ): number {
-  return 0.9 + cache.marketBonus;
+  return computeSellMultiplier(_state, cache);
 }
 
-// ─── Payout (Server Version) ────────────────────────────────────────────
+// ─── Payout (Server Version — delegates to shared productionCalculator) ──
 
 export function computePayoutServer(
   state: GameState,
   cache: MultiplierCache,
   buildings: Record<string, BuildingDefinition>,
 ): PayoutResult {
-  const activeBuildings = state.buildings.filter(b => b.active);
-  const extractors = activeBuildings.filter(b => getBuildingDef(b.type, buildings)?.category === 'extractor');
-  const factories = activeBuildings.filter(b => getBuildingDef(b.type, buildings)?.category === 'factory');
-  const powerPlants = activeBuildings.filter(b => getBuildingDef(b.type, buildings)?.category === 'power');
-
-  const extractorRate = 20;
-  const factoryRate = 50;
-  const powerRate = 10;
-
-  const extractorIncome = extractors.reduce((sum, b) => sum + extractorRate * b.level * b.efficiency, 0);
-  const factoryIncome = factories.reduce((sum, b) => sum + factoryRate * b.level * b.efficiency, 0);
-  const powerIncome = powerPlants.reduce((sum, b) => sum + powerRate * b.level * b.efficiency, 0);
-
-  let amount = extractorIncome + factoryIncome + powerIncome;
-
-  const avgEfficiency = activeBuildings.length > 0
-    ? activeBuildings.reduce((sum, b) => sum + b.efficiency, 0) / activeBuildings.length
-    : 0;
-  amount *= avgEfficiency;
-
-  amount *= (1 + cache.productionBonus);
-  amount *= cache.eventProductionGlobal;
-  amount *= cache.weatherProduction;
-
-  return {
-    amountPerCycle: Math.floor(amount),
-    breakdown: { extractors: extractorIncome, factories: factoryIncome, power: powerIncome },
-  };
+  // Get workerDefs from cache.gameDefs if available, otherwise empty
+  const workerDefs = cache.gameDefs?.workers ?? {};
+  return computePayout(state, cache, { buildings, workers: workerDefs });
 }
 
-// ─── Endgame Passive Income (Server Version) ────────────────────────────
+// ─── Endgame Passive Income (Server Version — delegates to shared productionCalculator) ──
 
 export function computeEndgameIncomeServer(
   state: GameState,
   cache: MultiplierCache,
 ): EndgameResult {
-  let moneyPerTick = 0;
-  let researchPerTick = 0;
-  let corpPerTick = 0;
-
-  const endgameTypes = ['dysonCollector', 'quantumTeleporter', 'dimensionalGateway', 'timeDistorter', 'galacticForge'];
-  const endgameBuildings = state.buildings.filter(b => b.active && endgameTypes.includes(b.type));
-
-  for (const b of endgameBuildings) {
-    let endEff = b.efficiency * cache.powerEfficiency;
-
-    if (cache.megaFactoryUnlocked) {
-      endEff *= cache.eventProductionGlobal * cache.weatherProduction * cache.transportProductionBonus;
-      endEff *= (1 + cache.productionBonus);
-    }
-
-    const rate = b.level * endEff;
-    switch (b.type) {
-      case 'dysonCollector':
-        moneyPerTick += Math.floor(8000 * rate);
-        break;
-      case 'quantumTeleporter':
-        researchPerTick += Math.floor(10 * rate);
-        break;
-      case 'dimensionalGateway':
-        corpPerTick += Math.floor(1 * rate);
-        break;
-      case 'timeDistorter':
-        moneyPerTick += Math.floor(5000 * rate);
-        researchPerTick += Math.floor(5 * rate);
-        break;
-      case 'galacticForge':
-        moneyPerTick += Math.floor(100000 * rate);
-        researchPerTick += Math.floor(50 * rate);
-        corpPerTick += Math.floor(5 * rate);
-        break;
-    }
-  }
-
-  return { moneyPerTick, researchPerTick, corpPerTick };
+  return computeEndgameIncome(state, cache);
 }
 
 // ─── Full Snapshot Builder (Server Version) ──────────────────────────────

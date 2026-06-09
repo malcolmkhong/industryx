@@ -13,8 +13,10 @@
 import {
   GameState,
   BuildingInstance,
+  BuildingDefinition,
   ResourceType,
   Worker,
+  WorkerDefinition,
   WeatherType,
 } from './types';
 import {
@@ -31,10 +33,28 @@ import {
 
 // ─── Types ───────────────────────────────────────────────────────────
 
+/** Optional definition provider for server-side usage. */
+export interface GameDefs {
+  buildings: Record<string, BuildingDefinition>;
+  workers: Record<string, WorkerDefinition>;
+}
+
+/** Resolve building definition: use injected defs if provided, else static import */
+function getBuildingDef(type: string, defs?: GameDefs) {
+  return defs ? defs.buildings[type] : BUILDING_DEFS[type];
+}
+
+/** Resolve worker definition: use injected defs if provided, else static import */
+function getWorkerDef(type: string, defs?: GameDefs) {
+  return defs ? defs.workers[type] : WORKER_DEFS[type];
+}
+
 /** Precomputed multipliers — derived from state, not duplicating it. */
 export interface MultiplierCache {
   // Modifier engine (new architecture)
   modifierEngine: ModifierEngine | null;
+  // Optional injected definitions (server-side uses Supabase config instead of static imports)
+  gameDefs?: GameDefs;
   // Event multipliers
   eventProductionGlobal: number;
   eventProductionTargeted: Map<string, number>;  // buildingType → multiplier
@@ -316,6 +336,7 @@ export function buildMultipliers(state: GameState): MultiplierCache {
 
   return {
     modifierEngine: engine,
+    gameDefs: undefined,  // client side uses static imports
     eventProductionGlobal,
     eventProductionTargeted,
     eventPowerConsumption,
@@ -357,17 +378,19 @@ export function computePowerGrid(
   cache: MultiplierCache,
   resources: Record<string, number>,
   currentTick: number,
+  defs?: GameDefs,
 ): PowerResult {
+  const _defs = defs ?? cache.gameDefs;
   let totalProduction = 0;
   let totalConsumption = 0;
   const fuelConsumption: { resource: string; amount: number; actualAmount: number }[] = [];
 
   const powerBuildings = state.buildings.filter(
-    b => BUILDING_DEFS[b.type]?.category === 'power' && b.active
+    b => getBuildingDef(b.type, _defs)?.category === 'power' && b.active
   );
 
   for (const b of powerBuildings) {
-    const def = BUILDING_DEFS[b.type];
+    const def = getBuildingDef(b.type, _defs);
     if (!def) continue;
     let production = def.basePowerProduction * b.level * b.efficiency;
 
@@ -398,11 +421,11 @@ export function computePowerGrid(
   }
 
   const consumingBuildings = state.buildings.filter(
-    b => { const d = BUILDING_DEFS[b.type]; return d && d.category !== 'power' && b.active; }
+    b => { const d = getBuildingDef(b.type, _defs); return d && d.category !== 'power' && b.active; }
   );
 
   for (const b of consumingBuildings) {
-    const def = BUILDING_DEFS[b.type];
+    const def = getBuildingDef(b.type, _defs);
     if (!def) continue;
     totalConsumption += def.basePowerConsumption * b.level * b.efficiency;
   }
@@ -423,13 +446,13 @@ export function computePowerGrid(
   let workerPowerSavings = 0;
   for (const b of state.buildings) {
     if (!b.active) continue;
-    const def = BUILDING_DEFS[b.type];
+    const def = getBuildingDef(b.type, _defs);
     if (!def || def.basePowerConsumption <= 0) continue;
 
     const assignedWorkers = cache.workersByBuilding.get(b.id) ?? [];
     let workerMaintenanceReduction = 0;
     for (const w of assignedWorkers) {
-      const wDef = WORKER_DEFS[w.type];
+      const wDef = getWorkerDef(w.type, _defs);
       if (wDef) {
         workerMaintenanceReduction += wDef.effects.maintenance * w.level * (1 + cache.workerEfficiencyTotal);
       }
@@ -458,8 +481,10 @@ export function computeProduction(
   building: BuildingInstance,
   cache: MultiplierCache,
   availableResources: Record<string, number>,
+  defs?: GameDefs,
 ): BuildResult {
-  const def = BUILDING_DEFS[building.type];
+  const _defs = defs ?? cache.gameDefs;
+  const def = getBuildingDef(building.type, _defs);
   if (!def || !building.active) {
     return { outputs: [], inputs: [], actualInputs: [], efficiency: 0, canProduce: false, workerPowerSavings: 0 };
   }
@@ -485,7 +510,7 @@ export function computeProduction(
   const assignedWorkers = cache.workersByBuilding.get(building.id) ?? [];
   let workerMaintenanceReduction = 0;
   for (const w of assignedWorkers) {
-    const wDef = WORKER_DEFS[w.type];
+    const wDef = getWorkerDef(w.type, _defs);
     if (wDef) {
       efficiency *= (1 + wDef.effects.speed * w.level * (1 + cache.workerEfficiencyTotal));
       efficiency *= (1 + wDef.effects.efficiency * w.level * (1 + cache.workerEfficiencyTotal));
@@ -560,11 +585,13 @@ export function computeSellMultiplier(
 export function computePayout(
   state: GameState,
   cache: MultiplierCache,
+  defs?: GameDefs,
 ): PayoutResult {
+  const _defs = defs ?? cache.gameDefs;
   const activeBuildings = state.buildings.filter(b => b.active);
-  const extractors = activeBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'extractor');
-  const factories = activeBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory');
-  const powerPlants = activeBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power');
+  const extractors = activeBuildings.filter(b => getBuildingDef(b.type, _defs)?.category === 'extractor');
+  const factories = activeBuildings.filter(b => getBuildingDef(b.type, _defs)?.category === 'factory');
+  const powerPlants = activeBuildings.filter(b => getBuildingDef(b.type, _defs)?.category === 'power');
 
   const extractorRate = 20;
   const factoryRate = 50;
