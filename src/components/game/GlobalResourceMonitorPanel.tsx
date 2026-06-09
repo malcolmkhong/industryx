@@ -18,10 +18,11 @@ import { GameIcon } from '@/components/game/shared/GameIcon';
 // ─── Tier Badge Colors ────────────────────────────────────────────────────────
 const TIER_COLORS: Record<number, { bg: string; text: string; border: string }> = {
   0: { bg: 'bg-gray-800', text: 'text-gray-300', border: 'border-gray-600' },
-  1: { bg: 'bg-amber-900/30', text: 'text-amber-400', border: 'border-amber-600' },
-  2: { bg: 'bg-cyan-900/30', text: 'text-cyan-400', border: 'border-cyan-600' },
+  1: { bg: 'bg-cyan-900/30', text: 'text-cyan-400', border: 'border-cyan-600' },
+  2: { bg: 'bg-orange-900/30', text: 'text-orange-400', border: 'border-orange-600' },
   3: { bg: 'bg-purple-900/30', text: 'text-purple-400', border: 'border-purple-600' },
-  4: { bg: 'bg-rose-900/30', text: 'text-rose-400', border: 'border-rose-600' },
+  4: { bg: 'bg-teal-900/30', text: 'text-teal-400', border: 'border-teal-600' },
+  5: { bg: 'bg-red-900/30', text: 'text-red-400', border: 'border-red-600' },
 };
 
 // ─── Resource Status ──────────────────────────────────────────────────────────
@@ -643,7 +644,7 @@ export default function GlobalResourceMonitorPanel() {
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-bold text-gray-200 truncate">{hoveredRow.name}</div>
                   <div className="text-[10px] text-gray-500">
-                    <span className={`${TIER_COLORS[hoveredRow.tier].text}`}>T{hoveredRow.tier}</span>
+                    <span className={`${(TIER_COLORS[hoveredRow.tier] ?? TIER_COLORS[0]).text}`}>T{hoveredRow.tier}</span>
                     {' · '}
                     {formatNumber(hoveredRow.amount)}{hoveredRow.capacity !== Infinity ? `/${formatNumber(hoveredRow.capacity)}` : '/∞'}
                   </div>
