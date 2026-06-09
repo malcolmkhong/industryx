@@ -44,7 +44,7 @@ interface ResourceRowData {
 }
 
 // ─── Sort Type ────────────────────────────────────────────────────────────────
-type SortKey = 'name' | 'amount' | 'netRate' | 'status';
+type SortKey = 'name' | 'tier' | 'amount' | 'productionRate' | 'consumptionRate' | 'netRate' | 'status';
 type SortDir = 'asc' | 'desc';
 
 const STATUS_ORDER: Record<ResourceStatus, number> = {
@@ -277,8 +277,17 @@ export default function GlobalResourceMonitorPanel() {
         case 'name':
           cmp = a.name.localeCompare(b.name);
           break;
+        case 'tier':
+          cmp = a.tier - b.tier;
+          break;
         case 'amount':
           cmp = a.amount - b.amount;
+          break;
+        case 'productionRate':
+          cmp = a.productionRate - b.productionRate;
+          break;
+        case 'consumptionRate':
+          cmp = a.consumptionRate - b.consumptionRate;
           break;
         case 'netRate':
           cmp = a.netRate - b.netRate;
@@ -521,12 +530,18 @@ export default function GlobalResourceMonitorPanel() {
           <button onClick={() => handleSort('name')} className="flex items-center gap-1 hover:text-gray-300 transition-colors text-left" aria-label="Sort by name">
             Resource {sortKey === 'name' && (sortDir === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
           </button>
-          <div>Tier</div>
+          <button onClick={() => handleSort('tier')} className="flex items-center gap-1 hover:text-gray-300 transition-colors" aria-label="Sort by tier">
+            Tier {sortKey === 'tier' && (sortDir === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+          </button>
           <button onClick={() => handleSort('amount')} className="flex items-center gap-1 hover:text-gray-300 transition-colors" aria-label="Sort by amount">
             Amount {sortKey === 'amount' && (sortDir === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
           </button>
-          <div>Prod</div>
-          <div>Cons</div>
+          <button onClick={() => handleSort('productionRate')} className="flex items-center gap-1 hover:text-gray-300 transition-colors" aria-label="Sort by production rate">
+            Prod {sortKey === 'productionRate' && (sortDir === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+          </button>
+          <button onClick={() => handleSort('consumptionRate')} className="flex items-center gap-1 hover:text-gray-300 transition-colors" aria-label="Sort by consumption rate">
+            Cons {sortKey === 'consumptionRate' && (sortDir === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+          </button>
           <button onClick={() => handleSort('netRate')} className="flex items-center gap-1 hover:text-gray-300 transition-colors" aria-label="Sort by net rate">
             Net {sortKey === 'netRate' && (sortDir === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
           </button>
