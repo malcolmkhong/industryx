@@ -4,7 +4,13 @@
 - Environments: .env
 
 ✓ Starting...
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
 ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
-✓ Ready in 760ms
- GET / 200 in 2.7s (compile: 2.3s, proxy.ts: 60ms, render: 301ms)
- 2.3s, proxy.ts: 60ms, render: 301ms)
+✓ Ready in 1003ms
+○ Compiling / ...
+ GET / 200 in 6.6s (compile: 6.2s, proxy.ts: 61ms, render: 298ms)
+ 6.2s, proxy.ts: 61ms, render: 298ms)

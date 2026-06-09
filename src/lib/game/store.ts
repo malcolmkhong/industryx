@@ -3370,4 +3370,4 @@ if (typeof window !== 'undefined') {
   (window as unknown as Record<string, unknown>).__gameStore = useGameStore;
 }
 
-export { formatNumber, getBuildingCost, isBuildingUnlocked, isResearchUnlocked, generateId, hasUnlimitedStorage };
+export { formatNumber, getBuildingCost, isBuildingUnlocked, isResearchUnlocked, generateId };
