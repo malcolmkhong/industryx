@@ -69,6 +69,7 @@ import { useGameConfig } from '@/components/providers/GameConfigProvider';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useCloudSync } from '@/lib/hooks/useCloudSync';
 import { OnlineCount } from '@/components/game/OnlineCount';
+import { CloudSyncBlockBanner } from '@/components/game/CloudSyncBlockBanner';
 
 // Navigation is now managed by GameSidebar component
 // KEY_TAB_MAP is imported from GameSidebar
@@ -182,7 +183,7 @@ export default function Home() {
   // Auth & cloud sync
   const { user, signInWithGoogle, signOut, loading: authLoading } = useAuth();
   const { isUsingSupabase, reload: reloadConfig } = useGameConfig();
-  const { saveToCloud, isSyncing: cloudSyncing } = useCloudSync();
+  const { saveToCloud, isSyncing: cloudSyncing, blockedState } = useCloudSync();
   const [cloudStatus, setCloudStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Commander';
   const userAvatar = user?.user_metadata?.avatar_url;
@@ -531,6 +532,13 @@ export default function Home() {
   return (
     <ErrorBoundary>
     <TooltipProvider>
+      {/* Cloud Sync Block Banner - full screen overlay when account is locked/sync blocked */}
+      {blockedState?.isBlocked && (
+        <CloudSyncBlockBanner
+          blockedState={blockedState}
+          onSignInAgain={blockedState.code === 'SESSION_EXPIRED' ? signInWithGoogle : undefined}
+        />
+      )}
       <div className="h-screen flex flex-col bg-[#0a0e17] text-gray-100 overflow-hidden safe-area-container">
         {/* TOP BAR */}
         <header ref={headerRef} className="fixed top-0 left-0 right-0 z-50 top-bar-gradient border-b border-cyan-900/30 px-2 lg:px-3 py-1.5 lg:py-2">

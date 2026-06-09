@@ -347,3 +347,50 @@ Stage Summary:
 - TradingPostPanel now loads history from server on mount (survives refresh)
 - Fixed serverValidated flag bug (was always true, now correctly reflects validation status)
 - Dev server instability is a sandbox memory issue, not a code issue
+
+---
+Task ID: 9
+Agent: Main Agent
+Task: Implement Cloud Sync Block Banner — when cloud sync stops working, show unclickable overlay banner with reason, contact admin, and Discord button
+
+Work Log:
+- Read worklog.md to understand project context (prior tasks 1-8: admin panel, real-time presence, cloud sync, Supabase integration, trading post, audit)
+- Explored cloud sync implementation via sub-agent: useCloudSync hook, AuthProvider, GameConfigProvider, account lock mechanism
+- Found critical gap: cloud sync errors (ACCOUNT_LOCKED, ACCESS_DENIED, etc.) only showed briefly as red CloudOff icon for 2 seconds then disappeared — no persistent UI
+- Updated useCloudSync hook (src/lib/hooks/useCloudSync.ts):
+  - Added CloudBlockState interface with isBlocked, reason, code, detectedAt fields
+  - Code types: ACCOUNT_LOCKED, ACCESS_DENIED, SESSION_EXPIRED, VALIDATION_FAILED, NETWORK_ERROR
+  - Added blockedState to CloudSyncState interface and hook return
+  - Updated saveToCloud: sets blockedState on VALIDATION_FAILED, CHECKSUM_MISMATCH, ACCOUNT_LOCKED, 401, 403 responses
+  - Updated loadFromCloud: sets blockedState on 401, 403 (with ACCOUNT_LOCKED check) responses
+- Created CloudSyncBlockBanner component (src/components/game/CloudSyncBlockBanner.tsx):
+  - Full-screen overlay with backdrop blur (z-[9999]) that blocks all interaction
+  - Animated entrance (scale + fade)
+  - Dynamic icon based on block type (Lock, Ban, WifiOff, AlertTriangle)
+  - Title/subtitle matching the block code
+  - Reason box with the specific error from the server
+  - Description text explaining what happened
+  - Detection timestamp
+  - "Contact Admin" section with Discord button (links to https://discord.com/616340426474913794)
+  - "Sign In Again" button for SESSION_EXPIRED state
+  - Footer note: local saves still work, only cloud sync affected
+  - Visual: dark gradient card, red accent bar, subtle warning stripe pattern, Discord branded button
+- Integrated into page.tsx:
+  - Added import for CloudSyncBlockBanner
+  - Updated useCloudSync destructuring to include blockedState
+  - Added conditional render of CloudSyncBlockBanner when blockedState?.isBlocked is true
+  - Passes signInWithGoogle as onSignInAgain for SESSION_EXPIRED recovery
+- Lint check passes (0 errors, 1 pre-existing warning)
+- TypeScript compiles with no new errors
+- Dev server OOM issue prevents full browser testing in sandbox (known issue from prior sessions)
+- Server confirms page compiles successfully (GET / 200)
+
+Stage Summary:
+- Cloud Sync Block Banner fully implemented
+- useCloudSync now tracks persistent blocked state (not just transient errors)
+- Banner blocks entire screen when cloud sync fails (account locked, access denied, validation failed, session expired)
+- Shows specific reason from server, contact admin section, Discord button
+- Unclickable overlay prevents game interaction until resolved
+- Discord link: https://discord.com/616340426474913794
+- Session expired has recovery path (Sign In Again button)
+- Local game saves continue to work during block

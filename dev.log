@@ -5,11 +5,7 @@
 
 ✓ Starting...
 ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
-✓ Ready in 695ms
+✓ Ready in 745ms
 ○ Compiling / ...
- GET / 200 in 4.2s (compile: 3.9s, proxy.ts: 59ms, render: 285ms)
- GET /api/icons?t=1780983404371 200 in 474ms (compile: 317ms, proxy.ts: 6ms, render: 152ms)
-⚠ Blocked cross-origin request from preview-chat-f769d239-fdfa-4552-a6ed-b3ef4e1d8079.space-z.ai to /_next/* resource. To allow this, configure "allowedDevOrigins" in next.config
-Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
- GET /api/game/definitions 200 in 976ms (compile: 425ms, proxy.ts: 5ms, render: 546ms)
- GET / 200 in 58ms (compile: 17ms, proxy.ts: 4ms, render: 36ms)
+ GET / 200 in 4.8s (compile: 4.5s, proxy.ts: 62ms, render: 301ms)
+ 4.5s, proxy.ts: 62ms, render: 301ms)

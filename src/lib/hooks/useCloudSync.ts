@@ -4,6 +4,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useGameStore } from '@/lib/game/store';
 
+export interface CloudBlockState {
+  isBlocked: boolean;
+  reason: string;
+  code: 'ACCOUNT_LOCKED' | 'ACCESS_DENIED' | 'SESSION_EXPIRED' | 'VALIDATION_FAILED' | 'NETWORK_ERROR';
+  detectedAt: number;
+}
+
 interface CloudSyncState {
   saveToCloud: () => Promise<{ success: boolean; error?: string }>;
   loadFromCloud: () => Promise<{ success: boolean; data?: unknown; error?: string; isNew?: boolean; conflict?: 'local' | 'cloud' }>;
@@ -14,6 +21,7 @@ interface CloudSyncState {
   pendingConflict: { localTick: number; cloudTick: number; localMoney: number; cloudMoney: number } | null;
   serverStateHash: string | null;
   isServerAuthoritative: boolean;
+  blockedState: CloudBlockState | null;
 }
 
 // Auto-save interval in milliseconds (increased to 2 minutes to reduce Supabase load)
@@ -31,6 +39,7 @@ export function useCloudSync(): CloudSyncState {
   const [pendingConflict, setPendingConflict] = useState<CloudSyncState['pendingConflict']>(null);
   const [serverStateHash, setServerStateHash] = useState<string | null>(null);
   const [isServerAuthoritative, setIsServerAuthoritative] = useState(false);
+  const [blockedState, setBlockedState] = useState<CloudBlockState | null>(null);
   const cloudDataRef = useRef<unknown>(null);
   const initialLoadDone = useRef(false);
 
@@ -96,20 +105,32 @@ export function useCloudSync(): CloudSyncState {
         const data = await res.json();
         if (data.code === 'VALIDATION_FAILED') {
           // Server rejected the save — state is invalid
+          setBlockedState({ isBlocked: true, reason: data.violations?.join(', ') || 'Save validation failed — your game state may have been modified incorrectly.', code: 'VALIDATION_FAILED', detectedAt: Date.now() });
           return { success: false, error: `Save rejected: ${data.violations?.join(', ') || 'validation failed'}` };
         }
         if (data.code === 'CHECKSUM_MISMATCH') {
+          setBlockedState({ isBlocked: true, reason: 'Your game data checksum does not match the server. This may indicate data corruption or tampering.', code: 'VALIDATION_FAILED', detectedAt: Date.now() });
           return { success: false, error: 'Checksum mismatch — please reload from server' };
         }
         if (data.code === 'ACCOUNT_LOCKED') {
-          return { success: false, error: 'Account locked for suspicious activity' };
+          const reason = data.reason || 'Account locked for suspicious activity';
+          setBlockedState({ isBlocked: true, reason, code: 'ACCOUNT_LOCKED', detectedAt: Date.now() });
+          return { success: false, error: reason };
         }
       }
 
       if (res.status === 401) {
+        setBlockedState({ isBlocked: true, reason: 'Your session has expired. Please sign in again to continue cloud sync.', code: 'SESSION_EXPIRED', detectedAt: Date.now() });
         return { success: false, error: 'Session expired. Please sign in again.' };
       }
       if (res.status === 403) {
+        const data = await res.json().catch(() => ({}));
+        if (data.code === 'ACCOUNT_LOCKED') {
+          const reason = data.reason || 'Account locked for suspicious activity';
+          setBlockedState({ isBlocked: true, reason, code: 'ACCOUNT_LOCKED', detectedAt: Date.now() });
+          return { success: false, error: reason };
+        }
+        setBlockedState({ isBlocked: true, reason: 'Access denied — you do not have permission to use cloud sync.', code: 'ACCESS_DENIED', detectedAt: Date.now() });
         return { success: false, error: 'Access denied.' };
       }
 
@@ -163,13 +184,17 @@ export function useCloudSync(): CloudSyncState {
       const res = await fetch(`/api/game/state?userId=${user.id}`);
 
       if (res.status === 401) {
+        setBlockedState({ isBlocked: true, reason: 'Your session has expired. Please sign in again to continue cloud sync.', code: 'SESSION_EXPIRED', detectedAt: Date.now() });
         return { success: false, error: 'Session expired. Please sign in again.' };
       }
       if (res.status === 403) {
         const data = await res.json();
         if (data.code === 'ACCOUNT_LOCKED') {
-          return { success: false, error: data.reason || 'Account locked for suspicious activity' };
+          const reason = data.reason || 'Account locked for suspicious activity';
+          setBlockedState({ isBlocked: true, reason, code: 'ACCOUNT_LOCKED', detectedAt: Date.now() });
+          return { success: false, error: reason };
         }
+        setBlockedState({ isBlocked: true, reason: 'Access denied — you do not have permission to use cloud sync.', code: 'ACCESS_DENIED', detectedAt: Date.now() });
         return { success: false, error: 'Access denied.' };
       }
 
@@ -342,5 +367,6 @@ export function useCloudSync(): CloudSyncState {
     pendingConflict,
     serverStateHash,
     isServerAuthoritative,
+    blockedState,
   };
 }
