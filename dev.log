@@ -5,11 +5,6 @@
 
 ✓ Starting...
 ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
-✓ Ready in 675ms
- GET /admin/login 200 in 1085ms (compile: 871ms, proxy.ts: 62ms, render: 151ms)
- GET /api/icons?t=1780962684402 200 in 1101ms (compile: 937ms, proxy.ts: 7ms, render: 157ms)
- GET /api/game/definitions 200 in 1164ms (compile: 987ms, proxy.ts: 5ms, render: 171ms)
- GET / 200 in 166ms (compile: 15ms, proxy.ts: 5ms, render: 147ms)
- GET /api/icons?t=1780962751610 200 in 13ms (compile: 3ms, proxy.ts: 5ms, render: 5ms)
- GET /api/game/definitions 200 in 11ms (compile: 2ms, proxy.ts: 4ms, render: 5ms)
- GET / 200 in 51ms (compile: 4ms, proxy.ts: 4ms, render: 43ms)
+✓ Ready in 760ms
+ GET / 200 in 2.7s (compile: 2.3s, proxy.ts: 60ms, render: 301ms)
+ 2.3s, proxy.ts: 60ms, render: 301ms)
