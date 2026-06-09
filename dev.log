@@ -10,7 +10,7 @@ You can learn more, including how to opt-out if you'd not like to participate in
 https://nextjs.org/telemetry
 
 ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
-✓ Ready in 947ms
+✓ Ready in 982ms
 ○ Compiling / ...
- GET / 200 in 5.4s (compile: 5.0s, proxy.ts: 60ms, render: 310ms)
- 5.0s, proxy.ts: 60ms, render: 310ms)
+ GET / 200 in 5.5s (compile: 5.2s, proxy.ts: 63ms, render: 297ms)
+ 5.2s, proxy.ts: 63ms, render: 297ms)
