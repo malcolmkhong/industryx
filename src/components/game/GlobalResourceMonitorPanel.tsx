@@ -210,7 +210,9 @@ export default function GlobalResourceMonitorPanel() {
   // ─── Compute resource rows ──────────────────────────────────────────────
   const allResources = useMemo<ResourceRowData[]>(() => {
     const unlimited = hasUnlimitedStorage(store.megaProjects);
-    return (Object.keys(RESOURCE_META) as ResourceType[]).map((res) => {
+    return (Object.keys(RESOURCE_META) as ResourceType[])
+      .filter(res => RESOURCE_META[res] != null)  // guard against null/undefined meta
+      .map((res) => {
       const meta = RESOURCE_META[res];
       const amount = store.resources[res] ?? 0;
       const capacity = unlimited ? Infinity : (store.resourceCapacity[res] ?? 50);

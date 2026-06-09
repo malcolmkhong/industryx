@@ -117,11 +117,11 @@ function transformResources(resources: SupabaseResource[]): GameConfig['resource
   const result: GameConfig['resources'] = {};
   for (const r of resources) {
     result[r.id] = {
-      name: r.name,
-      icon: r.icon,
-      tier: r.tier,
-      color: r.color,
-      category: r.category,
+      name: r.name || r.id,           // fallback to ID if name is null
+      icon: r.icon || 'gi:question',  // fallback icon
+      tier: r.tier ?? 0,              // fallback tier
+      color: r.color || '#a0a0a0',    // fallback color
+      category: r.category || 'misc',  // fallback category
     };
   }
   return result;
