@@ -1211,6 +1211,14 @@ export const useGameStore = create<GameStore>()(
           }
         }
 
+        // Currency rate trackers (income and expense separated for Currency Table)
+        let moneyIncomeThisTick = 0;
+        let moneyExpenseThisTick = 0;
+        let rpIncomeThisTick = 0;
+        let rpExpenseThisTick = 0;
+        let cpIncomeThisTick = 0;
+        let cpExpenseThisTick = 0;
+
         const passiveRpIncome = 0.5 * (1 + state.buildings.filter(b => b.type === 'aiLab' && b.active).length * 0.5);
         newResearchPoints += passiveRpIncome;
         rpIncomeThisTick += passiveRpIncome;
@@ -1424,14 +1432,6 @@ export const useGameStore = create<GameStore>()(
           };
           contractsToAdd = [contract];
         }
-
-        // Currency rate trackers (income and expense separated for Currency Table)
-        let moneyIncomeThisTick = 0;
-        let moneyExpenseThisTick = 0;
-        let rpIncomeThisTick = 0;
-        let rpExpenseThisTick = 0;
-        let cpIncomeThisTick = 0;
-        let cpExpenseThisTick = 0;
 
         // Passive income from selling excess (if auto-trading is on)
         let moneyEarned = 0;
