@@ -51,6 +51,7 @@ export interface MultiplierCache {
 
   // Transport
   transportProductionBonus: number;
+  transportThroughputBonus: number;  // Total throughput bonus (research + mega combined)
 
   // Category bonuses (pre-summed from research + mega)
   extractorBonus: number;   // extractorSpeedBonus + advancedDrillingBonus + megaExtractionBonus
@@ -68,8 +69,10 @@ export interface MultiplierCache {
   researchBonus: number;    // researchPrestigeBonus + megaResearchBonus
   extractionBonus: number;  // megaExtractionBonus (included in extractorBonus above, kept for endgame)
   workerEfficiencyTotal: number;  // workerEfficiencyResearchBonus + megaWorkerBonus
+  workerEfficiencyResearchBonus: number;  // Research-only portion (for worker XP calc)
   transportMegaBonus: number;
   marketBonus: number;      // marketResearch + prestigeMarket + megaMarket
+  storageCapacityBonus: number;  // Total storage capacity bonus (research + mega)
 
   // Research flags
   hasMarketAnalysis: boolean;
@@ -221,12 +224,15 @@ export function buildMultipliers(state: GameState): MultiplierCache {
 
   // Worker efficiency (research + mega)
   const workerEfficiencyTotal = engine.resolve('worker.efficiency', 1) - 1;
+  const workerEfficiencyResearchBonus = registry.getModifiers('worker.efficiency')
+    .filter(m => m.source === 'research')
+    .reduce((sum, m) => sum + (m.value - 1), 0);
 
   // Market sell price (research + prestige + mega)
   const marketBonus = engine.resolve('market.sellPrice', 1) - 1;
 
-  // Storage capacity (research)
-  // const storageBonus = engine.resolve('storage.capacity', 1) - 1; // available for future use
+  // Storage capacity (research + mega)
+  const storageCapacityBonus = engine.resolve('storage.capacity', 1) - 1;
 
   // ─── Source-Specific Breakdowns ────────────────────────────────────
   // Some MultiplierCache fields need breakdown by source for backward compat.
@@ -239,6 +245,7 @@ export function buildMultipliers(state: GameState): MultiplierCache {
 
   // Transport bonus (research + mega combined)
   const transportMultiplier = engine.resolve('transport.throughput', 1);
+  const transportThroughputBonus = transportMultiplier - 1;
   const transportMegaBonus = registry.getModifiers('transport.throughput')
     .filter(m => m.source === 'megaProject')
     .reduce((sum, m) => sum + (m.value - 1), 0);
@@ -318,6 +325,7 @@ export function buildMultipliers(state: GameState): MultiplierCache {
     weatherWind,
     powerEfficiency: 1,
     transportProductionBonus,
+    transportThroughputBonus,
     extractorBonus,
     factoryBonus,
     t1FactoryBonus,
@@ -329,8 +337,10 @@ export function buildMultipliers(state: GameState): MultiplierCache {
     researchBonus,
     extractionBonus,
     workerEfficiencyTotal,
+    workerEfficiencyResearchBonus,
     transportMegaBonus,
     marketBonus,
+    storageCapacityBonus,
     hasMarketAnalysis,
     hasEnergyEfficiency,
     hasPowerOptimization,

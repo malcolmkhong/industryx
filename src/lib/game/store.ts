@@ -94,18 +94,22 @@ function isBuildingUnlocked(type: BuildingType, completedResearch: string[], pre
   return true;
 }
 
-function getCapacity(state: GameState, resource: ResourceType, researchSet?: Set<string>): number {
+function getCapacity(state: GameState, resource: ResourceType, researchSet?: Set<string>, cache?: MultiplierCache): number {
   // Unlimited storage from Terraforming Engine mega project
   const hasUnlimitedStorage = state.megaProjects.some(p => p.completed && p.bonus.type === 'unlimitedStorage');
   if (hasUnlimitedStorage) return Infinity;
 
   const baseCapacity = state.resourceCapacity[resource] ?? 50;
-  // Apply Storage Expansion research bonus (+50% capacity)
-  const rs = researchSet ?? new Set(state.completedResearch);
-  const storageBonus = rs.has('storageExpansion') ? 0.5 : 0;
-  const megaStorageBonus = rs.has('megaStorage') ? 1.0 : 0;
-  const prestigeStorageBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'storageMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
-  return Math.floor(baseCapacity * (1 + storageBonus + megaStorageBonus + prestigeStorageBonus));
+  // Use modifier engine's storageCapacityBonus if cache is provided, otherwise compute from research
+  const storageCapacityBonus = cache?.storageCapacityBonus
+    ?? (() => {
+      const rs = researchSet ?? new Set(state.completedResearch);
+      const storageBonus = rs.has('storageExpansion') ? 0.5 : 0;
+      const megaStorageBonus = rs.has('megaStorage') ? 1.0 : 0;
+      const prestigeStorageBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'storageMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
+      return storageBonus + megaStorageBonus + prestigeStorageBonus;
+    })();
+  return Math.floor(baseCapacity * (1 + storageCapacityBonus));
 }
 
 // --- Drone Mission Generator ---
@@ -1033,7 +1037,6 @@ export const useGameStore = create<GameStore>()(
 
         // === Phase 2: Production Calculator (Single Source of Truth) ===
         const cache = buildMultipliers(state);
-        const researchSet = new Set(state.completedResearch);
 
         // Local aliases from cache (used by non-production parts of tick)
         const weatherProductionMultiplier = cache.weatherProduction;
@@ -1062,10 +1065,8 @@ export const useGameStore = create<GameStore>()(
         }
 
         // Transport efficiency (for peak efficiency tracking — not production math)
-        const logistics1Bonus = researchSet.has('logistics1') ? 0.2 : 0;
-        const advancedLogisticsBonus = researchSet.has('advancedLogistics') ? 0.3 : 0;
-        const cargoDronesBonus = researchSet.has('cargoDrones') ? 0.25 : 0;
-        const transportBonus = logistics1Bonus + advancedLogisticsBonus + cargoDronesBonus;
+        // Uses modifier engine: transportThroughputBonus includes logistics1 + advancedLogistics + cargoDrones + mega
+        const transportBonus = cache.transportThroughputBonus;
         const transportEfficiency = state.transportLines.length > 0
           ? (state.transportLines.filter(t => t.active).length / Math.max(1, state.transportLines.length)) * (1 + transportBonus + cache.transportMegaBonus)
           : 1;
@@ -1091,7 +1092,7 @@ export const useGameStore = create<GameStore>()(
             for (const output of result.outputs) {
               const res = output.resource as ResourceType;
               const capacity = newResources[res] + output.amount;
-              newResources[res] = Math.min(getCapacity(state, res, researchSet), capacity);
+              newResources[res] = Math.min(getCapacity(state, res, undefined, cache), capacity);
               newStats.totalResourcesProduced[res] += output.amount;
               snapshotProduction[res] = (snapshotProduction[res] || 0) + output.amount;
             }
@@ -1114,7 +1115,7 @@ export const useGameStore = create<GameStore>()(
               for (const output of result.outputs) {
                 const res = output.resource as ResourceType;
                 const capacity = newResources[res] + output.amount;
-                newResources[res] = Math.min(getCapacity(state, res, researchSet), capacity);
+                newResources[res] = Math.min(getCapacity(state, res, undefined, cache), capacity);
                 newStats.totalResourcesProduced[res] += output.amount;
                 snapshotProduction[res] = (snapshotProduction[res] || 0) + output.amount;
               }
@@ -1123,7 +1124,7 @@ export const useGameStore = create<GameStore>()(
         }
 
         // Worker XP bonus (research-only, NOT including mega — used by worker update below)
-        const workerEfficiencyBonus = researchSet.has('workerTraining') ? 0.25 : 0;
+        const workerEfficiencyBonus = cache.workerEfficiencyResearchBonus;
         // megaMarketBonus (used by auto-sell pricing below)
         const megaMarketBonus = cache.marketBonus - (cache.hasMarketAnalysis ? 0.2 : 0) - state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'marketMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
 
@@ -1437,7 +1438,7 @@ export const useGameStore = create<GameStore>()(
         let moneyEarned = 0;
         if (autoFulfill) {
           (Object.keys(newResources) as ResourceType[]).forEach(r => {
-            const excess = newResources[r] - getCapacity(state, r, researchSet) * 0.8;
+            const excess = newResources[r] - getCapacity(state, r, undefined, cache) * 0.8;
             if (excess > 0) {
               const marketPrice = newMarket.find(m => m.resource === r)?.currentPrice ?? 0;
               const sellPrice = marketPrice * computeSellMultiplier(state, cache);
@@ -1459,7 +1460,7 @@ export const useGameStore = create<GameStore>()(
           // Build market lookup Map for O(1) access
           const marketMap = new Map(newMarket.map(m => [m.resource, m]));
           state.autoSellResources.forEach(r => {
-            const capacity = getCapacity(state, r, researchSet);
+            const capacity = getCapacity(state, r, undefined, cache);
             const threshold = capacity * 0.8;
             const held = newResources[r];
             const excess = held - threshold;
@@ -1928,52 +1929,11 @@ export const useGameStore = create<GameStore>()(
         );
 
         // Recalculate power grid immediately so UI updates without waiting for next tick
-        let totalProduction = 0;
-        let totalConsumption = 0;
-        const powerBuildings = newBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power' && b.active);
-        const consumingBuildings = newBuildings.filter(b => { const d = BUILDING_DEFS[b.type]; return d && d.category !== 'power' && b.active; });
-        const newResources = { ...state.resources };
-
-        powerBuildings.forEach(b => {
-          const bDef = BUILDING_DEFS[b.type];
-          if (!bDef) return;
-          let production = bDef.basePowerProduction * b.level * b.efficiency;
-          if (bDef.fuel && bDef.fuelRate) {
-            if (state.resources[bDef.fuel] >= bDef.fuelRate * b.level) {
-              totalProduction += production;
-            } else {
-              production *= 0.1;
-              totalProduction += production;
-            }
-          } else {
-            if (b.type === 'solarPanel') {
-              const dayFactor = 0.5 + 0.5 * Math.sin(state.gameTick * 0.01);
-              production *= Math.max(0.2, dayFactor);
-            }
-            if (b.type === 'windTurbine') {
-              const windFactor = 0.5 + 0.5 * Math.sin(state.gameTick * 0.007 + Math.PI / 3);
-              production *= Math.max(0.3, windFactor);
-            }
-            totalProduction += production;
-          }
-        });
-
-        consumingBuildings.forEach(b => {
-          const bDef = BUILDING_DEFS[b.type];
-          if (!bDef) return;
-          totalConsumption += bDef.basePowerConsumption * b.level * b.efficiency;
-        });
-
-        const powerEfficiencyResearch = state.completedResearch.includes('energyEfficiency') ? 0.15 : 0;
-        const powerOptimizationResearch = state.completedResearch.includes('powerOptimization') ? 0.10 : 0;
-        totalConsumption *= (1 - powerEfficiencyResearch) * (1 - powerOptimizationResearch);
-
-        const powerPrestigeBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'powerMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
-        const megaPowerBonusRecalc = getMegaProjectBonus(state.megaProjects, 'powerMultiplier');
-        totalProduction *= (1 + powerPrestigeBonus + megaPowerBonusRecalc);
-
-        const effectivePowerEfficiency = totalProduction > 0 ? Math.max(0.10, Math.min(1, totalProduction / Math.max(0.001, totalConsumption))) : 0.10;
-        const overload = totalConsumption > totalProduction;
+        // Uses productionCalculator's computePowerGrid for consistency with gameTick
+        const tempState = { ...state, buildings: newBuildings };
+        const cache = buildMultipliers(tempState);
+        const tempResources = { ...state.resources };
+        const powerResult = computePowerGrid(tempState, cache, tempResources, state.gameTick);
 
         // Play sound for power toggle
         if (def?.category === 'power') {
@@ -1983,11 +1943,11 @@ export const useGameStore = create<GameStore>()(
         set({
           buildings: newBuildings,
           powerGrid: {
-            totalProduction,
-            totalConsumption,
-            efficiency: effectivePowerEfficiency,
-            overload,
-            plants: powerBuildings,
+            totalProduction: powerResult.totalProduction,
+            totalConsumption: powerResult.totalConsumption,
+            efficiency: powerResult.efficiency,
+            overload: powerResult.overload,
+            plants: newBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power' && b.active),
           },
         });
       },
@@ -2007,9 +1967,9 @@ export const useGameStore = create<GameStore>()(
           return;
         }
 
-        const logistics1Bonus = state.completedResearch.includes('logistics1') ? 0.2 : 0;
-        const advancedLogisticsBonus = state.completedResearch.includes('advancedLogistics') ? 0.3 : 0;
-        const transportBonus = logistics1Bonus + advancedLogisticsBonus;
+        // Use modifier engine for transport bonus (logistics1 + advancedLogistics + cargoDrones + mega)
+        const cache = buildMultipliers(state);
+        const transportBonus = cache.transportThroughputBonus;
 
         const line: TransportLine = {
           id: generateId(),
@@ -2042,9 +2002,9 @@ export const useGameStore = create<GameStore>()(
         const cost = Math.floor(def.baseCost.reduce((sum, c) => sum + (c.resource === 'money' ? c.amount : 0), 0) * Math.pow(1.3, line.level));
         if (state.money < cost) return;
 
-        const logistics1Bonus = state.completedResearch.includes('logistics1') ? 0.2 : 0;
-        const advancedLogisticsBonus = state.completedResearch.includes('advancedLogistics') ? 0.3 : 0;
-        const transportBonus = logistics1Bonus + advancedLogisticsBonus;
+        // Use modifier engine for transport bonus (logistics1 + advancedLogistics + cargoDrones + mega)
+        const cache = buildMultipliers(state);
+        const transportBonus = cache.transportThroughputBonus;
 
         set({
           money: state.money - cost,
@@ -3051,20 +3011,16 @@ export const useGameStore = create<GameStore>()(
         const ticksElapsed = Math.min(Math.floor(elapsed / 1000), 36000); // Cap at 10 hours
         if (ticksElapsed <= 0) return null;
 
-        // Calculate current production rates
+        // Use Modifier Engine for consistent bonus calculations with gameTick
+        const cache = buildMultipliers(state);
+        const offlineRate = cache.modifierEngine?.resolve('offline.rate', 0.5) ?? 0.5;
+        const effectiveOfflineRate = offlineRate * (1 + cache.productionBonus);
+
+        // Calculate production per tick for each building using the same formula engine
         const offlineResources: Record<ResourceType, number> = { ...initialResources };
         let offlineMoney = 0;
-
-        // Apply 50% offline rate
-        const offlineRate = 0.5;
-
-        // Offline production bonus from prestige
-        const offlinePrestigeBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'offlineMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
-        const offlineMegaProductionBonus = getMegaProjectBonus(state.megaProjects, 'productionMultiplier');
-        const effectiveOfflineRate = offlineRate * (1 + offlinePrestigeBonus + offlineMegaProductionBonus);
-
-        // Calculate production per tick for each building
         const offlineTempResources: Record<string, number> = { ...state.resources };
+
         state.buildings.forEach(b => {
           if (!b.active) return;
           const def = BUILDING_DEFS[b.type];
@@ -3074,7 +3030,15 @@ export const useGameStore = create<GameStore>()(
             def.outputs.forEach(output => {
               if (output.resource === 'money') return;
               const res = output.resource as ResourceType;
-              const produced = output.amount * def.baseProductionRate * b.level * b.efficiency * effectiveOfflineRate * ticksElapsed;
+              // Apply same multipliers as gameTick: category bonuses + weather + transport + offline rate
+              const categoryBonus = def.category === 'extractor' ? cache.extractorBonus : cache.factoryBonus;
+              const tierBonus = def.tier === 1 ? cache.t1FactoryBonus : def.tier === 2 ? cache.t2FactoryBonus : def.tier === 3 ? cache.t3FactoryBonus : 0;
+              const buildingBonus = cache.specificBuildingBonuses.get(b.type) ?? 0;
+              const produced = output.amount * def.baseProductionRate * b.level * b.efficiency
+                * (1 + categoryBonus + tierBonus + buildingBonus)
+                * cache.weatherProduction
+                * cache.transportProductionBonus
+                * effectiveOfflineRate * ticksElapsed;
               offlineResources[res] += produced;
               offlineTempResources[res] = (offlineTempResources[res] ?? 0) + produced;
             });
@@ -3082,6 +3046,13 @@ export const useGameStore = create<GameStore>()(
 
           if (def.category === 'factory' && def.inputs && def.outputs) {
             // Check if factory can produce (has enough input resources)
+            const categoryBonus = cache.factoryBonus;
+            const tierBonus = def.tier === 1 ? cache.t1FactoryBonus : def.tier === 2 ? cache.t2FactoryBonus : def.tier === 3 ? cache.t3FactoryBonus : 0;
+            const buildingBonus = cache.specificBuildingBonuses.get(b.type) ?? 0;
+            const efficiencyMultiplier = (1 + categoryBonus + tierBonus + buildingBonus)
+              * cache.weatherProduction
+              * cache.transportProductionBonus;
+
             const adjustedInputs = def.inputs.map(input => {
               if (input.resource === 'money') return { resource: input.resource, amount: 0 };
               return {
@@ -3113,7 +3084,9 @@ export const useGameStore = create<GameStore>()(
               def.outputs.forEach(output => {
                 if (output.resource === 'money') return;
                 const res = output.resource as ResourceType;
-                const produced = output.amount * def.baseProductionRate * b.level * b.efficiency * effectiveOfflineRate * ticksElapsed;
+                const produced = output.amount * def.baseProductionRate * b.level * b.efficiency
+                  * efficiencyMultiplier
+                  * effectiveOfflineRate * ticksElapsed;
                 offlineResources[res] += produced;
                 offlineTempResources[res] = (offlineTempResources[res] ?? 0) + produced;
               });
@@ -3121,19 +3094,20 @@ export const useGameStore = create<GameStore>()(
           }
         });
 
-        // Apply capacity limits to offline resources
+        // Apply capacity limits to offline resources (using modifier engine for capacity)
         (Object.keys(offlineResources) as ResourceType[]).forEach(r => {
-          offlineResources[r] = Math.min(offlineResources[r], Math.max(0, getCapacity(state, r) - state.resources[r]));
+          offlineResources[r] = Math.min(offlineResources[r], Math.max(0, getCapacity(state, r, undefined, cache) - state.resources[r]));
         });
 
         // Calculate offline money from market sales (reduced rate)
         if (state.automationUnlocks.find(a => a.type === 'autoTrading' && a.active)) {
           (Object.keys(state.resources) as ResourceType[]).forEach(r => {
-            const excess = state.resources[r] - getCapacity(state, r) * 0.5;
+            const excess = state.resources[r] - getCapacity(state, r, undefined, cache) * 0.5;
             if (excess > 0) {
               const marketPrice = state.market.find(m => m.resource === r)?.currentPrice ?? 0;
               const sellAmount = Math.min(excess, Math.floor(ticksElapsed * 0.1));
-              offlineMoney += sellAmount * marketPrice * 0.7;
+              const sellMultiplier = computeSellMultiplier(state, cache);
+              offlineMoney += sellAmount * marketPrice * sellMultiplier;
             }
           });
         }
@@ -3147,9 +3121,10 @@ export const useGameStore = create<GameStore>()(
 
       collectOfflineProgress: (offlineData) => {
         const state = get();
+        const cache = buildMultipliers(state);
         const newResources = { ...state.resources };
         (Object.keys(offlineData.resources) as ResourceType[]).forEach(r => {
-          newResources[r] = Math.min(getCapacity(state, r), newResources[r] + offlineData.resources[r]);
+          newResources[r] = Math.min(getCapacity(state, r, undefined, cache), newResources[r] + offlineData.resources[r]);
         });
 
         set({

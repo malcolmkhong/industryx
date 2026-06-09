@@ -163,6 +163,7 @@ export function buildMultipliersServer(
 
   // ── Transport efficiency ──────────────────────────────────────────────
   const transportMultiplier = modifierEngine.resolveMultiplier('transport.throughput');
+  const transportThroughputBonus = transportMultiplier - 1;
   const transportEfficiency = state.transportLines.length > 0
     ? (state.transportLines.filter(t => t.active).length / Math.max(1, state.transportLines.length)) * transportMultiplier
     : 1;
@@ -218,8 +219,13 @@ export function buildMultipliersServer(
     researchBonus,
     extractionBonus,
     workerEfficiencyTotal,
+    workerEfficiencyResearchBonus: registry.getModifiers('worker.efficiency')
+      .filter(m => m.source === 'research')
+      .reduce((sum, m) => sum + (m.value - 1), 0),
     transportMegaBonus,
     marketBonus,
+    storageCapacityBonus: modifierEngine.resolve('storage.capacity', 1) - 1,
+    transportThroughputBonus,
     hasMarketAnalysis,
     hasEnergyEfficiency,
     hasPowerOptimization,
