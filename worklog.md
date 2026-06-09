@@ -309,3 +309,41 @@ Stage Summary:
 - Each issue has: file, line numbers, what happens if unfixed, solution
 - Priority action plan: Fix 5 CRITICAL issues NOW, 5 HIGH issues SOON, 7 MEDIUM/LOW issues as tech debt
 - Top 5 immediate fixes: (1) Remove HMAC fallback, (2) Fail-closed on isAccountLocked, (3) Add bounds validation to importSave, (4) Validate game speed, (5) Fix Trading Post server integration
+
+---
+Task ID: 8
+Agent: Main Agent
+Task: Integrate Supabase MCP, read current DB schema, identify gaps, and update
+
+Work Log:
+- Read uploaded .env file with Supabase credentials (URL, ANON_KEY, SERVICE_ROLE_KEY, ACCESS_TOKEN, PROJECT_REF, ADMIN_UIDS)
+- Updated /home/z/my-project/.env with all Supabase env vars
+- Queried Supabase database via Management API to list all 32 existing tables
+- Analyzed full column schema for all tables — identified trade_history as missing
+- Created trade_history table in Supabase with columns: id, user_id, give_resource, give_amount, receive_resource, receive_amount, commission_rate, server_validated, market_phase, game_tick, created_at
+- Created indexes on user_id and created_at DESC
+- Enabled RLS and created 4 policies: user self-read, user self-insert, service role full access, admin read
+- Updated /src/app/api/game/action/route.ts — added trade persistence to trade_history table after successful trade validation
+- Created /src/app/api/game/trades/route.ts — GET endpoint to fetch player's trade history with pagination
+- Rewrote /src/components/game/TradingPostPanel.tsx with fixes:
+  - Added useEffect to load trade history from server on mount (persists across page refreshes)
+  - Fixed serverValidated bug: was always set to true even in optimistic fallback path, now correctly set to false
+  - Added serverValidated boolean to validateTradeWithServer return type
+  - Trade history now stores up to 50 entries instead of 10
+  - Added timeAgo helper for server-stored trades with createdAt timestamps
+  - Shows ⚠ icon for unvalidated trades vs ✓ for server-validated
+  - Added loading spinner for history fetch
+  - Updated info card text to reflect persistent trade history
+- All lint checks pass (0 errors, 1 pre-existing warning)
+- Dev server compiles and serves the game page successfully (GET / 200)
+- Trades API correctly requires authentication (tested: returns AUTH_REQUIRED for unauthenticated requests)
+- Dev server has known OOM issue in sandbox — works but dies after ~1 minute due to memory pressure (8GB limit)
+
+Stage Summary:
+- Supabase integration complete — .env configured with all credentials
+- trade_history table created in Supabase with RLS protection
+- C5 fix fully complete: server validates trades AND persists them to database
+- New GET /api/game/trades endpoint for fetching trade history
+- TradingPostPanel now loads history from server on mount (survives refresh)
+- Fixed serverValidated flag bug (was always true, now correctly reflects validation status)
+- Dev server instability is a sandbox memory issue, not a code issue

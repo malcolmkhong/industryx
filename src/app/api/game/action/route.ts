@@ -427,5 +427,34 @@ export async function POST(request: Request) {
     rejectionReason: result.valid ? undefined : result.error,
   });
 
+  // ✅ C5 FIX: Persist trade to trade_history table for audit + history display
+  if (action === 'trade' && result.valid) {
+    try {
+      const supabase = createServiceRoleClient();
+      const giveResource = payload.giveResource as string;
+      const giveAmount = Number(payload.giveAmount) || 0;
+      const receiveResource = payload.receiveResource as string;
+      const receiveAmount = result.correctedState?._serverReceiveAmount ?? Number(payload.receiveAmount) ?? 0;
+      const marketPhase = (gameState.market as Record<string, unknown>[])?.find(
+        (m: Record<string, unknown>) => m.resource === giveResource
+      );
+
+      await supabase.from('trade_history').insert({
+        user_id: auth.userId,
+        give_resource: giveResource,
+        give_amount: giveAmount,
+        receive_resource: receiveResource,
+        receive_amount: receiveAmount,
+        commission_rate: 0.15,
+        server_validated: true,
+        market_phase: (marketPhase as Record<string, string>)?.phase ?? null,
+        game_tick: Number(gameState.gameTick) || 0,
+      });
+    } catch (tradeErr) {
+      console.error('[ActionAPI] Failed to persist trade to trade_history:', tradeErr);
+      // Non-fatal — the trade still succeeds, just not persisted
+    }
+  }
+
   return NextResponse.json(result);
 }

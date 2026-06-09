@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore, formatNumber } from '@/lib/game/store';
 import { ResourceType } from '@/lib/game/types';
@@ -48,7 +48,7 @@ const QUICK_TRADE_PRESETS: QuickTradePreset[] = [
   { give: 'oil', giveAmount: 20, receive: 'lithium', label: 'Oil → Lithium' },
 ];
 
-// Trade history entry (local component state — now also persisted to server)
+// Trade history entry — synced from server
 interface TradeHistoryEntry {
   id: string;
   giveResource: ResourceType;
@@ -57,6 +57,7 @@ interface TradeHistoryEntry {
   receiveAmount: number;
   tick: number;
   serverValidated: boolean;
+  createdAt?: string;
 }
 
 // ─── Helper: get base price for a resource ────────────────────────────────────
@@ -94,7 +95,7 @@ async function validateTradeWithServer(
   receiveResource: ResourceType,
   receiveAmount: number,
   gameState: Record<string, unknown>,
-): Promise<{ valid: boolean; error?: string; serverReceiveAmount?: number }> {
+): Promise<{ valid: boolean; error?: string; serverReceiveAmount?: number; serverValidated: boolean }> {
   try {
     const response = await fetch('/api/game/action', {
       method: 'POST',
@@ -114,7 +115,7 @@ async function validateTradeWithServer(
     if (!response.ok) {
       // Auth or rate limit failure — still allow trade locally but flag it
       console.warn('[Trade] Server validation failed with status', response.status);
-      return { valid: true, serverReceiveAmount: receiveAmount }; // Optimistic
+      return { valid: true, serverReceiveAmount: receiveAmount, serverValidated: false };
     }
 
     const data = await response.json();
@@ -122,14 +123,45 @@ async function validateTradeWithServer(
       return {
         valid: true,
         serverReceiveAmount: data.correctedState._serverReceiveAmount,
+        serverValidated: true,
       };
     }
-    return { valid: data.valid, error: data.error };
+    return { valid: data.valid, error: data.error, serverValidated: true };
   } catch (err) {
-    // Network error — allow trade optimistically but log warning
+    // Network error — allow trade optimistically but flag as unvalidated
     console.warn('[Trade] Server unreachable, allowing optimistic trade:', err);
-    return { valid: true, serverReceiveAmount: receiveAmount };
+    return { valid: true, serverReceiveAmount: receiveAmount, serverValidated: false };
   }
+}
+
+// ─── Fetch trade history from server ──────────────────────────────────────────
+async function fetchTradeHistory(limit = 20): Promise<TradeHistoryEntry[]> {
+  try {
+    const response = await fetch(`/api/game/trades?limit=${limit}`);
+    if (!response.ok) return [];
+    const data = await response.json();
+    return (data.trades ?? []).map((t: Record<string, unknown>) => ({
+      id: t.id as string,
+      giveResource: t.giveResource as ResourceType,
+      giveAmount: t.giveAmount as number,
+      receiveResource: t.receiveResource as ResourceType,
+      receiveAmount: t.receiveAmount as number,
+      tick: t.tick as number,
+      serverValidated: t.serverValidated as boolean,
+      createdAt: t.createdAt as string,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+// ─── Format time ago from ISO string ──────────────────────────────────────────
+function timeAgo(dateStr: string): string {
+  const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+  if (seconds < 60) return 'just now';
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  return `${Math.floor(seconds / 86400)}d ago`;
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -142,6 +174,7 @@ export function TradingPostPanel() {
   const [lastTradeTick, setLastTradeTick] = useState<number>(0);
   const [isTrading, setIsTrading] = useState(false);
   const [tradeError, setTradeError] = useState<string | null>(null);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
   // Game store selectors (C5 FIX: proper selectors, not entire store)
   const resources = useGameStore(s => s.resources);
@@ -153,6 +186,20 @@ export function TradingPostPanel() {
   const completedResearch = useGameStore(s => s.completedResearch);
   const researchPoints = useGameStore(s => s.researchPoints);
   const prestigeState = useGameStore(s => s.prestigeState);
+
+  // ─── Load trade history from server on mount ────────────────────────────────
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      setIsLoadingHistory(true);
+      const serverTrades = await fetchTradeHistory(20);
+      if (mounted && serverTrades.length > 0) {
+        setTradeHistory(serverTrades);
+      }
+      setIsLoadingHistory(false);
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   // ─── Computed values ────────────────────────────────────────────────────────
   const receiveAmount = useMemo(
@@ -267,7 +314,7 @@ export function TradingPostPanel() {
       useGameStore.setState({ resources: newResources });
       currentState.addNotification('success', `Traded ${formatNumber(gAmt)} ${RESOURCE_META[gRes]?.name ?? gRes} for ${finalReceiveAmount.toFixed(1)} ${RESOURCE_META[rRes]?.name ?? rRes}`);
 
-      // Add to history
+      // Add to history — use server validation status correctly (C5 FIX: was always true)
       const entry: TradeHistoryEntry = {
         id: crypto.randomUUID(),
         giveResource: gRes,
@@ -275,9 +322,9 @@ export function TradingPostPanel() {
         receiveResource: rRes,
         receiveAmount: finalReceiveAmount,
         tick: currentState.gameTick,
-        serverValidated: true,
+        serverValidated: serverResult.serverValidated,
       };
-      setTradeHistory(prev => [entry, ...prev].slice(0, 10));
+      setTradeHistory(prev => [entry, ...prev].slice(0, 50));
       setLastTradeTick(currentState.gameTick);
     } catch (err) {
       console.error('[Trade] Unexpected error:', err);
@@ -633,7 +680,7 @@ export function TradingPostPanel() {
         )}
       </AnimatePresence>
 
-      {/* ─── Recent Trades ────────────────────────────────────────────────── */}
+      {/* ─── Recent Trades (persisted to server) ──────────────────────────── */}
       <div className="space-y-2">
         <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-1.5">
           <History className="w-3.5 h-3.5 text-gray-400" />
@@ -643,13 +690,16 @@ export function TradingPostPanel() {
               {tradeHistory.length}
             </Badge>
           )}
+          {isLoadingHistory && (
+            <Loader2 className="w-3 h-3 text-gray-500 animate-spin" />
+          )}
         </h3>
         {tradeHistory.length === 0 ? (
           <div className="bg-card border border-cyan-900/20 rounded-lg p-4 text-center text-gray-500 text-xs">
-            No trades yet. Exchange resources to get started!
+            {isLoadingHistory ? 'Loading trade history...' : 'No trades yet. Exchange resources to get started!'}
           </div>
         ) : (
-          <div className="space-y-1 max-h-48 overflow-y-auto game-scrollbar">
+          <div className="space-y-1 max-h-64 overflow-y-auto game-scrollbar">
             {tradeHistory.map((entry) => {
               const ticksAgo = gameTick - entry.tick;
               return (
@@ -666,11 +716,16 @@ export function TradingPostPanel() {
                   <GameIcon icon={RESOURCE_META[entry.receiveResource]?.icon} size={12} className="inline-flex text-gray-400" />
                   <span className="font-mono text-violet-400">{entry.receiveAmount.toFixed(1)}</span>
                   <span className="text-gray-500">{RESOURCE_META[entry.receiveResource]?.name ?? entry.receiveResource}</span>
-                  {entry.serverValidated && (
-                    <span className="text-[8px] text-green-500 ml-1">✓</span>
+                  {entry.serverValidated ? (
+                    <span className="text-[8px] text-green-500 ml-1" title="Server-validated">✓</span>
+                  ) : (
+                    <span className="text-[8px] text-yellow-500 ml-1" title="Optimistic (not server-validated)">⚠</span>
                   )}
                   <span className="ml-auto text-[10px] text-gray-600 flex-shrink-0">
-                    {ticksAgo === 0 ? 'just now' : `${ticksAgo} ticks ago`}
+                    {entry.createdAt
+                      ? timeAgo(entry.createdAt)
+                      : ticksAgo === 0 ? 'just now' : `${ticksAgo} ticks ago`
+                    }
                   </span>
                 </motion.div>
               );
@@ -689,8 +744,9 @@ export function TradingPostPanel() {
               Exchange rates are based on base market values with a {(COMMISSION_RATE * 100).toFixed(0)}% commission.
             </p>
             <p>
-              <span className="text-green-400 font-semibold">Security:</span> All trades are now validated by the server to prevent cheating.
-              If the server is unreachable, trades proceed optimistically but may be flagged.
+              <span className="text-green-400 font-semibold">Security:</span> All trades are validated by the server to prevent cheating.
+              Trades are persisted to your history and survive page refreshes.
+              If the server is unreachable, trades proceed optimistically and are flagged (⚠).
             </p>
             <p>
               <span className="text-gray-400 font-semibold">Tip:</span> Selling resources on the Market and buying others is more efficient,
