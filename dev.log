@@ -10,11 +10,7 @@ You can learn more, including how to opt-out if you'd not like to participate in
 https://nextjs.org/telemetry
 
 ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
-✓ Ready in 986ms
-○ Compiling /admin/login ...
- GET /admin/login 200 in 4.9s (compile: 4.6s, proxy.ts: 63ms, render: 155ms)
- GET /api/icons?t=1780964728854 200 in 693ms (compile: 362ms, proxy.ts: 6ms, render: 325ms)
- GET /api/game/definitions 200 in 3.0s (compile: 480ms, proxy.ts: 5ms, render: 2.5s)
+✓ Ready in 947ms
 ○ Compiling / ...
- GET / 200 in 3.3s (compile: 3.1s, proxy.ts: 4ms, render: 140ms)
-: 3.1s, proxy.ts: 4ms, render: 140ms)
+ GET / 200 in 5.4s (compile: 5.0s, proxy.ts: 60ms, render: 310ms)
+ 5.0s, proxy.ts: 60ms, render: 310ms)
