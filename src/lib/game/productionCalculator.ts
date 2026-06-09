@@ -22,12 +22,20 @@ import {
   BUILDING_DEFS,
   WORKER_DEFS,
   WEATHER_DEFS,
+  RESEARCH_TREE,
 } from './configCache';
+import {
+  ModifierRegistry,
+  ModifierEngine,
+  buildModifierRegistry,
+} from './modifierEngine';
 
 // ─── Types ───────────────────────────────────────────────────────────
 
 /** Precomputed multipliers — derived from state, not duplicating it. */
 export interface MultiplierCache {
+  // Modifier engine (new architecture)
+  modifierEngine: ModifierEngine | null;
   // Event multipliers
   eventProductionGlobal: number;
   eventProductionTargeted: Map<string, number>;  // buildingType → multiplier
@@ -74,6 +82,9 @@ export interface MultiplierCache {
 
   // Endgame
   megaFactoryUnlocked: boolean;
+
+  // Source tracking: which architecture produced this cache
+  _source: 'legacy' | 'modifierEngine';
 }
 
 /** Per-building production result (per tick). */
@@ -285,7 +296,24 @@ export function buildMultipliers(state: GameState): MultiplierCache {
   specificBuildingBonuses.set('droneShipyard', advancedRoboticsBonus);
   specificBuildingBonuses.set('quantumLab', quantumComputingBonus);
 
+  // Build modifier registry for the new architecture
+  const registry = buildModifierRegistry(state, RESEARCH_TREE, WEATHER_DEFS);
+  const modifierEngine = new ModifierEngine(registry);
+
+  // Populate specificBuildingBonuses from modifier engine
+  // (replaces hardcoded specificBuildingBonuses map)
+  const modifierSpecificBonuses = new Map<string, number>();
+  // Collect all modifiers targeting production.building.* to build the map
+  for (const mod of registry.getAll()) {
+    if (mod.target.startsWith('production.building.') && mod.operation === 'multiply') {
+      const buildingType = mod.subTarget ?? mod.target.replace('production.building.', '');
+      const existing = modifierSpecificBonuses.get(buildingType) ?? 0;
+      modifierSpecificBonuses.set(buildingType, existing + (mod.value - 1));
+    }
+  }
+
   return {
+    modifierEngine,
     eventProductionGlobal,
     eventProductionTargeted,
     eventPowerConsumption,
@@ -300,7 +328,7 @@ export function buildMultipliers(state: GameState): MultiplierCache {
     t1FactoryBonus: efficientSmeltingBonus,
     t2FactoryBonus: advancedElectronicsBonus,
     t3FactoryBonus: metabolicEngineeringBonus,
-    specificBuildingBonuses,
+    specificBuildingBonuses: modifierSpecificBonuses.size > 0 ? modifierSpecificBonuses : specificBuildingBonuses,
     productionBonus: productionPrestigeBonus + megaProductionBonus,
     powerBonus: powerPrestigeBonus + megaPowerBonus,
     researchBonus: researchPrestigeBonus + megaResearchBonus,
@@ -313,6 +341,7 @@ export function buildMultipliers(state: GameState): MultiplierCache {
     hasPowerOptimization,
     workersByBuilding,
     megaFactoryUnlocked: state.prestigeState.megaFactoryUnlocked,
+    _source: 'modifierEngine' as const,
   };
 }
 

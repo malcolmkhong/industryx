@@ -26,6 +26,11 @@ import {
   emptyProductionSnapshot,
 } from './productionCalculator';
 import { GameConfig } from './config';
+import {
+  ModifierRegistry,
+  ModifierEngine,
+  buildModifierRegistry,
+} from './modifierEngine';
 
 // ─── Server-Side Config Accessors ────────────────────────────────────────
 
@@ -193,6 +198,7 @@ export function buildMultipliersServer(
   specificBuildingBonuses.set('quantumLab', quantumComputingBonus);
 
   return {
+    modifierEngine: null, // Server version doesn't use modifier engine yet
     eventProductionGlobal,
     eventProductionTargeted,
     eventPowerConsumption,
@@ -220,6 +226,7 @@ export function buildMultipliersServer(
     hasPowerOptimization,
     workersByBuilding,
     megaFactoryUnlocked: state.prestigeState.megaFactoryUnlocked,
+    _source: 'legacy' as const,
   };
 }
 
