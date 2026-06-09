@@ -1,4 +1,3 @@
-import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 // Paths that should bypass auth checks entirely (let them handle their own auth)
@@ -11,18 +10,28 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Skip middleware logic entirely for auth callback routes
-  // to prevent double code exchange (middleware + route handler both calling exchangeCodeForSession)
   if (AUTH_ROUTES.some((path) => pathname.startsWith(path))) {
     return NextResponse.next()
   }
+
+  // If Supabase is not configured, skip auth checks entirely
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return NextResponse.next()
+  }
+
+  // Only import and use Supabase when credentials are available
+  const { createServerClient } = await import('@supabase/ssr')
 
   let supabaseResponse = NextResponse.next({
     request,
   })
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll() {

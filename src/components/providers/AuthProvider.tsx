@@ -1,9 +1,14 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 import { initServerValidation, disableServerValidation } from '@/lib/game/serverActions';
+
+// Check if Supabase is configured
+const isSupabaseConfigured = !!(
+  process.env.NEXT_PUBLIC_SUPABASE_URL &&
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
 
 interface AuthState {
   user: User | null;
@@ -16,7 +21,7 @@ interface AuthState {
 const AuthContext = createContext<AuthState>({
   user: null,
   session: null,
-  loading: true,
+  loading: false,
   signInWithGoogle: async () => {},
   signOut: async () => {},
 });
@@ -28,42 +33,73 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  const [loading, setLoading] = useState(isSupabaseConfigured);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    if (!isSupabaseConfigured) {
+      // No Supabase configured — skip auth entirely
       setLoading(false);
+      return;
+    }
 
-      // Initialize server validation if logged in
-      if (session?.user?.id) {
-        initServerValidation(session.user.id);
-      }
-    });
+    // Dynamically import Supabase only when configured
+    let mounted = true;
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+    const initAuth = async () => {
+      const { createBrowserClient } = await import('@supabase/ssr');
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+
+      // Get initial session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (mounted) {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
 
-        // Update server validation state
         if (session?.user?.id) {
           initServerValidation(session.user.id);
-        } else {
-          disableServerValidation();
         }
       }
-    );
 
-    return () => subscription.unsubscribe();
-  }, [supabase.auth]);
+      // Listen for auth changes
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        (_event, session) => {
+          if (!mounted) return;
+          setSession(session);
+          setUser(session?.user ?? null);
+          setLoading(false);
+
+          if (session?.user?.id) {
+            initServerValidation(session.user.id);
+          } else {
+            disableServerValidation();
+          }
+        }
+      );
+
+      return () => {
+        mounted = false;
+        subscription.unsubscribe();
+      };
+    };
+
+    const cleanup = initAuth();
+    return () => {
+      mounted = false;
+      cleanup.then(fn => fn?.());
+    };
+  }, []);
 
   const signInWithGoogle = useCallback(async () => {
+    if (!isSupabaseConfigured) return;
+    const { createBrowserClient } = await import('@supabase/ssr');
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -73,19 +109,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) {
       console.error('Google sign-in error:', error.message);
     }
-  }, [supabase.auth]);
+  }, []);
 
   const signOut = useCallback(async () => {
-    // Disable server validation on sign out
     disableServerValidation();
-
+    if (!isSupabaseConfigured) {
+      setUser(null);
+      setSession(null);
+      return;
+    }
+    const { createBrowserClient } = await import('@supabase/ssr');
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
     const { error } = await supabase.auth.signOut();
     if (error) {
       console.error('Sign-out error:', error.message);
     }
     setUser(null);
     setSession(null);
-  }, [supabase.auth]);
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, session, loading, signInWithGoogle, signOut }}>

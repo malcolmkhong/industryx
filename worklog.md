@@ -475,3 +475,26 @@ Stage Summary:
 - Rate tracking added to game tick covering all income/expense sources
 - Server engine also updated for consistency
 - Visual: dark themed table with icons, color-coded income/expense/net, consistent with resource table design
+
+---
+Task ID: 12
+Agent: Main Agent
+Task: Fix Supabase-related crashes causing site to return 404 (missing env vars)
+
+Work Log:
+- Diagnosed root cause: Supabase env vars (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY) are missing from .env
+- This caused 3 crash points: middleware.ts, AuthProvider, and useOnlinePresence
+- Fixed middleware.ts: added early return NextResponse.next() when Supabase env vars are missing; dynamically imports @supabase/ssr only when configured
+- Fixed AuthProvider: added isSupabaseConfigured check; dynamically imports Supabase only when configured; sets loading=false immediately when unconfigured
+- Sub-agent also fixed useOnlinePresence hook and IconPreloader component (same pattern — graceful degradation without Supabase)
+- Fixed rpIncomeThisTick TDZ bug: moved currency rate tracker declarations before their first usage in store.ts gameTickAction
+- Game now loads and works with local data.ts defaults when Supabase is unavailable
+- Dev server OOM issue in sandbox continues (server dies after ~30-60 seconds when compiling pages)
+
+Stage Summary:
+- Site now returns 200 (was returning 404 due to middleware crash)
+- All Supabase-dependent code gracefully degrades when env vars are missing
+- rpIncomeThisTick ReferenceError fixed (variable declarations moved before usage)
+- Game works with local fallback data from data.ts via configCache.ts
+- API routes (/api/game/definitions, /api/config) still return 500 without Supabase but game works without them
+- To fully restore Supabase: add NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY to .env

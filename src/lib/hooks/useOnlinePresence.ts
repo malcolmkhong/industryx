@@ -1,9 +1,14 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/providers/AuthProvider';
 import type { RealtimePresenceState, RealtimeChannel } from '@supabase/supabase-js';
+
+// Check if Supabase is configured (same pattern as AuthProvider)
+const isSupabaseConfigured = !!(
+  process.env.NEXT_PUBLIC_SUPABASE_URL &&
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -45,7 +50,7 @@ type Listener = (state: OnlinePresenceState) => void;
 
 class PresenceManager {
   private channel: RealtimeChannel | null = null;
-  private supabase: ReturnType<typeof createClient> | null = null;
+  private supabase: any | null = null;
   private visitorId = '';
   private listeners = new Set<Listener>();
   private state: OnlinePresenceState = {
@@ -87,9 +92,30 @@ class PresenceManager {
 
   private connect(userRef: { current: any }) {
     if (typeof window === 'undefined') return;
+    if (!isSupabaseConfigured) {
+      // No Supabase configured — stay in offline mode
+      this.state = { ...this.state, isConnected: false };
+      this.notify();
+      return;
+    }
 
     this.visitorId = getOrCreateVisitorId();
-    this.supabase = createClient();
+
+    // Dynamically import Supabase only when configured
+    import('@supabase/ssr').then(({ createBrowserClient }) => {
+      this.supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+      this.setupChannel(userRef);
+    }).catch(() => {
+      this.state = { ...this.state, isConnected: false };
+      this.notify();
+    });
+  }
+
+  private setupChannel(userRef: { current: any }) {
+    if (!this.supabase) return;
 
     const channel = this.supabase.channel(CHANNEL_NAME, {
       config: {

@@ -26,29 +26,52 @@ function notifyAll() {
 }
 
 let loadPromise: Promise<void> | null = null;
+let loadFailed = false;
+
+const MAX_RETRIES = 3;
+const RETRY_DELAYS = [2000, 5000, 10000]; // increasing backoff
 
 function ensureLoaded() {
   if (loaded) return;
   if (loadPromise) return;
 
+  let retryCount = 0;
+
   loadPromise = (async () => {
-    try {
-      // Cache-bust to avoid stale responses where prefix was 'game-icons' instead of 'gi'
-      const response = await fetch(`/api/icons?t=${Date.now()}`, { cache: 'no-store' });
-      if (!response.ok) {
-        console.warn('[IconPreloader] Failed to load icons:', response.status);
-        return;
+    while (retryCount < MAX_RETRIES) {
+      try {
+        // Cache-bust to avoid stale responses where prefix was 'game-icons' instead of 'gi'
+        const response = await fetch(`/api/icons?t=${Date.now()}`, { cache: 'no-store' });
+        if (!response.ok) {
+          console.warn(`[IconPreloader] Failed to load icons (attempt ${retryCount + 1}):`, response.status);
+          retryCount++;
+          if (retryCount < MAX_RETRIES) {
+            await new Promise(r => setTimeout(r, RETRY_DELAYS[retryCount - 1]));
+            continue;
+          }
+          break;
+        }
+        const data = await response.json();
+        if (data && data.icons) {
+          addCollection(data);
+          loaded = true;
+          notifyAll();
+          console.log(`[IconPreloader] Loaded ${Object.keys(data.icons).length} icons with prefix "${data.prefix}"`);
+          return;
+        }
+      } catch (error) {
+        console.warn(`[IconPreloader] Failed to load icons (attempt ${retryCount + 1}):`, error);
+        retryCount++;
+        if (retryCount < MAX_RETRIES) {
+          await new Promise(r => setTimeout(r, RETRY_DELAYS[retryCount - 1]));
+          continue;
+        }
       }
-      const data = await response.json();
-      if (data && data.icons) {
-        addCollection(data);
-        loaded = true;
-        notifyAll();
-        console.log(`[IconPreloader] Loaded ${Object.keys(data.icons).length} icons with prefix "${data.prefix}"`);
-      }
-    } catch (error) {
-      console.warn('[IconPreloader] Failed to load icons:', error);
     }
+    // All retries exhausted — allow the game to render without custom icons
+    loadFailed = true;
+    notifyAll();
+    console.warn('[IconPreloader] Could not load icons after retries — proceeding without them');
   })();
 }
 
@@ -60,7 +83,7 @@ function ensureLoaded() {
 export function IconPreloader({ children }: { children: React.ReactNode }) {
   // useSyncExternalStore ensures all instances re-render when icons load
   const version = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  const isReady = loaded || version > 0;
+  const isReady = loaded || loadFailed || version > 0;
 
   // Start loading on first render
   if (!loaded && !loadPromise && typeof window !== 'undefined') {
