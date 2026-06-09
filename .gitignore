@@ -55,3 +55,19 @@ agent-ctx/
 
 # MCP config (contains tokens)
 .vscode/mcp.json
+
+# QA/downloaded screenshots
+download/
+
+# Mini services (backend merged into main project)
+mini-services/
+
+# Z scripts runtime logs
+.zscripts/
+
+# Keep-alive script
+keep-alive.sh
+keep-alive.log
+
+# Server logs
+server.log

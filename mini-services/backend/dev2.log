@@ -1,7 +1,0 @@
-▲ Next.js 16.2.7 (webpack)
-- Local:         http://localhost:3001
-- Network:       http://21.0.10.172:3001
-- Environments: .env
-✓ Ready in 260ms
-⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
-
