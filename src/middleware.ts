@@ -1,14 +1,21 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-// Admin paths that don't require auth (login page, auth callback)
-const ADMIN_PUBLIC_PATHS = ['/admin/login', '/admin/auth/callback']
+// Paths that should bypass auth checks entirely (let them handle their own auth)
+const AUTH_ROUTES = ['/admin/login', '/admin/auth/callback', '/api/auth/']
 
 // API routes handle their own auth — let them through
 const API_PREFIX = '/api/'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  // Skip middleware logic entirely for auth callback routes
+  // to prevent double code exchange (middleware + route handler both calling exchangeCodeForSession)
+  if (AUTH_ROUTES.some((path) => pathname.startsWith(path))) {
+    return NextResponse.next()
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -44,8 +51,7 @@ export async function middleware(request: NextRequest) {
   // Admin route protection — only for /admin/* page routes (not API)
   if (
     pathname.startsWith('/admin') &&
-    !pathname.startsWith(API_PREFIX) &&
-    !ADMIN_PUBLIC_PATHS.some((path) => pathname.startsWith(path))
+    !pathname.startsWith(API_PREFIX)
   ) {
     // No valid session → redirect to admin login
     if (!user) {
