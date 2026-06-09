@@ -34,23 +34,7 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      // Check if this is an admin login (redirected from /admin/login)
-      // by checking if the next param or referer indicates admin context
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      const adminUids = (process.env.ADMIN_UIDS || '')
-        .split(',')
-        .map((uid) => uid.trim())
-        .filter(Boolean);
-
-      if (user && adminUids.includes(user.id)) {
-        // Admin user → redirect to admin dashboard
-        return NextResponse.redirect(`${origin}/admin`);
-      }
-
-      // Regular user → redirect to the game
+      // Redirect to where the user came from (next param, defaults to /)
       return NextResponse.redirect(`${origin}${next}`);
     }
   }
