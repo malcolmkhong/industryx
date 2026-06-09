@@ -283,3 +283,29 @@ Stage Summary:
 - High findings documented: in-memory rate limiting (H1), fake security headers (H2), compute ownership bypass (H3), cloud sync fallback after rejection (H4), Supabase client recreation (H5), dual admin truth (H6)
 - Trading Post feature identified as violating security rules (client-only mutations without server validation)
 - From this point forward, no implementation should begin until AGENT.md and RULES.md are followed
+
+---
+Task ID: 7
+Agent: Main Agent
+Task: Deep audit pass — find ALL issues missed in initial audit, update AGENT.md + RULES.md with complete findings
+
+Work Log:
+- Performed deep second-pass audit of entire codebase via dedicated sub-agent
+- Read and analyzed 15+ files in detail: TradingPostPanel, store, types, configCache, route, GameSidebar, DashboardPanel, page.tsx, schema.prisma, package.json, supabase/server.ts, gameStateValidator, middleware.ts, verifyAuth.ts, rateLimiter.ts
+- Found 5 NEW CRITICAL issues not in previous audit:
+  - C1: Hardcoded HMAC fallback secret in gameStateValidator.ts:56
+  - C2: isAccountLocked returns {locked:false} on DB errors (fail-open security hole)
+  - C3: importSave() has no bounds validation — accepts Infinity, arbitrary keys
+  - C4: setGameSpeed() accepts any number — speed 1000 crashes browser
+  - C5: Trading Post bypasses server validation entirely (known from user feedback)
+- Found 6 HIGH issues: DashboardPanel full store subscription, in-memory rate limiter, TOCTOU race in cheat flagging, 14 dead action types, solarPanel naming collision, debounced persist data loss
+- Found 8 MEDIUM issues: config cache no re-render, setImmediate crash, hardcoded income rates, inaccurate rpPerTick, meaningless storageUtilization, stale Prisma schema, admin auth via env var, weak blueprint import
+- Found 6 LOW issues: Math.random IDs, incomplete keyboard shortcuts, dashboard shows only raw materials, quickTradeAmounts never updates, confirm() dialog, prisma in wrong dependencies
+- Rewrote /AGENT.md with comprehensive content: lessons learned from Trading Post, fail-closed principle, selector requirements, forbidden actions expanded
+- Rewrote /RULES.md with 3 appendices: Complete Issue Registry (25 issues), Why Each Rule Exists (code references), What Needs Immediate Attention (prioritized action plan)
+
+Stage Summary:
+- AGENT.md and RULES.md fully updated with ALL 25 issues found in deep audit
+- Each issue has: file, line numbers, what happens if unfixed, solution
+- Priority action plan: Fix 5 CRITICAL issues NOW, 5 HIGH issues SOON, 7 MEDIUM/LOW issues as tech debt
+- Top 5 immediate fixes: (1) Remove HMAC fallback, (2) Fail-closed on isAccountLocked, (3) Add bounds validation to importSave, (4) Validate game speed, (5) Fix Trading Post server integration
