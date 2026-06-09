@@ -263,3 +263,23 @@ Stage Summary:
 - Admin pages crash dev server (Turbopack + bun --hot conflict) — production will work
 - Published site 412 error is a Space-Z platform issue, not code issue
 - User should: (1) try publishing again, (2) if still 412, wait for Space-Z deployment to complete
+
+---
+Task ID: 6
+Agent: Main Agent
+Task: Full project audit and creation of AGENT.md + RULES.md
+
+Work Log:
+- Performed comprehensive audit of entire codebase via sub-agent
+- Analyzed: database/Supabase, authentication, authorization, API routes, state management, frontend architecture, security, deployment
+- Identified 7 CRITICAL, 6 HIGH, 8 MEDIUM, 5 LOW severity issues
+- Created /AGENT.md — defines AI agent operating constitution with development philosophy, decision framework, review processes, workflows for features/bugs/refactoring/deployment
+- Created /RULES.md — defines strict project-specific rules derived from actual audit findings with ALLOWED, FORBIDDEN, REQUIRED REVIEWS, DATABASE RULES, SECURITY RULES, PERFORMANCE RULES, ARCHITECTURE RULES, PRODUCTION RULES
+- Updated worklog.md
+
+Stage Summary:
+- AGENT.md and RULES.md created at project root
+- Critical findings documented: SSRF in Caddyfile (C1), secrets in .env (C2), hardcoded HMAC secret (C3), admin escalation (C4), advisory-only server validation (C5), unauthenticated endpoints (C6), stale Prisma schema (C7)
+- High findings documented: in-memory rate limiting (H1), fake security headers (H2), compute ownership bypass (H3), cloud sync fallback after rejection (H4), Supabase client recreation (H5), dual admin truth (H6)
+- Trading Post feature identified as violating security rules (client-only mutations without server validation)
+- From this point forward, no implementation should begin until AGENT.md and RULES.md are followed
