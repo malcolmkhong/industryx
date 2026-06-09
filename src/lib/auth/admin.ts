@@ -12,6 +12,18 @@ export interface AdminUser {
 }
 
 /**
+ * Check if a given userId is in the ADMIN_UIDS list.
+ * This is a lightweight check that doesn't require a session.
+ */
+export function isAdminUserId(userId: string): boolean {
+  const adminUids = (process.env.ADMIN_UIDS || "")
+    .split(",")
+    .map((uid) => uid.trim())
+    .filter(Boolean);
+  return adminUids.includes(userId);
+}
+
+/**
  * Verify that the current request is from an authenticated admin user.
  * Returns the admin user info on success, or a NextResponse error on failure.
  */

@@ -143,6 +143,8 @@ export function useCloudSync(): CloudSyncState {
           setServerStateHash(data.stateHash);
         }
         setIsServerAuthoritative(true);
+        // Clear blocked state on successful sync (block was temporary or resolved)
+        setBlockedState(null);
         return { success: true };
       }
 

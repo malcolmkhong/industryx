@@ -9,7 +9,7 @@ interface CloudSyncBlockBannerProps {
   onSignInAgain?: () => void;
 }
 
-const DISCORD_URL = 'https://discord.com/616340426474913794';
+const DISCORD_URL = 'https://discordapp.com/users/616340426474913794';
 
 function getBlockIcon(code: CloudBlockState['code']) {
   switch (code) {

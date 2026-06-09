@@ -11,7 +11,7 @@ interface RouteContext {
  * POST /api/admin/players/[id]/lock
  * Lock or unlock a player account.
  * Body: { locked: boolean, reason?: string }
- * Viewers cannot lock/unlock. Admins cannot lock themselves.
+ * Viewers cannot lock/unlock. Admins cannot lock themselves (but CAN unlock themselves).
  */
 export async function POST(
   request: NextRequest,
@@ -33,28 +33,36 @@ export async function POST(
     );
   }
 
-  // Admin cannot lock themselves
-  if (authResult.admin.id === playerId) {
+  // Parse request body
+  let body: { locked?: boolean; reason?: string };
+  try {
+    body = await request.json();
+  } catch {
     return NextResponse.json(
-      { error: "Forbidden", message: "Cannot lock/unlock your own account" },
+      { error: "Validation Error", message: "Invalid JSON body" },
+      { status: 400 }
+    );
+  }
+
+  const { locked, reason } = body;
+
+  if (typeof locked !== "boolean") {
+    return NextResponse.json(
+      { error: "Validation Error", message: "locked must be a boolean value" },
+      { status: 400 }
+    );
+  }
+
+  // Admin cannot lock themselves, but CAN unlock themselves
+  // (e.g., if auto-locked by cheat detection system)
+  if (authResult.admin.id === playerId && locked === true) {
+    return NextResponse.json(
+      { error: "Forbidden", message: "Cannot lock your own account" },
       { status: 403 }
     );
   }
 
   try {
-    const body = await request.json();
-    const { locked, reason } = body;
-
-    if (typeof locked !== "boolean") {
-      return NextResponse.json(
-        {
-          error: "Validation Error",
-          message: "locked must be a boolean value",
-        },
-        { status: 400 }
-      );
-    }
-
     const supabase = createServiceRoleClient();
 
     // Check that the player exists
@@ -71,10 +79,11 @@ export async function POST(
       );
     }
 
-    // Prepare update payload
+    // Prepare update payload — when unlocking, also clear cheat flags
     const updateData: Record<string, unknown> = {
       is_locked: locked,
       lock_reason: locked ? (reason || null) : null,
+      ...(locked === false ? { cheat_flag_count: 0 } : {}), // Reset cheat flags on unlock
     };
 
     const { data, error } = await supabase
@@ -104,16 +113,18 @@ export async function POST(
         locked,
         reason: locked ? reason : undefined,
         previous_state: existingPlayer.is_locked,
+        self_unlock: authResult.admin.id === playerId && !locked,
       },
     });
 
     const response = NextResponse.json({
       success: true,
-      message: `Account ${locked ? "locked" : "unlocked"} successfully`,
+      message: `Account ${locked ? "locked" : "unlocked"} successfully${!locked ? " — cheat flags reset" : ""}`,
       data: {
         user_id: data.user_id,
         is_locked: data.is_locked,
         lock_reason: data.lock_reason,
+        cheat_flag_count: data.cheat_flag_count,
       },
     });
 

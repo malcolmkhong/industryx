@@ -15,6 +15,7 @@ import {
   isAccountLocked,
   flagCheatAttempt,
 } from '@/lib/auth/gameStateValidator';
+import { isAdminUserId } from '@/lib/auth/admin';
 
 // GET /api/game/state?userId=xxx - Load authoritative server game state
 export async function GET(request: Request) {
@@ -32,11 +33,16 @@ export async function GET(request: Request) {
   if (rateLimitResponse) return rateLimitResponse;
 
   const lockStatus = await isAccountLocked(auth.userId);
-  if (lockStatus.locked) {
+  if (lockStatus.locked && !isAdminUserId(auth.userId)) {
     return NextResponse.json(
       { error: 'Account is locked', code: 'ACCOUNT_LOCKED', reason: lockStatus.reason },
       { status: 403 },
     );
+  }
+
+  // Admin override: if admin is locked (e.g., by cheat detection), allow access but log
+  if (lockStatus.locked && isAdminUserId(auth.userId)) {
+    console.warn(`[GameStateAPI] Admin ${auth.userId} bypassing account lock for GET`);
   }
 
   const supabase = createServiceRoleClient();
@@ -113,14 +119,21 @@ export async function POST(request: Request) {
   const rateLimitResponse = checkRateLimit(auth.userId, RATE_LIMITS.player, '/api/game/state');
   if (rateLimitResponse) return rateLimitResponse;
 
-  // Check if account is locked
+  // Check if account is locked (admins bypass lock — they can self-unlock via admin panel)
   const lockStatus = await isAccountLocked(auth.userId);
-  if (lockStatus.locked) {
+  if (lockStatus.locked && !isAdminUserId(auth.userId)) {
     return NextResponse.json(
       { error: 'Account is locked', code: 'ACCOUNT_LOCKED', reason: lockStatus.reason },
       { status: 403 },
     );
   }
+
+  // Admin override: if admin is locked (e.g., by cheat detection), allow save but log
+  if (lockStatus.locked && isAdminUserId(auth.userId)) {
+    console.warn(`[GameStateAPI] Admin ${auth.userId} bypassing account lock for POST`);
+  }
+
+  const isUserAdmin = isAdminUserId(auth.userId);
 
   const supabase = createServiceRoleClient();
 
@@ -137,38 +150,55 @@ export async function POST(request: Request) {
   const validation = validateGameState(gameState, previousState || undefined);
 
   if (validation.riskLevel === 'critical' || validation.riskLevel === 'high') {
-    await flagCheatAttempt(
-      auth.userId,
-      validation.riskLevel === 'critical' ? 'state_tampering' : 'money_manipulation',
-      `Server state sync rejected: ${validation.violations.join('; ')}`,
-      validation.riskLevel,
-    );
+    // Admin bypass: skip cheat flagging and allow save even with violations
+    if (isUserAdmin) {
+      console.warn(`[GameStateAPI] Admin ${auth.userId} bypassing cheat detection: ${validation.violations.join('; ')}`);
+      logActionAsync({
+        userId: auth.userId,
+        actionType: 'save',
+        payload: { source: 'server_game_state', violations: validation.violations, riskLevel: validation.riskLevel, adminBypass: true },
+        gameTick: Number(gameState.gameTick) || 0,
+        moneyAfter: Number(gameState.money) || 0,
+        checksum: validation.checksum,
+        isValid: false,
+        validationRisk: validation.riskLevel,
+        rejectionReason: `Admin bypass: ${validation.riskLevel} violation: ${validation.violations.join('; ')}`,
+      });
+      // Continue to save — don't reject
+    } else {
+      await flagCheatAttempt(
+        auth.userId,
+        validation.riskLevel === 'critical' ? 'state_tampering' : 'money_manipulation',
+        `Server state sync rejected: ${validation.violations.join('; ')}`,
+        validation.riskLevel,
+      );
 
-    logActionAsync({
-      userId: auth.userId,
-      actionType: 'save',
-      payload: { source: 'server_game_state', violations: validation.violations, riskLevel: validation.riskLevel },
-      gameTick: Number(gameState.gameTick) || 0,
-      moneyAfter: Number(gameState.money) || 0,
-      checksum: validation.checksum,
-      isValid: false,
-      validationRisk: validation.riskLevel,
-      rejectionReason: `${validation.riskLevel} violation: ${validation.violations.join('; ')}`,
-    });
+      logActionAsync({
+        userId: auth.userId,
+        actionType: 'save',
+        payload: { source: 'server_game_state', violations: validation.violations, riskLevel: validation.riskLevel },
+        gameTick: Number(gameState.gameTick) || 0,
+        moneyAfter: Number(gameState.money) || 0,
+        checksum: validation.checksum,
+        isValid: false,
+        validationRisk: validation.riskLevel,
+        rejectionReason: `${validation.riskLevel} violation: ${validation.violations.join('; ')}`,
+      });
 
-    return NextResponse.json(
-      {
-        error: 'Game state validation failed',
-        code: 'VALIDATION_FAILED',
-        violations: validation.violations,
-        riskLevel: validation.riskLevel,
-      },
-      { status: 400 },
-    );
+      return NextResponse.json(
+        {
+          error: 'Game state validation failed',
+          code: 'VALIDATION_FAILED',
+          violations: validation.violations,
+          riskLevel: validation.riskLevel,
+        },
+        { status: 400 },
+      );
+    }
   }
 
-  // Check client checksum
-  if (clientChecksum && clientChecksum !== validation.checksum) {
+  // Check client checksum (admins bypass — checksum may differ due to dev testing)
+  if (clientChecksum && clientChecksum !== validation.checksum && !isUserAdmin) {
     await flagCheatAttempt(
       auth.userId,
       'state_tampering',
@@ -180,6 +210,11 @@ export async function POST(request: Request) {
       { error: 'Checksum mismatch', code: 'CHECKSUM_MISMATCH' },
       { status: 400 },
     );
+  }
+
+  // Admin checksum mismatch log (don't reject, just log)
+  if (clientChecksum && clientChecksum !== validation.checksum && isUserAdmin) {
+    console.warn(`[GameStateAPI] Admin ${auth.userId} checksum mismatch (bypassed): Client=${clientChecksum}, Server=${validation.checksum}`);
   }
 
   const buildingsCount = ((gameState as Record<string, unknown>).buildings as unknown[])?.length || 0;
