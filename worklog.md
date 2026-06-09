@@ -394,3 +394,32 @@ Stage Summary:
 - Discord link: https://discord.com/616340426474913794
 - Session expired has recovery path (Sign In Again button)
 - Local game saves continue to work during block
+
+---
+Task ID: 10
+Agent: Main Agent
+Task: Fix Discord link + Admin self-unlock + Bypass cheat detection for admin UUIDs
+
+Work Log:
+- Updated Discord link from https://discord.com/616340426474913794 to https://discordapp.com/users/616340426474913794
+- Investigated admin self-unlock issue: /api/admin/players/[id]/lock route blocked admins from BOTH lock AND unlock of their own account (line 37-42)
+- Fixed lock route: admins can now unlock themselves (locked===false), but still cannot lock themselves (locked===true)
+- Added cheat_flag_count reset to 0 on unlock (so auto-lock won't immediately re-trigger)
+- Added isAdminUserId() helper to src/lib/auth/admin.ts for lightweight admin check without session
+- Updated /api/game/state route.ts with admin UUID bypasses:
+  - GET: admins bypass account lock check (logged as console.warn)
+  - POST: admins bypass account lock check (logged)
+  - POST: admins bypass cheat detection flagging (save allowed even with violations, logged with adminBypass flag)
+  - POST: admins bypass checksum mismatch rejection (logged)
+- Updated useCloudSync hook to clear blockedState on successful sync (so temporary blocks resolve)
+- All lint checks pass, pushed to GitHub
+
+Stage Summary:
+- Discord link updated to discordapp.com/users/616340426474913794
+- Admin (UUID: 1b4d0dc3-e4d2-4fc0-b731-9782243ad061) can now:
+  - Unlock themselves from admin panel (was previously blocked)
+  - Sync game state even if auto-locked by cheat detection
+  - Save game state even with validation violations (logged as admin bypass)
+  - Skip checksum validation (logged)
+- Unlocking also resets cheat_flag_count to prevent immediate re-lock
+- All admin bypasses are audit-logged for accountability
