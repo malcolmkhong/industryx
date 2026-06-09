@@ -1801,7 +1801,17 @@ export const useGameStore = create<GameStore>()(
         }
       },
 
-      setGameSpeed: (speed: number) => set({ gameSpeed: speed }),
+      // C4 FIX: Validate game speed against allowed values before setting.
+      // Without this, a player could set speed to 1000 via console, causing
+      // 1000 ticks/second, browser crash, and data corruption.
+      setGameSpeed: (speed: number) => {
+        const ALLOWED_SPEEDS = [1, 2, 5, 10] as const;
+        if (!ALLOWED_SPEEDS.includes(speed as typeof ALLOWED_SPEEDS[number])) {
+          console.warn(`[Security] Invalid game speed ${speed} rejected. Allowed: ${ALLOWED_SPEEDS.join(', ')}`);
+          return; // Reject invalid speed — do not update state
+        }
+        set({ gameSpeed: speed });
+      },
       togglePause: () => set(state => ({ paused: !state.paused })),
       setActiveTab: (tab: GameTab) => set({ activeTab: tab }),
 
@@ -2409,12 +2419,15 @@ export const useGameStore = create<GameStore>()(
         }
       },
 
+      // C3 FIX: importSave now has strict bounds validation.
+      // Previously, a crafted save could inject money: Infinity, arbitrary keys
+      // in resources, or corrupted buildings. Now all values are validated.
       importSave: (saveString: string) => {
         try {
           const json = decodeURIComponent(atob(saveString));
           const data = JSON.parse(json);
 
-          // Validate structure has key fields
+          // ── Validate structure has key fields ──
           if (
             typeof data.money !== 'number' ||
             typeof data.gameTick !== 'number' ||
@@ -2424,16 +2437,97 @@ export const useGameStore = create<GameStore>()(
             return false;
           }
 
+          // ── Validate monetary bounds ──
+          const MAX_MONEY = 1e15;
+          const MAX_RESOURCE = 1e12;
+          const MAX_RESEARCH_POINTS = 1e9;
+          const MAX_BUILDING_LEVEL = 100;
+          const MAX_BUILDINGS_COUNT = 500;
+          const MAX_GAME_TICK = 1e9;
+
+          // Reject if money is out of bounds
+          if (!Number.isFinite(data.money) || data.money < 0 || data.money > MAX_MONEY) {
+            console.warn(`[Security] Save import rejected: money=${data.money} out of bounds [0, ${MAX_MONEY}]`);
+            return false;
+          }
+          if (typeof data.totalMoneyEarned === 'number' && (!Number.isFinite(data.totalMoneyEarned) || data.totalMoneyEarned < 0 || data.totalMoneyEarned > MAX_MONEY)) {
+            console.warn(`[Security] Save import rejected: totalMoneyEarned out of bounds`);
+            return false;
+          }
+          if (typeof data.gameTick === 'number' && (!Number.isFinite(data.gameTick) || data.gameTick < 0 || data.gameTick > MAX_GAME_TICK)) {
+            console.warn(`[Security] Save import rejected: gameTick out of bounds`);
+            return false;
+          }
+          if (typeof data.researchPoints === 'number' && (!Number.isFinite(data.researchPoints) || data.researchPoints < 0 || data.researchPoints > MAX_RESEARCH_POINTS)) {
+            console.warn(`[Security] Save import rejected: researchPoints out of bounds`);
+            return false;
+          }
+
+          // ── Validate resources: only known resource keys, finite values, within bounds ──
+          const validResourceKeys = new Set(Object.keys(initialResources));
+          const sanitizedResources: Record<string, number> = {};
+          if (data.resources && typeof data.resources === 'object') {
+            for (const [key, value] of Object.entries(data.resources as Record<string, unknown>)) {
+              if (!validResourceKeys.has(key)) {
+                console.warn(`[Security] Save import: rejecting unknown resource key "${key}"`);
+                continue; // Skip unknown keys instead of accepting them
+              }
+              if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > MAX_RESOURCE) {
+                console.warn(`[Security] Save import: rejecting resource "${key}" with invalid value ${value}`);
+                continue; // Skip invalid values
+              }
+              sanitizedResources[key] = value;
+            }
+          }
+
+          // ── Validate buildings: check types exist in BUILDING_DEFS, levels in bounds ──
+          let sanitizedBuildings = data.buildings;
+          if (Array.isArray(data.buildings)) {
+            if (data.buildings.length > MAX_BUILDINGS_COUNT) {
+              console.warn(`[Security] Save import rejected: too many buildings (${data.buildings.length})`);
+              return false;
+            }
+            for (const b of data.buildings) {
+              if (!b || typeof b !== 'object') {
+                console.warn('[Security] Save import rejected: invalid building entry');
+                return false;
+              }
+              const building = b as Record<string, unknown>;
+              // Building type must exist in definitions
+              if (typeof building.type === 'string' && !BUILDING_DEFS[building.type as BuildingType]) {
+                console.warn(`[Security] Save import: unknown building type "${building.type}" — keeping but flagging`);
+                // We allow unknown types for forward-compatibility but log them
+              }
+              // Level must be in bounds
+              if (typeof building.level === 'number') {
+                if (!Number.isFinite(building.level) || building.level < 1 || building.level > MAX_BUILDING_LEVEL) {
+                  console.warn(`[Security] Save import rejected: building level ${building.level} out of bounds`);
+                  return false;
+                }
+              }
+            }
+          }
+
+          // ── Validate completedResearch: must be an array of strings ──
+          if (Array.isArray(data.completedResearch)) {
+            for (const r of data.completedResearch) {
+              if (typeof r !== 'string') {
+                console.warn('[Security] Save import rejected: non-string in completedResearch');
+                return false;
+              }
+            }
+          }
+
           const state = get();
           set({
-            money: typeof data.money === 'number' ? data.money : state.money,
-            totalMoneyEarned: typeof data.totalMoneyEarned === 'number' ? data.totalMoneyEarned : state.totalMoneyEarned,
-            gameTick: typeof data.gameTick === 'number' ? data.gameTick : state.gameTick,
-            resources: data.resources && typeof data.resources === 'object' ? { ...state.resources, ...data.resources } : state.resources,
+            money: data.money, // Already validated above
+            totalMoneyEarned: typeof data.totalMoneyEarned === 'number' ? Math.min(data.totalMoneyEarned, MAX_MONEY) : state.totalMoneyEarned,
+            gameTick: typeof data.gameTick === 'number' ? Math.min(data.gameTick, MAX_GAME_TICK) : state.gameTick,
+            resources: Object.keys(sanitizedResources).length > 0 ? { ...state.resources, ...sanitizedResources } : state.resources,
             resourceCapacity: data.resourceCapacity && typeof data.resourceCapacity === 'object' ? { ...state.resourceCapacity, ...data.resourceCapacity } : state.resourceCapacity,
-            buildings: Array.isArray(data.buildings) ? data.buildings : state.buildings,
+            buildings: Array.isArray(sanitizedBuildings) ? sanitizedBuildings : state.buildings,
             transportLines: Array.isArray(data.transportLines) ? data.transportLines : state.transportLines,
-            researchPoints: typeof data.researchPoints === 'number' ? data.researchPoints : state.researchPoints,
+            researchPoints: typeof data.researchPoints === 'number' ? Math.min(data.researchPoints, MAX_RESEARCH_POINTS) : state.researchPoints,
             completedResearch: Array.isArray(data.completedResearch) ? data.completedResearch : state.completedResearch,
             workers: Array.isArray(data.workers) ? data.workers : state.workers,
             contracts: Array.isArray(data.contracts) ? data.contracts : state.contracts,

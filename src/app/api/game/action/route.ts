@@ -25,6 +25,7 @@ import {
   validateResearchAction,
   validateUpgradeAction,
   validateTransportAction,
+  validateTradeAction,
 } from '@/lib/game/serverEngine';
 
 // ─── Types ──────────────────────────────────────────────────────────────
@@ -284,6 +285,40 @@ function handleTransportAction(
   return validateTransportAction(fromBuildingId, toBuildingId, resource, gameState, config);
 }
 
+// C5 FIX: Server-side trade validation handler
+function handleTradeAction(
+  payload: Record<string, unknown>,
+  gameState: Partial<GameState>,
+): ActionResponse {
+  const giveResource = payload.giveResource as string;
+  const giveAmount = payload.giveAmount as number;
+  const receiveResource = payload.receiveResource as string;
+  const receiveAmount = payload.receiveAmount as number;
+
+  if (!giveResource || !receiveResource) {
+    return { valid: false, error: 'Missing giveResource or receiveResource in payload' };
+  }
+  if (typeof giveAmount !== 'number' || typeof receiveAmount !== 'number') {
+    return { valid: false, error: 'Missing or invalid giveAmount/receiveAmount in payload' };
+  }
+
+  const result = validateTradeAction(giveResource, giveAmount, receiveResource, receiveAmount, gameState);
+
+  // If server calculates a different receive amount, return the corrected value
+  if (result.valid && result.correctedReceiveAmount !== undefined) {
+    return {
+      valid: true,
+      correctedState: {
+        // The client should use this amount instead of its own calculation
+        ...gameState,
+        _serverReceiveAmount: result.correctedReceiveAmount,
+      } as unknown as Partial<GameState>,
+    };
+  }
+
+  return { valid: result.valid, error: result.error };
+}
+
 // ─── Main POST Handler ──────────────────────────────────────────────────
 
 export async function POST(request: Request) {
@@ -318,11 +353,9 @@ export async function POST(request: Request) {
   }
 
   // Validate action type (expanded to support new types)
-  const validActions = ['build', 'sell', 'buy', 'research', 'upgrade', 'transport',
-    'set_game_speed', 'sell_market', 'buy_market', 'prestige', 'import',
-    'claim_quest', 'hire_worker', 'assign_worker', 'upgrade_worker',
-    'start_drone_mission', 'collect_drone', 'toggle_building',
-    'bulk_build', 'bulk_sell'];
+  // C5 FIX: Added 'trade' action for Trading Post server validation.
+  // H4 FIX: Removed dead action types that had no handlers.
+  const validActions = ['build', 'sell', 'buy', 'research', 'upgrade', 'transport', 'trade'];
   if (!action || !validActions.includes(action)) {
     return NextResponse.json(
       { valid: false, error: `Invalid action "${action}". Must be one of: ${validActions.join(', ')}` } satisfies ActionResponse,
@@ -375,6 +408,9 @@ export async function POST(request: Request) {
     case 'transport':
       result = handleTransportAction(payload, gameState, config);
       break;
+    case 'trade':
+      result = handleTradeAction(payload, gameState);
+      break;
     default:
       result = { valid: false, error: `Unhandled action: ${action}` };
   }
@@ -382,7 +418,7 @@ export async function POST(request: Request) {
   // ✅ Audit log the action (single write to player_actions only)
   logActionAsync({
     userId: auth.userId,
-    actionType: action as 'build' | 'sell' | 'buy' | 'research' | 'upgrade' | 'transport' | 'save' | 'load' | 'tick' | 'prestige' | 'import' | 'claim_quest' | 'hire_worker' | 'assign_worker' | 'upgrade_worker' | 'start_drone_mission' | 'collect_drone' | 'buy_market' | 'sell_market' | 'toggle_building' | 'set_game_speed' | 'bulk_build' | 'bulk_sell',
+    actionType: action as 'build' | 'sell' | 'buy' | 'research' | 'upgrade' | 'transport' | 'trade' | 'save' | 'load' | 'tick' | 'prestige' | 'import' | 'claim_quest' | 'hire_worker' | 'assign_worker' | 'upgrade_worker' | 'start_drone_mission' | 'collect_drone' | 'buy_market' | 'sell_market' | 'toggle_building' | 'set_game_speed' | 'bulk_build' | 'bulk_sell',
     payload,
     gameTick: Number(gameState.gameTick) || 0,
     moneyAfter: Number(gameState.money) || 0,

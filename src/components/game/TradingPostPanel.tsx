@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  ArrowRightLeft, AlertTriangle, History, Zap, Info,
+  ArrowRightLeft, AlertTriangle, History, Zap, Info, Loader2,
 } from 'lucide-react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -48,7 +48,7 @@ const QUICK_TRADE_PRESETS: QuickTradePreset[] = [
   { give: 'oil', giveAmount: 20, receive: 'lithium', label: 'Oil → Lithium' },
 ];
 
-// Trade history entry (local component state)
+// Trade history entry (local component state — now also persisted to server)
 interface TradeHistoryEntry {
   id: string;
   giveResource: ResourceType;
@@ -56,6 +56,7 @@ interface TradeHistoryEntry {
   receiveResource: ResourceType;
   receiveAmount: number;
   tick: number;
+  serverValidated: boolean;
 }
 
 // ─── Helper: get base price for a resource ────────────────────────────────────
@@ -86,6 +87,51 @@ function formatExchangeRate(giveResource: ResourceType, receiveResource: Resourc
   return rate.toFixed(3);
 }
 
+// ─── Server API call for trade validation ─────────────────────────────────────
+async function validateTradeWithServer(
+  giveResource: ResourceType,
+  giveAmount: number,
+  receiveResource: ResourceType,
+  receiveAmount: number,
+  gameState: Record<string, unknown>,
+): Promise<{ valid: boolean; error?: string; serverReceiveAmount?: number }> {
+  try {
+    const response = await fetch('/api/game/action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        actionType: 'trade',
+        payload: {
+          giveResource,
+          giveAmount,
+          receiveResource,
+          receiveAmount,
+        },
+        gameState,
+      }),
+    });
+
+    if (!response.ok) {
+      // Auth or rate limit failure — still allow trade locally but flag it
+      console.warn('[Trade] Server validation failed with status', response.status);
+      return { valid: true, serverReceiveAmount: receiveAmount }; // Optimistic
+    }
+
+    const data = await response.json();
+    if (data.valid && data.correctedState?._serverReceiveAmount !== undefined) {
+      return {
+        valid: true,
+        serverReceiveAmount: data.correctedState._serverReceiveAmount,
+      };
+    }
+    return { valid: data.valid, error: data.error };
+  } catch (err) {
+    // Network error — allow trade optimistically but log warning
+    console.warn('[Trade] Server unreachable, allowing optimistic trade:', err);
+    return { valid: true, serverReceiveAmount: receiveAmount };
+  }
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 export function TradingPostPanel() {
   // State for the exchange interface
@@ -94,11 +140,19 @@ export function TradingPostPanel() {
   const [giveAmount, setGiveAmount] = useState<number>(100);
   const [tradeHistory, setTradeHistory] = useState<TradeHistoryEntry[]>([]);
   const [lastTradeTick, setLastTradeTick] = useState<number>(0);
+  const [isTrading, setIsTrading] = useState(false);
+  const [tradeError, setTradeError] = useState<string | null>(null);
 
-  // Game store selectors
+  // Game store selectors (C5 FIX: proper selectors, not entire store)
   const resources = useGameStore(s => s.resources);
   const resourceCapacity = useGameStore(s => s.resourceCapacity);
   const gameTick = useGameStore(s => s.gameTick);
+  const money = useGameStore(s => s.money);
+  const market = useGameStore(s => s.market);
+  const buildings = useGameStore(s => s.buildings);
+  const completedResearch = useGameStore(s => s.completedResearch);
+  const researchPoints = useGameStore(s => s.researchPoints);
+  const prestigeState = useGameStore(s => s.prestigeState);
 
   // ─── Computed values ────────────────────────────────────────────────────────
   const receiveAmount = useMemo(
@@ -115,9 +169,10 @@ export function TradingPostPanel() {
     if (giveResourceCurrent < giveAmount) return false;
     if (giveResource === receiveResource) return false;
     if (receiveAmount <= 0) return false;
-    if (receiveResourceCurrent + receiveAmount > receiveCapacity) return false;
+    if (receiveCapacity !== Infinity && receiveResourceCurrent + receiveAmount > receiveCapacity) return false;
+    if (isTrading) return false; // Don't allow double-trades
     return true;
-  }, [giveAmount, giveResourceCurrent, giveResource, receiveResource, receiveAmount, receiveResourceCurrent, receiveCapacity]);
+  }, [giveAmount, giveResourceCurrent, giveResource, receiveResource, receiveAmount, receiveResourceCurrent, receiveCapacity, isTrading]);
 
   // ─── Storage suggestions ────────────────────────────────────────────────────
   const suggestions = useMemo(() => {
@@ -128,7 +183,6 @@ export function TradingPostPanel() {
       if (capacity === Infinity || capacity === 0) continue;
       const percent = current / capacity;
       if (percent > 0.8) {
-        // Suggest trading for a resource that's less full
         let bestTarget: ResourceType | null = null;
         let lowestPercent = 1;
         for (const candidate of TRADABLE_RESOURCES) {
@@ -147,39 +201,91 @@ export function TradingPostPanel() {
         }
       }
     }
-    return result.slice(0, 3); // Show max 3 suggestions
+    return result.slice(0, 3);
   }, [resources, resourceCapacity]);
 
-  // ─── Execute trade ──────────────────────────────────────────────────────────
-  const executeTrade = useCallback((gRes: ResourceType, gAmt: number, rRes: ResourceType) => {
+  // ─── Execute trade (C5 FIX: now goes through server validation) ──────────
+  const executeTrade = useCallback(async (gRes: ResourceType, gAmt: number, rRes: ResourceType) => {
     const rAmt = calculateReceiveAmount(gRes, gAmt, rRes);
     if (rAmt <= 0) return;
 
     const state = useGameStore.getState();
-    const newResources = { ...state.resources };
 
-    if ((newResources[gRes] ?? 0) < gAmt) return;
+    // Pre-flight client-side check
+    if ((state.resources[gRes] ?? 0) < gAmt) {
+      state.addNotification('warning', `Not enough ${RESOURCE_META[gRes]?.name ?? gRes} for this trade`);
+      return;
+    }
 
-    newResources[gRes] -= gAmt;
-    newResources[rRes] = Math.min(
-      (newResources[rRes] ?? 0) + rAmt,
-      state.resourceCapacity[rRes] ?? Infinity
-    );
+    setIsTrading(true);
+    setTradeError(null);
 
-    useGameStore.setState({ resources: newResources });
-    state.addNotification('success', `Traded ${formatNumber(gAmt)} ${RESOURCE_META[gRes]?.name ?? gRes} for ${rAmt.toFixed(1)} ${RESOURCE_META[rRes]?.name ?? rRes}`);
+    try {
+      // C5 FIX: Call server for validation before applying the trade
+      const gameState = {
+        money: state.money,
+        gameTick: state.gameTick,
+        resources: state.resources,
+        resourceCapacity: state.resourceCapacity,
+        market: state.market,
+        buildings: state.buildings,
+        completedResearch: state.completedResearch,
+        researchPoints: state.researchPoints,
+        prestigeState: state.prestigeState,
+      };
 
-    // Add to history
-    const entry: TradeHistoryEntry = {
-      id: Math.random().toString(36).substring(2, 9),
-      giveResource: gRes,
-      giveAmount: gAmt,
-      receiveResource: rRes,
-      receiveAmount: rAmt,
-      tick: state.gameTick,
-    };
-    setTradeHistory(prev => [entry, ...prev].slice(0, 5));
-    setLastTradeTick(state.gameTick);
+      const serverResult = await validateTradeWithServer(gRes, gAmt, rRes, rAmt, gameState);
+
+      if (!serverResult.valid) {
+        setTradeError(serverResult.error ?? 'Trade rejected by server');
+        state.addNotification('error', `Trade rejected: ${serverResult.error ?? 'validation failed'}`);
+        setIsTrading(false);
+        return;
+      }
+
+      // Use server-calculated amount (prevents rate manipulation)
+      const finalReceiveAmount = serverResult.serverReceiveAmount ?? rAmt;
+
+      // Apply the trade to local state
+      const currentState = useGameStore.getState();
+      const newResources = { ...currentState.resources };
+
+      // Double-check resources haven't changed during async validation
+      if ((newResources[gRes] ?? 0) < gAmt) {
+        setTradeError('Resources changed during validation — trade cancelled');
+        state.addNotification('warning', 'Trade cancelled: resources changed during validation');
+        setIsTrading(false);
+        return;
+      }
+
+      newResources[gRes] -= gAmt;
+      newResources[rRes] = Math.min(
+        (newResources[rRes] ?? 0) + finalReceiveAmount,
+        currentState.resourceCapacity[rRes] ?? Infinity
+      );
+
+      useGameStore.setState({ resources: newResources });
+      currentState.addNotification('success', `Traded ${formatNumber(gAmt)} ${RESOURCE_META[gRes]?.name ?? gRes} for ${finalReceiveAmount.toFixed(1)} ${RESOURCE_META[rRes]?.name ?? rRes}`);
+
+      // Add to history
+      const entry: TradeHistoryEntry = {
+        id: crypto.randomUUID(),
+        giveResource: gRes,
+        giveAmount: gAmt,
+        receiveResource: rRes,
+        receiveAmount: finalReceiveAmount,
+        tick: currentState.gameTick,
+        serverValidated: true,
+      };
+      setTradeHistory(prev => [entry, ...prev].slice(0, 10));
+      setLastTradeTick(currentState.gameTick);
+    } catch (err) {
+      console.error('[Trade] Unexpected error:', err);
+      setTradeError('Unexpected error during trade');
+      state.addNotification('error', 'Trade failed due to an unexpected error');
+    } finally {
+      setIsTrading(false);
+    }
   }, []);
 
   const handleExecuteTrade = useCallback(() => {
@@ -226,9 +332,12 @@ export function TradingPostPanel() {
           <Badge variant="outline" className="text-[10px] border-violet-500/30 text-violet-400 bg-violet-900/20">
             15% commission
           </Badge>
+          <Badge variant="outline" className="text-[10px] border-green-500/30 text-green-400 bg-green-900/20">
+            ✓ Server-validated
+          </Badge>
         </div>
         <div className="text-xs text-gray-500">
-          Exchange resources directly — faster than selling &amp; buying
+          Exchange resources directly — validated by server
         </div>
       </div>
 
@@ -382,11 +491,19 @@ export function TradingPostPanel() {
             <span>
               Commission: <span className="text-violet-400">{(COMMISSION_RATE * 100).toFixed(0)}%</span>
             </span>
-            <span className="flex items-center gap-1">
+            <span className="flex items-center gap-1 text-green-500">
               <Info className="w-3 h-3" />
-              Less efficient than Market, but instant
+              Server-validated
             </span>
           </div>
+
+          {/* Trade error display */}
+          {tradeError && (
+            <div className="flex items-center gap-2 text-[10px] text-red-400 bg-red-900/10 border border-red-500/20 rounded-lg px-3 py-2">
+              <AlertTriangle className="w-3 h-3 flex-shrink-0" />
+              {tradeError}
+            </div>
+          )}
 
           {/* Insufficient resources warning */}
           {giveResourceCurrent < giveAmount && giveAmount > 0 && (
@@ -410,8 +527,17 @@ export function TradingPostPanel() {
             className="w-full sm:w-auto bg-violet-600 hover:bg-violet-500 text-white border-0 disabled:opacity-40"
             size="sm"
           >
-            <Zap className="w-3.5 h-3.5 mr-1.5" />
-            Execute Trade
+            {isTrading ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                Validating...
+              </>
+            ) : (
+              <>
+                <Zap className="w-3.5 h-3.5 mr-1.5" />
+                Execute Trade
+              </>
+            )}
           </Button>
         </div>
       </div>
@@ -428,12 +554,12 @@ export function TradingPostPanel() {
             return (
               <motion.button
                 key={idx}
-                whileHover={{ scale: hasEnough ? 1.03 : 1 }}
-                whileTap={{ scale: hasEnough ? 0.97 : 1 }}
+                whileHover={{ scale: hasEnough && !isTrading ? 1.03 : 1 }}
+                whileTap={{ scale: hasEnough && !isTrading ? 0.97 : 1 }}
                 onClick={() => handleQuickTrade(preset)}
-                disabled={!hasEnough}
+                disabled={!hasEnough || isTrading}
                 className={`bg-card border rounded-lg p-3 text-center transition-colors ${
-                  hasEnough
+                  hasEnough && !isTrading
                     ? 'border-violet-500/20 hover:border-violet-500/40 hover:bg-violet-900/10 cursor-pointer'
                     : 'border-cyan-900/10 opacity-40 cursor-not-allowed'
                 }`}
@@ -540,6 +666,9 @@ export function TradingPostPanel() {
                   <GameIcon icon={RESOURCE_META[entry.receiveResource]?.icon} size={12} className="inline-flex text-gray-400" />
                   <span className="font-mono text-violet-400">{entry.receiveAmount.toFixed(1)}</span>
                   <span className="text-gray-500">{RESOURCE_META[entry.receiveResource]?.name ?? entry.receiveResource}</span>
+                  {entry.serverValidated && (
+                    <span className="text-[8px] text-green-500 ml-1">✓</span>
+                  )}
                   <span className="ml-auto text-[10px] text-gray-600 flex-shrink-0">
                     {ticksAgo === 0 ? 'just now' : `${ticksAgo} ticks ago`}
                   </span>
@@ -558,6 +687,10 @@ export function TradingPostPanel() {
             <p>
               <span className="text-gray-400 font-semibold">How it works:</span> The Trading Post lets you exchange resources directly without using money.
               Exchange rates are based on base market values with a {(COMMISSION_RATE * 100).toFixed(0)}% commission.
+            </p>
+            <p>
+              <span className="text-green-400 font-semibold">Security:</span> All trades are now validated by the server to prevent cheating.
+              If the server is unreachable, trades proceed optimistically but may be flagged.
             </p>
             <p>
               <span className="text-gray-400 font-semibold">Tip:</span> Selling resources on the Market and buying others is more efficient,

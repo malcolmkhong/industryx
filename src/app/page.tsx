@@ -133,7 +133,8 @@ export default function Home() {
   useEffect(() => {
     // Check if Zustand persist has already hydrated (synchronous check)
     if (useGameStore.persist.hasHydrated()) {
-      setMounted(true);
+      // Use microtask to avoid synchronous setState in effect (lint rule)
+      queueMicrotask(() => setMounted(true));
       return;
     }
     // If not yet hydrated, listen for the finishHydration event
