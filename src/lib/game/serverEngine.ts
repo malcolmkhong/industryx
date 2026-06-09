@@ -11,7 +11,6 @@ import {
   ResourceType,
   Worker,
   WorkerDefinition,
-  MegaProjectBonusType,
   WeatherType,
   ResourceAmount,
   CostResourceType,
@@ -75,16 +74,6 @@ function buildWorkerDefsMap(
   return result;
 }
 
-/**
- * Get weather definition from the Supabase-loaded config.
- */
-function getWeatherDef(
-  weatherType: string,
-  weatherConfig: GameConfig['weather'],
-): { productionMultiplier: number; solarMultiplier: number; windMultiplier: number } | null {
-  return weatherConfig[weatherType] ?? null;
-}
-
 // ─── Multiplier Cache Builder (Server Version) ───────────────────────────
 
 export function buildMultipliersServer(
@@ -92,8 +81,35 @@ export function buildMultipliersServer(
   config: GameConfig,
 ): MultiplierCache {
   const workerDefsMap = buildWorkerDefsMap(config.workers);
-  const researchSet = new Set(state.completedResearch);
 
+  // ── Build modifier registry from Supabase config ──────────────────────
+  // Transform config.research effects (Record<string,unknown>[]) to the
+  // format expected by buildModifierRegistry (Array<{type,target?,value}>)
+  const researchTree = config.research.map(r => ({
+    id: r.id,
+    effects: (r.effects ?? []) as Array<{ type: string; target?: string; value: number }>,
+  }));
+
+  // config.weather is a superset of what buildModifierRegistry expects —
+  // it has extra name/icon/description fields. Build a compatible weather
+  // defs record with only the multiplier fields.
+  const weatherDefs: Record<string, {
+    productionMultiplier: number;
+    solarMultiplier: number;
+    windMultiplier: number;
+  }> = {};
+  for (const [key, w] of Object.entries(config.weather)) {
+    weatherDefs[key] = {
+      productionMultiplier: w.productionMultiplier,
+      solarMultiplier: w.solarMultiplier,
+      windMultiplier: w.windMultiplier,
+    };
+  }
+
+  const registry = buildModifierRegistry(state, researchTree, weatherDefs);
+  const modifierEngine = new ModifierEngine(registry);
+
+  // ── Event multipliers (computed from state, not from modifier engine) ─
   let eventProductionGlobal = 1;
   let eventResearch = 1;
   let eventPowerConsumption = 1;
@@ -114,73 +130,52 @@ export function buildMultipliersServer(
     }
   }
 
-  const weatherDef = getWeatherDef(state.weather.current, config.weather);
-  const weatherProduction = weatherDef?.productionMultiplier ?? 1;
-  const weatherSolar = weatherDef?.solarMultiplier ?? 1;
-  const weatherWind = weatherDef?.windMultiplier ?? 1;
+  // ── Weather multipliers from modifier engine ──────────────────────────
+  const weatherProduction = modifierEngine.resolve('weather.production', 1);
+  const weatherSolar = modifierEngine.resolve('weather.solar', 1);
+  const weatherWind = modifierEngine.resolve('weather.wind', 1);
 
-  const extractorSpeedBonus = researchSet.has('basicAutomation') ? 0.15 : 0;
-  const factorySpeedBonus = researchSet.has('advancedAutomation') ? 0.25 : 0;
-  const workerEfficiencyResearchBonus = researchSet.has('workerTraining') ? 0.25 : 0;
-  const logistics1Bonus = researchSet.has('logistics1') ? 0.2 : 0;
-  const advancedLogisticsBonus = researchSet.has('advancedLogistics') ? 0.3 : 0;
-  const cargoDronesBonus = researchSet.has('cargoDrones') ? 0.25 : 0;
-  const transportBonus = logistics1Bonus + advancedLogisticsBonus + cargoDronesBonus;
-  const advancedDrillingBonus = researchSet.has('advancedDrilling') ? 0.20 : 0;
-  const efficientSmeltingBonus = researchSet.has('efficientSmelting') ? 0.15 : 0;
-  const advancedElectronicsBonus = researchSet.has('advancedElectronics') ? 0.15 : 0;
-  const metabolicEngineeringBonus = researchSet.has('metabolicEngineering') ? 0.20 : 0;
-  const aiOptimizationBonus = researchSet.has('aiOptimization') ? 0.20 : 0;
-  const advancedRoboticsBonus = researchSet.has('advancedRobotics') ? 0.25 : 0;
-  const quantumComputingBonus = researchSet.has('quantumComputing') ? 0.30 : 0;
+  // ── Category bonuses from modifier engine ─────────────────────────────
+  // extractorBonus = research (basicAutomation, advancedDrilling) + mega (extractionMultiplier)
+  const extractorBonus = modifierEngine.resolve('production.extractor', 1) - 1;
+  const factoryBonus = modifierEngine.resolve('production.factory', 1) - 1;
+  const t1FactoryBonus = modifierEngine.resolve('production.factory.t1', 1) - 1;
+  const t2FactoryBonus = modifierEngine.resolve('production.factory.t2', 1) - 1;
+  const t3FactoryBonus = modifierEngine.resolve('production.factory.t3', 1) - 1;
 
-  const productionPrestigeBonus = state.prestigeState.bonuses
-    .filter(b => b.purchased && b.effect.type === 'productionMultiplier')
-    .reduce((sum, b) => sum + b.effect.value, 0);
-  const powerPrestigeBonus = state.prestigeState.bonuses
-    .filter(b => b.purchased && b.effect.type === 'powerMultiplier')
-    .reduce((sum, b) => sum + b.effect.value, 0);
-  const researchPrestigeBonus = state.prestigeState.bonuses
-    .filter(b => b.purchased && b.effect.type === 'researchMultiplier')
-    .reduce((sum, b) => sum + b.effect.value, 0);
-  const prestigeMarketBonus = state.prestigeState.bonuses
-    .filter(b => b.purchased && b.effect.type === 'marketMultiplier')
-    .reduce((sum, b) => sum + b.effect.value, 0);
+  // ── Prestige + mega bonuses from modifier engine ──────────────────────
+  const productionBonus = modifierEngine.resolve('production.payout', 1) - 1;
+  const powerBonus = modifierEngine.resolve('power.production', 1) - 1;
+  const researchBonus = modifierEngine.resolve('research.speed', 1) - 1;
+  const workerEfficiencyTotal = modifierEngine.resolve('worker.efficiency', 1) - 1;
+  const marketBonus = modifierEngine.resolve('market.sellPrice', 1) - 1;
 
-  let megaProductionBonus = 0;
-  let megaPowerBonus = 0;
-  let megaResearchBonus = 0;
-  let megaExtractionBonus = 0;
-  let megaWorkerBonus = 0;
-  let megaTransportBonus = 0;
-  let megaMarketBonus = 0;
+  // ── Source-specific breakdowns (needed by cache consumers) ────────────
+  // extractionBonus = mega-only portion of production.extractor (kept for endgame)
+  const megaExtractionMods = registry.getModifiers('production.extractor')
+    .filter(m => m.source === 'megaProject');
+  const extractionBonus = megaExtractionMods.reduce((sum, m) => sum + (m.value - 1), 0);
 
-  for (const p of state.megaProjects) {
-    if (!p.completed) continue;
-    switch (p.bonus.type as MegaProjectBonusType) {
-      case 'productionMultiplier': megaProductionBonus += p.bonus.value; break;
-      case 'powerMultiplier': megaPowerBonus += p.bonus.value; break;
-      case 'researchMultiplier': megaResearchBonus += p.bonus.value; break;
-      case 'extractionMultiplier': megaExtractionBonus += p.bonus.value; break;
-      case 'workerEfficiency': megaWorkerBonus += p.bonus.value; break;
-      case 'transportMultiplier': megaTransportBonus += p.bonus.value; break;
-      case 'marketMultiplier': megaMarketBonus += p.bonus.value; break;
-      case 'buildingCostReduction': break;
-      case 'unlimitedStorage': break;
-    }
-  }
+  // transportMegaBonus = mega-only portion of transport.throughput
+  const megaTransportMods = registry.getModifiers('transport.throughput')
+    .filter(m => m.source === 'megaProject');
+  const transportMegaBonus = megaTransportMods.reduce((sum, m) => sum + (m.value - 1), 0);
 
+  // ── Transport efficiency ──────────────────────────────────────────────
+  const transportMultiplier = modifierEngine.resolveMultiplier('transport.throughput');
   const transportEfficiency = state.transportLines.length > 0
-    ? (state.transportLines.filter(t => t.active).length / Math.max(1, state.transportLines.length)) * (1 + transportBonus + megaTransportBonus)
+    ? (state.transportLines.filter(t => t.active).length / Math.max(1, state.transportLines.length)) * transportMultiplier
     : 1;
   const transportProductionBonus = 1 + 0.25 * Math.max(0, transportEfficiency - 1);
 
-  const hasMarketAnalysis = researchSet.has('marketAnalysis');
-  const marketResearchBonus = hasMarketAnalysis ? 0.2 : 0;
+  // ── Research flags via modifier engine ────────────────────────────────
+  const hasMarketAnalysis = modifierEngine.hasModifier('market.sellPrice', 'research');
+  const hasEnergyEfficiency = registry.getModifiers('power.consumption')
+    .some(m => m.source === 'research' && m.sourceId === 'energyEfficiency');
+  const hasPowerOptimization = registry.getModifiers('power.consumption')
+    .some(m => m.source === 'research' && m.sourceId === 'powerOptimization');
 
-  const hasEnergyEfficiency = researchSet.has('energyEfficiency');
-  const hasPowerOptimization = researchSet.has('powerOptimization');
-
+  // ── Workers lookup ────────────────────────────────────────────────────
   const workersByBuilding = new Map<string, Worker[]>();
   for (const w of state.workers) {
     if (w.assignedTo) {
@@ -190,15 +185,19 @@ export function buildMultipliersServer(
     }
   }
 
+  // ── Building-specific bonuses from modifier engine ────────────────────
+  // Replaces hardcoded specificBuildingBonuses map
   const specificBuildingBonuses = new Map<string, number>();
-  specificBuildingBonuses.set('aiLab', aiOptimizationBonus);
-  specificBuildingBonuses.set('neuralLab', aiOptimizationBonus);
-  specificBuildingBonuses.set('roboticsBay', advancedRoboticsBonus);
-  specificBuildingBonuses.set('droneShipyard', advancedRoboticsBonus);
-  specificBuildingBonuses.set('quantumLab', quantumComputingBonus);
+  for (const mod of registry.getAll()) {
+    if (mod.target.startsWith('production.building.') && mod.operation === 'multiply') {
+      const buildingType = mod.subTarget ?? mod.target.replace('production.building.', '');
+      const existing = specificBuildingBonuses.get(buildingType) ?? 0;
+      specificBuildingBonuses.set(buildingType, existing + (mod.value - 1));
+    }
+  }
 
   return {
-    modifierEngine: null, // Server version doesn't use modifier engine yet
+    modifierEngine,
     eventProductionGlobal,
     eventProductionTargeted,
     eventPowerConsumption,
@@ -208,25 +207,25 @@ export function buildMultipliersServer(
     weatherWind,
     powerEfficiency: 1,
     transportProductionBonus,
-    extractorBonus: extractorSpeedBonus + advancedDrillingBonus + megaExtractionBonus,
-    factoryBonus: factorySpeedBonus,
-    t1FactoryBonus: efficientSmeltingBonus,
-    t2FactoryBonus: advancedElectronicsBonus,
-    t3FactoryBonus: metabolicEngineeringBonus,
+    extractorBonus,
+    factoryBonus,
+    t1FactoryBonus,
+    t2FactoryBonus,
+    t3FactoryBonus,
     specificBuildingBonuses,
-    productionBonus: productionPrestigeBonus + megaProductionBonus,
-    powerBonus: powerPrestigeBonus + megaPowerBonus,
-    researchBonus: researchPrestigeBonus + megaResearchBonus,
-    extractionBonus: megaExtractionBonus,
-    workerEfficiencyTotal: workerEfficiencyResearchBonus + megaWorkerBonus,
-    transportMegaBonus: megaTransportBonus,
-    marketBonus: marketResearchBonus + prestigeMarketBonus + megaMarketBonus,
+    productionBonus,
+    powerBonus,
+    researchBonus,
+    extractionBonus,
+    workerEfficiencyTotal,
+    transportMegaBonus,
+    marketBonus,
     hasMarketAnalysis,
     hasEnergyEfficiency,
     hasPowerOptimization,
     workersByBuilding,
     megaFactoryUnlocked: state.prestigeState.megaFactoryUnlocked,
-    _source: 'legacy' as const,
+    _source: 'modifierEngine' as const,
   };
 }
 
