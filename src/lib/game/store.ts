@@ -2263,7 +2263,7 @@ export const useGameStore = create<GameStore>()(
 
         const pointsEarned = Math.floor(state.buildings.length * getBalance().prestige.cpPerBuilding + state.completedResearch.length * 2 + state.stats.contractsCompleted);
 
-        // Calculate score and rank for leaderboard entry
+        // Calculate score for leaderboard entry
         const score = Math.floor(
           state.totalMoneyEarned +
           state.buildings.length * 100 +
@@ -2279,29 +2279,6 @@ export const useGameStore = create<GameStore>()(
         const suffixes = ['Corp', 'Industries', 'Holdings', 'Systems', 'Dynamics', 'Syndicate', 'Group', 'Enterprises', 'Ventures', 'Network'];
         const corporationName = `${prefixes[Math.floor(Math.random() * prefixes.length)]} ${suffixes[Math.floor(Math.random() * suffixes.length)]}`;
 
-        // Create leaderboard entry before resetting
-        const entry: LeaderboardEntry = {
-          id: generateId(),
-          rank: 0, // Will be re-calculated when viewing
-          score,
-          corporationName,
-          buildingsBuilt: state.stats.factoriesBuilt,
-          researchCompleted: state.completedResearch.length,
-          contractsCompleted: state.stats.contractsCompleted,
-          totalMoneyEarned: state.totalMoneyEarned,
-          playTime: state.stats.playTime,
-          prestigeCount: state.prestigeState.totalPrestiges + 1,
-          achievedAt: state.gameTick,
-          rankName,
-        };
-
-        const existingEntries = state.leaderboardEntries;
-        // Sort and assign ranks
-        const updatedEntries = [...existingEntries, entry]
-          .sort((a, b) => b.score - a.score)
-          .slice(0, 10)
-          .map((e, i) => ({ ...e, rank: i + 1 }));
-
         set({
           ...createInitialState(),
           prestigeState: {
@@ -2310,11 +2287,72 @@ export const useGameStore = create<GameStore>()(
             megaFactoryUnlocked: state.prestigeState.megaFactoryUnlocked,
             bonuses: state.prestigeState.bonuses,
           },
-          leaderboardEntries: updatedEntries,
         });
 
         soundEngine.play('levelUp', 'events');
         get().updateQuestProgress('prestige', 1);
+
+        // Submit score to global leaderboard (fire-and-forget)
+        // This runs after the state reset so the user doesn't wait
+        queueMicrotask(async () => {
+          try {
+            // Get the current Supabase session token
+            const { createClient } = await import('@/lib/supabase/client');
+            const supabase = createClient();
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (!session?.access_token) {
+              // User is not authenticated — skip leaderboard submission
+              // They'll see the login prompt when they visit the leaderboard tab
+              return;
+            }
+
+            const response = await fetch('/api/leaderboard/submit', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({
+                corporationName,
+                score,
+                totalMoneyEarned: state.totalMoneyEarned,
+                buildingsBuilt: state.stats.factoriesBuilt,
+                researchCompleted: state.completedResearch.length,
+                contractsCompleted: state.stats.contractsCompleted,
+                prestigeCount: state.prestigeState.totalPrestiges + 1,
+                playTimeTicks: state.stats.playTime,
+                rankName,
+                gameTick: state.gameTick,
+                gameState: {
+                  money: state.money,
+                  totalMoneyEarned: state.totalMoneyEarned,
+                  gameTick: state.gameTick,
+                  buildings: state.buildings,
+                  researchPoints: state.researchPoints,
+                  completedResearch: state.completedResearch,
+                  prestigeState: state.prestigeState,
+                  stats: state.stats,
+                  gameSpeed: state.gameSpeed,
+                },
+              }),
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              if (data.rank) {
+                get().addNotification('success', `Score submitted! Rank #${data.rank.bestRank} — ${formatNumber(score)} pts`);
+              }
+            } else {
+              const data = await response.json().catch(() => ({}));
+              console.warn('[Prestige] Leaderboard submission failed:', data.error);
+              // Don't show error to user — the prestige itself succeeded
+            }
+          } catch (err) {
+            console.warn('[Prestige] Leaderboard submission error:', err);
+            // Non-blocking — prestige already succeeded
+          }
+        });
       },
 
       purchasePrestigeBonus: (id: string) => {

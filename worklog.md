@@ -119,3 +119,56 @@ Stage Summary:
 - Cloud-is-authoritative model: after first sign-in, cloud always wins
 - No more "keep local?" conflict dialogs — cloud is always correct
 - All code compiles and lints cleanly
+---
+Task ID: 5
+Agent: Main Agent
+Task: Implement Global Leaderboard with Supabase backend, remove local leaderboard
+
+Work Log:
+- Created Supabase migration 011_leaderboard.sql with:
+  - leaderboard table (id, user_id, corporation_name, score, stats, timestamps)
+  - RLS policies: public read, auth users insert own, service role full access
+  - Stored functions: get_leaderboard() and get_user_rank() for efficient queries
+  - Indexes on score (desc), user_id, created_at
+- Applied migration 011 to live Supabase via Management API
+- Verified table creation and RLS via REST API (anon can read, can't write)
+- Created /api/leaderboard GET endpoint:
+  - Fetches top 50 entries using get_leaderboard() stored function
+  - Returns user's rank info if authenticated (via userId query param)
+  - force-dynamic, proper error handling
+- Created /api/leaderboard/submit POST endpoint:
+  - Requires authentication (Bearer token)
+  - Server-side score validation (recalculates from game state)
+  - 10% tolerance for timing differences
+  - Game state integrity validation (rejects critical violations)
+  - Rate limiting: 1 submission per minute per user
+  - Uses server-calculated score (authoritative, not client-submitted)
+  - Audit logging on success/failure
+- Rewrote LeaderboardPanel.tsx:
+  - Fetches data from /api/leaderboard instead of local store
+  - Shows "Sign in to submit your score" notice for guests
+  - Shows user's best rank card when authenticated
+  - Auto-refreshes every 30 seconds
+  - Global badge, refresh button, "YOU" badge on own entries
+  - Time-ago display on entries
+  - Crown/Medal/Award icons for top 3
+  - Loading, error, and empty states
+- Updated doPrestige() in store.ts:
+  - Removed local leaderboardEntries update
+  - Added fire-and-forget submission to /api/leaderboard/submit
+  - Gets Supabase session token for auth
+  - Skips submission silently for guests
+  - Shows success notification with rank on submission
+  - Non-blocking — prestige always succeeds even if leaderboard fails
+- leaderboardEntries kept in store type for backward compatibility (existing saves)
+- Lint passes (0 errors)
+- TypeScript: no errors in new files
+- API tested: GET /api/leaderboard returns {"entries":[],"userRank":null}
+
+Stage Summary:
+- Global leaderboard fully implemented with Supabase backend
+- Server-side score validation prevents cheating
+- Guest users see login prompt when clicking leaderboard tab
+- Authenticated users' scores auto-submit on prestige
+- No local leaderboard data — all from Supabase
+- Migration 011 applied to live Supabase
