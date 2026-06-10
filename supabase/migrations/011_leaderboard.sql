@@ -31,17 +31,16 @@ CREATE INDEX IF NOT EXISTS idx_leaderboard_created_at ON leaderboard(created_at 
 -- Enable RLS
 ALTER TABLE leaderboard ENABLE ROW LEVEL SECURITY;
 
--- Policies
-
--- Service role: full access (used by API routes)
+-- Policies (idempotent: drop first if exists)
+DROP POLICY IF EXISTS "Service role full access on leaderboard" ON leaderboard;
 CREATE POLICY "Service role full access on leaderboard" ON leaderboard
   FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
 
--- Anyone can read the leaderboard (public viewing)
+DROP POLICY IF EXISTS "Anyone can read leaderboard" ON leaderboard;
 CREATE POLICY "Anyone can read leaderboard" ON leaderboard
   FOR SELECT USING (true);
 
--- Authenticated users can insert their own scores
+DROP POLICY IF EXISTS "Users can insert own leaderboard entry" ON leaderboard;
 CREATE POLICY "Users can insert own leaderboard entry" ON leaderboard
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
