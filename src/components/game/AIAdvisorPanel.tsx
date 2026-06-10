@@ -492,11 +492,11 @@ export default function AIAdvisorPanel() {
     if (store.powerGrid.efficiency < 0.5 && store.buildings.length > 0 && powerPlants.length > 0) {
       const pct = Math.round(store.powerGrid.efficiency * 100);
       // Find cheapest available power plant
-      const powerTypes: BuildingType[] = ['coalGenerator', 'solarPanel', 'windTurbine', 'nuclearReactor', 'fusionReactor'];
+      const powerTypes: BuildingType[] = ['coalGenerator', 'solarPanel', 'windTurbine', 'nuclearReactor', 'antimatterPowerPlant'];
       let cheapestType: BuildingType | null = null;
       let cheapestCost = Infinity;
       for (const pt of powerTypes) {
-        if (isBuildingUnlocked(pt, store.completedResearch, store.prestigeState, store.buildings.length)) {
+        if (isBuildingUnlocked(pt, store.completedResearch, store.prestigeState)) {
           const cost = getBuildingCost(pt, store.buildings.filter(b => b.type === pt).length);
           if (cost < cheapestCost) {
             cheapestCost = cost;
@@ -526,11 +526,11 @@ export default function AIAdvisorPanel() {
     } else if (store.powerGrid.efficiency < 0.8 && store.buildings.length > 0 && powerPlants.length > 0) {
       // Power warning — consumption > 70% of production
       const pct = Math.round(store.powerGrid.efficiency * 100);
-      const powerTypes: BuildingType[] = ['coalGenerator', 'solarPanel', 'windTurbine', 'nuclearReactor', 'fusionReactor'];
+      const powerTypes: BuildingType[] = ['coalGenerator', 'solarPanel', 'windTurbine', 'nuclearReactor', 'antimatterPowerPlant'];
       let cheapestType: BuildingType | null = null;
       let cheapestCost = Infinity;
       for (const pt of powerTypes) {
-        if (isBuildingUnlocked(pt, store.completedResearch, store.prestigeState, store.buildings.length)) {
+        if (isBuildingUnlocked(pt, store.completedResearch, store.prestigeState)) {
           const cost = getBuildingCost(pt, store.buildings.filter(b => b.type === pt).length);
           if (cost < cheapestCost) {
             cheapestCost = cost;
@@ -574,7 +574,7 @@ export default function AIAdvisorPanel() {
 
         // Find a consumer (factory) that processes this into something
         const consumers = findAllConsumersForResource(res);
-        const unbuiltConsumer = consumers.find(c => !builtTypes.has(c) && isBuildingUnlocked(c, store.completedResearch, store.prestigeState, store.buildings.length));
+        const unbuiltConsumer = consumers.find(c => !builtTypes.has(c) && isBuildingUnlocked(c, store.completedResearch, store.prestigeState));
 
         if (unbuiltConsumer) {
           const consumerDef = BUILDING_DEFS[unbuiltConsumer];
@@ -735,7 +735,7 @@ export default function AIAdvisorPanel() {
             const nextProducer = findProducerForResource(nextResource);
             if (nextProducer && !builtTypes.has(nextProducer)) {
               // Check if it's unlocked
-              if (isBuildingUnlocked(nextProducer, store.completedResearch, store.prestigeState, store.buildings.length)) {
+              if (isBuildingUnlocked(nextProducer, store.completedResearch, store.prestigeState)) {
                 missingStepIndex = i + 1;
                 break;
               }
@@ -839,7 +839,7 @@ export default function AIAdvisorPanel() {
               type: 'sell50',
               label: 'Sell 50%',
               resource: res,
-            } : consumerType && isBuildingUnlocked(consumerType, store.completedResearch, store.prestigeState, store.buildings.length) ? {
+            } : consumerType && isBuildingUnlocked(consumerType, store.completedResearch, store.prestigeState) ? {
               type: 'buildNow',
               label: `Build ${consumerName}`,
               buildingType: consumerType,
@@ -991,7 +991,7 @@ export default function AIAdvisorPanel() {
       let allLocked = true;
       for (const step of chain.steps) {
         const producer = findProducerForResource(step as ResourceType);
-        if (producer && isBuildingUnlocked(producer, store.completedResearch, store.prestigeState, store.buildings.length)) {
+        if (producer && isBuildingUnlocked(producer, store.completedResearch, store.prestigeState)) {
           allLocked = false;
           break;
         }

@@ -38,7 +38,7 @@ interface EventPacket {
 
 // ─── Configuration ──────────────────────────────────────────────────────────────
 
-const CLOUDFLARE_WORKER_URL = 'https://newsgenerator.malcolmkhong.workers.dev';
+const CLOUDFLARE_WORKER_URL = process.env.CLOUDFLARE_WORKER_URL || 'https://newsgenerator.malcolmkhong.workers.dev';
 const REQUEST_TIMEOUT_MS = 15_000;
 const MAX_EVENTS_PER_BATCH = 8;
 
