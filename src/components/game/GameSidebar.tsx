@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { GameTab } from '@/lib/game/types';
 import {
   Factory, Pickaxe, Cog, Truck, Zap, TrendingUp,
@@ -11,9 +11,6 @@ import {
   Activity, Coffee, Heart, ArrowRightLeft,
 } from 'lucide-react';
 import { LucideIcon } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useGameStore } from '@/lib/game/store';
-import { BUILDING_DEFS } from '@/lib/game/configCache';
 
 // ─── Navigation Tab Definition ─────────────────────────────────────────────────
 
@@ -260,170 +257,5 @@ export function GameSidebar({ activeTab, onTabChange }: GameSidebarProps) {
         </div>
       </div>
     </nav>
-  );
-}
-
-// ─── Building Category → Nav Group mapping ─────────────────────────────────────
-
-const BUILDING_CATEGORY_TO_NAV_GROUP: Record<string, string> = {
-  extractor: 'production',
-  factory: 'production',
-  power: 'production',
-  storage: 'production',
-};
-
-// ─── Mobile Navigation Component ───────────────────────────────────────────────
-
-interface MobileNavProps {
-  activeTab: GameTab;
-  onTabChange: (tab: GameTab) => void;
-}
-
-export function MobileNav({ activeTab, onTabChange }: MobileNavProps) {
-  // Ref for auto-scrolling category row
-  const categoryRowRef = useRef<HTMLDivElement>(null);
-  const categoryRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-
-  // Derive the active category from the active tab (no separate state needed)
-  const activeGroup = getGroupForTab(activeTab);
-  const activeCategory = activeGroup?.id ?? 'overview';
-
-  // Get building counts from store for badge display
-  const buildings = useGameStore(state => state.buildings);
-
-  // Compute active building counts per nav group
-  const buildingCountsByGroup = NAV_GROUPS.reduce<Record<string, number>>((acc, group) => {
-    acc[group.id] = 0;
-    return acc;
-  }, {});
-
-  buildings.forEach(b => {
-    if (!b.active) return;
-    const def = BUILDING_DEFS[b.type];
-    if (!def) return;
-    const navGroup = BUILDING_CATEGORY_TO_NAV_GROUP[def.category];
-    if (navGroup && navGroup in buildingCountsByGroup) {
-      buildingCountsByGroup[navGroup]++;
-    }
-  });
-
-  const currentGroup = NAV_GROUPS.find(g => g.id === activeCategory) ?? NAV_GROUPS[0];
-
-  // Auto-scroll active category into view when it changes
-  useEffect(() => {
-    const el = categoryRefs.current[activeCategory];
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-    }
-  }, [activeCategory]);
-
-  const handleCategoryChange = useCallback((categoryId: string) => {
-    // When user taps a category, switch to its first tab
-    const group = NAV_GROUPS.find(g => g.id === categoryId);
-    if (group && group.tabs.length > 0) {
-      onTabChange(group.tabs[0].id);
-    }
-  }, [onTabChange]);
-
-  const handleTabChange = useCallback((tabId: GameTab) => {
-    onTabChange(tabId);
-  }, [onTabChange]);
-
-  return (
-    <div className="flex lg:hidden flex-col border-t border-cyan-900/20 bg-[#0a0e17] mobile-bottom-bar">
-      {/* Gradient accent line at top */}
-      <div className="h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent flex-shrink-0" />
-
-      {/* Category selector - horizontal scroll */}
-      <div
-        ref={categoryRowRef}
-        className="flex items-center gap-1 px-2 pt-2 pb-1 overflow-x-auto mobile-tab-scroll"
-        style={{
-          background: 'linear-gradient(180deg, rgba(17,24,39,0.8) 0%, rgba(13,18,32,0.6) 100%)',
-        }}
-      >
-        {NAV_GROUPS.map(group => {
-          const GroupIcon = group.icon;
-          const isActive = activeCategory === group.id;
-          const isTabActive = group.tabs.some(t => t.id === activeTab);
-          const buildingCount = buildingCountsByGroup[group.id] ?? 0;
-
-          return (
-            <button
-              key={group.id}
-              ref={el => { categoryRefs.current[group.id] = el; }}
-              onClick={() => handleCategoryChange(group.id)}
-              className={`
-                relative flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-semibold
-                whitespace-nowrap min-h-[44px] min-w-[44px]
-                ${isActive
-                  ? `${group.color} bg-white/[0.08] shadow-[0_0_12px_rgba(0,255,242,0.08)] border border-white/[0.06]`
-                  : isTabActive
-                    ? 'text-cyan-300/70 bg-white/[0.03] border border-transparent'
-                    : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.02] border border-transparent'
-                }
-              `}
-            >
-              <GroupIcon className="w-3.5 h-3.5 flex-shrink-0" />
-              <span>{group.label}</span>
-              {buildingCount > 0 && (
-                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-cyan-500/20 text-cyan-300 text-[9px] font-bold leading-none">
-                  {buildingCount}
-                </span>
-              )}
-              {/* Animated indicator dot below active category */}
-              {isActive && (
-                <span
-                  className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-cyan-400"
-                />
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Subtle glow border between rows */}
-      <div
-        className="h-px flex-shrink-0"
-        style={{
-          background: activeCategory
-            ? 'linear-gradient(90deg, transparent, rgba(0,255,242,0.15), transparent)'
-            : 'linear-gradient(90deg, transparent, rgba(30,41,59,0.5), transparent)',
-        }}
-      />
-
-      {/* Tabs for selected category - with slide animation */}
-      <div className="flex items-center gap-1 px-2 py-2 overflow-x-auto mobile-tab-scroll bg-card/80"
-        style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}
-      >
-        <div
-          key={activeCategory}
-          className="flex items-center gap-1"
-        >
-            {currentGroup.tabs.map(tab => {
-              const TabIcon = tab.icon;
-              const isActive = activeTab === tab.id;
-
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => handleTabChange(tab.id)}
-                  className={`
-                    flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-medium
-                    whitespace-nowrap min-h-[44px] min-w-[44px]
-                    ${isActive
-                      ? `${tab.color} bg-white/[0.07] border border-white/[0.1] shadow-[0_0_10px_rgba(0,255,242,0.06)]`
-                      : 'text-gray-400 hover:text-gray-200 hover:bg-white/[0.03] border border-transparent'
-                    }
-                  `}
-                >
-                  <TabIcon className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
-      </div>
-    </div>
   );
 }

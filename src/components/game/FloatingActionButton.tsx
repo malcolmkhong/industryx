@@ -15,9 +15,10 @@ const SHORTCUT_SIZE = 44;
 const DRAG_THRESHOLD = 5;
 const DOUBLE_TAP_MS = 300;
 const EDGE_SNAP_THRESHOLD = 0.3;
-const BOTTOM_NAV_HEIGHT = 120;
-const SHORTCUT_RADIUS = 90;
-const MIN_MARGIN = 8;
+const BOTTOM_NAV_HEIGHT = 70; // Approximate bottom nav bar height (without safe area)
+const HEADER_HEIGHT = 80; // Approximate mobile header height (3 rows)
+const SHORTCUT_RADIUS = 80;
+const MIN_MARGIN = 12;
 
 // ─── Angle Computation ────────────────────────────────────────────────────────
 
@@ -182,10 +183,11 @@ export function FloatingActionButton({ onTabChange }: FloatingActionButtonProps)
   const clampPosition = useCallback((x: number, y: number) => {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    const maxY = vh - BOTTOM_NAV_HEIGHT - FAB_SIZE - MIN_MARGIN;
+    const safeTop = HEADER_HEIGHT + MIN_MARGIN;
+    const safeBottom = BOTTOM_NAV_HEIGHT + FAB_SIZE + MIN_MARGIN + parseInt(getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-bottom)') || '0', 10);
     return {
       x: Math.max(MIN_MARGIN, Math.min(vw - FAB_SIZE - MIN_MARGIN, x)),
-      y: Math.max(MIN_MARGIN, Math.min(maxY, y)),
+      y: Math.max(safeTop, Math.min(vh - safeBottom, y)),
     };
   }, []);
 
@@ -412,7 +414,7 @@ export function FloatingActionButton({ onTabChange }: FloatingActionButtonProps)
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={reducedMotion ? { duration: 0.01 } : { duration: 0.2 }}
-            className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm"
+            className="fixed inset-0 z-[35] bg-black/20 backdrop-blur-sm"
             onClick={() => setIsExpanded(false)}
             aria-hidden="true"
           />

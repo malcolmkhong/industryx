@@ -144,8 +144,7 @@ export function BottomNavigationBar({ activeTab, onTabChange }: BottomNavigation
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="absolute bottom-full left-0 right-0 mx-2 mb-1 rounded-xl border border-cyan-900/30 bg-[#0a0e17]/95 backdrop-blur-lg shadow-[0_-4px_24px_rgba(0,255,242,0.08)] overflow-hidden"
-            style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+            className="absolute bottom-full left-0 right-0 mx-1.5 mb-1.5 rounded-xl border border-cyan-900/30 bg-[#0a0e17]/95 backdrop-blur-lg shadow-[0_-4px_24px_rgba(0,255,242,0.08)] overflow-hidden"
           >
             {/* Panel header */}
             <div className="flex items-center gap-2 px-3 pt-2.5 pb-1.5 border-b border-cyan-900/20">
@@ -158,14 +157,14 @@ export function BottomNavigationBar({ activeTab, onTabChange }: BottomNavigation
               </span>
               <button
                 onClick={() => setExpandedGroupId(null)}
-                className="ml-auto p-1 rounded-md text-gray-500 hover:text-gray-300 hover:bg-white/[0.05] transition-colors"
+                className="ml-auto p-1.5 rounded-md text-gray-500 hover:text-gray-300 hover:bg-white/[0.05] transition-colors min-w-[32px] min-h-[32px] flex items-center justify-center"
                 aria-label="Close panel"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Sub-tab grid */}
+            {/* Sub-tab grid — 3 columns with better spacing */}
             <div className="grid grid-cols-3 gap-1 p-2">
               {expandedGroup.tabs.map((tab, i) => {
                 const TabIcon = tab.icon;
@@ -181,12 +180,12 @@ export function BottomNavigationBar({ activeTab, onTabChange }: BottomNavigation
                     exit="exit"
                     onClick={() => handleSubTabSelect(tab.id)}
                     className={`
-                      flex items-center gap-2 px-3 py-2.5 rounded-lg text-[12px] font-medium
+                      flex items-center gap-2 px-2.5 py-2.5 rounded-lg text-[11px] font-medium
                       min-h-[44px] transition-colors duration-150
                       ${
                         isActive
                           ? `${tab.color} bg-white/[0.08] border border-cyan-500/20 shadow-[0_0_12px_rgba(0,255,242,0.1)]`
-                          : 'text-gray-400 hover:text-gray-200 hover:bg-white/[0.04] border border-transparent'
+                          : 'text-gray-400 active:bg-white/[0.08] border border-transparent'
                       }
                     `}
                   >
@@ -214,10 +213,10 @@ export function BottomNavigationBar({ activeTab, onTabChange }: BottomNavigation
         <div
           className={`
             flex items-center
-            ${isCompact ? 'gap-0.5 px-1' : 'gap-0 px-0.5'}
+            ${isCompact ? 'gap-0 px-0.5' : 'gap-0 px-0.5'}
             justify-around
           `}
-          style={{ paddingTop: '4px', paddingBottom: '4px' }}
+          style={{ paddingTop: '6px', paddingBottom: '6px' }}
         >
           {/* Navigation group buttons */}
           {NAV_GROUPS.map(group => {
@@ -232,17 +231,16 @@ export function BottomNavigationBar({ activeTab, onTabChange }: BottomNavigation
                 onClick={() => handleGroupTap(group.id)}
                 className={`
                   relative flex items-center justify-center
-                  min-w-[44px] min-h-[44px] rounded-lg
+                  min-w-[40px] min-h-[40px] rounded-lg
                   transition-all duration-200
-                  ${
-                    isCompact ? 'flex-col items-center gap-0.5 px-1.5 py-1' : 'px-2 py-2'
-                  }
+                  active:scale-95
+                  ${isCompact ? 'flex-col items-center gap-0.5 px-1 py-1' : 'px-2 py-2'}
                   ${
                     isExpanded
                       ? `${group.color} bg-white/[0.1] shadow-[0_0_16px_rgba(0,255,242,0.12)]`
                       : hasActiveTab || isActiveGroup
                         ? `${group.color} bg-white/[0.04]`
-                        : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.03]'
+                        : 'text-gray-500 active:text-gray-300 active:bg-white/[0.06]'
                   }
                 `}
                 aria-label={group.label}
@@ -256,7 +254,7 @@ export function BottomNavigationBar({ activeTab, onTabChange }: BottomNavigation
                 {isCompact && (
                   <span
                     className={`
-                      text-[9px] font-medium leading-tight truncate max-w-[48px]
+                      text-[8px] font-medium leading-tight truncate max-w-[44px]
                       ${hasActiveTab || isActiveGroup || isExpanded ? 'opacity-100' : 'opacity-60'}
                     `}
                   >
@@ -282,8 +280,8 @@ export function BottomNavigationBar({ activeTab, onTabChange }: BottomNavigation
             onClick={toggleMode}
             className={`
               flex items-center justify-center
-              min-w-[44px] min-h-[44px] rounded-lg
-              text-gray-500 hover:text-cyan-400 hover:bg-white/[0.04]
+              min-w-[40px] min-h-[40px] rounded-lg
+              text-gray-500 active:text-cyan-400 active:bg-white/[0.06]
               transition-all duration-200
               ${isCompact ? 'flex-col items-center gap-0.5 px-1 py-1' : 'px-2 py-2'}
             `}
@@ -292,7 +290,7 @@ export function BottomNavigationBar({ activeTab, onTabChange }: BottomNavigation
             {isCompact ? (
               <>
                 <ChevronDown className="w-4 h-4" />
-                <span className="text-[9px] font-medium opacity-60">Quick</span>
+                <span className="text-[8px] font-medium opacity-60">Quick</span>
               </>
             ) : (
               <ChevronUp className="w-[18px] h-[18px]" />
