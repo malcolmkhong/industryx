@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/store';
+import { useShallow } from 'zustand/react/shallow';
 import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE, PRODUCTION_CHAINS } from '@/lib/game/configCache';
 import { ResourceType, BuildingType, GameTab } from '@/lib/game/types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -367,7 +368,26 @@ function ChainStatusDot({ status }: { status: ChainStatus }) {
 
 // --- Main Component ---
 export default function AIAdvisorPanel() {
-  const store = useGameStore();
+  // Use targeted selectors to avoid re-rendering on every tick
+  const {
+    powerGrid, buildings, productionSnapshot, resources, resourceCapacity,
+    money, completedResearch, prestigeState, activeResearch, researchPoints,
+    market, setActiveTab,
+  } = useGameStore(useShallow((state) => ({
+    powerGrid: state.powerGrid,
+    buildings: state.buildings,
+    productionSnapshot: state.productionSnapshot,
+    resources: state.resources,
+    resourceCapacity: state.resourceCapacity,
+    money: state.money,
+    completedResearch: state.completedResearch,
+    prestigeState: state.prestigeState,
+    activeResearch: state.activeResearch,
+    researchPoints: state.researchPoints,
+    market: state.market,
+    setActiveTab: state.setActiveTab,
+  })));
+
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
 
   const handleDismiss = useCallback((id: string) => {
@@ -375,8 +395,8 @@ export default function AIAdvisorPanel() {
   }, []);
 
   const handleAction = useCallback((tab: GameTab) => {
-    store.setActiveTab(tab);
-  }, [store]);
+    setActiveTab(tab);
+  }, [setActiveTab]);
 
   const handleQuickAction = useCallback((action: QuickAction) => {
     if (action.type === 'buildNow' && action.buildingType && action.affordable) {
@@ -400,15 +420,15 @@ export default function AIAdvisorPanel() {
   // --- Calculate Health Score with Breakdown ---
   const healthBreakdown = useMemo((): HealthBreakdown => {
     // Power Score (0-25)
-    const powerScore = Math.round(Math.min(25, store.powerGrid.efficiency * 25));
+    const powerScore = Math.round(Math.min(25, powerGrid.efficiency * 25));
 
     // Production Score (0-25) — resource balance
-    const allResources = Object.keys(store.productionSnapshot.production) as ResourceType[];
+    const allResources = Object.keys(productionSnapshot.production) as ResourceType[];
     let balancedCount = 0;
     let totalChecked = 0;
     for (const res of allResources) {
-      const consumption = store.productionSnapshot.consumption[res] ?? 0;
-      const production = store.productionSnapshot.production[res] ?? 0;
+      const consumption = productionSnapshot.consumption[res] ?? 0;
+      const production = productionSnapshot.production[res] ?? 0;
       if (consumption > 0 || production > 0) {
         totalChecked++;
         if (production >= consumption * 0.8) {
@@ -422,9 +442,9 @@ export default function AIAdvisorPanel() {
     let storageScoreSum = 0;
     let storageCount = 0;
     for (const res of allResources) {
-      const stock = store.resources[res] ?? 0;
-      const capacity = store.resourceCapacity[res] ?? 1;
-      if (capacity > 0 && (stock > 0 || store.productionSnapshot.production[res] > 0)) {
+      const stock = resources[res] ?? 0;
+      const capacity = resourceCapacity[res] ?? 1;
+      if (capacity > 0 && (stock > 0 || productionSnapshot.production[res] > 0)) {
         storageCount++;
         const fillRatio = stock / capacity;
         // Ideal range: 20-80%, penalize >90% (overfull) and <5% (starved)
@@ -440,8 +460,8 @@ export default function AIAdvisorPanel() {
     const storageScore = storageCount > 0 ? Math.round((storageScoreSum / storageCount) * 25) : 25;
 
     // Activity Score (0-25) — building activity rate
-    const totalBuildings = store.buildings.length;
-    const activeBuildings = store.buildings.filter(b => b.active).length;
+    const totalBuildings = buildings.length;
+    const activeBuildings = buildings.filter(b => b.active).length;
     const activityScore = totalBuildings > 0 ? Math.round((activeBuildings / totalBuildings) * 25) : 0;
 
     const total = Math.max(0, Math.min(100, powerScore + productionScore + storageScore + activityScore));
@@ -452,7 +472,7 @@ export default function AIAdvisorPanel() {
       activity: activityScore,
       total,
     };
-  }, [store.powerGrid, store.buildings, store.productionSnapshot, store.resources, store.resourceCapacity]);
+  }, [powerGrid, buildings, productionSnapshot, resources, resourceCapacity]);
 
   const healthScore = healthBreakdown.total;
 
@@ -460,15 +480,15 @@ export default function AIAdvisorPanel() {
   const recommendations = useMemo(() => {
     const recs: Recommendation[] = [];
     let recId = 0;
-    const builtTypes = new Set(store.buildings.map(b => b.type));
-    const currentMoney = store.money;
+    const builtTypes = new Set(buildings.map(b => b.type));
+    const currentMoney = money;
 
     // ===== 1. POWER WARNINGS (Priority: Critical) =====
 
     // No power plants at all but have buildings
-    const powerPlants = store.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power');
-    if (powerPlants.length === 0 && store.buildings.length > 0) {
-      const coalCost = getBuildingCost('coalGenerator', store.buildings.filter(b => b.type === 'coalGenerator').length);
+    const powerPlants = buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power');
+    if (powerPlants.length === 0 && buildings.length > 0) {
+      const coalCost = getBuildingCost('coalGenerator', buildings.filter(b => b.type === 'coalGenerator').length);
       const affordable = currentMoney >= coalCost;
       recs.push({
         id: `no-power-${recId++}`,
@@ -489,15 +509,15 @@ export default function AIAdvisorPanel() {
     }
 
     // Power grid critical
-    if (store.powerGrid.efficiency < 0.5 && store.buildings.length > 0 && powerPlants.length > 0) {
-      const pct = Math.round(store.powerGrid.efficiency * 100);
+    if (powerGrid.efficiency < 0.5 && buildings.length > 0 && powerPlants.length > 0) {
+      const pct = Math.round(powerGrid.efficiency * 100);
       // Find cheapest available power plant
       const powerTypes: BuildingType[] = ['coalGenerator', 'solarPanel', 'windTurbine', 'nuclearReactor', 'antimatterPowerPlant'];
       let cheapestType: BuildingType | null = null;
       let cheapestCost = Infinity;
       for (const pt of powerTypes) {
-        if (isBuildingUnlocked(pt, store.completedResearch, store.prestigeState)) {
-          const cost = getBuildingCost(pt, store.buildings.filter(b => b.type === pt).length);
+        if (isBuildingUnlocked(pt, completedResearch, prestigeState)) {
+          const cost = getBuildingCost(pt, buildings.filter(b => b.type === pt).length);
           if (cost < cheapestCost) {
             cheapestCost = cost;
             cheapestType = pt;
@@ -523,15 +543,15 @@ export default function AIAdvisorPanel() {
           label: 'Go to Power',
         },
       });
-    } else if (store.powerGrid.efficiency < 0.8 && store.buildings.length > 0 && powerPlants.length > 0) {
+    } else if (powerGrid.efficiency < 0.8 && buildings.length > 0 && powerPlants.length > 0) {
       // Power warning — consumption > 70% of production
-      const pct = Math.round(store.powerGrid.efficiency * 100);
+      const pct = Math.round(powerGrid.efficiency * 100);
       const powerTypes: BuildingType[] = ['coalGenerator', 'solarPanel', 'windTurbine', 'nuclearReactor', 'antimatterPowerPlant'];
       let cheapestType: BuildingType | null = null;
       let cheapestCost = Infinity;
       for (const pt of powerTypes) {
-        if (isBuildingUnlocked(pt, store.completedResearch, store.prestigeState)) {
-          const cost = getBuildingCost(pt, store.buildings.filter(b => b.type === pt).length);
+        if (isBuildingUnlocked(pt, completedResearch, prestigeState)) {
+          const cost = getBuildingCost(pt, buildings.filter(b => b.type === pt).length);
           if (cost < cheapestCost) {
             cheapestCost = cost;
             cheapestType = pt;
@@ -561,11 +581,11 @@ export default function AIAdvisorPanel() {
 
     // ===== 2. BOTTLENECK FIX (Priority: Critical/Important) =====
     // Detects when a raw resource is stockpiling but its Tier 1 product isn't being produced
-    for (const res of Object.keys(store.productionSnapshot.production) as ResourceType[]) {
-      const production = store.productionSnapshot.production[res] ?? 0;
-      const consumption = store.productionSnapshot.consumption[res] ?? 0;
-      const stock = store.resources[res] ?? 0;
-      const capacity = store.resourceCapacity[res] ?? 1;
+    for (const res of Object.keys(productionSnapshot.production) as ResourceType[]) {
+      const production = productionSnapshot.production[res] ?? 0;
+      const consumption = productionSnapshot.consumption[res] ?? 0;
+      const stock = resources[res] ?? 0;
+      const capacity = resourceCapacity[res] ?? 1;
 
       // Resource is being produced but not consumed, and it has a processor we haven't built
       if (production > consumption && production > 0.01 && (stock / capacity) > 0.3) {
@@ -574,12 +594,12 @@ export default function AIAdvisorPanel() {
 
         // Find a consumer (factory) that processes this into something
         const consumers = findAllConsumersForResource(res);
-        const unbuiltConsumer = consumers.find(c => !builtTypes.has(c) && isBuildingUnlocked(c, store.completedResearch, store.prestigeState));
+        const unbuiltConsumer = consumers.find(c => !builtTypes.has(c) && isBuildingUnlocked(c, completedResearch, prestigeState));
 
         if (unbuiltConsumer) {
           const consumerDef = BUILDING_DEFS[unbuiltConsumer];
           const outputName = consumerDef?.outputs?.[0] ? RESOURCE_META[consumerDef.outputs[0].resource as ResourceType]?.name : 'products';
-          const cost = getBuildingCost(unbuiltConsumer, store.buildings.filter(b => b.type === unbuiltConsumer).length);
+          const cost = getBuildingCost(unbuiltConsumer, buildings.filter(b => b.type === unbuiltConsumer).length);
           const affordable = currentMoney >= cost;
 
           recs.push({
@@ -604,7 +624,7 @@ export default function AIAdvisorPanel() {
 
     // ===== 3. PRODUCTION GAP (Priority: Important) =====
     // Detects when a factory's input resources aren't being produced
-    for (const building of store.buildings) {
+    for (const building of buildings) {
       if (!building.active) continue;
       const def = BUILDING_DEFS[building.type];
       if (!def?.inputs) continue;
@@ -612,8 +632,8 @@ export default function AIAdvisorPanel() {
       for (const input of def.inputs) {
         if (input.resource === 'money') continue;
         const inputRes = input.resource as ResourceType;
-        const inputProduction = store.productionSnapshot.production[inputRes] ?? 0;
-        const inputConsumption = store.productionSnapshot.consumption[inputRes] ?? 0;
+        const inputProduction = productionSnapshot.production[inputRes] ?? 0;
+        const inputConsumption = productionSnapshot.consumption[inputRes] ?? 0;
 
         // Input is being consumed more than produced (or not produced at all)
         if (inputConsumption > inputProduction && inputProduction < inputConsumption * 0.5) {
@@ -625,7 +645,7 @@ export default function AIAdvisorPanel() {
           const producerBuilt = producerType ? builtTypes.has(producerType) : false;
 
           if (!producerBuilt && producerType) {
-            const cost = getBuildingCost(producerType, store.buildings.filter(b => b.type === producerType).length);
+            const cost = getBuildingCost(producerType, buildings.filter(b => b.type === producerType).length);
             const affordable = currentMoney >= cost;
 
             recs.push({
@@ -652,9 +672,9 @@ export default function AIAdvisorPanel() {
 
     // ===== 4. STORAGE FULL (Priority: Important) =====
     // When any resource is > 90% capacity
-    for (const res of Object.keys(store.resources) as ResourceType[]) {
-      const stock = store.resources[res] ?? 0;
-      const capacity = store.resourceCapacity[res] ?? 1;
+    for (const res of Object.keys(resources) as ResourceType[]) {
+      const stock = resources[res] ?? 0;
+      const capacity = resourceCapacity[res] ?? 1;
       if (capacity <= 0) continue;
       const fillRatio = stock / capacity;
 
@@ -682,18 +702,18 @@ export default function AIAdvisorPanel() {
 
     // ===== 5. IDLE BUILDING (Priority: Important) =====
     // Detects built but inactive buildings
-    for (const building of store.buildings) {
+    for (const building of buildings) {
       if (building.active) continue;
       const def = BUILDING_DEFS[building.type];
       if (!def) continue;
 
       // Determine why it might be idle
       let reason = 'check power or input supply';
-      if (store.powerGrid.efficiency < 0.5) {
+      if (powerGrid.efficiency < 0.5) {
         reason = 'power grid is overloaded — build more power plants';
       } else if (def.inputs) {
         const missingInputs = def.inputs
-          .filter(i => i.resource !== 'money' && (store.resources[i.resource as ResourceType] ?? 0) < i.amount)
+          .filter(i => i.resource !== 'money' && (resources[i.resource as ResourceType] ?? 0) < i.amount)
           .map(i => RESOURCE_META[i.resource as ResourceType]?.name ?? i.resource);
         if (missingInputs.length > 0) {
           reason = `missing ${missingInputs.join(', ')}`;
@@ -735,7 +755,7 @@ export default function AIAdvisorPanel() {
             const nextProducer = findProducerForResource(nextResource);
             if (nextProducer && !builtTypes.has(nextProducer)) {
               // Check if it's unlocked
-              if (isBuildingUnlocked(nextProducer, store.completedResearch, store.prestigeState)) {
+              if (isBuildingUnlocked(nextProducer, completedResearch, prestigeState)) {
                 missingStepIndex = i + 1;
                 break;
               }
@@ -750,7 +770,7 @@ export default function AIAdvisorPanel() {
         const nextProducer = findProducerForResource(missingResource);
         if (nextProducer) {
           const nextProducerName = BUILDING_DEFS[nextProducer]?.name;
-          const cost = getBuildingCost(nextProducer, store.buildings.filter(b => b.type === nextProducer).length);
+          const cost = getBuildingCost(nextProducer, buildings.filter(b => b.type === nextProducer).length);
           const affordable = currentMoney >= cost;
 
           recs.push({
@@ -775,9 +795,9 @@ export default function AIAdvisorPanel() {
 
     // ===== 7. EXISTING: Resource Deficits (Priority: Important) =====
     const deficitResources: ResourceType[] = [];
-    for (const res of Object.keys(store.productionSnapshot.consumption) as ResourceType[]) {
-      const consumption = store.productionSnapshot.consumption[res] ?? 0;
-      const production = store.productionSnapshot.production[res] ?? 0;
+    for (const res of Object.keys(productionSnapshot.consumption) as ResourceType[]) {
+      const consumption = productionSnapshot.consumption[res] ?? 0;
+      const production = productionSnapshot.production[res] ?? 0;
 
       if (consumption > production && consumption > 0.01) {
         deficitResources.push(res);
@@ -787,7 +807,7 @@ export default function AIAdvisorPanel() {
         const meta = RESOURCE_META[res];
         const producerType = findProducerForResource(res);
         const producerName = producerType ? BUILDING_DEFS[producerType]?.name : null;
-        const cost = producerType ? getBuildingCost(producerType, store.buildings.filter(b => b.type === producerType).length) : 0;
+        const cost = producerType ? getBuildingCost(producerType, buildings.filter(b => b.type === producerType).length) : 0;
         const affordable = producerType ? currentMoney >= cost : false;
 
         recs.push({
@@ -810,9 +830,9 @@ export default function AIAdvisorPanel() {
     }
 
     // ===== 8. EXISTING: Idle Resources / Stockpiled (Priority: Suggested) =====
-    for (const res of Object.keys(store.productionSnapshot.production) as ResourceType[]) {
-      const stock = store.resources[res] ?? 0;
-      const capacity = store.resourceCapacity[res] ?? 1;
+    for (const res of Object.keys(productionSnapshot.production) as ResourceType[]) {
+      const stock = resources[res] ?? 0;
+      const capacity = resourceCapacity[res] ?? 1;
       const fillRatio = stock / capacity;
 
       // Between 80-90% — not critical enough for storage-full, but worth noting
@@ -821,7 +841,7 @@ export default function AIAdvisorPanel() {
         if (recs.some(r => r.id.includes(`bottleneck-${res}`) || r.id.includes(`storage-full-${res}`))) continue;
 
         const consumerType = findConsumerForResource(res);
-        const hasConsumer = consumerType ? store.buildings.some(b => b.type === consumerType) : false;
+        const hasConsumer = consumerType ? buildings.some(b => b.type === consumerType) : false;
 
         if (!hasConsumer && !deficitResources.includes(res)) {
           const meta = RESOURCE_META[res];
@@ -839,12 +859,12 @@ export default function AIAdvisorPanel() {
               type: 'sell50',
               label: 'Sell 50%',
               resource: res,
-            } : consumerType && isBuildingUnlocked(consumerType, store.completedResearch, store.prestigeState) ? {
+            } : consumerType && isBuildingUnlocked(consumerType, completedResearch, prestigeState) ? {
               type: 'buildNow',
               label: `Build ${consumerName}`,
               buildingType: consumerType,
-              affordable: currentMoney >= getBuildingCost(consumerType, store.buildings.filter(b => b.type === consumerType).length),
-              cost: getBuildingCost(consumerType, store.buildings.filter(b => b.type === consumerType).length),
+              affordable: currentMoney >= getBuildingCost(consumerType, buildings.filter(b => b.type === consumerType).length),
+              cost: getBuildingCost(consumerType, buildings.filter(b => b.type === consumerType).length),
             } : undefined,
           });
         }
@@ -852,11 +872,11 @@ export default function AIAdvisorPanel() {
     }
 
     // ===== 9. EXISTING: Research Suggestions (Priority: Suggested) =====
-    if (!store.activeResearch) {
+    if (!activeResearch) {
       const availableResearch = RESEARCH_TREE.filter(node => {
-        if (store.completedResearch.includes(node.id)) return false;
-        if (!node.prerequisites.every(pre => store.completedResearch.includes(pre))) return false;
-        if (store.researchPoints < node.cost) return false;
+        if (completedResearch.includes(node.id)) return false;
+        if (!node.prerequisites.every(pre => completedResearch.includes(pre))) return false;
+        if (researchPoints < node.cost) return false;
         return true;
       });
 
@@ -880,13 +900,13 @@ export default function AIAdvisorPanel() {
     }
 
     // Also suggest if they have research points and no active research
-    if (!store.activeResearch && store.researchPoints >= 50 && store.completedResearch.length === 0) {
+    if (!activeResearch && researchPoints >= 50 && completedResearch.length === 0) {
       recs.push({
         id: `research-start-${recId++}`,
         priority: 'suggested',
         icon: 'gi:chemical-drop',
         title: 'Start Researching',
-        description: `You have ${formatNumber(store.researchPoints)} RP but no active research. Research unlocks powerful bonuses and new buildings.`,
+        description: `You have ${formatNumber(researchPoints)} RP but no active research. Research unlocks powerful bonuses and new buildings.`,
         actionTab: 'research',
         actionLabel: 'Research',
         quickAction: {
@@ -899,11 +919,11 @@ export default function AIAdvisorPanel() {
 
     // ===== 10. EXISTING: Market Opportunities (Priority: Optional) =====
     let marketOpps = 0;
-    for (const m of store.market) {
+    for (const m of market) {
       if (m.currentPrice > m.basePrice * 1.3) {
         const meta = RESOURCE_META[m.resource];
         const pricePercent = Math.round(((m.currentPrice - m.basePrice) / m.basePrice) * 100);
-        const held = store.resources[m.resource] ?? 0;
+        const held = resources[m.resource] ?? 0;
 
         if (held > 0) {
           recs.push({
@@ -941,7 +961,7 @@ export default function AIAdvisorPanel() {
     recs.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
 
     return recs;
-  }, [store.powerGrid, store.buildings, store.productionSnapshot, store.resources, store.resourceCapacity, store.activeResearch, store.completedResearch, store.researchPoints, store.market, store.money, store.prestigeState]);
+  }, [powerGrid, buildings, productionSnapshot, resources, resourceCapacity, activeResearch, completedResearch, researchPoints, market, money, prestigeState]);
 
   // Filter dismissed
   const visibleRecommendations = useMemo(() => {
@@ -949,33 +969,33 @@ export default function AIAdvisorPanel() {
   }, [recommendations, dismissedIds]);
 
   // --- Quick Stats ---
-  const activeBuildings = useMemo(() => store.buildings.filter(b => b.active).length, [store.buildings]);
+  const activeBuildings = useMemo(() => buildings.filter(b => b.active).length, [buildings]);
   const deficitCount = useMemo(() => {
     let count = 0;
-    const allResources = Object.keys(store.productionSnapshot.consumption) as ResourceType[];
+    const allResources = Object.keys(productionSnapshot.consumption) as ResourceType[];
     for (const res of allResources) {
-      const consumption = store.productionSnapshot.consumption[res] ?? 0;
-      const production = store.productionSnapshot.production[res] ?? 0;
+      const consumption = productionSnapshot.consumption[res] ?? 0;
+      const production = productionSnapshot.production[res] ?? 0;
       if (consumption > production && consumption > 0.01) count++;
     }
     return count;
-  }, [store.productionSnapshot]);
+  }, [productionSnapshot]);
 
-  const powerEfficiency = store.powerGrid.efficiency;
-  const researchProgress = `${store.completedResearch.length}/${RESEARCH_TREE.length}`;
+  const powerEfficiency = powerGrid.efficiency;
+  const researchProgress = `${completedResearch.length}/${RESEARCH_TREE.length}`;
 
   // --- Production Chain Status ---
   const chainStatuses = useMemo(() => {
     const results: { name: string; color: string; status: ChainStatus; steps: { resource: ResourceType; hasPositiveNet: boolean; hasProducer: boolean }[] }[] = [];
-    const builtTypes = new Set(store.buildings.map(b => b.type));
+    const builtTypes = new Set(buildings.map(b => b.type));
 
     for (const chain of PRODUCTION_CHAINS) {
       if (chain.steps.length < 2) continue;
 
       const steps = chain.steps.map(stepRes => {
         const res = stepRes as ResourceType;
-        const production = store.productionSnapshot.production[res] ?? 0;
-        const consumption = store.productionSnapshot.consumption[res] ?? 0;
+        const production = productionSnapshot.production[res] ?? 0;
+        const consumption = productionSnapshot.consumption[res] ?? 0;
         const producer = findProducerForResource(res);
         const hasProducer = producer ? builtTypes.has(producer) : false;
         const hasPositiveNet = (production - consumption) > 0 || (production > 0 && consumption === 0);
@@ -991,7 +1011,7 @@ export default function AIAdvisorPanel() {
       let allLocked = true;
       for (const step of chain.steps) {
         const producer = findProducerForResource(step as ResourceType);
-        if (producer && isBuildingUnlocked(producer, store.completedResearch, store.prestigeState)) {
+        if (producer && isBuildingUnlocked(producer, completedResearch, prestigeState)) {
           allLocked = false;
           break;
         }
@@ -1012,7 +1032,7 @@ export default function AIAdvisorPanel() {
     }
 
     return results;
-  }, [store.buildings, store.productionSnapshot, store.completedResearch, store.prestigeState]);
+  }, [buildings, productionSnapshot, completedResearch, prestigeState]);
 
   // Deduplicate chain statuses by name (keep highest status)
   const uniqueChainStatuses = useMemo(() => {
@@ -1088,14 +1108,14 @@ export default function AIAdvisorPanel() {
             label="Active Buildings"
             value={activeBuildings.toString()}
             color="text-emerald-400"
-            subtext={`of ${store.buildings.length} total`}
+            subtext={`of ${buildings.length} total`}
           />
           <QuickStatCard
             icon={Zap}
             label="Power Efficiency"
             value={`${(powerEfficiency * 100).toFixed(0)}%`}
             color={powerEfficiency >= 0.8 ? 'text-green-400' : powerEfficiency >= 0.5 ? 'text-yellow-400' : 'text-red-400'}
-            subtext={`${formatNumber(store.powerGrid.totalProduction)}MW / ${formatNumber(store.powerGrid.totalConsumption)}MW`}
+            subtext={`${formatNumber(powerGrid.totalProduction)}MW / ${formatNumber(powerGrid.totalConsumption)}MW`}
           />
           <QuickStatCard
             icon={AlertTriangle}
@@ -1109,7 +1129,7 @@ export default function AIAdvisorPanel() {
             label="Research"
             value={researchProgress}
             color="text-purple-400"
-            subtext={store.activeResearch ? '1 in progress' : 'none active'}
+            subtext={activeResearch ? '1 in progress' : 'none active'}
           />
         </div>
       </div>
@@ -1181,7 +1201,7 @@ export default function AIAdvisorPanel() {
       </div>
 
       {/* Advisor Tips (always visible at bottom) */}
-      {store.buildings.length === 0 ? (
+      {buildings.length === 0 ? (
         <Card className="bg-emerald-900/10 border border-emerald-500/20">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
@@ -1197,7 +1217,7 @@ export default function AIAdvisorPanel() {
             </div>
           </CardContent>
         </Card>
-      ) : store.buildings.length < 5 ? (
+      ) : buildings.length < 5 ? (
         <Card className="bg-cyan-900/10 border border-cyan-500/20">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
