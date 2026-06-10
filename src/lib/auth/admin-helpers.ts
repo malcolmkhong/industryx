@@ -12,6 +12,9 @@ import type { AdminUser } from "@/lib/auth/admin";
  */
 export async function getAdminRole(admin: AdminUser): Promise<string> {
   const supabase = createServiceRoleClient();
+  if (!supabase) {
+    throw new Error('Supabase service role not configured');
+  }
 
   const { data } = await supabase
     .from("admin_users")
@@ -57,6 +60,9 @@ export async function logAdminAction(params: {
 }): Promise<void> {
   try {
     const supabase = createServiceRoleClient();
+    if (!supabase) {
+      throw new Error('Supabase service role not configured');
+    }
     const { error } = await supabase.from("admin_actions").insert({
       admin_user_id: params.adminId,
       target_user_id: params.targetUserId ?? null,

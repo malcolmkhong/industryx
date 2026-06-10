@@ -23,6 +23,12 @@ export async function GET(
 
   try {
     const supabase = createServiceRoleClient();
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable — database not configured' },
+        { status: 503 }
+      );
+    }
 
     // Fetch game state
     const { data: gameState, error: gsError } = await supabase

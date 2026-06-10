@@ -24,6 +24,12 @@ export async function GET(
 
   try {
     const supabase = createServiceRoleClient();
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable — database not configured' },
+        { status: 503 }
+      );
+    }
 
     // Fetch the investigation
     const { data: investigation, error } = await supabase
@@ -146,6 +152,12 @@ export async function POST(
     }
 
     const supabase = createServiceRoleClient();
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable — database not configured' },
+        { status: 503 }
+      );
+    }
 
     // Check that the investigation exists
     const { data: existingInv, error: fetchError } = await supabase

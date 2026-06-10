@@ -28,6 +28,12 @@ export async function GET(request: Request) {
   if (rateLimitResponse) return rateLimitResponse;
 
   const supabase = createServiceRoleClient();
+  if (!supabase) {
+    return NextResponse.json(
+      { error: 'Service temporarily unavailable — database not configured' },
+      { status: 503 }
+    );
+  }
 
   // Get player's last save from server_game_state (source of truth)
   const { data: sgs, error: sgsError } = await supabase

@@ -46,6 +46,12 @@ export async function GET(request: Request) {
   }
 
   const supabase = createServiceRoleClient();
+  if (!supabase) {
+    return NextResponse.json(
+      { error: 'Service temporarily unavailable — database not configured' },
+      { status: 503 }
+    );
+  }
 
   // Try server_game_state first (authoritative), then fall back to player_progress
   const { data: sgs, error: sgsError } = await supabase
@@ -202,6 +208,12 @@ export async function POST(request: Request) {
   }
 
   const supabase = createServiceRoleClient();
+  if (!supabase) {
+    return NextResponse.json(
+      { error: 'Service temporarily unavailable — database not configured' },
+      { status: 503 }
+    );
+  }
 
   // Upsert to server_game_state (AUTHORITATIVE — source of truth)
   const buildingsCount = ((gameState as Record<string, unknown>).buildings as unknown[])?.length || 0;

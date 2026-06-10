@@ -30,6 +30,12 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 
   try {
     const supabase = createServiceRoleClient();
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable — database not configured' },
+        { status: 503 }
+      );
+    }
     const { data, error } = await supabase
       .from(tableName)
       .select("*")
@@ -120,6 +126,12 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     }
 
     const supabase = createServiceRoleClient();
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable — database not configured' },
+        { status: 503 }
+      );
+    }
     const { data, error } = await supabase
       .from(tableName)
       .update(updateData)
@@ -175,6 +187,12 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
 
   try {
     const supabase = createServiceRoleClient();
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable — database not configured' },
+        { status: 503 }
+      );
+    }
     const { error } = await supabase
       .from(tableName)
       .delete()

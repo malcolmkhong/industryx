@@ -64,6 +64,12 @@ export async function POST(
 
   try {
     const supabase = createServiceRoleClient();
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable — database not configured' },
+        { status: 503 }
+      );
+    }
 
     // Check that the player exists
     const { data: existingPlayer, error: fetchError } = await supabase

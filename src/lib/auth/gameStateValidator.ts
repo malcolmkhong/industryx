@@ -276,6 +276,9 @@ export function validateGameState(
 export async function fetchPreviousServerState(userId: string): Promise<Record<string, unknown> | null> {
   try {
     const supabase = createServiceRoleClient();
+    if (!supabase) {
+      throw new Error('Supabase service role not configured');
+    }
 
     // Try server_game_state first (authoritative)
     const { data: sgs } = await supabase
@@ -313,6 +316,9 @@ export async function fetchPreviousServerState(userId: string): Promise<Record<s
 export async function isAccountLocked(userId: string): Promise<{ locked: boolean; reason?: string }> {
   try {
     const supabase = createServiceRoleClient();
+    if (!supabase) {
+      throw new Error('Supabase service role not configured');
+    }
 
     const { data: sgs, error } = await supabase
       .from('server_game_state')
@@ -352,6 +358,9 @@ export async function flagCheatAttempt(
 ): Promise<void> {
   try {
     const supabase = createServiceRoleClient();
+    if (!supabase) {
+      throw new Error('Supabase service role not configured');
+    }
 
     // H3 FIX: Use atomic increment instead of read-then-write to prevent TOCTOU race.
     // Instead of reading cheat_flag_count, adding 1, and writing back,
@@ -427,6 +436,9 @@ export function logActionAsync(entry: AuditLogEntry): void {
   queueMicrotask(async () => {
     try {
       const supabase = createServiceRoleClient();
+      if (!supabase) {
+        throw new Error('Supabase service role not configured');
+      }
       const { error } = await supabase
         .from('player_actions')
         .insert({

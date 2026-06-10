@@ -46,6 +46,12 @@ export async function GET(request: Request) {
   }
 
   const supabase = createServiceRoleClient();
+  if (!supabase) {
+    return NextResponse.json(
+      { error: 'Service temporarily unavailable — database not configured' },
+      { status: 503 }
+    );
+  }
 
   const { data, error } = await supabase
     .from('server_game_state')
@@ -136,6 +142,12 @@ export async function POST(request: Request) {
   const isUserAdmin = isAdminUserId(auth.userId);
 
   const supabase = createServiceRoleClient();
+  if (!supabase) {
+    return NextResponse.json(
+      { error: 'Service temporarily unavailable — database not configured' },
+      { status: 503 }
+    );
+  }
 
   // Fetch current server state for delta validation
   const { data: currentServerState } = await supabase

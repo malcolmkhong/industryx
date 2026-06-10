@@ -16,6 +16,12 @@ export async function GET() {
 
   try {
     const supabase = createServiceRoleClient();
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable — database not configured' },
+        { status: 503 }
+      );
+    }
 
     // Calculate "today" in ISO format for date-based queries
     const today = new Date();

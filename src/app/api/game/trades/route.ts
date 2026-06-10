@@ -19,6 +19,12 @@ export async function GET(request: Request) {
 
   try {
     const supabase = createServiceRoleClient();
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable — database not configured' },
+        { status: 503 }
+      );
+    }
 
     const { data, error, count } = await supabase
       .from('trade_history')

@@ -77,6 +77,9 @@ async function loadConfig(): Promise<GameConfig | null> {
   }
 
   const supabase = createServiceRoleClient();
+  if (!supabase) {
+    throw new Error('Supabase service role not configured');
+  }
 
   try {
     // Fetch critical tables for action validation
@@ -431,6 +434,12 @@ export async function POST(request: Request) {
   if (action === 'trade' && result.valid) {
     try {
       const supabase = createServiceRoleClient();
+      if (!supabase) {
+        return NextResponse.json(
+          { error: 'Service temporarily unavailable — database not configured' },
+          { status: 503 }
+        );
+      }
       const giveResource = payload.giveResource as string;
       const giveAmount = Number(payload.giveAmount) || 0;
       const receiveResource = payload.receiveResource as string;

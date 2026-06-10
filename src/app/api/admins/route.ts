@@ -14,6 +14,12 @@ export async function GET() {
 
   try {
     const supabase = createServiceRoleClient();
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable — database not configured' },
+        { status: 503 }
+      );
+    }
 
     // Get admin users from database
     const { data: dbAdmins, error } = await supabase
@@ -112,6 +118,12 @@ export async function POST(request: NextRequest) {
     const adminRole = role && validRoles.includes(role) ? role : "admin";
 
     const supabase = createServiceRoleClient();
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable — database not configured' },
+        { status: 503 }
+      );
+    }
 
     // Check if user already exists in admin_users
     const { data: existing } = await supabase

@@ -39,6 +39,7 @@ import {
   BuildResult,
   ProductionSnapshot,
 } from './productionCalculator';
+import { getBalance } from './balanceConfig';
 
 // --- Save Version ---
 const SAVE_VERSION = 19;
@@ -94,22 +95,15 @@ function isBuildingUnlocked(type: BuildingType, completedResearch: string[], pre
   return true;
 }
 
-function getCapacity(state: GameState, resource: ResourceType, researchSet?: Set<string>, cache?: MultiplierCache): number {
+function getCapacity(state: GameState, resource: ResourceType, _researchSet?: Set<string>, cache?: MultiplierCache): number {
   // Unlimited storage from Terraforming Engine mega project
   const hasUnlimitedStorage = state.megaProjects.some(p => p.completed && p.bonus.type === 'unlimitedStorage');
   if (hasUnlimitedStorage) return Infinity;
 
   const baseCapacity = state.resourceCapacity[resource] ?? 50;
-  // Use modifier engine's storageCapacityBonus if cache is provided, otherwise compute from research
-  const storageCapacityBonus = cache?.storageCapacityBonus
-    ?? (() => {
-      const rs = researchSet ?? new Set(state.completedResearch);
-      const storageBonus = rs.has('storageExpansion') ? 0.5 : 0;
-      const megaStorageBonus = rs.has('megaStorage') ? 1.0 : 0;
-      const prestigeStorageBonus = state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'storageMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
-      return storageBonus + megaStorageBonus + prestigeStorageBonus;
-    })();
-  return Math.floor(baseCapacity * (1 + storageCapacityBonus));
+  // Always use modifier engine for storage capacity — build cache on demand if not provided
+  const effectiveCache = cache ?? buildMultipliers(state);
+  return Math.floor(baseCapacity * (1 + effectiveCache.storageCapacityBonus));
 }
 
 // --- Drone Mission Generator ---
@@ -131,7 +125,7 @@ function generateDroneMissionsFromState(state: GameState): DroneMission[] {
     targetFactories.forEach((to, j) => {
       const toDef = BUILDING_DEFS[to];
       if (!toDef) return;
-      const difficulty = 1 + i + j * 0.5;
+      const difficulty = 1 + i + j * getBalance().drone.difficultyPerFactoryPair;
       const moneyReward = Math.floor(200 * difficulty + state.buildings.filter(b => b.type === from).length * 50);
       const rpReward = Math.floor(5 * difficulty);
       missions.push({
@@ -1204,7 +1198,7 @@ export const useGameStore = create<GameStore>()(
               newCompletedResearch.push(newActiveResearch);
               newActiveResearch = null;
               newResearchProgress = 0;
-              newResearchPoints += Math.floor(node.cost * 0.1);
+              newResearchPoints += Math.floor(node.cost * getBalance().rp.completionRefundRatio);
               newStats.researchCompleted++;
               soundEngine.play('researchComplete', 'events');
               notifications.push({ id: generateId(), type: 'success', message: `Research complete: ${node.name}!`, gameTick: newTick, read: false });
@@ -1220,7 +1214,8 @@ export const useGameStore = create<GameStore>()(
         let cpIncomeThisTick = 0;
         let cpExpenseThisTick = 0;
 
-        const passiveRpIncome = 0.5 * (1 + state.buildings.filter(b => b.type === 'aiLab' && b.active).length * 0.5);
+        const bal = getBalance();
+        const passiveRpIncome = bal.rp.passiveBase * (1 + state.buildings.filter(b => b.type === 'aiLab' && b.active).length * bal.rp.aiLabBonus);
         newResearchPoints += passiveRpIncome;
         rpIncomeThisTick += passiveRpIncome;
 
@@ -1232,12 +1227,12 @@ export const useGameStore = create<GameStore>()(
         // Buildings generate RP based on tier, scaled by power efficiency
         // This provides active RP income beyond passive generation
         const rpBuildingRates: Record<string, number> = {
-          extractor: 0.01,   // per extractor per tick
-          power: 0.01,       // per power plant per tick
-          'factory-t1': 0.02, // per T1 factory per tick
-          'factory-t2': 0.05, // per T2 factory per tick
-          'factory-t3': 0.10, // per T3 factory per tick
-          'factory-t4': 0.20, // per T4 factory per tick
+          extractor: bal.rp.extractorRate,
+          power: bal.rp.powerRate,
+          'factory-t1': bal.rp.factoryT1Rate,
+          'factory-t2': bal.rp.factoryT2Rate,
+          'factory-t3': bal.rp.factoryT3Rate,
+          'factory-t4': bal.rp.factoryT4Rate,
         };
         let buildingRpIncome = 0;
         state.buildings.forEach(b => {
@@ -1289,8 +1284,8 @@ export const useGameStore = create<GameStore>()(
         // Update workers
         const newWorkers = state.workers.map(w => ({
           ...w,
-          experience: w.experience + 0.01 * (1 + workerEfficiencyBonus),
-          efficiency: Math.min(2, w.efficiency + 0.001),
+          experience: w.experience + bal.worker.xpPerTick * (1 + workerEfficiencyBonus),
+          efficiency: Math.min(2, w.efficiency + bal.worker.efficiencyGainPerTick),
         }));
 
         newWorkers.forEach(w => {
@@ -1307,7 +1302,7 @@ export const useGameStore = create<GameStore>()(
           remaining: e.remaining - 1,
         })).filter(e => e.remaining > 0);
 
-        if (newTick % 500 === 0 && Math.random() < 0.6 && newActiveEvents.length < 2) {
+        if (newTick % 500 === 0 && Math.random() < bal.event.randomTriggerChance && newActiveEvents.length < 2) {
           const template = EVENT_TEMPLATES[Math.floor(Math.random() * EVENT_TEMPLATES.length)];
           const newEvent: GameEvent = {
             id: generateId(),
@@ -1367,7 +1362,7 @@ export const useGameStore = create<GameStore>()(
           }
           newWeather = {
             current: selectedWeather,
-            intensity: selectedWeather === 'clear' ? 0 : 0.3 + Math.random() * 0.7,
+            intensity: selectedWeather === 'clear' ? 0 : bal.weather.minIntensity + Math.random() * bal.weather.intensityRange,
             remaining: selectedWeather === 'clear' ? 0 : 100 + Math.floor(Math.random() * 300),
             nextChange: newTick + 200 + Math.floor(Math.random() * 400),
           };
@@ -1402,10 +1397,10 @@ export const useGameStore = create<GameStore>()(
             : CONTRACT_TEMPLATES[0]; // fallback to first template
           const contractTier = template.gameTier ?? 0;
           const difficulty = Math.max(1, Math.min(5, contractTier + 1 + Math.floor(state.buildings.length / 8)));
-          const tierMultiplier = 1 + contractTier * 0.5; // Higher tier = proportionally higher rewards
+          const tierMultiplier = 1 + contractTier * bal.contract.tierRewardCoeff;
           const reward = template.requiredResources.reduce((sum, r) => {
             const marketItem = INITIAL_MARKET.find(m => m.resource === r.resource);
-            return sum + (marketItem?.basePrice ?? 10) * r.amount * tierMultiplier * (1 + difficulty * 0.15);
+            return sum + (marketItem?.basePrice ?? 10) * r.amount * tierMultiplier * (1 + difficulty * bal.contract.difficultyRewardCoeff);
           }, 0);
           
           const contract: Contract = {
@@ -1415,7 +1410,7 @@ export const useGameStore = create<GameStore>()(
             type: template.type,
             requiredResources: template.requiredResources.map(r => ({
               resource: r.resource,
-              amount: Math.floor(r.amount * (1 + (difficulty - 1) * 0.15)),
+              amount: Math.floor(r.amount * (1 + (difficulty - 1) * bal.contract.difficultyResourceCoeff)),
             })),
             timeLimit: template.timeLimit,
             timeRemaining: template.timeLimit,
@@ -1438,7 +1433,7 @@ export const useGameStore = create<GameStore>()(
         let moneyEarned = 0;
         if (autoFulfill) {
           (Object.keys(newResources) as ResourceType[]).forEach(r => {
-            const excess = newResources[r] - getCapacity(state, r, undefined, cache) * 0.8;
+            const excess = newResources[r] - getCapacity(state, r, undefined, cache) * bal.autoSell.thresholdRatio;
             if (excess > 0) {
               const marketPrice = newMarket.find(m => m.resource === r)?.currentPrice ?? 0;
               const sellPrice = marketPrice * computeSellMultiplier(state, cache);
@@ -1461,7 +1456,7 @@ export const useGameStore = create<GameStore>()(
           const marketMap = new Map(newMarket.map(m => [m.resource, m]));
           state.autoSellResources.forEach(r => {
             const capacity = getCapacity(state, r, undefined, cache);
-            const threshold = capacity * 0.8;
+            const threshold = capacity * bal.autoSell.thresholdRatio;
             const held = newResources[r];
             const excess = held - threshold;
             if (excess > 0) {
@@ -1469,7 +1464,7 @@ export const useGameStore = create<GameStore>()(
               if (marketItem) {
                 const sellPrice = marketItem.currentPrice * computeSellMultiplier(state, cache);
                 // Sell 50% of excess, but at least 1 and at most 10% of capacity
-                const sellAmount = Math.max(1, Math.min(Math.ceil(excess * 0.5), Math.ceil(capacity * 0.1)));
+                const sellAmount = Math.max(1, Math.min(Math.ceil(excess * bal.autoSell.excessSellRatio), Math.ceil(capacity * bal.autoSell.maxSellCapacityRatio)));
                 const actualSell = Math.min(sellAmount, held); // can't sell more than we have
                 newResources[r] -= actualSell;
                 const autoSellEarned = actualSell * sellPrice;
@@ -1671,7 +1666,7 @@ export const useGameStore = create<GameStore>()(
             // Mission complete
             const mission = missions.find(m => m.id === d.missionId);
             if (mission) {
-              const capacityMult = 1 + (d.capacityLevel - 1) * 0.25;
+              const capacityMult = 1 + (d.capacityLevel - 1) * bal.drone.capacityUpgradeCoeff;
               droneMoneyEarned += Math.floor(mission.reward.money * capacityMult);
               if (mission.reward.researchPoints) droneRpEarned += Math.floor(mission.reward.researchPoints * capacityMult);
               if (mission.reward.resources) {
@@ -1911,7 +1906,7 @@ export const useGameStore = create<GameStore>()(
         set({
           money: state.money - cost,
           buildings: state.buildings.map(b =>
-            b.id === id ? { ...b, level: b.level + 1, efficiency: Math.min(2, b.efficiency + 0.05) } : b
+            b.id === id ? { ...b, level: b.level + 1, efficiency: Math.min(2, b.efficiency + getBalance().building.upgradeEfficiencyGain) } : b
           ),
         });
         soundEngine.play('buildingPlaced', 'building');
@@ -1999,7 +1994,7 @@ export const useGameStore = create<GameStore>()(
         if (!line) return;
 
         const def = TRANSPORT_DEFS[line.type];
-        const cost = Math.floor(def.baseCost.reduce((sum, c) => sum + (c.resource === 'money' ? c.amount : 0), 0) * Math.pow(1.3, line.level));
+        const cost = Math.floor(def.baseCost.reduce((sum, c) => sum + (c.resource === 'money' ? c.amount : 0), 0) * Math.pow(getBalance().transport.upgradeCostExponent, line.level));
         if (state.money < cost) return;
 
         // Use modifier engine for transport bonus (logistics1 + advancedLogistics + cargoDrones + mega)
@@ -2141,7 +2136,7 @@ export const useGameStore = create<GameStore>()(
         const marketItem = state.market.find(m => m.resource === resource);
         if (!marketItem) return;
 
-        const cost = marketItem.currentPrice * amount * 1.1;
+        const cost = marketItem.currentPrice * amount * getBalance().market.buyPriceMarkup;
         if (state.money < cost) {
           soundEngine.play('error', 'ui');
           get().addNotification('error', 'Not enough money!');
@@ -2266,7 +2261,7 @@ export const useGameStore = create<GameStore>()(
           return;
         }
 
-        const pointsEarned = Math.floor(state.buildings.length * 0.5 + state.completedResearch.length * 2 + state.stats.contractsCompleted);
+        const pointsEarned = Math.floor(state.buildings.length * getBalance().prestige.cpPerBuilding + state.completedResearch.length * 2 + state.stats.contractsCompleted);
 
         // Calculate score and rank for leaderboard entry
         const score = Math.floor(
@@ -2741,7 +2736,7 @@ export const useGameStore = create<GameStore>()(
         if (!mission) return;
 
         // Calculate fuel cost with efficiency upgrade
-        const fuelCost = Math.ceil(mission.fuelCost / (1 + (drone.fuelEfficiencyLevel - 1) * 0.15));
+        const fuelCost = Math.ceil(mission.fuelCost / (1 + (drone.fuelEfficiencyLevel - 1) * getBalance().drone.fuelEfficiencyUpgradeCoeff));
         if (state.money < fuelCost) {
           soundEngine.play('error', 'building');
           get().addNotification('error', `Not enough money for fuel. Need $${formatNumber(fuelCost)}`);
@@ -2749,7 +2744,7 @@ export const useGameStore = create<GameStore>()(
         }
 
         // Calculate delivery time with speed upgrade
-        const deliveryTicks = Math.max(10, Math.floor(mission.baseTicks / (1 + (drone.speedLevel - 1) * 0.2)));
+        const deliveryTicks = Math.max(10, Math.floor(mission.baseTicks / (1 + (drone.speedLevel - 1) * getBalance().drone.speedUpgradeCoeff)));
 
         const updatedFleet = state.drones.fleet.map(d =>
           d.id === droneId
@@ -2978,7 +2973,7 @@ export const useGameStore = create<GameStore>()(
         const currentLevel = state.storageUpgradeLevels[resource] ?? 0;
         let totalCost = 0;
         for (let i = 0; i < levels; i++) {
-          totalCost += Math.floor(100 * Math.pow(1.5, currentLevel + i));
+          totalCost += Math.floor(100 * Math.pow(getBalance().storage.upgradeCostExponent, currentLevel + i));
         }
 
         if (state.money < totalCost) {
@@ -2988,7 +2983,7 @@ export const useGameStore = create<GameStore>()(
         }
 
         const baseCapacity = initialCapacity[resource];
-        const addedCapacity = baseCapacity * 0.5 * levels;
+        const addedCapacity = baseCapacity * getBalance().storage.upgradeCapacityRatio * levels;
         const newCapacity = { ...state.resourceCapacity, [resource]: state.resourceCapacity[resource] + addedCapacity };
         const newUpgradeLevels = { ...state.storageUpgradeLevels, [resource]: currentLevel + levels };
 
@@ -3102,10 +3097,10 @@ export const useGameStore = create<GameStore>()(
         // Calculate offline money from market sales (reduced rate)
         if (state.automationUnlocks.find(a => a.type === 'autoTrading' && a.active)) {
           (Object.keys(state.resources) as ResourceType[]).forEach(r => {
-            const excess = state.resources[r] - getCapacity(state, r, undefined, cache) * 0.5;
+            const excess = state.resources[r] - getCapacity(state, r, undefined, cache) * getBalance().offline.autoTradeThresholdRatio;
             if (excess > 0) {
               const marketPrice = state.market.find(m => m.resource === r)?.currentPrice ?? 0;
-              const sellAmount = Math.min(excess, Math.floor(ticksElapsed * 0.1));
+              const sellAmount = Math.min(excess, Math.floor(ticksElapsed * getBalance().offline.autoSellRate));
               const sellMultiplier = computeSellMultiplier(state, cache);
               offlineMoney += sellAmount * marketPrice * sellMultiplier;
             }

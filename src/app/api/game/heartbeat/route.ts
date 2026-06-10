@@ -39,6 +39,12 @@ export async function POST(request: Request) {
   const now = new Date().toISOString();
 
   const supabase = createServiceRoleClient();
+  if (!supabase) {
+    return NextResponse.json(
+      { error: 'Service temporarily unavailable — database not configured' },
+      { status: 503 }
+    );
+  }
 
   // Upsert session (lean: no session_token, no client_ip, no user_agent)
   const { error: sessionError } = await supabase
@@ -85,6 +91,12 @@ export async function DELETE(request: Request) {
   if (!auth.success) return auth.response;
 
   const supabase = createServiceRoleClient();
+  if (!supabase) {
+    return NextResponse.json(
+      { error: 'Service temporarily unavailable — database not configured' },
+      { status: 503 }
+    );
+  }
 
   // Mark session as offline
   await supabase

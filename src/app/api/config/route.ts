@@ -25,25 +25,50 @@ const ALLOWED_TABLES = [
 ] as const;
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const table = searchParams.get('table');
-  const pageSize = Math.min(parseInt(searchParams.get('pageSize') || '500'), 2000);
-  const page = parseInt(searchParams.get('page') || '1');
+  try {
+    const { searchParams } = new URL(request.url);
+    const table = searchParams.get('table');
+    const pageSize = Math.min(parseInt(searchParams.get('pageSize') || '500'), 2000);
+    const page = parseInt(searchParams.get('page') || '1');
 
-  // If no specific table, return list of all tables with counts
-  if (!table) {
-    return getTableList();
+    // If no specific table, return list of all tables with counts
+    if (!table) {
+      const result = await getTableList();
+      if (!result) {
+        return NextResponse.json(
+          { error: 'Service temporarily unavailable — database not configured' },
+          { status: 503 }
+        );
+      }
+      return result;
+    }
+
+    if (!ALLOWED_TABLES.includes(table as any)) {
+      return NextResponse.json({ error: 'Invalid table name' }, { status: 400 });
+    }
+
+    const result = await getTableData(table, page, pageSize);
+    if (!result) {
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable — database not configured' },
+        { status: 503 }
+      );
+    }
+    return result;
+  } catch (error) {
+    console.error('[/api/config] Unhandled error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
-
-  if (!ALLOWED_TABLES.includes(table as any)) {
-    return NextResponse.json({ error: 'Invalid table name' }, { status: 400 });
-  }
-
-  return getTableData(table, page, pageSize);
 }
 
-async function getTableList() {
+async function getTableList(): Promise<NextResponse | null> {
   const supabase = createServiceRoleClient();
+  if (!supabase) {
+    return null;
+  }
   const tables = ALLOWED_TABLES.map(t => ({ name: t }));
 
   const results = await Promise.all(
@@ -65,8 +90,11 @@ async function getTableList() {
   });
 }
 
-async function getTableData(table: string, page: number, pageSize: number) {
+async function getTableData(table: string, page: number, pageSize: number): Promise<NextResponse | null> {
   const supabase = createServiceRoleClient();
+  if (!supabase) {
+    return null;
+  }
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 

@@ -67,6 +67,9 @@ async function loadFullConfig(): Promise<GameConfig | null> {
   }
 
   const supabase = createServiceRoleClient();
+  if (!supabase) {
+    throw new Error('Supabase service role not configured');
+  }
 
   try {
     // Fetch all tables needed for full computation

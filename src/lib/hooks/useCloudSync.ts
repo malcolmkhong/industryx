@@ -7,8 +7,20 @@ import { useGameStore } from '@/lib/game/store';
 export interface CloudBlockState {
   isBlocked: boolean;
   reason: string;
-  code: 'ACCOUNT_LOCKED' | 'ACCESS_DENIED' | 'SESSION_EXPIRED' | 'VALIDATION_FAILED' | 'NETWORK_ERROR';
+  code: 'ACCOUNT_LOCKED' | 'ACCESS_DENIED' | 'SESSION_EXPIRED' | 'VALIDATION_FAILED' | 'NETWORK_ERROR' | 'MIGRATION_REJECTED';
   detectedAt: number;
+}
+
+export interface MigrationResult {
+  migrated: boolean;
+  action: 'accept' | 'accept_with_flag' | 'reject' | 'reset' | 'use_cloud';
+  reason?: string;
+  violations?: string[];
+  riskLevel?: string;
+  checks?: Array<{ name: string; passed: boolean; detail: string }>;
+  resetState?: { money: number; totalMoneyEarned: number; gameTick: number; gameSpeed: number };
+  stateHash?: string;
+  message?: string;
 }
 
 interface CloudSyncState {
@@ -22,11 +34,69 @@ interface CloudSyncState {
   serverStateHash: string | null;
   isServerAuthoritative: boolean;
   blockedState: CloudBlockState | null;
+  migrationResult: MigrationResult | null;
+  isMigrating: boolean;
 }
 
 // Auto-save interval in milliseconds (increased to 2 minutes to reduce Supabase load)
 const AUTO_SAVE_INTERVAL = 120_000;
 
+/**
+ * Extract the full game state from the Zustand store for cloud sync.
+ */
+function extractGameState(): Record<string, unknown> {
+  const state = useGameStore.getState();
+  return {
+    money: state.money,
+    totalMoneyEarned: state.totalMoneyEarned,
+    gameTick: state.gameTick,
+    buildings: state.buildings,
+    resources: state.resources,
+    resourceCapacity: state.resourceCapacity,
+    transportLines: state.transportLines,
+    powerGrid: state.powerGrid,
+    researchPoints: state.researchPoints,
+    completedResearch: state.completedResearch,
+    activeResearch: state.activeResearch,
+    researchProgress: state.researchProgress,
+    workers: state.workers,
+    market: state.market,
+    contracts: state.contracts,
+    completedContracts: state.completedContracts,
+    automationUnlocks: state.automationUnlocks,
+    prestigeState: state.prestigeState,
+    activeEvents: state.activeEvents,
+    stats: state.stats,
+    megaProjects: state.megaProjects,
+    blueprints: state.blueprints,
+    autoSellResources: state.autoSellResources,
+    storageUpgradeLevels: state.storageUpgradeLevels,
+    lastOnlineTimestamp: state.lastOnlineTimestamp,
+    loginStreak: state.loginStreak,
+    weather: state.weather,
+    quests: state.quests,
+    payoutConfig: state.payoutConfig,
+    pendingPayout: state.pendingPayout,
+    payoutHistory: state.payoutHistory,
+    trackedQuest: state.trackedQuest,
+    drones: state.drones,
+    notifications: state.notifications,
+    gameSpeed: state.gameSpeed,
+    paused: state.paused,
+  };
+}
+
+/**
+ * Cloud sync hook with guest-to-auth migration support.
+ *
+ * Flow:
+ * 1. Guest plays locally (localStorage) — no server involvement
+ * 2. Guest signs in with Google → first-time migration
+ * 3. Migration endpoint validates guest save data against game rules
+ * 4. If valid → guest data becomes initial cloud state
+ * 5. After migration → cloud is ALWAYS authoritative
+ * 6. Conflict resolution: cloud always wins (after first migration)
+ */
 export function useCloudSync(): CloudSyncState {
   const { user } = useAuth();
   const isSyncing = useRef(false);
@@ -40,8 +110,96 @@ export function useCloudSync(): CloudSyncState {
   const [serverStateHash, setServerStateHash] = useState<string | null>(null);
   const [isServerAuthoritative, setIsServerAuthoritative] = useState(false);
   const [blockedState, setBlockedState] = useState<CloudBlockState | null>(null);
+  const [migrationResult, setMigrationResult] = useState<MigrationResult | null>(null);
+  const [isMigrating, setIsMigrating] = useState(false);
   const cloudDataRef = useRef<unknown>(null);
   const initialLoadDone = useRef(false);
+
+  /**
+   * Attempt guest-to-auth migration.
+   * Called automatically on first sign-in when no cloud state exists.
+   */
+  const migrateGuestToCloud = useCallback(async (): Promise<MigrationResult> => {
+    if (!user) return { migrated: false, action: 'reject', reason: 'Not authenticated' };
+
+    setIsMigrating(true);
+    try {
+      const gameState = extractGameState();
+
+      const res = await fetch('/api/auth/migrate-guest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          gameState,
+          displayName: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Commander',
+        }),
+      });
+
+      if (!res.ok && res.status !== 200) {
+        return { migrated: false, action: 'reject', reason: `Server error: ${res.status}` };
+      }
+
+      const data: MigrationResult = await res.json();
+      setMigrationResult(data);
+
+      if (data.migrated) {
+        // Migration succeeded — cloud is now authoritative
+        setIsServerAuthoritative(true);
+        if (data.stateHash) {
+          setServerStateHash(data.stateHash);
+        }
+        lastSyncAt.current = Date.now();
+        lastSavedGameTick.current = useGameStore.getState().gameTick;
+        setLastSyncAtState(lastSyncAt.current);
+      } else if (data.action === 'reset') {
+        // Migration rejected — reset to starting state
+        if (data.resetState) {
+          // The server saved a reset state — apply it locally
+          useGameStore.getState().resetGame();
+        }
+        setIsServerAuthoritative(true);
+        setBlockedState({
+          isBlocked: true,
+          reason: data.reason || 'Guest save data failed validation. Your progress has been reset.',
+          code: 'MIGRATION_REJECTED',
+          detectedAt: Date.now(),
+        });
+      } else if (data.action === 'use_cloud') {
+        // Cloud state already exists — cloud is authoritative
+        setIsServerAuthoritative(true);
+        // Load cloud state
+        const loadResult = await fetch(`/api/game/state?userId=${user.id}`);
+        if (loadResult.ok) {
+          const loadData = await loadResult.json();
+          if (loadData.data?.fullState) {
+            try {
+              useGameStore.getState().importSave(JSON.stringify(loadData.data.fullState));
+            } catch {
+              // If import fails, local state stays
+            }
+          }
+          if (loadData.data?.stateHash) {
+            setServerStateHash(loadData.data.stateHash);
+          }
+        }
+        lastSyncAt.current = Date.now();
+        setLastSyncAtState(lastSyncAt.current);
+      }
+
+      return data;
+    } catch (err) {
+      const result: MigrationResult = {
+        migrated: false,
+        action: 'reject',
+        reason: err instanceof Error ? err.message : 'Network error during migration',
+      };
+      setMigrationResult(result);
+      return result;
+    } finally {
+      setIsMigrating(false);
+    }
+  }, [user]);
 
   const saveToCloud = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
     if (!user) return { success: false, error: 'Not authenticated' };
@@ -50,45 +208,7 @@ export function useCloudSync(): CloudSyncState {
     isSyncing.current = true;
     setIsSyncingState(true);
     try {
-      const state = useGameStore.getState();
-      const gameState = {
-        money: state.money,
-        totalMoneyEarned: state.totalMoneyEarned,
-        gameTick: state.gameTick,
-        buildings: state.buildings,
-        resources: state.resources,
-        resourceCapacity: state.resourceCapacity,
-        transportLines: state.transportLines,
-        powerGrid: state.powerGrid,
-        researchPoints: state.researchPoints,
-        completedResearch: state.completedResearch,
-        activeResearch: state.activeResearch,
-        researchProgress: state.researchProgress,
-        workers: state.workers,
-        market: state.market,
-        contracts: state.contracts,
-        completedContracts: state.completedContracts,
-        automationUnlocks: state.automationUnlocks,
-        prestigeState: state.prestigeState,
-        activeEvents: state.activeEvents,
-        stats: state.stats,
-        megaProjects: state.megaProjects,
-        blueprints: state.blueprints,
-        autoSellResources: state.autoSellResources,
-        storageUpgradeLevels: state.storageUpgradeLevels,
-        lastOnlineTimestamp: state.lastOnlineTimestamp,
-        loginStreak: state.loginStreak,
-        weather: state.weather,
-        quests: state.quests,
-        payoutConfig: state.payoutConfig,
-        pendingPayout: state.pendingPayout,
-        payoutHistory: state.payoutHistory,
-        trackedQuest: state.trackedQuest,
-        drones: state.drones,
-        notifications: state.notifications,
-        gameSpeed: state.gameSpeed,
-        paused: state.paused,
-      } as Record<string, unknown>;
+      const gameState = extractGameState();
 
       // Try the authoritative server_game_state endpoint first
       const res = await fetch('/api/game/state', {
@@ -104,7 +224,6 @@ export function useCloudSync(): CloudSyncState {
       if (res.status === 400) {
         const data = await res.json();
         if (data.code === 'VALIDATION_FAILED') {
-          // Server rejected the save — state is invalid
           setBlockedState({ isBlocked: true, reason: data.violations?.join(', ') || 'Save validation failed — your game state may have been modified incorrectly.', code: 'VALIDATION_FAILED', detectedAt: Date.now() });
           return { success: false, error: `Save rejected: ${data.violations?.join(', ') || 'validation failed'}` };
         }
@@ -137,7 +256,7 @@ export function useCloudSync(): CloudSyncState {
       const data = await res.json();
       if (data.saved) {
         lastSyncAt.current = Date.now();
-        lastSavedGameTick.current = state.gameTick;
+        lastSavedGameTick.current = useGameStore.getState().gameTick;
         setLastSyncAtState(lastSyncAt.current);
         if (data.stateHash) {
           setServerStateHash(data.stateHash);
@@ -163,7 +282,7 @@ export function useCloudSync(): CloudSyncState {
         const fallbackData = await fallbackRes.json();
         if (fallbackData.saved) {
           lastSyncAt.current = Date.now();
-          lastSavedGameTick.current = state.gameTick;
+          lastSavedGameTick.current = useGameStore.getState().gameTick;
           setLastSyncAtState(lastSyncAt.current);
           return { success: true };
         }
@@ -220,37 +339,19 @@ export function useCloudSync(): CloudSyncState {
         }
         setIsServerAuthoritative(true);
 
-        // Conflict resolution: compare gameTick
-        if (localTick > 0 && cloudTick > 0) {
-          const tickRatio = cloudTick / localTick;
-
-          if (tickRatio < 0.9) {
-            lastSyncAt.current = Date.now();
-            setLastSyncAtState(lastSyncAt.current);
-            return { success: true, data: cloudState, conflict: 'local' };
-          } else if (tickRatio > 1.1) {
-            lastSyncAt.current = Date.now();
-            setLastSyncAtState(lastSyncAt.current);
-            return { success: true, data: cloudState, conflict: 'cloud' };
-          } else {
-            setPendingConflict({ localTick, cloudTick, localMoney, cloudMoney });
-            cloudDataRef.current = cloudState;
-            lastSyncAt.current = Date.now();
-            setLastSyncAtState(lastSyncAt.current);
-            return { success: true, data: cloudState };
-          }
-        }
-
-        if (cloudTick > 0 && localTick === 0) {
+        // ── After first migration: CLOUD ALWAYS WINS ──
+        // No more "keep local?" dialogs. Cloud is authoritative.
+        if (cloudTick > 0) {
+          // Cloud has state — it's authoritative
+          lastSyncAt.current = Date.now();
+          setLastSyncAtState(lastSyncAt.current);
           return { success: true, data: cloudState, conflict: 'cloud' };
         }
-        if (localTick > 0 && cloudTick === 0) {
-          return { success: true, data: cloudState, conflict: 'local' };
-        }
 
+        // Edge case: cloud tick is 0 but has state (shouldn't happen, but handle gracefully)
         lastSyncAt.current = Date.now();
         setLastSyncAtState(lastSyncAt.current);
-        return { success: true, data: cloudState };
+        return { success: true, data: cloudState, conflict: localTick > 0 ? 'cloud' : undefined };
       }
 
       // Fallback to legacy player endpoint
@@ -262,41 +363,14 @@ export function useCloudSync(): CloudSyncState {
         }
         if (fallbackData.data?.game_state) {
           const cloudState = fallbackData.data.game_state as Record<string, unknown>;
-          const localState = useGameStore.getState();
           const cloudTick = (cloudState.gameTick as number) || 0;
-          const localTick = localState.gameTick;
-          const cloudMoney = (cloudState.money as number) || 0;
-          const localMoney = localState.money;
 
-          if (localTick > 0 && cloudTick > 0) {
-            const tickRatio = cloudTick / localTick;
-            if (tickRatio < 0.9) {
-              lastSyncAt.current = Date.now();
-              setLastSyncAtState(lastSyncAt.current);
-              return { success: true, data: cloudState, conflict: 'local' };
-            } else if (tickRatio > 1.1) {
-              lastSyncAt.current = Date.now();
-              setLastSyncAtState(lastSyncAt.current);
-              return { success: true, data: cloudState, conflict: 'cloud' };
-            } else {
-              setPendingConflict({ localTick, cloudTick, localMoney, cloudMoney });
-              cloudDataRef.current = cloudState;
-              lastSyncAt.current = Date.now();
-              setLastSyncAtState(lastSyncAt.current);
-              return { success: true, data: cloudState };
-            }
-          }
+          setIsServerAuthoritative(true);
 
-          if (cloudTick > 0 && localTick === 0) {
-            return { success: true, data: cloudState, conflict: 'cloud' };
-          }
-          if (localTick > 0 && cloudTick === 0) {
-            return { success: true, data: cloudState, conflict: 'local' };
-          }
-
+          // Cloud always wins
           lastSyncAt.current = Date.now();
           setLastSyncAtState(lastSyncAt.current);
-          return { success: true, data: cloudState };
+          return { success: true, data: cloudState, conflict: cloudTick > 0 ? 'cloud' : undefined };
         }
       }
 
@@ -309,39 +383,66 @@ export function useCloudSync(): CloudSyncState {
   const resolveConflict = useCallback(async (choice: 'local' | 'cloud'): Promise<{ success: boolean; error?: string }> => {
     setPendingConflict(null);
 
+    // After migration: cloud always wins. This function is kept for backwards compat
+    // but should rarely be called anymore.
     if (choice === 'cloud' && cloudDataRef.current) {
+      // Apply cloud state locally
+      try {
+        useGameStore.getState().importSave(JSON.stringify(cloudDataRef.current));
+      } catch {
+        // If import fails, keep current state
+      }
       cloudDataRef.current = null;
       return { success: true };
     }
 
+    // If somehow "local" is chosen after migration, still save to cloud
+    // (cloud is authoritative, so we push local → cloud)
     cloudDataRef.current = null;
     return saveToCloud();
   }, [saveToCloud]);
 
-  // Auto-load from server on login (first load only)
+  // Auto-load/migrate on login (first load only)
   useEffect(() => {
     if (!user || initialLoadDone.current) return;
     initialLoadDone.current = true;
 
     (async () => {
-      const result = await loadFromCloud();
-      if (result.success && result.data && result.conflict === 'cloud') {
-        // Auto-apply cloud state if it's ahead
+      // First, check if user already has cloud state
+      const loadResult = await loadFromCloud();
+
+      if (loadResult.isNew) {
+        // ── FIRST-TIME LOGIN: No cloud state exists ──
+        // This is a guest migrating to an authenticated account.
+        // Validate their local state and migrate it.
+        const migration = await migrateGuestToCloud();
+
+        if (migration.migrated) {
+          // Migration succeeded — local state is now cloud state
+          // No need to import anything, local state is already correct
+        } else if (migration.action === 'reset') {
+          // Migration rejected — local state was reset
+          // The user will see the reset state
+        }
+        // If migration failed for other reasons, local state continues
+      } else if (loadResult.success && loadResult.data && loadResult.conflict === 'cloud') {
+        // ── RETURNING USER: Cloud state exists and is authoritative ──
+        // Apply cloud state locally (cloud always wins)
         try {
-          useGameStore.getState().importSave(JSON.stringify(result.data));
+          useGameStore.getState().importSave(JSON.stringify(loadResult.data));
         } catch {
           // If import fails, the local state stays
         }
       }
     })();
-  }, [user, loadFromCloud]);
+  }, [user, loadFromCloud, migrateGuestToCloud]);
 
   // Auto-save effect: every 2 minutes, save if logged in and state has changed
   useEffect(() => {
     if (!user) return;
 
     const interval = setInterval(async () => {
-      if (isSyncing.current) return;
+      if (isSyncing.current || isMigrating) return;
 
       const currentGameTick = useGameStore.getState().gameTick;
 
@@ -357,7 +458,7 @@ export function useCloudSync(): CloudSyncState {
     }, AUTO_SAVE_INTERVAL);
 
     return () => clearInterval(interval);
-  }, [user, saveToCloud]);
+  }, [user, saveToCloud, isMigrating]);
 
   return {
     saveToCloud,
@@ -370,5 +471,7 @@ export function useCloudSync(): CloudSyncState {
     serverStateHash,
     isServerAuthoritative,
     blockedState,
+    migrationResult,
+    isMigrating,
   };
 }

@@ -219,224 +219,240 @@ async function safeFetchTable<T>(
 // ─── Main GET Handler ───────────────────────────────────────────────────
 
 export async function GET() {
-  // Return cached data if still fresh
-  if (cachedDefinitions && (Date.now() - cachedDefinitions.fetchedAt) < CACHE_TTL_MS) {
-    return NextResponse.json(cachedDefinitions.data);
-  }
+  try {
+    // Return cached data if still fresh
+    if (cachedDefinitions && (Date.now() - cachedDefinitions.fetchedAt) < CACHE_TTL_MS) {
+      return NextResponse.json(cachedDefinitions.data);
+    }
 
-  const supabase = createServiceRoleClient();
-  const errors: string[] = [];
+    const supabase = createServiceRoleClient();
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable — database not configured' },
+        { status: 503 }
+      );
+    }
+    const errors: string[] = [];
 
-  // Fetch all 19 config tables in parallel
-  const [
-    buildingsRes,
-    resourcesRes,
-    recipesRes,
-    chainsRes,
-    researchRes,
-    marketRes,
-    weatherRes,
-    workersRes,
-    transportRes,
-    automationRes,
-    prestigeRes,
-    rankRes,
-    questsRes,
-    dailyRes,
-    eventsRes,
-    seasonalRes,
-    megaRes,
-    gameRes,
-  ] = await Promise.all([
-    safeFetchTable<SupabaseBuilding>(supabase, 'game_config_buildings'),
-    safeFetchTable<SupabaseResource>(supabase, 'game_config_resources'),
-    safeFetchTable<SupabaseRecipe>(supabase, 'game_config_production_recipes'),
-    safeFetchTable<SupabaseProductionChain>(supabase, 'game_config_production_chains'),
-    safeFetchTable<SupabaseResearch>(supabase, 'game_config_research'),
-    safeFetchTable<SupabaseMarket>(supabase, 'game_config_market'),
-    safeFetchTable<SupabaseWeather>(supabase, 'game_config_weather'),
-    safeFetchTable<SupabaseWorker>(supabase, 'game_config_workers'),
-    safeFetchTable<SupabaseTransport>(supabase, 'game_config_transport'),
-    safeFetchTable<SupabaseAutomation>(supabase, 'game_config_automation'),
-    safeFetchTable<SupabasePrestigeBonus>(supabase, 'game_config_prestige_bonuses'),
-    safeFetchTable<SupabaseRankThreshold>(supabase, 'game_config_rank_thresholds'),
-    safeFetchTable<SupabaseQuestDefinition>(supabase, 'game_config_quest_definitions'),
-    safeFetchTable<SupabaseDailyReward>(supabase, 'game_config_daily_rewards'),
-    safeFetchTable<SupabaseEventTemplate>(supabase, 'game_config_event_templates'),
-    safeFetchTable<SupabaseSeasonalEvent>(supabase, 'game_config_seasonal_events'),
-    safeFetchTable<SupabaseMegaProject>(supabase, 'game_config_mega_projects'),
-    safeFetchTable<SupabaseGameConfig>(supabase, 'game_config_game'),
-  ]);
+    // Fetch all 19 config tables in parallel
+    const [
+      buildingsRes,
+      resourcesRes,
+      recipesRes,
+      chainsRes,
+      researchRes,
+      marketRes,
+      weatherRes,
+      workersRes,
+      transportRes,
+      automationRes,
+      prestigeRes,
+      rankRes,
+      questsRes,
+      dailyRes,
+      eventsRes,
+      seasonalRes,
+      megaRes,
+      gameRes,
+    ] = await Promise.all([
+      safeFetchTable<SupabaseBuilding>(supabase, 'game_config_buildings'),
+      safeFetchTable<SupabaseResource>(supabase, 'game_config_resources'),
+      safeFetchTable<SupabaseRecipe>(supabase, 'game_config_production_recipes'),
+      safeFetchTable<SupabaseProductionChain>(supabase, 'game_config_production_chains'),
+      safeFetchTable<SupabaseResearch>(supabase, 'game_config_research'),
+      safeFetchTable<SupabaseMarket>(supabase, 'game_config_market'),
+      safeFetchTable<SupabaseWeather>(supabase, 'game_config_weather'),
+      safeFetchTable<SupabaseWorker>(supabase, 'game_config_workers'),
+      safeFetchTable<SupabaseTransport>(supabase, 'game_config_transport'),
+      safeFetchTable<SupabaseAutomation>(supabase, 'game_config_automation'),
+      safeFetchTable<SupabasePrestigeBonus>(supabase, 'game_config_prestige_bonuses'),
+      safeFetchTable<SupabaseRankThreshold>(supabase, 'game_config_rank_thresholds'),
+      safeFetchTable<SupabaseQuestDefinition>(supabase, 'game_config_quest_definitions'),
+      safeFetchTable<SupabaseDailyReward>(supabase, 'game_config_daily_rewards'),
+      safeFetchTable<SupabaseEventTemplate>(supabase, 'game_config_event_templates'),
+      safeFetchTable<SupabaseSeasonalEvent>(supabase, 'game_config_seasonal_events'),
+      safeFetchTable<SupabaseMegaProject>(supabase, 'game_config_mega_projects'),
+      safeFetchTable<SupabaseGameConfig>(supabase, 'game_config_game'),
+    ]);
 
-  // Collect errors
-  if (buildingsRes.error) errors.push(`buildings: ${buildingsRes.error}`);
-  if (resourcesRes.error) errors.push(`resources: ${resourcesRes.error}`);
-  if (recipesRes.error) errors.push(`recipes: ${recipesRes.error}`);
-  if (chainsRes.error) errors.push(`chains: ${chainsRes.error}`);
-  if (researchRes.error) errors.push(`research: ${researchRes.error}`);
-  if (marketRes.error) errors.push(`market: ${marketRes.error}`);
-  if (weatherRes.error) errors.push(`weather: ${weatherRes.error}`);
-  if (workersRes.error) errors.push(`workers: ${workersRes.error}`);
-  if (transportRes.error) errors.push(`transport: ${transportRes.error}`);
-  if (automationRes.error) errors.push(`automation: ${automationRes.error}`);
-  if (prestigeRes.error) errors.push(`prestige: ${prestigeRes.error}`);
-  if (rankRes.error) errors.push(`rank: ${rankRes.error}`);
-  if (questsRes.error) errors.push(`quests: ${questsRes.error}`);
-  if (dailyRes.error) errors.push(`daily: ${dailyRes.error}`);
-  if (eventsRes.error) errors.push(`events: ${eventsRes.error}`);
-  if (seasonalRes.error) errors.push(`seasonal: ${seasonalRes.error}`);
-  if (megaRes.error) errors.push(`mega: ${megaRes.error}`);
-  if (gameRes.error) errors.push(`game: ${gameRes.error}`);
+    // Collect errors
+    if (buildingsRes.error) errors.push(`buildings: ${buildingsRes.error}`);
+    if (resourcesRes.error) errors.push(`resources: ${resourcesRes.error}`);
+    if (recipesRes.error) errors.push(`recipes: ${recipesRes.error}`);
+    if (chainsRes.error) errors.push(`chains: ${chainsRes.error}`);
+    if (researchRes.error) errors.push(`research: ${researchRes.error}`);
+    if (marketRes.error) errors.push(`market: ${marketRes.error}`);
+    if (weatherRes.error) errors.push(`weather: ${weatherRes.error}`);
+    if (workersRes.error) errors.push(`workers: ${workersRes.error}`);
+    if (transportRes.error) errors.push(`transport: ${transportRes.error}`);
+    if (automationRes.error) errors.push(`automation: ${automationRes.error}`);
+    if (prestigeRes.error) errors.push(`prestige: ${prestigeRes.error}`);
+    if (rankRes.error) errors.push(`rank: ${rankRes.error}`);
+    if (questsRes.error) errors.push(`quests: ${questsRes.error}`);
+    if (dailyRes.error) errors.push(`daily: ${dailyRes.error}`);
+    if (eventsRes.error) errors.push(`events: ${eventsRes.error}`);
+    if (seasonalRes.error) errors.push(`seasonal: ${seasonalRes.error}`);
+    if (megaRes.error) errors.push(`mega: ${megaRes.error}`);
+    if (gameRes.error) errors.push(`game: ${gameRes.error}`);
 
-  // Critical check: buildings, resources, and recipes are required
-  if (!buildingsRes.data || !resourcesRes.data || !recipesRes.data) {
-    return NextResponse.json(
-      {
-        error: 'Critical config tables (buildings/resources/recipes) failed to load',
+    // Critical check: buildings, resources, and recipes are required
+    if (!buildingsRes.data || !resourcesRes.data || !recipesRes.data) {
+      return NextResponse.json(
+        {
+          error: 'Critical config tables (buildings/resources/recipes) failed to load',
+          partialErrors: errors,
+          buildings: {},
+          resources: {},
+          research: [],
+          market: [],
+          weather: {},
+          workers: [],
+          transport: [],
+          automation: [],
+          prestigeBonuses: [],
+          rankThresholds: [],
+          quests: [],
+          dailyRewards: [],
+          eventTemplates: [],
+          seasonalEvents: [],
+          megaProjects: [],
+          gameConfig: {},
+          productionChains: [],
+          idMigrationMap: ID_MIGRATION_MAP,
+          loadedAt: Date.now(),
+          source: 'supabase-error',
+        } as GameConfig & { idMigrationMap: Record<string, string | string[]>; partialErrors: string[] },
+        { status: 503 },
+      );
+    }
+
+    // Transform all data
+    const result: GameConfig & { idMigrationMap: Record<string, string | string[]> } = {
+      buildings: transformBuildings(buildingsRes.data, recipesRes.data),
+      resources: transformResources(resourcesRes.data),
+      research: transformResearch(researchRes.data ?? []),
+      market: transformMarket(marketRes.data ?? []),
+      weather: transformWeather(weatherRes.data ?? []),
+      workers: (workersRes.data ?? []).map(w => ({
+        id: w.id,
+        name: w.name,
+        description: w.description,
+        baseHireCost: w.base_hire_cost,
+        effects: w.effects,
+        icon: w.icon,
+      })),
+      transport: (transportRes.data ?? []).map(t => ({
+        id: t.id,
+        name: t.name,
+        description: t.description,
+        baseCost: parseCostMap(t.base_cost),
+        baseThroughput: t.base_throughput,
+        upgradeMultiplier: t.upgrade_multiplier,
+        icon: t.icon,
+      })),
+      automation: (automationRes.data ?? []).map(a => ({
+        id: a.id,
+        name: a.name,
+        description: a.description,
+        cost: a.cost,
+        requiresResearch: a.requires_research,
+        icon: a.icon,
+      })),
+      prestigeBonuses: (prestigeRes.data ?? []).map(p => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        cost: p.cost,
+        effect: p.effect,
+      })),
+      rankThresholds: (rankRes.data ?? []).map(r => ({
+        rank: r.rank,
+        name: r.name,
+        scoreRequired: r.score_required,
+      })),
+      quests: (questsRes.data ?? []).map(q => ({
+        id: q.id,
+        name: q.name,
+        description: q.description,
+        type: q.type,
+        category: q.category,
+        gameTier: q.game_tier,
+        steps: q.steps,
+        reward: q.reward,
+        targetResource: q.target_resource,
+        targetBuilding: q.target_building,
+        icon: q.icon,
+      })),
+      dailyRewards: (dailyRes.data ?? []).map(d => ({
+        day: d.day,
+        type: d.type,
+        amount: d.amount,
+        resourceId: d.resource_id,
+      })),
+      eventTemplates: (eventsRes.data ?? []).map(e => ({
+        id: e.id,
+        name: e.name,
+        description: e.description,
+        type: e.type,
+        duration: e.duration,
+        effects: e.effects,
+        icon: e.icon,
+      })),
+      seasonalEvents: (seasonalRes.data ?? []).map(s => ({
+        id: s.id,
+        name: s.name,
+        description: s.description,
+        season: s.season,
+        startDate: s.start_date,
+        endDate: s.end_date,
+        effects: s.effects,
+        rewards: s.rewards,
+        icon: s.icon,
+        isActive: s.is_active,
+      })),
+      megaProjects: (megaRes.data ?? []).map(m => ({
+        id: m.id,
+        name: m.name,
+        description: m.description,
+        icon: m.icon,
+        stages: m.stages,
+        bonus: m.bonus,
+        unlockRequirement: m.unlock_requirement,
+      })),
+      gameConfig: (gameRes.data?.[0] as Record<string, unknown>) ?? {},
+      productionChains: (chainsRes.data ?? []).map(c => ({
+        id: c.id,
+        upstreamBuilding: c.upstream_building,
+        downstreamBuilding: c.downstream_building,
+        resourceId: c.resource_id,
+      })),
+      idMigrationMap: ID_MIGRATION_MAP,
+      loadedAt: Date.now(),
+      source: 'supabase',
+    };
+
+    // Add partial error info if any non-critical tables failed
+    if (errors.length > 0) {
+      return NextResponse.json({
+        ...result,
         partialErrors: errors,
-        buildings: {},
-        resources: {},
-        research: [],
-        market: [],
-        weather: {},
-        workers: [],
-        transport: [],
-        automation: [],
-        prestigeBonuses: [],
-        rankThresholds: [],
-        quests: [],
-        dailyRewards: [],
-        eventTemplates: [],
-        seasonalEvents: [],
-        megaProjects: [],
-        gameConfig: {},
-        productionChains: [],
-        idMigrationMap: ID_MIGRATION_MAP,
-        loadedAt: Date.now(),
-        source: 'supabase-error',
-      } as GameConfig & { idMigrationMap: Record<string, string | string[]>; partialErrors: string[] },
-      { status: 503 },
+      });
+    }
+
+    // Cache the result
+    cachedDefinitions = {
+      data: result,
+      fetchedAt: Date.now(),
+    };
+
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error('[/api/game/definitions] Unhandled error:', error);
+    // Clear potentially corrupted cache on error
+    cachedDefinitions = null;
+    return NextResponse.json(
+      { error: 'Internal server error — game definitions unavailable' },
+      { status: 500 }
     );
   }
-
-  // Transform all data
-  const result: GameConfig & { idMigrationMap: Record<string, string | string[]> } = {
-    buildings: transformBuildings(buildingsRes.data, recipesRes.data),
-    resources: transformResources(resourcesRes.data),
-    research: transformResearch(researchRes.data ?? []),
-    market: transformMarket(marketRes.data ?? []),
-    weather: transformWeather(weatherRes.data ?? []),
-    workers: (workersRes.data ?? []).map(w => ({
-      id: w.id,
-      name: w.name,
-      description: w.description,
-      baseHireCost: w.base_hire_cost,
-      effects: w.effects,
-      icon: w.icon,
-    })),
-    transport: (transportRes.data ?? []).map(t => ({
-      id: t.id,
-      name: t.name,
-      description: t.description,
-      baseCost: parseCostMap(t.base_cost),
-      baseThroughput: t.base_throughput,
-      upgradeMultiplier: t.upgrade_multiplier,
-      icon: t.icon,
-    })),
-    automation: (automationRes.data ?? []).map(a => ({
-      id: a.id,
-      name: a.name,
-      description: a.description,
-      cost: a.cost,
-      requiresResearch: a.requires_research,
-      icon: a.icon,
-    })),
-    prestigeBonuses: (prestigeRes.data ?? []).map(p => ({
-      id: p.id,
-      name: p.name,
-      description: p.description,
-      cost: p.cost,
-      effect: p.effect,
-    })),
-    rankThresholds: (rankRes.data ?? []).map(r => ({
-      rank: r.rank,
-      name: r.name,
-      scoreRequired: r.score_required,
-    })),
-    quests: (questsRes.data ?? []).map(q => ({
-      id: q.id,
-      name: q.name,
-      description: q.description,
-      type: q.type,
-      category: q.category,
-      gameTier: q.game_tier,
-      steps: q.steps,
-      reward: q.reward,
-      targetResource: q.target_resource,
-      targetBuilding: q.target_building,
-      icon: q.icon,
-    })),
-    dailyRewards: (dailyRes.data ?? []).map(d => ({
-      day: d.day,
-      type: d.type,
-      amount: d.amount,
-      resourceId: d.resource_id,
-    })),
-    eventTemplates: (eventsRes.data ?? []).map(e => ({
-      id: e.id,
-      name: e.name,
-      description: e.description,
-      type: e.type,
-      duration: e.duration,
-      effects: e.effects,
-      icon: e.icon,
-    })),
-    seasonalEvents: (seasonalRes.data ?? []).map(s => ({
-      id: s.id,
-      name: s.name,
-      description: s.description,
-      season: s.season,
-      startDate: s.start_date,
-      endDate: s.end_date,
-      effects: s.effects,
-      rewards: s.rewards,
-      icon: s.icon,
-      isActive: s.is_active,
-    })),
-    megaProjects: (megaRes.data ?? []).map(m => ({
-      id: m.id,
-      name: m.name,
-      description: m.description,
-      icon: m.icon,
-      stages: m.stages,
-      bonus: m.bonus,
-      unlockRequirement: m.unlock_requirement,
-    })),
-    gameConfig: (gameRes.data?.[0] as Record<string, unknown>) ?? {},
-    productionChains: (chainsRes.data ?? []).map(c => ({
-      id: c.id,
-      upstreamBuilding: c.upstream_building,
-      downstreamBuilding: c.downstream_building,
-      resourceId: c.resource_id,
-    })),
-    idMigrationMap: ID_MIGRATION_MAP,
-    loadedAt: Date.now(),
-    source: 'supabase',
-  };
-
-  // Add partial error info if any non-critical tables failed
-  if (errors.length > 0) {
-    return NextResponse.json({
-      ...result,
-      partialErrors: errors,
-    });
-  }
-
-  // Cache the result
-  cachedDefinitions = {
-    data: result,
-    fetchedAt: Date.now(),
-  };
-
-  return NextResponse.json(result);
 }

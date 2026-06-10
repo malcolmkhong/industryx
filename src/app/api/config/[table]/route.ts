@@ -31,6 +31,12 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
   try {
     const supabase = createServiceRoleClient();
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable — database not configured' },
+        { status: 503 }
+      );
+    }
     const url = new URL(request.url);
 
     // Parse query params
@@ -200,6 +206,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     const supabase = createServiceRoleClient();
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable — database not configured' },
+        { status: 503 }
+      );
+    }
     const { data, error } = await supabase
       .from(tableName)
       .insert(insertData)

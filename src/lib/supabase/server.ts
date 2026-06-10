@@ -2,6 +2,28 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
+/**
+ * Check if Supabase is configured (env vars present).
+ * Used to gracefully degrade when Supabase is unavailable.
+ */
+export function isSupabaseConfigured(): boolean {
+  return !!(
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+}
+
+/**
+ * Check if Supabase service role is configured.
+ * Used by API routes that need service-level access.
+ */
+export function isServiceRoleConfigured(): boolean {
+  return !!(
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
+}
+
 export async function createClient() {
   const cookieStore = await cookies();
 
@@ -28,7 +50,16 @@ export async function createClient() {
   );
 }
 
+/**
+ * Create a Supabase client with service role privileges.
+ * Returns null if service role is not configured, instead of throwing.
+ * Callers should check for null and return an appropriate error response.
+ */
 export function createServiceRoleClient() {
+  if (!isServiceRoleConfigured()) {
+    return null;
+  }
+
   return createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,

@@ -70,6 +70,8 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useCloudSync } from '@/lib/hooks/useCloudSync';
 import { OnlineCount } from '@/components/game/OnlineCount';
 import { CloudSyncBlockBanner } from '@/components/game/CloudSyncBlockBanner';
+import { LoginFloatingPanel } from '@/components/game/LoginFloatingPanel';
+import { useLoginPrompt } from '@/lib/hooks/useLoginPrompt';
 
 // Navigation is now managed by GameSidebar component
 // KEY_TAB_MAP is imported from GameSidebar
@@ -187,6 +189,9 @@ export default function Home() {
   const [cloudStatus, setCloudStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Commander';
   const userAvatar = user?.user_metadata?.avatar_url;
+
+  // Login prompt system
+  const { isOpen: loginPromptOpen, reason: loginPromptReason, promptLogin, closePrompt } = useLoginPrompt();
 
   // Offline earnings state
   const [offlineDialogOpen, setOfflineDialogOpen] = useState(false);
@@ -325,6 +330,27 @@ export default function Home() {
       setActiveTab('guide');
     }
   }, [buildings.length, gameTick, setActiveTab]);
+
+  // Intercept tab changes to cloud-required features for guest users
+  // Show login prompt instead of navigating to the tab
+  const GUEST_GATED_TABS: Record<string, 'leaderboard' | 'trading_post' | 'mega_project'> = {
+    leaderboard: 'leaderboard',
+    tradePost: 'trading_post',
+    megaprojects: 'mega_project',
+  };
+  const GUEST_TAB_REASON_MAP: Record<string, 'leaderboard' | 'trading_post' | 'mega_project'> = {
+    leaderboard: 'leaderboard',
+    tradePost: 'trading_post',
+    megaprojects: 'mega_project',
+  };
+  const handleTabChange = useCallback((tab: GameTab) => {
+    // If user is not logged in and trying to access a gated feature, prompt login
+    if (!user && !authLoading && GUEST_GATED_TABS[tab]) {
+      promptLogin(GUEST_TAB_REASON_MAP[tab]);
+      return; // Don't navigate to the tab
+    }
+    setActiveTab(tab);
+  }, [user, authLoading, promptLogin, setActiveTab]);
 
   // Game tick loop — removed gameTick from deps to eliminate interval thrashing
   // Uses getState() for action call (actions are stable references)
@@ -821,8 +847,8 @@ export default function Home() {
                 </TooltipContent>
               </Tooltip>
 
-              {/* Cloud save button (only when logged in) */}
-              {user && (
+              {/* Cloud save button */}
+              {user ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={async () => {
@@ -839,6 +865,17 @@ export default function Home() {
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="bg-card border-cyan-900/30">
                     <p className="text-xs">Save to Cloud</p>
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-gray-500 hover:text-cyan-400" onClick={() => promptLogin('cloud_save')}>
+                      <Cloud className="w-3 h-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="bg-card border-cyan-900/30">
+                    <p className="text-xs">Sign in for Cloud Save</p>
                   </TooltipContent>
                 </Tooltip>
               )}
@@ -879,7 +916,7 @@ export default function Home() {
                   </TooltipContent>
                 </Tooltip>
               ) : (
-                <Button variant="ghost" size="sm" className="h-7 px-3 text-xs text-cyan-400 hover:text-cyan-300 border border-cyan-900/30 hover:border-cyan-500/30 rounded-lg" onClick={signInWithGoogle}>
+                <Button variant="ghost" size="sm" className="h-7 px-3 text-xs text-cyan-400 hover:text-cyan-300 border border-cyan-900/30 hover:border-cyan-500/30 rounded-lg" onClick={() => promptLogin('manual')}>
                   <LogIn className="w-3 h-3 mr-1" /> Sign In
                 </Button>
               )}
@@ -1025,7 +1062,7 @@ export default function Home() {
                   </TooltipContent>
                 </Tooltip>
               ) : (
-                <Button variant="ghost" size="sm" className="h-6 px-2 text-[9px] text-cyan-400" onClick={signInWithGoogle}>
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-[9px] text-cyan-400" onClick={() => promptLogin('manual')}>
                   <LogIn className="w-2.5 h-2.5 mr-0.5" /> Sign In
                 </Button>
               )}
@@ -1056,7 +1093,7 @@ export default function Home() {
         {/* MAIN CONTENT */}
         <div className="flex flex-1 min-h-0 overflow-hidden">
           {/* SIDEBAR NAV - desktop only (grouped categories) */}
-          <GameSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+          <GameSidebar activeTab={activeTab} onTabChange={handleTabChange} />
 
           {/* PANEL AREA */}
           <main className="flex-1 min-h-0 overflow-y-auto game-scrollbar p-2 lg:p-4 game-grid-bg relative pb-24 lg:pb-4">
@@ -1068,10 +1105,10 @@ export default function Home() {
         </div>
 
         {/* Fixed bottom navigation (mobile only) */}
-        <BottomNavigationBar activeTab={activeTab} onTabChange={setActiveTab} />
+        <BottomNavigationBar activeTab={activeTab} onTabChange={handleTabChange} />
 
         {/* Floating action button (mobile only) */}
-        <FloatingActionButton onTabChange={setActiveTab} />
+        <FloatingActionButton onTabChange={handleTabChange} />
 
         {/* Floating production numbers */}
         <FloatingNumbers />
@@ -1171,6 +1208,13 @@ export default function Home() {
 
       {/* Toast notifications */}
       <GameToast />
+
+      {/* Login Floating Panel */}
+      <LoginFloatingPanel
+        open={loginPromptOpen}
+        reason={loginPromptReason}
+        onClose={closePrompt}
+      />
 
       {/* Offline Earnings Dialog */}
       <Dialog open={offlineDialogOpen} onOpenChange={setOfflineDialogOpen}>

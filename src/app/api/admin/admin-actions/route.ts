@@ -18,6 +18,12 @@ export async function GET(request: NextRequest) {
 
   try {
     const supabase = createServiceRoleClient();
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable — database not configured' },
+        { status: 503 }
+      );
+    }
     const url = new URL(request.url);
 
     const adminUserId = url.searchParams.get("admin_user_id") || "";

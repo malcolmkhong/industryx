@@ -30,6 +30,7 @@ import {
   ModifierEngine,
   buildModifierRegistry,
 } from './modifierEngine';
+import { getBalance } from './balanceConfig';
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -197,7 +198,7 @@ export function emptyProductionSnapshot(): ProductionSnapshot {
     powerOverload: false,
     payoutPerCycle: 0,
     payoutBreakdown: { extractors: 0, factories: 0, power: 0 },
-    sellMultiplier: 0.9,
+    sellMultiplier: getBalance().market.baseSellMultiplier,
     endgameMoney: 0,
     endgameResearch: 0,
     endgameCorp: 0,
@@ -274,7 +275,7 @@ export function buildMultipliers(state: GameState): MultiplierCache {
   const transportEfficiency = state.transportLines.length > 0
     ? (state.transportLines.filter(t => t.active).length / Math.max(1, state.transportLines.length)) * transportMultiplier
     : 1;
-  const transportProductionBonus = 1 + 0.25 * Math.max(0, transportEfficiency - 1);
+  const transportProductionBonus = 1 + getBalance().transport.productionBonusCoeff * Math.max(0, transportEfficiency - 1);
 
   // ─── Boolean Flags via Modifier Engine ─────────────────────────────
   // These research flags are now checked via the modifier registry instead of researchSet.has()
@@ -401,7 +402,7 @@ export function computePowerGrid(
         totalProduction += production;
         fuelConsumption.push({ resource: def.fuel, amount: fuelConsumed, actualAmount: fuelConsumed });
       } else {
-        production *= 0.1;
+        production *= getBalance().power.fuelStarvedOutputRatio;
         totalProduction += production;
         const actuallyConsumed = resources[def.fuel] || 0;
         fuelConsumption.push({ resource: def.fuel, amount: fuelConsumed, actualAmount: actuallyConsumed });
@@ -409,12 +410,13 @@ export function computePowerGrid(
       }
     } else {
       if (b.type === 'solarPanel') {
-        const dayFactor = 0.5 + 0.5 * Math.sin(currentTick * 0.01);
-        production *= Math.max(0.2, dayFactor) * cache.weatherSolar;
+        const bal = getBalance();
+        const dayFactor = bal.power.solarAmplitudeBase + bal.power.solarAmplitudeSwing * Math.sin(currentTick * bal.power.solarOscillationFreq);
+        production *= Math.max(bal.power.solarMinOutput, dayFactor) * cache.weatherSolar;
       }
       if (b.type === 'windTurbine') {
-        const windFactor = 0.5 + 0.5 * Math.sin(currentTick * 0.007 + Math.PI / 3);
-        production *= Math.max(0.3, windFactor) * cache.weatherWind;
+        const windFactor = bal.power.windAmplitudeBase + bal.power.windAmplitudeSwing * Math.sin(currentTick * bal.power.windOscillationFreq + Math.PI / 3);
+        production *= Math.max(bal.power.windMinOutput, windFactor) * cache.weatherWind;
       }
       totalProduction += production;
     }
@@ -430,16 +432,17 @@ export function computePowerGrid(
     totalConsumption += def.basePowerConsumption * b.level * b.efficiency;
   }
 
-  const energyEfficiencyReduction = cache.hasEnergyEfficiency ? 0.15 : 0;
-  const powerOptimizationReduction = cache.hasPowerOptimization ? 0.10 : 0;
+  const bal = getBalance();
+  const energyEfficiencyReduction = cache.hasEnergyEfficiency ? bal.research.energyEfficiencyReduction : 0;
+  const powerOptimizationReduction = cache.hasPowerOptimization ? bal.research.powerOptimizationReduction : 0;
   totalConsumption *= (1 - energyEfficiencyReduction) * (1 - powerOptimizationReduction) * cache.eventPowerConsumption;
 
   totalProduction *= (1 + cache.powerBonus);
 
   // Compute efficiency BEFORE worker savings (matches store.ts behavior)
   const efficiency = totalProduction > 0
-    ? Math.max(0.10, Math.min(1, totalProduction / Math.max(0.001, totalConsumption)))
-    : 0.10;
+    ? Math.max(bal.power.minEfficiency, Math.min(1, totalProduction / Math.max(0.001, totalConsumption)))
+    : bal.power.minEfficiency;
   const overload = totalConsumption > totalProduction;
 
   // Worker power savings (applied AFTER efficiency)
@@ -457,7 +460,7 @@ export function computePowerGrid(
         workerMaintenanceReduction += wDef.effects.maintenance * w.level * (1 + cache.workerEfficiencyTotal);
       }
     }
-    const buildingPowerReduction = Math.min(0.5, workerMaintenanceReduction);
+    const buildingPowerReduction = Math.min(bal.worker.maxPowerReductionPerBuilding, workerMaintenanceReduction);
     if (buildingPowerReduction > 0) {
       workerPowerSavings += def.basePowerConsumption * b.level * b.efficiency * buildingPowerReduction;
     }
@@ -518,7 +521,7 @@ export function computeProduction(
     }
   }
 
-  const buildingPowerReduction = Math.min(0.5, workerMaintenanceReduction);
+  const buildingPowerReduction = Math.min(getBalance().worker.maxPowerReductionPerBuilding, workerMaintenanceReduction);
   const workerPowerSavings = (buildingPowerReduction > 0 && def.basePowerConsumption > 0)
     ? def.basePowerConsumption * building.level * building.efficiency * buildingPowerReduction
     : 0;
@@ -577,7 +580,7 @@ export function computeSellMultiplier(
   _state: GameState,
   cache: MultiplierCache,
 ): number {
-  return 0.9 + cache.marketBonus;
+  return getBalance().market.baseSellMultiplier + cache.marketBonus;
 }
 
 // ─── Payout ──────────────────────────────────────────────────────────

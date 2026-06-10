@@ -21,6 +21,12 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
 
   try {
     const supabase = createServiceRoleClient();
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable — database not configured' },
+        { status: 503 }
+      );
+    }
 
     // First, get the admin record to check if it's an env admin
     const { data: adminRecord, error: fetchError } = await supabase
