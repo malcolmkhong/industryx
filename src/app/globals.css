@@ -76,6 +76,17 @@
   --color-industrial-card: #111827;
   --color-industrial-border: #1e293b;
   --color-industrial-hover: #1e3a5f;
+
+  /* Semantic color tokens (05.1) — migrate hardcoded colors to these */
+  --color-success: #4ade80;        /* replaces text-green-400 */
+  --color-danger: #f87171;         /* replaces text-red-400 */
+  --color-warning: #facc15;        /* replaces text-yellow-400 / text-amber-400 */
+  --color-brand: #22d3ee;          /* replaces text-cyan-400 (matches text-primary) */
+  --color-muted-label: #6b7280;    /* replaces text-gray-500 */
+  --color-subtle: #9ca3af;         /* replaces text-gray-400 */
+  --color-dim: #4b5563;            /* replaces text-gray-600 */
+  --color-premium: #e879f9;        /* replaces text-fuchsia-400 (prestige) */
+  --color-research: #c084fc;       /* replaces text-purple-400 (research) */
 }
 
 :root {
