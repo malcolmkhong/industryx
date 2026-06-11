@@ -31,7 +31,7 @@ export function ExportDialog({
           <DialogTitle className="text-cyan-400 flex items-center gap-2 text-sm lg:text-base">
             <Download className="w-4 h-4" /> Export Save
           </DialogTitle>
-          <DialogDescription className="text-gray-400 text-xs lg:text-sm">
+          <DialogDescription className="text-subtle text-xs lg:text-sm">
             Copy your save data below to back up your progress or transfer to another device.
           </DialogDescription>
         </DialogHeader>
@@ -39,7 +39,7 @@ export function ExportDialog({
           <Textarea
             readOnly
             value={exportString}
-            className="bg-[#0a0e17] border-cyan-900/20 text-xs font-mono text-gray-300 min-h-24 lg:min-h-32 max-h-36 lg:max-h-48 game-scrollbar"
+            className="bg-[#0a0e17] border-cyan-900/20 text-xs font-mono text-subtle min-h-24 lg:min-h-32 max-h-36 lg:max-h-48 game-scrollbar"
             onClick={(e) => (e.target as HTMLTextAreaElement).select()}
           />
           <div className="flex items-center gap-2">
@@ -61,7 +61,7 @@ export function ExportDialog({
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="border-gray-700 text-gray-400 hover:text-gray-200 min-h-[44px] lg:min-h-0"
+              className="border-muted-label text-subtle hover:text-gray-200 min-h-[44px] lg:min-h-0"
               size="sm"
             >
               Close

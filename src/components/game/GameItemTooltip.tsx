@@ -55,8 +55,8 @@ export function GameItemTooltip({
             <div>
               <p className="text-sm font-bold text-cyan-300">{name}</p>
               <div className="flex items-center gap-2 mt-0.5">
-                {category && <span className="text-[10px] text-gray-400 bg-gray-800 px-1.5 py-0.5 rounded">{category}</span>}
-                {tier !== undefined && tier > 0 && <span className="text-[10px] text-amber-400 bg-amber-900/30 px-1.5 py-0.5 rounded">Tier {tier}</span>}
+                {category && <span className="text-[10px] text-subtle bg-muted-label px-1.5 py-0.5 rounded">{category}</span>}
+                {tier !== undefined && tier > 0 && <span className="text-[10px] text-warning bg-amber-900/30 px-1.5 py-0.5 rounded">Tier {tier}</span>}
               </div>
             </div>
           </div>
@@ -65,7 +65,7 @@ export function GameItemTooltip({
         {/* Description */}
         {description && (
           <div className="px-3 py-2 border-b border-cyan-900/20">
-            <p className="text-xs text-gray-300 leading-relaxed">{description}</p>
+            <p className="text-xs text-subtle leading-relaxed">{description}</p>
           </div>
         )}
 
@@ -76,7 +76,7 @@ export function GameItemTooltip({
             <div className="space-y-1">
               {details.map((row, i) => (
                 <div key={i} className="flex items-center justify-between text-xs">
-                  <span className="text-gray-400">{row.label}</span>
+                  <span className="text-subtle">{row.label}</span>
                   <span className={row.isStyle ? 'text-gray-200' : (row.color || 'text-gray-200')} style={row.isStyle && row.color ? { color: row.color } : undefined}>{row.value}</span>
                 </div>
               ))}
@@ -87,11 +87,11 @@ export function GameItemTooltip({
         {/* Requirements */}
         {requirements && requirements.length > 0 && (
           <div className="px-3 py-2">
-            <p className="text-[10px] font-semibold text-amber-400 uppercase tracking-wider mb-1.5">Requirements</p>
+            <p className="text-[10px] font-semibold text-warning uppercase tracking-wider mb-1.5">Requirements</p>
             <div className="space-y-1">
               {requirements.map((row, i) => (
                 <div key={i} className="flex items-center justify-between text-xs">
-                  <span className="text-gray-400">{row.label}</span>
+                  <span className="text-subtle">{row.label}</span>
                   <span className={row.isStyle ? 'text-gray-200' : (row.color || 'text-gray-200')} style={row.isStyle && row.color ? { color: row.color } : undefined}>{row.value}</span>
                 </div>
               ))}

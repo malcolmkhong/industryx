@@ -48,10 +48,10 @@ export const NAV_GROUPS: NavGroup[] = [
     icon: Wrench,
     color: 'text-orange-400',
     tabs: [
-      { id: 'resources', label: 'Extraction', icon: Pickaxe, color: 'text-amber-400' },
+      { id: 'resources', label: 'Extraction', icon: Pickaxe, color: 'text-warning' },
       { id: 'factories', label: 'Factories', icon: Cog, color: 'text-orange-400' },
-      { id: 'storage', label: 'Storage', icon: Database, color: 'text-amber-300' },
-      { id: 'power', label: 'Power Grid', icon: Zap, color: 'text-yellow-400' },
+      { id: 'storage', label: 'Storage', icon: Database, color: 'text-warning' },
+      { id: 'power', label: 'Power Grid', icon: Zap, color: 'text-warning' },
       { id: 'workers', label: 'Workers', icon: Users, color: 'text-sky-400' },
     ],
   },
@@ -84,13 +84,13 @@ export const NAV_GROUPS: NavGroup[] = [
     id: 'rewards',
     label: 'Rewards',
     icon: Trophy,
-    color: 'text-amber-400',
+    color: 'text-warning',
     tabs: [
-      { id: 'quests', label: 'Quests', icon: Scroll, color: 'text-amber-400' },
-      { id: 'achievements', label: 'Achievements', icon: Trophy, color: 'text-amber-300' },
+      { id: 'quests', label: 'Quests', icon: Scroll, color: 'text-warning' },
+      { id: 'achievements', label: 'Achievements', icon: Trophy, color: 'text-warning' },
       { id: 'dailyRewards', label: 'Daily Rewards', icon: Gift, color: 'text-pink-400' },
-      { id: 'leaderboard', label: 'Leaderboard', icon: Trophy, color: 'text-amber-400' },
-      { id: 'events', label: 'Events', icon: AlertTriangle, color: 'text-red-400' },
+      { id: 'leaderboard', label: 'Leaderboard', icon: Trophy, color: 'text-warning' },
+      { id: 'events', label: 'Events', icon: AlertTriangle, color: 'text-danger' },
     ],
   },
   {
@@ -107,11 +107,11 @@ export const NAV_GROUPS: NavGroup[] = [
     id: 'system',
     label: 'System',
     icon: Database,
-    color: 'text-gray-400',
+    color: 'text-subtle',
     tabs: [
       { id: 'statistics', label: 'Statistics', icon: BarChart3, color: 'text-teal-400' },
       { id: 'blueprints', label: 'Blueprints', icon: Save, color: 'text-indigo-400' },
-      { id: 'settings', label: 'Settings', icon: Settings, color: 'text-gray-400' },
+      { id: 'settings', label: 'Settings', icon: Settings, color: 'text-subtle' },
     ],
   },
 ];
@@ -185,15 +185,15 @@ export function GameSidebar({ activeTab, onTabChange }: GameSidebarProps) {
                 className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
                   isActiveGroup
                     ? `${group.color} bg-white/[0.03]`
-                    : 'text-gray-600 hover:text-gray-400 hover:bg-white/[0.02]'
+                    : 'text-muted-label hover:text-subtle hover:bg-white/[0.02]'
                 }`}
               >
                 <GroupIcon className="w-3 h-3 flex-shrink-0" />
                 <span className="flex-1 text-left truncate">{group.label}</span>
                 {isExpanded ? (
-                  <ChevronDown className="w-3 h-3 text-gray-600" />
+                  <ChevronDown className="w-3 h-3 text-muted-label" />
                 ) : (
-                  <ChevronRight className="w-3 h-3 text-gray-600" />
+                  <ChevronRight className="w-3 h-3 text-muted-label" />
                 )}
               </button>
 
@@ -211,7 +211,7 @@ export function GameSidebar({ activeTab, onTabChange }: GameSidebarProps) {
                         className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium focus-visible:ring-2 focus-visible:ring-cyan-500/50 focus-visible:ring-offset-1 focus-visible:ring-offset-gray-900 ${
                           isActive
                             ? `${tab.color} bg-white/[0.05] border border-white/[0.08] shadow-[0_0_8px_rgba(34,211,238,0.05)]`
-                            : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.03] border border-transparent'
+                            : 'text-muted-label hover:text-subtle hover:bg-white/[0.03] border border-transparent'
                         }`}
                       >
                         <TabIcon className="w-3.5 h-3.5 flex-shrink-0" />
@@ -233,11 +233,11 @@ export function GameSidebar({ activeTab, onTabChange }: GameSidebarProps) {
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium
-            text-amber-400 border border-transparent"
+            text-warning border border-transparent"
           aria-label="Support the developer on Buy Me a Coffee"
         >
-          <Coffee className="w-4 h-4 flex-shrink-0 text-amber-400" />
-          <span className="truncate text-amber-400">Buy me a coffee</span>
+          <Coffee className="w-4 h-4 flex-shrink-0 text-warning" />
+          <span className="truncate text-warning">Buy me a coffee</span>
           <Heart className="w-3 h-3 ml-auto text-rose-400" />
         </a>
         {/* QR Code hint */}

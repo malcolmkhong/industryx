@@ -14,12 +14,12 @@ export function GameLoadingSkeleton({ headerHeight }: GameLoadingSkeletonProps) 
           </div>
           <div>
             <h1 className="text-sm font-bold text-cyan-400 tracking-wider">INDUSTRIAX</h1>
-            <p className="text-[10px] text-gray-500 -mt-0.5">Factory Dominion</p>
+            <p className="text-[10px] text-muted-label -mt-0.5">Factory Dominion</p>
           </div>
           <div className="flex items-center gap-3 ml-4">
-            <div className="h-5 w-24 bg-gray-800/60 rounded shimmer-loading" />
-            <div className="h-5 w-20 bg-gray-800/60 rounded shimmer-loading" />
-            <div className="h-5 w-16 bg-gray-800/60 rounded shimmer-loading" />
+            <div className="h-5 w-24 bg-muted-label/60 rounded shimmer-loading" />
+            <div className="h-5 w-20 bg-muted-label/60 rounded shimmer-loading" />
+            <div className="h-5 w-16 bg-muted-label/60 rounded shimmer-loading" />
           </div>
         </div>
       </header>
@@ -28,7 +28,7 @@ export function GameLoadingSkeleton({ headerHeight }: GameLoadingSkeletonProps) 
         <nav className="hidden lg:block w-44 flex-shrink-0 bg-[#0d1220] border-r border-cyan-900/20">
           <div className="flex flex-col py-1 gap-1 px-3">
             {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-              <div key={i} className="h-8 bg-gray-800/30 rounded shimmer-loading" />
+              <div key={i} className="h-8 bg-muted-label/30 rounded shimmer-loading" />
             ))}
           </div>
         </nav>
@@ -38,8 +38,8 @@ export function GameLoadingSkeleton({ headerHeight }: GameLoadingSkeletonProps) 
               <GameIcon ui="production" size={32} />
             </div>
             <p className="text-cyan-400 font-bold text-lg">Loading Factory...</p>
-            <p className="text-gray-500 text-xs mt-1">Initializing industrial empire</p>
-            <div className="mt-4 w-48 h-1 bg-gray-800 rounded-full overflow-hidden mx-auto">
+            <p className="text-muted-label text-xs mt-1">Initializing industrial empire</p>
+            <div className="mt-4 w-48 h-1 bg-muted-label rounded-full overflow-hidden mx-auto">
               <div className="h-full bg-gradient-to-r from-cyan-600 to-teal-500 rounded-full loading-progress-bar" />
             </div>
           </div>

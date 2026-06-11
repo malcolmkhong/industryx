@@ -296,7 +296,7 @@ export default function PlayersListPage() {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-10 h-10 border-2 border-warning border-t-transparent rounded-full animate-spin" />
           <p className="text-zinc-400 text-sm">Loading players page...</p>
         </div>
       </div>
@@ -322,7 +322,7 @@ export default function PlayersListPage() {
             </svg>
           </div>
           <h1 className="text-white font-semibold text-sm sm:text-base">IndustriaX Backend</h1>
-          <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20">
+          <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-xs bg-warning/10 text-warning border border-warning/20">
             Admin
           </span>
         </div>
@@ -337,7 +337,7 @@ export default function PlayersListPage() {
           </div>
           <button
             onClick={handleLogout}
-            className="text-zinc-400 hover:text-red-400 transition-colors p-1.5 rounded-md hover:bg-zinc-800"
+            className="text-zinc-400 hover:text-danger transition-colors p-1.5 rounded-md hover:bg-zinc-800"
             title="Sign out"
           >
             <IconLogout />
@@ -384,12 +384,12 @@ export default function PlayersListPage() {
               <IconUsers />
               <span>Admin</span>
             </a>
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm bg-warning/10 text-warning border border-warning/20">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
               </svg>
               <span className="flex-1">Players</span>
-              <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              <div className="w-1.5 h-1.5 rounded-full bg-warning" />
             </div>
             <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-zinc-600 cursor-not-allowed">
               <IconShield />
@@ -413,9 +413,9 @@ export default function PlayersListPage() {
           <div className="p-3 border-t border-zinc-800">
             <div className="p-3 bg-zinc-800/50 rounded-lg">
               <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Phase</p>
-              <p className="text-xs text-amber-400 font-medium">Phase 3 — Player Management</p>
+              <p className="text-xs text-warning font-medium">Phase 3 — Player Management</p>
               <div className="mt-2 w-full bg-zinc-700 rounded-full h-1.5">
-                <div className="bg-amber-500 h-1.5 rounded-full" style={{ width: "75%" }} />
+                <div className="bg-warning h-1.5 rounded-full" style={{ width: "75%" }} />
               </div>
             </div>
           </div>
@@ -447,12 +447,12 @@ export default function PlayersListPage() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyDown={handleSearchKeyDown}
-                    className="w-full bg-zinc-900/80 border border-zinc-800 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
+                    className="w-full bg-zinc-900/80 border border-zinc-800 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
                   />
                 </div>
                 <button
                   onClick={handleSearch}
-                  className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-medium text-sm rounded-lg transition-colors shrink-0"
+                  className="px-4 py-2.5 bg-warning hover:bg-warning text-black font-medium text-sm rounded-lg transition-colors shrink-0"
                 >
                   Search
                 </button>
@@ -467,7 +467,7 @@ export default function PlayersListPage() {
               </div>
               {activeSearch && (
                 <p className="text-zinc-500 text-xs mt-2">
-                  Showing results for: <span className="text-amber-400">&quot;{activeSearch}&quot;</span>
+                  Showing results for: <span className="text-warning">&quot;{activeSearch}&quot;</span>
                 </p>
               )}
             </div>
@@ -476,8 +476,8 @@ export default function PlayersListPage() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
               <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 sm:p-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-400">
+                  <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-warning">
                       <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
                     </svg>
                   </div>
@@ -512,8 +512,8 @@ export default function PlayersListPage() {
 
               <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 sm:p-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-red-500/10 flex items-center justify-center">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-400">
+                  <div className="w-9 h-9 rounded-lg bg-danger/10 flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger">
                       <rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
                     </svg>
                   </div>
@@ -569,7 +569,7 @@ export default function PlayersListPage() {
                   {activeSearch && (
                     <button
                       onClick={clearSearch}
-                      className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-amber-500/10 text-amber-400 text-sm rounded-lg hover:bg-amber-500/20 transition-colors border border-amber-500/20"
+                      className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-warning/10 text-warning text-sm rounded-lg hover:bg-warning/20 transition-colors border border-warning/20"
                     >
                       Clear Search
                     </button>
@@ -668,7 +668,7 @@ export default function PlayersListPage() {
                             {/* Status */}
                             <td className="px-4 py-3 text-center">
                               {player.is_locked ? (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border bg-red-500/15 text-red-400 border-red-500/20">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border bg-danger/15 text-danger border-danger/20">
                                   Locked
                                 </span>
                               ) : (
@@ -709,7 +709,7 @@ export default function PlayersListPage() {
                                 {player.email || player.display_name || "Unknown"}
                               </span>
                               {player.is_locked ? (
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium border bg-red-500/15 text-red-400 border-red-500/20">
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium border bg-danger/15 text-danger border-danger/20">
                                   Locked
                                 </span>
                               ) : (
@@ -786,7 +786,7 @@ export default function PlayersListPage() {
                               onClick={() => setPage(pageNum)}
                               className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors ${
                                 pageNum === pagination.page
-                                  ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                                  ? "bg-warning/20 text-warning border border-warning/30"
                                   : "text-zinc-400 hover:text-white hover:bg-zinc-800"
                               }`}
                             >
@@ -820,8 +820,8 @@ export default function PlayersListPage() {
               toast.type === "success"
                 ? "bg-success/15 text-success border-success/20"
                 : toast.type === "error"
-                ? "bg-red-500/15 text-red-400 border-red-500/20"
-                : "bg-amber-500/15 text-amber-400 border-amber-500/20"
+                ? "bg-danger/15 text-danger border-danger/20"
+                : "bg-warning/15 text-warning border-warning/20"
             }`}
           >
             {toast.message}

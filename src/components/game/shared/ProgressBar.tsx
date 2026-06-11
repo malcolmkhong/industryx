@@ -12,8 +12,8 @@ interface ProgressBarProps {
 
 const VARIANT_BG: Record<ProgressBarVariant, string> = {
   success: 'bg-success',
-  warning: 'bg-yellow-500',
-  danger: 'bg-red-500',
+  warning: 'bg-warning',
+  danger: 'bg-danger',
   primary: 'bg-cyan-500',
   default: 'bg-cyan-500',
 };
@@ -39,7 +39,7 @@ export function ProgressBar({
   const fillClass = VARIANT_BG[variant];
   return (
     <div
-      className={`relative w-full ${SIZE_CLASS} bg-gray-800 rounded-full overflow-hidden ${shimmer ? 'progress-bar-shimmer' : ''} ${className}`}
+      className={`relative w-full ${SIZE_CLASS} bg-muted-label rounded-full overflow-hidden ${shimmer ? 'progress-bar-shimmer' : ''} ${className}`}
       role="progressbar"
       aria-valuemin={0}
       aria-valuemax={max}
@@ -51,7 +51,7 @@ export function ProgressBar({
         style={{ width: `${percent}%` }}
       />
       {showLabel && (
-        <span className="absolute inset-0 flex items-center justify-center text-[9px] font-mono text-gray-300">
+        <span className="absolute inset-0 flex items-center justify-center text-[9px] font-mono text-subtle">
           {Math.round(percent)}%
         </span>
       )}

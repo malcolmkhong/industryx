@@ -489,7 +489,7 @@ export function TradingPostPanel() {
             ✓ Server-validated
           </Badge>
         </div>
-        <div className="text-xs text-gray-500">
+        <div className="text-xs text-muted-label">
           Exchange resources directly — validated by server
         </div>
       </div>
@@ -499,7 +499,7 @@ export function TradingPostPanel() {
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] gap-4 items-start">
           {/* GIVE side */}
           <div className="space-y-3">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-muted-label">
               Give
             </div>
             <Select
@@ -532,7 +532,7 @@ export function TradingPostPanel() {
 
             <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <label className="text-[10px] text-gray-500">Amount</label>
+                <label className="text-[10px] text-muted-label">Amount</label>
                 <button
                   className="text-[10px] text-violet-400 hover:text-violet-300 transition-colors"
                   onClick={setMaxGive}
@@ -559,9 +559,9 @@ export function TradingPostPanel() {
                 size={12}
                 className="inline-flex"
               />
-              <span className="text-gray-500">Available:</span>
+              <span className="text-muted-label">Available:</span>
               <span
-                className={`font-mono ${giveResourceCurrent >= giveAmount ? "text-success" : "text-red-400"}`}
+                className={`font-mono ${giveResourceCurrent >= giveAmount ? "text-success" : "text-danger"}`}
               >
                 {formatNumber(giveResourceCurrent)}
               </span>
@@ -584,7 +584,7 @@ export function TradingPostPanel() {
 
           {/* RECEIVE side */}
           <div className="space-y-3">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-muted-label">
               Receive
             </div>
             <Select
@@ -616,7 +616,7 @@ export function TradingPostPanel() {
             </Select>
 
             <div className="space-y-1">
-              <div className="text-[10px] text-gray-500">You will receive</div>
+              <div className="text-[10px] text-muted-label">You will receive</div>
               <div className="bg-[#0a0e17] border border-cyan-900/30 rounded-md px-3 py-2 text-sm font-mono text-violet-400">
                 {giveResource !== receiveResource
                   ? receiveAmount > 0
@@ -633,13 +633,13 @@ export function TradingPostPanel() {
                 size={12}
                 className="inline-flex"
               />
-              <span className="text-gray-500">Storage:</span>
+              <span className="text-muted-label">Storage:</span>
               <span
                 className={`font-mono ${
                   receiveCapacity !== Infinity &&
                   receiveResourceCurrent + receiveAmount > receiveCapacity
-                    ? "text-red-400"
-                    : "text-gray-400"
+                    ? "text-danger"
+                    : "text-subtle"
                 }`}
               >
                 {formatNumber(receiveResourceCurrent)} /{" "}
@@ -648,13 +648,13 @@ export function TradingPostPanel() {
                   : formatNumber(receiveCapacity)}
               </span>
               {receiveCapacity !== Infinity && (
-                <div className="w-12 h-1 bg-gray-800 rounded-full overflow-hidden ml-1">
+                <div className="w-12 h-1 bg-muted-label rounded-full overflow-hidden ml-1">
                   <div
                     className={`h-full rounded-full transition-all ${
                       receiveResourceCurrent / receiveCapacity > 0.8
-                        ? "bg-red-400"
+                        ? "bg-danger"
                         : receiveResourceCurrent / receiveCapacity > 0.5
-                          ? "bg-yellow-400"
+                          ? "bg-warning"
                           : "bg-success"
                     }`}
                     style={{
@@ -669,7 +669,7 @@ export function TradingPostPanel() {
 
         {/* Rate info + Execute button */}
         <div className="mt-4 pt-4 border-t border-cyan-900/20 space-y-3">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-gray-500">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-muted-label">
             <span>
               Rate:{" "}
               <span className="text-cyan-400 font-mono">
@@ -692,7 +692,7 @@ export function TradingPostPanel() {
 
           {/* Trade error display */}
           {tradeError && (
-            <div className="flex items-center gap-2 text-[10px] text-red-400 bg-red-900/10 border border-red-500/20 rounded-lg px-3 py-2">
+            <div className="flex items-center gap-2 text-[10px] text-danger bg-danger/10 border border-danger/20 rounded-lg px-3 py-2">
               <AlertTriangle className="w-3 h-3 flex-shrink-0" />
               {tradeError}
             </div>
@@ -700,7 +700,7 @@ export function TradingPostPanel() {
 
           {/* Insufficient resources warning */}
           {giveResourceCurrent < giveAmount && giveAmount > 0 && (
-            <div className="flex items-center gap-2 text-[10px] text-red-400 bg-red-900/10 border border-red-500/20 rounded-lg px-3 py-2">
+            <div className="flex items-center gap-2 text-[10px] text-danger bg-danger/10 border border-danger/20 rounded-lg px-3 py-2">
               <AlertTriangle className="w-3 h-3 flex-shrink-0" />
               Not enough {RESOURCE_META[giveResource]?.name ?? giveResource}.
               You have {formatNumber(giveResourceCurrent)} but need{" "}
@@ -712,7 +712,7 @@ export function TradingPostPanel() {
           {receiveCapacity !== Infinity &&
             receiveResourceCurrent + receiveAmount > receiveCapacity &&
             receiveAmount > 0 && (
-              <div className="flex items-center gap-2 text-[10px] text-yellow-400 bg-yellow-900/10 border border-yellow-500/20 rounded-lg px-3 py-2">
+              <div className="flex items-center gap-2 text-[10px] text-warning bg-yellow-900/10 border border-warning/20 rounded-lg px-3 py-2">
                 <AlertTriangle className="w-3 h-3 flex-shrink-0" />
                 {RESOURCE_META[receiveResource]?.name ?? receiveResource}{" "}
                 storage would overflow. Receive amount will be capped.
@@ -765,18 +765,18 @@ export function TradingPostPanel() {
       {/* ─── Price History Chart ─────────────────────────────────────────── */}
       <div className="bg-card border border-cyan-900/20 rounded-xl p-4 sm:p-5">
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-1.5">
+          <h3 className="text-sm font-semibold text-subtle flex items-center gap-1.5">
             <TrendingUp className="w-3.5 h-3.5 text-violet-400" />
             Price History —{" "}
             <span className="text-cyan-400">
               {RESOURCE_META[giveResource]?.name ?? giveResource}
             </span>
           </h3>
-          <div className="flex items-center gap-2 text-[10px] text-gray-500">
+          <div className="flex items-center gap-2 text-[10px] text-muted-label">
             <span className="font-mono">
               {formatExchangeRate(giveResource, receiveResource)} per unit
             </span>
-            <span className="text-gray-700">|</span>
+            <span className="text-dim">|</span>
             <span>showing 24h</span>
           </div>
         </div>
@@ -791,7 +791,7 @@ export function TradingPostPanel() {
 
       {/* ─── Quick Trade Presets ─────────────────────────────────────────── */}
       <div className="space-y-2">
-        <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-1.5">
+        <h3 className="text-sm font-semibold text-subtle flex items-center gap-1.5">
           <Zap className="w-3.5 h-3.5 text-violet-400" />
           Quick Trades
         </h3>
@@ -856,8 +856,8 @@ export function TradingPostPanel() {
             transition={{ duration: 0.3 }}
             className="space-y-2"
           >
-            <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-1.5">
-              <AlertTriangle className="w-3.5 h-3.5 text-yellow-400" />
+            <h3 className="text-sm font-semibold text-subtle flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5 text-warning" />
               Storage Suggestions
             </h3>
             <div className="space-y-1.5">
@@ -867,18 +867,18 @@ export function TradingPostPanel() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: idx * 0.1 }}
-                  className="flex items-center gap-3 bg-yellow-900/10 border border-yellow-500/20 rounded-lg px-3 py-2"
+                  className="flex items-center gap-3 bg-yellow-900/10 border border-warning/20 rounded-lg px-3 py-2"
                 >
-                  <AlertTriangle className="w-3 h-3 text-yellow-400 flex-shrink-0" />
+                  <AlertTriangle className="w-3 h-3 text-warning flex-shrink-0" />
                   <div className="flex-1 text-xs">
-                    <span className="text-yellow-300">
+                    <span className="text-warning">
                       {RESOURCE_META[s.resource]?.name ?? s.resource}
                     </span>
-                    <span className="text-gray-400"> storage is </span>
-                    <span className="text-yellow-400 font-mono">
+                    <span className="text-subtle"> storage is </span>
+                    <span className="text-warning font-mono">
                       {(s.percent * 100).toFixed(0)}%
                     </span>
-                    <span className="text-gray-400">
+                    <span className="text-subtle">
                       {" "}
                       full — consider trading for{" "}
                     </span>
@@ -908,8 +908,8 @@ export function TradingPostPanel() {
 
       {/* ─── Recent Trades (persisted to server) ──────────────────────────── */}
       <div className="space-y-2">
-        <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-1.5">
-          <History className="w-3.5 h-3.5 text-gray-400" />
+        <h3 className="text-sm font-semibold text-subtle flex items-center gap-1.5">
+          <History className="w-3.5 h-3.5 text-subtle" />
           Recent Trades
           {tradeHistory.length > 0 && (
             <Badge
@@ -920,11 +920,11 @@ export function TradingPostPanel() {
             </Badge>
           )}
           {isLoadingHistory && (
-            <Loader2 className="w-3 h-3 text-gray-500 animate-spin" />
+            <Loader2 className="w-3 h-3 text-muted-label animate-spin" />
           )}
         </h3>
         {tradeHistory.length === 0 ? (
-          <div className="bg-card border border-cyan-900/20 rounded-lg p-4 text-center text-gray-500 text-xs">
+          <div className="bg-card border border-cyan-900/20 rounded-lg p-4 text-center text-muted-label text-xs">
             {isLoadingHistory
               ? "Loading trade history..."
               : "No trades yet. Exchange resources to get started!"}
@@ -943,12 +943,12 @@ export function TradingPostPanel() {
                   <GameIcon
                     icon={RESOURCE_META[entry.giveResource]?.icon}
                     size={12}
-                    className="inline-flex text-gray-400"
+                    className="inline-flex text-subtle"
                   />
                   <span className="font-mono text-cyan-400">
                     {formatNumber(entry.giveAmount)}
                   </span>
-                  <span className="text-gray-500">
+                  <span className="text-muted-label">
                     {RESOURCE_META[entry.giveResource]?.name ??
                       entry.giveResource}
                   </span>
@@ -956,12 +956,12 @@ export function TradingPostPanel() {
                   <GameIcon
                     icon={RESOURCE_META[entry.receiveResource]?.icon}
                     size={12}
-                    className="inline-flex text-gray-400"
+                    className="inline-flex text-subtle"
                   />
                   <span className="font-mono text-violet-400">
                     {entry.receiveAmount.toFixed(1)}
                   </span>
-                  <span className="text-gray-500">
+                  <span className="text-muted-label">
                     {RESOURCE_META[entry.receiveResource]?.name ??
                       entry.receiveResource}
                   </span>
@@ -974,13 +974,13 @@ export function TradingPostPanel() {
                     </span>
                   ) : (
                     <span
-                      className="text-[8px] text-yellow-500 ml-1"
+                      className="text-[8px] text-warning ml-1"
                       title="Optimistic (not server-validated)"
                     >
                       ⚠
                     </span>
                   )}
-                  <span className="ml-auto text-[10px] text-gray-600 flex-shrink-0">
+                  <span className="ml-auto text-[10px] text-muted-label flex-shrink-0">
                     {entry.createdAt
                       ? timeAgo(entry.createdAt)
                       : ticksAgo === 0
@@ -997,10 +997,10 @@ export function TradingPostPanel() {
       {/* ─── Info Card ────────────────────────────────────────────────────── */}
       <div className="bg-card border border-cyan-900/20 rounded-xl p-4">
         <div className="flex items-start gap-2">
-          <Info className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
-          <div className="text-[10px] text-gray-500 space-y-1">
+          <Info className="w-4 h-4 text-muted-label mt-0.5 flex-shrink-0" />
+          <div className="text-[10px] text-muted-label space-y-1">
             <p>
-              <span className="text-gray-400 font-semibold">How it works:</span>{" "}
+              <span className="text-subtle font-semibold">How it works:</span>{" "}
               The Trading Post lets you exchange resources directly without
               using money. Exchange rates are based on base market values with a{" "}
               {(TRADE_COMMISSION_RATE * 100).toFixed(0)}% commission.
@@ -1012,7 +1012,7 @@ export function TradingPostPanel() {
               history and survive page refreshes.
             </p>
             <p>
-              <span className="text-gray-400 font-semibold">Tip:</span> Selling
+              <span className="text-subtle font-semibold">Tip:</span> Selling
               resources on the Market and buying others is more efficient, but
               the Trading Post is instant and convenient when you need a quick
               conversion.

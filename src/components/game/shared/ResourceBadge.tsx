@@ -33,14 +33,14 @@ export function ResourceBadge({
           <GameIcon icon={meta?.icon} size={14} />
         </span>
       )}
-      <span className={`font-mono font-bold ${isOverCapacity ? 'text-red-400' : 'text-cyan-400'}`}>
+      <span className={`font-mono font-bold ${isOverCapacity ? 'text-danger' : 'text-cyan-400'}`}>
         {formatNumber(amount)}
       </span>
       {capacity !== undefined && (
-        <span className="text-gray-500 font-mono">/{formatNumber(capacity)}</span>
+        <span className="text-muted-label font-mono">/{formatNumber(capacity)}</span>
       )}
       {showLabel && (
-        <span className="text-gray-400">{meta?.name ?? resource}</span>
+        <span className="text-subtle">{meta?.name ?? resource}</span>
       )}
     </div>
   );

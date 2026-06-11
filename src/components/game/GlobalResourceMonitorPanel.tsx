@@ -18,12 +18,12 @@ import { GameIcon } from '@/components/game/shared/GameIcon';
 
 // ─── Tier Badge Colors ────────────────────────────────────────────────────────
 const TIER_COLORS: Record<number, { bg: string; text: string; border: string }> = {
-  0: { bg: 'bg-gray-800', text: 'text-gray-300', border: 'border-gray-600' },
+  0: { bg: 'bg-muted-label', text: 'text-subtle', border: 'border-muted-label' },
   1: { bg: 'bg-cyan-900/30', text: 'text-cyan-400', border: 'border-cyan-600' },
   2: { bg: 'bg-orange-900/30', text: 'text-orange-400', border: 'border-orange-600' },
   3: { bg: 'bg-purple-900/30', text: 'text-purple-400', border: 'border-purple-600' },
   4: { bg: 'bg-teal-900/30', text: 'text-teal-400', border: 'border-teal-600' },
-  5: { bg: 'bg-red-900/30', text: 'text-red-400', border: 'border-red-600' },
+  5: { bg: 'bg-danger/30', text: 'text-danger', border: 'border-danger' },
 };
 
 // ─── Resource Status ──────────────────────────────────────────────────────────
@@ -56,10 +56,10 @@ const STATUS_ORDER: Record<ResourceStatus, number> = {
 };
 
 const STATUS_LABELS: Record<ResourceStatus, { label: string; color: string; bg: string }> = {
-  critical: { label: 'Critical', color: 'text-red-400', bg: 'bg-red-900/30' },
+  critical: { label: 'Critical', color: 'text-danger', bg: 'bg-danger/30' },
   declining: { label: 'Declining', color: 'text-orange-400', bg: 'bg-orange-900/30' },
   stable: { label: 'Stable', color: 'text-success', bg: 'bg-success/30' },
-  idle: { label: 'Idle', color: 'text-gray-500', bg: 'bg-gray-800/50' },
+  idle: { label: 'Idle', color: 'text-muted-label', bg: 'bg-muted-label/50' },
 };
 
 // ─── Producers/Consumers lookup (precomputed) ─────────────────────────────────
@@ -398,14 +398,14 @@ export default function GlobalResourceMonitorPanel() {
             <Activity className="w-5 h-5" />
             Global Resource Monitor
           </h2>
-          <p className="text-xs text-gray-500 mt-0.5">Real-time resource intelligence & navigation control</p>
+          <p className="text-xs text-muted-label mt-0.5">Real-time resource intelligence & navigation control</p>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal-900/30 border border-teal-700/40 text-teal-400">
             {allResources.length} Resources
           </span>
           {criticalCount > 0 && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-900/30 border border-red-700/40 text-red-400 animate-pulse">
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-danger/30 border border-danger/40 text-danger animate-pulse">
               {criticalCount} Critical
             </span>
           )}
@@ -447,32 +447,32 @@ export default function GlobalResourceMonitorPanel() {
       </div>
 
       {/* ─── SUMMARY BAR ─────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-3 px-3 py-2 bg-[#111827] rounded-lg border border-gray-700/30">
+      <div className="flex flex-wrap items-center gap-3 px-3 py-2 bg-[#111827] rounded-lg border border-muted-label/30">
         <div className="flex items-center gap-1.5 text-xs">
           <TrendingUp className="w-3.5 h-3.5 text-success" />
-          <span className="text-gray-400">Total Prod:</span>
+          <span className="text-subtle">Total Prod:</span>
           <span className="text-success font-mono font-bold">{formatNumber(totalProduction)}/s</span>
         </div>
-        <div className="w-px h-4 bg-gray-700" />
+        <div className="w-px h-4 bg-muted-label" />
         <div className="flex items-center gap-1.5 text-xs">
-          <TrendingDown className="w-3.5 h-3.5 text-red-400" />
-          <span className="text-gray-400">Total Cons:</span>
-          <span className="text-red-400 font-mono font-bold">{formatNumber(totalConsumption)}/s</span>
+          <TrendingDown className="w-3.5 h-3.5 text-danger" />
+          <span className="text-subtle">Total Cons:</span>
+          <span className="text-danger font-mono font-bold">{formatNumber(totalConsumption)}/s</span>
         </div>
-        <div className="w-px h-4 bg-gray-700" />
+        <div className="w-px h-4 bg-muted-label" />
         <div className="flex items-center gap-1.5 text-xs">
           <BarChart3 className="w-3.5 h-3.5 text-cyan-400" />
-          <span className="text-gray-400">Net:</span>
-          <span className={`font-mono font-bold ${totalNet >= 0 ? 'text-success' : 'text-red-400'}`}>
+          <span className="text-subtle">Net:</span>
+          <span className={`font-mono font-bold ${totalNet >= 0 ? 'text-success' : 'text-danger'}`}>
             {totalNet >= 0 ? '▲' : '▼'} {formatNumber(Math.abs(totalNet))}/s
           </span>
         </div>
       </div>
 
       {/* ─── CURRENCY TABLE ────────────────────────────────────────────── */}
-      <div className="bg-[#111827] rounded-xl border border-gray-700/30 overflow-hidden">
+      <div className="bg-[#111827] rounded-xl border border-muted-label/30 overflow-hidden">
         {/* Currency table header */}
-        <div className="grid grid-cols-[1.5rem_1fr_5rem_4rem_4rem_4rem] sm:grid-cols-[1.5rem_1fr_6rem_5rem_5rem_5rem] items-center gap-1 px-3 py-2 bg-[#0d1220] border-b border-gray-700/30 text-[10px] text-gray-500 uppercase tracking-wider select-none">
+        <div className="grid grid-cols-[1.5rem_1fr_5rem_4rem_4rem_4rem] sm:grid-cols-[1.5rem_1fr_6rem_5rem_5rem_5rem] items-center gap-1 px-3 py-2 bg-[#0d1220] border-b border-muted-label/30 text-[10px] text-muted-label uppercase tracking-wider select-none">
           <div />
           <div>Currency</div>
           <div>Balance</div>
@@ -486,13 +486,13 @@ export default function GlobalResourceMonitorPanel() {
           const snapshot = store.productionSnapshot;
           const currencyRows = [
             {
-              icon: <Wallet className="w-3.5 h-3.5 text-yellow-400" />,
+              icon: <Wallet className="w-3.5 h-3.5 text-warning" />,
               name: 'Money',
               balance: store.money,
               income: snapshot.moneyIncomeRate,
               expense: snapshot.moneyExpenseRate,
               net: snapshot.moneyIncomeRate - snapshot.moneyExpenseRate,
-              balanceColor: 'text-yellow-400',
+              balanceColor: 'text-warning',
             },
             {
               icon: <FlaskConical className="w-3.5 h-3.5 text-cyan-400" />,
@@ -517,7 +517,7 @@ export default function GlobalResourceMonitorPanel() {
           return currencyRows.map((row) => (
             <div
               key={row.name}
-              className="grid grid-cols-[1.5rem_1fr_5rem_4rem_4rem_4rem] sm:grid-cols-[1.5rem_1fr_6rem_5rem_5rem_5rem] items-center gap-1 px-3 py-2 border-b border-gray-800/50 transition-colors hover:bg-teal-900/10 cursor-default"
+              className="grid grid-cols-[1.5rem_1fr_5rem_4rem_4rem_4rem] sm:grid-cols-[1.5rem_1fr_6rem_5rem_5rem_5rem] items-center gap-1 px-3 py-2 border-b border-muted-label/50 transition-colors hover:bg-teal-900/10 cursor-default"
             >
               {/* Icon */}
               <div className="flex items-center justify-center">{row.icon}</div>
@@ -531,18 +531,18 @@ export default function GlobalResourceMonitorPanel() {
               </div>
 
               {/* Income */}
-              <div className={`text-[10px] font-mono ${row.income > 0 ? 'text-success' : 'text-gray-600'}`}>
+              <div className={`text-[10px] font-mono ${row.income > 0 ? 'text-success' : 'text-muted-label'}`}>
                 {row.income > 0 ? `+${formatNumber(row.income)}` : '0'}
               </div>
 
               {/* Expense */}
-              <div className={`text-[10px] font-mono ${row.expense > 0 ? 'text-red-400' : 'text-gray-600'}`}>
+              <div className={`text-[10px] font-mono ${row.expense > 0 ? 'text-danger' : 'text-muted-label'}`}>
                 {row.expense > 0 ? `-${formatNumber(row.expense)}` : '0'}
               </div>
 
               {/* Net */}
               <div className={`text-[10px] font-mono font-bold ${
-                row.net > 0 ? 'text-success' : row.net < 0 ? 'text-red-400' : 'text-gray-600'
+                row.net > 0 ? 'text-success' : row.net < 0 ? 'text-danger' : 'text-muted-label'
               }`}>
                 {row.net > 0 ? '▲' : row.net < 0 ? '▼' : '—'}
                 {row.net !== 0 ? formatNumber(Math.abs(row.net)) : ''}
@@ -556,18 +556,18 @@ export default function GlobalResourceMonitorPanel() {
       <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
         {/* Search */}
         <div className="relative flex-1 w-full sm:max-w-xs">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-label" />
           <input
             type="text"
             placeholder="Search resources..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-8 pl-8 pr-8 bg-[#0a0e17] border border-gray-700/30 rounded-lg text-xs text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/20 transition-colors"
+            className="w-full h-8 pl-8 pr-8 bg-[#0a0e17] border border-muted-label/30 rounded-lg text-xs text-gray-200 placeholder:text-muted-label focus:outline-none focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/20 transition-colors"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 text-xs"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-label hover:text-subtle text-xs"
               aria-label="Clear search"
             >
               ✕
@@ -584,7 +584,7 @@ export default function GlobalResourceMonitorPanel() {
               className={`text-[10px] px-2.5 py-1 rounded-md border ${
                 tierFilter === tab.value
                   ? 'bg-teal-900/30 border-teal-600/50 text-teal-400'
-                  : 'bg-transparent border-gray-700/30 text-gray-500 hover:text-gray-300 hover:border-gray-600'
+                  : 'bg-transparent border-muted-label/30 text-muted-label hover:text-subtle hover:border-muted-label'
               }`}
               aria-pressed={tierFilter === tab.value}
             >
@@ -598,8 +598,8 @@ export default function GlobalResourceMonitorPanel() {
           onClick={() => setCriticalOnly(v => !v)}
           className={`flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-md border ${
             criticalOnly
-              ? 'bg-red-900/30 border-red-600/50 text-red-400'
-              : 'bg-transparent border-gray-700/30 text-gray-500 hover:text-gray-300 hover:border-gray-600'
+              ? 'bg-danger/30 border-danger/50 text-danger'
+              : 'bg-transparent border-muted-label/30 text-muted-label hover:text-subtle hover:border-muted-label'
           }`}
           aria-pressed={criticalOnly}
         >
@@ -609,29 +609,29 @@ export default function GlobalResourceMonitorPanel() {
       </div>
 
       {/* ─── RESOURCE INTELLIGENCE TABLE ─────────────────────────────────── */}
-      <div ref={tableContainerRef} className="bg-[#111827] rounded-xl border border-gray-700/30 overflow-hidden">
+      <div ref={tableContainerRef} className="bg-[#111827] rounded-xl border border-muted-label/30 overflow-hidden">
         {/* Table header */}
-        <div className="grid grid-cols-[2.5rem_1fr_3rem_5rem_4rem_4rem_4rem_4.5rem_1.5rem] sm:grid-cols-[2.5rem_1fr_3.5rem_6rem_5rem_5rem_5rem_5.5rem_1.5rem] items-center gap-1 px-3 py-2 bg-[#0d1220] border-b border-gray-700/30 text-[10px] text-gray-500 uppercase tracking-wider select-none">
+        <div className="grid grid-cols-[2.5rem_1fr_3rem_5rem_4rem_4rem_4rem_4.5rem_1.5rem] sm:grid-cols-[2.5rem_1fr_3.5rem_6rem_5rem_5rem_5rem_5.5rem_1.5rem] items-center gap-1 px-3 py-2 bg-[#0d1220] border-b border-muted-label/30 text-[10px] text-muted-label uppercase tracking-wider select-none">
           <div />
-          <button onClick={() => handleSort('name')} className="flex items-center gap-1 hover:text-gray-300 transition-colors text-left" aria-label="Sort by name">
+          <button onClick={() => handleSort('name')} className="flex items-center gap-1 hover:text-subtle transition-colors text-left" aria-label="Sort by name">
             Resource {sortKey === 'name' && (sortDir === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
           </button>
-          <button onClick={() => handleSort('tier')} className="flex items-center gap-1 hover:text-gray-300 transition-colors" aria-label="Sort by tier">
+          <button onClick={() => handleSort('tier')} className="flex items-center gap-1 hover:text-subtle transition-colors" aria-label="Sort by tier">
             Tier {sortKey === 'tier' && (sortDir === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
           </button>
-          <button onClick={() => handleSort('amount')} className="flex items-center gap-1 hover:text-gray-300 transition-colors" aria-label="Sort by amount">
+          <button onClick={() => handleSort('amount')} className="flex items-center gap-1 hover:text-subtle transition-colors" aria-label="Sort by amount">
             Amount {sortKey === 'amount' && (sortDir === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
           </button>
-          <button onClick={() => handleSort('productionRate')} className="flex items-center gap-1 hover:text-gray-300 transition-colors" aria-label="Sort by production rate">
+          <button onClick={() => handleSort('productionRate')} className="flex items-center gap-1 hover:text-subtle transition-colors" aria-label="Sort by production rate">
             Prod {sortKey === 'productionRate' && (sortDir === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
           </button>
-          <button onClick={() => handleSort('consumptionRate')} className="flex items-center gap-1 hover:text-gray-300 transition-colors" aria-label="Sort by consumption rate">
+          <button onClick={() => handleSort('consumptionRate')} className="flex items-center gap-1 hover:text-subtle transition-colors" aria-label="Sort by consumption rate">
             Cons {sortKey === 'consumptionRate' && (sortDir === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
           </button>
-          <button onClick={() => handleSort('netRate')} className="flex items-center gap-1 hover:text-gray-300 transition-colors" aria-label="Sort by net rate">
+          <button onClick={() => handleSort('netRate')} className="flex items-center gap-1 hover:text-subtle transition-colors" aria-label="Sort by net rate">
             Net {sortKey === 'netRate' && (sortDir === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
           </button>
-          <button onClick={() => handleSort('status')} className="flex items-center gap-1 hover:text-gray-300 transition-colors" aria-label="Sort by status">
+          <button onClick={() => handleSort('status')} className="flex items-center gap-1 hover:text-subtle transition-colors" aria-label="Sort by status">
             Status {sortKey === 'status' && (sortDir === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
           </button>
           <div />
@@ -640,7 +640,7 @@ export default function GlobalResourceMonitorPanel() {
         {/* Table body */}
         <div className="max-h-[600px] overflow-y-auto game-scrollbar">
           {filteredResources.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+            <div className="flex flex-col items-center justify-center py-12 text-muted-label">
               <Filter className="w-8 h-8 mb-2 opacity-40" />
               <p className="text-sm">No resources match your filters</p>
             </div>
@@ -653,8 +653,8 @@ export default function GlobalResourceMonitorPanel() {
               return (
                 <div
                   key={row.resource}
-                  className={`grid grid-cols-[2.5rem_1fr_3rem_5rem_4rem_4rem_4rem_4.5rem_1.5rem] sm:grid-cols-[2.5rem_1fr_3.5rem_6rem_5rem_5rem_5rem_5.5rem_1.5rem] items-center gap-1 px-3 py-1.5 border-b border-gray-800/50 transition-colors hover:bg-teal-900/10 cursor-default ${
-                    isCriticalBg ? 'bg-red-900/10' : ''
+                  className={`grid grid-cols-[2.5rem_1fr_3rem_5rem_4rem_4rem_4rem_4.5rem_1.5rem] sm:grid-cols-[2.5rem_1fr_3.5rem_6rem_5rem_5rem_5rem_5.5rem_1.5rem] items-center gap-1 px-3 py-1.5 border-b border-muted-label/50 transition-colors hover:bg-teal-900/10 cursor-default ${
+                    isCriticalBg ? 'bg-danger/10' : ''
                   }`}
                   onMouseEnter={(e) => onEnter(row.resource, e)}
                   onMouseLeave={onLeave}
@@ -674,14 +674,14 @@ export default function GlobalResourceMonitorPanel() {
 
                   {/* Amount / Capacity with mini progress */}
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-[10px] font-mono text-gray-300">
+                    <span className="text-[10px] font-mono text-subtle">
                       {formatNumber(row.amount)}{row.capacity !== Infinity ? `/${formatNumber(row.capacity)}` : '/∞'}
                     </span>
                     {row.capacity !== Infinity && (
-                      <div className="w-full h-1 bg-gray-800 rounded-full overflow-hidden">
+                      <div className="w-full h-1 bg-muted-label rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all duration-300 ${
-                            row.fillPct >= 95 ? 'bg-red-500' : row.fillPct >= 70 ? 'bg-yellow-500' : 'bg-teal-500'
+                            row.fillPct >= 95 ? 'bg-danger' : row.fillPct >= 70 ? 'bg-warning' : 'bg-teal-500'
                           }`}
                           style={{ width: `${Math.min(100, row.fillPct)}%` }}
                         />
@@ -690,18 +690,18 @@ export default function GlobalResourceMonitorPanel() {
                   </div>
 
                   {/* Production rate */}
-                  <div className={`text-[10px] font-mono ${row.productionRate > 0 ? 'text-success' : 'text-gray-600'}`}>
+                  <div className={`text-[10px] font-mono ${row.productionRate > 0 ? 'text-success' : 'text-muted-label'}`}>
                     {row.productionRate > 0 ? `+${formatNumber(row.productionRate)}` : '0'}
                   </div>
 
                   {/* Consumption rate */}
-                  <div className={`text-[10px] font-mono ${row.consumptionRate > 0 ? 'text-red-400' : 'text-gray-600'}`}>
+                  <div className={`text-[10px] font-mono ${row.consumptionRate > 0 ? 'text-danger' : 'text-muted-label'}`}>
                     {row.consumptionRate > 0 ? `-${formatNumber(row.consumptionRate)}` : '0'}
                   </div>
 
                   {/* Net rate */}
                   <div className={`text-[10px] font-mono font-bold ${
-                    row.netRate > 0 ? 'text-success' : row.netRate < 0 ? 'text-red-400' : 'text-gray-600'
+                    row.netRate > 0 ? 'text-success' : row.netRate < 0 ? 'text-danger' : 'text-muted-label'
                   }`}>
                     {row.netRate > 0 ? '▲' : row.netRate < 0 ? '▼' : '—'}
                     {row.netRate !== 0 ? formatNumber(Math.abs(row.netRate)) : ''}
@@ -717,7 +717,7 @@ export default function GlobalResourceMonitorPanel() {
                   {/* Bottleneck dot */}
                   <div className="flex items-center justify-center">
                     {row.isBottleneck && (
-                      <span className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.6)]" title="Bottleneck: demand exceeds supply" />
+                      <span className="w-2 h-2 rounded-full bg-danger shadow-[0_0_4px_rgba(239,68,68,0.6)]" title="Bottleneck: demand exceeds supply" />
                     )}
                   </div>
                 </div>
@@ -740,11 +740,11 @@ export default function GlobalResourceMonitorPanel() {
               onMouseLeave={onLeave}
             >
               {/* Header */}
-              <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-700/30 bg-[#0d1220]">
+              <div className="flex items-center gap-2 px-3 py-2 border-b border-muted-label/30 bg-[#0d1220]">
                 <GameIcon icon={hoveredRow.icon} size={16} />
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-bold text-gray-200 truncate">{hoveredRow.name}</div>
-                  <div className="text-[10px] text-gray-500">
+                  <div className="text-[10px] text-muted-label">
                     <span className={`${(TIER_COLORS[hoveredRow.tier] ?? TIER_COLORS[0]).text}`}>T{hoveredRow.tier}</span>
                     {' · '}
                     {formatNumber(hoveredRow.amount)}{hoveredRow.capacity !== Infinity ? `/${formatNumber(hoveredRow.capacity)}` : '/∞'}
@@ -756,10 +756,10 @@ export default function GlobalResourceMonitorPanel() {
               </div>
 
               {/* Net change */}
-              <div className="px-3 py-1.5 border-b border-gray-800/50">
+              <div className="px-3 py-1.5 border-b border-muted-label/50">
                 <div className="flex items-center gap-2 text-[10px]">
-                  <span className="text-gray-400">Net Change:</span>
-                  <span className={`font-mono font-bold ${hoveredRow.netRate > 0 ? 'text-success' : hoveredRow.netRate < 0 ? 'text-red-400' : 'text-gray-500'}`}>
+                  <span className="text-subtle">Net Change:</span>
+                  <span className={`font-mono font-bold ${hoveredRow.netRate > 0 ? 'text-success' : hoveredRow.netRate < 0 ? 'text-danger' : 'text-muted-label'}`}>
                     {hoveredRow.netRate > 0 ? '▲' : hoveredRow.netRate < 0 ? '▼' : '—'}
                     {hoveredRow.netRate !== 0 ? ` ${formatNumber(Math.abs(hoveredRow.netRate))}/s` : ' 0/s'}
                   </span>
@@ -768,8 +768,8 @@ export default function GlobalResourceMonitorPanel() {
 
               {/* Bottleneck flag */}
               {hoveredRow.isBottleneck && (
-                <div className="px-3 py-1.5 border-b border-gray-800/50 bg-red-900/10">
-                  <div className="flex items-center gap-1.5 text-[10px] text-red-400">
+                <div className="px-3 py-1.5 border-b border-muted-label/50 bg-danger/10">
+                  <div className="flex items-center gap-1.5 text-[10px] text-danger">
                     <AlertTriangle className="w-3 h-3" />
                     <GameIcon icon="gi:hazard-sign" size={12} className="inline" /> Bottleneck: Demand exceeds supply
                   </div>
@@ -777,13 +777,13 @@ export default function GlobalResourceMonitorPanel() {
               )}
 
               {/* Dependency preview */}
-              <div className="px-3 py-2 space-y-1.5 border-b border-gray-800/50">
+              <div className="px-3 py-2 space-y-1.5 border-b border-muted-label/50">
                 {/* Producers */}
                 <div className="text-[10px]">
-                  <span className="text-gray-500">Producers: </span>
+                  <span className="text-muted-label">Producers: </span>
                   {(() => {
                     const prods = PRODUCER_MAP[hoveredRow.resource] ?? [];
-                    if (prods.length === 0) return <span className="text-gray-600">None</span>;
+                    if (prods.length === 0) return <span className="text-muted-label">None</span>;
                     const withCounts = prods.map(p => {
                       const count = store.buildings.filter(b => b.type === p.type).length;
                       return { name: p.name, count };
@@ -802,17 +802,17 @@ export default function GlobalResourceMonitorPanel() {
                 </div>
                 {/* Consumers */}
                 <div className="text-[10px]">
-                  <span className="text-gray-500">Consumers: </span>
+                  <span className="text-muted-label">Consumers: </span>
                   {(() => {
                     const cons = CONSUMER_MAP[hoveredRow.resource] ?? [];
-                    if (cons.length === 0) return <span className="text-gray-600">None</span>;
+                    if (cons.length === 0) return <span className="text-muted-label">None</span>;
                     const withCounts = cons.map(c => {
                       const count = store.buildings.filter(b => b.type === c.type).length;
                       return { name: c.name, count };
                     }).filter(c => c.count > 0);
-                    if (withCounts.length === 0) return <span className="text-gray-600">None active</span>;
+                    if (withCounts.length === 0) return <span className="text-muted-label">None active</span>;
                     return (
-                      <span className="text-red-400">
+                      <span className="text-danger">
                         {withCounts.map((c, i) => (
                           <span key={i}>
                             {i > 0 && ', '}
@@ -834,7 +834,7 @@ export default function GlobalResourceMonitorPanel() {
                       e.stopPropagation();
                       handleQuickUpgrade(hoveredRow.resource);
                     }}
-                    className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-yellow-900/30 border border-yellow-700/40 text-yellow-400 hover:bg-yellow-900/50 transition-colors"
+                    className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-yellow-900/30 border border-yellow-700/40 text-warning hover:bg-yellow-900/50 transition-colors"
                     aria-label="Quick upgrade producer"
                     title="Upgrade lowest-level producer"
                   >

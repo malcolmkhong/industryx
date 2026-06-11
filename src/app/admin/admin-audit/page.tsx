@@ -163,13 +163,13 @@ function formatActionType(type: string): string {
 function getActionTypeBadge(type: string): string {
   switch (type) {
     case "lock_account":
-      return "bg-red-500/15 text-red-400 border-red-500/20";
+      return "bg-danger/15 text-danger border-danger/20";
     case "unlock_account":
       return "bg-success/15 text-success border-success/20";
     case "reset_state":
       return "bg-orange-500/15 text-orange-400 border-orange-500/20";
     case "resolve_investigation":
-      return "bg-amber-500/15 text-amber-400 border-amber-500/20";
+      return "bg-warning/15 text-warning border-warning/20";
     case "dismiss_investigation":
       return "bg-zinc-500/15 text-zinc-400 border-zinc-500/20";
     case "edit_state":
@@ -296,7 +296,7 @@ export default function AdminAuditPage() {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-10 h-10 border-2 border-warning border-t-transparent rounded-full animate-spin" />
           <p className="text-zinc-400 text-sm">Loading admin audit...</p>
         </div>
       </div>
@@ -322,7 +322,7 @@ export default function AdminAuditPage() {
             </svg>
           </div>
           <h1 className="text-white font-semibold text-sm sm:text-base">IndustriaX Backend</h1>
-          <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20">
+          <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-xs bg-warning/10 text-warning border border-warning/20">
             Admin
           </span>
         </div>
@@ -337,7 +337,7 @@ export default function AdminAuditPage() {
           </div>
           <button
             onClick={handleLogout}
-            className="text-zinc-400 hover:text-red-400 transition-colors p-1.5 rounded-md hover:bg-zinc-800"
+            className="text-zinc-400 hover:text-danger transition-colors p-1.5 rounded-md hover:bg-zinc-800"
             title="Sign out"
           >
             <IconLogout />
@@ -383,10 +383,10 @@ export default function AdminAuditPage() {
               <IconScrollText />
               <span>Player Actions</span>
             </a>
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm bg-warning/10 text-warning border border-warning/20">
               <IconGavel />
               <span className="flex-1">Admin Actions</span>
-              <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              <div className="w-1.5 h-1.5 rounded-full bg-warning" />
             </div>
           </nav>
 
@@ -405,9 +405,9 @@ export default function AdminAuditPage() {
           <div className="p-3 border-t border-zinc-800">
             <div className="p-3 bg-zinc-800/50 rounded-lg">
               <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Phase</p>
-              <p className="text-xs text-amber-400 font-medium">Phase 3 — Admin & Moderation</p>
+              <p className="text-xs text-warning font-medium">Phase 3 — Admin & Moderation</p>
               <div className="mt-2 w-full bg-zinc-700 rounded-full h-1.5">
-                <div className="bg-amber-500 h-1.5 rounded-full" style={{ width: "100%" }} />
+                <div className="bg-warning h-1.5 rounded-full" style={{ width: "100%" }} />
               </div>
             </div>
           </div>
@@ -441,7 +441,7 @@ export default function AdminAuditPage() {
                   <select
                     value={filterActionType}
                     onChange={(e) => { setFilterActionType(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
-                    className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors appearance-none"
+                    className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors appearance-none"
                     style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2'%3e%3cpath d='m6 9 6 6 6-6'/%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
                   >
                     {ADMIN_ACTION_TYPE_OPTIONS.map((at) => (
@@ -455,7 +455,7 @@ export default function AdminAuditPage() {
                     type="date"
                     value={filterDateFrom}
                     onChange={(e) => { setFilterDateFrom(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
-                    className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
+                    className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
                   />
                 </div>
                 <div className="min-w-[140px]">
@@ -464,13 +464,13 @@ export default function AdminAuditPage() {
                     type="date"
                     value={filterDateTo}
                     onChange={(e) => { setFilterDateTo(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
-                    className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
+                    className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
                   />
                 </div>
                 <div className="flex items-end gap-2 shrink-0">
                   <button
                     onClick={() => fetchAdminActions()}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black font-medium text-sm rounded-lg transition-colors"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-warning hover:bg-warning text-black font-medium text-sm rounded-lg transition-colors"
                   >
                     <IconRotateCcw />
                     Refresh
@@ -489,7 +489,7 @@ export default function AdminAuditPage() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                  <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
                     <IconGavel />
                   </div>
                   <div>
@@ -500,8 +500,8 @@ export default function AdminAuditPage() {
               </div>
               <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-red-500/10 flex items-center justify-center">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-400">
+                  <div className="w-9 h-9 rounded-lg bg-danger/10 flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger">
                       <rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
                     </svg>
                   </div>
@@ -526,7 +526,7 @@ export default function AdminAuditPage() {
               </div>
               <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                  <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
                     <IconShield />
                   </div>
                   <div>
@@ -595,7 +595,7 @@ export default function AdminAuditPage() {
                               {action.target_user_id ? (
                                 <a
                                   href={`/admin/players/${action.target_user_id}`}
-                                  className="text-amber-400/80 hover:text-amber-400 text-xs transition-colors"
+                                  className="text-warning/80 hover:text-warning text-xs transition-colors"
                                 >
                                   {action.target_email || truncateUid(action.target_user_id)}
                                 </a>
@@ -617,7 +617,7 @@ export default function AdminAuditPage() {
                             <td className="px-4 py-3 text-right">
                               <button
                                 onClick={() => setDetailAction(action)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-amber-400 hover:bg-amber-500/10 transition-colors border border-zinc-700 hover:border-amber-500/20"
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-warning hover:bg-warning/10 transition-colors border border-zinc-700 hover:border-warning/20"
                               >
                                 View
                               </button>
@@ -655,7 +655,7 @@ export default function AdminAuditPage() {
                             <span className="text-zinc-500 text-[10px]">Target: </span>
                             <a
                               href={`/admin/players/${action.target_user_id}`}
-                              className="text-amber-400/80 hover:text-amber-400 text-[10px] transition-colors"
+                              className="text-warning/80 hover:text-warning text-[10px] transition-colors"
                             >
                               {action.target_email || truncateUid(action.target_user_id, 6)}
                             </a>
@@ -736,7 +736,7 @@ export default function AdminAuditPage() {
                   <span className="text-zinc-500 text-xs">Target User</span>
                   <span className="text-white text-xs">
                     {detailAction.target_user_id ? (
-                      <a href={`/admin/players/${detailAction.target_user_id}`} className="text-amber-400 hover:text-amber-300 transition-colors">
+                      <a href={`/admin/players/${detailAction.target_user_id}`} className="text-warning hover:text-warning transition-colors">
                         {detailAction.target_email || truncateUid(detailAction.target_user_id)}
                       </a>
                     ) : "—"}
@@ -767,8 +767,8 @@ export default function AdminAuditPage() {
               toast.type === "success"
                 ? "bg-success/15 text-success border border-success/20"
                 : toast.type === "error"
-                ? "bg-red-500/15 text-red-400 border border-red-500/20"
-                : "bg-amber-500/15 text-amber-400 border border-amber-500/20"
+                ? "bg-danger/15 text-danger border border-danger/20"
+                : "bg-warning/15 text-warning border border-warning/20"
             }`}
           >
             {toast.type === "success" && <IconCheck />}

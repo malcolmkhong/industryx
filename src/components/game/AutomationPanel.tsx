@@ -33,7 +33,7 @@ export function AutomationPanel() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-teal-400 neon-glow-cyan tracking-wide">Automation Systems</h2>
-          <p className="text-xs text-gray-500 mt-0.5">Unlock AI-powered automation to grow your empire</p>
+          <p className="text-xs text-muted-label mt-0.5">Unlock AI-powered automation to grow your empire</p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="border-teal-500/50 text-teal-400 bg-teal-900/20 text-xs">
@@ -49,10 +49,10 @@ export function AutomationPanel() {
       {/* Progress */}
       <div className="game-card rounded-xl bg-card p-4 border border-teal-900/30">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-gray-400">Automation Progress</span>
+          <span className="text-xs text-subtle">Automation Progress</span>
           <span className="text-xs text-teal-400 font-mono">{activeCount}/{totalCount}</span>
         </div>
-        <div className="h-3 bg-gray-800 rounded-full overflow-hidden">
+        <div className="h-3 bg-muted-label rounded-full overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-teal-600 to-teal-400 rounded-full transition-all duration-500"
             style={{ width: `${(activeCount / totalCount) * 100}%` }}
@@ -79,11 +79,11 @@ export function AutomationPanel() {
               description={unlock.description}
               category="Automation"
               details={[
-                { label: 'Cost', value: `${unlock.cost} CP`, color: canAfford ? 'text-success' : 'text-red-400' },
-                { label: 'Status', value: isActive ? 'Active' : 'Inactive', color: isActive ? 'text-success' : 'text-gray-400' },
+                { label: 'Cost', value: `${unlock.cost} CP`, color: canAfford ? 'text-success' : 'text-danger' },
+                { label: 'Status', value: isActive ? 'Active' : 'Inactive', color: isActive ? 'text-success' : 'text-subtle' },
               ]}
               requirements={[
-                ...(unlock.requiresResearch ? [{ label: 'Research', value: RESEARCH_TREE.find(r => r.id === unlock.requiresResearch)?.name ?? unlock.requiresResearch, color: hasResearch ? 'text-success' : 'text-red-400' }] : []),
+                ...(unlock.requiresResearch ? [{ label: 'Research', value: RESEARCH_TREE.find(r => r.id === unlock.requiresResearch)?.name ?? unlock.requiresResearch, color: hasResearch ? 'text-success' : 'text-danger' }] : []),
               ]}
               side="bottom"
             >
@@ -93,12 +93,12 @@ export function AutomationPanel() {
                   ? 'border-teal-500/50 bg-teal-900/5'
                   : canActivate
                     ? 'border-cyan-900/30 hover:border-teal-500/30'
-                    : 'border-gray-800 opacity-60'
+                    : 'border-muted-label opacity-60'
               }`}
             >
               <div className="flex items-start gap-3 mb-3">
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                  isActive ? 'bg-teal-900/30 text-teal-400' : 'bg-gray-800/50 text-gray-500'
+                  isActive ? 'bg-teal-900/30 text-teal-400' : 'bg-muted-label/50 text-muted-label'
                 }`}>
                   {AUTO_ICONS[unlock.type] || <Bot className="w-5 h-5" />}
                 </div>
@@ -111,7 +111,7 @@ export function AutomationPanel() {
                       </Badge>
                     )}
                   </div>
-                  <p className="text-[11px] text-gray-400 mt-0.5">{unlock.description}</p>
+                  <p className="text-[11px] text-subtle mt-0.5">{unlock.description}</p>
                 </div>
               </div>
 
@@ -120,7 +120,7 @@ export function AutomationPanel() {
                 {/* Research requirement */}
                 {requiredResearch && (
                   <div className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg ${
-                    hasResearch ? 'bg-success/10 text-success' : 'bg-red-900/10 text-red-400'
+                    hasResearch ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'
                   }`}>
                     {hasResearch ? <Check className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
                     <span>Research: {requiredResearch.name}</span>
@@ -129,8 +129,8 @@ export function AutomationPanel() {
 
                 {/* Cost */}
                 <div className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg ${
-                  isActive ? 'bg-gray-800/30 text-gray-500' :
-                  canAfford ? 'bg-success/10 text-success' : 'bg-red-900/10 text-red-400'
+                  isActive ? 'bg-muted-label/30 text-muted-label' :
+                  canAfford ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'
                 }`}>
                   <Zap className="w-3 h-3" />
                   <span>Cost: {unlock.cost} Corporation Points</span>
@@ -143,7 +143,7 @@ export function AutomationPanel() {
                   onClick={() => store.activateAutomation(unlock.type)}
                   disabled={!canActivate}
                   className={`w-full text-xs h-8 min-h-[36px] ${
-                    canActivate ? 'bg-teal-600 hover:bg-teal-500 text-white' : 'bg-gray-800 text-gray-500'
+                    canActivate ? 'bg-teal-600 hover:bg-teal-500 text-white' : 'bg-muted-label text-muted-label'
                   }`}
                   size="sm"
                 >
@@ -174,13 +174,13 @@ export function AutomationPanel() {
           <Brain className="w-4 h-4 text-teal-400" />
           <h3 className="text-sm font-semibold text-teal-400">About Automation</h3>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px] text-gray-400">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px] text-subtle">
           <div>
-            <h4 className="text-xs text-gray-300 font-medium mb-1">How It Works</h4>
+            <h4 className="text-xs text-subtle font-medium mb-1">How It Works</h4>
             <p>Automation systems use Corporation Points (CP) earned through Global Expansion and high-tier contracts. Once activated, they run passively in the background.</p>
           </div>
           <div>
-            <h4 className="text-xs text-gray-300 font-medium mb-1">Getting CP</h4>
+            <h4 className="text-xs text-subtle font-medium mb-1">Getting CP</h4>
             <p>Earn CP by completing ★★★★+ contracts or by performing Global Expansion (prestige reset). Each automation unlock costs CP.</p>
           </div>
         </div>

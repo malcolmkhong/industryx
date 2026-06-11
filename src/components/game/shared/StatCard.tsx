@@ -46,7 +46,7 @@ export function StatCard({
       onClick={onClick}
     >
       {icon !== undefined && (
-        <span className="text-gray-500 inline-flex items-center gap-1">{icon}</span>
+        <span className="text-muted-label inline-flex items-center gap-1">{icon}</span>
       )}
       {value}
       {badge}

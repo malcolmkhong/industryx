@@ -67,7 +67,7 @@ export default function KeyboardShortcutsHelp() {
                 <button
                   onClick={() => setIsOpen(false)}
                   aria-label="Close keyboard shortcuts help"
-                  className="text-gray-500 hover:text-gray-300 transition-colors p-1 rounded-md hover:bg-gray-800/50"
+                  className="text-muted-label hover:text-subtle transition-colors p-1 rounded-md hover:bg-muted-label/50"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -77,7 +77,7 @@ export default function KeyboardShortcutsHelp() {
               <div className="px-5 py-4 space-y-3">
                 {SHORTCUTS.map((shortcut, index) => (
                   <div key={index} className="flex items-center justify-between gap-4">
-                    <span className="text-xs text-gray-300">{shortcut.description}</span>
+                    <span className="text-xs text-subtle">{shortcut.description}</span>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       {shortcut.keys.map((key, ki) => (
                         <span key={ki}>
@@ -85,7 +85,7 @@ export default function KeyboardShortcutsHelp() {
                             {key}
                           </kbd>
                           {ki < shortcut.keys.length - 1 && (
-                            <span className="text-[10px] text-gray-600 mx-0.5">/</span>
+                            <span className="text-[10px] text-muted-label mx-0.5">/</span>
                           )}
                         </span>
                       ))}
@@ -96,8 +96,8 @@ export default function KeyboardShortcutsHelp() {
 
               {/* Footer hint */}
               <div className="px-5 py-2.5 border-t border-cyan-900/20 bg-[#0a0e17]/50">
-                <p className="text-[10px] text-gray-500 text-center">
-                  Press <kbd className="px-1 py-0.5 rounded bg-[#0a0e17] border border-gray-700 text-[10px] font-mono text-gray-400">?</kbd> to toggle this panel
+                <p className="text-[10px] text-muted-label text-center">
+                  Press <kbd className="px-1 py-0.5 rounded bg-[#0a0e17] border border-muted-label text-[10px] font-mono text-subtle">?</kbd> to toggle this panel
                 </p>
               </div>
             </div>

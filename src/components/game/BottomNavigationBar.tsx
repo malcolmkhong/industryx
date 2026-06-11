@@ -157,7 +157,7 @@ export function BottomNavigationBar({ activeTab, onTabChange }: BottomNavigation
               </span>
               <button
                 onClick={() => setExpandedGroupId(null)}
-                className="ml-auto p-1.5 rounded-md text-gray-500 hover:text-gray-300 hover:bg-white/[0.05] transition-colors min-w-[32px] min-h-[32px] flex items-center justify-center"
+                className="ml-auto p-1.5 rounded-md text-muted-label hover:text-subtle hover:bg-white/[0.05] transition-colors min-w-[32px] min-h-[32px] flex items-center justify-center"
                 aria-label="Close panel"
               >
                 <X className="w-4 h-4" />
@@ -185,7 +185,7 @@ export function BottomNavigationBar({ activeTab, onTabChange }: BottomNavigation
                       ${
                         isActive
                           ? `${tab.color} bg-white/[0.08] border border-cyan-500/20 shadow-[0_0_12px_rgba(0,255,242,0.1)]`
-                          : 'text-gray-400 active:bg-white/[0.08] border border-transparent'
+                          : 'text-subtle active:bg-white/[0.08] border border-transparent'
                       }
                     `}
                   >
@@ -240,7 +240,7 @@ export function BottomNavigationBar({ activeTab, onTabChange }: BottomNavigation
                       ? `${group.color} bg-white/[0.1] shadow-[0_0_16px_rgba(0,255,242,0.12)]`
                       : hasActiveTab || isActiveGroup
                         ? `${group.color} bg-white/[0.04]`
-                        : 'text-gray-500 active:text-gray-300 active:bg-white/[0.06]'
+                        : 'text-muted-label active:text-subtle active:bg-white/[0.06]'
                   }
                 `}
                 aria-label={group.label}
@@ -281,7 +281,7 @@ export function BottomNavigationBar({ activeTab, onTabChange }: BottomNavigation
             className={`
               flex items-center justify-center
               min-w-[40px] min-h-[40px] rounded-lg
-              text-gray-500 active:text-cyan-400 active:bg-white/[0.06]
+              text-muted-label active:text-cyan-400 active:bg-white/[0.06]
               transition-all duration-200
               ${isCompact ? 'flex-col items-center gap-0.5 px-1 py-1' : 'px-2 py-2'}
             `}

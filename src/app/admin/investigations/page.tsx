@@ -187,9 +187,9 @@ function IconScrollText() {
 function getStatusBadgeClasses(status: string): string {
   switch (status) {
     case "open":
-      return "bg-red-500/15 text-red-400 border-red-500/20";
+      return "bg-danger/15 text-danger border-danger/20";
     case "investigating":
-      return "bg-amber-500/15 text-amber-400 border-amber-500/20";
+      return "bg-warning/15 text-warning border-warning/20";
     case "resolved":
       return "bg-success/15 text-success border-success/20";
     case "dismissed":
@@ -202,11 +202,11 @@ function getStatusBadgeClasses(status: string): string {
 function getSeverityBadgeClasses(severity: string): string {
   switch (severity) {
     case "critical":
-      return "bg-red-500/15 text-red-400 border-red-500/20";
+      return "bg-danger/15 text-danger border-danger/20";
     case "high":
       return "bg-orange-500/15 text-orange-400 border-orange-500/20";
     case "medium":
-      return "bg-amber-500/15 text-amber-400 border-amber-500/20";
+      return "bg-warning/15 text-warning border-warning/20";
     case "low":
       return "bg-blue-500/15 text-blue-400 border-blue-500/20";
     default:
@@ -363,7 +363,7 @@ export default function InvestigationsPage() {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-10 h-10 border-2 border-warning border-t-transparent rounded-full animate-spin" />
           <p className="text-zinc-400 text-sm">Loading investigations...</p>
         </div>
       </div>
@@ -389,7 +389,7 @@ export default function InvestigationsPage() {
             </svg>
           </div>
           <h1 className="text-white font-semibold text-sm sm:text-base">IndustriaX Backend</h1>
-          <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20">
+          <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-xs bg-warning/10 text-warning border border-warning/20">
             Admin
           </span>
         </div>
@@ -404,7 +404,7 @@ export default function InvestigationsPage() {
           </div>
           <button
             onClick={handleLogout}
-            className="text-zinc-400 hover:text-red-400 transition-colors p-1.5 rounded-md hover:bg-zinc-800"
+            className="text-zinc-400 hover:text-danger transition-colors p-1.5 rounded-md hover:bg-zinc-800"
             title="Sign out"
           >
             <IconLogout />
@@ -451,10 +451,10 @@ export default function InvestigationsPage() {
               <IconUsers />
               <span>Admin</span>
             </a>
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm bg-warning/10 text-warning border border-warning/20">
               <IconShield />
               <span className="flex-1">Investigations</span>
-              <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              <div className="w-1.5 h-1.5 rounded-full bg-warning" />
             </div>
             <a
               href="/admin/audit"
@@ -480,9 +480,9 @@ export default function InvestigationsPage() {
           <div className="p-3 border-t border-zinc-800">
             <div className="p-3 bg-zinc-800/50 rounded-lg">
               <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Phase</p>
-              <p className="text-xs text-amber-400 font-medium">Phase 5 — Security</p>
+              <p className="text-xs text-warning font-medium">Phase 5 — Security</p>
               <div className="mt-2 w-full bg-zinc-700 rounded-full h-1.5">
-                <div className="bg-amber-500 h-1.5 rounded-full" style={{ width: "90%" }} />
+                <div className="bg-warning h-1.5 rounded-full" style={{ width: "90%" }} />
               </div>
             </div>
           </div>
@@ -509,7 +509,7 @@ export default function InvestigationsPage() {
                   <select
                     value={filterStatus}
                     onChange={(e) => { setFilterStatus(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
-                    className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors appearance-none"
+                    className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors appearance-none"
                     style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2'%3e%3cpath d='m6 9 6 6 6-6'/%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
                   >
                     {STATUS_OPTIONS.map((s) => (
@@ -522,7 +522,7 @@ export default function InvestigationsPage() {
                   <select
                     value={filterSeverity}
                     onChange={(e) => { setFilterSeverity(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
-                    className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors appearance-none"
+                    className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors appearance-none"
                     style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2'%3e%3cpath d='m6 9 6 6 6-6'/%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
                   >
                     {SEVERITY_OPTIONS.map((s) => (
@@ -535,7 +535,7 @@ export default function InvestigationsPage() {
                   <select
                     value={filterDetectionType}
                     onChange={(e) => { setFilterDetectionType(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
-                    className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors appearance-none"
+                    className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors appearance-none"
                     style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2'%3e%3cpath d='m6 9 6 6 6-6'/%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
                   >
                     {DETECTION_TYPE_OPTIONS.map((dt) => (
@@ -545,7 +545,7 @@ export default function InvestigationsPage() {
                 </div>
                 <button
                   onClick={() => fetchInvestigations()}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500/10 text-amber-400 text-sm rounded-lg hover:bg-amber-500/20 transition-colors border border-amber-500/20 shrink-0"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-warning/10 text-warning text-sm rounded-lg hover:bg-warning/20 transition-colors border border-warning/20 shrink-0"
                 >
                   <IconRefresh />
                   Refresh
@@ -557,8 +557,8 @@ export default function InvestigationsPage() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-red-500/10 flex items-center justify-center">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-400">
+                  <div className="w-9 h-9 rounded-lg bg-danger/10 flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger">
                       <circle cx="12" cy="12" r="10" /><path d="M12 8v4" /><path d="M12 16h.01" />
                     </svg>
                   </div>
@@ -599,7 +599,7 @@ export default function InvestigationsPage() {
 
               <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                  <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
                     <IconClipboardList />
                   </div>
                   <div>
@@ -687,7 +687,7 @@ export default function InvestigationsPage() {
                                       placeholder={`${actionType === "resolve" ? "Resolution" : "Dismissal"} note...`}
                                       value={actionNote}
                                       onChange={(e) => setActionNote(e.target.value)}
-                                      className="flex-1 bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-amber-500/50 transition-colors"
+                                      className="flex-1 bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-warning/50 transition-colors"
                                       autoFocus
                                     />
                                   </div>
@@ -720,7 +720,7 @@ export default function InvestigationsPage() {
                                 <div className="flex items-center justify-end gap-1.5">
                                   <button
                                     onClick={() => setViewTarget(inv)}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-amber-400 hover:bg-amber-500/10 transition-colors border border-zinc-700 hover:border-amber-500/20"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-warning hover:bg-warning/10 transition-colors border border-zinc-700 hover:border-warning/20"
                                   >
                                     <IconEye />
                                     View
@@ -787,7 +787,7 @@ export default function InvestigationsPage() {
                               placeholder={`${actionType === "resolve" ? "Resolution" : "Dismissal"} note...`}
                               value={actionNote}
                               onChange={(e) => setActionNote(e.target.value)}
-                              className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-amber-500/50 transition-colors"
+                              className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-warning/50 transition-colors"
                               autoFocus
                             />
                             <div className="flex items-center gap-2">
@@ -819,7 +819,7 @@ export default function InvestigationsPage() {
                           <div className="flex items-center gap-1.5">
                             <button
                               onClick={() => setViewTarget(inv)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-amber-400 hover:bg-amber-500/10 transition-colors border border-zinc-700"
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-warning hover:bg-warning/10 transition-colors border border-zinc-700"
                             >
                               <IconEye />
                               View
@@ -971,8 +971,8 @@ export default function InvestigationsPage() {
               toast.type === "success"
                 ? "bg-success/15 text-success border border-success/20"
                 : toast.type === "error"
-                ? "bg-red-500/15 text-red-400 border border-red-500/20"
-                : "bg-amber-500/15 text-amber-400 border border-amber-500/20"
+                ? "bg-danger/15 text-danger border border-danger/20"
+                : "bg-warning/15 text-warning border border-warning/20"
             }`}
           >
             {toast.type === "success" && <IconCheck />}

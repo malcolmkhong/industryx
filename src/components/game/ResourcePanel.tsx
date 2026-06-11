@@ -238,18 +238,18 @@ export function ResourcePanel() {
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-amber-400 neon-glow-amber tracking-wide flex items-center gap-2">
+          <h2 className="text-xl font-bold text-warning neon-glow-amber tracking-wide flex items-center gap-2">
             <Pickaxe className="w-5 h-5" />
             Resource Extraction
           </h2>
-          <p className="text-xs text-gray-500 mt-0.5">Mine, pump, and extract raw materials from the earth</p>
+          <p className="text-xs text-muted-label mt-0.5">Mine, pump, and extract raw materials from the earth</p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="border-amber-500/50 text-amber-400 bg-amber-900/20 text-xs">
+          <Badge variant="outline" className="border-warning/50 text-warning bg-amber-900/20 text-xs">
             <Pickaxe className="w-3 h-3 mr-1" />
             {activeExtractors}/{totalExtractors} Active
           </Badge>
-          <Badge variant="outline" className="border-yellow-500/50 text-yellow-400 bg-yellow-900/20 text-xs">
+          <Badge variant="outline" className="border-warning/50 text-warning bg-yellow-900/20 text-xs">
             <Zap className="w-3 h-3 mr-1" />
             {formatNumber(totalPowerConsumption)} MW
           </Badge>
@@ -292,10 +292,10 @@ export function ResourcePanel() {
       <div className="game-card rounded-xl bg-card p-4 border border-border">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Workflow className="w-4 h-4 text-amber-400" />
-            <h3 className="text-sm font-semibold text-amber-400">Extraction Pipeline</h3>
+            <Workflow className="w-4 h-4 text-warning" />
+            <h3 className="text-sm font-semibold text-warning">Extraction Pipeline</h3>
           </div>
-          <span className="text-[10px] text-gray-500">Click a tier node for details</span>
+          <span className="text-[10px] text-muted-label">Click a tier node for details</span>
         </div>
 
         {/* SVG Flow Diagram */}
@@ -509,12 +509,12 @@ export function ResourcePanel() {
                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: tierInfo.color }} />
                       <span className="text-xs font-medium" style={{ color: tierInfo.color }}>{tierInfo.label} Details</span>
                     </div>
-                    <button onClick={() => setSelectedFlowNode(null)} className="text-gray-500 hover:text-gray-300 transition-colors">
+                    <button onClick={() => setSelectedFlowNode(null)} className="text-muted-label hover:text-subtle transition-colors">
                       <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
                   {Object.keys(relevantResources).length === 0 ? (
-                    <p className="text-[10px] text-gray-500 py-2">No extraction in this tier yet</p>
+                    <p className="text-[10px] text-muted-label py-2">No extraction in this tier yet</p>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {Object.entries(relevantResources).map(([res, { prod, cons }]) => {
@@ -524,8 +524,8 @@ export function ResourcePanel() {
                           <div key={res} className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 border" style={{ borderColor: `${meta.color}22`, backgroundColor: `${meta.color}08` }}>
                             <GameIcon icon={meta.icon} size={14} className="inline-flex" />
                             <div className="min-w-0">
-                              <div className="text-[10px] text-gray-300 font-medium truncate">{meta.name}</div>
-                              <div className={`text-[9px] font-mono ${net > 0 ? 'text-success' : net < 0 ? 'text-red-400' : prod > 0 && cons > 0 ? 'text-cyan-400' : 'text-gray-600'}`}>
+                              <div className="text-[10px] text-subtle font-medium truncate">{meta.name}</div>
+                              <div className={`text-[9px] font-mono ${net > 0 ? 'text-success' : net < 0 ? 'text-danger' : prod > 0 && cons > 0 ? 'text-cyan-400' : 'text-muted-label'}`}>
                                 {net > 0 ? `+${formatNumber(net)}/s` : net < 0 ? `${formatNumber(net)}/s` : prod > 0 && cons > 0 ? '±0/s' : '—'}
                               </div>
                             </div>
@@ -559,15 +559,15 @@ export function ResourcePanel() {
                   className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border text-xs font-semibold ${
                     isActive
                       ? colors.tabActive
-                      : `border-transparent text-gray-500 ${colors.tabHover}`
+                      : `border-transparent text-muted-label ${colors.tabHover}`
                   }`}
                 >
-                  <div className={`w-6 h-6 rounded-md flex items-center justify-center ${isActive ? colors.bg : 'bg-gray-800/50'}`}>
+                  <div className={`w-6 h-6 rounded-md flex items-center justify-center ${isActive ? colors.bg : 'bg-muted-label/50'}`}>
                     <GameIcon icon={config.icon} size={16} />
                   </div>
                   <span className="hidden sm:inline">{config.label}</span>
                   <span className="sm:hidden">{config.shortLabel}</span>
-                  <span className={`text-[9px] font-mono ${isActive ? '' : 'text-gray-600'}`}>
+                  <span className={`text-[9px] font-mono ${isActive ? '' : 'text-muted-label'}`}>
                     ({tabBuildings.filter(b => b.active).length}/{tabBuildings.length})
                   </span>
                 </button>
@@ -585,7 +585,7 @@ export function ResourcePanel() {
                     </div>
                     <h3 className={`text-sm font-semibold ${currentColorClasses.text}`}>{currentTabConfig.label}</h3>
                   </div>
-                  <span className="text-[10px] text-gray-500">
+                  <span className="text-[10px] text-muted-label">
                     {currentTabBuildings.filter(b => b.active).length}/{currentTabBuildings.length} active
                   </span>
                 </div>
@@ -611,28 +611,28 @@ export function ResourcePanel() {
                         details={[
                           { label: 'Production Rate', value: `${def.baseProductionRate.toFixed(1)}/s` },
                           ...(def.outputs?.map(o => ({ label: `Output: ${RESOURCE_META[o.resource].name}`, value: `${(o.amount * def.baseProductionRate).toFixed(1)}/s`, color: 'text-success' })) ?? []),
-                          { label: 'Power Consumption', value: `${def.basePowerConsumption} MW`, color: 'text-yellow-400' },
-                          { label: 'Build Cost', value: `$${formatNumber(cost)}`, color: canAfford ? 'text-success' : 'text-red-400' },
+                          { label: 'Power Consumption', value: `${def.basePowerConsumption} MW`, color: 'text-warning' },
+                          { label: 'Build Cost', value: `$${formatNumber(cost)}`, color: canAfford ? 'text-success' : 'text-danger' },
                           { label: 'Cost Multiplier', value: `x${def.costMultiplier}` },
                         ]}
                         requirements={[
-                          ...(def.unlockRequirement?.research ? [{ label: 'Research', value: RESEARCH_TREE.find(r => r.id === def.unlockRequirement!.research)?.name ?? def.unlockRequirement.research, color: completedResearch.includes(def.unlockRequirement.research) ? 'text-success' : 'text-red-400' }] : []),
-                          ...(def.unlockRequirement?.level ? [{ label: 'Level Required', value: `${def.unlockRequirement.level}`, color: 'text-amber-400' }] : []),
+                          ...(def.unlockRequirement?.research ? [{ label: 'Research', value: RESEARCH_TREE.find(r => r.id === def.unlockRequirement!.research)?.name ?? def.unlockRequirement.research, color: completedResearch.includes(def.unlockRequirement.research) ? 'text-success' : 'text-danger' }] : []),
+                          ...(def.unlockRequirement?.level ? [{ label: 'Level Required', value: `${def.unlockRequirement.level}`, color: 'text-warning' }] : []),
                         ]}
                         side="bottom"
                       >
                       <div
                         className={`relative rounded-lg p-3 border bg-[#0a0e17] ${
                           !unlocked
-                            ? 'border-gray-800 opacity-60'
+                            ? 'border-muted-label opacity-60'
                             : canAfford
                               ? `${currentColorClasses.hoverBorder} ${currentColorClasses.glow}`
-                              : 'border-gray-800'
+                              : 'border-muted-label'
                         }`}
                       >
                         {!unlocked && (
                           <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg z-10">
-                            <Lock className="w-4 h-4 text-gray-600" />
+                            <Lock className="w-4 h-4 text-muted-label" />
                           </div>
                         )}
                         {/* Header: emoji + name */}
@@ -656,11 +656,11 @@ export function ResourcePanel() {
 
                         {/* Cost + Power */}
                         <div className="flex items-center justify-between mb-2">
-                          <span className={`text-[10px] font-mono font-bold ${canAfford ? 'text-success' : 'text-red-400'}`}>
+                          <span className={`text-[10px] font-mono font-bold ${canAfford ? 'text-success' : 'text-danger'}`}>
                             ${formatNumber(cost)}
                           </span>
-                          <span className="flex items-center gap-0.5 text-[9px] text-gray-500">
-                            <Zap className="w-2.5 h-2.5 text-yellow-500" />
+                          <span className="flex items-center gap-0.5 text-[9px] text-muted-label">
+                            <Zap className="w-2.5 h-2.5 text-warning" />
                             {def.basePowerConsumption}MW
                           </span>
                         </div>
@@ -673,7 +673,7 @@ export function ResourcePanel() {
                             !unlocked ? 'hidden' :
                             canAfford
                               ? `${currentColorClasses.buttonBorder} ${currentColorClasses.buttonText} ${currentColorClasses.buttonHover}`
-                              : 'border-gray-700 text-gray-500 cursor-not-allowed'
+                              : 'border-muted-label text-muted-label cursor-not-allowed'
                           }`}
                           onClick={() => handleBuild(type)}
                           disabled={!canAfford || !unlocked}
@@ -684,7 +684,7 @@ export function ResourcePanel() {
 
                         {existingCount > 0 && (
                           <div className="mt-1 text-center">
-                            <span className="text-[8px] text-gray-500">
+                            <span className="text-[8px] text-muted-label">
                               {extractorsByType[type].filter(b => b.active).length}/{existingCount} active
                             </span>
                           </div>
@@ -701,7 +701,7 @@ export function ResourcePanel() {
                     <div className="flex items-center gap-2 mb-2">
                       <Layers className={`w-3.5 h-3.5 ${currentColorClasses.text}`} />
                       <h4 className={`text-xs font-semibold ${currentColorClasses.text}`}>Active Extractors</h4>
-                      <span className="text-[9px] text-gray-500">({currentTabBuildings.length})</span>
+                      <span className="text-[9px] text-muted-label">({currentTabBuildings.length})</span>
                     </div>
                     <div className="space-y-1.5 max-h-[400px] overflow-y-auto game-scrollbar pr-1">
                       {currentTabBuildings.map(building => {
@@ -725,7 +725,7 @@ export function ResourcePanel() {
                             className={`rounded-lg bg-[#0a0e17] p-2.5 border ${
                               building.active
                                 ? `${currentColorClasses.border}`
-                                : 'border-gray-800 opacity-60'
+                                : 'border-muted-label opacity-60'
                             }`}
                           >
                             <div className="flex items-center gap-2">
@@ -748,7 +748,7 @@ export function ResourcePanel() {
                                     Lv.{building.level}
                                   </Badge>
                                   {!building.active && (
-                                    <Badge variant="outline" className="text-[8px] border-gray-600 text-gray-500 px-1 py-0">
+                                    <Badge variant="outline" className="text-[8px] border-muted-label text-muted-label px-1 py-0">
                                       OFF
                                     </Badge>
                                   )}
@@ -759,7 +759,7 @@ export function ResourcePanel() {
                                   {effectiveOutputs.map(({ resource: _r, rate, meta }, i) => (
                                     <div key={i} className="flex items-center gap-0.5 bg-success/15 rounded px-1 py-px">
                                       <GameIcon icon={meta.icon} size={10} className="inline-flex" />
-                                      <span className={`text-[8px] font-mono ${building.active ? 'text-success' : 'text-gray-500'}`}>
+                                      <span className={`text-[8px] font-mono ${building.active ? 'text-success' : 'text-muted-label'}`}>
                                         +{formatNumber(rate)}
                                       </span>
                                     </div>
@@ -768,8 +768,8 @@ export function ResourcePanel() {
 
                                 {/* Efficiency bar - compact inline */}
                                 <div className="flex items-center gap-1.5 mt-1">
-                                  <span className="text-[8px] text-gray-500">Eff</span>
-                                  <div className="flex-1 h-1 bg-gray-800 rounded-full overflow-hidden">
+                                  <span className="text-[8px] text-muted-label">Eff</span>
+                                  <div className="flex-1 h-1 bg-muted-label rounded-full overflow-hidden">
                                     <div
                                       className={`h-full rounded-full ${
                                         eff >= 0.8 ? 'bg-gradient-to-r from-green-600 to-green-400' :
@@ -780,7 +780,7 @@ export function ResourcePanel() {
                                     />
                                   </div>
                                   <span className={`text-[8px] font-mono ${
-                                    eff >= 0.8 ? 'text-success' : eff >= 0.5 ? 'text-yellow-400' : 'text-red-400'
+                                    eff >= 0.8 ? 'text-success' : eff >= 0.5 ? 'text-warning' : 'text-danger'
                                   }`}>
                                     {(eff * 100).toFixed(0)}%
                                   </span>
@@ -788,7 +788,7 @@ export function ResourcePanel() {
 
                                 {/* Power deficit warning */}
                                 {building.active && powerGrid.overload && (
-                                  <div className="mt-1 flex items-center gap-1 text-[8px] text-red-400 bg-red-900/20 rounded px-1.5 py-0.5 border border-red-900/30">
+                                  <div className="mt-1 flex items-center gap-1 text-[8px] text-danger bg-danger/20 rounded px-1.5 py-0.5 border border-red-900/30">
                                     <Zap className="w-2 h-2 flex-shrink-0" />
                                     <span>Power deficit!</span>
                                   </div>
@@ -802,7 +802,7 @@ export function ResourcePanel() {
                                   className={`w-6 h-6 rounded-full flex items-center justify-center border ${
                                     building.active
                                       ? 'border-success/50 bg-success/20 text-success'
-                                      : 'border-gray-700 bg-gray-800 text-gray-500'
+                                      : 'border-muted-label bg-muted-label text-muted-label'
                                   }`}
                                 >
                                   {building.active ? <Power className="w-3 h-3" /> : <PowerOff className="w-3 h-3" />}
@@ -813,14 +813,14 @@ export function ResourcePanel() {
                                   className={`h-5 text-[8px] px-1.5 ${
                                     canUpgrade
                                       ? 'border-cyan-700/50 text-cyan-400 hover:bg-cyan-900/30'
-                                      : 'border-gray-700 text-gray-500'
+                                      : 'border-muted-label text-muted-label'
                                   }`}
                                   onClick={() => handleUpgrade(building.id)}
                                   disabled={!canUpgrade}
                                 >
                                   <ChevronUp className="w-2.5 h-2.5" />
                                 </Button>
-                                <span className={`text-[7px] font-mono ${canUpgrade ? 'text-gray-400' : 'text-red-400'}`}>
+                                <span className={`text-[7px] font-mono ${canUpgrade ? 'text-subtle' : 'text-danger'}`}>
                                   ${formatNumber(upgradeCost)}
                                 </span>
                               </div>
@@ -836,9 +836,9 @@ export function ResourcePanel() {
                 {currentTabBuildings.length === 0 && (
                   <div className="game-card-empty rounded-xl p-6 text-center">
                     <div className="text-4xl mb-3"><GameIcon icon={currentTabConfig.icon} size={32} /></div>
-                    <h3 className="text-base font-bold text-amber-400 mb-2">No {currentTabConfig.label} Extractors</h3>
-                    <p className="text-sm text-gray-400 mb-1">Build your first extractor to start mining resources</p>
-                    <p className="text-xs text-gray-500 mt-2">Extractors gather raw materials from the earth. Start with a Mining Drill!</p>
+                    <h3 className="text-base font-bold text-warning mb-2">No {currentTabConfig.label} Extractors</h3>
+                    <p className="text-sm text-subtle mb-1">Build your first extractor to start mining resources</p>
+                    <p className="text-xs text-muted-label mt-2">Extractors gather raw materials from the earth. Start with a Mining Drill!</p>
                   </div>
                 )}
               </div>
@@ -851,10 +851,10 @@ export function ResourcePanel() {
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Warehouse className="w-4 h-4 text-amber-400" />
-                <h3 className="text-sm font-semibold text-amber-400">Raw Materials</h3>
+                <Warehouse className="w-4 h-4 text-warning" />
+                <h3 className="text-sm font-semibold text-warning">Raw Materials</h3>
               </div>
-              <span className="text-[10px] text-gray-500">Storage</span>
+              <span className="text-[10px] text-muted-label">Storage</span>
             </div>
             <div className="space-y-2.5 max-h-96 overflow-y-auto game-scrollbar pr-1">
               {RAW_RESOURCES.map(resource => {
@@ -873,7 +873,7 @@ export function ResourcePanel() {
 
                 return (
                   <div key={resource} className={`rounded-lg p-2 bg-[#0a0e17] border ${
-                    isFull ? 'border-orange-900/40' : 'border-gray-800/50'
+                    isFull ? 'border-orange-900/40' : 'border-muted-label/50'
                   }`}>
                     {/* Header */}
                     <div className="flex items-center justify-between mb-1">
@@ -882,32 +882,32 @@ export function ResourcePanel() {
                         <span className="text-[11px] text-gray-200 font-medium">{meta.name}</span>
                       </div>
                       {netRate !== 0 ? (
-                        <span className={`text-[9px] font-mono ${netRate > 0 ? 'text-success' : 'text-red-400'}`}>
+                        <span className={`text-[9px] font-mono ${netRate > 0 ? 'text-success' : 'text-danger'}`}>
                           {netRate > 0 ? '+' : ''}{formatNumber(netRate)}/s
                         </span>
                       ) : prodRate > 0 ? (
-                        <span className="text-[9px] text-yellow-400 font-mono">±0/s</span>
+                        <span className="text-[9px] text-warning font-mono">±0/s</span>
                       ) : (
-                        <span className="text-[9px] text-gray-600 font-mono">—</span>
+                        <span className="text-[9px] text-muted-label font-mono">—</span>
                       )}
                     </div>
 
                     {/* Amount display */}
                     <div className="flex items-baseline gap-1 mb-1">
                       <span className={`text-xs font-bold font-mono ${
-                        isFull ? 'text-orange-400' : isEmpty ? 'text-gray-600' : 'text-gray-200'
+                        isFull ? 'text-orange-400' : isEmpty ? 'text-muted-label' : 'text-gray-200'
                       }`}>
                         {formatNumber(amount)}
                       </span>
-                      <span className="text-[9px] text-gray-600">/</span>
-                      <span className="text-[9px] text-gray-500 font-mono">{formatNumber(capacity)}</span>
+                      <span className="text-[9px] text-muted-label">/</span>
+                      <span className="text-[9px] text-muted-label font-mono">{formatNumber(capacity)}</span>
                       {isFull && (
                         <span className="text-[8px] text-orange-400 ml-1">FULL</span>
                       )}
                     </div>
 
                     {/* Capacity bar */}
-                    <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden relative">
+                    <div className="h-1.5 bg-muted-label rounded-full overflow-hidden relative">
                       <div
                         className={`h-full rounded-full resource-bar-animated transition-all duration-500 ${
                           pct > 90 ? 'bg-gradient-to-r from-red-600 to-red-400' :
@@ -930,13 +930,13 @@ export function ResourcePanel() {
                         )}
                         {consRate > 0 && (
                           <div className="flex items-center gap-0.5">
-                            <ArrowDownToLine className="w-2 h-2 text-red-500" />
-                            <span className="text-[8px] text-red-400 font-mono">{formatNumber(consRate)}</span>
+                            <ArrowDownToLine className="w-2 h-2 text-danger" />
+                            <span className="text-[8px] text-danger font-mono">{formatNumber(consRate)}</span>
                           </div>
                         )}
                         <div className="flex items-center gap-0.5">
-                          <Clock className="w-2 h-2 text-gray-500" />
-                          <span className="text-[8px] text-gray-500 font-mono">
+                          <Clock className="w-2 h-2 text-muted-label" />
+                          <span className="text-[8px] text-muted-label font-mono">
                             {Number.isFinite(capacity) && netRate > 0 ? `+${formatNumber(capacity - amount)}` : '—'}
                           </span>
                         </div>
@@ -944,10 +944,10 @@ export function ResourcePanel() {
                     )}
 
                     {/* Storage upgrade */}
-                    <div className="flex items-center justify-between mt-1 pt-1 border-t border-gray-800/50">
+                    <div className="flex items-center justify-between mt-1 pt-1 border-t border-muted-label/50">
                       <div className="flex items-center gap-0.5">
-                        <Package className="w-2 h-2 text-gray-500" />
-                        <span className="text-[8px] text-gray-500">Lv.{storageUpgradeLevels[resource] ?? 0}</span>
+                        <Package className="w-2 h-2 text-muted-label" />
+                        <span className="text-[8px] text-muted-label">Lv.{storageUpgradeLevels[resource] ?? 0}</span>
                       </div>
                       {(() => {
                         const currentLevel = storageUpgradeLevels[resource] ?? 0;
@@ -959,8 +959,8 @@ export function ResourcePanel() {
                             disabled={!canAffordUpgrade}
                             className={`text-[8px] px-1.5 py-0.5 rounded transition-colors ${
                               canAffordUpgrade
-                                ? 'text-amber-400 bg-amber-900/20 hover:bg-amber-900/40 border border-amber-800/40'
-                                : 'text-gray-600 bg-gray-800/30 border border-gray-800/30 cursor-not-allowed'
+                                ? 'text-warning bg-amber-900/20 hover:bg-amber-900/40 border border-amber-800/40'
+                                : 'text-muted-label bg-muted-label/30 border border-muted-label/30 cursor-not-allowed'
                             }`}
                           >
                             +50% (${formatNumber(upgradeCost)})
@@ -981,13 +981,13 @@ export function ResourcePanel() {
                 <TrendingUp className="w-4 h-4 text-success" />
                 <h3 className="text-sm font-semibold text-success">Resource Flow</h3>
               </div>
-              <span className="text-[10px] text-gray-500">net/s</span>
+              <span className="text-[10px] text-muted-label">net/s</span>
             </div>
             {resourceFlow.length === 0 ? (
               <div className="game-card-empty rounded-xl p-6 text-center">
                 <div className="mb-2"><GameIcon icon="gi:chart" size={28} /></div>
                 <h3 className="text-sm font-bold text-success mb-1">No Resource Flow Yet</h3>
-                <p className="text-xs text-gray-400">Build extractors to generate resources and see the flow visualization</p>
+                <p className="text-xs text-subtle">Build extractors to generate resources and see the flow visualization</p>
               </div>
             ) : (
               <div className="space-y-2 max-h-64 overflow-y-auto game-scrollbar pr-1">
@@ -1010,26 +1010,26 @@ export function ResourcePanel() {
                       <div key={resource} className="bg-[#0a0e17] rounded-lg p-2">
                         <div className="flex items-center gap-2 mb-1.5">
                           <GameIcon icon={meta.icon} size={14} className="inline-flex" />
-                          <span className="text-[11px] text-gray-300 flex-1 flex items-center gap-1.5">
+                          <span className="text-[11px] text-subtle flex-1 flex items-center gap-1.5">
                             {meta.name}
                             {isFull && (
-                              <span className="inline-flex items-center text-[8px] font-bold text-red-400 bg-red-900/30 border border-red-500/40 rounded px-1 py-px animate-pulse">
+                              <span className="inline-flex items-center text-[8px] font-bold text-danger bg-danger/30 border border-danger/40 rounded px-1 py-px animate-pulse">
                                 FULL
                               </span>
                             )}
                             {!isFull && isAlmostFull && (
-                              <span className="inline-flex items-center gap-0.5 text-[8px] text-red-400">
-                                <span className="w-2 h-2 rounded-full bg-red-500"></span> <span className="text-red-300">Almost full!</span>
+                              <span className="inline-flex items-center gap-0.5 text-[8px] text-danger">
+                                <span className="w-2 h-2 rounded-full bg-danger"></span> <span className="text-danger">Almost full!</span>
                               </span>
                             )}
                             {!isAlmostFull && isNearing && (
-                              <span className="inline-flex items-center gap-0.5 text-[8px] text-yellow-400">
-                                <GameIcon icon="gi:hazard-sign" size={14} className="inline" /> <span className="text-yellow-300">Nearing capacity</span>
+                              <span className="inline-flex items-center gap-0.5 text-[8px] text-warning">
+                                <GameIcon icon="gi:hazard-sign" size={14} className="inline" /> <span className="text-warning">Nearing capacity</span>
                               </span>
                             )}
                           </span>
                           <span className={`text-[10px] font-mono font-bold ${
-                            net > 0 ? 'text-success' : net < 0 ? 'text-red-400' : rate > 0 && consRate > 0 ? 'text-cyan-400' : 'text-gray-600'
+                            net > 0 ? 'text-success' : net < 0 ? 'text-danger' : rate > 0 && consRate > 0 ? 'text-cyan-400' : 'text-muted-label'
                           }`}>
                             {net > 0 ? `+${formatNumber(net)}/s` : net < 0 ? `${formatNumber(net)}/s` : rate > 0 && consRate > 0 ? '±0/s' : '—'}
                           </span>
@@ -1038,7 +1038,7 @@ export function ResourcePanel() {
                         {/* Flow bar visualization */}
                         <div className="relative h-5 flex items-center">
                           {/* Center line */}
-                          <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gray-700" />
+                          <div className="absolute left-1/2 top-0 bottom-0 w-px bg-muted-label" />
 
                           {/* Production side (left of center) */}
                           <div className="absolute left-1/2 right-1/2 flex justify-end pr-0.5">
@@ -1058,7 +1058,7 @@ export function ResourcePanel() {
 
                           {/* Labels */}
                           <span className="absolute left-1 text-[7px] text-success font-mono">{formatNumber(rate)}</span>
-                          <span className="absolute right-1 text-[7px] text-red-400 font-mono">{formatNumber(consRate)}</span>
+                          <span className="absolute right-1 text-[7px] text-danger font-mono">{formatNumber(consRate)}</span>
                         </div>
                       </div>
                     );
@@ -1070,8 +1070,8 @@ export function ResourcePanel() {
           {/* EXTRACTOR SUMMARY */}
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
-              <Container className="w-4 h-4 text-amber-400" />
-              <h3 className="text-sm font-semibold text-amber-400">Extractor Summary</h3>
+              <Container className="w-4 h-4 text-warning" />
+              <h3 className="text-sm font-semibold text-warning">Extractor Summary</h3>
             </div>
             <div className="space-y-1.5">
               {EXTRACTOR_TYPES.map(type => {
@@ -1087,23 +1087,23 @@ export function ResourcePanel() {
                     <GameIcon icon={def.icon} size={16} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-0.5">
-                        <span className={`text-[11px] font-medium ${unlocked ? 'text-gray-200' : 'text-gray-600'}`}>
+                        <span className={`text-[11px] font-medium ${unlocked ? 'text-gray-200' : 'text-muted-label'}`}>
                           {def.name}
                         </span>
-                        <span className="text-[9px] text-gray-500 font-mono">
+                        <span className="text-[9px] text-muted-label font-mono">
                           {activeInstances.length}/{instances.length}
                         </span>
                       </div>
-                      <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
+                      <div className="h-1 bg-muted-label rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-amber-500 rounded-full transition-all duration-500"
+                          className="h-full bg-warning rounded-full transition-all duration-500"
                           style={{ width: instances.length > 0 ? `${(activeInstances.length / instances.length) * 100}%` : '0%' }}
                         />
                       </div>
                       {instances.length > 0 && (
                         <div className="flex items-center justify-between mt-0.5">
-                          <span className="text-[8px] text-gray-500">Total Lv.{totalLevel}</span>
-                          <span className="text-[8px] text-gray-500">
+                          <span className="text-[8px] text-muted-label">Total Lv.{totalLevel}</span>
+                          <span className="text-[8px] text-muted-label">
                             {formatNumber(instances.reduce((s, b) => s + def.basePowerConsumption * b.level, 0))} MW
                           </span>
                         </div>

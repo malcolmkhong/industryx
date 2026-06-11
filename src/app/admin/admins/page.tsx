@@ -138,7 +138,7 @@ function truncateUid(uid: string, max = 8): string {
 function getRoleBadgeClasses(role: string): string {
   switch (role) {
     case "super_admin":
-      return "bg-amber-500/15 text-amber-400 border-amber-500/20";
+      return "bg-warning/15 text-warning border-warning/20";
     case "viewer":
       return "bg-zinc-500/15 text-zinc-400 border-zinc-500/20";
     default:
@@ -351,7 +351,7 @@ export default function AdminManagementPage() {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-10 h-10 border-2 border-warning border-t-transparent rounded-full animate-spin" />
           <p className="text-zinc-400 text-sm">Loading admin page...</p>
         </div>
       </div>
@@ -377,7 +377,7 @@ export default function AdminManagementPage() {
             </svg>
           </div>
           <h1 className="text-white font-semibold text-sm sm:text-base">IndustriaX Backend</h1>
-          <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20">
+          <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-xs bg-warning/10 text-warning border border-warning/20">
             Admin
           </span>
         </div>
@@ -392,7 +392,7 @@ export default function AdminManagementPage() {
           </div>
           <button
             onClick={handleLogout}
-            className="text-zinc-400 hover:text-red-400 transition-colors p-1.5 rounded-md hover:bg-zinc-800"
+            className="text-zinc-400 hover:text-danger transition-colors p-1.5 rounded-md hover:bg-zinc-800"
             title="Sign out"
           >
             <IconLogout />
@@ -456,10 +456,10 @@ export default function AdminManagementPage() {
               <IconDatabase />
               <span>Config Tables</span>
             </a>
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm bg-warning/10 text-warning border border-warning/20">
               <IconUsers />
               <span className="flex-1">Admin</span>
-              <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              <div className="w-1.5 h-1.5 rounded-full bg-warning" />
             </div>
           </nav>
 
@@ -480,9 +480,9 @@ export default function AdminManagementPage() {
           <div className="p-3 border-t border-zinc-800">
             <div className="p-3 bg-zinc-800/50 rounded-lg">
               <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Phase</p>
-              <p className="text-xs text-amber-400 font-medium">Phase 3 — Admin & Moderation</p>
+              <p className="text-xs text-warning font-medium">Phase 3 — Admin & Moderation</p>
               <div className="mt-2 w-full bg-zinc-700 rounded-full h-1.5">
-                <div className="bg-amber-500 h-1.5 rounded-full" style={{ width: "80%" }} />
+                <div className="bg-warning h-1.5 rounded-full" style={{ width: "80%" }} />
               </div>
             </div>
           </div>
@@ -501,7 +501,7 @@ export default function AdminManagementPage() {
               </div>
               <button
                 onClick={() => setShowAddModal(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black font-medium text-sm rounded-lg transition-colors shrink-0"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-warning hover:bg-warning text-black font-medium text-sm rounded-lg transition-colors shrink-0"
               >
                 <IconPlus />
                 Add Admin
@@ -512,8 +512,8 @@ export default function AdminManagementPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
               <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-400">
+                  <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-warning">
                       <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
                     </svg>
                   </div>
@@ -572,7 +572,7 @@ export default function AdminManagementPage() {
                   <p className="text-zinc-600 text-xs">Add an admin user to get started.</p>
                   <button
                     onClick={() => setShowAddModal(true)}
-                    className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-amber-500/10 text-amber-400 text-sm rounded-lg hover:bg-amber-500/20 transition-colors border border-amber-500/20"
+                    className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-warning/10 text-warning text-sm rounded-lg hover:bg-warning/20 transition-colors border border-warning/20"
                   >
                     <IconPlus />
                     Add Admin
@@ -616,7 +616,7 @@ export default function AdminManagementPage() {
                                         {admin.email || "No email"}
                                       </span>
                                       {isMe && (
-                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-amber-500/15 text-amber-400 border border-amber-500/20 font-medium">
+                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-warning/15 text-warning border border-warning/20 font-medium">
                                           You
                                         </span>
                                       )}
@@ -668,7 +668,7 @@ export default function AdminManagementPage() {
                                 {canRemove ? (
                                   <button
                                     onClick={() => setRemoveTarget(admin)}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors border border-red-500/20"
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-danger hover:text-danger hover:bg-danger/10 transition-colors border border-danger/20"
                                   >
                                     <IconTrash />
                                     Remove
@@ -707,7 +707,7 @@ export default function AdminManagementPage() {
                                   {admin.email || "No email"}
                                 </span>
                                 {isMe && (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-amber-500/15 text-amber-400 border border-amber-500/20 font-medium">
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-warning/15 text-warning border border-warning/20 font-medium">
                                     You
                                   </span>
                                 )}
@@ -743,7 +743,7 @@ export default function AdminManagementPage() {
                               {canRemove && (
                                 <button
                                   onClick={() => setRemoveTarget(admin)}
-                                  className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors border border-red-500/20"
+                                  className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-danger hover:text-danger hover:bg-danger/10 transition-colors border border-danger/20"
                                 >
                                   <IconTrash />
                                   Remove
@@ -787,14 +787,14 @@ export default function AdminManagementPage() {
               {/* User UUID */}
               <div>
                 <label className="block text-zinc-400 text-xs font-medium mb-1.5">
-                  User UUID <span className="text-red-400">*</span>
+                  User UUID <span className="text-danger">*</span>
                 </label>
                 <input
                   type="text"
                   placeholder="e.g. 550e8400-e29b-41d4-a716-446655440000"
                   value={formUserId}
                   onChange={(e) => setFormUserId(e.target.value)}
-                  className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors font-mono"
+                  className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors font-mono"
                 />
                 <p className="text-zinc-600 text-[10px] mt-1">
                   The Supabase Auth user ID (UUID format)
@@ -804,14 +804,14 @@ export default function AdminManagementPage() {
               {/* Email */}
               <div>
                 <label className="block text-zinc-400 text-xs font-medium mb-1.5">
-                  Email <span className="text-red-400">*</span>
+                  Email <span className="text-danger">*</span>
                 </label>
                 <input
                   type="email"
                   placeholder="user@example.com"
                   value={formEmail}
                   onChange={(e) => setFormEmail(e.target.value)}
-                  className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
+                  className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
                 />
               </div>
 
@@ -823,7 +823,7 @@ export default function AdminManagementPage() {
                 <select
                   value={formRole}
                   onChange={(e) => setFormRole(e.target.value)}
-                  className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors appearance-none"
+                  className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors appearance-none"
                   style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2'%3e%3cpath d='m6 9 6 6 6-6'/%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
                 >
                   <option value="admin">Admin</option>
@@ -836,7 +836,7 @@ export default function AdminManagementPage() {
                     <span className="text-zinc-500 text-[10px]">Admin — Full access</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-amber-400" />
+                    <span className="w-2 h-2 rounded-full bg-warning" />
                     <span className="text-zinc-500 text-[10px]">Super — Can manage admins</span>
                   </div>
                   <div className="flex items-center gap-1.5">
@@ -863,7 +863,7 @@ export default function AdminManagementPage() {
               <button
                 onClick={handleAddAdmin}
                 disabled={adding}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-400 disabled:bg-amber-500/50 text-black font-medium text-sm rounded-lg transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-warning hover:bg-warning disabled:bg-warning/50 text-black font-medium text-sm rounded-lg transition-colors"
               >
                 {adding ? (
                   <>
@@ -887,8 +887,8 @@ export default function AdminManagementPage() {
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-sm shadow-2xl">
             <div className="p-6 text-center">
-              <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-400">
+              <div className="w-12 h-12 rounded-full bg-danger/10 flex items-center justify-center mx-auto mb-4">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger">
                   <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
                 </svg>
               </div>
@@ -910,7 +910,7 @@ export default function AdminManagementPage() {
               <button
                 onClick={handleRemoveAdmin}
                 disabled={removing}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-400 disabled:bg-red-500/50 text-white font-medium text-sm rounded-lg transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-danger hover:bg-danger disabled:bg-danger/50 text-white font-medium text-sm rounded-lg transition-colors"
               >
                 {removing ? (
                   <>
@@ -938,8 +938,8 @@ export default function AdminManagementPage() {
               toast.type === "success"
                 ? "bg-success/15 text-success border border-success/20"
                 : toast.type === "error"
-                ? "bg-red-500/15 text-red-400 border border-red-500/20"
-                : "bg-amber-500/15 text-amber-400 border border-amber-500/20"
+                ? "bg-danger/15 text-danger border border-danger/20"
+                : "bg-warning/15 text-warning border border-warning/20"
             }`}
           >
             {toast.type === "success" && <IconCheck />}

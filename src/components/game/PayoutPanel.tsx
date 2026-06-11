@@ -125,11 +125,11 @@ export function PayoutPanel() {
         <CardContent className="p-4 relative">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wider">Current Balance</p>
+              <p className="text-xs text-muted-label uppercase tracking-wider">Current Balance</p>
               <p className="text-3xl font-bold text-success font-mono mt-1">
                 ${formatNumber(money)}
               </p>
-              <p className="text-[10px] text-gray-600 mt-1">
+              <p className="text-[10px] text-muted-label mt-1">
                 Total earned: ${formatNumber(totalMoneyEarned)}
               </p>
             </div>
@@ -157,12 +157,12 @@ export function PayoutPanel() {
                 <span className="text-2xl font-bold text-cyan-300 font-mono">
                   {ticksUntilPayout}t
                 </span>
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-muted-label">
                   ~{secondsUntilPayout}s
                 </span>
               </div>
-              <Progress value={payoutProgress} className="h-2 bg-gray-800 [&>div]:bg-cyan-500" />
-              <div className="flex items-center justify-between text-[10px] text-gray-500">
+              <Progress value={payoutProgress} className="h-2 bg-muted-label [&>div]:bg-cyan-500" />
+              <div className="flex items-center justify-between text-[10px] text-muted-label">
                 <span>Every {payoutConfig.basePayoutInterval} ticks</span>
                 <span>{Math.round(payoutProgress)}%</span>
               </div>
@@ -193,20 +193,20 @@ export function PayoutPanel() {
                   </Button>
                 )}
                 {payoutConfig.autoCollect && (
-                  <Badge variant="outline" className="text-[10px] border-green-500/40 text-success bg-success/20">
+                  <Badge variant="outline" className="text-[10px] border-success/40 text-success bg-success/20">
                     AUTO
                   </Badge>
                 )}
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">Auto-collect</span>
+                <span className="text-xs text-muted-label">Auto-collect</span>
                 <Switch
                   checked={payoutConfig.autoCollect}
                   onCheckedChange={toggleAutoCollect}
                   className="data-[state=checked]:bg-success"
                 />
               </div>
-              <p className="text-[10px] text-gray-600">
+              <p className="text-[10px] text-muted-label">
                 {payoutConfig.autoCollect
                   ? 'Payouts are automatically added to your balance'
                   : 'Payouts accumulate until you manually collect them'}
@@ -229,14 +229,14 @@ export function PayoutPanel() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-md bg-amber-900/20 flex items-center justify-center">
-                  <Pickaxe className="w-4 h-4 text-amber-400" />
+                  <Pickaxe className="w-4 h-4 text-warning" />
                 </div>
                 <div>
-                  <p className="text-xs text-amber-300">Extractors</p>
-                  <p className="text-[10px] text-gray-500">{extractors.length} active • ${extractorRate}/cycle each</p>
+                  <p className="text-xs text-warning">Extractors</p>
+                  <p className="text-[10px] text-muted-label">{extractors.length} active • ${extractorRate}/cycle each</p>
                 </div>
               </div>
-              <span className="text-sm font-mono text-amber-400">${formatNumber(extractorIncome)}</span>
+              <span className="text-sm font-mono text-warning">${formatNumber(extractorIncome)}</span>
             </div>
 
             {/* Factory Income */}
@@ -247,7 +247,7 @@ export function PayoutPanel() {
                 </div>
                 <div>
                   <p className="text-xs text-orange-300">Factories</p>
-                  <p className="text-[10px] text-gray-500">{factories.length} active • ${factoryRate}/cycle each</p>
+                  <p className="text-[10px] text-muted-label">{factories.length} active • ${factoryRate}/cycle each</p>
                 </div>
               </div>
               <span className="text-sm font-mono text-orange-400">${formatNumber(factoryIncome)}</span>
@@ -257,29 +257,29 @@ export function PayoutPanel() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-md bg-yellow-900/20 flex items-center justify-center">
-                  <Zap className="w-4 h-4 text-yellow-400" />
+                  <Zap className="w-4 h-4 text-warning" />
                 </div>
                 <div>
-                  <p className="text-xs text-yellow-300">Power Plants</p>
-                  <p className="text-[10px] text-gray-500">{powerPlants.length} active • ${powerRate}/cycle each</p>
+                  <p className="text-xs text-warning">Power Plants</p>
+                  <p className="text-[10px] text-muted-label">{powerPlants.length} active • ${powerRate}/cycle each</p>
                 </div>
               </div>
-              <span className="text-sm font-mono text-yellow-400">${formatNumber(powerIncome)}</span>
+              <span className="text-sm font-mono text-warning">${formatNumber(powerIncome)}</span>
             </div>
 
             {/* Separator */}
             <div className="border-t border-cyan-900/20 pt-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-400">Raw Income / Cycle</span>
+                <span className="text-xs text-subtle">Raw Income / Cycle</span>
                 <span className="text-sm font-mono text-cyan-300">${formatNumber(totalRawIncome)}</span>
               </div>
               <div className="flex items-center justify-between mt-1">
-                <span className="text-xs text-gray-400">Speed Multiplier</span>
+                <span className="text-xs text-subtle">Speed Multiplier</span>
                 <span className="text-xs font-mono text-cyan-400">×{effectiveSpeed.toFixed(1)}</span>
               </div>
               <div className="flex items-center justify-between mt-1">
-                <span className="text-xs text-gray-400">Avg Efficiency</span>
-                <span className={`text-xs font-mono ${avgEfficiency >= 0.8 ? 'text-success' : avgEfficiency >= 0.5 ? 'text-yellow-400' : 'text-red-400'}`}>
+                <span className="text-xs text-subtle">Avg Efficiency</span>
+                <span className={`text-xs font-mono ${avgEfficiency >= 0.8 ? 'text-success' : avgEfficiency >= 0.5 ? 'text-warning' : 'text-danger'}`}>
                   {(avgEfficiency * 100).toFixed(1)}%
                 </span>
               </div>
@@ -288,21 +288,21 @@ export function PayoutPanel() {
                 <span className="text-base font-mono font-bold text-success">${formatNumber(estimatedPayout)}</span>
               </div>
               <div className="flex items-center justify-between mt-1">
-                <span className="text-[10px] text-gray-500">Est. Income / Min</span>
-                <span className="text-xs font-mono text-gray-400">${formatNumber(incomePerMinute)}/min</span>
+                <span className="text-[10px] text-muted-label">Est. Income / Min</span>
+                <span className="text-xs font-mono text-subtle">${formatNumber(incomePerMinute)}/min</span>
               </div>
             </div>
 
             {/* Efficiency bar */}
             <div className="mt-2">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] text-gray-500">Efficiency Modifier</span>
-                <span className="text-[10px] text-gray-400">{(avgEfficiency * 100).toFixed(0)}%</span>
+                <span className="text-[10px] text-muted-label">Efficiency Modifier</span>
+                <span className="text-[10px] text-subtle">{(avgEfficiency * 100).toFixed(0)}%</span>
               </div>
-              <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
+              <div className="w-full h-1.5 bg-muted-label rounded-full overflow-hidden">
                 <div
                   className={`h-full transition-all duration-300 ${
-                    avgEfficiency >= 0.8 ? 'bg-success' : avgEfficiency >= 0.5 ? 'bg-yellow-500' : 'bg-red-500'
+                    avgEfficiency >= 0.8 ? 'bg-success' : avgEfficiency >= 0.5 ? 'bg-warning' : 'bg-danger'
                   }`}
                   style={{ width: `${avgEfficiency * 100}%` }}
                 />
@@ -316,19 +316,19 @@ export function PayoutPanel() {
       <div className="grid grid-cols-3 gap-3">
         <Card className="bg-card border-cyan-900/30">
           <CardContent className="p-3 text-center">
-            <p className="text-[10px] text-gray-500 uppercase">Total Payouts</p>
+            <p className="text-[10px] text-muted-label uppercase">Total Payouts</p>
             <p className="text-lg font-bold text-cyan-400 font-mono">{payoutConfig.totalPayoutsReceived}</p>
           </CardContent>
         </Card>
         <Card className="bg-card border-cyan-900/30">
           <CardContent className="p-3 text-center">
-            <p className="text-[10px] text-gray-500 uppercase">Active Buildings</p>
+            <p className="text-[10px] text-muted-label uppercase">Active Buildings</p>
             <p className="text-lg font-bold text-cyan-400 font-mono">{activeBuildings.length}</p>
           </CardContent>
         </Card>
         <Card className="bg-card border-cyan-900/30">
           <CardContent className="p-3 text-center">
-            <p className="text-[10px] text-gray-500 uppercase">Income/Min</p>
+            <p className="text-[10px] text-muted-label uppercase">Income/Min</p>
             <p className="text-lg font-bold text-success font-mono">${formatNumber(incomePerMinute)}</p>
           </CardContent>
         </Card>
@@ -346,9 +346,9 @@ export function PayoutPanel() {
               <Clock className="w-3.5 h-3.5" /> Payout History
             </CardTitle>
             {historyExpanded ? (
-              <ChevronUp className="w-3.5 h-3.5 text-gray-500" />
+              <ChevronUp className="w-3.5 h-3.5 text-muted-label" />
             ) : (
-              <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
+              <ChevronDown className="w-3.5 h-3.5 text-muted-label" />
             )}
           </button>
         </CardHeader>
@@ -356,22 +356,22 @@ export function PayoutPanel() {
           <div className="overflow-hidden">
           <CardContent className="px-4 pb-4">
             {payoutHistory.length === 0 ? (
-              <p className="text-xs text-gray-600 text-center py-3">No payouts yet. Build buildings to start earning!</p>
+              <p className="text-xs text-muted-label text-center py-3">No payouts yet. Build buildings to start earning!</p>
             ) : (
               <div className="space-y-2 max-h-64 overflow-y-auto game-scrollbar">
                 {[...payoutHistory].reverse().map((record, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center justify-between py-1.5 px-2 rounded-md bg-gray-900/30 border border-gray-800/30"
+                    className="flex items-center justify-between py-1.5 px-2 rounded-md bg-muted-label/30 border border-muted-label/30"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-gray-600">Tick {record.tick}</span>
-                      <Badge variant="outline" className="text-[9px] border-gray-700 text-gray-400 h-4 px-1">
+                      <span className="text-[10px] text-muted-label">Tick {record.tick}</span>
+                      <Badge variant="outline" className="text-[9px] border-muted-label text-subtle h-4 px-1">
                         {record.buildingCount} buildings
                       </Badge>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-gray-500">{(record.efficiency * 100).toFixed(0)}% eff</span>
+                      <span className="text-[10px] text-muted-label">{(record.efficiency * 100).toFixed(0)}% eff</span>
                       <span className="text-xs font-mono text-success">+${formatNumber(record.amount)}</span>
                     </div>
                   </div>
@@ -395,9 +395,9 @@ export function PayoutPanel() {
               <Info className="w-3.5 h-3.5" /> Income Tips
             </CardTitle>
             {tipsExpanded ? (
-              <ChevronUp className="w-3.5 h-3.5 text-gray-500" />
+              <ChevronUp className="w-3.5 h-3.5 text-muted-label" />
             ) : (
-              <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
+              <ChevronDown className="w-3.5 h-3.5 text-muted-label" />
             )}
           </button>
         </CardHeader>
@@ -406,7 +406,7 @@ export function PayoutPanel() {
           <CardContent className="px-4 pb-4">
             <div className="space-y-2">
               {tips.map((tip, idx) => (
-                <div key={idx} className="text-xs text-gray-400 py-1 px-2 rounded bg-gray-900/20 border border-gray-800/20">
+                <div key={idx} className="text-xs text-subtle py-1 px-2 rounded bg-muted-label/20 border border-muted-label/20">
                   {tip}
                 </div>
               ))}
@@ -419,8 +419,8 @@ export function PayoutPanel() {
       {/* How Payouts Work */}
       <Card className="bg-card border-cyan-900/30">
         <CardContent className="p-4">
-          <p className="text-[10px] text-gray-600 leading-relaxed">
-            <GameIcon icon="gi:light-bulb" size={14} className="inline" /> <span className="text-gray-500">How Payouts Work:</span> Every {payoutConfig.basePayoutInterval} ticks, 
+          <p className="text-[10px] text-muted-label leading-relaxed">
+            <GameIcon icon="gi:light-bulb" size={14} className="inline" /> <span className="text-muted-label">How Payouts Work:</span> Every {payoutConfig.basePayoutInterval} ticks, 
             your factory generates a payout based on active buildings. Extractors earn ${extractorRate}/cycle, 
             Factories earn ${factoryRate}/cycle, and Power Plants earn ${powerRate}/cycle per building (scaled by level and efficiency). 
             The total is modified by game speed, average building efficiency, prestige bonuses, and active events.

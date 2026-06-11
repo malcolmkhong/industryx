@@ -46,8 +46,8 @@ export default function DailyRewardsPanel() {
   const getStreakColor = () => {
     if (loginStreak.currentStreak >= 7) return 'text-fuchsia-400';
     if (loginStreak.currentStreak >= 5) return 'text-orange-400';
-    if (loginStreak.currentStreak >= 3) return 'text-yellow-400';
-    return 'text-gray-400';
+    if (loginStreak.currentStreak >= 3) return 'text-warning';
+    return 'text-subtle';
   };
 
   const nextDayLogin = loginStreak.currentStreak + 1;
@@ -64,7 +64,7 @@ export default function DailyRewardsPanel() {
         </div>
         <div>
           <h2 className="text-xl font-bold text-pink-400 tracking-wider neon-glow-cyan">DAILY REWARDS</h2>
-          <p className="text-xs text-gray-500">Log in daily for streak bonuses!</p>
+          <p className="text-xs text-muted-label">Log in daily for streak bonuses!</p>
         </div>
       </div>
 
@@ -79,7 +79,7 @@ export default function DailyRewardsPanel() {
               <span className={`text-2xl font-bold ${getStreakColor()}`}>
                 {loginStreak.currentStreak}
               </span>
-              <span className="text-gray-400 text-sm">Day Streak!</span>
+              <span className="text-subtle text-sm">Day Streak!</span>
             </div>
             <div className="flex items-center gap-2 mt-0.5">
               <TrendingUp className="w-3 h-3 text-pink-400" />
@@ -91,18 +91,18 @@ export default function DailyRewardsPanel() {
         </div>
         <div className="flex items-center gap-4 sm:ml-auto">
           <div className="text-center px-3">
-            <div className="text-xs text-gray-500">Longest</div>
-            <div className="text-sm font-bold text-amber-400">{loginStreak.longestStreak} <GameIcon icon="gi:flame" size={14} className="inline" /></div>
+            <div className="text-xs text-muted-label">Longest</div>
+            <div className="text-sm font-bold text-warning">{loginStreak.longestStreak} <GameIcon icon="gi:flame" size={14} className="inline" /></div>
           </div>
-          <div className="w-px h-8 bg-gray-800" />
+          <div className="w-px h-8 bg-muted-label" />
           <div className="text-center px-3">
-            <div className="text-xs text-gray-500">Total Logins</div>
-            <div className="text-sm font-bold text-gray-300">{loginStreak.totalLogins}</div>
+            <div className="text-xs text-muted-label">Total Logins</div>
+            <div className="text-sm font-bold text-subtle">{loginStreak.totalLogins}</div>
           </div>
-          <div className="w-px h-8 bg-gray-800" />
+          <div className="w-px h-8 bg-muted-label" />
           <div className="text-center px-3">
-            <div className="text-xs text-gray-500">Multiplier</div>
-            <div className={`text-sm font-bold ${multiplier > 1 ? 'text-pink-400' : 'text-gray-400'}`}>
+            <div className="text-xs text-muted-label">Multiplier</div>
+            <div className={`text-sm font-bold ${multiplier > 1 ? 'text-pink-400' : 'text-subtle'}`}>
               {multiplier}x
             </div>
           </div>
@@ -112,7 +112,7 @@ export default function DailyRewardsPanel() {
       {/* Streak Progress Bar */}
       <div className="bg-card border border-pink-900/20 rounded-lg p-3">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-gray-400">Weekly Progress</span>
+          <span className="text-xs text-subtle">Weekly Progress</span>
           <span className="text-xs text-pink-400">Day {currentDay} of 7</span>
         </div>
         <div className="flex gap-1">
@@ -126,7 +126,7 @@ export default function DailyRewardsPanel() {
                 className={`flex-1 h-2 rounded-full transition-all ${
                   isCompleted ? 'bg-pink-500' :
                   isCurrent ? `bg-pink-400/60${prefersReducedMotion ? '' : ' animate-pulse'}` :
-                  'bg-gray-800'
+                  'bg-muted-label'
                 }`}
               />
             );
@@ -134,7 +134,7 @@ export default function DailyRewardsPanel() {
         </div>
         <div className="flex gap-1 mt-1">
           {Array.from({ length: 7 }, (_, i) => (
-            <div key={i} className="flex-1 text-center text-[9px] text-gray-400">
+            <div key={i} className="flex-1 text-center text-[9px] text-subtle">
               {i + 1}
             </div>
           ))}
@@ -156,18 +156,18 @@ export default function DailyRewardsPanel() {
               className={`
                 relative rounded-xl p-3
                 ${isJackpot && !isClaimed
-                  ? 'bg-gradient-to-br from-amber-900/40 via-yellow-900/30 to-amber-900/40 border-2 border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.2)]'
+                  ? 'bg-gradient-to-br from-amber-900/40 via-yellow-900/30 to-amber-900/40 border-2 border-warning/50 shadow-[0_0_20px_rgba(245,158,11,0.2)]'
                   : isToday && !isClaimed
                     ? 'bg-card border-2 border-pink-500/60 shadow-[0_0_16px_rgba(236,72,153,0.25)]'
                     : isClaimed
                       ? 'bg-[#0a0e17] border border-success/30 opacity-60'
-                      : 'bg-card border border-gray-800'
+                      : 'bg-card border border-muted-label'
                 }
               `}
             >
               {/* Day Number */}
               <div className="flex items-center justify-between mb-2">
-                <span className={`text-[10px] font-bold ${isJackpot ? 'text-amber-400' : isToday ? 'text-pink-400' : 'text-gray-500'}`}>
+                <span className={`text-[10px] font-bold ${isJackpot ? 'text-warning' : isToday ? 'text-pink-400' : 'text-muted-label'}`}>
                   DAY {reward.day}
                 </span>
                 {isClaimed && (
@@ -181,7 +181,7 @@ export default function DailyRewardsPanel() {
                   </Badge>
                 )}
                 {isJackpot && !isClaimed && (
-                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <Sparkles className="w-4 h-4 text-warning" />
                 )}
               </div>
 
@@ -195,10 +195,10 @@ export default function DailyRewardsPanel() {
               {/* Reward Description */}
               <div className={`text-center text-xs font-medium mb-2 ${
                 isClaimed ? 'text-success/60 line-through' :
-                isJackpot ? 'text-amber-300' :
+                isJackpot ? 'text-warning' :
                 isToday ? 'text-pink-300' :
-                isFuture ? 'text-gray-600' :
-                'text-gray-400'
+                isFuture ? 'text-muted-label' :
+                'text-subtle'
               }`}>
                 {isFuture ? '???' : getRewardDescription(reward)}
               </div>
@@ -206,7 +206,7 @@ export default function DailyRewardsPanel() {
               {/* JACKPOT label */}
               {isJackpot && (
                 <div className="text-center mb-2">
-                  <span className="text-[9px] font-bold text-amber-400 tracking-wider bg-amber-900/30 px-2 py-0.5 rounded">
+                  <span className="text-[9px] font-bold text-warning tracking-wider bg-amber-900/30 px-2 py-0.5 rounded">
                     <GameIcon icon="gi:sparkles" size={16} className="inline" /> JACKPOT <GameIcon icon="gi:sparkles" size={16} className="inline" />
                   </span>
                 </div>
@@ -228,11 +228,11 @@ export default function DailyRewardsPanel() {
               )}
               {isFuture && (
                 <div className="w-full h-8 flex items-center justify-center">
-                  <Lock className="w-3 h-3 text-gray-700" />
+                  <Lock className="w-3 h-3 text-dim" />
                 </div>
               )}
               {isPast && !isClaimed && !isToday && (
-                <div className="w-full h-8 flex items-center justify-center text-[10px] text-gray-600">
+                <div className="w-full h-8 flex items-center justify-center text-[10px] text-muted-label">
                   Missed
                 </div>
               )}
@@ -243,10 +243,10 @@ export default function DailyRewardsPanel() {
 
       {/* No rewards generated yet */}
       {loginStreak.weeklyRewards.length === 0 && (
-        <div className="bg-card border border-gray-800 rounded-xl p-8 text-center">
-          <Calendar className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-          <p className="text-gray-400 text-sm">Start your streak by logging in tomorrow!</p>
-          <p className="text-gray-600 text-xs mt-1">Daily rewards will appear here.</p>
+        <div className="bg-card border border-muted-label rounded-xl p-8 text-center">
+          <Calendar className="w-12 h-12 text-muted-label mx-auto mb-3" />
+          <p className="text-subtle text-sm">Start your streak by logging in tomorrow!</p>
+          <p className="text-muted-label text-xs mt-1">Daily rewards will appear here.</p>
         </div>
       )}
 
@@ -257,23 +257,23 @@ export default function DailyRewardsPanel() {
           Streak Bonuses
         </h3>
         <div className="grid grid-cols-3 gap-3">
-          <div className={`rounded-lg p-3 text-center border ${loginStreak.currentStreak >= 3 ? 'border-yellow-600/40 bg-yellow-900/10' : 'border-gray-800'}`}>
-            <div className="text-lg font-bold text-yellow-400">1.5x</div>
-            <div className="text-[10px] text-gray-400 mt-0.5">3+ Days</div>
+          <div className={`rounded-lg p-3 text-center border ${loginStreak.currentStreak >= 3 ? 'border-yellow-600/40 bg-yellow-900/10' : 'border-muted-label'}`}>
+            <div className="text-lg font-bold text-warning">1.5x</div>
+            <div className="text-[10px] text-subtle mt-0.5">3+ Days</div>
             {loginStreak.currentStreak >= 3 && (
-              <div className="text-[9px] text-yellow-500 mt-1">✓ Active</div>
+              <div className="text-[9px] text-warning mt-1">✓ Active</div>
             )}
           </div>
-          <div className={`rounded-lg p-3 text-center border ${loginStreak.currentStreak >= 5 ? 'border-orange-600/40 bg-orange-900/10' : 'border-gray-800'}`}>
+          <div className={`rounded-lg p-3 text-center border ${loginStreak.currentStreak >= 5 ? 'border-orange-600/40 bg-orange-900/10' : 'border-muted-label'}`}>
             <div className="text-lg font-bold text-orange-400">2x</div>
-            <div className="text-[10px] text-gray-400 mt-0.5">5+ Days</div>
+            <div className="text-[10px] text-subtle mt-0.5">5+ Days</div>
             {loginStreak.currentStreak >= 5 && (
               <div className="text-[9px] text-orange-500 mt-1">✓ Active</div>
             )}
           </div>
-          <div className={`rounded-lg p-3 text-center border ${loginStreak.currentStreak >= 7 ? 'border-fuchsia-600/40 bg-fuchsia-900/10' : 'border-gray-800'}`}>
+          <div className={`rounded-lg p-3 text-center border ${loginStreak.currentStreak >= 7 ? 'border-fuchsia-600/40 bg-fuchsia-900/10' : 'border-muted-label'}`}>
             <div className="text-lg font-bold text-fuchsia-400">3x</div>
-            <div className="text-[10px] text-gray-400 mt-0.5">7+ Days</div>
+            <div className="text-[10px] text-subtle mt-0.5">7+ Days</div>
             {loginStreak.currentStreak >= 7 && (
               <div className="text-[9px] text-fuchsia-500 mt-1">✓ Active</div>
             )}
@@ -283,10 +283,10 @@ export default function DailyRewardsPanel() {
 
       {/* Come Back Message */}
       <div className="bg-card border border-cyan-900/20 rounded-xl p-4 text-center">
-        <p className="text-sm text-gray-400">
+        <p className="text-sm text-subtle">
           <GameIcon icon="gi:present" size={14} className="inline" /> Come back tomorrow for <span className="text-pink-400 font-medium">Day {nextDayOfWeek}</span> reward!
         </p>
-        <p className="text-xs text-gray-600 mt-1">
+        <p className="text-xs text-muted-label mt-1">
           {nextRewardDesc}
           {loginStreak.currentStreak >= 2 && ` • Keep your ${loginStreak.currentStreak}-day streak alive!`}
         </p>

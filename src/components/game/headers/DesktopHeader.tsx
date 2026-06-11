@@ -97,7 +97,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
             </div>
             <div>
               <h1 className="text-sm font-bold text-cyan-400 neon-glow-cyan tracking-wider">INDUSTRIAX</h1>
-              <p className="text-[10px] text-gray-500 -mt-0.5">Factory Dominion</p>
+              <p className="text-[10px] text-muted-label -mt-0.5">Factory Dominion</p>
             </div>
           </div>
           <div className="stat-badge-separator" />
@@ -105,7 +105,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className={`stat-badge stat-badge-money bg-card rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default ${moneyGlow ? 'money-glow' : ''}`}>
-                  <span className="text-gray-500 inline-flex items-center gap-1"><GameIcon ui="money" size={14} /></span>
+                  <span className="text-muted-label inline-flex items-center gap-1"><GameIcon ui="money" size={14} /></span>
                   <span className="text-success font-mono font-bold text-sm">${formatNumber(money)}</span>
                   {pendingPayout > 0 && !payoutConfig.autoCollect && (
                     <button
@@ -124,33 +124,33 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
                 </div>
                 <div className="px-3 py-2 space-y-1.5">
                   <div className="flex justify-between text-xs">
-                    <span className="text-gray-400">Current Balance</span>
+                    <span className="text-subtle">Current Balance</span>
                     <span className="text-success font-mono font-bold">${formatNumber(money)}</span>
                   </div>
                   {pendingPayout > 0 && (
                     <div className="flex justify-between text-xs">
-                      <span className="text-gray-400">Pending Payout</span>
-                      <span className="text-yellow-400 font-mono">${formatNumber(pendingPayout)}</span>
+                      <span className="text-subtle">Pending Payout</span>
+                      <span className="text-warning font-mono">${formatNumber(pendingPayout)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-xs">
-                    <span className="text-gray-400">Income/min</span>
+                    <span className="text-subtle">Income/min</span>
                     <span className="text-cyan-400 font-mono">~${formatNumber(incomePerMinute)}</span>
                   </div>
                   <div className="flex justify-between text-xs">
-                    <span className="text-gray-400">Total Earned</span>
+                    <span className="text-subtle">Total Earned</span>
                     <span className="text-success font-mono">${formatNumber(totalMoneyEarned)}</span>
                   </div>
                 </div>
               </TooltipContent>
             </Tooltip>
             <div className={`stat-badge stat-badge-power bg-card rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default ${powerGrid.overload ? 'warning-pulse' : ''}`}>
-              <span className="text-gray-500 inline-flex items-center gap-1"><GameIcon ui="power" size={14} /></span>
-              <span className={`text-sm ${powerPercent >= 80 ? 'text-yellow-400' : powerPercent >= 50 ? 'text-orange-400' : 'text-red-400'}`}>
+              <span className="text-muted-label inline-flex items-center gap-1"><GameIcon ui="power" size={14} /></span>
+              <span className={`text-sm ${powerPercent >= 80 ? 'text-warning' : powerPercent >= 50 ? 'text-orange-400' : 'text-danger'}`}>
                 {formatNumber(powerGrid.totalProduction)}MW
               </span>
-              <span className="text-gray-600"> / </span>
-              <span className="text-gray-400 text-sm">{formatNumber(powerGrid.totalConsumption)}MW</span>
+              <span className="text-muted-label"> / </span>
+              <span className="text-subtle text-sm">{formatNumber(powerGrid.totalConsumption)}MW</span>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span
@@ -158,8 +158,8 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
                       factoryEfficiency >= 0.8
                         ? 'bg-success shadow-[0_0_6px_rgba(74,222,128,0.6)]'
                         : factoryEfficiency >= 0.5
-                          ? 'bg-yellow-400 shadow-[0_0_6px_rgba(250,204,21,0.6)]'
-                          : 'bg-red-400 shadow-[0_0_6px_rgba(248,113,113,0.6)]'
+                          ? 'bg-warning shadow-[0_0_6px_rgba(250,204,21,0.6)]'
+                          : 'bg-danger shadow-[0_0_6px_rgba(248,113,113,0.6)]'
                     } ${buildings.filter(b => b.active).length > 0 ? 'animate-pulse' : ''}`}
                   />
                 </TooltipTrigger>
@@ -167,7 +167,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
                   <p className="text-xs font-semibold mb-1" style={{ color: factoryEfficiency >= 0.8 ? '#4ade80' : factoryEfficiency >= 0.5 ? '#facc15' : '#f87171' }}>
                     Factory Efficiency: {(factoryEfficiency * 100).toFixed(0)}%
                   </p>
-                  <p className="text-[10px] text-gray-400">
+                  <p className="text-[10px] text-subtle">
                     {factoryEfficiency >= 0.8 ? 'Running smoothly!' : factoryEfficiency >= 0.5 ? 'Some buildings need attention' : 'Critical: Check power & buildings'}
                   </p>
                 </TooltipContent>
@@ -175,11 +175,11 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
             </div>
             <div className="stat-badge-separator" />
             <div className="stat-badge stat-badge-rp bg-card rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default">
-              <span className="text-gray-500 inline-flex items-center gap-1"><GameIcon ui="researchPoints" size={14} /></span>
+              <span className="text-muted-label inline-flex items-center gap-1"><GameIcon ui="researchPoints" size={14} /></span>
               <span className="text-purple-400 font-mono text-sm">{formatNumber(researchPoints)} RP</span>
             </div>
             <div className="stat-badge stat-badge-cp bg-card rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default">
-              <span className="text-gray-500 inline-flex items-center gap-1"><GameIcon ui="corporationPoints" size={14} /></span>
+              <span className="text-muted-label inline-flex items-center gap-1"><GameIcon ui="corporationPoints" size={14} /></span>
               <span className="text-fuchsia-400 font-mono text-sm">{prestigeState.corporationPoints} CP</span>
             </div>
           </div>
@@ -187,10 +187,10 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
 
         {/* Right controls */}
         <div className="flex items-center gap-2">
-          <div className="w-24 h-2 bg-gray-800 rounded-full overflow-hidden">
+          <div className="w-24 h-2 bg-muted-label rounded-full overflow-hidden">
             <div
               className={`h-full transition-all duration-500 ${
-                powerPercent >= 80 ? 'bg-success' : powerPercent >= 50 ? 'bg-yellow-500' : 'bg-red-500'
+                powerPercent >= 80 ? 'bg-success' : powerPercent >= 50 ? 'bg-warning' : 'bg-danger'
               }`}
               style={{ width: `${powerPercent}%` }}
             />
@@ -204,14 +204,14 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
               onClick={togglePause}
               aria-label={paused ? "Resume game" : "Pause game"}
             >
-              {paused ? <Play className="w-3 h-3 text-success" /> : <Pause className="w-3 h-3 text-yellow-400" />}
+              {paused ? <Play className="w-3 h-3 text-success" /> : <Pause className="w-3 h-3 text-warning" />}
             </Button>
             {SPEED_OPTIONS.map(speed => (
               <Button
                 key={speed}
                 variant="ghost"
                 size="sm"
-                className={`h-7 px-2 text-xs ${gameSpeed === speed ? 'text-cyan-400 bg-cyan-900/20' : 'text-gray-500'}`}
+                className={`h-7 px-2 text-xs ${gameSpeed === speed ? 'text-cyan-400 bg-cyan-900/20' : 'text-muted-label'}`}
                 onClick={() => setGameSpeed(speed)}
               >
                 {speed}x
@@ -219,17 +219,17 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
             ))}
           </div>
 
-          <div className="text-[10px] text-gray-500 font-mono">
+          <div className="text-[10px] text-muted-label font-mono">
             Tick: {formatNumber(gameTick)}
           </div>
 
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="sm" className="h-7 w-7 p-0 relative" aria-label="Notifications" onClick={() => onTabChange('notifications')}>
-                <Bell className="w-3.5 h-3.5 text-gray-400" />
+                <Bell className="w-3.5 h-3.5 text-subtle" />
                 {unreadNotifications > 0 && (
                   <span className={`absolute -top-0.5 -right-0.5 h-4 rounded-full text-[8px] text-white flex items-center justify-center px-1 ${
-                    notifications[0]?.type === 'error' ? 'bg-red-500' :
+                    notifications[0]?.type === 'error' ? 'bg-danger' :
                     notifications[0]?.type === 'warning' ? 'bg-orange-500' :
                     'bg-cyan-500'
                   }`}>
@@ -240,20 +240,20 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
             </TooltipTrigger>
             <TooltipContent side="bottom" className="w-80 max-h-60 overflow-y-auto game-scrollbar bg-card border-cyan-900/30">
               {notifications.length === 0 ? (
-                <p className="text-xs text-gray-500">No notifications</p>
+                <p className="text-xs text-muted-label">No notifications</p>
               ) : (
                 <>
-                  <div className="flex items-center gap-2 mb-2 pb-1.5 border-b border-gray-800">
-                    <Bell className="w-3 h-3 text-gray-400" />
-                    <span className="text-[10px] font-semibold text-gray-300">
+                  <div className="flex items-center gap-2 mb-2 pb-1.5 border-b border-muted-label">
+                    <Bell className="w-3 h-3 text-subtle" />
+                    <span className="text-[10px] font-semibold text-subtle">
                       {unreadNotifications > 0 ? `${unreadNotifications} New ${notifications[0]?.type === 'error' ? 'Alert' : notifications[0]?.type === 'warning' ? 'Warning' : 'Event'}${unreadNotifications > 1 ? 's' : ''}` : 'No New Notifications'}
                     </span>
                   </div>
                   {notifications.slice(0, 10).map(n => (
-                    <div key={n.id} className={`text-xs py-1 border-b border-gray-800 last:border-0 ${
+                    <div key={n.id} className={`text-xs py-1 border-b border-muted-label last:border-0 ${
                       n.type === 'success' ? 'text-success' :
-                      n.type === 'warning' ? 'text-yellow-400' :
-                      n.type === 'error' ? 'text-red-400' : 'text-gray-400'
+                      n.type === 'warning' ? 'text-warning' :
+                      n.type === 'error' ? 'text-danger' : 'text-subtle'
                     }`}>
                       {n.message}
                     </div>
@@ -274,8 +274,8 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="bg-card border-cyan-900/30">
                     <p className="text-xs font-medium text-orange-300">{e.name}</p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">{e.description}</p>
-                    <p className="text-[10px] text-gray-500 mt-1">Remaining: {e.remaining} ticks</p>
+                    <p className="text-[10px] text-subtle mt-0.5">{e.description}</p>
+                    <p className="text-[10px] text-muted-label mt-1">Remaining: {e.remaining} ticks</p>
                   </TooltipContent>
                 </Tooltip>
               ))}
@@ -286,7 +286,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
             <TooltipTrigger asChild>
               <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${
                 weather.current === 'clear'
-                  ? 'border-gray-700 text-gray-500 bg-gray-900/20'
+                  ? 'border-muted-label text-muted-label bg-muted-label/20'
                   : 'border-sky-500/50 text-sky-400 bg-sky-900/20'
               }`}>
                 <GameIcon icon={WEATHER_DEFS[weather.current]?.icon} size={12} className="inline-flex" /> {WEATHER_DEFS[weather.current]?.name}
@@ -294,21 +294,21 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
             </TooltipTrigger>
             <TooltipContent side="bottom" className="bg-card border-cyan-900/30">
               <p className="text-xs font-medium text-sky-300">{WEATHER_DEFS[weather.current]?.name}</p>
-              <p className="text-[10px] text-gray-400 mt-0.5">{WEATHER_DEFS[weather.current]?.description}</p>
-              {weather.remaining > 0 && <p className="text-[10px] text-gray-500 mt-1">Remaining: {weather.remaining} ticks</p>}
-              {weather.current === 'clear' && <p className="text-[10px] text-gray-500 mt-1">Weather changes over time and affects production</p>}
+              <p className="text-[10px] text-subtle mt-0.5">{WEATHER_DEFS[weather.current]?.description}</p>
+              {weather.remaining > 0 && <p className="text-[10px] text-muted-label mt-1">Remaining: {weather.remaining} ticks</p>}
+              {weather.current === 'clear' && <p className="text-[10px] text-muted-label mt-1">Weather changes over time and affects production</p>}
             </TooltipContent>
           </Tooltip>
 
           {/* Auto-save indicator */}
           <div className={`flex items-center gap-1 text-[10px] transition-opacity duration-500 ${showSavedFlash ? 'opacity-100' : 'opacity-40'}`}>
-            <Check className={`w-3 h-3 transition-colors duration-300 ${showSavedFlash ? 'text-success' : 'text-gray-600'}`} />
-            <span className={showSavedFlash ? 'text-success' : 'text-gray-600'}>Saved</span>
+            <Check className={`w-3 h-3 transition-colors duration-300 ${showSavedFlash ? 'text-success' : 'text-muted-label'}`} />
+            <span className={showSavedFlash ? 'text-success' : 'text-muted-label'}>Saved</span>
           </div>
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-gray-500 hover:text-cyan-400" onClick={onExport} aria-label="Export save">
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-label hover:text-cyan-400" onClick={onExport} aria-label="Export save">
                 <Download className="w-3 h-3" />
               </Button>
             </TooltipTrigger>
@@ -319,7 +319,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-gray-500 hover:text-cyan-400" onClick={onImport} aria-label="Import save">
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-label hover:text-cyan-400" onClick={onImport} aria-label="Import save">
                 <Upload className="w-3 h-3" />
               </Button>
             </TooltipTrigger>
@@ -328,7 +328,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
             </TooltipContent>
           </Tooltip>
 
-          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-gray-500" onClick={onReset} aria-label="Reset game">
+          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-label" onClick={onReset} aria-label="Reset game">
             <RotateCcw className="w-3 h-3" />
           </Button>
 
@@ -337,7 +337,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
           <Tooltip>
             <TooltipTrigger asChild>
               <Badge variant="outline" className={`text-[10px] px-1.5 py-0 cursor-default ${
-                isUsingSupabase ? 'border-success/50 text-success bg-success/20' : 'border-amber-500/50 text-amber-400 bg-amber-900/20'
+                isUsingSupabase ? 'border-success/50 text-success bg-success/20' : 'border-warning/50 text-warning bg-amber-900/20'
               }`}>
                 {isUsingSupabase ? <Wifi className="w-2.5 h-2.5 mr-0.5" /> : <WifiOff className="w-2.5 h-2.5 mr-0.5" />}
                 {isUsingSupabase ? 'Live' : 'Local'}
@@ -345,7 +345,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
             </TooltipTrigger>
             <TooltipContent side="bottom" className="bg-card border-cyan-900/30">
               <p className="text-xs font-medium">{isUsingSupabase ? 'Supabase Connected' : 'Using Local Config'}</p>
-              <p className="text-[10px] text-gray-400 mt-0.5">Game data source</p>
+              <p className="text-[10px] text-subtle mt-0.5">Game data source</p>
               <Button variant="ghost" size="sm" className="h-6 text-[10px] mt-1 w-full" onClick={reloadConfig}>
                 <RefreshCw className="w-2.5 h-2.5 mr-1" /> Refresh Config
               </Button>
@@ -358,8 +358,8 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
                 <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={handleCloudSave} disabled={cloudStatus === 'saving'}>
                   {cloudStatus === 'saving' ? <Loader2 className="w-3 h-3 animate-spin" />
                   : cloudStatus === 'success' ? <Cloud className="w-3 h-3 text-success" />
-                  : cloudStatus === 'error' ? <CloudOff className="w-3 h-3 text-red-400" />
-                  : <Cloud className="w-3 h-3 text-gray-400" />}
+                  : cloudStatus === 'error' ? <CloudOff className="w-3 h-3 text-danger" />
+                  : <Cloud className="w-3 h-3 text-subtle" />}
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="bg-card border-cyan-900/30">
@@ -369,7 +369,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
           ) : (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-gray-500 hover:text-cyan-400" onClick={() => promptLogin('cloud_save')}>
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-label hover:text-cyan-400" onClick={() => promptLogin('cloud_save')}>
                   <Cloud className="w-3 h-3" />
                 </Button>
               </TooltipTrigger>
@@ -380,7 +380,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
           )}
 
           {authLoading ? (
-            <Loader2 className="w-4 h-4 text-gray-500 animate-spin" />
+            <Loader2 className="w-4 h-4 text-muted-label animate-spin" />
           ) : user ? (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -392,19 +392,19 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
                       {userName.charAt(0).toUpperCase()}
                     </div>
                   )}
-                  <span className="text-[10px] text-gray-300 max-w-[80px] truncate">{userName}</span>
+                  <span className="text-[10px] text-subtle max-w-[80px] truncate">{userName}</span>
                 </button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="w-56 bg-card border-cyan-900/30 p-0 overflow-hidden">
                 <div className="bg-gradient-to-r from-cyan-900/30 to-teal-900/20 px-3 py-2 border-b border-cyan-900/20">
                   <p className="text-xs font-bold text-cyan-300">{userName}</p>
-                  <p className="text-[10px] text-gray-400">{user.email}</p>
+                  <p className="text-[10px] text-subtle">{user.email}</p>
                 </div>
                 <div className="p-2 space-y-1">
                   <Button variant="ghost" size="sm" className="w-full justify-start h-7 text-xs" onClick={handleCloudSave}><Cloud className="w-3 h-3 mr-1.5" /> Save to Cloud</Button>
                   <Button variant="ghost" size="sm" className="w-full justify-start h-7 text-xs" onClick={reloadConfig}><RefreshCw className="w-3 h-3 mr-1.5" /> Reload Config</Button>
                   <div className="border-t border-cyan-900/20 my-1" />
-                  <Button variant="ghost" size="sm" className="w-full justify-start h-7 text-xs text-red-400 hover:text-red-300" onClick={signOut}><LogOut className="w-3 h-3 mr-1.5" /> Sign Out</Button>
+                  <Button variant="ghost" size="sm" className="w-full justify-start h-7 text-xs text-danger hover:text-danger" onClick={signOut}><LogOut className="w-3 h-3 mr-1.5" /> Sign Out</Button>
                 </div>
               </TooltipContent>
             </Tooltip>
@@ -421,7 +421,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
         <div className="flex items-center h-full px-3">
           <span className="text-[10px] text-cyan-400 font-bold mr-3 flex-shrink-0">📰 NEWS</span>
           <div className="overflow-hidden flex-1 relative">
-            <div className="news-ticker-content text-[10px] text-gray-400">
+            <div className="news-ticker-content text-[10px] text-subtle">
               {notifications.slice(0, 8).map((n, i) => (
                 <span key={n.id}>
                   {i > 0 && <span className="text-cyan-700 mx-3">•</span>}

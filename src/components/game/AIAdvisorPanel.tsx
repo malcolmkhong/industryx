@@ -40,10 +40,10 @@ interface Recommendation {
 
 // --- Priority Config ---
 const PRIORITY_CONFIG: Record<Priority, { label: string; color: string; bgColor: string; hoverBg: string; borderColor: string; glowColor: string; dotColor: string }> = {
-  critical: { label: 'CRITICAL', color: 'text-red-400', bgColor: 'bg-red-900/20', hoverBg: 'hover:bg-red-900/30', borderColor: 'border-red-500/40', glowColor: 'rgba(248,113,113,0.15)', dotColor: 'bg-red-400' },
-  important: { label: 'IMPORTANT', color: 'text-amber-400', bgColor: 'bg-amber-900/20', hoverBg: 'hover:bg-amber-900/30', borderColor: 'border-amber-500/40', glowColor: 'rgba(251,191,36,0.12)', dotColor: 'bg-amber-400' },
+  critical: { label: 'CRITICAL', color: 'text-danger', bgColor: 'bg-danger/20', hoverBg: 'hover:bg-danger/30', borderColor: 'border-danger/40', glowColor: 'rgba(248,113,113,0.15)', dotColor: 'bg-danger' },
+  important: { label: 'IMPORTANT', color: 'text-warning', bgColor: 'bg-amber-900/20', hoverBg: 'hover:bg-amber-900/30', borderColor: 'border-warning/40', glowColor: 'rgba(251,191,36,0.12)', dotColor: 'bg-warning' },
   suggested: { label: 'SUGGESTED', color: 'text-cyan-400', bgColor: 'bg-cyan-900/20', hoverBg: 'hover:bg-cyan-900/30', borderColor: 'border-cyan-500/40', glowColor: 'rgba(34,211,238,0.10)', dotColor: 'bg-cyan-400' },
-  optional: { label: 'OPTIONAL', color: 'text-gray-400', bgColor: 'bg-gray-900/20', hoverBg: 'hover:bg-gray-900/30', borderColor: 'border-gray-500/40', glowColor: 'rgba(156,163,175,0.08)', dotColor: 'bg-gray-400' },
+  optional: { label: 'OPTIONAL', color: 'text-subtle', bgColor: 'bg-muted-label/20', hoverBg: 'hover:bg-muted-label/30', borderColor: 'border-muted-label/40', glowColor: 'rgba(156,163,175,0.08)', dotColor: 'bg-gray-400' },
 };
 
 // --- Helper: find building that produces a resource ---
@@ -192,7 +192,7 @@ function HealthGauge({ score, breakdown }: { score: number; breakdown: HealthBre
       </svg>
       {/* Breakdown bars */}
       <div className="w-full space-y-1 px-1">
-        <HealthBar label="Power" value={breakdown.power} color="text-yellow-400" barColor="bg-yellow-400" />
+        <HealthBar label="Power" value={breakdown.power} color="text-warning" barColor="bg-warning" />
         <HealthBar label="Production" value={breakdown.production} color="text-cyan-400" barColor="bg-cyan-400" />
         <HealthBar label="Storage" value={breakdown.storage} color="text-success" barColor="bg-success" />
         <HealthBar label="Activity" value={breakdown.activity} color="text-purple-400" barColor="bg-purple-400" />
@@ -207,7 +207,7 @@ function HealthBar({ label, value, color, barColor }: { label: string; value: nu
   return (
     <div className="flex items-center gap-1.5">
       <span className={`text-[8px] ${color} w-[52px] text-right font-medium`}>{label}</span>
-      <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+      <div className="flex-1 h-1.5 bg-muted-label rounded-full overflow-hidden">
         <div
           className={`h-full ${barColor} rounded-full transition-all duration-500`}
           style={{ width: `${pct}%` }}
@@ -252,7 +252,7 @@ function RecommendationCard({
                 </Badge>
                 <h4 className="text-sm font-semibold text-gray-200 truncate">{rec.title}</h4>
               </div>
-              <p className="text-xs text-gray-400 leading-relaxed">{rec.description}</p>
+              <p className="text-xs text-subtle leading-relaxed">{rec.description}</p>
 
               {/* Quick Action Button */}
               {rec.quickAction && (
@@ -315,7 +315,7 @@ function RecommendationCard({
               </Button>
               <button
                 onClick={() => onDismiss(rec.id)}
-                className="p-1 text-gray-600 hover:text-gray-300 transition-colors rounded"
+                className="p-1 text-muted-label hover:text-subtle transition-colors rounded"
                 aria-label="Dismiss"
               >
                 <X className="w-3.5 h-3.5" />
@@ -334,10 +334,10 @@ function QuickStatCard({ icon: Icon, label, value, color, subtext }: { icon: Rea
     <div className="bg-[#0a0e17] rounded-lg border border-cyan-900/20 p-3 flex flex-col gap-1">
       <div className="flex items-center gap-1.5">
         <Icon className={`w-3.5 h-3.5 ${color}`} />
-        <span className="text-[10px] text-gray-500 uppercase tracking-wider">{label}</span>
+        <span className="text-[10px] text-muted-label uppercase tracking-wider">{label}</span>
       </div>
       <span className={`text-sm font-bold font-mono ${color}`}>{value}</span>
-      {subtext && <span className="text-[9px] text-gray-600">{subtext}</span>}
+      {subtext && <span className="text-[9px] text-muted-label">{subtext}</span>}
     </div>
   );
 }
@@ -348,9 +348,9 @@ type ChainStatus = 'fullyProducing' | 'partial' | 'notStarted' | 'locked';
 function ChainStatusDot({ status }: { status: ChainStatus }) {
   const colorMap: Record<ChainStatus, string> = {
     fullyProducing: 'bg-success',
-    partial: 'bg-yellow-400',
-    notStarted: 'bg-red-400',
-    locked: 'bg-gray-600',
+    partial: 'bg-warning',
+    notStarted: 'bg-danger',
+    locked: 'bg-muted-label',
   };
   const titleMap: Record<ChainStatus, string> = {
     fullyProducing: 'Fully Producing',
@@ -1071,18 +1071,18 @@ export default function AIAdvisorPanel() {
             <Brain className="w-5 h-5" />
             AI Advisor
           </h2>
-          <p className="text-xs text-gray-500 mt-0.5">Smart recommendations for your factory</p>
+          <p className="text-xs text-muted-label mt-0.5">Smart recommendations for your factory</p>
         </div>
         {visibleRecommendations.length > 0 && (
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className={`text-[10px] ${visibleRecommendations.some(r => r.priority === 'critical') ? 'border-red-500/50 text-red-400' : visibleRecommendations.some(r => r.priority === 'important') ? 'border-amber-500/50 text-amber-400' : 'border-cyan-500/50 text-cyan-400'}`}>
+            <Badge variant="outline" className={`text-[10px] ${visibleRecommendations.some(r => r.priority === 'critical') ? 'border-danger/50 text-danger' : visibleRecommendations.some(r => r.priority === 'important') ? 'border-warning/50 text-warning' : 'border-cyan-500/50 text-cyan-400'}`}>
               {visibleRecommendations.length} recommendation{visibleRecommendations.length !== 1 ? 's' : ''}
             </Badge>
             {dismissedIds.size > 0 && (
               <Button
                 size="sm"
                 variant="ghost"
-                className="text-[10px] h-6 px-2 text-gray-500 hover:text-gray-300"
+                className="text-[10px] h-6 px-2 text-muted-label hover:text-subtle"
                 onClick={() => setDismissedIds(new Set())}
               >
                 Show all
@@ -1114,7 +1114,7 @@ export default function AIAdvisorPanel() {
             icon={Zap}
             label="Power Efficiency"
             value={`${(powerEfficiency * 100).toFixed(0)}%`}
-            color={powerEfficiency >= 0.8 ? 'text-success' : powerEfficiency >= 0.5 ? 'text-yellow-400' : 'text-red-400'}
+            color={powerEfficiency >= 0.8 ? 'text-success' : powerEfficiency >= 0.5 ? 'text-warning' : 'text-danger'}
             subtext={`${formatNumber(powerGrid.totalProduction)}MW / ${formatNumber(powerGrid.totalConsumption)}MW`}
           />
           <QuickStatCard
@@ -1138,11 +1138,11 @@ export default function AIAdvisorPanel() {
       {uniqueChainStatuses.length > 0 && (
         <Card className="bg-[#0a0e17] border border-cyan-900/20">
           <CardHeader className="pb-2 pt-3 px-4">
-            <CardTitle className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+            <CardTitle className="text-sm font-semibold text-subtle flex items-center gap-2">
               <Link2 className="w-3.5 h-3.5 text-cyan-400" />
               Production Chain Status
-              <span className="ml-auto text-[9px] text-gray-500">
-                {chainCounts.fullyProducing} <span className="text-success">active</span> · {chainCounts.partial} <span className="text-yellow-400">partial</span> · {chainCounts.notStarted} <span className="text-red-400">idle</span> · {chainCounts.locked} <span className="text-gray-500">locked</span>
+              <span className="ml-auto text-[9px] text-muted-label">
+                {chainCounts.fullyProducing} <span className="text-success">active</span> · {chainCounts.partial} <span className="text-warning">partial</span> · {chainCounts.notStarted} <span className="text-danger">idle</span> · {chainCounts.locked} <span className="text-muted-label">locked</span>
               </span>
             </CardTitle>
           </CardHeader>
@@ -1156,7 +1156,7 @@ export default function AIAdvisorPanel() {
                       className="w-1.5 h-1.5 rounded-full shrink-0"
                       style={{ backgroundColor: chain.color }}
                     />
-                    <span className={`text-[11px] truncate ${chain.status === 'locked' ? 'text-gray-600' : chain.status === 'notStarted' ? 'text-gray-400' : 'text-gray-300'}`}>
+                    <span className={`text-[11px] truncate ${chain.status === 'locked' ? 'text-muted-label' : chain.status === 'notStarted' ? 'text-subtle' : 'text-subtle'}`}>
                       {chain.name}
                     </span>
                   </div>
@@ -1169,7 +1169,7 @@ export default function AIAdvisorPanel() {
 
       {/* Recommendations */}
       <div>
-        <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-2 mb-3">
+        <h3 className="text-sm font-semibold text-subtle flex items-center gap-2 mb-3">
           <Activity className="w-4 h-4 text-success" />
           Recommendations
         </h3>
@@ -1178,8 +1178,8 @@ export default function AIAdvisorPanel() {
           <Card className="bg-[#0a0e17] border border-cyan-900/20">
             <CardContent className="p-6 text-center">
               <div className="text-3xl mb-2"><GameIcon icon="gi:check-mark" size={28} /></div>
-              <p className="text-sm text-gray-400 font-medium">All systems operational!</p>
-              <p className="text-xs text-gray-600 mt-1">No urgent recommendations at this time. Keep expanding your factory!</p>
+              <p className="text-sm text-subtle font-medium">All systems operational!</p>
+              <p className="text-xs text-muted-label mt-1">No urgent recommendations at this time. Keep expanding your factory!</p>
             </CardContent>
           </Card>
         ) : (
@@ -1208,9 +1208,9 @@ export default function AIAdvisorPanel() {
               <Brain className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
               <div>
                 <h4 className="text-sm font-semibold text-success">Getting Started</h4>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-subtle mt-1">
                   Welcome to Factory Dominion! Start by building a <strong className="text-cyan-300">Mining Drill</strong> to extract raw resources,
-                  then a <strong className="text-yellow-300">Coal Generator</strong> to power your factory.
+                  then a <strong className="text-warning">Coal Generator</strong> to power your factory.
                   The AI Advisor will track your progress and suggest next steps.
                 </p>
               </div>
@@ -1224,7 +1224,7 @@ export default function AIAdvisorPanel() {
               <Lightbulb className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
               <div>
                 <h4 className="text-xs font-semibold text-cyan-300">Pro Tip</h4>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-subtle mt-1">
                   Build a variety of buildings to establish production chains. Raw resources need processing factories
                   to become valuable products. Check the Guide tab for a walkthrough!
                 </p>

@@ -67,7 +67,7 @@ export function MarketPriceChart({
   if (loading) {
     return (
       <div
-        className={`flex items-center justify-center text-xs text-gray-500 ${className}`}
+        className={`flex items-center justify-center text-xs text-muted-label ${className}`}
         style={{ height }}
       >
         Loading price history...
@@ -78,7 +78,7 @@ export function MarketPriceChart({
   if (error) {
     return (
       <div
-        className={`flex items-center justify-center text-xs text-red-400 ${className}`}
+        className={`flex items-center justify-center text-xs text-danger ${className}`}
         style={{ height }}
       >
         Could not load price history
@@ -89,7 +89,7 @@ export function MarketPriceChart({
   if (points.length < 2) {
     return (
       <div
-        className={`flex items-center justify-center text-xs text-gray-500 ${className}`}
+        className={`flex items-center justify-center text-xs text-muted-label ${className}`}
         style={{ height }}
       >
         No trades yet — chart will appear after first trade
@@ -125,15 +125,15 @@ export function MarketPriceChart({
 
   const TrendIcon = trendFlat ? Minus : trendUp ? TrendingUp : TrendingDown;
   const trendColor = trendFlat
-    ? "text-gray-400"
+    ? "text-subtle"
     : trendUp
       ? "text-success"
-      : "text-red-400";
+      : "text-danger";
 
   return (
     <div className={className}>
       <div className="flex items-center justify-between text-xs mb-1">
-        <span className="text-gray-400">
+        <span className="text-subtle">
           {hours}h price history ({points.length} trades)
         </span>
         <span className={`flex items-center gap-1 ${trendColor} font-mono`}>
@@ -146,7 +146,7 @@ export function MarketPriceChart({
       <svg
         width={width}
         height={height}
-        className="bg-gray-900/30 rounded border border-cyan-900/20"
+        className="bg-muted-label/30 rounded border border-cyan-900/20"
         viewBox={`0 0 ${width} ${height}`}
       >
         <path d={areaPath} fill="url(#priceGradient)" opacity={0.3} />

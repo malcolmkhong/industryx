@@ -84,7 +84,7 @@ const REASON_CONFIGS: Record<LoginPromptReason, ReasonConfig> = {
     mode: 'hard_gate',
     title: 'Leaderboard Requires Account',
     description: 'To compete on the leaderboard and show off your industrial empire, you need an account.',
-    icon: <Trophy className="w-5 h-5 text-amber-400" />,
+    icon: <Trophy className="w-5 h-5 text-warning" />,
     benefits: [
       'Compete for top rankings',
       'Show off your empire stats',
@@ -243,7 +243,7 @@ export function LoginFloatingPanel({ open, reason, onClose, onSignInStart }: Log
           {config.dismissible && (
             <button
               onClick={handleDismiss}
-              className="absolute top-3 right-3 w-8 h-8 rounded-lg bg-gray-800/80 hover:bg-gray-700 flex items-center justify-center text-gray-400 hover:text-gray-200 transition-colors z-10"
+              className="absolute top-3 right-3 w-8 h-8 rounded-lg bg-muted-label/80 hover:bg-muted-label flex items-center justify-center text-subtle hover:text-gray-200 transition-colors z-10"
               aria-label="Close"
             >
               <X className="w-4 h-4" />
@@ -259,7 +259,7 @@ export function LoginFloatingPanel({ open, reason, onClose, onSignInStart }: Log
               </div>
               <div>
                 <h2 className="text-lg font-bold text-gray-100 pr-8">{config.title}</h2>
-                <p className="text-sm text-gray-400 mt-1 leading-relaxed">{config.description}</p>
+                <p className="text-sm text-subtle mt-1 leading-relaxed">{config.description}</p>
               </div>
             </div>
 
@@ -267,7 +267,7 @@ export function LoginFloatingPanel({ open, reason, onClose, onSignInStart }: Log
             {config.urgencyText && (
               <div className={`text-xs px-3 py-2 rounded-lg mb-4 flex items-center gap-2 ${
                 isHardGate
-                  ? 'bg-amber-900/20 text-amber-400 border border-amber-800/30'
+                  ? 'bg-amber-900/20 text-warning border border-amber-800/30'
                   : 'bg-cyan-900/20 text-cyan-400 border border-cyan-800/30'
               }`}>
                 <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
@@ -278,7 +278,7 @@ export function LoginFloatingPanel({ open, reason, onClose, onSignInStart }: Log
             {/* Benefits */}
             <div className="space-y-2 mb-5">
               {config.benefits.map((benefit, i) => (
-                <div key={i} className="flex items-center gap-2.5 text-sm text-gray-300">
+                <div key={i} className="flex items-center gap-2.5 text-sm text-subtle">
                   <div className="w-5 h-5 rounded-full bg-success/30 flex items-center justify-center flex-shrink-0 border border-success/30">
                     <svg className="w-3 h-3 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -291,8 +291,8 @@ export function LoginFloatingPanel({ open, reason, onClose, onSignInStart }: Log
 
             {/* Dismiss warning for hard gates */}
             {showDismissWarning && (
-              <div className="mb-4 p-3 rounded-lg bg-red-900/20 border border-red-800/30">
-                <p className="text-xs text-red-400 font-medium">
+              <div className="mb-4 p-3 rounded-lg bg-danger/20 border border-danger/30">
+                <p className="text-xs text-danger font-medium">
                   Your progress is only stored locally. If you clear your browser data or switch devices, your factory will be lost forever.
                 </p>
               </div>
@@ -338,7 +338,7 @@ export function LoginFloatingPanel({ open, reason, onClose, onSignInStart }: Log
             {isHardGate && (
               <button
                 onClick={handleDismiss}
-                className="w-full mt-3 text-xs text-gray-500 hover:text-gray-400 transition-colors py-1"
+                className="w-full mt-3 text-xs text-muted-label hover:text-subtle transition-colors py-1"
               >
                 {showDismissWarning ? 'Continue without saving to cloud' : 'Continue as guest'}
               </button>
@@ -348,7 +348,7 @@ export function LoginFloatingPanel({ open, reason, onClose, onSignInStart }: Log
             {!isHardGate && (
               <button
                 onClick={onClose}
-                className="w-full mt-3 text-xs text-gray-500 hover:text-gray-400 transition-colors py-1"
+                className="w-full mt-3 text-xs text-muted-label hover:text-subtle transition-colors py-1"
               >
                 Maybe later
               </button>

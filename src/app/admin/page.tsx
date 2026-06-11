@@ -152,7 +152,7 @@ export default function BackendDashboard() {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-10 h-10 border-2 border-warning border-t-transparent rounded-full animate-spin" />
           <p className="text-zinc-400 text-sm">Loading dashboard...</p>
         </div>
       </div>
@@ -170,7 +170,7 @@ export default function BackendDashboard() {
             </svg>
           </div>
           <h1 className="text-white font-semibold text-sm sm:text-base">IndustriaX Backend</h1>
-          <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20">
+          <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-xs bg-warning/10 text-warning border border-warning/20">
             Admin
           </span>
         </div>
@@ -178,7 +178,7 @@ export default function BackendDashboard() {
           <button
             onClick={fetchDashboardData}
             disabled={statsLoading}
-            className="text-zinc-400 hover:text-amber-400 transition-colors p-1.5 rounded-md hover:bg-zinc-800"
+            className="text-zinc-400 hover:text-warning transition-colors p-1.5 rounded-md hover:bg-zinc-800"
             title="Refresh data"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={statsLoading ? "animate-spin" : ""}>
@@ -200,7 +200,7 @@ export default function BackendDashboard() {
           </div>
           <button
             onClick={handleLogout}
-            className="text-zinc-400 hover:text-red-400 transition-colors p-1.5 rounded-md hover:bg-zinc-800"
+            className="text-zinc-400 hover:text-danger transition-colors p-1.5 rounded-md hover:bg-zinc-800"
             title="Sign out"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -234,14 +234,14 @@ export default function BackendDashboard() {
                   href={item.href}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${
                     item.active
-                      ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                      ? "bg-warning/10 text-warning border border-warning/20"
                       : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
                   }`}
                 >
                   <IconRenderer name={item.icon} />
                   <span className="flex-1">{item.label}</span>
                   {item.active && (
-                    <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-warning" />
                   )}
                 </a>
               )
@@ -251,9 +251,9 @@ export default function BackendDashboard() {
           <div className="p-3 border-t border-zinc-800">
             <div className="p-3 bg-zinc-800/50 rounded-lg">
               <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Phase</p>
-              <p className="text-xs text-amber-400 font-medium">Phase 3 — Admin & Moderation</p>
+              <p className="text-xs text-warning font-medium">Phase 3 — Admin & Moderation</p>
               <div className="mt-2 w-full bg-zinc-700 rounded-full h-1.5">
-                <div className="bg-amber-500 h-1.5 rounded-full" style={{ width: "80%" }} />
+                <div className="bg-warning h-1.5 rounded-full" style={{ width: "80%" }} />
               </div>
             </div>
           </div>
@@ -262,7 +262,7 @@ export default function BackendDashboard() {
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6">
           {/* Welcome Card */}
-          <div className="bg-gradient-to-br from-amber-500/10 to-orange-600/5 border border-amber-500/20 rounded-2xl p-6 mb-6">
+          <div className="bg-gradient-to-br from-amber-500/10 to-orange-600/5 border border-warning/20 rounded-2xl p-6 mb-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h2 className="text-xl sm:text-2xl font-bold text-white">
@@ -341,8 +341,8 @@ export default function BackendDashboard() {
             {/* Open Investigations */}
             <a href="/admin/investigations" className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5 block hover:border-zinc-700 transition-colors">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-400">
+                <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-warning">
                     <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
                   </svg>
                 </div>
@@ -354,16 +354,16 @@ export default function BackendDashboard() {
                 </div>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-amber-400" />
-                <span className="text-amber-400 text-xs">Pending review</span>
+                <div className="w-2 h-2 rounded-full bg-warning" />
+                <span className="text-warning text-xs">Pending review</span>
               </div>
             </a>
 
             {/* Locked Accounts */}
             <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-9 h-9 rounded-lg bg-red-500/10 flex items-center justify-center">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-400">
+                <div className="w-9 h-9 rounded-lg bg-danger/10 flex items-center justify-center">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger">
                     <rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
                   </svg>
                 </div>
@@ -375,8 +375,8 @@ export default function BackendDashboard() {
                 </div>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-red-400" />
-                <span className="text-red-400 text-xs">Restricted access</span>
+                <div className="w-2 h-2 rounded-full bg-danger" />
+                <span className="text-danger text-xs">Restricted access</span>
               </div>
             </div>
 
@@ -449,7 +449,7 @@ export default function BackendDashboard() {
             <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-white font-medium text-sm">Recent Actions</h3>
-                <a href="/admin/audit" className="text-amber-400 text-xs hover:text-amber-300">View all →</a>
+                <a href="/admin/audit" className="text-warning text-xs hover:text-warning">View all →</a>
               </div>
               <div className="space-y-1">
                 {statsLoading ? (
@@ -462,7 +462,7 @@ export default function BackendDashboard() {
                   recentActions.map((action, i) => (
                     <div key={i} className="flex items-start gap-3 py-2 border-b border-zinc-800 last:border-0">
                       <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
-                        action.is_valid ? "bg-success" : "bg-red-400"
+                        action.is_valid ? "bg-success" : "bg-danger"
                       }`} />
                       <div className="flex-1 min-w-0">
                         <p className="text-zinc-300 text-xs font-medium">
@@ -487,7 +487,7 @@ export default function BackendDashboard() {
             <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-white font-medium text-sm">Recent Investigations</h3>
-                <a href="/admin/investigations" className="text-amber-400 text-xs hover:text-amber-300">View all →</a>
+                <a href="/admin/investigations" className="text-warning text-xs hover:text-warning">View all →</a>
               </div>
               <div className="space-y-1">
                 {statsLoading ? (
@@ -500,16 +500,16 @@ export default function BackendDashboard() {
                   recentInvestigations.map((inv, i) => (
                     <div key={i} className="flex items-start gap-3 py-2 border-b border-zinc-800 last:border-0">
                       <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
-                        inv.status === "open" ? "bg-amber-400" :
+                        inv.status === "open" ? "bg-warning" :
                         inv.status === "resolved" ? "bg-success" :
-                        "bg-red-400"
+                        "bg-danger"
                       }`} />
                       <div className="flex-1 min-w-0">
                         <p className="text-zinc-300 text-xs font-medium">
                           {String(inv.detection_type || "Unknown")}
                           <span className={`ml-1.5 px-1.5 py-0.5 rounded text-[10px] ${
-                            inv.severity === "high" ? "bg-red-500/15 text-red-400" :
-                            inv.severity === "medium" ? "bg-amber-500/15 text-amber-400" :
+                            inv.severity === "high" ? "bg-danger/15 text-danger" :
+                            inv.severity === "medium" ? "bg-warning/15 text-warning" :
                             "bg-zinc-500/15 text-zinc-400"
                           }`}>
                             {String(inv.severity || "low")}

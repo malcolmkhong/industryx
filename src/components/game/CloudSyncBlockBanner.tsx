@@ -14,17 +14,17 @@ const DISCORD_URL = 'https://discordapp.com/users/616340426474913794';
 function getBlockIcon(code: CloudBlockState['code']) {
   switch (code) {
     case 'ACCOUNT_LOCKED':
-      return <Lock className="w-10 h-10 text-red-400" />;
+      return <Lock className="w-10 h-10 text-danger" />;
     case 'ACCESS_DENIED':
       return <Ban className="w-10 h-10 text-orange-400" />;
     case 'SESSION_EXPIRED':
-      return <WifiOff className="w-10 h-10 text-yellow-400" />;
+      return <WifiOff className="w-10 h-10 text-warning" />;
     case 'VALIDATION_FAILED':
-      return <AlertTriangle className="w-10 h-10 text-amber-400" />;
+      return <AlertTriangle className="w-10 h-10 text-warning" />;
     case 'NETWORK_ERROR':
-      return <WifiOff className="w-10 h-10 text-gray-400" />;
+      return <WifiOff className="w-10 h-10 text-subtle" />;
     default:
-      return <ShieldAlert className="w-10 h-10 text-red-400" />;
+      return <ShieldAlert className="w-10 h-10 text-danger" />;
   }
 }
 
@@ -107,7 +107,7 @@ export function CloudSyncBlockBanner({ blockedState, onSignInAgain }: CloudSyncB
         }`}
       >
         {/* Main card */}
-        <div className="relative overflow-hidden rounded-2xl border border-red-500/30 bg-gradient-to-b from-[#1a1020] to-[#0f0a15] shadow-[0_0_60px_rgba(239,68,68,0.15)]">
+        <div className="relative overflow-hidden rounded-2xl border border-danger/30 bg-gradient-to-b from-[#1a1020] to-[#0f0a15] shadow-[0_0_60px_rgba(239,68,68,0.15)]">
           {/* Animated top accent bar */}
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-600 via-orange-500 to-red-600 animate-pulse" />
 
@@ -125,19 +125,19 @@ export function CloudSyncBlockBanner({ blockedState, onSignInAgain }: CloudSyncB
           {/* Content */}
           <div className="relative p-6 sm:p-8 text-center">
             {/* Icon with glow */}
-            <div className="mx-auto mb-5 flex items-center justify-center w-20 h-20 rounded-full bg-red-900/20 border border-red-500/20 shadow-[0_0_30px_rgba(239,68,68,0.1)]">
+            <div className="mx-auto mb-5 flex items-center justify-center w-20 h-20 rounded-full bg-danger/20 border border-danger/20 shadow-[0_0_30px_rgba(239,68,68,0.1)]">
               <div className="animate-pulse-slow">
                 {icon}
               </div>
             </div>
 
             {/* Title */}
-            <h2 className="text-xl sm:text-2xl font-bold text-red-400 mb-2 tracking-wide">
+            <h2 className="text-xl sm:text-2xl font-bold text-danger mb-2 tracking-wide">
               {title}
             </h2>
 
             {/* Subtitle */}
-            <p className="text-sm text-gray-400 mb-4">
+            <p className="text-sm text-subtle mb-4">
               Cloud Sync Unavailable
             </p>
 
@@ -146,22 +146,22 @@ export function CloudSyncBlockBanner({ blockedState, onSignInAgain }: CloudSyncB
 
             {/* Reason box */}
             <div className="bg-red-950/30 border border-red-900/30 rounded-xl p-4 mb-5 text-left">
-              <p className="text-xs font-semibold text-red-300 mb-2 uppercase tracking-wider flex items-center gap-2">
+              <p className="text-xs font-semibold text-danger mb-2 uppercase tracking-wider flex items-center gap-2">
                 <AlertTriangle className="w-3.5 h-3.5" />
                 Reason
               </p>
-              <p className="text-sm text-gray-300 leading-relaxed">
+              <p className="text-sm text-subtle leading-relaxed">
                 {blockedState.reason}
               </p>
             </div>
 
             {/* Description */}
-            <p className="text-sm text-gray-400 leading-relaxed mb-5">
+            <p className="text-sm text-subtle leading-relaxed mb-5">
               {description}
             </p>
 
             {/* Detection time */}
-            <p className="text-[11px] text-gray-600 mb-6">
+            <p className="text-[11px] text-muted-label mb-6">
               Detected at {detectedTime}
             </p>
 
@@ -171,7 +171,7 @@ export function CloudSyncBlockBanner({ blockedState, onSignInAgain }: CloudSyncB
                 <MessageCircle className="w-3.5 h-3.5" />
                 Contact Admin
               </p>
-              <p className="text-xs text-gray-400 mb-4">
+              <p className="text-xs text-subtle mb-4">
                 If you believe this is a mistake or need assistance, please reach out to our team on Discord.
               </p>
 
@@ -203,7 +203,7 @@ export function CloudSyncBlockBanner({ blockedState, onSignInAgain }: CloudSyncB
             )}
 
             {/* Footer note */}
-            <p className="text-[10px] text-gray-600 mt-4">
+            <p className="text-[10px] text-muted-label mt-4">
               Your local game progress is still saved and available. Only cloud sync is affected.
             </p>
           </div>

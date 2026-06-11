@@ -194,17 +194,17 @@ function formatActionType(type: string): string {
 function getValidBadgeClasses(isValid: boolean): string {
   return isValid
     ? "bg-success/15 text-success border-success/20"
-    : "bg-red-500/15 text-red-400 border-red-500/20";
+    : "bg-danger/15 text-danger border-danger/20";
 }
 
 function getRiskBadgeClasses(risk: string | null): string {
   switch (risk) {
     case "critical":
-      return "bg-red-500/15 text-red-400 border-red-500/20";
+      return "bg-danger/15 text-danger border-danger/20";
     case "high":
       return "bg-orange-500/15 text-orange-400 border-orange-500/20";
     case "medium":
-      return "bg-amber-500/15 text-amber-400 border-amber-500/20";
+      return "bg-warning/15 text-warning border-warning/20";
     case "low":
       return "bg-blue-500/15 text-blue-400 border-blue-500/20";
     case "none":
@@ -355,7 +355,7 @@ export default function AuditPage() {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-10 h-10 border-2 border-warning border-t-transparent rounded-full animate-spin" />
           <p className="text-zinc-400 text-sm">Loading audit log...</p>
         </div>
       </div>
@@ -381,7 +381,7 @@ export default function AuditPage() {
             </svg>
           </div>
           <h1 className="text-white font-semibold text-sm sm:text-base">IndustriaX Backend</h1>
-          <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20">
+          <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-xs bg-warning/10 text-warning border border-warning/20">
             Admin
           </span>
         </div>
@@ -396,7 +396,7 @@ export default function AuditPage() {
           </div>
           <button
             onClick={handleLogout}
-            className="text-zinc-400 hover:text-red-400 transition-colors p-1.5 rounded-md hover:bg-zinc-800"
+            className="text-zinc-400 hover:text-danger transition-colors p-1.5 rounded-md hover:bg-zinc-800"
             title="Sign out"
           >
             <IconLogout />
@@ -450,10 +450,10 @@ export default function AuditPage() {
               <IconShield />
               <span>Investigations</span>
             </a>
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm bg-warning/10 text-warning border border-warning/20">
               <IconScrollText />
               <span className="flex-1">Player Actions</span>
-              <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              <div className="w-1.5 h-1.5 rounded-full bg-warning" />
             </div>
             <a
               href="/admin/admin-audit"
@@ -481,9 +481,9 @@ export default function AuditPage() {
           <div className="p-3 border-t border-zinc-800">
             <div className="p-3 bg-zinc-800/50 rounded-lg">
               <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Phase</p>
-              <p className="text-xs text-amber-400 font-medium">Phase 5 — Security</p>
+              <p className="text-xs text-warning font-medium">Phase 5 — Security</p>
               <div className="mt-2 w-full bg-zinc-700 rounded-full h-1.5">
-                <div className="bg-amber-500 h-1.5 rounded-full" style={{ width: "90%" }} />
+                <div className="bg-warning h-1.5 rounded-full" style={{ width: "90%" }} />
               </div>
             </div>
           </div>
@@ -510,7 +510,7 @@ export default function AuditPage() {
                     placeholder="Enter user UUID..."
                     value={filterUserId}
                     onChange={(e) => setFilterUserId(e.target.value)}
-                    className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors font-mono"
+                    className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors font-mono"
                   />
                 </div>
                 <div className="flex-1 min-w-[160px]">
@@ -518,7 +518,7 @@ export default function AuditPage() {
                   <select
                     value={filterActionType}
                     onChange={(e) => { setFilterActionType(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
-                    className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors appearance-none"
+                    className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors appearance-none"
                     style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2'%3e%3cpath d='m6 9 6 6 6-6'/%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
                   >
                     {ACTION_TYPE_OPTIONS.map((at) => (
@@ -531,7 +531,7 @@ export default function AuditPage() {
                   <select
                     value={filterValid}
                     onChange={(e) => { setFilterValid(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
-                    className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors appearance-none"
+                    className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors appearance-none"
                     style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2'%3e%3cpath d='m6 9 6 6 6-6'/%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
                   >
                     <option value="all">All</option>
@@ -545,7 +545,7 @@ export default function AuditPage() {
                     type="date"
                     value={filterDateFrom}
                     onChange={(e) => { setFilterDateFrom(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
-                    className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
+                    className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
                   />
                 </div>
                 <div className="min-w-[140px]">
@@ -554,13 +554,13 @@ export default function AuditPage() {
                     type="date"
                     value={filterDateTo}
                     onChange={(e) => { setFilterDateTo(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
-                    className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
+                    className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
                   />
                 </div>
                 <div className="flex items-end gap-2 shrink-0">
                   <button
                     onClick={() => fetchActions()}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black font-medium text-sm rounded-lg transition-colors"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-warning hover:bg-warning text-black font-medium text-sm rounded-lg transition-colors"
                   >
                     <IconSearch />
                     Search
@@ -580,7 +580,7 @@ export default function AuditPage() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                  <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
                     <IconScrollText />
                   </div>
                   <div>
@@ -592,8 +592,8 @@ export default function AuditPage() {
 
               <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-red-500/10 flex items-center justify-center">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-400">
+                  <div className="w-9 h-9 rounded-lg bg-danger/10 flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger">
                       <circle cx="12" cy="12" r="10" /><path d="m15 9-6 6" /><path d="m9 9 6 6" />
                     </svg>
                   </div>
@@ -821,8 +821,8 @@ export default function AuditPage() {
               toast.type === "success"
                 ? "bg-success/15 text-success border border-success/20"
                 : toast.type === "error"
-                ? "bg-red-500/15 text-red-400 border border-red-500/20"
-                : "bg-amber-500/15 text-amber-400 border border-amber-500/20"
+                ? "bg-danger/15 text-danger border border-danger/20"
+                : "bg-warning/15 text-warning border border-warning/20"
             }`}
           >
             {toast.type === "success" && <IconCheck />}

@@ -43,7 +43,7 @@ function LineChart({
 }) {
   if (data.length < 2) {
     return (
-      <div className="flex items-center justify-center text-gray-500 text-xs w-full" style={{ height }}>
+      <div className="flex items-center justify-center text-muted-label text-xs w-full" style={{ height }}>
         Not enough data yet
       </div>
     );
@@ -160,7 +160,7 @@ function AreaChart({
 }) {
   if (productionData.length < 2) {
     return (
-      <div className="flex items-center justify-center text-gray-500 text-xs w-full" style={{ height }}>
+      <div className="flex items-center justify-center text-muted-label text-xs w-full" style={{ height }}>
         Not enough data yet
       </div>
     );
@@ -252,7 +252,7 @@ function EfficiencyChart({
 }) {
   if (data.length < 2) {
     return (
-      <div className="flex items-center justify-center text-gray-500 text-xs w-full" style={{ height }}>
+      <div className="flex items-center justify-center text-muted-label text-xs w-full" style={{ height }}>
         Not enough data yet
       </div>
     );
@@ -398,10 +398,10 @@ export default function StatisticsPanel() {
             <BarChart3 className="w-5 h-5" />
             Factory Analytics
           </h2>
-          <p className="text-xs text-gray-500 mt-0.5">Track your empire&apos;s performance over time</p>
+          <p className="text-xs text-muted-label mt-0.5">Track your empire&apos;s performance over time</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">Range:</span>
+          <span className="text-xs text-muted-label">Range:</span>
           {([50, 100, 200] as TimeRange[]).map(r => (
             <button
               key={r}
@@ -410,7 +410,7 @@ export default function StatisticsPanel() {
               className={`px-2.5 py-1 text-xs rounded-md border ${
                 timeRange === r
                   ? 'bg-cyan-900/30 border-cyan-500/50 text-cyan-400'
-                  : 'border-gray-700 text-gray-400 hover:border-gray-500 hover:text-gray-300'
+                  : 'border-muted-label text-subtle hover:border-muted-label hover:text-subtle'
               }`}
             >
               Last {r}
@@ -420,7 +420,7 @@ export default function StatisticsPanel() {
       </div>
 
       {/* Data points info */}
-      <div className="flex items-center gap-3 text-[10px] text-gray-500">
+      <div className="flex items-center gap-3 text-[10px] text-muted-label">
         <span>{history.length} data points</span>
         {history.length > 0 && (
           <>
@@ -454,7 +454,7 @@ export default function StatisticsPanel() {
 
         {/* Power Chart */}
         <div className="bg-[#0a0e17] rounded-lg border border-cyan-900/20 p-4">
-          <h3 className="text-sm font-semibold text-yellow-400 flex items-center gap-1.5 mb-3">
+          <h3 className="text-sm font-semibold text-warning flex items-center gap-1.5 mb-3">
             <Zap className="w-4 h-4" />
             Power Grid
           </h3>
@@ -491,7 +491,7 @@ export default function StatisticsPanel() {
           </h3>
           <div className="overflow-x-auto">
             {history.length < 2 ? (
-              <div className="flex items-center justify-center text-gray-500 text-xs w-full" style={{ height: chartHeight }}>
+              <div className="flex items-center justify-center text-muted-label text-xs w-full" style={{ height: chartHeight }}>
                 Not enough data yet
               </div>
             ) : (
@@ -562,12 +562,12 @@ export default function StatisticsPanel() {
         <div className="max-h-96 overflow-y-auto game-scrollbar">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-gray-800">
-                <th className="text-left py-2 px-2 text-gray-500 font-medium">Resource</th>
-                <th className="text-right py-2 px-2 text-gray-500 font-medium">Current</th>
-                <th className="text-right py-2 px-2 text-gray-500 font-medium">Capacity</th>
-                <th className="text-right py-2 px-2 text-gray-500 font-medium">Rate/s</th>
-                <th className="text-center py-2 px-2 text-gray-500 font-medium">Trend</th>
+              <tr className="border-b border-muted-label">
+                <th className="text-left py-2 px-2 text-muted-label font-medium">Resource</th>
+                <th className="text-right py-2 px-2 text-muted-label font-medium">Current</th>
+                <th className="text-right py-2 px-2 text-muted-label font-medium">Capacity</th>
+                <th className="text-right py-2 px-2 text-muted-label font-medium">Rate/s</th>
+                <th className="text-center py-2 px-2 text-muted-label font-medium">Trend</th>
               </tr>
             </thead>
             <tbody>
@@ -583,36 +583,36 @@ export default function StatisticsPanel() {
                 if (!showRow) return null;
 
                 return (
-                  <tr key={res} className="border-b border-gray-800/50 hover:bg-gray-800/20">
+                  <tr key={res} className="border-b border-muted-label/50 hover:bg-muted-label/20">
                     <td className="py-1.5 px-2">
                       <div className="flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: meta.color }} />
-                        <span className="text-gray-300"><GameIcon icon={meta.icon} size={14} className="inline-flex" /> {meta.name}</span>
+                        <span className="text-subtle"><GameIcon icon={meta.icon} size={14} className="inline-flex" /> {meta.name}</span>
                       </div>
                     </td>
-                    <td className="py-1.5 px-2 text-right font-mono text-gray-300">{formatNumber(amount)}</td>
+                    <td className="py-1.5 px-2 text-right font-mono text-subtle">{formatNumber(amount)}</td>
                     <td className="py-1.5 px-2 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <div className="w-12 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                        <div className="w-12 h-1.5 bg-muted-label rounded-full overflow-hidden">
                           <div
                             className={`h-full rounded-full transition-all ${
-                              fillPercent >= 80 ? 'bg-red-500' : fillPercent >= 50 ? 'bg-yellow-500' : 'bg-cyan-500'
+                              fillPercent >= 80 ? 'bg-danger' : fillPercent >= 50 ? 'bg-warning' : 'bg-cyan-500'
                             }`}
                             style={{ width: `${Math.min(100, fillPercent)}%` }}
                           />
                         </div>
-                        <span className="text-gray-500 font-mono text-[10px]">{formatNumber(capacity)}</span>
+                        <span className="text-muted-label font-mono text-[10px]">{formatNumber(capacity)}</span>
                       </div>
                     </td>
                     <td className="py-1.5 px-2 text-right font-mono">
-                      <span className={rate > 0 ? 'text-success' : rate < 0 ? 'text-red-400' : 'text-gray-500'}>
+                      <span className={rate > 0 ? 'text-success' : rate < 0 ? 'text-danger' : 'text-muted-label'}>
                         {rate > 0 ? '+' : ''}{rate.toFixed(2)}
                       </span>
                     </td>
                     <td className="py-1.5 px-2 text-center">
                       {trend === 'up' && <TrendingUp className="w-3.5 h-3.5 text-success inline" />}
-                      {trend === 'down' && <TrendingDown className="w-3.5 h-3.5 text-red-400 inline" />}
-                      {trend === 'stable' && <Minus className="w-3.5 h-3.5 text-gray-500 inline" />}
+                      {trend === 'down' && <TrendingDown className="w-3.5 h-3.5 text-danger inline" />}
+                      {trend === 'stable' && <Minus className="w-3.5 h-3.5 text-muted-label inline" />}
                     </td>
                   </tr>
                 );
@@ -625,24 +625,24 @@ export default function StatisticsPanel() {
       {/* Quick Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-[#0a0e17] rounded-lg border border-cyan-900/20 p-3">
-          <p className="text-[10px] text-gray-500 uppercase tracking-wider">Current Money</p>
+          <p className="text-[10px] text-muted-label uppercase tracking-wider">Current Money</p>
           <p className="text-sm font-bold text-success font-mono">${formatNumber(store.money)}</p>
         </div>
         <div className="bg-[#0a0e17] rounded-lg border border-cyan-900/20 p-3">
-          <p className="text-[10px] text-gray-500 uppercase tracking-wider">Total Earned</p>
+          <p className="text-[10px] text-muted-label uppercase tracking-wider">Total Earned</p>
           <p className="text-sm font-bold text-success font-mono">${formatNumber(store.totalMoneyEarned)}</p>
         </div>
         <div className="bg-[#0a0e17] rounded-lg border border-cyan-900/20 p-3">
-          <p className="text-[10px] text-gray-500 uppercase tracking-wider">Power Efficiency</p>
+          <p className="text-[10px] text-muted-label uppercase tracking-wider">Power Efficiency</p>
           <p className={`text-sm font-bold font-mono ${
             store.powerGrid.efficiency >= 0.8 ? 'text-success' :
-            store.powerGrid.efficiency >= 0.5 ? 'text-yellow-400' : 'text-red-400'
+            store.powerGrid.efficiency >= 0.5 ? 'text-warning' : 'text-danger'
           }`}>
             {(store.powerGrid.efficiency * 100).toFixed(1)}%
           </p>
         </div>
         <div className="bg-[#0a0e17] rounded-lg border border-cyan-900/20 p-3">
-          <p className="text-[10px] text-gray-500 uppercase tracking-wider">Peak Efficiency</p>
+          <p className="text-[10px] text-muted-label uppercase tracking-wider">Peak Efficiency</p>
           <p className="text-sm font-bold text-teal-400 font-mono">{(store.stats.peakEfficiency * 100).toFixed(1)}%</p>
         </div>
       </div>

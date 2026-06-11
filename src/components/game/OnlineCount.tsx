@@ -21,13 +21,13 @@ export function OnlineCount({ compact = false }: OnlineCountProps) {
   if (!isConnected) {
     if (compact) {
       return (
-        <Badge variant="outline" className="text-[8px] px-1 py-0 border-gray-700 text-gray-600">
+        <Badge variant="outline" className="text-[8px] px-1 py-0 border-muted-label text-muted-label">
           <WifiOff className="w-2 h-2 mr-0.5" />
         </Badge>
       );
     }
     return (
-      <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-gray-700 text-gray-600">
+      <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-muted-label text-muted-label">
         <WifiOff className="w-2.5 h-2.5 mr-1" />
         --
       </Badge>
@@ -47,7 +47,7 @@ export function OnlineCount({ compact = false }: OnlineCountProps) {
           <p className="text-xs font-medium text-success">
             {onlineCount} online ({loggedInCount} logged in)
           </p>
-          <p className="text-[10px] text-gray-400 mt-0.5">Real-time visitor count</p>
+          <p className="text-[10px] text-subtle mt-0.5">Real-time visitor count</p>
         </TooltipContent>
       </Tooltip>
     );
@@ -74,19 +74,19 @@ export function OnlineCount({ compact = false }: OnlineCountProps) {
         </div>
         <div className="space-y-1">
           <div className="flex justify-between text-xs">
-            <span className="text-gray-400">Visitors online</span>
+            <span className="text-subtle">Visitors online</span>
             <span className="text-white font-mono font-bold">{onlineCount}</span>
           </div>
           <div className="flex justify-between text-xs">
-            <span className="text-gray-400">Logged in</span>
+            <span className="text-subtle">Logged in</span>
             <span className="text-cyan-400 font-mono">{loggedInCount}</span>
           </div>
           <div className="flex justify-between text-xs">
-            <span className="text-gray-400">Anonymous</span>
-            <span className="text-gray-300 font-mono">{onlineCount - loggedInCount}</span>
+            <span className="text-subtle">Anonymous</span>
+            <span className="text-subtle font-mono">{onlineCount - loggedInCount}</span>
           </div>
         </div>
-        <p className="text-[10px] text-gray-500 mt-1.5 pt-1.5 border-t border-gray-800">
+        <p className="text-[10px] text-muted-label mt-1.5 pt-1.5 border-t border-muted-label">
           Updated in real-time via Supabase Presence
         </p>
       </TooltipContent>

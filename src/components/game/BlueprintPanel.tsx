@@ -21,9 +21,9 @@ import { GameIcon } from '@/components/game/shared/GameIcon';
 
 // Color map for building category bars in the distribution preview
 const CATEGORY_COLORS: Record<string, string> = {
-  extractor: 'bg-amber-500',
+  extractor: 'bg-warning',
   factory: 'bg-orange-500',
-  power: 'bg-yellow-500',
+  power: 'bg-warning',
   storage: 'bg-teal-500',
 };
 
@@ -142,7 +142,7 @@ export function BlueprintPanel() {
       category: cat,
       count,
       percent: (count / total) * 100,
-      color: CATEGORY_COLORS[cat] ?? 'bg-gray-500',
+      color: CATEGORY_COLORS[cat] ?? 'bg-muted-label',
     }));
   };
 
@@ -159,7 +159,7 @@ export function BlueprintPanel() {
           <h2 className="text-xl font-bold text-cyan-400 tracking-wide neon-glow-cyan">
             Blueprints
           </h2>
-          <p className="text-xs text-gray-500 mt-0.5">Save, share, and load factory layouts</p>
+          <p className="text-xs text-muted-label mt-0.5">Save, share, and load factory layouts</p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="border-cyan-500/50 text-cyan-400 bg-cyan-900/20 text-xs">
@@ -169,7 +169,7 @@ export function BlueprintPanel() {
           <Button
             variant="outline"
             size="sm"
-            className={`text-xs border-gray-700 ${showImport ? 'text-cyan-400 bg-cyan-900/20' : 'text-gray-400'}`}
+            className={`text-xs border-muted-label ${showImport ? 'text-cyan-400 bg-cyan-900/20' : 'text-subtle'}`}
             onClick={() => setShowImport(!showImport)}
           >
             <Upload className="w-3 h-3 mr-1" />
@@ -191,7 +191,7 @@ export function BlueprintPanel() {
               value={importCode}
               onChange={e => setImportCode(e.target.value)}
               placeholder="Paste blueprint code here..."
-              className="flex-1 bg-[#0a0e17] border border-gray-800 rounded-lg px-3 py-2 text-xs text-gray-300 focus:border-cyan-500/50 focus:outline-none font-mono"
+              className="flex-1 bg-[#0a0e17] border border-muted-label rounded-lg px-3 py-2 text-xs text-subtle focus:border-cyan-500/50 focus:outline-none font-mono"
               onKeyDown={e => e.key === 'Enter' && handleImport()}
             />
             <Button
@@ -206,7 +206,7 @@ export function BlueprintPanel() {
             <Button
               variant="ghost"
               size="sm"
-              className="text-gray-500 h-8 w-8 p-0"
+              className="text-muted-label h-8 w-8 p-0"
               onClick={() => { setShowImport(false); setImportCode(''); }}
               aria-label="Close import dialog"
             >
@@ -227,31 +227,31 @@ export function BlueprintPanel() {
 
             {store.buildings.length === 0 ? (
               <div className="text-center py-6">
-                <Factory className="w-10 h-10 text-gray-700 mx-auto mb-2" />
-                <p className="text-xs text-gray-500">No buildings to save</p>
-                <p className="text-[10px] text-gray-600 mt-1">Build some structures first, then save your layout</p>
+                <Factory className="w-10 h-10 text-dim mx-auto mb-2" />
+                <p className="text-xs text-muted-label">No buildings to save</p>
+                <p className="text-[10px] text-muted-label mt-1">Build some structures first, then save your layout</p>
               </div>
             ) : (
               <>
                 {/* Current layout summary */}
                 <div className="bg-[#0a0e17] rounded-lg p-3 mb-3">
-                  <div className="text-[10px] text-gray-500 mb-2">Current Factory Layout</div>
+                  <div className="text-[10px] text-muted-label mb-2">Current Factory Layout</div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
                     <div>
-                      <div className="text-gray-500">Buildings</div>
+                      <div className="text-muted-label">Buildings</div>
                       <div className="font-mono text-cyan-400 font-bold">{store.buildings.length}</div>
                     </div>
                     <div>
-                      <div className="text-gray-500">Transport</div>
+                      <div className="text-muted-label">Transport</div>
                       <div className="font-mono text-blue-400 font-bold">{store.transportLines.length}</div>
                     </div>
                     <div>
-                      <div className="text-gray-500">Workers</div>
+                      <div className="text-muted-label">Workers</div>
                       <div className="font-mono text-sky-400 font-bold">{store.workers.length}</div>
                     </div>
                     <div>
-                      <div className="text-gray-500">Power</div>
-                      <div className="font-mono text-yellow-400 font-bold">{formatNumber(store.powerGrid.totalProduction)}MW</div>
+                      <div className="text-muted-label">Power</div>
+                      <div className="font-mono text-warning font-bold">{formatNumber(store.powerGrid.totalProduction)}MW</div>
                     </div>
                   </div>
                 </div>
@@ -264,7 +264,7 @@ export function BlueprintPanel() {
                     return Object.entries(counts).map(([type, count]) => {
                       const def = BUILDING_DEFS[type];
                       return (
-                        <Badge key={type} variant="outline" className="text-[10px] border-gray-700 text-gray-300">
+                        <Badge key={type} variant="outline" className="text-[10px] border-muted-label text-subtle">
                           <GameIcon icon={def?.icon} size={12} className="inline-flex" /> {def?.name} ×{count}
                         </Badge>
                       );
@@ -281,7 +281,7 @@ export function BlueprintPanel() {
                       return Object.entries(counts).map(([type, count]) => {
                         const def = TRANSPORT_DEFS[type];
                         return (
-                          <Badge key={type} variant="outline" className="text-[10px] border-gray-700 text-blue-300">
+                          <Badge key={type} variant="outline" className="text-[10px] border-muted-label text-blue-300">
                             <GameIcon icon={def?.icon} size={12} className="inline-flex" /> {def?.name} ×{count}
                           </Badge>
                         );
@@ -297,7 +297,7 @@ export function BlueprintPanel() {
                     value={blueprintName}
                     onChange={e => setBlueprintName(e.target.value)}
                     placeholder={autoName}
-                    className="flex-1 bg-[#0a0e17] border border-gray-800 rounded-lg px-3 py-2 text-xs text-gray-300 focus:border-cyan-500/50 focus:outline-none placeholder:text-gray-600"
+                    className="flex-1 bg-[#0a0e17] border border-muted-label rounded-lg px-3 py-2 text-xs text-subtle focus:border-cyan-500/50 focus:outline-none placeholder:text-muted-label"
                     onKeyDown={e => e.key === 'Enter' && handleSave()}
                   />
                   <Button
@@ -310,7 +310,7 @@ export function BlueprintPanel() {
                     Save
                   </Button>
                 </div>
-                <p className="text-[9px] text-gray-600 mt-1.5">Leave name blank for auto-name: &quot;{autoName}&quot;</p>
+                <p className="text-[9px] text-muted-label mt-1.5">Leave name blank for auto-name: &quot;{autoName}&quot;</p>
               </>
             )}
           </div>
@@ -323,9 +323,9 @@ export function BlueprintPanel() {
             </div>
             {store.blueprints.length === 0 ? (
               <div className="text-center py-8">
-                <Save className="w-10 h-10 text-gray-700 mx-auto mb-2" />
-                <p className="text-xs text-gray-500">No blueprints saved yet</p>
-                <p className="text-[10px] text-gray-600 mt-1">Save your factory layout to recreate it later</p>
+                <Save className="w-10 h-10 text-dim mx-auto mb-2" />
+                <p className="text-xs text-muted-label">No blueprints saved yet</p>
+                <p className="text-[10px] text-muted-label mt-1">Save your factory layout to recreate it later</p>
               </div>
             ) : (
               <div className="space-y-2 max-h-[500px] overflow-y-auto game-scrollbar relative">
@@ -338,7 +338,7 @@ export function BlueprintPanel() {
                   const comparison = isExpanded ? getComparison(bp.id) : null;
 
                   return (
-                    <div key={bp.id} className="bg-[#0a0e17] rounded-lg border border-gray-800 hover:border-cyan-900/40">
+                    <div key={bp.id} className="bg-[#0a0e17] rounded-lg border border-muted-label hover:border-cyan-900/40">
                       {/* Header row */}
                       <div className="flex items-center justify-between p-3">
                         <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -360,14 +360,14 @@ export function BlueprintPanel() {
                                 <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-success min-h-[36px] min-w-[36px]" onClick={() => handleRename(bp.id)} aria-label="Confirm rename">
                                   <Check className="w-3 h-3" />
                                 </Button>
-                                <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-red-400 min-h-[36px] min-w-[36px]" onClick={() => setRenamingId(null)} aria-label="Cancel rename">
+                                <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-danger min-h-[36px] min-w-[36px]" onClick={() => setRenamingId(null)} aria-label="Cancel rename">
                                   <X className="w-3 h-3" />
                                 </Button>
                               </div>
                             ) : (
                               <>
                                 <div className="text-xs font-medium text-gray-200 truncate">{bp.name}</div>
-                                <div className="text-[9px] text-gray-500">
+                                <div className="text-[9px] text-muted-label">
                                   {totalBuildings} buildings • {totalTransport} transport • {formatDate(bp.savedAt)}
                                   {bp.shared && <span className="ml-1 text-cyan-500">• shared</span>}
                                 </div>
@@ -381,7 +381,7 @@ export function BlueprintPanel() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-6 w-6 p-0 text-gray-500 hover:text-cyan-400 min-h-[36px] min-w-[36px]"
+                                className="h-6 w-6 p-0 text-muted-label hover:text-cyan-400 min-h-[36px] min-w-[36px]"
                                 onClick={() => {
                                   setRenamingId(bp.id);
                                   setRenameValue(bp.name);
@@ -398,7 +398,7 @@ export function BlueprintPanel() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-6 w-6 p-0 text-gray-500 hover:text-cyan-400 min-h-[36px] min-w-[36px]"
+                                className="h-6 w-6 p-0 text-muted-label hover:text-cyan-400 min-h-[36px] min-w-[36px]"
                                 onClick={() => handleCopyCode(bp.id)}
                                 aria-label="Export share code"
                               >
@@ -414,7 +414,7 @@ export function BlueprintPanel() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-6 w-6 p-0 text-gray-500 hover:text-red-400 min-h-[36px] min-w-[36px]"
+                                className="h-6 w-6 p-0 text-muted-label hover:text-danger min-h-[36px] min-w-[36px]"
                                 onClick={() => {
                                   if (confirm('Are you sure you want to delete this blueprint? This cannot be undone.')) {
                                     store.deleteBlueprint(bp.id);
@@ -430,7 +430,7 @@ export function BlueprintPanel() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-6 w-6 p-0 text-gray-500 min-h-[36px] min-w-[36px]"
+                            className="h-6 w-6 p-0 text-muted-label min-h-[36px] min-w-[36px]"
                             onClick={() => setExpandedBlueprint(isExpanded ? null : bp.id)}
                             aria-label={isExpanded ? 'Collapse blueprint details' : 'Expand blueprint details'}
                             aria-expanded={isExpanded}
@@ -443,7 +443,7 @@ export function BlueprintPanel() {
                       {/* Distribution bar */}
                       {distribution.length > 0 && (
                         <div className="px-3 pb-1">
-                          <div className="flex h-1.5 rounded-full overflow-hidden bg-gray-800">
+                          <div className="flex h-1.5 rounded-full overflow-hidden bg-muted-label">
                             {distribution.map((d, i) => (
                               <div
                                 key={i}
@@ -454,7 +454,7 @@ export function BlueprintPanel() {
                           </div>
                           <div className="flex items-center gap-2 mt-1 flex-wrap">
                             {distribution.map((d, i) => (
-                              <span key={i} className="text-[9px] text-gray-500 flex items-center gap-0.5">
+                              <span key={i} className="text-[9px] text-muted-label flex items-center gap-0.5">
                                 <span className={`w-1.5 h-1.5 rounded-full ${d.color}`} />
                                 {d.category} {d.count}
                               </span>
@@ -465,14 +465,14 @@ export function BlueprintPanel() {
 
                       {/* Expanded detail */}
                       {isExpanded && (
-                        <div className="px-3 pb-3 pt-2 border-t border-gray-800">
+                        <div className="px-3 pb-3 pt-2 border-t border-muted-label">
                           {/* Blueprint buildings list */}
-                          <div className="text-[10px] text-gray-500 font-medium mb-1.5">Blueprint Contents</div>
+                          <div className="text-[10px] text-muted-label font-medium mb-1.5">Blueprint Contents</div>
                           <div className="flex flex-wrap gap-1.5 mb-3">
                             {bp.buildings.map(b => {
                               const def = BUILDING_DEFS[b.type];
                               return (
-                                <Badge key={b.type} variant="outline" className="text-[10px] border-gray-700 text-gray-300">
+                                <Badge key={b.type} variant="outline" className="text-[10px] border-muted-label text-subtle">
                                   <GameIcon icon={def?.icon} size={12} className="inline-flex" /> {def?.name} ×{b.count}
                                 </Badge>
                               );
@@ -490,7 +490,7 @@ export function BlueprintPanel() {
                           {/* Comparison: Missing buildings */}
                           {comparison && comparison.missingBuildings.length > 0 && (
                             <div className="bg-[#0a0e17] rounded-lg p-3 mb-3 border border-amber-900/20">
-                              <div className="text-[10px] text-amber-400 font-medium mb-2 flex items-center gap-1">
+                              <div className="text-[10px] text-warning font-medium mb-2 flex items-center gap-1">
                                 <AlertTriangle className="w-3 h-3" />
                                 Missing Buildings to Complete Layout
                               </div>
@@ -499,24 +499,24 @@ export function BlueprintPanel() {
                                   <div key={mb.type} className="flex items-center justify-between text-[11px]">
                                     <div className="flex items-center gap-1.5">
                                       <GameIcon icon={mb.icon} size={14} className="inline-flex" />
-                                      <span className="text-gray-300">{mb.name}</span>
-                                      <span className="text-gray-500">
+                                      <span className="text-subtle">{mb.name}</span>
+                                      <span className="text-muted-label">
                                         ({mb.current}/{mb.target})
                                       </span>
                                     </div>
                                     <div className="flex items-center gap-1">
-                                      <span className="text-amber-400">+{mb.needed}</span>
-                                      <span className="text-gray-600">@</span>
-                                      <span className="text-gray-400">${formatNumber(mb.totalCost)}</span>
+                                      <span className="text-warning">+{mb.needed}</span>
+                                      <span className="text-muted-label">@</span>
+                                      <span className="text-subtle">${formatNumber(mb.totalCost)}</span>
                                     </div>
                                   </div>
                                 ))}
                               </div>
-                              <div className="mt-2 pt-2 border-t border-gray-800 flex items-center justify-between">
-                                <div className="text-[11px] text-gray-400">
-                                  Total cost: <span className={comparison.canAfford ? 'text-success' : 'text-red-400'}>${formatNumber(comparison.totalCost)}</span>
+                              <div className="mt-2 pt-2 border-t border-muted-label flex items-center justify-between">
+                                <div className="text-[11px] text-subtle">
+                                  Total cost: <span className={comparison.canAfford ? 'text-success' : 'text-danger'}>${formatNumber(comparison.totalCost)}</span>
                                 </div>
-                                <div className="text-[10px] text-gray-500">
+                                <div className="text-[10px] text-muted-label">
                                   Balance: ${formatNumber(store.money)}
                                 </div>
                               </div>
@@ -541,7 +541,7 @@ export function BlueprintPanel() {
                                 className={`flex-1 text-xs h-8 ${
                                   comparison.canAfford
                                     ? 'bg-cyan-600 hover:bg-cyan-500 text-white'
-                                    : 'bg-gray-800 text-gray-500'
+                                    : 'bg-muted-label text-muted-label'
                                 }`}
                                 size="sm"
                               >
@@ -568,7 +568,7 @@ export function BlueprintPanel() {
               <Share2 className="w-4 h-4 text-cyan-400" />
               <h3 className="text-sm font-semibold text-cyan-400">Share Blueprints</h3>
             </div>
-            <div className="space-y-2 text-[11px] text-gray-500">
+            <div className="space-y-2 text-[11px] text-muted-label">
               <p className="flex items-start gap-1.5">
                 <Share2 className="w-3 h-3 mt-0.5 flex-shrink-0 text-cyan-600" />
                 Click the share icon on any blueprint to copy its code
@@ -593,15 +593,15 @@ export function BlueprintPanel() {
             <div className="space-y-2 max-h-80 overflow-y-auto game-scrollbar">
               {PRODUCTION_CHAINS.map((chain, i) => (
                 <div key={i} className="bg-[#0a0e17] rounded-lg p-2">
-                  <div className="text-[10px] text-gray-400 font-medium mb-1">{chain.name}</div>
+                  <div className="text-[10px] text-subtle font-medium mb-1">{chain.name}</div>
                   <div className="flex items-center gap-1 flex-wrap">
                     {chain.steps.map((step, j) => (
                       <div key={j} className="flex items-center gap-1">
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-300">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted-label text-subtle">
                           <GameIcon icon={RESOURCE_META[step as keyof typeof RESOURCE_META]?.icon} size={12} className="inline-flex" /> {RESOURCE_META[step as keyof typeof RESOURCE_META]?.name}
                         </span>
                         {j < chain.steps.length - 1 && (
-                          <ArrowRight className="w-2.5 h-2.5 text-gray-600 flex-shrink-0" />
+                          <ArrowRight className="w-2.5 h-2.5 text-muted-label flex-shrink-0" />
                         )}
                       </div>
                     ))}
@@ -614,10 +614,10 @@ export function BlueprintPanel() {
           {/* Tips */}
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
-              <Clock className="w-4 h-4 text-gray-400" />
-              <h3 className="text-sm font-semibold text-gray-400">Blueprint Tips</h3>
+              <Clock className="w-4 h-4 text-subtle" />
+              <h3 className="text-sm font-semibold text-subtle">Blueprint Tips</h3>
             </div>
-            <div className="space-y-2 text-[11px] text-gray-500">
+            <div className="space-y-2 text-[11px] text-muted-label">
               <p>• Save layouts before trying risky changes</p>
               <p>• Share codes work across different saves</p>
               <p>• Use production chains as building guides</p>

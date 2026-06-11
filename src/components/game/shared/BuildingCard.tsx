@@ -31,22 +31,22 @@ export function BuildingCard({
           <GameIcon icon={building.type as never} size={18} />
           <span className="text-sm font-semibold text-cyan-300 truncate">{building.type}</span>
         </div>
-        <span className="text-[10px] text-gray-500 font-mono">
+        <span className="text-[10px] text-muted-label font-mono">
           Lv {building.level}
         </span>
       </div>
       {variant !== 'compact' && (
-        <div className="mt-2 flex items-center gap-3 text-[10px] text-gray-400">
+        <div className="mt-2 flex items-center gap-3 text-[10px] text-subtle">
           <span>Eff: {(building.efficiency * 100).toFixed(0)}%</span>
           {building.active ? (
             <span className="text-success">Active</span>
           ) : (
-            <span className="text-gray-500">Idle</span>
+            <span className="text-muted-label">Idle</span>
           )}
         </div>
       )}
       {variant === 'detailed' && (
-        <div className="mt-1 text-[10px] text-gray-500 font-mono">
+        <div className="mt-1 text-[10px] text-muted-label font-mono">
           Built: {formatNumber(building.buildCost ?? 0)} credits
         </div>
       )}

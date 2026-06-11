@@ -164,9 +164,9 @@ export function DashboardPanel() {
   const empireTier = useMemo(() => {
     if (empireScore >= 50000) return { name: 'Diamond', color: '#b9f2ff', bgColor: 'bg-cyan-100', borderColor: 'border-cyan-300', textColor: 'text-cyan-200', icon: <Gem className="w-4 h-4" />, nextThreshold: null, progress: 1 };
     if (empireScore >= 10000) return { name: 'Platinum', color: '#e5e4e2', bgColor: 'bg-gray-200', borderColor: 'border-gray-400', textColor: 'text-gray-200', icon: <Crown className="w-4 h-4" />, nextThreshold: 50000, progress: (empireScore - 10000) / 40000 };
-    if (empireScore >= 2000) return { name: 'Gold', color: '#ffd700', bgColor: 'bg-yellow-400', borderColor: 'border-yellow-500', textColor: 'text-yellow-400', icon: <Trophy className="w-4 h-4" />, nextThreshold: 10000, progress: (empireScore - 2000) / 8000 };
-    if (empireScore >= 500) return { name: 'Silver', color: '#c0c0c0', bgColor: 'bg-gray-400', borderColor: 'border-gray-500', textColor: 'text-gray-300', icon: <Star className="w-4 h-4" />, nextThreshold: 2000, progress: (empireScore - 500) / 1500 };
-    return { name: 'Bronze', color: '#cd7f32', bgColor: 'bg-amber-600', borderColor: 'border-amber-600', textColor: 'text-amber-400', icon: <Shield className="w-4 h-4" />, nextThreshold: 500, progress: empireScore / 500 };
+    if (empireScore >= 2000) return { name: 'Gold', color: '#ffd700', bgColor: 'bg-warning', borderColor: 'border-warning', textColor: 'text-warning', icon: <Trophy className="w-4 h-4" />, nextThreshold: 10000, progress: (empireScore - 2000) / 8000 };
+    if (empireScore >= 500) return { name: 'Silver', color: '#c0c0c0', bgColor: 'bg-gray-400', borderColor: 'border-muted-label', textColor: 'text-subtle', icon: <Star className="w-4 h-4" />, nextThreshold: 2000, progress: (empireScore - 500) / 1500 };
+    return { name: 'Bronze', color: '#cd7f32', bgColor: 'bg-amber-600', borderColor: 'border-amber-600', textColor: 'text-warning', icon: <Shield className="w-4 h-4" />, nextThreshold: 500, progress: empireScore / 500 };
   }, [empireScore]);
 
   // Economy summary values
@@ -216,7 +216,7 @@ export function DashboardPanel() {
             <GameIcon icon="gi:present" size={24} className="animate-bounce" />
             <div className="text-left">
               <p className="text-sm font-bold text-pink-300 group-hover:text-pink-200 transition-colors">Daily Reward Available!</p>
-              <p className="text-[10px] text-gray-400">Click to claim your daily login bonus</p>
+              <p className="text-[10px] text-subtle">Click to claim your daily login bonus</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -256,7 +256,7 @@ export function DashboardPanel() {
           {/* Score info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <h3 className="text-sm font-semibold text-gray-300">Empire Score</h3>
+              <h3 className="text-sm font-semibold text-subtle">Empire Score</h3>
               <Badge
                 variant="outline"
                 className="text-[9px] font-bold"
@@ -273,18 +273,18 @@ export function DashboardPanel() {
               <span className="text-2xl font-bold font-mono" style={{ color: empireTier.color }}>
                 {formatNumber(empireScore)}
               </span>
-              <span className="text-[10px] text-gray-500">points</span>
+              <span className="text-[10px] text-muted-label">points</span>
             </div>
             {/* Progress bar to next tier */}
             {empireTier.nextThreshold !== null ? (
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] text-gray-500">Next: {empireTier.name === 'Bronze' ? 'Silver' : empireTier.name === 'Silver' ? 'Gold' : empireTier.name === 'Gold' ? 'Platinum' : 'Diamond'}</span>
+                  <span className="text-[10px] text-muted-label">Next: {empireTier.name === 'Bronze' ? 'Silver' : empireTier.name === 'Silver' ? 'Gold' : empireTier.name === 'Gold' ? 'Platinum' : 'Diamond'}</span>
                   <span className="text-[10px] font-mono" style={{ color: empireTier.color }}>
                     {formatNumber(empireTier.nextThreshold - empireScore)} pts to go
                   </span>
                 </div>
-                <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                <div className="h-2 bg-muted-label rounded-full overflow-hidden">
                   <motion.div
                     className="h-full rounded-full"
                     style={{
@@ -306,20 +306,20 @@ export function DashboardPanel() {
           </div>
           {/* Score breakdown mini-stats */}
           <div className="hidden md:flex flex-col gap-1 text-[10px]">
-            <div className="flex items-center gap-1.5 text-gray-500">
+            <div className="flex items-center gap-1.5 text-muted-label">
               <Factory className="w-3 h-3" />
               <span>{totalBuildings}×10</span>
-              <span className="text-gray-400 font-mono">= {totalBuildings * 10}</span>
+              <span className="text-subtle font-mono">= {totalBuildings * 10}</span>
             </div>
-            <div className="flex items-center gap-1.5 text-gray-500">
+            <div className="flex items-center gap-1.5 text-muted-label">
               <Activity className="w-3 h-3" />
               <span>{activeBuildings}×20</span>
-              <span className="text-gray-400 font-mono">= {activeBuildings * 20}</span>
+              <span className="text-subtle font-mono">= {activeBuildings * 20}</span>
             </div>
-            <div className="flex items-center gap-1.5 text-gray-500">
+            <div className="flex items-center gap-1.5 text-muted-label">
               <FlaskConical className="w-3 h-3" />
               <span>{completedResearch.length}×50</span>
-              <span className="text-gray-400 font-mono">= {completedResearch.length * 50}</span>
+              <span className="text-subtle font-mono">= {completedResearch.length * 50}</span>
             </div>
           </div>
         </div>
@@ -344,7 +344,7 @@ export function DashboardPanel() {
               </div>
               <button
                 onClick={() => setTrackedQuest(null)}
-                className="text-gray-500 hover:text-gray-300 p-0.5 rounded hover:bg-gray-800/50 transition-colors"
+                className="text-muted-label hover:text-subtle p-0.5 rounded hover:bg-muted-label/50 transition-colors"
               >
                 <XIcon className="w-3 h-3" />
               </button>
@@ -354,12 +354,12 @@ export function DashboardPanel() {
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-gray-200 font-medium truncate">{trackedQuestData.name}</p>
                 {currentStep && (
-                  <p className="text-[10px] text-gray-500 truncate">{currentStep.description}: {Math.min(currentStep.current, currentStep.target)}/{currentStep.target}</p>
+                  <p className="text-[10px] text-muted-label truncate">{currentStep.description}: {Math.min(currentStep.current, currentStep.target)}/{currentStep.target}</p>
                 )}
               </div>
               <div className="text-right flex-shrink-0">
                 <div className="text-[10px] text-cyan-400 font-mono">{Math.round(tProgress * 100)}%</div>
-                <div className="w-16 h-1 bg-gray-800 rounded-full overflow-hidden mt-0.5">
+                <div className="w-16 h-1 bg-muted-label rounded-full overflow-hidden mt-0.5">
                   <div className="h-full bg-cyan-400 rounded-full" style={{ width: `${tProgress * 100}%` }} />
                 </div>
               </div>
@@ -410,7 +410,7 @@ export function DashboardPanel() {
               <div className="mb-4"><GameIcon icon="gi:castle" size={48} /></div>
             </motion.div>
             <h3 className="text-xl font-bold text-cyan-400 neon-glow-cyan mb-2">Build Your First Factory!</h3>
-            <p className="text-sm text-gray-400 mb-6 max-w-md mx-auto">
+            <p className="text-sm text-subtle mb-6 max-w-md mx-auto">
               Start by building a Coal Generator to power your empire, then add Mining Drills to extract resources.
             </p>
             <div className="flex items-center justify-center gap-3 flex-wrap">
@@ -420,7 +420,7 @@ export function DashboardPanel() {
                 className="rounded-md"
               >
                 <Button
-                  className="bg-yellow-600 hover:bg-yellow-500 text-white font-semibold px-5 py-2.5 text-xs"
+                  className="bg-yellow-600 hover:bg-warning text-white font-semibold px-5 py-2.5 text-xs"
                   onClick={() => setActiveTab('power')}
                 >
                   <Zap className="w-4 h-4 mr-1.5" />
@@ -441,15 +441,15 @@ export function DashboardPanel() {
                 </Button>
               </motion.div>
             </div>
-            <div className="mt-6 flex items-center justify-center gap-4 text-[10px] text-gray-500">
+            <div className="mt-6 flex items-center justify-center gap-4 text-[10px] text-muted-label">
               <motion.div
                 className="flex items-center gap-2 bg-yellow-900/20 border border-yellow-700/30 rounded-lg px-3 py-2"
                 whileHover={{ scale: 1.05, borderColor: 'rgba(234,179,8,0.5)' }}
               >
                 <span className="w-5 h-5 rounded-full bg-yellow-600 text-white flex items-center justify-center text-[10px] font-bold">1</span>
-                <span className="text-yellow-400 font-medium">Build Power</span>
+                <span className="text-warning font-medium">Build Power</span>
               </motion.div>
-              <ArrowRight className="w-3 h-3 text-gray-700" />
+              <ArrowRight className="w-3 h-3 text-dim" />
               <motion.div
                 className="flex items-center gap-2 bg-cyan-900/20 border border-cyan-700/30 rounded-lg px-3 py-2"
                 whileHover={{ scale: 1.05, borderColor: 'rgba(6,182,212,0.5)' }}
@@ -457,7 +457,7 @@ export function DashboardPanel() {
                 <span className="w-5 h-5 rounded-full bg-cyan-600 text-white flex items-center justify-center text-[10px] font-bold">2</span>
                 <span className="text-cyan-400 font-medium">Build Drills</span>
               </motion.div>
-              <ArrowRight className="w-3 h-3 text-gray-700" />
+              <ArrowRight className="w-3 h-3 text-dim" />
               <motion.div
                 className="flex items-center gap-2 bg-orange-900/20 border border-orange-700/30 rounded-lg px-3 py-2"
                 whileHover={{ scale: 1.05, borderColor: 'rgba(249,115,22,0.5)' }}
@@ -487,7 +487,7 @@ export function DashboardPanel() {
                 </motion.span>
               )}
             </h2>
-            <p className="text-xs text-gray-500 mt-0.5">Command center for your industrial empire</p>
+            <p className="text-xs text-muted-label mt-0.5">Command center for your industrial empire</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -498,7 +498,7 @@ export function DashboardPanel() {
             </Badge>
           )}
           {powerGrid.overload && (
-            <Badge variant="outline" className="border-red-500/50 text-red-400 bg-red-900/20 text-xs" style={{ animation: 'breathe-glow 2s ease-in-out infinite' }}>
+            <Badge variant="outline" className="border-danger/50 text-danger bg-danger/20 text-xs" style={{ animation: 'breathe-glow 2s ease-in-out infinite' }}>
               <Zap className="w-3 h-3 mr-1" />
               POWER OVERLOAD
             </Badge>
@@ -552,17 +552,17 @@ export function DashboardPanel() {
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Zap className="w-4 h-4 text-yellow-400" />
-                <h3 className="text-sm font-semibold text-yellow-400">Power Grid</h3>
+                <Zap className="w-4 h-4 text-warning" />
+                <h3 className="text-sm font-semibold text-warning">Power Grid</h3>
               </div>
               <Badge
                 variant="outline"
                 className={`text-[10px] ${
                   powerGrid.totalProduction === 0 && powerGrid.totalConsumption === 0
-                    ? 'border-gray-500/50 text-gray-400 bg-gray-900/20'
+                    ? 'border-muted-label/50 text-subtle bg-muted-label/20'
                     : powerSurplus >= 0
                       ? 'border-success/50 text-success bg-success/20'
-                      : 'border-red-500/50 text-red-400 bg-red-900/20'
+                      : 'border-danger/50 text-danger bg-danger/20'
                 }`}
               >
                 {powerGrid.totalProduction === 0 && powerGrid.totalConsumption === 0 ? (
@@ -579,10 +579,10 @@ export function DashboardPanel() {
             {powerGrid.totalProduction === 0 && powerGrid.totalConsumption === 0 ? (
               <div className="text-center py-4">
                 <div className="mb-2"><GameIcon icon="gi:lightning-frequency" size={28} /></div>
-                <p className="text-sm text-gray-400 font-medium mb-1">NO POWER GRID</p>
-                <p className="text-xs text-gray-500 mb-3">Build a Coal Generator or Solar Panel to start generating power</p>
+                <p className="text-sm text-subtle font-medium mb-1">NO POWER GRID</p>
+                <p className="text-xs text-muted-label mb-3">Build a Coal Generator or Solar Panel to start generating power</p>
                 <Button
-                  className="glow-button-cyan bg-yellow-600 hover:bg-yellow-500 text-white text-xs font-semibold px-4 py-1.5"
+                  className="glow-button-cyan bg-yellow-600 hover:bg-warning text-white text-xs font-semibold px-4 py-1.5"
                   onClick={() => setActiveTab('power')}
                 >
                   <Zap className="w-3 h-3 mr-1" />
@@ -594,14 +594,14 @@ export function DashboardPanel() {
             {/* Power Gauge */}
             <div className="relative mb-3">
               <div className="flex items-center justify-between text-xs mb-1.5">
-                <span className="text-gray-400">
+                <span className="text-subtle">
                   <span className="text-success font-mono font-bold">{formatNumber(powerGrid.totalProduction)}</span> MW production
                 </span>
-                <span className="text-gray-400">
+                <span className="text-subtle">
                   <span className="text-orange-400 font-mono font-bold">{formatNumber(powerGrid.totalConsumption)}</span> MW demand
                 </span>
               </div>
-              <div className="h-4 bg-gray-800 rounded-full overflow-hidden relative">
+              <div className="h-4 bg-muted-label rounded-full overflow-hidden relative">
                 <div
                   className="absolute inset-y-0 left-0 bg-orange-600/30 rounded-full transition-all duration-700"
                   style={{ width: `${Math.min(100, (powerGrid.totalConsumption / Math.max(1, powerGrid.totalProduction)) * 100)}%` }}
@@ -621,10 +621,10 @@ export function DashboardPanel() {
                 </div>
               </div>
               <div className="flex justify-between mt-1">
-                <span className="text-[10px] text-gray-500">
+                <span className="text-[10px] text-muted-label">
                   {powerSurplus >= 0 ? `+${formatNumber(powerSurplus)}` : formatNumber(powerSurplus)} MW net
                 </span>
-                <span className="text-[10px] text-gray-500">
+                <span className="text-[10px] text-muted-label">
                   {powerCount} power plant{powerCount !== 1 ? 's' : ''}
                 </span>
               </div>
@@ -666,7 +666,7 @@ export function DashboardPanel() {
                 <DollarSign className="w-4 h-4 text-success" />
                 <h3 className="text-sm font-semibold text-success">Economy Summary</h3>
               </div>
-              <span className="text-[10px] text-gray-500">financial overview</span>
+              <span className="text-[10px] text-muted-label">financial overview</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {/* Net Income */}
@@ -675,12 +675,12 @@ export function DashboardPanel() {
                   <div className="w-6 h-6 rounded-md bg-success/30 flex items-center justify-center">
                     <TrendingUp className="w-3.5 h-3.5 text-success" />
                   </div>
-                  <span className="text-[10px] text-gray-500">Net Income</span>
+                  <span className="text-[10px] text-muted-label">Net Income</span>
                 </div>
                 <div className="text-sm font-bold font-mono text-success">
                   ${formatNumber(economySummary.netIncomePerMin)}/min
                 </div>
-                <div className="text-[9px] text-gray-600 mt-0.5">
+                <div className="text-[9px] text-muted-label mt-0.5">
                   {economySummary.netIncomePerMin > 0 ? 'Profitable' : economySummary.netIncomePerMin === 0 ? 'No income' : 'Losing money'}
                 </div>
               </div>
@@ -690,12 +690,12 @@ export function DashboardPanel() {
                   <div className="w-6 h-6 rounded-md bg-cyan-900/30 flex items-center justify-center">
                     <Wallet className="w-3.5 h-3.5 text-cyan-400" />
                   </div>
-                  <span className="text-[10px] text-gray-500">Total Assets</span>
+                  <span className="text-[10px] text-muted-label">Total Assets</span>
                 </div>
                 <div className="text-sm font-bold font-mono text-cyan-400">
                   ${formatNumber(economySummary.totalAssetsValue)}
                 </div>
-                <div className="text-[9px] text-gray-600 mt-0.5">
+                <div className="text-[9px] text-muted-label mt-0.5">
                   Cash: ${formatNumber(money)}
                 </div>
               </div>
@@ -703,22 +703,22 @@ export function DashboardPanel() {
               <div className="bg-[#0a0e17] rounded-lg p-3">
                 <div className="flex items-center gap-2 mb-1.5">
                   <div className="w-6 h-6 rounded-md bg-amber-900/30 flex items-center justify-center">
-                    <BarChart3 className="w-3.5 h-3.5 text-amber-400" />
+                    <BarChart3 className="w-3.5 h-3.5 text-warning" />
                   </div>
-                  <span className="text-[10px] text-gray-500">Storage Used</span>
+                  <span className="text-[10px] text-muted-label">Storage Used</span>
                 </div>
                 <div className={`text-sm font-bold font-mono ${
-                  economySummary.storageUtilization > 90 ? 'text-red-400' :
+                  economySummary.storageUtilization > 90 ? 'text-danger' :
                   economySummary.storageUtilization > 70 ? 'text-orange-400' :
-                  economySummary.storageUtilization > 50 ? 'text-yellow-400' :
+                  economySummary.storageUtilization > 50 ? 'text-warning' :
                   'text-success'
                 }`}>
                   {economySummary.storageUtilization.toFixed(1)}%
                 </div>
-                <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden mt-1.5">
+                <div className="h-1.5 bg-muted-label rounded-full overflow-hidden mt-1.5">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
-                      economySummary.storageUtilization > 90 ? 'bg-red-500' :
+                      economySummary.storageUtilization > 90 ? 'bg-danger' :
                       economySummary.storageUtilization > 70 ? 'bg-orange-500' :
                       'bg-success'
                     }`}
@@ -736,7 +736,7 @@ export function DashboardPanel() {
                 <Database className="w-4 h-4 text-cyan-400" />
                 <h3 className="text-sm font-semibold text-cyan-400">Resource Storage</h3>
               </div>
-              <span className="text-[10px] text-gray-500">{topResources.length} raw materials</span>
+              <span className="text-[10px] text-muted-label">{topResources.length} raw materials</span>
             </div>
             {/* Resource Overview Summary */}
             {(() => {
@@ -747,18 +747,18 @@ export function DashboardPanel() {
                 <div className="mb-3 bg-[#0a0e17] rounded-lg p-3">
                   <div className="flex items-center justify-between text-[10px] mb-1.5">
                     <div className="flex items-center gap-3">
-                      <span className="text-gray-400">Total Stored: <span className="text-cyan-300 font-mono font-bold">{formatNumber(totalStored)}</span></span>
-                      <span className="text-gray-600">|</span>
-                      <span className="text-gray-400">Capacity: <span className={`font-mono font-bold ${overallPct > 80 ? 'text-orange-400' : overallPct > 50 ? 'text-yellow-400' : 'text-success'}`}>{overallPct.toFixed(1)}%</span></span>
+                      <span className="text-subtle">Total Stored: <span className="text-cyan-300 font-mono font-bold">{formatNumber(totalStored)}</span></span>
+                      <span className="text-muted-label">|</span>
+                      <span className="text-subtle">Capacity: <span className={`font-mono font-bold ${overallPct > 80 ? 'text-orange-400' : overallPct > 50 ? 'text-warning' : 'text-success'}`}>{overallPct.toFixed(1)}%</span></span>
                     </div>
-                    <span className="text-gray-500 font-mono">{formatNumber(totalStored)}/{formatNumber(totalCapacity)}</span>
+                    <span className="text-muted-label font-mono">{formatNumber(totalStored)}/{formatNumber(totalCapacity)}</span>
                   </div>
-                  <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                  <div className="h-2 bg-muted-label rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${
-                        overallPct > 90 ? 'bg-red-500' :
+                        overallPct > 90 ? 'bg-danger' :
                         overallPct > 70 ? 'bg-orange-500' :
-                        overallPct > 50 ? 'bg-yellow-500' :
+                        overallPct > 50 ? 'bg-warning' :
                         'bg-gradient-to-r from-cyan-600 to-cyan-400'
                       }`}
                       style={{ width: `${Math.min(100, overallPct)}%` }}
@@ -776,14 +776,14 @@ export function DashboardPanel() {
                     <div className="flex items-center justify-between text-xs mb-1">
                       <div className="flex items-center gap-1.5">
                         <GameIcon icon={meta.icon} size={14} className="inline-flex" />
-                        <span className="text-gray-300 font-medium">{meta.name}</span>
+                        <span className="text-subtle font-medium">{meta.name}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className={`font-mono ${isLow ? 'text-orange-400' : 'text-gray-300'}`}>
+                        <span className={`font-mono ${isLow ? 'text-orange-400' : 'text-subtle'}`}>
                           {formatNumber(amount)}
                         </span>
-                        <span className="text-gray-600">/</span>
-                        <span className="text-gray-500 font-mono text-[10px]">{formatNumber(capacity)}</span>
+                        <span className="text-muted-label">/</span>
+                        <span className="text-muted-label font-mono text-[10px]">{formatNumber(capacity)}</span>
                         {productionRates[resource] > 0 && (
                           <span className="text-success/70 text-[10px]">
                             +{formatNumber(productionRates[resource])}/s
@@ -791,10 +791,10 @@ export function DashboardPanel() {
                         )}
                       </div>
                     </div>
-                    <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-muted-label rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full resource-bar-premium resource-bar-animated transition-all duration-500 ${
-                          pct > 90 ? 'bg-red-500' :
+                          pct > 90 ? 'bg-danger' :
                           pct > 70 ? 'bg-orange-500' :
                           'bg-gradient-to-r from-cyan-600 to-cyan-400'
                         }`}
@@ -814,13 +814,13 @@ export function DashboardPanel() {
                 <TrendingUp className="w-4 h-4 text-success" />
                 <h3 className="text-sm font-semibold text-success">Production Rates</h3>
               </div>
-              <span className="text-[10px] text-gray-500">per second</span>
+              <span className="text-[10px] text-muted-label">per second</span>
             </div>
             {topProductionRates.length === 0 ? (
               <div className="text-center py-6">
-                <Cog className="w-8 h-8 text-gray-700 mx-auto mb-2" />
-                <p className="text-xs text-gray-500">No active production</p>
-                <p className="text-[10px] text-gray-600 mt-1">Build extractors and factories to start producing</p>
+                <Cog className="w-8 h-8 text-dim mx-auto mb-2" />
+                <p className="text-xs text-muted-label">No active production</p>
+                <p className="text-[10px] text-muted-label mt-1">Build extractors and factories to start producing</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -852,13 +852,13 @@ export function DashboardPanel() {
                 <Activity className="w-4 h-4 text-cyan-400" />
                 <h3 className="text-sm font-semibold text-cyan-400">Activity Feed</h3>
               </div>
-              <span className="text-[10px] text-gray-500">Live events</span>
+              <span className="text-[10px] text-muted-label">Live events</span>
             </div>
             {activityFeed.length === 0 ? (
               <div className="text-center py-4">
-                <Activity className="w-6 h-6 text-gray-700 mx-auto mb-1.5" />
-                <p className="text-xs text-gray-500">No recent activity</p>
-                <p className="text-[10px] text-gray-600 mt-0.5">Start building to see events here</p>
+                <Activity className="w-6 h-6 text-dim mx-auto mb-1.5" />
+                <p className="text-xs text-muted-label">No recent activity</p>
+                <p className="text-[10px] text-muted-label mt-0.5">Start building to see events here</p>
               </div>
             ) : (
               <div className="space-y-1 max-h-64 overflow-y-auto game-scrollbar">
@@ -868,9 +868,9 @@ export function DashboardPanel() {
                       key={entry.id}
                       className={`flex items-start gap-2 py-1.5 px-2 rounded text-[11px] border-l-2 ${
                         entry.type === 'success' ? 'text-success bg-success/5 border-l-green-500' :
-                        entry.type === 'warning' ? 'text-yellow-400 bg-yellow-900/5 border-l-yellow-500' :
-                        entry.type === 'error' ? 'text-red-400 bg-red-900/5 border-l-red-500' :
-                        'text-gray-400 bg-gray-900/5 border-l-gray-600'
+                        entry.type === 'warning' ? 'text-warning bg-yellow-900/5 border-l-yellow-500' :
+                        entry.type === 'error' ? 'text-danger bg-danger/5 border-l-red-500' :
+                        'text-subtle bg-muted-label/5 border-l-gray-600'
                       }`}
                     >
                       <div className="flex-shrink-0 mt-0.5 text-current">
@@ -882,7 +882,7 @@ export function DashboardPanel() {
                       <div className="flex-1 min-w-0">
                         <span className="truncate block">{entry.message}</span>
                       </div>
-                      <span className="text-[9px] text-gray-600 flex-shrink-0 mt-0.5">
+                      <span className="text-[9px] text-muted-label flex-shrink-0 mt-0.5">
                         t:{entry.gameTick}
                       </span>
                     </motion.div>
@@ -910,8 +910,8 @@ export function DashboardPanel() {
                 label="Extractors"
                 count={extractorCount}
                 total={totalBuildings}
-                color="text-amber-400"
-                bgColor="bg-amber-500"
+                color="text-warning"
+                bgColor="bg-warning"
               />
               <BuildingCategoryRow
                 icon={<Cog className="w-3.5 h-3.5" />}
@@ -926,8 +926,8 @@ export function DashboardPanel() {
                 label="Power Plants"
                 count={powerCount}
                 total={totalBuildings}
-                color="text-yellow-400"
-                bgColor="bg-yellow-500"
+                color="text-warning"
+                bgColor="bg-warning"
               />
             </div>
           </div>
@@ -947,13 +947,13 @@ export function DashboardPanel() {
                   <GameIcon icon={activeResearchInfo.icon} size={20} className="inline-flex" />
                   <div>
                     <p className="text-xs text-gray-200 font-medium">{activeResearchInfo.name}</p>
-                    <p className="text-[10px] text-gray-500">
+                    <p className="text-[10px] text-muted-label">
                       <Timer className="w-2.5 h-2.5 inline mr-0.5" />
                       {formatNumber(researchProgress)} / {formatNumber(activeResearchInfo.timeRequired)} ticks
                     </p>
                   </div>
                 </div>
-                <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                <div className="h-2 bg-muted-label rounded-full overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-purple-600 to-purple-400 rounded-full transition-all duration-300"
                     style={{ width: `${activeResearchInfo.progress}%` }}
@@ -967,9 +967,9 @@ export function DashboardPanel() {
               </div>
             ) : (
               <div className="text-center py-4">
-                <FlaskConical className="w-6 h-6 text-gray-700 mx-auto mb-1.5" />
-                <p className="text-xs text-gray-500">No active research</p>
-                <p className="text-[10px] text-gray-600 mt-0.5">Visit Research tab to start</p>
+                <FlaskConical className="w-6 h-6 text-dim mx-auto mb-1.5" />
+                <p className="text-xs text-muted-label">No active research</p>
+                <p className="text-[10px] text-muted-label mt-0.5">Visit Research tab to start</p>
               </div>
             )}
           </div>
@@ -982,9 +982,9 @@ export function DashboardPanel() {
             </div>
             {activeEvents.length === 0 ? (
               <div className="text-center py-4">
-                <Shield className="w-6 h-6 text-gray-700 mx-auto mb-1.5" />
-                <p className="text-xs text-gray-500">No active events</p>
-                <p className="text-[10px] text-gray-600 mt-0.5">Events occur periodically</p>
+                <Shield className="w-6 h-6 text-dim mx-auto mb-1.5" />
+                <p className="text-xs text-muted-label">No active events</p>
+                <p className="text-[10px] text-muted-label mt-0.5">Events occur periodically</p>
               </div>
             ) : (
               <div className="space-y-2 max-h-48 overflow-y-auto game-scrollbar">
@@ -994,13 +994,13 @@ export function DashboardPanel() {
                       <GameIcon icon={event.icon} size={14} className="inline-flex" />
                       <span className="text-xs text-orange-300 font-medium">{event.name}</span>
                     </div>
-                    <p className="text-[10px] text-gray-400 mb-1.5 line-clamp-2">{event.description}</p>
+                    <p className="text-[10px] text-subtle mb-1.5 line-clamp-2">{event.description}</p>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1">
-                        <Clock className="w-2.5 h-2.5 text-gray-500" />
-                        <span className="text-[10px] text-gray-500">{event.remaining} ticks left</span>
+                        <Clock className="w-2.5 h-2.5 text-muted-label" />
+                        <span className="text-[10px] text-muted-label">{event.remaining} ticks left</span>
                       </div>
-                      <div className="h-1 w-16 bg-gray-800 rounded-full overflow-hidden">
+                      <div className="h-1 w-16 bg-muted-label rounded-full overflow-hidden">
                         <div
                           className="h-full bg-orange-500 rounded-full"
                           style={{ width: `${(event.remaining / event.duration) * 100}%` }}
@@ -1017,14 +1017,14 @@ export function DashboardPanel() {
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Bell className="w-4 h-4 text-gray-400" />
-                <h3 className="text-sm font-semibold text-gray-400">Notifications</h3>
+                <Bell className="w-4 h-4 text-subtle" />
+                <h3 className="text-sm font-semibold text-subtle">Notifications</h3>
               </div>
               {notifications.length > 0 && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-5 text-[10px] text-gray-500 hover:text-gray-300 px-1"
+                  className="h-5 text-[10px] text-muted-label hover:text-subtle px-1"
                   onClick={clearNotifications}
                 >
                   Clear
@@ -1033,7 +1033,7 @@ export function DashboardPanel() {
             </div>
             {recentNotifications.length === 0 ? (
               <div className="text-center py-3">
-                <p className="text-xs text-gray-600">No notifications</p>
+                <p className="text-xs text-muted-label">No notifications</p>
               </div>
             ) : (
               <div className="space-y-1 max-h-36 overflow-y-auto game-scrollbar">
@@ -1042,9 +1042,9 @@ export function DashboardPanel() {
                     key={n.id}
                     className={`text-[11px] py-1.5 px-2 rounded ${
                       n.type === 'success' ? 'text-success bg-success/10' :
-                      n.type === 'warning' ? 'text-yellow-400 bg-yellow-900/10' :
-                      n.type === 'error' ? 'text-red-400 bg-red-900/10' :
-                      'text-gray-400 bg-gray-900/10'
+                      n.type === 'warning' ? 'text-warning bg-yellow-900/10' :
+                      n.type === 'error' ? 'text-danger bg-danger/10' :
+                      'text-subtle bg-muted-label/10'
                     }`}
                   >
                     {n.message}
@@ -1075,17 +1075,17 @@ export function DashboardPanel() {
                     size="sm"
                     className={`h-auto py-2 px-2 flex flex-col items-center gap-1 text-[10px] ${
                       !unlocked
-                        ? 'border-gray-800 text-gray-600 opacity-50'
+                        ? 'border-muted-label text-muted-label opacity-50'
                         : canAfford
                           ? 'border-cyan-800/50 text-cyan-400 hover:bg-cyan-900/20 hover:border-cyan-500/50'
-                          : 'border-gray-800 text-gray-500'
+                          : 'border-muted-label text-muted-label'
                     }`}
                     onClick={() => handleBuild(type)}
                     disabled={!canAfford || !unlocked}
                   >
                     <GameIcon icon={def.icon} size={16} />
                     <span className="font-medium">{def.name}</span>
-                    <span className="text-[9px] text-gray-500">${formatNumber(cost)}</span>
+                    <span className="text-[9px] text-muted-label">${formatNumber(cost)}</span>
                   </Button>
                 );
               })}
@@ -1100,28 +1100,28 @@ export function DashboardPanel() {
             </div>
             <div className="space-y-1.5 text-xs">
               <div className="flex justify-between">
-                <span className="text-gray-500">Total Earned</span>
+                <span className="text-muted-label">Total Earned</span>
                 <span className="text-success font-mono">${formatNumber(totalMoneyEarned)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Peak Efficiency</span>
+                <span className="text-muted-label">Peak Efficiency</span>
                 <span className="text-cyan-400 font-mono">{(stats.peakEfficiency * 100).toFixed(1)}%</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Buildings Built</span>
-                <span className="text-gray-300 font-mono">{stats.factoriesBuilt}</span>
+                <span className="text-muted-label">Buildings Built</span>
+                <span className="text-subtle font-mono">{stats.factoriesBuilt}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Research Done</span>
+                <span className="text-muted-label">Research Done</span>
                 <span className="text-purple-400 font-mono">{stats.researchCompleted}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Contracts Done</span>
+                <span className="text-muted-label">Contracts Done</span>
                 <span className="text-rose-400 font-mono">{stats.contractsCompleted}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Play Time</span>
-                <span className="text-gray-300 font-mono">{formatNumber(stats.playTime)} ticks</span>
+                <span className="text-muted-label">Play Time</span>
+                <span className="text-subtle font-mono">{formatNumber(stats.playTime)} ticks</span>
               </div>
             </div>
           </div>
@@ -1155,10 +1155,10 @@ function BuildingCategoryRow({
       <div className={`${color} w-5 flex-shrink-0`}>{icon}</div>
       <div className="flex-1">
         <div className="flex items-center justify-between mb-0.5">
-          <span className="text-xs text-gray-300">{label}</span>
-          <span className="text-xs text-gray-400 font-mono">{count}</span>
+          <span className="text-xs text-subtle">{label}</span>
+          <span className="text-xs text-subtle font-mono">{count}</span>
         </div>
-        <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
+        <div className="h-1 bg-muted-label rounded-full overflow-hidden">
           <div
             className={`h-full ${bgColor} rounded-full transition-all duration-500`}
             style={{ width: `${pct}%` }}
@@ -1205,7 +1205,7 @@ function RankBar() {
             <h3 className="text-base font-bold tracking-wide" style={{ color: rank.color }}>
               {rank.name}
             </h3>
-            <span className="text-[10px] text-gray-500 font-mono">
+            <span className="text-[10px] text-muted-label font-mono">
               Score: {formatNumber(rank.score)}
             </span>
           </div>
@@ -1214,14 +1214,14 @@ function RankBar() {
           {rank.nextRankScore !== null ? (
             <div>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] text-gray-500">
+                <span className="text-[10px] text-muted-label">
                   Next: <GameIcon icon={RANK_THRESHOLDS.find(r => r.minScore === rank.nextRankScore)?.icon} size={14} className="inline-flex" /> {RANK_THRESHOLDS.find(r => r.minScore === rank.nextRankScore)?.name}
                 </span>
                 <span className="text-[10px] font-mono" style={{ color: rank.color }}>
                   {formatNumber(rank.nextRankScore - rank.score)} pts to go
                 </span>
               </div>
-              <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+              <div className="h-2 bg-muted-label rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-700"
                   style={{
@@ -1288,7 +1288,7 @@ function WeatherInfoCard() {
     sunny: 'border-yellow-600/40',
     rainy: 'border-blue-600/40',
     stormy: 'border-purple-600/40',
-    foggy: 'border-gray-500/40',
+    foggy: 'border-muted-label/40',
     snowy: 'border-blue-300/30',
   };
 
@@ -1360,34 +1360,34 @@ function WeatherInfoCard() {
           <div className="text-3xl"><GameIcon icon={weatherDef.icon} size={32} /></div>
           <div>
             <p className="text-sm font-bold text-gray-200">{weatherDef.name}</p>
-            <p className="text-[10px] text-gray-400 line-clamp-2">{weatherDef.description}</p>
+            <p className="text-[10px] text-subtle line-clamp-2">{weatherDef.description}</p>
           </div>
         </div>
 
         {/* Multiplier effects */}
         <div className="grid grid-cols-3 gap-2 mb-3">
           <div className="bg-[#0a0e17]/60 rounded-lg p-3 text-center">
-            <div className="text-[9px] text-gray-500 mb-0.5">Production</div>
+            <div className="text-[9px] text-muted-label mb-0.5">Production</div>
             <div className={`text-xs font-bold font-mono flex items-center justify-center gap-0.5 ${
-              prodEffect > 0 ? 'text-success' : prodEffect < 0 ? 'text-red-400' : 'text-gray-400'
+              prodEffect > 0 ? 'text-success' : prodEffect < 0 ? 'text-danger' : 'text-subtle'
             }`}>
               {prodEffect > 0 ? <ArrowUpRight className="w-2.5 h-2.5" /> : prodEffect < 0 ? <ArrowDownRight className="w-2.5 h-2.5" /> : <Minus className="w-2.5 h-2.5" />}
               {prodEffect >= 0 ? '+' : ''}{(prodEffect * 100).toFixed(0)}%
             </div>
           </div>
           <div className="bg-[#0a0e17]/60 rounded-lg p-3 text-center">
-            <div className="text-[9px] text-gray-500 mb-0.5">Solar</div>
+            <div className="text-[9px] text-muted-label mb-0.5">Solar</div>
             <div className={`text-xs font-bold font-mono flex items-center justify-center gap-0.5 ${
-              solarEffect > 0 ? 'text-success' : solarEffect < 0 ? 'text-red-400' : 'text-gray-400'
+              solarEffect > 0 ? 'text-success' : solarEffect < 0 ? 'text-danger' : 'text-subtle'
             }`}>
               {solarEffect > 0 ? <ArrowUpRight className="w-2.5 h-2.5" /> : solarEffect < 0 ? <ArrowDownRight className="w-2.5 h-2.5" /> : <Minus className="w-2.5 h-2.5" />}
               {solarEffect >= 0 ? '+' : ''}{(solarEffect * 100).toFixed(0)}%
             </div>
           </div>
           <div className="bg-[#0a0e17]/60 rounded-lg p-3 text-center">
-            <div className="text-[9px] text-gray-500 mb-0.5">Wind</div>
+            <div className="text-[9px] text-muted-label mb-0.5">Wind</div>
             <div className={`text-xs font-bold font-mono flex items-center justify-center gap-0.5 ${
-              windEffect > 0 ? 'text-success' : windEffect < 0 ? 'text-red-400' : 'text-gray-400'
+              windEffect > 0 ? 'text-success' : windEffect < 0 ? 'text-danger' : 'text-subtle'
             }`}>
               {windEffect > 0 ? <ArrowUpRight className="w-2.5 h-2.5" /> : windEffect < 0 ? <ArrowDownRight className="w-2.5 h-2.5" /> : <Minus className="w-2.5 h-2.5" />}
               {windEffect >= 0 ? '+' : ''}{(windEffect * 100).toFixed(0)}%
@@ -1397,7 +1397,7 @@ function WeatherInfoCard() {
 
         {/* Time until next change */}
         <div className="flex items-center justify-between text-[10px]">
-          <span className="text-gray-500 flex items-center gap-1">
+          <span className="text-muted-label flex items-center gap-1">
             <Clock className="w-2.5 h-2.5" />
             {isEffectActive ? 'Weather ends in' : 'Next change in'}
           </span>
@@ -1486,7 +1486,7 @@ function IncomeChart({ productionRates }: { productionRates: Record<string, numb
           <TrendingUp className="w-4 h-4 text-success" />
           <h3 className="text-sm font-semibold text-success">Income Trend</h3>
         </div>
-        <span className="text-[10px] text-gray-500">projected</span>
+        <span className="text-[10px] text-muted-label">projected</span>
       </div>
       <div className="flex items-center gap-4">
         <svg width={width} height={height} className="flex-shrink-0">
@@ -1540,11 +1540,11 @@ function IncomeChart({ productionRates }: { productionRates: Record<string, numb
           <div className="text-sm font-bold text-success font-mono">
             ${formatNumber(incomePerMin)}/min
           </div>
-          <div className="text-[10px] text-gray-500 mt-0.5">
+          <div className="text-[10px] text-muted-label mt-0.5">
             Total earned: ${formatNumber(totalMoneyEarned)}
           </div>
           {incomePerMin > 0 && (
-            <div className="text-[9px] text-gray-600 mt-0.5">
+            <div className="text-[9px] text-muted-label mt-0.5">
               ~${formatNumber(incomePerMin * 60)}/hr
             </div>
           )}
@@ -1611,14 +1611,14 @@ function EfficiencyRing({ efficiency, overload }: { efficiency: number; overload
         </svg>
         {/* Center text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className={`text-sm font-bold font-mono ${!hasGrid ? 'text-gray-500' : ''}`} style={hasGrid ? { color } : undefined}>
+          <span className={`text-sm font-bold font-mono ${!hasGrid ? 'text-muted-label' : ''}`} style={hasGrid ? { color } : undefined}>
             {!hasGrid ? 'N/A' : `${pct.toFixed(0)}%`}
           </span>
         </div>
       </div>
-      <span className="text-[10px] text-gray-500 mt-1">Efficiency</span>
+      <span className="text-[10px] text-muted-label mt-1">Efficiency</span>
       {hasGrid && overload && (
-        <span className="text-[8px] text-red-400 font-semibold">OVERLOAD</span>
+        <span className="text-[8px] text-danger font-semibold">OVERLOAD</span>
       )}
     </div>
   );

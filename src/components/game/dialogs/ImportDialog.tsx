@@ -35,7 +35,7 @@ export function ImportDialog({
           <DialogTitle className="text-cyan-400 flex items-center gap-2 text-sm lg:text-base">
             <Upload className="w-4 h-4" /> Import Save
           </DialogTitle>
-          <DialogDescription className="text-gray-400 text-xs lg:text-sm">
+          <DialogDescription className="text-subtle text-xs lg:text-sm">
             Paste your save data below to restore progress. This will overwrite your current game!
           </DialogDescription>
         </DialogHeader>
@@ -47,10 +47,10 @@ export function ImportDialog({
               setImportError('');
             }}
             placeholder="Paste your save string here..."
-            className="bg-[#0a0e17] border-cyan-900/20 text-xs font-mono text-gray-300 min-h-24 lg:min-h-32 max-h-36 lg:max-h-48 game-scrollbar placeholder:text-gray-600"
+            className="bg-[#0a0e17] border-cyan-900/20 text-xs font-mono text-subtle min-h-24 lg:min-h-32 max-h-36 lg:max-h-48 game-scrollbar placeholder:text-muted-label"
           />
           {importError && (
-            <p className="text-xs text-red-400 flex items-center gap-1">
+            <p className="text-xs text-danger flex items-center gap-1">
               <X className="w-3 h-3" /> {importError}
             </p>
           )}
@@ -68,7 +68,7 @@ export function ImportDialog({
                 onOpenChange(false);
                 setImportError('');
               }}
-              className="border-gray-700 text-gray-400 hover:text-gray-200 min-h-[44px] lg:min-h-0"
+              className="border-muted-label text-subtle hover:text-gray-200 min-h-[44px] lg:min-h-0"
               size="sm"
             >
               Cancel

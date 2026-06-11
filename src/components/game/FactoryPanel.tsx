@@ -32,14 +32,14 @@ const TIER_CONFIG = {
   1: { label: 'T1 — Processing', shortLabel: 'T1', color: 'cyan', icon: 'gi:flame-tunnel', borderColor: 'border-cyan-900/40', hex: '#22d3ee' },
   2: { label: 'T2 — Manufacturing', shortLabel: 'T2', color: 'orange', icon: 'gi:big-gear', borderColor: 'border-orange-900/40', hex: '#f97316' },
   3: { label: 'T3 — High-Tech', shortLabel: 'T3', color: 'purple', icon: 'gi:brain', borderColor: 'border-purple-900/40', hex: '#a855f7' },
-  4: { label: 'T4 — Singularity', shortLabel: 'T4', color: 'emerald', icon: 'gi:sparkles', borderColor: 'border-emerald-900/40', hex: '#00ffcc' },
+  4: { label: 'T4 — Singularity', shortLabel: 'T4', color: 'emerald', icon: 'gi:sparkles', borderColor: 'border-success/40', hex: '#00ffcc' },
 };
 
 
 
 // Flow diagram tier nodes
 const FLOW_TIERS = [
-  { key: 'raw', label: 'Raw Materials', icon: <Pickaxe className="w-4 h-4" />, color: '#6b7280', bgClass: 'bg-gray-900/30', borderClass: 'border-gray-700/40', textClass: 'text-gray-300' },
+  { key: 'raw', label: 'Raw Materials', icon: <Pickaxe className="w-4 h-4" />, color: '#6b7280', bgClass: 'bg-muted-label/30', borderClass: 'border-muted-label/40', textClass: 'text-subtle' },
   { key: 't1', label: 'T1 Processing', icon: <Flame className="w-4 h-4" />, color: '#22d3ee', bgClass: 'bg-cyan-900/20', borderClass: 'border-cyan-700/40', textClass: 'text-cyan-400' },
   { key: 't2', label: 'T2 Manufacturing', icon: <Cog className="w-4 h-4" />, color: '#f97316', bgClass: 'bg-orange-900/20', borderClass: 'border-orange-700/40', textClass: 'text-orange-400' },
   { key: 't3', label: 'T3 High-Tech', icon: <Sparkles className="w-4 h-4" />, color: '#a855f7', bgClass: 'bg-purple-900/20', borderClass: 'border-purple-700/40', textClass: 'text-purple-400' },
@@ -241,14 +241,14 @@ export function FactoryPanel() {
             <Factory className="w-5 h-5" />
             Processing Factories
           </h2>
-          <p className="text-xs text-gray-500 mt-0.5">Transform raw materials into advanced components</p>
+          <p className="text-xs text-muted-label mt-0.5">Transform raw materials into advanced components</p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="border-cyan-500/50 text-cyan-400 bg-cyan-900/20 text-xs">
             <Factory className="w-3 h-3 mr-1" />
             {activeFactories}/{totalFactories} Active
           </Badge>
-          <Badge variant="outline" className="border-yellow-500/50 text-yellow-400 bg-yellow-900/20 text-xs">
+          <Badge variant="outline" className="border-warning/50 text-warning bg-yellow-900/20 text-xs">
             <Zap className="w-3 h-3 mr-1" />
             {formatNumber(totalPowerConsumption)} MW
           </Badge>
@@ -294,7 +294,7 @@ export function FactoryPanel() {
             <Workflow className="w-4 h-4 text-cyan-400" />
             <h3 className="text-sm font-semibold text-cyan-400">Production Pipeline</h3>
           </div>
-          <span className="text-[10px] text-gray-500">Click a tier node for details</span>
+          <span className="text-[10px] text-muted-label">Click a tier node for details</span>
         </div>
 
         {/* SVG Flow Diagram */}
@@ -507,12 +507,12 @@ export function FactoryPanel() {
                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: tierInfo.color }} />
                       <span className="text-xs font-medium" style={{ color: tierInfo.color }}>{tierInfo.label} Details</span>
                     </div>
-                    <button onClick={() => setSelectedFlowNode(null)} className="text-gray-500 hover:text-gray-300 transition-colors">
+                    <button onClick={() => setSelectedFlowNode(null)} className="text-muted-label hover:text-subtle transition-colors">
                       <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
                   {Object.keys(relevantResources).length === 0 ? (
-                    <p className="text-[10px] text-gray-500 py-2">No production in this tier yet</p>
+                    <p className="text-[10px] text-muted-label py-2">No production in this tier yet</p>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {Object.entries(relevantResources).map(([res, { prod, cons }]) => {
@@ -522,8 +522,8 @@ export function FactoryPanel() {
                           <div key={res} className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 border" style={{ borderColor: `${meta.color}22`, backgroundColor: `${meta.color}08` }}>
                             <GameIcon icon={meta.icon} size={14} className="inline-flex" />
                             <div className="min-w-0">
-                              <div className="text-[10px] text-gray-300 font-medium truncate">{meta.name}</div>
-                              <div className={`text-[9px] font-mono ${net > 0 ? 'text-success' : net < 0 ? 'text-red-400' : prod > 0 && cons > 0 ? 'text-cyan-400' : 'text-gray-600'}`}>
+                              <div className="text-[10px] text-subtle font-medium truncate">{meta.name}</div>
+                              <div className={`text-[9px] font-mono ${net > 0 ? 'text-success' : net < 0 ? 'text-danger' : prod > 0 && cons > 0 ? 'text-cyan-400' : 'text-muted-label'}`}>
                                 {net > 0 ? `+${formatNumber(net)}/s` : net < 0 ? `${formatNumber(net)}/s` : prod > 0 && cons > 0 ? '±0/s' : '—'}
                               </div>
                             </div>
@@ -557,15 +557,15 @@ export function FactoryPanel() {
                   className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border text-xs font-semibold ${
                     isActive
                       ? colors.tabActive
-                      : `border-transparent text-gray-500 ${colors.tabHover}`
+                      : `border-transparent text-muted-label ${colors.tabHover}`
                   }`}
                 >
-                  <div className={`w-6 h-6 rounded-md flex items-center justify-center ${isActive ? colors.bg : 'bg-gray-800/50'}`}>
+                  <div className={`w-6 h-6 rounded-md flex items-center justify-center ${isActive ? colors.bg : 'bg-muted-label/50'}`}>
                     <GameIcon icon={config.icon} size={16} />
                   </div>
                   <span className="hidden sm:inline">{config.label}</span>
                   <span className="sm:hidden">{config.shortLabel}</span>
-                  <span className={`text-[9px] font-mono ${isActive ? '' : 'text-gray-600'}`}>
+                  <span className={`text-[9px] font-mono ${isActive ? '' : 'text-muted-label'}`}>
                     ({tierBuildings.filter(b => b.active).length}/{tierBuildings.length})
                   </span>
                 </button>
@@ -583,25 +583,25 @@ export function FactoryPanel() {
                     </div>
                     <h3 className={`text-sm font-semibold ${currentColorClasses.text}`}>{currentTierConfig.label}</h3>
                   </div>
-                  <span className="text-[10px] text-gray-500">
+                  <span className="text-[10px] text-muted-label">
                     {currentTierBuildings.filter(b => b.active).length}/{currentTierBuildings.length} active
                   </span>
                 </div>
 
                 {/* Search input */}
                 <div className="relative mb-3">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-label" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search factories..."
-                    className="w-full h-8 pl-8 pr-8 text-xs bg-[#0a0e17] border border-cyan-900/30 rounded-lg text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-cyan-700/50 transition-colors"
+                    className="w-full h-8 pl-8 pr-8 text-xs bg-[#0a0e17] border border-cyan-900/30 rounded-lg text-gray-200 placeholder:text-muted-label focus:outline-none focus:border-cyan-700/50 transition-colors"
                   />
                   {searchQuery && (
                     <button
                       onClick={() => setSearchQuery('')}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-label hover:text-subtle transition-colors"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -611,8 +611,8 @@ export function FactoryPanel() {
                 {/* Compact Factory Build Grid */}
                 {filteredFactories.length === 0 ? (
                   <div className="text-center py-6">
-                    <Search className="w-6 h-6 text-gray-600 mx-auto mb-2" />
-                    <p className="text-xs text-gray-500">No factories match your search</p>
+                    <Search className="w-6 h-6 text-muted-label mx-auto mb-2" />
+                    <p className="text-xs text-muted-label">No factories match your search</p>
                   </div>
                 ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 mb-4">
@@ -634,29 +634,29 @@ export function FactoryPanel() {
                         category="Factory"
                         tier={def.tier}
                         details={[
-                          ...(def.inputs?.map(inp => ({ label: `Input: ${RESOURCE_META[inp.resource].name}`, value: `${(inp.amount).toFixed(1)}/s`, color: 'text-red-400' })) ?? []),
+                          ...(def.inputs?.map(inp => ({ label: `Input: ${RESOURCE_META[inp.resource].name}`, value: `${(inp.amount).toFixed(1)}/s`, color: 'text-danger' })) ?? []),
                           ...(def.outputs?.map(o => ({ label: `Output: ${RESOURCE_META[o.resource].name}`, value: `${(o.amount * def.baseProductionRate).toFixed(1)}/s`, color: 'text-success' })) ?? []),
-                          { label: 'Power Consumption', value: `${def.basePowerConsumption} MW`, color: 'text-yellow-400' },
-                          { label: 'Build Cost', value: `$${formatNumber(cost)}`, color: canAfford ? 'text-success' : 'text-red-400' },
+                          { label: 'Power Consumption', value: `${def.basePowerConsumption} MW`, color: 'text-warning' },
+                          { label: 'Build Cost', value: `$${formatNumber(cost)}`, color: canAfford ? 'text-success' : 'text-danger' },
                           { label: 'Cost Multiplier', value: `x${def.costMultiplier}` },
                         ]}
                         requirements={[
-                          ...(def.unlockRequirement?.research ? [{ label: 'Research', value: RESEARCH_TREE.find(r => r.id === def.unlockRequirement!.research)?.name ?? def.unlockRequirement.research, color: completedResearch.includes(def.unlockRequirement.research) ? 'text-success' : 'text-red-400' }] : []),
+                          ...(def.unlockRequirement?.research ? [{ label: 'Research', value: RESEARCH_TREE.find(r => r.id === def.unlockRequirement!.research)?.name ?? def.unlockRequirement.research, color: completedResearch.includes(def.unlockRequirement.research) ? 'text-success' : 'text-danger' }] : []),
                         ]}
                         side="bottom"
                       >
                       <div
                         className={`relative rounded-lg p-3 border bg-[#0a0e17] ${
                           !unlocked
-                            ? 'border-gray-800 opacity-60'
+                            ? 'border-muted-label opacity-60'
                             : canAfford
                               ? `${currentColorClasses.hoverBorder} ${currentColorClasses.glow}`
-                              : 'border-gray-800'
+                              : 'border-muted-label'
                         }`}
                       >
                         {!unlocked && (
                           <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg z-10">
-                            <Lock className="w-4 h-4 text-gray-600" />
+                            <Lock className="w-4 h-4 text-muted-label" />
                           </div>
                         )}
                         {/* Header: emoji + name + chain badge */}
@@ -673,7 +673,7 @@ export function FactoryPanel() {
                                   </span>
                                 ))}
                                 {chains.length > 2 && (
-                                  <span className="text-[7px] text-gray-500">+{chains.length - 2}</span>
+                                  <span className="text-[7px] text-muted-label">+{chains.length - 2}</span>
                                 )}
                               </div>
                             )}
@@ -684,12 +684,12 @@ export function FactoryPanel() {
                         <div className="mb-2">
                           <div className="flex items-center gap-0.5 flex-wrap">
                             {def.inputs?.map((inp, i) => (
-                              <span key={i} className="text-[8px] text-red-300/80 bg-red-900/20 rounded px-1 py-px">
+                              <span key={i} className="text-[8px] text-danger/80 bg-danger/20 rounded px-1 py-px">
                                 <GameIcon icon={RESOURCE_META[inp.resource].icon} size={10} className="inline-flex" />{inp.amount}
                               </span>
                             ))}
                             {def.inputs && def.inputs.length > 0 && (
-                              <ArrowRight className="w-2 h-2 text-gray-600 flex-shrink-0" />
+                              <ArrowRight className="w-2 h-2 text-muted-label flex-shrink-0" />
                             )}
                             {def.outputs?.map((out, i) => (
                               <span key={i} className="text-[8px] text-success/80 bg-success/20 rounded px-1 py-px">
@@ -701,11 +701,11 @@ export function FactoryPanel() {
 
                         {/* Cost + Power */}
                         <div className="flex items-center justify-between mb-2">
-                          <span className={`text-[10px] font-mono font-bold ${canAfford ? 'text-success' : 'text-red-400'}`}>
+                          <span className={`text-[10px] font-mono font-bold ${canAfford ? 'text-success' : 'text-danger'}`}>
                             ${formatNumber(cost)}
                           </span>
-                          <span className="flex items-center gap-0.5 text-[9px] text-gray-500">
-                            <Zap className="w-2.5 h-2.5 text-yellow-500" />
+                          <span className="flex items-center gap-0.5 text-[9px] text-muted-label">
+                            <Zap className="w-2.5 h-2.5 text-warning" />
                             {def.basePowerConsumption}MW
                           </span>
                         </div>
@@ -718,7 +718,7 @@ export function FactoryPanel() {
                             !unlocked ? 'hidden' :
                             canAfford
                               ? `${currentColorClasses.buttonBorder} ${currentColorClasses.buttonText} ${currentColorClasses.buttonHover}`
-                              : 'border-gray-700 text-gray-500 cursor-not-allowed'
+                              : 'border-muted-label text-muted-label cursor-not-allowed'
                           }`}
                           onClick={() => handleBuild(type)}
                           disabled={!canAfford || !unlocked}
@@ -729,7 +729,7 @@ export function FactoryPanel() {
 
                         {existingCount > 0 && (
                           <div className="mt-1 text-center">
-                            <span className="text-[8px] text-gray-500">
+                            <span className="text-[8px] text-muted-label">
                               {buildings.filter(b => b.type === type && b.active).length}/{existingCount} active
                             </span>
                           </div>
@@ -747,7 +747,7 @@ export function FactoryPanel() {
                     <div className="flex items-center gap-2 mb-2">
                       <Layers className={`w-3.5 h-3.5 ${currentColorClasses.text}`} />
                       <h3 className={`text-xs font-semibold ${currentColorClasses.text}`}>Active Factories</h3>
-                      <span className="text-[9px] text-gray-500">({currentTierBuildings.length})</span>
+                      <span className="text-[9px] text-muted-label">({currentTierBuildings.length})</span>
                     </div>
                     <div className="space-y-1.5 max-h-[400px] overflow-y-auto game-scrollbar pr-1">
                       {currentTierBuildings.map(building => {
@@ -788,7 +788,7 @@ export function FactoryPanel() {
                             className={`rounded-lg bg-[#0a0e17] p-2.5 border ${
                               building.active
                                 ? `${currentColorClasses.border}`
-                                : 'border-gray-800 opacity-60'
+                                : 'border-muted-label opacity-60'
                             }`}
                           >
                             <div className="flex items-center gap-2">
@@ -811,7 +811,7 @@ export function FactoryPanel() {
                                     Lv.{building.level}
                                   </Badge>
                                   {!building.active && (
-                                    <Badge variant="outline" className="text-[8px] border-gray-600 text-gray-500 px-1 py-0">
+                                    <Badge variant="outline" className="text-[8px] border-muted-label text-muted-label px-1 py-0">
                                       OFF
                                     </Badge>
                                   )}
@@ -821,21 +821,21 @@ export function FactoryPanel() {
                                 <div className="flex items-center gap-1 flex-wrap">
                                   {effectiveInputs.map(({ resource: _r, rate, meta, hasEnough }, i) => (
                                     <div key={i} className={`flex items-center gap-0.5 rounded px-1 py-px ${
-                                      hasEnough ? 'bg-red-900/15' : 'bg-red-900/30 border border-red-800/50'
+                                      hasEnough ? 'bg-danger/15' : 'bg-danger/30 border border-danger/50'
                                     }`}>
                                       <GameIcon icon={meta.icon} size={12} className="inline-flex" />
-                                      <span className={`text-[8px] font-mono ${building.active ? (hasEnough ? 'text-red-300/80' : 'text-red-400') : 'text-gray-500'}`}>
+                                      <span className={`text-[8px] font-mono ${building.active ? (hasEnough ? 'text-danger/80' : 'text-danger') : 'text-muted-label'}`}>
                                         -{formatNumber(rate)}
                                       </span>
                                     </div>
                                   ))}
                                   {effectiveInputs.length > 0 && (
-                                    <ArrowRight className="w-2.5 h-2.5 text-gray-600 flex-shrink-0" />
+                                    <ArrowRight className="w-2.5 h-2.5 text-muted-label flex-shrink-0" />
                                   )}
                                   {effectiveOutputs.map(({ resource: _r, rate, meta }, i) => (
                                     <div key={i} className="flex items-center gap-0.5 bg-success/15 rounded px-1 py-px">
                                       <GameIcon icon={meta.icon} size={12} className="inline-flex" />
-                                      <span className={`text-[8px] font-mono ${building.active ? 'text-success' : 'text-gray-500'}`}>
+                                      <span className={`text-[8px] font-mono ${building.active ? 'text-success' : 'text-muted-label'}`}>
                                         +{formatNumber(rate)}
                                       </span>
                                     </div>
@@ -844,8 +844,8 @@ export function FactoryPanel() {
 
                                 {/* Efficiency bar - compact inline */}
                                 <div className="flex items-center gap-1.5 mt-1">
-                                  <span className="text-[8px] text-gray-500">Eff</span>
-                                  <div className="flex-1 h-1 bg-gray-800 rounded-full overflow-hidden">
+                                  <span className="text-[8px] text-muted-label">Eff</span>
+                                  <div className="flex-1 h-1 bg-muted-label rounded-full overflow-hidden">
                                     <div
                                       className={`h-full rounded-full ${
                                         eff >= 0.8 ? 'bg-gradient-to-r from-green-600 to-green-400' :
@@ -856,7 +856,7 @@ export function FactoryPanel() {
                                     />
                                   </div>
                                   <span className={`text-[8px] font-mono ${
-                                    eff >= 0.8 ? 'text-success' : eff >= 0.5 ? 'text-yellow-400' : 'text-red-400'
+                                    eff >= 0.8 ? 'text-success' : eff >= 0.5 ? 'text-warning' : 'text-danger'
                                   }`}>
                                     {(eff * 100).toFixed(0)}%
                                   </span>
@@ -870,7 +870,7 @@ export function FactoryPanel() {
                                   className={`w-6 h-6 rounded-full flex items-center justify-center border ${
                                     building.active
                                       ? 'border-success/50 bg-success/20 text-success'
-                                      : 'border-gray-700 bg-gray-800 text-gray-500'
+                                      : 'border-muted-label bg-muted-label text-muted-label'
                                   }`}
                                 >
                                   {building.active ? <Power className="w-3 h-3" /> : <PowerOff className="w-3 h-3" />}
@@ -881,14 +881,14 @@ export function FactoryPanel() {
                                   className={`h-5 text-[8px] px-1.5 ${
                                     canUpgrade
                                       ? 'border-cyan-700/50 text-cyan-400 hover:bg-cyan-900/30'
-                                      : 'border-gray-700 text-gray-500'
+                                      : 'border-muted-label text-muted-label'
                                   }`}
                                   onClick={() => handleUpgrade(building.id)}
                                   disabled={!canUpgrade}
                                 >
                                   <ChevronUp className="w-2.5 h-2.5" />
                                 </Button>
-                                <span className={`text-[7px] font-mono ${canUpgrade ? 'text-gray-400' : 'text-red-400'}`}>
+                                <span className={`text-[7px] font-mono ${canUpgrade ? 'text-subtle' : 'text-danger'}`}>
                                   ${formatNumber(upgradeCost)}
                                 </span>
                               </div>
@@ -907,7 +907,7 @@ export function FactoryPanel() {
                       {selectedTier === 1 ? <GameIcon icon="gi:anvil-impact" size={14} className="inline-flex" /> : selectedTier === 2 ? <GameIcon icon="gi:big-gear" size={14} className="inline-flex" /> : selectedTier === 3 ? <GameIcon icon="gi:sparkles" size={14} className="inline-flex" /> : <GameIcon icon="gi:vortex" size={14} className="inline-flex" />}
                     </div>
                     <h3 className="text-base font-bold text-cyan-400 mb-2">No {currentTierConfig.label} Factories</h3>
-                    <p className="text-sm text-gray-400 mb-1">Build your first factory to start processing materials</p>
+                    <p className="text-sm text-subtle mb-1">Build your first factory to start processing materials</p>
                   </div>
                 )}
               </div>
@@ -923,7 +923,7 @@ export function FactoryPanel() {
                 <Workflow className="w-4 h-4 text-cyan-400" />
                 <h3 className="text-sm font-semibold text-cyan-400">Production Chains</h3>
               </div>
-              <span className="text-[10px] text-gray-500">{PRODUCTION_CHAINS.length} chains</span>
+              <span className="text-[10px] text-muted-label">{PRODUCTION_CHAINS.length} chains</span>
             </div>
 
             {/* Chain selector tabs */}
@@ -935,7 +935,7 @@ export function FactoryPanel() {
                   className={`text-[9px] px-2 py-1 rounded-md border ${
                     selectedChain === idx
                       ? 'border-cyan-500/50 bg-cyan-900/20 text-cyan-400'
-                      : 'border-gray-800 text-gray-500 hover:border-gray-600 hover:text-gray-300'
+                      : 'border-muted-label text-muted-label hover:border-muted-label hover:text-subtle'
                   }`}
                 >
                   {chain.name}
@@ -948,7 +948,7 @@ export function FactoryPanel() {
               <div className="bg-[#0a0e17] rounded-lg p-3">
                 <div className="flex items-center gap-1 mb-2">
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: PRODUCTION_CHAINS[selectedChain].color }} />
-                  <span className="text-xs text-gray-300 font-medium">{PRODUCTION_CHAINS[selectedChain].name}</span>
+                  <span className="text-xs text-subtle font-medium">{PRODUCTION_CHAINS[selectedChain].name}</span>
                 </div>
 
                 {/* Chain steps with animated flow */}
@@ -978,21 +978,21 @@ export function FactoryPanel() {
                               <div className="flex items-center justify-between">
                                 <span className="text-[10px] text-gray-200 font-medium">{meta.name}</span>
                                 <span className={`text-[9px] font-mono ${
-                                  net > 0 ? 'text-success' : net < 0 ? 'text-red-400' : production > 0 && consumption > 0 ? 'text-cyan-400' : 'text-gray-600'
+                                  net > 0 ? 'text-success' : net < 0 ? 'text-danger' : production > 0 && consumption > 0 ? 'text-cyan-400' : 'text-muted-label'
                                 }`}>
                                   {net > 0 ? `+${formatNumber(net)}/s` : net < 0 ? `${formatNumber(net)}/s` : production > 0 && consumption > 0 ? '±0/s' : '—'}
                                 </span>
                               </div>
                               {/* Stock bar */}
-                              <div className="h-1 bg-gray-800 rounded-full overflow-hidden mt-1">
+                              <div className="h-1 bg-muted-label rounded-full overflow-hidden mt-1">
                                 <div
                                   className="h-full rounded-full"
                                   style={{ backgroundColor: meta.color, width: `${Math.min(100, fillPct)}%` }}
                                 />
                               </div>
                               <div className="flex justify-between mt-0.5">
-                                <span className="text-[8px] text-gray-500 font-mono">{formatNumber(stock)}</span>
-                                <span className="text-[8px] text-gray-600 font-mono">{formatNumber(capacity)}</span>
+                                <span className="text-[8px] text-muted-label font-mono">{formatNumber(stock)}</span>
+                                <span className="text-[8px] text-muted-label font-mono">{formatNumber(capacity)}</span>
                               </div>
                             </div>
                           </div>
@@ -1035,12 +1035,12 @@ export function FactoryPanel() {
             <div className="space-y-2.5">
               <OverviewRow label="Total Factories" value={totalFactories.toString()} color="text-gray-200" />
               <OverviewRow label="Active" value={`${activeFactories}/${totalFactories}`} color="text-success" />
-              <OverviewRow label="Power Draw" value={`${formatNumber(totalPowerConsumption)} MW`} color="text-yellow-400" />
+              <OverviewRow label="Power Draw" value={`${formatNumber(totalPowerConsumption)} MW`} color="text-warning" />
               <OverviewRow label="Avg Efficiency" value={`${(avgEfficiency * 100).toFixed(1)}%`} color={
-                avgEfficiency >= 0.8 ? 'text-success' : avgEfficiency >= 0.5 ? 'text-yellow-400' : 'text-red-400'
+                avgEfficiency >= 0.8 ? 'text-success' : avgEfficiency >= 0.5 ? 'text-warning' : 'text-danger'
               } />
               <OverviewRow label="Product Types" value={Object.keys(factoryProductionRates).length.toString()} color="text-cyan-400" />
-              <OverviewRow label="Factories Built" value={stats.factoriesBuilt.toString()} color="text-gray-300" />
+              <OverviewRow label="Factories Built" value={stats.factoriesBuilt.toString()} color="text-subtle" />
             </div>
           </div>
 
@@ -1051,13 +1051,13 @@ export function FactoryPanel() {
                 <ArrowUpFromLine className="w-4 h-4 text-success" />
                 <h3 className="text-sm font-semibold text-success">Top Production</h3>
               </div>
-              <span className="text-[10px] text-gray-500">per second</span>
+              <span className="text-[10px] text-muted-label">per second</span>
             </div>
             {Object.keys(factoryProductionRates).length === 0 ? (
               <div className="text-center py-6">
-                <Cog className="w-8 h-8 text-gray-700 mx-auto mb-2" />
-                <p className="text-xs text-gray-500">No active production</p>
-                <p className="text-[10px] text-gray-600 mt-1">Build and activate factories to start producing</p>
+                <Cog className="w-8 h-8 text-dim mx-auto mb-2" />
+                <p className="text-xs text-muted-label">No active production</p>
+                <p className="text-[10px] text-muted-label mt-1">Build and activate factories to start producing</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -1070,12 +1070,12 @@ export function FactoryPanel() {
                       <div key={resource} className="flex items-center justify-between bg-[#0a0e17] rounded-lg px-3 py-2">
                         <div className="flex items-center gap-2">
                           <GameIcon icon={meta.icon} size={14} className="inline-flex" />
-                          <span className="text-xs text-gray-300">{meta.name}</span>
+                          <span className="text-xs text-subtle">{meta.name}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <ArrowUpFromLine className="w-3 h-3 text-success" />
                           <span className="text-xs text-success font-mono font-bold">+{formatNumber(rate)}</span>
-                          <span className="text-[10px] text-gray-500">/s</span>
+                          <span className="text-[10px] text-muted-label">/s</span>
                         </div>
                       </div>
                     );
@@ -1088,15 +1088,15 @@ export function FactoryPanel() {
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <ArrowDownToLine className="w-4 h-4 text-red-400" />
-                <h3 className="text-sm font-semibold text-red-400">Input Demand</h3>
+                <ArrowDownToLine className="w-4 h-4 text-danger" />
+                <h3 className="text-sm font-semibold text-danger">Input Demand</h3>
               </div>
-              <span className="text-[10px] text-gray-500">per second</span>
+              <span className="text-[10px] text-muted-label">per second</span>
             </div>
             {Object.keys(factoryConsumptionRates).length === 0 ? (
               <div className="text-center py-6">
-                <Box className="w-8 h-8 text-gray-700 mx-auto mb-2" />
-                <p className="text-xs text-gray-500">No input demand</p>
+                <Box className="w-8 h-8 text-dim mx-auto mb-2" />
+                <p className="text-xs text-muted-label">No input demand</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -1114,16 +1114,16 @@ export function FactoryPanel() {
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center gap-1.5">
                             <GameIcon icon={meta.icon} size={14} className="inline-flex" />
-                            <span className="text-xs text-gray-300">{meta.name}</span>
+                            <span className="text-xs text-subtle">{meta.name}</span>
                           </div>
                           <div className="flex items-center gap-1.5">
-                            <ArrowDownToLine className="w-3 h-3 text-red-400" />
-                            <span className="text-[10px] text-red-400 font-mono">-{formatNumber(rate)}</span>
+                            <ArrowDownToLine className="w-3 h-3 text-danger" />
+                            <span className="text-[10px] text-danger font-mono">-{formatNumber(rate)}</span>
                           </div>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-[9px] text-gray-500">Stock: {formatNumber(stock)}</span>
-                          <span className={`text-[9px] font-mono ${net > 0 ? 'text-success' : net < 0 ? 'text-red-400' : production > 0 && rate > 0 ? 'text-cyan-400' : 'text-gray-600'}`}>
+                          <span className="text-[9px] text-muted-label">Stock: {formatNumber(stock)}</span>
+                          <span className={`text-[9px] font-mono ${net > 0 ? 'text-success' : net < 0 ? 'text-danger' : production > 0 && rate > 0 ? 'text-cyan-400' : 'text-muted-label'}`}>
                             {net > 0 ? `+${formatNumber(net)}/s` : net < 0 ? `${formatNumber(net)}/s` : production > 0 && rate > 0 ? '±0/s' : '—'} net
                           </span>
                         </div>
@@ -1145,7 +1145,7 @@ export function FactoryPanel() {
 function OverviewRow({ label, value, color }: { label: string; value: string; color: string }) {
   return (
     <div className="flex justify-between items-center">
-      <span className="text-xs text-gray-500">{label}</span>
+      <span className="text-xs text-muted-label">{label}</span>
       <span className={`text-xs font-mono font-medium ${color}`}>{value}</span>
     </div>
   );

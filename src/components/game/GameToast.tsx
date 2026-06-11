@@ -27,15 +27,15 @@ const TOAST_COLORS = {
     glow: 'shadow-green-500/10',
   },
   warning: {
-    border: 'border-yellow-500/50',
+    border: 'border-warning/50',
     bg: 'bg-yellow-900/20',
-    icon: 'text-yellow-400',
+    icon: 'text-warning',
     glow: 'shadow-yellow-500/10',
   },
   error: {
-    border: 'border-red-500/50',
-    bg: 'bg-red-900/20',
-    icon: 'text-red-400',
+    border: 'border-danger/50',
+    bg: 'bg-danger/20',
+    icon: 'text-danger',
     glow: 'shadow-red-500/10',
   },
   info: {
@@ -134,7 +134,7 @@ export default function GameToast() {
                 aria-label="Close notification"
                 className="flex-shrink-0 p-0.5 rounded hover:bg-white/10 transition-colors"
               >
-                <X className="w-3 h-3 text-gray-500 hover:text-gray-300" />
+                <X className="w-3 h-3 text-muted-label hover:text-subtle" />
               </button>
             </motion.div>
           );

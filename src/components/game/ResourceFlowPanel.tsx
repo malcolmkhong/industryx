@@ -423,24 +423,24 @@ export default function ResourceFlowPanel() {
         </div>
         <div className="flex-1">
           <h2 className="text-xl font-bold text-teal-400 tracking-wide">Resource Flow Tracer</h2>
-          <p className="text-xs text-gray-500">Visualize production chains, detect bottlenecks, optimize your factory</p>
+          <p className="text-xs text-muted-label">Visualize production chains, detect bottlenecks, optimize your factory</p>
         </div>
       </div>
 
       {/* ─── Summary Stats Bar ─────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <div className="bg-card rounded-lg p-3 border border-cyan-900/20">
-          <p className="text-[9px] text-gray-500 uppercase tracking-wider">Active Chains</p>
-          <p className="text-lg font-mono font-bold text-cyan-400">{summaryStats.activeChains}<span className="text-gray-600 text-sm">/{summaryStats.totalChains}</span></p>
+          <p className="text-[9px] text-muted-label uppercase tracking-wider">Active Chains</p>
+          <p className="text-lg font-mono font-bold text-cyan-400">{summaryStats.activeChains}<span className="text-muted-label text-sm">/{summaryStats.totalChains}</span></p>
         </div>
         <div className="bg-card rounded-lg p-3 border border-cyan-900/20">
-          <p className="text-[9px] text-gray-500 uppercase tracking-wider">Bottlenecks</p>
-          <p className={`text-lg font-mono font-bold ${summaryStats.bottleneckCount > 0 ? 'text-red-400' : 'text-success'}`}>
+          <p className="text-[9px] text-muted-label uppercase tracking-wider">Bottlenecks</p>
+          <p className={`text-lg font-mono font-bold ${summaryStats.bottleneckCount > 0 ? 'text-danger' : 'text-success'}`}>
             {summaryStats.bottleneckCount + summaryStats.notProducedCount}
           </p>
         </div>
         <div className="bg-card rounded-lg p-3 border border-cyan-900/20">
-          <p className="text-[9px] text-gray-500 uppercase tracking-wider">Most Constrained</p>
+          <p className="text-[9px] text-muted-label uppercase tracking-wider">Most Constrained</p>
           <p className="text-sm font-bold text-orange-400 truncate">
             {summaryStats.mostConstrained
               ? <><GameIcon icon={RESOURCE_META[summaryStats.mostConstrained.resource].icon} size={14} className="inline-flex" /> {RESOURCE_META[summaryStats.mostConstrained.resource].name}</>
@@ -448,7 +448,7 @@ export default function ResourceFlowPanel() {
           </p>
         </div>
         <div className="bg-card rounded-lg p-3 border border-cyan-900/20">
-          <p className="text-[9px] text-gray-500 uppercase tracking-wider">Throughput</p>
+          <p className="text-[9px] text-muted-label uppercase tracking-wider">Throughput</p>
           <p className="text-lg font-mono font-bold text-success">{formatNumber(summaryStats.totalThroughput)}</p>
         </div>
       </div>
@@ -459,7 +459,7 @@ export default function ResourceFlowPanel() {
         <Card className="flex-1 bg-[#0a0e17] border-cyan-900/30 overflow-hidden">
           <CardHeader className="pb-2 pt-3 px-4">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+              <CardTitle className="text-sm font-semibold text-subtle flex items-center gap-2">
                 <GitBranch className="w-4 h-4 text-teal-400" />
                 Flow Diagram
               </CardTitle>
@@ -474,7 +474,7 @@ export default function ResourceFlowPanel() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 px-2 text-[10px] text-gray-500 hover:text-red-400"
+                    className="h-7 px-2 text-[10px] text-muted-label hover:text-danger"
                     onClick={() => setSelectedResource(null)}
                   >
                     <X className="w-3 h-3 mr-1" />Clear
@@ -483,12 +483,12 @@ export default function ResourceFlowPanel() {
               </div>
             </div>
             {/* Legend */}
-            <div className="flex items-center gap-3 mt-1 text-[9px] text-gray-500">
+            <div className="flex items-center gap-3 mt-1 text-[9px] text-muted-label">
               <span className="flex items-center gap-1"><span className="w-5 h-0.5 bg-success inline-block rounded" /> High</span>
               <span className="flex items-center gap-1"><span className="w-5 h-0.5 bg-cyan-400 inline-block rounded" /> Medium</span>
-              <span className="flex items-center gap-1"><span className="w-5 h-0.5 bg-yellow-400 inline-block rounded" /> Low</span>
-              <span className="flex items-center gap-1"><span className="w-5 h-0.5 border-t border-dashed border-red-400 inline-block" /> Zero</span>
-              <span className="ml-auto text-gray-600">Click a node for details</span>
+              <span className="flex items-center gap-1"><span className="w-5 h-0.5 bg-warning inline-block rounded" /> Low</span>
+              <span className="flex items-center gap-1"><span className="w-5 h-0.5 border-t border-dashed border-danger inline-block" /> Zero</span>
+              <span className="ml-auto text-muted-label">Click a node for details</span>
             </div>
           </CardHeader>
           <CardContent className="p-0 relative max-h-[600px] overflow-y-auto game-scrollbar" style={{ height: Math.max(400, flowNodes.length * 8 + 100) }}>
@@ -722,7 +722,7 @@ export default function ResourceFlowPanel() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-gray-200">{selectedMeta.name}</p>
-                      <p className="text-[10px] text-gray-500">Tier {selectedMeta.tier} • {selectedResource}</p>
+                      <p className="text-[10px] text-muted-label">Tier {selectedMeta.tier} • {selectedResource}</p>
                       <div className="flex items-center gap-2 mt-1">
                         {(() => {
                           const node = flowNodes.find(n => n.resource === selectedResource);
@@ -740,24 +740,24 @@ export default function ResourceFlowPanel() {
                         })()}
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-gray-500" onClick={() => setSelectedResource(null)}>
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-label" onClick={() => setSelectedResource(null)}>
                       <X className="w-3.5 h-3.5" />
                     </Button>
                   </div>
 
                   {/* Net rate */}
                   <div className="mt-3 grid grid-cols-3 gap-2">
-                    <div className="bg-success/10 rounded-lg p-3 text-center border border-green-900/20">
-                      <p className="text-[9px] text-gray-500">PROD</p>
+                    <div className="bg-success/10 rounded-lg p-3 text-center border border-success/20">
+                      <p className="text-[9px] text-muted-label">PROD</p>
                       <p className="text-sm font-mono font-bold text-success">+{totalProduction.toFixed(2)}</p>
                     </div>
                     <div className="bg-amber-900/10 rounded-lg p-3 text-center border border-amber-900/20">
-                      <p className="text-[9px] text-gray-500">CONS</p>
-                      <p className="text-sm font-mono font-bold text-amber-400">-{totalConsumption.toFixed(2)}</p>
+                      <p className="text-[9px] text-muted-label">CONS</p>
+                      <p className="text-sm font-mono font-bold text-warning">-{totalConsumption.toFixed(2)}</p>
                     </div>
-                    <div className={`rounded-lg p-3 text-center border ${netRate >= 0 ? 'bg-success/10 border-green-900/20' : 'bg-red-900/10 border-red-900/20'}`}>
-                      <p className="text-[9px] text-gray-500">NET</p>
-                      <p className={`text-sm font-mono font-bold ${netRate >= 0 ? 'text-success' : 'text-red-400'}`}>
+                    <div className={`rounded-lg p-3 text-center border ${netRate >= 0 ? 'bg-success/10 border-success/20' : 'bg-danger/10 border-red-900/20'}`}>
+                      <p className="text-[9px] text-muted-label">NET</p>
+                      <p className={`text-sm font-mono font-bold ${netRate >= 0 ? 'text-success' : 'text-danger'}`}>
                         {netRate >= 0 ? '+' : ''}{netRate.toFixed(2)}
                       </p>
                     </div>
@@ -765,34 +765,34 @@ export default function ResourceFlowPanel() {
 
                   {/* Storage */}
                   <div className="mt-3 flex items-center gap-2">
-                    <Package className="w-3.5 h-3.5 text-gray-500" />
-                    <span className="text-xs text-gray-400">
+                    <Package className="w-3.5 h-3.5 text-muted-label" />
+                    <span className="text-xs text-subtle">
                       Stock: <span className="font-mono text-gray-200">{formatNumber(currentAmount)}</span>
-                      <span className="text-gray-600"> / </span>
-                      <span className="font-mono text-gray-400">{formatNumber(capacity)}</span>
+                      <span className="text-muted-label"> / </span>
+                      <span className="font-mono text-subtle">{formatNumber(capacity)}</span>
                     </span>
-                    <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                    <div className="flex-1 h-1.5 bg-muted-label rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-500 ${
-                          fillPercent >= 80 ? 'bg-success' : fillPercent >= 50 ? 'bg-yellow-500' : fillPercent >= 20 ? 'bg-orange-500' : 'bg-red-500'
+                          fillPercent >= 80 ? 'bg-success' : fillPercent >= 50 ? 'bg-warning' : fillPercent >= 20 ? 'bg-orange-500' : 'bg-danger'
                         }`}
                         style={{ width: `${fillPercent}%` }}
                       />
                     </div>
-                    <span className="text-[10px] text-gray-500 font-mono">{fillPercent.toFixed(0)}%</span>
+                    <span className="text-[10px] text-muted-label font-mono">{fillPercent.toFixed(0)}%</span>
                   </div>
 
                   {/* Market price */}
                   {marketPrice && (
                     <div className="mt-2 flex items-center gap-2">
-                      <TrendingUp className="w-3.5 h-3.5 text-gray-500" />
-                      <span className="text-xs text-gray-400">
+                      <TrendingUp className="w-3.5 h-3.5 text-muted-label" />
+                      <span className="text-xs text-subtle">
                         Market: <span className="font-mono text-success">${marketPrice.currentPrice.toFixed(2)}</span>
                       </span>
                       <Badge variant="outline" className={`text-[9px] h-4 px-1 ${
                         marketPrice.trend === 'up' ? 'border-success/30 text-success' :
-                        marketPrice.trend === 'down' ? 'border-red-500/30 text-red-400' :
-                        'border-gray-600 text-gray-400'
+                        marketPrice.trend === 'down' ? 'border-danger/30 text-danger' :
+                        'border-muted-label text-subtle'
                       }`}>
                         {marketPrice.trend === 'up' ? '↑' : marketPrice.trend === 'down' ? '↓' : '→'}
                       </Badge>
@@ -814,15 +814,15 @@ export default function ResourceFlowPanel() {
                 </CardHeader>
                 <CardContent className="px-3 pb-3">
                   {producers.length === 0 ? (
-                    <p className="text-[11px] text-gray-600 italic">No buildings produce this</p>
+                    <p className="text-[11px] text-muted-label italic">No buildings produce this</p>
                   ) : (
                     <div className="space-y-1.5 max-h-40 overflow-y-auto game-scrollbar pr-1">
                       {producers.map(({ def, count, activeCount, rate }) => (
-                        <div key={def.type} className="flex items-center gap-2 p-1.5 rounded-md bg-success/10 border border-green-900/20">
+                        <div key={def.type} className="flex items-center gap-2 p-1.5 rounded-md bg-success/10 border border-success/20">
                           <GameIcon icon={def.icon} size={14} className="inline-flex" />
                           <div className="flex-1 min-w-0">
                             <p className="text-[11px] font-medium text-gray-200 truncate">{def.name}</p>
-                            <p className="text-[9px] text-gray-500">{activeCount}/{count} active</p>
+                            <p className="text-[9px] text-muted-label">{activeCount}/{count} active</p>
                           </div>
                           <span className="text-[11px] font-mono text-success">+{(rate).toFixed(2)}/s</span>
                         </div>
@@ -836,16 +836,16 @@ export default function ResourceFlowPanel() {
               <Card className="bg-card border-amber-900/30">
                 <CardHeader className="py-2 px-3">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <TrendingDown className="w-3.5 h-3.5 text-amber-400" />
-                    <span className="text-amber-400">CONSUMERS</span>
-                    <Badge variant="outline" className="text-[9px] border-amber-500/30 text-amber-400 bg-amber-900/10 ml-auto font-mono">
+                    <TrendingDown className="w-3.5 h-3.5 text-warning" />
+                    <span className="text-warning">CONSUMERS</span>
+                    <Badge variant="outline" className="text-[9px] border-warning/30 text-warning bg-amber-900/10 ml-auto font-mono">
                       -{(totalConsumption).toFixed(2)}/s
                     </Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="px-3 pb-3">
                   {consumers.length === 0 ? (
-                    <p className="text-[11px] text-gray-600 italic">No buildings consume this</p>
+                    <p className="text-[11px] text-muted-label italic">No buildings consume this</p>
                   ) : (
                     <div className="space-y-1.5 max-h-40 overflow-y-auto game-scrollbar pr-1">
                       {consumers.map(({ def, count, activeCount, rate }) => (
@@ -853,9 +853,9 @@ export default function ResourceFlowPanel() {
                           <GameIcon icon={def.icon} size={14} className="inline-flex" />
                           <div className="flex-1 min-w-0">
                             <p className="text-[11px] font-medium text-gray-200 truncate">{def.name}</p>
-                            <p className="text-[9px] text-gray-500">{activeCount}/{count} active{def.fuel === selectedResource ? ' (fuel)' : ''}</p>
+                            <p className="text-[9px] text-muted-label">{activeCount}/{count} active{def.fuel === selectedResource ? ' (fuel)' : ''}</p>
                           </div>
-                          <span className="text-[11px] font-mono text-amber-400">-{(rate).toFixed(2)}/s</span>
+                          <span className="text-[11px] font-mono text-warning">-{(rate).toFixed(2)}/s</span>
                         </div>
                       ))}
                     </div>
@@ -876,21 +876,21 @@ export default function ResourceFlowPanel() {
                   {(() => {
                     const relevantChains = PRODUCTION_CHAINS.filter(c => c.steps.includes(selectedResource));
                     if (relevantChains.length === 0) {
-                      return <p className="text-[11px] text-gray-600 italic">Not part of any production chain</p>;
+                      return <p className="text-[11px] text-muted-label italic">Not part of any production chain</p>;
                     }
                     return relevantChains.slice(0, 8).map((chain, ci) => {
                       const idx = chain.steps.indexOf(selectedResource);
                       const isBroken = chainTrace.brokenChains.includes(chain.name);
                       return (
-                        <div key={ci} className={`p-2 rounded-lg border ${isBroken ? 'border-red-900/30 bg-red-900/10' : 'border-gray-800 bg-[#0a0e17]'}`}>
+                        <div key={ci} className={`p-2 rounded-lg border ${isBroken ? 'border-red-900/30 bg-danger/10' : 'border-muted-label bg-[#0a0e17]'}`}>
                           <div className="flex items-center gap-1.5 mb-1.5">
                             {isBroken ? (
-                              <AlertCircle className="w-3 h-3 text-red-400" />
+                              <AlertCircle className="w-3 h-3 text-danger" />
                             ) : (
                               <CheckCircle2 className="w-3 h-3 text-success" />
                             )}
-                            <span className={`text-[10px] font-semibold ${isBroken ? 'text-red-400' : 'text-gray-300'}`}>{chain.name}</span>
-                            {isBroken && <span className="text-[9px] text-red-500 ml-auto">BROKEN</span>}
+                            <span className={`text-[10px] font-semibold ${isBroken ? 'text-danger' : 'text-subtle'}`}>{chain.name}</span>
+                            {isBroken && <span className="text-[9px] text-danger ml-auto">BROKEN</span>}
                           </div>
                           <div className="flex items-center gap-0.5 flex-wrap">
                             {chain.steps.map((step, si) => {
@@ -905,16 +905,16 @@ export default function ResourceFlowPanel() {
 
                               return (
                                 <div key={si} className="flex items-center gap-0.5">
-                                  {si > 0 && <ArrowRight className="w-2.5 h-2.5 text-gray-700" />}
+                                  {si > 0 && <ArrowRight className="w-2.5 h-2.5 text-dim" />}
                                   <div
                                     className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] border ${
                                       isCurrentStep
                                         ? 'border-cyan-400/50 bg-cyan-900/20 text-cyan-300'
                                         : isUpstream
-                                          ? stepActive ? 'border-success/30 bg-success/10 text-success' : 'border-red-900/30 bg-red-900/10 text-red-400'
+                                          ? stepActive ? 'border-success/30 bg-success/10 text-success' : 'border-red-900/30 bg-danger/10 text-danger'
                                           : isDownstream
-                                            ? stepActive ? 'border-teal-900/30 bg-teal-900/10 text-teal-300' : 'border-gray-800 bg-gray-900/20 text-gray-500'
-                                            : 'border-gray-800 text-gray-500'
+                                            ? stepActive ? 'border-teal-900/30 bg-teal-900/10 text-teal-300' : 'border-muted-label bg-muted-label/20 text-muted-label'
+                                            : 'border-muted-label text-muted-label'
                                     }`}
                                   >
                                     <GameIcon icon={stepMeta?.icon} size={14} className="inline-flex" />
@@ -934,17 +934,17 @@ export default function ResourceFlowPanel() {
               {/* Suggestions */}
               {netRate < 0 && producers.length > 0 && (
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-yellow-900/10 border border-yellow-900/20">
-                  <Lightbulb className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0 mt-0.5" />
+                  <Lightbulb className="w-3.5 h-3.5 text-warning flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-[11px] font-semibold text-yellow-400">Production Deficit</p>
-                    <p className="text-[10px] text-yellow-300/80">
+                    <p className="text-[11px] font-semibold text-warning">Production Deficit</p>
+                    <p className="text-[10px] text-warning/80">
                       Build more <GameIcon icon={producers[0].def.icon} size={14} className="inline-flex" /> {producers[0].def.name} or reduce <GameIcon icon={consumers[0]?.def.icon} size={14} className="inline-flex" /> {consumers[0]?.def.name} consumption.
                     </p>
                   </div>
                 </div>
               )}
               {netRate > 0 && consumers.some(c => c.count === 0) && (
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-success/10 border border-green-900/20">
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-success/10 border border-success/20">
                   <Lightbulb className="w-3.5 h-3.5 text-success flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="text-[11px] font-semibold text-success">Surplus Available</p>
@@ -963,8 +963,8 @@ export default function ResourceFlowPanel() {
       {!selectedResource && (
         <Card className="bg-card border-cyan-900/30">
           <CardHeader className="py-2 px-4">
-            <CardTitle className="text-sm font-semibold text-gray-300 flex items-center gap-2">
-              <Zap className="w-4 h-4 text-yellow-400" />
+            <CardTitle className="text-sm font-semibold text-subtle flex items-center gap-2">
+              <Zap className="w-4 h-4 text-warning" />
               Production Chain Browser
             </CardTitle>
           </CardHeader>
@@ -995,10 +995,10 @@ export default function ResourceFlowPanel() {
                       highlightChain === i
                         ? 'border-cyan-400/40 bg-cyan-900/10'
                         : chainActive
-                          ? 'border-success/30 bg-success/5 hover:border-green-700/30'
+                          ? 'border-success/30 bg-success/5 hover:border-success/30'
                           : chainPartial
                             ? 'border-amber-900/30 bg-amber-900/5 hover:border-amber-700/30'
-                            : 'border-gray-800 bg-[#0a0e17] hover:border-gray-700'
+                            : 'border-muted-label bg-[#0a0e17] hover:border-muted-label'
                     }`}
                   >
                     <div className="flex items-center gap-1.5 mb-1">
@@ -1006,7 +1006,7 @@ export default function ResourceFlowPanel() {
                         className="w-2 h-2 rounded-full flex-shrink-0"
                         style={{ background: chain.color }}
                       />
-                      <span className="text-[11px] font-medium text-gray-300 truncate">{chain.name}</span>
+                      <span className="text-[11px] font-medium text-subtle truncate">{chain.name}</span>
                       {chainActive && <Badge variant="outline" className="text-[8px] h-3.5 px-1 border-success/30 text-success ml-auto">ACTIVE</Badge>}
                     </div>
                     <div className="flex items-center gap-0.5 flex-wrap">
@@ -1015,12 +1015,12 @@ export default function ResourceFlowPanel() {
                         const stepMeta = RESOURCE_META[stepRes];
                         return (
                           <div key={si} className="flex items-center gap-0.5">
-                            {si > 0 && <ArrowRight className="w-2 h-2 text-gray-700" />}
+                            {si > 0 && <ArrowRight className="w-2 h-2 text-dim" />}
                             <GameIcon icon={stepMeta?.icon} size={10} className="inline-flex" />
                           </div>
                         );
                       })}
-                      {chain.steps.length > 5 && <span className="text-[9px] text-gray-600">+{chain.steps.length - 5}</span>}
+                      {chain.steps.length > 5 && <span className="text-[9px] text-muted-label">+{chain.steps.length - 5}</span>}
                     </div>
                   </button>
                 );

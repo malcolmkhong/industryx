@@ -12,8 +12,8 @@ type NotificationFilter = 'all' | 'success' | 'warning' | 'error' | 'info';
 
 const typeColors = {
   success: { border: 'border-l-green-500', bg: 'bg-success/10', text: 'text-success', icon: 'lucide:check' },
-  warning: { border: 'border-l-yellow-500', bg: 'bg-yellow-900/10', text: 'text-yellow-400', icon: 'lucide:alert-triangle' },
-  error: { border: 'border-l-red-500', bg: 'bg-red-900/10', text: 'text-red-400', icon: 'lucide:x' },
+  warning: { border: 'border-l-yellow-500', bg: 'bg-yellow-900/10', text: 'text-warning', icon: 'lucide:alert-triangle' },
+  error: { border: 'border-l-red-500', bg: 'bg-danger/10', text: 'text-danger', icon: 'lucide:x' },
   info: { border: 'border-l-cyan-500', bg: 'bg-cyan-900/10', text: 'text-cyan-400', icon: 'lucide:info' },
 };
 
@@ -42,7 +42,7 @@ const MemoizedNotificationItem = React.memo(function MemoizedNotificationItem({
           onMarkRead(id);
         }
       }}
-      className={`rounded-lg border-l-2 ${tc.border} ${tc.bg} border border-gray-800/50 p-3 flex items-start gap-3 hover:bg-opacity-20 cursor-pointer ${
+      className={`rounded-lg border-l-2 ${tc.border} ${tc.bg} border border-muted-label/50 p-3 flex items-start gap-3 hover:bg-opacity-20 cursor-pointer ${
         !read ? 'bg-opacity-30' : 'bg-opacity-10'
       }`}
     >
@@ -50,10 +50,10 @@ const MemoizedNotificationItem = React.memo(function MemoizedNotificationItem({
         <GameIcon icon={tc.icon} size={12} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className={`text-xs ${read ? 'text-gray-500' : 'text-gray-200'}`}>
+        <p className={`text-xs ${read ? 'text-muted-label' : 'text-gray-200'}`}>
           {message}
         </p>
-        <p className="text-[9px] text-gray-600 mt-1">
+        <p className="text-[9px] text-muted-label mt-1">
           Tick {gameTick}
           {!read && <span className="ml-2 inline-block w-1.5 h-1.5 rounded-full bg-cyan-400 pulse-dot" />}
         </p>
@@ -64,7 +64,7 @@ const MemoizedNotificationItem = React.memo(function MemoizedNotificationItem({
             e.stopPropagation();
             onMarkRead(id);
           }}
-          className="flex-shrink-0 w-5 h-5 rounded flex items-center justify-center text-gray-600 hover:text-cyan-400 transition-colors"
+          className="flex-shrink-0 w-5 h-5 rounded flex items-center justify-center text-muted-label hover:text-cyan-400 transition-colors"
           title="Mark as read"
         >
           <Check className="w-3 h-3" />
@@ -94,10 +94,10 @@ export function NotificationCenterPanel() {
   const infoCount = store.notifications.filter(n => n.type === 'info').length;
 
   const filters: { id: NotificationFilter; label: string; count: number; color: string }[] = [
-    { id: 'all', label: 'All', count: store.notifications.length, color: 'text-gray-400' },
+    { id: 'all', label: 'All', count: store.notifications.length, color: 'text-subtle' },
     { id: 'success', label: 'Success', count: successCount, color: 'text-success' },
-    { id: 'warning', label: 'Warning', count: warningCount, color: 'text-yellow-400' },
-    { id: 'error', label: 'Error', count: errorCount, color: 'text-red-400' },
+    { id: 'warning', label: 'Warning', count: warningCount, color: 'text-warning' },
+    { id: 'error', label: 'Error', count: errorCount, color: 'text-danger' },
     { id: 'info', label: 'Info', count: infoCount, color: 'text-cyan-400' },
   ];
 
@@ -129,7 +129,7 @@ export function NotificationCenterPanel() {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 text-[10px] border-red-900/50 text-red-400 hover:bg-red-900/30"
+                className="h-7 text-[10px] border-red-900/50 text-danger hover:bg-danger/30"
                 onClick={() => store.clearNotifications()}
               >
                 <Trash2 className="w-3 h-3 mr-1" /> Clear All
@@ -143,19 +143,19 @@ export function NotificationCenterPanel() {
       <div className="grid grid-cols-4 gap-2">
         <div className="bg-card/50 border border-success/30 rounded-lg p-3 text-center">
           <div className="text-lg font-bold text-success">{successCount}</div>
-          <div className="text-[9px] text-gray-500">Success</div>
+          <div className="text-[9px] text-muted-label">Success</div>
         </div>
         <div className="bg-card/50 border border-yellow-900/30 rounded-lg p-3 text-center">
-          <div className="text-lg font-bold text-yellow-400">{warningCount}</div>
-          <div className="text-[9px] text-gray-500">Warnings</div>
+          <div className="text-lg font-bold text-warning">{warningCount}</div>
+          <div className="text-[9px] text-muted-label">Warnings</div>
         </div>
         <div className="bg-card/50 border border-red-900/30 rounded-lg p-3 text-center">
-          <div className="text-lg font-bold text-red-400">{errorCount}</div>
-          <div className="text-[9px] text-gray-500">Errors</div>
+          <div className="text-lg font-bold text-danger">{errorCount}</div>
+          <div className="text-[9px] text-muted-label">Errors</div>
         </div>
         <div className="bg-card/50 border border-cyan-900/30 rounded-lg p-3 text-center">
           <div className="text-lg font-bold text-cyan-400">{infoCount}</div>
-          <div className="text-[9px] text-gray-500">Info</div>
+          <div className="text-[9px] text-muted-label">Info</div>
         </div>
       </div>
 
@@ -169,7 +169,7 @@ export function NotificationCenterPanel() {
 
       {/* Filter tabs */}
       <div className="flex items-center gap-1 overflow-x-auto">
-        <Filter className="w-3.5 h-3.5 text-gray-600 mr-1 flex-shrink-0" />
+        <Filter className="w-3.5 h-3.5 text-muted-label mr-1 flex-shrink-0" />
         {filters.map(f => (
           <button
             key={f.id}
@@ -177,10 +177,10 @@ export function NotificationCenterPanel() {
             className={`text-[10px] px-2.5 py-1.5 rounded-lg border whitespace-nowrap ${
               filter === f.id
                 ? `border-cyan-700 bg-cyan-900/20 ${f.color}`
-                : 'border-gray-800 text-gray-500 hover:border-gray-700 hover:text-gray-400'
+                : 'border-muted-label text-muted-label hover:border-muted-label hover:text-subtle'
             }`}
           >
-            {f.label} <span className="text-gray-600">({f.count})</span>
+            {f.label} <span className="text-muted-label">({f.count})</span>
           </button>
         ))}
       </div>
@@ -203,9 +203,9 @@ export function NotificationCenterPanel() {
 
         {notifications.length === 0 && (
           <div className="text-center py-12">
-            <Bell className="w-12 h-12 text-gray-700 mx-auto mb-3" />
-            <p className="text-sm text-gray-500">No notifications</p>
-            <p className="text-[10px] text-gray-600 mt-1">
+            <Bell className="w-12 h-12 text-dim mx-auto mb-3" />
+            <p className="text-sm text-muted-label">No notifications</p>
+            <p className="text-[10px] text-muted-label mt-1">
               {filter === 'all' ? 'Notifications will appear as you play the game' : `No ${filter} notifications found`}
             </p>
           </div>

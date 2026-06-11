@@ -86,7 +86,7 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
               CHAIN ACTIVE
             </Badge>
           ) : hasBottleneck ? (
-            <Badge variant="outline" className="text-[9px] border-red-500/50 text-red-400 bg-red-900/20">
+            <Badge variant="outline" className="text-[9px] border-danger/50 text-danger bg-danger/20">
               <AlertTriangle className="w-2.5 h-2.5 mr-0.5" />
               BOTTLENECK
             </Badge>
@@ -101,7 +101,7 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
           {/* Detail toggle */}
           <button
             onClick={() => setShowDetailView(!showDetailView)}
-            className="flex items-center gap-1 text-[10px] text-gray-500 hover:text-gray-300 transition-colors px-1.5 py-0.5 rounded border border-gray-800 hover:border-gray-600"
+            className="flex items-center gap-1 text-[10px] text-muted-label hover:text-subtle transition-colors px-1.5 py-0.5 rounded border border-muted-label hover:border-muted-label"
             title={showDetailView ? 'Compact view' : 'Detailed SVG view'}
           >
             {showDetailView ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
@@ -122,7 +122,7 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
               className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] font-medium border relative ${
                 i === selectedChain
                   ? 'text-white border-transparent shadow-lg'
-                  : 'text-gray-400 border-gray-700/50 bg-gray-800/50 hover:border-gray-600 hover:text-gray-300'
+                  : 'text-subtle border-muted-label/50 bg-muted-label/50 hover:border-muted-label hover:text-subtle'
               }`}
               style={i === selectedChain ? {
                 backgroundColor: `${c.color}33`,
@@ -132,7 +132,7 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
             >
               {c.name}
               {!cAllProducing && c.steps.length > 0 && i !== selectedChain && (
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-danger rounded-full" />
               )}
             </button>
           );
@@ -479,8 +479,8 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
                         key={step}
                         className={`rounded-lg p-3 border ${
                           isBottleneck
-                            ? 'bg-red-900/10 border-red-900/30'
-                            : 'bg-[#0a0e17] border-gray-800'
+                            ? 'bg-danger/10 border-red-900/30'
+                            : 'bg-[#0a0e17] border-muted-label'
                         }`}
                       >
                         <div className="flex items-center justify-between mb-1.5">
@@ -501,7 +501,7 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-[10px] text-gray-400 font-mono">
+                            <span className="text-[10px] text-subtle font-mono">
                               {formatNumber(stock)}
                             </span>
                             {rate > 0 ? (
@@ -509,11 +509,11 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
                                 +{(rate).toFixed(1)}/s
                               </span>
                             ) : rate < 0 ? (
-                              <span className="text-[10px] text-red-400 font-mono font-bold">
+                              <span className="text-[10px] text-danger font-mono font-bold">
                                 {(rate).toFixed(1)}/s
                               </span>
                             ) : (
-                              <span className="text-[10px] text-gray-600 font-mono">
+                              <span className="text-[10px] text-muted-label font-mono">
                                 —
                               </span>
                             )}
@@ -523,19 +523,19 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
                         {/* Building producers */}
                         {buildings.length > 0 ? (
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[9px] text-gray-500">Producers:</span>
+                            <span className="text-[9px] text-muted-label">Producers:</span>
                             {buildings.map(b => (
                               <div
                                 key={b.type}
                                 className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] border ${
                                   b.activeCount > 0
-                                    ? 'border-green-900/40 bg-success/10 text-success'
-                                    : 'border-gray-800 bg-gray-900/30 text-gray-500'
+                                    ? 'border-success/40 bg-success/10 text-success'
+                                    : 'border-muted-label bg-muted-label/30 text-muted-label'
                                 }`}
                               >
                                 <GameIcon icon={b.icon} size={16} />
                                 <span className="font-medium">{b.name}</span>
-                                <span className="text-gray-500">
+                                <span className="text-muted-label">
                                   ({b.activeCount}/{b.count})
                                 </span>
                               </div>
@@ -543,7 +543,7 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
                           </div>
                         ) : (
                           <div className="flex items-center gap-1">
-                            <span className="text-[9px] text-gray-600">No buildings produce this resource</span>
+                            <span className="text-[9px] text-muted-label">No buildings produce this resource</span>
                           </div>
                         )}
                       </div>
@@ -558,18 +558,18 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
       {/* Chain completion summary */}
       <div className="mt-3 flex items-center justify-between text-[10px]">
         <div className="flex items-center gap-3">
-          <span className="text-gray-500">
+          <span className="text-muted-label">
             Chain progress: <span className={allProducing ? 'text-success font-bold' : 'text-orange-400 font-bold'}>
               {chain.steps.filter(s => (productionRates[s as ResourceType] ?? 0) > 0).length}/{chain.steps.length}
             </span> steps active
           </span>
           {hasBottleneck && (
-            <span className="text-red-400">
+            <span className="text-danger">
               {chainBottlenecks.length} bottleneck{chainBottlenecks.length > 1 ? 's' : ''}
             </span>
           )}
         </div>
-        <span className="text-gray-600">
+        <span className="text-muted-label">
           {PRODUCTION_CHAINS.length} chains
         </span>
       </div>

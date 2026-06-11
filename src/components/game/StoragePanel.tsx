@@ -18,7 +18,7 @@ import { GameIcon } from '@/components/game/shared/GameIcon';
 
 // ─── Tier Config ──────────────────────────────────────────────────────────────
 const TIER_CONFIG: Record<number, { label: string; color: string; bg: string; border: string }> = {
-  0: { label: 'Raw Materials', color: '#a0a0a0', bg: 'bg-gray-900/30', border: 'border-gray-700/40' },
+  0: { label: 'Raw Materials', color: '#a0a0a0', bg: 'bg-muted-label/30', border: 'border-muted-label/40' },
   1: { label: 'Tier 1 — Refined', color: '#22d3ee', bg: 'bg-cyan-900/20', border: 'border-cyan-700/40' },
   2: { label: 'Tier 2 — Manufactured', color: '#f97316', bg: 'bg-orange-900/20', border: 'border-orange-700/40' },
   3: { label: 'Tier 3 — High-Tech', color: '#a855f7', bg: 'bg-purple-900/20', border: 'border-purple-700/40' },
@@ -227,27 +227,27 @@ export function StoragePanel() {
   // ─── Render Helpers ───────────────────────────────────────────────────────
   const renderRateBadge = (rate: number, prodRate?: number, consRate?: number) => {
     if (rate > 0) return <span className="text-success font-mono text-[10px]">+{formatNumber(rate)}/s</span>;
-    if (rate < 0) return <span className="text-red-400 font-mono text-[10px]">{formatNumber(rate)}/s</span>;
+    if (rate < 0) return <span className="text-danger font-mono text-[10px]">{formatNumber(rate)}/s</span>;
     // When net rate is 0 but the resource is being both produced and consumed (balanced flow),
     // show "±0/s" in cyan to distinguish from idle resources which show "—"
     if (prodRate !== undefined && consRate !== undefined && prodRate > 0 && consRate > 0) {
       return <span className="text-cyan-400 font-mono text-[10px]">±0/s</span>;
     }
-    return <span className="text-gray-600 font-mono text-[10px]">—</span>;
+    return <span className="text-muted-label font-mono text-[10px]">—</span>;
   };
 
   const renderCapacityBar = (amount: number, capacity: number) => {
     if (unlimited) {
       return (
-        <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
+        <div className="w-full h-1.5 bg-muted-label rounded-full overflow-hidden">
           <div className="h-full rounded-full bg-success/40" style={{ width: '15%' }} />
         </div>
       );
     }
     const pct = capacity > 0 ? Math.min(100, (amount / capacity) * 100) : 0;
-    const barColor = pct >= 95 ? 'bg-red-500' : pct >= 80 ? 'bg-orange-500' : pct >= 50 ? 'bg-yellow-500' : 'bg-cyan-500';
+    const barColor = pct >= 95 ? 'bg-danger' : pct >= 80 ? 'bg-orange-500' : pct >= 50 ? 'bg-warning' : 'bg-cyan-500';
     return (
-      <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
+      <div className="w-full h-1.5 bg-muted-label rounded-full overflow-hidden">
         <div className={`h-full rounded-full transition-all duration-300 ${barColor}`} style={{ width: `${pct}%` }} />
       </div>
     );
@@ -284,7 +284,7 @@ export function StoragePanel() {
       <div
         className="overflow-hidden"
       >
-        <div className="mt-2 bg-[#0a0e17] rounded-lg p-3 border border-gray-800/50 space-y-3">
+        <div className="mt-2 bg-[#0a0e17] rounded-lg p-3 border border-muted-label/50 space-y-3">
           {/* Rate Breakdown */}
           <div>
             <div className="flex items-center gap-1.5 mb-2">
@@ -292,22 +292,22 @@ export function StoragePanel() {
               <span className="text-[10px] font-semibold text-cyan-400 uppercase tracking-wider">Rate Breakdown — {meta.name}</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <div className="bg-success/10 border border-green-800/30 rounded-lg p-2 text-center">
+              <div className="bg-success/10 border border-success/30 rounded-lg p-2 text-center">
                 <div className="text-[9px] text-success/70 uppercase tracking-wider">Production</div>
                 <div className="text-sm font-bold text-success font-mono">+{formatNumber(prodRate)}</div>
-                <div className="text-[9px] text-green-600">per second</div>
+                <div className="text-[9px] text-success">per second</div>
               </div>
-              <div className="bg-red-900/10 border border-red-800/30 rounded-lg p-2 text-center">
-                <div className="text-[9px] text-red-500/70 uppercase tracking-wider">Consumption</div>
-                <div className="text-sm font-bold text-red-400 font-mono">-{formatNumber(consRate)}</div>
-                <div className="text-[9px] text-red-600">per second</div>
+              <div className="bg-danger/10 border border-danger/30 rounded-lg p-2 text-center">
+                <div className="text-[9px] text-danger/70 uppercase tracking-wider">Consumption</div>
+                <div className="text-sm font-bold text-danger font-mono">-{formatNumber(consRate)}</div>
+                <div className="text-[9px] text-danger">per second</div>
               </div>
-              <div className={`${netRate >= 0 ? 'bg-success/10 border-green-800/30' : 'bg-orange-900/10 border-orange-800/30'} border rounded-lg p-2 text-center`}>
-                <div className="text-[9px] text-gray-500 uppercase tracking-wider">Net Balance</div>
-                <div className={`text-sm font-bold font-mono ${netRate > 0 ? 'text-success' : netRate < 0 ? 'text-red-400' : prodRate > 0 && consRate > 0 ? 'text-cyan-400' : 'text-gray-500'}`}>
+              <div className={`${netRate >= 0 ? 'bg-success/10 border-success/30' : 'bg-orange-900/10 border-orange-800/30'} border rounded-lg p-2 text-center`}>
+                <div className="text-[9px] text-muted-label uppercase tracking-wider">Net Balance</div>
+                <div className={`text-sm font-bold font-mono ${netRate > 0 ? 'text-success' : netRate < 0 ? 'text-danger' : prodRate > 0 && consRate > 0 ? 'text-cyan-400' : 'text-muted-label'}`}>
                   {netRate > 0 ? '+' : ''}{netRate === 0 && prodRate > 0 && consRate > 0 ? '±0' : formatNumber(netRate)}
                 </div>
-                <div className="text-[9px] text-gray-600">per second</div>
+                <div className="text-[9px] text-muted-label">per second</div>
               </div>
             </div>
             {etaLabel && (
@@ -320,15 +320,15 @@ export function StoragePanel() {
           {/* Storage Upgrade */}
           <div>
             <div className="flex items-center gap-1.5 mb-2">
-              <Warehouse className="w-3 h-3 text-amber-400" />
-              <span className="text-[10px] font-semibold text-amber-400 uppercase tracking-wider">Storage Capacity — {meta.name}</span>
+              <Warehouse className="w-3 h-3 text-warning" />
+              <span className="text-[10px] font-semibold text-warning uppercase tracking-wider">Storage Capacity — {meta.name}</span>
             </div>
-            <div className="bg-gray-900/50 border border-gray-700/40 rounded-lg p-3">
+            <div className="bg-muted-label/50 border border-muted-label/40 rounded-lg p-3">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-400">Current:</span>
+                  <span className="text-xs text-subtle">Current:</span>
                   <span className="text-sm font-bold font-mono text-gray-200">{unlimited ? '∞' : formatNumber(capacity)}</span>
-                  <span className="text-[10px] text-gray-600">({formatNumber(amount)} stored)</span>
+                  <span className="text-[10px] text-muted-label">({formatNumber(amount)} stored)</span>
                 </div>
                 {upgradeLevel > 0 && (
                   <Badge level={upgradeLevel} />
@@ -338,8 +338,8 @@ export function StoragePanel() {
                 <>
                   {renderCapacityBar(amount, capacity)}
                   <div className="flex items-center justify-between mt-2 text-[10px]">
-                    <span className="text-gray-500">Level {upgradeLevel} • +50% base per level</span>
-                    <span className={`font-mono ${fillPct >= 95 ? 'text-red-400' : fillPct >= 80 ? 'text-orange-400' : 'text-gray-500'}`}>
+                    <span className="text-muted-label">Level {upgradeLevel} • +50% base per level</span>
+                    <span className={`font-mono ${fillPct >= 95 ? 'text-danger' : fillPct >= 80 ? 'text-orange-400' : 'text-muted-label'}`}>
                       {fillPct.toFixed(1)}% used
                     </span>
                   </div>
@@ -349,8 +349,8 @@ export function StoragePanel() {
                       disabled={!canAfford}
                       className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-[10px] font-medium ${
                         canAfford
-                          ? 'bg-amber-600/20 text-amber-300 border border-amber-500/40 hover:bg-amber-600/30 hover:border-amber-500/60'
-                          : 'bg-gray-800/30 text-gray-600 border border-gray-700/30 cursor-not-allowed'
+                          ? 'bg-amber-600/20 text-warning border border-warning/40 hover:bg-amber-600/30 hover:border-warning/60'
+                          : 'bg-muted-label/30 text-muted-label border border-muted-label/30 cursor-not-allowed'
                       }`}
                     >
                       <Plus className="w-3 h-3" />
@@ -362,7 +362,7 @@ export function StoragePanel() {
                       className={`flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-[10px] font-medium ${
                         store.money >= upgradeCost5
                           ? 'bg-cyan-600/20 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-600/30 hover:border-cyan-500/60'
-                          : 'bg-gray-800/30 text-gray-600 border border-gray-700/30 cursor-not-allowed'
+                          : 'bg-muted-label/30 text-muted-label border border-muted-label/30 cursor-not-allowed'
                       }`}
                     >
                       <Plus className="w-3 h-3" />
@@ -405,14 +405,14 @@ export function StoragePanel() {
                             {chainName}
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent side="bottom" className="bg-gray-900 border-gray-700 text-gray-200 text-[10px]">
+                        <TooltipContent side="bottom" className="bg-muted-label border-muted-label text-gray-200 text-[10px]">
                           <div className="flex items-center gap-1">
                             {chain?.steps.map((step, j) => (
                               <span key={j} className="flex items-center gap-1">
                                 <span style={{ color: RESOURCE_META[step as ResourceType]?.color ?? '#999' }}>
                                   <GameIcon icon={RESOURCE_META[step as ResourceType]?.icon} size={14} className="inline-flex" /> {RESOURCE_META[step as ResourceType]?.name ?? step}
                                 </span>
-                                {j < chain.steps.length - 1 && <ArrowRight className="w-2.5 h-2.5 text-gray-600" />}
+                                {j < chain.steps.length - 1 && <ArrowRight className="w-2.5 h-2.5 text-muted-label" />}
                               </span>
                             ))}
                           </div>
@@ -434,33 +434,33 @@ export function StoragePanel() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {deps.producers.length > 0 && (
-                  <div className="bg-success/10 border border-green-800/30 rounded-lg p-2">
+                  <div className="bg-success/10 border border-success/30 rounded-lg p-2">
                     <div className="text-[9px] text-success uppercase tracking-wider mb-1.5">Produced By</div>
                     <div className="space-y-1">
                       {deps.producers.slice(0, 5).map((p, i) => (
                         <div key={i} className="flex items-center justify-between text-[10px]">
-                          <span className="text-gray-300 truncate">{p.building}</span>
+                          <span className="text-subtle truncate">{p.building}</span>
                           <span className="text-success font-mono ml-1">+{formatNumber(p.amount)}/s</span>
                         </div>
                       ))}
                       {deps.producers.length > 5 && (
-                        <div className="text-[9px] text-gray-600">+{deps.producers.length - 5} more</div>
+                        <div className="text-[9px] text-muted-label">+{deps.producers.length - 5} more</div>
                       )}
                     </div>
                   </div>
                 )}
                 {deps.consumers.length > 0 && (
-                  <div className="bg-red-900/10 border border-red-800/30 rounded-lg p-2">
-                    <div className="text-[9px] text-red-500 uppercase tracking-wider mb-1.5">Consumed By</div>
+                  <div className="bg-danger/10 border border-danger/30 rounded-lg p-2">
+                    <div className="text-[9px] text-danger uppercase tracking-wider mb-1.5">Consumed By</div>
                     <div className="space-y-1">
                       {deps.consumers.slice(0, 5).map((c, i) => (
                         <div key={i} className="flex items-center justify-between text-[10px]">
-                          <span className="text-gray-300 truncate">{c.building}</span>
-                          <span className="text-red-400 font-mono ml-1">-{formatNumber(c.amount)}/s</span>
+                          <span className="text-subtle truncate">{c.building}</span>
+                          <span className="text-danger font-mono ml-1">-{formatNumber(c.amount)}/s</span>
                         </div>
                       ))}
                       {deps.consumers.length > 5 && (
-                        <div className="text-[9px] text-gray-600">+{deps.consumers.length - 5} more</div>
+                        <div className="text-[9px] text-muted-label">+{deps.consumers.length - 5} more</div>
                       )}
                     </div>
                   </div>
@@ -491,10 +491,10 @@ export function StoragePanel() {
     if (!isActive && !searchQuery.trim()) return null;
 
     return (
-      <div key={res} className="border-b border-gray-800/30 last:border-0">
+      <div key={res} className="border-b border-muted-label/30 last:border-0">
         <button
           onClick={() => toggleResource(res)}
-          className={`w-full flex items-center gap-2 px-3 py-2 transition-colors hover:bg-gray-800/30 text-left ${isExpanded ? 'bg-gray-800/20' : ''}`}
+          className={`w-full flex items-center gap-2 px-3 py-2 transition-colors hover:bg-muted-label/30 text-left ${isExpanded ? 'bg-muted-label/20' : ''}`}
         >
           {/* Color Dot */}
           <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: meta.color }} />
@@ -513,9 +513,9 @@ export function StoragePanel() {
 
           {/* Stock / Capacity */}
           <div className="text-right min-w-[80px]">
-            <span className="text-xs font-mono text-gray-300">{formatNumber(amount)}</span>
-            <span className="text-[10px] text-gray-600">/</span>
-            <span className="text-[10px] text-gray-500 font-mono">{unlimited ? '∞' : formatNumber(capacity)}</span>
+            <span className="text-xs font-mono text-subtle">{formatNumber(amount)}</span>
+            <span className="text-[10px] text-muted-label">/</span>
+            <span className="text-[10px] text-muted-label font-mono">{unlimited ? '∞' : formatNumber(capacity)}</span>
           </div>
 
           {/* Net Rate */}
@@ -525,8 +525,8 @@ export function StoragePanel() {
 
           {/* Expand Chevron */}
           {isExpanded
-            ? <ChevronDown className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
-            : <ChevronRight className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
+            ? <ChevronDown className="w-3.5 h-3.5 text-muted-label flex-shrink-0" />
+            : <ChevronRight className="w-3.5 h-3.5 text-muted-label flex-shrink-0" />
           }
         </button>
         {isExpanded && renderResourceDetail(res)}
@@ -540,8 +540,8 @@ export function StoragePanel() {
       return (
         <div className="text-center py-12">
           <CheckCircle2 className="w-10 h-10 text-success/40 mx-auto mb-3" />
-          <div className="text-sm text-gray-400">No Storage Alerts</div>
-          <div className="text-[10px] text-gray-600 mt-1">All materials are in good standing</div>
+          <div className="text-sm text-subtle">No Storage Alerts</div>
+          <div className="text-[10px] text-muted-label mt-1">All materials are in good standing</div>
         </div>
       );
     }
@@ -552,15 +552,15 @@ export function StoragePanel() {
           const meta = RESOURCE_META[alert.resource];
           if (!meta) return null;
           const iconMap = {
-            critical: <AlertCircle className="w-4 h-4 text-red-400" />,
+            critical: <AlertCircle className="w-4 h-4 text-danger" />,
             shortage: <AlertTriangle className="w-4 h-4 text-orange-400" />,
-            overflow: <Package className="w-4 h-4 text-yellow-400" />,
+            overflow: <Package className="w-4 h-4 text-warning" />,
             bottleneck: <Gauge className="w-4 h-4 text-purple-400" />,
           };
           const colorMap = {
-            critical: 'border-red-500/40 bg-red-900/10',
+            critical: 'border-danger/40 bg-danger/10',
             shortage: 'border-orange-500/40 bg-orange-900/10',
-            overflow: 'border-yellow-500/40 bg-yellow-900/10',
+            overflow: 'border-warning/40 bg-yellow-900/10',
             bottleneck: 'border-purple-500/40 bg-purple-900/10',
           };
           const labelMap = {
@@ -581,15 +581,15 @@ export function StoragePanel() {
                   <GameIcon icon={meta.icon} size={14} className="inline-flex" />
                   <span className="text-sm font-semibold text-gray-200">{meta.name}</span>
                   <span className={`text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
-                    alert.type === 'critical' ? 'bg-red-500/20 text-red-400' :
+                    alert.type === 'critical' ? 'bg-danger/20 text-danger' :
                     alert.type === 'shortage' ? 'bg-orange-500/20 text-orange-400' :
-                    alert.type === 'overflow' ? 'bg-yellow-500/20 text-yellow-400' :
+                    alert.type === 'overflow' ? 'bg-warning/20 text-warning' :
                     'bg-purple-500/20 text-purple-400'
                   }`}>
                     {labelMap[alert.type]}
                   </span>
                 </div>
-                <div className="text-[10px] text-gray-400">{alert.message}</div>
+                <div className="text-[10px] text-subtle">{alert.message}</div>
               </div>
               <button
                 onClick={() => { setExpandedResource(alert.resource); setViewMode('overview'); }}
@@ -626,7 +626,7 @@ export function StoragePanel() {
             <div
               key={chain.name}
               className={`rounded-lg border p-3 ${
-                allActive ? 'bg-gray-900/40 border-green-700/30' : 'bg-gray-900/30 border-gray-700/30'
+                allActive ? 'bg-muted-label/40 border-success/30' : 'bg-muted-label/30 border-muted-label/30'
               }`}
             >
               <div className="flex items-center gap-2 mb-2">
@@ -635,7 +635,7 @@ export function StoragePanel() {
                 {allActive ? (
                   <span className="text-[8px] bg-success/20 text-success px-1.5 py-0.5 rounded font-bold">ACTIVE</span>
                 ) : bottleneck ? (
-                  <span className="text-[8px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded font-bold">BLOCKED</span>
+                  <span className="text-[8px] bg-danger/20 text-danger px-1.5 py-0.5 rounded font-bold">BLOCKED</span>
                 ) : null}
               </div>
               <div className="flex items-center gap-1 flex-wrap">
@@ -650,26 +650,26 @@ export function StoragePanel() {
                     <div key={step} className="flex items-center gap-1">
                       <div className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] border ${
                         stepActive
-                          ? 'bg-gray-800/50 border-gray-600/40'
-                          : 'bg-red-900/10 border-red-800/30'
+                          ? 'bg-muted-label/50 border-muted-label/40'
+                          : 'bg-danger/10 border-danger/30'
                       }`}>
                         <GameIcon icon={stepMeta?.icon} size={14} className="inline-flex" />
-                        <span className={stepActive ? 'text-gray-200' : 'text-red-400/70'}>{stepMeta?.name ?? step}</span>
+                        <span className={stepActive ? 'text-gray-200' : 'text-danger/70'}>{stepMeta?.name ?? step}</span>
                         {stepActive && (
-                          <span className={`font-mono ${stepNet > 0 ? 'text-success' : stepNet < 0 ? 'text-red-400' : stepProd > 0 && stepCons > 0 ? 'text-cyan-400' : 'text-gray-600'}`}>
+                          <span className={`font-mono ${stepNet > 0 ? 'text-success' : stepNet < 0 ? 'text-danger' : stepProd > 0 && stepCons > 0 ? 'text-cyan-400' : 'text-muted-label'}`}>
                             {stepNet > 0 ? '+' : ''}{stepNet === 0 && stepProd > 0 && stepCons > 0 ? '±0' : formatNumber(stepNet)}
                           </span>
                         )}
                       </div>
                       {si < chain.steps.length - 1 && (
-                        <ArrowRight className="w-3 h-3 text-gray-600 flex-shrink-0" />
+                        <ArrowRight className="w-3 h-3 text-muted-label flex-shrink-0" />
                       )}
                     </div>
                   );
                 })}
               </div>
               {!allActive && bottleneck && (
-                <div className="mt-1.5 text-[10px] text-red-400/70">
+                <div className="mt-1.5 text-[10px] text-danger/70">
                   <GameIcon icon="gi:hazard-sign" size={12} className="inline" /> Blocked at {RESOURCE_META[bottleneck as ResourceType]?.name ?? bottleneck} — no production
                 </div>
               )}
@@ -702,17 +702,17 @@ export function StoragePanel() {
             {/* Tier Header */}
             <button
               onClick={() => toggleTier(tier)}
-              className="w-full flex items-center gap-2 px-3 py-2.5 transition-colors hover:bg-gray-800/20"
+              className="w-full flex items-center gap-2 px-3 py-2.5 transition-colors hover:bg-muted-label/20"
               style={{ backgroundColor: `${config.color}08` }}
             >
               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: config.color }} />
               <span className="text-sm font-semibold" style={{ color: config.color }}>{config.label}</span>
-              <span className="text-[10px] text-gray-500">
+              <span className="text-[10px] text-muted-label">
                 {activeInTier.length}/{resources.length} active
               </span>
               <div className="flex-1" />
               {/* Tier aggregate net rate */}
-              <span className="text-[10px] font-mono text-gray-500">
+              <span className="text-[10px] font-mono text-muted-label">
                 {(() => {
                   const tierNet = activeInTier.reduce((sum, r) => {
                     return sum + (store.productionSnapshot.production[r] ?? 0) - (store.productionSnapshot.actualConsumption[r] ?? 0);
@@ -724,8 +724,8 @@ export function StoragePanel() {
                 })()}/s
               </span>
               {isExpanded
-                ? <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
-                : <ChevronRight className="w-3.5 h-3.5 text-gray-500" />
+                ? <ChevronDown className="w-3.5 h-3.5 text-muted-label" />
+                : <ChevronRight className="w-3.5 h-3.5 text-muted-label" />
               }
             </button>
 
@@ -736,7 +736,7 @@ export function StoragePanel() {
                   className="overflow-hidden"
                 >
                   {activeInTier.length === 0 && searchQuery.trim() ? (
-                    <div className="px-3 py-4 text-center text-[10px] text-gray-600">No matching resources</div>
+                    <div className="px-3 py-4 text-center text-[10px] text-muted-label">No matching resources</div>
                   ) : (
                     activeInTier.map(res => renderResourceRow(res))
                   )}
@@ -755,26 +755,26 @@ export function StoragePanel() {
       {/* Header */}
       <div className="flex-shrink-0">
         <div className="flex items-center gap-2 mb-3">
-          <Database className="w-5 h-5 text-amber-400" />
+          <Database className="w-5 h-5 text-warning" />
           <h2 className="text-xl font-bold text-gray-100 neon-glow-cyan">Storage Management</h2>
         </div>
 
         {/* Summary Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-          <div className="bg-gray-900/50 border border-gray-700/40 rounded-lg p-3">
-            <div className="text-[9px] text-gray-500 uppercase tracking-wider">Total Stock</div>
+          <div className="bg-muted-label/50 border border-muted-label/40 rounded-lg p-3">
+            <div className="text-[9px] text-muted-label uppercase tracking-wider">Total Stock</div>
             <div className="text-lg font-bold font-mono text-gray-200">{formatNumber(summaryStats.totalStock)}</div>
           </div>
-          <div className="bg-gray-900/50 border border-gray-700/40 rounded-lg p-3">
-            <div className="text-[9px] text-gray-500 uppercase tracking-wider">Total Capacity</div>
+          <div className="bg-muted-label/50 border border-muted-label/40 rounded-lg p-3">
+            <div className="text-[9px] text-muted-label uppercase tracking-wider">Total Capacity</div>
             <div className="text-lg font-bold font-mono text-gray-200">{unlimited ? '∞' : formatNumber(summaryStats.totalCapacity)}</div>
           </div>
-          <div className="bg-gray-900/50 border border-gray-700/40 rounded-lg p-3">
-            <div className="text-[9px] text-gray-500 uppercase tracking-wider">Active Materials</div>
-            <div className="text-lg font-bold font-mono text-cyan-400">{summaryStats.activeResources}<span className="text-gray-600">/{summaryStats.totalTypes}</span></div>
+          <div className="bg-muted-label/50 border border-muted-label/40 rounded-lg p-3">
+            <div className="text-[9px] text-muted-label uppercase tracking-wider">Active Materials</div>
+            <div className="text-lg font-bold font-mono text-cyan-400">{summaryStats.activeResources}<span className="text-muted-label">/{summaryStats.totalTypes}</span></div>
           </div>
-          <div className="bg-gray-900/50 border border-gray-700/40 rounded-lg p-3">
-            <div className="text-[9px] text-gray-500 uppercase tracking-wider">Alerts</div>
+          <div className="bg-muted-label/50 border border-muted-label/40 rounded-lg p-3">
+            <div className="text-[9px] text-muted-label uppercase tracking-wider">Alerts</div>
             <div className={`text-lg font-bold font-mono ${alerts.length > 0 ? 'text-orange-400' : 'text-success'}`}>{alerts.length}</div>
           </div>
         </div>
@@ -782,7 +782,7 @@ export function StoragePanel() {
         {/* Controls Bar */}
         <div className="flex items-center gap-2 flex-wrap">
           {/* View Mode Tabs */}
-          <div className="flex bg-gray-900/50 border border-gray-700/40 rounded-lg p-0.5">
+          <div className="flex bg-muted-label/50 border border-muted-label/40 rounded-lg p-0.5">
             {([
               { mode: 'overview' as ViewMode, label: 'Overview', icon: Layers },
               { mode: 'dependencies' as ViewMode, label: 'Chains', icon: Link2 },
@@ -794,7 +794,7 @@ export function StoragePanel() {
                 className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[10px] font-medium ${
                   viewMode === tab.mode
                     ? 'bg-cyan-600/20 text-cyan-300 border border-cyan-500/30'
-                    : 'text-gray-500 hover:text-gray-300 border border-transparent'
+                    : 'text-muted-label hover:text-subtle border border-transparent'
                 }`}
               >
                 <tab.icon className="w-3 h-3" />
@@ -805,7 +805,7 @@ export function StoragePanel() {
 
           {/* Sort Mode (only for overview) */}
           {viewMode === 'overview' && (
-            <div className="flex bg-gray-900/50 border border-gray-700/40 rounded-lg p-0.5">
+            <div className="flex bg-muted-label/50 border border-muted-label/40 rounded-lg p-0.5">
               {([
                 { mode: 'tier' as SortMode, label: 'Tier' },
                 { mode: 'stock' as SortMode, label: 'Stock' },
@@ -817,8 +817,8 @@ export function StoragePanel() {
                   onClick={() => setSortMode(tab.mode)}
                   className={`px-2 py-1 rounded-md text-[10px] font-medium ${
                     sortMode === tab.mode
-                      ? 'bg-amber-600/20 text-amber-300 border border-amber-500/30'
-                      : 'text-gray-500 hover:text-gray-300 border border-transparent'
+                      ? 'bg-amber-600/20 text-warning border border-warning/30'
+                      : 'text-muted-label hover:text-subtle border border-transparent'
                   }`}
                 >
                   {tab.label}
@@ -829,17 +829,17 @@ export function StoragePanel() {
 
           {/* Search */}
           <div className="relative flex-1 min-w-[140px] max-w-[220px]">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-500" />
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-label" />
             <input
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search materials..."
-              className="w-full bg-gray-900/50 border border-gray-700/40 rounded-lg pl-7 pr-7 py-1.5 text-[10px] text-gray-200 placeholder-gray-600 focus:outline-none focus:border-cyan-500/40"
+              className="w-full bg-muted-label/50 border border-muted-label/40 rounded-lg pl-7 pr-7 py-1.5 text-[10px] text-gray-200 placeholder-gray-600 focus:outline-none focus:border-cyan-500/40"
             />
             {searchQuery && (
               <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2">
-                <X className="w-3 h-3 text-gray-500 hover:text-gray-300" />
+                <X className="w-3 h-3 text-muted-label hover:text-subtle" />
               </button>
             )}
           </div>
@@ -858,7 +858,7 @@ export function StoragePanel() {
 
 // ─── Badge Helper ─────────────────────────────────────────────────────────────
 function Badge({ level }: { level: number }) {
-  const color = level >= 20 ? 'text-success bg-success/20' : level >= 10 ? 'text-cyan-400 bg-cyan-500/20' : 'text-amber-400 bg-amber-500/20';
+  const color = level >= 20 ? 'text-success bg-success/20' : level >= 10 ? 'text-cyan-400 bg-cyan-500/20' : 'text-warning bg-warning/20';
   return (
     <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${color}`}>
       LV{level}

@@ -44,10 +44,10 @@ const getRankBadgeColor = (rank: number) => {
 };
 
 const getRankBadgeBg = (rank: number) => {
-  if (rank === 1) return 'bg-yellow-500/20 border-yellow-500/40';
+  if (rank === 1) return 'bg-warning/20 border-warning/40';
   if (rank === 2) return 'bg-gray-400/20 border-gray-400/40';
   if (rank === 3) return 'bg-amber-600/20 border-amber-600/40';
-  return 'bg-gray-800/50 border-gray-700/40';
+  return 'bg-muted-label/50 border-muted-label/40';
 };
 
 const getRankIcon = (rank: number) => {
@@ -151,12 +151,12 @@ export default function LeaderboardPanel() {
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <Trophy className="w-5 h-5 text-amber-400" />
-          <h2 className="text-xl font-bold text-amber-400 neon-glow-cyan">LEADERBOARD</h2>
+          <Trophy className="w-5 h-5 text-warning" />
+          <h2 className="text-xl font-bold text-warning neon-glow-cyan">LEADERBOARD</h2>
         </div>
         <div className="rounded-lg border border-cyan-900/20 bg-card p-8 text-center">
           <Loader2 className="w-8 h-8 text-cyan-400 animate-spin mx-auto mb-3" />
-          <p className="text-sm text-gray-400">Loading global rankings...</p>
+          <p className="text-sm text-subtle">Loading global rankings...</p>
         </div>
       </div>
     );
@@ -167,12 +167,12 @@ export default function LeaderboardPanel() {
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <Trophy className="w-5 h-5 text-amber-400" />
-          <h2 className="text-xl font-bold text-amber-400 neon-glow-cyan">LEADERBOARD</h2>
+          <Trophy className="w-5 h-5 text-warning" />
+          <h2 className="text-xl font-bold text-warning neon-glow-cyan">LEADERBOARD</h2>
         </div>
         <div className="rounded-lg border border-red-900/30 bg-card p-8 text-center">
-          <WifiOff className="w-8 h-8 text-red-400 mx-auto mb-3" />
-          <p className="text-sm text-red-400">{error}</p>
+          <WifiOff className="w-8 h-8 text-danger mx-auto mb-3" />
+          <p className="text-sm text-danger">{error}</p>
           <Button
             variant="outline"
             size="sm"
@@ -191,8 +191,8 @@ export default function LeaderboardPanel() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <Trophy className="w-5 h-5 text-amber-400" />
-          <h2 className="text-xl font-bold text-amber-400 neon-glow-cyan">LEADERBOARD</h2>
+          <Trophy className="w-5 h-5 text-warning" />
+          <h2 className="text-xl font-bold text-warning neon-glow-cyan">LEADERBOARD</h2>
           <Badge variant="outline" className="text-[10px] border-cyan-500/30 text-cyan-400 bg-cyan-900/20">
             <Globe className="w-2.5 h-2.5 mr-1" /> Global
           </Badge>
@@ -203,7 +203,7 @@ export default function LeaderboardPanel() {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-gray-500">
+          <span className="text-[10px] text-muted-label">
             {lastRefresh > 0 ? `Updated ${timeAgo(new Date(lastRefresh).toISOString())}` : 'Loading...'}
           </span>
           <Button
@@ -211,7 +211,7 @@ export default function LeaderboardPanel() {
             size="sm"
             onClick={fetchLeaderboard}
             disabled={isLoading}
-            className="h-6 w-6 p-0 text-gray-500 hover:text-cyan-400"
+            className="h-6 w-6 p-0 text-muted-label hover:text-cyan-400"
             aria-label="Refresh leaderboard"
           >
             <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
@@ -229,14 +229,14 @@ export default function LeaderboardPanel() {
               </div>
               <div>
                 <div className="text-xs font-bold text-cyan-400">Your Best Ranking</div>
-                <div className="text-[10px] text-gray-500">
+                <div className="text-[10px] text-muted-label">
                   <GameIcon icon={getRankForScore(userRank.bestScore).icon} size={14} className="inline-flex" /> {getRankForScore(userRank.bestScore).name}
                 </div>
               </div>
             </div>
             <div className="text-right">
-              <div className="text-sm font-mono font-bold text-amber-400">{formatNumber(userRank.bestScore)}</div>
-              <div className="text-[10px] text-gray-500">{userRank.totalRuns} run{userRank.totalRuns !== 1 ? 's' : ''}</div>
+              <div className="text-sm font-mono font-bold text-warning">{formatNumber(userRank.bestScore)}</div>
+              <div className="text-[10px] text-muted-label">{userRank.totalRuns} run{userRank.totalRuns !== 1 ? 's' : ''}</div>
             </div>
           </div>
         </div>
@@ -245,8 +245,8 @@ export default function LeaderboardPanel() {
       {/* Not signed in notice */}
       {!user && (
         <div className="rounded-lg border border-amber-900/30 bg-amber-900/10 p-3 flex items-center gap-2">
-          <LogIn className="w-4 h-4 text-amber-400 flex-shrink-0" />
-          <div className="text-xs text-amber-300">
+          <LogIn className="w-4 h-4 text-warning flex-shrink-0" />
+          <div className="text-xs text-warning">
             Sign in to submit your score and compete on the global leaderboard. Prestige to record your run!
           </div>
         </div>
@@ -256,8 +256,8 @@ export default function LeaderboardPanel() {
       {entries.length === 0 ? (
         <div className="rounded-lg border border-cyan-900/20 bg-card p-8 text-center">
           <div className="mb-3"><GameIcon icon="gi:trophy" size={28} /></div>
-          <div className="text-sm text-gray-400 font-medium">No entries yet</div>
-          <div className="text-xs text-gray-600 mt-1">
+          <div className="text-sm text-subtle font-medium">No entries yet</div>
+          <div className="text-xs text-muted-label mt-1">
             Be the first to prestige and claim the #1 spot!
           </div>
         </div>
@@ -301,16 +301,16 @@ export default function LeaderboardPanel() {
                         </Badge>
                       )}
                       {entry.rank_name ? (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-800/80 text-gray-400 flex-shrink-0">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted-label/80 text-subtle flex-shrink-0">
                           {entry.rank_name}
                         </span>
                       ) : (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-800/80 text-gray-400 flex-shrink-0">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted-label/80 text-subtle flex-shrink-0">
                           <GameIcon icon={rankInfo.icon} size={12} className="inline-flex" /> {rankInfo.name}
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 mt-0.5 text-[10px] text-gray-500">
+                    <div className="flex items-center gap-3 mt-0.5 text-[10px] text-muted-label">
                       <span className="flex items-center gap-0.5">
                         <Building2 className="w-3 h-3" />{entry.buildings_built}
                       </span>
@@ -325,12 +325,12 @@ export default function LeaderboardPanel() {
 
                   {/* Score */}
                   <div className="text-right flex-shrink-0">
-                    <div className="text-sm font-mono font-bold text-amber-400">{formatNumber(entry.score)}</div>
-                    <div className="text-[10px] text-gray-600">Score</div>
+                    <div className="text-sm font-mono font-bold text-warning">{formatNumber(entry.score)}</div>
+                    <div className="text-[10px] text-muted-label">Score</div>
                   </div>
 
                   {/* Expand Toggle */}
-                  <div className="flex-shrink-0 text-gray-600">
+                  <div className="flex-shrink-0 text-muted-label">
                     {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                   </div>
                 </button>
@@ -338,46 +338,46 @@ export default function LeaderboardPanel() {
                 {/* Expanded Details */}
                 {isExpanded && (
                   <div className="overflow-hidden">
-                    <div className="px-3 pb-3 pt-0 border-t border-gray-800/50">
+                    <div className="px-3 pb-3 pt-0 border-t border-muted-label/50">
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
                         <div className="bg-[#0a0e17] rounded-lg p-3">
-                          <div className="text-[10px] text-gray-500 flex items-center gap-1">
+                          <div className="text-[10px] text-muted-label flex items-center gap-1">
                             <Coins className="w-3 h-3 text-success" /> Money Earned
                           </div>
                           <div className="text-xs font-mono text-success">${formatNumber(entry.total_money_earned)}</div>
                         </div>
                         <div className="bg-[#0a0e17] rounded-lg p-3">
-                          <div className="text-[10px] text-gray-500 flex items-center gap-1">
+                          <div className="text-[10px] text-muted-label flex items-center gap-1">
                             <Building2 className="w-3 h-3 text-cyan-400" /> Buildings
                           </div>
                           <div className="text-xs font-mono text-cyan-400">{entry.buildings_built}</div>
                         </div>
                         <div className="bg-[#0a0e17] rounded-lg p-3">
-                          <div className="text-[10px] text-gray-500 flex items-center gap-1">
+                          <div className="text-[10px] text-muted-label flex items-center gap-1">
                             <FlaskConical className="w-3 h-3 text-purple-400" /> Research
                           </div>
                           <div className="text-xs font-mono text-purple-400">{entry.research_completed}</div>
                         </div>
                         <div className="bg-[#0a0e17] rounded-lg p-3">
-                          <div className="text-[10px] text-gray-500 flex items-center gap-1">
+                          <div className="text-[10px] text-muted-label flex items-center gap-1">
                             <ScrollText className="w-3 h-3 text-rose-400" /> Contracts
                           </div>
                           <div className="text-xs font-mono text-rose-400">{entry.contracts_completed}</div>
                         </div>
                         <div className="bg-[#0a0e17] rounded-lg p-3">
-                          <div className="text-[10px] text-gray-500 flex items-center gap-1">
-                            <Clock className="w-3 h-3 text-yellow-400" /> Play Time
+                          <div className="text-[10px] text-muted-label flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-warning" /> Play Time
                           </div>
-                          <div className="text-xs font-mono text-yellow-400">{formatPlayTime(entry.play_time_ticks)}</div>
+                          <div className="text-xs font-mono text-warning">{formatPlayTime(entry.play_time_ticks)}</div>
                         </div>
                         <div className="bg-[#0a0e17] rounded-lg p-3">
-                          <div className="text-[10px] text-gray-500 flex items-center gap-1">
+                          <div className="text-[10px] text-muted-label flex items-center gap-1">
                             <RotateCcw className="w-3 h-3 text-fuchsia-400" /> Prestiges
                           </div>
                           <div className="text-xs font-mono text-fuchsia-400">{entry.prestige_count}</div>
                         </div>
                       </div>
-                      <div className="text-[10px] text-gray-600 mt-2 flex items-center justify-between">
+                      <div className="text-[10px] text-muted-label mt-2 flex items-center justify-between">
                         <span>Recorded at Tick #{formatNumber(entry.game_tick)}</span>
                         <span>{timeAgo(entry.created_at)}</span>
                       </div>
@@ -393,31 +393,31 @@ export default function LeaderboardPanel() {
       {/* Stats Summary */}
       {stats && (
         <div className="rounded-lg border border-cyan-900/20 bg-card p-3">
-          <div className="text-xs text-gray-400 font-medium mb-2">Global Leaderboard Stats</div>
+          <div className="text-xs text-subtle font-medium mb-2">Global Leaderboard Stats</div>
           <div className="grid grid-cols-4 gap-3">
             <div className="text-center">
-              <div className="text-sm font-mono font-bold text-amber-400">
+              <div className="text-sm font-mono font-bold text-warning">
                 {formatNumber(stats.bestScore)}
               </div>
-              <div className="text-[10px] text-gray-500">Best Score</div>
+              <div className="text-[10px] text-muted-label">Best Score</div>
             </div>
             <div className="text-center">
               <div className="text-sm font-mono font-bold text-cyan-400">
                 {stats.uniquePlayers}
               </div>
-              <div className="text-[10px] text-gray-500">Players</div>
+              <div className="text-[10px] text-muted-label">Players</div>
             </div>
             <div className="text-center">
               <div className="text-sm font-mono font-bold text-purple-400">
                 {stats.totalRuns}
               </div>
-              <div className="text-[10px] text-gray-500">Total Runs</div>
+              <div className="text-[10px] text-muted-label">Total Runs</div>
             </div>
             <div className="text-center">
               <div className="text-sm font-mono font-bold text-fuchsia-400">
                 {stats.totalPrestiges}
               </div>
-              <div className="text-[10px] text-gray-500">Total Prestiges</div>
+              <div className="text-[10px] text-muted-label">Total Prestiges</div>
             </div>
           </div>
         </div>
@@ -426,14 +426,14 @@ export default function LeaderboardPanel() {
       {/* Info Card */}
       <div className="bg-card border border-cyan-900/20 rounded-xl p-4">
         <div className="flex items-start gap-2">
-          <Trophy className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-          <div className="text-[10px] text-gray-500 space-y-1">
+          <Trophy className="w-4 h-4 text-warning mt-0.5 flex-shrink-0" />
+          <div className="text-[10px] text-muted-label space-y-1">
             <p>
-              <span className="text-gray-400 font-semibold">How it works:</span> The leaderboard records your score every time you prestige (Global Expand).
+              <span className="text-subtle font-semibold">How it works:</span> The leaderboard records your score every time you prestige (Global Expand).
               Scores are validated server-side to prevent cheating.
             </p>
             <p>
-              <span className="text-amber-400 font-semibold">Score formula:</span> Total Money Earned + Buildings × 100 + Research × 200 + Contracts × 50 + Prestiges × 500
+              <span className="text-warning font-semibold">Score formula:</span> Total Money Earned + Buildings × 100 + Research × 200 + Contracts × 50 + Prestiges × 500
             </p>
             <p>
               <span className="text-success font-semibold">Requirement:</span> You must be signed in to submit scores. Guest progress is local-only and won&apos;t appear on the leaderboard.

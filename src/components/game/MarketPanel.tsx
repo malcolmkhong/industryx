@@ -98,14 +98,14 @@ function SupplyDemandBar({ demand, supply }: { demand: number; supply: number })
   return (
     <div className="flex items-center gap-1">
       <div className="flex-1 flex items-center gap-0.5">
-        <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden flex">
+        <div className="flex-1 h-1.5 bg-muted-label rounded-full overflow-hidden flex">
           <div className="h-full bg-orange-500/60 rounded-l-full" style={{ width: `${demandPct}%` }} />
         </div>
-        <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden flex">
+        <div className="flex-1 h-1.5 bg-muted-label rounded-full overflow-hidden flex">
           <div className="h-full bg-cyan-500/60 rounded-l-full" style={{ width: `${supplyPct}%` }} />
         </div>
       </div>
-      <span className={`text-[8px] font-mono font-bold ${net > 0.1 ? 'text-orange-400' : net < -0.1 ? 'text-cyan-400' : 'text-gray-500'}`}>
+      <span className={`text-[8px] font-mono font-bold ${net > 0.1 ? 'text-orange-400' : net < -0.1 ? 'text-cyan-400' : 'text-muted-label'}`}>
         {net > 0.1 ? '▲' : net < -0.1 ? '▼' : '─'}
       </span>
     </div>
@@ -116,8 +116,8 @@ function SupplyDemandBar({ demand, supply }: { demand: number; supply: number })
 function MarketCycleIndicator({ phase, progress, multiplier }: { phase: string; progress: number; multiplier: number }) {
   const phaseConfig: Record<string, { color: string; label: string; icon: string }> = {
     expansion: { color: 'text-success', label: 'Expansion', icon: '📈' },
-    peak: { color: 'text-yellow-400', label: 'Peak', icon: '⚡' },
-    recession: { color: 'text-red-400', label: 'Recession', icon: '📉' },
+    peak: { color: 'text-warning', label: 'Peak', icon: '⚡' },
+    recession: { color: 'text-danger', label: 'Recession', icon: '📉' },
     recovery: { color: 'text-cyan-400', label: 'Recovery', icon: '🔄' },
   };
   const config = phaseConfig[phase] ?? phaseConfig.expansion;
@@ -128,11 +128,11 @@ function MarketCycleIndicator({ phase, progress, multiplier }: { phase: string; 
       <div className="flex-1">
         <div className="flex items-center justify-between">
           <span className={`text-[10px] font-bold ${config.color}`}>{config.label}</span>
-          <span className="text-[9px] text-gray-500 font-mono">{(multiplier * 100).toFixed(0)}%</span>
+          <span className="text-[9px] text-muted-label font-mono">{(multiplier * 100).toFixed(0)}%</span>
         </div>
-        <div className="h-1 bg-gray-800 rounded-full mt-0.5">
+        <div className="h-1 bg-muted-label rounded-full mt-0.5">
           <div className={`h-full rounded-full transition-all duration-500 ${
-            phase === 'expansion' ? 'bg-success' : phase === 'peak' ? 'bg-yellow-500' : phase === 'recession' ? 'bg-red-500' : 'bg-cyan-500'
+            phase === 'expansion' ? 'bg-success' : phase === 'peak' ? 'bg-warning' : phase === 'recession' ? 'bg-danger' : 'bg-cyan-500'
           }`} style={{ width: `${Math.min(100, progress * 100)}%` }} />
         </div>
       </div>
@@ -157,17 +157,17 @@ function SectorOverview({ sectorTrends, market }: { sectorTrends: Partial<Record
         return (
           <div key={sector} className={`rounded-lg p-2 border ${
             trend === 'up' ? 'border-success/20 bg-success/5' :
-            trend === 'down' ? 'border-red-500/20 bg-red-900/5' :
-            'border-gray-800 bg-card'
+            trend === 'down' ? 'border-danger/20 bg-danger/5' :
+            'border-muted-label bg-card'
           }`}>
             <div className="flex items-center justify-between mb-0.5">
               <GameIcon icon={info.icon as `gi:${string}` | `lucide:${string}`} size={12} className={info.color} />
               {trend === 'up' && <span className="text-[8px] text-success">▲</span>}
-              {trend === 'down' && <span className="text-[8px] text-red-400">▼</span>}
-              {trend === 'stable' && <span className="text-[8px] text-gray-500">─</span>}
+              {trend === 'down' && <span className="text-[8px] text-danger">▼</span>}
+              {trend === 'stable' && <span className="text-[8px] text-muted-label">─</span>}
             </div>
             <div className={`text-[9px] font-medium ${info.color}`}>{info.name}</div>
-            <div className="text-[9px] text-gray-500 font-mono">{(avgRatio * 100).toFixed(0)}%</div>
+            <div className="text-[9px] text-muted-label font-mono">{(avgRatio * 100).toFixed(0)}%</div>
           </div>
         );
       })}
@@ -212,7 +212,7 @@ export function MarketPanel() {
     const prices = store.market.map(m => ({ resource: m.resource, ratio: m.currentPrice / m.basePrice, trend: m.trend }));
     const avgRatio = prices.reduce((sum, p) => sum + p.ratio, 0) / prices.length;
     const sentiment = avgRatio > 1.15 ? 'Bullish' : avgRatio < 0.85 ? 'Bearish' : 'Neutral';
-    const sentimentDot = avgRatio > 1.15 ? 'bg-success' : avgRatio < 0.85 ? 'bg-red-500' : 'bg-yellow-500';
+    const sentimentDot = avgRatio > 1.15 ? 'bg-success' : avgRatio < 0.85 ? 'bg-danger' : 'bg-warning';
     const bestSell = prices.reduce((best, p) => p.ratio > best.ratio ? p : best, prices[0]);
     const bestSellMeta = RESOURCE_META[bestSell.resource as ResourceType];
     return { avgRatio, sentiment, sentimentDot, bestSell, bestSellMeta };
@@ -299,7 +299,7 @@ export function MarketPanel() {
           <h2 className="text-xl font-bold text-success tracking-wide neon-glow-green">
             Global Market
           </h2>
-          <p className="text-xs text-gray-500 mt-0.5">Supply & demand driven economy — your production shapes prices</p>
+          <p className="text-xs text-muted-label mt-0.5">Supply & demand driven economy — your production shapes prices</p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="border-success/50 text-success bg-success/20 text-xs">
@@ -341,7 +341,7 @@ export function MarketPanel() {
         />
         {/* Market Cycle Card */}
         <div className="game-card rounded-lg p-3 border border-border">
-          <div className="text-[10px] text-gray-500 mb-1.5 flex items-center gap-1">
+          <div className="text-[10px] text-muted-label mb-1.5 flex items-center gap-1">
             <RefreshCw className="w-3 h-3" /> Market Cycle
           </div>
           {cycle ? (
@@ -351,7 +351,7 @@ export function MarketPanel() {
               multiplier={cycle.globalMultiplier}
             />
           ) : (
-            <div className="text-[10px] text-gray-600">Initializing...</div>
+            <div className="text-[10px] text-muted-label">Initializing...</div>
           )}
         </div>
       </div>
@@ -370,12 +370,12 @@ export function MarketPanel() {
             className={`px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 ${
               viewMode === v.key
                 ? 'bg-success/30 text-success border border-success/30'
-                : 'bg-card text-gray-500 border border-gray-800 hover:text-gray-300'
+                : 'bg-card text-muted-label border border-muted-label hover:text-subtle'
             }`}
           >
             {v.icon} {v.label}
             {v.key === 'news' && (store.marketNews?.length ?? 0) > 0 && (
-              <span className="w-2 h-2 rounded-full bg-amber-400 inline-block animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-warning inline-block animate-pulse" />
             )}
           </button>
         ))}
@@ -389,10 +389,10 @@ export function MarketPanel() {
       {/* Correlation Chains View */}
       {viewMode === 'chains' && (
         <div className="game-card rounded-xl bg-card p-4 border border-border">
-          <div className="text-xs text-gray-400 mb-3 flex items-center gap-1.5">
+          <div className="text-xs text-subtle mb-3 flex items-center gap-1.5">
             <Link2 className="w-3.5 h-3.5" /> Price Correlation Network
           </div>
-          <div className="text-[10px] text-gray-500 mb-3">
+          <div className="text-[10px] text-muted-label mb-3">
             When an upstream resource price changes, it ripples through to downstream resources.
             Select a resource to see its chain.
           </div>
@@ -417,11 +417,11 @@ export function MarketPanel() {
                             <span className="text-xs text-gray-200">{meta.name}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <div className="w-12 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                            <div className="w-12 h-1.5 bg-muted-label rounded-full overflow-hidden">
                               <div className="h-full bg-orange-500 rounded-full" style={{ width: `${c.strength * 100}%` }} />
                             </div>
                             <span className="text-[9px] text-orange-400 font-mono">{(c.strength * 100).toFixed(0)}%</span>
-                            {m && <span className="text-[9px] text-gray-500 font-mono">${m.currentPrice.toFixed(2)}</span>}
+                            {m && <span className="text-[9px] text-muted-label font-mono">${m.currentPrice.toFixed(2)}</span>}
                           </div>
                         </button>
                       );
@@ -432,12 +432,12 @@ export function MarketPanel() {
 
               {/* Current resource */}
               <div className="flex items-center justify-center gap-2 py-2">
-                <div className="h-px bg-gray-700 flex-1" />
+                <div className="h-px bg-muted-label flex-1" />
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-cyan-500/30 bg-cyan-900/10">
                   <GameIcon icon={selectedMeta?.icon} size={16} />
                   <span className="text-xs text-cyan-400 font-bold">{selectedMeta?.name}</span>
                 </div>
-                <div className="h-px bg-gray-700 flex-1" />
+                <div className="h-px bg-muted-label flex-1" />
               </div>
 
               {/* Downstream */}
@@ -459,11 +459,11 @@ export function MarketPanel() {
                             <span className="text-xs text-gray-200">{meta.name}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <div className="w-12 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                            <div className="w-12 h-1.5 bg-muted-label rounded-full overflow-hidden">
                               <div className="h-full bg-success rounded-full" style={{ width: `${c.strength * 100}%` }} />
                             </div>
                             <span className="text-[9px] text-success font-mono">{(c.strength * 100).toFixed(0)}%</span>
-                            {m && <span className="text-[9px] text-gray-500 font-mono">${m.currentPrice.toFixed(2)}</span>}
+                            {m && <span className="text-[9px] text-muted-label font-mono">${m.currentPrice.toFixed(2)}</span>}
                           </div>
                         </button>
                       );
@@ -473,11 +473,11 @@ export function MarketPanel() {
               )}
 
               {correlationChain.upstream.length === 0 && correlationChain.downstream.length === 0 && (
-                <div className="text-center py-4 text-[10px] text-gray-500">No correlations defined for this resource</div>
+                <div className="text-center py-4 text-[10px] text-muted-label">No correlations defined for this resource</div>
               )}
             </div>
           ) : (
-            <div className="text-center py-6 text-[10px] text-gray-500">
+            <div className="text-center py-6 text-[10px] text-muted-label">
               Select a resource from the market list to see its price correlation chain
             </div>
           )}
@@ -496,7 +496,7 @@ export function MarketPanel() {
                 className={`px-2.5 py-1 rounded-lg text-[10px] ${
                   filter === 'all'
                     ? 'bg-success/30 text-success border border-success/30'
-                    : 'bg-card text-gray-500 border border-gray-800 hover:text-gray-300'
+                    : 'bg-card text-muted-label border border-muted-label hover:text-subtle'
                 }`}
               >
                 All
@@ -511,13 +511,13 @@ export function MarketPanel() {
                     className={`px-2.5 py-1 rounded-lg text-[10px] flex items-center gap-1 ${
                       filter === s
                         ? 'bg-success/30 text-success border border-success/30'
-                        : 'bg-card text-gray-500 border border-gray-800 hover:text-gray-300'
+                        : 'bg-card text-muted-label border border-muted-label hover:text-subtle'
                     }`}
                   >
                     <GameIcon icon={info.icon as `gi:${string}` | `lucide:${string}`} size={10} />
                     {info.name.split(' ')[0]}
                     {trend === 'up' && <span className="text-success">▲</span>}
-                    {trend === 'down' && <span className="text-red-400">▼</span>}
+                    {trend === 'down' && <span className="text-danger">▼</span>}
                   </button>
                 );
               })}
@@ -526,7 +526,7 @@ export function MarketPanel() {
             {/* Resource Cards with Sparklines */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[500px] overflow-y-auto game-scrollbar scroll-fade">
               {filteredMarket.length === 0 && (
-                <div className="col-span-full flex flex-col items-center justify-center py-8 text-gray-500">
+                <div className="col-span-full flex flex-col items-center justify-center py-8 text-muted-label">
                   <Package className="w-8 h-8 mb-2 opacity-50" />
                   <p className="text-sm">No resources in this category.</p>
                 </div>
@@ -555,23 +555,23 @@ export function MarketPanel() {
                     category={sectorInfo.name}
                     tier={meta.tier}
                     details={[
-                      { label: 'Current Price', value: `$${m.currentPrice.toFixed(2)}`, color: m.trend === 'up' ? 'text-success' : m.trend === 'down' ? 'text-red-400' : 'text-cyan-400' },
+                      { label: 'Current Price', value: `$${m.currentPrice.toFixed(2)}`, color: m.trend === 'up' ? 'text-success' : m.trend === 'down' ? 'text-danger' : 'text-cyan-400' },
                       { label: 'Base Price', value: `$${m.basePrice.toFixed(2)}` },
-                      { label: 'Trend', value: m.trend === 'up' ? '↑ Rising' : m.trend === 'down' ? '↓ Falling' : '→ Stable', color: m.trend === 'up' ? 'text-success' : m.trend === 'down' ? 'text-red-400' : 'text-gray-300' },
+                      { label: 'Trend', value: m.trend === 'up' ? '↑ Rising' : m.trend === 'down' ? '↓ Falling' : '→ Stable', color: m.trend === 'up' ? 'text-success' : m.trend === 'down' ? 'text-danger' : 'text-subtle' },
                       { label: 'Demand', value: `${m.demand.toFixed(2)}x`, color: 'text-orange-400' },
                       { label: 'Supply', value: `${m.supply.toFixed(2)}x`, color: 'text-cyan-400' },
-                      { label: 'Elasticity', value: `${(elasticity * 100).toFixed(0)}%`, color: elasticity > 0.5 ? 'text-red-400' : 'text-gray-300' },
-                      { label: 'Volatility', value: activeInjection ? `⚡ ${activeInjection.source} (${activeInjection.intensity.toFixed(2)})` : 'None', color: activeInjection ? 'text-amber-400' : 'text-gray-500' },
-                      { label: 'Your Production', value: prod > 0 ? `${prod.toFixed(1)}/s` : '—', color: prod > 0 ? 'text-success' : 'text-gray-500' },
-                      { label: 'Your Consumption', value: cons > 0 ? `${cons.toFixed(1)}/s` : '—', color: cons > 0 ? 'text-orange-400' : 'text-gray-500' },
-                      { label: 'Auto-Sell', value: isAutoSell ? 'Enabled' : 'Disabled', color: isAutoSell ? 'text-success' : 'text-gray-500' },
+                      { label: 'Elasticity', value: `${(elasticity * 100).toFixed(0)}%`, color: elasticity > 0.5 ? 'text-danger' : 'text-subtle' },
+                      { label: 'Volatility', value: activeInjection ? `⚡ ${activeInjection.source} (${activeInjection.intensity.toFixed(2)})` : 'None', color: activeInjection ? 'text-warning' : 'text-muted-label' },
+                      { label: 'Your Production', value: prod > 0 ? `${prod.toFixed(1)}/s` : '—', color: prod > 0 ? 'text-success' : 'text-muted-label' },
+                      { label: 'Your Consumption', value: cons > 0 ? `${cons.toFixed(1)}/s` : '—', color: cons > 0 ? 'text-orange-400' : 'text-muted-label' },
+                      { label: 'Auto-Sell', value: isAutoSell ? 'Enabled' : 'Disabled', color: isAutoSell ? 'text-success' : 'text-muted-label' },
                     ]}
                     side="right"
                   >
                   <button
                     onClick={() => { setSelectedResource(m.resource); setViewMode('market'); }}
                     className={`game-card rounded-lg p-3 text-left w-full transition-colors ${
-                      isSelected ? 'border-cyan-500/50 bg-cyan-900/10' : 'bg-card border-border hover:border-gray-600'
+                      isSelected ? 'border-cyan-500/50 bg-cyan-900/10' : 'bg-card border-border hover:border-muted-label'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
@@ -579,7 +579,7 @@ export function MarketPanel() {
                         <GameIcon icon={meta.icon} size={16} />
                         <div>
                           <div className="text-xs text-gray-200 font-medium">{meta.name}</div>
-                          <div className="text-[9px] text-gray-500 flex items-center gap-1">
+                          <div className="text-[9px] text-muted-label flex items-center gap-1">
                             <span className={sectorInfo.color}>{sectorInfo.name.split(' ')[0]}</span>
                             <span>·</span>
                             <span>E:{(elasticity * 100).toFixed(0)}</span>
@@ -590,10 +590,10 @@ export function MarketPanel() {
                         {activeInjection && (
                           <span className={`text-[8px] px-1.5 py-0.5 rounded-full border font-bold inline-flex items-center gap-0.5 ${
                             activeInjection.source === 'macro'
-                              ? 'bg-red-900/30 text-red-400 border-red-500/30'
+                              ? 'bg-danger/30 text-danger border-danger/30'
                               : activeInjection.source === 'chain'
                                 ? 'bg-purple-900/30 text-purple-400 border-purple-500/30'
-                                : 'bg-amber-900/30 text-amber-400 border-amber-500/30'
+                                : 'bg-amber-900/30 text-warning border-warning/30'
                           }`}>
                             <AlertTriangle className="w-2.5 h-2.5" />
                             {activeInjection.source === 'macro' ? 'MACRO' : activeInjection.source === 'chain' ? 'CHAIN' : '⚡'}
@@ -606,7 +606,7 @@ export function MarketPanel() {
                           <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-blue-900/30 text-blue-400 border border-blue-500/30 font-bold inline-flex items-center gap-0.5"><GameIcon icon="gi:falling" size={10} /> LOW</span>
                         )}
                         {m.trend === 'up' && <span className="text-xs trend-arrow-bounce inline-flex items-center" style={{ filter: 'drop-shadow(0 0 3px rgba(74,222,128,0.5))' }}><GameIcon icon="gi:fast-arrow" size={12} className="text-success rotate-[-90deg]" /></span>}
-                        {m.trend === 'down' && <span className="text-xs trend-arrow-bounce inline-flex items-center" style={{ filter: 'drop-shadow(0 0 3px rgba(248,113,113,0.5))' }}><GameIcon icon="gi:fast-arrow" size={12} className="text-red-400 rotate-90" /></span>}
+                        {m.trend === 'down' && <span className="text-xs trend-arrow-bounce inline-flex items-center" style={{ filter: 'drop-shadow(0 0 3px rgba(248,113,113,0.5))' }}><GameIcon icon="gi:fast-arrow" size={12} className="text-danger rotate-90" /></span>}
                         {isAutoSell && (
                           <span className="text-[8px] px-1 py-0.5 rounded bg-success/30 text-success border border-success/30">AUTO</span>
                         )}
@@ -614,17 +614,17 @@ export function MarketPanel() {
                     </div>
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-1.5">
-                        <span className={`text-sm font-bold font-mono ${m.trend === 'up' ? 'text-success' : m.trend === 'down' ? 'text-red-400' : 'text-cyan-400'}`}>
+                        <span className={`text-sm font-bold font-mono ${m.trend === 'up' ? 'text-success' : m.trend === 'down' ? 'text-danger' : 'text-cyan-400'}`}>
                           ${m.currentPrice.toFixed(2)}
                         </span>
                         {m.trend === 'up' && <span className="text-[9px] text-success/70 font-mono">▲</span>}
-                        {m.trend === 'down' && <span className="text-[9px] text-red-400/70 font-mono">▼</span>}
+                        {m.trend === 'down' && <span className="text-[9px] text-danger/70 font-mono">▼</span>}
                       </div>
-                      <div className="text-[10px] text-gray-500">
+                      <div className="text-[10px] text-muted-label">
                         {formatNumber(held)}/{formatNumber(capacity)}
-                        <span className={`ml-1 inline-block w-8 h-1.5 rounded-full bg-gray-800 align-middle overflow-hidden`}>
+                        <span className={`ml-1 inline-block w-8 h-1.5 rounded-full bg-muted-label align-middle overflow-hidden`}>
                           <span
-                            className={`h-full rounded-full block ${fillPct > 80 ? 'bg-red-500' : fillPct > 50 ? 'bg-yellow-500' : 'bg-success'}`}
+                            className={`h-full rounded-full block ${fillPct > 80 ? 'bg-danger' : fillPct > 50 ? 'bg-warning' : 'bg-success'}`}
                             style={{ width: `${Math.min(100, fillPct)}%` }}
                           />
                         </span>
@@ -672,10 +672,10 @@ export function MarketPanel() {
                     <div className="flex-1 min-w-0">
                       <h3 className="text-sm font-bold text-gray-200">{selectedMeta.name}</h3>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className={`text-lg font-bold font-mono ${selected.trend === 'up' ? 'text-success' : selected.trend === 'down' ? 'text-red-400' : 'text-cyan-400'}`}>
+                        <span className={`text-lg font-bold font-mono ${selected.trend === 'up' ? 'text-success' : selected.trend === 'down' ? 'text-danger' : 'text-cyan-400'}`}>
                           ${selected.currentPrice.toFixed(2)}
                         </span>
-                        <span className={`text-xs font-mono ${priceChange >= 0 ? 'text-success' : 'text-red-400'}`}>
+                        <span className={`text-xs font-mono ${priceChange >= 0 ? 'text-success' : 'text-danger'}`}>
                           {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
                         </span>
                       </div>
@@ -687,7 +687,7 @@ export function MarketPanel() {
                       className={`px-2 py-1 rounded text-[9px] font-bold border ${
                         store.autoSellResources.includes(selected.resource)
                           ? 'bg-success/30 text-success border-success/30'
-                          : 'bg-gray-900 text-gray-500 border-gray-700 hover:border-gray-500'
+                          : 'bg-muted-label text-muted-label border-muted-label hover:border-muted-label'
                       }`}
                       title="Auto-sell when storage > 80%"
                     >
@@ -731,22 +731,22 @@ export function MarketPanel() {
 
                   {/* Player Impact Section */}
                   {(playerImpact.production > 0 || playerImpact.consumption > 0) && (
-                    <div className="mb-3 p-2 rounded-lg border border-gray-800 bg-[#0a0e17]">
-                      <div className="text-[10px] text-gray-400 font-semibold mb-1.5 flex items-center gap-1">
+                    <div className="mb-3 p-2 rounded-lg border border-muted-label bg-[#0a0e17]">
+                      <div className="text-[10px] text-subtle font-semibold mb-1.5 flex items-center gap-1">
                         <Zap className="w-3 h-3" /> Your Market Impact
                       </div>
                       <div className="grid grid-cols-3 gap-2 text-center">
                         <div>
-                          <div className="text-[10px] text-gray-500">Production</div>
+                          <div className="text-[10px] text-muted-label">Production</div>
                           <div className="text-xs text-success font-mono font-bold">+{playerImpact.production.toFixed(1)}/s</div>
                         </div>
                         <div>
-                          <div className="text-[10px] text-gray-500">Consumption</div>
+                          <div className="text-[10px] text-muted-label">Consumption</div>
                           <div className="text-xs text-orange-400 font-mono font-bold">-{playerImpact.consumption.toFixed(1)}/s</div>
                         </div>
                         <div>
-                          <div className="text-[10px] text-gray-500">Price Effect</div>
-                          <div className={`text-xs font-mono font-bold ${playerImpact.netPressure > 0 ? 'text-red-400' : playerImpact.netPressure < 0 ? 'text-success' : 'text-gray-400'}`}>
+                          <div className="text-[10px] text-muted-label">Price Effect</div>
+                          <div className={`text-xs font-mono font-bold ${playerImpact.netPressure > 0 ? 'text-danger' : playerImpact.netPressure < 0 ? 'text-success' : 'text-subtle'}`}>
                             {playerImpact.netPressure > 0 ? '↓ Pushes down' : playerImpact.netPressure < 0 ? '↑ Pushes up' : '─ Neutral'}
                           </div>
                         </div>
@@ -756,21 +756,21 @@ export function MarketPanel() {
 
                   {/* Correlation Links Quick View */}
                   {(correlationChain.upstream.length > 0 || correlationChain.downstream.length > 0) && (
-                    <div className="mb-3 p-2 rounded-lg border border-gray-800 bg-[#0a0e17]">
-                      <div className="text-[10px] text-gray-400 font-semibold mb-1.5 flex items-center gap-1">
+                    <div className="mb-3 p-2 rounded-lg border border-muted-label bg-[#0a0e17]">
+                      <div className="text-[10px] text-subtle font-semibold mb-1.5 flex items-center gap-1">
                         <Link2 className="w-3 h-3" /> Price Links
                       </div>
                       <div className="space-y-1">
                         {correlationChain.upstream.slice(0, 3).map(c => (
                           <div key={`up-${c.resource}`} className="flex items-center justify-between text-[9px]">
                             <span className="text-orange-400">↑ {RESOURCE_META[c.resource].name}</span>
-                            <span className="text-gray-500 font-mono">{(c.strength * 100).toFixed(0)}%</span>
+                            <span className="text-muted-label font-mono">{(c.strength * 100).toFixed(0)}%</span>
                           </div>
                         ))}
                         {correlationChain.downstream.slice(0, 3).map(c => (
                           <div key={`down-${c.resource}`} className="flex items-center justify-between text-[9px]">
                             <span className="text-success">↓ {RESOURCE_META[c.resource].name}</span>
-                            <span className="text-gray-500 font-mono">{(c.strength * 100).toFixed(0)}%</span>
+                            <span className="text-muted-label font-mono">{(c.strength * 100).toFixed(0)}%</span>
                           </div>
                         ))}
                       </div>
@@ -780,9 +780,9 @@ export function MarketPanel() {
                   {/* Price History Chart - Large with Bezier + base line */}
                   {selected.priceHistory.length > 1 && (
                     <div className="mb-3">
-                      <div className="text-[10px] text-gray-500 mb-1 flex items-center justify-between">
+                      <div className="text-[10px] text-muted-label mb-1 flex items-center justify-between">
                         <span>Price History (last 50)</span>
-                        <span className="text-gray-600">--- base price</span>
+                        <span className="text-muted-label">--- base price</span>
                       </div>
                       <div className="h-20 bg-[#0a0e17] rounded-lg p-1">
                         <BezierSparkline
@@ -823,7 +823,7 @@ export function MarketPanel() {
                       className={`flex-1 py-1.5 rounded text-[10px] font-bold ${
                         tradeMode === 'sell'
                           ? 'bg-success/30 text-success border border-success/30'
-                          : 'bg-[#0a0e17] text-gray-500 border border-gray-800'
+                          : 'bg-[#0a0e17] text-muted-label border border-muted-label'
                       }`}
                     >
                       <ArrowUpRight className="w-3 h-3 inline mr-1" />SELL
@@ -834,7 +834,7 @@ export function MarketPanel() {
                       className={`flex-1 py-1.5 rounded text-[10px] font-bold ${
                         tradeMode === 'buy'
                           ? 'bg-orange-900/30 text-orange-400 border border-orange-500/30'
-                          : 'bg-[#0a0e17] text-gray-500 border border-gray-800'
+                          : 'bg-[#0a0e17] text-muted-label border border-muted-label'
                       }`}
                     >
                       <ArrowDownRight className="w-3 h-3 inline mr-1" />BUY
@@ -850,7 +850,7 @@ export function MarketPanel() {
                         className={`flex-1 py-1.5 rounded text-[10px] font-mono ${
                           tradeAmount === amt
                             ? 'bg-cyan-900/30 text-cyan-400 border border-cyan-500/30'
-                            : 'bg-[#0a0e17] text-gray-500 border border-gray-800 hover:text-gray-300'
+                            : 'bg-[#0a0e17] text-muted-label border border-muted-label hover:text-subtle'
                         }`}
                       >
                         {amt}x
@@ -861,7 +861,7 @@ export function MarketPanel() {
                       className={`flex-1 py-1.5 rounded text-[10px] font-mono ${
                         tradeAmount === (tradeMode === 'sell' ? maxSell : maxBuy)
                           ? 'bg-cyan-900/30 text-cyan-400 border border-cyan-500/30'
-                          : 'bg-[#0a0e17] text-gray-500 border border-gray-800 hover:text-gray-300'
+                          : 'bg-[#0a0e17] text-muted-label border border-muted-label hover:text-subtle'
                       }`}
                     >
                       MAX
@@ -871,23 +871,23 @@ export function MarketPanel() {
                   {/* Trade summary */}
                   <div className="space-y-1.5 mb-3 text-xs">
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Sell Price</span>
+                      <span className="text-muted-label">Sell Price</span>
                       <span className="text-success font-mono">${(selected.currentPrice * 0.9).toFixed(2)}/u</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Buy Price</span>
+                      <span className="text-muted-label">Buy Price</span>
                       <span className="text-orange-400 font-mono">${(selected.currentPrice * 1.1).toFixed(2)}/u</span>
                     </div>
-                    <div className="border-t border-gray-800 pt-1">
+                    <div className="border-t border-muted-label pt-1">
                       {tradeMode === 'sell' ? (
                         <div className="flex justify-between">
-                          <span className="text-gray-500">Sell {tradeAmount} for</span>
+                          <span className="text-muted-label">Sell {tradeAmount} for</span>
                           <span className="text-success font-mono font-bold">${formatNumber(sellRevenue)}</span>
                         </div>
                       ) : (
                         <div className="flex justify-between">
-                          <span className="text-gray-500">Buy {tradeAmount} for</span>
-                          <span className={`text-orange-400 font-mono font-bold ${store.money < buyCost ? 'text-red-400' : ''}`}>
+                          <span className="text-muted-label">Buy {tradeAmount} for</span>
+                          <span className={`text-orange-400 font-mono font-bold ${store.money < buyCost ? 'text-danger' : ''}`}>
                             ${formatNumber(buyCost)}
                           </span>
                         </div>
@@ -895,20 +895,20 @@ export function MarketPanel() {
                     </div>
                     {/* Price impact warning */}
                     {tradeMode === 'sell' && tradeAmount > 100 && (
-                      <div className="text-[9px] text-amber-400 flex items-center gap-1">
+                      <div className="text-[9px] text-warning flex items-center gap-1">
                         <Flame className="w-3 h-3" /> Large sell may depress market price
                       </div>
                     )}
                     {tradeMode === 'buy' && tradeAmount > 100 && (
-                      <div className="text-[9px] text-amber-400 flex items-center gap-1">
+                      <div className="text-[9px] text-warning flex items-center gap-1">
                         <Flame className="w-3 h-3" /> Large buy may inflate market price
                       </div>
                     )}
                     {tradeMode === 'sell' && tradeAmount > maxSell && (
-                      <div className="text-[9px] text-red-400">Only {maxSell} available to sell</div>
+                      <div className="text-[9px] text-danger">Only {maxSell} available to sell</div>
                     )}
                     {tradeMode === 'buy' && tradeAmount > maxBuy && (
-                      <div className="text-[9px] text-red-400">Can only afford/buy {maxBuy}</div>
+                      <div className="text-[9px] text-danger">Can only afford/buy {maxBuy}</div>
                     )}
                   </div>
 
@@ -936,8 +936,8 @@ export function MarketPanel() {
               </>
             ) : (
               <div className="game-card rounded-xl bg-card p-6 border border-border text-center">
-                <Activity className="w-10 h-10 text-gray-700 mx-auto mb-2" />
-                <p className="text-xs text-gray-500">Select a resource to trade</p>
+                <Activity className="w-10 h-10 text-dim mx-auto mb-2" />
+                <p className="text-xs text-muted-label">Select a resource to trade</p>
               </div>
             )}
           </div>
@@ -953,9 +953,9 @@ export function MarketPanel() {
               {/* Header with LLM status */}
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <Newspaper className="w-4 h-4 text-amber-400" />
-                  <h3 className="text-sm font-semibold text-amber-400">Market News</h3>
-                  <Badge variant="outline" className="border-amber-500/30 text-amber-400 bg-amber-900/10 text-[9px]">
+                  <Newspaper className="w-4 h-4 text-warning" />
+                  <h3 className="text-sm font-semibold text-warning">Market News</h3>
+                  <Badge variant="outline" className="border-warning/30 text-warning bg-amber-900/10 text-[9px]">
                     {(store.marketNews?.length ?? 0)} stories
                   </Badge>
                 </div>
@@ -967,8 +967,8 @@ export function MarketPanel() {
                       AI Enhanced
                     </span>
                   ) : (
-                    <span className="flex items-center gap-1 text-[9px] text-gray-500 bg-gray-900/30 border border-gray-700 rounded-full px-2 py-0.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-gray-500 inline-block" />
+                    <span className="flex items-center gap-1 text-[9px] text-muted-label bg-muted-label/30 border border-muted-label rounded-full px-2 py-0.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-muted-label inline-block" />
                       <Cpu className="w-3 h-3" />
                       Template Mode
                     </span>
@@ -978,13 +978,13 @@ export function MarketPanel() {
 
               {/* LLM stats bar (when active) */}
               {llmState.loadState === 'ready' && (llmState.totalCalls > 0 || llmState.cacheHits > 0) && (
-                <div className="flex items-center gap-3 mb-3 text-[9px] text-gray-500">
+                <div className="flex items-center gap-3 mb-3 text-[9px] text-muted-label">
                   {llmState.model && <span className="font-mono">{llmState.model}</span>}
-                  {llmState.backend && <span className="uppercase text-[8px] px-1.5 py-0.5 rounded bg-gray-800 border border-gray-700">{llmState.backend}</span>}
+                  {llmState.backend && <span className="uppercase text-[8px] px-1.5 py-0.5 rounded bg-muted-label border border-muted-label">{llmState.backend}</span>}
                   {llmState.averageGenTimeMs > 0 && <span>Avg {llmState.averageGenTimeMs.toFixed(0)}ms</span>}
                   {llmState.totalCalls > 0 && <span>{llmState.totalCalls} calls</span>}
                   {llmState.llmSuccesses > 0 && <span className="text-success">{llmState.llmSuccesses} ✓</span>}
-                  {llmState.llmFailures > 0 && <span className="text-red-400">{llmState.llmFailures} ✗</span>}
+                  {llmState.llmFailures > 0 && <span className="text-danger">{llmState.llmFailures} ✗</span>}
                   {llmState.cacheHits > 0 && <span>{llmState.cacheHits} cached</span>}
                 </div>
               )}
@@ -1003,8 +1003,8 @@ export function MarketPanel() {
                     onClick={() => setNewsFilter(f.key)}
                     className={`px-2.5 py-1 rounded-lg text-[10px] ${
                       newsFilter === f.key
-                        ? 'bg-amber-900/30 text-amber-400 border border-amber-500/30'
-                        : 'bg-card text-gray-500 border border-gray-800 hover:text-gray-300'
+                        ? 'bg-amber-900/30 text-warning border border-warning/30'
+                        : 'bg-card text-muted-label border border-muted-label hover:text-subtle'
                     }`}
                   >
                     {f.label}
@@ -1020,14 +1020,14 @@ export function MarketPanel() {
               {/* News list */}
               {filteredNews.length === 0 ? (
                 <div className="text-center py-8">
-                  <Newspaper className="w-10 h-10 text-gray-700 mx-auto mb-2" />
-                  <p className="text-xs text-gray-500">
+                  <Newspaper className="w-10 h-10 text-dim mx-auto mb-2" />
+                  <p className="text-xs text-muted-label">
                     {(store.marketNews?.length ?? 0) === 0
                       ? 'No market news yet. News will appear as prices move and events occur.'
                       : 'No news matching this filter.'}
                   </p>
                   {(store.marketNews?.length ?? 0) === 0 && (
-                    <p className="text-[10px] text-gray-600 mt-1">Start producing and trading to generate market activity.</p>
+                    <p className="text-[10px] text-muted-label mt-1">Start producing and trading to generate market activity.</p>
                   )}
                 </div>
               ) : (
@@ -1048,28 +1048,28 @@ export function MarketPanel() {
                                   <Sparkles className="w-2.5 h-2.5" /> AI
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-0.5 text-[8px] px-1.5 py-0.5 rounded-full bg-gray-800 text-gray-500 border border-gray-700 font-bold flex-shrink-0">
+                                <span className="inline-flex items-center gap-0.5 text-[8px] px-1.5 py-0.5 rounded-full bg-muted-label text-muted-label border border-muted-label font-bold flex-shrink-0">
                                   Template
                                 </span>
                               )}
                             </div>
-                            <p className="text-[10px] text-gray-400 leading-relaxed">{news.description}</p>
+                            <p className="text-[10px] text-subtle leading-relaxed">{news.description}</p>
                             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                              <span className="text-[9px] text-gray-600">{getCategoryIcon(news.category)} {news.category.replace('_', ' ')}</span>
-                              <span className="text-[9px] text-gray-600">·</span>
-                              <span className="text-[9px] text-gray-600 font-mono">Impact: {news.impactSummary}</span>
-                              <span className="text-[9px] text-gray-600">·</span>
-                              <span className="text-[9px] text-gray-600">Tick {news.gameTick}</span>
+                              <span className="text-[9px] text-muted-label">{getCategoryIcon(news.category)} {news.category.replace('_', ' ')}</span>
+                              <span className="text-[9px] text-muted-label">·</span>
+                              <span className="text-[9px] text-muted-label font-mono">Impact: {news.impactSummary}</span>
+                              <span className="text-[9px] text-muted-label">·</span>
+                              <span className="text-[9px] text-muted-label">Tick {news.gameTick}</span>
                             </div>
                             {news.affectedResources.length > 0 && (
                               <div className="flex items-center gap-1 mt-1 flex-wrap">
                                 {news.affectedResources.slice(0, 5).map(r => (
-                                  <span key={r} className="text-[8px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 border border-gray-700">
+                                  <span key={r} className="text-[8px] px-1.5 py-0.5 rounded bg-muted-label text-subtle border border-muted-label">
                                     {RESOURCE_META[r]?.name ?? r}
                                   </span>
                                 ))}
                                 {news.affectedResources.length > 5 && (
-                                  <span className="text-[8px] text-gray-500">+{news.affectedResources.length - 5} more</span>
+                                  <span className="text-[8px] text-muted-label">+{news.affectedResources.length - 5} more</span>
                                 )}
                               </div>
                             )}
@@ -1088,36 +1088,36 @@ export function MarketPanel() {
             {/* Active Volatility Injections */}
             <div className="game-card rounded-xl bg-card p-4 border border-amber-900/20">
               <div className="flex items-center gap-2 mb-3">
-                <AlertTriangle className="w-4 h-4 text-amber-400" />
-                <h3 className="text-sm font-semibold text-amber-400">Active Volatility</h3>
+                <AlertTriangle className="w-4 h-4 text-warning" />
+                <h3 className="text-sm font-semibold text-warning">Active Volatility</h3>
               </div>
               {(() => {
                 const injections = store.marketSimState?.volatilityInjections ?? {};
                 const activeList = Object.entries(injections).filter(([, v]) => v) as [string, VolatilityInjection][];
                 if (activeList.length === 0) {
-                  return <div className="text-[10px] text-gray-500 text-center py-3">No active volatility injections</div>;
+                  return <div className="text-[10px] text-muted-label text-center py-3">No active volatility injections</div>;
                 }
                 return (
                   <div className="space-y-1.5 max-h-48 overflow-y-auto game-scrollbar">
                     {activeList.map(([resource, inj]) => {
                       const meta = RESOURCE_META[resource as ResourceType];
-                      const style = inj.source === 'macro' ? 'border-red-500/20 bg-red-900/5' : inj.source === 'chain' ? 'border-purple-500/20 bg-purple-900/5' : 'border-amber-500/20 bg-amber-900/5';
+                      const style = inj.source === 'macro' ? 'border-danger/20 bg-danger/5' : inj.source === 'chain' ? 'border-purple-500/20 bg-purple-900/5' : 'border-warning/20 bg-amber-900/5';
                       return (
                         <div key={resource} className={`rounded-lg p-2 border ${style}`}>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1.5">
                               <GameIcon icon={meta?.icon} size={12} />
-                              <span className="text-[10px] text-gray-300">{meta?.name ?? resource}</span>
+                              <span className="text-[10px] text-subtle">{meta?.name ?? resource}</span>
                             </div>
                             <span className={`text-[8px] px-1.5 py-0.5 rounded-full border font-bold ${
-                              inj.source === 'macro' ? 'border-red-500/30 text-red-400' : inj.source === 'chain' ? 'border-purple-500/30 text-purple-400' : 'border-amber-500/30 text-amber-400'
+                              inj.source === 'macro' ? 'border-danger/30 text-danger' : inj.source === 'chain' ? 'border-purple-500/30 text-purple-400' : 'border-warning/30 text-warning'
                             }`}>{inj.source.toUpperCase()}</span>
                           </div>
-                          <div className="flex items-center gap-2 mt-1 text-[9px] text-gray-500">
+                          <div className="flex items-center gap-2 mt-1 text-[9px] text-muted-label">
                             <span>{inj.direction > 0 ? '▲' : '▼'} {(inj.intensity * 100).toFixed(0)}%</span>
                             <span>·</span>
                             <span>{inj.duration} steps left</span>
-                            {inj.label && <><span>·</span><span className="text-gray-400">{inj.label}</span></>}
+                            {inj.label && <><span>·</span><span className="text-subtle">{inj.label}</span></>}
                           </div>
                         </div>
                       );
@@ -1134,7 +1134,7 @@ export function MarketPanel() {
                 <h3 className="text-sm font-semibold text-cyan-400">Your Market Influence</h3>
               </div>
               {(store.marketNarratives?.length ?? 0) === 0 ? (
-                <div className="text-[10px] text-gray-500 text-center py-3">
+                <div className="text-[10px] text-muted-label text-center py-3">
                   Your actions will shape market narratives as you grow your industrial empire.
                 </div>
               ) : (
@@ -1144,11 +1144,11 @@ export function MarketPanel() {
                     return (
                       <div key={narrative.id} className={`rounded-lg p-2.5 border ${style.border} ${style.bg}`}>
                         <div className={`text-[10px] font-bold ${style.color} mb-0.5`}>{narrative.title}</div>
-                        <p className="text-[9px] text-gray-400 leading-relaxed">{narrative.description}</p>
+                        <p className="text-[9px] text-subtle leading-relaxed">{narrative.description}</p>
                         <div className="flex items-center gap-1 mt-1 flex-wrap">
                           <span className="text-[8px] text-cyan-500">🏭 {narrative.playerAction}</span>
-                          <span className="text-[8px] text-gray-600">→</span>
-                          <span className="text-[8px] text-amber-400">{narrative.marketEffect}</span>
+                          <span className="text-[8px] text-muted-label">→</span>
+                          <span className="text-[8px] text-warning">{narrative.marketEffect}</span>
                         </div>
                       </div>
                     );

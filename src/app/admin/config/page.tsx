@@ -588,7 +588,7 @@ export default function ConfigTablesPage() {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-10 h-10 border-2 border-warning border-t-transparent rounded-full animate-spin" />
           <p className="text-zinc-400 text-sm">Loading config tables...</p>
         </div>
       </div>
@@ -615,7 +615,7 @@ export default function ConfigTablesPage() {
             </svg>
           </div>
           <h1 className="text-white font-semibold text-sm sm:text-base">IndustriaX Backend</h1>
-          <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20">
+          <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-xs bg-warning/10 text-warning border border-warning/20">
             Admin
           </span>
         </div>
@@ -630,7 +630,7 @@ export default function ConfigTablesPage() {
           </div>
           <button
             onClick={handleLogout}
-            className="text-zinc-400 hover:text-red-400 transition-colors p-1.5 rounded-md hover:bg-zinc-800"
+            className="text-zinc-400 hover:text-danger transition-colors p-1.5 rounded-md hover:bg-zinc-800"
             title="Sign out"
           >
             <IconLogout />
@@ -687,10 +687,10 @@ export default function ConfigTablesPage() {
               </svg>
               <span>Audit Log</span>
             </a>
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm bg-warning/10 text-warning border border-warning/20">
               <IconDatabase />
               <span className="flex-1">Config Tables</span>
-              <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              <div className="w-1.5 h-1.5 rounded-full bg-warning" />
             </div>
             <a
               href="/admin/admins"
@@ -722,7 +722,7 @@ export default function ConfigTablesPage() {
                         onClick={() => handleSelectTable(table.id)}
                         className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs transition-all ${
                           selectedTable === table.id
-                            ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                            ? "bg-warning/10 text-warning border border-warning/20"
                             : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60"
                         }`}
                       >
@@ -730,7 +730,7 @@ export default function ConfigTablesPage() {
                         <span className="flex-1 text-left truncate">{table.displayName}</span>
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
                           selectedTable === table.id
-                            ? "bg-amber-500/20 text-amber-300"
+                            ? "bg-warning/20 text-warning"
                             : "bg-zinc-800 text-zinc-500"
                         }`}>
                           {table.rowCount >= 0 ? table.rowCount : "?"}
@@ -747,9 +747,9 @@ export default function ConfigTablesPage() {
           <div className="p-3 border-t border-zinc-800">
             <div className="p-3 bg-zinc-800/50 rounded-lg">
               <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Phase</p>
-              <p className="text-xs text-amber-400 font-medium">Phase 3 — Admin & Moderation</p>
+              <p className="text-xs text-warning font-medium">Phase 3 — Admin & Moderation</p>
               <div className="mt-2 w-full bg-zinc-700 rounded-full h-1.5">
-                <div className="bg-amber-500 h-1.5 rounded-full" style={{ width: "80%" }} />
+                <div className="bg-warning h-1.5 rounded-full" style={{ width: "80%" }} />
               </div>
             </div>
           </div>
@@ -780,7 +780,7 @@ export default function ConfigTablesPage() {
                 </div>
                 <button
                   onClick={openCreateModal}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black font-medium text-sm rounded-lg transition-colors shrink-0"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-warning hover:bg-warning text-black font-medium text-sm rounded-lg transition-colors shrink-0"
                 >
                   <IconPlus />
                   Add Row
@@ -797,7 +797,7 @@ export default function ConfigTablesPage() {
                   placeholder="Search across all text columns..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-zinc-900/80 border border-zinc-800 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
+                  className="w-full bg-zinc-900/80 border border-zinc-800 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
                 />
                 {searchQuery && (
                   <button
@@ -826,7 +826,7 @@ export default function ConfigTablesPage() {
                     {!searchDebounced && (
                       <button
                         onClick={openCreateModal}
-                        className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-amber-500/10 text-amber-400 text-sm rounded-lg hover:bg-amber-500/20 transition-colors border border-amber-500/20"
+                        className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-warning/10 text-warning text-sm rounded-lg hover:bg-warning/20 transition-colors border border-warning/20"
                       >
                         <IconPlus />
                         Create first row
@@ -854,19 +854,19 @@ export default function ConfigTablesPage() {
                                 onClick={() => col.sortable && handleSort(col.key)}
                               >
                                 <div className={`flex items-center gap-1 ${col.type === "number" || col.type === "integer" ? "justify-end" : ""}`}>
-                                  <span className={col.key === currentTableConfig.primaryKey ? "text-amber-400" : "text-zinc-500"}>
+                                  <span className={col.key === currentTableConfig.primaryKey ? "text-warning" : "text-zinc-500"}>
                                     {col.label}
                                     {col.key === currentTableConfig.primaryKey && (
-                                      <span className="ml-1 text-[9px] text-amber-500/60">PK</span>
+                                      <span className="ml-1 text-[9px] text-warning/60">PK</span>
                                     )}
                                   </span>
                                   {col.sortable && sortConfig.column === col.key && (
-                                    <span className="text-amber-400">
+                                    <span className="text-warning">
                                       {sortConfig.order === "asc" ? <IconChevronUp /> : <IconChevronDown />}
                                     </span>
                                   )}
                                   {col.required && (
-                                    <span className="text-red-400/60 text-[10px]">*</span>
+                                    <span className="text-danger/60 text-[10px]">*</span>
                                   )}
                                 </div>
                               </th>
@@ -884,14 +884,14 @@ export default function ConfigTablesPage() {
                                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <button
                                     onClick={() => openEditModal(row)}
-                                    className="p-1.5 rounded text-zinc-400 hover:text-amber-400 hover:bg-amber-500/10 transition-colors"
+                                    className="p-1.5 rounded text-zinc-400 hover:text-warning hover:bg-warning/10 transition-colors"
                                     title="Edit row"
                                   >
                                     <IconEdit />
                                   </button>
                                   <button
                                     onClick={() => setDeleteTarget(row)}
-                                    className="p-1.5 rounded text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                                    className="p-1.5 rounded text-zinc-400 hover:text-danger hover:bg-danger/10 transition-colors"
                                     title="Delete row"
                                   >
                                     <IconTrash />
@@ -905,13 +905,13 @@ export default function ConfigTablesPage() {
                                     col.type === "number" || col.type === "integer"
                                       ? "text-right font-mono"
                                       : ""
-                                  } ${col.key === currentTableConfig.primaryKey ? "text-amber-300 font-medium" : "text-zinc-300"}`}
+                                  } ${col.key === currentTableConfig.primaryKey ? "text-warning font-medium" : "text-zinc-300"}`}
                                 >
                                   {col.type === "boolean" ? (
                                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
                                       row[col.key]
                                         ? "bg-success/15 text-success border border-success/20"
-                                        : "bg-red-500/15 text-red-400 border border-red-500/20"
+                                        : "bg-danger/15 text-danger border border-danger/20"
                                     }`}>
                                       {row[col.key] ? "true" : "false"}
                                     </span>
@@ -963,7 +963,7 @@ export default function ConfigTablesPage() {
                               }}
                               className={`px-2 py-0.5 rounded text-xs transition-colors ${
                                 pagination.pageSize === size
-                                  ? "bg-amber-500/20 text-amber-400"
+                                  ? "bg-warning/20 text-warning"
                                   : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
                               }`}
                             >
@@ -989,7 +989,7 @@ export default function ConfigTablesPage() {
                               onClick={() => setPagination((prev) => ({ ...prev, page: p as number }))}
                               className={`w-8 h-8 rounded text-xs transition-colors ${
                                 pagination.page === p
-                                  ? "bg-amber-500/20 text-amber-400 font-medium"
+                                  ? "bg-warning/20 text-warning font-medium"
                                   : "text-zinc-400 hover:text-white hover:bg-zinc-800"
                               }`}
                             >
@@ -1043,9 +1043,9 @@ export default function ConfigTablesPage() {
                   <div key={col.key}>
                     <label className="flex items-center gap-1 text-xs font-medium text-zinc-400 mb-1.5">
                       {col.label}
-                      {col.required && <span className="text-red-400">*</span>}
+                      {col.required && <span className="text-danger">*</span>}
                       {col.key === currentTableConfig.primaryKey && (
-                        <span className="text-[9px] text-amber-500/60 ml-1">PK</span>
+                        <span className="text-[9px] text-warning/60 ml-1">PK</span>
                       )}
                     </label>
 
@@ -1061,7 +1061,7 @@ export default function ConfigTablesPage() {
                           }
                           className={`relative w-10 h-5.5 rounded-full transition-colors ${
                             formData[col.key] === true || formData[col.key] === "true"
-                              ? "bg-amber-500"
+                              ? "bg-warning"
                               : "bg-zinc-700"
                           }`}
                         >
@@ -1086,7 +1086,7 @@ export default function ConfigTablesPage() {
                             setFormData((prev) => ({ ...prev, [col.key]: e.target.value }))
                           }
                           rows={6}
-                          className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs text-zinc-300 font-mono focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 resize-y transition-colors"
+                          className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs text-zinc-300 font-mono focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 resize-y transition-colors"
                           placeholder="{}"
                         />
                         <JsonPreview value={formData[col.key]} />
@@ -1099,7 +1099,7 @@ export default function ConfigTablesPage() {
                           setFormData((prev) => ({ ...prev, [col.key]: e.target.value }))
                         }
                         step={col.type === "integer" ? "1" : "0.01"}
-                        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
                       />
                     ) : col.type === "date" ? (
                       <input
@@ -1108,7 +1108,7 @@ export default function ConfigTablesPage() {
                         onChange={(e) =>
                           setFormData((prev) => ({ ...prev, [col.key]: e.target.value }))
                         }
-                        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
                       />
                     ) : (
                       <input
@@ -1117,7 +1117,7 @@ export default function ConfigTablesPage() {
                         onChange={(e) =>
                           setFormData((prev) => ({ ...prev, [col.key]: e.target.value }))
                         }
-                        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
                         placeholder={col.required ? "Required" : "Optional"}
                       />
                     )}
@@ -1136,7 +1136,7 @@ export default function ConfigTablesPage() {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="px-4 py-2 text-sm font-medium text-black bg-amber-500 hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center gap-2"
+                className="px-4 py-2 text-sm font-medium text-black bg-warning hover:bg-warning disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center gap-2"
               >
                 {saving && (
                   <div className="w-3.5 h-3.5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
@@ -1154,7 +1154,7 @@ export default function ConfigTablesPage() {
           <div className="absolute inset-0 bg-black/70" onClick={() => setDeleteTarget(null)} />
           <div className="relative w-full max-w-md mx-4 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl p-6">
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-full bg-danger/10 flex items-center justify-center shrink-0">
                 <IconTrash />
               </div>
               <div>
@@ -1177,7 +1177,7 @@ export default function ConfigTablesPage() {
               <button
                 onClick={confirmDelete}
                 disabled={deleting}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center gap-2"
+                className="px-4 py-2 text-sm font-medium text-white bg-danger hover:bg-danger disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center gap-2"
               >
                 {deleting && (
                   <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -1198,8 +1198,8 @@ export default function ConfigTablesPage() {
               toast.type === "success"
                 ? "bg-success/15 text-success border-success/20"
                 : toast.type === "error"
-                ? "bg-red-500/15 text-red-400 border-red-500/20"
-                : "bg-amber-500/15 text-amber-400 border-amber-500/20"
+                ? "bg-danger/15 text-danger border-danger/20"
+                : "bg-warning/15 text-warning border-warning/20"
             }`}
           >
             {toast.type === "success" && <IconCheck />}
@@ -1244,7 +1244,7 @@ function JsonCell({
       {!isShort && (
         <button
           onClick={onToggle}
-          className="flex items-center gap-1 text-[10px] text-amber-400/70 hover:text-amber-400 mt-0.5"
+          className="flex items-center gap-1 text-[10px] text-warning/70 hover:text-warning mt-0.5"
         >
           {expanded ? <IconCollapse /> : <IconExpand />}
           {expanded ? "Collapse" : "Expand"}
@@ -1267,7 +1267,7 @@ function JsonPreview({ value }: { value: unknown }) {
     formatted = JSON.stringify(parsed, null, 2);
   } catch {
     return (
-      <p className="text-[10px] text-red-400/70 mt-1">⚠ Invalid JSON</p>
+      <p className="text-[10px] text-danger/70 mt-1">⚠ Invalid JSON</p>
     );
   }
   return (
