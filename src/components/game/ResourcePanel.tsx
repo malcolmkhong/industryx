@@ -227,9 +227,9 @@ export function ResourcePanel() {
     }, 1000);
   }, [store]);
 
-  const handleToggle = (id: string) => {
+  const handleToggle = useCallback((id: string) => {
     toggleBuilding(id);
-  };
+  }, [toggleBuilding]);
 
   // ─── Render ─────────────────────────────────────────────────────────────
 
