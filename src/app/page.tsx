@@ -49,12 +49,15 @@ import { ImportDialog } from '@/components/game/dialogs/ImportDialog';
 import { OfflineEarningsDialog } from '@/components/game/dialogs/OfflineEarningsDialog';
 import { DesktopHeader } from '@/components/game/headers/DesktopHeader';
 import { MobileHeader } from '@/components/game/headers/MobileHeader';
+import { GameLoadingSkeleton } from '@/components/game/GameLoadingSkeleton';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { GameSidebar } from '@/components/game/GameSidebar';
 import { GameIcon } from '@/components/game/shared/GameIcon';
 import { BottomNavigationBar } from '@/components/game/BottomNavigationBar';
 import { FloatingActionButton } from '@/components/game/FloatingActionButton';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { useAuth } from '@/components/providers/AuthProvider';
+import { useCloudSync } from '@/lib/hooks/useCloudSync';
 import { OnlineCount } from '@/components/game/OnlineCount';
 import { CloudSyncBlockBanner } from '@/components/game/CloudSyncBlockBanner';
 import { LoginFloatingPanel } from '@/components/game/LoginFloatingPanel';
@@ -70,6 +73,7 @@ import { useKeyboardShortcuts } from '@/lib/hooks/page/useKeyboardShortcuts';
 import { useAutoOpenGuide } from '@/lib/hooks/page/useAutoOpenGuide';
 import { useGameTickLoop } from '@/lib/hooks/page/useGameTickLoop';
 import { useAutoSaveIndicator } from '@/lib/hooks/page/useAutoSaveIndicator';
+import { useTabChange } from '@/lib/hooks/page/useTabChange';
 
 export default function Home() {
   // Select only the state slices needed (instead of subscribing to entire store)
@@ -110,6 +114,9 @@ export default function Home() {
   useAutoOpenGuide();
   useGameTickLoop(effectiveSpeed, paused);
   const { lastSaveTime, showSavedFlash } = useAutoSaveIndicator();
+  const handleTabChange = useTabChange();
+  const { signInWithGoogle } = useAuth();
+  const { blockedState } = useCloudSync();
 
   // Save system state (Phase 2 will extract with dialogs)
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
@@ -123,23 +130,7 @@ export default function Home() {
   const { isOpen: loginPromptOpen, reason: loginPromptReason, promptLogin, closePrompt } = useLoginPrompt();
 
   // Intercept tab changes to cloud-required features for guest users
-  const GUEST_GATED_TABS: Record<string, 'leaderboard' | 'trading_post' | 'mega_project'> = {
-    leaderboard: 'leaderboard',
-    tradePost: 'trading_post',
-    megaprojects: 'mega_project',
-  };
-  const GUEST_TAB_REASON_MAP: Record<string, 'leaderboard' | 'trading_post' | 'mega_project'> = {
-    leaderboard: 'leaderboard',
-    tradePost: 'trading_post',
-    megaprojects: 'mega_project',
-  };
-  const handleTabChange = useCallback((tab: GameTab) => {
-    if (!user && !authLoading && GUEST_GATED_TABS[tab]) {
-      promptLogin(GUEST_TAB_REASON_MAP[tab]);
-      return;
-    }
-    setActiveTab(tab);
-  }, [user, authLoading, promptLogin, setActiveTab]);
+  const handleTabChange = useTabChange();
 
   const handleExport = useCallback(() => {
     const saveStr = exportSave();
@@ -193,8 +184,6 @@ export default function Home() {
     }
   }, [offlineData]);
 
-  const unreadNotifications = notifications.filter(n => !n.read).length;
-
   const renderPanel = () => {
     switch (activeTab) {
       case 'dashboard': return <DashboardPanel />;
@@ -234,49 +223,7 @@ export default function Home() {
   // Show loading skeleton during SSR to prevent hydration mismatch
   // Zustand persist rehydrates from localStorage on client, causing different initial state
   if (!mounted) {
-    return (
-      <div className="h-screen flex flex-col bg-[#0a0e17] text-gray-100 overflow-hidden safe-area-container">
-        <header className="fixed top-0 left-0 right-0 z-50 border-b border-cyan-900/30 px-2 lg:px-3 py-1.5 lg:py-2 bg-[#0a0e17]">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-base font-bold shadow-[0_0_12px_rgba(0,255,242,0.2)]">
-              IX
-            </div>
-            <div>
-              <h1 className="text-sm font-bold text-cyan-400 tracking-wider">INDUSTRIAX</h1>
-              <p className="text-[10px] text-gray-500 -mt-0.5">Factory Dominion</p>
-            </div>
-            <div className="flex items-center gap-3 ml-4">
-              <div className="h-5 w-24 bg-gray-800/60 rounded shimmer-loading" />
-              <div className="h-5 w-20 bg-gray-800/60 rounded shimmer-loading" />
-              <div className="h-5 w-16 bg-gray-800/60 rounded shimmer-loading" />
-            </div>
-          </div>
-        </header>
-        {/* Spacer for fixed header */}
-        <div className="flex-shrink-0" style={{ height: headerHeight }} />
-        <div className="flex flex-1 min-h-0 overflow-hidden">
-          <nav className="hidden lg:block w-44 flex-shrink-0 bg-[#0d1220] border-r border-cyan-900/20">
-            <div className="flex flex-col py-1 gap-1 px-3">
-              {[1,2,3,4,5,6,7,8].map(i => (
-                <div key={i} className="h-8 bg-gray-800/30 rounded shimmer-loading" />
-              ))}
-            </div>
-          </nav>
-          <main className="flex-1 min-h-0 p-4 flex items-center justify-center">
-            <div className="text-center loading-skeleton-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-cyan-500/20 to-teal-600/20 flex items-center justify-center text-3xl loading-icon-pulse">
-                <GameIcon ui="production" size={32} />
-              </div>
-              <p className="text-cyan-400 font-bold text-lg">Loading Factory...</p>
-              <p className="text-gray-500 text-xs mt-1">Initializing industrial empire</p>
-              <div className="mt-4 w-48 h-1 bg-gray-800 rounded-full overflow-hidden mx-auto">
-                <div className="h-full bg-gradient-to-r from-cyan-600 to-teal-500 rounded-full loading-progress-bar" />
-              </div>
-            </div>
-          </main>
-        </div>
-      </div>
-    );
+    return <GameLoadingSkeleton headerHeight={headerHeight} />;
   }
 
   return (
