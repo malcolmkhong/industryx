@@ -38,7 +38,6 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange }: Mobil
   const setGameSpeed = useGameStore(s => s.setGameSpeed);
   const powerGrid = useGameStore(s => s.powerGrid);
   const researchPoints = useGameStore(s => s.researchPoints);
-  const notifications = useGameStore(s => s.notifications);
   const activeEvents = useGameStore(s => s.activeEvents);
   const weather = useGameStore(s => s.weather);
 
