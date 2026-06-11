@@ -50,7 +50,20 @@ const EXTRACTION_TIERS = [
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function ResourcePanel() {
-  const store = useGameStore();
+  const buildings = useGameStore((s) => s.buildings);
+  const resources = useGameStore((s) => s.resources);
+  const resourceCapacity = useGameStore((s) => s.resourceCapacity);
+  const storageUpgradeLevels = useGameStore((s) => s.storageUpgradeLevels);
+  const money = useGameStore((s) => s.money);
+  const powerGrid = useGameStore((s) => s.powerGrid);
+  const prestigeState = useGameStore((s) => s.prestigeState);
+  const productionSnapshot = useGameStore((s) => s.productionSnapshot);
+  const completedResearch = useGameStore((s) => s.completedResearch);
+  const megaProjects = useGameStore((s) => s.megaProjects);
+  const buildBuilding = useGameStore((s) => s.buildBuilding);
+  const toggleBuilding = useGameStore((s) => s.toggleBuilding);
+  const upgradeBuilding = useGameStore((s) => s.upgradeBuilding);
+  const upgradeStorage = useGameStore((s) => s.upgradeStorage);
   const [selectedTab, setSelectedTab] = useState<TabKey>('basic');
   const [selectedFlowNode, setSelectedFlowNode] = useState<string | null>(null);
 
@@ -62,8 +75,8 @@ export function ResourcePanel() {
 
   // Extractor buildings from store
   const extractorBuildings = useMemo(() =>
-    store.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'extractor'),
-    [store.buildings]
+    buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'extractor'),
+    [buildings]
   );
 
   // Extractors grouped by tab
@@ -75,48 +88,48 @@ export function ResourcePanel() {
 
   // Extractor instances grouped by type
   const extractorsByType = useMemo(() => {
-    const grouped: Record<string, typeof store.buildings> = {};
+    const grouped: Record<string, typeof buildings> = {};
     EXTRACTOR_TYPES.forEach(type => {
-      grouped[type] = store.buildings.filter(b => b.type === type);
+      grouped[type] = buildings.filter(b => b.type === type);
     });
     return grouped;
-  }, [store.buildings]);
+  }, [buildings]);
 
   // Production rates per resource — use productionSnapshot which includes all bonuses
   // (mega project, prestige, research, worker, event, weather, etc.)
   // Only include extractor-produced resources for the Raw Materials panel
   const productionRates = useMemo(() => {
     const extractorResources = new Set<string>();
-    store.buildings.forEach(b => {
+    buildings.forEach(b => {
       if (!b.active) return;
       const def = BUILDING_DEFS[b.type];
       if (!def || def.category !== 'extractor' || !def.outputs) return;
       def.outputs.forEach(o => extractorResources.add(o.resource));
     });
     const rates: Record<string, number> = {};
-    Object.entries(store.productionSnapshot.production).forEach(([res, rate]) => {
+    Object.entries(productionSnapshot.production).forEach(([res, rate]) => {
       if (extractorResources.has(res)) {
         rates[res] = rate;
       }
     });
     return rates;
-  }, [store.buildings, store.productionSnapshot.production]);
+  }, [buildings, productionSnapshot.production]);
 
   // Consumption rates — use actual consumption for net rate, demand consumption for demand display
-  const consumptionRates = store.productionSnapshot.actualConsumption;
-  const demandRates = store.productionSnapshot.consumption;
+  const consumptionRates = productionSnapshot.actualConsumption;
+  const demandRates = productionSnapshot.consumption;
 
   // Resource flow data
-  const unlimited = useMemo(() => hasUnlimitedStorage(store.megaProjects), [store.megaProjects]);
+  const unlimited = useMemo(() => hasUnlimitedStorage(megaProjects), [megaProjects]);
   const resourceFlow = useMemo(() => {
     return RAW_RESOURCES.map(r => {
       const rate = productionRates[r] || 0;
-      const amount = store.resources[r];
-      const capacity = unlimited ? Infinity : store.resourceCapacity[r];
+      const amount = resources[r];
+      const capacity = unlimited ? Infinity : resourceCapacity[r];
       const meta = RESOURCE_META[r];
       return { resource: r, rate, amount, capacity, meta };
     }).filter(r => r.rate > 0 || r.amount > 0);
-  }, [productionRates, store.resources, store.resourceCapacity, unlimited]);
+  }, [productionRates, resources, resourceCapacity, unlimited]);
 
   // Extraction tier production summary for SVG flow — uses productionSnapshot
   const tierProductionSummary = useMemo(() => {
@@ -130,7 +143,7 @@ export function ResourcePanel() {
       const def = BUILDING_DEFS[b.type];
       if (!def?.outputs) return;
       def.outputs.forEach(o => {
-        const rate = store.productionSnapshot.production[o.resource] ?? 0;
+        const rate = productionSnapshot.production[o.resource] ?? 0;
         if (rate > 0) {
           summary.basic.production += rate;
           summary.basic.resources.add(o.resource);
@@ -142,7 +155,7 @@ export function ResourcePanel() {
       const def = BUILDING_DEFS[b.type];
       if (!def?.outputs) return;
       def.outputs.forEach(o => {
-        const rate = store.productionSnapshot.production[o.resource] ?? 0;
+        const rate = productionSnapshot.production[o.resource] ?? 0;
         if (rate > 0) {
           summary.advanced.production += rate;
           summary.advanced.resources.add(o.resource);
@@ -153,13 +166,13 @@ export function ResourcePanel() {
       });
     });
     return summary;
-  }, [extractorBuildings, store.productionSnapshot.production]);
+  }, [extractorBuildings, productionSnapshot.production]);
 
   // ─── Overview stats ─────────────────────────────────────────────────────
 
   const totalExtractors = extractorBuildings.length;
   const activeExtractors = extractorBuildings.filter(b => b.active).length;
-  const totalPowerConsumption = store.productionSnapshot.powerConsumption;
+  const totalPowerConsumption = productionSnapshot.powerConsumption;
   const avgEfficiency = activeExtractors > 0
     ? extractorBuildings.filter(b => b.active).reduce((sum, b) => sum + b.efficiency, 0) / activeExtractors
     : 0;
@@ -174,10 +187,10 @@ export function ResourcePanel() {
   // ─── Callbacks ──────────────────────────────────────────────────────────
 
   const handleBuild = useCallback((type: ExtractorType) => {
-    const prevCount = store.buildings.filter(b => b.type === type).length;
-    store.buildBuilding(type);
+    const prevCount = buildings.filter(b => b.type === type).length;
+    buildBuilding(type);
     setTimeout(() => {
-      const newBuildings = store.buildings.filter(b => b.type === type);
+      const newBuildings = buildings.filter(b => b.type === type);
       if (newBuildings.length > prevCount) {
         const newBuilding = newBuildings[newBuildings.length - 1];
         if (newBuilding) {
@@ -199,7 +212,7 @@ export function ResourcePanel() {
   }, [store]);
 
   const handleUpgrade = useCallback((id: string) => {
-    store.upgradeBuilding(id);
+    upgradeBuilding(id);
     setRecentlyUpgraded(prev => {
       const next = new Set(prev);
       next.add(id);
@@ -215,7 +228,7 @@ export function ResourcePanel() {
   }, [store]);
 
   const handleToggle = (id: string) => {
-    store.toggleBuilding(id);
+    toggleBuilding(id);
   };
 
   // ─── Render ─────────────────────────────────────────────────────────────
@@ -263,7 +276,7 @@ export function ResourcePanel() {
           icon={<Gauge className="w-4 h-4" />}
           label="Avg Efficiency"
           value={`${(avgEfficiency * 100).toFixed(0)}%`}
-          subtext={store.powerGrid.overload ? 'Grid overloaded!' : 'Nominal'}
+          subtext={powerGrid.overload ? 'Grid overloaded!' : 'Nominal'}
           color={avgEfficiency >= 0.8 ? 'green' : avgEfficiency >= 0.5 ? 'orange' : 'red'}
         />
         <PanelStatCard
@@ -584,8 +597,8 @@ export function ResourcePanel() {
                     if (!def) return null;
                     const existingCount = extractorsByType[type].length;
                     const cost = getBuildingCost(type, existingCount);
-                    const canAfford = store.money >= cost;
-                    const unlocked = isBuildingUnlocked(type, store.completedResearch, store.prestigeState);
+                    const canAfford = money >= cost;
+                    const unlocked = isBuildingUnlocked(type, completedResearch, prestigeState);
 
                     return (
                       <GameItemTooltip
@@ -603,7 +616,7 @@ export function ResourcePanel() {
                           { label: 'Cost Multiplier', value: `x${def.costMultiplier}` },
                         ]}
                         requirements={[
-                          ...(def.unlockRequirement?.research ? [{ label: 'Research', value: RESEARCH_TREE.find(r => r.id === def.unlockRequirement!.research)?.name ?? def.unlockRequirement.research, color: store.completedResearch.includes(def.unlockRequirement.research) ? 'text-green-400' : 'text-red-400' }] : []),
+                          ...(def.unlockRequirement?.research ? [{ label: 'Research', value: RESEARCH_TREE.find(r => r.id === def.unlockRequirement!.research)?.name ?? def.unlockRequirement.research, color: completedResearch.includes(def.unlockRequirement.research) ? 'text-green-400' : 'text-red-400' }] : []),
                           ...(def.unlockRequirement?.level ? [{ label: 'Level Required', value: `${def.unlockRequirement.level}`, color: 'text-amber-400' }] : []),
                         ]}
                         side="bottom"
@@ -695,8 +708,8 @@ export function ResourcePanel() {
                         const def = BUILDING_DEFS[building.type];
                         if (!def) return null;
                         const upgradeCost = getBuildingCost(building.type, building.level);
-                        const canUpgrade = store.money >= upgradeCost;
-                        const buildingSnapshot = store.productionSnapshot.buildings[building.id];
+                        const canUpgrade = money >= upgradeCost;
+                        const buildingSnapshot = productionSnapshot.buildings[building.id];
                         const effectiveOutputs = buildingSnapshot
                           ? buildingSnapshot.outputs.map(o => ({
                               resource: o.resource,
@@ -774,7 +787,7 @@ export function ResourcePanel() {
                                 </div>
 
                                 {/* Power deficit warning */}
-                                {building.active && store.powerGrid.overload && (
+                                {building.active && powerGrid.overload && (
                                   <div className="mt-1 flex items-center gap-1 text-[8px] text-red-400 bg-red-900/20 rounded px-1.5 py-0.5 border border-red-900/30">
                                     <Zap className="w-2 h-2 flex-shrink-0" />
                                     <span>Power deficit!</span>
@@ -845,8 +858,8 @@ export function ResourcePanel() {
             </div>
             <div className="space-y-2.5 max-h-96 overflow-y-auto game-scrollbar pr-1">
               {RAW_RESOURCES.map(resource => {
-                const amount = store.resources[resource];
-                const capacity = unlimited ? Infinity : store.resourceCapacity[resource];
+                const amount = resources[resource];
+                const capacity = unlimited ? Infinity : resourceCapacity[resource];
                 const meta = RESOURCE_META[resource];
                 const pct = Number.isFinite(capacity) && capacity > 0 ? (amount / capacity) * 100 : 0;
                 const prodRate = productionRates[resource] || 0;
@@ -934,15 +947,15 @@ export function ResourcePanel() {
                     <div className="flex items-center justify-between mt-1 pt-1 border-t border-gray-800/50">
                       <div className="flex items-center gap-0.5">
                         <Package className="w-2 h-2 text-gray-500" />
-                        <span className="text-[8px] text-gray-500">Lv.{store.storageUpgradeLevels[resource] ?? 0}</span>
+                        <span className="text-[8px] text-gray-500">Lv.{storageUpgradeLevels[resource] ?? 0}</span>
                       </div>
                       {(() => {
-                        const currentLevel = store.storageUpgradeLevels[resource] ?? 0;
+                        const currentLevel = storageUpgradeLevels[resource] ?? 0;
                         const upgradeCost = Math.floor(100 * Math.pow(1.5, currentLevel));
-                        const canAffordUpgrade = store.money >= upgradeCost;
+                        const canAffordUpgrade = money >= upgradeCost;
                         return (
                           <button
-                            onClick={() => store.upgradeStorage(resource, 1)}
+                            onClick={() => upgradeStorage(resource, 1)}
                             disabled={!canAffordUpgrade}
                             className={`text-[8px] px-1.5 py-0.5 rounded transition-colors ${
                               canAffordUpgrade
@@ -1067,7 +1080,7 @@ export function ResourcePanel() {
                 const instances = extractorsByType[type];
                 const activeInstances = instances.filter(b => b.active);
                 const totalLevel = instances.reduce((s, b) => s + b.level, 0);
-                const unlocked = isBuildingUnlocked(type, store.completedResearch, store.prestigeState);
+                const unlocked = isBuildingUnlocked(type, completedResearch, prestigeState);
 
                 return (
                   <div key={type} className="flex items-center gap-2 bg-[#0a0e17] rounded-lg p-2">
