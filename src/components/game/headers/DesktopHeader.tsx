@@ -251,7 +251,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
                   </div>
                   {notifications.slice(0, 10).map(n => (
                     <div key={n.id} className={`text-xs py-1 border-b border-gray-800 last:border-0 ${
-                      n.type === 'success' ? 'text-green-400' :
+                      n.type === 'success' ? 'text-success' :
                       n.type === 'warning' ? 'text-yellow-400' :
                       n.type === 'error' ? 'text-red-400' : 'text-gray-400'
                     }`}>
