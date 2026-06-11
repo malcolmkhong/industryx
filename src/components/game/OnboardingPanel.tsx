@@ -33,7 +33,7 @@ const TUTORIAL_STEPS: TutorialStep[] = [
       'Power is the lifeblood of your factory. Without it, no buildings can operate. The Coal Generator burns coal to produce 20 MW of electricity. It is cheap to build and reliable, making it the perfect starting power plant. You start with $1,000 — enough to build one right away!',
     iconId: 'gi:factory',
     tip: 'Always ensure your power production exceeds consumption. Buildings consume power each tick, and running a deficit drastically reduces efficiency.',
-    checkCompleted: (store) => store.buildings.some(b => b.type === 'coalGenerator' || b.type === 'solarPanel' || b.type === 'windTurbine'),
+    checkCompleted: (store) => store.buildings.some(b => b.type === 'coalGenerator' || b.type === 'solarFarm' || b.type === 'windTurbine'),
   },
   {
     id: 'build-mining-drill',

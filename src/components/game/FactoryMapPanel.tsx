@@ -87,7 +87,7 @@ const BUILD_CATEGORIES = [
   },
   {
     label: <><GameIcon icon="gi:lightning-frequency" size={14} className="inline" /> Power</>,
-    types: ['coalGenerator', 'solarPanel', 'windTurbine', 'nuclearReactor', 'antimatterPowerPlant'] as BuildingType[],
+    types: ['coalGenerator', 'solarFarm', 'windTurbine', 'nuclearReactor', 'antimatterPowerPlant'] as BuildingType[],
   },
 ];
 

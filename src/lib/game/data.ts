@@ -1544,9 +1544,9 @@ export const BUILDING_DEFS: Record<string, BuildingDefinition> = {
     fuelRate: 0.5,
     icon: 'gi:factory',
   },
-  solarPanel: {
-    type: 'solarPanel',
-    name: 'Solar Panel',
+  solarFarm: {
+    type: 'solarFarm',
+    name: 'Solar Farm',
     description: 'Clean energy from the sun. Low output but free fuel.',
     category: 'power',
     tier: 0,
@@ -2337,7 +2337,7 @@ export const EVENT_TEMPLATES = [
     description: 'Environmental regulations boost clean energy production!',
     duration: 300,
     effects: [
-      { type: 'productionMultiplier' as const, target: 'solarPanel', value: 1.5 },
+      { type: 'productionMultiplier' as const, target: 'solarFarm', value: 1.5 },
       { type: 'productionMultiplier' as const, target: 'windTurbine', value: 1.5 },
       { type: 'marketPriceMultiplier' as const, target: 'coal', value: 0.6 },
     ],

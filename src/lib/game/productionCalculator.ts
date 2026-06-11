@@ -409,7 +409,7 @@ export function computePowerGrid(
         // NOTE: Do NOT drain remaining fuel — store leaves it untouched when supply is insufficient
       }
     } else {
-      if (b.type === 'solarPanel') {
+      if (b.type === 'solarFarm') {
         const bal = getBalance();
         const dayFactor = bal.power.solarAmplitudeBase + bal.power.solarAmplitudeSwing * Math.sin(currentTick * bal.power.solarOscillationFreq);
         production *= Math.max(bal.power.solarMinOutput, dayFactor) * cache.weatherSolar;

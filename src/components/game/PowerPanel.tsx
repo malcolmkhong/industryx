@@ -25,7 +25,7 @@ const POWER_PLANT_TYPES = getPowerPlantTypes() as PowerPlantType[];
 // Power plant metadata with fallback for dynamically added plants
 const POWER_PLANT_META: Record<string, { icon: React.ReactNode; color: string; label: string; glowClass: string; icon: string }> = {
   coalGenerator: { icon: <Flame className="w-4 h-4" />, color: '#ff6600', label: 'Coal', glowClass: 'text-domain', icon: 'gi:fire' },
-  solarPanel: { icon: <Sun className="w-4 h-4" />, color: '#ffff00', label: 'Solar', glowClass: 'text-warning', icon: 'gi:sun' },
+    solarFarm: { icon: <Sun className="w-4 h-4" />, color: '#ffff00', label: 'Solar', glowClass: 'text-warning', icon: 'gi:sun' },
   windTurbine: { icon: <Wind className="w-4 h-4" />, color: '#00ccff', label: 'Wind', glowClass: 'text-brand', icon: 'gi:air-zigzag' },
   nuclearReactor: { icon: <Atom className="w-4 h-4" />, color: '#00ff66', label: 'Nuclear', glowClass: 'text-success', icon: 'gi:nuclear' },
   antimatterPowerPlant: { icon: <Zap className="w-4 h-4" />, color: '#ff00ff', label: 'Antimatter', glowClass: 'text-premium', icon: 'gi:lightning-frequency' },
@@ -141,7 +141,7 @@ export function PowerPanel() {
             plantProduction *= 0.1;
           }
         }
-        if (type === 'solarPanel') {
+        if (type === 'solarFarm') {
           const dayFactor = 0.5 + 0.5 * Math.sin(gameTick * 0.01);
           plantProduction *= Math.max(0.2, dayFactor);
         }
@@ -606,7 +606,7 @@ export function PowerPanel() {
           // Individual output variation
           let variationLabel = '';
           let variationPct = 100;
-          if (type === 'solarPanel') {
+          if (type === 'solarFarm') {
             variationPct = Math.round(solarFactor * 100);
             variationLabel = solarFactor > 0.7 ? 'Peak' : solarFactor > 0.4 ? 'Moderate' : 'Low light';
           } else if (type === 'windTurbine') {
@@ -682,7 +682,7 @@ export function PowerPanel() {
               </div>
 
               {/* Variation indicator for solar/wind */}
-              {(type === 'solarPanel' || type === 'windTurbine') && (
+              {(type === 'solarFarm' || type === 'windTurbine') && (
                 <div className="flex items-center justify-between text-[9px] mb-1">
                   <span className="text-muted-label">{variationLabel}</span>
                   <div className="flex items-center gap-1">
@@ -792,7 +792,7 @@ export function PowerPanel() {
                         isDerated = true;
                       }
                     }
-                    if (plant.type === 'solarPanel') {
+                    if (plant.type === 'solarFarm') {
                       const factor = Math.max(0.2, 0.5 + 0.5 * Math.sin(gameTick * 0.01));
                       rawProduction *= factor;
                       productionNote = factor > 0.7 ? 'Peak sun' : factor > 0.4 ? 'Moderate' : 'Low light';

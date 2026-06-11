@@ -42,7 +42,7 @@ import {
 import { getBalance } from './balanceConfig';
 
 // --- Save Version ---
-const SAVE_VERSION = 19;
+const SAVE_VERSION = 20;
 
 // --- Utility Functions ---
 function generateId(): string {
@@ -606,6 +606,18 @@ function migrateSaveState(savedState: Record<string, unknown>, fromVersion?: num
       if (newMarketEntries.length > 0) {
         state.market = [...(state.market as MarketPrice[]), ...newMarketEntries];
       }
+    }
+  }
+
+  // V19 → V20: Rename solarPanel power plant building to solarFarm (H5 naming collision)
+  if (version < 20) {
+    if (Array.isArray(state.buildings)) {
+      const buildings = state.buildings as Array<{ type: string }>;
+      buildings.forEach(b => {
+        if (b.type === 'solarPanel') {
+          b.type = 'solarFarm';
+        }
+      });
     }
   }
 

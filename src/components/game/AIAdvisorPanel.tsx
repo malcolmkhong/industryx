@@ -512,7 +512,7 @@ export default function AIAdvisorPanel() {
     if (powerGrid.efficiency < 0.5 && buildings.length > 0 && powerPlants.length > 0) {
       const pct = Math.round(powerGrid.efficiency * 100);
       // Find cheapest available power plant
-      const powerTypes: BuildingType[] = ['coalGenerator', 'solarPanel', 'windTurbine', 'nuclearReactor', 'antimatterPowerPlant'];
+      const powerTypes: BuildingType[] = ['coalGenerator', 'solarFarm', 'windTurbine', 'nuclearReactor', 'antimatterPowerPlant'];
       let cheapestType: BuildingType | null = null;
       let cheapestCost = Infinity;
       for (const pt of powerTypes) {
@@ -546,7 +546,7 @@ export default function AIAdvisorPanel() {
     } else if (powerGrid.efficiency < 0.8 && buildings.length > 0 && powerPlants.length > 0) {
       // Power warning — consumption > 70% of production
       const pct = Math.round(powerGrid.efficiency * 100);
-      const powerTypes: BuildingType[] = ['coalGenerator', 'solarPanel', 'windTurbine', 'nuclearReactor', 'antimatterPowerPlant'];
+      const powerTypes: BuildingType[] = ['coalGenerator', 'solarFarm', 'windTurbine', 'nuclearReactor', 'antimatterPowerPlant'];
       let cheapestType: BuildingType | null = null;
       let cheapestCost = Infinity;
       for (const pt of powerTypes) {

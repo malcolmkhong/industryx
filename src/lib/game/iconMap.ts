@@ -188,7 +188,7 @@ export const BUILDING_ICON_MAP: Record<string, string> = {
 
   // Power Plants
   coalGenerator: 'gi:factory',
-  solarPanel: 'gi:solar-power',
+  solarFarm: 'gi:solar-power',
   windTurbine: 'gi:wind-turbine',
   nuclearReactor: 'gi:nuclear',
   antimatterPowerPlant: 'gi:lightning-frequency',
