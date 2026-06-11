@@ -115,7 +115,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange }: Mobil
           <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden min-w-[40px]">
             <div
               className={`h-full transition-all duration-500 rounded-full ${
-                powerPercent >= 80 ? 'bg-green-500' : powerPercent >= 50 ? 'bg-yellow-500' : 'bg-red-500'
+                powerPercent >= 80 ? 'bg-success' : powerPercent >= 50 ? 'bg-yellow-500' : 'bg-red-500'
               }`}
               style={{ width: `${powerPercent}%` }}
             />
