@@ -302,8 +302,8 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
 
           {/* Auto-save indicator */}
           <div className={`flex items-center gap-1 text-[10px] transition-opacity duration-500 ${showSavedFlash ? 'opacity-100' : 'opacity-40'}`}>
-            <Check className={`w-3 h-3 transition-colors duration-300 ${showSavedFlash ? 'text-green-400' : 'text-gray-600'}`} />
-            <span className={showSavedFlash ? 'text-green-400' : 'text-gray-600'}>Saved</span>
+            <Check className={`w-3 h-3 transition-colors duration-300 ${showSavedFlash ? 'text-success' : 'text-gray-600'}`} />
+            <span className={showSavedFlash ? 'text-success' : 'text-gray-600'}>Saved</span>
           </div>
 
           <Tooltip>
