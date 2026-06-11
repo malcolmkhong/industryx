@@ -75,6 +75,11 @@ interface GameConfigState {
   reload: () => Promise<void>;
   isUsingSupabase: boolean;
   lastUpdated: number | null;
+  // Version counter that increments on every config update. Components
+  // that read mutable config refs (BUILDING_DEFS, RESOURCE_META, etc.)
+  // directly from configCache.ts should subscribe to this via useConfigVersion()
+  // so they re-render when the underlying data changes.
+  version: number;
 }
 
 const GameConfigContext = createContext<GameConfigState>({
@@ -84,10 +89,19 @@ const GameConfigContext = createContext<GameConfigState>({
   reload: async () => {},
   isUsingSupabase: false,
   lastUpdated: null,
+  version: 0,
 });
 
 export function useGameConfig() {
   return useContext(GameConfigContext);
+}
+
+// Lightweight hook for components that only need to know when config
+// changes (e.g., to re-read BUILDING_DEFS / RESOURCE_META refs from
+// configCache.ts). Use this to subscribe to config changes without
+// re-rendering on every config field.
+export function useConfigVersion(): number {
+  return useContext(GameConfigContext).version;
 }
 
 export function GameConfigProvider({ children }: { children: React.ReactNode }) {
@@ -95,6 +109,7 @@ export function GameConfigProvider({ children }: { children: React.ReactNode }) 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const [version, setVersion] = useState(0);
 
   const loadConfig = useCallback(async () => {
     setLoading(true);
@@ -106,6 +121,7 @@ export function GameConfigProvider({ children }: { children: React.ReactNode }) 
         updateFromSupabase(cachedConfig);
         setConfig(cachedConfig);
         setLastUpdated(cachedConfig.loadedAt);
+        setVersion(v => v + 1);
         setLoading(false);
         console.log('[GameConfigProvider] Loaded from cache:', Object.keys(cachedConfig.buildings).length, 'buildings');
 
@@ -115,6 +131,7 @@ export function GameConfigProvider({ children }: { children: React.ReactNode }) 
             updateFromSupabase(freshConfig);
             setConfig(freshConfig);
             setLastUpdated(Date.now());
+            setVersion(v => v + 1);
             setCachedConfig(freshConfig);
           }
         }).catch(() => {});
@@ -127,6 +144,7 @@ export function GameConfigProvider({ children }: { children: React.ReactNode }) 
         updateFromSupabase(freshConfig);
         setConfig(freshConfig);
         setLastUpdated(Date.now());
+        setVersion(v => v + 1);
         setCachedConfig(freshConfig);
       } else {
         setConfig(createFallbackConfig());
@@ -194,7 +212,7 @@ export function GameConfigProvider({ children }: { children: React.ReactNode }) 
   const isUsingSupabase = config.source === 'supabase';
 
   return (
-    <GameConfigContext.Provider value={{ config, loading, error, reload: loadConfig, isUsingSupabase, lastUpdated }}>
+    <GameConfigContext.Provider value={{ config, loading, error, reload: loadConfig, isUsingSupabase, lastUpdated, version }}>
       {children}
     </GameConfigContext.Provider>
   );
