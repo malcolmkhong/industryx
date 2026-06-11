@@ -190,7 +190,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
           <div className="w-24 h-2 bg-gray-800 rounded-full overflow-hidden">
             <div
               className={`h-full transition-all duration-500 ${
-                powerPercent >= 80 ? 'bg-green-500' : powerPercent >= 50 ? 'bg-yellow-500' : 'bg-red-500'
+                powerPercent >= 80 ? 'bg-success' : powerPercent >= 50 ? 'bg-yellow-500' : 'bg-red-500'
               }`}
               style={{ width: `${powerPercent}%` }}
             />
@@ -204,7 +204,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
               onClick={togglePause}
               aria-label={paused ? "Resume game" : "Pause game"}
             >
-              {paused ? <Play className="w-3 h-3 text-green-400" /> : <Pause className="w-3 h-3 text-yellow-400" />}
+              {paused ? <Play className="w-3 h-3 text-success" /> : <Pause className="w-3 h-3 text-yellow-400" />}
             </Button>
             {SPEED_OPTIONS.map(speed => (
               <Button
