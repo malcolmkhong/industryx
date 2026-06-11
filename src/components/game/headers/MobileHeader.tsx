@@ -120,7 +120,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange }: Mobil
               style={{ width: `${powerPercent}%` }}
             />
           </div>
-          <span className={`text-[9px] font-mono flex-shrink-0 ${powerPercent >= 80 ? 'text-green-400' : powerPercent >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+          <span className={`text-[9px] font-mono flex-shrink-0 ${powerPercent >= 80 ? 'text-success' : powerPercent >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
             {powerPercent}%
           </span>
         </div>
@@ -131,7 +131,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange }: Mobil
         <div className="flex items-center gap-1.5">
           {/* Auto-save indicator */}
           <div className="flex items-center gap-0.5" role="status" aria-label={showSavedFlash ? 'Game saved' : 'Save pending'}>
-            <Check className={`w-3 h-3 transition-colors duration-300 ${showSavedFlash ? 'text-green-400' : 'text-gray-600'}`} />
+            <Check className={`w-3 h-3 transition-colors duration-300 ${showSavedFlash ? 'text-success' : 'text-gray-600'}`} />
             <span className="text-[9px] text-gray-500">{showSavedFlash ? 'Saved' : ''}</span>
           </div>
 
