@@ -110,7 +110,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
                   {pendingPayout > 0 && !payoutConfig.autoCollect && (
                     <button
                       onClick={collectPayout}
-                      className="ml-2 animate-pulse inline-flex items-center gap-1 bg-green-900/40 hover:bg-green-800/50 text-green-400 text-[10px] px-1.5 py-0.5 rounded-md border border-green-500/30 transition-colors"
+                      className="ml-2 animate-pulse inline-flex items-center gap-1 bg-success/40 hover:bg-emerald-800/50 text-success text-[10px] px-1.5 py-0.5 rounded-md border border-success/30 transition-colors"
                       title="Click to collect pending payout"
                     >
                       <GameIcon ui="money" size={12} className="inline-flex" /> ${formatNumber(pendingPayout)}
