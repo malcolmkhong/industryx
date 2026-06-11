@@ -115,7 +115,7 @@ function SupplyDemandBar({ demand, supply }: { demand: number; supply: number })
 // --- Market Cycle Indicator ---
 function MarketCycleIndicator({ phase, progress, multiplier }: { phase: string; progress: number; multiplier: number }) {
   const phaseConfig: Record<string, { color: string; label: string; icon: string }> = {
-    expansion: { color: 'text-green-400', label: 'Expansion', icon: '📈' },
+    expansion: { color: 'text-success', label: 'Expansion', icon: '📈' },
     peak: { color: 'text-yellow-400', label: 'Peak', icon: '⚡' },
     recession: { color: 'text-red-400', label: 'Recession', icon: '📉' },
     recovery: { color: 'text-cyan-400', label: 'Recovery', icon: '🔄' },
@@ -132,7 +132,7 @@ function MarketCycleIndicator({ phase, progress, multiplier }: { phase: string; 
         </div>
         <div className="h-1 bg-gray-800 rounded-full mt-0.5">
           <div className={`h-full rounded-full transition-all duration-500 ${
-            phase === 'expansion' ? 'bg-green-500' : phase === 'peak' ? 'bg-yellow-500' : phase === 'recession' ? 'bg-red-500' : 'bg-cyan-500'
+            phase === 'expansion' ? 'bg-success' : phase === 'peak' ? 'bg-yellow-500' : phase === 'recession' ? 'bg-red-500' : 'bg-cyan-500'
           }`} style={{ width: `${Math.min(100, progress * 100)}%` }} />
         </div>
       </div>
@@ -156,7 +156,7 @@ function SectorOverview({ sectorTrends, market }: { sectorTrends: Partial<Record
 
         return (
           <div key={sector} className={`rounded-lg p-2 border ${
-            trend === 'up' ? 'border-green-500/20 bg-green-900/5' :
+            trend === 'up' ? 'border-success/20 bg-success/5' :
             trend === 'down' ? 'border-red-500/20 bg-red-900/5' :
             'border-gray-800 bg-card'
           }`}>
