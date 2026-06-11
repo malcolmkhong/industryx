@@ -3404,7 +3404,15 @@ export const useGameStore = create<GameStore>()(
         }
       },
 
+      // M8 FIX: Blueprint import validation (mirrors C3 importSave pattern)
+      // Reject oversize, type-confusion, and out-of-range count attacks
       importBlueprint: (code: string) => {
+        const BLUEPRINT_MAX_BUILDINGS = 500;
+        const BLUEPRINT_MAX_TRANSPORT = 200;
+        const BLUEPRINT_MAX_COUNT_PER_TYPE = 1000;
+        const VALID_TRANSPORT_TYPES = new Set<string>([
+          'conveyorBelt', 'pipe', 'truck', 'cargoTrain', 'drone', 'cargoShip',
+        ]);
         try {
           const json = decodeURIComponent(atob(code));
           const data = JSON.parse(json);
@@ -3414,17 +3422,56 @@ export const useGameStore = create<GameStore>()(
             return false;
           }
 
+          // M8 FIX: Bounds — reject oversize arrays before allocating
+          if (data.b.length > BLUEPRINT_MAX_BUILDINGS) {
+            get().addNotification('error', `Blueprint rejected: ${data.b.length} buildings exceeds limit of ${BLUEPRINT_MAX_BUILDINGS}`);
+            return false;
+          }
+          if (data.t.length > BLUEPRINT_MAX_TRANSPORT) {
+            get().addNotification('error', `Blueprint rejected: ${data.t.length} transport lines exceeds limit of ${BLUEPRINT_MAX_TRANSPORT}`);
+            return false;
+          }
+
+          // M8 FIX: Validate each building — type must exist in BUILDING_DEFS, count must be finite and in [1, 1000]
+          const validBuildings: { type: BuildingType; count: number }[] = [];
+          for (const b of data.b) {
+            if (typeof b !== 'object' || b === null) continue;
+            const t = (b as { t?: unknown }).t;
+            const c = (b as { c?: unknown }).c;
+            if (typeof t !== 'string') continue;
+            if (!Number.isFinite(c) || (c as number) < 1 || (c as number) > BLUEPRINT_MAX_COUNT_PER_TYPE) continue;
+            if (!(t in BUILDING_DEFS)) {
+              get().addNotification('warning', `Skipped unknown building type: ${t}`);
+              continue;
+            }
+            validBuildings.push({ type: t as BuildingType, count: Math.floor(c as number) });
+          }
+
+          // M8 FIX: Validate each transport — same hardening
+          const validTransport: { type: TransportType; count: number }[] = [];
+          for (const t of data.t) {
+            if (typeof t !== 'object' || t === null) continue;
+            const typeStr = (t as { t?: unknown }).t;
+            const c = (t as { c?: unknown }).c;
+            if (typeof typeStr !== 'string') continue;
+            if (!Number.isFinite(c) || (c as number) < 1 || (c as number) > BLUEPRINT_MAX_COUNT_PER_TYPE) continue;
+            if (!VALID_TRANSPORT_TYPES.has(typeStr)) {
+              get().addNotification('warning', `Skipped unknown transport type: ${typeStr}`);
+              continue;
+            }
+            validTransport.push({ type: typeStr as TransportType, count: Math.floor(c as number) });
+          }
+
+          if (validBuildings.length === 0 && validTransport.length === 0) {
+            get().addNotification('error', 'Blueprint contained no valid entries!');
+            return false;
+          }
+
           const blueprint: Blueprint = {
             id: generateId(),
             name: data.n || `Imported Layout`,
-            buildings: data.b.map((b: { t: string; c: number }) => ({
-              type: b.t as BuildingType,
-              count: b.c,
-            })),
-            transportLines: data.t.map((t: { t: string; c: number }) => ({
-              type: t.t as TransportType,
-              count: t.c,
-            })),
+            buildings: validBuildings,
+            transportLines: validTransport,
             savedAt: Date.now(),
             shared: true,
             likes: 0,
@@ -3432,7 +3479,7 @@ export const useGameStore = create<GameStore>()(
 
           const state = get();
           set({ blueprints: [blueprint, ...state.blueprints] });
-          get().addNotification('success', `Blueprint imported: ${blueprint.name}`);
+          get().addNotification('success', `Blueprint imported: ${blueprint.name} (${validBuildings.length} buildings, ${validTransport.length} transport)`);
           return true;
         } catch {
           get().addNotification('error', 'Invalid blueprint code!');
