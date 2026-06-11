@@ -1,6 +1,7 @@
 /**
  * Shared admin authentication utility for API routes.
- * Verifies the user's session and checks admin status against ADMIN_UIDS env var.
+ * Verifies the user's session and checks admin status against the admin_users
+ * Supabase table (with ADMIN_UIDS env var as bootstrap fallback).
  */
 
 import { createClient } from "@/lib/supabase/server";
@@ -11,16 +12,60 @@ export interface AdminUser {
   email: string | undefined;
 }
 
-/**
- * Check if a given userId is in the ADMIN_UIDS list.
- * This is a lightweight check that doesn't require a session.
- */
-export function isAdminUserId(userId: string): boolean {
-  const adminUids = (process.env.ADMIN_UIDS || "")
+// In-memory cache of admin user IDs. Populated on first DB check, refreshed
+// on miss or after CACHE_TTL_MS. Avoids hitting the DB on every API request
+// while still allowing admin changes to propagate within the TTL window.
+let adminCache: Set<string> = new Set();
+let cacheLoadedAt = 0;
+const CACHE_TTL_MS = 60_000; // 1 minute
+
+function getAdminUidsFromEnv(): string[] {
+  return (process.env.ADMIN_UIDS || "")
     .split(",")
     .map((uid) => uid.trim())
     .filter(Boolean);
-  return adminUids.includes(userId);
+}
+
+/**
+ * Synchronous bootstrap check against ADMIN_UIDS env var.
+ * Used in hot paths where async DB call is not feasible (and as fallback
+ * when the DB is unreachable). For authoritative admin checks, use verifyAdmin.
+ */
+export function isAdminUserId(userId: string): boolean {
+  return getAdminUidsFromEnv().includes(userId);
+}
+
+/**
+ * Authoritative async admin check. Queries the admin_users table with an
+ * in-memory cache (1-minute TTL). Falls back to ADMIN_UIDS env var if the DB
+ * is unreachable (bootstrap / outage resilience).
+ */
+export async function isAdminUserDb(userId: string): Promise<boolean> {
+  // Cache hit (within TTL)
+  if (Date.now() - cacheLoadedAt < CACHE_TTL_MS) {
+    if (adminCache.has(userId)) return true;
+    // If we have a populated cache, a miss is authoritative
+    if (adminCache.size > 0 || cacheLoadedAt > 0) return false;
+  }
+
+  // Refresh cache
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("admin_users")
+      .select("user_id")
+      .eq("is_active", true);
+    if (error) {
+      console.warn("[Auth] admin_users query failed, falling back to ADMIN_UIDS env var:", error.message);
+      return isAdminUserId(userId);
+    }
+    adminCache = new Set((data ?? []).map((r: { user_id: string }) => r.user_id));
+    cacheLoadedAt = Date.now();
+    return adminCache.has(userId);
+  } catch (err) {
+    console.warn("[Auth] admin_users query threw, falling back to ADMIN_UIDS env var:", err);
+    return isAdminUserId(userId);
+  }
 }
 
 /**
@@ -46,13 +91,9 @@ export async function verifyAdmin(): Promise<
       };
     }
 
-    // Check admin status from ADMIN_UIDS env var
-    const adminUids = (process.env.ADMIN_UIDS || "")
-      .split(",")
-      .map((uid) => uid.trim())
-      .filter(Boolean);
-
-    if (!adminUids.includes(user.id)) {
+    // M7 FIX: authoritative admin check via admin_users table (with env var fallback).
+    const isAdmin = await isAdminUserDb(user.id);
+    if (!isAdmin) {
       return {
         error: NextResponse.json(
           { error: "Forbidden", message: "User is not an admin" },
