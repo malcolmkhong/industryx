@@ -608,7 +608,7 @@ export function MarketPanel() {
                         {m.trend === 'up' && <span className="text-xs trend-arrow-bounce inline-flex items-center" style={{ filter: 'drop-shadow(0 0 3px rgba(74,222,128,0.5))' }}><GameIcon icon="gi:fast-arrow" size={12} className="text-green-400 rotate-[-90deg]" /></span>}
                         {m.trend === 'down' && <span className="text-xs trend-arrow-bounce inline-flex items-center" style={{ filter: 'drop-shadow(0 0 3px rgba(248,113,113,0.5))' }}><GameIcon icon="gi:fast-arrow" size={12} className="text-red-400 rotate-90" /></span>}
                         {isAutoSell && (
-                          <span className="text-[8px] px-1 py-0.5 rounded bg-green-900/30 text-green-400 border border-green-500/30">AUTO</span>
+                          <span className="text-[8px] px-1 py-0.5 rounded bg-success/30 text-success border border-success/30">AUTO</span>
                         )}
                       </div>
                     </div>
@@ -1044,7 +1044,7 @@ export function MarketPanel() {
                             <div className="flex items-center gap-2 mb-1">
                               <span className={`text-xs font-bold ${style.color}`}>{news.title}</span>
                               {isLLM ? (
-                                <span className="inline-flex items-center gap-0.5 text-[8px] px-1.5 py-0.5 rounded-full bg-green-900/30 text-green-400 border border-green-500/30 font-bold flex-shrink-0">
+                                <span className="inline-flex items-center gap-0.5 text-[8px] px-1.5 py-0.5 rounded-full bg-success/30 text-success border border-success/30 font-bold flex-shrink-0">
                                   <Sparkles className="w-2.5 h-2.5" /> AI
                                 </span>
                               ) : (
