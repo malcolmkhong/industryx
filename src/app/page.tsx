@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback, useRef, useState, useMemo } from 'react';
+import { useCallback, useRef, useState, useMemo } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
 import { BUILDING_DEFS, RESOURCE_META, WEATHER_DEFS } from '@/lib/game/configCache';
 import { GameTab, ResourceType } from '@/lib/game/types';
@@ -59,11 +59,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { GameSidebar, KEY_TAB_MAP } from '@/components/game/GameSidebar';
+import { GameSidebar } from '@/components/game/GameSidebar';
 import { GameIcon } from '@/components/game/shared/GameIcon';
 import { BottomNavigationBar } from '@/components/game/BottomNavigationBar';
 import { FloatingActionButton } from '@/components/game/FloatingActionButton';
-import { useSettingsStore } from '@/lib/game/settingsStore';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useGameConfig } from '@/components/providers/GameConfigProvider';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -72,11 +71,18 @@ import { OnlineCount } from '@/components/game/OnlineCount';
 import { CloudSyncBlockBanner } from '@/components/game/CloudSyncBlockBanner';
 import { LoginFloatingPanel } from '@/components/game/LoginFloatingPanel';
 import { useLoginPrompt } from '@/lib/hooks/useLoginPrompt';
-
-// Navigation is now managed by GameSidebar component
-// KEY_TAB_MAP is imported from GameSidebar
-
-const SPEED_OPTIONS = [1, 2, 5, 10];
+import { useReducedMotion } from '@/lib/hooks/page/useReducedMotion';
+import { useHydrationGuard } from '@/lib/hooks/page/useHydrationGuard';
+import { useHeaderHeightObserver } from '@/lib/hooks/page/useHeaderHeightObserver';
+import { useOfflineProgressCheck } from '@/lib/hooks/page/useOfflineProgressCheck';
+import { useDailyLoginCheck } from '@/lib/hooks/page/useDailyLoginCheck';
+import { useDragPrevention } from '@/lib/hooks/page/useDragPrevention';
+import { useContextMenuPrevention } from '@/lib/hooks/page/useContextMenuPrevention';
+import { useKeyboardShortcuts } from '@/lib/hooks/page/useKeyboardShortcuts';
+import { useAutoOpenGuide } from '@/lib/hooks/page/useAutoOpenGuide';
+import { useGameTickLoop } from '@/lib/hooks/page/useGameTickLoop';
+import { useAutoSaveIndicator } from '@/lib/hooks/page/useAutoSaveIndicator';
+import { useMoneyGlowEffect } from '@/lib/hooks/page/useMoneyGlowEffect';
 
 export default function Home() {
   // Select only the state slices needed (instead of subscribing to entire store)
@@ -114,74 +120,30 @@ export default function Home() {
   const checkDailyLogin = useGameStore(s => s.checkDailyLogin);
   const loginStreak = useGameStore(s => s.loginStreak);
   const collectPayout = useGameStore(s => s.collectPayout);
-  const tickRef = useRef<NodeJS.Timeout | null>(null);
-  const notifRef = useRef<HTMLDivElement>(null);
-  const hasAutoOpenedGuide = useRef(false);
   const headerRef = useRef<HTMLElement>(null);
-  const [headerHeight, setHeaderHeight] = useState(52); // default fallback
+  const notifRef = useRef<HTMLDivElement>(null);
 
-  // Sync reduced motion setting to body class for CSS-based animation disabling
-  const reducedMotion = useSettingsStore(state => state.reducedMotion);
-  useEffect(() => {
-    if (reducedMotion) {
-      document.body.classList.add('reduce-motion');
-    } else {
-      document.body.classList.remove('reduce-motion');
-    }
-  }, [reducedMotion]);
+  // 04.3 Phase 1: Effects → custom hooks
+  useReducedMotion();
+  const mounted = useHydrationGuard();
+  const headerHeight = useHeaderHeightObserver(headerRef, mounted);
+  const { offlineData, setOfflineData, offlineDialogOpen, setOfflineDialogOpen } = useOfflineProgressCheck();
+  const { dailyRewardDialogOpen, setDailyRewardDialogOpen } = useDailyLoginCheck();
+  useDragPrevention();
+  useContextMenuPrevention();
+  useKeyboardShortcuts();
+  useAutoOpenGuide();
+  useGameTickLoop(effectiveSpeed, paused);
+  const { lastSaveTime, showSavedFlash } = useAutoSaveIndicator();
+  const { moneyGlow } = useMoneyGlowEffect();
 
-  // Hydration guard: prevent rendering dynamic game UI during SSR
-  // This avoids hydration mismatch because Zustand persist rehydrates from localStorage on client
-  // We use Zustand's persist.hasHydrated() to ensure data is loaded before rendering
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    // Check if Zustand persist has already hydrated (synchronous check)
-    if (useGameStore.persist.hasHydrated()) {
-      // Use microtask to avoid synchronous setState in effect (lint rule)
-      queueMicrotask(() => setMounted(true));
-      return;
-    }
-    // If not yet hydrated, listen for the finishHydration event
-    const unsubFinishHydration = useGameStore.persist.onFinishHydration(() => {
-      setMounted(true);
-    });
-    // Safety fallback: if hydration takes too long (e.g., corrupted data),
-    // force mount after 3 seconds so the user isn't stuck forever
-    const safetyTimer = setTimeout(() => {
-      setMounted(true);
-    }, 3000);
-    return () => {
-      unsubFinishHydration();
-      clearTimeout(safetyTimer);
-    };
-  }, []);
-
-  // Track header height dynamically so the fixed header's spacer always matches
-  // Depends on `mounted` because the header ref is only attached after hydration
-  useEffect(() => {
-    if (!mounted) return;
-    const el = headerRef.current;
-    if (!el) return;
-    const updateHeight = () => setHeaderHeight(el.offsetHeight);
-    const observer = new ResizeObserver(updateHeight);
-    observer.observe(el);
-    // Also update on initial mount
-    updateHeight();
-    return () => observer.disconnect();
-  }, [mounted]);
-
-  // Save system state
-  const [lastSaveTime, setLastSaveTime] = useState<number | null>(null);
-  const [showSavedFlash, setShowSavedFlash] = useState(false);
+  // Save system state (Phase 2 will extract with dialogs)
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [exportString, setExportString] = useState('');
   const [importString, setImportString] = useState('');
   const [importError, setImportError] = useState('');
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
-  const prevGameTickRef = useRef(gameTick);
-  const prevMoneyRef = useRef(money);
-  const [moneyGlow, setMoneyGlow] = useState(false);
 
   // Auth & cloud sync
   const { user, signInWithGoogle, signOut, loading: authLoading } = useAuth();
@@ -194,146 +156,7 @@ export default function Home() {
   // Login prompt system
   const { isOpen: loginPromptOpen, reason: loginPromptReason, promptLogin, closePrompt } = useLoginPrompt();
 
-  // Offline earnings state
-  const [offlineDialogOpen, setOfflineDialogOpen] = useState(false);
-  const [offlineData, setOfflineData] = useState<{ resources: Record<string, number>; money: number; ticksElapsed: number } | null>(null);
-  const hasCheckedOffline = useRef(false);
-
-  // Daily rewards auto-popup state
-  const [dailyRewardDialogOpen, setDailyRewardDialogOpen] = useState(false);
-  const hasCheckedDailyLogin = useRef(false);
-
-  // Check for offline progress on mount (after rehydration)
-  useEffect(() => {
-    if (hasCheckedOffline.current) return;
-    // Wait for store to be rehydrated (gameTick > 0 means a save exists)
-    if (gameTick === 0 && buildings.length === 0) {
-      hasCheckedOffline.current = true;
-      return;
-    }
-    hasCheckedOffline.current = true;
-    const result = calculateOfflineProgress();
-    if (result && (result.money > 0 || Object.values(result.resources).some(v => v > 0))) {
-      // Defer state updates to avoid cascading renders
-      const timer = setTimeout(() => {
-        setOfflineData(result);
-        setOfflineDialogOpen(true);
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [gameTick, buildings.length, calculateOfflineProgress]);
-
-  // Check daily login on mount
-  useEffect(() => {
-    if (hasCheckedDailyLogin.current) return;
-    hasCheckedDailyLogin.current = true;
-    const timer = setTimeout(() => {
-      checkDailyLogin();
-      // Check if today's reward is unclaimed
-      const currentDay = ((loginStreak.currentStreak - 1) % 7) + 1;
-      const todayReward = loginStreak.weeklyRewards.find(r => r.day === currentDay && !r.claimed);
-      if (todayReward) {
-        setDailyRewardDialogOpen(true);
-      }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [checkDailyLogin, loginStreak]);  // Global UI Interaction Hardening: Prevent native drag on non-input elements
-  // CSS handles -webkit-user-drag and -webkit-touch-callout, but the HTML5 drag API
-  // requires a JS event listener to fully prevent drag ghost previews
-  useEffect(() => {
-    const handleDragStart = (e: DragEvent) => {
-      // Allow drag on inputs (e.g., text selection drag within inputs)
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
-        return;
-      }
-      e.preventDefault();
-    };
-    document.addEventListener('dragstart', handleDragStart);
-    return () => document.removeEventListener('dragstart', handleDragStart);
-  }, []);
-
-  // Global UI Interaction Hardening: Prevent context menu on game elements
-  // Long-press on mobile can trigger context menus which interfere with gameplay
-  useEffect(() => {
-    const handleContextMenu = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      // Allow context menu on inputs (right-click copy/paste)
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
-        return;
-      }
-      // Allow context menu on links (open in new tab, etc.)
-      if (target.closest('a')) {
-        return;
-      }
-      e.preventDefault();
-    };
-    document.addEventListener('contextmenu', handleContextMenu);
-    return () => document.removeEventListener('contextmenu', handleContextMenu);
-  }, []);
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if user is typing in an input/textarea
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
-        return;
-      }
-
-      // Number keys 1-9: switch tabs
-      if (KEY_TAB_MAP[e.key]) {
-        e.preventDefault();
-        setActiveTab(KEY_TAB_MAP[e.key]);
-        return;
-      }
-
-      // Space: toggle pause
-      if (e.key === ' ') {
-        e.preventDefault();
-        togglePause();
-        return;
-      }
-
-      // + / = : increase speed
-      if (e.key === '+' || e.key === '=') {
-        e.preventDefault();
-        const currentIdx = SPEED_OPTIONS.indexOf(gameSpeed);
-        const nextIdx = Math.min(SPEED_OPTIONS.length - 1, currentIdx + 1);
-        setGameSpeed(SPEED_OPTIONS[nextIdx]);
-        return;
-      }
-
-      // - : decrease speed
-      if (e.key === '-' || e.key === '_') {
-        e.preventDefault();
-        const currentIdx = SPEED_OPTIONS.indexOf(gameSpeed);
-        const prevIdx = Math.max(0, currentIdx - 1);
-        setGameSpeed(SPEED_OPTIONS[prevIdx]);
-        return;
-      }
-
-      // Escape: deselect building
-      if (e.key === 'Escape') {
-        selectBuilding(null);
-        return;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setActiveTab, togglePause, setGameSpeed, selectBuilding, gameSpeed]);
-
-  // Auto-open Guide for new players
-  useEffect(() => {
-    if (!hasAutoOpenedGuide.current && buildings.length === 0 && gameTick < 5) {
-      hasAutoOpenedGuide.current = true;
-      setActiveTab('guide');
-    }
-  }, [buildings.length, gameTick, setActiveTab]);
-
   // Intercept tab changes to cloud-required features for guest users
-  // Show login prompt instead of navigating to the tab
   const GUEST_GATED_TABS: Record<string, 'leaderboard' | 'trading_post' | 'mega_project'> = {
     leaderboard: 'leaderboard',
     tradePost: 'trading_post',
@@ -345,58 +168,12 @@ export default function Home() {
     megaprojects: 'mega_project',
   };
   const handleTabChange = useCallback((tab: GameTab) => {
-    // If user is not logged in and trying to access a gated feature, prompt login
     if (!user && !authLoading && GUEST_GATED_TABS[tab]) {
       promptLogin(GUEST_TAB_REASON_MAP[tab]);
-      return; // Don't navigate to the tab
+      return;
     }
     setActiveTab(tab);
   }, [user, authLoading, promptLogin, setActiveTab]);
-
-  // Game tick loop — removed gameTick from deps to eliminate interval thrashing
-  // Uses getState() for action call (actions are stable references)
-  useEffect(() => {
-    const speed = effectiveSpeed;
-    const interval = Math.max(50, 1000 / speed);
-
-    if (tickRef.current) clearInterval(tickRef.current);
-    if (!paused) {
-      tickRef.current = setInterval(() => {
-        useGameStore.getState().gameTickAction();
-      }, interval);
-    }
-
-    return () => {
-      if (tickRef.current) clearInterval(tickRef.current);
-    };
-  }, [effectiveSpeed, paused]);
-
-  // Auto-save indicator: detect when Zustand persists (gameTick changes)
-  useEffect(() => {
-    if (prevGameTickRef.current !== gameTick && gameTick > 0) {
-      // Show save indicator every 50 ticks
-      if (gameTick % 50 === 0) {
-        const now = Date.now();
-        // Use setTimeout to defer state updates out of the effect body
-        const t1 = setTimeout(() => setLastSaveTime(now), 0);
-        const t2 = setTimeout(() => setShowSavedFlash(true), 0);
-        const t3 = setTimeout(() => setShowSavedFlash(false), 2000);
-        return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
-      }
-    }
-    prevGameTickRef.current = gameTick;
-  }, [gameTick]);
-
-  // Money glow effect when money increases significantly
-  useEffect(() => {
-    if (money > prevMoneyRef.current + 10) {
-      const t1 = setTimeout(() => setMoneyGlow(true), 0);
-      const t2 = setTimeout(() => setMoneyGlow(false), 1000);
-      prevMoneyRef.current = money;
-      return () => { clearTimeout(t1); clearTimeout(t2); };
-    }
-    prevMoneyRef.current = money;
-  }, [money]);
 
   const handleExport = useCallback(() => {
     const saveStr = exportSave();
@@ -483,6 +260,10 @@ export default function Home() {
     ? Math.min(100, (powerGrid.totalProduction / powerGrid.totalConsumption) * 100)
     : powerGrid.totalProduction > 0 ? 100 : 0;
 
+  // Income tooltip — productionSnapshot.payoutPerCycle is the actual computed payout
+  // (includes prestige/research/weather/events bonuses), not a hardcoded per-tier estimate.
+  // Income tooltip — productionSnapshot.payoutPerCycle is the actual computed payout
+  // (includes prestige/research/weather/events bonuses), not a hardcoded per-tier estimate.
   const incomePerMinute = useMemo(() => {
     const rawPayoutPerCycle = productionSnapshot.payoutPerCycle || 0;
     const cyclesPerMinute = effectiveSpeed / payoutConfig.basePayoutInterval * 60;
