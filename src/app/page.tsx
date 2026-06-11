@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState, useMemo } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
-import { BUILDING_DEFS, RESOURCE_META, WEATHER_DEFS } from '@/lib/game/configCache';
+import { BUILDING_DEFS, WEATHER_DEFS } from '@/lib/game/configCache';
 import { GameTab, ResourceType } from '@/lib/game/types';
 import { DashboardPanel } from '@/components/game/DashboardPanel';
 import { ResourcePanel } from '@/components/game/ResourcePanel';
@@ -37,22 +37,16 @@ import { TradingPostPanel } from '@/components/game/TradingPostPanel';
 import { StoragePanel } from '@/components/game/StoragePanel';
 import GlobalResourceMonitorPanel from '@/components/game/GlobalResourceMonitorPanel';
 import {
-  Play, Pause, RotateCcw, Bell, X,
-  Download, Upload, Copy, Check, Settings,
+  Play, Pause, RotateCcw, Bell,
+  Download, Upload, Check, Settings,
   Cloud, CloudOff, Loader2, LogOut, LogIn, RefreshCw, Wifi, WifiOff,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
+import { ExportDialog } from '@/components/game/dialogs/ExportDialog';
+import { ImportDialog } from '@/components/game/dialogs/ImportDialog';
+import { OfflineEarningsDialog } from '@/components/game/dialogs/OfflineEarningsDialog';
 import {
   Tooltip,
   TooltipContent,
@@ -219,6 +213,13 @@ export default function Home() {
       resetGame();
     }
   }, [resetGame]);
+
+  const handleCollectOfflineEarnings = useCallback(() => {
+    if (offlineData) {
+      useGameStore.getState().collectOfflineProgress(offlineData);
+      setOfflineData(null);
+    }
+  }, [offlineData]);
 
   const unreadNotifications = notifications.filter(n => !n.read).length;
 
@@ -920,96 +921,23 @@ export default function Home() {
         <KeyboardShortcutsHelp />
       </div>
 
-      {/* Export Save Dialog - full-screen on mobile */}
-      <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
-        <DialogContent className="bg-card border-cyan-900/30 text-gray-100 max-w-lg w-[calc(100%-1rem)] lg:w-full h-auto lg:h-auto max-h-[90vh] lg:max-h-none p-4 lg:p-6">
-          <DialogHeader>
-            <DialogTitle className="text-cyan-400 flex items-center gap-2 text-sm lg:text-base">
-              <Download className="w-4 h-4" /> Export Save
-            </DialogTitle>
-            <DialogDescription className="text-gray-400 text-xs lg:text-sm">
-              Copy your save data below to back up your progress or transfer to another device.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <Textarea
-              readOnly
-              value={exportString}
-              className="bg-[#0a0e17] border-cyan-900/20 text-xs font-mono text-gray-300 min-h-24 lg:min-h-32 max-h-36 lg:max-h-48 game-scrollbar"
-              onClick={(e) => (e.target as HTMLTextAreaElement).select()}
-            />
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={handleCopyToClipboard}
-                className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white min-h-[44px] lg:min-h-0"
-                size="sm"
-              >
-                {copiedToClipboard ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 mr-1" /> Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5 mr-1" /> Copy to Clipboard
-                  </>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setExportDialogOpen(false)}
-                className="border-gray-700 text-gray-400 hover:text-gray-200 min-h-[44px] lg:min-h-0"
-                size="sm"
-              >
-                Close
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ExportDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        exportString={exportString}
+        onCopy={handleCopyToClipboard}
+        copiedToClipboard={copiedToClipboard}
+      />
 
-      {/* Import Save Dialog - full-screen on mobile */}
-      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
-        <DialogContent className="bg-card border-cyan-900/30 text-gray-100 max-w-lg w-[calc(100%-1rem)] lg:w-full h-auto lg:h-auto max-h-[90vh] lg:max-h-none p-4 lg:p-6">
-          <DialogHeader>
-            <DialogTitle className="text-cyan-400 flex items-center gap-2 text-sm lg:text-base">
-              <Upload className="w-4 h-4" /> Import Save
-            </DialogTitle>
-            <DialogDescription className="text-gray-400 text-xs lg:text-sm">
-              Paste your save data below to restore progress. This will overwrite your current game!
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <Textarea
-              value={importString}
-              onChange={(e) => { setImportString(e.target.value); setImportError(''); }}
-              placeholder="Paste your save string here..."
-              className="bg-[#0a0e17] border-cyan-900/20 text-xs font-mono text-gray-300 min-h-24 lg:min-h-32 max-h-36 lg:max-h-48 game-scrollbar placeholder:text-gray-600"
-            />
-            {importError && (
-              <p className="text-xs text-red-400 flex items-center gap-1">
-                <X className="w-3 h-3" /> {importError}
-              </p>
-            )}
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={handleImportConfirm}
-                className="flex-1 bg-amber-600 hover:bg-amber-700 text-white min-h-[44px] lg:min-h-0"
-                size="sm"
-              >
-                <Upload className="w-3.5 h-3.5 mr-1" /> Import Save
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => { setImportDialogOpen(false); setImportError(''); }}
-                className="border-gray-700 text-gray-400 hover:text-gray-200 min-h-[44px] lg:min-h-0"
-                size="sm"
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ImportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        importString={importString}
+        setImportString={setImportString}
+        importError={importError}
+        setImportError={setImportError}
+        onImport={handleImportConfirm}
+      />
 
       {/* Toast notifications */}
       <GameToast />
@@ -1021,93 +949,12 @@ export default function Home() {
         onClose={closePrompt}
       />
 
-      {/* Offline Earnings Dialog */}
-      <Dialog open={offlineDialogOpen} onOpenChange={setOfflineDialogOpen}>
-        <DialogContent className="bg-card border-cyan-900/30 text-gray-100 max-w-md w-[calc(100%-1rem)] p-5">
-          <DialogHeader>
-            <DialogTitle className="text-cyan-400 flex items-center gap-2 text-lg">
-              <span className="text-2xl">👋</span> Welcome Back!
-            </DialogTitle>
-            <DialogDescription className="text-gray-400 text-sm mt-1">
-              {offlineData && (
-                <>
-                  You were away for{' '}
-                  <span className="text-cyan-300 font-bold">
-                    {offlineData.ticksElapsed >= 3600
-                      ? `${(offlineData.ticksElapsed / 3600).toFixed(1)} hours`
-                      : offlineData.ticksElapsed >= 60
-                        ? `${Math.floor(offlineData.ticksElapsed / 60)} minutes`
-                        : `${offlineData.ticksElapsed} seconds`}
-                  </span>
-                  . During that time:
-                </>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-
-          {offlineData && (
-            <div className="space-y-3 mt-2">
-              {/* Money earned */}
-              {offlineData.money > 0 && (
-                <div className="bg-[#0a0e17] rounded-lg p-3 border border-green-900/30">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-400">Money Earned</span>
-                    <span className="text-sm text-green-400 font-mono font-bold">
-                      +${formatNumber(offlineData.money)}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Resources earned */}
-              <div className="bg-[#0a0e17] rounded-lg p-3 border border-cyan-900/30 max-h-48 overflow-y-auto game-scrollbar">
-                <div className="text-[10px] text-gray-500 mb-2 uppercase tracking-wider">Resources Produced</div>
-                <div className="space-y-1">
-                  {(Object.entries(offlineData.resources) as [string, number][])
-                    .filter(([, amount]) => amount > 0)
-                    .sort((a, b) => b[1] - a[1])
-                    .slice(0, 8)
-                    .map(([resource, amount]) => {
-                      const meta = RESOURCE_META[resource as keyof typeof RESOURCE_META];
-                      return (
-                        <div key={resource} className="flex items-center justify-between text-xs">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-sm inline-flex items-center"><GameIcon icon={meta?.icon} size={16} /></span>
-                            <span className="text-gray-300">{meta?.name ?? resource}</span>
-                          </div>
-                          <span className="text-cyan-400 font-mono">+{formatNumber(amount)}</span>
-                        </div>
-                      );
-                    })}
-                  {(Object.entries(offlineData.resources) as [string, number][])
-                    .filter(([, amount]) => amount > 0).length === 0 && (
-                    <div className="text-xs text-gray-500 text-center py-2">No resources produced</div>
-                  )}
-                </div>
-              </div>
-
-              {/* Offline rate note */}
-              <p className="text-[10px] text-gray-600 text-center">
-                Offline production runs at 50% efficiency (capped at 10 hours)
-              </p>
-
-              {/* Collect button */}
-              <Button
-                className="w-full bg-cyan-600 hover:bg-cyan-700 text-white min-h-[44px]"
-                onClick={() => {
-                  if (offlineData) {
-                    useGameStore.getState().collectOfflineProgress(offlineData as { resources: Record<string, number>; money: number; ticksElapsed: number });
-                    setOfflineDialogOpen(false);
-                    setOfflineData(null);
-                  }
-                }}
-              >
-                Collect Earnings
-              </Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <OfflineEarningsDialog
+        open={offlineDialogOpen}
+        onOpenChange={setOfflineDialogOpen}
+        offlineData={offlineData}
+        onCollect={handleCollectOfflineEarnings}
+      />
     </TooltipProvider>
     </ErrorBoundary>
   );
