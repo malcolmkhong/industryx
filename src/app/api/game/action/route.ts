@@ -334,7 +334,7 @@ export async function POST(request: Request) {
   if (!auth.success) return auth.response;
 
   // ✅ Rate limit check
-  const rateLimitResponse = checkRateLimit(
+  const rateLimitResponse = await checkRateLimit(
     auth.userId,
     RATE_LIMITS.action,
     "/api/game/action",

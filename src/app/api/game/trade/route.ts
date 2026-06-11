@@ -46,7 +46,7 @@ export async function POST(request: Request) {
   const auth = await verifyAuth();
   if (!auth.success) return auth.response;
 
-  const rateLimitResponse = checkRateLimit(auth.userId, RATE_LIMITS.action, '/api/game/trade');
+  const rateLimitResponse = await checkRateLimit(auth.userId, RATE_LIMITS.action, '/api/game/trade');
   if (rateLimitResponse) return rateLimitResponse;
 
   const lockStatus = await isAccountLocked(auth.userId);
@@ -101,7 +101,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'No authoritative server state found' }, { status: 404 });
   }
 
-  const TRADE_COOLDOWN_SECONDS = 5;
+  const TRADE_COOLDOWN_SECONDS = 300;
   const lastTradeAt = serverState.last_trade_at
     ? new Date(serverState.last_trade_at).getTime()
     : null;

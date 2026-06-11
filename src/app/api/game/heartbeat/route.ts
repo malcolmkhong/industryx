@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   if (!auth.success) return auth.response;
 
   // ✅ Rate limit (heartbeats can be frequent — 60/min)
-  const rateLimitResponse = checkRateLimit(auth.userId, RATE_LIMITS.general, '/api/game/heartbeat');
+  const rateLimitResponse = await checkRateLimit(auth.userId, RATE_LIMITS.general, '/api/game/heartbeat');
   if (rateLimitResponse) return rateLimitResponse;
 
   let body: HeartbeatRequest;

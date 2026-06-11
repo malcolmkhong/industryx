@@ -24,7 +24,7 @@ export async function GET(request: Request) {
   if (!auth.success) return auth.response;
 
   // ✅ Rate limit
-  const rateLimitResponse = checkRateLimit(auth.userId, RATE_LIMITS.compute, '/api/game/offline');
+  const rateLimitResponse = await checkRateLimit(auth.userId, RATE_LIMITS.compute, '/api/game/offline');
   if (rateLimitResponse) return rateLimitResponse;
 
   const supabase = createServiceRoleClient();

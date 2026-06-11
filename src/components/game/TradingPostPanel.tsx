@@ -29,7 +29,7 @@ import {
 import { MarketPriceChart } from "./TradingPostPanel/MarketPriceChart";
 
 // ─── Server-enforced cooldown (mirrors src/app/api/game/trade/route.ts) ─────
-const TRADE_COOLDOWN_SECONDS = 5;
+const TRADE_COOLDOWN_SECONDS = 300;
 
 // Quick trade presets
 interface QuickTradePreset {
@@ -250,6 +250,14 @@ export function TradingPostPanel() {
 
   const cooldownSecondsRemaining = Math.ceil(cooldownMsRemaining / 1000);
   const isInCooldown = cooldownMsRemaining > 0;
+  const cooldownDisplay = useMemo(() => {
+    if (cooldownSecondsRemaining >= 60) {
+      const m = Math.floor(cooldownSecondsRemaining / 60);
+      const s = cooldownSecondsRemaining % 60;
+      return `${m}m ${s}s`;
+    }
+    return `${cooldownSecondsRemaining}s`;
+  }, [cooldownSecondsRemaining]);
 
   // ─── Computed values ────────────────────────────────────────────────────────
   const receiveAmount = useMemo(
@@ -714,7 +722,7 @@ export function TradingPostPanel() {
           {isInCooldown && (
             <div className="flex items-center gap-2 text-[10px] text-cyan-300 bg-cyan-900/10 border border-cyan-500/20 rounded-lg px-3 py-2 font-mono">
               <Clock className="w-3 h-3 flex-shrink-0 animate-pulse" />
-              Trade cooldown — wait {cooldownSecondsRemaining}s
+              Trade cooldown — wait {cooldownDisplay}
               <span className="ml-auto h-1.5 w-24 bg-cyan-900/30 rounded-full overflow-hidden">
                 <span
                   className="block h-full bg-cyan-400 transition-all duration-1000 ease-linear"
@@ -742,7 +750,7 @@ export function TradingPostPanel() {
             ) : isInCooldown ? (
               <>
                 <Clock className="w-3.5 h-3.5 mr-1.5" />
-                Wait {cooldownSecondsRemaining}s
+                Wait {cooldownDisplay}
               </>
             ) : (
               <>
@@ -829,7 +837,7 @@ export function TradingPostPanel() {
                 {isInCooldown && hasEnough && (
                   <div className="mt-1 text-[9px] font-mono text-cyan-300 flex items-center justify-center gap-1">
                     <Clock className="w-2.5 h-2.5" />
-                    {cooldownSecondsRemaining}s
+                    {cooldownDisplay}
                   </div>
                 )}
               </motion.button>

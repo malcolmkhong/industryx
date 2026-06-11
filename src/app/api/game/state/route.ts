@@ -29,7 +29,7 @@ export async function GET(request: Request) {
   const auth = await verifyAuthAndOwnership(userId);
   if (!auth.success) return auth.response;
 
-  const rateLimitResponse = checkRateLimit(auth.userId, RATE_LIMITS.player, '/api/game/state');
+  const rateLimitResponse = await checkRateLimit(auth.userId, RATE_LIMITS.sync, '/api/game/state');
   if (rateLimitResponse) return rateLimitResponse;
 
   const lockStatus = await isAccountLocked(auth.userId);
@@ -123,7 +123,7 @@ export async function POST(request: Request) {
   const auth = await verifyAuthAndOwnership(userId);
   if (!auth.success) return auth.response;
 
-  const rateLimitResponse = checkRateLimit(auth.userId, RATE_LIMITS.player, '/api/game/state');
+  const rateLimitResponse = await checkRateLimit(auth.userId, RATE_LIMITS.sync, '/api/game/state');
   if (rateLimitResponse) return rateLimitResponse;
 
   // Check if account is locked (admins bypass lock — they can self-unlock via admin panel)

@@ -33,7 +33,7 @@ export async function GET(request: Request) {
   if (!auth.success) return auth.response;
 
   // ✅ Rate limit check
-  const rateLimitResponse = checkRateLimit(auth.userId, RATE_LIMITS.player, '/api/player');
+  const rateLimitResponse = await checkRateLimit(auth.userId, RATE_LIMITS.player, '/api/player');
   if (rateLimitResponse) return rateLimitResponse;
 
   // ✅ Check if account is locked
@@ -137,7 +137,7 @@ export async function POST(request: Request) {
   if (!auth.success) return auth.response;
 
   // ✅ Rate limit check
-  const rateLimitResponse = checkRateLimit(auth.userId, RATE_LIMITS.player, '/api/player');
+  const rateLimitResponse = await checkRateLimit(auth.userId, RATE_LIMITS.player, '/api/player');
   if (rateLimitResponse) return rateLimitResponse;
 
   // ✅ Check if account is locked
