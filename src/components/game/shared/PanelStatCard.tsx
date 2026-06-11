@@ -1,5 +1,7 @@
 'use client';
 
+import { memo } from 'react';
+
 // ─── Shared PanelStatCard ──────────────────────────────────────────────────────
 // Used across ResourcePanel, FactoryPanel, and other panels for consistent stat display
 
@@ -30,7 +32,7 @@ interface PanelStatCardProps {
   trend?: 'up' | 'down' | 'neutral';
 }
 
-export function PanelStatCard({ icon, label, value, subtext, color, trend }: PanelStatCardProps) {
+function PanelStatCardImpl({ icon, label, value, subtext, color, trend }: PanelStatCardProps) {
   const c = COLOR_MAP[color];
 
   return (
@@ -52,5 +54,10 @@ export function PanelStatCard({ icon, label, value, subtext, color, trend }: Pan
     </div>
   );
 }
+
+// React.memo: PanelStatCard receives primitive props and renders 5-20x per panel.
+// Without memo, every parent re-render triggers re-render of every card.
+export const PanelStatCard = memo(PanelStatCardImpl);
+PanelStatCard.displayName = 'PanelStatCard';
 
 export type { StatColor };

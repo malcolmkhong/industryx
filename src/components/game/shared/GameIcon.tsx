@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { Icon } from '@iconify/react';
 import {
   RESOURCE_ICON_MAP,
@@ -106,7 +107,7 @@ function resolveIconId(props: GameIconProps): string {
  * <GameIcon building="smelter" />
  * <GameIcon ui="build" />
  */
-export function GameIcon({
+function GameIconImpl({
   icon,
   resource,
   building,
@@ -154,5 +155,10 @@ export function GameIcon({
     />
   );
 }
+
+// React.memo: GameIcon receives string/enum props and renders 100s+ times across all panels.
+// Without memo, any prop change in a parent re-renders every icon.
+export const GameIcon = memo(GameIconImpl);
+GameIcon.displayName = 'GameIcon';
 
 export default GameIcon;
