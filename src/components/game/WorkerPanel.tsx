@@ -97,33 +97,37 @@ function RadarChart({ values, labels, colors, size = 160 }: {
 }
 
 export function WorkerPanel() {
-  const store = useGameStore();
+  const buildings = useGameStore((s) => s.buildings);
+  const workers = useGameStore((s) => s.workers);
+  const money = useGameStore((s) => s.money);
+  const assignWorker = useGameStore((s) => s.assignWorker);
+  const hireWorker = useGameStore((s) => s.hireWorker);
   const [selectedWorkerType, setSelectedWorkerType] = useState<WorkerType>('engineer');
   const [hiringType, setHiringType] = useState<WorkerType | null>(null);
 
   const workerTypes: WorkerType[] = ['engineer', 'mechanic', 'transportManager', 'aiSupervisor'];
 
   const workersByType = useMemo(() => {
-    const grouped: Record<WorkerType, typeof store.workers> = {
+    const grouped: Record<WorkerType, typeof workers> = {
       engineer: [],
       mechanic: [],
       transportManager: [],
       aiSupervisor: [],
     };
-    store.workers.forEach(w => grouped[w.type].push(w));
+    workers.forEach(w => grouped[w.type].push(w));
     return grouped;
-  }, [store.workers]);
+  }, [workers]);
 
   const totalWorkerBonus = useMemo(() => {
     let efficiency = 0;
     let speed = 0;
-    store.workers.forEach(w => {
+    workers.forEach(w => {
       const def = WORKER_DEFS[w.type];
       efficiency += def.effects.efficiency * w.level;
       speed += def.effects.speed * w.level;
     });
     return { efficiency, speed };
-  }, [store.workers]);
+  }, [workers]);
 
   // Radar chart data for selected worker type
   const radarData = useMemo(() => {
@@ -144,8 +148,8 @@ export function WorkerPanel() {
 
   // Productivity comparison data
   const productivityComparison = useMemo(() => {
-    const assignedWorkers = store.workers.filter(w => w.assignedTo);
-    const unassignedWorkers = store.workers.filter(w => !w.assignedTo);
+    const assignedWorkers = workers.filter(w => w.assignedTo);
+    const unassignedWorkers = workers.filter(w => !w.assignedTo);
 
     let assignedEff = 0;
     let unassignedEff = 0;
@@ -159,10 +163,10 @@ export function WorkerPanel() {
     });
 
     // Buildings with workers get +efficiency bonus from the worker
-    const buildingsWithWorkers = store.buildings.filter(b =>
-      b.active && store.workers.some(w => w.assignedTo === b.id)
+    const buildingsWithWorkers = buildings.filter(b =>
+      b.active && workers.some(w => w.assignedTo === b.id)
     ).length;
-    const activeBuildings = store.buildings.filter(b => b.active).length;
+    const activeBuildings = buildings.filter(b => b.active).length;
 
     return {
       assignedCount: assignedWorkers.length,
@@ -173,7 +177,7 @@ export function WorkerPanel() {
       activeBuildings,
       coveragePct: activeBuildings > 0 ? (buildingsWithWorkers / activeBuildings) * 100 : 0,
     };
-  }, [store.workers, store.buildings]);
+  }, [workers, buildings]);
 
   return (
     <div className="space-y-4">
@@ -186,7 +190,7 @@ export function WorkerPanel() {
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="border-sky-500/50 text-sky-400 bg-sky-900/20 text-xs">
             <Users className="w-3 h-3 mr-1" />
-            {store.workers.length} workers
+            {workers.length} workers
           </Badge>
           <Badge variant="outline" className="border-green-500/50 text-green-400 bg-green-900/20 text-xs">
             <Star className="w-3 h-3 mr-1" />
@@ -199,11 +203,11 @@ export function WorkerPanel() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="game-card rounded-xl bg-card p-3 border border-sky-900/30">
           <div className="text-[10px] text-gray-500 mb-1">Total Workers</div>
-          <div className="text-lg font-bold font-mono text-sky-400">{store.workers.length}</div>
+          <div className="text-lg font-bold font-mono text-sky-400">{workers.length}</div>
         </div>
         <div className="game-card rounded-xl bg-card p-3 border border-sky-900/30">
           <div className="text-[10px] text-gray-500 mb-1">Assigned</div>
-          <div className="text-lg font-bold font-mono text-green-400">{store.workers.filter(w => w.assignedTo).length}</div>
+          <div className="text-lg font-bold font-mono text-green-400">{workers.filter(w => w.assignedTo).length}</div>
         </div>
         <div className="game-card rounded-xl bg-card p-3 border border-sky-900/30">
           <div className="text-[10px] text-gray-500 mb-1">Total Efficiency</div>
@@ -226,7 +230,7 @@ export function WorkerPanel() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {workerTypes.map(type => {
                 const def = WORKER_DEFS[type];
-                const canAfford = store.money >= def.baseHireCost;
+                const canAfford = money >= def.baseHireCost;
                 const count = workersByType[type].length;
 
                 return (
@@ -277,7 +281,7 @@ export function WorkerPanel() {
                     <Button
                       onClick={() => {
                         setHiringType(type);
-                        store.hireWorker(type);
+                        hireWorker(type);
                         setTimeout(() => setHiringType(null), 300);
                       }}
                       disabled={!canAfford || hiringType === type}
@@ -306,13 +310,13 @@ export function WorkerPanel() {
                 aria-pressed={false}
                 onClick={() => {
                   // Auto-assign unassigned workers
-                  const unassigned = store.workers.filter(w => !w.assignedTo);
-                  const unassignedBuildings = store.buildings.filter(b =>
-                    b.active && !store.workers.some(w => w.assignedTo === b.id)
+                  const unassigned = workers.filter(w => !w.assignedTo);
+                  const unassignedBuildings = buildings.filter(b =>
+                    b.active && !workers.some(w => w.assignedTo === b.id)
                   );
                   unassigned.forEach((worker, i) => {
                     if (i < unassignedBuildings.length) {
-                      store.assignWorker(worker.id, unassignedBuildings[i].id);
+                      assignWorker(worker.id, unassignedBuildings[i].id);
                     }
                   });
                 }}
@@ -323,10 +327,10 @@ export function WorkerPanel() {
 
             {/* Building assignment list */}
             <div className="space-y-2 max-h-80 overflow-y-auto game-scrollbar">
-              {store.buildings.filter(b => b.active).map(building => {
+              {buildings.filter(b => b.active).map(building => {
                 const def = BUILDING_DEFS[building.type];
                 if (!def) return null;
-                const assignedWorker = store.workers.find(w => w.assignedTo === building.id);
+                const assignedWorker = workers.find(w => w.assignedTo === building.id);
 
                 return (
                   <div key={building.id} className="flex items-center gap-3 bg-[#0a0e17] rounded-lg p-3 border border-gray-800/50">
@@ -344,7 +348,7 @@ export function WorkerPanel() {
                           variant="ghost"
                           size="sm"
                           className="h-5 w-5 p-0 text-gray-500 hover:text-cyan-400 min-h-[36px] min-w-[36px]"
-                          onClick={() => store.assignWorker(assignedWorker.id, null)}
+                          onClick={() => assignWorker(assignedWorker.id, null)}
                           aria-label="Unassign worker"
                         >
                           <X className="w-2.5 h-2.5" />
@@ -356,12 +360,12 @@ export function WorkerPanel() {
                         value=""
                         onChange={(e) => {
                           if (e.target.value) {
-                            store.assignWorker(e.target.value, building.id);
+                            assignWorker(e.target.value, building.id);
                           }
                         }}
                       >
                         <option value="">Assign...</option>
-                        {store.workers.filter(w => !w.assignedTo).map(w => (
+                        {workers.filter(w => !w.assignedTo).map(w => (
                           <option key={w.id} value={w.id}>
                             {w.type} Lv.{w.level}
                           </option>
@@ -372,7 +376,7 @@ export function WorkerPanel() {
                 );
               })}
 
-              {store.buildings.filter(b => b.active).length === 0 && (
+              {buildings.filter(b => b.active).length === 0 && (
                 <div className="text-center py-6 text-gray-500">
                   <p className="text-xs">No active buildings to assign workers to</p>
                 </div>
@@ -386,7 +390,7 @@ export function WorkerPanel() {
               <Briefcase className="w-4 h-4 text-sky-400" />
               <h3 className="text-sm font-semibold text-sky-400">Worker Roster</h3>
             </div>
-            {store.workers.length === 0 ? (
+            {workers.length === 0 ? (
               <div className="text-center py-8">
                 <Users className="w-10 h-10 text-gray-700 mx-auto mb-2" />
                 <p className="text-xs text-gray-500">No workers hired yet</p>
@@ -394,9 +398,9 @@ export function WorkerPanel() {
               </div>
             ) : (
               <div className="space-y-2 max-h-96 overflow-y-auto game-scrollbar">
-                {store.workers.map(worker => {
+                {workers.map(worker => {
                   const def = WORKER_DEFS[worker.type];
-                  const assignedBuilding = worker.assignedTo ? store.buildings.find(b => b.id === worker.assignedTo) : null;
+                  const assignedBuilding = worker.assignedTo ? buildings.find(b => b.id === worker.assignedTo) : null;
                   const assignedDef = assignedBuilding ? BUILDING_DEFS[assignedBuilding.type] : null;
                   const xpNeeded = worker.level * 100;
                   const xpPercent = (worker.experience / xpNeeded) * 100;
@@ -453,11 +457,11 @@ export function WorkerPanel() {
                       <div className="flex items-center gap-2">
                         <select
                           value={worker.assignedTo ?? ''}
-                          onChange={e => store.assignWorker(worker.id, e.target.value || null)}
+                          onChange={e => assignWorker(worker.id, e.target.value || null)}
                           className="flex-1 bg-card border border-gray-800 rounded px-2 py-1 text-[10px] text-gray-300 focus:border-cyan-500/50 focus:outline-none"
                         >
                           <option value="">Unassigned</option>
-                          {store.buildings.filter(b => b.active).map(b => {
+                          {buildings.filter(b => b.active).map(b => {
                             const bDef = BUILDING_DEFS[b.type];
                             return (
                               <option key={b.id} value={b.id}>
