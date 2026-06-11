@@ -460,7 +460,7 @@ export function MarketPanel() {
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="w-12 h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                              <div className="h-full bg-green-500 rounded-full" style={{ width: `${c.strength * 100}%` }} />
+                              <div className="h-full bg-success rounded-full" style={{ width: `${c.strength * 100}%` }} />
                             </div>
                             <span className="text-[9px] text-success font-mono">{(c.strength * 100).toFixed(0)}%</span>
                             {m && <span className="text-[9px] text-gray-500 font-mono">${m.currentPrice.toFixed(2)}</span>}
@@ -624,7 +624,7 @@ export function MarketPanel() {
                         {formatNumber(held)}/{formatNumber(capacity)}
                         <span className={`ml-1 inline-block w-8 h-1.5 rounded-full bg-gray-800 align-middle overflow-hidden`}>
                           <span
-                            className={`h-full rounded-full block ${fillPct > 80 ? 'bg-red-500' : fillPct > 50 ? 'bg-yellow-500' : 'bg-green-500'}`}
+                            className={`h-full rounded-full block ${fillPct > 80 ? 'bg-red-500' : fillPct > 50 ? 'bg-yellow-500' : 'bg-success'}`}
                             style={{ width: `${Math.min(100, fillPct)}%` }}
                           />
                         </span>
@@ -916,7 +916,7 @@ export function MarketPanel() {
                     <Button
                       onClick={handleSell}
                       disabled={maxSell < tradeAmount || isSelling}
-                      className="bg-green-600 hover:bg-green-500 text-white text-xs"
+                      className="bg-green-600 hover:bg-success text-white text-xs"
                       size="sm"
                     >
                       {isSelling ? <LoadingSpinner /> : <ArrowUpRight className="w-3 h-3 mr-1" />}
