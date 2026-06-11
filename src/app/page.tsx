@@ -92,6 +92,7 @@ export default function Home() {
   const prestigeState = useGameStore(s => s.prestigeState);
   const buildings = useGameStore(s => s.buildings);
   const powerGrid = useGameStore(s => s.powerGrid);
+  const productionSnapshot = useGameStore(s => s.productionSnapshot);
   const pendingPayout = useGameStore(s => s.pendingPayout);
   const payoutConfig = useGameStore(s => s.payoutConfig);
   const notifications = useGameStore(s => s.notifications);
@@ -482,23 +483,11 @@ export default function Home() {
     ? Math.min(100, (powerGrid.totalProduction / powerGrid.totalConsumption) * 100)
     : powerGrid.totalProduction > 0 ? 100 : 0;
 
-  // Memoized income per minute estimate for tooltip
   const incomePerMinute = useMemo(() => {
-    const activeBuildings = buildings.filter(b => b.active);
-    const extractors = activeBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'extractor');
-    const factories = activeBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory');
-    const powerPlants = activeBuildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power');
-    const extractorRate = 20;
-    const factoryRate = 50;
-    const powerRate = 10;
-    const extractorIncome = extractors.reduce((sum, b) => sum + extractorRate * b.level * b.efficiency, 0);
-    const factoryIncome = factories.reduce((sum, b) => sum + factoryRate * b.level * b.efficiency, 0);
-    const powerIncome = powerPlants.reduce((sum, b) => sum + powerRate * b.level * b.efficiency, 0);
-    // NOTE: Do NOT multiply by gameSpeed — ticks already fire faster, so payouts occur more frequently
-    const rawPayoutPerCycle = (extractorIncome + factoryIncome + powerIncome) * powerGrid.efficiency;
+    const rawPayoutPerCycle = productionSnapshot.payoutPerCycle || 0;
     const cyclesPerMinute = effectiveSpeed / payoutConfig.basePayoutInterval * 60;
     return Math.floor(rawPayoutPerCycle * cyclesPerMinute);
-  }, [buildings, powerGrid.efficiency, effectiveSpeed, payoutConfig.basePayoutInterval]);
+  }, [productionSnapshot.payoutPerCycle, effectiveSpeed, payoutConfig.basePayoutInterval]);
 
   // Memoized overall factory efficiency for indicator
   const factoryEfficiency = useMemo(() => {
