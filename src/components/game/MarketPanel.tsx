@@ -452,7 +452,7 @@ export function MarketPanel() {
                         <button
                           key={c.resource}
                           onClick={() => setSelectedResource(c.resource)}
-                          className="w-full flex items-center justify-between p-2 rounded-lg bg-green-900/5 border border-green-500/10 hover:border-green-500/30"
+                          className="w-full flex items-center justify-between p-2 rounded-lg bg-success/5 border border-success/10 hover:border-success/30"
                         >
                           <div className="flex items-center gap-2">
                             <GameIcon icon={meta.icon} size={14} />
@@ -462,7 +462,7 @@ export function MarketPanel() {
                             <div className="w-12 h-1.5 bg-gray-800 rounded-full overflow-hidden">
                               <div className="h-full bg-green-500 rounded-full" style={{ width: `${c.strength * 100}%` }} />
                             </div>
-                            <span className="text-[9px] text-green-400 font-mono">{(c.strength * 100).toFixed(0)}%</span>
+                            <span className="text-[9px] text-success font-mono">{(c.strength * 100).toFixed(0)}%</span>
                             {m && <span className="text-[9px] text-gray-500 font-mono">${m.currentPrice.toFixed(2)}</span>}
                           </div>
                         </button>
@@ -516,7 +516,7 @@ export function MarketPanel() {
                   >
                     <GameIcon icon={info.icon as `gi:${string}` | `lucide:${string}`} size={10} />
                     {info.name.split(' ')[0]}
-                    {trend === 'up' && <span className="text-green-400">▲</span>}
+                    {trend === 'up' && <span className="text-success">▲</span>}
                     {trend === 'down' && <span className="text-red-400">▼</span>}
                   </button>
                 );
@@ -555,16 +555,16 @@ export function MarketPanel() {
                     category={sectorInfo.name}
                     tier={meta.tier}
                     details={[
-                      { label: 'Current Price', value: `$${m.currentPrice.toFixed(2)}`, color: m.trend === 'up' ? 'text-green-400' : m.trend === 'down' ? 'text-red-400' : 'text-cyan-400' },
+                      { label: 'Current Price', value: `$${m.currentPrice.toFixed(2)}`, color: m.trend === 'up' ? 'text-success' : m.trend === 'down' ? 'text-red-400' : 'text-cyan-400' },
                       { label: 'Base Price', value: `$${m.basePrice.toFixed(2)}` },
-                      { label: 'Trend', value: m.trend === 'up' ? '↑ Rising' : m.trend === 'down' ? '↓ Falling' : '→ Stable', color: m.trend === 'up' ? 'text-green-400' : m.trend === 'down' ? 'text-red-400' : 'text-gray-300' },
+                      { label: 'Trend', value: m.trend === 'up' ? '↑ Rising' : m.trend === 'down' ? '↓ Falling' : '→ Stable', color: m.trend === 'up' ? 'text-success' : m.trend === 'down' ? 'text-red-400' : 'text-gray-300' },
                       { label: 'Demand', value: `${m.demand.toFixed(2)}x`, color: 'text-orange-400' },
                       { label: 'Supply', value: `${m.supply.toFixed(2)}x`, color: 'text-cyan-400' },
                       { label: 'Elasticity', value: `${(elasticity * 100).toFixed(0)}%`, color: elasticity > 0.5 ? 'text-red-400' : 'text-gray-300' },
                       { label: 'Volatility', value: activeInjection ? `⚡ ${activeInjection.source} (${activeInjection.intensity.toFixed(2)})` : 'None', color: activeInjection ? 'text-amber-400' : 'text-gray-500' },
-                      { label: 'Your Production', value: prod > 0 ? `${prod.toFixed(1)}/s` : '—', color: prod > 0 ? 'text-green-400' : 'text-gray-500' },
+                      { label: 'Your Production', value: prod > 0 ? `${prod.toFixed(1)}/s` : '—', color: prod > 0 ? 'text-success' : 'text-gray-500' },
                       { label: 'Your Consumption', value: cons > 0 ? `${cons.toFixed(1)}/s` : '—', color: cons > 0 ? 'text-orange-400' : 'text-gray-500' },
-                      { label: 'Auto-Sell', value: isAutoSell ? 'Enabled' : 'Disabled', color: isAutoSell ? 'text-green-400' : 'text-gray-500' },
+                      { label: 'Auto-Sell', value: isAutoSell ? 'Enabled' : 'Disabled', color: isAutoSell ? 'text-success' : 'text-gray-500' },
                     ]}
                     side="right"
                   >
@@ -605,7 +605,7 @@ export function MarketPanel() {
                         {priceRatio < 0.5 && (
                           <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-blue-900/30 text-blue-400 border border-blue-500/30 font-bold inline-flex items-center gap-0.5"><GameIcon icon="gi:falling" size={10} /> LOW</span>
                         )}
-                        {m.trend === 'up' && <span className="text-xs trend-arrow-bounce inline-flex items-center" style={{ filter: 'drop-shadow(0 0 3px rgba(74,222,128,0.5))' }}><GameIcon icon="gi:fast-arrow" size={12} className="text-green-400 rotate-[-90deg]" /></span>}
+                        {m.trend === 'up' && <span className="text-xs trend-arrow-bounce inline-flex items-center" style={{ filter: 'drop-shadow(0 0 3px rgba(74,222,128,0.5))' }}><GameIcon icon="gi:fast-arrow" size={12} className="text-success rotate-[-90deg]" /></span>}
                         {m.trend === 'down' && <span className="text-xs trend-arrow-bounce inline-flex items-center" style={{ filter: 'drop-shadow(0 0 3px rgba(248,113,113,0.5))' }}><GameIcon icon="gi:fast-arrow" size={12} className="text-red-400 rotate-90" /></span>}
                         {isAutoSell && (
                           <span className="text-[8px] px-1 py-0.5 rounded bg-success/30 text-success border border-success/30">AUTO</span>
@@ -614,10 +614,10 @@ export function MarketPanel() {
                     </div>
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-1.5">
-                        <span className={`text-sm font-bold font-mono ${m.trend === 'up' ? 'text-green-400' : m.trend === 'down' ? 'text-red-400' : 'text-cyan-400'}`}>
+                        <span className={`text-sm font-bold font-mono ${m.trend === 'up' ? 'text-success' : m.trend === 'down' ? 'text-red-400' : 'text-cyan-400'}`}>
                           ${m.currentPrice.toFixed(2)}
                         </span>
-                        {m.trend === 'up' && <span className="text-[9px] text-green-400/70 font-mono">▲</span>}
+                        {m.trend === 'up' && <span className="text-[9px] text-success/70 font-mono">▲</span>}
                         {m.trend === 'down' && <span className="text-[9px] text-red-400/70 font-mono">▼</span>}
                       </div>
                       <div className="text-[10px] text-gray-500">
@@ -672,10 +672,10 @@ export function MarketPanel() {
                     <div className="flex-1 min-w-0">
                       <h3 className="text-sm font-bold text-gray-200">{selectedMeta.name}</h3>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className={`text-lg font-bold font-mono ${selected.trend === 'up' ? 'text-green-400' : selected.trend === 'down' ? 'text-red-400' : 'text-cyan-400'}`}>
+                        <span className={`text-lg font-bold font-mono ${selected.trend === 'up' ? 'text-success' : selected.trend === 'down' ? 'text-red-400' : 'text-cyan-400'}`}>
                           ${selected.currentPrice.toFixed(2)}
                         </span>
-                        <span className={`text-xs font-mono ${priceChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        <span className={`text-xs font-mono ${priceChange >= 0 ? 'text-success' : 'text-red-400'}`}>
                           {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}%
                         </span>
                       </div>
@@ -686,7 +686,7 @@ export function MarketPanel() {
                       aria-pressed={store.autoSellResources.includes(selected.resource)}
                       className={`px-2 py-1 rounded text-[9px] font-bold border ${
                         store.autoSellResources.includes(selected.resource)
-                          ? 'bg-green-900/30 text-green-400 border-green-500/30'
+                          ? 'bg-green-900/30 text-success border-green-500/30'
                           : 'bg-gray-900 text-gray-500 border-gray-700 hover:border-gray-500'
                       }`}
                       title="Auto-sell when storage > 80%"
@@ -738,7 +738,7 @@ export function MarketPanel() {
                       <div className="grid grid-cols-3 gap-2 text-center">
                         <div>
                           <div className="text-[10px] text-gray-500">Production</div>
-                          <div className="text-xs text-green-400 font-mono font-bold">+{playerImpact.production.toFixed(1)}/s</div>
+                          <div className="text-xs text-success font-mono font-bold">+{playerImpact.production.toFixed(1)}/s</div>
                         </div>
                         <div>
                           <div className="text-[10px] text-gray-500">Consumption</div>
@@ -746,7 +746,7 @@ export function MarketPanel() {
                         </div>
                         <div>
                           <div className="text-[10px] text-gray-500">Price Effect</div>
-                          <div className={`text-xs font-mono font-bold ${playerImpact.netPressure > 0 ? 'text-red-400' : playerImpact.netPressure < 0 ? 'text-green-400' : 'text-gray-400'}`}>
+                          <div className={`text-xs font-mono font-bold ${playerImpact.netPressure > 0 ? 'text-red-400' : playerImpact.netPressure < 0 ? 'text-success' : 'text-gray-400'}`}>
                             {playerImpact.netPressure > 0 ? '↓ Pushes down' : playerImpact.netPressure < 0 ? '↑ Pushes up' : '─ Neutral'}
                           </div>
                         </div>
@@ -769,7 +769,7 @@ export function MarketPanel() {
                         ))}
                         {correlationChain.downstream.slice(0, 3).map(c => (
                           <div key={`down-${c.resource}`} className="flex items-center justify-between text-[9px]">
-                            <span className="text-green-400">↓ {RESOURCE_META[c.resource].name}</span>
+                            <span className="text-success">↓ {RESOURCE_META[c.resource].name}</span>
                             <span className="text-gray-500 font-mono">{(c.strength * 100).toFixed(0)}%</span>
                           </div>
                         ))}
@@ -803,8 +803,8 @@ export function MarketPanel() {
                 {/* Trade Controls */}
                 <div className="game-card rounded-xl bg-card p-4 border border-green-900/30">
                   <div className="flex items-center gap-2 mb-3">
-                    <DollarSign className="w-4 h-4 text-green-400" />
-                    <h3 className="text-sm font-semibold text-green-400">Trade</h3>
+                    <DollarSign className="w-4 h-4 text-success" />
+                    <h3 className="text-sm font-semibold text-success">Trade</h3>
                   </div>
 
                   <PanelStatCard
@@ -872,7 +872,7 @@ export function MarketPanel() {
                   <div className="space-y-1.5 mb-3 text-xs">
                     <div className="flex justify-between">
                       <span className="text-gray-500">Sell Price</span>
-                      <span className="text-green-400 font-mono">${(selected.currentPrice * 0.9).toFixed(2)}/u</span>
+                      <span className="text-success font-mono">${(selected.currentPrice * 0.9).toFixed(2)}/u</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Buy Price</span>
@@ -882,7 +882,7 @@ export function MarketPanel() {
                       {tradeMode === 'sell' ? (
                         <div className="flex justify-between">
                           <span className="text-gray-500">Sell {tradeAmount} for</span>
-                          <span className="text-green-400 font-mono font-bold">${formatNumber(sellRevenue)}</span>
+                          <span className="text-success font-mono font-bold">${formatNumber(sellRevenue)}</span>
                         </div>
                       ) : (
                         <div className="flex justify-between">
@@ -961,7 +961,7 @@ export function MarketPanel() {
                 </div>
                 <div className="flex items-center gap-2">
                   {llmState.loadState === 'ready' ? (
-                    <span className="flex items-center gap-1 text-[9px] text-green-400 bg-green-900/20 border border-green-500/20 rounded-full px-2 py-0.5">
+                    <span className="flex items-center gap-1 text-[9px] text-success bg-green-900/20 border border-green-500/20 rounded-full px-2 py-0.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
                       <Sparkles className="w-3 h-3" />
                       AI Enhanced
@@ -983,7 +983,7 @@ export function MarketPanel() {
                   {llmState.backend && <span className="uppercase text-[8px] px-1.5 py-0.5 rounded bg-gray-800 border border-gray-700">{llmState.backend}</span>}
                   {llmState.averageGenTimeMs > 0 && <span>Avg {llmState.averageGenTimeMs.toFixed(0)}ms</span>}
                   {llmState.totalCalls > 0 && <span>{llmState.totalCalls} calls</span>}
-                  {llmState.llmSuccesses > 0 && <span className="text-green-400">{llmState.llmSuccesses} ✓</span>}
+                  {llmState.llmSuccesses > 0 && <span className="text-success">{llmState.llmSuccesses} ✓</span>}
                   {llmState.llmFailures > 0 && <span className="text-red-400">{llmState.llmFailures} ✗</span>}
                   {llmState.cacheHits > 0 && <span>{llmState.cacheHits} cached</span>}
                 </div>
