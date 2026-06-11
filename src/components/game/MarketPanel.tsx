@@ -302,7 +302,7 @@ export function MarketPanel() {
           <p className="text-xs text-gray-500 mt-0.5">Supply & demand driven economy — your production shapes prices</p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="border-green-500/50 text-green-400 bg-green-900/20 text-xs">
+          <Badge variant="outline" className="border-success/50 text-success bg-success/20 text-xs">
             <Wallet className="w-3 h-3 mr-1" />
             ${formatNumber(store.money)}
           </Badge>
@@ -369,7 +369,7 @@ export function MarketPanel() {
             onClick={() => setViewMode(v.key)}
             className={`px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 ${
               viewMode === v.key
-                ? 'bg-green-900/30 text-green-400 border border-green-500/30'
+                ? 'bg-success/30 text-success border border-success/30'
                 : 'bg-card text-gray-500 border border-gray-800 hover:text-gray-300'
             }`}
           >
@@ -495,7 +495,7 @@ export function MarketPanel() {
                 onClick={() => setFilter('all')}
                 className={`px-2.5 py-1 rounded-lg text-[10px] ${
                   filter === 'all'
-                    ? 'bg-green-900/30 text-green-400 border border-green-500/30'
+                    ? 'bg-success/30 text-success border border-success/30'
                     : 'bg-card text-gray-500 border border-gray-800 hover:text-gray-300'
                 }`}
               >
@@ -510,7 +510,7 @@ export function MarketPanel() {
                     onClick={() => setFilter(s)}
                     className={`px-2.5 py-1 rounded-lg text-[10px] flex items-center gap-1 ${
                       filter === s
-                        ? 'bg-green-900/30 text-green-400 border border-green-500/30'
+                        ? 'bg-success/30 text-success border border-success/30'
                         : 'bg-card text-gray-500 border border-gray-800 hover:text-gray-300'
                     }`}
                   >
@@ -822,7 +822,7 @@ export function MarketPanel() {
                       aria-pressed={tradeMode === 'sell'}
                       className={`flex-1 py-1.5 rounded text-[10px] font-bold ${
                         tradeMode === 'sell'
-                          ? 'bg-green-900/30 text-green-400 border border-green-500/30'
+                          ? 'bg-success/30 text-success border border-success/30'
                           : 'bg-[#0a0e17] text-gray-500 border border-gray-800'
                       }`}
                     >
