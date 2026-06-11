@@ -337,7 +337,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
           <Tooltip>
             <TooltipTrigger asChild>
               <Badge variant="outline" className={`text-[10px] px-1.5 py-0 cursor-default ${
-                isUsingSupabase ? 'border-emerald-500/50 text-emerald-400 bg-emerald-900/20' : 'border-amber-500/50 text-amber-400 bg-amber-900/20'
+                isUsingSupabase ? 'border-success/50 text-success bg-success/20' : 'border-amber-500/50 text-amber-400 bg-amber-900/20'
               }`}>
                 {isUsingSupabase ? <Wifi className="w-2.5 h-2.5 mr-0.5" /> : <WifiOff className="w-2.5 h-2.5 mr-0.5" />}
                 {isUsingSupabase ? 'Live' : 'Local'}
@@ -357,7 +357,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={handleCloudSave} disabled={cloudStatus === 'saving'}>
                   {cloudStatus === 'saving' ? <Loader2 className="w-3 h-3 animate-spin" />
-                  : cloudStatus === 'success' ? <Cloud className="w-3 h-3 text-green-400" />
+                  : cloudStatus === 'success' ? <Cloud className="w-3 h-3 text-success" />
                   : cloudStatus === 'error' ? <CloudOff className="w-3 h-3 text-red-400" />
                   : <Cloud className="w-3 h-3 text-gray-400" />}
                 </Button>
