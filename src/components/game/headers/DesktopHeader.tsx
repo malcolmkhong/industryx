@@ -106,7 +106,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
               <TooltipTrigger asChild>
                 <div className={`stat-badge stat-badge-money bg-card rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default ${moneyGlow ? 'money-glow' : ''}`}>
                   <span className="text-gray-500 inline-flex items-center gap-1"><GameIcon ui="money" size={14} /></span>
-                  <span className="text-green-400 font-mono font-bold text-sm">${formatNumber(money)}</span>
+                  <span className="text-success font-mono font-bold text-sm">${formatNumber(money)}</span>
                   {pendingPayout > 0 && !payoutConfig.autoCollect && (
                     <button
                       onClick={collectPayout}
