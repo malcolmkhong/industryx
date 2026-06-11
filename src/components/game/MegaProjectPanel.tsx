@@ -22,7 +22,7 @@ const PROJECT_COLORS: Record<string, { border: string; glow: string; bg: string;
   dysonSphere: { border: 'border-yellow-500/40', glow: 'shadow-yellow-500/20', bg: 'bg-yellow-900/10', text: 'text-yellow-400', badge: 'border-yellow-500/50 text-yellow-400 bg-yellow-900/20', gradient: 'linear-gradient(90deg, #eab308, #facc15)' },
   quantumInternet: { border: 'border-cyan-500/40', glow: 'shadow-cyan-500/20', bg: 'bg-cyan-900/10', text: 'text-cyan-400', badge: 'border-cyan-500/50 text-cyan-400 bg-cyan-900/20', gradient: 'linear-gradient(90deg, #06b6d4, #22d3ee)' },
   fusionCity: { border: 'border-fuchsia-500/40', glow: 'shadow-fuchsia-500/20', bg: 'bg-fuchsia-900/10', text: 'text-fuchsia-400', badge: 'border-fuchsia-500/50 text-fuchsia-400 bg-fuchsia-900/20', gradient: 'linear-gradient(90deg, #d946ef, #e879f9)' },
-  terraformingEngine: { border: 'border-emerald-500/40', glow: 'shadow-emerald-500/20', bg: 'bg-emerald-900/10', text: 'text-emerald-400', badge: 'border-emerald-500/50 text-emerald-400 bg-emerald-900/20', gradient: 'linear-gradient(90deg, #10b981, #34d399)' },
+  terraformingEngine: { border: 'border-emerald-500/40', glow: 'shadow-emerald-500/20', bg: 'bg-emerald-900/10', text: 'text-success', badge: 'border-success/50 text-success bg-success/20', gradient: 'linear-gradient(90deg, #10b981, #34d399)' },
   galacticTradeHub: { border: 'border-amber-500/40', glow: 'shadow-amber-500/20', bg: 'bg-amber-900/10', text: 'text-amber-400', badge: 'border-amber-500/50 text-amber-400 bg-amber-900/20', gradient: 'linear-gradient(90deg, #f59e0b, #fbbf24)' },
   deepCoreExtractor: { border: 'border-red-500/40', glow: 'shadow-red-500/20', bg: 'bg-red-900/10', text: 'text-red-400', badge: 'border-red-500/50 text-red-400 bg-red-900/20', gradient: 'linear-gradient(90deg, #ef4444, #f87171)' },
   neuralCommandCenter: { border: 'border-violet-500/40', glow: 'shadow-violet-500/20', bg: 'bg-violet-900/10', text: 'text-violet-400', badge: 'border-violet-500/50 text-violet-400 bg-violet-900/20', gradient: 'linear-gradient(90deg, #8b5cf6, #a78bfa)' },
@@ -165,14 +165,14 @@ export function MegaProjectPanel() {
             </span>
             <span className="text-gray-700">|</span>
             <span className="flex items-center gap-1">
-              <Check className="w-3 h-3 text-green-500" />
-              <span className="text-green-400">{completedCount} Completed</span>
+              <Check className="w-3 h-3 text-success" />
+              <span className="text-success">{completedCount} Completed</span>
             </span>
           </div>
         </div>
         {/* Visual progress bar */}
         <div className="flex h-2 rounded-full overflow-hidden bg-gray-800 mt-2">
-          {completedCount > 0 && <div className="bg-green-500 transition-all duration-500" style={{ width: `${(completedCount / store.megaProjects.length) * 100}%` }} />}
+          {completedCount > 0 && <div className="bg-success transition-all duration-500" style={{ width: `${(completedCount / store.megaProjects.length) * 100}%` }} />}
           {activeCount > 0 && <div className="bg-fuchsia-500 transition-all duration-500" style={{ width: `${(activeCount / store.megaProjects.length) * 100}%` }} />}
           {unlockedCount > 0 && <div className="bg-cyan-500/50 transition-all duration-500" style={{ width: `${(unlockedCount / store.megaProjects.length) * 100}%` }} />}
           {/* Locked = remaining space */}
@@ -194,7 +194,7 @@ export function MegaProjectPanel() {
                   <GameIcon icon={p.icon} size={20} />
                   <div>
                     <div className={`text-xs font-medium ${colors?.text ?? 'text-gray-400'}`}>{p.name}</div>
-                    <div className="text-[10px] text-green-400 flex items-center gap-1">
+                    <div className="text-[10px] text-success flex items-center gap-1">
                       {BONUS_ICONS[p.bonus.type]}
                       {p.bonus.description}
                     </div>
@@ -254,7 +254,7 @@ export function MegaProjectPanel() {
                         {project.name}
                       </h3>
                       {project.completed && (
-                        <Badge className="bg-green-600/20 text-green-400 border-green-500/30 text-[9px] px-1.5">
+                        <Badge className="bg-success/20 text-success border-success/30 text-[9px] px-1.5">
                           <Check className="w-2.5 h-2.5 mr-0.5" /> COMPLETE
                         </Badge>
                       )}
@@ -288,11 +288,11 @@ export function MegaProjectPanel() {
                 {/* Bonus Preview with Tooltip - shown for ALL projects */}
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className={`${project.completed ? 'bg-green-900/10 border-green-500/30' : unlocked ? `${colors?.bg ?? 'bg-gray-900/10'} ${colors?.border ?? 'border-gray-700/30'}` : 'bg-gray-900/30 border-gray-700/30'} rounded-lg p-3 mb-3 border cursor-help`}>
+                    <div className={`${project.completed ? 'bg-green-900/10 border-success/30' : unlocked ? `${colors?.bg ?? 'bg-gray-900/10'} ${colors?.border ?? 'border-gray-700/30'}` : 'bg-gray-900/30 border-gray-700/30'} rounded-lg p-3 mb-3 border cursor-help`}>
                       <div className="text-[10px] text-gray-500 mb-0.5">
                         {project.completed ? 'Permanent Bonus Active' : 'Completion Bonus'}
                       </div>
-                      <div className={`text-xs font-medium flex items-center gap-1.5 ${project.completed ? 'text-green-400' : unlocked ? (colors?.text ?? 'text-gray-400') : 'text-gray-500'}`}>
+                      <div className={`text-xs font-medium flex items-center gap-1.5 ${project.completed ? 'text-success' : unlocked ? (colors?.text ?? 'text-gray-400') : 'text-gray-500'}`}>
                         {BONUS_ICONS[project.bonus.type]}
                         {project.bonus.description}
                       </div>
@@ -314,17 +314,17 @@ export function MegaProjectPanel() {
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {project.unlockRequirement.buildings && (
-                        <span className={`text-[10px] px-2 py-0.5 rounded ${store.buildings.length >= (project.unlockRequirement.buildings ?? 0) ? 'bg-green-900/20 text-green-400' : 'bg-red-900/20 text-red-400'}`}>
+                        <span className={`text-[10px] px-2 py-0.5 rounded ${store.buildings.length >= (project.unlockRequirement.buildings ?? 0) ? 'bg-success/20 text-success' : 'bg-red-900/20 text-red-400'}`}>
                           {store.buildings.length}/{project.unlockRequirement.buildings} Buildings
                         </span>
                       )}
                       {project.unlockRequirement.research && (
-                        <span className={`text-[10px] px-2 py-0.5 rounded ${store.completedResearch.length >= (project.unlockRequirement.research ?? 0) ? 'bg-green-900/20 text-green-400' : 'bg-red-900/20 text-red-400'}`}>
+                        <span className={`text-[10px] px-2 py-0.5 rounded ${store.completedResearch.length >= (project.unlockRequirement.research ?? 0) ? 'bg-success/20 text-success' : 'bg-red-900/20 text-red-400'}`}>
                           {store.completedResearch.length}/{project.unlockRequirement.research} Research
                         </span>
                       )}
                       {project.unlockRequirement.prestige && (
-                        <span className={`text-[10px] px-2 py-0.5 rounded ${store.prestigeState.totalPrestiges >= (project.unlockRequirement.prestige ?? 0) ? 'bg-green-900/20 text-green-400' : 'bg-red-900/20 text-red-400'}`}>
+                        <span className={`text-[10px] px-2 py-0.5 rounded ${store.prestigeState.totalPrestiges >= (project.unlockRequirement.prestige ?? 0) ? 'bg-success/20 text-success' : 'bg-red-900/20 text-red-400'}`}>
                           {store.prestigeState.totalPrestiges}/{project.unlockRequirement.prestige} Prestiges
                         </span>
                       )}
@@ -355,7 +355,7 @@ export function MegaProjectPanel() {
                           <div key={i} className="flex items-center gap-1 flex-1">
                             <div className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${
                               s.completed
-                                ? 'bg-green-500'
+                                ? 'bg-success'
                                 : i === project.currentStage
                                   ? 'bg-gray-800'
                                   : 'bg-gray-800'
@@ -411,7 +411,7 @@ export function MegaProjectPanel() {
                                   <span className="text-gray-400">{meta?.name ?? 'Money'}</span>
                                 </div>
                                 <div className="flex items-center gap-1">
-                                  <span className={enough ? 'text-green-400' : 'text-red-400'}>
+                                  <span className={enough ? 'text-success' : 'text-red-400'}>
                                     {formatNumber(current)}
                                   </span>
                                   <span className="text-gray-600">/</span>
@@ -419,7 +419,7 @@ export function MegaProjectPanel() {
                                     {formatNumber(r.amount)}
                                   </span>
                                   {enough ? (
-                                    <Check className="w-3 h-3 text-green-500" />
+                                    <Check className="w-3 h-3 text-success" />
                                   ) : (
                                     <AlertTriangle className="w-3 h-3 text-red-500" />
                                   )}
@@ -474,13 +474,13 @@ export function MegaProjectPanel() {
                     {project.stages.map((s, i) => (
                       <div key={i} className="flex items-center gap-2 text-[10px]">
                         {s.completed ? (
-                          <Check className="w-3 h-3 text-green-500" />
+                          <Check className="w-3 h-3 text-success" />
                         ) : i === project.currentStage ? (
                           <span className={`w-3 h-3 rounded-full border ${colors?.border ?? 'border-fuchsia-500/40'} ${colors?.bg ?? 'bg-fuchsia-900/10'}`} style={{ animation: 'neonPulse 2s ease-in-out infinite' }} />
                         ) : (
                           <span className="w-3 h-3 rounded-full bg-gray-800" />
                         )}
-                        <span className={s.completed ? 'text-green-400' : i === project.currentStage ? (colors?.text ?? 'text-fuchsia-400') : 'text-gray-600'}>
+                        <span className={s.completed ? 'text-success' : i === project.currentStage ? (colors?.text ?? 'text-fuchsia-400') : 'text-gray-600'}>
                           {s.name}
                         </span>
                       </div>
@@ -493,8 +493,8 @@ export function MegaProjectPanel() {
                   <div className="mt-2 space-y-1">
                     {project.stages.map((s, i) => (
                       <div key={i} className="flex items-center gap-2 text-[10px]">
-                        <Check className="w-3 h-3 text-green-500" />
-                        <span className="text-green-400/60">{s.name}</span>
+                        <Check className="w-3 h-3 text-success" />
+                        <span className="text-success/60">{s.name}</span>
                       </div>
                     ))}
                   </div>

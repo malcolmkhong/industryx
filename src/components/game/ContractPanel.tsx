@@ -46,12 +46,12 @@ function ContractCard({ contract, store, fulfillingId, onFulfill }: { contract: 
         ...contract.requiredResources.filter(r => RESOURCE_META[r.resource]).map(r => ({
           label: `Required: ${RESOURCE_META[r.resource].name}`,
           value: `${formatNumber(r.amount)}`,
-          color: store.resources[r.resource] >= r.amount ? 'text-green-400' : 'text-red-400',
+          color: store.resources[r.resource] >= r.amount ? 'text-success' : 'text-red-400',
         })),
         { label: 'Tier', value: `${tierInfo?.name ?? 'Unknown'}`, color: `text-[${tierColor}]` },
         { label: 'Time Limit', value: `${formatNumber(contract.timeLimit)} ticks` },
         { label: 'Difficulty', value: `${'★'.repeat(contract.difficulty)}`, color: contract.difficulty >= 4 ? 'text-red-400' : contract.difficulty >= 3 ? 'text-orange-400' : 'text-gray-300' },
-        { label: 'Money Reward', value: `$${formatNumber(contract.reward.money)}`, color: 'text-green-400' },
+        { label: 'Money Reward', value: `$${formatNumber(contract.reward.money)}`, color: 'text-success' },
         ...(contract.reward.researchPoints ? [{ label: 'RP Reward', value: `${contract.reward.researchPoints} RP`, color: 'text-purple-400' as string }] : []),
         ...(contract.reward.corporationPoints && contract.reward.corporationPoints > 0 ? [{ label: 'CP Reward', value: `${contract.reward.corporationPoints} CP`, color: 'text-fuchsia-400' as string }] : []),
       ]}
@@ -59,7 +59,7 @@ function ContractCard({ contract, store, fulfillingId, onFulfill }: { contract: 
     >
       <div className={`bg-[#0a0e17] rounded-lg p-4 border-l-2 ${
         isUrgent ? 'border-l-red-500 border border-red-900/50' :
-        canFulfill ? 'border-l-green-500 border border-green-900/30' :
+        canFulfill ? 'border-l-green-500 border border-success/30' :
         `border border-gray-800`
       }`} style={{ borderLeftColor: tierColor }}>
         <div className="flex items-center justify-between mb-2">
@@ -100,7 +100,7 @@ function ContractCard({ contract, store, fulfillingId, onFulfill }: { contract: 
             const enough = have >= r.amount;
             return (
               <div key={i} className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-colors duration-300 ${
-                enough ? 'bg-green-900/10 text-green-400' : 'bg-red-900/10 text-red-400'
+                enough ? 'bg-green-900/10 text-success' : 'bg-red-900/10 text-red-400'
               }`}>
                 <GameIcon icon={meta.icon} size={14} className="inline-flex" />
                 <span className="font-mono">{formatNumber(have)}/{formatNumber(r.amount)}</span>
@@ -139,7 +139,7 @@ function ContractCard({ contract, store, fulfillingId, onFulfill }: { contract: 
 
         {/* Rewards */}
         <div className="flex items-center gap-3 mb-3 text-[10px]">
-          <div className="flex items-center gap-1 text-green-400">
+          <div className="flex items-center gap-1 text-success">
             <Coins className="w-3 h-3" />
             <span className="font-mono">${formatNumber(contract.reward.money)}</span>
           </div>
@@ -161,7 +161,7 @@ function ContractCard({ contract, store, fulfillingId, onFulfill }: { contract: 
         <Button
           onClick={() => onFulfill(contract.id)}
           disabled={!canFulfill || fulfillingId === contract.id}
-          className={`w-full text-xs h-8 min-h-[36px] ${canFulfill ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-gray-800 text-gray-500'}`}
+          className={`w-full text-xs h-8 min-h-[36px] ${canFulfill ? 'bg-success hover:bg-success text-white' : 'bg-gray-800 text-gray-500'}`}
           size="sm"
         >
           {fulfillingId === contract.id ? (
@@ -233,7 +233,7 @@ export function ContractPanel() {
             <ScrollText className="w-3 h-3 mr-1" />
             {activeContracts.length} active
           </Badge>
-          <Badge variant="outline" className="border-green-500/50 text-green-400 bg-green-900/20 text-xs">
+          <Badge variant="outline" className="border-success/50 text-success bg-success/20 text-xs">
             <Trophy className="w-3 h-3 mr-1" />
             {store.completedContracts} done
           </Badge>
@@ -406,8 +406,8 @@ export function ContractPanel() {
                 aria-label={expandedHistory ? 'Collapse contract history' : 'Expand contract history'}
                 aria-expanded={expandedHistory}
               >
-                <Trophy className="w-4 h-4 text-green-400" />
-                <h3 className="text-sm font-semibold text-green-400">Contract History</h3>
+                <Trophy className="w-4 h-4 text-success" />
+                <h3 className="text-sm font-semibold text-success">Contract History</h3>
                 <span className="text-[10px] text-gray-600">({completedContracts.length} done, {failedContracts.length} failed)</span>
                 <div className="ml-auto">
                   {expandedHistory ? <ChevronDown className="w-4 h-4 text-gray-600" /> : <ChevronRight className="w-4 h-4 text-gray-600" />}
@@ -424,12 +424,12 @@ export function ContractPanel() {
                         <div className="flex items-center gap-2">
                           <div className="w-1 h-3 rounded-full" style={{ backgroundColor: getTierColor(tier) }} />
                           <GameIcon icon={c.icon} size={14} className="inline-flex" />
-                          <span className={c.completed ? 'text-green-400' : 'text-red-400'}>{c.name}</span>
+                          <span className={c.completed ? 'text-success' : 'text-red-400'}>{c.name}</span>
                           <span className="text-[9px] text-gray-600">T{tier}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           {c.completed ? (
-                            <Badge className="text-[8px] bg-green-900/20 text-green-400 border-0">
+                            <Badge className="text-[8px] bg-success/20 text-success border-0">
                               <Check className="w-2.5 h-2.5 mr-0.5" /> Done
                             </Badge>
                           ) : (
@@ -438,7 +438,7 @@ export function ContractPanel() {
                             </Badge>
                           )}
                           {c.completed && (
-                            <span className="text-green-400 font-mono">${formatNumber(c.reward.money)}</span>
+                            <span className="text-success font-mono">${formatNumber(c.reward.money)}</span>
                           )}
                         </div>
                       </div>
@@ -488,7 +488,7 @@ export function ContractPanel() {
             <div className="space-y-2 text-xs">
               <div className="flex justify-between">
                 <span className="text-gray-500">Success Rate</span>
-                <span className="text-green-400 font-mono">
+                <span className="text-success font-mono">
                   {store.contracts.length > 0
                     ? ((completedContracts.length / store.contracts.length) * 100).toFixed(0)
                     : 0}%
@@ -496,7 +496,7 @@ export function ContractPanel() {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Total Rewards</span>
-                <span className="text-green-400 font-mono">${formatNumber(completedContracts.reduce((s, c) => s + c.reward.money, 0))}</span>
+                <span className="text-success font-mono">${formatNumber(completedContracts.reduce((s, c) => s + c.reward.money, 0))}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">RP Earned</span>

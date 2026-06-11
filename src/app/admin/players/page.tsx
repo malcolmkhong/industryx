@@ -494,8 +494,8 @@ export default function PlayersListPage() {
 
               <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 sm:p-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-emerald-400">
+                  <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-success">
                       <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
                     </svg>
                   </div>
@@ -629,7 +629,7 @@ export default function PlayersListPage() {
                                   title="Copy full ID"
                                 >
                                   {copiedId === player.user_id ? (
-                                    <span className="text-emerald-400"><IconCheck /></span>
+                                    <span className="text-success"><IconCheck /></span>
                                   ) : (
                                     <IconCopy />
                                   )}
@@ -638,7 +638,7 @@ export default function PlayersListPage() {
                             </td>
                             {/* Money */}
                             <td className="px-4 py-3 text-right">
-                              <span className="text-emerald-400 text-sm font-medium font-mono">
+                              <span className="text-success text-sm font-medium font-mono">
                                 ${formatMoney(player.money)}
                               </span>
                             </td>
@@ -672,7 +672,7 @@ export default function PlayersListPage() {
                                   Locked
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border bg-emerald-500/15 text-emerald-400 border-emerald-500/20">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border bg-success/15 text-success border-emerald-500/20">
                                   Active
                                 </span>
                               )}
@@ -713,7 +713,7 @@ export default function PlayersListPage() {
                                   Locked
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium border bg-emerald-500/15 text-emerald-400 border-emerald-500/20">
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium border bg-success/15 text-success border-emerald-500/20">
                                   Active
                                 </span>
                               )}
@@ -727,14 +727,14 @@ export default function PlayersListPage() {
                                 className="text-zinc-600 hover:text-zinc-300 transition-colors p-0.5"
                               >
                                 {copiedId === player.user_id ? (
-                                  <span className="text-emerald-400"><IconCheck /></span>
+                                  <span className="text-success"><IconCheck /></span>
                                 ) : (
                                   <IconCopy />
                                 )}
                               </button>
                             </div>
                             <div className="flex items-center gap-3 mt-2 flex-wrap">
-                              <span className="text-emerald-400 text-xs font-mono">
+                              <span className="text-success text-xs font-mono">
                                 ${formatMoney(player.money)}
                               </span>
                               <span className="text-zinc-500 text-[10px]">
@@ -818,7 +818,7 @@ export default function PlayersListPage() {
             key={toast.id}
             className={`px-4 py-3 rounded-lg text-sm font-medium shadow-lg border transition-all ${
               toast.type === "success"
-                ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/20"
+                ? "bg-success/15 text-success border-emerald-500/20"
                 : toast.type === "error"
                 ? "bg-red-500/15 text-red-400 border-red-500/20"
                 : "bg-amber-500/15 text-amber-400 border-amber-500/20"

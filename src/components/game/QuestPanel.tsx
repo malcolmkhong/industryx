@@ -18,13 +18,13 @@ function getTierColor(tier: number): string {
 const QUEST_TYPE_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
   build: { label: 'BUILD', color: 'text-amber-400', bg: 'bg-amber-900/20', border: 'border-amber-800/40' },
   produce: { label: 'PRODUCE', color: 'text-cyan-400', bg: 'bg-cyan-900/20', border: 'border-cyan-800/40' },
-  sell: { label: 'SELL', color: 'text-green-400', bg: 'bg-green-900/20', border: 'border-green-800/40' },
+  sell: { label: 'SELL', color: 'text-success', bg: 'bg-success/20', border: 'border-green-800/40' },
   research: { label: 'RESEARCH', color: 'text-purple-400', bg: 'bg-purple-900/20', border: 'border-purple-800/40' },
   earn: { label: 'EARN', color: 'text-yellow-400', bg: 'bg-yellow-900/20', border: 'border-yellow-800/40' },
   reach: { label: 'REACH', color: 'text-teal-400', bg: 'bg-teal-900/20', border: 'border-teal-800/40' },
   contract: { label: 'CONTRACT', color: 'text-blue-400', bg: 'bg-blue-900/20', border: 'border-blue-800/40' },
   transport: { label: 'TRANSPORT', color: 'text-orange-400', bg: 'bg-orange-900/20', border: 'border-orange-800/40' },
-  worker: { label: 'WORKER', color: 'text-emerald-400', bg: 'bg-emerald-900/20', border: 'border-emerald-800/40' },
+  worker: { label: 'WORKER', color: 'text-success', bg: 'bg-success/20', border: 'border-emerald-800/40' },
   prestige: { label: 'PRESTIGE', color: 'text-fuchsia-400', bg: 'bg-fuchsia-900/20', border: 'border-fuchsia-800/40' },
   megaProject: { label: 'MEGA', color: 'text-rose-400', bg: 'bg-rose-900/20', border: 'border-rose-800/40' },
 };
@@ -74,7 +74,7 @@ const MemoizedQuestItem = React.memo(function MemoizedQuestItem({
           : quest.claimed
             ? 'border-gray-800 bg-gray-900/30 opacity-50'
             : allStepsComplete
-              ? 'border-green-500/30 bg-green-900/10'
+              ? 'border-success/30 bg-green-900/10'
               : isTracked
                 ? 'border-cyan-400/40 bg-cyan-900/10'
                 : 'border-cyan-900/30 bg-card/50'
@@ -92,13 +92,13 @@ const MemoizedQuestItem = React.memo(function MemoizedQuestItem({
               { label: 'Tier', value: `T${tier}: ${tierInfo?.name ?? 'Unknown'}`, color: tierColor, isStyle: true },
               { label: 'Type', value: typeConfig.label, color: typeConfig.color },
               { label: 'Category', value: catConfig.label, color: catConfig.color },
-              ...(quest.reward.money > 0 ? [{ label: 'Money Reward', value: `$${formatNumber(quest.reward.money)}`, color: 'text-green-400' }] : []),
+              ...(quest.reward.money > 0 ? [{ label: 'Money Reward', value: `$${formatNumber(quest.reward.money)}`, color: 'text-success' }] : []),
               ...(quest.reward.researchPoints && quest.reward.researchPoints > 0 ? [{ label: 'RP Reward', value: `${quest.reward.researchPoints}`, color: 'text-purple-400' }] : []),
               ...(quest.reward.corporationPoints && quest.reward.corporationPoints > 0 ? [{ label: 'CP Reward', value: `${quest.reward.corporationPoints}`, color: 'text-fuchsia-400' }] : []),
               ...quest.steps.map((step, i) => ({
                 label: `Step ${i + 1}`,
                 value: `${Math.min(step.current, step.target)}/${step.target} ${step.completed ? '✓' : ''}`,
-                color: step.completed ? 'text-green-400' : 'text-gray-300',
+                color: step.completed ? 'text-success' : 'text-gray-300',
               })),
               ...(quest.expiresAt && quest.expiresAt > 0 ? [{
                 label: 'Time Remaining',
@@ -115,7 +115,7 @@ const MemoizedQuestItem = React.memo(function MemoizedQuestItem({
                 <h4 className={`text-sm font-semibold truncate ${
                   isLocked ? 'text-gray-600' :
                   quest.claimed ? 'text-gray-500 line-through'
-                  : allStepsComplete ? 'text-green-400'
+                  : allStepsComplete ? 'text-success'
                   : isTracked ? 'text-cyan-300'
                   : 'text-gray-200'
                 }`}>
@@ -166,7 +166,7 @@ const MemoizedQuestItem = React.memo(function MemoizedQuestItem({
           ) : allStepsComplete ? (
             <button
                 onClick={() => onClaim(quest.id)}
-                className="text-[11px] font-bold text-green-400 bg-green-900/30 border border-green-500/30 px-3 py-1.5 rounded-lg hover:bg-green-900/50 transition-colors neon-breathe"
+                className="text-[11px] font-bold text-success bg-success/30 border border-success/30 px-3 py-1.5 rounded-lg hover:bg-success/50 transition-colors neon-breathe"
               >
                 CLAIM
               </button>
@@ -185,15 +185,15 @@ const MemoizedQuestItem = React.memo(function MemoizedQuestItem({
             return (
               <div key={i} className="space-y-1">
                 <div className="flex justify-between text-[10px]">
-                  <span className={step.completed ? 'text-green-400' : 'text-gray-400'}>{step.description}</span>
-                  <span className={step.completed ? 'text-green-400' : 'text-gray-500'}>
+                  <span className={step.completed ? 'text-success' : 'text-gray-400'}>{step.description}</span>
+                  <span className={step.completed ? 'text-success' : 'text-gray-500'}>
                     {Math.min(step.current, step.target)}/{step.target}
                   </span>
                 </div>
                 <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-500 progress-bar-shimmer ${
-                      step.completed ? 'bg-green-500' : isTracked ? 'bg-cyan-400' : 'bg-cyan-500'
+                      step.completed ? 'bg-success' : isTracked ? 'bg-cyan-400' : 'bg-cyan-500'
                     }`}
                     style={{ width: `${stepProgress * 100}%` }}
                   />
@@ -207,7 +207,7 @@ const MemoizedQuestItem = React.memo(function MemoizedQuestItem({
       {!isLocked && (
         <div className="mt-3 flex items-center gap-2 text-[10px] pt-2 border-t border-gray-800/50">
           <span className="text-gray-600">Rewards:</span>
-          {quest.reward.money > 0 && <span className="text-green-400">${formatNumber(quest.reward.money)}</span>}
+          {quest.reward.money > 0 && <span className="text-success">${formatNumber(quest.reward.money)}</span>}
           {quest.reward.researchPoints && quest.reward.researchPoints > 0 && <span className="text-purple-400">{quest.reward.researchPoints} RP</span>}
           {quest.reward.corporationPoints && quest.reward.corporationPoints > 0 && <span className="text-fuchsia-400">{quest.reward.corporationPoints} CP</span>}
         </div>
@@ -284,7 +284,7 @@ export function QuestPanel() {
     ];
 
     if (quest.reward.money > 0) {
-      tooltipDetails.push({ label: 'Money Reward', value: `$${formatNumber(quest.reward.money)}`, color: 'text-green-400' });
+      tooltipDetails.push({ label: 'Money Reward', value: `$${formatNumber(quest.reward.money)}`, color: 'text-success' });
     }
     if (quest.reward.researchPoints && quest.reward.researchPoints > 0) {
       tooltipDetails.push({ label: 'RP Reward', value: `${quest.reward.researchPoints}`, color: 'text-purple-400' });
@@ -297,7 +297,7 @@ export function QuestPanel() {
       tooltipDetails.push({
         label: `Step ${i + 1}`,
         value: `${Math.min(step.current, step.target)}/${step.target} ${step.completed ? '✓' : ''}`,
-        color: step.completed ? 'text-green-400' : 'text-gray-300',
+        color: step.completed ? 'text-success' : 'text-gray-300',
       });
     });
 
@@ -319,7 +319,7 @@ export function QuestPanel() {
             : quest.claimed
               ? 'border-gray-800 bg-gray-900/30 opacity-50'
               : allStepsComplete
-                ? 'border-green-500/30 bg-green-900/10'
+                ? 'border-success/30 bg-green-900/10'
                 : isTracked
                   ? 'border-cyan-400/40 bg-cyan-900/10'
                   : 'border-cyan-900/30 bg-card/50'
@@ -343,7 +343,7 @@ export function QuestPanel() {
                   <h4 className={`text-sm font-semibold truncate ${
                     isLocked ? 'text-gray-600' :
                     quest.claimed ? 'text-gray-500 line-through'
-                    : allStepsComplete ? 'text-green-400'
+                    : allStepsComplete ? 'text-success'
                     : isTracked ? 'text-cyan-300'
                     : 'text-gray-200'
                   }`}>
@@ -401,7 +401,7 @@ export function QuestPanel() {
             ) : allStepsComplete ? (
               <button
                   onClick={() => store.claimQuestReward(quest.id)}
-                  className="text-[11px] font-bold text-green-400 bg-green-900/30 border border-green-500/30 px-3 py-1.5 rounded-lg hover:bg-green-900/50 transition-colors neon-breathe"
+                  className="text-[11px] font-bold text-success bg-success/30 border border-success/30 px-3 py-1.5 rounded-lg hover:bg-success/50 transition-colors neon-breathe"
                 >
                   CLAIM
                 </button>
@@ -421,15 +421,15 @@ export function QuestPanel() {
               return (
                 <div key={i} className="space-y-1">
                   <div className="flex justify-between text-[10px]">
-                    <span className={step.completed ? 'text-green-400' : 'text-gray-400'}>{step.description}</span>
-                    <span className={step.completed ? 'text-green-400' : 'text-gray-500'}>
+                    <span className={step.completed ? 'text-success' : 'text-gray-400'}>{step.description}</span>
+                    <span className={step.completed ? 'text-success' : 'text-gray-500'}>
                       {Math.min(step.current, step.target)}/{step.target}
                     </span>
                   </div>
                   <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-500 progress-bar-shimmer ${
-                        step.completed ? 'bg-green-500' : isTracked ? 'bg-cyan-400' : 'bg-cyan-500'
+                        step.completed ? 'bg-success' : isTracked ? 'bg-cyan-400' : 'bg-cyan-500'
                       }`}
                       style={{ width: `${stepProgress * 100}%` }}
                     />
@@ -444,7 +444,7 @@ export function QuestPanel() {
         {!isLocked && (
           <div className="mt-3 flex items-center gap-2 text-[10px] pt-2 border-t border-gray-800/50">
             <span className="text-gray-600">Rewards:</span>
-            {quest.reward.money > 0 && <span className="text-green-400">${formatNumber(quest.reward.money)}</span>}
+            {quest.reward.money > 0 && <span className="text-success">${formatNumber(quest.reward.money)}</span>}
             {quest.reward.researchPoints && quest.reward.researchPoints > 0 && <span className="text-purple-400">{quest.reward.researchPoints} RP</span>}
             {quest.reward.corporationPoints && quest.reward.corporationPoints > 0 && <span className="text-fuchsia-400">{quest.reward.corporationPoints} CP</span>}
           </div>
@@ -464,7 +464,7 @@ export function QuestPanel() {
           <span className="text-gray-400">{claimedCount}/{totalCount} Completed</span>
           <div className="w-20 h-1.5 bg-gray-800 rounded-full overflow-hidden">
             <div
-              className="h-full bg-green-500 rounded-full transition-all"
+              className="h-full bg-success rounded-full transition-all"
               style={{ width: `${totalCount > 0 ? (claimedCount / totalCount) * 100 : 0}%` }}
             />
           </div>
@@ -477,12 +477,12 @@ export function QuestPanel() {
           onClick={() => {
             unclaimedQuests.forEach(q => store.claimQuestReward(q.id));
           }}
-          className="w-full py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-green-900/60 via-emerald-800/50 to-green-900/60 border border-green-400/40 text-green-300 hover:from-green-800/70 hover:via-emerald-700/60 hover:to-green-800/70 hover:border-green-400/60 hover:text-green-200 shadow-[0_0_20px_rgba(74,222,128,0.15)]"
+          className="w-full py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-green-900/60 via-emerald-800/50 to-green-900/60 border border-green-400/40 text-success hover:from-green-800/70 hover:via-emerald-700/60 hover:to-green-800/70 hover:border-green-400/60 hover:text-green-200 shadow-[0_0_20px_rgba(74,222,128,0.15)]"
         >
           <Sparkles className="w-4 h-4" />
           Claim All Rewards ({unclaimedQuests.length} quest{unclaimedQuests.length > 1 ? 's' : ''})
           <span className="flex items-center gap-2 ml-1 text-xs">
-            {availableReward > 0 && <span className="text-green-400">${formatNumber(availableReward)}</span>}
+            {availableReward > 0 && <span className="text-success">${formatNumber(availableReward)}</span>}
             {availableRPReward > 0 && <span className="text-purple-400">{formatNumber(availableRPReward)} RP</span>}
             {availableCPReward > 0 && <span className="text-fuchsia-400">{availableCPReward} CP</span>}
           </span>
@@ -528,9 +528,9 @@ export function QuestPanel() {
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {/* Available reward */}
-        <div className="rounded-xl p-3 text-center border border-green-900/30 bg-green-900/10">
+        <div className="rounded-xl p-3 text-center border border-success/30 bg-green-900/10">
           <div className="text-xl mb-1"><GameIcon icon="gi:present" size={20} /></div>
-          <div className="text-lg font-bold text-green-400">${formatNumber(availableReward)}</div>
+          <div className="text-lg font-bold text-success">${formatNumber(availableReward)}</div>
           <div className="text-[10px] text-gray-500">Available</div>
         </div>
         {[0, 1, 2, 3, 4].map(tier => {
@@ -675,7 +675,7 @@ export function QuestPanel() {
               </div>
             </div>
             <div className="flex items-center gap-2 text-[10px]">
-              {trackedQuestData.reward.money > 0 && <span className="text-green-400">${formatNumber(trackedQuestData.reward.money)}</span>}
+              {trackedQuestData.reward.money > 0 && <span className="text-success">${formatNumber(trackedQuestData.reward.money)}</span>}
               {trackedQuestData.reward.researchPoints && trackedQuestData.reward.researchPoints > 0 && <span className="text-purple-400">{trackedQuestData.reward.researchPoints} RP</span>}
               {trackedQuestData.reward.corporationPoints && trackedQuestData.reward.corporationPoints > 0 && <span className="text-fuchsia-400">{trackedQuestData.reward.corporationPoints} CP</span>}
             </div>

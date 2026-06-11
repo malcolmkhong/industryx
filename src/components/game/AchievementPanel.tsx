@@ -330,8 +330,8 @@ const CATEGORY_META: Record<AchievementCategory, { icon: string; color: string; 
   },
   Economy: {
     icon: 'gi:money-stack',
-    color: 'text-green-400',
-    borderColor: 'border-green-900/30',
+    color: 'text-success',
+    borderColor: 'border-success/30',
     bgColor: 'bg-green-900/10',
     icon: <DollarSign className="w-4 h-4" />,
   },
@@ -442,8 +442,8 @@ const MemoizedAchievementCard = React.memo(function MemoizedAchievementCard({
             )}
             {achievement.unlocked && (
               <div className="flex items-center gap-1 mt-1">
-                <Check className="w-3 h-3 text-green-400" />
-                <span className="text-[9px] text-green-400 font-medium">Unlocked</span>
+                <Check className="w-3 h-3 text-success" />
+                <span className="text-[9px] text-success font-medium">Unlocked</span>
               </div>
             )}
           </div>
@@ -464,7 +464,7 @@ const MemoizedAchievementCard = React.memo(function MemoizedAchievementCard({
           <div className="pt-2.5 space-y-2">
             <div className="bg-[#0a0e17] rounded-lg p-3">
               <div className="text-[10px] text-gray-500 mb-0.5">Reward</div>
-              <div className={`text-xs font-medium ${achievement.unlocked ? 'text-green-400' : meta.color}`}>
+              <div className={`text-xs font-medium ${achievement.unlocked ? 'text-success' : meta.color}`}>
                 <GameIcon icon="gi:present" size={14} className="inline" /> {achievement.reward}
               </div>
             </div>
@@ -586,12 +586,12 @@ export function AchievementPanel() {
         </div>
         <div className="game-card rounded-xl bg-card p-3 border border-border">
           <div className="flex items-center gap-2 mb-1.5">
-            <div className="w-7 h-7 rounded-lg bg-green-900/20 flex items-center justify-center">
-              <Star className="w-4 h-4 text-green-400" />
+            <div className="w-7 h-7 rounded-lg bg-success/20 flex items-center justify-center">
+              <Star className="w-4 h-4 text-success" />
             </div>
             <span className="text-[10px] text-gray-500 uppercase tracking-wider">Gold Tier</span>
           </div>
-          <div className="text-lg font-bold font-mono text-green-400">
+          <div className="text-lg font-bold font-mono text-success">
             {achievementStates.filter(a => a.unlocked && a.tier === 3).length}
           </div>
           <div className="text-[10px] text-gray-500">hardest achievements</div>
@@ -637,7 +637,7 @@ export function AchievementPanel() {
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
                       cat === 'Production' ? 'bg-cyan-400' :
-                      cat === 'Economy' ? 'bg-green-400' :
+                      cat === 'Economy' ? 'bg-success' :
                       cat === 'Research' ? 'bg-purple-400' :
                       cat === 'Expansion' ? 'bg-fuchsia-400' :
                       'bg-amber-400'

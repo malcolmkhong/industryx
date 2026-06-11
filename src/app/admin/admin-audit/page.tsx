@@ -165,7 +165,7 @@ function getActionTypeBadge(type: string): string {
     case "lock_account":
       return "bg-red-500/15 text-red-400 border-red-500/20";
     case "unlock_account":
-      return "bg-emerald-500/15 text-emerald-400 border-emerald-500/20";
+      return "bg-success/15 text-success border-emerald-500/20";
     case "reset_state":
       return "bg-orange-500/15 text-orange-400 border-orange-500/20";
     case "resolve_investigation":
@@ -513,8 +513,8 @@ export default function AdminAuditPage() {
               </div>
               <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-emerald-400">
+                  <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-success">
                       <rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" />
                     </svg>
                   </div>
@@ -765,7 +765,7 @@ export default function AdminAuditPage() {
             key={toast.id}
             className={`flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg text-sm font-medium ${
               toast.type === "success"
-                ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20"
+                ? "bg-success/15 text-success border border-emerald-500/20"
                 : toast.type === "error"
                 ? "bg-red-500/15 text-red-400 border border-red-500/20"
                 : "bg-amber-500/15 text-amber-400 border border-amber-500/20"

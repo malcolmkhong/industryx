@@ -29,7 +29,7 @@ function formatDuration(ticks: number): string {
 // --- Drone Status Badge ---
 function DroneStatusBadge({ status }: { status: Drone['status'] }) {
   const config = {
-    idle: { label: 'Idle', className: 'bg-emerald-900/40 text-emerald-400 border-emerald-500/30' },
+    idle: { label: 'Idle', className: 'bg-emerald-900/40 text-success border-success/30' },
     delivering: { label: 'Delivering', className: 'bg-sky-900/40 text-sky-400 border-sky-500/30 animate-pulse' },
   };
   const c = config[status];
@@ -351,7 +351,7 @@ export default function DroneDeliveryPanel() {
                         {/* Capacity Upgrade */}
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <Package className="w-3.5 h-3.5 text-emerald-400" />
+                            <Package className="w-3.5 h-3.5 text-success" />
                             <div>
                               <p className="text-xs text-gray-300">Capacity</p>
                               <UpgradeBar level={drone.capacityLevel} />
@@ -360,7 +360,7 @@ export default function DroneDeliveryPanel() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-6 text-[10px] px-2 border-emerald-500/30 text-emerald-400 hover:bg-emerald-900/20"
+                            className="h-6 text-[10px] px-2 border-success/30 text-success hover:bg-success/20"
                             disabled={drone.capacityLevel >= 5 || money < 800 * drone.capacityLevel}
                             onClick={(e) => {
                               e.stopPropagation();
@@ -445,7 +445,7 @@ export default function DroneDeliveryPanel() {
                       <span className="text-sky-400 font-medium">{mission.toBuilding}</span>
                     </div>
                     <div className="flex items-center gap-2 text-[10px]">
-                      <span className="text-green-400 flex items-center gap-0.5">
+                      <span className="text-success flex items-center gap-0.5">
                         <DollarSign className="w-2.5 h-2.5" />
                         {formatNumber(mission.reward.money)}
                       </span>
@@ -529,7 +529,7 @@ export default function DroneDeliveryPanel() {
           <div className="text-[10px] text-gray-500">Drones</div>
         </div>
         <div className="bg-card border border-cyan-900/20 rounded-lg p-3 text-center">
-          <div className="text-lg font-bold text-green-400">{drones.completedMissions}</div>
+          <div className="text-lg font-bold text-success">{drones.completedMissions}</div>
           <div className="text-[10px] text-gray-500">Completed</div>
         </div>
         <div className="bg-card border border-cyan-900/20 rounded-lg p-3 text-center">

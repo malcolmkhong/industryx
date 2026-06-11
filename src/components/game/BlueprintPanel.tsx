@@ -357,7 +357,7 @@ export function BlueprintPanel() {
                                   }}
                                   autoFocus
                                 />
-                                <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-green-400 min-h-[36px] min-w-[36px]" onClick={() => handleRename(bp.id)} aria-label="Confirm rename">
+                                <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-success min-h-[36px] min-w-[36px]" onClick={() => handleRename(bp.id)} aria-label="Confirm rename">
                                   <Check className="w-3 h-3" />
                                 </Button>
                                 <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-red-400 min-h-[36px] min-w-[36px]" onClick={() => setRenamingId(null)} aria-label="Cancel rename">
@@ -402,7 +402,7 @@ export function BlueprintPanel() {
                                 onClick={() => handleCopyCode(bp.id)}
                                 aria-label="Export share code"
                               >
-                                {copiedId === bp.id ? <Check className="w-3 h-3 text-green-400" /> : <Share2 className="w-3 h-3" />}
+                                {copiedId === bp.id ? <Check className="w-3 h-3 text-success" /> : <Share2 className="w-3 h-3" />}
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent side="bottom" className="bg-card border-cyan-900/30 text-xs">
@@ -514,7 +514,7 @@ export function BlueprintPanel() {
                               </div>
                               <div className="mt-2 pt-2 border-t border-gray-800 flex items-center justify-between">
                                 <div className="text-[11px] text-gray-400">
-                                  Total cost: <span className={comparison.canAfford ? 'text-green-400' : 'text-red-400'}>${formatNumber(comparison.totalCost)}</span>
+                                  Total cost: <span className={comparison.canAfford ? 'text-success' : 'text-red-400'}>${formatNumber(comparison.totalCost)}</span>
                                 </div>
                                 <div className="text-[10px] text-gray-500">
                                   Balance: ${formatNumber(store.money)}
@@ -525,8 +525,8 @@ export function BlueprintPanel() {
 
                           {/* All buildings match */}
                           {comparison && comparison.missingBuildings.length === 0 && (
-                            <div className="bg-green-900/10 rounded-lg p-3 mb-3 border border-green-500/20">
-                              <div className="text-[10px] text-green-400 flex items-center gap-1">
+                            <div className="bg-green-900/10 rounded-lg p-3 mb-3 border border-success/20">
+                              <div className="text-[10px] text-success flex items-center gap-1">
                                 <Check className="w-3 h-3" /> Your factory already matches this blueprint!
                               </div>
                             </div>

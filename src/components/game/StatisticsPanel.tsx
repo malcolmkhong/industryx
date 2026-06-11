@@ -436,7 +436,7 @@ export default function StatisticsPanel() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Money Chart */}
         <div className="bg-[#0a0e17] rounded-lg border border-cyan-900/20 p-4">
-          <h3 className="text-sm font-semibold text-green-400 flex items-center gap-1.5 mb-3">
+          <h3 className="text-sm font-semibold text-success flex items-center gap-1.5 mb-3">
             <DollarSign className="w-4 h-4" />
             Money Accumulation
           </h3>
@@ -605,12 +605,12 @@ export default function StatisticsPanel() {
                       </div>
                     </td>
                     <td className="py-1.5 px-2 text-right font-mono">
-                      <span className={rate > 0 ? 'text-green-400' : rate < 0 ? 'text-red-400' : 'text-gray-500'}>
+                      <span className={rate > 0 ? 'text-success' : rate < 0 ? 'text-red-400' : 'text-gray-500'}>
                         {rate > 0 ? '+' : ''}{rate.toFixed(2)}
                       </span>
                     </td>
                     <td className="py-1.5 px-2 text-center">
-                      {trend === 'up' && <TrendingUp className="w-3.5 h-3.5 text-green-400 inline" />}
+                      {trend === 'up' && <TrendingUp className="w-3.5 h-3.5 text-success inline" />}
                       {trend === 'down' && <TrendingDown className="w-3.5 h-3.5 text-red-400 inline" />}
                       {trend === 'stable' && <Minus className="w-3.5 h-3.5 text-gray-500 inline" />}
                     </td>
@@ -626,16 +626,16 @@ export default function StatisticsPanel() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-[#0a0e17] rounded-lg border border-cyan-900/20 p-3">
           <p className="text-[10px] text-gray-500 uppercase tracking-wider">Current Money</p>
-          <p className="text-sm font-bold text-green-400 font-mono">${formatNumber(store.money)}</p>
+          <p className="text-sm font-bold text-success font-mono">${formatNumber(store.money)}</p>
         </div>
         <div className="bg-[#0a0e17] rounded-lg border border-cyan-900/20 p-3">
           <p className="text-[10px] text-gray-500 uppercase tracking-wider">Total Earned</p>
-          <p className="text-sm font-bold text-emerald-400 font-mono">${formatNumber(store.totalMoneyEarned)}</p>
+          <p className="text-sm font-bold text-success font-mono">${formatNumber(store.totalMoneyEarned)}</p>
         </div>
         <div className="bg-[#0a0e17] rounded-lg border border-cyan-900/20 p-3">
           <p className="text-[10px] text-gray-500 uppercase tracking-wider">Power Efficiency</p>
           <p className={`text-sm font-bold font-mono ${
-            store.powerGrid.efficiency >= 0.8 ? 'text-green-400' :
+            store.powerGrid.efficiency >= 0.8 ? 'text-success' :
             store.powerGrid.efficiency >= 0.5 ? 'text-yellow-400' : 'text-red-400'
           }`}>
             {(store.powerGrid.efficiency * 100).toFixed(1)}%

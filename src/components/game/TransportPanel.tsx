@@ -25,7 +25,7 @@ const TIER_COLORS: Record<number, { fill: string; stroke: string; text: string; 
   1: { fill: '#164e63', stroke: '#22d3ee', text: 'text-cyan-400', bg: 'bg-cyan-900/20', label: 'T1' },
   2: { fill: '#431407', stroke: '#f97316', text: 'text-orange-400', bg: 'bg-orange-900/20', label: 'T2' },
   3: { fill: '#3b0764', stroke: '#a855f7', text: 'text-purple-400', bg: 'bg-purple-900/20', label: 'T3' },
-  4: { fill: '#022c22', stroke: '#00ffcc', text: 'text-emerald-400', bg: 'bg-emerald-900/20', label: 'T4' },
+  4: { fill: '#022c22', stroke: '#00ffcc', text: 'text-success', bg: 'bg-success/20', label: 'T4' },
 };
 
 // --- ERD Data Types ---
@@ -1495,7 +1495,7 @@ export function TransportPanel() {
 
   // --- Health Gauge Color ---
   const healthColor = networkHealth.score >= 80 ? '#4ade80' : networkHealth.score >= 50 ? '#eab308' : '#ef4444';
-  const healthTextColor = networkHealth.score >= 80 ? 'text-green-400' : networkHealth.score >= 50 ? 'text-yellow-400' : 'text-red-400';
+  const healthTextColor = networkHealth.score >= 80 ? 'text-success' : networkHealth.score >= 50 ? 'text-yellow-400' : 'text-red-400';
 
   return (
     <div className="space-y-4">
@@ -1617,19 +1617,19 @@ export function TransportPanel() {
             <div className="grid grid-cols-3 gap-2 text-center">
               <div>
                 <div className="text-[9px] text-gray-500">Production</div>
-                <div className={`text-[11px] font-mono font-bold ${weatherDef.productionMultiplier >= 1 ? 'text-green-400' : weatherDef.productionMultiplier > 0.85 ? 'text-yellow-400' : 'text-red-400'}`}>
+                <div className={`text-[11px] font-mono font-bold ${weatherDef.productionMultiplier >= 1 ? 'text-success' : weatherDef.productionMultiplier > 0.85 ? 'text-yellow-400' : 'text-red-400'}`}>
                   {(weatherDef.productionMultiplier * 100).toFixed(0)}%
                 </div>
               </div>
               <div>
                 <div className="text-[9px] text-gray-500">Solar</div>
-                <div className={`text-[11px] font-mono font-bold ${weatherDef.solarMultiplier >= 1 ? 'text-green-400' : weatherDef.solarMultiplier > 0.5 ? 'text-yellow-400' : 'text-red-400'}`}>
+                <div className={`text-[11px] font-mono font-bold ${weatherDef.solarMultiplier >= 1 ? 'text-success' : weatherDef.solarMultiplier > 0.5 ? 'text-yellow-400' : 'text-red-400'}`}>
                   {(weatherDef.solarMultiplier * 100).toFixed(0)}%
                 </div>
               </div>
               <div>
                 <div className="text-[9px] text-gray-500">Wind</div>
-                <div className={`text-[11px] font-mono font-bold ${weatherDef.windMultiplier >= 1 ? 'text-green-400' : weatherDef.windMultiplier > 0.5 ? 'text-yellow-400' : 'text-red-400'}`}>
+                <div className={`text-[11px] font-mono font-bold ${weatherDef.windMultiplier >= 1 ? 'text-success' : weatherDef.windMultiplier > 0.5 ? 'text-yellow-400' : 'text-red-400'}`}>
                   {(weatherDef.windMultiplier * 100).toFixed(0)}%
                 </div>
               </div>
@@ -1671,7 +1671,7 @@ export function TransportPanel() {
                     {tier.buildings.map(b => (
                       <div key={b.id} className="flex items-center gap-1 text-[10px]">
                         {b.connected ? (
-                          <CheckCircle2 className="w-3 h-3 text-green-400 flex-shrink-0" />
+                          <CheckCircle2 className="w-3 h-3 text-success flex-shrink-0" />
                         ) : (
                           <XCircle className="w-3 h-3 text-red-400 flex-shrink-0" />
                         )}
@@ -1713,7 +1713,7 @@ export function TransportPanel() {
                     category="Transport"
                     details={[
                       { label: 'Throughput', value: `${def.baseThroughput.toFixed(1)} u/s`, color: 'text-cyan-400' },
-                      { label: 'Base Cost', value: `$${formatNumber(cost)}`, color: 'text-green-400' },
+                      { label: 'Base Cost', value: `$${formatNumber(cost)}`, color: 'text-success' },
                       { label: 'Upgrade x', value: `${def.upgradeMultiplier}`, color: 'text-purple-400' },
                     ]}
                     side="bottom"
@@ -1814,7 +1814,7 @@ export function TransportPanel() {
                     </div>
                     <div>
                       <span className="text-gray-500">Cost</span>
-                      <div className={`font-mono font-bold ${previewData.canAfford ? 'text-green-400' : 'text-red-400'}`}>${formatNumber(previewData.cost)}</div>
+                      <div className={`font-mono font-bold ${previewData.canAfford ? 'text-success' : 'text-red-400'}`}>${formatNumber(previewData.cost)}</div>
                     </div>
                     <div>
                       <span className="text-gray-500">Transport</span>
@@ -1907,7 +1907,7 @@ export function TransportPanel() {
                                 <button
                                   onClick={() => store.toggleTransportLine(line.id)}
                                   className={`w-5 h-5 rounded-full border text-[10px] flex items-center justify-center ${
-                                    line.active ? 'border-green-500/50 text-green-400 bg-green-900/20 hover:bg-green-900/40' : 'border-gray-600 text-gray-500 hover:bg-gray-800'
+                                    line.active ? 'border-success/50 text-success bg-success/20 hover:bg-green-900/40' : 'border-gray-600 text-gray-500 hover:bg-gray-800'
                                   }`}
                                   title={line.active ? 'Deactivate' : 'Activate'}
                                 >
@@ -1960,7 +1960,7 @@ export function TransportPanel() {
                             <div className="flex items-center gap-2">
                               <span className="text-[10px] text-gray-400 font-mono">{formatNumber(throughput)}/{formatNumber(capacity)} u/s</span>
                               <span className={`text-[10px] font-mono font-bold ${
-                                utilization > 80 ? 'text-red-400' : utilization > 50 ? 'text-yellow-400' : 'text-green-400'
+                                utilization > 80 ? 'text-red-400' : utilization > 50 ? 'text-yellow-400' : 'text-success'
                               }`}>
                                 {utilization.toFixed(0)}%
                               </span>
@@ -2031,10 +2031,10 @@ export function TransportPanel() {
                     <div key={r.resource} className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-x-2 text-[10px] items-center px-1 py-0.5 hover:bg-gray-800/30 rounded">
                       <GameIcon icon={r.icon} size={16} />
                       <span className="text-gray-300 truncate">{r.name}</span>
-                      <span className="text-green-400 font-mono text-right">{r.production.toFixed(1)}</span>
+                      <span className="text-success font-mono text-right">{r.production.toFixed(1)}</span>
                       <span className="text-red-400 font-mono text-right">{r.consumption.toFixed(1)}</span>
                       <span className={`font-mono font-bold text-right ${
-                        isSurplus ? 'text-green-400' : isDeficit ? 'text-red-400' : 'text-yellow-400'
+                        isSurplus ? 'text-success' : isDeficit ? 'text-red-400' : 'text-yellow-400'
                       }`}>
                         {isSurplus ? '+' : ''}{r.surplus.toFixed(1)}
                       </span>
@@ -2059,7 +2059,7 @@ export function TransportPanel() {
             {bottlenecks.length === 0 ? (
               <div className="text-center py-4">
                 <CheckCircle2 className="w-8 h-8 text-green-700 mx-auto mb-2" />
-                <p className="text-[10px] text-green-500">No bottlenecks detected</p>
+                <p className="text-[10px] text-success">No bottlenecks detected</p>
                 <p className="text-[9px] text-gray-600 mt-1">All transport lines operating normally</p>
               </div>
             ) : (
@@ -2109,7 +2109,7 @@ export function TransportPanel() {
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full h-7 text-[10px] border-green-800/50 text-green-400 hover:bg-green-900/20"
+                className="w-full h-7 text-[10px] border-green-800/50 text-success hover:bg-success/20"
                 onClick={handleActivateAll}
                 disabled={store.transportLines.every(l => l.active)}
               >
@@ -2170,7 +2170,7 @@ export function TransportPanel() {
                       {item.label}
                     </div>
                     <span className={`text-[10px] font-mono font-bold ${
-                      item.value >= 80 ? 'text-green-400' : item.value >= 50 ? 'text-yellow-400' : 'text-red-400'
+                      item.value >= 80 ? 'text-success' : item.value >= 50 ? 'text-yellow-400' : 'text-red-400'
                     }`}>
                       {item.value.toFixed(0)}%
                     </span>
@@ -2178,7 +2178,7 @@ export function TransportPanel() {
                   <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${
-                        item.value >= 80 ? 'bg-green-500' : item.value >= 50 ? 'bg-yellow-500' : 'bg-red-500'
+                        item.value >= 80 ? 'bg-success' : item.value >= 50 ? 'bg-yellow-500' : 'bg-red-500'
                       }`}
                       style={{ width: `${Math.max(0, Math.min(100, item.value))}%` }}
                     />
@@ -2287,7 +2287,7 @@ export function TransportPanel() {
               </div>
               <div className="flex items-center justify-between mb-4">
                 <span className="text-xs text-gray-400">Total Cost:</span>
-                <span className={`text-sm font-bold font-mono ${connectAllData.canAfford ? 'text-green-400' : 'text-red-400'}`}>
+                <span className={`text-sm font-bold font-mono ${connectAllData.canAfford ? 'text-success' : 'text-red-400'}`}>
                   ${formatNumber(connectAllData.totalCost)}
                 </span>
               </div>

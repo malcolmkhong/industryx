@@ -110,7 +110,7 @@ export default function FloatingNumbers() {
             className="floating-number absolute text-xs font-mono font-bold whitespace-nowrap"
             style={{ left: entry.xOffset }}
           >
-            <span className="text-green-400 drop-shadow-[0_0_4px_rgba(57,255,20,0.5)]">
+            <span className="text-success drop-shadow-[0_0_4px_rgba(57,255,20,0.5)]">
               +{formatNumber(entry.amount)}
             </span>
             <span className="ml-0.5"><GameIcon icon={entry.icon} size={12} className="inline-flex" /></span>

@@ -910,7 +910,7 @@ export default function ConfigTablesPage() {
                                   {col.type === "boolean" ? (
                                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
                                       row[col.key]
-                                        ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20"
+                                        ? "bg-success/15 text-success border border-emerald-500/20"
                                         : "bg-red-500/15 text-red-400 border border-red-500/20"
                                     }`}>
                                       {row[col.key] ? "true" : "false"}
@@ -1196,7 +1196,7 @@ export default function ConfigTablesPage() {
             key={toast.id}
             className={`pointer-events-auto flex items-center gap-2 px-4 py-3 rounded-lg shadow-xl text-sm font-medium border animate-in slide-in-from-right ${
               toast.type === "success"
-                ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/20"
+                ? "bg-success/15 text-success border-emerald-500/20"
                 : toast.type === "error"
                 ? "bg-red-500/15 text-red-400 border-red-500/20"
                 : "bg-amber-500/15 text-amber-400 border-amber-500/20"

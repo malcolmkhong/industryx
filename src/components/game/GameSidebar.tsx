@@ -37,7 +37,7 @@ export const NAV_GROUPS: NavGroup[] = [
     color: 'text-cyan-400',
     tabs: [
       { id: 'dashboard', label: 'Dashboard', icon: Factory, color: 'text-cyan-400' },
-      { id: 'factoryMap', label: 'Factory Map', icon: MapIcon, color: 'text-emerald-400' },
+      { id: 'factoryMap', label: 'Factory Map', icon: MapIcon, color: 'text-success' },
       { id: 'resourceMonitor', label: 'Monitor', icon: Activity, color: 'text-teal-400' },
       { id: 'guide', label: 'Guide', icon: BookOpen, color: 'text-lime-400' },
     ],
@@ -62,7 +62,7 @@ export const NAV_GROUPS: NavGroup[] = [
     color: 'text-blue-400',
     tabs: [
       { id: 'transport', label: 'Transport', icon: Truck, color: 'text-blue-400' },
-      { id: 'market', label: 'Market', icon: TrendingUp, color: 'text-green-400' },
+      { id: 'market', label: 'Market', icon: TrendingUp, color: 'text-success' },
       { id: 'contracts', label: 'Contracts', icon: ScrollText, color: 'text-rose-400' },
       { id: 'droneDelivery', label: 'Drones', icon: Plane, color: 'text-sky-400' },
       { id: 'tradePost', label: 'Trade Post', icon: ArrowRightLeft, color: 'text-violet-400' },
@@ -97,9 +97,9 @@ export const NAV_GROUPS: NavGroup[] = [
     id: 'finance',
     label: 'Finance',
     icon: Coins,
-    color: 'text-green-400',
+    color: 'text-success',
     tabs: [
-      { id: 'payouts', label: 'Payouts', icon: DollarSign, color: 'text-green-400' },
+      { id: 'payouts', label: 'Payouts', icon: DollarSign, color: 'text-success' },
       { id: 'notifications', label: 'Alerts', icon: Bell, color: 'text-cyan-400' },
     ],
   },

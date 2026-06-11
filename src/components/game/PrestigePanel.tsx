@@ -177,7 +177,7 @@ export function PrestigePanel() {
             <span className="text-purple-400">{nextCPResearch} more research</span>
           )}
           {nextCPBuildings === 0 && nextCPResearch === 0 && (
-            <span className="text-green-400">Earning CP every expansion!</span>
+            <span className="text-success">Earning CP every expansion!</span>
           )}
         </div>
       </div>
@@ -200,8 +200,8 @@ export function PrestigePanel() {
 
             {/* What you keep */}
             <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="bg-green-900/10 rounded-lg p-3 border border-green-900/30">
-                <div className="text-[10px] text-green-400 font-medium mb-1"><GameIcon icon="gi:check-mark" size={12} className="inline" /> You Keep</div>
+              <div className="bg-green-900/10 rounded-lg p-3 border border-success/30">
+                <div className="text-[10px] text-success font-medium mb-1"><GameIcon icon="gi:check-mark" size={12} className="inline" /> You Keep</div>
                 <ul className="text-[11px] text-gray-400 space-y-0.5">
                   <li>• Completed research</li>
                   <li>• Corporation Points</li>
@@ -346,7 +346,7 @@ export function PrestigePanel() {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Bonuses Purchased</span>
-                <span className="text-green-400 font-mono">{purchasedBonuses}</span>
+                <span className="text-success font-mono">{purchasedBonuses}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Current Buildings</span>
@@ -367,14 +367,14 @@ export function PrestigePanel() {
           {purchasedBonuses > 0 && (
             <div className="game-card rounded-xl bg-card p-4 border border-fuchsia-900/30">
               <div className="flex items-center gap-2 mb-3">
-                <Zap className="w-4 h-4 text-green-400" />
-                <h3 className="text-sm font-semibold text-green-400">Active Bonuses</h3>
+                <Zap className="w-4 h-4 text-success" />
+                <h3 className="text-sm font-semibold text-success">Active Bonuses</h3>
               </div>
               <div className="space-y-1.5">
                 {store.prestigeState.bonuses.filter(b => b.purchased).map(bonus => (
                   <div key={bonus.id} className="flex items-center justify-between text-xs bg-green-900/10 rounded px-2 py-1">
-                    <span className="text-green-400">{bonus.name}</span>
-                    <span className="text-green-300 font-mono">+{(bonus.effect.value * 100).toFixed(0)}%</span>
+                    <span className="text-success">{bonus.name}</span>
+                    <span className="text-success font-mono">+{(bonus.effect.value * 100).toFixed(0)}%</span>
                   </div>
                 ))}
               </div>
@@ -423,8 +423,8 @@ export function PrestigePanel() {
             </div>
 
             {/* What you keep */}
-            <div className="bg-green-900/10 rounded-lg p-3 border border-green-900/30">
-              <div className="text-[10px] text-green-400 font-medium mb-1"><GameIcon icon="gi:check-mark" size={12} className="inline" /> You will keep</div>
+            <div className="bg-green-900/10 rounded-lg p-3 border border-success/30">
+              <div className="text-[10px] text-success font-medium mb-1"><GameIcon icon="gi:check-mark" size={12} className="inline" /> You will keep</div>
               <ul className="text-[11px] text-gray-400 space-y-0.5">
                 <li>• Completed research ({store.completedResearch.length} nodes)</li>
                 <li>• Corporation Points ({store.prestigeState.corporationPoints} + {pointsEarned} new)</li>

@@ -192,7 +192,7 @@ export function WorkerPanel() {
             <Users className="w-3 h-3 mr-1" />
             {workers.length} workers
           </Badge>
-          <Badge variant="outline" className="border-green-500/50 text-green-400 bg-green-900/20 text-xs">
+          <Badge variant="outline" className="border-success/50 text-success bg-success/20 text-xs">
             <Star className="w-3 h-3 mr-1" />
             +{(totalWorkerBonus.efficiency * 100).toFixed(0)}% eff
           </Badge>
@@ -207,7 +207,7 @@ export function WorkerPanel() {
         </div>
         <div className="game-card rounded-xl bg-card p-3 border border-sky-900/30">
           <div className="text-[10px] text-gray-500 mb-1">Assigned</div>
-          <div className="text-lg font-bold font-mono text-green-400">{workers.filter(w => w.assignedTo).length}</div>
+          <div className="text-lg font-bold font-mono text-success">{workers.filter(w => w.assignedTo).length}</div>
         </div>
         <div className="game-card rounded-xl bg-card p-3 border border-sky-900/30">
           <div className="text-[10px] text-gray-500 mb-1">Total Efficiency</div>
@@ -241,8 +241,8 @@ export function WorkerPanel() {
                     description={def.description}
                     category="Worker"
                     details={[
-                      { label: 'Hire Cost', value: `$${formatNumber(def.baseHireCost)}`, color: canAfford ? 'text-green-400' : 'text-red-400' },
-                      { label: 'Efficiency /lv', value: `+${(def.effects.efficiency * 100).toFixed(0)}%`, color: 'text-green-400' },
+                      { label: 'Hire Cost', value: `$${formatNumber(def.baseHireCost)}`, color: canAfford ? 'text-success' : 'text-red-400' },
+                      { label: 'Efficiency /lv', value: `+${(def.effects.efficiency * 100).toFixed(0)}%`, color: 'text-success' },
                       { label: 'Speed /lv', value: `+${(def.effects.speed * 100).toFixed(0)}%`, color: 'text-cyan-400' },
                       { label: 'Maintenance /lv', value: `-${(def.effects.maintenance * 100).toFixed(0)}%`, color: 'text-orange-400' },
                       { label: 'Hired', value: `${count}` },
@@ -266,7 +266,7 @@ export function WorkerPanel() {
                     <div className="grid grid-cols-3 gap-1.5 mb-2">
                       <div className="bg-card rounded px-2 py-1 text-center">
                         <div className="text-[9px] text-gray-500">Eff/lv</div>
-                        <div className="text-[10px] font-mono text-green-400">+{(def.effects.efficiency * 100).toFixed(0)}%</div>
+                        <div className="text-[10px] font-mono text-success">+{(def.effects.efficiency * 100).toFixed(0)}%</div>
                       </div>
                       <div className="bg-card rounded px-2 py-1 text-center">
                         <div className="text-[9px] text-gray-500">Spd/lv</div>
@@ -341,7 +341,7 @@ export function WorkerPanel() {
                     </div>
                     {assignedWorker ? (
                       <div className="flex items-center gap-1.5">
-                        <Badge variant="outline" className="text-[8px] border-green-700 text-green-400 px-1.5 py-0">
+                        <Badge variant="outline" className="text-[8px] border-green-700 text-success px-1.5 py-0">
                           {assignedWorker.type.slice(0, 3).toUpperCase()} Lv.{assignedWorker.level}
                         </Badge>
                         <Button
@@ -415,7 +415,7 @@ export function WorkerPanel() {
                         </Badge>
                         <div className="ml-auto flex items-center gap-1">
                           {assignedDef ? (
-                            <Badge className="text-[9px] bg-green-900/20 text-green-400 border-0">
+                            <Badge className="text-[9px] bg-success/20 text-success border-0">
                               <GameIcon icon={assignedDef.icon} size={14} className="inline-flex" /> {assignedDef.name}
                             </Badge>
                           ) : (
@@ -441,7 +441,7 @@ export function WorkerPanel() {
                       <div className="grid grid-cols-3 gap-1.5 mb-2">
                         <div className="bg-card rounded px-2 py-0.5 text-center">
                           <div className="text-[9px] text-gray-500">Efficiency</div>
-                          <div className="text-[10px] font-mono text-green-400">{(worker.efficiency * 100).toFixed(0)}%</div>
+                          <div className="text-[10px] font-mono text-success">{(worker.efficiency * 100).toFixed(0)}%</div>
                         </div>
                         <div className="bg-card rounded px-2 py-0.5 text-center">
                           <div className="text-[9px] text-gray-500">Speed</div>
@@ -537,15 +537,15 @@ export function WorkerPanel() {
           {/* Worker Productivity Comparison */}
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
-              <TrendingUp className="w-4 h-4 text-green-400" />
-              <h3 className="text-sm font-semibold text-green-400">Productivity</h3>
+              <TrendingUp className="w-4 h-4 text-success" />
+              <h3 className="text-sm font-semibold text-success">Productivity</h3>
             </div>
 
             {/* Coverage bar */}
             <div className="mb-3">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[9px] text-gray-500">Building Coverage</span>
-                <span className="text-[9px] font-mono text-green-400">{productivityComparison.coveragePct.toFixed(0)}%</span>
+                <span className="text-[9px] font-mono text-success">{productivityComparison.coveragePct.toFixed(0)}%</span>
               </div>
               <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
                 <div
@@ -560,9 +560,9 @@ export function WorkerPanel() {
 
             {/* Assigned vs Unassigned comparison */}
             <div className="space-y-2">
-              <div className="bg-[#0a0e17] rounded-lg p-3 border border-green-900/30">
+              <div className="bg-[#0a0e17] rounded-lg p-3 border border-success/30">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] text-green-400 font-medium flex items-center gap-1">
+                  <span className="text-[10px] text-success font-medium flex items-center gap-1">
                     <Zap className="w-3 h-3" /> Assigned
                   </span>
                   <span className="text-[10px] font-mono text-gray-300">{productivityComparison.assignedCount} workers</span>
@@ -572,7 +572,7 @@ export function WorkerPanel() {
                 </div>
                 <div className="mt-1 h-1 bg-gray-800 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-green-500 rounded-full"
+                    className="h-full bg-success rounded-full"
                     style={{ width: `${Math.min(100, productivityComparison.assignedEff * 200)}%` }}
                   />
                 </div>
@@ -629,7 +629,7 @@ export function WorkerPanel() {
                         <span className="text-gray-600">|</span>
                         <span className="text-sky-400 font-mono">Avg Lv.{avgLevel}</span>
                         <span className="text-gray-600">|</span>
-                        <span className="text-green-400 font-mono">{assigned} assigned</span>
+                        <span className="text-success font-mono">{assigned} assigned</span>
                       </div>
                     </div>
                   </div>

@@ -126,7 +126,7 @@ export function PayoutPanel() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-gray-500 uppercase tracking-wider">Current Balance</p>
-              <p className="text-3xl font-bold text-green-400 font-mono mt-1">
+              <p className="text-3xl font-bold text-success font-mono mt-1">
                 ${formatNumber(money)}
               </p>
               <p className="text-[10px] text-gray-600 mt-1">
@@ -134,8 +134,8 @@ export function PayoutPanel() {
               </p>
             </div>
             <div className="text-right">
-              <div className="w-16 h-16 rounded-full bg-green-900/20 border-2 border-green-500/30 flex items-center justify-center">
-                <DollarSign className="w-8 h-8 text-green-400" />
+              <div className="w-16 h-16 rounded-full bg-success/20 border-2 border-success/30 flex items-center justify-center">
+                <DollarSign className="w-8 h-8 text-success" />
               </div>
             </div>
           </div>
@@ -173,27 +173,27 @@ export function PayoutPanel() {
         {/* Pending Payout Card */}
         <Card className="bg-card border-cyan-900/30">
           <CardHeader className="pb-2 pt-4 px-4">
-            <CardTitle className="text-xs text-green-400 flex items-center gap-1.5">
+            <CardTitle className="text-xs text-success flex items-center gap-1.5">
               <Coins className="w-3.5 h-3.5" /> Pending Payout
             </CardTitle>
           </CardHeader>
           <CardContent className="px-4 pb-4">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-2xl font-bold text-green-300 font-mono">
+                <span className="text-2xl font-bold text-success font-mono">
                   ${formatNumber(pendingPayout)}
                 </span>
                 {!payoutConfig.autoCollect && pendingPayout > 0 && (
                   <Button
                     size="sm"
-                    className="bg-green-600 hover:bg-green-500 text-white text-xs h-8 animate-pulse"
+                    className="bg-success hover:bg-success text-white text-xs h-8 animate-pulse"
                     onClick={collectPayout}
                   >
                     Collect
                   </Button>
                 )}
                 {payoutConfig.autoCollect && (
-                  <Badge variant="outline" className="text-[10px] border-green-500/40 text-green-400 bg-green-900/20">
+                  <Badge variant="outline" className="text-[10px] border-green-500/40 text-success bg-success/20">
                     AUTO
                   </Badge>
                 )}
@@ -203,7 +203,7 @@ export function PayoutPanel() {
                 <Switch
                   checked={payoutConfig.autoCollect}
                   onCheckedChange={toggleAutoCollect}
-                  className="data-[state=checked]:bg-green-600"
+                  className="data-[state=checked]:bg-success"
                 />
               </div>
               <p className="text-[10px] text-gray-600">
@@ -279,13 +279,13 @@ export function PayoutPanel() {
               </div>
               <div className="flex items-center justify-between mt-1">
                 <span className="text-xs text-gray-400">Avg Efficiency</span>
-                <span className={`text-xs font-mono ${avgEfficiency >= 0.8 ? 'text-green-400' : avgEfficiency >= 0.5 ? 'text-yellow-400' : 'text-red-400'}`}>
+                <span className={`text-xs font-mono ${avgEfficiency >= 0.8 ? 'text-success' : avgEfficiency >= 0.5 ? 'text-yellow-400' : 'text-red-400'}`}>
                   {(avgEfficiency * 100).toFixed(1)}%
                 </span>
               </div>
               <div className="flex items-center justify-between mt-2 pt-2 border-t border-cyan-900/15">
-                <span className="text-xs font-bold text-green-400">Est. Next Payout</span>
-                <span className="text-base font-mono font-bold text-green-400">${formatNumber(estimatedPayout)}</span>
+                <span className="text-xs font-bold text-success">Est. Next Payout</span>
+                <span className="text-base font-mono font-bold text-success">${formatNumber(estimatedPayout)}</span>
               </div>
               <div className="flex items-center justify-between mt-1">
                 <span className="text-[10px] text-gray-500">Est. Income / Min</span>
@@ -302,7 +302,7 @@ export function PayoutPanel() {
               <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
                 <div
                   className={`h-full transition-all duration-300 ${
-                    avgEfficiency >= 0.8 ? 'bg-green-500' : avgEfficiency >= 0.5 ? 'bg-yellow-500' : 'bg-red-500'
+                    avgEfficiency >= 0.8 ? 'bg-success' : avgEfficiency >= 0.5 ? 'bg-yellow-500' : 'bg-red-500'
                   }`}
                   style={{ width: `${avgEfficiency * 100}%` }}
                 />
@@ -329,7 +329,7 @@ export function PayoutPanel() {
         <Card className="bg-card border-cyan-900/30">
           <CardContent className="p-3 text-center">
             <p className="text-[10px] text-gray-500 uppercase">Income/Min</p>
-            <p className="text-lg font-bold text-green-400 font-mono">${formatNumber(incomePerMinute)}</p>
+            <p className="text-lg font-bold text-success font-mono">${formatNumber(incomePerMinute)}</p>
           </CardContent>
         </Card>
       </div>
@@ -372,7 +372,7 @@ export function PayoutPanel() {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] text-gray-500">{(record.efficiency * 100).toFixed(0)}% eff</span>
-                      <span className="text-xs font-mono text-green-400">+${formatNumber(record.amount)}</span>
+                      <span className="text-xs font-mono text-success">+${formatNumber(record.amount)}</span>
                     </div>
                   </div>
                 ))}

@@ -635,7 +635,7 @@ export function MarketPanel() {
                     {/* Player impact indicator */}
                     {(prod > 0 || cons > 0) && (
                       <div className="flex items-center gap-1 mt-1">
-                        {prod > 0 && <span className="text-[8px] text-green-500 font-mono">+{prod.toFixed(1)}/s</span>}
+                        {prod > 0 && <span className="text-[8px] text-success font-mono">+{prod.toFixed(1)}/s</span>}
                         {cons > 0 && <span className="text-[8px] text-orange-500 font-mono">-{cons.toFixed(1)}/s</span>}
                       </div>
                     )}
@@ -686,7 +686,7 @@ export function MarketPanel() {
                       aria-pressed={store.autoSellResources.includes(selected.resource)}
                       className={`px-2 py-1 rounded text-[9px] font-bold border ${
                         store.autoSellResources.includes(selected.resource)
-                          ? 'bg-green-900/30 text-success border-green-500/30'
+                          ? 'bg-success/30 text-success border-success/30'
                           : 'bg-gray-900 text-gray-500 border-gray-700 hover:border-gray-500'
                       }`}
                       title="Auto-sell when storage > 80%"
@@ -801,7 +801,7 @@ export function MarketPanel() {
                 </div>
 
                 {/* Trade Controls */}
-                <div className="game-card rounded-xl bg-card p-4 border border-green-900/30">
+                <div className="game-card rounded-xl bg-card p-4 border border-success/30">
                   <div className="flex items-center gap-2 mb-3">
                     <DollarSign className="w-4 h-4 text-success" />
                     <h3 className="text-sm font-semibold text-success">Trade</h3>
@@ -916,7 +916,7 @@ export function MarketPanel() {
                     <Button
                       onClick={handleSell}
                       disabled={maxSell < tradeAmount || isSelling}
-                      className="bg-green-600 hover:bg-success text-white text-xs"
+                      className="bg-success hover:bg-success text-white text-xs"
                       size="sm"
                     >
                       {isSelling ? <LoadingSpinner /> : <ArrowUpRight className="w-3 h-3 mr-1" />}
@@ -961,8 +961,8 @@ export function MarketPanel() {
                 </div>
                 <div className="flex items-center gap-2">
                   {llmState.loadState === 'ready' ? (
-                    <span className="flex items-center gap-1 text-[9px] text-success bg-green-900/20 border border-green-500/20 rounded-full px-2 py-0.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
+                    <span className="flex items-center gap-1 text-[9px] text-success bg-success/20 border border-success/20 rounded-full px-2 py-0.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-success inline-block" />
                       <Sparkles className="w-3 h-3" />
                       AI Enhanced
                     </span>

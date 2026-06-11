@@ -93,7 +93,7 @@ const TUTORIAL_STEPS: TutorialStep[] = [
 const CATEGORY_COLORS: Record<string, { dot: string; label: string }> = {
   gettingStarted: { dot: 'bg-cyan-400', label: 'Getting Started' },
   production: { dot: 'bg-amber-400', label: 'Production' },
-  economy: { dot: 'bg-green-400', label: 'Economy' },
+  economy: { dot: 'bg-success', label: 'Economy' },
   advanced: { dot: 'bg-purple-400', label: 'Advanced' },
 };
 
@@ -325,7 +325,7 @@ export function OnboardingPanel() {
         </div>
         {allCompleted && (
           <div className="mt-2 text-center">
-            <span className="text-xs text-green-400 font-medium inline-flex items-center gap-1">
+            <span className="text-xs text-success font-medium inline-flex items-center gap-1">
               <GameIcon icon="gi:party-popper" size={16} className="inline" /> All steps completed! Great job, Commander!
             </span>
           </div>
@@ -343,7 +343,7 @@ export function OnboardingPanel() {
               key={step.id}
               className={`game-card rounded-xl border ${
                 step.completed
-                  ? 'bg-card border-green-900/30'
+                  ? 'bg-card border-success/30'
                   : isNextStep
                     ? 'bg-card border-cyan-900/40 shadow-[0_0_15px_rgba(34,211,238,0.1)]'
                     : 'bg-card border-border'
@@ -359,7 +359,7 @@ export function OnboardingPanel() {
                   <div
                     className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
                       step.completed
-                        ? 'bg-green-900/30 text-green-400'
+                        ? 'bg-success/30 text-success'
                         : isNextStep
                           ? 'bg-cyan-900/30 text-cyan-400 neon-pulse'
                           : 'bg-gray-800/50 text-gray-500'
@@ -378,7 +378,7 @@ export function OnboardingPanel() {
                       <GameIcon icon={step.iconId} size={16} />
                       <h4
                         className={`text-sm font-semibold ${
-                          step.completed ? 'text-green-400' : isNextStep ? 'text-cyan-300' : 'text-gray-300'
+                          step.completed ? 'text-success' : isNextStep ? 'text-cyan-300' : 'text-gray-300'
                         }`}
                       >
                         {step.title}
@@ -389,7 +389,7 @@ export function OnboardingPanel() {
                         </Badge>
                       )}
                       {step.completed && (
-                        <Badge variant="outline" className="border-green-500/50 text-green-400 bg-green-900/20 text-[9px] h-4 px-1.5">
+                        <Badge variant="outline" className="border-success/50 text-success bg-success/20 text-[9px] h-4 px-1.5">
                           DONE
                         </Badge>
                       )}
@@ -437,8 +437,8 @@ export function OnboardingPanel() {
                       <div className="flex items-center gap-1.5">
                         {step.completed ? (
                           <>
-                            <Shield className="w-3.5 h-3.5 text-green-400" />
-                            <span className="text-[10px] text-green-400 font-medium">Step completed!</span>
+                            <Shield className="w-3.5 h-3.5 text-success" />
+                            <span className="text-[10px] text-success font-medium">Step completed!</span>
                           </>
                         ) : (
                           <>
@@ -511,7 +511,7 @@ export function OnboardingPanel() {
             </p>
           </div>
           <div className="bg-[#0a0e17] rounded-lg p-3">
-            <div className="text-xs text-green-400 font-medium mb-1 flex items-center gap-1"><GameIcon icon="lucide:coins" size={12} className="inline-flex" /> Economy</div>
+            <div className="text-xs text-success font-medium mb-1 flex items-center gap-1"><GameIcon icon="lucide:coins" size={12} className="inline-flex" /> Economy</div>
             <p className="text-[10px] text-gray-500">
               Sell resources on the Market for cash. Complete Contracts for big payouts. Use money to build and upgrade your factory.
             </p>
@@ -534,7 +534,7 @@ export function OnboardingPanel() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <div className="bg-[#0a0e17] rounded-lg p-3 text-center">
             <div className="text-[10px] text-gray-500 mb-0.5">Money</div>
-            <div className="text-sm font-bold font-mono text-green-400">${formatNumber(store.money)}</div>
+            <div className="text-sm font-bold font-mono text-success">${formatNumber(store.money)}</div>
           </div>
           <div className="bg-[#0a0e17] rounded-lg p-3 text-center">
             <div className="text-[10px] text-gray-500 mb-0.5">Buildings</div>

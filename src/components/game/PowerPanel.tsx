@@ -27,7 +27,7 @@ const POWER_PLANT_META: Record<string, { icon: React.ReactNode; color: string; l
   coalGenerator: { icon: <Flame className="w-4 h-4" />, color: '#ff6600', label: 'Coal', glowClass: 'text-orange-400', icon: 'gi:fire' },
   solarPanel: { icon: <Sun className="w-4 h-4" />, color: '#ffff00', label: 'Solar', glowClass: 'text-yellow-400', icon: 'gi:sun' },
   windTurbine: { icon: <Wind className="w-4 h-4" />, color: '#00ccff', label: 'Wind', glowClass: 'text-cyan-400', icon: 'gi:air-zigzag' },
-  nuclearReactor: { icon: <Atom className="w-4 h-4" />, color: '#00ff66', label: 'Nuclear', glowClass: 'text-green-400', icon: 'gi:nuclear' },
+  nuclearReactor: { icon: <Atom className="w-4 h-4" />, color: '#00ff66', label: 'Nuclear', glowClass: 'text-success', icon: 'gi:nuclear' },
   antimatterPowerPlant: { icon: <Zap className="w-4 h-4" />, color: '#ff00ff', label: 'Antimatter', glowClass: 'text-fuchsia-400', icon: 'gi:lightning-frequency' },
 };
 
@@ -215,7 +215,7 @@ export function PowerPanel() {
     if (powerStatus === 'balanced') {
       return { icon: 'lucide:lightbulb', text: 'Consider adding surplus capacity for expansion', color: 'text-yellow-400', bg: 'bg-yellow-900/20 border-yellow-800/40' };
     }
-    return { icon: 'lucide:check-circle', text: 'Great! You have room to expand production', color: 'text-green-400', bg: 'bg-green-900/20 border-green-800/40' };
+    return { icon: 'lucide:check-circle', text: 'Great! You have room to expand production', color: 'text-success', bg: 'bg-success/20 border-green-800/40' };
   }, [powerStatus]);
 
   // Power production history from productionHistory
@@ -249,7 +249,7 @@ export function PowerPanel() {
 
   // Flow line color
   const flowColor = powerStatus === 'surplus' ? '#39ff14' : powerStatus === 'balanced' ? '#ffff00' : '#ff0040';
-  const flowColorClass = powerStatus === 'surplus' ? 'border-green-500/50' : powerStatus === 'balanced' ? 'border-yellow-500/50' : 'border-red-500/50';
+  const flowColorClass = powerStatus === 'surplus' ? 'border-success/50' : powerStatus === 'balanced' ? 'border-yellow-500/50' : 'border-red-500/50';
   const flowGlowClass = powerStatus === 'surplus' ? 'shadow-[0_0_8px_#39ff14]' : powerStatus === 'balanced' ? 'shadow-[0_0_8px_#ffff00]' : 'shadow-[0_0_8px_#ff0040]';
 
   return (
@@ -274,7 +274,7 @@ export function PowerPanel() {
             variant="outline"
             className={`text-xs ${
               powerStatus === 'surplus'
-                ? 'border-green-500/50 text-green-400 bg-green-900/20'
+                ? 'border-success/50 text-success bg-success/20'
                 : powerStatus === 'balanced'
                   ? 'border-yellow-500/50 text-yellow-400 bg-yellow-900/20'
                   : 'border-red-500/50 text-red-400 bg-red-900/20'
@@ -300,12 +300,12 @@ export function PowerPanel() {
             <motion.div
             >
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                powerStatus === 'surplus' ? 'bg-green-900/20' :
+                powerStatus === 'surplus' ? 'bg-success/20' :
                 powerStatus === 'balanced' ? 'bg-yellow-900/20' :
                 'bg-red-900/20'
               }`}>
                 <Zap className={`w-5 h-5 ${
-                  powerStatus === 'surplus' ? 'text-green-400' :
+                  powerStatus === 'surplus' ? 'text-success' :
                   powerStatus === 'balanced' ? 'text-yellow-400' :
                   'text-red-400'
                 }`} />
@@ -314,7 +314,7 @@ export function PowerPanel() {
             <div>
               <h3 className="text-sm font-semibold text-gray-200">Power Grid Status</h3>
               <p className={`text-xs font-medium ${
-                powerStatus === 'surplus' ? 'text-green-400' :
+                powerStatus === 'surplus' ? 'text-success' :
                 powerStatus === 'balanced' ? 'text-yellow-400' :
                 'text-red-400'
               }`}>
@@ -331,8 +331,8 @@ export function PowerPanel() {
         <div className="relative mb-4">
           <div className="flex items-center justify-between text-xs mb-2">
             <div className="flex items-center gap-1.5">
-              <ArrowUpRight className="w-3.5 h-3.5 text-green-400" />
-              <span className="text-green-400 font-mono font-bold text-sm">{formatNumber(totalRealProduction)}</span>
+              <ArrowUpRight className="w-3.5 h-3.5 text-success" />
+              <span className="text-success font-mono font-bold text-sm">{formatNumber(totalRealProduction)}</span>
               <span className="text-gray-500">MW production</span>
             </div>
             <div className="flex items-center gap-1.5">
@@ -499,7 +499,7 @@ export function PowerPanel() {
               <motion.div
                 className={`w-16 h-16 rounded-full border-2 flex items-center justify-center ${
                   powerStatus === 'surplus'
-                    ? 'border-green-500/50 bg-green-900/20'
+                    ? 'border-success/50 bg-success/20'
                     : powerStatus === 'balanced'
                       ? 'border-yellow-500/50 bg-yellow-900/20'
                       : 'border-red-500/50 bg-red-900/20'
@@ -518,7 +518,7 @@ export function PowerPanel() {
                 }}
               >
                 <Zap className={`w-7 h-7 ${
-                  powerStatus === 'surplus' ? 'text-green-400' :
+                  powerStatus === 'surplus' ? 'text-success' :
                   powerStatus === 'balanced' ? 'text-yellow-400' :
                   'text-red-400'
                 }`} />
@@ -581,7 +581,7 @@ export function PowerPanel() {
               </div>
               <div className="text-[9px] text-gray-500">{buildings.filter(b => BUILDING_DEFS[b.type]?.category !== 'power' && b.active).length} buildings</div>
               <div className={`text-[8px] mt-1 px-1.5 py-0.5 rounded ${
-                realtimeEfficiency >= 0.8 ? 'bg-green-900/20 text-green-400' :
+                realtimeEfficiency >= 0.8 ? 'bg-success/20 text-success' :
                 realtimeEfficiency >= 0.5 ? 'bg-yellow-900/20 text-yellow-400' :
                 'bg-red-900/20 text-red-400'
               }`}>
@@ -632,15 +632,15 @@ export function PowerPanel() {
               category="Power Plant"
               tier={def.tier}
               details={[
-                { label: 'Power Production', value: `${def.basePowerProduction} MW`, color: 'text-green-400' },
+                { label: 'Power Production', value: `${def.basePowerProduction} MW`, color: 'text-success' },
                 { label: 'Power Consumption', value: `${def.basePowerConsumption} MW` },
                 ...(def.fuel ? [{ label: 'Fuel Type', value: RESOURCE_META[def.fuel].name, color: 'text-orange-400' }] : []),
                 ...(def.fuelRate ? [{ label: 'Fuel Rate', value: `${(def.fuelRate).toFixed(1)}/s`, color: 'text-orange-400' }] : []),
-                { label: 'Build Cost', value: `$${formatNumber(getBuildingCost(type, instances.length))}`, color: money >= getBuildingCost(type, instances.length) ? 'text-green-400' : 'text-red-400' },
+                { label: 'Build Cost', value: `$${formatNumber(getBuildingCost(type, instances.length))}`, color: money >= getBuildingCost(type, instances.length) ? 'text-success' : 'text-red-400' },
                 { label: 'Current Output', value: `${formatNumber(output)} MW`, color: 'text-yellow-400' },
               ]}
               requirements={[
-                ...(def.unlockRequirement?.research ? [{ label: 'Research', value: RESEARCH_TREE.find(r => r.id === def.unlockRequirement!.research)?.name ?? def.unlockRequirement.research, color: completedResearch.includes(def.unlockRequirement.research) ? 'text-green-400' : 'text-red-400' }] : []),
+                ...(def.unlockRequirement?.research ? [{ label: 'Research', value: RESEARCH_TREE.find(r => r.id === def.unlockRequirement!.research)?.name ?? def.unlockRequirement.research, color: completedResearch.includes(def.unlockRequirement.research) ? 'text-success' : 'text-red-400' }] : []),
               ]}
               side="bottom"
             >
@@ -689,7 +689,7 @@ export function PowerPanel() {
                     <div className="w-12 h-1 bg-gray-800 rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full ${
-                          variationPct >= 70 ? 'bg-green-500' : variationPct >= 40 ? 'bg-yellow-500' : 'bg-cyan-500'
+                          variationPct >= 70 ? 'bg-success' : variationPct >= 40 ? 'bg-yellow-500' : 'bg-cyan-500'
                         }`}
                         style={{ width: `${variationPct}%` }}
                       />
@@ -730,8 +730,8 @@ export function PowerPanel() {
       {powerHistory.length > 1 && (
         <div className="game-card rounded-xl bg-card p-4 border border-border">
           <div className="flex items-center gap-2 mb-3">
-            <TrendingUp className="w-4 h-4 text-green-400" />
-            <h3 className="text-sm font-semibold text-green-400">Power Production History</h3>
+            <TrendingUp className="w-4 h-4 text-success" />
+            <h3 className="text-sm font-semibold text-success">Power Production History</h3>
             <span className="text-[9px] text-gray-600 ml-auto">Last {powerHistory.length} snapshots</span>
           </div>
           <div className="h-16 bg-[#0a0e17] rounded-lg p-1">
@@ -832,7 +832,7 @@ export function PowerPanel() {
                             onClick={() => handleToggle(plant.id)}
                             className={`w-6 h-6 rounded-full flex items-center justify-center border ${
                               plant.active
-                                ? 'border-green-500/50 bg-green-900/20 text-green-400'
+                                ? 'border-success/50 bg-success/20 text-success'
                                 : 'border-gray-700 bg-gray-800 text-gray-500'
                             }`}
                           >
@@ -985,7 +985,7 @@ export function PowerPanel() {
             <div className="mt-3 pt-3 border-t border-gray-800">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs text-gray-400">Total Production</span>
-                <span className="text-sm font-mono font-bold text-green-400">{formatNumber(totalRealProduction)} MW</span>
+                <span className="text-sm font-mono font-bold text-success">{formatNumber(totalRealProduction)} MW</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-400">Total Demand</span>

@@ -525,7 +525,7 @@ export function ResourcePanel() {
                             <GameIcon icon={meta.icon} size={14} className="inline-flex" />
                             <div className="min-w-0">
                               <div className="text-[10px] text-gray-300 font-medium truncate">{meta.name}</div>
-                              <div className={`text-[9px] font-mono ${net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : prod > 0 && cons > 0 ? 'text-cyan-400' : 'text-gray-600'}`}>
+                              <div className={`text-[9px] font-mono ${net > 0 ? 'text-success' : net < 0 ? 'text-red-400' : prod > 0 && cons > 0 ? 'text-cyan-400' : 'text-gray-600'}`}>
                                 {net > 0 ? `+${formatNumber(net)}/s` : net < 0 ? `${formatNumber(net)}/s` : prod > 0 && cons > 0 ? '±0/s' : '—'}
                               </div>
                             </div>
@@ -610,13 +610,13 @@ export function ResourcePanel() {
                         tier={def.tier}
                         details={[
                           { label: 'Production Rate', value: `${def.baseProductionRate.toFixed(1)}/s` },
-                          ...(def.outputs?.map(o => ({ label: `Output: ${RESOURCE_META[o.resource].name}`, value: `${(o.amount * def.baseProductionRate).toFixed(1)}/s`, color: 'text-green-400' })) ?? []),
+                          ...(def.outputs?.map(o => ({ label: `Output: ${RESOURCE_META[o.resource].name}`, value: `${(o.amount * def.baseProductionRate).toFixed(1)}/s`, color: 'text-success' })) ?? []),
                           { label: 'Power Consumption', value: `${def.basePowerConsumption} MW`, color: 'text-yellow-400' },
-                          { label: 'Build Cost', value: `$${formatNumber(cost)}`, color: canAfford ? 'text-green-400' : 'text-red-400' },
+                          { label: 'Build Cost', value: `$${formatNumber(cost)}`, color: canAfford ? 'text-success' : 'text-red-400' },
                           { label: 'Cost Multiplier', value: `x${def.costMultiplier}` },
                         ]}
                         requirements={[
-                          ...(def.unlockRequirement?.research ? [{ label: 'Research', value: RESEARCH_TREE.find(r => r.id === def.unlockRequirement!.research)?.name ?? def.unlockRequirement.research, color: completedResearch.includes(def.unlockRequirement.research) ? 'text-green-400' : 'text-red-400' }] : []),
+                          ...(def.unlockRequirement?.research ? [{ label: 'Research', value: RESEARCH_TREE.find(r => r.id === def.unlockRequirement!.research)?.name ?? def.unlockRequirement.research, color: completedResearch.includes(def.unlockRequirement.research) ? 'text-success' : 'text-red-400' }] : []),
                           ...(def.unlockRequirement?.level ? [{ label: 'Level Required', value: `${def.unlockRequirement.level}`, color: 'text-amber-400' }] : []),
                         ]}
                         side="bottom"
@@ -647,7 +647,7 @@ export function ResourcePanel() {
                         <div className="mb-2">
                           <div className="flex items-center gap-0.5 flex-wrap">
                             {def.outputs?.map((out, i) => (
-                              <span key={i} className="text-[8px] text-green-300/80 bg-green-900/20 rounded px-1 py-px">
+                              <span key={i} className="text-[8px] text-success/80 bg-success/20 rounded px-1 py-px">
                                 <GameIcon icon={RESOURCE_META[out.resource].icon} size={10} className="inline-flex" />{(out.amount * def.baseProductionRate).toFixed(1)}/s
                               </span>
                             ))}
@@ -656,7 +656,7 @@ export function ResourcePanel() {
 
                         {/* Cost + Power */}
                         <div className="flex items-center justify-between mb-2">
-                          <span className={`text-[10px] font-mono font-bold ${canAfford ? 'text-green-400' : 'text-red-400'}`}>
+                          <span className={`text-[10px] font-mono font-bold ${canAfford ? 'text-success' : 'text-red-400'}`}>
                             ${formatNumber(cost)}
                           </span>
                           <span className="flex items-center gap-0.5 text-[9px] text-gray-500">
@@ -759,7 +759,7 @@ export function ResourcePanel() {
                                   {effectiveOutputs.map(({ resource: _r, rate, meta }, i) => (
                                     <div key={i} className="flex items-center gap-0.5 bg-green-900/15 rounded px-1 py-px">
                                       <GameIcon icon={meta.icon} size={10} className="inline-flex" />
-                                      <span className={`text-[8px] font-mono ${building.active ? 'text-green-400' : 'text-gray-500'}`}>
+                                      <span className={`text-[8px] font-mono ${building.active ? 'text-success' : 'text-gray-500'}`}>
                                         +{formatNumber(rate)}
                                       </span>
                                     </div>
@@ -780,7 +780,7 @@ export function ResourcePanel() {
                                     />
                                   </div>
                                   <span className={`text-[8px] font-mono ${
-                                    eff >= 0.8 ? 'text-green-400' : eff >= 0.5 ? 'text-yellow-400' : 'text-red-400'
+                                    eff >= 0.8 ? 'text-success' : eff >= 0.5 ? 'text-yellow-400' : 'text-red-400'
                                   }`}>
                                     {(eff * 100).toFixed(0)}%
                                   </span>
@@ -801,7 +801,7 @@ export function ResourcePanel() {
                                   onClick={() => handleToggle(building.id)}
                                   className={`w-6 h-6 rounded-full flex items-center justify-center border ${
                                     building.active
-                                      ? 'border-green-500/50 bg-green-900/20 text-green-400'
+                                      ? 'border-success/50 bg-success/20 text-success'
                                       : 'border-gray-700 bg-gray-800 text-gray-500'
                                   }`}
                                 >
@@ -882,7 +882,7 @@ export function ResourcePanel() {
                         <span className="text-[11px] text-gray-200 font-medium">{meta.name}</span>
                       </div>
                       {netRate !== 0 ? (
-                        <span className={`text-[9px] font-mono ${netRate > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        <span className={`text-[9px] font-mono ${netRate > 0 ? 'text-success' : 'text-red-400'}`}>
                           {netRate > 0 ? '+' : ''}{formatNumber(netRate)}/s
                         </span>
                       ) : prodRate > 0 ? (
@@ -924,8 +924,8 @@ export function ResourcePanel() {
                       <div className="flex items-center justify-between mt-1">
                         {prodRate > 0 && (
                           <div className="flex items-center gap-0.5">
-                            <ArrowUpFromLine className="w-2 h-2 text-green-500" />
-                            <span className="text-[8px] text-green-400 font-mono">{formatNumber(prodRate)}</span>
+                            <ArrowUpFromLine className="w-2 h-2 text-success" />
+                            <span className="text-[8px] text-success font-mono">{formatNumber(prodRate)}</span>
                           </div>
                         )}
                         {consRate > 0 && (
@@ -978,15 +978,15 @@ export function ResourcePanel() {
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-green-400" />
-                <h3 className="text-sm font-semibold text-green-400">Resource Flow</h3>
+                <TrendingUp className="w-4 h-4 text-success" />
+                <h3 className="text-sm font-semibold text-success">Resource Flow</h3>
               </div>
               <span className="text-[10px] text-gray-500">net/s</span>
             </div>
             {resourceFlow.length === 0 ? (
               <div className="game-card-empty rounded-xl p-6 text-center">
                 <div className="mb-2"><GameIcon icon="gi:chart" size={28} /></div>
-                <h3 className="text-sm font-bold text-green-400 mb-1">No Resource Flow Yet</h3>
+                <h3 className="text-sm font-bold text-success mb-1">No Resource Flow Yet</h3>
                 <p className="text-xs text-gray-400">Build extractors to generate resources and see the flow visualization</p>
               </div>
             ) : (
@@ -1029,7 +1029,7 @@ export function ResourcePanel() {
                             )}
                           </span>
                           <span className={`text-[10px] font-mono font-bold ${
-                            net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : rate > 0 && consRate > 0 ? 'text-cyan-400' : 'text-gray-600'
+                            net > 0 ? 'text-success' : net < 0 ? 'text-red-400' : rate > 0 && consRate > 0 ? 'text-cyan-400' : 'text-gray-600'
                           }`}>
                             {net > 0 ? `+${formatNumber(net)}/s` : net < 0 ? `${formatNumber(net)}/s` : rate > 0 && consRate > 0 ? '±0/s' : '—'}
                           </span>
@@ -1057,7 +1057,7 @@ export function ResourcePanel() {
                           </div>
 
                           {/* Labels */}
-                          <span className="absolute left-1 text-[7px] text-green-400 font-mono">{formatNumber(rate)}</span>
+                          <span className="absolute left-1 text-[7px] text-success font-mono">{formatNumber(rate)}</span>
                           <span className="absolute right-1 text-[7px] text-red-400 font-mono">{formatNumber(consRate)}</span>
                         </div>
                       </div>

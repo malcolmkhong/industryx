@@ -43,7 +43,7 @@ const FLOW_TIERS = [
   { key: 't1', label: 'T1 Processing', icon: <Flame className="w-4 h-4" />, color: '#22d3ee', bgClass: 'bg-cyan-900/20', borderClass: 'border-cyan-700/40', textClass: 'text-cyan-400' },
   { key: 't2', label: 'T2 Manufacturing', icon: <Cog className="w-4 h-4" />, color: '#f97316', bgClass: 'bg-orange-900/20', borderClass: 'border-orange-700/40', textClass: 'text-orange-400' },
   { key: 't3', label: 'T3 High-Tech', icon: <Sparkles className="w-4 h-4" />, color: '#a855f7', bgClass: 'bg-purple-900/20', borderClass: 'border-purple-700/40', textClass: 'text-purple-400' },
-  { key: 't4', label: 'T4 Singularity', icon: <Sparkles className="w-4 h-4" />, color: '#00ffcc', bgClass: 'bg-emerald-900/20', borderClass: 'border-emerald-700/40', textClass: 'text-emerald-400' },
+  { key: 't4', label: 'T4 Singularity', icon: <Sparkles className="w-4 h-4" />, color: '#00ffcc', bgClass: 'bg-success/20', borderClass: 'border-emerald-700/40', textClass: 'text-success' },
 ] as const;
 
 // Resource tier mapping for flow diagram
@@ -523,7 +523,7 @@ export function FactoryPanel() {
                             <GameIcon icon={meta.icon} size={14} className="inline-flex" />
                             <div className="min-w-0">
                               <div className="text-[10px] text-gray-300 font-medium truncate">{meta.name}</div>
-                              <div className={`text-[9px] font-mono ${net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : prod > 0 && cons > 0 ? 'text-cyan-400' : 'text-gray-600'}`}>
+                              <div className={`text-[9px] font-mono ${net > 0 ? 'text-success' : net < 0 ? 'text-red-400' : prod > 0 && cons > 0 ? 'text-cyan-400' : 'text-gray-600'}`}>
                                 {net > 0 ? `+${formatNumber(net)}/s` : net < 0 ? `${formatNumber(net)}/s` : prod > 0 && cons > 0 ? '±0/s' : '—'}
                               </div>
                             </div>
@@ -635,13 +635,13 @@ export function FactoryPanel() {
                         tier={def.tier}
                         details={[
                           ...(def.inputs?.map(inp => ({ label: `Input: ${RESOURCE_META[inp.resource].name}`, value: `${(inp.amount).toFixed(1)}/s`, color: 'text-red-400' })) ?? []),
-                          ...(def.outputs?.map(o => ({ label: `Output: ${RESOURCE_META[o.resource].name}`, value: `${(o.amount * def.baseProductionRate).toFixed(1)}/s`, color: 'text-green-400' })) ?? []),
+                          ...(def.outputs?.map(o => ({ label: `Output: ${RESOURCE_META[o.resource].name}`, value: `${(o.amount * def.baseProductionRate).toFixed(1)}/s`, color: 'text-success' })) ?? []),
                           { label: 'Power Consumption', value: `${def.basePowerConsumption} MW`, color: 'text-yellow-400' },
-                          { label: 'Build Cost', value: `$${formatNumber(cost)}`, color: canAfford ? 'text-green-400' : 'text-red-400' },
+                          { label: 'Build Cost', value: `$${formatNumber(cost)}`, color: canAfford ? 'text-success' : 'text-red-400' },
                           { label: 'Cost Multiplier', value: `x${def.costMultiplier}` },
                         ]}
                         requirements={[
-                          ...(def.unlockRequirement?.research ? [{ label: 'Research', value: RESEARCH_TREE.find(r => r.id === def.unlockRequirement!.research)?.name ?? def.unlockRequirement.research, color: completedResearch.includes(def.unlockRequirement.research) ? 'text-green-400' : 'text-red-400' }] : []),
+                          ...(def.unlockRequirement?.research ? [{ label: 'Research', value: RESEARCH_TREE.find(r => r.id === def.unlockRequirement!.research)?.name ?? def.unlockRequirement.research, color: completedResearch.includes(def.unlockRequirement.research) ? 'text-success' : 'text-red-400' }] : []),
                         ]}
                         side="bottom"
                       >
@@ -692,7 +692,7 @@ export function FactoryPanel() {
                               <ArrowRight className="w-2 h-2 text-gray-600 flex-shrink-0" />
                             )}
                             {def.outputs?.map((out, i) => (
-                              <span key={i} className="text-[8px] text-green-300/80 bg-green-900/20 rounded px-1 py-px">
+                              <span key={i} className="text-[8px] text-success/80 bg-success/20 rounded px-1 py-px">
                                 <GameIcon icon={RESOURCE_META[out.resource].icon} size={10} className="inline-flex" />{out.amount}
                               </span>
                             ))}
@@ -701,7 +701,7 @@ export function FactoryPanel() {
 
                         {/* Cost + Power */}
                         <div className="flex items-center justify-between mb-2">
-                          <span className={`text-[10px] font-mono font-bold ${canAfford ? 'text-green-400' : 'text-red-400'}`}>
+                          <span className={`text-[10px] font-mono font-bold ${canAfford ? 'text-success' : 'text-red-400'}`}>
                             ${formatNumber(cost)}
                           </span>
                           <span className="flex items-center gap-0.5 text-[9px] text-gray-500">
@@ -835,7 +835,7 @@ export function FactoryPanel() {
                                   {effectiveOutputs.map(({ resource: _r, rate, meta }, i) => (
                                     <div key={i} className="flex items-center gap-0.5 bg-green-900/15 rounded px-1 py-px">
                                       <GameIcon icon={meta.icon} size={12} className="inline-flex" />
-                                      <span className={`text-[8px] font-mono ${building.active ? 'text-green-400' : 'text-gray-500'}`}>
+                                      <span className={`text-[8px] font-mono ${building.active ? 'text-success' : 'text-gray-500'}`}>
                                         +{formatNumber(rate)}
                                       </span>
                                     </div>
@@ -856,7 +856,7 @@ export function FactoryPanel() {
                                     />
                                   </div>
                                   <span className={`text-[8px] font-mono ${
-                                    eff >= 0.8 ? 'text-green-400' : eff >= 0.5 ? 'text-yellow-400' : 'text-red-400'
+                                    eff >= 0.8 ? 'text-success' : eff >= 0.5 ? 'text-yellow-400' : 'text-red-400'
                                   }`}>
                                     {(eff * 100).toFixed(0)}%
                                   </span>
@@ -869,7 +869,7 @@ export function FactoryPanel() {
                                   onClick={() => handleToggle(building.id)}
                                   className={`w-6 h-6 rounded-full flex items-center justify-center border ${
                                     building.active
-                                      ? 'border-green-500/50 bg-green-900/20 text-green-400'
+                                      ? 'border-success/50 bg-success/20 text-success'
                                       : 'border-gray-700 bg-gray-800 text-gray-500'
                                   }`}
                                 >
@@ -978,7 +978,7 @@ export function FactoryPanel() {
                               <div className="flex items-center justify-between">
                                 <span className="text-[10px] text-gray-200 font-medium">{meta.name}</span>
                                 <span className={`text-[9px] font-mono ${
-                                  net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : production > 0 && consumption > 0 ? 'text-cyan-400' : 'text-gray-600'
+                                  net > 0 ? 'text-success' : net < 0 ? 'text-red-400' : production > 0 && consumption > 0 ? 'text-cyan-400' : 'text-gray-600'
                                 }`}>
                                   {net > 0 ? `+${formatNumber(net)}/s` : net < 0 ? `${formatNumber(net)}/s` : production > 0 && consumption > 0 ? '±0/s' : '—'}
                                 </span>
@@ -1034,10 +1034,10 @@ export function FactoryPanel() {
             </div>
             <div className="space-y-2.5">
               <OverviewRow label="Total Factories" value={totalFactories.toString()} color="text-gray-200" />
-              <OverviewRow label="Active" value={`${activeFactories}/${totalFactories}`} color="text-green-400" />
+              <OverviewRow label="Active" value={`${activeFactories}/${totalFactories}`} color="text-success" />
               <OverviewRow label="Power Draw" value={`${formatNumber(totalPowerConsumption)} MW`} color="text-yellow-400" />
               <OverviewRow label="Avg Efficiency" value={`${(avgEfficiency * 100).toFixed(1)}%`} color={
-                avgEfficiency >= 0.8 ? 'text-green-400' : avgEfficiency >= 0.5 ? 'text-yellow-400' : 'text-red-400'
+                avgEfficiency >= 0.8 ? 'text-success' : avgEfficiency >= 0.5 ? 'text-yellow-400' : 'text-red-400'
               } />
               <OverviewRow label="Product Types" value={Object.keys(factoryProductionRates).length.toString()} color="text-cyan-400" />
               <OverviewRow label="Factories Built" value={stats.factoriesBuilt.toString()} color="text-gray-300" />
@@ -1048,8 +1048,8 @@ export function FactoryPanel() {
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <ArrowUpFromLine className="w-4 h-4 text-green-400" />
-                <h3 className="text-sm font-semibold text-green-400">Top Production</h3>
+                <ArrowUpFromLine className="w-4 h-4 text-success" />
+                <h3 className="text-sm font-semibold text-success">Top Production</h3>
               </div>
               <span className="text-[10px] text-gray-500">per second</span>
             </div>
@@ -1073,8 +1073,8 @@ export function FactoryPanel() {
                           <span className="text-xs text-gray-300">{meta.name}</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <ArrowUpFromLine className="w-3 h-3 text-green-400" />
-                          <span className="text-xs text-green-400 font-mono font-bold">+{formatNumber(rate)}</span>
+                          <ArrowUpFromLine className="w-3 h-3 text-success" />
+                          <span className="text-xs text-success font-mono font-bold">+{formatNumber(rate)}</span>
                           <span className="text-[10px] text-gray-500">/s</span>
                         </div>
                       </div>
@@ -1123,7 +1123,7 @@ export function FactoryPanel() {
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-[9px] text-gray-500">Stock: {formatNumber(stock)}</span>
-                          <span className={`text-[9px] font-mono ${net > 0 ? 'text-green-400' : net < 0 ? 'text-red-400' : production > 0 && rate > 0 ? 'text-cyan-400' : 'text-gray-600'}`}>
+                          <span className={`text-[9px] font-mono ${net > 0 ? 'text-success' : net < 0 ? 'text-red-400' : production > 0 && rate > 0 ? 'text-cyan-400' : 'text-gray-600'}`}>
                             {net > 0 ? `+${formatNumber(net)}/s` : net < 0 ? `${formatNumber(net)}/s` : production > 0 && rate > 0 ? '±0/s' : '—'} net
                           </span>
                         </div>

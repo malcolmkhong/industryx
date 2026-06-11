@@ -97,7 +97,7 @@ const REASON_CONFIGS: Record<LoginPromptReason, ReasonConfig> = {
     mode: 'hard_gate',
     title: 'Trading Post Requires Account',
     description: 'Player-to-player trading requires authentication to prevent fraud and protect both parties.',
-    icon: <ArrowRightLeft className="w-5 h-5 text-emerald-400" />,
+    icon: <ArrowRightLeft className="w-5 h-5 text-success" />,
     benefits: [
       'Trade resources with other players',
       'Get better deals than the market',
@@ -123,7 +123,7 @@ const REASON_CONFIGS: Record<LoginPromptReason, ReasonConfig> = {
     mode: 'soft_prompt',
     title: 'Protect Your Progress!',
     description: 'You\'ve been building for a while. Don\'t risk losing everything to a browser clear or accident!',
-    icon: <Shield className="w-5 h-5 text-green-400" />,
+    icon: <Shield className="w-5 h-5 text-success" />,
     benefits: [
       'Cloud backup — never lose progress',
       'Play on any device',
@@ -279,8 +279,8 @@ export function LoginFloatingPanel({ open, reason, onClose, onSignInStart }: Log
             <div className="space-y-2 mb-5">
               {config.benefits.map((benefit, i) => (
                 <div key={i} className="flex items-center gap-2.5 text-sm text-gray-300">
-                  <div className="w-5 h-5 rounded-full bg-emerald-900/30 flex items-center justify-center flex-shrink-0 border border-emerald-800/30">
-                    <svg className="w-3 h-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <div className="w-5 h-5 rounded-full bg-success/30 flex items-center justify-center flex-shrink-0 border border-emerald-800/30">
+                    <svg className="w-3 h-3 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>

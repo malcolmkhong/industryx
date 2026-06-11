@@ -90,7 +90,7 @@ export function EventPanel() {
                         variant="outline"
                         className={`text-[10px] ${
                           effect.value > 1
-                            ? 'border-green-700 text-green-400'
+                            ? 'border-green-700 text-success'
                             : 'border-red-700 text-red-400'
                         }`}
                       >

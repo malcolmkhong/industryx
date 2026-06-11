@@ -23,7 +23,7 @@ export function ResearchPanel() {
     { id: 'automation', name: 'Automation', icon: <Cog className="w-4 h-4" />, color: 'text-orange-400' },
     { id: 'logistics', name: 'Logistics', icon: <Truck className="w-4 h-4" />, color: 'text-blue-400' },
     { id: 'energy', name: 'Energy', icon: <Zap className="w-4 h-4" />, color: 'text-yellow-400' },
-    { id: 'ai', name: 'Electronics & AI', icon: <Brain className="w-4 h-4" />, color: 'text-green-400' },
+    { id: 'ai', name: 'Electronics & AI', icon: <Brain className="w-4 h-4" />, color: 'text-success' },
     { id: 'robotics', name: 'Robotics', icon: <Bot className="w-4 h-4" />, color: 'text-pink-400' },
     { id: 'quantum', name: 'Quantum Tech', icon: <Atom className="w-4 h-4" />, color: 'text-purple-400' },
   ];
@@ -158,7 +158,7 @@ export function ResearchPanel() {
                           return {
                             label: 'Prerequisite',
                             value: preNode?.name ?? pre,
-                            color: store.completedResearch.includes(pre) ? 'text-green-400' : 'text-red-400',
+                            color: store.completedResearch.includes(pre) ? 'text-success' : 'text-red-400',
                           };
                         }),
                       ]}
@@ -167,7 +167,7 @@ export function ResearchPanel() {
                     <div
                       className={`rounded-lg p-3 ${
                         isCompleted
-                          ? 'bg-green-900/10 border border-green-900/30'
+                          ? 'bg-green-900/10 border border-success/30'
                           : isActive
                             ? 'bg-purple-900/10 border border-purple-500/30 neon-pulse shadow-[0_0_15px_rgba(168,85,247,0.15)]'
                             : isAvailable
@@ -177,13 +177,13 @@ export function ResearchPanel() {
                     >
                       <div className="flex items-center gap-3">
                         <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg ${
-                          isCompleted ? 'bg-green-900/30' : isActive ? 'bg-purple-900/30' : 'bg-gray-800/50'
+                          isCompleted ? 'bg-success/30' : isActive ? 'bg-purple-900/30' : 'bg-gray-800/50'
                         }`}>
                           {isCompleted ? <GameIcon icon="lucide:check-circle" size={16} /> : isUnlocked ? <GameIcon icon={node.icon} size={16} /> : <Lock className="w-4 h-4 text-gray-600" />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className={`text-xs font-medium ${isCompleted ? 'text-green-400' : isUnlocked ? 'text-gray-200' : 'text-gray-500'}`}>
+                            <span className={`text-xs font-medium ${isCompleted ? 'text-success' : isUnlocked ? 'text-gray-200' : 'text-gray-500'}`}>
                               {node.name}
                             </span>
                             <Badge variant="outline" className="text-[8px] px-1 py-0 border-gray-700 text-gray-500">
@@ -194,7 +194,7 @@ export function ResearchPanel() {
                         </div>
                         <div className="text-right flex-shrink-0">
                           {isCompleted ? (
-                            <Badge className="text-[9px] bg-green-900/30 text-green-400 border-0">Done</Badge>
+                            <Badge className="text-[9px] bg-success/30 text-success border-0">Done</Badge>
                           ) : isActive ? (
                             <Badge className="text-[9px] bg-purple-900/30 text-purple-400 border-0 neon-pulse">Active</Badge>
                           ) : (
@@ -216,7 +216,7 @@ export function ResearchPanel() {
                               const preDone = store.completedResearch.includes(pre);
                               return (
                                 <Badge key={pre} variant="outline" className={`text-[8px] px-1 py-0 ${
-                                  preDone ? 'border-green-700 text-green-400' : 'border-red-700 text-red-400'
+                                  preDone ? 'border-green-700 text-success' : 'border-red-700 text-red-400'
                                 }`}>
                                   {preDone ? 'lucide:check' : 'lucide:x'} {preNode?.name ?? pre}
                                 </Badge>

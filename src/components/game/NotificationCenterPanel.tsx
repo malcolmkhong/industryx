@@ -11,7 +11,7 @@ import { GameIcon } from '@/components/game/shared/GameIcon';
 type NotificationFilter = 'all' | 'success' | 'warning' | 'error' | 'info';
 
 const typeColors = {
-  success: { border: 'border-l-green-500', bg: 'bg-green-900/10', text: 'text-green-400', icon: 'lucide:check' },
+  success: { border: 'border-l-green-500', bg: 'bg-green-900/10', text: 'text-success', icon: 'lucide:check' },
   warning: { border: 'border-l-yellow-500', bg: 'bg-yellow-900/10', text: 'text-yellow-400', icon: 'lucide:alert-triangle' },
   error: { border: 'border-l-red-500', bg: 'bg-red-900/10', text: 'text-red-400', icon: 'lucide:x' },
   info: { border: 'border-l-cyan-500', bg: 'bg-cyan-900/10', text: 'text-cyan-400', icon: 'lucide:info' },
@@ -95,7 +95,7 @@ export function NotificationCenterPanel() {
 
   const filters: { id: NotificationFilter; label: string; count: number; color: string }[] = [
     { id: 'all', label: 'All', count: store.notifications.length, color: 'text-gray-400' },
-    { id: 'success', label: 'Success', count: successCount, color: 'text-green-400' },
+    { id: 'success', label: 'Success', count: successCount, color: 'text-success' },
     { id: 'warning', label: 'Warning', count: warningCount, color: 'text-yellow-400' },
     { id: 'error', label: 'Error', count: errorCount, color: 'text-red-400' },
     { id: 'info', label: 'Info', count: infoCount, color: 'text-cyan-400' },
@@ -141,8 +141,8 @@ export function NotificationCenterPanel() {
 
       {/* Summary stats */}
       <div className="grid grid-cols-4 gap-2">
-        <div className="bg-card/50 border border-green-900/30 rounded-lg p-3 text-center">
-          <div className="text-lg font-bold text-green-400">{successCount}</div>
+        <div className="bg-card/50 border border-success/30 rounded-lg p-3 text-center">
+          <div className="text-lg font-bold text-success">{successCount}</div>
           <div className="text-[9px] text-gray-500">Success</div>
         </div>
         <div className="bg-card/50 border border-yellow-900/30 rounded-lg p-3 text-center">

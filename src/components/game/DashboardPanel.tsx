@@ -365,7 +365,7 @@ export function DashboardPanel() {
               </div>
             </div>
             <div className="flex items-center gap-2 mt-1.5 text-[9px]">
-              {trackedQuestData.reward.money > 0 && <span className="text-green-400"><GameIcon icon="gi:money-stack" size={14} className="inline" /> ${formatNumber(trackedQuestData.reward.money)}</span>}
+              {trackedQuestData.reward.money > 0 && <span className="text-success"><GameIcon icon="gi:money-stack" size={14} className="inline" /> ${formatNumber(trackedQuestData.reward.money)}</span>}
               {trackedQuestData.reward.researchPoints && trackedQuestData.reward.researchPoints > 0 && <span className="text-purple-400"><GameIcon icon="gi:magnifying-glass" size={14} className="inline" /> {trackedQuestData.reward.researchPoints}RP</span>}
               {trackedQuestData.reward.corporationPoints && trackedQuestData.reward.corporationPoints > 0 && <span className="text-fuchsia-400"><GameIcon icon="gi:briefcase" size={14} className="inline" /> {trackedQuestData.reward.corporationPoints}CP</span>}
             </div>
@@ -480,10 +480,10 @@ export function DashboardPanel() {
                   className="inline-flex items-center gap-1"
                 >
                   <span className="relative flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-success" />
                   </span>
-                  <span className="text-[9px] text-green-400/70 font-normal tracking-normal">RUNNING</span>
+                  <span className="text-[9px] text-success/70 font-normal tracking-normal">RUNNING</span>
                 </motion.span>
               )}
             </h2>
@@ -561,7 +561,7 @@ export function DashboardPanel() {
                   powerGrid.totalProduction === 0 && powerGrid.totalConsumption === 0
                     ? 'border-gray-500/50 text-gray-400 bg-gray-900/20'
                     : powerSurplus >= 0
-                      ? 'border-green-500/50 text-green-400 bg-green-900/20'
+                      ? 'border-success/50 text-success bg-success/20'
                       : 'border-red-500/50 text-red-400 bg-red-900/20'
                 }`}
               >
@@ -595,7 +595,7 @@ export function DashboardPanel() {
             <div className="relative mb-3">
               <div className="flex items-center justify-between text-xs mb-1.5">
                 <span className="text-gray-400">
-                  <span className="text-green-400 font-mono font-bold">{formatNumber(powerGrid.totalProduction)}</span> MW production
+                  <span className="text-success font-mono font-bold">{formatNumber(powerGrid.totalProduction)}</span> MW production
                 </span>
                 <span className="text-gray-400">
                   <span className="text-orange-400 font-mono font-bold">{formatNumber(powerGrid.totalConsumption)}</span> MW demand
@@ -663,8 +663,8 @@ export function DashboardPanel() {
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-green-400" />
-                <h3 className="text-sm font-semibold text-green-400">Economy Summary</h3>
+                <DollarSign className="w-4 h-4 text-success" />
+                <h3 className="text-sm font-semibold text-success">Economy Summary</h3>
               </div>
               <span className="text-[10px] text-gray-500">financial overview</span>
             </div>
@@ -672,12 +672,12 @@ export function DashboardPanel() {
               {/* Net Income */}
               <div className="bg-[#0a0e17] rounded-lg p-3">
                 <div className="flex items-center gap-2 mb-1.5">
-                  <div className="w-6 h-6 rounded-md bg-green-900/30 flex items-center justify-center">
-                    <TrendingUp className="w-3.5 h-3.5 text-green-400" />
+                  <div className="w-6 h-6 rounded-md bg-success/30 flex items-center justify-center">
+                    <TrendingUp className="w-3.5 h-3.5 text-success" />
                   </div>
                   <span className="text-[10px] text-gray-500">Net Income</span>
                 </div>
-                <div className="text-sm font-bold font-mono text-green-400">
+                <div className="text-sm font-bold font-mono text-success">
                   ${formatNumber(economySummary.netIncomePerMin)}/min
                 </div>
                 <div className="text-[9px] text-gray-600 mt-0.5">
@@ -711,7 +711,7 @@ export function DashboardPanel() {
                   economySummary.storageUtilization > 90 ? 'text-red-400' :
                   economySummary.storageUtilization > 70 ? 'text-orange-400' :
                   economySummary.storageUtilization > 50 ? 'text-yellow-400' :
-                  'text-green-400'
+                  'text-success'
                 }`}>
                   {economySummary.storageUtilization.toFixed(1)}%
                 </div>
@@ -720,7 +720,7 @@ export function DashboardPanel() {
                     className={`h-full rounded-full transition-all duration-500 ${
                       economySummary.storageUtilization > 90 ? 'bg-red-500' :
                       economySummary.storageUtilization > 70 ? 'bg-orange-500' :
-                      'bg-green-500'
+                      'bg-success'
                     }`}
                     style={{ width: `${Math.min(100, economySummary.storageUtilization)}%` }}
                   />
@@ -749,7 +749,7 @@ export function DashboardPanel() {
                     <div className="flex items-center gap-3">
                       <span className="text-gray-400">Total Stored: <span className="text-cyan-300 font-mono font-bold">{formatNumber(totalStored)}</span></span>
                       <span className="text-gray-600">|</span>
-                      <span className="text-gray-400">Capacity: <span className={`font-mono font-bold ${overallPct > 80 ? 'text-orange-400' : overallPct > 50 ? 'text-yellow-400' : 'text-green-400'}`}>{overallPct.toFixed(1)}%</span></span>
+                      <span className="text-gray-400">Capacity: <span className={`font-mono font-bold ${overallPct > 80 ? 'text-orange-400' : overallPct > 50 ? 'text-yellow-400' : 'text-success'}`}>{overallPct.toFixed(1)}%</span></span>
                     </div>
                     <span className="text-gray-500 font-mono">{formatNumber(totalStored)}/{formatNumber(totalCapacity)}</span>
                   </div>
@@ -785,7 +785,7 @@ export function DashboardPanel() {
                         <span className="text-gray-600">/</span>
                         <span className="text-gray-500 font-mono text-[10px]">{formatNumber(capacity)}</span>
                         {productionRates[resource] > 0 && (
-                          <span className="text-green-400/70 text-[10px]">
+                          <span className="text-success/70 text-[10px]">
                             +{formatNumber(productionRates[resource])}/s
                           </span>
                         )}
@@ -811,8 +811,8 @@ export function DashboardPanel() {
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-green-400" />
-                <h3 className="text-sm font-semibold text-green-400">Production Rates</h3>
+                <TrendingUp className="w-4 h-4 text-success" />
+                <h3 className="text-sm font-semibold text-success">Production Rates</h3>
               </div>
               <span className="text-[10px] text-gray-500">per second</span>
             </div>
@@ -867,7 +867,7 @@ export function DashboardPanel() {
                     <motion.div
                       key={entry.id}
                       className={`flex items-start gap-2 py-1.5 px-2 rounded text-[11px] border-l-2 ${
-                        entry.type === 'success' ? 'text-green-400 bg-green-900/5 border-l-green-500' :
+                        entry.type === 'success' ? 'text-success bg-success/5 border-l-green-500' :
                         entry.type === 'warning' ? 'text-yellow-400 bg-yellow-900/5 border-l-yellow-500' :
                         entry.type === 'error' ? 'text-red-400 bg-red-900/5 border-l-red-500' :
                         'text-gray-400 bg-gray-900/5 border-l-gray-600'
@@ -1041,7 +1041,7 @@ export function DashboardPanel() {
                   <div
                     key={n.id}
                     className={`text-[11px] py-1.5 px-2 rounded ${
-                      n.type === 'success' ? 'text-green-400 bg-green-900/10' :
+                      n.type === 'success' ? 'text-success bg-green-900/10' :
                       n.type === 'warning' ? 'text-yellow-400 bg-yellow-900/10' :
                       n.type === 'error' ? 'text-red-400 bg-red-900/10' :
                       'text-gray-400 bg-gray-900/10'
@@ -1101,7 +1101,7 @@ export function DashboardPanel() {
             <div className="space-y-1.5 text-xs">
               <div className="flex justify-between">
                 <span className="text-gray-500">Total Earned</span>
-                <span className="text-green-400 font-mono">${formatNumber(totalMoneyEarned)}</span>
+                <span className="text-success font-mono">${formatNumber(totalMoneyEarned)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Peak Efficiency</span>
@@ -1369,7 +1369,7 @@ function WeatherInfoCard() {
           <div className="bg-[#0a0e17]/60 rounded-lg p-3 text-center">
             <div className="text-[9px] text-gray-500 mb-0.5">Production</div>
             <div className={`text-xs font-bold font-mono flex items-center justify-center gap-0.5 ${
-              prodEffect > 0 ? 'text-green-400' : prodEffect < 0 ? 'text-red-400' : 'text-gray-400'
+              prodEffect > 0 ? 'text-success' : prodEffect < 0 ? 'text-red-400' : 'text-gray-400'
             }`}>
               {prodEffect > 0 ? <ArrowUpRight className="w-2.5 h-2.5" /> : prodEffect < 0 ? <ArrowDownRight className="w-2.5 h-2.5" /> : <Minus className="w-2.5 h-2.5" />}
               {prodEffect >= 0 ? '+' : ''}{(prodEffect * 100).toFixed(0)}%
@@ -1378,7 +1378,7 @@ function WeatherInfoCard() {
           <div className="bg-[#0a0e17]/60 rounded-lg p-3 text-center">
             <div className="text-[9px] text-gray-500 mb-0.5">Solar</div>
             <div className={`text-xs font-bold font-mono flex items-center justify-center gap-0.5 ${
-              solarEffect > 0 ? 'text-green-400' : solarEffect < 0 ? 'text-red-400' : 'text-gray-400'
+              solarEffect > 0 ? 'text-success' : solarEffect < 0 ? 'text-red-400' : 'text-gray-400'
             }`}>
               {solarEffect > 0 ? <ArrowUpRight className="w-2.5 h-2.5" /> : solarEffect < 0 ? <ArrowDownRight className="w-2.5 h-2.5" /> : <Minus className="w-2.5 h-2.5" />}
               {solarEffect >= 0 ? '+' : ''}{(solarEffect * 100).toFixed(0)}%
@@ -1387,7 +1387,7 @@ function WeatherInfoCard() {
           <div className="bg-[#0a0e17]/60 rounded-lg p-3 text-center">
             <div className="text-[9px] text-gray-500 mb-0.5">Wind</div>
             <div className={`text-xs font-bold font-mono flex items-center justify-center gap-0.5 ${
-              windEffect > 0 ? 'text-green-400' : windEffect < 0 ? 'text-red-400' : 'text-gray-400'
+              windEffect > 0 ? 'text-success' : windEffect < 0 ? 'text-red-400' : 'text-gray-400'
             }`}>
               {windEffect > 0 ? <ArrowUpRight className="w-2.5 h-2.5" /> : windEffect < 0 ? <ArrowDownRight className="w-2.5 h-2.5" /> : <Minus className="w-2.5 h-2.5" />}
               {windEffect >= 0 ? '+' : ''}{(windEffect * 100).toFixed(0)}%
@@ -1483,8 +1483,8 @@ function IncomeChart({ productionRates }: { productionRates: Record<string, numb
     <div className="game-card rounded-xl bg-card p-4 border border-border">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-green-400" />
-          <h3 className="text-sm font-semibold text-green-400">Income Trend</h3>
+          <TrendingUp className="w-4 h-4 text-success" />
+          <h3 className="text-sm font-semibold text-success">Income Trend</h3>
         </div>
         <span className="text-[10px] text-gray-500">projected</span>
       </div>
@@ -1537,7 +1537,7 @@ function IncomeChart({ productionRates }: { productionRates: Record<string, numb
           )}
         </svg>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-bold text-green-400 font-mono">
+          <div className="text-sm font-bold text-success font-mono">
             ${formatNumber(incomePerMin)}/min
           </div>
           <div className="text-[10px] text-gray-500 mt-0.5">

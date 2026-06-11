@@ -168,9 +168,9 @@ export function GameHeader() {
               <TooltipTrigger asChild>
                 <div className={`stat-badge stat-badge-money bg-card rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default ${moneyGlow ? 'money-glow' : ''}`}>
                   <span className="text-gray-500 inline-flex items-center gap-1"><GameIcon ui="money" size={14} /></span>
-                  <span className="text-green-400 font-mono font-bold text-sm">${formatNumber(money)}</span>
+                  <span className="text-success font-mono font-bold text-sm">${formatNumber(money)}</span>
                   {pendingPayout > 0 && !payoutConfig.autoCollect && (
-                    <button onClick={collectPayout} className="ml-2 animate-pulse inline-flex items-center gap-1 bg-green-900/40 hover:bg-green-800/50 text-green-400 text-[10px] px-1.5 py-0.5 rounded-md border border-green-500/30 transition-colors">
+                    <button onClick={collectPayout} className="ml-2 animate-pulse inline-flex items-center gap-1 bg-green-900/40 hover:bg-green-800/50 text-success text-[10px] px-1.5 py-0.5 rounded-md border border-success/30 transition-colors">
                       <GameIcon ui="money" size={12} className="inline-flex" /> ${formatNumber(pendingPayout)}
                     </button>
                   )}
@@ -178,12 +178,12 @@ export function GameHeader() {
               </TooltipTrigger>
               <TooltipContent side="bottom" className="w-64 bg-card border-cyan-900/30 p-0 overflow-hidden">
                 <div className="bg-gradient-to-r from-green-900/30 to-emerald-900/20 px-3 py-2 border-b border-cyan-900/20">
-                  <p className="text-xs font-bold text-green-300 inline-flex items-center gap-1"><GameIcon ui="money" size={14} className="inline-flex" /> Financial Overview</p>
+                  <p className="text-xs font-bold text-success inline-flex items-center gap-1"><GameIcon ui="money" size={14} className="inline-flex" /> Financial Overview</p>
                 </div>
                 <div className="px-3 py-2 space-y-1.5">
-                  <div className="flex justify-between text-xs"><span className="text-gray-400">Current Balance</span><span className="text-green-400 font-mono font-bold">${formatNumber(money)}</span></div>
+                  <div className="flex justify-between text-xs"><span className="text-gray-400">Current Balance</span><span className="text-success font-mono font-bold">${formatNumber(money)}</span></div>
                   {pendingPayout > 0 && <div className="flex justify-between text-xs"><span className="text-gray-400">Pending Payout</span><span className="text-yellow-400 font-mono">${formatNumber(pendingPayout)}</span></div>}
-                  <div className="flex justify-between text-xs"><span className="text-gray-400">Total Earned</span><span className="text-emerald-400 font-mono">${formatNumber(totalMoneyEarned)}</span></div>
+                  <div className="flex justify-between text-xs"><span className="text-gray-400">Total Earned</span><span className="text-success font-mono">${formatNumber(totalMoneyEarned)}</span></div>
                 </div>
               </TooltipContent>
             </Tooltip>
@@ -197,7 +197,7 @@ export function GameHeader() {
               <span className="text-gray-600"> / </span>
               <span className="text-gray-400 text-sm">{formatNumber(powerGrid.totalConsumption)}MW</span>
               <span className={`ml-1.5 inline-block w-2 h-2 rounded-full ${
-                factoryEfficiency >= 0.8 ? 'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.6)]'
+                factoryEfficiency >= 0.8 ? 'bg-success shadow-[0_0_6px_rgba(74,222,128,0.6)]'
                 : factoryEfficiency >= 0.5 ? 'bg-yellow-400 shadow-[0_0_6px_rgba(250,204,21,0.6)]'
                 : 'bg-red-400 shadow-[0_0_6px_rgba(248,113,113,0.6)]'
               } ${activeBuildings.length > 0 ? 'animate-pulse' : ''}`} />
@@ -223,13 +223,13 @@ export function GameHeader() {
         <div className="flex items-center gap-2">
           {/* Power bar */}
           <div className="w-24 h-2 bg-gray-800 rounded-full overflow-hidden">
-            <div className={`h-full transition-all duration-500 ${powerPercent >= 80 ? 'bg-green-500' : powerPercent >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{ width: `${powerPercent}%` }} />
+            <div className={`h-full transition-all duration-500 ${powerPercent >= 80 ? 'bg-success' : powerPercent >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{ width: `${powerPercent}%` }} />
           </div>
 
           {/* Speed controls */}
           <div className="flex items-center bg-card rounded-lg border border-cyan-900/20 overflow-hidden">
             <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={togglePause} aria-label={paused ? "Resume game" : "Pause game"}>
-              {paused ? <Play className="w-3 h-3 text-green-400" /> : <Pause className="w-3 h-3 text-yellow-400" />}
+              {paused ? <Play className="w-3 h-3 text-success" /> : <Pause className="w-3 h-3 text-yellow-400" />}
             </Button>
             {SPEED_OPTIONS.map(speed => (
               <Button key={speed} variant="ghost" size="sm" className={`h-7 px-2 text-xs ${gameSpeed === speed ? 'text-cyan-400 bg-cyan-900/20' : 'text-gray-500'}`} onClick={() => setGameSpeed(speed)}>
@@ -246,7 +246,7 @@ export function GameHeader() {
             <TooltipTrigger asChild>
               <Badge variant="outline" className={`text-[10px] px-1.5 py-0 cursor-default ${
                 isUsingSupabase
-                  ? 'border-emerald-500/50 text-emerald-400 bg-emerald-900/20'
+                  ? 'border-success/50 text-success bg-success/20'
                   : 'border-amber-500/50 text-amber-400 bg-amber-900/20'
               }`}>
                 {isUsingSupabase ? <Wifi className="w-2.5 h-2.5 mr-0.5" /> : <WifiOff className="w-2.5 h-2.5 mr-0.5" />}
@@ -285,7 +285,7 @@ export function GameHeader() {
                   </div>
                   {notifications.slice(0, 10).map(n => (
                     <div key={n.id} className={`text-xs py-1 border-b border-gray-800 last:border-0 ${
-                      n.type === 'success' ? 'text-green-400' : n.type === 'warning' ? 'text-yellow-400' : n.type === 'error' ? 'text-red-400' : 'text-gray-400'
+                      n.type === 'success' ? 'text-success' : n.type === 'warning' ? 'text-yellow-400' : n.type === 'error' ? 'text-red-400' : 'text-gray-400'
                     }`}>{n.message}</div>
                   ))}
                 </>
@@ -345,7 +345,7 @@ export function GameHeader() {
                   disabled={cloudSyncStatus === 'saving'}
                 >
                   {cloudSyncStatus === 'saving' ? <Loader2 className="w-3 h-3 animate-spin" />
-                  : cloudSyncStatus === 'success' ? <Cloud className="w-3 h-3 text-green-400" />
+                  : cloudSyncStatus === 'success' ? <Cloud className="w-3 h-3 text-success" />
                   : cloudSyncStatus === 'error' ? <CloudOff className="w-3 h-3 text-red-400" />
                   : <Cloud className="w-3 h-3 text-gray-400" />}
                 </Button>
@@ -440,9 +440,9 @@ export function GameHeader() {
             <span className="text-[11px] font-bold text-cyan-400 tracking-wider truncate">INDUSTRIAX</span>
           </div>
           <div className="flex items-center gap-1 text-[10px] flex-shrink-0">
-            <span className="text-green-400 font-mono font-bold">${formatNumber(money)}</span>
+            <span className="text-success font-mono font-bold">${formatNumber(money)}</span>
             {pendingPayout > 0 && !payoutConfig.autoCollect && (
-              <button onClick={collectPayout} className="animate-pulse inline-flex items-center bg-green-900/40 text-green-400 text-[9px] px-1 py-0 rounded border border-green-500/30">
+              <button onClick={collectPayout} className="animate-pulse inline-flex items-center bg-green-900/40 text-success text-[9px] px-1 py-0 rounded border border-success/30">
                 <GameIcon ui="money" size={12} className="inline-flex" />${formatNumber(pendingPayout)}
               </button>
             )}
@@ -459,7 +459,7 @@ export function GameHeader() {
         <div className="flex items-center justify-between gap-1">
           <div className="flex items-center bg-card rounded-md border border-cyan-900/20 overflow-hidden">
             <Button variant="ghost" size="sm" className="h-6 px-1.5" onClick={togglePause}>
-              {paused ? <Play className="w-2.5 h-2.5 text-green-400" /> : <Pause className="w-2.5 h-2.5 text-yellow-400" />}
+              {paused ? <Play className="w-2.5 h-2.5 text-success" /> : <Pause className="w-2.5 h-2.5 text-yellow-400" />}
             </Button>
             {SPEED_OPTIONS.map(speed => (
               <Button key={speed} variant="ghost" size="sm" className={`h-6 px-1.5 text-[9px] ${gameSpeed === speed ? 'text-cyan-400 bg-cyan-900/20' : 'text-gray-500'}`} onClick={() => setGameSpeed(speed)}>
@@ -470,7 +470,7 @@ export function GameHeader() {
 
           <div className="flex items-center gap-1">
             {/* Config source */}
-            <Badge variant="outline" className={`text-[8px] px-1 py-0 ${isUsingSupabase ? 'border-emerald-500/50 text-emerald-400' : 'border-amber-500/50 text-amber-400'}`}>
+            <Badge variant="outline" className={`text-[8px] px-1 py-0 ${isUsingSupabase ? 'border-success/50 text-success' : 'border-amber-500/50 text-amber-400'}`}>
               {isUsingSupabase ? 'Live' : 'Local'}
             </Badge>
 

@@ -484,7 +484,7 @@ export function TradingPostPanel() {
           </Badge>
           <Badge
             variant="outline"
-            className="text-[10px] border-green-500/30 text-green-400 bg-green-900/20"
+            className="text-[10px] border-success/30 text-success bg-success/20"
           >
             ✓ Server-validated
           </Badge>
@@ -561,7 +561,7 @@ export function TradingPostPanel() {
               />
               <span className="text-gray-500">Available:</span>
               <span
-                className={`font-mono ${giveResourceCurrent >= giveAmount ? "text-green-400" : "text-red-400"}`}
+                className={`font-mono ${giveResourceCurrent >= giveAmount ? "text-success" : "text-red-400"}`}
               >
                 {formatNumber(giveResourceCurrent)}
               </span>
@@ -655,7 +655,7 @@ export function TradingPostPanel() {
                         ? "bg-red-400"
                         : receiveResourceCurrent / receiveCapacity > 0.5
                           ? "bg-yellow-400"
-                          : "bg-green-400"
+                          : "bg-success"
                     }`}
                     style={{
                       width: `${Math.min(100, (receiveResourceCurrent / receiveCapacity) * 100)}%`,
@@ -684,7 +684,7 @@ export function TradingPostPanel() {
                 {(TRADE_COMMISSION_RATE * 100).toFixed(0)}%
               </span>
             </span>
-            <span className="flex items-center gap-1 text-green-500">
+            <span className="flex items-center gap-1 text-success">
               <Info className="w-3 h-3" />
               Server-validated
             </span>
@@ -967,7 +967,7 @@ export function TradingPostPanel() {
                   </span>
                   {entry.serverValidated ? (
                     <span
-                      className="text-[8px] text-green-500 ml-1"
+                      className="text-[8px] text-success ml-1"
                       title="Server-validated"
                     >
                       ✓
@@ -1006,7 +1006,7 @@ export function TradingPostPanel() {
               {(TRADE_COMMISSION_RATE * 100).toFixed(0)}% commission.
             </p>
             <p>
-              <span className="text-green-400 font-semibold">Security:</span>{" "}
+              <span className="text-success font-semibold">Security:</span>{" "}
               All trades are executed server-side against authoritative state to
               prevent client-side tampering. Trades are persisted to your
               history and survive page refreshes.

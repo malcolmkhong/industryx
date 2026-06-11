@@ -389,7 +389,7 @@ export function SettingsPanel() {
           <p className="text-[10px] text-gray-500 mb-3">Toggle which notification types appear as toasts</p>
           <div className="grid grid-cols-2 gap-2">
             {([
-              { key: 'success' as const, label: 'Success', color: 'text-green-400', icon: 'lucide:check-circle' },
+              { key: 'success' as const, label: 'Success', color: 'text-success', icon: 'lucide:check-circle' },
               { key: 'warning' as const, label: 'Warning', color: 'text-yellow-400', icon: 'gi:hazard-sign' },
               { key: 'error' as const, label: 'Error', color: 'text-red-400', icon: 'gi:cross-mark' },
               { key: 'info' as const, label: 'Info', color: 'text-cyan-400', icon: 'gi:info' },
@@ -512,7 +512,7 @@ export function SettingsPanel() {
       {/* ====== DISPLAY SETTINGS ====== */}
       <SettingsSection
         title="Display Settings"
-        icon={<Monitor className="w-4 h-4 text-green-400" />}
+        icon={<Monitor className="w-4 h-4 text-success" />}
       >
         {/* Floating numbers */}
         <SettingRow
@@ -971,11 +971,11 @@ export function SettingsPanel() {
             </div>
             <ul className="space-y-1">
               <li className="text-[10px] text-gray-400 flex items-start gap-1.5">
-                <span className="text-green-500 mt-0.5">•</span>
+                <span className="text-success mt-0.5">•</span>
                 Economy rebalance — all factory margins are now positive
               </li>
               <li className="text-[10px] text-gray-400 flex items-start gap-1.5">
-                <span className="text-green-500 mt-0.5">•</span>
+                <span className="text-success mt-0.5">•</span>
                 Endgame buildings converted to passive generators (money, RP, CP)
               </li>
               <li className="text-[10px] text-gray-400 flex items-start gap-1.5">

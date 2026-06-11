@@ -81,7 +81,7 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
         <div className="flex items-center gap-2">
           {/* Chain status badge */}
           {allProducing && chain.steps.length > 0 ? (
-            <Badge variant="outline" className="text-[9px] border-green-500/50 text-green-400 bg-green-900/20">
+            <Badge variant="outline" className="text-[9px] border-success/50 text-success bg-success/20">
               <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" />
               CHAIN ACTIVE
             </Badge>
@@ -505,7 +505,7 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
                               {formatNumber(stock)}
                             </span>
                             {rate > 0 ? (
-                              <span className="text-[10px] text-green-400 font-mono font-bold">
+                              <span className="text-[10px] text-success font-mono font-bold">
                                 +{(rate).toFixed(1)}/s
                               </span>
                             ) : rate < 0 ? (
@@ -529,7 +529,7 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
                                 key={b.type}
                                 className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] border ${
                                   b.activeCount > 0
-                                    ? 'border-green-900/40 bg-green-900/10 text-green-400'
+                                    ? 'border-green-900/40 bg-green-900/10 text-success'
                                     : 'border-gray-800 bg-gray-900/30 text-gray-500'
                                 }`}
                               >
@@ -559,7 +559,7 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
       <div className="mt-3 flex items-center justify-between text-[10px]">
         <div className="flex items-center gap-3">
           <span className="text-gray-500">
-            Chain progress: <span className={allProducing ? 'text-green-400 font-bold' : 'text-orange-400 font-bold'}>
+            Chain progress: <span className={allProducing ? 'text-success font-bold' : 'text-orange-400 font-bold'}>
               {chain.steps.filter(s => (productionRates[s as ResourceType] ?? 0) > 0).length}/{chain.steps.length}
             </span> steps active
           </span>

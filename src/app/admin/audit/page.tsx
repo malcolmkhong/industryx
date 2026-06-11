@@ -193,7 +193,7 @@ function formatActionType(type: string): string {
 
 function getValidBadgeClasses(isValid: boolean): string {
   return isValid
-    ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/20"
+    ? "bg-success/15 text-success border-emerald-500/20"
     : "bg-red-500/15 text-red-400 border-red-500/20";
 }
 
@@ -689,7 +689,7 @@ export default function AuditPage() {
                                   title="Copy full ID"
                                 >
                                   {copiedId === action.user_id ? (
-                                    <span className="text-emerald-400"><IconCheck /></span>
+                                    <span className="text-success"><IconCheck /></span>
                                   ) : (
                                     <IconCopy />
                                   )}
@@ -750,7 +750,7 @@ export default function AuditPage() {
                                 className="text-zinc-600 hover:text-zinc-300 transition-colors p-0.5 shrink-0"
                               >
                                 {copiedId === action.user_id ? (
-                                  <span className="text-emerald-400"><IconCheck /></span>
+                                  <span className="text-success"><IconCheck /></span>
                                 ) : (
                                   <IconCopy />
                                 )}
@@ -819,7 +819,7 @@ export default function AuditPage() {
             key={toast.id}
             className={`flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg text-sm font-medium animate-in slide-in-from-right ${
               toast.type === "success"
-                ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20"
+                ? "bg-success/15 text-success border border-emerald-500/20"
                 : toast.type === "error"
                 ? "bg-red-500/15 text-red-400 border border-red-500/20"
                 : "bg-amber-500/15 text-amber-400 border border-amber-500/20"

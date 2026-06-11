@@ -53,10 +53,10 @@ export function OfflineEarningsDialog({
         {offlineData && (
           <div className="space-y-3 mt-2">
             {offlineData.money > 0 && (
-              <div className="bg-[#0a0e17] rounded-lg p-3 border border-green-900/30">
+              <div className="bg-[#0a0e17] rounded-lg p-3 border border-success/30">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-400">Money Earned</span>
-                  <span className="text-sm text-green-400 font-mono font-bold">
+                  <span className="text-sm text-success font-mono font-bold">
                     +${formatNumber(offlineData.money)}
                   </span>
                 </div>

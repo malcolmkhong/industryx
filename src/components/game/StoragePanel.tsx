@@ -22,7 +22,7 @@ const TIER_CONFIG: Record<number, { label: string; color: string; bg: string; bo
   1: { label: 'Tier 1 — Refined', color: '#22d3ee', bg: 'bg-cyan-900/20', border: 'border-cyan-700/40' },
   2: { label: 'Tier 2 — Manufactured', color: '#f97316', bg: 'bg-orange-900/20', border: 'border-orange-700/40' },
   3: { label: 'Tier 3 — High-Tech', color: '#a855f7', bg: 'bg-purple-900/20', border: 'border-purple-700/40' },
-  4: { label: 'Tier 4 — Singularity', color: '#00ffcc', bg: 'bg-emerald-900/20', border: 'border-emerald-700/40' },
+  4: { label: 'Tier 4 — Singularity', color: '#00ffcc', bg: 'bg-success/20', border: 'border-emerald-700/40' },
 };
 
 type ViewMode = 'overview' | 'dependencies' | 'alerts';
@@ -226,7 +226,7 @@ export function StoragePanel() {
 
   // ─── Render Helpers ───────────────────────────────────────────────────────
   const renderRateBadge = (rate: number, prodRate?: number, consRate?: number) => {
-    if (rate > 0) return <span className="text-green-400 font-mono text-[10px]">+{formatNumber(rate)}/s</span>;
+    if (rate > 0) return <span className="text-success font-mono text-[10px]">+{formatNumber(rate)}/s</span>;
     if (rate < 0) return <span className="text-red-400 font-mono text-[10px]">{formatNumber(rate)}/s</span>;
     // When net rate is 0 but the resource is being both produced and consumed (balanced flow),
     // show "±0/s" in cyan to distinguish from idle resources which show "—"
@@ -240,7 +240,7 @@ export function StoragePanel() {
     if (unlimited) {
       return (
         <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
-          <div className="h-full rounded-full bg-emerald-500/40" style={{ width: '15%' }} />
+          <div className="h-full rounded-full bg-success/40" style={{ width: '15%' }} />
         </div>
       );
     }
@@ -293,8 +293,8 @@ export function StoragePanel() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <div className="bg-green-900/10 border border-green-800/30 rounded-lg p-2 text-center">
-                <div className="text-[9px] text-green-500/70 uppercase tracking-wider">Production</div>
-                <div className="text-sm font-bold text-green-400 font-mono">+{formatNumber(prodRate)}</div>
+                <div className="text-[9px] text-success/70 uppercase tracking-wider">Production</div>
+                <div className="text-sm font-bold text-success font-mono">+{formatNumber(prodRate)}</div>
                 <div className="text-[9px] text-green-600">per second</div>
               </div>
               <div className="bg-red-900/10 border border-red-800/30 rounded-lg p-2 text-center">
@@ -304,7 +304,7 @@ export function StoragePanel() {
               </div>
               <div className={`${netRate >= 0 ? 'bg-green-900/10 border-green-800/30' : 'bg-orange-900/10 border-orange-800/30'} border rounded-lg p-2 text-center`}>
                 <div className="text-[9px] text-gray-500 uppercase tracking-wider">Net Balance</div>
-                <div className={`text-sm font-bold font-mono ${netRate > 0 ? 'text-green-400' : netRate < 0 ? 'text-red-400' : prodRate > 0 && consRate > 0 ? 'text-cyan-400' : 'text-gray-500'}`}>
+                <div className={`text-sm font-bold font-mono ${netRate > 0 ? 'text-success' : netRate < 0 ? 'text-red-400' : prodRate > 0 && consRate > 0 ? 'text-cyan-400' : 'text-gray-500'}`}>
                   {netRate > 0 ? '+' : ''}{netRate === 0 && prodRate > 0 && consRate > 0 ? '±0' : formatNumber(netRate)}
                 </div>
                 <div className="text-[9px] text-gray-600">per second</div>
@@ -372,7 +372,7 @@ export function StoragePanel() {
                 </>
               )}
               {unlimited && (
-                <div className="flex items-center gap-1.5 mt-1 text-[10px] text-emerald-400">
+                <div className="flex items-center gap-1.5 mt-1 text-[10px] text-success">
                   <Shield className="w-3 h-3" />
                   Unlimited Storage (Terraforming Engine)
                 </div>
@@ -435,12 +435,12 @@ export function StoragePanel() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {deps.producers.length > 0 && (
                   <div className="bg-green-900/10 border border-green-800/30 rounded-lg p-2">
-                    <div className="text-[9px] text-green-500 uppercase tracking-wider mb-1.5">Produced By</div>
+                    <div className="text-[9px] text-success uppercase tracking-wider mb-1.5">Produced By</div>
                     <div className="space-y-1">
                       {deps.producers.slice(0, 5).map((p, i) => (
                         <div key={i} className="flex items-center justify-between text-[10px]">
                           <span className="text-gray-300 truncate">{p.building}</span>
-                          <span className="text-green-400 font-mono ml-1">+{formatNumber(p.amount)}/s</span>
+                          <span className="text-success font-mono ml-1">+{formatNumber(p.amount)}/s</span>
                         </div>
                       ))}
                       {deps.producers.length > 5 && (
@@ -539,7 +539,7 @@ export function StoragePanel() {
     if (alerts.length === 0) {
       return (
         <div className="text-center py-12">
-          <CheckCircle2 className="w-10 h-10 text-emerald-500/40 mx-auto mb-3" />
+          <CheckCircle2 className="w-10 h-10 text-success/40 mx-auto mb-3" />
           <div className="text-sm text-gray-400">No Storage Alerts</div>
           <div className="text-[10px] text-gray-600 mt-1">All materials are in good standing</div>
         </div>
@@ -633,7 +633,7 @@ export function StoragePanel() {
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: chain.color }} />
                 <span className="text-sm font-semibold" style={{ color: chain.color }}>{chain.name}</span>
                 {allActive ? (
-                  <span className="text-[8px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded font-bold">ACTIVE</span>
+                  <span className="text-[8px] bg-success/20 text-success px-1.5 py-0.5 rounded font-bold">ACTIVE</span>
                 ) : bottleneck ? (
                   <span className="text-[8px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded font-bold">BLOCKED</span>
                 ) : null}
@@ -656,7 +656,7 @@ export function StoragePanel() {
                         <GameIcon icon={stepMeta?.icon} size={14} className="inline-flex" />
                         <span className={stepActive ? 'text-gray-200' : 'text-red-400/70'}>{stepMeta?.name ?? step}</span>
                         {stepActive && (
-                          <span className={`font-mono ${stepNet > 0 ? 'text-green-400' : stepNet < 0 ? 'text-red-400' : stepProd > 0 && stepCons > 0 ? 'text-cyan-400' : 'text-gray-600'}`}>
+                          <span className={`font-mono ${stepNet > 0 ? 'text-success' : stepNet < 0 ? 'text-red-400' : stepProd > 0 && stepCons > 0 ? 'text-cyan-400' : 'text-gray-600'}`}>
                             {stepNet > 0 ? '+' : ''}{stepNet === 0 && stepProd > 0 && stepCons > 0 ? '±0' : formatNumber(stepNet)}
                           </span>
                         )}
@@ -775,7 +775,7 @@ export function StoragePanel() {
           </div>
           <div className="bg-gray-900/50 border border-gray-700/40 rounded-lg p-3">
             <div className="text-[9px] text-gray-500 uppercase tracking-wider">Alerts</div>
-            <div className={`text-lg font-bold font-mono ${alerts.length > 0 ? 'text-orange-400' : 'text-emerald-400'}`}>{alerts.length}</div>
+            <div className={`text-lg font-bold font-mono ${alerts.length > 0 ? 'text-orange-400' : 'text-success'}`}>{alerts.length}</div>
           </div>
         </div>
 
@@ -858,7 +858,7 @@ export function StoragePanel() {
 
 // ─── Badge Helper ─────────────────────────────────────────────────────────────
 function Badge({ level }: { level: number }) {
-  const color = level >= 20 ? 'text-emerald-400 bg-emerald-500/20' : level >= 10 ? 'text-cyan-400 bg-cyan-500/20' : 'text-amber-400 bg-amber-500/20';
+  const color = level >= 20 ? 'text-success bg-success/20' : level >= 10 ? 'text-cyan-400 bg-cyan-500/20' : 'text-amber-400 bg-amber-500/20';
   return (
     <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${color}`}>
       LV{level}

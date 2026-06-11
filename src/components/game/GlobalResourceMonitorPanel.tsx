@@ -58,7 +58,7 @@ const STATUS_ORDER: Record<ResourceStatus, number> = {
 const STATUS_LABELS: Record<ResourceStatus, { label: string; color: string; bg: string }> = {
   critical: { label: 'Critical', color: 'text-red-400', bg: 'bg-red-900/30' },
   declining: { label: 'Declining', color: 'text-orange-400', bg: 'bg-orange-900/30' },
-  stable: { label: 'Stable', color: 'text-green-400', bg: 'bg-green-900/30' },
+  stable: { label: 'Stable', color: 'text-success', bg: 'bg-success/30' },
   idle: { label: 'Idle', color: 'text-gray-500', bg: 'bg-gray-800/50' },
 };
 
@@ -449,9 +449,9 @@ export default function GlobalResourceMonitorPanel() {
       {/* ─── SUMMARY BAR ─────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-3 px-3 py-2 bg-[#111827] rounded-lg border border-gray-700/30">
         <div className="flex items-center gap-1.5 text-xs">
-          <TrendingUp className="w-3.5 h-3.5 text-green-400" />
+          <TrendingUp className="w-3.5 h-3.5 text-success" />
           <span className="text-gray-400">Total Prod:</span>
-          <span className="text-green-400 font-mono font-bold">{formatNumber(totalProduction)}/s</span>
+          <span className="text-success font-mono font-bold">{formatNumber(totalProduction)}/s</span>
         </div>
         <div className="w-px h-4 bg-gray-700" />
         <div className="flex items-center gap-1.5 text-xs">
@@ -463,7 +463,7 @@ export default function GlobalResourceMonitorPanel() {
         <div className="flex items-center gap-1.5 text-xs">
           <BarChart3 className="w-3.5 h-3.5 text-cyan-400" />
           <span className="text-gray-400">Net:</span>
-          <span className={`font-mono font-bold ${totalNet >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+          <span className={`font-mono font-bold ${totalNet >= 0 ? 'text-success' : 'text-red-400'}`}>
             {totalNet >= 0 ? '▲' : '▼'} {formatNumber(Math.abs(totalNet))}/s
           </span>
         </div>
@@ -531,7 +531,7 @@ export default function GlobalResourceMonitorPanel() {
               </div>
 
               {/* Income */}
-              <div className={`text-[10px] font-mono ${row.income > 0 ? 'text-green-400' : 'text-gray-600'}`}>
+              <div className={`text-[10px] font-mono ${row.income > 0 ? 'text-success' : 'text-gray-600'}`}>
                 {row.income > 0 ? `+${formatNumber(row.income)}` : '0'}
               </div>
 
@@ -542,7 +542,7 @@ export default function GlobalResourceMonitorPanel() {
 
               {/* Net */}
               <div className={`text-[10px] font-mono font-bold ${
-                row.net > 0 ? 'text-green-400' : row.net < 0 ? 'text-red-400' : 'text-gray-600'
+                row.net > 0 ? 'text-success' : row.net < 0 ? 'text-red-400' : 'text-gray-600'
               }`}>
                 {row.net > 0 ? '▲' : row.net < 0 ? '▼' : '—'}
                 {row.net !== 0 ? formatNumber(Math.abs(row.net)) : ''}
@@ -690,7 +690,7 @@ export default function GlobalResourceMonitorPanel() {
                   </div>
 
                   {/* Production rate */}
-                  <div className={`text-[10px] font-mono ${row.productionRate > 0 ? 'text-green-400' : 'text-gray-600'}`}>
+                  <div className={`text-[10px] font-mono ${row.productionRate > 0 ? 'text-success' : 'text-gray-600'}`}>
                     {row.productionRate > 0 ? `+${formatNumber(row.productionRate)}` : '0'}
                   </div>
 
@@ -701,7 +701,7 @@ export default function GlobalResourceMonitorPanel() {
 
                   {/* Net rate */}
                   <div className={`text-[10px] font-mono font-bold ${
-                    row.netRate > 0 ? 'text-green-400' : row.netRate < 0 ? 'text-red-400' : 'text-gray-600'
+                    row.netRate > 0 ? 'text-success' : row.netRate < 0 ? 'text-red-400' : 'text-gray-600'
                   }`}>
                     {row.netRate > 0 ? '▲' : row.netRate < 0 ? '▼' : '—'}
                     {row.netRate !== 0 ? formatNumber(Math.abs(row.netRate)) : ''}
@@ -759,7 +759,7 @@ export default function GlobalResourceMonitorPanel() {
               <div className="px-3 py-1.5 border-b border-gray-800/50">
                 <div className="flex items-center gap-2 text-[10px]">
                   <span className="text-gray-400">Net Change:</span>
-                  <span className={`font-mono font-bold ${hoveredRow.netRate > 0 ? 'text-green-400' : hoveredRow.netRate < 0 ? 'text-red-400' : 'text-gray-500'}`}>
+                  <span className={`font-mono font-bold ${hoveredRow.netRate > 0 ? 'text-success' : hoveredRow.netRate < 0 ? 'text-red-400' : 'text-gray-500'}`}>
                     {hoveredRow.netRate > 0 ? '▲' : hoveredRow.netRate < 0 ? '▼' : '—'}
                     {hoveredRow.netRate !== 0 ? ` ${formatNumber(Math.abs(hoveredRow.netRate))}/s` : ' 0/s'}
                   </span>
@@ -789,7 +789,7 @@ export default function GlobalResourceMonitorPanel() {
                       return { name: p.name, count };
                     });
                     return (
-                      <span className="text-green-400">
+                      <span className="text-success">
                         {withCounts.map((p, i) => (
                           <span key={i}>
                             {i > 0 && ', '}

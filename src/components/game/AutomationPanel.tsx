@@ -79,11 +79,11 @@ export function AutomationPanel() {
               description={unlock.description}
               category="Automation"
               details={[
-                { label: 'Cost', value: `${unlock.cost} CP`, color: canAfford ? 'text-green-400' : 'text-red-400' },
-                { label: 'Status', value: isActive ? 'Active' : 'Inactive', color: isActive ? 'text-green-400' : 'text-gray-400' },
+                { label: 'Cost', value: `${unlock.cost} CP`, color: canAfford ? 'text-success' : 'text-red-400' },
+                { label: 'Status', value: isActive ? 'Active' : 'Inactive', color: isActive ? 'text-success' : 'text-gray-400' },
               ]}
               requirements={[
-                ...(unlock.requiresResearch ? [{ label: 'Research', value: RESEARCH_TREE.find(r => r.id === unlock.requiresResearch)?.name ?? unlock.requiresResearch, color: hasResearch ? 'text-green-400' : 'text-red-400' }] : []),
+                ...(unlock.requiresResearch ? [{ label: 'Research', value: RESEARCH_TREE.find(r => r.id === unlock.requiresResearch)?.name ?? unlock.requiresResearch, color: hasResearch ? 'text-success' : 'text-red-400' }] : []),
               ]}
               side="bottom"
             >
@@ -120,7 +120,7 @@ export function AutomationPanel() {
                 {/* Research requirement */}
                 {requiredResearch && (
                   <div className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg ${
-                    hasResearch ? 'bg-green-900/10 text-green-400' : 'bg-red-900/10 text-red-400'
+                    hasResearch ? 'bg-green-900/10 text-success' : 'bg-red-900/10 text-red-400'
                   }`}>
                     {hasResearch ? <Check className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
                     <span>Research: {requiredResearch.name}</span>
@@ -130,7 +130,7 @@ export function AutomationPanel() {
                 {/* Cost */}
                 <div className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg ${
                   isActive ? 'bg-gray-800/30 text-gray-500' :
-                  canAfford ? 'bg-green-900/10 text-green-400' : 'bg-red-900/10 text-red-400'
+                  canAfford ? 'bg-green-900/10 text-success' : 'bg-red-900/10 text-red-400'
                 }`}>
                   <Zap className="w-3 h-3" />
                   <span>Cost: {unlock.cost} Corporation Points</span>

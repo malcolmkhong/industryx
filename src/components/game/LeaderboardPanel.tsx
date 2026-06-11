@@ -197,7 +197,7 @@ export default function LeaderboardPanel() {
             <Globe className="w-2.5 h-2.5 mr-1" /> Global
           </Badge>
           {user && (
-            <Badge variant="outline" className="text-[10px] border-green-500/30 text-green-400 bg-green-900/20">
+            <Badge variant="outline" className="text-[10px] border-success/30 text-success bg-success/20">
               ✓ Signed In
             </Badge>
           )}
@@ -342,9 +342,9 @@ export default function LeaderboardPanel() {
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
                         <div className="bg-[#0a0e17] rounded-lg p-3">
                           <div className="text-[10px] text-gray-500 flex items-center gap-1">
-                            <Coins className="w-3 h-3 text-green-400" /> Money Earned
+                            <Coins className="w-3 h-3 text-success" /> Money Earned
                           </div>
-                          <div className="text-xs font-mono text-green-400">${formatNumber(entry.total_money_earned)}</div>
+                          <div className="text-xs font-mono text-success">${formatNumber(entry.total_money_earned)}</div>
                         </div>
                         <div className="bg-[#0a0e17] rounded-lg p-3">
                           <div className="text-[10px] text-gray-500 flex items-center gap-1">
@@ -436,7 +436,7 @@ export default function LeaderboardPanel() {
               <span className="text-amber-400 font-semibold">Score formula:</span> Total Money Earned + Buildings × 100 + Research × 200 + Contracts × 50 + Prestiges × 500
             </p>
             <p>
-              <span className="text-green-400 font-semibold">Requirement:</span> You must be signed in to submit scores. Guest progress is local-only and won&apos;t appear on the leaderboard.
+              <span className="text-success font-semibold">Requirement:</span> You must be signed in to submit scores. Guest progress is local-only and won&apos;t appear on the leaderboard.
             </p>
           </div>
         </div>

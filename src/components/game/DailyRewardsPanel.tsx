@@ -160,7 +160,7 @@ export default function DailyRewardsPanel() {
                   : isToday && !isClaimed
                     ? 'bg-card border-2 border-pink-500/60 shadow-[0_0_16px_rgba(236,72,153,0.25)]'
                     : isClaimed
-                      ? 'bg-[#0a0e17] border border-green-900/30 opacity-60'
+                      ? 'bg-[#0a0e17] border border-success/30 opacity-60'
                       : 'bg-card border border-gray-800'
                 }
               `}
@@ -171,8 +171,8 @@ export default function DailyRewardsPanel() {
                   DAY {reward.day}
                 </span>
                 {isClaimed && (
-                  <div className="w-5 h-5 rounded-full bg-green-900/50 flex items-center justify-center">
-                    <Check className="w-3 h-3 text-green-400" />
+                  <div className="w-5 h-5 rounded-full bg-success/50 flex items-center justify-center">
+                    <Check className="w-3 h-3 text-success" />
                   </div>
                 )}
                 {isToday && !isClaimed && (
@@ -194,7 +194,7 @@ export default function DailyRewardsPanel() {
 
               {/* Reward Description */}
               <div className={`text-center text-xs font-medium mb-2 ${
-                isClaimed ? 'text-green-400/60 line-through' :
+                isClaimed ? 'text-success/60 line-through' :
                 isJackpot ? 'text-amber-300' :
                 isToday ? 'text-pink-300' :
                 isFuture ? 'text-gray-600' :
@@ -222,7 +222,7 @@ export default function DailyRewardsPanel() {
                 </Button>
               )}
               {isClaimed && (
-                <div className="w-full h-8 flex items-center justify-center text-[10px] text-green-500/50 font-medium">
+                <div className="w-full h-8 flex items-center justify-center text-[10px] text-success/50 font-medium">
                   Claimed ✓
                 </div>
               )}

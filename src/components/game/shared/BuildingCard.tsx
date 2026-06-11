@@ -39,7 +39,7 @@ export function BuildingCard({
         <div className="mt-2 flex items-center gap-3 text-[10px] text-gray-400">
           <span>Eff: {(building.efficiency * 100).toFixed(0)}%</span>
           {building.active ? (
-            <span className="text-green-400">Active</span>
+            <span className="text-success">Active</span>
           ) : (
             <span className="text-gray-500">Idle</span>
           )}

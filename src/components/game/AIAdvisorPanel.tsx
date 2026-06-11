@@ -194,7 +194,7 @@ function HealthGauge({ score, breakdown }: { score: number; breakdown: HealthBre
       <div className="w-full space-y-1 px-1">
         <HealthBar label="Power" value={breakdown.power} color="text-yellow-400" barColor="bg-yellow-400" />
         <HealthBar label="Production" value={breakdown.production} color="text-cyan-400" barColor="bg-cyan-400" />
-        <HealthBar label="Storage" value={breakdown.storage} color="text-green-400" barColor="bg-green-400" />
+        <HealthBar label="Storage" value={breakdown.storage} color="text-success" barColor="bg-success" />
         <HealthBar label="Activity" value={breakdown.activity} color="text-purple-400" barColor="bg-purple-400" />
       </div>
     </div>
@@ -347,7 +347,7 @@ type ChainStatus = 'fullyProducing' | 'partial' | 'notStarted' | 'locked';
 
 function ChainStatusDot({ status }: { status: ChainStatus }) {
   const colorMap: Record<ChainStatus, string> = {
-    fullyProducing: 'bg-green-400',
+    fullyProducing: 'bg-success',
     partial: 'bg-yellow-400',
     notStarted: 'bg-red-400',
     locked: 'bg-gray-600',
@@ -1067,7 +1067,7 @@ export default function AIAdvisorPanel() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold text-emerald-400 flex items-center gap-2 neon-glow-cyan">
+          <h2 className="text-xl font-bold text-success flex items-center gap-2 neon-glow-cyan">
             <Brain className="w-5 h-5" />
             AI Advisor
           </h2>
@@ -1107,21 +1107,21 @@ export default function AIAdvisorPanel() {
             icon={Factory}
             label="Active Buildings"
             value={activeBuildings.toString()}
-            color="text-emerald-400"
+            color="text-success"
             subtext={`of ${buildings.length} total`}
           />
           <QuickStatCard
             icon={Zap}
             label="Power Efficiency"
             value={`${(powerEfficiency * 100).toFixed(0)}%`}
-            color={powerEfficiency >= 0.8 ? 'text-green-400' : powerEfficiency >= 0.5 ? 'text-yellow-400' : 'text-red-400'}
+            color={powerEfficiency >= 0.8 ? 'text-success' : powerEfficiency >= 0.5 ? 'text-yellow-400' : 'text-red-400'}
             subtext={`${formatNumber(powerGrid.totalProduction)}MW / ${formatNumber(powerGrid.totalConsumption)}MW`}
           />
           <QuickStatCard
             icon={AlertTriangle}
             label="Deficits"
             value={deficitCount.toString()}
-            color={deficitCount > 0 ? 'text-orange-400' : 'text-green-400'}
+            color={deficitCount > 0 ? 'text-orange-400' : 'text-success'}
             subtext={deficitCount > 0 ? 'resources running low' : 'all resources balanced'}
           />
           <QuickStatCard
@@ -1142,7 +1142,7 @@ export default function AIAdvisorPanel() {
               <Link2 className="w-3.5 h-3.5 text-cyan-400" />
               Production Chain Status
               <span className="ml-auto text-[9px] text-gray-500">
-                {chainCounts.fullyProducing} <span className="text-green-400">active</span> · {chainCounts.partial} <span className="text-yellow-400">partial</span> · {chainCounts.notStarted} <span className="text-red-400">idle</span> · {chainCounts.locked} <span className="text-gray-500">locked</span>
+                {chainCounts.fullyProducing} <span className="text-success">active</span> · {chainCounts.partial} <span className="text-yellow-400">partial</span> · {chainCounts.notStarted} <span className="text-red-400">idle</span> · {chainCounts.locked} <span className="text-gray-500">locked</span>
               </span>
             </CardTitle>
           </CardHeader>
@@ -1170,7 +1170,7 @@ export default function AIAdvisorPanel() {
       {/* Recommendations */}
       <div>
         <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-2 mb-3">
-          <Activity className="w-4 h-4 text-emerald-400" />
+          <Activity className="w-4 h-4 text-success" />
           Recommendations
         </h3>
 
@@ -1205,9 +1205,9 @@ export default function AIAdvisorPanel() {
         <Card className="bg-emerald-900/10 border border-emerald-500/20">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
-              <Brain className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+              <Brain className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
               <div>
-                <h4 className="text-sm font-semibold text-emerald-300">Getting Started</h4>
+                <h4 className="text-sm font-semibold text-success">Getting Started</h4>
                 <p className="text-xs text-gray-400 mt-1">
                   Welcome to Factory Dominion! Start by building a <strong className="text-cyan-300">Mining Drill</strong> to extract raw resources,
                   then a <strong className="text-yellow-300">Coal Generator</strong> to power your factory.

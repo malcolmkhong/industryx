@@ -127,7 +127,7 @@ export function MarketPriceChart({
   const trendColor = trendFlat
     ? "text-gray-400"
     : trendUp
-      ? "text-green-400"
+      ? "text-success"
       : "text-red-400";
 
   return (

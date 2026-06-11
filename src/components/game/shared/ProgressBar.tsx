@@ -11,7 +11,7 @@ interface ProgressBarProps {
 }
 
 const VARIANT_BG: Record<ProgressBarVariant, string> = {
-  success: 'bg-green-500',
+  success: 'bg-success',
   warning: 'bg-yellow-500',
   danger: 'bg-red-500',
   primary: 'bg-cyan-500',

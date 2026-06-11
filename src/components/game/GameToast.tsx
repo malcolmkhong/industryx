@@ -21,9 +21,9 @@ const TOAST_ICONS = {
 
 const TOAST_COLORS = {
   success: {
-    border: 'border-green-500/50',
-    bg: 'bg-green-900/20',
-    icon: 'text-green-400',
+    border: 'border-success/50',
+    bg: 'bg-success/20',
+    icon: 'text-success',
     glow: 'shadow-green-500/10',
   },
   warning: {

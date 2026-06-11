@@ -274,7 +274,7 @@ export default function BackendDashboard() {
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-emerald-400 text-sm font-medium">System Online</span>
+                <span className="text-success text-sm font-medium">System Online</span>
               </div>
             </div>
           </div>
@@ -284,8 +284,8 @@ export default function BackendDashboard() {
             {/* Total Players */}
             <a href="/admin/players" className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5 block hover:border-zinc-700 transition-colors">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-emerald-400">
+                <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-success">
                     <circle cx="12" cy="8" r="5" /><path d="M20 21a8 8 0 0 0-16 0" />
                   </svg>
                 </div>
@@ -298,7 +298,7 @@ export default function BackendDashboard() {
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                <span className="text-emerald-400 text-xs">Registered accounts</span>
+                <span className="text-success text-xs">Registered accounts</span>
               </div>
             </a>
 
@@ -327,7 +327,7 @@ export default function BackendDashboard() {
                 {presenceConnected ? (
                   <>
                     <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="text-emerald-400 text-xs">Live ({presenceLoggedInCount} logged in)</span>
+                    <span className="text-success text-xs">Live ({presenceLoggedInCount} logged in)</span>
                   </>
                 ) : (
                   <>

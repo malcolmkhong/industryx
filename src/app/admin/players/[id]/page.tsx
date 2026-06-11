@@ -200,7 +200,7 @@ function getInvestigationStatusBadge(status: string): string {
     case "open":
       return "bg-orange-500/15 text-orange-400 border-orange-500/20";
     case "resolved":
-      return "bg-emerald-500/15 text-emerald-400 border-emerald-500/20";
+      return "bg-success/15 text-success border-emerald-500/20";
     case "dismissed":
       return "bg-zinc-500/15 text-zinc-400 border-zinc-500/20";
     default:
@@ -216,7 +216,7 @@ function getRiskLevelBadge(risk: string | null): string {
     case "medium":
       return "bg-amber-500/15 text-amber-400 border-amber-500/20";
     case "low":
-      return "bg-emerald-500/15 text-emerald-400 border-emerald-500/20";
+      return "bg-success/15 text-success border-emerald-500/20";
     default:
       return "bg-zinc-500/15 text-zinc-400 border-zinc-500/20";
   }
@@ -550,7 +550,7 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
                               Locked
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border bg-emerald-500/15 text-emerald-400 border-emerald-500/20">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border bg-success/15 text-success border-emerald-500/20">
                               Active
                             </span>
                           )}
@@ -579,7 +579,7 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
                       {isLocked ? (
                         <button
                           onClick={() => setConfirmModal({ action: "unlock" })}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-400 text-sm rounded-lg hover:bg-emerald-500/20 transition-colors border border-emerald-500/20 font-medium"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-success/10 text-success text-sm rounded-lg hover:bg-success/20 transition-colors border border-emerald-500/20 font-medium"
                         >
                           <IconUnlock />
                           Unlock Account
@@ -601,13 +601,13 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
                   <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4">
                     <p className="text-zinc-500 text-[10px] mb-1">Money</p>
-                    <p className="text-emerald-400 text-sm font-bold font-mono">
+                    <p className="text-success text-sm font-bold font-mono">
                       ${formatMoney(gameState?.money ?? 0)}
                     </p>
                   </div>
                   <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4">
                     <p className="text-zinc-500 text-[10px] mb-1">Total Earned</p>
-                    <p className="text-emerald-400 text-sm font-bold font-mono">
+                    <p className="text-success text-sm font-bold font-mono">
                       ${formatMoney((gameState?.total_earned as number) ?? 0)}
                     </p>
                   </div>
@@ -714,13 +714,13 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
                                   <code className="text-zinc-300 text-xs font-mono">{action.action_type}</code>
                                 </td>
                                 <td className="px-4 py-2.5 text-right">
-                                  <span className="text-emerald-400 text-xs font-mono">
+                                  <span className="text-success text-xs font-mono">
                                     {action.money_after != null ? `$${formatMoney(action.money_after)}` : "—"}
                                   </span>
                                 </td>
                                 <td className="px-4 py-2.5 text-center">
                                   {action.is_valid ? (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border bg-emerald-500/15 text-emerald-400 border-emerald-500/20">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border bg-success/15 text-success border-emerald-500/20">
                                       Valid
                                     </span>
                                   ) : (
@@ -756,7 +756,7 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
                             <div className="flex items-center justify-between mb-1.5">
                               <code className="text-zinc-300 text-xs font-mono">{action.action_type}</code>
                               {action.is_valid ? (
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium border bg-emerald-500/15 text-emerald-400 border-emerald-500/20">
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium border bg-success/15 text-success border-emerald-500/20">
                                   Valid
                                 </span>
                               ) : (
@@ -770,7 +770,7 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
                                 {new Date(action.created_at).toLocaleString()}
                               </span>
                               {action.money_after != null && (
-                                <span className="text-emerald-400 text-[10px] font-mono">
+                                <span className="text-success text-[10px] font-mono">
                                   ${formatMoney(action.money_after)}
                                 </span>
                               )}
@@ -887,14 +887,14 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-sm shadow-2xl">
             <div className="p-6 text-center">
               <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 ${
-                confirmModal.action === "lock" ? "bg-red-500/10" : "bg-emerald-500/10"
+                confirmModal.action === "lock" ? "bg-red-500/10" : "bg-success/10"
               }`}>
                 {confirmModal.action === "lock" ? (
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-400">
                     <rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
                   </svg>
                 ) : (
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-emerald-400">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-success">
                     <rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" />
                   </svg>
                 )}
@@ -941,7 +941,7 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
                 className={`inline-flex items-center gap-2 px-4 py-2 font-medium text-sm rounded-lg transition-colors ${
                   confirmModal.action === "lock"
                     ? "bg-red-500 hover:bg-red-400 disabled:bg-red-500/50 text-white"
-                    : "bg-emerald-500 hover:bg-emerald-400 disabled:bg-emerald-500/50 text-white"
+                    : "bg-success hover:bg-emerald-400 disabled:bg-success/50 text-white"
                 }`}
               >
                 {actionLoading ? (
@@ -968,7 +968,7 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
             key={toast.id}
             className={`px-4 py-3 rounded-lg text-sm font-medium shadow-lg border transition-all ${
               toast.type === "success"
-                ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/20"
+                ? "bg-success/15 text-success border-emerald-500/20"
                 : toast.type === "error"
                 ? "bg-red-500/15 text-red-400 border-red-500/20"
                 : "bg-amber-500/15 text-amber-400 border-amber-500/20"

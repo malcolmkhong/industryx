@@ -32,7 +32,7 @@ const CATEGORY_STYLES: Record<string, { bg: string; border: string; glow: string
   factory_t1: { bg: 'bg-cyan-900/50', border: 'border-cyan-500/50', glow: 'shadow-cyan-500/30', text: 'text-cyan-400', fill: '#164e63' },
   factory_t2: { bg: 'bg-orange-900/50', border: 'border-orange-500/50', glow: 'shadow-orange-500/30', text: 'text-orange-400', fill: '#7c2d12' },
   factory_t3: { bg: 'bg-purple-900/50', border: 'border-purple-500/50', glow: 'shadow-purple-500/30', text: 'text-purple-400', fill: '#581c87' },
-  factory_t4: { bg: 'bg-emerald-900/50', border: 'border-emerald-500/50', glow: 'shadow-emerald-500/30', text: 'text-emerald-400', fill: '#064e3b' },
+  factory_t4: { bg: 'bg-success/50', border: 'border-success/50', glow: 'shadow-emerald-500/30', text: 'text-success', fill: '#064e3b' },
   factory_t5: { bg: 'bg-red-900/50', border: 'border-red-500/50', glow: 'shadow-red-500/30', text: 'text-red-400', fill: '#7f1d1d' },
   power: { bg: 'bg-yellow-900/50', border: 'border-yellow-500/50', glow: 'shadow-yellow-500/30', text: 'text-yellow-400', fill: '#713f12' },
 };
@@ -257,7 +257,7 @@ const MapBuildingTile = memo(function MapBuildingTile({
             <span style={{ color: getEffColor(building.efficiency) }}>
               {Math.round(building.efficiency * 100)}% eff
             </span>
-            <span className={building.active ? 'text-green-400' : 'text-red-400'}>
+            <span className={building.active ? 'text-success' : 'text-red-400'}>
               {building.active ? 'Active' : 'Off'}
             </span>
             {producesPower && <span className="text-yellow-400">+{def.basePowerProduction * building.level}MW</span>}
@@ -301,7 +301,7 @@ function SelectedBuildingPanel({
           <div>
             <h3 className={`text-sm font-semibold ${style.text}`}>{def.name}</h3>
             <p className="text-[10px] text-gray-500">
-              Lv {building.level} • {building.active ? <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500"></span>Active</span> : <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500"></span>Off</span>}
+              Lv {building.level} • {building.active ? <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-success"></span>Active</span> : <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500"></span>Off</span>}
             </p>
           </div>
         </div>
@@ -344,7 +344,7 @@ function SelectedBuildingPanel({
                     <span className="text-[10px]">{meta?.icon ?? ''}</span>
                     <span className="text-[9px]" style={{ color: meta?.color }}>{meta?.name ?? output.resource}</span>
                   </div>
-                  <span className="text-[9px] text-green-400 font-mono">+{formatNumber(rate)}/s</span>
+                  <span className="text-[9px] text-success font-mono">+{formatNumber(rate)}/s</span>
                 </div>
               );
             })}
@@ -386,7 +386,7 @@ function SelectedBuildingPanel({
           className={`flex-1 h-7 text-[10px] ${
             building.active
               ? 'border-red-800/50 text-red-400 hover:bg-red-900/20'
-              : 'border-green-800/50 text-green-400 hover:bg-green-900/20'
+              : 'border-green-800/50 text-success hover:bg-success/20'
           }`}
           onClick={() => toggleBuilding(building.id)}
         >
@@ -1091,7 +1091,7 @@ export default function FactoryMapPanel() {
       {/* HEADER */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h2 className="text-xl font-bold text-emerald-400 tracking-wide flex items-center gap-2">
+          <h2 className="text-xl font-bold text-success tracking-wide flex items-center gap-2">
             <MapIcon className="w-5 h-5" />
             Factory Floor
           </h2>
@@ -1104,7 +1104,7 @@ export default function FactoryMapPanel() {
             {weather.current !== 'clear' && <span>{weather.remaining}t</span>}
           </Badge>
           {/* Buildings count */}
-          <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-900/10 text-[10px]">
+          <Badge variant="outline" className="border-success/30 text-success bg-emerald-900/10 text-[10px]">
             {totalBuildings} Buildings
           </Badge>
           {/* Overload warning */}
@@ -1124,7 +1124,7 @@ export default function FactoryMapPanel() {
             <Button
               variant={buildMode ? 'default' : 'outline'}
               size="sm"
-              className={`h-7 text-[10px] ${buildMode ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'border-emerald-800/50 text-emerald-400'}`}
+              className={`h-7 text-[10px] ${buildMode ? 'bg-emerald-600 hover:bg-success text-white' : 'border-emerald-800/50 text-success'}`}
               onClick={() => { setBuildMode(!buildMode); setSelectedBuildType(null); }}
             >
               <Hammer className="w-3 h-3 mr-1" />
@@ -1236,7 +1236,7 @@ export default function FactoryMapPanel() {
                           >
                             <GameIcon icon={def.icon} size={20} />
                             <span className="text-[8px] text-gray-400 leading-tight max-w-[48px] truncate">{def.name}</span>
-                            <span className={`text-[7px] font-mono ${affordable ? 'text-green-400' : 'text-red-400'}`}>${formatNumber(cost)}</span>
+                            <span className={`text-[7px] font-mono ${affordable ? 'text-success' : 'text-red-400'}`}>${formatNumber(cost)}</span>
                           </button>
                         );
                       })}
@@ -1282,7 +1282,7 @@ export default function FactoryMapPanel() {
                                 >
                                   <GameIcon icon={def.icon} size={20} />
                                   <span className="text-[8px] text-gray-400 leading-tight max-w-[48px] truncate">{def.name}</span>
-                                  <span className={`text-[7px] font-mono ${affordable ? 'text-green-400' : 'text-red-400'}`}>${formatNumber(cost)}</span>
+                                  <span className={`text-[7px] font-mono ${affordable ? 'text-success' : 'text-red-400'}`}>${formatNumber(cost)}</span>
                                   {count > 0 && (
                                     <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-gray-800 text-[7px] text-gray-300 flex items-center justify-center border border-gray-600">
                                       {count}
@@ -1303,7 +1303,7 @@ export default function FactoryMapPanel() {
                                   </div>
                                   <p className="text-[9px] text-gray-400">{def.description}</p>
                                   <div className="text-[9px] text-gray-500">
-                                    Cost: <span className={affordable ? 'text-green-400' : 'text-red-400'}>${formatNumber(cost)}</span>
+                                    Cost: <span className={affordable ? 'text-success' : 'text-red-400'}>${formatNumber(cost)}</span>
                                     {def.basePowerConsumption > 0 && <> • Power: <span className="text-yellow-400">-{def.basePowerConsumption}MW</span></>}
                                     {def.basePowerProduction > 0 && <> • Output: <span className="text-yellow-400">+{def.basePowerProduction}MW</span></>}
                                   </div>
@@ -1490,7 +1490,7 @@ export default function FactoryMapPanel() {
                 <MapIcon className="w-8 h-8 text-gray-700 mx-auto mb-2" />
                 <p className="text-[10px] text-gray-500">Click a building on the map</p>
                 <p className="text-[9px] text-gray-600 mt-0.5">to view details & actions</p>
-                <p className="text-[9px] text-gray-600 mt-2">or use <span className="text-emerald-400">Build</span> mode to place new buildings</p>
+                <p className="text-[9px] text-gray-600 mt-2">or use <span className="text-success">Build</span> mode to place new buildings</p>
               </div>
             )}
           </>
@@ -1507,7 +1507,7 @@ export default function FactoryMapPanel() {
               </div>
               <div className="bg-[#0a0e17] rounded-lg p-1.5 text-center">
                 <div className="text-[8px] text-gray-500">Active</div>
-                <div className="text-sm font-bold text-green-400 font-mono">{activeBuildings}</div>
+                <div className="text-sm font-bold text-success font-mono">{activeBuildings}</div>
               </div>
               <div className="bg-[#0a0e17] rounded-lg p-1.5 text-center">
                 <div className="text-[8px] text-gray-500 flex items-center justify-center gap-0.5">
@@ -1530,7 +1530,7 @@ export default function FactoryMapPanel() {
               <div className="bg-[#0a0e17] rounded-lg p-1.5 text-center">
                 <div className="text-[8px] text-gray-500">Grid</div>
                 <div className="text-[10px] font-bold font-mono">
-                  <span className="text-green-400">{formatNumber(powerGrid.totalProduction)}</span>
+                  <span className="text-success">{formatNumber(powerGrid.totalProduction)}</span>
                   <span className="text-gray-600">/</span>
                   <span className="text-yellow-400">{formatNumber(powerGrid.totalConsumption)}</span>
                 </div>
@@ -1548,7 +1548,7 @@ export default function FactoryMapPanel() {
                     <span className="text-red-400">OVERLOAD</span>
                   ) : powerGrid.totalConsumption > 0 ? (
                     <>
-                      <span className="text-green-400">{formatNumber(powerGrid.totalProduction)}</span>
+                      <span className="text-success">{formatNumber(powerGrid.totalProduction)}</span>
                       <span className="text-gray-600">/</span>
                       <span className="text-yellow-400">{formatNumber(powerGrid.totalConsumption)}</span> MW
                     </>
@@ -1611,7 +1611,7 @@ export default function FactoryMapPanel() {
               </div>
               <div className="bg-[#0a0e17] rounded-lg p-1.5 text-center">
                 <div className="text-[8px] text-gray-500">Balance</div>
-                <div className="text-[10px] font-bold text-green-400 font-mono">${formatNumber(money)}</div>
+                <div className="text-[10px] font-bold text-success font-mono">${formatNumber(money)}</div>
               </div>
             </div>
 
@@ -1625,7 +1625,7 @@ export default function FactoryMapPanel() {
                   <>
                     <span className="text-gray-600">•</span>
                     <span className="text-gray-500">avg eff</span>
-                    <span className={avgEfficiency >= 0.8 ? 'text-green-400' : avgEfficiency >= 0.5 ? 'text-yellow-400' : 'text-red-400'}>
+                    <span className={avgEfficiency >= 0.8 ? 'text-success' : avgEfficiency >= 0.5 ? 'text-yellow-400' : 'text-red-400'}>
                       {Math.round(avgEfficiency * 100)}%
                     </span>
                   </>
