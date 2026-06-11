@@ -386,7 +386,7 @@ function SelectedBuildingPanel({
           className={`flex-1 h-7 text-[10px] ${
             building.active
               ? 'border-red-800/50 text-red-400 hover:bg-red-900/20'
-              : 'border-green-800/50 text-success hover:bg-success/20'
+              : 'border-success/50 text-success hover:bg-success/20'
           }`}
           onClick={() => toggleBuilding(building.id)}
         >
@@ -1104,7 +1104,7 @@ export default function FactoryMapPanel() {
             {weather.current !== 'clear' && <span>{weather.remaining}t</span>}
           </Badge>
           {/* Buildings count */}
-          <Badge variant="outline" className="border-success/30 text-success bg-emerald-900/10 text-[10px]">
+          <Badge variant="outline" className="border-success/30 text-success bg-success/10 text-[10px]">
             {totalBuildings} Buildings
           </Badge>
           {/* Overload warning */}
@@ -1124,7 +1124,7 @@ export default function FactoryMapPanel() {
             <Button
               variant={buildMode ? 'default' : 'outline'}
               size="sm"
-              className={`h-7 text-[10px] ${buildMode ? 'bg-emerald-600 hover:bg-success text-white' : 'border-emerald-800/50 text-success'}`}
+              className={`h-7 text-[10px] ${buildMode ? 'bg-emerald-600 hover:bg-success text-white' : 'border-success/50 text-success'}`}
               onClick={() => { setBuildMode(!buildMode); setSelectedBuildType(null); }}
             >
               <Hammer className="w-3 h-3 mr-1" />

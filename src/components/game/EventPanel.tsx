@@ -15,11 +15,11 @@ const EVENT_COLORS: Record<string, string> = {
   oilCrisis: 'border-amber-600/50 bg-amber-900/10',
   energyShortage: 'border-yellow-600/50 bg-yellow-900/10',
   aiRevolution: 'border-purple-600/50 bg-purple-900/10',
-  economicBoom: 'border-green-600/50 bg-green-900/10',
+  economicBoom: 'border-green-600/50 bg-success/10',
   naturalDisaster: 'border-red-600/50 bg-red-900/10',
   techBreakthrough: 'border-cyan-600/50 bg-cyan-900/10',
   tradeWar: 'border-orange-600/50 bg-orange-900/10',
-  greenInitiative: 'border-emerald-600/50 bg-emerald-900/10',
+  greenInitiative: 'border-success/50 bg-success/10',
   spaceRace: 'border-violet-600/50 bg-violet-900/10',
   marketCrash: 'border-red-700/50 bg-red-900/10',
 };

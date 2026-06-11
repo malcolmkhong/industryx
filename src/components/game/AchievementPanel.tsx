@@ -332,7 +332,7 @@ const CATEGORY_META: Record<AchievementCategory, { icon: string; color: string; 
     icon: 'gi:money-stack',
     color: 'text-success',
     borderColor: 'border-success/30',
-    bgColor: 'bg-green-900/10',
+    bgColor: 'bg-success/10',
     icon: <DollarSign className="w-4 h-4" />,
   },
   Research: {

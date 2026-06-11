@@ -529,7 +529,7 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
                                 key={b.type}
                                 className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] border ${
                                   b.activeCount > 0
-                                    ? 'border-green-900/40 bg-green-900/10 text-success'
+                                    ? 'border-green-900/40 bg-success/10 text-success'
                                     : 'border-gray-800 bg-gray-900/30 text-gray-500'
                                 }`}
                               >

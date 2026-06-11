@@ -22,7 +22,7 @@ const PROJECT_COLORS: Record<string, { border: string; glow: string; bg: string;
   dysonSphere: { border: 'border-yellow-500/40', glow: 'shadow-yellow-500/20', bg: 'bg-yellow-900/10', text: 'text-yellow-400', badge: 'border-yellow-500/50 text-yellow-400 bg-yellow-900/20', gradient: 'linear-gradient(90deg, #eab308, #facc15)' },
   quantumInternet: { border: 'border-cyan-500/40', glow: 'shadow-cyan-500/20', bg: 'bg-cyan-900/10', text: 'text-cyan-400', badge: 'border-cyan-500/50 text-cyan-400 bg-cyan-900/20', gradient: 'linear-gradient(90deg, #06b6d4, #22d3ee)' },
   fusionCity: { border: 'border-fuchsia-500/40', glow: 'shadow-fuchsia-500/20', bg: 'bg-fuchsia-900/10', text: 'text-fuchsia-400', badge: 'border-fuchsia-500/50 text-fuchsia-400 bg-fuchsia-900/20', gradient: 'linear-gradient(90deg, #d946ef, #e879f9)' },
-  terraformingEngine: { border: 'border-emerald-500/40', glow: 'shadow-emerald-500/20', bg: 'bg-emerald-900/10', text: 'text-success', badge: 'border-success/50 text-success bg-success/20', gradient: 'linear-gradient(90deg, #10b981, #34d399)' },
+  terraformingEngine: { border: 'border-success/40', glow: 'shadow-emerald-500/20', bg: 'bg-success/10', text: 'text-success', badge: 'border-success/50 text-success bg-success/20', gradient: 'linear-gradient(90deg, #10b981, #34d399)' },
   galacticTradeHub: { border: 'border-amber-500/40', glow: 'shadow-amber-500/20', bg: 'bg-amber-900/10', text: 'text-amber-400', badge: 'border-amber-500/50 text-amber-400 bg-amber-900/20', gradient: 'linear-gradient(90deg, #f59e0b, #fbbf24)' },
   deepCoreExtractor: { border: 'border-red-500/40', glow: 'shadow-red-500/20', bg: 'bg-red-900/10', text: 'text-red-400', badge: 'border-red-500/50 text-red-400 bg-red-900/20', gradient: 'linear-gradient(90deg, #ef4444, #f87171)' },
   neuralCommandCenter: { border: 'border-violet-500/40', glow: 'shadow-violet-500/20', bg: 'bg-violet-900/10', text: 'text-violet-400', badge: 'border-violet-500/50 text-violet-400 bg-violet-900/20', gradient: 'linear-gradient(90deg, #8b5cf6, #a78bfa)' },
@@ -288,7 +288,7 @@ export function MegaProjectPanel() {
                 {/* Bonus Preview with Tooltip - shown for ALL projects */}
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className={`${project.completed ? 'bg-green-900/10 border-success/30' : unlocked ? `${colors?.bg ?? 'bg-gray-900/10'} ${colors?.border ?? 'border-gray-700/30'}` : 'bg-gray-900/30 border-gray-700/30'} rounded-lg p-3 mb-3 border cursor-help`}>
+                    <div className={`${project.completed ? 'bg-success/10 border-success/30' : unlocked ? `${colors?.bg ?? 'bg-gray-900/10'} ${colors?.border ?? 'border-gray-700/30'}` : 'bg-gray-900/30 border-gray-700/30'} rounded-lg p-3 mb-3 border cursor-help`}>
                       <div className="text-[10px] text-gray-500 mb-0.5">
                         {project.completed ? 'Permanent Bonus Active' : 'Completion Bonus'}
                       </div>

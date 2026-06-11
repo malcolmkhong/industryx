@@ -200,7 +200,7 @@ export function PrestigePanel() {
 
             {/* What you keep */}
             <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="bg-green-900/10 rounded-lg p-3 border border-success/30">
+              <div className="bg-success/10 rounded-lg p-3 border border-success/30">
                 <div className="text-[10px] text-success font-medium mb-1"><GameIcon icon="gi:check-mark" size={12} className="inline" /> You Keep</div>
                 <ul className="text-[11px] text-gray-400 space-y-0.5">
                   <li>• Completed research</li>
@@ -372,7 +372,7 @@ export function PrestigePanel() {
               </div>
               <div className="space-y-1.5">
                 {store.prestigeState.bonuses.filter(b => b.purchased).map(bonus => (
-                  <div key={bonus.id} className="flex items-center justify-between text-xs bg-green-900/10 rounded px-2 py-1">
+                  <div key={bonus.id} className="flex items-center justify-between text-xs bg-success/10 rounded px-2 py-1">
                     <span className="text-success">{bonus.name}</span>
                     <span className="text-success font-mono">+{(bonus.effect.value * 100).toFixed(0)}%</span>
                   </div>
@@ -423,7 +423,7 @@ export function PrestigePanel() {
             </div>
 
             {/* What you keep */}
-            <div className="bg-green-900/10 rounded-lg p-3 border border-success/30">
+            <div className="bg-success/10 rounded-lg p-3 border border-success/30">
               <div className="text-[10px] text-success font-medium mb-1"><GameIcon icon="gi:check-mark" size={12} className="inline" /> You will keep</div>
               <ul className="text-[11px] text-gray-400 space-y-0.5">
                 <li>• Completed research ({store.completedResearch.length} nodes)</li>

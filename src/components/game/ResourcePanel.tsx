@@ -757,7 +757,7 @@ export function ResourcePanel() {
                                 {/* Inline output flow */}
                                 <div className="flex items-center gap-1 flex-wrap">
                                   {effectiveOutputs.map(({ resource: _r, rate, meta }, i) => (
-                                    <div key={i} className="flex items-center gap-0.5 bg-green-900/15 rounded px-1 py-px">
+                                    <div key={i} className="flex items-center gap-0.5 bg-success/15 rounded px-1 py-px">
                                       <GameIcon icon={meta.icon} size={10} className="inline-flex" />
                                       <span className={`text-[8px] font-mono ${building.active ? 'text-success' : 'text-gray-500'}`}>
                                         +{formatNumber(rate)}

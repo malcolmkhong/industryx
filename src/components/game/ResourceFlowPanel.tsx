@@ -747,7 +747,7 @@ export default function ResourceFlowPanel() {
 
                   {/* Net rate */}
                   <div className="mt-3 grid grid-cols-3 gap-2">
-                    <div className="bg-green-900/10 rounded-lg p-3 text-center border border-green-900/20">
+                    <div className="bg-success/10 rounded-lg p-3 text-center border border-green-900/20">
                       <p className="text-[9px] text-gray-500">PROD</p>
                       <p className="text-sm font-mono font-bold text-success">+{totalProduction.toFixed(2)}</p>
                     </div>
@@ -755,7 +755,7 @@ export default function ResourceFlowPanel() {
                       <p className="text-[9px] text-gray-500">CONS</p>
                       <p className="text-sm font-mono font-bold text-amber-400">-{totalConsumption.toFixed(2)}</p>
                     </div>
-                    <div className={`rounded-lg p-3 text-center border ${netRate >= 0 ? 'bg-green-900/10 border-green-900/20' : 'bg-red-900/10 border-red-900/20'}`}>
+                    <div className={`rounded-lg p-3 text-center border ${netRate >= 0 ? 'bg-success/10 border-green-900/20' : 'bg-red-900/10 border-red-900/20'}`}>
                       <p className="text-[9px] text-gray-500">NET</p>
                       <p className={`text-sm font-mono font-bold ${netRate >= 0 ? 'text-success' : 'text-red-400'}`}>
                         {netRate >= 0 ? '+' : ''}{netRate.toFixed(2)}
@@ -807,7 +807,7 @@ export default function ResourceFlowPanel() {
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
                     <TrendingUp className="w-3.5 h-3.5 text-success" />
                     <span className="text-success">PRODUCERS</span>
-                    <Badge variant="outline" className="text-[9px] border-success/30 text-success bg-green-900/10 ml-auto font-mono">
+                    <Badge variant="outline" className="text-[9px] border-success/30 text-success bg-success/10 ml-auto font-mono">
                       +{totalProduction.toFixed(2)}/s
                     </Badge>
                   </CardTitle>
@@ -818,7 +818,7 @@ export default function ResourceFlowPanel() {
                   ) : (
                     <div className="space-y-1.5 max-h-40 overflow-y-auto game-scrollbar pr-1">
                       {producers.map(({ def, count, activeCount, rate }) => (
-                        <div key={def.type} className="flex items-center gap-2 p-1.5 rounded-md bg-green-900/10 border border-green-900/20">
+                        <div key={def.type} className="flex items-center gap-2 p-1.5 rounded-md bg-success/10 border border-green-900/20">
                           <GameIcon icon={def.icon} size={14} className="inline-flex" />
                           <div className="flex-1 min-w-0">
                             <p className="text-[11px] font-medium text-gray-200 truncate">{def.name}</p>
@@ -911,7 +911,7 @@ export default function ResourceFlowPanel() {
                                       isCurrentStep
                                         ? 'border-cyan-400/50 bg-cyan-900/20 text-cyan-300'
                                         : isUpstream
-                                          ? stepActive ? 'border-success/30 bg-green-900/10 text-success' : 'border-red-900/30 bg-red-900/10 text-red-400'
+                                          ? stepActive ? 'border-success/30 bg-success/10 text-success' : 'border-red-900/30 bg-red-900/10 text-red-400'
                                           : isDownstream
                                             ? stepActive ? 'border-teal-900/30 bg-teal-900/10 text-teal-300' : 'border-gray-800 bg-gray-900/20 text-gray-500'
                                             : 'border-gray-800 text-gray-500'
@@ -944,7 +944,7 @@ export default function ResourceFlowPanel() {
                 </div>
               )}
               {netRate > 0 && consumers.some(c => c.count === 0) && (
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-green-900/10 border border-green-900/20">
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-success/10 border border-green-900/20">
                   <Lightbulb className="w-3.5 h-3.5 text-success flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="text-[11px] font-semibold text-success">Surplus Available</p>

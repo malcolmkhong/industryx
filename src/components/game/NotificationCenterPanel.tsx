@@ -11,7 +11,7 @@ import { GameIcon } from '@/components/game/shared/GameIcon';
 type NotificationFilter = 'all' | 'success' | 'warning' | 'error' | 'info';
 
 const typeColors = {
-  success: { border: 'border-l-green-500', bg: 'bg-green-900/10', text: 'text-success', icon: 'lucide:check' },
+  success: { border: 'border-l-green-500', bg: 'bg-success/10', text: 'text-success', icon: 'lucide:check' },
   warning: { border: 'border-l-yellow-500', bg: 'bg-yellow-900/10', text: 'text-yellow-400', icon: 'lucide:alert-triangle' },
   error: { border: 'border-l-red-500', bg: 'bg-red-900/10', text: 'text-red-400', icon: 'lucide:x' },
   info: { border: 'border-l-cyan-500', bg: 'bg-cyan-900/10', text: 'text-cyan-400', icon: 'lucide:info' },

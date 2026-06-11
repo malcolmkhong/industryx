@@ -525,7 +525,7 @@ export function BlueprintPanel() {
 
                           {/* All buildings match */}
                           {comparison && comparison.missingBuildings.length === 0 && (
-                            <div className="bg-green-900/10 rounded-lg p-3 mb-3 border border-success/20">
+                            <div className="bg-success/10 rounded-lg p-3 mb-3 border border-success/20">
                               <div className="text-[10px] text-success flex items-center gap-1">
                                 <Check className="w-3 h-3" /> Your factory already matches this blueprint!
                               </div>

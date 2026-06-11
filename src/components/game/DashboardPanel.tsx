@@ -1041,7 +1041,7 @@ export function DashboardPanel() {
                   <div
                     key={n.id}
                     className={`text-[11px] py-1.5 px-2 rounded ${
-                      n.type === 'success' ? 'text-success bg-green-900/10' :
+                      n.type === 'success' ? 'text-success bg-success/10' :
                       n.type === 'warning' ? 'text-yellow-400 bg-yellow-900/10' :
                       n.type === 'error' ? 'text-red-400 bg-red-900/10' :
                       'text-gray-400 bg-gray-900/10'

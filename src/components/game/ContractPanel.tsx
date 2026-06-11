@@ -100,7 +100,7 @@ function ContractCard({ contract, store, fulfillingId, onFulfill }: { contract: 
             const enough = have >= r.amount;
             return (
               <div key={i} className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-colors duration-300 ${
-                enough ? 'bg-green-900/10 text-success' : 'bg-red-900/10 text-red-400'
+                enough ? 'bg-success/10 text-success' : 'bg-red-900/10 text-red-400'
               }`}>
                 <GameIcon icon={meta.icon} size={14} className="inline-flex" />
                 <span className="font-mono">{formatNumber(have)}/{formatNumber(r.amount)}</span>
@@ -419,7 +419,7 @@ export function ContractPanel() {
                     const tier = c.gameTier ?? 0;
                     return (
                       <div key={c.id} className={`flex items-center justify-between px-3 py-1.5 rounded-lg text-xs ${
-                        c.completed ? 'bg-green-900/10' : 'bg-red-900/10'
+                        c.completed ? 'bg-success/10' : 'bg-red-900/10'
                       }`}>
                         <div className="flex items-center gap-2">
                           <div className="w-1 h-3 rounded-full" style={{ backgroundColor: getTierColor(tier) }} />

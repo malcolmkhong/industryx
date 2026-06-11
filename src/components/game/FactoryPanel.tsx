@@ -43,7 +43,7 @@ const FLOW_TIERS = [
   { key: 't1', label: 'T1 Processing', icon: <Flame className="w-4 h-4" />, color: '#22d3ee', bgClass: 'bg-cyan-900/20', borderClass: 'border-cyan-700/40', textClass: 'text-cyan-400' },
   { key: 't2', label: 'T2 Manufacturing', icon: <Cog className="w-4 h-4" />, color: '#f97316', bgClass: 'bg-orange-900/20', borderClass: 'border-orange-700/40', textClass: 'text-orange-400' },
   { key: 't3', label: 'T3 High-Tech', icon: <Sparkles className="w-4 h-4" />, color: '#a855f7', bgClass: 'bg-purple-900/20', borderClass: 'border-purple-700/40', textClass: 'text-purple-400' },
-  { key: 't4', label: 'T4 Singularity', icon: <Sparkles className="w-4 h-4" />, color: '#00ffcc', bgClass: 'bg-success/20', borderClass: 'border-emerald-700/40', textClass: 'text-success' },
+  { key: 't4', label: 'T4 Singularity', icon: <Sparkles className="w-4 h-4" />, color: '#00ffcc', bgClass: 'bg-success/20', borderClass: 'border-success/40', textClass: 'text-success' },
 ] as const;
 
 // Resource tier mapping for flow diagram
@@ -833,7 +833,7 @@ export function FactoryPanel() {
                                     <ArrowRight className="w-2.5 h-2.5 text-gray-600 flex-shrink-0" />
                                   )}
                                   {effectiveOutputs.map(({ resource: _r, rate, meta }, i) => (
-                                    <div key={i} className="flex items-center gap-0.5 bg-green-900/15 rounded px-1 py-px">
+                                    <div key={i} className="flex items-center gap-0.5 bg-success/15 rounded px-1 py-px">
                                       <GameIcon icon={meta.icon} size={12} className="inline-flex" />
                                       <span className={`text-[8px] font-mono ${building.active ? 'text-success' : 'text-gray-500'}`}>
                                         +{formatNumber(rate)}

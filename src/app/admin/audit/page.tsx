@@ -193,7 +193,7 @@ function formatActionType(type: string): string {
 
 function getValidBadgeClasses(isValid: boolean): string {
   return isValid
-    ? "bg-success/15 text-success border-emerald-500/20"
+    ? "bg-success/15 text-success border-success/20"
     : "bg-red-500/15 text-red-400 border-red-500/20";
 }
 
@@ -819,7 +819,7 @@ export default function AuditPage() {
             key={toast.id}
             className={`flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg text-sm font-medium animate-in slide-in-from-right ${
               toast.type === "success"
-                ? "bg-success/15 text-success border border-emerald-500/20"
+                ? "bg-success/15 text-success border border-success/20"
                 : toast.type === "error"
                 ? "bg-red-500/15 text-red-400 border border-red-500/20"
                 : "bg-amber-500/15 text-amber-400 border border-amber-500/20"

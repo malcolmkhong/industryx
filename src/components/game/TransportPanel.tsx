@@ -1907,7 +1907,7 @@ export function TransportPanel() {
                                 <button
                                   onClick={() => store.toggleTransportLine(line.id)}
                                   className={`w-5 h-5 rounded-full border text-[10px] flex items-center justify-center ${
-                                    line.active ? 'border-success/50 text-success bg-success/20 hover:bg-green-900/40' : 'border-gray-600 text-gray-500 hover:bg-gray-800'
+                                    line.active ? 'border-success/50 text-success bg-success/20 hover:bg-success/40' : 'border-gray-600 text-gray-500 hover:bg-gray-800'
                                   }`}
                                   title={line.active ? 'Deactivate' : 'Activate'}
                                 >
@@ -2058,7 +2058,7 @@ export function TransportPanel() {
             </div>
             {bottlenecks.length === 0 ? (
               <div className="text-center py-4">
-                <CheckCircle2 className="w-8 h-8 text-green-700 mx-auto mb-2" />
+                <CheckCircle2 className="w-8 h-8 text-success mx-auto mb-2" />
                 <p className="text-[10px] text-success">No bottlenecks detected</p>
                 <p className="text-[9px] text-gray-600 mt-1">All transport lines operating normally</p>
               </div>
@@ -2109,7 +2109,7 @@ export function TransportPanel() {
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full h-7 text-[10px] border-green-800/50 text-success hover:bg-success/20"
+                className="w-full h-7 text-[10px] border-success/50 text-success hover:bg-success/20"
                 onClick={handleActivateAll}
                 disabled={store.transportLines.every(l => l.active)}
               >

@@ -170,7 +170,7 @@ export function GameHeader() {
                   <span className="text-gray-500 inline-flex items-center gap-1"><GameIcon ui="money" size={14} /></span>
                   <span className="text-success font-mono font-bold text-sm">${formatNumber(money)}</span>
                   {pendingPayout > 0 && !payoutConfig.autoCollect && (
-                    <button onClick={collectPayout} className="ml-2 animate-pulse inline-flex items-center gap-1 bg-green-900/40 hover:bg-green-800/50 text-success text-[10px] px-1.5 py-0.5 rounded-md border border-success/30 transition-colors">
+                    <button onClick={collectPayout} className="ml-2 animate-pulse inline-flex items-center gap-1 bg-success/40 hover:bg-success/50 text-success text-[10px] px-1.5 py-0.5 rounded-md border border-success/30 transition-colors">
                       <GameIcon ui="money" size={12} className="inline-flex" /> ${formatNumber(pendingPayout)}
                     </button>
                   )}
@@ -442,7 +442,7 @@ export function GameHeader() {
           <div className="flex items-center gap-1 text-[10px] flex-shrink-0">
             <span className="text-success font-mono font-bold">${formatNumber(money)}</span>
             {pendingPayout > 0 && !payoutConfig.autoCollect && (
-              <button onClick={collectPayout} className="animate-pulse inline-flex items-center bg-green-900/40 text-success text-[9px] px-1 py-0 rounded border border-success/30">
+              <button onClick={collectPayout} className="animate-pulse inline-flex items-center bg-success/40 text-success text-[9px] px-1 py-0 rounded border border-success/30">
                 <GameIcon ui="money" size={12} className="inline-flex" />${formatNumber(pendingPayout)}
               </button>
             )}

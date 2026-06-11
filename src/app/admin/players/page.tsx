@@ -672,7 +672,7 @@ export default function PlayersListPage() {
                                   Locked
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border bg-success/15 text-success border-emerald-500/20">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border bg-success/15 text-success border-success/20">
                                   Active
                                 </span>
                               )}
@@ -713,7 +713,7 @@ export default function PlayersListPage() {
                                   Locked
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium border bg-success/15 text-success border-emerald-500/20">
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium border bg-success/15 text-success border-success/20">
                                   Active
                                 </span>
                               )}
@@ -818,7 +818,7 @@ export default function PlayersListPage() {
             key={toast.id}
             className={`px-4 py-3 rounded-lg text-sm font-medium shadow-lg border transition-all ${
               toast.type === "success"
-                ? "bg-success/15 text-success border-emerald-500/20"
+                ? "bg-success/15 text-success border-success/20"
                 : toast.type === "error"
                 ? "bg-red-500/15 text-red-400 border-red-500/20"
                 : "bg-amber-500/15 text-amber-400 border-amber-500/20"

@@ -273,7 +273,7 @@ export default function BackendDashboard() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
                 <span className="text-success text-sm font-medium">System Online</span>
               </div>
             </div>
@@ -297,7 +297,7 @@ export default function BackendDashboard() {
                 </div>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                <div className="w-2 h-2 rounded-full bg-success" />
                 <span className="text-success text-xs">Registered accounts</span>
               </div>
             </a>
@@ -326,7 +326,7 @@ export default function BackendDashboard() {
               <div className="flex items-center gap-1.5">
                 {presenceConnected ? (
                   <>
-                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
                     <span className="text-success text-xs">Live ({presenceLoggedInCount} logged in)</span>
                   </>
                 ) : (
@@ -462,7 +462,7 @@ export default function BackendDashboard() {
                   recentActions.map((action, i) => (
                     <div key={i} className="flex items-start gap-3 py-2 border-b border-zinc-800 last:border-0">
                       <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
-                        action.is_valid ? "bg-emerald-400" : "bg-red-400"
+                        action.is_valid ? "bg-success" : "bg-red-400"
                       }`} />
                       <div className="flex-1 min-w-0">
                         <p className="text-zinc-300 text-xs font-medium">
@@ -501,7 +501,7 @@ export default function BackendDashboard() {
                     <div key={i} className="flex items-start gap-3 py-2 border-b border-zinc-800 last:border-0">
                       <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
                         inv.status === "open" ? "bg-amber-400" :
-                        inv.status === "resolved" ? "bg-emerald-400" :
+                        inv.status === "resolved" ? "bg-success" :
                         "bg-red-400"
                       }`} />
                       <div className="flex-1 min-w-0">

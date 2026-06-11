@@ -22,7 +22,7 @@ const TIER_CONFIG: Record<number, { label: string; color: string; bg: string; bo
   1: { label: 'Tier 1 — Refined', color: '#22d3ee', bg: 'bg-cyan-900/20', border: 'border-cyan-700/40' },
   2: { label: 'Tier 2 — Manufactured', color: '#f97316', bg: 'bg-orange-900/20', border: 'border-orange-700/40' },
   3: { label: 'Tier 3 — High-Tech', color: '#a855f7', bg: 'bg-purple-900/20', border: 'border-purple-700/40' },
-  4: { label: 'Tier 4 — Singularity', color: '#00ffcc', bg: 'bg-success/20', border: 'border-emerald-700/40' },
+  4: { label: 'Tier 4 — Singularity', color: '#00ffcc', bg: 'bg-success/20', border: 'border-success/40' },
 };
 
 type ViewMode = 'overview' | 'dependencies' | 'alerts';
@@ -292,7 +292,7 @@ export function StoragePanel() {
               <span className="text-[10px] font-semibold text-cyan-400 uppercase tracking-wider">Rate Breakdown — {meta.name}</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <div className="bg-green-900/10 border border-green-800/30 rounded-lg p-2 text-center">
+              <div className="bg-success/10 border border-green-800/30 rounded-lg p-2 text-center">
                 <div className="text-[9px] text-success/70 uppercase tracking-wider">Production</div>
                 <div className="text-sm font-bold text-success font-mono">+{formatNumber(prodRate)}</div>
                 <div className="text-[9px] text-green-600">per second</div>
@@ -302,7 +302,7 @@ export function StoragePanel() {
                 <div className="text-sm font-bold text-red-400 font-mono">-{formatNumber(consRate)}</div>
                 <div className="text-[9px] text-red-600">per second</div>
               </div>
-              <div className={`${netRate >= 0 ? 'bg-green-900/10 border-green-800/30' : 'bg-orange-900/10 border-orange-800/30'} border rounded-lg p-2 text-center`}>
+              <div className={`${netRate >= 0 ? 'bg-success/10 border-green-800/30' : 'bg-orange-900/10 border-orange-800/30'} border rounded-lg p-2 text-center`}>
                 <div className="text-[9px] text-gray-500 uppercase tracking-wider">Net Balance</div>
                 <div className={`text-sm font-bold font-mono ${netRate > 0 ? 'text-success' : netRate < 0 ? 'text-red-400' : prodRate > 0 && consRate > 0 ? 'text-cyan-400' : 'text-gray-500'}`}>
                   {netRate > 0 ? '+' : ''}{netRate === 0 && prodRate > 0 && consRate > 0 ? '±0' : formatNumber(netRate)}
@@ -434,7 +434,7 @@ export function StoragePanel() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {deps.producers.length > 0 && (
-                  <div className="bg-green-900/10 border border-green-800/30 rounded-lg p-2">
+                  <div className="bg-success/10 border border-green-800/30 rounded-lg p-2">
                     <div className="text-[9px] text-success uppercase tracking-wider mb-1.5">Produced By</div>
                     <div className="space-y-1">
                       {deps.producers.slice(0, 5).map((p, i) => (

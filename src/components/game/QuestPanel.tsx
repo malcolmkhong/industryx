@@ -18,13 +18,13 @@ function getTierColor(tier: number): string {
 const QUEST_TYPE_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
   build: { label: 'BUILD', color: 'text-amber-400', bg: 'bg-amber-900/20', border: 'border-amber-800/40' },
   produce: { label: 'PRODUCE', color: 'text-cyan-400', bg: 'bg-cyan-900/20', border: 'border-cyan-800/40' },
-  sell: { label: 'SELL', color: 'text-success', bg: 'bg-success/20', border: 'border-green-800/40' },
+  sell: { label: 'SELL', color: 'text-success', bg: 'bg-success/20', border: 'border-success/40' },
   research: { label: 'RESEARCH', color: 'text-purple-400', bg: 'bg-purple-900/20', border: 'border-purple-800/40' },
   earn: { label: 'EARN', color: 'text-yellow-400', bg: 'bg-yellow-900/20', border: 'border-yellow-800/40' },
   reach: { label: 'REACH', color: 'text-teal-400', bg: 'bg-teal-900/20', border: 'border-teal-800/40' },
   contract: { label: 'CONTRACT', color: 'text-blue-400', bg: 'bg-blue-900/20', border: 'border-blue-800/40' },
   transport: { label: 'TRANSPORT', color: 'text-orange-400', bg: 'bg-orange-900/20', border: 'border-orange-800/40' },
-  worker: { label: 'WORKER', color: 'text-success', bg: 'bg-success/20', border: 'border-emerald-800/40' },
+  worker: { label: 'WORKER', color: 'text-success', bg: 'bg-success/20', border: 'border-success/40' },
   prestige: { label: 'PRESTIGE', color: 'text-fuchsia-400', bg: 'bg-fuchsia-900/20', border: 'border-fuchsia-800/40' },
   megaProject: { label: 'MEGA', color: 'text-rose-400', bg: 'bg-rose-900/20', border: 'border-rose-800/40' },
 };
@@ -74,7 +74,7 @@ const MemoizedQuestItem = React.memo(function MemoizedQuestItem({
           : quest.claimed
             ? 'border-gray-800 bg-gray-900/30 opacity-50'
             : allStepsComplete
-              ? 'border-success/30 bg-green-900/10'
+              ? 'border-success/30 bg-success/10'
               : isTracked
                 ? 'border-cyan-400/40 bg-cyan-900/10'
                 : 'border-cyan-900/30 bg-card/50'
@@ -319,7 +319,7 @@ export function QuestPanel() {
             : quest.claimed
               ? 'border-gray-800 bg-gray-900/30 opacity-50'
               : allStepsComplete
-                ? 'border-success/30 bg-green-900/10'
+                ? 'border-success/30 bg-success/10'
                 : isTracked
                   ? 'border-cyan-400/40 bg-cyan-900/10'
                   : 'border-cyan-900/30 bg-card/50'
@@ -528,7 +528,7 @@ export function QuestPanel() {
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {/* Available reward */}
-        <div className="rounded-xl p-3 text-center border border-success/30 bg-green-900/10">
+        <div className="rounded-xl p-3 text-center border border-success/30 bg-success/10">
           <div className="text-xl mb-1"><GameIcon icon="gi:present" size={20} /></div>
           <div className="text-lg font-bold text-success">${formatNumber(availableReward)}</div>
           <div className="text-[10px] text-gray-500">Available</div>

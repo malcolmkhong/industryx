@@ -167,7 +167,7 @@ export function ResearchPanel() {
                     <div
                       className={`rounded-lg p-3 ${
                         isCompleted
-                          ? 'bg-green-900/10 border border-success/30'
+                          ? 'bg-success/10 border border-success/30'
                           : isActive
                             ? 'bg-purple-900/10 border border-purple-500/30 neon-pulse shadow-[0_0_15px_rgba(168,85,247,0.15)]'
                             : isAvailable

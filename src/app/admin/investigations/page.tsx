@@ -191,7 +191,7 @@ function getStatusBadgeClasses(status: string): string {
     case "investigating":
       return "bg-amber-500/15 text-amber-400 border-amber-500/20";
     case "resolved":
-      return "bg-success/15 text-success border-emerald-500/20";
+      return "bg-success/15 text-success border-success/20";
     case "dismissed":
       return "bg-zinc-500/15 text-zinc-400 border-zinc-500/20";
     default:
@@ -703,7 +703,7 @@ export default function InvestigationsPage() {
                                       disabled={actionLoading || !actionNote.trim()}
                                       className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-lg transition-colors ${
                                         actionType === "resolve"
-                                          ? "bg-success/15 text-success border border-emerald-500/20 hover:bg-success/25 disabled:opacity-50"
+                                          ? "bg-success/15 text-success border border-success/20 hover:bg-success/25 disabled:opacity-50"
                                           : "bg-zinc-500/15 text-zinc-400 border border-zinc-500/20 hover:bg-zinc-500/25 disabled:opacity-50"
                                       }`}
                                     >
@@ -729,7 +729,7 @@ export default function InvestigationsPage() {
                                     <>
                                       <button
                                         onClick={() => { setActionTarget(inv.id); setActionType("resolve"); setActionNote(""); }}
-                                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-success hover:bg-success/10 transition-colors border border-emerald-500/20"
+                                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-success hover:bg-success/10 transition-colors border border-success/20"
                                       >
                                         <IconCheck />
                                         Resolve
@@ -802,7 +802,7 @@ export default function InvestigationsPage() {
                                 disabled={actionLoading || !actionNote.trim()}
                                 className={`inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
                                   actionType === "resolve"
-                                    ? "bg-success/15 text-success border border-emerald-500/20 disabled:opacity-50"
+                                    ? "bg-success/15 text-success border border-success/20 disabled:opacity-50"
                                     : "bg-zinc-500/15 text-zinc-400 border border-zinc-500/20 disabled:opacity-50"
                                 }`}
                               >
@@ -828,7 +828,7 @@ export default function InvestigationsPage() {
                               <>
                                 <button
                                   onClick={() => { setActionTarget(inv.id); setActionType("resolve"); setActionNote(""); }}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-success hover:bg-success/10 transition-colors border border-emerald-500/20"
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-success hover:bg-success/10 transition-colors border border-success/20"
                                 >
                                   <IconCheck />
                                   Resolve
@@ -969,7 +969,7 @@ export default function InvestigationsPage() {
             key={toast.id}
             className={`flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg text-sm font-medium animate-in slide-in-from-right ${
               toast.type === "success"
-                ? "bg-success/15 text-success border border-emerald-500/20"
+                ? "bg-success/15 text-success border border-success/20"
                 : toast.type === "error"
                 ? "bg-red-500/15 text-red-400 border border-red-500/20"
                 : "bg-amber-500/15 text-amber-400 border border-amber-500/20"

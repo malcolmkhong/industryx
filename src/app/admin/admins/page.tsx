@@ -142,7 +142,7 @@ function getRoleBadgeClasses(role: string): string {
     case "viewer":
       return "bg-zinc-500/15 text-zinc-400 border-zinc-500/20";
     default:
-      return "bg-success/15 text-success border-emerald-500/20";
+      return "bg-success/15 text-success border-success/20";
   }
 }
 
@@ -832,7 +832,7 @@ export default function AdminManagementPage() {
                 </select>
                 <div className="flex gap-3 mt-2">
                   <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                    <span className="w-2 h-2 rounded-full bg-success" />
                     <span className="text-zinc-500 text-[10px]">Admin — Full access</span>
                   </div>
                   <div className="flex items-center gap-1.5">
@@ -936,7 +936,7 @@ export default function AdminManagementPage() {
             key={toast.id}
             className={`flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg text-sm font-medium animate-in slide-in-from-right ${
               toast.type === "success"
-                ? "bg-success/15 text-success border border-emerald-500/20"
+                ? "bg-success/15 text-success border border-success/20"
                 : toast.type === "error"
                 ? "bg-red-500/15 text-red-400 border border-red-500/20"
                 : "bg-amber-500/15 text-amber-400 border border-amber-500/20"

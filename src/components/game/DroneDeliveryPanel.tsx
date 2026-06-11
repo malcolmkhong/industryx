@@ -29,7 +29,7 @@ function formatDuration(ticks: number): string {
 // --- Drone Status Badge ---
 function DroneStatusBadge({ status }: { status: Drone['status'] }) {
   const config = {
-    idle: { label: 'Idle', className: 'bg-emerald-900/40 text-success border-success/30' },
+    idle: { label: 'Idle', className: 'bg-success/40 text-success border-success/30' },
     delivering: { label: 'Delivering', className: 'bg-sky-900/40 text-sky-400 border-sky-500/30 animate-pulse' },
   };
   const c = config[status];

@@ -165,7 +165,7 @@ function getActionTypeBadge(type: string): string {
     case "lock_account":
       return "bg-red-500/15 text-red-400 border-red-500/20";
     case "unlock_account":
-      return "bg-success/15 text-success border-emerald-500/20";
+      return "bg-success/15 text-success border-success/20";
     case "reset_state":
       return "bg-orange-500/15 text-orange-400 border-orange-500/20";
     case "resolve_investigation":
@@ -765,7 +765,7 @@ export default function AdminAuditPage() {
             key={toast.id}
             className={`flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg text-sm font-medium ${
               toast.type === "success"
-                ? "bg-success/15 text-success border border-emerald-500/20"
+                ? "bg-success/15 text-success border border-success/20"
                 : toast.type === "error"
                 ? "bg-red-500/15 text-red-400 border border-red-500/20"
                 : "bg-amber-500/15 text-amber-400 border border-amber-500/20"

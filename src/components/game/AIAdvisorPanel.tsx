@@ -1202,7 +1202,7 @@ export default function AIAdvisorPanel() {
 
       {/* Advisor Tips (always visible at bottom) */}
       {buildings.length === 0 ? (
-        <Card className="bg-emerald-900/10 border border-emerald-500/20">
+        <Card className="bg-success/10 border border-success/20">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
               <Brain className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />

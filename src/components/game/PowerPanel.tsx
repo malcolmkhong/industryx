@@ -215,7 +215,7 @@ export function PowerPanel() {
     if (powerStatus === 'balanced') {
       return { icon: 'lucide:lightbulb', text: 'Consider adding surplus capacity for expansion', color: 'text-yellow-400', bg: 'bg-yellow-900/20 border-yellow-800/40' };
     }
-    return { icon: 'lucide:check-circle', text: 'Great! You have room to expand production', color: 'text-success', bg: 'bg-success/20 border-green-800/40' };
+    return { icon: 'lucide:check-circle', text: 'Great! You have room to expand production', color: 'text-success', bg: 'bg-success/20 border-success/40' };
   }, [powerStatus]);
 
   // Power production history from productionHistory
@@ -384,7 +384,7 @@ export function PowerPanel() {
           <div className="flex justify-between mt-1.5">
             <span className="text-[9px] text-gray-600">0%</span>
             <span className="text-[9px] text-gray-600">50%</span>
-            <span className="text-[9px] text-green-700">100%</span>
+            <span className="text-[9px] text-success">100%</span>
             <span className="text-[9px] text-gray-600">150%</span>
             <span className="text-[9px] text-gray-600">200%</span>
           </div>
