@@ -1,5 +1,5 @@
 import {
-  Bell, Cloud, Download, LogIn, LogOut, Pause, Play, RotateCcw, Settings, Upload,
+  Bell, Check, Cloud, Download, LogIn, LogOut, Pause, Play, RotateCcw, Settings, Upload,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
