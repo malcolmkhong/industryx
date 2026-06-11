@@ -443,7 +443,7 @@ export function MarketPanel() {
               {/* Downstream */}
               {correlationChain.downstream.length > 0 && (
                 <div>
-                  <div className="text-[10px] text-green-400 font-semibold mb-1.5">↓ Downstream (this price affects)</div>
+                  <div className="text-[10px] text-success font-semibold mb-1.5">↓ Downstream (this price affects)</div>
                   <div className="space-y-1">
                     {correlationChain.downstream.map(c => {
                       const meta = RESOURCE_META[c.resource];
