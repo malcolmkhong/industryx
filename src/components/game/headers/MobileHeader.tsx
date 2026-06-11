@@ -164,7 +164,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange }: Mobil
             <GameIcon icon={WEATHER_DEFS[weather.current]?.icon} size={12} className="inline-flex" />
           </Badge>
 
-          <Badge variant="outline" className={`text-[8px] px-1 py-0 ${isUsingSupabase ? 'border-emerald-500/50 text-emerald-400' : 'border-amber-500/50 text-amber-400'}`}>
+          <Badge variant="outline" className={`text-[8px] px-1 py-0 ${isUsingSupabase ? 'border-success/50 text-success' : 'border-amber-500/50 text-amber-400'}`}>
             {isUsingSupabase ? 'Live' : 'Local'}
           </Badge>
 
