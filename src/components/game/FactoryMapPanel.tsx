@@ -277,7 +277,10 @@ function SelectedBuildingPanel({
   building: BuildingInstance;
   onClose: () => void;
 }) {
-  const store = useGameStore();
+  const money = useGameStore((s) => s.money);
+  const resources = useGameStore((s) => s.resources);
+  const toggleBuilding = useGameStore((s) => s.toggleBuilding);
+  const upgradeBuilding = useGameStore((s) => s.upgradeBuilding);
   const def = BUILDING_DEFS[building.type];
   if (!def) return null;
 
@@ -285,7 +288,7 @@ function SelectedBuildingPanel({
   const upgradeCost = def.baseCost.find(c => c.resource === 'money')
     ? Math.floor((def.baseCost.find(c => c.resource === 'money')?.amount ?? 0) * Math.pow(def.costMultiplier, building.level))
     : 0;
-  const canAffordUpgrade = store.money >= upgradeCost;
+  const canAffordUpgrade = money >= upgradeCost;
 
   return (
     <div
@@ -357,7 +360,7 @@ function SelectedBuildingPanel({
             {def.inputs.map((input, i) => {
               const meta = RESOURCE_META[input.resource as keyof typeof RESOURCE_META];
               const needed = input.amount * building.level;
-              const have = store.resources[input.resource as keyof typeof store.resources] ?? 0;
+              const have = resources[input.resource as keyof typeof resources] ?? 0;
               const enough = have >= needed;
               return (
                 <div key={i} className="flex items-center justify-between bg-[#0a0e17] rounded px-1.5 py-0.5">
@@ -385,7 +388,7 @@ function SelectedBuildingPanel({
               ? 'border-red-800/50 text-red-400 hover:bg-red-900/20'
               : 'border-green-800/50 text-green-400 hover:bg-green-900/20'
           }`}
-          onClick={() => store.toggleBuilding(building.id)}
+          onClick={() => toggleBuilding(building.id)}
         >
           {building.active ? <PowerOff className="w-2.5 h-2.5 mr-1" /> : <Power className="w-2.5 h-2.5 mr-1" />}
           {building.active ? 'Off' : 'On'}
@@ -398,7 +401,7 @@ function SelectedBuildingPanel({
               ? 'border-cyan-800/50 text-cyan-400 hover:bg-cyan-900/20'
               : 'border-gray-700 text-gray-500'
           }`}
-          onClick={() => store.upgradeBuilding(building.id)}
+          onClick={() => upgradeBuilding(building.id)}
           disabled={!canAffordUpgrade}
         >
           <ChevronUp className="w-2.5 h-2.5 mr-1" />
@@ -500,7 +503,18 @@ function ConnectionOverlay({
 
 // --- Main FactoryMapPanel ---
 export default function FactoryMapPanel() {
-  const store = useGameStore();
+  const buildings = useGameStore((s) => s.buildings);
+  const resources = useGameStore((s) => s.resources);
+  const money = useGameStore((s) => s.money);
+  const gameSpeed = useGameStore((s) => s.gameSpeed);
+  const gameTick = useGameStore((s) => s.gameTick);
+  const paused = useGameStore((s) => s.paused);
+  const powerGrid = useGameStore((s) => s.powerGrid);
+  const weather = useGameStore((s) => s.weather);
+  const completedResearch = useGameStore((s) => s.completedResearch);
+  const buildBuilding = useGameStore((s) => s.buildBuilding);
+  const toggleBuilding = useGameStore((s) => s.toggleBuilding);
+  const upgradeBuilding = useGameStore((s) => s.upgradeBuilding);
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
   const [buildMode, setBuildMode] = useState(false);
   const [selectedBuildType, setSelectedBuildType] = useState<BuildingType | null>(null);
@@ -550,7 +564,7 @@ export default function FactoryMapPanel() {
     const usedCells = new Set<string>();
 
     // Start with saved positions that still have buildings
-    for (const b of store.buildings) {
+    for (const b of buildings) {
       const saved = savedPositions[b.id];
       if (saved) {
         posMap.set(b.id, saved);
@@ -559,7 +573,7 @@ export default function FactoryMapPanel() {
     }
 
     // Assign positions for buildings without saved positions
-    for (const b of store.buildings) {
+    for (const b of buildings) {
       if (posMap.has(b.id)) continue;
 
       // Check for pending placement
@@ -584,7 +598,7 @@ export default function FactoryMapPanel() {
     }
 
     return posMap;
-  }, [store.buildings, savedPositions, pendingPosition]);
+  }, [buildings, savedPositions, pendingPosition]);
 
   // When positions change, persist to localStorage (via setTimeout to avoid effect-body setState)
   const lastPersistedRef = useRef<string>('');
@@ -604,8 +618,8 @@ export default function FactoryMapPanel() {
   }, [buildingPositions, persistPositions]);
 
   const selectedBuilding = useMemo(
-    () => store.buildings.find(b => b.id === selectedBuildingId) ?? null,
-    [store.buildings, selectedBuildingId]
+    () => buildings.find(b => b.id === selectedBuildingId) ?? null,
+    [buildings, selectedBuildingId]
   );
 
   // Cell dimensions (responsive)
@@ -616,7 +630,7 @@ export default function FactoryMapPanel() {
   const handleCellClick = useCallback((row: number, col: number) => {
     if (buildMode && selectedBuildType) {
       // Check if cell is occupied
-      const existingBuilding = store.buildings.find(b => {
+      const existingBuilding = buildings.find(b => {
         const pos = buildingPositions.get(b.id);
         return pos?.row === row && pos?.col === col;
       });
@@ -639,14 +653,14 @@ export default function FactoryMapPanel() {
       setPendingPosition({ row, col });
 
       // Place the building (Zustand updates state synchronously)
-      store.buildBuilding(selectedBuildType);
+      buildBuilding(selectedBuildType);
 
       // The useMemo will pick up the new building + pendingPosition and assign it correctly
       return;
     }
 
     // Not in build mode: select building at this cell
-    const buildingAtCell = store.buildings.find(b => {
+    const buildingAtCell = buildings.find(b => {
       const pos = buildingPositions.get(b.id);
       return pos?.row === row && pos?.col === col;
     });
@@ -714,31 +728,31 @@ export default function FactoryMapPanel() {
     const def = BUILDING_DEFS[type];
     if (!def) return false;
     return def.baseCost.every(c => {
-      if (c.resource === 'money') return store.money >= c.amount;
+      if (c.resource === 'money') return money >= c.amount;
       return true;
     });
-  }, [store.money]);
+  }, [money]);
 
   // Check if building is unlocked
   const isBuildUnlocked = useCallback((type: BuildingType) => {
     const def = BUILDING_DEFS[type];
     if (!def?.unlockRequirement) return true;
-    if (def.unlockRequirement.research && !store.completedResearch.includes(def.unlockRequirement.research)) return false;
+    if (def.unlockRequirement.research && !completedResearch.includes(def.unlockRequirement.research)) return false;
     return true;
-  }, [store.completedResearch]);
+  }, [completedResearch]);
 
   // Stats
-  const totalBuildings = store.buildings.length;
-  const activeBuildings = store.buildings.filter(b => b.active).length;
-  const extractorCount = store.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'extractor').length;
-  const factoryCount = store.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory').length;
-  const powerCount = store.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power').length;
+  const totalBuildings = buildings.length;
+  const activeBuildings = buildings.filter(b => b.active).length;
+  const extractorCount = buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'extractor').length;
+  const factoryCount = buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory').length;
+  const powerCount = buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power').length;
 
   // Detect building level upgrades for flash animation
   useEffect(() => {
     const currentLevels: Record<string, number> = {};
     const upgraded: string[] = [];
-    for (const b of store.buildings) {
+    for (const b of buildings) {
       currentLevels[b.id] = b.level;
       const prevLevel = prevBuildingLevels.current[b.id];
       if (prevLevel !== undefined && b.level > prevLevel) {
@@ -764,7 +778,7 @@ export default function FactoryMapPanel() {
         }, 700);
       }, 0);
     }
-  }, [store.buildings]);
+  }, [buildings]);
 
   // Filter building types by search
   const filteredCategories = useMemo(() => {
@@ -783,7 +797,7 @@ export default function FactoryMapPanel() {
   // --- Auto-Connect Algorithm ---
   const autoConnections = useMemo(() => {
     const conns: FactoryConnection[] = [];
-    const activeBuildings = store.buildings.filter(b => b.active);
+    const activeBuildings = buildings.filter(b => b.active);
 
     // For each active building with inputs, find the best supplier
     for (const consumer of activeBuildings) {
@@ -856,7 +870,7 @@ export default function FactoryMapPanel() {
     }
 
     return conns;
-  }, [store.buildings, buildingPositions]);
+  }, [buildings, buildingPositions]);
 
   // Average efficiency for stats display
   const avgEfficiency = autoConnections.length > 0
@@ -905,11 +919,11 @@ export default function FactoryMapPanel() {
     };
 
     // Group buildings by category
-    const extractors = store.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'extractor');
-    const t1Factories = store.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory' && BUILDING_DEFS[b.type]?.tier === 1);
-    const t2Factories = store.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory' && BUILDING_DEFS[b.type]?.tier === 2);
-    const t3Factories = store.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory' && BUILDING_DEFS[b.type]?.tier === 3);
-    const powerPlants = store.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power');
+    const extractors = buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'extractor');
+    const t1Factories = buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory' && BUILDING_DEFS[b.type]?.tier === 1);
+    const t2Factories = buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory' && BUILDING_DEFS[b.type]?.tier === 2);
+    const t3Factories = buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory' && BUILDING_DEFS[b.type]?.tier === 3);
+    const powerPlants = buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power');
 
     // Place extractors at top rows (0-2), spread across columns
     let col = 0;
@@ -1070,7 +1084,7 @@ export default function FactoryMapPanel() {
     // Apply new positions with smooth transition
     setSavedPositions(newPositions);
     persistPositions(newPositions);
-  }, [store.buildings, persistPositions]);
+  }, [buildings, persistPositions]);
 
   return (
     <div className="space-y-3">
@@ -1086,15 +1100,15 @@ export default function FactoryMapPanel() {
         <div className="flex items-center gap-2">
           {/* Weather indicator */}
           <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-sky-500/30 text-sky-400 bg-sky-900/10 flex items-center gap-1">
-            <WeatherIcon type={store.weather.current} />
-            {store.weather.current !== 'clear' && <span>{store.weather.remaining}t</span>}
+            <WeatherIcon type={weather.current} />
+            {weather.current !== 'clear' && <span>{weather.remaining}t</span>}
           </Badge>
           {/* Buildings count */}
           <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-900/10 text-[10px]">
             {totalBuildings} Buildings
           </Badge>
           {/* Overload warning */}
-          {store.powerGrid.overload && (
+          {powerGrid.overload && (
             <Badge variant="outline" className="border-red-500/50 text-red-400 bg-red-900/20 text-[10px] neon-pulse">
               <Zap className="w-3 h-3 mr-1" /> OVERLOAD
             </Badge>
@@ -1248,7 +1262,7 @@ export default function FactoryMapPanel() {
                           const unlocked = isBuildUnlocked(type);
                           const isSelected = selectedBuildType === type;
                           const cost = def.baseCost.find(c => c.resource === 'money')?.amount ?? 0;
-                          const count = store.buildings.filter(b => b.type === type).length;
+                          const count = buildings.filter(b => b.type === type).length;
 
                           return (
                             <Tooltip key={type}>
@@ -1335,12 +1349,12 @@ export default function FactoryMapPanel() {
           {/* Scrollable map wrapper for mobile */}
           <div className="overflow-x-auto">
           {/* Weather overlay */}
-          {store.weather.current !== 'clear' && (
+          {weather.current !== 'clear' && (
             <div className={`absolute inset-0 pointer-events-none z-20 transition-opacity duration-1000 ${
-              store.weather.current === 'rainy' ? 'bg-blue-900/10' :
-              store.weather.current === 'stormy' ? 'bg-purple-900/15' :
-              store.weather.current === 'snowy' ? 'bg-sky-100/5' :
-              store.weather.current === 'foggy' ? 'bg-gray-500/10' :
+              weather.current === 'rainy' ? 'bg-blue-900/10' :
+              weather.current === 'stormy' ? 'bg-purple-900/15' :
+              weather.current === 'snowy' ? 'bg-sky-100/5' :
+              weather.current === 'foggy' ? 'bg-gray-500/10' :
               'bg-orange-900/5'
             }`} />
           )}
@@ -1378,7 +1392,7 @@ export default function FactoryMapPanel() {
               {Array.from({ length: GRID_ROWS }, (_, r) =>
                 Array.from({ length: GRID_COLS }, (_, c) => {
                   // Find building at this position
-                  const building = store.buildings.find(b => {
+                  const building = buildings.find(b => {
                     const pos = buildingPositions.get(b.id);
                     return pos?.row === r && pos?.col === c;
                   });
@@ -1406,7 +1420,7 @@ export default function FactoryMapPanel() {
                             if (buildMode) return;
                             setSelectedBuildingId(prev => prev === building.id ? null : building.id);
                           }}
-                          tick={store.gameTick}
+                          tick={gameTick}
                           recentlyUpgraded={upgradedBuildingIds.has(building.id)}
                           connectionEfficiency={buildingConnEfficiency.get(building.id)}
                         />
@@ -1516,9 +1530,9 @@ export default function FactoryMapPanel() {
               <div className="bg-[#0a0e17] rounded-lg p-1.5 text-center">
                 <div className="text-[8px] text-gray-500">Grid</div>
                 <div className="text-[10px] font-bold font-mono">
-                  <span className="text-green-400">{formatNumber(store.powerGrid.totalProduction)}</span>
+                  <span className="text-green-400">{formatNumber(powerGrid.totalProduction)}</span>
                   <span className="text-gray-600">/</span>
-                  <span className="text-yellow-400">{formatNumber(store.powerGrid.totalConsumption)}</span>
+                  <span className="text-yellow-400">{formatNumber(powerGrid.totalConsumption)}</span>
                 </div>
               </div>
             </div>
@@ -1530,13 +1544,13 @@ export default function FactoryMapPanel() {
                   <Flame className="w-2 h-2" /> Power Grid
                 </span>
                 <span className="text-[8px] font-mono text-gray-400">
-                  {store.powerGrid.overload ? (
+                  {powerGrid.overload ? (
                     <span className="text-red-400">OVERLOAD</span>
-                  ) : store.powerGrid.totalConsumption > 0 ? (
+                  ) : powerGrid.totalConsumption > 0 ? (
                     <>
-                      <span className="text-green-400">{formatNumber(store.powerGrid.totalProduction)}</span>
+                      <span className="text-green-400">{formatNumber(powerGrid.totalProduction)}</span>
                       <span className="text-gray-600">/</span>
-                      <span className="text-yellow-400">{formatNumber(store.powerGrid.totalConsumption)}</span> MW
+                      <span className="text-yellow-400">{formatNumber(powerGrid.totalConsumption)}</span> MW
                     </>
                   ) : (
                     <span className="text-gray-600">NO GRID</span>
@@ -1548,8 +1562,8 @@ export default function FactoryMapPanel() {
                 <div
                   className="absolute inset-y-0 left-0 bg-yellow-600/40 rounded-full transition-all duration-500"
                   style={{
-                    width: store.powerGrid.totalProduction > 0
-                      ? `${Math.min(100, (store.powerGrid.totalConsumption / store.powerGrid.totalProduction) * 100)}%`
+                    width: powerGrid.totalProduction > 0
+                      ? `${Math.min(100, (powerGrid.totalConsumption / powerGrid.totalProduction) * 100)}%`
                       : '0%',
                   }}
                 />
@@ -1557,10 +1571,10 @@ export default function FactoryMapPanel() {
                 <div
                   className="absolute inset-y-0 left-0 rounded-full transition-all duration-500"
                   style={{
-                    width: `${Math.min(100, store.powerGrid.totalProduction > 0 && store.powerGrid.totalConsumption > 0
-                      ? Math.min(100, (store.powerGrid.totalProduction / Math.max(store.powerGrid.totalProduction, store.powerGrid.totalConsumption)) * 100)
-                      : store.powerGrid.totalProduction > 0 ? 100 : 0)}%`,
-                    backgroundColor: store.powerGrid.overload ? '#f87171' : '#4ade80',
+                    width: `${Math.min(100, powerGrid.totalProduction > 0 && powerGrid.totalConsumption > 0
+                      ? Math.min(100, (powerGrid.totalProduction / Math.max(powerGrid.totalProduction, powerGrid.totalConsumption)) * 100)
+                      : powerGrid.totalProduction > 0 ? 100 : 0)}%`,
+                    backgroundColor: powerGrid.overload ? '#f87171' : '#4ade80',
                   }}
                 />
               </div>
@@ -1570,16 +1584,16 @@ export default function FactoryMapPanel() {
             <div className="mt-2">
               <div className="flex items-center justify-between mb-0.5">
                 <span className="text-[8px] text-gray-500">Efficiency</span>
-                <span className="text-[8px] font-mono" style={{ color: getEffColor(store.powerGrid.efficiency) }}>
-                  {Math.round(store.powerGrid.efficiency * 100)}%
+                <span className="text-[8px] font-mono" style={{ color: getEffColor(powerGrid.efficiency) }}>
+                  {Math.round(powerGrid.efficiency * 100)}%
                 </span>
               </div>
               <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-500"
                   style={{
-                    width: `${Math.round(store.powerGrid.efficiency * 100)}%`,
-                    backgroundColor: getEffColor(store.powerGrid.efficiency),
+                    width: `${Math.round(powerGrid.efficiency * 100)}%`,
+                    backgroundColor: getEffColor(powerGrid.efficiency),
                   }}
                 />
               </div>
@@ -1591,13 +1605,13 @@ export default function FactoryMapPanel() {
                 <div className="text-[8px] text-gray-500 flex items-center justify-center gap-0.5">
                   <Clock className="w-2 h-2" /> Tick Rate
                 </div>
-                <div className={`text-[10px] font-bold font-mono ${store.paused ? 'text-red-400' : 'text-cyan-400'}`}>
-                  {store.paused ? <GameIcon icon="gi:pause-button" size={14} className="inline" /> : `${store.gameSpeed}x`}
+                <div className={`text-[10px] font-bold font-mono ${paused ? 'text-red-400' : 'text-cyan-400'}`}>
+                  {paused ? <GameIcon icon="gi:pause-button" size={14} className="inline" /> : `${gameSpeed}x`}
                 </div>
               </div>
               <div className="bg-[#0a0e17] rounded-lg p-1.5 text-center">
                 <div className="text-[8px] text-gray-500">Balance</div>
-                <div className="text-[10px] font-bold text-green-400 font-mono">${formatNumber(store.money)}</div>
+                <div className="text-[10px] font-bold text-green-400 font-mono">${formatNumber(money)}</div>
               </div>
             </div>
 
