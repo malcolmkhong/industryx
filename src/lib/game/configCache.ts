@@ -35,6 +35,7 @@ import {
   QUEST_DEFS as _DEFAULT_QUEST_DEFS,
   getStreakMultiplier as _DEFAULT_getStreakMultiplier,
 } from './data';
+import { TRADABLE_RESOURCES as _FALLBACK_TRADABLE_RESOURCES } from './tradeConstants';
 import { GameConfig } from './config';
 import {
   BuildingDefinition,
@@ -76,6 +77,7 @@ export let SEASONAL_EVENTS: typeof _DEFAULT_SEASONAL_EVENTS = _DEFAULT_SEASONAL_
 export let WEATHER_DEFS: Record<WeatherType, WeatherDefinition> = _DEFAULT_WEATHER_DEFS;
 export let QUEST_DEFS: Quest[] = _DEFAULT_QUEST_DEFS;
 export let getStreakMultiplier: (streak: number) => number = _DEFAULT_getStreakMultiplier;
+export let TRADABLE_RESOURCE_IDS: readonly string[] = _FALLBACK_TRADABLE_RESOURCES;
 
 // ============================================
 // Migration map: old hardcoded ID → new Supabase ID
@@ -344,6 +346,10 @@ export function updateFromSupabase(config: GameConfig): void {
   // This is a simple function; not in Supabase config
   // getStreakMultiplier remains _DEFAULT_getStreakMultiplier
 
+  if (config.tradableResourceIds && config.tradableResourceIds.length > 0) {
+    TRADABLE_RESOURCE_IDS = config.tradableResourceIds;
+  }
+
   // --- Update source tracking ---
   configSource = 'supabase';
   configLoadedAt = Date.now();
@@ -353,7 +359,8 @@ export function updateFromSupabase(config: GameConfig): void {
     `[ConfigCache] Updated from Supabase (v${configVersion}): ` +
     `${Object.keys(BUILDING_DEFS).length} buildings, ` +
     `${Object.keys(RESOURCE_META).length} resources, ` +
-    `${RESEARCH_TREE.length} research nodes`
+    `${RESEARCH_TREE.length} research nodes, ` +
+    `${TRADABLE_RESOURCE_IDS.length} tradable resources`
   );
 }
 
@@ -381,6 +388,7 @@ export function resetToLocal(): void {
   WEATHER_DEFS = _DEFAULT_WEATHER_DEFS;
   QUEST_DEFS = _DEFAULT_QUEST_DEFS;
   getStreakMultiplier = _DEFAULT_getStreakMultiplier;
+  TRADABLE_RESOURCE_IDS = _FALLBACK_TRADABLE_RESOURCES;
 
   configSource = 'local';
   configLoadedAt = Date.now();

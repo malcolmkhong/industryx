@@ -75,6 +75,7 @@ export interface SupabaseMarket {
   supply: number;
   volatility: number;
   sort_order: number;
+  is_tradable: boolean;
 }
 
 export interface SupabaseWeather {
@@ -232,7 +233,10 @@ export interface GameConfig {
     demand: number;
     supply: number;
     volatility: number;
+    isTradable: boolean;
   }>;
+  /** Convenience field: just the resource IDs where isTradable=true. */
+  tradableResourceIds: string[];
   weather: Record<string, {
     name: string;
     icon: string;
@@ -447,6 +451,7 @@ function transformMarket(market: SupabaseMarket[]): GameConfig['market'] {
     demand: m.demand,
     supply: m.supply,
     volatility: m.volatility,
+    isTradable: m.is_tradable,
   }));
 }
 
