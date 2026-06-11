@@ -70,7 +70,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange }: Mobil
           {pendingPayout > 0 && !payoutConfig.autoCollect && (
             <button
               onClick={collectPayout}
-              className="animate-pulse inline-flex items-center bg-success/40 text-green-400 text-[9px] px-1.5 py-0.5 rounded border border-green-500/30 min-h-[28px]"
+              className="animate-pulse inline-flex items-center bg-success/40 text-success text-[9px] px-1.5 py-0.5 rounded border border-success/30 min-h-[28px]"
               title="Click to collect pending payout"
             >
               <GameIcon ui="money" size={12} className="inline-flex" />${formatNumber(pendingPayout)}
@@ -95,7 +95,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange }: Mobil
             onClick={togglePause}
             aria-label={paused ? "Resume game" : "Pause game"}
           >
-            {paused ? <Play className="w-3.5 h-3.5 text-green-400" /> : <Pause className="w-3.5 h-3.5 text-yellow-400" />}
+            {paused ? <Play className="w-3.5 h-3.5 text-success" /> : <Pause className="w-3.5 h-3.5 text-yellow-400" />}
           </Button>
           {SPEED_OPTIONS.map(speed => (
             <Button
