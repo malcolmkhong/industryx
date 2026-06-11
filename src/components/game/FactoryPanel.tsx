@@ -52,7 +52,18 @@ function getResourceTier(res: ResourceType): number {
 }
 
 export function FactoryPanel() {
-  const store = useGameStore();
+  const buildings = useGameStore((s) => s.buildings);
+  const resources = useGameStore((s) => s.resources);
+  const resourceCapacity = useGameStore((s) => s.resourceCapacity);
+  const money = useGameStore((s) => s.money);
+  const powerGrid = useGameStore((s) => s.powerGrid);
+  const prestigeState = useGameStore((s) => s.prestigeState);
+  const productionSnapshot = useGameStore((s) => s.productionSnapshot);
+  const completedResearch = useGameStore((s) => s.completedResearch);
+  const stats = useGameStore((s) => s.stats);
+  const buildBuilding = useGameStore((s) => s.buildBuilding);
+  const toggleBuilding = useGameStore((s) => s.toggleBuilding);
+  const upgradeBuilding = useGameStore((s) => s.upgradeBuilding);
   const [selectedTier, setSelectedTier] = useState<number>(1);
   const [selectedChain, setSelectedChain] = useState<number>(0);
   const [selectedFlowNode, setSelectedFlowNode] = useState<string | null>(null);
@@ -64,8 +75,8 @@ export function FactoryPanel() {
 
   // Factory buildings from store
   const factoryBuildings = useMemo(() =>
-    store.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory'),
-    [store.buildings]
+    buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory'),
+    [buildings]
   );
 
   // Factories grouped by tier
@@ -81,36 +92,36 @@ export function FactoryPanel() {
     const rates: Record<string, number> = {};
     factoryBuildings.forEach(b => {
       if (!b.active) return;
-      const snap = store.productionSnapshot.buildings[b.id];
+      const snap = productionSnapshot.buildings[b.id];
       if (!snap) return;
       snap.outputs.forEach(o => {
         rates[o.resource] = (rates[o.resource] || 0) + o.amount;
       });
     });
     return rates;
-  }, [factoryBuildings, store.productionSnapshot.buildings]);
+  }, [factoryBuildings, productionSnapshot.buildings]);
 
   // Production rates from ALL buildings — read from snapshot which includes all bonuses
   // (mega project, prestige, research, worker, event, weather, etc.)
-  const allProductionRates = store.productionSnapshot.production;
+  const allProductionRates = productionSnapshot.production;
 
   // Consumption rates — actual consumption for net rate display, demand for input demand display
-  const allActualConsumptionRates = store.productionSnapshot.actualConsumption;
-  const allDemandRates = store.productionSnapshot.consumption;
+  const allActualConsumptionRates = productionSnapshot.actualConsumption;
+  const allDemandRates = productionSnapshot.consumption;
 
   // Consumption rates for factories — aggregated from productionSnapshot
   const factoryConsumptionRates = useMemo(() => {
     const rates: Record<string, number> = {};
     factoryBuildings.forEach(b => {
       if (!b.active) return;
-      const snap = store.productionSnapshot.buildings[b.id];
+      const snap = productionSnapshot.buildings[b.id];
       if (!snap) return;
       snap.inputs.forEach(inp => {
         rates[inp.resource] = (rates[inp.resource] || 0) + inp.amount;
       });
     });
     return rates;
-  }, [factoryBuildings, store.productionSnapshot.buildings]);
+  }, [factoryBuildings, productionSnapshot.buildings]);
 
   // Aggregate rates by tier for flow diagram (includes all buildings for accurate tier 0/raw rates)
   const tierProductionSummary = useMemo(() => {
@@ -121,14 +132,14 @@ export function FactoryPanel() {
       3: { production: 0, consumption: 0, resources: new Set<string>() },
       4: { production: 0, consumption: 0, resources: new Set<string>() },
     };
-    Object.entries(store.productionSnapshot.production).forEach(([res, rate]) => {
+    Object.entries(productionSnapshot.production).forEach(([res, rate]) => {
       const tier = getResourceTier(res as ResourceType);
       if (summary[tier]) {
         summary[tier].production += rate;
         summary[tier].resources.add(res);
       }
     });
-    Object.entries(store.productionSnapshot.actualConsumption).forEach(([res, rate]) => {
+    Object.entries(productionSnapshot.actualConsumption).forEach(([res, rate]) => {
       const tier = getResourceTier(res as ResourceType);
       if (summary[tier]) {
         summary[tier].consumption += rate;
@@ -136,7 +147,7 @@ export function FactoryPanel() {
       }
     });
     return summary;
-  }, [store.productionSnapshot.production, store.productionSnapshot.actualConsumption]);
+  }, [productionSnapshot.production, productionSnapshot.actualConsumption]);
 
   // Factory overview stats
   const totalFactories = factoryBuildings.length;
@@ -177,10 +188,10 @@ export function FactoryPanel() {
   }, []);
 
   const handleBuild = useCallback((type: FactoryType) => {
-    const prevCount = store.buildings.filter(b => b.type === type).length;
-    store.buildBuilding(type);
+    const prevCount = buildings.filter(b => b.type === type).length;
+    buildBuilding(type);
     setTimeout(() => {
-      const newBuildings = store.buildings.filter(b => b.type === type);
+      const newBuildings = buildings.filter(b => b.type === type);
       if (newBuildings.length > prevCount) {
         const newBuilding = newBuildings[newBuildings.length - 1];
         if (newBuilding) {
@@ -202,7 +213,7 @@ export function FactoryPanel() {
   }, [store]);
 
   const handleUpgrade = useCallback((id: string) => {
-    store.upgradeBuilding(id);
+    upgradeBuilding(id);
     setRecentlyUpgraded(prev => {
       const next = new Set(prev);
       next.add(id);
@@ -218,7 +229,7 @@ export function FactoryPanel() {
   }, [store]);
 
   const handleToggle = (id: string) => {
-    store.toggleBuilding(id);
+    toggleBuilding(id);
   };
 
   return (
@@ -264,7 +275,7 @@ export function FactoryPanel() {
           icon={<Gauge className="w-4 h-4" />}
           label="Avg Efficiency"
           value={`${(avgEfficiency * 100).toFixed(0)}%`}
-          subtext={store.powerGrid.overload ? 'Grid overloaded!' : 'Nominal'}
+          subtext={powerGrid.overload ? 'Grid overloaded!' : 'Nominal'}
           color={avgEfficiency >= 0.8 ? 'green' : avgEfficiency >= 0.5 ? 'orange' : 'red'}
         />
         <PanelStatCard
@@ -608,10 +619,10 @@ export function FactoryPanel() {
                   {filteredFactories.map(type => {
                     const def = BUILDING_DEFS[type];
                     if (!def) return null;
-                    const existingCount = store.buildings.filter(b => b.type === type).length;
+                    const existingCount = buildings.filter(b => b.type === type).length;
                     const cost = getBuildingCost(type, existingCount);
-                    const canAfford = store.money >= cost;
-                    const unlocked = isBuildingUnlocked(type, store.completedResearch, store.prestigeState);
+                    const canAfford = money >= cost;
+                    const unlocked = isBuildingUnlocked(type, completedResearch, prestigeState);
                     const chains = getFactoryChains(type);
 
                     return (
@@ -630,7 +641,7 @@ export function FactoryPanel() {
                           { label: 'Cost Multiplier', value: `x${def.costMultiplier}` },
                         ]}
                         requirements={[
-                          ...(def.unlockRequirement?.research ? [{ label: 'Research', value: RESEARCH_TREE.find(r => r.id === def.unlockRequirement!.research)?.name ?? def.unlockRequirement.research, color: store.completedResearch.includes(def.unlockRequirement.research) ? 'text-green-400' : 'text-red-400' }] : []),
+                          ...(def.unlockRequirement?.research ? [{ label: 'Research', value: RESEARCH_TREE.find(r => r.id === def.unlockRequirement!.research)?.name ?? def.unlockRequirement.research, color: completedResearch.includes(def.unlockRequirement.research) ? 'text-green-400' : 'text-red-400' }] : []),
                         ]}
                         side="bottom"
                       >
@@ -719,7 +730,7 @@ export function FactoryPanel() {
                         {existingCount > 0 && (
                           <div className="mt-1 text-center">
                             <span className="text-[8px] text-gray-500">
-                              {store.buildings.filter(b => b.type === type && b.active).length}/{existingCount} active
+                              {buildings.filter(b => b.type === type && b.active).length}/{existingCount} active
                             </span>
                           </div>
                         )}
@@ -743,8 +754,8 @@ export function FactoryPanel() {
                         const def = BUILDING_DEFS[building.type];
                         if (!def) return null;
                         const upgradeCost = getBuildingCost(building.type, building.level);
-                        const canUpgrade = store.money >= upgradeCost;
-                        const buildingSnap = store.productionSnapshot.buildings[building.id];
+                        const canUpgrade = money >= upgradeCost;
+                        const buildingSnap = productionSnapshot.buildings[building.id];
                         const effectiveOutputs = buildingSnap
                           ? buildingSnap.outputs.map(o => ({
                               resource: o.resource,
@@ -761,7 +772,7 @@ export function FactoryPanel() {
                               resource: inp.resource,
                               rate: inp.amount,
                               meta: RESOURCE_META[inp.resource],
-                              hasEnough: store.resources[inp.resource] >= inp.amount,
+                              hasEnough: resources[inp.resource] >= inp.amount,
                             }))
                           : (def.inputs ?? []).map(inp => ({
                               resource: inp.resource,
@@ -947,8 +958,8 @@ export function FactoryPanel() {
                     const production = allProductionRates[resource] || 0;
                     const consumption = allActualConsumptionRates[resource] || 0;
                     const net = production - consumption;
-                    const stock = store.resources[resource as ResourceType];
-                    const capacity = store.resourceCapacity[resource as ResourceType];
+                    const stock = resources[resource as ResourceType];
+                    const capacity = resourceCapacity[resource as ResourceType];
                     const fillPct = capacity > 0 ? (stock / capacity) * 100 : 0;
 
                     return (
@@ -1029,7 +1040,7 @@ export function FactoryPanel() {
                 avgEfficiency >= 0.8 ? 'text-green-400' : avgEfficiency >= 0.5 ? 'text-yellow-400' : 'text-red-400'
               } />
               <OverviewRow label="Product Types" value={Object.keys(factoryProductionRates).length.toString()} color="text-cyan-400" />
-              <OverviewRow label="Factories Built" value={store.stats.factoriesBuilt.toString()} color="text-gray-300" />
+              <OverviewRow label="Factories Built" value={stats.factoriesBuilt.toString()} color="text-gray-300" />
             </div>
           </div>
 
@@ -1097,7 +1108,7 @@ export function FactoryPanel() {
                     const production = allProductionRates[resource] || 0;
                     const actualCons = allActualConsumptionRates[resource] || 0;
                     const net = production - actualCons;
-                    const stock = store.resources[resource];
+                    const stock = resources[resource];
                     return (
                       <div key={resource} className="bg-[#0a0e17] rounded-lg p-3">
                         <div className="flex items-center justify-between mb-1">
