@@ -129,9 +129,6 @@ export default function Home() {
   // Login prompt system
   const { isOpen: loginPromptOpen, reason: loginPromptReason, promptLogin, closePrompt } = useLoginPrompt();
 
-  // Intercept tab changes to cloud-required features for guest users
-  const handleTabChange = useTabChange();
-
   const handleExport = useCallback(() => {
     const saveStr = exportSave();
     setExportString(saveStr);
