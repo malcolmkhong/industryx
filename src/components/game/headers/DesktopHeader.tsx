@@ -120,12 +120,12 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
               </TooltipTrigger>
               <TooltipContent side="bottom" className="w-64 bg-card border-cyan-900/30 p-0 overflow-hidden">
                 <div className="bg-gradient-to-r from-green-900/30 to-emerald-900/20 px-3 py-2 border-b border-cyan-900/20">
-                  <p className="text-xs font-bold text-green-300 inline-flex items-center gap-1"><GameIcon ui="money" size={14} className="inline-flex" /> Financial Overview</p>
+                  <p className="text-xs font-bold text-success inline-flex items-center gap-1"><GameIcon ui="money" size={14} className="inline-flex" /> Financial Overview</p>
                 </div>
                 <div className="px-3 py-2 space-y-1.5">
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-400">Current Balance</span>
-                    <span className="text-green-400 font-mono font-bold">${formatNumber(money)}</span>
+                    <span className="text-success font-mono font-bold">${formatNumber(money)}</span>
                   </div>
                   {pendingPayout > 0 && (
                     <div className="flex justify-between text-xs">
