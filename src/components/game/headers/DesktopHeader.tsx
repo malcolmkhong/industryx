@@ -139,7 +139,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-400">Total Earned</span>
-                    <span className="text-emerald-400 font-mono">${formatNumber(totalMoneyEarned)}</span>
+                    <span className="text-success font-mono">${formatNumber(totalMoneyEarned)}</span>
                   </div>
                 </div>
               </TooltipContent>
@@ -156,7 +156,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
                   <span
                     className={`ml-1.5 inline-block w-2 h-2 rounded-full ${
                       factoryEfficiency >= 0.8
-                        ? 'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.6)]'
+                        ? 'bg-success shadow-[0_0_6px_rgba(74,222,128,0.6)]'
                         : factoryEfficiency >= 0.5
                           ? 'bg-yellow-400 shadow-[0_0_6px_rgba(250,204,21,0.6)]'
                           : 'bg-red-400 shadow-[0_0_6px_rgba(248,113,113,0.6)]'
