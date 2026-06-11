@@ -106,6 +106,7 @@ export async function POST(request: Request) {
     userId?: string;
     gameState?: Record<string, unknown>;
     clientChecksum?: string;
+    clientStateVersion?: number;
   };
   try {
     body = await request.json();
@@ -113,7 +114,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const { userId, gameState, clientChecksum } = body;
+  const { userId, gameState, clientChecksum, clientStateVersion } = body;
 
   if (!userId || !gameState) {
     return NextResponse.json({ error: 'userId and gameState are required' }, { status: 400 });
@@ -145,16 +146,61 @@ export async function POST(request: Request) {
   if (!supabase) {
     return NextResponse.json(
       { error: 'Service temporarily unavailable — database not configured' },
-      { status: 503 }
+      { status: 503 },
     );
   }
 
-  // Fetch current server state for delta validation
+  // Fetch current server state for delta validation + version conflict check
   const { data: currentServerState } = await supabase
     .from('server_game_state')
-    .select('full_state, state_hash, game_tick, cheat_flag_count, state_version')
+    .select('full_state, state_hash, game_tick, cheat_flag_count, state_version, resources, money, research_points, buildings')
     .eq('user_id', userId)
     .single();
+
+  // 02.3: State version conflict detection — if client provides clientStateVersion
+  // and DB has a newer version, return 409 with current server state so client
+  // can merge instead of overwriting.
+  if (clientStateVersion !== undefined && currentServerState) {
+    const dbStateVersion = (currentServerState.state_version as number) ?? 0;
+    if (dbStateVersion > clientStateVersion) {
+      console.warn(
+        `[GameStateAPI] STATE_VERSION_CONFLICT for ${auth.userId}: client=${clientStateVersion}, server=${dbStateVersion}`,
+      );
+      logActionAsync({
+        userId: auth.userId,
+        actionType: 'save',
+        payload: {
+          source: 'server_game_state',
+          clientStateVersion,
+          serverStateVersion: dbStateVersion,
+          reason: 'state_version_conflict',
+        },
+        gameTick: Number(gameState.gameTick) || 0,
+        moneyAfter: Number(gameState.money) || 0,
+        isValid: true,
+        validationRisk: 'none',
+        rejectionReason: `State version conflict: client=${clientStateVersion}, server=${dbStateVersion}`,
+      });
+      return NextResponse.json(
+        {
+          error: 'Server state is newer than client. Reload to merge.',
+          code: 'STATE_VERSION_CONFLICT',
+          serverState: {
+            stateVersion: dbStateVersion,
+            stateHash: currentServerState.state_hash,
+            money: currentServerState.money,
+            researchPoints: currentServerState.research_points,
+            resources: currentServerState.resources,
+            buildings: currentServerState.buildings,
+            gameTick: currentServerState.game_tick,
+            fullState: currentServerState.full_state,
+          },
+          clientStateVersion,
+        },
+        { status: 409 },
+      );
+    }
+  }
 
   const previousState = currentServerState?.full_state as Record<string, unknown> | null;
 

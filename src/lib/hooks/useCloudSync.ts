@@ -32,6 +32,7 @@ interface CloudSyncState {
   resolveConflict: (choice: 'local' | 'cloud') => Promise<{ success: boolean; error?: string }>;
   pendingConflict: { localTick: number; cloudTick: number; localMoney: number; cloudMoney: number } | null;
   serverStateHash: string | null;
+  serverStateVersion: number | null;
   isServerAuthoritative: boolean;
   blockedState: CloudBlockState | null;
   migrationResult: MigrationResult | null;
@@ -116,6 +117,7 @@ export function useCloudSync(): CloudSyncState {
   const [isSyncingState, setIsSyncingState] = useState(false);
   const [pendingConflict, setPendingConflict] = useState<CloudSyncState['pendingConflict']>(null);
   const [serverStateHash, setServerStateHash] = useState<string | null>(null);
+  const [serverStateVersion, setServerStateVersion] = useState<number | null>(null);
   const [isServerAuthoritative, setIsServerAuthoritative] = useState(false);
   const [blockedState, setBlockedState] = useState<CloudBlockState | null>(null);
   const [migrationResult, setMigrationResult] = useState<MigrationResult | null>(null);
@@ -226,6 +228,7 @@ export function useCloudSync(): CloudSyncState {
           userId: user.id,
           gameState,
           clientChecksum: serverStateHash || undefined,
+        clientStateVersion: serverStateVersion ?? undefined,
         }),
       });
 
@@ -243,6 +246,37 @@ export function useCloudSync(): CloudSyncState {
           const reason = data.reason || 'Account locked for suspicious activity';
           setBlockedState({ isBlocked: true, reason, code: 'ACCOUNT_LOCKED', detectedAt: Date.now() });
           return { success: false, error: reason };
+        }
+      }
+
+      if (res.status === 409) {
+        const conflictData = await res.json();
+        if (conflictData.code === 'STATE_VERSION_CONFLICT') {
+          const serverState = conflictData.serverState as {
+            fullState?: Record<string, unknown>;
+            stateVersion?: number;
+            stateHash?: string;
+          } | undefined;
+          if (serverState?.fullState) {
+            try {
+              useGameStore.getState().importSave(JSON.stringify(serverState.fullState));
+            } catch {
+              // If import fails, local state stays
+            }
+          }
+          if (serverState?.stateVersion) {
+            setServerStateVersion(serverState.stateVersion);
+          }
+          if (serverState?.stateHash) {
+            setServerStateHash(serverState.stateHash);
+          }
+          setBlockedState({
+            isBlocked: true,
+            reason: 'Your local state was behind the server. Synced to server version.',
+            code: 'MIGRATION_REJECTED',
+            detectedAt: Date.now(),
+          });
+          return { success: false, error: 'Server state was newer — synced to server version' };
         }
       }
 
@@ -268,6 +302,9 @@ export function useCloudSync(): CloudSyncState {
         setLastSyncAtState(lastSyncAt.current);
         if (data.stateHash) {
           setServerStateHash(data.stateHash);
+        }
+        if (data.stateVersion) {
+          setServerStateVersion(data.stateVersion);
         }
         setIsServerAuthoritative(true);
         // Clear blocked state on successful sync (block was temporary or resolved)
@@ -344,6 +381,9 @@ export function useCloudSync(): CloudSyncState {
         // Store the server state hash for future checksum validation
         if (data.data.stateHash) {
           setServerStateHash(data.data.stateHash);
+        }
+        if (data.data.stateVersion) {
+          setServerStateVersion(data.data.stateVersion);
         }
         setIsServerAuthoritative(true);
 
@@ -477,6 +517,7 @@ export function useCloudSync(): CloudSyncState {
     resolveConflict,
     pendingConflict,
     serverStateHash,
+    serverStateVersion,
     isServerAuthoritative,
     blockedState,
     migrationResult,
