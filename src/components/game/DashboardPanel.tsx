@@ -21,40 +21,71 @@ import { ProductionChainPanel } from '@/components/game/ProductionChainPanel';
 import { GameIcon } from '@/components/game/shared/GameIcon';
 
 export function DashboardPanel() {
-  const store = useGameStore();
+  // H1 FIX: Use specific selectors instead of full-store subscription.
+  // Each useGameStore((s) => s.X) creates a subscription that only re-renders
+  // when that specific slice changes. This eliminates the "10-100 rerenders/sec"
+  // class of full-store subscription and is the highest-impact render fix.
+  const buildings = useGameStore((s) => s.buildings);
+  const resources = useGameStore((s) => s.resources);
+  const resourceCapacity = useGameStore((s) => s.resourceCapacity);
+  const money = useGameStore((s) => s.money);
+  const totalMoneyEarned = useGameStore((s) => s.totalMoneyEarned);
+  const powerGrid = useGameStore((s) => s.powerGrid);
+  const researchPoints = useGameStore((s) => s.researchPoints);
+  const completedResearch = useGameStore((s) => s.completedResearch);
+  const prestigeState = useGameStore((s) => s.prestigeState);
+  const workers = useGameStore((s) => s.workers);
+  const productionSnapshot = useGameStore((s) => s.productionSnapshot);
+  const gameTick = useGameStore((s) => s.gameTick);
+  const activeResearch = useGameStore((s) => s.activeResearch);
+  const researchProgress = useGameStore((s) => s.researchProgress);
+  const notifications = useGameStore((s) => s.notifications);
+  const loginStreak = useGameStore((s) => s.loginStreak);
+  const quests = useGameStore((s) => s.quests);
+  const trackedQuest = useGameStore((s) => s.trackedQuest);
+  const activeEvents = useGameStore((s) => s.activeEvents);
+  const weather = useGameStore((s) => s.weather);
+  const stats = useGameStore((s) => s.stats);
+  const buildBuilding = useGameStore((s) => s.buildBuilding);
+  const clearNotifications = useGameStore((s) => s.clearNotifications);
+  const setActiveTab = useGameStore((s) => s.setActiveTab);
+  const setTrackedQuest = useGameStore((s) => s.setTrackedQuest);
+  const getCurrentRank = useGameStore((s) => s.getCurrentRank);
 
   // Computed values
-  const totalBuildings = store.buildings.length;
-  const activeBuildings = store.buildings.filter(b => b.active).length;
-  const totalWorkers = store.workers.length;
-  const assignedWorkers = store.workers.filter(w => w.assignedTo).length;
+  const totalBuildings = buildings.length;
+  const activeBuildings = buildings.filter(b => b.active).length;
+  const totalWorkers = workers.length;
+  const assignedWorkers = workers.filter(w => w.assignedTo).length;
   const workerEfficiency = totalWorkers > 0
-    ? store.workers.reduce((s, w) => s + w.efficiency, 0) / totalWorkers
+    ? workers.reduce((s, w) => s + w.efficiency, 0) / totalWorkers
     : 0;
 
-  const powerPercent = store.powerGrid.totalConsumption > 0
-    ? Math.min(100, (store.powerGrid.totalProduction / store.powerGrid.totalConsumption) * 100)
-    : store.powerGrid.totalProduction > 0 ? 100 : 0;
+  const powerPercent = powerGrid.totalConsumption > 0
+    ? Math.min(100, (powerGrid.totalProduction / powerGrid.totalConsumption) * 100)
+    : powerGrid.totalProduction > 0 ? 100 : 0;
 
-  const powerSurplus = store.powerGrid.totalProduction - store.powerGrid.totalConsumption;
+  const powerSurplus = powerGrid.totalProduction - powerGrid.totalConsumption;
 
   // Top resources by value
+  // L3 FIX: include all tiers (Tier 0-5) so finished/refined products are visible,
+  // not just raw materials. Sort by amount to surface the most-stocked items.
   const topResources = useMemo(() => {
-    const rawResources: ResourceType[] = ['iron', 'copper', 'coal', 'oil', 'sand', 'lithium', 'water', 'rareEarth'];
-    return rawResources
+    return (Object.keys(resources) as ResourceType[])
       .map(r => ({
         resource: r,
-        amount: store.resources[r],
-        capacity: store.resourceCapacity[r],
+        amount: resources[r],
+        capacity: resourceCapacity[r],
         meta: RESOURCE_META[r],
       }))
+      .filter(r => r.amount > 0)
       .sort((a, b) => b.amount - a.amount)
       .slice(0, 6);
-  }, [store.resources, store.resourceCapacity]);
+  }, [resources, resourceCapacity]);
 
   // Production rates — use store's computed rates which include all bonuses
   // (mega project, prestige, research, worker, event, weather, etc.)
-  const productionRates = store.productionSnapshot.production;
+  const productionRates = productionSnapshot.production;
 
   // Production rate summary items
   const topProductionRates = useMemo(() => {
@@ -64,67 +95,70 @@ export function DashboardPanel() {
   }, [productionRates]);
 
   // Category counts
-  const extractorCount = store.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'extractor').length;
-  const factoryCount = store.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory').length;
-  const powerCount = store.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power').length;
+  const extractorCount = buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'extractor').length;
+  const factoryCount = buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory').length;
+  const powerCount = buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power').length;
 
   // Active research info
   const activeResearchInfo = useMemo(() => {
-    if (!store.activeResearch) return null;
-    const node = RESEARCH_TREE.find(r => r.id === store.activeResearch);
+    if (!activeResearch) return null;
+    const node = RESEARCH_TREE.find(r => r.id === activeResearch);
     if (!node) return null;
     return {
       name: node.name,
       icon: node.icon,
-      progress: Math.min(100, (store.researchProgress / node.timeRequired) * 100),
+      progress: Math.min(100, (researchProgress / node.timeRequired) * 100),
       timeRequired: node.timeRequired,
     };
-  }, [store.activeResearch, store.researchProgress]);
+  }, [activeResearch, researchProgress]);
 
   // Recent notifications (last 5)
-  const recentNotifications = store.notifications.slice(0, 5);
+  const recentNotifications = notifications.slice(0, 5);
 
   // Activity Feed - last 8 game events from notifications
   const activityFeed = useMemo(() => {
-    return store.notifications.slice(0, 8).map(n => ({
+    return notifications.slice(0, 8).map(n => ({
       ...n,
       icon: n.type === 'success' ? 'lucide:check-circle-2' :
             n.type === 'warning' ? 'lucide:alert-triangle' :
             n.type === 'error' ? 'lucide:x-circle' :
             'lucide:bell',
     }));
-  }, [store.notifications]);
+  }, [notifications]);
 
   // RP accumulation rate
+  // M4 FIX: use productionSnapshot.researchPointsPerTick (includes all bonuses:
+  // prestige, research, weather, events, workers) instead of a hardcoded formula
+  // that only counted aiLab buildings.
   const rpPerTick = useMemo(() => {
-    return 0.1 * (1 + store.buildings.filter(b => b.type === 'aiLab' && b.active).length * 0.5);
-  }, [store.buildings]);
+    return productionSnapshot.researchPointsPerTick || 0;
+  }, [productionSnapshot.researchPointsPerTick]);
 
   // Quick build options
   const quickBuildTypes: BuildingType[] = ['ironMine', 'waterExtractor', 'coalGenerator', 'smelter'];
 
   const handleBuild = (type: BuildingType) => {
-    store.buildBuilding(type);
+    buildBuilding(type);
   };
 
   // Check if there's an unclaimed daily reward
   const hasUnclaimedDailyReward = useMemo(() => {
-    const ls = store.loginStreak;
+    const ls = loginStreak;
     if (!ls.lastLoginDate) return false;
     const currentDay = ((ls.currentStreak - 1) % 7) + 1;
     return ls.weeklyRewards.some(r => r.day === currentDay && !r.claimed);
-  }, [store.loginStreak]);
+  }, [loginStreak]);
 
   // Empire Score calculation
   const empireScore = useMemo(() => {
     return Math.floor(
       totalBuildings * 10 +
       activeBuildings * 20 +
-      store.completedResearch.length * 50 +
-      store.money / 1000 +
-      store.totalMoneyEarned / 10000
+      completedResearch.length * 50 +
+      money / 1000 +
+      totalMoneyEarned / 10000
     );
-  }, [totalBuildings, activeBuildings, store.completedResearch.length, store.money, store.totalMoneyEarned]);
+  }, [totalBuildings, activeBuildings, completedResearch.length, money, totalMoneyEarned]);
 
   // Empire tier info
   const empireTier = useMemo(() => {
@@ -137,13 +171,13 @@ export function DashboardPanel() {
 
   // Economy summary values
   const economySummary = useMemo(() => {
-    const payoutPerCycle = store.productionSnapshot.payoutPerCycle || 0;
+    const payoutPerCycle = productionSnapshot.payoutPerCycle || 0;
     const netIncomePerMin = payoutPerCycle * 6; // 6 cycles per minute (tick every 10s)
     
     // Total assets: sum of resources * estimated value (tier-based pricing)
     const resourceValues: Record<number, number> = { 0: 1, 1: 5, 2: 20, 3: 100 };
-    let totalAssetsValue = store.money;
-    for (const [res, amount] of Object.entries(store.resources)) {
+    let totalAssetsValue = money;
+    for (const [res, amount] of Object.entries(resources)) {
       const meta = RESOURCE_META[res as ResourceType];
       if (meta && amount > 0) {
         const valuePerUnit = resourceValues[meta.tier] || 1;
@@ -151,17 +185,21 @@ export function DashboardPanel() {
       }
     }
     
-    // Storage utilization
+    // Storage utilization - weighted by tier cap so high-tier resources
+    // (which have larger storage upgrades) count proportionally more.
+    // M5 FIX: weight by (tier + 1) so tier-3 resources count 4x more than tier-0.
     let totalStored = 0;
     let totalCapacity = 0;
-    for (const res of Object.keys(store.resources) as ResourceType[]) {
-      totalStored += store.resources[res] || 0;
-      totalCapacity += store.resourceCapacity[res] || 0;
+    for (const res of Object.keys(resources) as ResourceType[]) {
+      const meta = RESOURCE_META[res];
+      const tierWeight = (meta?.tier ?? 0) + 1;
+      totalStored += (resources[res] || 0) * tierWeight;
+      totalCapacity += (resourceCapacity[res] || 0) * tierWeight;
     }
     const storageUtilization = totalCapacity > 0 ? (totalStored / totalCapacity) * 100 : 0;
     
     return { netIncomePerMin, totalAssetsValue, storageUtilization };
-  }, [store.productionSnapshot.payoutPerCycle, store.money, store.resources, store.resourceCapacity]);
+  }, [productionSnapshot.payoutPerCycle, money, resources, resourceCapacity]);
 
   return (
     <div className="space-y-4">
@@ -171,7 +209,7 @@ export function DashboardPanel() {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, type: 'spring' }}
-          onClick={() => store.setActiveTab('dailyRewards')}
+          onClick={() => setActiveTab('dailyRewards')}
           className="w-full bg-gradient-to-r from-pink-900/25 via-purple-900/20 to-fuchsia-900/25 border border-pink-500/30 rounded-xl p-3 flex items-center justify-between group hover:border-pink-400/50 cursor-pointer"
         >
           <div className="flex items-center gap-3">
@@ -182,14 +220,14 @@ export function DashboardPanel() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-pink-400/70 uppercase tracking-wider font-semibold">Day {((store.loginStreak.currentStreak - 1) % 7) + 1}</span>
+            <span className="text-[10px] text-pink-400/70 uppercase tracking-wider font-semibold">Day {((loginStreak.currentStreak - 1) % 7) + 1}</span>
             <ArrowRight className="w-4 h-4 text-pink-400/50 group-hover:text-pink-300 group-hover:translate-x-0.5 transition-all" />
           </div>
         </motion.button>
       )}
 
       {/* RANK BAR */}
-      <RankBar store={store} />
+      <RankBar />
 
       {/* EMPIRE SCORE CARD */}
       <motion.div
@@ -280,16 +318,16 @@ export function DashboardPanel() {
             </div>
             <div className="flex items-center gap-1.5 text-gray-500">
               <FlaskConical className="w-3 h-3" />
-              <span>{store.completedResearch.length}×50</span>
-              <span className="text-gray-400 font-mono">= {store.completedResearch.length * 50}</span>
+              <span>{completedResearch.length}×50</span>
+              <span className="text-gray-400 font-mono">= {completedResearch.length * 50}</span>
             </div>
           </div>
         </div>
       </motion.div>
 
       {/* TRACKED QUEST INDICATOR */}
-      {store.trackedQuest && (() => {
-        const trackedQuestData = store.quests.find(q => q.id === store.trackedQuest);
+      {trackedQuest && (() => {
+        const trackedQuestData = quests.find(q => q.id === trackedQuest);
         if (!trackedQuestData || trackedQuestData.claimed) return null;
         const tProgress = trackedQuestData.steps.length > 0 
           ? trackedQuestData.steps.reduce((sum, s) => sum + Math.min(1, s.current / Math.max(1, s.target)), 0) / trackedQuestData.steps.length 
@@ -305,7 +343,7 @@ export function DashboardPanel() {
                 <span className="text-[10px] text-cyan-400 uppercase tracking-wider font-semibold">Tracked Quest</span>
               </div>
               <button
-                onClick={() => store.setTrackedQuest(null)}
+                onClick={() => setTrackedQuest(null)}
                 className="text-gray-500 hover:text-gray-300 p-0.5 rounded hover:bg-gray-800/50 transition-colors"
               >
                 <XIcon className="w-3 h-3" />
@@ -383,7 +421,7 @@ export function DashboardPanel() {
               >
                 <Button
                   className="bg-yellow-600 hover:bg-yellow-500 text-white font-semibold px-5 py-2.5 text-xs"
-                  onClick={() => store.setActiveTab('power')}
+                  onClick={() => setActiveTab('power')}
                 >
                   <Zap className="w-4 h-4 mr-1.5" />
                   Build Power First
@@ -396,7 +434,7 @@ export function DashboardPanel() {
               >
                 <Button
                   className="bg-cyan-600 hover:bg-cyan-500 text-white font-semibold px-5 py-2.5 text-xs"
-                  onClick={() => store.setActiveTab('resources')}
+                  onClick={() => setActiveTab('resources')}
                 >
                   <Pickaxe className="w-4 h-4 mr-1.5" />
                   Go to Extraction
@@ -453,13 +491,13 @@ export function DashboardPanel() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {store.activeEvents.length > 0 && (
+          {activeEvents.length > 0 && (
             <Badge variant="outline" className="border-orange-500/50 text-orange-400 bg-orange-900/20 text-xs neon-pulse">
               <AlertTriangle className="w-3 h-3 mr-1" />
-              {store.activeEvents.length} Event{store.activeEvents.length > 1 ? 's' : ''}
+              {activeEvents.length} Event{activeEvents.length > 1 ? 's' : ''}
             </Badge>
           )}
-          {store.powerGrid.overload && (
+          {powerGrid.overload && (
             <Badge variant="outline" className="border-red-500/50 text-red-400 bg-red-900/20 text-xs" style={{ animation: 'breathe-glow 2s ease-in-out infinite' }}>
               <Zap className="w-3 h-3 mr-1" />
               POWER OVERLOAD
@@ -480,7 +518,7 @@ export function DashboardPanel() {
               value={totalBuildings.toString()}
               subtext={totalBuildings === 0 ? 'None built yet' : `${activeBuildings} active of ${totalBuildings} built`}
               color="cyan"
-              trend={store.stats.factoriesBuilt > 0 ? 'up' : 'neutral'}
+              trend={stats.factoriesBuilt > 0 ? 'up' : 'neutral'}
             />}
             {i === 1 && <PanelStatCard
               icon={<Users className="w-4 h-4" />}
@@ -491,14 +529,14 @@ export function DashboardPanel() {
               trend={workerEfficiency >= 1 ? 'up' : workerEfficiency > 0 ? 'neutral' : 'down'}
             />}
             {i === 2 && <EfficiencyRing
-              efficiency={store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption === 0 ? -1 : store.powerGrid.efficiency}
-              overload={store.powerGrid.overload}
+              efficiency={powerGrid.totalProduction === 0 && powerGrid.totalConsumption === 0 ? -1 : powerGrid.efficiency}
+              overload={powerGrid.overload}
             />}
             {i === 3 && <PanelStatCard
               icon={<FlaskConical className="w-4 h-4" />}
               label="Research"
-              value={store.completedResearch.length.toString()}
-              subtext={`${formatNumber(store.researchPoints)} RP`}
+              value={completedResearch.length.toString()}
+              subtext={`${formatNumber(researchPoints)} RP`}
               color="purple"
               trend={rpPerTick > 0.1 ? 'up' : 'neutral'}
             />}
@@ -520,14 +558,14 @@ export function DashboardPanel() {
               <Badge
                 variant="outline"
                 className={`text-[10px] ${
-                  store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption === 0
+                  powerGrid.totalProduction === 0 && powerGrid.totalConsumption === 0
                     ? 'border-gray-500/50 text-gray-400 bg-gray-900/20'
                     : powerSurplus >= 0
                       ? 'border-green-500/50 text-green-400 bg-green-900/20'
                       : 'border-red-500/50 text-red-400 bg-red-900/20'
                 }`}
               >
-                {store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption === 0 ? (
+                {powerGrid.totalProduction === 0 && powerGrid.totalConsumption === 0 ? (
                   <>NO GRID</>
                 ) : powerSurplus >= 0 ? (
                   <><ArrowUpRight className="w-2.5 h-2.5 mr-0.5" /> SURPLUS</>
@@ -538,14 +576,14 @@ export function DashboardPanel() {
             </div>
 
             {/* No Power Grid State */}
-            {store.powerGrid.totalProduction === 0 && store.powerGrid.totalConsumption === 0 ? (
+            {powerGrid.totalProduction === 0 && powerGrid.totalConsumption === 0 ? (
               <div className="text-center py-4">
                 <div className="mb-2"><GameIcon icon="gi:lightning-frequency" size={28} /></div>
                 <p className="text-sm text-gray-400 font-medium mb-1">NO POWER GRID</p>
                 <p className="text-xs text-gray-500 mb-3">Build a Coal Generator or Solar Panel to start generating power</p>
                 <Button
                   className="glow-button-cyan bg-yellow-600 hover:bg-yellow-500 text-white text-xs font-semibold px-4 py-1.5"
-                  onClick={() => store.setActiveTab('power')}
+                  onClick={() => setActiveTab('power')}
                 >
                   <Zap className="w-3 h-3 mr-1" />
                   Go to Power
@@ -557,16 +595,16 @@ export function DashboardPanel() {
             <div className="relative mb-3">
               <div className="flex items-center justify-between text-xs mb-1.5">
                 <span className="text-gray-400">
-                  <span className="text-green-400 font-mono font-bold">{formatNumber(store.powerGrid.totalProduction)}</span> MW production
+                  <span className="text-green-400 font-mono font-bold">{formatNumber(powerGrid.totalProduction)}</span> MW production
                 </span>
                 <span className="text-gray-400">
-                  <span className="text-orange-400 font-mono font-bold">{formatNumber(store.powerGrid.totalConsumption)}</span> MW demand
+                  <span className="text-orange-400 font-mono font-bold">{formatNumber(powerGrid.totalConsumption)}</span> MW demand
                 </span>
               </div>
               <div className="h-4 bg-gray-800 rounded-full overflow-hidden relative">
                 <div
                   className="absolute inset-y-0 left-0 bg-orange-600/30 rounded-full transition-all duration-700"
-                  style={{ width: `${Math.min(100, (store.powerGrid.totalConsumption / Math.max(1, store.powerGrid.totalProduction)) * 100)}%` }}
+                  style={{ width: `${Math.min(100, (powerGrid.totalConsumption / Math.max(1, powerGrid.totalProduction)) * 100)}%` }}
                 />
                 <div
                   className={`absolute inset-y-0 left-0 rounded-full transition-all duration-700 ${
@@ -597,15 +635,15 @@ export function DashboardPanel() {
               <PanelStatCard
                 icon={<Gauge className="w-4 h-4" />}
                 label="Efficiency"
-                value={`${(store.powerGrid.efficiency * 100).toFixed(1)}%`}
+                value={`${(powerGrid.efficiency * 100).toFixed(1)}%`}
                 subtext="Current"
-                color={store.powerGrid.efficiency >= 0.8 ? 'green' : store.powerGrid.efficiency >= 0.5 ? 'yellow' : 'red'}
-                trend={store.powerGrid.efficiency >= 0.8 ? 'up' : store.powerGrid.efficiency >= 0.5 ? 'neutral' : 'down'}
+                color={powerGrid.efficiency >= 0.8 ? 'green' : powerGrid.efficiency >= 0.5 ? 'yellow' : 'red'}
+                trend={powerGrid.efficiency >= 0.8 ? 'up' : powerGrid.efficiency >= 0.5 ? 'neutral' : 'down'}
               />
               <PanelStatCard
                 icon={<TrendingUp className="w-4 h-4" />}
                 label="Peak"
-                value={`${(store.stats.peakEfficiency * 100).toFixed(1)}%`}
+                value={`${(stats.peakEfficiency * 100).toFixed(1)}%`}
                 subtext="All-time best"
                 color="cyan"
               />
@@ -658,7 +696,7 @@ export function DashboardPanel() {
                   ${formatNumber(economySummary.totalAssetsValue)}
                 </div>
                 <div className="text-[9px] text-gray-600 mt-0.5">
-                  Cash: ${formatNumber(store.money)}
+                  Cash: ${formatNumber(money)}
                 </div>
               </div>
               {/* Storage Utilization */}
@@ -858,7 +896,7 @@ export function DashboardPanel() {
         {/* RIGHT COLUMN */}
         <div className="space-y-4">
           {/* INCOME SPARKLINE CHART */}
-          <IncomeChart store={store} productionRates={productionRates} />
+          <IncomeChart productionRates={productionRates} />
 
           {/* BUILDING BREAKDOWN */}
           <div className="game-card rounded-xl bg-card p-4 border border-border">
@@ -895,7 +933,7 @@ export function DashboardPanel() {
           </div>
 
           {/* WEATHER INFO CARD */}
-          <WeatherInfoCard store={store} />
+          <WeatherInfoCard />
 
           {/* ACTIVE RESEARCH */}
           <div className="game-card rounded-xl bg-card p-4 border border-border">
@@ -911,7 +949,7 @@ export function DashboardPanel() {
                     <p className="text-xs text-gray-200 font-medium">{activeResearchInfo.name}</p>
                     <p className="text-[10px] text-gray-500">
                       <Timer className="w-2.5 h-2.5 inline mr-0.5" />
-                      {formatNumber(store.researchProgress)} / {formatNumber(activeResearchInfo.timeRequired)} ticks
+                      {formatNumber(researchProgress)} / {formatNumber(activeResearchInfo.timeRequired)} ticks
                     </p>
                   </div>
                 </div>
@@ -942,7 +980,7 @@ export function DashboardPanel() {
               <AlertTriangle className="w-4 h-4 text-orange-400" />
               <h3 className="text-sm font-semibold text-orange-400">Active Events</h3>
             </div>
-            {store.activeEvents.length === 0 ? (
+            {activeEvents.length === 0 ? (
               <div className="text-center py-4">
                 <Shield className="w-6 h-6 text-gray-700 mx-auto mb-1.5" />
                 <p className="text-xs text-gray-500">No active events</p>
@@ -950,7 +988,7 @@ export function DashboardPanel() {
               </div>
             ) : (
               <div className="space-y-2 max-h-48 overflow-y-auto game-scrollbar">
-                {store.activeEvents.map(event => (
+                {activeEvents.map(event => (
                   <div key={event.id} className="bg-[#0a0e17] rounded-lg p-3 border border-orange-900/30">
                     <div className="flex items-center gap-2 mb-1">
                       <GameIcon icon={event.icon} size={14} className="inline-flex" />
@@ -982,12 +1020,12 @@ export function DashboardPanel() {
                 <Bell className="w-4 h-4 text-gray-400" />
                 <h3 className="text-sm font-semibold text-gray-400">Notifications</h3>
               </div>
-              {store.notifications.length > 0 && (
+              {notifications.length > 0 && (
                 <Button
                   variant="ghost"
                   size="sm"
                   className="h-5 text-[10px] text-gray-500 hover:text-gray-300 px-1"
-                  onClick={store.clearNotifications}
+                  onClick={clearNotifications}
                 >
                   Clear
                 </Button>
@@ -1026,10 +1064,10 @@ export function DashboardPanel() {
               {quickBuildTypes.map(type => {
                 const def = BUILDING_DEFS[type];
                 if (!def) return null;
-                const count = store.buildings.filter(b => b.type === type).length;
+                const count = buildings.filter(b => b.type === type).length;
                 const cost = getBuildingCost(type, count);
-                const canAfford = store.money >= cost;
-                const unlocked = isBuildingUnlocked(type, store.completedResearch, store.prestigeState);
+                const canAfford = money >= cost;
+                const unlocked = isBuildingUnlocked(type, completedResearch, prestigeState);
                 return (
                   <Button
                     key={type}
@@ -1063,27 +1101,27 @@ export function DashboardPanel() {
             <div className="space-y-1.5 text-xs">
               <div className="flex justify-between">
                 <span className="text-gray-500">Total Earned</span>
-                <span className="text-green-400 font-mono">${formatNumber(store.totalMoneyEarned)}</span>
+                <span className="text-green-400 font-mono">${formatNumber(totalMoneyEarned)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Peak Efficiency</span>
-                <span className="text-cyan-400 font-mono">{(store.stats.peakEfficiency * 100).toFixed(1)}%</span>
+                <span className="text-cyan-400 font-mono">{(stats.peakEfficiency * 100).toFixed(1)}%</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Buildings Built</span>
-                <span className="text-gray-300 font-mono">{store.stats.factoriesBuilt}</span>
+                <span className="text-gray-300 font-mono">{stats.factoriesBuilt}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Research Done</span>
-                <span className="text-purple-400 font-mono">{store.stats.researchCompleted}</span>
+                <span className="text-purple-400 font-mono">{stats.researchCompleted}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Contracts Done</span>
-                <span className="text-rose-400 font-mono">{store.stats.contractsCompleted}</span>
+                <span className="text-rose-400 font-mono">{stats.contractsCompleted}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Play Time</span>
-                <span className="text-gray-300 font-mono">{formatNumber(store.stats.playTime)} ticks</span>
+                <span className="text-gray-300 font-mono">{formatNumber(stats.playTime)} ticks</span>
               </div>
             </div>
           </div>
@@ -1132,8 +1170,10 @@ function BuildingCategoryRow({
 }
 
 // --- Rank Bar Component ---
-function RankBar({ store }: { store: ReturnType<typeof useGameStore> }) {
-  const rank = store.getCurrentRank();
+function RankBar() {
+  const getCurrentRank = useGameStore((s) => s.getCurrentRank);
+  const setActiveTab = useGameStore((s) => s.setActiveTab);
+  const rank = getCurrentRank();
 
   return (
     <div
@@ -1210,7 +1250,7 @@ function RankBar({ store }: { store: ReturnType<typeof useGameStore> }) {
             variant="outline"
             size="sm"
             className="h-8 text-[10px] border-fuchsia-800/50 text-fuchsia-400 hover:bg-fuchsia-900/20"
-            onClick={() => store.setActiveTab('resources')}
+            onClick={() => setActiveTab('resources')}
           >
             <Package className="w-3 h-3 mr-1" />
             Upgrade Storage
@@ -1222,13 +1262,15 @@ function RankBar({ store }: { store: ReturnType<typeof useGameStore> }) {
 }
 
 // --- Weather Info Card Component ---
-function WeatherInfoCard({ store }: { store: ReturnType<typeof useGameStore> }) {
-  const currentWeather = store.weather.current as WeatherType;
+function WeatherInfoCard() {
+  const weather = useGameStore((s) => s.weather);
+  const gameTickLocal = useGameStore((s) => s.gameTick);
+  const currentWeather = weather.current as WeatherType;
   const weatherDef = WEATHER_DEFS[currentWeather];
   if (!weatherDef) return null;
 
-  const ticksUntilChange = Math.max(0, store.weather.nextChange - store.gameTick);
-  const isEffectActive = currentWeather !== 'clear' && store.weather.remaining > 0;
+  const ticksUntilChange = Math.max(0, weather.nextChange - gameTickLocal);
+  const isEffectActive = currentWeather !== 'clear' && weather.remaining > 0;
 
   // Gradient backgrounds based on weather type
   const weatherGradients: Record<string, string> = {
@@ -1360,7 +1402,7 @@ function WeatherInfoCard({ store }: { store: ReturnType<typeof useGameStore> }) 
             {isEffectActive ? 'Weather ends in' : 'Next change in'}
           </span>
           <span className="text-cyan-400 font-mono">
-            {isEffectActive ? formatTicksToTime(store.weather.remaining) : formatTicksToTime(ticksUntilChange)}
+            {isEffectActive ? formatTicksToTime(weather.remaining) : formatTicksToTime(ticksUntilChange)}
           </span>
         </div>
       </div>
@@ -1381,12 +1423,14 @@ function formatTicksToTime(ticks: number): string {
 }
 
 // --- Income Sparkline Chart Component ---
-function IncomeChart({ store, productionRates }: { store: ReturnType<typeof useGameStore>; productionRates: Record<string, number> }) {
+function IncomeChart({ productionRates }: { productionRates: Record<string, number> }) {
+  const productionSnapshot = useGameStore((s) => s.productionSnapshot);
+  const totalMoneyEarned = useGameStore((s) => s.totalMoneyEarned);
   // Generate projected income data points for sparkline based on current rates
   const sparklineData = useMemo(() => {
-    const payoutPerCycle = store.productionSnapshot.payoutPerCycle || 0;
+    const payoutPerCycle = productionSnapshot.payoutPerCycle || 0;
     const currentIncome = payoutPerCycle * 6; // per minute
-    const totalEarned = store.totalMoneyEarned;
+    const totalEarned = totalMoneyEarned;
     
     // Create a projected trend: simulate growth from low to current income
     // Use current production rates to build a realistic curve
@@ -1410,9 +1454,9 @@ function IncomeChart({ store, productionRates }: { store: ReturnType<typeof useG
     }
     
     return points;
-  }, [store.productionSnapshot.payoutPerCycle, store.totalMoneyEarned]);
+  }, [productionSnapshot.payoutPerCycle, totalMoneyEarned]);
 
-  const payoutPerCycle = store.productionSnapshot.payoutPerCycle || 0;
+  const payoutPerCycle = productionSnapshot.payoutPerCycle || 0;
   const incomePerMin = payoutPerCycle * 6;
 
   // SVG sparkline dimensions
@@ -1497,7 +1541,7 @@ function IncomeChart({ store, productionRates }: { store: ReturnType<typeof useG
             ${formatNumber(incomePerMin)}/min
           </div>
           <div className="text-[10px] text-gray-500 mt-0.5">
-            Total earned: ${formatNumber(store.totalMoneyEarned)}
+            Total earned: ${formatNumber(totalMoneyEarned)}
           </div>
           {incomePerMin > 0 && (
             <div className="text-[9px] text-gray-600 mt-0.5">
