@@ -162,7 +162,7 @@ function SectorOverview({ sectorTrends, market }: { sectorTrends: Partial<Record
           }`}>
             <div className="flex items-center justify-between mb-0.5">
               <GameIcon icon={info.icon as `gi:${string}` | `lucide:${string}`} size={12} className={info.color} />
-              {trend === 'up' && <span className="text-[8px] text-green-400">▲</span>}
+              {trend === 'up' && <span className="text-[8px] text-success">▲</span>}
               {trend === 'down' && <span className="text-[8px] text-red-400">▼</span>}
               {trend === 'stable' && <span className="text-[8px] text-gray-500">─</span>}
             </div>
@@ -212,7 +212,7 @@ export function MarketPanel() {
     const prices = store.market.map(m => ({ resource: m.resource, ratio: m.currentPrice / m.basePrice, trend: m.trend }));
     const avgRatio = prices.reduce((sum, p) => sum + p.ratio, 0) / prices.length;
     const sentiment = avgRatio > 1.15 ? 'Bullish' : avgRatio < 0.85 ? 'Bearish' : 'Neutral';
-    const sentimentDot = avgRatio > 1.15 ? 'bg-green-500' : avgRatio < 0.85 ? 'bg-red-500' : 'bg-yellow-500';
+    const sentimentDot = avgRatio > 1.15 ? 'bg-success' : avgRatio < 0.85 ? 'bg-red-500' : 'bg-yellow-500';
     const bestSell = prices.reduce((best, p) => p.ratio > best.ratio ? p : best, prices[0]);
     const bestSellMeta = RESOURCE_META[bestSell.resource as ResourceType];
     return { avgRatio, sentiment, sentimentDot, bestSell, bestSellMeta };
@@ -296,7 +296,7 @@ export function MarketPanel() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="bg-gradient-to-r from-green-900/10 to-transparent -m-0 p-0 rounded-xl">
-          <h2 className="text-xl font-bold text-green-400 tracking-wide neon-glow-green">
+          <h2 className="text-xl font-bold text-success tracking-wide neon-glow-green">
             Global Market
           </h2>
           <p className="text-xs text-gray-500 mt-0.5">Supply & demand driven economy — your production shapes prices</p>
