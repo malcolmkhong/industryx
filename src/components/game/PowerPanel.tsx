@@ -84,13 +84,25 @@ function PowerSparkline({ data, color, width = 200, height = 40 }: { data: numbe
 }
 
 export function PowerPanel() {
-  const store = useGameStore();
-  const { powerGrid } = store;
+  const buildings = useGameStore((s) => s.buildings);
+  const resources = useGameStore((s) => s.resources);
+  const resourceCapacity = useGameStore((s) => s.resourceCapacity);
+  const money = useGameStore((s) => s.money);
+  const gameTick = useGameStore((s) => s.gameTick);
+  const powerGrid = useGameStore((s) => s.powerGrid);
+  const prestigeState = useGameStore((s) => s.prestigeState);
+  const productionSnapshot = useGameStore((s) => s.productionSnapshot);
+  const productionHistory = useGameStore((s) => s.productionHistory);
+  const completedResearch = useGameStore((s) => s.completedResearch);
+  const buildBuilding = useGameStore((s) => s.buildBuilding);
+  const toggleBuilding = useGameStore((s) => s.toggleBuilding);
+  const upgradeBuilding = useGameStore((s) => s.upgradeBuilding);
+  const { totalProduction: powerTotalProduction, totalConsumption: powerTotalConsumption, efficiency: powerEfficiency } = powerGrid;
 
   // Power plants from store
   const powerPlants = useMemo(() =>
-    store.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power'),
-    [store.buildings]
+    buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'power'),
+    [buildings]
   );
 
   const activePowerPlants = useMemo(() =>
@@ -111,7 +123,7 @@ export function PowerPanel() {
   // Compute raw per-type ratios then scale to match snapshot total (which includes
   // all multipliers: weather events, prestige power bonus, power optimization, etc.)
   const { productionByType, powerScaleFactor } = useMemo(() => {
-    const snapshotTotal = store.productionSnapshot.powerProduction;
+    const snapshotTotal = productionSnapshot.powerProduction;
     const production: Record<string, number> = {};
     let rawTotal = 0;
     const rawByType: Record<string, number> = {};
@@ -125,16 +137,16 @@ export function PowerPanel() {
         if (!b.active) return;
         let plantProduction = def.basePowerProduction * b.level * b.efficiency;
         if (def.fuel && def.fuelRate) {
-          if (store.resources[def.fuel] < def.fuelRate * b.level) {
+          if (resources[def.fuel] < def.fuelRate * b.level) {
             plantProduction *= 0.1;
           }
         }
         if (type === 'solarPanel') {
-          const dayFactor = 0.5 + 0.5 * Math.sin(store.gameTick * 0.01);
+          const dayFactor = 0.5 + 0.5 * Math.sin(gameTick * 0.01);
           plantProduction *= Math.max(0.2, dayFactor);
         }
         if (type === 'windTurbine') {
-          const windFactor = 0.5 + 0.5 * Math.sin(store.gameTick * 0.007 + Math.PI / 3);
+          const windFactor = 0.5 + 0.5 * Math.sin(gameTick * 0.007 + Math.PI / 3);
           plantProduction *= Math.max(0.3, windFactor);
         }
         totalType += plantProduction;
@@ -149,13 +161,13 @@ export function PowerPanel() {
       production[type] = rawByType[type] * scale;
     });
     return { productionByType: production, powerScaleFactor: scale };
-  }, [plantsByType, store.resources, store.gameTick, store.productionSnapshot.powerProduction]);
+  }, [plantsByType, resources, gameTick, productionSnapshot.powerProduction]);
 
   // Total real production — from snapshot (single source of truth)
-  const totalRealProduction = store.productionSnapshot.powerProduction;
+  const totalRealProduction = productionSnapshot.powerProduction;
 
   // Total real consumption — from snapshot (includes research reductions, event multipliers, worker savings)
-  const totalRealConsumption = store.productionSnapshot.powerConsumption;
+  const totalRealConsumption = productionSnapshot.powerConsumption;
 
   // Real-time effective power efficiency
   const realtimeEfficiency = totalRealProduction > 0
@@ -185,7 +197,7 @@ export function PowerPanel() {
       const def = BUILDING_DEFS[b.type];
       return sum + (def.fuelRate || 0) * b.level;
     }, 0);
-    const coalStock = store.resources['coal'];
+    const coalStock = resources['coal'];
     const ticksRemaining = totalFuelRate > 0 ? coalStock / totalFuelRate : Infinity;
     return {
       stock: coalStock,
@@ -193,7 +205,7 @@ export function PowerPanel() {
       ticksRemaining,
       isLow: ticksRemaining < 500 && activeCoalPlants.length > 0,
     };
-  }, [plantsByType, store.resources]);
+  }, [plantsByType, resources]);
 
   // Efficiency tip
   const efficiencyTip = useMemo(() => {
@@ -208,32 +220,32 @@ export function PowerPanel() {
 
   // Power production history from productionHistory
   const powerHistory = useMemo(() =>
-    store.productionHistory.slice(-50).map(p => p.powerProduction),
-    [store.productionHistory]
+    productionHistory.slice(-50).map(p => p.powerProduction),
+    [productionHistory]
   );
 
   // Solar/wind current output factor
   const solarFactor = useMemo(() => {
-    const factor = 0.5 + 0.5 * Math.sin(store.gameTick * 0.01);
+    const factor = 0.5 + 0.5 * Math.sin(gameTick * 0.01);
     return Math.max(0.2, factor);
-  }, [store.gameTick]);
+  }, [gameTick]);
 
   const windFactor = useMemo(() => {
-    const factor = 0.5 + 0.5 * Math.sin(store.gameTick * 0.007 + Math.PI / 3);
+    const factor = 0.5 + 0.5 * Math.sin(gameTick * 0.007 + Math.PI / 3);
     return Math.max(0.3, factor);
-  }, [store.gameTick]);
+  }, [gameTick]);
 
-  const handleBuild = (type: PowerPlantType) => {
-    store.buildBuilding(type);
-  };
+  const handleBuild = useCallback((type: PowerPlantType) => {
+    buildBuilding(type);
+  }, [buildBuilding]);
 
-  const handleUpgrade = (id: string) => {
-    store.upgradeBuilding(id);
-  };
+  const handleUpgrade = useCallback((id: string) => {
+    upgradeBuilding(id);
+  }, [upgradeBuilding]);
 
-  const handleToggle = (id: string) => {
-    store.toggleBuilding(id);
-  };
+  const handleToggle = useCallback((id: string) => {
+    toggleBuilding(id);
+  }, [toggleBuilding]);
 
   // Flow line color
   const flowColor = powerStatus === 'surplus' ? '#39ff14' : powerStatus === 'balanced' ? '#ffff00' : '#ff0040';
@@ -567,7 +579,7 @@ export function PowerPanel() {
                 <span className="text-xs"><GameIcon icon="gi:castle" size={14} className="inline" /></span>
                 <span className="text-[9px] font-mono text-orange-400">{formatNumber(totalRealConsumption)} MW</span>
               </div>
-              <div className="text-[9px] text-gray-500">{store.buildings.filter(b => BUILDING_DEFS[b.type]?.category !== 'power' && b.active).length} buildings</div>
+              <div className="text-[9px] text-gray-500">{buildings.filter(b => BUILDING_DEFS[b.type]?.category !== 'power' && b.active).length} buildings</div>
               <div className={`text-[8px] mt-1 px-1.5 py-0.5 rounded ${
                 realtimeEfficiency >= 0.8 ? 'bg-green-900/20 text-green-400' :
                 realtimeEfficiency >= 0.5 ? 'bg-yellow-900/20 text-yellow-400' :
@@ -589,7 +601,7 @@ export function PowerPanel() {
           const instances = plantsByType[type] || [];
           const activeInstances = instances.filter(b => b.active);
           const output = productionByType[type] || 0;
-          const unlocked = isBuildingUnlocked(type, store.completedResearch, store.prestigeState);
+          const unlocked = isBuildingUnlocked(type, completedResearch, prestigeState);
 
           // Individual output variation
           let variationLabel = '';
@@ -624,11 +636,11 @@ export function PowerPanel() {
                 { label: 'Power Consumption', value: `${def.basePowerConsumption} MW` },
                 ...(def.fuel ? [{ label: 'Fuel Type', value: RESOURCE_META[def.fuel].name, color: 'text-orange-400' }] : []),
                 ...(def.fuelRate ? [{ label: 'Fuel Rate', value: `${(def.fuelRate).toFixed(1)}/s`, color: 'text-orange-400' }] : []),
-                { label: 'Build Cost', value: `$${formatNumber(getBuildingCost(type, instances.length))}`, color: store.money >= getBuildingCost(type, instances.length) ? 'text-green-400' : 'text-red-400' },
+                { label: 'Build Cost', value: `$${formatNumber(getBuildingCost(type, instances.length))}`, color: money >= getBuildingCost(type, instances.length) ? 'text-green-400' : 'text-red-400' },
                 { label: 'Current Output', value: `${formatNumber(output)} MW`, color: 'text-yellow-400' },
               ]}
               requirements={[
-                ...(def.unlockRequirement?.research ? [{ label: 'Research', value: RESEARCH_TREE.find(r => r.id === def.unlockRequirement!.research)?.name ?? def.unlockRequirement.research, color: store.completedResearch.includes(def.unlockRequirement.research) ? 'text-green-400' : 'text-red-400' }] : []),
+                ...(def.unlockRequirement?.research ? [{ label: 'Research', value: RESEARCH_TREE.find(r => r.id === def.unlockRequirement!.research)?.name ?? def.unlockRequirement.research, color: completedResearch.includes(def.unlockRequirement.research) ? 'text-green-400' : 'text-red-400' }] : []),
               ]}
               side="bottom"
             >
@@ -702,7 +714,7 @@ export function PowerPanel() {
                   size="sm"
                   className="w-full h-6 text-[9px] mt-2 border-gray-700 text-gray-400 hover:text-yellow-400 hover:border-yellow-500/50"
                   onClick={() => handleBuild(type)}
-                  disabled={store.money < getBuildingCost(type, instances.length)}
+                  disabled={money < getBuildingCost(type, instances.length)}
                 >
                   <Hammer className="w-2.5 h-2.5 mr-1" />
                   Build (${formatNumber(getBuildingCost(type, instances.length))})
@@ -763,7 +775,7 @@ export function PowerPanel() {
                   if (!def) return null;
                   const meta = getPowerPlantMeta(plant.type);
                   const upgradeCost = getBuildingCost(plant.type, plant.level);
-                  const canUpgrade = store.money >= upgradeCost;
+                  const canUpgrade = money >= upgradeCost;
 
                   // Per-plant actual production — derived from snapshot via scale factor
                   // (powerScaleFactor ensures per-plant values sum to snapshot powerProduction)
@@ -774,19 +786,19 @@ export function PowerPanel() {
                   if (plant.active) {
                     let rawProduction = def.basePowerProduction * plant.level * plant.efficiency;
                     if (def.fuel && def.fuelRate) {
-                      if (store.resources[def.fuel] < def.fuelRate * plant.level) {
+                      if (resources[def.fuel] < def.fuelRate * plant.level) {
                         rawProduction *= 0.1;
                         productionNote = 'Low fuel!';
                         isDerated = true;
                       }
                     }
                     if (plant.type === 'solarPanel') {
-                      const factor = Math.max(0.2, 0.5 + 0.5 * Math.sin(store.gameTick * 0.01));
+                      const factor = Math.max(0.2, 0.5 + 0.5 * Math.sin(gameTick * 0.01));
                       rawProduction *= factor;
                       productionNote = factor > 0.7 ? 'Peak sun' : factor > 0.4 ? 'Moderate' : 'Low light';
                     }
                     if (plant.type === 'windTurbine') {
-                      const factor = Math.max(0.3, 0.5 + 0.5 * Math.sin(store.gameTick * 0.007 + Math.PI / 3));
+                      const factor = Math.max(0.3, 0.5 + 0.5 * Math.sin(gameTick * 0.007 + Math.PI / 3));
                       rawProduction *= factor;
                       productionNote = factor > 0.7 ? 'Strong wind' : factor > 0.4 ? 'Moderate' : 'Low wind';
                     }
@@ -886,9 +898,9 @@ export function PowerPanel() {
                               <div className="flex items-center gap-1">
                                 <Fuel className="w-2.5 h-2.5 text-orange-500" />
                                 <span className={`text-[9px] font-mono ${
-                                  store.resources[def.fuel] < 50 ? 'text-red-400' : 'text-gray-400'
+                                  resources[def.fuel] < 50 ? 'text-red-400' : 'text-gray-400'
                                 }`}>
-                                  <GameIcon icon={RESOURCE_META[def.fuel].icon} size={14} className="inline-flex" /> {formatNumber(store.resources[def.fuel])} ({formatNumber((def.fuelRate || 0) * plant.level)}/s)
+                                  <GameIcon icon={RESOURCE_META[def.fuel].icon} size={14} className="inline-flex" /> {formatNumber(resources[def.fuel])} ({formatNumber((def.fuelRate || 0) * plant.level)}/s)
                                 </span>
                               </div>
                             )}
@@ -940,7 +952,7 @@ export function PowerPanel() {
                 const instances = plantsByType[type] || [];
                 const activeInstances = instances.filter(b => b.active);
                 const pct = totalRealProduction > 0 ? (output / totalRealProduction) * 100 : 0;
-                const unlocked = isBuildingUnlocked(type, store.completedResearch, store.prestigeState);
+                const unlocked = isBuildingUnlocked(type, completedResearch, prestigeState);
 
                 return (
                   <div key={type} className="bg-[#0a0e17] rounded-lg p-3">
@@ -1014,10 +1026,10 @@ export function PowerPanel() {
                   <div
                     className={`h-full rounded-full ${
                       coalFuelStatus.stock < 50 ? 'bg-red-500' :
-                      coalFuelStatus.stock < store.resourceCapacity.coal * 0.5 ? 'bg-yellow-500' :
+                      coalFuelStatus.stock < resourceCapacity.coal * 0.5 ? 'bg-yellow-500' :
                       'bg-orange-500'
                     }`}
-                    style={{ width: `${Math.min(100, (coalFuelStatus.stock / store.resourceCapacity.coal) * 100)}%` }}
+                    style={{ width: `${Math.min(100, (coalFuelStatus.stock / resourceCapacity.coal) * 100)}%` }}
                   />
                 </div>
               </div>
