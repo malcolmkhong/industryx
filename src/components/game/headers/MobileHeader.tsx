@@ -66,11 +66,11 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange }: Mobil
         </div>
 
         <div className="flex items-center gap-1 text-[10px] flex-shrink-0">
-          <span className="text-green-400 font-mono font-bold">${formatNumber(money)}</span>
+          <span className="text-success font-mono font-bold">${formatNumber(money)}</span>
           {pendingPayout > 0 && !payoutConfig.autoCollect && (
             <button
               onClick={collectPayout}
-              className="animate-pulse inline-flex items-center bg-green-900/40 text-green-400 text-[9px] px-1.5 py-0.5 rounded border border-green-500/30 min-h-[28px]"
+              className="animate-pulse inline-flex items-center bg-success/40 text-green-400 text-[9px] px-1.5 py-0.5 rounded border border-green-500/30 min-h-[28px]"
               title="Click to collect pending payout"
             >
               <GameIcon ui="money" size={12} className="inline-flex" />${formatNumber(pendingPayout)}
