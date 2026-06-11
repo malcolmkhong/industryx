@@ -243,7 +243,7 @@ export function LoginFloatingPanel({ open, reason, onClose, onSignInStart }: Log
           {config.dismissible && (
             <button
               onClick={handleDismiss}
-              className="absolute top-3 right-3 w-8 h-8 rounded-lg bg-muted-label/80 hover:bg-muted-label flex items-center justify-center text-subtle hover:text-gray-200 transition-colors z-10"
+              className="absolute top-3 right-3 w-8 h-8 rounded-lg bg-muted-label/80 hover:bg-muted-label flex items-center justify-center text-subtle hover:text-subtle transition-colors z-10"
               aria-label="Close"
             >
               <X className="w-4 h-4" />
@@ -258,7 +258,7 @@ export function LoginFloatingPanel({ open, reason, onClose, onSignInStart }: Log
                 {config.icon}
               </div>
               <div>
-                <h2 className="text-lg font-bold text-gray-100 pr-8">{config.title}</h2>
+                <h2 className="text-lg font-bold text-subtle pr-8">{config.title}</h2>
                 <p className="text-sm text-subtle mt-1 leading-relaxed">{config.description}</p>
               </div>
             </div>

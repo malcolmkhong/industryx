@@ -278,7 +278,7 @@ export function PrestigePanel() {
                             {bonus.purchased ? <Check className="w-4 h-4" /> : icon}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-xs font-medium text-gray-200">{bonus.name}</div>
+                            <div className="text-xs font-medium text-subtle">{bonus.name}</div>
                             <div className="text-[10px] text-subtle">{bonus.description}</div>
                           </div>
                         </div>
@@ -301,7 +301,7 @@ export function PrestigePanel() {
                         )}
                       </div>
                     </TooltipTrigger>
-                    <TooltipContent side="bottom" className="bg-muted-label border border-fuchsia-900/30 text-gray-200 p-3 max-w-xs z-50">
+                    <TooltipContent side="bottom" className="bg-muted-label border border-fuchsia-900/30 text-subtle p-3 max-w-xs z-50">
                       <div className="space-y-2">
                         <div className="text-xs font-semibold text-fuchsia-400">{bonus.name}</div>
                         {details && (
@@ -402,7 +402,7 @@ export function PrestigePanel() {
 
       {/* Prestige Preview Dialog */}
       <Dialog open={showPrestigeDialog} onOpenChange={handleDialogClose}>
-        <DialogContent className="bg-card border-fuchsia-900/50 text-gray-200 max-w-md">
+        <DialogContent className="bg-card border-fuchsia-900/50 text-subtle max-w-md">
           <DialogHeader>
             <DialogTitle className="text-fuchsia-400 flex items-center gap-2">
               <Globe className="w-5 h-5" />
@@ -472,7 +472,7 @@ export function PrestigePanel() {
 
           <DialogFooter className="gap-2">
             <DialogClose asChild>
-              <Button variant="ghost" className="text-subtle hover:text-gray-200">
+              <Button variant="ghost" className="text-subtle hover:text-subtle">
                 Cancel
               </Button>
             </DialogClose>

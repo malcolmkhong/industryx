@@ -50,7 +50,7 @@ const MemoizedNotificationItem = React.memo(function MemoizedNotificationItem({
         <GameIcon icon={tc.icon} size={12} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className={`text-xs ${read ? 'text-muted-label' : 'text-gray-200'}`}>
+        <p className={`text-xs ${read ? 'text-muted-label' : 'text-subtle'}`}>
           {message}
         </p>
         <p className="text-[9px] text-muted-label mt-1">

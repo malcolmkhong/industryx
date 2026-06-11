@@ -104,7 +104,7 @@ export function AutomationPanel() {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-gray-200">{unlock.name}</span>
+                    <span className="text-sm font-bold text-subtle">{unlock.name}</span>
                     {isActive && (
                       <Badge className="text-[9px] bg-teal-900/30 text-teal-400 border-0">
                         <Check className="w-2.5 h-2.5 mr-0.5" /> Active

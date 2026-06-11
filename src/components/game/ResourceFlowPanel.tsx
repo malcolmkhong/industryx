@@ -468,7 +468,7 @@ export default function ResourceFlowPanel() {
                   placeholder="Search..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="h-7 w-32 text-[11px] bg-card border-cyan-900/30 text-gray-200 placeholder-gray-600"
+                  className="h-7 w-32 text-[11px] bg-card border-cyan-900/30 text-subtle placeholder-gray-600"
                 />
                 {selectedResource && (
                   <Button
@@ -721,7 +721,7 @@ export default function ResourceFlowPanel() {
                       <GameIcon icon={selectedMeta.icon} size={16} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-gray-200">{selectedMeta.name}</p>
+                      <p className="text-sm font-bold text-subtle">{selectedMeta.name}</p>
                       <p className="text-[10px] text-muted-label">Tier {selectedMeta.tier} • {selectedResource}</p>
                       <div className="flex items-center gap-2 mt-1">
                         {(() => {
@@ -755,7 +755,7 @@ export default function ResourceFlowPanel() {
                       <p className="text-[9px] text-muted-label">CONS</p>
                       <p className="text-sm font-mono font-bold text-warning">-{totalConsumption.toFixed(2)}</p>
                     </div>
-                    <div className={`rounded-lg p-3 text-center border ${netRate >= 0 ? 'bg-success/10 border-success/20' : 'bg-danger/10 border-red-900/20'}`}>
+                    <div className={`rounded-lg p-3 text-center border ${netRate >= 0 ? 'bg-success/10 border-success/20' : 'bg-danger/10 border-danger/20'}`}>
                       <p className="text-[9px] text-muted-label">NET</p>
                       <p className={`text-sm font-mono font-bold ${netRate >= 0 ? 'text-success' : 'text-danger'}`}>
                         {netRate >= 0 ? '+' : ''}{netRate.toFixed(2)}
@@ -767,7 +767,7 @@ export default function ResourceFlowPanel() {
                   <div className="mt-3 flex items-center gap-2">
                     <Package className="w-3.5 h-3.5 text-muted-label" />
                     <span className="text-xs text-subtle">
-                      Stock: <span className="font-mono text-gray-200">{formatNumber(currentAmount)}</span>
+                      Stock: <span className="font-mono text-subtle">{formatNumber(currentAmount)}</span>
                       <span className="text-muted-label"> / </span>
                       <span className="font-mono text-subtle">{formatNumber(capacity)}</span>
                     </span>
@@ -821,7 +821,7 @@ export default function ResourceFlowPanel() {
                         <div key={def.type} className="flex items-center gap-2 p-1.5 rounded-md bg-success/10 border border-success/20">
                           <GameIcon icon={def.icon} size={14} className="inline-flex" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-[11px] font-medium text-gray-200 truncate">{def.name}</p>
+                            <p className="text-[11px] font-medium text-subtle truncate">{def.name}</p>
                             <p className="text-[9px] text-muted-label">{activeCount}/{count} active</p>
                           </div>
                           <span className="text-[11px] font-mono text-success">+{(rate).toFixed(2)}/s</span>
@@ -852,7 +852,7 @@ export default function ResourceFlowPanel() {
                         <div key={def.type} className="flex items-center gap-2 p-1.5 rounded-md bg-amber-900/10 border border-amber-900/20">
                           <GameIcon icon={def.icon} size={14} className="inline-flex" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-[11px] font-medium text-gray-200 truncate">{def.name}</p>
+                            <p className="text-[11px] font-medium text-subtle truncate">{def.name}</p>
                             <p className="text-[9px] text-muted-label">{activeCount}/{count} active{def.fuel === selectedResource ? ' (fuel)' : ''}</p>
                           </div>
                           <span className="text-[11px] font-mono text-warning">-{(rate).toFixed(2)}/s</span>
@@ -933,7 +933,7 @@ export default function ResourceFlowPanel() {
 
               {/* Suggestions */}
               {netRate < 0 && producers.length > 0 && (
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-yellow-900/10 border border-yellow-900/20">
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-yellow-900/10 border border-warning/20">
                   <Lightbulb className="w-3.5 h-3.5 text-warning flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="text-[11px] font-semibold text-warning">Production Deficit</p>

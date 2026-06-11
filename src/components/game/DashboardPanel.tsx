@@ -163,7 +163,7 @@ export function DashboardPanel() {
   // Empire tier info
   const empireTier = useMemo(() => {
     if (empireScore >= 50000) return { name: 'Diamond', color: '#b9f2ff', bgColor: 'bg-cyan-100', borderColor: 'border-cyan-300', textColor: 'text-cyan-200', icon: <Gem className="w-4 h-4" />, nextThreshold: null, progress: 1 };
-    if (empireScore >= 10000) return { name: 'Platinum', color: '#e5e4e2', bgColor: 'bg-gray-200', borderColor: 'border-gray-400', textColor: 'text-gray-200', icon: <Crown className="w-4 h-4" />, nextThreshold: 50000, progress: (empireScore - 10000) / 40000 };
+    if (empireScore >= 10000) return { name: 'Platinum', color: '#e5e4e2', bgColor: 'bg-gray-200', borderColor: 'border-gray-400', textColor: 'text-subtle', icon: <Crown className="w-4 h-4" />, nextThreshold: 50000, progress: (empireScore - 10000) / 40000 };
     if (empireScore >= 2000) return { name: 'Gold', color: '#ffd700', bgColor: 'bg-warning', borderColor: 'border-warning', textColor: 'text-warning', icon: <Trophy className="w-4 h-4" />, nextThreshold: 10000, progress: (empireScore - 2000) / 8000 };
     if (empireScore >= 500) return { name: 'Silver', color: '#c0c0c0', bgColor: 'bg-gray-400', borderColor: 'border-muted-label', textColor: 'text-subtle', icon: <Star className="w-4 h-4" />, nextThreshold: 2000, progress: (empireScore - 500) / 1500 };
     return { name: 'Bronze', color: '#cd7f32', bgColor: 'bg-amber-600', borderColor: 'border-amber-600', textColor: 'text-warning', icon: <Shield className="w-4 h-4" />, nextThreshold: 500, progress: empireScore / 500 };
@@ -352,7 +352,7 @@ export function DashboardPanel() {
             <div className="flex items-center gap-2.5">
               <GameIcon icon={trackedQuestData.icon} size={20} className="inline-flex" />
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-gray-200 font-medium truncate">{trackedQuestData.name}</p>
+                <p className="text-xs text-subtle font-medium truncate">{trackedQuestData.name}</p>
                 {currentStep && (
                   <p className="text-[10px] text-muted-label truncate">{currentStep.description}: {Math.min(currentStep.current, currentStep.target)}/{currentStep.target}</p>
                 )}
@@ -946,7 +946,7 @@ export function DashboardPanel() {
                 <div className="flex items-center gap-2 mb-2">
                   <GameIcon icon={activeResearchInfo.icon} size={20} className="inline-flex" />
                   <div>
-                    <p className="text-xs text-gray-200 font-medium">{activeResearchInfo.name}</p>
+                    <p className="text-xs text-subtle font-medium">{activeResearchInfo.name}</p>
                     <p className="text-[10px] text-muted-label">
                       <Timer className="w-2.5 h-2.5 inline mr-0.5" />
                       {formatNumber(researchProgress)} / {formatNumber(activeResearchInfo.timeRequired)} ticks
@@ -1359,7 +1359,7 @@ function WeatherInfoCard() {
         <div className="flex items-center gap-3 mb-3">
           <div className="text-3xl"><GameIcon icon={weatherDef.icon} size={32} /></div>
           <div>
-            <p className="text-sm font-bold text-gray-200">{weatherDef.name}</p>
+            <p className="text-sm font-bold text-subtle">{weatherDef.name}</p>
             <p className="text-[10px] text-subtle line-clamp-2">{weatherDef.description}</p>
           </div>
         </div>

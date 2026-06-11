@@ -291,8 +291,8 @@ export function PowerPanel() {
       {/* POWER GAUGE */}
       <div className={`game-card rounded-xl bg-card p-4 border ${
         powerStatus === 'surplus' ? 'border-success/40' :
-        powerStatus === 'balanced' ? 'border-yellow-900/40' :
-        'border-red-900/40'
+        powerStatus === 'balanced' ? 'border-warning/40' :
+        'border-danger/40'
       }`}>
         {/* Main gauge display */}
         <div className="flex items-center justify-between mb-4">
@@ -312,7 +312,7 @@ export function PowerPanel() {
               </div>
             </motion.div>
             <div>
-              <h3 className="text-sm font-semibold text-gray-200">Power Grid Status</h3>
+              <h3 className="text-sm font-semibold text-subtle">Power Grid Status</h3>
               <p className={`text-xs font-medium ${
                 powerStatus === 'surplus' ? 'text-success' :
                 powerStatus === 'balanced' ? 'text-warning' :
@@ -658,7 +658,7 @@ export function PowerPanel() {
                   <GameIcon icon={meta.icon} size={16} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-medium text-gray-200 truncate">{def.name}</div>
+                  <div className="text-xs font-medium text-subtle truncate">{def.name}</div>
                   <div className="flex items-center gap-1">
                     <span className={`text-xs font-mono font-bold ${output > 0 ? meta.glowClass : 'text-muted-label'}`}>
                       {formatNumber(output)} MW
@@ -813,7 +813,7 @@ export function PowerPanel() {
                       key={plant.id}
                       className={`rounded-lg bg-[#0a0e17] p-3 border ${
                         plant.active
-                          ? isDerated ? 'border-red-900/40' : 'border-yellow-900/30'
+                          ? isDerated ? 'border-danger/40' : 'border-yellow-900/30'
                           : 'border-muted-label opacity-60'
                       }`}
                     >
@@ -842,7 +842,7 @@ export function PowerPanel() {
 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1.5">
-                            <span className="text-xs text-gray-200 font-medium">{def.name}</span>
+                            <span className="text-xs text-subtle font-medium">{def.name}</span>
                             <Badge variant="outline" className="text-[9px] border-yellow-600/50 text-warning px-1.5 py-0">
                               Lv.{plant.level}
                             </Badge>
@@ -958,7 +958,7 @@ export function PowerPanel() {
                   <div key={type} className="bg-[#0a0e17] rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-1.5">
                       <div className={meta.glowClass}><GameIcon icon={meta.icon} size={16} /></div>
-                      <span className={`text-xs font-medium flex-1 ${unlocked ? 'text-gray-200' : 'text-muted-label'}`}>
+                      <span className={`text-xs font-medium flex-1 ${unlocked ? 'text-subtle' : 'text-muted-label'}`}>
                         {def.name}
                       </span>
                       <span className={`text-xs font-mono font-bold ${output > 0 ? meta.glowClass : 'text-muted-label'}`}>
@@ -1015,7 +1015,7 @@ export function PowerPanel() {
                   <div className="flex items-center gap-1">
                     <GameIcon icon={RESOURCE_META.coal.icon} size={14} className="inline-flex" />
                     <span className={`text-xs font-mono font-bold ${
-                      coalFuelStatus.stock < 50 ? 'text-danger' : 'text-gray-200'
+                      coalFuelStatus.stock < 50 ? 'text-danger' : 'text-subtle'
                     }`}>
                       {formatNumber(coalFuelStatus.stock)}
                     </span>

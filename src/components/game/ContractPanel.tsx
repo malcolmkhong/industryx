@@ -66,7 +66,7 @@ function ContractCard({ contract, store, fulfillingId, onFulfill }: { contract: 
           <div className="flex items-center gap-2">
             <GameIcon icon={contract.icon} size={20} className="inline-flex" />
             <div>
-              <div className="text-xs font-medium text-gray-200">{contract.name}</div>
+              <div className="text-xs font-medium text-subtle">{contract.name}</div>
               <div className="text-[10px] text-subtle">{contract.description}</div>
             </div>
           </div>

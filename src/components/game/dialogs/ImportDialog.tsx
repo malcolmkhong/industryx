@@ -30,7 +30,7 @@ export function ImportDialog({
 }: ImportDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-cyan-900/30 text-gray-100 max-w-lg w-[calc(100%-1rem)] lg:w-full max-h-[90vh] lg:max-h-none p-4 lg:p-6">
+      <DialogContent className="bg-card border-cyan-900/30 text-subtle max-w-lg w-[calc(100%-1rem)] lg:w-full max-h-[90vh] lg:max-h-none p-4 lg:p-6">
         <DialogHeader>
           <DialogTitle className="text-cyan-400 flex items-center gap-2 text-sm lg:text-base">
             <Upload className="w-4 h-4" /> Import Save
@@ -68,7 +68,7 @@ export function ImportDialog({
                 onOpenChange(false);
                 setImportError('');
               }}
-              className="border-muted-label text-subtle hover:text-gray-200 min-h-[44px] lg:min-h-0"
+              className="border-muted-label text-subtle hover:text-subtle min-h-[44px] lg:min-h-0"
               size="sm"
             >
               Cancel

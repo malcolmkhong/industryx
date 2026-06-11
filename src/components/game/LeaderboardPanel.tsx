@@ -292,7 +292,7 @@ export default function LeaderboardPanel() {
                   {/* Corporation Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-gray-200 truncate">
+                      <span className="text-xs font-bold text-subtle truncate">
                         {entry.corporation_name}
                       </span>
                       {isCurrentUser && (

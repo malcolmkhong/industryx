@@ -77,7 +77,7 @@ export function ResearchPanel() {
                 <GameIcon icon={activeResearchNode.icon} size={24} />
               </div>
               <div className="flex-1">
-                <div className="text-sm font-bold text-gray-200">{activeResearchNode.name}</div>
+                <div className="text-sm font-bold text-subtle">{activeResearchNode.name}</div>
                 <div className="text-[10px] text-subtle mt-0.5">{activeResearchNode.description}</div>
               </div>
               <div className="text-right">
@@ -183,7 +183,7 @@ export function ResearchPanel() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className={`text-xs font-medium ${isCompleted ? 'text-success' : isUnlocked ? 'text-gray-200' : 'text-muted-label'}`}>
+                            <span className={`text-xs font-medium ${isCompleted ? 'text-success' : isUnlocked ? 'text-subtle' : 'text-muted-label'}`}>
                               {node.name}
                             </span>
                             <Badge variant="outline" className="text-[8px] px-1 py-0 border-muted-label text-muted-label">

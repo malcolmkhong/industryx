@@ -126,7 +126,7 @@ export default function GameToast() {
               className={`game-toast pointer-events-auto flex items-start gap-2.5 p-3 rounded-lg bg-card border ${colors.border} shadow-lg ${colors.glow}`}
             >
               <Icon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${colors.icon}`} />
-              <p className="text-xs text-gray-200 leading-relaxed flex-1 min-w-0 break-words">
+              <p className="text-xs text-subtle leading-relaxed flex-1 min-w-0 break-words">
                 {toast.message}
               </p>
               <button

@@ -523,7 +523,7 @@ export default function GlobalResourceMonitorPanel() {
               <div className="flex items-center justify-center">{row.icon}</div>
 
               {/* Name */}
-              <div className="text-xs text-gray-200 font-medium truncate">{row.name}</div>
+              <div className="text-xs text-subtle font-medium truncate">{row.name}</div>
 
               {/* Balance */}
               <div className={`text-[11px] font-mono font-bold ${row.balanceColor}`}>
@@ -562,7 +562,7 @@ export default function GlobalResourceMonitorPanel() {
             placeholder="Search resources..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-8 pl-8 pr-8 bg-[#0a0e17] border border-muted-label/30 rounded-lg text-xs text-gray-200 placeholder:text-muted-label focus:outline-none focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/20 transition-colors"
+            className="w-full h-8 pl-8 pr-8 bg-[#0a0e17] border border-muted-label/30 rounded-lg text-xs text-subtle placeholder:text-muted-label focus:outline-none focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/20 transition-colors"
           />
           {searchQuery && (
             <button
@@ -663,7 +663,7 @@ export default function GlobalResourceMonitorPanel() {
                   <div className="text-sm"><GameIcon icon={row.icon} size={14} className="inline-flex" /></div>
 
                   {/* Name */}
-                  <div className="text-xs text-gray-200 truncate font-medium">{row.name}</div>
+                  <div className="text-xs text-subtle truncate font-medium">{row.name}</div>
 
                   {/* Tier badge */}
                   <div>
@@ -743,7 +743,7 @@ export default function GlobalResourceMonitorPanel() {
               <div className="flex items-center gap-2 px-3 py-2 border-b border-muted-label/30 bg-[#0d1220]">
                 <GameIcon icon={hoveredRow.icon} size={16} />
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-bold text-gray-200 truncate">{hoveredRow.name}</div>
+                  <div className="text-xs font-bold text-subtle truncate">{hoveredRow.name}</div>
                   <div className="text-[10px] text-muted-label">
                     <span className={`${(TIER_COLORS[hoveredRow.tier] ?? TIER_COLORS[0]).text}`}>T{hoveredRow.tier}</span>
                     {' · '}

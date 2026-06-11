@@ -83,7 +83,7 @@ function SettingsSection({
       >
         <div className="flex items-center gap-2">
           {icon}
-          <h3 className="text-sm font-semibold text-gray-200">{title}</h3>
+          <h3 className="text-sm font-semibold text-subtle">{title}</h3>
         </div>
         {open ? (
           <ChevronUp className="w-4 h-4 text-muted-label" />
@@ -117,7 +117,7 @@ function SettingRow({
   return (
     <div className="flex items-center justify-between gap-4">
       <div className="flex-1 min-w-0">
-        <p className="text-xs text-gray-200">{label}</p>
+        <p className="text-xs text-subtle">{label}</p>
         {description && (
           <p className="text-[10px] text-muted-label mt-0.5">{description}</p>
         )}
@@ -385,7 +385,7 @@ export function SettingsPanel() {
 
         {/* Notification filters */}
         <div>
-          <p className="text-xs text-gray-200 mb-2">Notification Filters</p>
+          <p className="text-xs text-subtle mb-2">Notification Filters</p>
           <p className="text-[10px] text-muted-label mb-3">Toggle which notification types appear as toasts</p>
           <div className="grid grid-cols-2 gap-2">
             {([
@@ -452,7 +452,7 @@ export function SettingsPanel() {
 
         {/* Category volumes */}
         <div>
-          <p className="text-xs text-gray-200 mb-2">Category Volumes</p>
+          <p className="text-xs text-subtle mb-2">Category Volumes</p>
           <div className="space-y-3">
             {([
               { key: 'building' as const, label: 'Building', icon: <Factory className="w-3 h-3" />, preview: 'buildingPlaced' },
@@ -652,7 +652,7 @@ export function SettingsPanel() {
         {/* Shortcut List - reorderable */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-gray-200">Quick Access Shortcuts</p>
+            <p className="text-xs text-subtle">Quick Access Shortcuts</p>
             <Button
               variant="ghost"
               size="sm"
@@ -720,7 +720,7 @@ export function SettingsPanel() {
                 Import Save
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-card border-cyan-900/30 text-gray-100 max-w-md p-4">
+            <DialogContent className="bg-card border-cyan-900/30 text-subtle max-w-md p-4">
               <DialogHeader>
                 <DialogTitle className="text-warning flex items-center gap-2 text-sm">
                   <Upload className="w-4 h-4" /> Import Save
@@ -770,7 +770,7 @@ export function SettingsPanel() {
                 Clear Save Data
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-card border-orange-900/30 text-gray-100 max-w-sm p-4">
+            <DialogContent className="bg-card border-orange-900/30 text-subtle max-w-sm p-4">
               <DialogHeader>
                 <DialogTitle className="text-orange-400 text-sm">Clear Save Data?</DialogTitle>
                 <DialogDescription className="text-subtle text-xs">
@@ -810,7 +810,7 @@ export function SettingsPanel() {
                 Reset Game
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-card border-red-900/30 text-gray-100 max-w-sm p-4">
+            <DialogContent className="bg-card border-red-900/30 text-subtle max-w-sm p-4">
               <DialogHeader>
                 <DialogTitle className="text-danger text-sm">
                   {resetDoubleConfirm ? <><GameIcon icon="gi:hazard-sign" size={16} className="inline" /> FINAL CONFIRMATION</> : 'Reset Game?'}
@@ -908,7 +908,7 @@ export function SettingsPanel() {
               <FileText className="w-3 h-3 text-muted-label" />
               <span className="text-[10px] text-muted-label">Version</span>
             </div>
-            <p className="text-sm font-mono text-gray-200">v{gameVersion}</p>
+            <p className="text-sm font-mono text-subtle">v{gameVersion}</p>
           </div>
 
           {/* Total play time */}
@@ -917,7 +917,7 @@ export function SettingsPanel() {
               <Clock className="w-3 h-3 text-muted-label" />
               <span className="text-[10px] text-muted-label">Play Time</span>
             </div>
-            <p className="text-sm font-mono text-gray-200">{playTimeDisplay}</p>
+            <p className="text-sm font-mono text-subtle">{playTimeDisplay}</p>
           </div>
 
           {/* Save file size */}
@@ -926,7 +926,7 @@ export function SettingsPanel() {
               <HardDrive className="w-3 h-3 text-muted-label" />
               <span className="text-[10px] text-muted-label">Save Size</span>
             </div>
-            <p className="text-sm font-mono text-gray-200">{saveSizeEstimate}</p>
+            <p className="text-sm font-mono text-subtle">{saveSizeEstimate}</p>
           </div>
 
           {/* Total ticks */}
@@ -935,7 +935,7 @@ export function SettingsPanel() {
               <Volume1 className="w-3 h-3 text-muted-label" />
               <span className="text-[10px] text-muted-label">Game Ticks</span>
             </div>
-            <p className="text-sm font-mono text-gray-200">{formatNumber(store.gameTick)}</p>
+            <p className="text-sm font-mono text-subtle">{formatNumber(store.gameTick)}</p>
           </div>
         </div>
 

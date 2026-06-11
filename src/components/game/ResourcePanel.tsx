@@ -639,7 +639,7 @@ export function ResourcePanel() {
                         <div className="flex items-start gap-2 mb-1.5">
                           <GameIcon icon={def.icon} size={20} />
                           <div className="flex-1 min-w-0">
-                            <p className="text-[11px] text-gray-200 font-medium leading-tight truncate">{def.name}</p>
+                            <p className="text-[11px] text-subtle font-medium leading-tight truncate">{def.name}</p>
                           </div>
                         </div>
 
@@ -743,7 +743,7 @@ export function ResourcePanel() {
                               {/* Name + Level + Status + I/O + Efficiency */}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-1.5 mb-1">
-                                  <span className="text-[11px] text-gray-200 font-medium">{def.name}</span>
+                                  <span className="text-[11px] text-subtle font-medium">{def.name}</span>
                                   <Badge variant="outline" className={`text-[8px] ${currentColorClasses.badge} ${currentColorClasses.text} px-1 py-0`}>
                                     Lv.{building.level}
                                   </Badge>
@@ -879,7 +879,7 @@ export function ResourcePanel() {
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-1.5">
                         <GameIcon icon={meta.icon} size={14} className="inline-flex" />
-                        <span className="text-[11px] text-gray-200 font-medium">{meta.name}</span>
+                        <span className="text-[11px] text-subtle font-medium">{meta.name}</span>
                       </div>
                       {netRate !== 0 ? (
                         <span className={`text-[9px] font-mono ${netRate > 0 ? 'text-success' : 'text-danger'}`}>
@@ -895,7 +895,7 @@ export function ResourcePanel() {
                     {/* Amount display */}
                     <div className="flex items-baseline gap-1 mb-1">
                       <span className={`text-xs font-bold font-mono ${
-                        isFull ? 'text-orange-400' : isEmpty ? 'text-muted-label' : 'text-gray-200'
+                        isFull ? 'text-orange-400' : isEmpty ? 'text-muted-label' : 'text-subtle'
                       }`}>
                         {formatNumber(amount)}
                       </span>
@@ -1087,7 +1087,7 @@ export function ResourcePanel() {
                     <GameIcon icon={def.icon} size={16} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-0.5">
-                        <span className={`text-[11px] font-medium ${unlocked ? 'text-gray-200' : 'text-muted-label'}`}>
+                        <span className={`text-[11px] font-medium ${unlocked ? 'text-subtle' : 'text-muted-label'}`}>
                           {def.name}
                         </span>
                         <span className="text-[9px] text-muted-label font-mono">

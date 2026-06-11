@@ -350,7 +350,7 @@ export function BlueprintPanel() {
                                   type="text"
                                   value={renameValue}
                                   onChange={e => setRenameValue(e.target.value)}
-                                  className="flex-1 bg-card border border-cyan-800 rounded px-2 py-0.5 text-xs text-gray-200 focus:outline-none"
+                                  className="flex-1 bg-card border border-cyan-800 rounded px-2 py-0.5 text-xs text-subtle focus:outline-none"
                                   onKeyDown={e => {
                                     if (e.key === 'Enter') handleRename(bp.id);
                                     if (e.key === 'Escape') setRenamingId(null);
@@ -366,7 +366,7 @@ export function BlueprintPanel() {
                               </div>
                             ) : (
                               <>
-                                <div className="text-xs font-medium text-gray-200 truncate">{bp.name}</div>
+                                <div className="text-xs font-medium text-subtle truncate">{bp.name}</div>
                                 <div className="text-[9px] text-muted-label">
                                   {totalBuildings} buildings • {totalTransport} transport • {formatDate(bp.savedAt)}
                                   {bp.shared && <span className="ml-1 text-cyan-500">• shared</span>}

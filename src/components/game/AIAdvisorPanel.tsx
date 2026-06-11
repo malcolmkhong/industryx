@@ -250,7 +250,7 @@ function RecommendationCard({
                 <Badge variant="outline" className={`${config.color} ${config.borderColor} text-[9px] px-1.5 py-0 font-bold`}>
                   {config.label}
                 </Badge>
-                <h4 className="text-sm font-semibold text-gray-200 truncate">{rec.title}</h4>
+                <h4 className="text-sm font-semibold text-subtle truncate">{rec.title}</h4>
               </div>
               <p className="text-xs text-subtle leading-relaxed">{rec.description}</p>
 

@@ -117,7 +117,7 @@ const MemoizedQuestItem = React.memo(function MemoizedQuestItem({
                   quest.claimed ? 'text-muted-label line-through'
                   : allStepsComplete ? 'text-success'
                   : isTracked ? 'text-cyan-300'
-                  : 'text-gray-200'
+                  : 'text-subtle'
                 }`}>
                   {quest.name}
                 </h4>
@@ -345,7 +345,7 @@ export function QuestPanel() {
                     quest.claimed ? 'text-muted-label line-through'
                     : allStepsComplete ? 'text-success'
                     : isTracked ? 'text-cyan-300'
-                    : 'text-gray-200'
+                    : 'text-subtle'
                   }`}>
                     {quest.name}
                   </h4>
@@ -662,7 +662,7 @@ export function QuestPanel() {
             <div className="flex items-center gap-2 mb-2">
               <GameIcon icon={trackedQuestData.icon} size={20} />
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-200 font-medium truncate">{trackedQuestData.name}</p>
+                <p className="text-sm text-subtle font-medium truncate">{trackedQuestData.name}</p>
                 <div className="flex items-center gap-2 mt-0.5">
                   <div className="flex-1 h-1.5 bg-muted-label rounded-full overflow-hidden">
                     <div

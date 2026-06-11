@@ -414,7 +414,7 @@ export function MarketPanel() {
                         >
                           <div className="flex items-center gap-2">
                             <GameIcon icon={meta.icon} size={14} />
-                            <span className="text-xs text-gray-200">{meta.name}</span>
+                            <span className="text-xs text-subtle">{meta.name}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="w-12 h-1.5 bg-muted-label rounded-full overflow-hidden">
@@ -456,7 +456,7 @@ export function MarketPanel() {
                         >
                           <div className="flex items-center gap-2">
                             <GameIcon icon={meta.icon} size={14} />
-                            <span className="text-xs text-gray-200">{meta.name}</span>
+                            <span className="text-xs text-subtle">{meta.name}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="w-12 h-1.5 bg-muted-label rounded-full overflow-hidden">
@@ -578,7 +578,7 @@ export function MarketPanel() {
                       <div className="flex items-center gap-2">
                         <GameIcon icon={meta.icon} size={16} />
                         <div>
-                          <div className="text-xs text-gray-200 font-medium">{meta.name}</div>
+                          <div className="text-xs text-subtle font-medium">{meta.name}</div>
                           <div className="text-[9px] text-muted-label flex items-center gap-1">
                             <span className={sectorInfo.color}>{sectorInfo.name.split(' ')[0]}</span>
                             <span>·</span>
@@ -670,7 +670,7 @@ export function MarketPanel() {
                       <GameIcon icon={selectedMeta.icon} size={24} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-sm font-bold text-gray-200">{selectedMeta.name}</h3>
+                      <h3 className="text-sm font-bold text-subtle">{selectedMeta.name}</h3>
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className={`text-lg font-bold font-mono ${selected.trend === 'up' ? 'text-success' : selected.trend === 'down' ? 'text-danger' : 'text-cyan-400'}`}>
                           ${selected.currentPrice.toFixed(2)}

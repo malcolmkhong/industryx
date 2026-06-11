@@ -32,7 +32,7 @@ export function OfflineEarningsDialog({
 }: OfflineEarningsDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-cyan-900/30 text-gray-100 max-w-md w-[calc(100%-1rem)] p-5">
+      <DialogContent className="bg-card border-cyan-900/30 text-subtle max-w-md w-[calc(100%-1rem)] p-5">
         <DialogHeader>
           <DialogTitle className="text-cyan-400 flex items-center gap-2 text-lg">
             <span className="text-2xl">👋</span> Welcome Back!

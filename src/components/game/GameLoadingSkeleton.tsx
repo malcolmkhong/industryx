@@ -6,7 +6,7 @@ interface GameLoadingSkeletonProps {
 
 export function GameLoadingSkeleton({ headerHeight }: GameLoadingSkeletonProps) {
   return (
-    <div className="h-screen flex flex-col bg-[#0a0e17] text-gray-100 overflow-hidden safe-area-container">
+    <div className="h-screen flex flex-col bg-[#0a0e17] text-subtle overflow-hidden safe-area-container">
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-cyan-900/30 px-2 lg:px-3 py-1.5 lg:py-2 bg-[#0a0e17]">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-base font-bold shadow-[0_0_12px_rgba(0,255,242,0.2)]">

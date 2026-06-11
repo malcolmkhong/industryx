@@ -77,7 +77,7 @@ export function GameItemTooltip({
               {details.map((row, i) => (
                 <div key={i} className="flex items-center justify-between text-xs">
                   <span className="text-subtle">{row.label}</span>
-                  <span className={row.isStyle ? 'text-gray-200' : (row.color || 'text-gray-200')} style={row.isStyle && row.color ? { color: row.color } : undefined}>{row.value}</span>
+                  <span className={row.isStyle ? 'text-subtle' : (row.color || 'text-subtle')} style={row.isStyle && row.color ? { color: row.color } : undefined}>{row.value}</span>
                 </div>
               ))}
             </div>
@@ -92,7 +92,7 @@ export function GameItemTooltip({
               {requirements.map((row, i) => (
                 <div key={i} className="flex items-center justify-between text-xs">
                   <span className="text-subtle">{row.label}</span>
-                  <span className={row.isStyle ? 'text-gray-200' : (row.color || 'text-gray-200')} style={row.isStyle && row.color ? { color: row.color } : undefined}>{row.value}</span>
+                  <span className={row.isStyle ? 'text-subtle' : (row.color || 'text-subtle')} style={row.isStyle && row.color ? { color: row.color } : undefined}>{row.value}</span>
                 </div>
               ))}
             </div>

@@ -588,21 +588,21 @@ function NetworkGraph({ nodes, relations }: { nodes: ERDNode[]; relations: ERDRe
       {/* Zoom Controls */}
       <div className="absolute top-2 right-2 z-10 flex flex-col gap-1">
         <button
-          className="w-7 h-7 rounded-md bg-muted-label/90 hover:bg-muted-label text-subtle hover:text-gray-200 flex items-center justify-center border border-muted-label/50 transition-colors"
+          className="w-7 h-7 rounded-md bg-muted-label/90 hover:bg-muted-label text-subtle hover:text-subtle flex items-center justify-center border border-muted-label/50 transition-colors"
           onClick={() => setZoom(z => Math.min(2.5, Math.round((z + 0.15) * 100) / 100))}
           title="Zoom In"
         >
           <ZoomIn className="w-3.5 h-3.5" />
         </button>
         <button
-          className="w-7 h-7 rounded-md bg-muted-label/90 hover:bg-muted-label text-subtle hover:text-gray-200 flex items-center justify-center border border-muted-label/50 transition-colors"
+          className="w-7 h-7 rounded-md bg-muted-label/90 hover:bg-muted-label text-subtle hover:text-subtle flex items-center justify-center border border-muted-label/50 transition-colors"
           onClick={() => setZoom(z => Math.max(0.25, Math.round((z - 0.15) * 100) / 100))}
           title="Zoom Out"
         >
           <ZoomOut className="w-3.5 h-3.5" />
         </button>
         <button
-          className="w-7 h-7 rounded-md bg-muted-label/90 hover:bg-muted-label text-subtle hover:text-gray-200 flex items-center justify-center border border-muted-label/50 transition-colors"
+          className="w-7 h-7 rounded-md bg-muted-label/90 hover:bg-muted-label text-subtle hover:text-subtle flex items-center justify-center border border-muted-label/50 transition-colors"
           onClick={handleResetView}
           title="Reset View"
         >
@@ -1609,7 +1609,7 @@ export function TransportPanel() {
             <div className="flex items-center gap-2 mb-2">
               <GameIcon icon={weatherDef.icon} size={24} />
               <div>
-                <div className="text-xs text-gray-200 font-medium">{weatherDef.name}</div>
+                <div className="text-xs text-subtle font-medium">{weatherDef.name}</div>
                 <div className="text-[10px] text-muted-label">Intensity: {(store.weather.intensity * 100).toFixed(0)}%</div>
               </div>
             </div>

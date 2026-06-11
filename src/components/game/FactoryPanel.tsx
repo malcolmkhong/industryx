@@ -596,7 +596,7 @@ export function FactoryPanel() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search factories..."
-                    className="w-full h-8 pl-8 pr-8 text-xs bg-[#0a0e17] border border-cyan-900/30 rounded-lg text-gray-200 placeholder:text-muted-label focus:outline-none focus:border-cyan-700/50 transition-colors"
+                    className="w-full h-8 pl-8 pr-8 text-xs bg-[#0a0e17] border border-cyan-900/30 rounded-lg text-subtle placeholder:text-muted-label focus:outline-none focus:border-cyan-700/50 transition-colors"
                   />
                   {searchQuery && (
                     <button
@@ -663,7 +663,7 @@ export function FactoryPanel() {
                         <div className="flex items-start gap-2 mb-1.5">
                           <GameIcon icon={def.icon} size={20} />
                           <div className="flex-1 min-w-0">
-                            <p className="text-[11px] text-gray-200 font-medium leading-tight truncate">{def.name}</p>
+                            <p className="text-[11px] text-subtle font-medium leading-tight truncate">{def.name}</p>
                             {/* Chain pipeline badge */}
                             {chains.length > 0 && (
                               <div className="flex flex-wrap gap-0.5 mt-0.5">
@@ -806,7 +806,7 @@ export function FactoryPanel() {
                               {/* Name + Level + Status */}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-1.5 mb-1">
-                                  <span className="text-[11px] text-gray-200 font-medium">{def.name}</span>
+                                  <span className="text-[11px] text-subtle font-medium">{def.name}</span>
                                   <Badge variant="outline" className={`text-[8px] ${currentColorClasses.badge} ${currentColorClasses.text} px-1 py-0`}>
                                     Lv.{building.level}
                                   </Badge>
@@ -976,7 +976,7 @@ export function FactoryPanel() {
                             <GameIcon icon={meta.icon} size={14} className="inline-flex" />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between">
-                                <span className="text-[10px] text-gray-200 font-medium">{meta.name}</span>
+                                <span className="text-[10px] text-subtle font-medium">{meta.name}</span>
                                 <span className={`text-[9px] font-mono ${
                                   net > 0 ? 'text-success' : net < 0 ? 'text-danger' : production > 0 && consumption > 0 ? 'text-cyan-400' : 'text-muted-label'
                                 }`}>
@@ -1033,7 +1033,7 @@ export function FactoryPanel() {
               <h3 className="text-sm font-semibold text-orange-400">Factory Overview</h3>
             </div>
             <div className="space-y-2.5">
-              <OverviewRow label="Total Factories" value={totalFactories.toString()} color="text-gray-200" />
+              <OverviewRow label="Total Factories" value={totalFactories.toString()} color="text-subtle" />
               <OverviewRow label="Active" value={`${activeFactories}/${totalFactories}`} color="text-success" />
               <OverviewRow label="Power Draw" value={`${formatNumber(totalPowerConsumption)} MW`} color="text-warning" />
               <OverviewRow label="Avg Efficiency" value={`${(avgEfficiency * 100).toFixed(1)}%`} color={

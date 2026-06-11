@@ -250,7 +250,7 @@ export function MegaProjectPanel() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className={`text-sm font-bold ${project.completed ? (colors?.text ?? 'text-fuchsia-400') : unlocked ? 'text-gray-100' : 'text-subtle'}`}>
+                      <h3 className={`text-sm font-bold ${project.completed ? (colors?.text ?? 'text-fuchsia-400') : unlocked ? 'text-subtle' : 'text-subtle'}`}>
                         {project.name}
                       </h3>
                       {project.completed && (

@@ -255,7 +255,7 @@ export function WorkerPanel() {
                         <GameIcon icon={def.icon} size={16} />
                       </div>
                       <div className="flex-1">
-                        <div className="text-xs font-medium text-gray-200">{def.name}</div>
+                        <div className="text-xs font-medium text-subtle">{def.name}</div>
                         <div className="text-[10px] text-subtle">{def.description}</div>
                       </div>
                       <Badge variant="outline" className="text-[9px] border-muted-label text-subtle px-1">
@@ -336,7 +336,7 @@ export function WorkerPanel() {
                   <div key={building.id} className="flex items-center gap-3 bg-[#0a0e17] rounded-lg p-3 border border-muted-label/50">
                     <GameIcon icon={def.icon} size={20} />
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs text-gray-200 font-medium truncate">{def.name}</div>
+                      <div className="text-xs text-subtle font-medium truncate">{def.name}</div>
                       <div className="text-[9px] text-muted-label">Lv.{building.level} • {(building.efficiency * 100).toFixed(0)}% eff</div>
                     </div>
                     {assignedWorker ? (
@@ -409,7 +409,7 @@ export function WorkerPanel() {
                     <div key={worker.id} className="bg-[#0a0e17] rounded-lg p-3 border border-muted-label">
                       <div className="flex items-center gap-2 mb-2">
                         <GameIcon icon={def.icon} size={16} />
-                        <span className="text-xs text-gray-200 font-medium">{def.name}</span>
+                        <span className="text-xs text-subtle font-medium">{def.name}</span>
                         <Badge variant="outline" className="text-[9px] border-sky-700 text-sky-400 px-1">
                           Lv.{worker.level}
                         </Badge>
@@ -598,7 +598,7 @@ export function WorkerPanel() {
             </div>
 
             {productivityComparison.unassignedCount > 0 && (
-              <div className="mt-2 text-[9px] text-warning/80 bg-yellow-900/10 rounded px-2 py-1 border border-yellow-900/20">
+              <div className="mt-2 text-[9px] text-warning/80 bg-yellow-900/10 rounded px-2 py-1 border border-warning/20">
                 <GameIcon icon="gi:hazard-sign" size={14} className="inline" /> {productivityComparison.unassignedCount} worker{productivityComparison.unassignedCount > 1 ? 's' : ''} not assigned — assign them to boost production!
               </div>
             )}

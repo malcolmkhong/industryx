@@ -76,7 +76,7 @@ export function EventPanel() {
                     <div className="flex items-center gap-3">
                       <div className="text-3xl neon-pulse"><GameIcon icon={event.icon} size={32} className="inline-flex" /></div>
                       <div>
-                        <h4 className="text-sm font-bold text-gray-200">{event.name}</h4>
+                        <h4 className="text-sm font-bold text-subtle">{event.name}</h4>
                         <p className="text-xs text-subtle mt-0.5">{event.description}</p>
                       </div>
                     </div>
@@ -156,7 +156,7 @@ export function EventPanel() {
               >
                 <div className="flex items-center gap-2 mb-1">
                   <GameIcon icon={template.icon} size={16} className="inline-flex" />
-                  <span className="text-xs font-medium text-gray-200">{template.name}</span>
+                  <span className="text-xs font-medium text-subtle">{template.name}</span>
                   {isActive && (
                     <Badge className="text-[8px] bg-orange-900/20 text-orange-400 border-0 ml-auto">ACTIVE</Badge>
                   )}

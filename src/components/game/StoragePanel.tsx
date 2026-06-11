@@ -327,7 +327,7 @@ export function StoragePanel() {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-subtle">Current:</span>
-                  <span className="text-sm font-bold font-mono text-gray-200">{unlimited ? '∞' : formatNumber(capacity)}</span>
+                  <span className="text-sm font-bold font-mono text-subtle">{unlimited ? '∞' : formatNumber(capacity)}</span>
                   <span className="text-[10px] text-muted-label">({formatNumber(amount)} stored)</span>
                 </div>
                 {upgradeLevel > 0 && (
@@ -405,7 +405,7 @@ export function StoragePanel() {
                             {chainName}
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent side="bottom" className="bg-muted-label border-muted-label text-gray-200 text-[10px]">
+                        <TooltipContent side="bottom" className="bg-muted-label border-muted-label text-subtle text-[10px]">
                           <div className="flex items-center gap-1">
                             {chain?.steps.map((step, j) => (
                               <span key={j} className="flex items-center gap-1">
@@ -502,7 +502,7 @@ export function StoragePanel() {
           {/* Emoji + Name */}
           <div className="flex items-center gap-1.5 min-w-[120px]">
             <GameIcon icon={meta.icon} size={14} className="inline-flex" />
-            <span className="text-xs font-medium text-gray-200 truncate">{meta.name}</span>
+            <span className="text-xs font-medium text-subtle truncate">{meta.name}</span>
             {hasAlert && <AlertCircle className="w-3 h-3 text-orange-400 flex-shrink-0" />}
           </div>
 
@@ -579,7 +579,7 @@ export function StoragePanel() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
                   <GameIcon icon={meta.icon} size={14} className="inline-flex" />
-                  <span className="text-sm font-semibold text-gray-200">{meta.name}</span>
+                  <span className="text-sm font-semibold text-subtle">{meta.name}</span>
                   <span className={`text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
                     alert.type === 'critical' ? 'bg-danger/20 text-danger' :
                     alert.type === 'shortage' ? 'bg-orange-500/20 text-orange-400' :
@@ -654,7 +654,7 @@ export function StoragePanel() {
                           : 'bg-danger/10 border-danger/30'
                       }`}>
                         <GameIcon icon={stepMeta?.icon} size={14} className="inline-flex" />
-                        <span className={stepActive ? 'text-gray-200' : 'text-danger/70'}>{stepMeta?.name ?? step}</span>
+                        <span className={stepActive ? 'text-subtle' : 'text-danger/70'}>{stepMeta?.name ?? step}</span>
                         {stepActive && (
                           <span className={`font-mono ${stepNet > 0 ? 'text-success' : stepNet < 0 ? 'text-danger' : stepProd > 0 && stepCons > 0 ? 'text-cyan-400' : 'text-muted-label'}`}>
                             {stepNet > 0 ? '+' : ''}{stepNet === 0 && stepProd > 0 && stepCons > 0 ? '±0' : formatNumber(stepNet)}
@@ -756,18 +756,18 @@ export function StoragePanel() {
       <div className="flex-shrink-0">
         <div className="flex items-center gap-2 mb-3">
           <Database className="w-5 h-5 text-warning" />
-          <h2 className="text-xl font-bold text-gray-100 neon-glow-cyan">Storage Management</h2>
+          <h2 className="text-xl font-bold text-subtle neon-glow-cyan">Storage Management</h2>
         </div>
 
         {/* Summary Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
           <div className="bg-muted-label/50 border border-muted-label/40 rounded-lg p-3">
             <div className="text-[9px] text-muted-label uppercase tracking-wider">Total Stock</div>
-            <div className="text-lg font-bold font-mono text-gray-200">{formatNumber(summaryStats.totalStock)}</div>
+            <div className="text-lg font-bold font-mono text-subtle">{formatNumber(summaryStats.totalStock)}</div>
           </div>
           <div className="bg-muted-label/50 border border-muted-label/40 rounded-lg p-3">
             <div className="text-[9px] text-muted-label uppercase tracking-wider">Total Capacity</div>
-            <div className="text-lg font-bold font-mono text-gray-200">{unlimited ? '∞' : formatNumber(summaryStats.totalCapacity)}</div>
+            <div className="text-lg font-bold font-mono text-subtle">{unlimited ? '∞' : formatNumber(summaryStats.totalCapacity)}</div>
           </div>
           <div className="bg-muted-label/50 border border-muted-label/40 rounded-lg p-3">
             <div className="text-[9px] text-muted-label uppercase tracking-wider">Active Materials</div>
@@ -835,7 +835,7 @@ export function StoragePanel() {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search materials..."
-              className="w-full bg-muted-label/50 border border-muted-label/40 rounded-lg pl-7 pr-7 py-1.5 text-[10px] text-gray-200 placeholder-gray-600 focus:outline-none focus:border-cyan-500/40"
+              className="w-full bg-muted-label/50 border border-muted-label/40 rounded-lg pl-7 pr-7 py-1.5 text-[10px] text-subtle placeholder-gray-600 focus:outline-none focus:border-cyan-500/40"
             />
             {searchQuery && (
               <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2">
