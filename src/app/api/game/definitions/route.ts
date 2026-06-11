@@ -153,6 +153,7 @@ function transformMarket(market: SupabaseMarket[]): GameConfig['market'] {
     demand: m.demand,
     supply: m.supply,
     volatility: m.volatility,
+    isTradable: m.is_tradable,
   }));
 }
 
@@ -317,21 +318,24 @@ export async function GET() {
           seasonalEvents: [],
           megaProjects: [],
           gameConfig: {},
+          tradableResourceIds: [],
           productionChains: [],
           idMigrationMap: ID_MIGRATION_MAP,
           loadedAt: Date.now(),
-          source: 'supabase-error',
+          source: 'fallback',
         } as GameConfig & { idMigrationMap: Record<string, string | string[]>; partialErrors: string[] },
         { status: 503 },
       );
     }
 
     // Transform all data
+    const transformedMarket = transformMarket(marketRes.data ?? []);
     const result: GameConfig & { idMigrationMap: Record<string, string | string[]> } = {
       buildings: transformBuildings(buildingsRes.data, recipesRes.data),
       resources: transformResources(resourcesRes.data),
       research: transformResearch(researchRes.data ?? []),
-      market: transformMarket(marketRes.data ?? []),
+      market: transformedMarket,
+      tradableResourceIds: transformedMarket.filter(m => m.isTradable).map(m => m.resource),
       weather: transformWeather(weatherRes.data ?? []),
       workers: (workersRes.data ?? []).map(w => ({
         id: w.id,
@@ -428,7 +432,7 @@ export async function GET() {
       })),
       idMigrationMap: ID_MIGRATION_MAP,
       loadedAt: Date.now(),
-      source: 'supabase',
+      source: 'fallback',
     };
 
     // Add partial error info if any non-critical tables failed

@@ -179,7 +179,9 @@ async function loadFullConfig(): Promise<GameConfig | null> {
         demand: m.demand,
         supply: m.supply,
         volatility: m.volatility,
+        isTradable: m.is_tradable,
       })),
+      tradableResourceIds: market.filter(m => m.is_tradable).map(m => m.resource_id),
       weather: weatherMap,
       workers: workers.map(w => ({
         id: w.id,
