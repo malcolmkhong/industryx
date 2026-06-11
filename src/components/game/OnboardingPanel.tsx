@@ -91,10 +91,10 @@ const TUTORIAL_STEPS: TutorialStep[] = [
 ];
 
 const CATEGORY_COLORS: Record<string, { dot: string; label: string }> = {
-  gettingStarted: { dot: 'bg-cyan-400', label: 'Getting Started' },
+  gettingStarted: { dot: 'bg-brand', label: 'Getting Started' },
   production: { dot: 'bg-warning', label: 'Production' },
   economy: { dot: 'bg-success', label: 'Economy' },
-  advanced: { dot: 'bg-purple-400', label: 'Advanced' },
+  advanced: { dot: 'bg-research', label: 'Advanced' },
 };
 
 const STRATEGY_HINTS = [
@@ -196,10 +196,10 @@ export function OnboardingPanel() {
     return (
       <div className="space-y-4">
         <div className="game-card rounded-xl bg-card p-6 border border-border text-center">
-          <div className="w-16 h-16 rounded-xl bg-cyan-900/20 flex items-center justify-center mx-auto mb-3">
+          <div className="w-16 h-16 rounded-xl bg-brand/20 flex items-center justify-center mx-auto mb-3">
             {allCompleted ? <GameIcon icon="lucide:graduation-cap" size={32} /> : <GameIcon icon="lucide:clipboard-list" size={32} />}
           </div>
-          <h3 className="text-lg font-bold text-cyan-400 neon-glow-cyan">
+          <h3 className="text-lg font-bold text-brand neon-glow-cyan">
             {allCompleted ? 'Tutorial Complete!' : 'Tutorial Skipped'}
           </h3>
           <p className="text-xs text-subtle mt-1 max-w-md mx-auto">
@@ -211,7 +211,7 @@ export function OnboardingPanel() {
             <Button
               variant="outline"
               size="sm"
-              className="mt-3 border-cyan-800/50 text-cyan-400 hover:bg-cyan-900/20 text-xs"
+              className="mt-3 border-brand/50 text-brand hover:bg-brand/20 text-xs"
               onClick={() => setSkipped(false)}
             >
               Restart Tutorial
@@ -279,11 +279,11 @@ export function OnboardingPanel() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-cyan-400 neon-glow-cyan tracking-wide">Getting Started</h2>
+          <h2 className="text-xl font-bold text-brand neon-glow-cyan tracking-wide">Getting Started</h2>
           <p className="text-xs text-muted-label mt-0.5">Learn the basics of running your factory</p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="border-cyan-500/50 text-cyan-400 bg-cyan-900/20 text-xs">
+          <Badge variant="outline" className="border-brand/50 text-brand bg-brand/20 text-xs">
             <BookOpen className="w-3 h-3 mr-1" />
             {completedCount}/{totalCount}
           </Badge>
@@ -304,11 +304,11 @@ export function OnboardingPanel() {
       </div>
 
       {/* Progress Bar */}
-      <div className="game-card rounded-xl bg-card p-4 border border-cyan-900/20">
+      <div className="game-card rounded-xl bg-card p-4 border border-brand/20">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <Target className="w-4 h-4 text-cyan-400" />
-            <span className="text-sm font-semibold text-cyan-400">Tutorial Progress</span>
+            <Target className="w-4 h-4 text-brand" />
+            <span className="text-sm font-semibold text-brand">Tutorial Progress</span>
           </div>
           <span className="text-xs text-subtle font-mono">{completedCount}/{totalCount} steps</span>
         </div>
@@ -345,7 +345,7 @@ export function OnboardingPanel() {
                 step.completed
                   ? 'bg-card border-success/30'
                   : isNextStep
-                    ? 'bg-card border-cyan-900/40 shadow-[0_0_15px_rgba(34,211,238,0.1)]'
+                    ? 'bg-card border-brand/40 shadow-[0_0_15px_rgba(34,211,238,0.1)]'
                     : 'bg-card border-border'
               }`}
             >
@@ -361,7 +361,7 @@ export function OnboardingPanel() {
                       step.completed
                         ? 'bg-success/30 text-success'
                         : isNextStep
-                          ? 'bg-cyan-900/30 text-cyan-400 neon-pulse'
+                          ? 'bg-brand/30 text-brand neon-pulse'
                           : 'bg-muted-label/50 text-muted-label'
                     }`}
                   >
@@ -378,13 +378,13 @@ export function OnboardingPanel() {
                       <GameIcon icon={step.iconId} size={16} />
                       <h4
                         className={`text-sm font-semibold ${
-                          step.completed ? 'text-success' : isNextStep ? 'text-cyan-300' : 'text-subtle'
+                          step.completed ? 'text-success' : isNextStep ? 'text-brand' : 'text-subtle'
                         }`}
                       >
                         {step.title}
                       </h4>
                       {isNextStep && !step.completed && (
-                        <Badge variant="outline" className="border-cyan-500/50 text-cyan-400 bg-cyan-900/20 text-[9px] h-4 px-1.5">
+                        <Badge variant="outline" className="border-brand/50 text-brand bg-brand/20 text-[9px] h-4 px-1.5">
                           NEXT
                         </Badge>
                       )}
@@ -413,8 +413,8 @@ export function OnboardingPanel() {
                     {/* Detailed Explanation */}
                     <div className="bg-[#0a0e17] rounded-lg p-3">
                       <div className="flex items-center gap-1.5 mb-1.5">
-                        <Factory className="w-3.5 h-3.5 text-cyan-400" />
-                        <span className="text-[10px] text-cyan-400 font-medium uppercase tracking-wider">
+                        <Factory className="w-3.5 h-3.5 text-brand" />
+                        <span className="text-[10px] text-brand font-medium uppercase tracking-wider">
                           How It Works
                         </span>
                       </div>
@@ -442,8 +442,8 @@ export function OnboardingPanel() {
                           </>
                         ) : (
                           <>
-                            <Target className="w-3.5 h-3.5 text-cyan-400" />
-                            <span className="text-[10px] text-cyan-400 font-medium">
+                            <Target className="w-3.5 h-3.5 text-brand" />
+                            <span className="text-[10px] text-brand font-medium">
                               {isNextStep ? 'This is your next goal' : 'Complete previous steps first'}
                             </span>
                           </>
@@ -494,12 +494,12 @@ export function OnboardingPanel() {
       {/* Game Basics Reference */}
       <div className="game-card rounded-xl bg-card p-4 border border-border">
         <div className="flex items-center gap-2 mb-3">
-          <Rocket className="w-4 h-4 text-purple-400" />
-          <h3 className="text-sm font-semibold text-purple-400">Game Basics</h3>
+          <Rocket className="w-4 h-4 text-research" />
+          <h3 className="text-sm font-semibold text-research">Game Basics</h3>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="bg-[#0a0e17] rounded-lg p-3">
-            <div className="text-xs text-cyan-400 font-medium mb-1 flex items-center gap-1"><GameIcon icon="lucide:zap" size={12} className="inline-flex" /> Power System</div>
+            <div className="text-xs text-brand font-medium mb-1 flex items-center gap-1"><GameIcon icon="lucide:zap" size={12} className="inline-flex" /> Power System</div>
             <p className="text-[10px] text-muted-label">
               Power plants generate MW. Buildings consume MW. If consumption exceeds production, all buildings lose efficiency.
             </p>
@@ -517,7 +517,7 @@ export function OnboardingPanel() {
             </p>
           </div>
           <div className="bg-[#0a0e17] rounded-lg p-3">
-            <div className="text-xs text-purple-400 font-medium mb-1 flex items-center gap-1"><GameIcon icon="lucide:flask-conical" size={12} className="inline-flex" /> Research</div>
+            <div className="text-xs text-research font-medium mb-1 flex items-center gap-1"><GameIcon icon="lucide:flask-conical" size={12} className="inline-flex" /> Research</div>
             <p className="text-[10px] text-muted-label">
               Spend Research Points to unlock new buildings, speed boosts, and abilities. Research persists through Prestige resets.
             </p>
@@ -526,10 +526,10 @@ export function OnboardingPanel() {
       </div>
 
       {/* Current Status Summary */}
-      <div className="game-card rounded-xl bg-card p-4 border border-cyan-900/20">
+      <div className="game-card rounded-xl bg-card p-4 border border-brand/20">
         <div className="flex items-center gap-2 mb-3">
-          <Target className="w-4 h-4 text-cyan-400" />
-          <h3 className="text-sm font-semibold text-cyan-400">Your Current Status</h3>
+          <Target className="w-4 h-4 text-brand" />
+          <h3 className="text-sm font-semibold text-brand">Your Current Status</h3>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <div className="bg-[#0a0e17] rounded-lg p-3 text-center">
@@ -538,7 +538,7 @@ export function OnboardingPanel() {
           </div>
           <div className="bg-[#0a0e17] rounded-lg p-3 text-center">
             <div className="text-[10px] text-muted-label mb-0.5">Buildings</div>
-            <div className="text-sm font-bold font-mono text-cyan-400">{store.buildings.length}</div>
+            <div className="text-sm font-bold font-mono text-brand">{store.buildings.length}</div>
           </div>
           <div className="bg-[#0a0e17] rounded-lg p-3 text-center">
             <div className="text-[10px] text-muted-label mb-0.5">Power</div>
@@ -548,7 +548,7 @@ export function OnboardingPanel() {
           </div>
           <div className="bg-[#0a0e17] rounded-lg p-3 text-center">
             <div className="text-[10px] text-muted-label mb-0.5">Research</div>
-            <div className="text-sm font-bold font-mono text-purple-400">{formatNumber(store.researchPoints)} RP</div>
+            <div className="text-sm font-bold font-mono text-research">{formatNumber(store.researchPoints)} RP</div>
           </div>
         </div>
       </div>

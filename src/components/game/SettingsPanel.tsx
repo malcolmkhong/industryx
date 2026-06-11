@@ -312,7 +312,7 @@ export function SettingsPanel() {
       {/* ====== GAME SETTINGS ====== */}
       <SettingsSection
         title="Game Settings"
-        icon={<Cog className="w-4 h-4 text-cyan-400" />}
+        icon={<Cog className="w-4 h-4 text-brand" />}
       >
         {/* Auto-save toggle */}
         <SettingRow
@@ -392,7 +392,7 @@ export function SettingsPanel() {
               { key: 'success' as const, label: 'Success', color: 'text-success', icon: 'lucide:check-circle' },
               { key: 'warning' as const, label: 'Warning', color: 'text-warning', icon: 'gi:hazard-sign' },
               { key: 'error' as const, label: 'Error', color: 'text-danger', icon: 'gi:cross-mark' },
-              { key: 'info' as const, label: 'Info', color: 'text-cyan-400', icon: 'gi:info' },
+              { key: 'info' as const, label: 'Info', color: 'text-brand', icon: 'gi:info' },
             ]).map(({ key, label, color, icon }) => (
               <div key={key} className="flex items-center justify-between bg-[#0a0e17] rounded-lg px-3 py-2">
                 <span className={`text-xs ${color} inline-flex items-center gap-1`}><GameIcon icon={icon} size={14} className="inline" /> {label}</span>
@@ -409,7 +409,7 @@ export function SettingsPanel() {
       {/* ====== SOUND SETTINGS ====== */}
       <SettingsSection
         title="Sound Settings"
-        icon={<Volume2 className="w-4 h-4 text-purple-400" />}
+        icon={<Volume2 className="w-4 h-4 text-research" />}
       >
         {/* Sound enabled toggle */}
         <SettingRow
@@ -428,7 +428,7 @@ export function SettingsPanel() {
               }}
             />
             {settings.soundEnabled ? (
-              <Volume2 className="w-4 h-4 text-purple-400" />
+              <Volume2 className="w-4 h-4 text-research" />
             ) : (
               <VolumeX className="w-4 h-4 text-muted-label" />
             )}
@@ -480,7 +480,7 @@ export function SettingsPanel() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={`h-6 w-6 p-0 ${lastPreviewSound === preview ? 'text-purple-400' : 'text-muted-label hover:text-purple-400'}`}
+                    className={`h-6 w-6 p-0 ${lastPreviewSound === preview ? 'text-research' : 'text-muted-label hover:text-research'}`}
                     onClick={() => previewSound(preview, key)}
                     title={`Preview ${label} sound`}
                   >
@@ -593,7 +593,7 @@ export function SettingsPanel() {
       {/* ====== NAVIGATION & QUICK ACCESS ====== */}
       <SettingsSection
         title="Navigation & Quick Access"
-        icon={<Navigation className="w-4 h-4 text-cyan-400" />}
+        icon={<Navigation className="w-4 h-4 text-brand" />}
       >
         {/* Bottom Navigation Mode */}
         <SettingRow
@@ -656,7 +656,7 @@ export function SettingsPanel() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 text-[10px] text-muted-label hover:text-cyan-400"
+              className="h-6 text-[10px] text-muted-label hover:text-brand"
               onClick={() => settings.resetQuickAccessShortcuts()}
             >
               <RotateCcw className="w-3 h-3 mr-1" />
@@ -701,7 +701,7 @@ export function SettingsPanel() {
           <Button
             variant="outline"
             size="sm"
-            className="h-10 text-xs border-cyan-800/50 text-cyan-400 hover:bg-cyan-900/30 hover:border-cyan-500 justify-start"
+            className="h-10 text-xs border-brand/50 text-brand hover:bg-brand/30 hover:border-brand justify-start"
             onClick={handleExport}
           >
             <Download className="w-4 h-4 mr-2" />
@@ -720,7 +720,7 @@ export function SettingsPanel() {
                 Import Save
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-card border-cyan-900/30 text-subtle max-w-md p-4">
+            <DialogContent className="bg-card border-brand/30 text-subtle max-w-md p-4">
               <DialogHeader>
                 <DialogTitle className="text-warning flex items-center gap-2 text-sm">
                   <Upload className="w-4 h-4" /> Import Save
@@ -734,7 +734,7 @@ export function SettingsPanel() {
                   value={importText}
                   onChange={(e) => { setImportText(e.target.value); setImportError(''); }}
                   placeholder="Paste your save string here..."
-                  className="w-full bg-[#0a0e17] border border-cyan-900/20 rounded-lg p-3 text-xs font-mono text-subtle min-h-24 max-h-36 overflow-y-auto game-scrollbar placeholder:text-muted-label focus:outline-none focus:border-cyan-500/50"
+                  className="w-full bg-[#0a0e17] border border-brand/20 rounded-lg p-3 text-xs font-mono text-subtle min-h-24 max-h-36 overflow-y-auto game-scrollbar placeholder:text-muted-label focus:outline-none focus:border-brand/50"
                 />
                 {importError && (
                   <p className="text-xs text-danger">{importError}</p>
@@ -764,15 +764,15 @@ export function SettingsPanel() {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-10 text-xs border-orange-800/50 text-orange-400 hover:bg-orange-900/30 hover:border-orange-500 justify-start"
+                className="h-10 text-xs border-domain/50 text-domain hover:bg-domain/30 hover:border-domain justify-start"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Clear Save Data
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-card border-orange-900/30 text-subtle max-w-sm p-4">
+            <DialogContent className="bg-card border-domain/30 text-subtle max-w-sm p-4">
               <DialogHeader>
-                <DialogTitle className="text-orange-400 text-sm">Clear Save Data?</DialogTitle>
+                <DialogTitle className="text-domain text-sm">Clear Save Data?</DialogTitle>
                 <DialogDescription className="text-subtle text-xs">
                   This will remove your saved game from this browser. You cannot undo this action. Make sure to export your save first if you want to keep it.
                 </DialogDescription>
@@ -780,7 +780,7 @@ export function SettingsPanel() {
               <div className="flex gap-2 mt-2">
                 <Button
                   onClick={handleClearSave}
-                  className="flex-1 bg-orange-600 hover:bg-orange-700 text-white h-8 text-xs"
+                  className="flex-1 bg-domain hover:bg-domain text-white h-8 text-xs"
                 >
                   <Trash2 className="w-3 h-3 mr-1" /> Clear Save
                 </Button>
@@ -942,7 +942,7 @@ export function SettingsPanel() {
         {/* Credits */}
         <div className="bg-[#0a0e17] rounded-lg p-3 mt-1">
           <p className="text-xs text-subtle text-center">
-            <span className="text-cyan-400 font-bold">Factory Dominion</span>: Automated Empire
+            <span className="text-brand font-bold">Factory Dominion</span>: Automated Empire
           </p>
           <p className="text-[10px] text-muted-label text-center mt-1">
             An idle factory simulation game built with Next.js, TypeScript & Web Audio API
@@ -956,15 +956,15 @@ export function SettingsPanel() {
       {/* ====== CHANGELOG ====== */}
       <SettingsSection
         title="Changelog"
-        icon={<FileText className="w-4 h-4 text-teal-400" />}
+        icon={<FileText className="w-4 h-4 text-brand" />}
         defaultOpen={false}
       >
         <div className="space-y-3">
           {/* v1.2.0 */}
-          <div className="bg-[#0a0e17] rounded-lg p-3 border border-teal-900/20">
+          <div className="bg-[#0a0e17] rounded-lg p-3 border border-brand/20">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-teal-400 font-mono">v1.2.0</span>
+                <span className="text-xs font-bold text-brand font-mono">v1.2.0</span>
                 <span className="text-[9px] text-muted-label">Latest</span>
               </div>
               <span className="text-[9px] text-muted-label">Mar 2025</span>
@@ -993,15 +993,15 @@ export function SettingsPanel() {
             </div>
             <ul className="space-y-1">
               <li className="text-[10px] text-subtle flex items-start gap-1.5">
-                <span className="text-cyan-500 mt-0.5">•</span>
+                <span className="text-brand mt-0.5">•</span>
                 Navigation overhaul — 25 tabs reorganized into 7 categories
               </li>
               <li className="text-[10px] text-subtle flex items-start gap-1.5">
-                <span className="text-cyan-500 mt-0.5">•</span>
+                <span className="text-brand mt-0.5">•</span>
                 Shared UI components (PanelStatCard, tier color system)
               </li>
               <li className="text-[10px] text-subtle flex items-start gap-1.5">
-                <span className="text-cyan-500 mt-0.5">•</span>
+                <span className="text-brand mt-0.5">•</span>
                 Mobile nav improved — all tabs accessible in 2 taps
               </li>
             </ul>
@@ -1015,15 +1015,15 @@ export function SettingsPanel() {
             </div>
             <ul className="space-y-1">
               <li className="text-[10px] text-subtle flex items-start gap-1.5">
-                <span className="text-purple-500 mt-0.5">•</span>
+                <span className="text-research mt-0.5">•</span>
                 Initial release — 65 buildings, 56 resources
               </li>
               <li className="text-[10px] text-subtle flex items-start gap-1.5">
-                <span className="text-purple-500 mt-0.5">•</span>
+                <span className="text-research mt-0.5">•</span>
                 Full production chains from T0 to T4
               </li>
               <li className="text-[10px] text-subtle flex items-start gap-1.5">
-                <span className="text-purple-500 mt-0.5">•</span>
+                <span className="text-research mt-0.5">•</span>
                 Market, research, quests, workers, and prestige systems
               </li>
             </ul>

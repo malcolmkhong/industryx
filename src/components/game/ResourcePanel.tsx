@@ -525,7 +525,7 @@ export function ResourcePanel() {
                             <GameIcon icon={meta.icon} size={14} className="inline-flex" />
                             <div className="min-w-0">
                               <div className="text-[10px] text-subtle font-medium truncate">{meta.name}</div>
-                              <div className={`text-[9px] font-mono ${net > 0 ? 'text-success' : net < 0 ? 'text-danger' : prod > 0 && cons > 0 ? 'text-cyan-400' : 'text-muted-label'}`}>
+                              <div className={`text-[9px] font-mono ${net > 0 ? 'text-success' : net < 0 ? 'text-danger' : prod > 0 && cons > 0 ? 'text-brand' : 'text-muted-label'}`}>
                                 {net > 0 ? `+${formatNumber(net)}/s` : net < 0 ? `${formatNumber(net)}/s` : prod > 0 && cons > 0 ? '±0/s' : '—'}
                               </div>
                             </div>
@@ -812,7 +812,7 @@ export function ResourcePanel() {
                                   size="sm"
                                   className={`h-5 text-[8px] px-1.5 ${
                                     canUpgrade
-                                      ? 'border-cyan-700/50 text-cyan-400 hover:bg-cyan-900/30'
+                                      ? 'border-brand/50 text-brand hover:bg-brand/30'
                                       : 'border-muted-label text-muted-label'
                                   }`}
                                   onClick={() => handleUpgrade(building.id)}
@@ -873,7 +873,7 @@ export function ResourcePanel() {
 
                 return (
                   <div key={resource} className={`rounded-lg p-2 bg-[#0a0e17] border ${
-                    isFull ? 'border-orange-900/40' : 'border-muted-label/50'
+                    isFull ? 'border-domain/40' : 'border-muted-label/50'
                   }`}>
                     {/* Header */}
                     <div className="flex items-center justify-between mb-1">
@@ -895,14 +895,14 @@ export function ResourcePanel() {
                     {/* Amount display */}
                     <div className="flex items-baseline gap-1 mb-1">
                       <span className={`text-xs font-bold font-mono ${
-                        isFull ? 'text-orange-400' : isEmpty ? 'text-muted-label' : 'text-subtle'
+                        isFull ? 'text-domain' : isEmpty ? 'text-muted-label' : 'text-subtle'
                       }`}>
                         {formatNumber(amount)}
                       </span>
                       <span className="text-[9px] text-muted-label">/</span>
                       <span className="text-[9px] text-muted-label font-mono">{formatNumber(capacity)}</span>
                       {isFull && (
-                        <span className="text-[8px] text-orange-400 ml-1">FULL</span>
+                        <span className="text-[8px] text-domain ml-1">FULL</span>
                       )}
                     </div>
 
@@ -1029,7 +1029,7 @@ export function ResourcePanel() {
                             )}
                           </span>
                           <span className={`text-[10px] font-mono font-bold ${
-                            net > 0 ? 'text-success' : net < 0 ? 'text-danger' : rate > 0 && consRate > 0 ? 'text-cyan-400' : 'text-muted-label'
+                            net > 0 ? 'text-success' : net < 0 ? 'text-danger' : rate > 0 && consRate > 0 ? 'text-brand' : 'text-muted-label'
                           }`}>
                             {net > 0 ? `+${formatNumber(net)}/s` : net < 0 ? `${formatNumber(net)}/s` : rate > 0 && consRate > 0 ? '±0/s' : '—'}
                           </span>

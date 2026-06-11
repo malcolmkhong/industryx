@@ -323,9 +323,9 @@ const ACHIEVEMENTS: Achievement[] = [
 const CATEGORY_META: Record<AchievementCategory, { icon: string; color: string; borderColor: string; bgColor: string; icon: React.ReactNode }> = {
   Production: {
     icon: 'gi:factory',
-    color: 'text-cyan-400',
-    borderColor: 'border-cyan-900/30',
-    bgColor: 'bg-cyan-900/10',
+    color: 'text-brand',
+    borderColor: 'border-brand/30',
+    bgColor: 'bg-brand/10',
     icon: <Factory className="w-4 h-4" />,
   },
   Economy: {
@@ -337,14 +337,14 @@ const CATEGORY_META: Record<AchievementCategory, { icon: string; color: string; 
   },
   Research: {
     icon: 'gi:chemical-drop',
-    color: 'text-purple-400',
-    borderColor: 'border-purple-900/30',
-    bgColor: 'bg-purple-900/10',
+    color: 'text-research',
+    borderColor: 'border-research/30',
+    bgColor: 'bg-research/10',
     icon: <FlaskConical className="w-4 h-4" />,
   },
   Expansion: {
     icon: 'gi:planet-core',
-    color: 'text-fuchsia-400',
+    color: 'text-premium',
     borderColor: 'border-fuchsia-900/30',
     bgColor: 'bg-fuchsia-900/10',
     icon: <Globe className="w-4 h-4" />,
@@ -359,7 +359,7 @@ const CATEGORY_META: Record<AchievementCategory, { icon: string; color: string; 
 };
 
 const TIER_COLORS = {
-  1: { label: 'Bronze', color: 'text-orange-400', bg: 'bg-orange-900/20', border: 'border-orange-800/30' },
+  1: { label: 'Bronze', color: 'text-domain', bg: 'bg-domain/20', border: 'border-domain/30' },
   2: { label: 'Silver', color: 'text-subtle', bg: 'bg-muted-label/30', border: 'border-muted-label/30' },
   3: { label: 'Gold', color: 'text-warning', bg: 'bg-yellow-900/20', border: 'border-yellow-800/30' },
 };
@@ -482,7 +482,7 @@ const MemoizedAchievementCard = React.memo(function MemoizedAchievementCard({
               <div className="bg-[#0a0e17] rounded-lg p-3">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[10px] text-muted-label">Current Progress</span>
-                  <span className="text-xs font-mono text-cyan-400">{achievement.progressLabel}</span>
+                  <span className="text-xs font-mono text-brand">{achievement.progressLabel}</span>
                 </div>
                 <div className="h-2 bg-muted-label rounded-full overflow-hidden">
                   <div
@@ -574,12 +574,12 @@ export function AchievementPanel() {
         </div>
         <div className="game-card rounded-xl bg-card p-3 border border-border">
           <div className="flex items-center gap-2 mb-1.5">
-            <div className="w-7 h-7 rounded-lg bg-cyan-900/20 flex items-center justify-center">
-              <Target className="w-4 h-4 text-cyan-400" />
+            <div className="w-7 h-7 rounded-lg bg-brand/20 flex items-center justify-center">
+              <Target className="w-4 h-4 text-brand" />
             </div>
             <span className="text-[10px] text-muted-label uppercase tracking-wider">Completion</span>
           </div>
-          <div className="text-lg font-bold font-mono text-cyan-400">
+          <div className="text-lg font-bold font-mono text-brand">
             {totalAchievements > 0 ? ((unlockedCount / totalAchievements) * 100).toFixed(0) : 0}%
           </div>
           <div className="text-[10px] text-muted-label">overall progress</div>
@@ -598,12 +598,12 @@ export function AchievementPanel() {
         </div>
         <div className="game-card rounded-xl bg-card p-3 border border-border">
           <div className="flex items-center gap-2 mb-1.5">
-            <div className="w-7 h-7 rounded-lg bg-purple-900/20 flex items-center justify-center">
-              <Award className="w-4 h-4 text-purple-400" />
+            <div className="w-7 h-7 rounded-lg bg-research/20 flex items-center justify-center">
+              <Award className="w-4 h-4 text-research" />
             </div>
             <span className="text-[10px] text-muted-label uppercase tracking-wider">Categories</span>
           </div>
-          <div className="text-lg font-bold font-mono text-purple-400">5</div>
+          <div className="text-lg font-bold font-mono text-research">5</div>
           <div className="text-[10px] text-muted-label">achievement types</div>
         </div>
       </div>
@@ -636,9 +636,9 @@ export function AchievementPanel() {
                 <div className="h-1.5 bg-muted-label rounded-full overflow-hidden mb-1">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
-                      cat === 'Production' ? 'bg-cyan-400' :
+                      cat === 'Production' ? 'bg-brand' :
                       cat === 'Economy' ? 'bg-success' :
-                      cat === 'Research' ? 'bg-purple-400' :
+                      cat === 'Research' ? 'bg-research' :
                       cat === 'Expansion' ? 'bg-fuchsia-400' :
                       'bg-warning'
                     }`}

@@ -472,13 +472,13 @@ export function TradingPostPanel() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <ArrowRightLeft className="w-5 h-5 text-violet-400" />
-          <h2 className="text-xl font-bold text-cyan-400 neon-glow-cyan">
+          <ArrowRightLeft className="w-5 h-5 text-research" />
+          <h2 className="text-xl font-bold text-brand neon-glow-cyan">
             Trading Post
           </h2>
           <Badge
             variant="outline"
-            className="text-[10px] border-violet-500/30 text-violet-400 bg-violet-900/20"
+            className="text-[10px] border-violet-500/30 text-research bg-violet-900/20"
           >
             15% commission
           </Badge>
@@ -495,7 +495,7 @@ export function TradingPostPanel() {
       </div>
 
       {/* ─── Resource Exchange Interface ──────────────────────────────────── */}
-      <div className="bg-card border border-cyan-900/20 rounded-xl p-4 sm:p-6">
+      <div className="bg-card border border-brand/20 rounded-xl p-4 sm:p-6">
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] gap-4 items-start">
           {/* GIVE side */}
           <div className="space-y-3">
@@ -511,10 +511,10 @@ export function TradingPostPanel() {
                 }
               }}
             >
-              <SelectTrigger className="w-full bg-[#0a0e17] border-cyan-900/30 text-sm">
+              <SelectTrigger className="w-full bg-[#0a0e17] border-brand/30 text-sm">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-[#0d1220] border-cyan-900/30 max-h-60">
+              <SelectContent className="bg-[#0d1220] border-brand/30 max-h-60">
                 {TRADABLE_RESOURCE_IDS.map((res) => (
                   <SelectItem key={res} value={res} className="text-sm">
                     <span className="flex items-center gap-2">
@@ -534,7 +534,7 @@ export function TradingPostPanel() {
               <div className="flex items-center justify-between">
                 <label className="text-[10px] text-muted-label">Amount</label>
                 <button
-                  className="text-[10px] text-violet-400 hover:text-violet-300 transition-colors"
+                  className="text-[10px] text-research hover:text-research transition-colors"
                   onClick={setMaxGive}
                 >
                   Max: {formatNumber(giveResourceCurrent)}
@@ -548,7 +548,7 @@ export function TradingPostPanel() {
                 onChange={(e) =>
                   setGiveAmount(Math.max(0, parseInt(e.target.value) || 0))
                 }
-                className="w-full bg-[#0a0e17] border border-cyan-900/30 rounded-md px-3 py-2 text-sm font-mono text-cyan-400 focus:border-violet-500/50 focus:outline-none focus:ring-1 focus:ring-violet-500/30 transition-colors"
+                className="w-full bg-[#0a0e17] border border-brand/30 rounded-md px-3 py-2 text-sm font-mono text-brand focus:border-violet-500/50 focus:outline-none focus:ring-1 focus:ring-violet-500/30 transition-colors"
               />
             </div>
 
@@ -575,7 +575,7 @@ export function TradingPostPanel() {
               whileTap={{ scale: 0.9 }}
               transition={{ duration: 0.3 }}
               onClick={swapResources}
-              className="w-10 h-10 rounded-full border border-violet-500/30 bg-violet-900/20 flex items-center justify-center text-violet-400 hover:bg-violet-900/40 hover:border-violet-500/50 transition-colors"
+              className="w-10 h-10 rounded-full border border-violet-500/30 bg-violet-900/20 flex items-center justify-center text-research hover:bg-violet-900/40 hover:border-violet-500/50 transition-colors"
               aria-label="Swap give and receive resources"
             >
               <ArrowRightLeft className="w-4 h-4" />
@@ -596,10 +596,10 @@ export function TradingPostPanel() {
                 }
               }}
             >
-              <SelectTrigger className="w-full bg-[#0a0e17] border-cyan-900/30 text-sm">
+              <SelectTrigger className="w-full bg-[#0a0e17] border-brand/30 text-sm">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-[#0d1220] border-cyan-900/30 max-h-60">
+              <SelectContent className="bg-[#0d1220] border-brand/30 max-h-60">
                 {TRADABLE_RESOURCE_IDS.map((res) => (
                   <SelectItem key={res} value={res} className="text-sm">
                     <span className="flex items-center gap-2">
@@ -617,7 +617,7 @@ export function TradingPostPanel() {
 
             <div className="space-y-1">
               <div className="text-[10px] text-muted-label">You will receive</div>
-              <div className="bg-[#0a0e17] border border-cyan-900/30 rounded-md px-3 py-2 text-sm font-mono text-violet-400">
+              <div className="bg-[#0a0e17] border border-brand/30 rounded-md px-3 py-2 text-sm font-mono text-research">
                 {giveResource !== receiveResource
                   ? receiveAmount > 0
                     ? receiveAmount.toFixed(2)
@@ -668,11 +668,11 @@ export function TradingPostPanel() {
         </div>
 
         {/* Rate info + Execute button */}
-        <div className="mt-4 pt-4 border-t border-cyan-900/20 space-y-3">
+        <div className="mt-4 pt-4 border-t border-brand/20 space-y-3">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-muted-label">
             <span>
               Rate:{" "}
-              <span className="text-cyan-400 font-mono">
+              <span className="text-brand font-mono">
                 1 {RESOURCE_META[giveResource]?.name ?? giveResource} ={" "}
                 {formatExchangeRate(giveResource, receiveResource)}{" "}
                 {RESOURCE_META[receiveResource]?.name ?? receiveResource}
@@ -680,7 +680,7 @@ export function TradingPostPanel() {
             </span>
             <span>
               Commission:{" "}
-              <span className="text-violet-400">
+              <span className="text-research">
                 {(TRADE_COMMISSION_RATE * 100).toFixed(0)}%
               </span>
             </span>
@@ -720,12 +720,12 @@ export function TradingPostPanel() {
             )}
 
           {isInCooldown && (
-            <div className="flex items-center gap-2 text-[10px] text-cyan-300 bg-cyan-900/10 border border-cyan-500/20 rounded-lg px-3 py-2 font-mono">
+            <div className="flex items-center gap-2 text-[10px] text-brand bg-brand/10 border border-brand/20 rounded-lg px-3 py-2 font-mono">
               <Clock className="w-3 h-3 flex-shrink-0 animate-pulse" />
               Trade cooldown — wait {cooldownDisplay}
-              <span className="ml-auto h-1.5 w-24 bg-cyan-900/30 rounded-full overflow-hidden">
+              <span className="ml-auto h-1.5 w-24 bg-brand/30 rounded-full overflow-hidden">
                 <span
-                  className="block h-full bg-cyan-400 transition-all duration-1000 ease-linear"
+                  className="block h-full bg-brand transition-all duration-1000 ease-linear"
                   style={{
                     width: `${
                       (cooldownMsRemaining / (TRADE_COOLDOWN_SECONDS * 1000)) * 100
@@ -763,12 +763,12 @@ export function TradingPostPanel() {
       </div>
 
       {/* ─── Price History Chart ─────────────────────────────────────────── */}
-      <div className="bg-card border border-cyan-900/20 rounded-xl p-4 sm:p-5">
+      <div className="bg-card border border-brand/20 rounded-xl p-4 sm:p-5">
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           <h3 className="text-sm font-semibold text-subtle flex items-center gap-1.5">
-            <TrendingUp className="w-3.5 h-3.5 text-violet-400" />
+            <TrendingUp className="w-3.5 h-3.5 text-research" />
             Price History —{" "}
-            <span className="text-cyan-400">
+            <span className="text-brand">
               {RESOURCE_META[giveResource]?.name ?? giveResource}
             </span>
           </h3>
@@ -792,7 +792,7 @@ export function TradingPostPanel() {
       {/* ─── Quick Trade Presets ─────────────────────────────────────────── */}
       <div className="space-y-2">
         <h3 className="text-sm font-semibold text-subtle flex items-center gap-1.5">
-          <Zap className="w-3.5 h-3.5 text-violet-400" />
+          <Zap className="w-3.5 h-3.5 text-research" />
           Quick Trades
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
@@ -810,7 +810,7 @@ export function TradingPostPanel() {
                 className={`bg-card border rounded-lg p-3 text-center transition-colors ${
                   canClick
                     ? "border-violet-500/20 hover:border-violet-500/40 hover:bg-violet-900/10 cursor-pointer"
-                    : "border-cyan-900/10 opacity-40 cursor-not-allowed"
+                    : "border-brand/10 opacity-40 cursor-not-allowed"
                 }`}
               >
                 <div className="flex items-center justify-center gap-1 text-xs">
@@ -819,23 +819,23 @@ export function TradingPostPanel() {
                     size={14}
                     className="inline-flex"
                   />
-                  <span className="font-mono text-cyan-400">
+                  <span className="font-mono text-brand">
                     {preset.giveAmount}
                   </span>
                 </div>
-                <ArrowRightLeft className="w-3 h-3 text-violet-400 mx-auto my-1" />
+                <ArrowRightLeft className="w-3 h-3 text-research mx-auto my-1" />
                 <div className="flex items-center justify-center gap-1 text-xs">
                   <GameIcon
                     icon={RESOURCE_META[preset.receive]?.icon}
                     size={14}
                     className="inline-flex"
                   />
-                  <span className="font-mono text-violet-400">
+                  <span className="font-mono text-research">
                     {preset.receiveAmount.toFixed(1)}
                   </span>
                 </div>
                 {isInCooldown && hasEnough && (
-                  <div className="mt-1 text-[9px] font-mono text-cyan-300 flex items-center justify-center gap-1">
+                  <div className="mt-1 text-[9px] font-mono text-brand flex items-center justify-center gap-1">
                     <Clock className="w-2.5 h-2.5" />
                     {cooldownDisplay}
                   </div>
@@ -882,7 +882,7 @@ export function TradingPostPanel() {
                       {" "}
                       full — consider trading for{" "}
                     </span>
-                    <span className="text-violet-300">
+                    <span className="text-research">
                       {RESOURCE_META[s.suggestTradeFor]?.name ??
                         s.suggestTradeFor}
                     </span>
@@ -890,7 +890,7 @@ export function TradingPostPanel() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-6 text-[10px] px-2 border-violet-500/30 text-violet-400 hover:bg-violet-900/20 flex-shrink-0"
+                    className="h-6 text-[10px] px-2 border-violet-500/30 text-research hover:bg-violet-900/20 flex-shrink-0"
                     onClick={() => {
                       setGiveResource(s.resource);
                       setReceiveResource(s.suggestTradeFor);
@@ -914,7 +914,7 @@ export function TradingPostPanel() {
           {tradeHistory.length > 0 && (
             <Badge
               variant="outline"
-              className="text-[10px] border-cyan-500/30 text-cyan-400 bg-cyan-900/20 ml-1"
+              className="text-[10px] border-brand/30 text-brand bg-brand/20 ml-1"
             >
               {tradeHistory.length}
             </Badge>
@@ -924,7 +924,7 @@ export function TradingPostPanel() {
           )}
         </h3>
         {tradeHistory.length === 0 ? (
-          <div className="bg-card border border-cyan-900/20 rounded-lg p-4 text-center text-muted-label text-xs">
+          <div className="bg-card border border-brand/20 rounded-lg p-4 text-center text-muted-label text-xs">
             {isLoadingHistory
               ? "Loading trade history..."
               : "No trades yet. Exchange resources to get started!"}
@@ -938,27 +938,27 @@ export function TradingPostPanel() {
                   key={entry.id}
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-card border border-cyan-900/20 rounded-lg px-3 py-2 flex items-center gap-2 text-xs"
+                  className="bg-card border border-brand/20 rounded-lg px-3 py-2 flex items-center gap-2 text-xs"
                 >
                   <GameIcon
                     icon={RESOURCE_META[entry.giveResource]?.icon}
                     size={12}
                     className="inline-flex text-subtle"
                   />
-                  <span className="font-mono text-cyan-400">
+                  <span className="font-mono text-brand">
                     {formatNumber(entry.giveAmount)}
                   </span>
                   <span className="text-muted-label">
                     {RESOURCE_META[entry.giveResource]?.name ??
                       entry.giveResource}
                   </span>
-                  <ArrowRightLeft className="w-3 h-3 text-violet-400" />
+                  <ArrowRightLeft className="w-3 h-3 text-research" />
                   <GameIcon
                     icon={RESOURCE_META[entry.receiveResource]?.icon}
                     size={12}
                     className="inline-flex text-subtle"
                   />
-                  <span className="font-mono text-violet-400">
+                  <span className="font-mono text-research">
                     {entry.receiveAmount.toFixed(1)}
                   </span>
                   <span className="text-muted-label">
@@ -995,7 +995,7 @@ export function TradingPostPanel() {
       </div>
 
       {/* ─── Info Card ────────────────────────────────────────────────────── */}
-      <div className="bg-card border border-cyan-900/20 rounded-xl p-4">
+      <div className="bg-card border border-brand/20 rounded-xl p-4">
         <div className="flex items-start gap-2">
           <Info className="w-4 h-4 text-muted-label mt-0.5 flex-shrink-0" />
           <div className="text-[10px] text-muted-label space-y-1">

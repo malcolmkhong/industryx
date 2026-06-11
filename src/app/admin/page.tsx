@@ -305,8 +305,8 @@ export default function BackendDashboard() {
             {/* Online Now — real-time via Supabase Presence */}
             <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-400">
+                <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand">
                     <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
                   </svg>
                 </div>
@@ -331,8 +331,8 @@ export default function BackendDashboard() {
                   </>
                 ) : (
                   <>
-                    <div className="w-2 h-2 rounded-full bg-blue-400" />
-                    <span className="text-blue-400 text-xs">Active sessions</span>
+                    <div className="w-2 h-2 rounded-full bg-brand" />
+                    <span className="text-brand text-xs">Active sessions</span>
                   </>
                 )}
               </div>
@@ -383,8 +383,8 @@ export default function BackendDashboard() {
             {/* Actions Today */}
             <a href="/admin/audit" className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5 block hover:border-zinc-700 transition-colors">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-9 h-9 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-purple-400">
+                <div className="w-9 h-9 rounded-lg bg-research/10 flex items-center justify-center">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-research">
                     <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
                   </svg>
                 </div>
@@ -396,16 +396,16 @@ export default function BackendDashboard() {
                 </div>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-purple-400" />
-                <span className="text-purple-400 text-xs">Player actions logged</span>
+                <div className="w-2 h-2 rounded-full bg-research" />
+                <span className="text-research text-xs">Player actions logged</span>
               </div>
             </a>
 
             {/* Invalid Actions */}
             <a href="/admin/audit" className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5 block hover:border-zinc-700 transition-colors">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-9 h-9 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-orange-400">
+                <div className="w-9 h-9 rounded-lg bg-domain/10 flex items-center justify-center">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-domain">
                     <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /><path d="M12 9v4" /><path d="M12 17h.01" />
                   </svg>
                 </div>
@@ -418,7 +418,7 @@ export default function BackendDashboard() {
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-orange-400" />
-                <span className="text-orange-400 text-xs">Flagged today</span>
+                <span className="text-domain text-xs">Flagged today</span>
               </div>
             </a>
           </div>

@@ -32,25 +32,25 @@ export function AutomationPanel() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-teal-400 neon-glow-cyan tracking-wide">Automation Systems</h2>
+          <h2 className="text-xl font-bold text-brand neon-glow-cyan tracking-wide">Automation Systems</h2>
           <p className="text-xs text-muted-label mt-0.5">Unlock AI-powered automation to grow your empire</p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="border-teal-500/50 text-teal-400 bg-teal-900/20 text-xs">
+          <Badge variant="outline" className="border-brand/50 text-brand bg-brand/20 text-xs">
             <Bot className="w-3 h-3 mr-1" />
             {activeCount}/{totalCount} active
           </Badge>
-          <Badge variant="outline" className="border-fuchsia-500/50 text-fuchsia-400 bg-fuchsia-900/20 text-xs">
+          <Badge variant="outline" className="border-fuchsia-500/50 text-premium bg-fuchsia-900/20 text-xs">
             {store.prestigeState.corporationPoints} CP
           </Badge>
         </div>
       </div>
 
       {/* Progress */}
-      <div className="game-card rounded-xl bg-card p-4 border border-teal-900/30">
+      <div className="game-card rounded-xl bg-card p-4 border border-brand/30">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs text-subtle">Automation Progress</span>
-          <span className="text-xs text-teal-400 font-mono">{activeCount}/{totalCount}</span>
+          <span className="text-xs text-brand font-mono">{activeCount}/{totalCount}</span>
         </div>
         <div className="h-3 bg-muted-label rounded-full overflow-hidden">
           <div
@@ -90,15 +90,15 @@ export function AutomationPanel() {
             <div
               className={`game-card rounded-xl bg-card p-4 border ${
                 isActive
-                  ? 'border-teal-500/50 bg-teal-900/5'
+                  ? 'border-brand/50 bg-brand/5'
                   : canActivate
-                    ? 'border-cyan-900/30 hover:border-teal-500/30'
+                    ? 'border-brand/30 hover:border-brand/30'
                     : 'border-muted-label opacity-60'
               }`}
             >
               <div className="flex items-start gap-3 mb-3">
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                  isActive ? 'bg-teal-900/30 text-teal-400' : 'bg-muted-label/50 text-muted-label'
+                  isActive ? 'bg-brand/30 text-brand' : 'bg-muted-label/50 text-muted-label'
                 }`}>
                   {AUTO_ICONS[unlock.type] || <Bot className="w-5 h-5" />}
                 </div>
@@ -106,7 +106,7 @@ export function AutomationPanel() {
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-bold text-subtle">{unlock.name}</span>
                     {isActive && (
-                      <Badge className="text-[9px] bg-teal-900/30 text-teal-400 border-0">
+                      <Badge className="text-[9px] bg-brand/30 text-brand border-0">
                         <Check className="w-2.5 h-2.5 mr-0.5" /> Active
                       </Badge>
                     )}
@@ -143,7 +143,7 @@ export function AutomationPanel() {
                   onClick={() => store.activateAutomation(unlock.type)}
                   disabled={!canActivate}
                   className={`w-full text-xs h-8 min-h-[36px] ${
-                    canActivate ? 'bg-teal-600 hover:bg-teal-500 text-white' : 'bg-muted-label text-muted-label'
+                    canActivate ? 'bg-brand hover:bg-brand text-white' : 'bg-muted-label text-muted-label'
                   }`}
                   size="sm"
                 >
@@ -158,7 +158,7 @@ export function AutomationPanel() {
               )}
 
               {isActive && (
-                <div className="text-center text-xs text-teal-400/60">
+                <div className="text-center text-xs text-brand/60">
                   <GameIcon icon="gi:sparkles" size={14} className="inline" /> Running automatically
                 </div>
               )}
@@ -171,8 +171,8 @@ export function AutomationPanel() {
       {/* Info Section */}
       <div className="game-card rounded-xl bg-card p-4 border border-border">
         <div className="flex items-center gap-2 mb-3">
-          <Brain className="w-4 h-4 text-teal-400" />
-          <h3 className="text-sm font-semibold text-teal-400">About Automation</h3>
+          <Brain className="w-4 h-4 text-brand" />
+          <h3 className="text-sm font-semibold text-brand">About Automation</h3>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px] text-subtle">
           <div>

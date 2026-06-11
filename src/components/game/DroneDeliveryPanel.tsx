@@ -30,7 +30,7 @@ function formatDuration(ticks: number): string {
 function DroneStatusBadge({ status }: { status: Drone['status'] }) {
   const config = {
     idle: { label: 'Idle', className: 'bg-success/40 text-success border-success/30' },
-    delivering: { label: 'Delivering', className: 'bg-sky-900/40 text-sky-400 border-sky-500/30 animate-pulse' },
+    delivering: { label: 'Delivering', className: 'bg-brand/40 text-brand border-brand/30 animate-pulse' },
   };
   const c = config[status];
   return (
@@ -48,7 +48,7 @@ function UpgradeBar({ level, maxLevel = 5 }: { level: number; maxLevel?: number 
         <div
           key={i}
           className={`w-3 h-1.5 rounded-sm ${
-            i < level ? 'bg-cyan-400 shadow-[0_0_4px_rgba(0,255,242,0.4)]' : 'bg-muted-label'
+            i < level ? 'bg-brand shadow-[0_0_4px_rgba(0,255,242,0.4)]' : 'bg-muted-label'
           }`}
         />
       ))}
@@ -105,14 +105,14 @@ function DroneVisualMap({ missions, fleet, gameTick }: {
 
   if (buildings.length < 2) {
     return (
-      <div className="h-32 flex items-center justify-center text-muted-label text-xs border border-cyan-900/20 rounded-lg bg-[#0a0e17]">
+      <div className="h-32 flex items-center justify-center text-muted-label text-xs border border-brand/20 rounded-lg bg-[#0a0e17]">
         Build more buildings to unlock delivery routes
       </div>
     );
   }
 
   return (
-    <div className="relative h-40 border border-cyan-900/20 rounded-lg bg-[#0a0e17] overflow-hidden">
+    <div className="relative h-40 border border-brand/20 rounded-lg bg-[#0a0e17] overflow-hidden">
       <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 80" preserveAspectRatio="xMidYMid meet">
         {/* Grid lines */}
         {Array.from({ length: 5 }).map((_, i) => (
@@ -201,8 +201,8 @@ export default function DroneDeliveryPanel() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <GameIcon icon="gi:helicopter" size={20} className="inline-flex" />
-          <h2 className="text-xl font-bold text-cyan-400 neon-glow-cyan">Drone Delivery Network</h2>
-          <Badge variant="outline" className="text-[10px] border-sky-500/30 text-sky-400 bg-sky-900/20">
+          <h2 className="text-xl font-bold text-brand neon-glow-cyan">Drone Delivery Network</h2>
+          <Badge variant="outline" className="text-[10px] border-brand/30 text-brand bg-brand/20">
             {idleDrones.length} idle / {fleet.length} total
           </Badge>
         </div>
@@ -218,7 +218,7 @@ export default function DroneDeliveryPanel() {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-subtle flex items-center gap-1.5">
-            <Plane className="w-3.5 h-3.5 text-sky-400" />
+            <Plane className="w-3.5 h-3.5 text-brand" />
             Drone Fleet
           </h3>
           <Tooltip>
@@ -226,7 +226,7 @@ export default function DroneDeliveryPanel() {
               <Button
                 size="sm"
                 variant="outline"
-                className="h-7 text-xs border-sky-500/30 text-sky-400 hover:bg-sky-900/20 hover:text-sky-300"
+                className="h-7 text-xs border-brand/30 text-brand hover:bg-brand/20 hover:text-brand"
                 onClick={store.buyDrone}
                 disabled={money < buyCost}
               >
@@ -234,7 +234,7 @@ export default function DroneDeliveryPanel() {
                 Buy Drone (${formatNumber(buyCost)})
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="left" className="bg-card border-cyan-900/30">
+            <TooltipContent side="left" className="bg-card border-brand/30">
               <p className="text-xs">Purchase a new drone for your fleet</p>
               <p className="text-[10px] text-subtle">Cost scales with fleet size: $2,000 × {fleet.length}</p>
             </TooltipContent>
@@ -247,8 +247,8 @@ export default function DroneDeliveryPanel() {
                 key={drone.id}
                 className={`bg-card border rounded-lg p-3 cursor-pointer ${
                   drone.status === 'delivering'
-                    ? 'border-sky-500/30 shadow-[0_0_8px_rgba(56,189,248,0.1)]'
-                    : 'border-cyan-900/20 hover:border-cyan-900/40'
+                    ? 'border-brand/30 shadow-[0_0_8px_rgba(56,189,248,0.1)]'
+                    : 'border-brand/20 hover:border-brand/40'
                 }`}
                 onClick={() => setExpandedDrone(expandedDrone === drone.id ? null : drone.id)}
                 aria-expanded={expandedDrone === drone.id}
@@ -266,7 +266,7 @@ export default function DroneDeliveryPanel() {
                           <Gauge className="w-3 h-3" /> {drone.speedLevel}
                         </span>
                       </TooltipTrigger>
-                      <TooltipContent side="top" className="bg-card border-cyan-900/30">
+                      <TooltipContent side="top" className="bg-card border-brand/30">
                         <p className="text-xs">Speed Level {drone.speedLevel}/5</p>
                         <p className="text-[10px] text-subtle">Reduces delivery time by {(drone.speedLevel - 1) * 20}%</p>
                       </TooltipContent>
@@ -277,7 +277,7 @@ export default function DroneDeliveryPanel() {
                           <Package className="w-3 h-3" /> {drone.capacityLevel}
                         </span>
                       </TooltipTrigger>
-                      <TooltipContent side="top" className="bg-card border-cyan-900/30">
+                      <TooltipContent side="top" className="bg-card border-brand/30">
                         <p className="text-xs">Capacity Level {drone.capacityLevel}/5</p>
                         <p className="text-[10px] text-subtle">Increases reward by {(drone.capacityLevel - 1) * 25}%</p>
                       </TooltipContent>
@@ -288,7 +288,7 @@ export default function DroneDeliveryPanel() {
                           <Fuel className="w-3 h-3" /> {drone.fuelEfficiencyLevel}
                         </span>
                       </TooltipTrigger>
-                      <TooltipContent side="top" className="bg-card border-cyan-900/30">
+                      <TooltipContent side="top" className="bg-card border-brand/30">
                         <p className="text-xs">Fuel Efficiency Level {drone.fuelEfficiencyLevel}/5</p>
                         <p className="text-[10px] text-subtle">Reduces fuel cost by {(drone.fuelEfficiencyLevel - 1) * 15}%</p>
                       </TooltipContent>
@@ -322,7 +322,7 @@ export default function DroneDeliveryPanel() {
                     <div
                       className="overflow-hidden"
                     >
-                      <div className="mt-3 pt-3 border-t border-cyan-900/20 space-y-2">
+                      <div className="mt-3 pt-3 border-t border-brand/20 space-y-2">
                         <p className="text-[10px] text-muted-label font-semibold uppercase tracking-wider mb-2">Upgrades</p>
 
                         {/* Speed Upgrade */}
@@ -374,7 +374,7 @@ export default function DroneDeliveryPanel() {
                         {/* Fuel Efficiency Upgrade */}
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <Fuel className="w-3.5 h-3.5 text-orange-400" />
+                            <Fuel className="w-3.5 h-3.5 text-domain" />
                             <div>
                               <p className="text-xs text-subtle">Fuel Efficiency</p>
                               <UpgradeBar level={drone.fuelEfficiencyLevel} />
@@ -383,7 +383,7 @@ export default function DroneDeliveryPanel() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-6 text-[10px] px-2 border-orange-500/30 text-orange-400 hover:bg-orange-900/20"
+                            className="h-6 text-[10px] px-2 border-domain/30 text-domain hover:bg-domain/20"
                             disabled={drone.fuelEfficiencyLevel >= 5 || money < 600 * drone.fuelEfficiencyLevel}
                             onClick={(e) => {
                               e.stopPropagation();
@@ -410,15 +410,15 @@ export default function DroneDeliveryPanel() {
       {/* Available Missions */}
       <div className="space-y-2">
         <h3 className="text-sm font-semibold text-subtle flex items-center gap-1.5">
-          <Send className="w-3.5 h-3.5 text-cyan-400" />
+          <Send className="w-3.5 h-3.5 text-brand" />
           Available Missions
-          <Badge variant="outline" className="text-[10px] border-cyan-500/30 text-cyan-400 bg-cyan-900/20 ml-1">
+          <Badge variant="outline" className="text-[10px] border-brand/30 text-brand bg-brand/20 ml-1">
             {missions.length}
           </Badge>
         </h3>
 
         {missions.length === 0 ? (
-          <div className="bg-card border border-cyan-900/20 rounded-lg p-4 text-center text-muted-label text-xs">
+          <div className="bg-card border border-brand/20 rounded-lg p-4 text-center text-muted-label text-xs">
             Build at least 2 different building types to unlock delivery missions
           </div>
         ) : (
@@ -434,15 +434,15 @@ export default function DroneDeliveryPanel() {
                 <div
                   key={mission.id}
                   className={`bg-card border rounded-lg p-3 cursor-pointer ${
-                    isSelected ? 'border-cyan-500/40 shadow-[0_0_8px_rgba(0,255,242,0.1)]' : 'border-cyan-900/20 hover:border-cyan-900/40'
+                    isSelected ? 'border-brand/40 shadow-[0_0_8px_rgba(0,255,242,0.1)]' : 'border-brand/20 hover:border-brand/40'
                   }`}
                   onClick={() => setSelectedMission(isSelected ? null : mission.id)}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-xs">
-                      <span className="text-cyan-400 font-medium">{mission.fromBuilding}</span>
+                      <span className="text-brand font-medium">{mission.fromBuilding}</span>
                       <ArrowRight className="w-3 h-3 text-muted-label" />
-                      <span className="text-sky-400 font-medium">{mission.toBuilding}</span>
+                      <span className="text-brand font-medium">{mission.toBuilding}</span>
                     </div>
                     <div className="flex items-center gap-2 text-[10px]">
                       <span className="text-success flex items-center gap-0.5">
@@ -450,7 +450,7 @@ export default function DroneDeliveryPanel() {
                         {formatNumber(mission.reward.money)}
                       </span>
                       {mission.reward.researchPoints && (
-                        <span className="text-purple-400 flex items-center gap-0.5">
+                        <span className="text-research flex items-center gap-0.5">
                           <FlaskConical className="w-2.5 h-2.5" />
                           {mission.reward.researchPoints}
                         </span>
@@ -472,7 +472,7 @@ export default function DroneDeliveryPanel() {
                       <div
                         className="overflow-hidden"
                       >
-                        <div className="mt-2 pt-2 border-t border-cyan-900/20 space-y-1.5">
+                        <div className="mt-2 pt-2 border-t border-brand/20 space-y-1.5">
                           <p className="text-[10px] text-muted-label mb-1">Select drone to send:</p>
                           {idleDrones.map((drone, idx) => {
                             const droneIdx = fleet.indexOf(drone);
@@ -489,7 +489,7 @@ export default function DroneDeliveryPanel() {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="h-6 text-[10px] px-2 border-cyan-500/30 text-cyan-400 hover:bg-cyan-900/20"
+                                  className="h-6 text-[10px] px-2 border-brand/30 text-brand hover:bg-brand/20"
                                   disabled={money < fuel}
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -510,7 +510,7 @@ export default function DroneDeliveryPanel() {
                       <div
                         className="overflow-hidden"
                       >
-                        <p className="mt-2 pt-2 border-t border-cyan-900/20 text-[10px] text-warning">
+                        <p className="mt-2 pt-2 border-t border-brand/20 text-[10px] text-warning">
                           No idle drones available. Wait for deliveries to complete or buy a new drone.
                         </p>
                       </div>
@@ -524,16 +524,16 @@ export default function DroneDeliveryPanel() {
 
       {/* Stats Summary */}
       <div className="grid grid-cols-3 gap-2">
-        <div className="bg-card border border-cyan-900/20 rounded-lg p-3 text-center">
-          <div className="text-lg font-bold text-sky-400">{fleet.length}</div>
+        <div className="bg-card border border-brand/20 rounded-lg p-3 text-center">
+          <div className="text-lg font-bold text-brand">{fleet.length}</div>
           <div className="text-[10px] text-muted-label">Drones</div>
         </div>
-        <div className="bg-card border border-cyan-900/20 rounded-lg p-3 text-center">
+        <div className="bg-card border border-brand/20 rounded-lg p-3 text-center">
           <div className="text-lg font-bold text-success">{drones.completedMissions}</div>
           <div className="text-[10px] text-muted-label">Completed</div>
         </div>
-        <div className="bg-card border border-cyan-900/20 rounded-lg p-3 text-center">
-          <div className="text-lg font-bold text-cyan-400">${formatNumber(drones.totalEarned)}</div>
+        <div className="bg-card border border-brand/20 rounded-lg p-3 text-center">
+          <div className="text-lg font-bold text-brand">${formatNumber(drones.totalEarned)}</div>
           <div className="text-[10px] text-muted-label">Total Earned</div>
         </div>
       </div>

@@ -22,9 +22,9 @@ import { GameIcon } from '@/components/game/shared/GameIcon';
 // Color map for building category bars in the distribution preview
 const CATEGORY_COLORS: Record<string, string> = {
   extractor: 'bg-warning',
-  factory: 'bg-orange-500',
+  factory: 'bg-domain',
   power: 'bg-warning',
-  storage: 'bg-teal-500',
+  storage: 'bg-brand',
 };
 
 export function BlueprintPanel() {
@@ -156,20 +156,20 @@ export function BlueprintPanel() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h2 className="text-xl font-bold text-cyan-400 tracking-wide neon-glow-cyan">
+          <h2 className="text-xl font-bold text-brand tracking-wide neon-glow-cyan">
             Blueprints
           </h2>
           <p className="text-xs text-muted-label mt-0.5">Save, share, and load factory layouts</p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="border-cyan-500/50 text-cyan-400 bg-cyan-900/20 text-xs">
+          <Badge variant="outline" className="border-brand/50 text-brand bg-brand/20 text-xs">
             <Save className="w-3 h-3 mr-1" />
             {store.blueprints.length} saved
           </Badge>
           <Button
             variant="outline"
             size="sm"
-            className={`text-xs border-muted-label ${showImport ? 'text-cyan-400 bg-cyan-900/20' : 'text-subtle'}`}
+            className={`text-xs border-muted-label ${showImport ? 'text-brand bg-brand/20' : 'text-subtle'}`}
             onClick={() => setShowImport(!showImport)}
           >
             <Upload className="w-3 h-3 mr-1" />
@@ -180,10 +180,10 @@ export function BlueprintPanel() {
 
       {/* Import Section (collapsible) */}
       {showImport && (
-        <div className="game-card rounded-xl bg-card p-4 border border-cyan-900/30">
+        <div className="game-card rounded-xl bg-card p-4 border border-brand/30">
           <div className="flex items-center gap-2 mb-3">
-            <Upload className="w-4 h-4 text-cyan-400" />
-            <h3 className="text-sm font-semibold text-cyan-400">Import Blueprint</h3>
+            <Upload className="w-4 h-4 text-brand" />
+            <h3 className="text-sm font-semibold text-brand">Import Blueprint</h3>
           </div>
           <div className="flex items-center gap-2">
             <input
@@ -191,13 +191,13 @@ export function BlueprintPanel() {
               value={importCode}
               onChange={e => setImportCode(e.target.value)}
               placeholder="Paste blueprint code here..."
-              className="flex-1 bg-[#0a0e17] border border-muted-label rounded-lg px-3 py-2 text-xs text-subtle focus:border-cyan-500/50 focus:outline-none font-mono"
+              className="flex-1 bg-[#0a0e17] border border-muted-label rounded-lg px-3 py-2 text-xs text-subtle focus:border-brand/50 focus:outline-none font-mono"
               onKeyDown={e => e.key === 'Enter' && handleImport()}
             />
             <Button
               onClick={handleImport}
               disabled={!importCode.trim()}
-              className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs"
+              className="bg-brand hover:bg-brand text-white text-xs"
               size="sm"
             >
               <Download className="w-3 h-3 mr-1" />
@@ -219,10 +219,10 @@ export function BlueprintPanel() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Save Blueprint */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="game-card rounded-xl bg-card p-4 border border-cyan-900/30">
+          <div className="game-card rounded-xl bg-card p-4 border border-brand/30">
             <div className="flex items-center gap-2 mb-3">
-              <Save className="w-4 h-4 text-cyan-400" />
-              <h3 className="text-sm font-semibold text-cyan-400">Save Current Layout</h3>
+              <Save className="w-4 h-4 text-brand" />
+              <h3 className="text-sm font-semibold text-brand">Save Current Layout</h3>
             </div>
 
             {store.buildings.length === 0 ? (
@@ -239,15 +239,15 @@ export function BlueprintPanel() {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
                     <div>
                       <div className="text-muted-label">Buildings</div>
-                      <div className="font-mono text-cyan-400 font-bold">{store.buildings.length}</div>
+                      <div className="font-mono text-brand font-bold">{store.buildings.length}</div>
                     </div>
                     <div>
                       <div className="text-muted-label">Transport</div>
-                      <div className="font-mono text-blue-400 font-bold">{store.transportLines.length}</div>
+                      <div className="font-mono text-brand font-bold">{store.transportLines.length}</div>
                     </div>
                     <div>
                       <div className="text-muted-label">Workers</div>
-                      <div className="font-mono text-sky-400 font-bold">{store.workers.length}</div>
+                      <div className="font-mono text-brand font-bold">{store.workers.length}</div>
                     </div>
                     <div>
                       <div className="text-muted-label">Power</div>
@@ -281,7 +281,7 @@ export function BlueprintPanel() {
                       return Object.entries(counts).map(([type, count]) => {
                         const def = TRANSPORT_DEFS[type];
                         return (
-                          <Badge key={type} variant="outline" className="text-[10px] border-muted-label text-blue-300">
+                          <Badge key={type} variant="outline" className="text-[10px] border-muted-label text-brand">
                             <GameIcon icon={def?.icon} size={12} className="inline-flex" /> {def?.name} ×{count}
                           </Badge>
                         );
@@ -297,13 +297,13 @@ export function BlueprintPanel() {
                     value={blueprintName}
                     onChange={e => setBlueprintName(e.target.value)}
                     placeholder={autoName}
-                    className="flex-1 bg-[#0a0e17] border border-muted-label rounded-lg px-3 py-2 text-xs text-subtle focus:border-cyan-500/50 focus:outline-none placeholder:text-muted-label"
+                    className="flex-1 bg-[#0a0e17] border border-muted-label rounded-lg px-3 py-2 text-xs text-subtle focus:border-brand/50 focus:outline-none placeholder:text-muted-label"
                     onKeyDown={e => e.key === 'Enter' && handleSave()}
                   />
                   <Button
                     onClick={handleSave}
                     disabled={isSaving}
-                    className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs"
+                    className="bg-brand hover:bg-brand text-white text-xs"
                     size="sm"
                   >
                     {isSaving ? <LoadingSpinner /> : <Save className="w-3 h-3 mr-1" />}
@@ -318,8 +318,8 @@ export function BlueprintPanel() {
           {/* Saved Blueprints List */}
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
-              <Layout className="w-4 h-4 text-cyan-400" />
-              <h3 className="text-sm font-semibold text-cyan-400">Saved Blueprints</h3>
+              <Layout className="w-4 h-4 text-brand" />
+              <h3 className="text-sm font-semibold text-brand">Saved Blueprints</h3>
             </div>
             {store.blueprints.length === 0 ? (
               <div className="text-center py-8">
@@ -338,11 +338,11 @@ export function BlueprintPanel() {
                   const comparison = isExpanded ? getComparison(bp.id) : null;
 
                   return (
-                    <div key={bp.id} className="bg-[#0a0e17] rounded-lg border border-muted-label hover:border-cyan-900/40">
+                    <div key={bp.id} className="bg-[#0a0e17] rounded-lg border border-muted-label hover:border-brand/40">
                       {/* Header row */}
                       <div className="flex items-center justify-between p-3">
                         <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <Layout className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                          <Layout className="w-4 h-4 text-brand flex-shrink-0" />
                           <div className="min-w-0 flex-1">
                             {isRenaming ? (
                               <div className="flex items-center gap-1">
@@ -350,7 +350,7 @@ export function BlueprintPanel() {
                                   type="text"
                                   value={renameValue}
                                   onChange={e => setRenameValue(e.target.value)}
-                                  className="flex-1 bg-card border border-cyan-800 rounded px-2 py-0.5 text-xs text-subtle focus:outline-none"
+                                  className="flex-1 bg-card border border-brand rounded px-2 py-0.5 text-xs text-subtle focus:outline-none"
                                   onKeyDown={e => {
                                     if (e.key === 'Enter') handleRename(bp.id);
                                     if (e.key === 'Escape') setRenamingId(null);
@@ -369,7 +369,7 @@ export function BlueprintPanel() {
                                 <div className="text-xs font-medium text-subtle truncate">{bp.name}</div>
                                 <div className="text-[9px] text-muted-label">
                                   {totalBuildings} buildings • {totalTransport} transport • {formatDate(bp.savedAt)}
-                                  {bp.shared && <span className="ml-1 text-cyan-500">• shared</span>}
+                                  {bp.shared && <span className="ml-1 text-brand">• shared</span>}
                                 </div>
                               </>
                             )}
@@ -381,7 +381,7 @@ export function BlueprintPanel() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-6 w-6 p-0 text-muted-label hover:text-cyan-400 min-h-[36px] min-w-[36px]"
+                                className="h-6 w-6 p-0 text-muted-label hover:text-brand min-h-[36px] min-w-[36px]"
                                 onClick={() => {
                                   setRenamingId(bp.id);
                                   setRenameValue(bp.name);
@@ -391,21 +391,21 @@ export function BlueprintPanel() {
                                 <Pencil className="w-3 h-3" />
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent side="bottom" className="bg-card border-cyan-900/30 text-xs">Rename</TooltipContent>
+                            <TooltipContent side="bottom" className="bg-card border-brand/30 text-xs">Rename</TooltipContent>
                           </Tooltip>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-6 w-6 p-0 text-muted-label hover:text-cyan-400 min-h-[36px] min-w-[36px]"
+                                className="h-6 w-6 p-0 text-muted-label hover:text-brand min-h-[36px] min-w-[36px]"
                                 onClick={() => handleCopyCode(bp.id)}
                                 aria-label="Export share code"
                               >
                                 {copiedId === bp.id ? <Check className="w-3 h-3 text-success" /> : <Share2 className="w-3 h-3" />}
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent side="bottom" className="bg-card border-cyan-900/30 text-xs">
+                            <TooltipContent side="bottom" className="bg-card border-brand/30 text-xs">
                               {copiedId === bp.id ? 'Copied!' : 'Export share code'}
                             </TooltipContent>
                           </Tooltip>
@@ -425,7 +425,7 @@ export function BlueprintPanel() {
                                 <Trash2 className="w-3 h-3" />
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent side="bottom" className="bg-card border-cyan-900/30 text-xs">Delete</TooltipContent>
+                            <TooltipContent side="bottom" className="bg-card border-brand/30 text-xs">Delete</TooltipContent>
                           </Tooltip>
                           <Button
                             variant="ghost"
@@ -480,7 +480,7 @@ export function BlueprintPanel() {
                             {bp.transportLines.map(t => {
                               const def = TRANSPORT_DEFS[t.type];
                               return (
-                                <Badge key={t.type} variant="outline" className="text-[10px] border-blue-800 text-blue-300">
+                                <Badge key={t.type} variant="outline" className="text-[10px] border-brand text-brand">
                                   <GameIcon icon={def?.icon} size={12} className="inline-flex" /> {def?.name} ×{t.count}
                                 </Badge>
                               );
@@ -540,7 +540,7 @@ export function BlueprintPanel() {
                                 disabled={!comparison.canAfford && comparison.missingBuildings.length > 0}
                                 className={`flex-1 text-xs h-8 ${
                                   comparison.canAfford
-                                    ? 'bg-cyan-600 hover:bg-cyan-500 text-white'
+                                    ? 'bg-brand hover:bg-brand text-white'
                                     : 'bg-muted-label text-muted-label'
                                 }`}
                                 size="sm"
@@ -565,20 +565,20 @@ export function BlueprintPanel() {
           {/* Share Code Section */}
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
-              <Share2 className="w-4 h-4 text-cyan-400" />
-              <h3 className="text-sm font-semibold text-cyan-400">Share Blueprints</h3>
+              <Share2 className="w-4 h-4 text-brand" />
+              <h3 className="text-sm font-semibold text-brand">Share Blueprints</h3>
             </div>
             <div className="space-y-2 text-[11px] text-muted-label">
               <p className="flex items-start gap-1.5">
-                <Share2 className="w-3 h-3 mt-0.5 flex-shrink-0 text-cyan-600" />
+                <Share2 className="w-3 h-3 mt-0.5 flex-shrink-0 text-brand" />
                 Click the share icon on any blueprint to copy its code
               </p>
               <p className="flex items-start gap-1.5">
-                <Download className="w-3 h-3 mt-0.5 flex-shrink-0 text-cyan-600" />
+                <Download className="w-3 h-3 mt-0.5 flex-shrink-0 text-brand" />
                 Paste codes into the Import section to load shared layouts
               </p>
               <p className="flex items-start gap-1.5">
-                <Copy className="w-3 h-3 mt-0.5 flex-shrink-0 text-cyan-600" />
+                <Copy className="w-3 h-3 mt-0.5 flex-shrink-0 text-brand" />
                 Share codes are compact base64 strings you can send anywhere
               </p>
             </div>
@@ -587,8 +587,8 @@ export function BlueprintPanel() {
           {/* Production Chains Reference */}
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
-              <ArrowRight className="w-4 h-4 text-cyan-400" />
-              <h3 className="text-sm font-semibold text-cyan-400">Production Chains</h3>
+              <ArrowRight className="w-4 h-4 text-brand" />
+              <h3 className="text-sm font-semibold text-brand">Production Chains</h3>
             </div>
             <div className="space-y-2 max-h-80 overflow-y-auto game-scrollbar">
               {PRODUCTION_CHAINS.map((chain, i) => (

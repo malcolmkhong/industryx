@@ -29,7 +29,7 @@ export function BuildingCard({
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <GameIcon icon={building.type as never} size={18} />
-          <span className="text-sm font-semibold text-cyan-300 truncate">{building.type}</span>
+          <span className="text-sm font-semibold text-brand truncate">{building.type}</span>
         </div>
         <span className="text-[10px] text-muted-label font-mono">
           Lv {building.level}

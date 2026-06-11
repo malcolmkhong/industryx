@@ -16,7 +16,7 @@ export function SectionHeader({ title, badge, action, className = '' }: SectionH
   return (
     <div className={`flex items-center justify-between gap-2 mb-2 ${className}`}>
       <div className="flex items-center gap-2 min-w-0">
-        <h3 className="text-sm font-semibold text-cyan-300 uppercase tracking-wider truncate">
+        <h3 className="text-sm font-semibold text-brand uppercase tracking-wider truncate">
           {title}
         </h3>
         {badge}

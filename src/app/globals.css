@@ -87,6 +87,18 @@
   --color-dim: #4b5563;            /* replaces text-gray-600 */
   --color-premium: #e879f9;        /* replaces text-fuchsia-400 (prestige) */
   --color-research: #c084fc;       /* replaces text-purple-400 (research) */
+
+  /* Industrial + Domain token extensions (05.1 Groups 5-6) */
+  --color-industrial: #0ea5e9;      /* replaces text-blue-400, text-sky-400 (alias for --color-brand family) */
+  --color-domain: #fb923c;          /* replaces text-orange-400 (Tier 2, transport, events) */
+  --color-rose: #fb7185;            /* replaces text-rose-400 (danger-adjacent, pink-500+subtle) */
+  --color-fuchsia: #e879f9;        /* replaces text-fuchsia-400 (alias for --color-premium) */
+  --color-violet: #a78bfa;         /* replaces text-violet-400 (research-adjacent) */
+  --color-pink: #f472b6;           /* replaces text-pink-400 (prestige/expansion) */
+  --color-teal: #2dd4bf;           /* replaces text-teal-400 (research/variant) */
+  --color-sky: #38bdf8;            /* replaces text-sky-400 (industrial/variant) */
+  --color-indigo: #818cf8;         /* replaces text-indigo-400 (industrial/variant) */
+  --color-lime: #a3e635;           /* replaces text-lime-400 (success-adjacent) */
 }
 
 :root {

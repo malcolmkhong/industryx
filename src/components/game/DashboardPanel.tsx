@@ -162,7 +162,7 @@ export function DashboardPanel() {
 
   // Empire tier info
   const empireTier = useMemo(() => {
-    if (empireScore >= 50000) return { name: 'Diamond', color: '#b9f2ff', bgColor: 'bg-cyan-100', borderColor: 'border-cyan-300', textColor: 'text-cyan-200', icon: <Gem className="w-4 h-4" />, nextThreshold: null, progress: 1 };
+    if (empireScore >= 50000) return { name: 'Diamond', color: '#b9f2ff', bgColor: 'bg-cyan-100', borderColor: 'border-brand', textColor: 'text-cyan-200', icon: <Gem className="w-4 h-4" />, nextThreshold: null, progress: 1 };
     if (empireScore >= 10000) return { name: 'Platinum', color: '#e5e4e2', bgColor: 'bg-gray-200', borderColor: 'border-gray-400', textColor: 'text-subtle', icon: <Crown className="w-4 h-4" />, nextThreshold: 50000, progress: (empireScore - 10000) / 40000 };
     if (empireScore >= 2000) return { name: 'Gold', color: '#ffd700', bgColor: 'bg-warning', borderColor: 'border-warning', textColor: 'text-warning', icon: <Trophy className="w-4 h-4" />, nextThreshold: 10000, progress: (empireScore - 2000) / 8000 };
     if (empireScore >= 500) return { name: 'Silver', color: '#c0c0c0', bgColor: 'bg-gray-400', borderColor: 'border-muted-label', textColor: 'text-subtle', icon: <Star className="w-4 h-4" />, nextThreshold: 2000, progress: (empireScore - 500) / 1500 };
@@ -210,18 +210,18 @@ export function DashboardPanel() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, type: 'spring' }}
           onClick={() => setActiveTab('dailyRewards')}
-          className="w-full bg-gradient-to-r from-pink-900/25 via-purple-900/20 to-fuchsia-900/25 border border-pink-500/30 rounded-xl p-3 flex items-center justify-between group hover:border-pink-400/50 cursor-pointer"
+          className="w-full bg-gradient-to-r from-pink-900/25 via-purple-900/20 to-fuchsia-900/25 border border-premium/30 rounded-xl p-3 flex items-center justify-between group hover:border-pink-400/50 cursor-pointer"
         >
           <div className="flex items-center gap-3">
             <GameIcon icon="gi:present" size={24} className="animate-bounce" />
             <div className="text-left">
-              <p className="text-sm font-bold text-pink-300 group-hover:text-pink-200 transition-colors">Daily Reward Available!</p>
+              <p className="text-sm font-bold text-premium group-hover:text-pink-200 transition-colors">Daily Reward Available!</p>
               <p className="text-[10px] text-subtle">Click to claim your daily login bonus</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-pink-400/70 uppercase tracking-wider font-semibold">Day {((loginStreak.currentStreak - 1) % 7) + 1}</span>
-            <ArrowRight className="w-4 h-4 text-pink-400/50 group-hover:text-pink-300 group-hover:translate-x-0.5 transition-all" />
+            <span className="text-[10px] text-premium/70 uppercase tracking-wider font-semibold">Day {((loginStreak.currentStreak - 1) % 7) + 1}</span>
+            <ArrowRight className="w-4 h-4 text-premium/50 group-hover:text-premium group-hover:translate-x-0.5 transition-all" />
           </div>
         </motion.button>
       )}
@@ -335,12 +335,12 @@ export function DashboardPanel() {
         const currentStep = trackedQuestData.steps.find(s => !s.completed);
         return (
           <motion.div
-            className="bg-gradient-to-r from-cyan-900/15 to-teal-900/10 border border-cyan-500/25 rounded-xl p-3"
+            className="bg-gradient-to-r from-cyan-900/15 to-teal-900/10 border border-brand/25 rounded-xl p-3"
           >
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-1.5">
-                <Pin className="w-3 h-3 text-cyan-400" />
-                <span className="text-[10px] text-cyan-400 uppercase tracking-wider font-semibold">Tracked Quest</span>
+                <Pin className="w-3 h-3 text-brand" />
+                <span className="text-[10px] text-brand uppercase tracking-wider font-semibold">Tracked Quest</span>
               </div>
               <button
                 onClick={() => setTrackedQuest(null)}
@@ -358,16 +358,16 @@ export function DashboardPanel() {
                 )}
               </div>
               <div className="text-right flex-shrink-0">
-                <div className="text-[10px] text-cyan-400 font-mono">{Math.round(tProgress * 100)}%</div>
+                <div className="text-[10px] text-brand font-mono">{Math.round(tProgress * 100)}%</div>
                 <div className="w-16 h-1 bg-muted-label rounded-full overflow-hidden mt-0.5">
-                  <div className="h-full bg-cyan-400 rounded-full" style={{ width: `${tProgress * 100}%` }} />
+                  <div className="h-full bg-brand rounded-full" style={{ width: `${tProgress * 100}%` }} />
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-2 mt-1.5 text-[9px]">
               {trackedQuestData.reward.money > 0 && <span className="text-success"><GameIcon icon="gi:money-stack" size={14} className="inline" /> ${formatNumber(trackedQuestData.reward.money)}</span>}
-              {trackedQuestData.reward.researchPoints && trackedQuestData.reward.researchPoints > 0 && <span className="text-purple-400"><GameIcon icon="gi:magnifying-glass" size={14} className="inline" /> {trackedQuestData.reward.researchPoints}RP</span>}
-              {trackedQuestData.reward.corporationPoints && trackedQuestData.reward.corporationPoints > 0 && <span className="text-fuchsia-400"><GameIcon icon="gi:briefcase" size={14} className="inline" /> {trackedQuestData.reward.corporationPoints}CP</span>}
+              {trackedQuestData.reward.researchPoints && trackedQuestData.reward.researchPoints > 0 && <span className="text-research"><GameIcon icon="gi:magnifying-glass" size={14} className="inline" /> {trackedQuestData.reward.researchPoints}RP</span>}
+              {trackedQuestData.reward.corporationPoints && trackedQuestData.reward.corporationPoints > 0 && <span className="text-premium"><GameIcon icon="gi:briefcase" size={14} className="inline" /> {trackedQuestData.reward.corporationPoints}CP</span>}
             </div>
           </motion.div>
         );
@@ -375,7 +375,7 @@ export function DashboardPanel() {
 
       {/* GET STARTED CARD - only show when no buildings */}
       {totalBuildings === 0 && (
-        <div className="relative rounded-xl p-8 text-center border border-cyan-500/20 bg-gradient-to-br from-cyan-900/15 via-[#111827] to-teal-900/10 overflow-hidden">
+        <div className="relative rounded-xl p-8 text-center border border-brand/20 bg-gradient-to-br from-cyan-900/15 via-[#111827] to-teal-900/10 overflow-hidden">
           {/* Radial gradient overlay for visual depth */}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,255,242,0.06)_0%,transparent_70%)]" />
           {/* Animated diagonal line pattern background */}
@@ -409,7 +409,7 @@ export function DashboardPanel() {
             >
               <div className="mb-4"><GameIcon icon="gi:castle" size={48} /></div>
             </motion.div>
-            <h3 className="text-xl font-bold text-cyan-400 neon-glow-cyan mb-2">Build Your First Factory!</h3>
+            <h3 className="text-xl font-bold text-brand neon-glow-cyan mb-2">Build Your First Factory!</h3>
             <p className="text-sm text-subtle mb-6 max-w-md mx-auto">
               Start by building a Coal Generator to power your empire, then add Mining Drills to extract resources.
             </p>
@@ -433,7 +433,7 @@ export function DashboardPanel() {
                 className="rounded-md"
               >
                 <Button
-                  className="bg-cyan-600 hover:bg-cyan-500 text-white font-semibold px-5 py-2.5 text-xs"
+                  className="bg-brand hover:bg-brand text-white font-semibold px-5 py-2.5 text-xs"
                   onClick={() => setActiveTab('resources')}
                 >
                   <Pickaxe className="w-4 h-4 mr-1.5" />
@@ -451,19 +451,19 @@ export function DashboardPanel() {
               </motion.div>
               <ArrowRight className="w-3 h-3 text-dim" />
               <motion.div
-                className="flex items-center gap-2 bg-cyan-900/20 border border-cyan-700/30 rounded-lg px-3 py-2"
+                className="flex items-center gap-2 bg-brand/20 border border-brand/30 rounded-lg px-3 py-2"
                 whileHover={{ scale: 1.05, borderColor: 'rgba(6,182,212,0.5)' }}
               >
-                <span className="w-5 h-5 rounded-full bg-cyan-600 text-white flex items-center justify-center text-[10px] font-bold">2</span>
-                <span className="text-cyan-400 font-medium">Build Drills</span>
+                <span className="w-5 h-5 rounded-full bg-brand text-white flex items-center justify-center text-[10px] font-bold">2</span>
+                <span className="text-brand font-medium">Build Drills</span>
               </motion.div>
               <ArrowRight className="w-3 h-3 text-dim" />
               <motion.div
-                className="flex items-center gap-2 bg-orange-900/20 border border-orange-700/30 rounded-lg px-3 py-2"
+                className="flex items-center gap-2 bg-domain/20 border border-domain/30 rounded-lg px-3 py-2"
                 whileHover={{ scale: 1.05, borderColor: 'rgba(249,115,22,0.5)' }}
               >
-                <span className="w-5 h-5 rounded-full bg-orange-600 text-white flex items-center justify-center text-[10px] font-bold">3</span>
-                <span className="text-orange-400 font-medium">Build Factories</span>
+                <span className="w-5 h-5 rounded-full bg-domain text-white flex items-center justify-center text-[10px] font-bold">3</span>
+                <span className="text-domain font-medium">Build Factories</span>
               </motion.div>
             </div>
           </div>
@@ -474,7 +474,7 @@ export function DashboardPanel() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div>
-            <h2 className="text-xl font-bold text-cyan-400 neon-glow-cyan tracking-wide flex items-center gap-2">Factory Overview
+            <h2 className="text-xl font-bold text-brand neon-glow-cyan tracking-wide flex items-center gap-2">Factory Overview
               {activeBuildings > 0 && (
                 <motion.span
                   className="inline-flex items-center gap-1"
@@ -492,7 +492,7 @@ export function DashboardPanel() {
         </div>
         <div className="flex items-center gap-2">
           {activeEvents.length > 0 && (
-            <Badge variant="outline" className="border-orange-500/50 text-orange-400 bg-orange-900/20 text-xs neon-pulse">
+            <Badge variant="outline" className="border-domain/50 text-domain bg-domain/20 text-xs neon-pulse">
               <AlertTriangle className="w-3 h-3 mr-1" />
               {activeEvents.length} Event{activeEvents.length > 1 ? 's' : ''}
             </Badge>
@@ -598,12 +598,12 @@ export function DashboardPanel() {
                   <span className="text-success font-mono font-bold">{formatNumber(powerGrid.totalProduction)}</span> MW production
                 </span>
                 <span className="text-subtle">
-                  <span className="text-orange-400 font-mono font-bold">{formatNumber(powerGrid.totalConsumption)}</span> MW demand
+                  <span className="text-domain font-mono font-bold">{formatNumber(powerGrid.totalConsumption)}</span> MW demand
                 </span>
               </div>
               <div className="h-4 bg-muted-label rounded-full overflow-hidden relative">
                 <div
-                  className="absolute inset-y-0 left-0 bg-orange-600/30 rounded-full transition-all duration-700"
+                  className="absolute inset-y-0 left-0 bg-domain/30 rounded-full transition-all duration-700"
                   style={{ width: `${Math.min(100, (powerGrid.totalConsumption / Math.max(1, powerGrid.totalProduction)) * 100)}%` }}
                 />
                 <div
@@ -687,12 +687,12 @@ export function DashboardPanel() {
               {/* Total Assets */}
               <div className="bg-[#0a0e17] rounded-lg p-3">
                 <div className="flex items-center gap-2 mb-1.5">
-                  <div className="w-6 h-6 rounded-md bg-cyan-900/30 flex items-center justify-center">
-                    <Wallet className="w-3.5 h-3.5 text-cyan-400" />
+                  <div className="w-6 h-6 rounded-md bg-brand/30 flex items-center justify-center">
+                    <Wallet className="w-3.5 h-3.5 text-brand" />
                   </div>
                   <span className="text-[10px] text-muted-label">Total Assets</span>
                 </div>
-                <div className="text-sm font-bold font-mono text-cyan-400">
+                <div className="text-sm font-bold font-mono text-brand">
                   ${formatNumber(economySummary.totalAssetsValue)}
                 </div>
                 <div className="text-[9px] text-muted-label mt-0.5">
@@ -709,7 +709,7 @@ export function DashboardPanel() {
                 </div>
                 <div className={`text-sm font-bold font-mono ${
                   economySummary.storageUtilization > 90 ? 'text-danger' :
-                  economySummary.storageUtilization > 70 ? 'text-orange-400' :
+                  economySummary.storageUtilization > 70 ? 'text-domain' :
                   economySummary.storageUtilization > 50 ? 'text-warning' :
                   'text-success'
                 }`}>
@@ -719,7 +719,7 @@ export function DashboardPanel() {
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
                       economySummary.storageUtilization > 90 ? 'bg-danger' :
-                      economySummary.storageUtilization > 70 ? 'bg-orange-500' :
+                      economySummary.storageUtilization > 70 ? 'bg-domain' :
                       'bg-success'
                     }`}
                     style={{ width: `${Math.min(100, economySummary.storageUtilization)}%` }}
@@ -733,8 +733,8 @@ export function DashboardPanel() {
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Database className="w-4 h-4 text-cyan-400" />
-                <h3 className="text-sm font-semibold text-cyan-400">Resource Storage</h3>
+                <Database className="w-4 h-4 text-brand" />
+                <h3 className="text-sm font-semibold text-brand">Resource Storage</h3>
               </div>
               <span className="text-[10px] text-muted-label">{topResources.length} raw materials</span>
             </div>
@@ -747,9 +747,9 @@ export function DashboardPanel() {
                 <div className="mb-3 bg-[#0a0e17] rounded-lg p-3">
                   <div className="flex items-center justify-between text-[10px] mb-1.5">
                     <div className="flex items-center gap-3">
-                      <span className="text-subtle">Total Stored: <span className="text-cyan-300 font-mono font-bold">{formatNumber(totalStored)}</span></span>
+                      <span className="text-subtle">Total Stored: <span className="text-brand font-mono font-bold">{formatNumber(totalStored)}</span></span>
                       <span className="text-muted-label">|</span>
-                      <span className="text-subtle">Capacity: <span className={`font-mono font-bold ${overallPct > 80 ? 'text-orange-400' : overallPct > 50 ? 'text-warning' : 'text-success'}`}>{overallPct.toFixed(1)}%</span></span>
+                      <span className="text-subtle">Capacity: <span className={`font-mono font-bold ${overallPct > 80 ? 'text-domain' : overallPct > 50 ? 'text-warning' : 'text-success'}`}>{overallPct.toFixed(1)}%</span></span>
                     </div>
                     <span className="text-muted-label font-mono">{formatNumber(totalStored)}/{formatNumber(totalCapacity)}</span>
                   </div>
@@ -757,7 +757,7 @@ export function DashboardPanel() {
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${
                         overallPct > 90 ? 'bg-danger' :
-                        overallPct > 70 ? 'bg-orange-500' :
+                        overallPct > 70 ? 'bg-domain' :
                         overallPct > 50 ? 'bg-warning' :
                         'bg-gradient-to-r from-cyan-600 to-cyan-400'
                       }`}
@@ -779,7 +779,7 @@ export function DashboardPanel() {
                         <span className="text-subtle font-medium">{meta.name}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className={`font-mono ${isLow ? 'text-orange-400' : 'text-subtle'}`}>
+                        <span className={`font-mono ${isLow ? 'text-domain' : 'text-subtle'}`}>
                           {formatNumber(amount)}
                         </span>
                         <span className="text-muted-label">/</span>
@@ -795,7 +795,7 @@ export function DashboardPanel() {
                       <div
                         className={`h-full rounded-full resource-bar-premium resource-bar-animated transition-all duration-500 ${
                           pct > 90 ? 'bg-danger' :
-                          pct > 70 ? 'bg-orange-500' :
+                          pct > 70 ? 'bg-domain' :
                           'bg-gradient-to-r from-cyan-600 to-cyan-400'
                         }`}
                         style={{ width: `${Math.min(100, pct)}%` }}
@@ -849,8 +849,8 @@ export function DashboardPanel() {
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Activity className="w-4 h-4 text-cyan-400" />
-                <h3 className="text-sm font-semibold text-cyan-400">Activity Feed</h3>
+                <Activity className="w-4 h-4 text-brand" />
+                <h3 className="text-sm font-semibold text-brand">Activity Feed</h3>
               </div>
               <span className="text-[10px] text-muted-label">Live events</span>
             </div>
@@ -901,8 +901,8 @@ export function DashboardPanel() {
           {/* BUILDING BREAKDOWN */}
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
-              <Factory className="w-4 h-4 text-cyan-400" />
-              <h3 className="text-sm font-semibold text-cyan-400">Building Breakdown</h3>
+              <Factory className="w-4 h-4 text-brand" />
+              <h3 className="text-sm font-semibold text-brand">Building Breakdown</h3>
             </div>
             <div className="space-y-2">
               <BuildingCategoryRow
@@ -918,8 +918,8 @@ export function DashboardPanel() {
                 label="Factories"
                 count={factoryCount}
                 total={totalBuildings}
-                color="text-orange-400"
-                bgColor="bg-orange-500"
+                color="text-domain"
+                bgColor="bg-domain"
               />
               <BuildingCategoryRow
                 icon={<Zap className="w-3.5 h-3.5" />}
@@ -938,8 +938,8 @@ export function DashboardPanel() {
           {/* ACTIVE RESEARCH */}
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
-              <FlaskConical className="w-4 h-4 text-purple-400" />
-              <h3 className="text-sm font-semibold text-purple-400">Active Research</h3>
+              <FlaskConical className="w-4 h-4 text-research" />
+              <h3 className="text-sm font-semibold text-research">Active Research</h3>
             </div>
             {activeResearchInfo ? (
               <div>
@@ -962,7 +962,7 @@ export function DashboardPanel() {
                   </div>
                 </div>
                 <div className="text-right mt-1">
-                  <span className="text-[10px] text-purple-400 font-mono">{activeResearchInfo.progress.toFixed(1)}%</span>
+                  <span className="text-[10px] text-research font-mono">{activeResearchInfo.progress.toFixed(1)}%</span>
                 </div>
               </div>
             ) : (
@@ -977,8 +977,8 @@ export function DashboardPanel() {
           {/* ACTIVE EVENTS TICKER */}
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
-              <AlertTriangle className="w-4 h-4 text-orange-400" />
-              <h3 className="text-sm font-semibold text-orange-400">Active Events</h3>
+              <AlertTriangle className="w-4 h-4 text-domain" />
+              <h3 className="text-sm font-semibold text-domain">Active Events</h3>
             </div>
             {activeEvents.length === 0 ? (
               <div className="text-center py-4">
@@ -989,10 +989,10 @@ export function DashboardPanel() {
             ) : (
               <div className="space-y-2 max-h-48 overflow-y-auto game-scrollbar">
                 {activeEvents.map(event => (
-                  <div key={event.id} className="bg-[#0a0e17] rounded-lg p-3 border border-orange-900/30">
+                  <div key={event.id} className="bg-[#0a0e17] rounded-lg p-3 border border-domain/30">
                     <div className="flex items-center gap-2 mb-1">
                       <GameIcon icon={event.icon} size={14} className="inline-flex" />
-                      <span className="text-xs text-orange-300 font-medium">{event.name}</span>
+                      <span className="text-xs text-domain font-medium">{event.name}</span>
                     </div>
                     <p className="text-[10px] text-subtle mb-1.5 line-clamp-2">{event.description}</p>
                     <div className="flex items-center justify-between">
@@ -1002,7 +1002,7 @@ export function DashboardPanel() {
                       </div>
                       <div className="h-1 w-16 bg-muted-label rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-orange-500 rounded-full"
+                          className="h-full bg-domain rounded-full"
                           style={{ width: `${(event.remaining / event.duration) * 100}%` }}
                         />
                       </div>
@@ -1057,8 +1057,8 @@ export function DashboardPanel() {
           {/* QUICK ACTIONS */}
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
-              <Wrench className="w-4 h-4 text-cyan-400" />
-              <h3 className="text-sm font-semibold text-cyan-400">Quick Build</h3>
+              <Wrench className="w-4 h-4 text-brand" />
+              <h3 className="text-sm font-semibold text-brand">Quick Build</h3>
             </div>
             <div className="grid grid-cols-2 gap-2">
               {quickBuildTypes.map(type => {
@@ -1077,7 +1077,7 @@ export function DashboardPanel() {
                       !unlocked
                         ? 'border-muted-label text-muted-label opacity-50'
                         : canAfford
-                          ? 'border-cyan-800/50 text-cyan-400 hover:bg-cyan-900/20 hover:border-cyan-500/50'
+                          ? 'border-brand/50 text-brand hover:bg-brand/20 hover:border-brand/50'
                           : 'border-muted-label text-muted-label'
                     }`}
                     onClick={() => handleBuild(type)}
@@ -1095,8 +1095,8 @@ export function DashboardPanel() {
           {/* PRESTIGE / GLOBAL STATS */}
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
-              <Globe className="w-4 h-4 text-fuchsia-400" />
-              <h3 className="text-sm font-semibold text-fuchsia-400">Empire Stats</h3>
+              <Globe className="w-4 h-4 text-premium" />
+              <h3 className="text-sm font-semibold text-premium">Empire Stats</h3>
             </div>
             <div className="space-y-1.5 text-xs">
               <div className="flex justify-between">
@@ -1105,7 +1105,7 @@ export function DashboardPanel() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-label">Peak Efficiency</span>
-                <span className="text-cyan-400 font-mono">{(stats.peakEfficiency * 100).toFixed(1)}%</span>
+                <span className="text-brand font-mono">{(stats.peakEfficiency * 100).toFixed(1)}%</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-label">Buildings Built</span>
@@ -1113,11 +1113,11 @@ export function DashboardPanel() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-label">Research Done</span>
-                <span className="text-purple-400 font-mono">{stats.researchCompleted}</span>
+                <span className="text-research font-mono">{stats.researchCompleted}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-label">Contracts Done</span>
-                <span className="text-rose-400 font-mono">{stats.contractsCompleted}</span>
+                <span className="text-danger font-mono">{stats.contractsCompleted}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-label">Play Time</span>
@@ -1249,7 +1249,7 @@ function RankBar() {
           <Button
             variant="outline"
             size="sm"
-            className="h-8 text-[10px] border-fuchsia-800/50 text-fuchsia-400 hover:bg-fuchsia-900/20"
+            className="h-8 text-[10px] border-fuchsia-800/50 text-premium hover:bg-fuchsia-900/20"
             onClick={() => setActiveTab('resources')}
           >
             <Package className="w-3 h-3 mr-1" />
@@ -1286,10 +1286,10 @@ function WeatherInfoCard() {
   const weatherBorders: Record<string, string> = {
     clear: 'border-slate-700/40',
     sunny: 'border-yellow-600/40',
-    rainy: 'border-blue-600/40',
-    stormy: 'border-purple-600/40',
+    rainy: 'border-brand/40',
+    stormy: 'border-research/40',
     foggy: 'border-muted-label/40',
-    snowy: 'border-blue-300/30',
+    snowy: 'border-brand/30',
   };
 
   const prodEffect = weatherDef.productionMultiplier - 1;
@@ -1345,11 +1345,11 @@ function WeatherInfoCard() {
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <CloudSun className="w-4 h-4 text-cyan-400" />
-            <h3 className="text-sm font-semibold text-cyan-400">Weather</h3>
+            <CloudSun className="w-4 h-4 text-brand" />
+            <h3 className="text-sm font-semibold text-brand">Weather</h3>
           </div>
           {isEffectActive && (
-            <Badge variant="outline" className="text-[9px] border-orange-500/40 text-orange-400 bg-orange-900/20">
+            <Badge variant="outline" className="text-[9px] border-domain/40 text-domain bg-domain/20">
               ACTIVE
             </Badge>
           )}
@@ -1401,7 +1401,7 @@ function WeatherInfoCard() {
             <Clock className="w-2.5 h-2.5" />
             {isEffectActive ? 'Weather ends in' : 'Next change in'}
           </span>
-          <span className="text-cyan-400 font-mono">
+          <span className="text-brand font-mono">
             {isEffectActive ? formatTicksToTime(weather.remaining) : formatTicksToTime(ticksUntilChange)}
           </span>
         </div>

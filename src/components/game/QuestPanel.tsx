@@ -17,23 +17,23 @@ function getTierColor(tier: number): string {
 
 const QUEST_TYPE_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
   build: { label: 'BUILD', color: 'text-warning', bg: 'bg-amber-900/20', border: 'border-amber-800/40' },
-  produce: { label: 'PRODUCE', color: 'text-cyan-400', bg: 'bg-cyan-900/20', border: 'border-cyan-800/40' },
+  produce: { label: 'PRODUCE', color: 'text-brand', bg: 'bg-brand/20', border: 'border-brand/40' },
   sell: { label: 'SELL', color: 'text-success', bg: 'bg-success/20', border: 'border-success/40' },
-  research: { label: 'RESEARCH', color: 'text-purple-400', bg: 'bg-purple-900/20', border: 'border-purple-800/40' },
+  research: { label: 'RESEARCH', color: 'text-research', bg: 'bg-research/20', border: 'border-research/40' },
   earn: { label: 'EARN', color: 'text-warning', bg: 'bg-yellow-900/20', border: 'border-yellow-800/40' },
-  reach: { label: 'REACH', color: 'text-teal-400', bg: 'bg-teal-900/20', border: 'border-teal-800/40' },
-  contract: { label: 'CONTRACT', color: 'text-blue-400', bg: 'bg-blue-900/20', border: 'border-blue-800/40' },
-  transport: { label: 'TRANSPORT', color: 'text-orange-400', bg: 'bg-orange-900/20', border: 'border-orange-800/40' },
+  reach: { label: 'REACH', color: 'text-brand', bg: 'bg-brand/20', border: 'border-brand/40' },
+  contract: { label: 'CONTRACT', color: 'text-brand', bg: 'bg-brand/20', border: 'border-brand/40' },
+  transport: { label: 'TRANSPORT', color: 'text-domain', bg: 'bg-domain/20', border: 'border-domain/40' },
   worker: { label: 'WORKER', color: 'text-success', bg: 'bg-success/20', border: 'border-success/40' },
-  prestige: { label: 'PRESTIGE', color: 'text-fuchsia-400', bg: 'bg-fuchsia-900/20', border: 'border-fuchsia-800/40' },
-  megaProject: { label: 'MEGA', color: 'text-rose-400', bg: 'bg-rose-900/20', border: 'border-rose-800/40' },
+  prestige: { label: 'PRESTIGE', color: 'text-premium', bg: 'bg-fuchsia-900/20', border: 'border-fuchsia-800/40' },
+  megaProject: { label: 'MEGA', color: 'text-danger', bg: 'bg-danger/20', border: 'border-rose-800/40' },
 };
 
 const CATEGORY_CONFIG: Record<string, { icon: string; label: string; color: string; bg: string; border: string }> = {
-  tutorial: { icon: 'gi:book-cover', label: 'Tutorial', color: 'text-cyan-400', bg: 'bg-cyan-900/20', border: 'border-cyan-800/40' },
+  tutorial: { icon: 'gi:book-cover', label: 'Tutorial', color: 'text-brand', bg: 'bg-brand/20', border: 'border-brand/40' },
   daily: { icon: 'gi:calendar', label: 'Daily', color: 'text-warning', bg: 'bg-amber-900/20', border: 'border-amber-800/40' },
-  weekly: { icon: 'gi:calendar', label: 'Weekly', color: 'text-teal-400', bg: 'bg-teal-900/20', border: 'border-teal-800/40' },
-  challenge: { icon: 'gi:medal', label: 'Challenge', color: 'text-rose-400', bg: 'bg-rose-900/20', border: 'border-rose-800/40' },
+  weekly: { icon: 'gi:calendar', label: 'Weekly', color: 'text-brand', bg: 'bg-brand/20', border: 'border-brand/40' },
+  challenge: { icon: 'gi:medal', label: 'Challenge', color: 'text-danger', bg: 'bg-danger/20', border: 'border-rose-800/40' },
   milestone: { icon: 'gi:crown', label: 'Milestone', color: 'text-warning', bg: 'bg-yellow-900/20', border: 'border-yellow-800/40' },
 };
 
@@ -76,8 +76,8 @@ const MemoizedQuestItem = React.memo(function MemoizedQuestItem({
             : allStepsComplete
               ? 'border-success/30 bg-success/10'
               : isTracked
-                ? 'border-cyan-400/40 bg-cyan-900/10'
-                : 'border-cyan-900/30 bg-card/50'
+                ? 'border-brand/40 bg-brand/10'
+                : 'border-brand/30 bg-card/50'
       }`} style={{ borderLeftColor: isLocked ? '#333' : tierColor }}
     >
       <div className="flex items-start justify-between gap-3">
@@ -93,8 +93,8 @@ const MemoizedQuestItem = React.memo(function MemoizedQuestItem({
               { label: 'Type', value: typeConfig.label, color: typeConfig.color },
               { label: 'Category', value: catConfig.label, color: catConfig.color },
               ...(quest.reward.money > 0 ? [{ label: 'Money Reward', value: `$${formatNumber(quest.reward.money)}`, color: 'text-success' }] : []),
-              ...(quest.reward.researchPoints && quest.reward.researchPoints > 0 ? [{ label: 'RP Reward', value: `${quest.reward.researchPoints}`, color: 'text-purple-400' }] : []),
-              ...(quest.reward.corporationPoints && quest.reward.corporationPoints > 0 ? [{ label: 'CP Reward', value: `${quest.reward.corporationPoints}`, color: 'text-fuchsia-400' }] : []),
+              ...(quest.reward.researchPoints && quest.reward.researchPoints > 0 ? [{ label: 'RP Reward', value: `${quest.reward.researchPoints}`, color: 'text-research' }] : []),
+              ...(quest.reward.corporationPoints && quest.reward.corporationPoints > 0 ? [{ label: 'CP Reward', value: `${quest.reward.corporationPoints}`, color: 'text-premium' }] : []),
               ...quest.steps.map((step, i) => ({
                 label: `Step ${i + 1}`,
                 value: `${Math.min(step.current, step.target)}/${step.target} ${step.completed ? '✓' : ''}`,
@@ -103,7 +103,7 @@ const MemoizedQuestItem = React.memo(function MemoizedQuestItem({
               ...(quest.expiresAt && quest.expiresAt > 0 ? [{
                 label: 'Time Remaining',
                 value: `${Math.max(0, quest.expiresAt - gameTick)} ticks`,
-                color: (quest.expiresAt - gameTick) > 100 ? 'text-cyan-300' : (quest.expiresAt - gameTick) > 30 ? 'text-warning' : 'text-danger',
+                color: (quest.expiresAt - gameTick) > 100 ? 'text-brand' : (quest.expiresAt - gameTick) > 30 ? 'text-warning' : 'text-danger',
               }] : []),
             ]}
             side="right"
@@ -116,7 +116,7 @@ const MemoizedQuestItem = React.memo(function MemoizedQuestItem({
                   isLocked ? 'text-muted-label' :
                   quest.claimed ? 'text-muted-label line-through'
                   : allStepsComplete ? 'text-success'
-                  : isTracked ? 'text-cyan-300'
+                  : isTracked ? 'text-brand'
                   : 'text-subtle'
                 }`}>
                   {quest.name}
@@ -150,7 +150,7 @@ const MemoizedQuestItem = React.memo(function MemoizedQuestItem({
               onClick={() => onTrack(isTracked ? null : quest.id)}
               className={`p-1.5 rounded-lg ${
                 isTracked
-                  ? 'bg-cyan-900/40 text-cyan-400 border border-cyan-500/40 hover:bg-cyan-900/60'
+                  ? 'bg-brand/40 text-brand border border-brand/40 hover:bg-brand/60'
                   : 'bg-muted-label/50 text-muted-label border border-muted-label/50 hover:text-subtle hover:bg-muted-label'
               }`}
               title={isTracked ? 'Untrack quest' : 'Track quest on dashboard'}
@@ -171,7 +171,7 @@ const MemoizedQuestItem = React.memo(function MemoizedQuestItem({
                 CLAIM
               </button>
           ) : (
-            <span className="text-[10px] text-cyan-400 bg-cyan-900/20 px-2 py-1 rounded">
+            <span className="text-[10px] text-brand bg-brand/20 px-2 py-1 rounded">
               {Math.round(progress * 100)}%
             </span>
           )}
@@ -193,7 +193,7 @@ const MemoizedQuestItem = React.memo(function MemoizedQuestItem({
                 <div className="h-1.5 bg-muted-label rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-500 progress-bar-shimmer ${
-                      step.completed ? 'bg-success' : isTracked ? 'bg-cyan-400' : 'bg-cyan-500'
+                      step.completed ? 'bg-success' : isTracked ? 'bg-brand' : 'bg-brand'
                     }`}
                     style={{ width: `${stepProgress * 100}%` }}
                   />
@@ -208,8 +208,8 @@ const MemoizedQuestItem = React.memo(function MemoizedQuestItem({
         <div className="mt-3 flex items-center gap-2 text-[10px] pt-2 border-t border-muted-label/50">
           <span className="text-muted-label">Rewards:</span>
           {quest.reward.money > 0 && <span className="text-success">${formatNumber(quest.reward.money)}</span>}
-          {quest.reward.researchPoints && quest.reward.researchPoints > 0 && <span className="text-purple-400">{quest.reward.researchPoints} RP</span>}
-          {quest.reward.corporationPoints && quest.reward.corporationPoints > 0 && <span className="text-fuchsia-400">{quest.reward.corporationPoints} CP</span>}
+          {quest.reward.researchPoints && quest.reward.researchPoints > 0 && <span className="text-research">{quest.reward.researchPoints} RP</span>}
+          {quest.reward.corporationPoints && quest.reward.corporationPoints > 0 && <span className="text-premium">{quest.reward.corporationPoints} CP</span>}
         </div>
       )}
     </div>
@@ -287,10 +287,10 @@ export function QuestPanel() {
       tooltipDetails.push({ label: 'Money Reward', value: `$${formatNumber(quest.reward.money)}`, color: 'text-success' });
     }
     if (quest.reward.researchPoints && quest.reward.researchPoints > 0) {
-      tooltipDetails.push({ label: 'RP Reward', value: `${quest.reward.researchPoints}`, color: 'text-purple-400' });
+      tooltipDetails.push({ label: 'RP Reward', value: `${quest.reward.researchPoints}`, color: 'text-research' });
     }
     if (quest.reward.corporationPoints && quest.reward.corporationPoints > 0) {
-      tooltipDetails.push({ label: 'CP Reward', value: `${quest.reward.corporationPoints}`, color: 'text-fuchsia-400' });
+      tooltipDetails.push({ label: 'CP Reward', value: `${quest.reward.corporationPoints}`, color: 'text-premium' });
     }
 
     quest.steps.forEach((step, i) => {
@@ -306,7 +306,7 @@ export function QuestPanel() {
       tooltipDetails.push({
         label: 'Time Remaining',
         value: formatTimeRemaining(Math.max(0, remaining)),
-        color: remaining > 100 ? 'text-cyan-300' : remaining > 30 ? 'text-warning' : 'text-danger',
+        color: remaining > 100 ? 'text-brand' : remaining > 30 ? 'text-warning' : 'text-danger',
       });
     }
 
@@ -321,8 +321,8 @@ export function QuestPanel() {
               : allStepsComplete
                 ? 'border-success/30 bg-success/10'
                 : isTracked
-                  ? 'border-cyan-400/40 bg-cyan-900/10'
-                  : 'border-cyan-900/30 bg-card/50'
+                  ? 'border-brand/40 bg-brand/10'
+                  : 'border-brand/30 bg-card/50'
         }`} style={{ borderLeftColor: isLocked ? '#333' : tierColor }}
       >
         <div className="flex items-start justify-between gap-3">
@@ -344,7 +344,7 @@ export function QuestPanel() {
                     isLocked ? 'text-muted-label' :
                     quest.claimed ? 'text-muted-label line-through'
                     : allStepsComplete ? 'text-success'
-                    : isTracked ? 'text-cyan-300'
+                    : isTracked ? 'text-brand'
                     : 'text-subtle'
                   }`}>
                     {quest.name}
@@ -385,7 +385,7 @@ export function QuestPanel() {
                 onClick={() => store.setTrackedQuest(isTracked ? null : quest.id)}
                 className={`p-1.5 rounded-lg ${
                   isTracked
-                    ? 'bg-cyan-900/40 text-cyan-400 border border-cyan-500/40 hover:bg-cyan-900/60'
+                    ? 'bg-brand/40 text-brand border border-brand/40 hover:bg-brand/60'
                     : 'bg-muted-label/50 text-muted-label border border-muted-label/50 hover:text-subtle hover:bg-muted-label'
                 }`}
                 title={isTracked ? 'Untrack quest' : 'Track quest on dashboard'}
@@ -406,7 +406,7 @@ export function QuestPanel() {
                   CLAIM
                 </button>
             ) : (
-              <span className="text-[10px] text-cyan-400 bg-cyan-900/20 px-2 py-1 rounded">
+              <span className="text-[10px] text-brand bg-brand/20 px-2 py-1 rounded">
                 {Math.round(progress * 100)}%
               </span>
             )}
@@ -429,7 +429,7 @@ export function QuestPanel() {
                   <div className="h-1.5 bg-muted-label rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-500 progress-bar-shimmer ${
-                        step.completed ? 'bg-success' : isTracked ? 'bg-cyan-400' : 'bg-cyan-500'
+                        step.completed ? 'bg-success' : isTracked ? 'bg-brand' : 'bg-brand'
                       }`}
                       style={{ width: `${stepProgress * 100}%` }}
                     />
@@ -445,8 +445,8 @@ export function QuestPanel() {
           <div className="mt-3 flex items-center gap-2 text-[10px] pt-2 border-t border-muted-label/50">
             <span className="text-muted-label">Rewards:</span>
             {quest.reward.money > 0 && <span className="text-success">${formatNumber(quest.reward.money)}</span>}
-            {quest.reward.researchPoints && quest.reward.researchPoints > 0 && <span className="text-purple-400">{quest.reward.researchPoints} RP</span>}
-            {quest.reward.corporationPoints && quest.reward.corporationPoints > 0 && <span className="text-fuchsia-400">{quest.reward.corporationPoints} CP</span>}
+            {quest.reward.researchPoints && quest.reward.researchPoints > 0 && <span className="text-research">{quest.reward.researchPoints} RP</span>}
+            {quest.reward.corporationPoints && quest.reward.corporationPoints > 0 && <span className="text-premium">{quest.reward.corporationPoints} CP</span>}
           </div>
         )}
       </div>
@@ -457,7 +457,7 @@ export function QuestPanel() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-xl font-bold text-cyan-400 flex items-center gap-2 neon-glow-cyan">
+        <h2 className="text-xl font-bold text-brand flex items-center gap-2 neon-glow-cyan">
           <GameIcon icon="gi:scroll-unfurled" size={20} className="inline" /> Quest Board
         </h2>
         <div className="flex items-center gap-2 text-[10px]">
@@ -483,8 +483,8 @@ export function QuestPanel() {
           Claim All Rewards ({unclaimedQuests.length} quest{unclaimedQuests.length > 1 ? 's' : ''})
           <span className="flex items-center gap-2 ml-1 text-xs">
             {availableReward > 0 && <span className="text-success">${formatNumber(availableReward)}</span>}
-            {availableRPReward > 0 && <span className="text-purple-400">{formatNumber(availableRPReward)} RP</span>}
-            {availableCPReward > 0 && <span className="text-fuchsia-400">{availableCPReward} CP</span>}
+            {availableRPReward > 0 && <span className="text-research">{formatNumber(availableRPReward)} RP</span>}
+            {availableCPReward > 0 && <span className="text-premium">{availableCPReward} CP</span>}
           </span>
         </button>
       )}
@@ -555,7 +555,7 @@ export function QuestPanel() {
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-1 text-[10px] text-subtle hover:text-cyan-400 transition-colors"
+            className="flex items-center gap-1 text-[10px] text-subtle hover:text-brand transition-colors"
           >
             <Filter className="w-3 h-3" />
             Filter
@@ -573,7 +573,7 @@ export function QuestPanel() {
                 onClick={() => setFilterType(f.key)}
                 className={`text-[9px] px-2 py-1 rounded-full border ${
                   filterType === f.key
-                    ? 'border-cyan-500/50 bg-cyan-900/30 text-cyan-400'
+                    ? 'border-brand/50 bg-brand/30 text-brand'
                     : 'border-muted-label bg-muted-label/30 text-muted-label hover:text-subtle'
                 }`}
               >
@@ -584,7 +584,7 @@ export function QuestPanel() {
           {filterType !== 'all' && (
             <button
               onClick={() => setFilterType('all')}
-              className="text-[9px] text-cyan-400 hover:text-cyan-300 ml-auto"
+              className="text-[9px] text-brand hover:text-brand ml-auto"
             >
               Clear filter ✕
             </button>
@@ -646,11 +646,11 @@ export function QuestPanel() {
           ? trackedQuestData.steps.reduce((sum, s) => sum + Math.min(1, s.current / Math.max(1, s.target)), 0) / trackedQuestData.steps.length
           : 0;
         return (
-          <div className="bg-gradient-to-r from-cyan-900/20 to-teal-900/10 border border-cyan-500/30 rounded-xl p-3">
+          <div className="bg-gradient-to-r from-cyan-900/20 to-teal-900/10 border border-brand/30 rounded-xl p-3">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <Pin className="w-3.5 h-3.5 text-cyan-400" />
-                <span className="text-[10px] text-cyan-400 uppercase tracking-wider font-semibold">Tracked Quest</span>
+                <Pin className="w-3.5 h-3.5 text-brand" />
+                <span className="text-[10px] text-brand uppercase tracking-wider font-semibold">Tracked Quest</span>
               </div>
               <button
                 onClick={() => store.setTrackedQuest(null)}
@@ -666,18 +666,18 @@ export function QuestPanel() {
                 <div className="flex items-center gap-2 mt-0.5">
                   <div className="flex-1 h-1.5 bg-muted-label rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-cyan-400 rounded-full transition-all"
+                      className="h-full bg-brand rounded-full transition-all"
                       style={{ width: `${tProgress * 100}%` }}
                     />
                   </div>
-                  <span className="text-[10px] text-cyan-400 font-mono">{Math.round(tProgress * 100)}%</span>
+                  <span className="text-[10px] text-brand font-mono">{Math.round(tProgress * 100)}%</span>
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-2 text-[10px]">
               {trackedQuestData.reward.money > 0 && <span className="text-success">${formatNumber(trackedQuestData.reward.money)}</span>}
-              {trackedQuestData.reward.researchPoints && trackedQuestData.reward.researchPoints > 0 && <span className="text-purple-400">{trackedQuestData.reward.researchPoints} RP</span>}
-              {trackedQuestData.reward.corporationPoints && trackedQuestData.reward.corporationPoints > 0 && <span className="text-fuchsia-400">{trackedQuestData.reward.corporationPoints} CP</span>}
+              {trackedQuestData.reward.researchPoints && trackedQuestData.reward.researchPoints > 0 && <span className="text-research">{trackedQuestData.reward.researchPoints} RP</span>}
+              {trackedQuestData.reward.corporationPoints && trackedQuestData.reward.corporationPoints > 0 && <span className="text-premium">{trackedQuestData.reward.corporationPoints} CP</span>}
             </div>
           </div>
         );

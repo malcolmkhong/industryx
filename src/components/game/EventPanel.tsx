@@ -14,11 +14,11 @@ import { GameIcon } from '@/components/game/shared/GameIcon';
 const EVENT_COLORS: Record<string, string> = {
   oilCrisis: 'border-amber-600/50 bg-amber-900/10',
   energyShortage: 'border-yellow-600/50 bg-yellow-900/10',
-  aiRevolution: 'border-purple-600/50 bg-purple-900/10',
+  aiRevolution: 'border-research/50 bg-research/10',
   economicBoom: 'border-success/50 bg-success/10',
   naturalDisaster: 'border-danger/50 bg-danger/10',
-  techBreakthrough: 'border-cyan-600/50 bg-cyan-900/10',
-  tradeWar: 'border-orange-600/50 bg-orange-900/10',
+  techBreakthrough: 'border-brand/50 bg-brand/10',
+  tradeWar: 'border-domain/50 bg-domain/10',
   greenInitiative: 'border-success/50 bg-success/10',
   spaceRace: 'border-violet-600/50 bg-violet-900/10',
   marketCrash: 'border-danger/50 bg-danger/10',
@@ -40,11 +40,11 @@ export function EventPanel() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-orange-400 neon-glow-cyan tracking-wide">World Events</h2>
+          <h2 className="text-xl font-bold text-domain neon-glow-cyan tracking-wide">World Events</h2>
           <p className="text-xs text-muted-label mt-0.5">Dynamic events that change the game world</p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="border-orange-500/50 text-orange-400 bg-orange-900/20 text-xs">
+          <Badge variant="outline" className="border-domain/50 text-domain bg-domain/20 text-xs">
             <AlertTriangle className="w-3 h-3 mr-1" />
             {store.activeEvents.length} active
           </Badge>
@@ -52,10 +52,10 @@ export function EventPanel() {
       </div>
 
       {/* Active Events */}
-      <div className="game-card rounded-xl bg-card p-4 border border-orange-900/30">
+      <div className="game-card rounded-xl bg-card p-4 border border-domain/30">
         <div className="flex items-center gap-2 mb-3">
-          <Activity className="w-4 h-4 text-orange-400 neon-pulse" />
-          <h3 className="text-sm font-semibold text-orange-400">Active Events</h3>
+          <Activity className="w-4 h-4 text-domain neon-pulse" />
+          <h3 className="text-sm font-semibold text-domain">Active Events</h3>
         </div>
         {store.activeEvents.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-muted-label">
@@ -119,7 +119,7 @@ export function EventPanel() {
                     >
                       <div
                         className={`h-full rounded-full transition-all ${
-                          timePct < 25 ? 'bg-danger neon-pulse' : 'bg-orange-500'
+                          timePct < 25 ? 'bg-danger neon-pulse' : 'bg-domain'
                         }`}
                         style={{ width: `${timePct}%` }}
                       />
@@ -158,7 +158,7 @@ export function EventPanel() {
                   <GameIcon icon={template.icon} size={16} className="inline-flex" />
                   <span className="text-xs font-medium text-subtle">{template.name}</span>
                   {isActive && (
-                    <Badge className="text-[8px] bg-orange-900/20 text-orange-400 border-0 ml-auto">ACTIVE</Badge>
+                    <Badge className="text-[8px] bg-domain/20 text-domain border-0 ml-auto">ACTIVE</Badge>
                   )}
                 </div>
                 <p className="text-[10px] text-subtle line-clamp-2">{template.description}</p>

@@ -29,9 +29,9 @@ const GRID_ROWS = 12;
 // --- Category Color Mapping ---
 const CATEGORY_STYLES: Record<string, { bg: string; border: string; glow: string; text: string; fill: string }> = {
   extractor: { bg: 'bg-amber-900/50', border: 'border-warning/50', glow: 'shadow-amber-500/30', text: 'text-warning', fill: '#92400e' },
-  factory_t1: { bg: 'bg-cyan-900/50', border: 'border-cyan-500/50', glow: 'shadow-cyan-500/30', text: 'text-cyan-400', fill: '#164e63' },
-  factory_t2: { bg: 'bg-orange-900/50', border: 'border-orange-500/50', glow: 'shadow-orange-500/30', text: 'text-orange-400', fill: '#7c2d12' },
-  factory_t3: { bg: 'bg-purple-900/50', border: 'border-purple-500/50', glow: 'shadow-purple-500/30', text: 'text-purple-400', fill: '#581c87' },
+  factory_t1: { bg: 'bg-brand/50', border: 'border-brand/50', glow: 'shadow-cyan-500/30', text: 'text-brand', fill: '#164e63' },
+  factory_t2: { bg: 'bg-domain/50', border: 'border-domain/50', glow: 'shadow-orange-500/30', text: 'text-domain', fill: '#7c2d12' },
+  factory_t3: { bg: 'bg-research/50', border: 'border-research/50', glow: 'shadow-purple-500/30', text: 'text-research', fill: '#581c87' },
   factory_t4: { bg: 'bg-success/50', border: 'border-success/50', glow: 'shadow-emerald-500/30', text: 'text-success', fill: '#064e3b' },
   factory_t5: { bg: 'bg-danger/50', border: 'border-danger/50', glow: 'shadow-red-500/30', text: 'text-danger', fill: '#7f1d1d' },
   power: { bg: 'bg-yellow-900/50', border: 'border-warning/50', glow: 'shadow-yellow-500/30', text: 'text-warning', fill: '#713f12' },
@@ -95,11 +95,11 @@ const BUILD_CATEGORIES = [
 function WeatherIcon({ type }: { type: string }) {
   switch (type) {
     case 'clear': return <Sun className="w-3.5 h-3.5 text-warning" />;
-    case 'sunny': return <Sun className="w-3.5 h-3.5 text-orange-400" />;
-    case 'rainy': return <CloudRain className="w-3.5 h-3.5 text-blue-400" />;
-    case 'stormy': return <CloudLightning className="w-3.5 h-3.5 text-purple-400" />;
+    case 'sunny': return <Sun className="w-3.5 h-3.5 text-domain" />;
+    case 'rainy': return <CloudRain className="w-3.5 h-3.5 text-brand" />;
+    case 'stormy': return <CloudLightning className="w-3.5 h-3.5 text-research" />;
     case 'foggy': return <CloudFog className="w-3.5 h-3.5 text-subtle" />;
-    case 'snowy': return <Snowflake className="w-3.5 h-3.5 text-sky-300" />;
+    case 'snowy': return <Snowflake className="w-3.5 h-3.5 text-brand" />;
     default: return <Cloud className="w-3.5 h-3.5 text-subtle" />;
   }
 }
@@ -114,11 +114,11 @@ function getTerrainTint(row: number): { bg: string; label: string } {
 // --- Decorative element for empty cells (factory floor feel) ---
 function getFloorDecoration(r: number, c: number): React.ReactNode {
   const hash = (r * 31 + c * 17) % 7;
-  if (hash === 0) return <div className="w-0.5 h-0.5 rounded-full bg-cyan-900/30" />; // tiny dot
+  if (hash === 0) return <div className="w-0.5 h-0.5 rounded-full bg-brand/30" />; // tiny dot
   if (hash === 1) return <div className="w-1.5 h-px bg-muted-label/20" />; // dash
   if (hash === 2) return <div className="w-1 h-1 border-t border-r border-muted-label/15 rotate-45 scale-75" />; // small cross
   if (hash === 3) return <div className="w-0.5 h-0.5 rounded-sm bg-amber-900/20 rotate-45" />; // tiny diamond
-  if (hash === 4) return <div className="w-1 h-px bg-cyan-800/15" />; // line
+  if (hash === 4) return <div className="w-1 h-px bg-brand/15" />; // line
   if (hash === 5) return <div className="w-0.5 h-0.5 rounded-full bg-yellow-900/20" />; // warm dot
   return null; // some cells stay clean
 }
@@ -244,7 +244,7 @@ const MapBuildingTile = memo(function MapBuildingTile({
           </div>
         </motion.div>
       </TooltipTrigger>
-      <TooltipContent side="top" className="bg-card border-cyan-900/30 w-48 p-2">
+      <TooltipContent side="top" className="bg-card border-brand/30 w-48 p-2">
         <div className="space-y-1">
           <div className="flex items-center justify-between">
             <GameIcon icon={def.icon} size={14} className="inline-flex" />
@@ -398,7 +398,7 @@ function SelectedBuildingPanel({
           size="sm"
           className={`flex-1 h-7 text-[10px] ${
             canAffordUpgrade
-              ? 'border-cyan-800/50 text-cyan-400 hover:bg-cyan-900/20'
+              ? 'border-brand/50 text-brand hover:bg-brand/20'
               : 'border-muted-label text-muted-label'
           }`}
           onClick={() => upgradeBuilding(building.id)}
@@ -1099,7 +1099,7 @@ export default function FactoryMapPanel() {
         </div>
         <div className="flex items-center gap-2">
           {/* Weather indicator */}
-          <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-sky-500/30 text-sky-400 bg-sky-900/10 flex items-center gap-1">
+          <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-brand/30 text-brand bg-brand/10 flex items-center gap-1">
             <WeatherIcon type={weather.current} />
             {weather.current !== 'clear' && <span>{weather.remaining}t</span>}
           </Badge>
@@ -1119,7 +1119,7 @@ export default function FactoryMapPanel() {
       {/* BUILD MODE TOOLBAR */}
       <div className="game-card rounded-xl bg-card border border-border overflow-hidden">
         {/* Top row: mode toggles + zoom */}
-        <div className="flex items-center justify-between px-3 py-2 border-b border-cyan-900/20">
+        <div className="flex items-center justify-between px-3 py-2 border-b border-brand/20">
           <div className="flex items-center gap-2">
             <Button
               variant={buildMode ? 'default' : 'outline'}
@@ -1131,7 +1131,7 @@ export default function FactoryMapPanel() {
               {buildMode ? 'Building...' : 'Build'}
             </Button>
             {buildMode && selectedBuildType && (
-              <Badge className="text-[9px] bg-cyan-900/30 text-cyan-400 border border-cyan-500/30 px-1.5 py-0">
+              <Badge className="text-[9px] bg-brand/30 text-brand border border-brand/30 px-1.5 py-0">
                 Placing: <GameIcon icon={BUILDING_DEFS[selectedBuildType]?.icon} size={14} className="inline-flex" /> {BUILDING_DEFS[selectedBuildType]?.name}
               </Badge>
             )}
@@ -1149,7 +1149,7 @@ export default function FactoryMapPanel() {
             <Button
               variant={autoConnectEnabled ? 'default' : 'outline'}
               size="sm"
-              className={`h-6 w-6 p-0 ${autoConnectEnabled ? 'bg-cyan-700 text-white' : 'text-subtle'}`}
+              className={`h-6 w-6 p-0 ${autoConnectEnabled ? 'bg-brand text-white' : 'text-subtle'}`}
               onClick={() => setAutoConnectEnabled(!autoConnectEnabled)}
               title="Auto Connect: Automatically link buildings by production chain"
             >
@@ -1159,7 +1159,7 @@ export default function FactoryMapPanel() {
             <Button
               variant="outline"
               size="sm"
-              className="h-6 w-6 p-0 text-subtle hover:text-cyan-400"
+              className="h-6 w-6 p-0 text-subtle hover:text-brand"
               onClick={autoArrange}
               title="Auto Arrange: Reorganize buildings by production chain"
             >
@@ -1167,7 +1167,7 @@ export default function FactoryMapPanel() {
             </Button>
             {/* Connection count badge */}
             {autoConnectEnabled && autoConnections.length > 0 && (
-              <Badge className="text-[7px] px-1 py-0 h-4 bg-cyan-900/40 text-cyan-400 border border-cyan-500/30">
+              <Badge className="text-[7px] px-1 py-0 h-4 bg-brand/40 text-brand border border-brand/30">
                 {autoConnections.length}
               </Badge>
             )}
@@ -1203,14 +1203,14 @@ export default function FactoryMapPanel() {
                     value={buildSearch}
                     onChange={(e) => setBuildSearch(e.target.value)}
                     placeholder="Search buildings..."
-                    className="h-6 text-[10px] pl-7 pr-2 bg-[#0a0e17] border-muted-label/50 text-subtle placeholder:text-muted-label focus:border-cyan-800/50"
+                    className="h-6 text-[10px] pl-7 pr-2 bg-[#0a0e17] border-muted-label/50 text-subtle placeholder:text-muted-label focus:border-brand/50"
                   />
                 </div>
 
                 {/* Recently Used section */}
                 {recentlyUsed.length > 0 && !buildSearch.trim() && (
                   <div>
-                    <div className="flex items-center gap-1 text-[10px] text-cyan-500/70 mb-1">
+                    <div className="flex items-center gap-1 text-[10px] text-brand/70 mb-1">
                       <Clock className="w-2.5 h-2.5" />
                       Recently Used
                     </div>
@@ -1229,7 +1229,7 @@ export default function FactoryMapPanel() {
                             key={`recent-${type}`}
                             className={`
                               relative flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg border text-center
-                              ${isSelected ? 'border-cyan-400 bg-cyan-900/30 shadow-[0_0_10px_rgba(0,255,242,0.3)]' : 'border-cyan-800/30 bg-cyan-900/10 hover:border-cyan-700/50'}
+                              ${isSelected ? 'border-brand bg-brand/30 shadow-[0_0_10px_rgba(0,255,242,0.3)]' : 'border-brand/30 bg-brand/10 hover:border-brand/50'}
                               ${!affordable ? 'opacity-60' : ''}
                             `}
                             onClick={() => setSelectedBuildType(isSelected ? null : type)}
@@ -1270,7 +1270,7 @@ export default function FactoryMapPanel() {
                                 <button
                                   className={`
                                     relative flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg border text-center
-                                    ${isSelected ? 'border-cyan-400 bg-cyan-900/30 shadow-[0_0_10px_rgba(0,255,242,0.3)]' : ''}
+                                    ${isSelected ? 'border-brand bg-brand/30 shadow-[0_0_10px_rgba(0,255,242,0.3)]' : ''}
                                     ${!unlocked ? 'border-muted-label bg-muted-label/20 opacity-40' : ''}
                                     ${unlocked && !isSelected ? 'border-muted-label bg-muted-label/30 hover:border-muted-label hover:bg-muted-label/50' : ''}
                                     ${!affordable && unlocked ? 'opacity-60' : ''}
@@ -1295,11 +1295,11 @@ export default function FactoryMapPanel() {
                                   )}
                                 </button>
                               </TooltipTrigger>
-                              <TooltipContent side="bottom" className="bg-card border-cyan-900/30 w-52 p-2">
+                              <TooltipContent side="bottom" className="bg-card border-brand/30 w-52 p-2">
                                 <div className="space-y-1">
                                   <div className="flex items-center gap-1.5">
                                     <GameIcon icon={def.icon} size={16} />
-                                    <span className="text-xs font-semibold text-cyan-400">{def.name}</span>
+                                    <span className="text-xs font-semibold text-brand">{def.name}</span>
                                   </div>
                                   <p className="text-[9px] text-subtle">{def.description}</p>
                                   <div className="text-[9px] text-muted-label">
@@ -1342,7 +1342,7 @@ export default function FactoryMapPanel() {
         {/* Map Area */}
         <div className="flex-1 game-card rounded-xl bg-[#0a0e17] border border-border overflow-hidden relative" style={{ minHeight: 400 }}>
           {/* Landscape hint for small screens */}
-          <div className="sm:hidden flex items-center gap-1.5 px-3 py-1.5 bg-cyan-900/20 border-b border-cyan-800/30 text-[10px] text-cyan-400">
+          <div className="sm:hidden flex items-center gap-1.5 px-3 py-1.5 bg-brand/20 border-b border-brand/30 text-[10px] text-brand">
             <GameIcon icon="gi:smartphone" size={14} />
             <span>Use landscape for best experience. Pinch or scroll to zoom.</span>
           </div>
@@ -1351,11 +1351,11 @@ export default function FactoryMapPanel() {
           {/* Weather overlay */}
           {weather.current !== 'clear' && (
             <div className={`absolute inset-0 pointer-events-none z-20 transition-opacity duration-1000 ${
-              weather.current === 'rainy' ? 'bg-blue-900/10' :
-              weather.current === 'stormy' ? 'bg-purple-900/15' :
+              weather.current === 'rainy' ? 'bg-brand/10' :
+              weather.current === 'stormy' ? 'bg-research/15' :
               weather.current === 'snowy' ? 'bg-sky-100/5' :
               weather.current === 'foggy' ? 'bg-muted-label/10' :
-              'bg-orange-900/5'
+              'bg-domain/5'
             }`} />
           )}
 
@@ -1429,7 +1429,7 @@ export default function FactoryMapPanel() {
                           className={`
                             w-full h-full rounded-lg border factory-blueprint-grid
                             ${canPlace && isHovered
-                              ? 'border-cyan-500/60 bg-cyan-900/20 shadow-[0_0_10px_rgba(0,255,242,0.2)]'
+                              ? 'border-brand/60 bg-brand/20 shadow-[0_0_10px_rgba(0,255,242,0.2)]'
                               : canPlace
                                 ? 'border-muted-label/40 hover:border-muted-label/50 hover:bg-muted-label/20'
                                 : 'border-muted-label/20'
@@ -1448,7 +1448,7 @@ export default function FactoryMapPanel() {
                           {canPlace && isHovered && selectedBuildType && BUILDING_DEFS[selectedBuildType] && (
                             <div className="w-full h-full flex flex-col items-center justify-center opacity-50" style={{ filter: 'drop-shadow(0 0 6px rgba(0,255,242,0.4))' }}>
                               <GameIcon icon={BUILDING_DEFS[selectedBuildType].icon} size={20} />
-                              <span className="text-[7px] text-cyan-400">Place here</span>
+                              <span className="text-[7px] text-brand">Place here</span>
                             </div>
                           )}
                           {/* Decorative floor element */}
@@ -1503,7 +1503,7 @@ export default function FactoryMapPanel() {
             <div className="grid grid-cols-2 gap-2">
               <div className="bg-[#0a0e17] rounded-lg p-1.5 text-center">
                 <div className="text-[8px] text-muted-label">Buildings</div>
-                <div className="text-sm font-bold text-cyan-400 font-mono">{totalBuildings}</div>
+                <div className="text-sm font-bold text-brand font-mono">{totalBuildings}</div>
               </div>
               <div className="bg-[#0a0e17] rounded-lg p-1.5 text-center">
                 <div className="text-[8px] text-muted-label">Active</div>
@@ -1519,7 +1519,7 @@ export default function FactoryMapPanel() {
                 <div className="text-[8px] text-muted-label flex items-center justify-center gap-0.5">
                   <Factory className="w-2 h-2" /> Factory
                 </div>
-                <div className="text-sm font-bold text-orange-400 font-mono">{factoryCount}</div>
+                <div className="text-sm font-bold text-domain font-mono">{factoryCount}</div>
               </div>
               <div className="bg-[#0a0e17] rounded-lg p-1.5 text-center">
                 <div className="text-[8px] text-muted-label flex items-center justify-center gap-0.5">
@@ -1605,7 +1605,7 @@ export default function FactoryMapPanel() {
                 <div className="text-[8px] text-muted-label flex items-center justify-center gap-0.5">
                   <Clock className="w-2 h-2" /> Tick Rate
                 </div>
-                <div className={`text-[10px] font-bold font-mono ${paused ? 'text-danger' : 'text-cyan-400'}`}>
+                <div className={`text-[10px] font-bold font-mono ${paused ? 'text-danger' : 'text-brand'}`}>
                   {paused ? <GameIcon icon="gi:pause-button" size={14} className="inline" /> : `${gameSpeed}x`}
                 </div>
               </div>
@@ -1618,8 +1618,8 @@ export default function FactoryMapPanel() {
             {/* Connection Stats */}
             <div className="mt-2 pt-2 border-t border-muted-label/30">
               <div className="flex items-center gap-2 text-[9px]">
-                <GitBranch className="w-3 h-3 text-cyan-400" />
-                <span className="text-cyan-400">{autoConnections.length}</span>
+                <GitBranch className="w-3 h-3 text-brand" />
+                <span className="text-brand">{autoConnections.length}</span>
                 <span className="text-muted-label">connections</span>
                 {autoConnections.length > 0 && (
                   <>
@@ -1643,15 +1643,15 @@ export default function FactoryMapPanel() {
                 <span className="text-subtle">Extractors</span>
               </div>
               <div className="flex items-center gap-2 text-[9px]">
-                <div className="w-4 h-3 rounded-sm bg-cyan-900/60 border border-cyan-500/40" />
+                <div className="w-4 h-3 rounded-sm bg-brand/60 border border-brand/40" />
                 <span className="text-subtle">T1 Factory</span>
               </div>
               <div className="flex items-center gap-2 text-[9px]">
-                <div className="w-4 h-3 rounded-sm bg-orange-900/60 border border-orange-500/40" />
+                <div className="w-4 h-3 rounded-sm bg-domain/60 border border-domain/40" />
                 <span className="text-subtle">T2 Factory</span>
               </div>
               <div className="flex items-center gap-2 text-[9px]">
-                <div className="w-4 h-3 rounded-sm bg-purple-900/60 border border-purple-500/40" />
+                <div className="w-4 h-3 rounded-sm bg-research/60 border border-research/40" />
                 <span className="text-subtle">T3 Factory</span>
               </div>
               <div className="flex items-center gap-2 text-[9px]">
@@ -1663,7 +1663,7 @@ export default function FactoryMapPanel() {
                 <span className="text-muted-label">Power Lines</span>
               </div>
               <div className="flex items-center gap-2 text-[9px]">
-                <div className="w-4 h-0.5 bg-cyan-400/30 rounded" />
+                <div className="w-4 h-0.5 bg-brand/30 rounded" />
                 <span className="text-muted-label">Resource Flow</span>
               </div>
               <div className="flex items-center gap-2 text-[9px] mt-1 pt-1 border-t border-muted-label/30">

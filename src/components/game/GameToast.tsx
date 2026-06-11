@@ -39,9 +39,9 @@ const TOAST_COLORS = {
     glow: 'shadow-red-500/10',
   },
   info: {
-    border: 'border-cyan-500/50',
-    bg: 'bg-cyan-900/20',
-    icon: 'text-cyan-400',
+    border: 'border-brand/50',
+    bg: 'bg-brand/20',
+    icon: 'text-brand',
     glow: 'shadow-cyan-500/10',
   },
 };

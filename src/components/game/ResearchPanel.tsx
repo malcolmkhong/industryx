@@ -20,12 +20,12 @@ export function ResearchPanel() {
   const [startingResearch, setStartingResearch] = useState<string | null>(null);
 
   const categories: { id: ResearchCategory; name: string; icon: React.ReactNode; color: string }[] = [
-    { id: 'automation', name: 'Automation', icon: <Cog className="w-4 h-4" />, color: 'text-orange-400' },
-    { id: 'logistics', name: 'Logistics', icon: <Truck className="w-4 h-4" />, color: 'text-blue-400' },
+    { id: 'automation', name: 'Automation', icon: <Cog className="w-4 h-4" />, color: 'text-domain' },
+    { id: 'logistics', name: 'Logistics', icon: <Truck className="w-4 h-4" />, color: 'text-brand' },
     { id: 'energy', name: 'Energy', icon: <Zap className="w-4 h-4" />, color: 'text-warning' },
     { id: 'ai', name: 'Electronics & AI', icon: <Brain className="w-4 h-4" />, color: 'text-success' },
-    { id: 'robotics', name: 'Robotics', icon: <Bot className="w-4 h-4" />, color: 'text-pink-400' },
-    { id: 'quantum', name: 'Quantum Tech', icon: <Atom className="w-4 h-4" />, color: 'text-purple-400' },
+    { id: 'robotics', name: 'Robotics', icon: <Bot className="w-4 h-4" />, color: 'text-premium' },
+    { id: 'quantum', name: 'Quantum Tech', icon: <Atom className="w-4 h-4" />, color: 'text-research' },
   ];
 
   const activeResearchNode = store.activeResearch
@@ -45,15 +45,15 @@ export function ResearchPanel() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-purple-400 neon-glow-cyan tracking-wide">Research Lab</h2>
+          <h2 className="text-xl font-bold text-research neon-glow-cyan tracking-wide">Research Lab</h2>
           <p className="text-xs text-muted-label mt-0.5">Unlock new technologies and boost production</p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="border-purple-500/50 text-purple-400 bg-purple-900/20 text-xs">
+          <Badge variant="outline" className="border-research/50 text-research bg-research/20 text-xs">
             <FlaskConical className="w-3 h-3 mr-1" />
             {formatNumber(store.researchPoints)} RP
           </Badge>
-          <Badge variant="outline" className="border-cyan-500/50 text-cyan-400 bg-cyan-900/20 text-xs">
+          <Badge variant="outline" className="border-brand/50 text-brand bg-brand/20 text-xs">
             <Check className="w-3 h-3 mr-1" />
             {store.completedResearch.length}/{RESEARCH_TREE.length}
           </Badge>
@@ -61,19 +61,19 @@ export function ResearchPanel() {
       </div>
 
       {/* Active Research */}
-      <div className="game-card rounded-xl bg-card p-4 border border-purple-900/30 relative overflow-hidden">
+      <div className="game-card rounded-xl bg-card p-4 border border-research/30 relative overflow-hidden">
         {/* Subtle glow effect behind active research card */}
         {activeResearchNode && (
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(168,85,247,0.08)_0%,transparent_70%)] pointer-events-none" />
         )}
         <div className="flex items-center gap-2 mb-3 relative z-10">
-          <FlaskConical className="w-4 h-4 text-purple-400" />
-          <h3 className="text-sm font-semibold text-purple-400">Active Research</h3>
+          <FlaskConical className="w-4 h-4 text-research" />
+          <h3 className="text-sm font-semibold text-research">Active Research</h3>
         </div>
         {activeResearchNode ? (
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 rounded-xl bg-purple-900/20 flex items-center justify-center text-2xl neon-pulse">
+              <div className="w-12 h-12 rounded-xl bg-research/20 flex items-center justify-center text-2xl neon-pulse">
                 <GameIcon icon={activeResearchNode.icon} size={24} />
               </div>
               <div className="flex-1">
@@ -81,7 +81,7 @@ export function ResearchPanel() {
                 <div className="text-[10px] text-subtle mt-0.5">{activeResearchNode.description}</div>
               </div>
               <div className="text-right">
-                <div className="text-sm font-bold font-mono text-purple-400">
+                <div className="text-sm font-bold font-mono text-research">
                   {((store.researchProgress / activeResearchNode.timeRequired) * 100).toFixed(1)}%
                 </div>
                 <div className="text-[10px] text-muted-label">
@@ -144,12 +144,12 @@ export function ResearchPanel() {
                       category={node.category}
                       tier={node.tier}
                       details={[
-                        { label: 'Cost', value: `${formatNumber(node.cost)} RP`, color: 'text-purple-400' },
+                        { label: 'Cost', value: `${formatNumber(node.cost)} RP`, color: 'text-research' },
                         { label: 'Time Required', value: `${node.timeRequired} ticks` },
                         ...node.effects.map((effect, i) => ({
                           label: `Effect ${i + 1}`,
                           value: `${effect.type === 'productionSpeed' ? 'Speed' : effect.type === 'unlockBuilding' ? 'Unlock' : effect.type === 'transportSpeed' ? 'Transport' : effect.type === 'powerEfficiency' ? 'Power' : effect.type === 'marketBonus' ? 'Market' : effect.type === 'workerEfficiency' ? 'Workers' : effect.type === 'unlockTransport' ? 'Unlock' : effect.type === 'storageBonus' ? 'Storage' : 'Bonus'} +${(effect.value * 100).toFixed(0)}%${effect.target ? ` (${effect.target})` : ''}`,
-                          color: 'text-cyan-400',
+                          color: 'text-brand',
                         })),
                       ]}
                       requirements={[
@@ -169,15 +169,15 @@ export function ResearchPanel() {
                         isCompleted
                           ? 'bg-success/10 border border-success/30'
                           : isActive
-                            ? 'bg-purple-900/10 border border-purple-500/30 neon-pulse shadow-[0_0_15px_rgba(168,85,247,0.15)]'
+                            ? 'bg-research/10 border border-research/30 neon-pulse shadow-[0_0_15px_rgba(168,85,247,0.15)]'
                             : isAvailable
-                              ? 'bg-[#0a0e17] border border-muted-label hover:border-purple-900/50 hover:-translate-y-0.5 hover:shadow-lg'
+                              ? 'bg-[#0a0e17] border border-muted-label hover:border-research/50 hover:-translate-y-0.5 hover:shadow-lg'
                               : 'bg-[#0a0e17] border border-muted-label opacity-50'
                       }`}
                     >
                       <div className="flex items-center gap-3">
                         <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg ${
-                          isCompleted ? 'bg-success/30' : isActive ? 'bg-purple-900/30' : 'bg-muted-label/50'
+                          isCompleted ? 'bg-success/30' : isActive ? 'bg-research/30' : 'bg-muted-label/50'
                         }`}>
                           {isCompleted ? <GameIcon icon="lucide:check-circle" size={16} /> : isUnlocked ? <GameIcon icon={node.icon} size={16} /> : <Lock className="w-4 h-4 text-muted-label" />}
                         </div>
@@ -196,10 +196,10 @@ export function ResearchPanel() {
                           {isCompleted ? (
                             <Badge className="text-[9px] bg-success/30 text-success border-0">Done</Badge>
                           ) : isActive ? (
-                            <Badge className="text-[9px] bg-purple-900/30 text-purple-400 border-0 neon-pulse">Active</Badge>
+                            <Badge className="text-[9px] bg-research/30 text-research border-0 neon-pulse">Active</Badge>
                           ) : (
                             <div>
-                              <div className="text-[10px] text-purple-400 font-mono">{formatNumber(node.cost)} RP</div>
+                              <div className="text-[10px] text-research font-mono">{formatNumber(node.cost)} RP</div>
                               <div className="text-[9px] text-muted-label">{node.timeRequired} ticks</div>
                             </div>
                           )}
@@ -231,7 +231,7 @@ export function ResearchPanel() {
                         <div className="mt-2 pt-2 border-t border-muted-label/50">
                           <div className="flex flex-wrap gap-1">
                             {node.effects.map((effect, i) => (
-                              <Badge key={i} variant="outline" className="text-[8px] px-1 py-0 border-cyan-800 text-cyan-400">
+                              <Badge key={i} variant="outline" className="text-[8px] px-1 py-0 border-brand text-brand">
                                 {effect.type === 'productionSpeed' ? <><GameIcon icon="gi:lightning-frequency" size={14} className="inline" /> Speed</> :
                                  effect.type === 'unlockBuilding' ? <><GameIcon icon="gi:castle" size={14} className="inline" /> Unlock</> :
                                  effect.type === 'transportSpeed' ? <><GameIcon icon="gi:truck" size={14} className="inline" /> Transport</> :
@@ -256,7 +256,7 @@ export function ResearchPanel() {
                             setTimeout(() => setStartingResearch(null), 300);
                           }}
                           disabled={startingResearch === node.id}
-                          className="w-full mt-2 bg-purple-600 hover:bg-purple-500 text-white text-xs h-7 min-h-[36px]"
+                          className="w-full mt-2 bg-research hover:bg-research text-white text-xs h-7 min-h-[36px]"
                           size="sm"
                         >
                           {startingResearch === node.id ? <LoadingSpinner /> : <FlaskConical className="w-3 h-3 mr-1" />}

@@ -42,7 +42,7 @@ interface Recommendation {
 const PRIORITY_CONFIG: Record<Priority, { label: string; color: string; bgColor: string; hoverBg: string; borderColor: string; glowColor: string; dotColor: string }> = {
   critical: { label: 'CRITICAL', color: 'text-danger', bgColor: 'bg-danger/20', hoverBg: 'hover:bg-danger/30', borderColor: 'border-danger/40', glowColor: 'rgba(248,113,113,0.15)', dotColor: 'bg-danger' },
   important: { label: 'IMPORTANT', color: 'text-warning', bgColor: 'bg-amber-900/20', hoverBg: 'hover:bg-amber-900/30', borderColor: 'border-warning/40', glowColor: 'rgba(251,191,36,0.12)', dotColor: 'bg-warning' },
-  suggested: { label: 'SUGGESTED', color: 'text-cyan-400', bgColor: 'bg-cyan-900/20', hoverBg: 'hover:bg-cyan-900/30', borderColor: 'border-cyan-500/40', glowColor: 'rgba(34,211,238,0.10)', dotColor: 'bg-cyan-400' },
+  suggested: { label: 'SUGGESTED', color: 'text-brand', bgColor: 'bg-brand/20', hoverBg: 'hover:bg-brand/30', borderColor: 'border-brand/40', glowColor: 'rgba(34,211,238,0.10)', dotColor: 'bg-brand' },
   optional: { label: 'OPTIONAL', color: 'text-subtle', bgColor: 'bg-muted-label/20', hoverBg: 'hover:bg-muted-label/30', borderColor: 'border-muted-label/40', glowColor: 'rgba(156,163,175,0.08)', dotColor: 'bg-gray-400' },
 };
 
@@ -193,9 +193,9 @@ function HealthGauge({ score, breakdown }: { score: number; breakdown: HealthBre
       {/* Breakdown bars */}
       <div className="w-full space-y-1 px-1">
         <HealthBar label="Power" value={breakdown.power} color="text-warning" barColor="bg-warning" />
-        <HealthBar label="Production" value={breakdown.production} color="text-cyan-400" barColor="bg-cyan-400" />
+        <HealthBar label="Production" value={breakdown.production} color="text-brand" barColor="bg-brand" />
         <HealthBar label="Storage" value={breakdown.storage} color="text-success" barColor="bg-success" />
-        <HealthBar label="Activity" value={breakdown.activity} color="text-purple-400" barColor="bg-purple-400" />
+        <HealthBar label="Activity" value={breakdown.activity} color="text-research" barColor="bg-research" />
       </div>
     </div>
   );
@@ -331,7 +331,7 @@ function RecommendationCard({
 // --- Quick Stat Card ---
 function QuickStatCard({ icon: Icon, label, value, color, subtext }: { icon: React.ElementType; label: string; value: string; color: string; subtext?: string }) {
   return (
-    <div className="bg-[#0a0e17] rounded-lg border border-cyan-900/20 p-3 flex flex-col gap-1">
+    <div className="bg-[#0a0e17] rounded-lg border border-brand/20 p-3 flex flex-col gap-1">
       <div className="flex items-center gap-1.5">
         <Icon className={`w-3.5 h-3.5 ${color}`} />
         <span className="text-[10px] text-muted-label uppercase tracking-wider">{label}</span>
@@ -1075,7 +1075,7 @@ export default function AIAdvisorPanel() {
         </div>
         {visibleRecommendations.length > 0 && (
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className={`text-[10px] ${visibleRecommendations.some(r => r.priority === 'critical') ? 'border-danger/50 text-danger' : visibleRecommendations.some(r => r.priority === 'important') ? 'border-warning/50 text-warning' : 'border-cyan-500/50 text-cyan-400'}`}>
+            <Badge variant="outline" className={`text-[10px] ${visibleRecommendations.some(r => r.priority === 'critical') ? 'border-danger/50 text-danger' : visibleRecommendations.some(r => r.priority === 'important') ? 'border-warning/50 text-warning' : 'border-brand/50 text-brand'}`}>
               {visibleRecommendations.length} recommendation{visibleRecommendations.length !== 1 ? 's' : ''}
             </Badge>
             {dismissedIds.size > 0 && (
@@ -1095,7 +1095,7 @@ export default function AIAdvisorPanel() {
       {/* Health Score + Quick Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-4">
         {/* Health Score */}
-        <Card className="bg-[#0a0e17] border border-cyan-900/20">
+        <Card className="bg-[#0a0e17] border border-brand/20">
           <CardContent className="p-4 flex items-center justify-center">
             <HealthGauge score={healthScore} breakdown={healthBreakdown} />
           </CardContent>
@@ -1121,14 +1121,14 @@ export default function AIAdvisorPanel() {
             icon={AlertTriangle}
             label="Deficits"
             value={deficitCount.toString()}
-            color={deficitCount > 0 ? 'text-orange-400' : 'text-success'}
+            color={deficitCount > 0 ? 'text-domain' : 'text-success'}
             subtext={deficitCount > 0 ? 'resources running low' : 'all resources balanced'}
           />
           <QuickStatCard
             icon={FlaskConical}
             label="Research"
             value={researchProgress}
-            color="text-purple-400"
+            color="text-research"
             subtext={activeResearch ? '1 in progress' : 'none active'}
           />
         </div>
@@ -1136,10 +1136,10 @@ export default function AIAdvisorPanel() {
 
       {/* Production Chain Status */}
       {uniqueChainStatuses.length > 0 && (
-        <Card className="bg-[#0a0e17] border border-cyan-900/20">
+        <Card className="bg-[#0a0e17] border border-brand/20">
           <CardHeader className="pb-2 pt-3 px-4">
             <CardTitle className="text-sm font-semibold text-subtle flex items-center gap-2">
-              <Link2 className="w-3.5 h-3.5 text-cyan-400" />
+              <Link2 className="w-3.5 h-3.5 text-brand" />
               Production Chain Status
               <span className="ml-auto text-[9px] text-muted-label">
                 {chainCounts.fullyProducing} <span className="text-success">active</span> · {chainCounts.partial} <span className="text-warning">partial</span> · {chainCounts.notStarted} <span className="text-danger">idle</span> · {chainCounts.locked} <span className="text-muted-label">locked</span>
@@ -1150,7 +1150,7 @@ export default function AIAdvisorPanel() {
             <div className="max-h-48 overflow-y-auto game-scrollbar">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
                 {uniqueChainStatuses.map(chain => (
-                  <div key={chain.name} className="flex items-center gap-2 py-1 px-2 rounded hover:bg-cyan-900/10 transition-colors">
+                  <div key={chain.name} className="flex items-center gap-2 py-1 px-2 rounded hover:bg-brand/10 transition-colors">
                     <ChainStatusDot status={chain.status} />
                     <span
                       className="w-1.5 h-1.5 rounded-full shrink-0"
@@ -1175,7 +1175,7 @@ export default function AIAdvisorPanel() {
         </h3>
 
         {visibleRecommendations.length === 0 ? (
-          <Card className="bg-[#0a0e17] border border-cyan-900/20">
+          <Card className="bg-[#0a0e17] border border-brand/20">
             <CardContent className="p-6 text-center">
               <div className="text-3xl mb-2"><GameIcon icon="gi:check-mark" size={28} /></div>
               <p className="text-sm text-subtle font-medium">All systems operational!</p>
@@ -1209,7 +1209,7 @@ export default function AIAdvisorPanel() {
               <div>
                 <h4 className="text-sm font-semibold text-success">Getting Started</h4>
                 <p className="text-xs text-subtle mt-1">
-                  Welcome to Factory Dominion! Start by building a <strong className="text-cyan-300">Mining Drill</strong> to extract raw resources,
+                  Welcome to Factory Dominion! Start by building a <strong className="text-brand">Mining Drill</strong> to extract raw resources,
                   then a <strong className="text-warning">Coal Generator</strong> to power your factory.
                   The AI Advisor will track your progress and suggest next steps.
                 </p>
@@ -1218,12 +1218,12 @@ export default function AIAdvisorPanel() {
           </CardContent>
         </Card>
       ) : buildings.length < 5 ? (
-        <Card className="bg-cyan-900/10 border border-cyan-500/20">
+        <Card className="bg-brand/10 border border-brand/20">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
-              <Lightbulb className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
+              <Lightbulb className="w-4 h-4 text-brand flex-shrink-0 mt-0.5" />
               <div>
-                <h4 className="text-xs font-semibold text-cyan-300">Pro Tip</h4>
+                <h4 className="text-xs font-semibold text-brand">Pro Tip</h4>
                 <p className="text-xs text-subtle mt-1">
                   Build a variety of buildings to establish production chains. Raw resources need processing factories
                   to become valuable products. Check the Guide tab for a walkthrough!

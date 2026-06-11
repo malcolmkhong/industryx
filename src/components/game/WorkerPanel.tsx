@@ -184,11 +184,11 @@ export function WorkerPanel() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-sky-400 neon-glow-cyan tracking-wide">Workforce</h2>
+          <h2 className="text-xl font-bold text-brand neon-glow-cyan tracking-wide">Workforce</h2>
           <p className="text-xs text-muted-label mt-0.5">Hire and assign workers to boost production</p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="border-sky-500/50 text-sky-400 bg-sky-900/20 text-xs">
+          <Badge variant="outline" className="border-brand/50 text-brand bg-brand/20 text-xs">
             <Users className="w-3 h-3 mr-1" />
             {workers.length} workers
           </Badge>
@@ -201,21 +201,21 @@ export function WorkerPanel() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="game-card rounded-xl bg-card p-3 border border-sky-900/30">
+        <div className="game-card rounded-xl bg-card p-3 border border-brand/30">
           <div className="text-[10px] text-muted-label mb-1">Total Workers</div>
-          <div className="text-lg font-bold font-mono text-sky-400">{workers.length}</div>
+          <div className="text-lg font-bold font-mono text-brand">{workers.length}</div>
         </div>
-        <div className="game-card rounded-xl bg-card p-3 border border-sky-900/30">
+        <div className="game-card rounded-xl bg-card p-3 border border-brand/30">
           <div className="text-[10px] text-muted-label mb-1">Assigned</div>
           <div className="text-lg font-bold font-mono text-success">{workers.filter(w => w.assignedTo).length}</div>
         </div>
-        <div className="game-card rounded-xl bg-card p-3 border border-sky-900/30">
+        <div className="game-card rounded-xl bg-card p-3 border border-brand/30">
           <div className="text-[10px] text-muted-label mb-1">Total Efficiency</div>
-          <div className="text-lg font-bold font-mono text-cyan-400">+{(totalWorkerBonus.efficiency * 100).toFixed(0)}%</div>
+          <div className="text-lg font-bold font-mono text-brand">+{(totalWorkerBonus.efficiency * 100).toFixed(0)}%</div>
         </div>
-        <div className="game-card rounded-xl bg-card p-3 border border-sky-900/30">
+        <div className="game-card rounded-xl bg-card p-3 border border-brand/30">
           <div className="text-[10px] text-muted-label mb-1">Total Speed</div>
-          <div className="text-lg font-bold font-mono text-purple-400">+{(totalWorkerBonus.speed * 100).toFixed(0)}%</div>
+          <div className="text-lg font-bold font-mono text-research">+{(totalWorkerBonus.speed * 100).toFixed(0)}%</div>
         </div>
       </div>
 
@@ -224,8 +224,8 @@ export function WorkerPanel() {
         <div className="lg:col-span-2 space-y-4">
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
-              <UserPlus className="w-4 h-4 text-sky-400" />
-              <h3 className="text-sm font-semibold text-sky-400">Hire Workers</h3>
+              <UserPlus className="w-4 h-4 text-brand" />
+              <h3 className="text-sm font-semibold text-brand">Hire Workers</h3>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {workerTypes.map(type => {
@@ -243,15 +243,15 @@ export function WorkerPanel() {
                     details={[
                       { label: 'Hire Cost', value: `$${formatNumber(def.baseHireCost)}`, color: canAfford ? 'text-success' : 'text-danger' },
                       { label: 'Efficiency /lv', value: `+${(def.effects.efficiency * 100).toFixed(0)}%`, color: 'text-success' },
-                      { label: 'Speed /lv', value: `+${(def.effects.speed * 100).toFixed(0)}%`, color: 'text-cyan-400' },
-                      { label: 'Maintenance /lv', value: `-${(def.effects.maintenance * 100).toFixed(0)}%`, color: 'text-orange-400' },
+                      { label: 'Speed /lv', value: `+${(def.effects.speed * 100).toFixed(0)}%`, color: 'text-brand' },
+                      { label: 'Maintenance /lv', value: `-${(def.effects.maintenance * 100).toFixed(0)}%`, color: 'text-domain' },
                       { label: 'Hired', value: `${count}` },
                     ]}
                     side="bottom"
                   >
                   <div className="bg-[#0a0e17] rounded-lg p-3 border border-muted-label">
                     <div className="flex items-center gap-3 mb-2">
-                      <div className="w-10 h-10 rounded-lg bg-sky-900/20 flex items-center justify-center text-xl">
+                      <div className="w-10 h-10 rounded-lg bg-brand/20 flex items-center justify-center text-xl">
                         <GameIcon icon={def.icon} size={16} />
                       </div>
                       <div className="flex-1">
@@ -270,11 +270,11 @@ export function WorkerPanel() {
                       </div>
                       <div className="bg-card rounded px-2 py-1 text-center">
                         <div className="text-[9px] text-muted-label">Spd/lv</div>
-                        <div className="text-[10px] font-mono text-cyan-400">+{(def.effects.speed * 100).toFixed(0)}%</div>
+                        <div className="text-[10px] font-mono text-brand">+{(def.effects.speed * 100).toFixed(0)}%</div>
                       </div>
                       <div className="bg-card rounded px-2 py-1 text-center">
                         <div className="text-[9px] text-muted-label">Maint/lv</div>
-                        <div className="text-[10px] font-mono text-orange-400">-{(def.effects.maintenance * 100).toFixed(0)}%</div>
+                        <div className="text-[10px] font-mono text-domain">-{(def.effects.maintenance * 100).toFixed(0)}%</div>
                       </div>
                     </div>
 
@@ -285,7 +285,7 @@ export function WorkerPanel() {
                         setTimeout(() => setHiringType(null), 300);
                       }}
                       disabled={!canAfford || hiringType === type}
-                      className={`w-full text-xs h-7 min-h-[36px] ${canAfford ? 'bg-sky-600 hover:bg-sky-500 text-white' : 'bg-muted-label text-muted-label'}`}
+                      className={`w-full text-xs h-7 min-h-[36px] ${canAfford ? 'bg-brand hover:bg-brand text-white' : 'bg-muted-label text-muted-label'}`}
                       size="sm"
                     >
                       {hiringType === type ? <LoadingSpinner /> : `Hire for $${formatNumber(def.baseHireCost)}`}
@@ -300,13 +300,13 @@ export function WorkerPanel() {
           {/* Worker Assignment Manager */}
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-sky-400 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-brand flex items-center gap-2">
                 <Users className="w-4 h-4" /> Worker Assignments
               </h3>
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 text-[10px] border-sky-800 text-sky-400 hover:bg-sky-900/30"
+                className="h-7 text-[10px] border-brand text-brand hover:bg-brand/30"
                 aria-pressed={false}
                 onClick={() => {
                   // Auto-assign unassigned workers
@@ -347,7 +347,7 @@ export function WorkerPanel() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-5 w-5 p-0 text-muted-label hover:text-cyan-400 min-h-[36px] min-w-[36px]"
+                          className="h-5 w-5 p-0 text-muted-label hover:text-brand min-h-[36px] min-w-[36px]"
                           onClick={() => assignWorker(assignedWorker.id, null)}
                           aria-label="Unassign worker"
                         >
@@ -387,8 +387,8 @@ export function WorkerPanel() {
           {/* Worker Roster */}
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
-              <Briefcase className="w-4 h-4 text-sky-400" />
-              <h3 className="text-sm font-semibold text-sky-400">Worker Roster</h3>
+              <Briefcase className="w-4 h-4 text-brand" />
+              <h3 className="text-sm font-semibold text-brand">Worker Roster</h3>
             </div>
             {workers.length === 0 ? (
               <div className="text-center py-8">
@@ -410,7 +410,7 @@ export function WorkerPanel() {
                       <div className="flex items-center gap-2 mb-2">
                         <GameIcon icon={def.icon} size={16} />
                         <span className="text-xs text-subtle font-medium">{def.name}</span>
-                        <Badge variant="outline" className="text-[9px] border-sky-700 text-sky-400 px-1">
+                        <Badge variant="outline" className="text-[9px] border-brand text-brand px-1">
                           Lv.{worker.level}
                         </Badge>
                         <div className="ml-auto flex items-center gap-1">
@@ -445,11 +445,11 @@ export function WorkerPanel() {
                         </div>
                         <div className="bg-card rounded px-2 py-0.5 text-center">
                           <div className="text-[9px] text-muted-label">Speed</div>
-                          <div className="text-[10px] font-mono text-cyan-400">{(worker.speed * 100).toFixed(0)}%</div>
+                          <div className="text-[10px] font-mono text-brand">{(worker.speed * 100).toFixed(0)}%</div>
                         </div>
                         <div className="bg-card rounded px-2 py-0.5 text-center">
                           <div className="text-[9px] text-muted-label">Bonus</div>
-                          <div className="text-[10px] font-mono text-purple-400">+{(def.effects.speed * worker.level * 100).toFixed(0)}%</div>
+                          <div className="text-[10px] font-mono text-research">+{(def.effects.speed * worker.level * 100).toFixed(0)}%</div>
                         </div>
                       </div>
 
@@ -458,7 +458,7 @@ export function WorkerPanel() {
                         <select
                           value={worker.assignedTo ?? ''}
                           onChange={e => assignWorker(worker.id, e.target.value || null)}
-                          className="flex-1 bg-card border border-muted-label rounded px-2 py-1 text-[10px] text-subtle focus:border-cyan-500/50 focus:outline-none"
+                          className="flex-1 bg-card border border-muted-label rounded px-2 py-1 text-[10px] text-subtle focus:border-brand/50 focus:outline-none"
                         >
                           <option value="">Unassigned</option>
                           {buildings.filter(b => b.active).map(b => {
@@ -484,8 +484,8 @@ export function WorkerPanel() {
           {/* Worker Efficiency Radar Chart */}
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
-              <BarChart3 className="w-4 h-4 text-sky-400" />
-              <h3 className="text-sm font-semibold text-sky-400">Efficiency Radar</h3>
+              <BarChart3 className="w-4 h-4 text-brand" />
+              <h3 className="text-sm font-semibold text-brand">Efficiency Radar</h3>
             </div>
 
             {/* Worker type selector */}
@@ -500,7 +500,7 @@ export function WorkerPanel() {
                     aria-label={`Select ${WORKER_DEFS[type].name}`}
                     className={`flex-1 text-[9px] px-1.5 py-1 rounded-md border transition-all ${
                       isActive
-                        ? 'border-sky-500/50 bg-sky-900/20 text-sky-400'
+                        ? 'border-brand/50 bg-brand/20 text-brand'
                         : 'border-muted-label text-muted-label hover:border-muted-label'
                     }`}
                   >
@@ -607,8 +607,8 @@ export function WorkerPanel() {
           {/* Worker Summary */}
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
-              <Shield className="w-4 h-4 text-sky-400" />
-              <h3 className="text-sm font-semibold text-sky-400">Workforce Summary</h3>
+              <Shield className="w-4 h-4 text-brand" />
+              <h3 className="text-sm font-semibold text-brand">Workforce Summary</h3>
             </div>
             <div className="space-y-2">
               {workerTypes.map(type => {
@@ -627,7 +627,7 @@ export function WorkerPanel() {
                       <div className="flex items-center gap-2 text-[10px]">
                         <span className="text-subtle font-mono">{workers.length}</span>
                         <span className="text-muted-label">|</span>
-                        <span className="text-sky-400 font-mono">Avg Lv.{avgLevel}</span>
+                        <span className="text-brand font-mono">Avg Lv.{avgLevel}</span>
                         <span className="text-muted-label">|</span>
                         <span className="text-success font-mono">{assigned} assigned</span>
                       </div>

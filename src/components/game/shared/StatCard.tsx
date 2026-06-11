@@ -42,7 +42,7 @@ export function StatCard({
   const variantClass = VARIANT_CLASS[variant];
   return (
     <div
-      className={`stat-badge bg-card rounded-lg px-3 py-1.5 border border-cyan-900/20 ${onClick ? 'cursor-pointer' : 'cursor-default'} ${variantClass} ${className}`}
+      className={`stat-badge bg-card rounded-lg px-3 py-1.5 border border-brand/20 ${onClick ? 'cursor-pointer' : 'cursor-default'} ${variantClass} ${className}`}
       onClick={onClick}
     >
       {icon !== undefined && (

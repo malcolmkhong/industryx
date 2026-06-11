@@ -16,7 +16,7 @@ export function PanelHeader({ title, badge, action, className = '' }: PanelHeade
   return (
     <header className={`flex items-center justify-between gap-2 flex-shrink-0 ${className}`}>
       <div className="flex items-center gap-2 min-w-0">
-        <h2 className="text-xl font-bold text-cyan-400 truncate">{title}</h2>
+        <h2 className="text-xl font-bold text-brand truncate">{title}</h2>
         {badge}
       </div>
       {action !== undefined && <div className="flex items-center gap-1 flex-shrink-0">{action}</div>}

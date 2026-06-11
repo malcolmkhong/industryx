@@ -120,7 +120,7 @@ export function PayoutPanel() {
   return (
     <div className="space-y-4">
       {/* Money Balance Header */}
-      <Card className="bg-card border-cyan-900/30 overflow-hidden">
+      <Card className="bg-card border-brand/30 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-green-900/10 via-transparent to-emerald-900/10 pointer-events-none" />
         <CardContent className="p-4 relative">
           <div className="flex items-center justify-between">
@@ -145,23 +145,23 @@ export function PayoutPanel() {
       {/* Payout Timer + Pending */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Timer Card */}
-        <Card className="bg-card border-cyan-900/30">
+        <Card className="bg-card border-brand/30">
           <CardHeader className="pb-2 pt-4 px-4">
-            <CardTitle className="text-xs text-cyan-400 flex items-center gap-1.5">
+            <CardTitle className="text-xs text-brand flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5" /> Next Payout
             </CardTitle>
           </CardHeader>
           <CardContent className="px-4 pb-4">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-2xl font-bold text-cyan-300 font-mono">
+                <span className="text-2xl font-bold text-brand font-mono">
                   {ticksUntilPayout}t
                 </span>
                 <span className="text-xs text-muted-label">
                   ~{secondsUntilPayout}s
                 </span>
               </div>
-              <Progress value={payoutProgress} className="h-2 bg-muted-label [&>div]:bg-cyan-500" />
+              <Progress value={payoutProgress} className="h-2 bg-muted-label [&>div]:bg-brand" />
               <div className="flex items-center justify-between text-[10px] text-muted-label">
                 <span>Every {payoutConfig.basePayoutInterval} ticks</span>
                 <span>{Math.round(payoutProgress)}%</span>
@@ -171,7 +171,7 @@ export function PayoutPanel() {
         </Card>
 
         {/* Pending Payout Card */}
-        <Card className="bg-card border-cyan-900/30">
+        <Card className="bg-card border-brand/30">
           <CardHeader className="pb-2 pt-4 px-4">
             <CardTitle className="text-xs text-success flex items-center gap-1.5">
               <Coins className="w-3.5 h-3.5" /> Pending Payout
@@ -217,9 +217,9 @@ export function PayoutPanel() {
       </div>
 
       {/* Income Breakdown */}
-      <Card className="bg-card border-cyan-900/30">
+      <Card className="bg-card border-brand/30">
         <CardHeader className="pb-2 pt-4 px-4">
-          <CardTitle className="text-xs text-cyan-400 flex items-center gap-1.5">
+          <CardTitle className="text-xs text-brand flex items-center gap-1.5">
             <TrendingUp className="w-3.5 h-3.5" /> Income Breakdown
           </CardTitle>
         </CardHeader>
@@ -242,15 +242,15 @@ export function PayoutPanel() {
             {/* Factory Income */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-md bg-orange-900/20 flex items-center justify-center">
-                  <Factory className="w-4 h-4 text-orange-400" />
+                <div className="w-8 h-8 rounded-md bg-domain/20 flex items-center justify-center">
+                  <Factory className="w-4 h-4 text-domain" />
                 </div>
                 <div>
-                  <p className="text-xs text-orange-300">Factories</p>
+                  <p className="text-xs text-domain">Factories</p>
                   <p className="text-[10px] text-muted-label">{factories.length} active • ${factoryRate}/cycle each</p>
                 </div>
               </div>
-              <span className="text-sm font-mono text-orange-400">${formatNumber(factoryIncome)}</span>
+              <span className="text-sm font-mono text-domain">${formatNumber(factoryIncome)}</span>
             </div>
 
             {/* Power Income */}
@@ -268,14 +268,14 @@ export function PayoutPanel() {
             </div>
 
             {/* Separator */}
-            <div className="border-t border-cyan-900/20 pt-2">
+            <div className="border-t border-brand/20 pt-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-subtle">Raw Income / Cycle</span>
-                <span className="text-sm font-mono text-cyan-300">${formatNumber(totalRawIncome)}</span>
+                <span className="text-sm font-mono text-brand">${formatNumber(totalRawIncome)}</span>
               </div>
               <div className="flex items-center justify-between mt-1">
                 <span className="text-xs text-subtle">Speed Multiplier</span>
-                <span className="text-xs font-mono text-cyan-400">×{effectiveSpeed.toFixed(1)}</span>
+                <span className="text-xs font-mono text-brand">×{effectiveSpeed.toFixed(1)}</span>
               </div>
               <div className="flex items-center justify-between mt-1">
                 <span className="text-xs text-subtle">Avg Efficiency</span>
@@ -283,7 +283,7 @@ export function PayoutPanel() {
                   {(avgEfficiency * 100).toFixed(1)}%
                 </span>
               </div>
-              <div className="flex items-center justify-between mt-2 pt-2 border-t border-cyan-900/15">
+              <div className="flex items-center justify-between mt-2 pt-2 border-t border-brand/15">
                 <span className="text-xs font-bold text-success">Est. Next Payout</span>
                 <span className="text-base font-mono font-bold text-success">${formatNumber(estimatedPayout)}</span>
               </div>
@@ -314,19 +314,19 @@ export function PayoutPanel() {
 
       {/* Payout Stats */}
       <div className="grid grid-cols-3 gap-3">
-        <Card className="bg-card border-cyan-900/30">
+        <Card className="bg-card border-brand/30">
           <CardContent className="p-3 text-center">
             <p className="text-[10px] text-muted-label uppercase">Total Payouts</p>
-            <p className="text-lg font-bold text-cyan-400 font-mono">{payoutConfig.totalPayoutsReceived}</p>
+            <p className="text-lg font-bold text-brand font-mono">{payoutConfig.totalPayoutsReceived}</p>
           </CardContent>
         </Card>
-        <Card className="bg-card border-cyan-900/30">
+        <Card className="bg-card border-brand/30">
           <CardContent className="p-3 text-center">
             <p className="text-[10px] text-muted-label uppercase">Active Buildings</p>
-            <p className="text-lg font-bold text-cyan-400 font-mono">{activeBuildings.length}</p>
+            <p className="text-lg font-bold text-brand font-mono">{activeBuildings.length}</p>
           </CardContent>
         </Card>
-        <Card className="bg-card border-cyan-900/30">
+        <Card className="bg-card border-brand/30">
           <CardContent className="p-3 text-center">
             <p className="text-[10px] text-muted-label uppercase">Income/Min</p>
             <p className="text-lg font-bold text-success font-mono">${formatNumber(incomePerMinute)}</p>
@@ -335,14 +335,14 @@ export function PayoutPanel() {
       </div>
 
       {/* Payout History */}
-      <Card className="bg-card border-cyan-900/30">
+      <Card className="bg-card border-brand/30">
         <CardHeader className="pb-2 pt-4 px-4">
           <button
             className="w-full flex items-center justify-between"
             onClick={() => setHistoryExpanded(!historyExpanded)}
             aria-expanded={historyExpanded}
           >
-            <CardTitle className="text-xs text-cyan-400 flex items-center gap-1.5">
+            <CardTitle className="text-xs text-brand flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5" /> Payout History
             </CardTitle>
             {historyExpanded ? (
@@ -384,14 +384,14 @@ export function PayoutPanel() {
       </Card>
 
       {/* Income Tips */}
-      <Card className="bg-card border-cyan-900/30">
+      <Card className="bg-card border-brand/30">
         <CardHeader className="pb-2 pt-4 px-4">
           <button
             className="w-full flex items-center justify-between"
             onClick={() => setTipsExpanded(!tipsExpanded)}
             aria-expanded={tipsExpanded}
           >
-            <CardTitle className="text-xs text-cyan-400 flex items-center gap-1.5">
+            <CardTitle className="text-xs text-brand flex items-center gap-1.5">
               <Info className="w-3.5 h-3.5" /> Income Tips
             </CardTitle>
             {tipsExpanded ? (
@@ -417,7 +417,7 @@ export function PayoutPanel() {
       </Card>
 
       {/* How Payouts Work */}
-      <Card className="bg-card border-cyan-900/30">
+      <Card className="bg-card border-brand/30">
         <CardContent className="p-4">
           <p className="text-[10px] text-muted-label leading-relaxed">
             <GameIcon icon="gi:light-bulb" size={14} className="inline" /> <span className="text-muted-label">How Payouts Work:</span> Every {payoutConfig.basePayoutInterval} ticks, 

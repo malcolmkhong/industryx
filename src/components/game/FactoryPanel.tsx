@@ -29,9 +29,9 @@ const TIER_3_FACTORIES = factoryTiers[3] as FactoryType[];
 const TIER_4_FACTORIES = factoryTiers[4] as FactoryType[];
 
 const TIER_CONFIG = {
-  1: { label: 'T1 — Processing', shortLabel: 'T1', color: 'cyan', icon: 'gi:flame-tunnel', borderColor: 'border-cyan-900/40', hex: '#22d3ee' },
-  2: { label: 'T2 — Manufacturing', shortLabel: 'T2', color: 'orange', icon: 'gi:big-gear', borderColor: 'border-orange-900/40', hex: '#f97316' },
-  3: { label: 'T3 — High-Tech', shortLabel: 'T3', color: 'purple', icon: 'gi:brain', borderColor: 'border-purple-900/40', hex: '#a855f7' },
+  1: { label: 'T1 — Processing', shortLabel: 'T1', color: 'cyan', icon: 'gi:flame-tunnel', borderColor: 'border-brand/40', hex: '#22d3ee' },
+  2: { label: 'T2 — Manufacturing', shortLabel: 'T2', color: 'orange', icon: 'gi:big-gear', borderColor: 'border-domain/40', hex: '#f97316' },
+  3: { label: 'T3 — High-Tech', shortLabel: 'T3', color: 'purple', icon: 'gi:brain', borderColor: 'border-research/40', hex: '#a855f7' },
   4: { label: 'T4 — Singularity', shortLabel: 'T4', color: 'emerald', icon: 'gi:sparkles', borderColor: 'border-success/40', hex: '#00ffcc' },
 };
 
@@ -40,9 +40,9 @@ const TIER_CONFIG = {
 // Flow diagram tier nodes
 const FLOW_TIERS = [
   { key: 'raw', label: 'Raw Materials', icon: <Pickaxe className="w-4 h-4" />, color: '#6b7280', bgClass: 'bg-muted-label/30', borderClass: 'border-muted-label/40', textClass: 'text-subtle' },
-  { key: 't1', label: 'T1 Processing', icon: <Flame className="w-4 h-4" />, color: '#22d3ee', bgClass: 'bg-cyan-900/20', borderClass: 'border-cyan-700/40', textClass: 'text-cyan-400' },
-  { key: 't2', label: 'T2 Manufacturing', icon: <Cog className="w-4 h-4" />, color: '#f97316', bgClass: 'bg-orange-900/20', borderClass: 'border-orange-700/40', textClass: 'text-orange-400' },
-  { key: 't3', label: 'T3 High-Tech', icon: <Sparkles className="w-4 h-4" />, color: '#a855f7', bgClass: 'bg-purple-900/20', borderClass: 'border-purple-700/40', textClass: 'text-purple-400' },
+  { key: 't1', label: 'T1 Processing', icon: <Flame className="w-4 h-4" />, color: '#22d3ee', bgClass: 'bg-brand/20', borderClass: 'border-brand/40', textClass: 'text-brand' },
+  { key: 't2', label: 'T2 Manufacturing', icon: <Cog className="w-4 h-4" />, color: '#f97316', bgClass: 'bg-domain/20', borderClass: 'border-domain/40', textClass: 'text-domain' },
+  { key: 't3', label: 'T3 High-Tech', icon: <Sparkles className="w-4 h-4" />, color: '#a855f7', bgClass: 'bg-research/20', borderClass: 'border-research/40', textClass: 'text-research' },
   { key: 't4', label: 'T4 Singularity', icon: <Sparkles className="w-4 h-4" />, color: '#00ffcc', bgClass: 'bg-success/20', borderClass: 'border-success/40', textClass: 'text-success' },
 ] as const;
 
@@ -237,14 +237,14 @@ export function FactoryPanel() {
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-cyan-400 neon-glow-cyan tracking-wide flex items-center gap-2">
+          <h2 className="text-xl font-bold text-brand neon-glow-cyan tracking-wide flex items-center gap-2">
             <Factory className="w-5 h-5" />
             Processing Factories
           </h2>
           <p className="text-xs text-muted-label mt-0.5">Transform raw materials into advanced components</p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="border-cyan-500/50 text-cyan-400 bg-cyan-900/20 text-xs">
+          <Badge variant="outline" className="border-brand/50 text-brand bg-brand/20 text-xs">
             <Factory className="w-3 h-3 mr-1" />
             {activeFactories}/{totalFactories} Active
           </Badge>
@@ -291,8 +291,8 @@ export function FactoryPanel() {
       <div className="game-card rounded-xl bg-card p-4 border border-border">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Workflow className="w-4 h-4 text-cyan-400" />
-            <h3 className="text-sm font-semibold text-cyan-400">Production Pipeline</h3>
+            <Workflow className="w-4 h-4 text-brand" />
+            <h3 className="text-sm font-semibold text-brand">Production Pipeline</h3>
           </div>
           <span className="text-[10px] text-muted-label">Click a tier node for details</span>
         </div>
@@ -523,7 +523,7 @@ export function FactoryPanel() {
                             <GameIcon icon={meta.icon} size={14} className="inline-flex" />
                             <div className="min-w-0">
                               <div className="text-[10px] text-subtle font-medium truncate">{meta.name}</div>
-                              <div className={`text-[9px] font-mono ${net > 0 ? 'text-success' : net < 0 ? 'text-danger' : prod > 0 && cons > 0 ? 'text-cyan-400' : 'text-muted-label'}`}>
+                              <div className={`text-[9px] font-mono ${net > 0 ? 'text-success' : net < 0 ? 'text-danger' : prod > 0 && cons > 0 ? 'text-brand' : 'text-muted-label'}`}>
                                 {net > 0 ? `+${formatNumber(net)}/s` : net < 0 ? `${formatNumber(net)}/s` : prod > 0 && cons > 0 ? '±0/s' : '—'}
                               </div>
                             </div>
@@ -596,7 +596,7 @@ export function FactoryPanel() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search factories..."
-                    className="w-full h-8 pl-8 pr-8 text-xs bg-[#0a0e17] border border-cyan-900/30 rounded-lg text-subtle placeholder:text-muted-label focus:outline-none focus:border-cyan-700/50 transition-colors"
+                    className="w-full h-8 pl-8 pr-8 text-xs bg-[#0a0e17] border border-brand/30 rounded-lg text-subtle placeholder:text-muted-label focus:outline-none focus:border-brand/50 transition-colors"
                   />
                   {searchQuery && (
                     <button
@@ -880,7 +880,7 @@ export function FactoryPanel() {
                                   size="sm"
                                   className={`h-5 text-[8px] px-1.5 ${
                                     canUpgrade
-                                      ? 'border-cyan-700/50 text-cyan-400 hover:bg-cyan-900/30'
+                                      ? 'border-brand/50 text-brand hover:bg-brand/30'
                                       : 'border-muted-label text-muted-label'
                                   }`}
                                   onClick={() => handleUpgrade(building.id)}
@@ -906,7 +906,7 @@ export function FactoryPanel() {
                     <div className="text-4xl mb-3">
                       {selectedTier === 1 ? <GameIcon icon="gi:anvil-impact" size={14} className="inline-flex" /> : selectedTier === 2 ? <GameIcon icon="gi:big-gear" size={14} className="inline-flex" /> : selectedTier === 3 ? <GameIcon icon="gi:sparkles" size={14} className="inline-flex" /> : <GameIcon icon="gi:vortex" size={14} className="inline-flex" />}
                     </div>
-                    <h3 className="text-base font-bold text-cyan-400 mb-2">No {currentTierConfig.label} Factories</h3>
+                    <h3 className="text-base font-bold text-brand mb-2">No {currentTierConfig.label} Factories</h3>
                     <p className="text-sm text-subtle mb-1">Build your first factory to start processing materials</p>
                   </div>
                 )}
@@ -920,8 +920,8 @@ export function FactoryPanel() {
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Workflow className="w-4 h-4 text-cyan-400" />
-                <h3 className="text-sm font-semibold text-cyan-400">Production Chains</h3>
+                <Workflow className="w-4 h-4 text-brand" />
+                <h3 className="text-sm font-semibold text-brand">Production Chains</h3>
               </div>
               <span className="text-[10px] text-muted-label">{PRODUCTION_CHAINS.length} chains</span>
             </div>
@@ -934,7 +934,7 @@ export function FactoryPanel() {
                   onClick={() => setSelectedChain(idx)}
                   className={`text-[9px] px-2 py-1 rounded-md border ${
                     selectedChain === idx
-                      ? 'border-cyan-500/50 bg-cyan-900/20 text-cyan-400'
+                      ? 'border-brand/50 bg-brand/20 text-brand'
                       : 'border-muted-label text-muted-label hover:border-muted-label hover:text-subtle'
                   }`}
                 >
@@ -978,7 +978,7 @@ export function FactoryPanel() {
                               <div className="flex items-center justify-between">
                                 <span className="text-[10px] text-subtle font-medium">{meta.name}</span>
                                 <span className={`text-[9px] font-mono ${
-                                  net > 0 ? 'text-success' : net < 0 ? 'text-danger' : production > 0 && consumption > 0 ? 'text-cyan-400' : 'text-muted-label'
+                                  net > 0 ? 'text-success' : net < 0 ? 'text-danger' : production > 0 && consumption > 0 ? 'text-brand' : 'text-muted-label'
                                 }`}>
                                   {net > 0 ? `+${formatNumber(net)}/s` : net < 0 ? `${formatNumber(net)}/s` : production > 0 && consumption > 0 ? '±0/s' : '—'}
                                 </span>
@@ -1029,8 +1029,8 @@ export function FactoryPanel() {
           {/* FACTORY OVERVIEW STATS */}
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
-              <Gauge className="w-4 h-4 text-orange-400" />
-              <h3 className="text-sm font-semibold text-orange-400">Factory Overview</h3>
+              <Gauge className="w-4 h-4 text-domain" />
+              <h3 className="text-sm font-semibold text-domain">Factory Overview</h3>
             </div>
             <div className="space-y-2.5">
               <OverviewRow label="Total Factories" value={totalFactories.toString()} color="text-subtle" />
@@ -1039,7 +1039,7 @@ export function FactoryPanel() {
               <OverviewRow label="Avg Efficiency" value={`${(avgEfficiency * 100).toFixed(1)}%`} color={
                 avgEfficiency >= 0.8 ? 'text-success' : avgEfficiency >= 0.5 ? 'text-warning' : 'text-danger'
               } />
-              <OverviewRow label="Product Types" value={Object.keys(factoryProductionRates).length.toString()} color="text-cyan-400" />
+              <OverviewRow label="Product Types" value={Object.keys(factoryProductionRates).length.toString()} color="text-brand" />
               <OverviewRow label="Factories Built" value={stats.factoriesBuilt.toString()} color="text-subtle" />
             </div>
           </div>
@@ -1123,7 +1123,7 @@ export function FactoryPanel() {
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-[9px] text-muted-label">Stock: {formatNumber(stock)}</span>
-                          <span className={`text-[9px] font-mono ${net > 0 ? 'text-success' : net < 0 ? 'text-danger' : production > 0 && rate > 0 ? 'text-cyan-400' : 'text-muted-label'}`}>
+                          <span className={`text-[9px] font-mono ${net > 0 ? 'text-success' : net < 0 ? 'text-danger' : production > 0 && rate > 0 ? 'text-brand' : 'text-muted-label'}`}>
                             {net > 0 ? `+${formatNumber(net)}/s` : net < 0 ? `${formatNumber(net)}/s` : production > 0 && rate > 0 ? '±0/s' : '—'} net
                           </span>
                         </div>

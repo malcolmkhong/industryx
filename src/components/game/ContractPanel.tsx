@@ -50,10 +50,10 @@ function ContractCard({ contract, store, fulfillingId, onFulfill }: { contract: 
         })),
         { label: 'Tier', value: `${tierInfo?.name ?? 'Unknown'}`, color: `text-[${tierColor}]` },
         { label: 'Time Limit', value: `${formatNumber(contract.timeLimit)} ticks` },
-        { label: 'Difficulty', value: `${'★'.repeat(contract.difficulty)}`, color: contract.difficulty >= 4 ? 'text-danger' : contract.difficulty >= 3 ? 'text-orange-400' : 'text-subtle' },
+        { label: 'Difficulty', value: `${'★'.repeat(contract.difficulty)}`, color: contract.difficulty >= 4 ? 'text-danger' : contract.difficulty >= 3 ? 'text-domain' : 'text-subtle' },
         { label: 'Money Reward', value: `$${formatNumber(contract.reward.money)}`, color: 'text-success' },
-        ...(contract.reward.researchPoints ? [{ label: 'RP Reward', value: `${contract.reward.researchPoints} RP`, color: 'text-purple-400' as string }] : []),
-        ...(contract.reward.corporationPoints && contract.reward.corporationPoints > 0 ? [{ label: 'CP Reward', value: `${contract.reward.corporationPoints} CP`, color: 'text-fuchsia-400' as string }] : []),
+        ...(contract.reward.researchPoints ? [{ label: 'RP Reward', value: `${contract.reward.researchPoints} RP`, color: 'text-research' as string }] : []),
+        ...(contract.reward.corporationPoints && contract.reward.corporationPoints > 0 ? [{ label: 'CP Reward', value: `${contract.reward.corporationPoints} CP`, color: 'text-premium' as string }] : []),
       ]}
       side="right"
     >
@@ -81,7 +81,7 @@ function ContractCard({ contract, store, fulfillingId, onFulfill }: { contract: 
             </Badge>
             <Badge variant="outline" className={`text-[9px] ${
               contract.difficulty >= 4 ? 'border-danger text-danger' :
-              contract.difficulty >= 3 ? 'border-orange-600 text-orange-400' :
+              contract.difficulty >= 3 ? 'border-domain text-domain' :
               'border-muted-label text-subtle'
             }`}>
               {'★'.repeat(contract.difficulty)}
@@ -130,7 +130,7 @@ function ContractCard({ contract, store, fulfillingId, onFulfill }: { contract: 
           >
             <div
               className={`h-full rounded-full transition-all ${
-                isUrgent ? 'bg-danger neon-pulse' : timePct < 50 ? 'bg-warning' : 'bg-cyan-500'
+                isUrgent ? 'bg-danger neon-pulse' : timePct < 50 ? 'bg-warning' : 'bg-brand'
               }`}
               style={{ width: `${timePct}%` }}
             />
@@ -144,13 +144,13 @@ function ContractCard({ contract, store, fulfillingId, onFulfill }: { contract: 
             <span className="font-mono">${formatNumber(contract.reward.money)}</span>
           </div>
           {contract.reward.researchPoints && (
-            <div className="flex items-center gap-1 text-purple-400">
+            <div className="flex items-center gap-1 text-research">
               <FlaskConical className="w-3 h-3" />
               <span className="font-mono">{contract.reward.researchPoints} RP</span>
             </div>
           )}
           {contract.reward.corporationPoints && contract.reward.corporationPoints > 0 && (
-            <div className="flex items-center gap-1 text-fuchsia-400">
+            <div className="flex items-center gap-1 text-premium">
               <Globe className="w-3 h-3" />
               <span className="font-mono">{contract.reward.corporationPoints} CP</span>
             </div>
@@ -225,11 +225,11 @@ export function ContractPanel() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h2 className="text-xl font-bold text-rose-400 neon-glow-cyan tracking-wide">Contracts & Missions</h2>
+          <h2 className="text-xl font-bold text-danger neon-glow-cyan tracking-wide">Contracts & Missions</h2>
           <p className="text-xs text-muted-label mt-0.5">Complete deliveries for rewards — contracts scale with your tier</p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="border-rose-500/50 text-rose-400 bg-rose-900/20 text-xs">
+          <Badge variant="outline" className="border-rose-500/50 text-danger bg-danger/20 text-xs">
             <ScrollText className="w-3 h-3 mr-1" />
             {activeContracts.length} active
           </Badge>
@@ -320,7 +320,7 @@ export function ContractPanel() {
           aria-pressed={selectedTierFilter === null}
           className={`px-2 py-1 rounded-md text-[10px] font-medium ${
             selectedTierFilter === null
-              ? 'bg-rose-900/30 text-rose-400 border border-rose-700/50'
+              ? 'bg-danger/30 text-danger border border-rose-700/50'
               : 'bg-muted-label/30 text-muted-label border border-muted-label hover:bg-muted-label/50'
           }`}
         >
@@ -455,8 +455,8 @@ export function ContractPanel() {
           {/* Available Contract Pool by Tier */}
           <GameCard>
             <div className="flex items-center gap-2 mb-3">
-              <Star className="w-4 h-4 text-rose-400" />
-              <h3 className="text-sm font-semibold text-rose-400">Contract Pool</h3>
+              <Star className="w-4 h-4 text-danger" />
+              <h3 className="text-sm font-semibold text-danger">Contract Pool</h3>
             </div>
             <div className="space-y-2">
               {[0, 1, 2, 3].map(tier => {
@@ -482,8 +482,8 @@ export function ContractPanel() {
           {/* Contract Stats */}
           <GameCard>
             <div className="flex items-center gap-2 mb-3">
-              <Star className="w-4 h-4 text-rose-400" />
-              <h3 className="text-sm font-semibold text-rose-400">Contract Stats</h3>
+              <Star className="w-4 h-4 text-danger" />
+              <h3 className="text-sm font-semibold text-danger">Contract Stats</h3>
             </div>
             <div className="space-y-2 text-xs">
               <div className="flex justify-between">
@@ -500,11 +500,11 @@ export function ContractPanel() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-label">RP Earned</span>
-                <span className="text-purple-400 font-mono">{completedContracts.reduce((s, c) => s + (c.reward.researchPoints ?? 0), 0)}</span>
+                <span className="text-research font-mono">{completedContracts.reduce((s, c) => s + (c.reward.researchPoints ?? 0), 0)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-label">CP Earned</span>
-                <span className="text-fuchsia-400 font-mono">{completedContracts.reduce((s, c) => s + (c.reward.corporationPoints ?? 0), 0)}</span>
+                <span className="text-premium font-mono">{completedContracts.reduce((s, c) => s + (c.reward.corporationPoints ?? 0), 0)}</span>
               </div>
             </div>
           </GameCard>

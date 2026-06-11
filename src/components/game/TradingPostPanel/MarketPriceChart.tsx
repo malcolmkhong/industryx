@@ -146,7 +146,7 @@ export function MarketPriceChart({
       <svg
         width={width}
         height={height}
-        className="bg-muted-label/30 rounded border border-cyan-900/20"
+        className="bg-muted-label/30 rounded border border-brand/20"
         viewBox={`0 0 ${width} ${height}`}
       >
         <path d={areaPath} fill="url(#priceGradient)" opacity={0.3} />

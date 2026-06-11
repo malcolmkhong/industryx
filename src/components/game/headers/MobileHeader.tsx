@@ -62,7 +62,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange }: Mobil
           <div className="w-7 h-7 rounded-md bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-[10px] font-bold flex-shrink-0">
             IX
           </div>
-          <span className="text-[11px] font-bold text-cyan-400 tracking-wider truncate">INDUSTRIAX</span>
+          <span className="text-[11px] font-bold text-brand tracking-wider truncate">INDUSTRIAX</span>
         </div>
 
         <div className="flex items-center gap-1 text-[10px] flex-shrink-0">
@@ -77,17 +77,17 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange }: Mobil
             </button>
           )}
           <span className="text-dim">|</span>
-          <span className={powerPercent >= 80 ? 'text-warning' : powerPercent >= 50 ? 'text-orange-400' : 'text-danger'}>
+          <span className={powerPercent >= 80 ? 'text-warning' : powerPercent >= 50 ? 'text-domain' : 'text-danger'}>
             <GameIcon ui="power" size={12} className="inline-flex" />{formatNumber(powerGrid.totalProduction)}/{formatNumber(powerGrid.totalConsumption)}
           </span>
           <span className="text-dim">|</span>
-          <span className="text-purple-400 font-mono inline-flex items-center gap-0.5"><GameIcon ui="researchPoints" size={12} className="inline-flex" />{formatNumber(researchPoints)}</span>
+          <span className="text-research font-mono inline-flex items-center gap-0.5"><GameIcon ui="researchPoints" size={12} className="inline-flex" />{formatNumber(researchPoints)}</span>
         </div>
       </div>
 
       {/* Row 2: Speed controls + power bar */}
       <div className="flex items-center gap-2">
-        <div className="flex items-center bg-card rounded-lg border border-cyan-900/20 overflow-hidden flex-shrink-0">
+        <div className="flex items-center bg-card rounded-lg border border-brand/20 overflow-hidden flex-shrink-0">
           <Button
             variant="ghost"
             size="sm"
@@ -102,7 +102,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange }: Mobil
               key={speed}
               variant="ghost"
               size="sm"
-              className={`h-8 px-2 text-[11px] min-w-[34px] min-h-[32px] mobile-speed-btn ${gameSpeed === speed ? 'text-cyan-400 bg-cyan-900/20 font-bold' : 'text-muted-label'}`}
+              className={`h-8 px-2 text-[11px] min-w-[34px] min-h-[32px] mobile-speed-btn ${gameSpeed === speed ? 'text-brand bg-brand/20 font-bold' : 'text-muted-label'}`}
               onClick={() => setGameSpeed(speed)}
             >
               {speed}x
@@ -151,7 +151,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange }: Mobil
           </button>
 
           {activeEvents.length > 0 && (
-            <Badge variant="outline" className="text-[9px] border-orange-500/50 text-orange-400 bg-orange-900/20 px-1.5 py-0 h-5 cursor-pointer" onClick={() => onTabChange('events')}>
+            <Badge variant="outline" className="text-[9px] border-domain/50 text-domain bg-domain/20 px-1.5 py-0 h-5 cursor-pointer" onClick={() => onTabChange('events')}>
               <GameIcon icon={activeEvents[0].icon} size={12} className="inline-flex" /> {activeEvents.length}
             </Badge>
           )}
@@ -159,7 +159,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange }: Mobil
           <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-5 cursor-pointer ${
             weather.current === 'clear'
               ? 'border-muted-label text-muted-label bg-muted-label/20'
-              : 'border-sky-500/50 text-sky-400 bg-sky-900/20'
+              : 'border-brand/50 text-brand bg-brand/20'
           }`} onClick={() => onTabChange('dashboard')}>
             <GameIcon icon={WEATHER_DEFS[weather.current]?.icon} size={12} className="inline-flex" />
           </Badge>
@@ -185,8 +185,8 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange }: Mobil
                   {userName.charAt(0).toUpperCase()}
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom" className="w-48 bg-card border-cyan-900/30 p-2">
-                <p className="text-xs font-medium text-cyan-300 mb-1">{userName}</p>
+              <TooltipContent side="bottom" className="w-48 bg-card border-brand/30 p-2">
+                <p className="text-xs font-medium text-brand mb-1">{userName}</p>
                 <div className="space-y-1">
                   <Button variant="ghost" size="sm" className="w-full justify-start h-8 text-[11px]" onClick={async () => { await saveToCloud(); }}><Cloud className="w-3 h-3 mr-1.5" /> Save to Cloud</Button>
                   <Button variant="ghost" size="sm" className="w-full justify-start h-8 text-[11px]" onClick={onExport}><Download className="w-3 h-3 mr-1.5" /> Export Save</Button>
@@ -196,7 +196,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange }: Mobil
               </TooltipContent>
             </Tooltip>
           ) : (
-            <Button variant="ghost" size="sm" className="h-8 px-2.5 text-[10px] text-cyan-400 min-h-[32px]" onClick={() => promptLogin('manual')}>
+            <Button variant="ghost" size="sm" className="h-8 px-2.5 text-[10px] text-brand min-h-[32px]" onClick={() => promptLogin('manual')}>
               <LogIn className="w-3 h-3 mr-1" /> Sign In
             </Button>
           )}
@@ -211,7 +211,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange }: Mobil
                   <Settings className="w-4 h-4" />
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom" className="w-48 bg-card border-cyan-900/30 p-2">
+              <TooltipContent side="bottom" className="w-48 bg-card border-brand/30 p-2">
                 <div className="space-y-1">
                   <Button variant="ghost" size="sm" className="w-full justify-start h-8 text-[11px]" onClick={onExport}><Download className="w-3 h-3 mr-1.5" /> Export Save</Button>
                   <Button variant="ghost" size="sm" className="w-full justify-start h-8 text-[11px]" onClick={onImport}><Upload className="w-3 h-3 mr-1.5" /> Import Save</Button>

@@ -160,9 +160,9 @@ function getRoleLabel(role: string): string {
 function getSourceBadgeClasses(source: string): string {
   switch (source) {
     case "env":
-      return "bg-purple-500/15 text-purple-400 border-purple-500/20";
+      return "bg-research/15 text-research border-research/20";
     case "env+db":
-      return "bg-sky-500/15 text-sky-400 border-sky-500/20";
+      return "bg-brand/15 text-brand border-brand/20";
     default:
       return "bg-zinc-500/15 text-zinc-400 border-zinc-500/20";
   }
@@ -540,8 +540,8 @@ export default function AdminManagementPage() {
 
               <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-9 h-9 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-orange-400">
+                  <div className="w-9 h-9 rounded-lg bg-domain/10 flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-domain">
                       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" />
                     </svg>
                   </div>

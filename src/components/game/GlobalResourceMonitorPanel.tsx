@@ -19,10 +19,10 @@ import { GameIcon } from '@/components/game/shared/GameIcon';
 // ─── Tier Badge Colors ────────────────────────────────────────────────────────
 const TIER_COLORS: Record<number, { bg: string; text: string; border: string }> = {
   0: { bg: 'bg-muted-label', text: 'text-subtle', border: 'border-muted-label' },
-  1: { bg: 'bg-cyan-900/30', text: 'text-cyan-400', border: 'border-cyan-600' },
-  2: { bg: 'bg-orange-900/30', text: 'text-orange-400', border: 'border-orange-600' },
-  3: { bg: 'bg-purple-900/30', text: 'text-purple-400', border: 'border-purple-600' },
-  4: { bg: 'bg-teal-900/30', text: 'text-teal-400', border: 'border-teal-600' },
+  1: { bg: 'bg-brand/30', text: 'text-brand', border: 'border-brand' },
+  2: { bg: 'bg-domain/30', text: 'text-domain', border: 'border-domain' },
+  3: { bg: 'bg-research/30', text: 'text-research', border: 'border-research' },
+  4: { bg: 'bg-brand/30', text: 'text-brand', border: 'border-brand' },
   5: { bg: 'bg-danger/30', text: 'text-danger', border: 'border-danger' },
 };
 
@@ -57,7 +57,7 @@ const STATUS_ORDER: Record<ResourceStatus, number> = {
 
 const STATUS_LABELS: Record<ResourceStatus, { label: string; color: string; bg: string }> = {
   critical: { label: 'Critical', color: 'text-danger', bg: 'bg-danger/30' },
-  declining: { label: 'Declining', color: 'text-orange-400', bg: 'bg-orange-900/30' },
+  declining: { label: 'Declining', color: 'text-domain', bg: 'bg-domain/30' },
   stable: { label: 'Stable', color: 'text-success', bg: 'bg-success/30' },
   idle: { label: 'Idle', color: 'text-muted-label', bg: 'bg-muted-label/50' },
 };
@@ -394,14 +394,14 @@ export default function GlobalResourceMonitorPanel() {
       {/* ─── HEADER ──────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold text-teal-400 flex items-center gap-2">
+          <h2 className="text-xl font-bold text-brand flex items-center gap-2">
             <Activity className="w-5 h-5" />
             Global Resource Monitor
           </h2>
           <p className="text-xs text-muted-label mt-0.5">Real-time resource intelligence & navigation control</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal-900/30 border border-teal-700/40 text-teal-400">
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-brand/30 border border-brand/40 text-brand">
             {allResources.length} Resources
           </span>
           {criticalCount > 0 && (
@@ -461,7 +461,7 @@ export default function GlobalResourceMonitorPanel() {
         </div>
         <div className="w-px h-4 bg-muted-label" />
         <div className="flex items-center gap-1.5 text-xs">
-          <BarChart3 className="w-3.5 h-3.5 text-cyan-400" />
+          <BarChart3 className="w-3.5 h-3.5 text-brand" />
           <span className="text-subtle">Net:</span>
           <span className={`font-mono font-bold ${totalNet >= 0 ? 'text-success' : 'text-danger'}`}>
             {totalNet >= 0 ? '▲' : '▼'} {formatNumber(Math.abs(totalNet))}/s
@@ -495,29 +495,29 @@ export default function GlobalResourceMonitorPanel() {
               balanceColor: 'text-warning',
             },
             {
-              icon: <FlaskConical className="w-3.5 h-3.5 text-cyan-400" />,
+              icon: <FlaskConical className="w-3.5 h-3.5 text-brand" />,
               name: 'Research Points',
               balance: store.researchPoints,
               income: snapshot.rpIncomeRate,
               expense: snapshot.rpExpenseRate,
               net: snapshot.rpIncomeRate - snapshot.rpExpenseRate,
-              balanceColor: 'text-cyan-400',
+              balanceColor: 'text-brand',
             },
             {
-              icon: <Building2 className="w-3.5 h-3.5 text-purple-400" />,
+              icon: <Building2 className="w-3.5 h-3.5 text-research" />,
               name: 'Corp Points',
               balance: store.prestigeState.corporationPoints,
               income: snapshot.cpIncomeRate,
               expense: snapshot.cpExpenseRate,
               net: snapshot.cpIncomeRate - snapshot.cpExpenseRate,
-              balanceColor: 'text-purple-400',
+              balanceColor: 'text-research',
             },
           ];
 
           return currencyRows.map((row) => (
             <div
               key={row.name}
-              className="grid grid-cols-[1.5rem_1fr_5rem_4rem_4rem_4rem] sm:grid-cols-[1.5rem_1fr_6rem_5rem_5rem_5rem] items-center gap-1 px-3 py-2 border-b border-muted-label/50 transition-colors hover:bg-teal-900/10 cursor-default"
+              className="grid grid-cols-[1.5rem_1fr_5rem_4rem_4rem_4rem] sm:grid-cols-[1.5rem_1fr_6rem_5rem_5rem_5rem] items-center gap-1 px-3 py-2 border-b border-muted-label/50 transition-colors hover:bg-brand/10 cursor-default"
             >
               {/* Icon */}
               <div className="flex items-center justify-center">{row.icon}</div>
@@ -562,7 +562,7 @@ export default function GlobalResourceMonitorPanel() {
             placeholder="Search resources..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-8 pl-8 pr-8 bg-[#0a0e17] border border-muted-label/30 rounded-lg text-xs text-subtle placeholder:text-muted-label focus:outline-none focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/20 transition-colors"
+            className="w-full h-8 pl-8 pr-8 bg-[#0a0e17] border border-muted-label/30 rounded-lg text-xs text-subtle placeholder:text-muted-label focus:outline-none focus:border-brand/50 focus:ring-1 focus:ring-teal-500/20 transition-colors"
           />
           {searchQuery && (
             <button
@@ -583,7 +583,7 @@ export default function GlobalResourceMonitorPanel() {
               onClick={() => setTierFilter(tab.value)}
               className={`text-[10px] px-2.5 py-1 rounded-md border ${
                 tierFilter === tab.value
-                  ? 'bg-teal-900/30 border-teal-600/50 text-teal-400'
+                  ? 'bg-brand/30 border-brand/50 text-brand'
                   : 'bg-transparent border-muted-label/30 text-muted-label hover:text-subtle hover:border-muted-label'
               }`}
               aria-pressed={tierFilter === tab.value}
@@ -653,7 +653,7 @@ export default function GlobalResourceMonitorPanel() {
               return (
                 <div
                   key={row.resource}
-                  className={`grid grid-cols-[2.5rem_1fr_3rem_5rem_4rem_4rem_4rem_4.5rem_1.5rem] sm:grid-cols-[2.5rem_1fr_3.5rem_6rem_5rem_5rem_5rem_5.5rem_1.5rem] items-center gap-1 px-3 py-1.5 border-b border-muted-label/50 transition-colors hover:bg-teal-900/10 cursor-default ${
+                  className={`grid grid-cols-[2.5rem_1fr_3rem_5rem_4rem_4rem_4rem_4.5rem_1.5rem] sm:grid-cols-[2.5rem_1fr_3.5rem_6rem_5rem_5rem_5rem_5.5rem_1.5rem] items-center gap-1 px-3 py-1.5 border-b border-muted-label/50 transition-colors hover:bg-brand/10 cursor-default ${
                     isCriticalBg ? 'bg-danger/10' : ''
                   }`}
                   onMouseEnter={(e) => onEnter(row.resource, e)}
@@ -681,7 +681,7 @@ export default function GlobalResourceMonitorPanel() {
                       <div className="w-full h-1 bg-muted-label rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all duration-300 ${
-                            row.fillPct >= 95 ? 'bg-danger' : row.fillPct >= 70 ? 'bg-warning' : 'bg-teal-500'
+                            row.fillPct >= 95 ? 'bg-danger' : row.fillPct >= 70 ? 'bg-warning' : 'bg-brand'
                           }`}
                           style={{ width: `${Math.min(100, row.fillPct)}%` }}
                         />
@@ -735,7 +735,7 @@ export default function GlobalResourceMonitorPanel() {
         >
           <AnimatePresence>
             <motion.div
-              className="pointer-events-auto w-72 bg-[#111827]/95 border border-teal-700/40 rounded-xl backdrop-blur-sm shadow-xl shadow-black/40 overflow-hidden"
+              className="pointer-events-auto w-72 bg-[#111827]/95 border border-brand/40 rounded-xl backdrop-blur-sm shadow-xl shadow-black/40 overflow-hidden"
               onMouseEnter={cancelHide}
               onMouseLeave={onLeave}
             >
@@ -849,7 +849,7 @@ export default function GlobalResourceMonitorPanel() {
                     e.stopPropagation();
                     handleViewChain();
                   }}
-                  className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-cyan-900/30 border border-cyan-700/40 text-cyan-400 hover:bg-cyan-900/50 transition-colors"
+                  className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-brand/30 border border-brand/40 text-brand hover:bg-brand/50 transition-colors"
                   aria-label="View production chain"
                   title="Navigate to production chain view"
                 >
@@ -863,7 +863,7 @@ export default function GlobalResourceMonitorPanel() {
                     e.stopPropagation();
                     handleNavigate(hoveredRow.resource);
                   }}
-                  className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-teal-900/30 border border-teal-700/40 text-teal-400 hover:bg-teal-900/50 transition-colors"
+                  className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-brand/30 border border-brand/40 text-brand hover:bg-brand/50 transition-colors"
                   aria-label="Navigate to resource tab"
                   title="Navigate to relevant tab"
                 >
@@ -882,9 +882,9 @@ export default function GlobalResourceMonitorPanel() {
         {toast && (
           <motion.div
             key={toast.id}
-            className="fixed bottom-4 right-4 z-[200] bg-[#111827] border border-teal-700/40 rounded-lg px-4 py-2 shadow-xl shadow-black/40"
+            className="fixed bottom-4 right-4 z-[200] bg-[#111827] border border-brand/40 rounded-lg px-4 py-2 shadow-xl shadow-black/40"
           >
-            <div className="flex items-center gap-2 text-xs text-teal-400">
+            <div className="flex items-center gap-2 text-xs text-brand">
               <Zap className="w-3.5 h-3.5" />
               {toast.message}
             </div>

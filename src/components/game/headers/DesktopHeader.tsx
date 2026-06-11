@@ -96,7 +96,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
               IX
             </div>
             <div>
-              <h1 className="text-sm font-bold text-cyan-400 neon-glow-cyan tracking-wider">INDUSTRIAX</h1>
+              <h1 className="text-sm font-bold text-brand neon-glow-cyan tracking-wider">INDUSTRIAX</h1>
               <p className="text-[10px] text-muted-label -mt-0.5">Factory Dominion</p>
             </div>
           </div>
@@ -104,7 +104,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
           <div className="flex items-center gap-4 text-xs">
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className={`stat-badge stat-badge-money bg-card rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default ${moneyGlow ? 'money-glow' : ''}`}>
+                <div className={`stat-badge stat-badge-money bg-card rounded-lg px-3 py-1.5 border border-brand/20 cursor-default ${moneyGlow ? 'money-glow' : ''}`}>
                   <span className="text-muted-label inline-flex items-center gap-1"><GameIcon ui="money" size={14} /></span>
                   <span className="text-success font-mono font-bold text-sm">${formatNumber(money)}</span>
                   {pendingPayout > 0 && !payoutConfig.autoCollect && (
@@ -118,8 +118,8 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
                   )}
                 </div>
               </TooltipTrigger>
-              <TooltipContent side="bottom" className="w-64 bg-card border-cyan-900/30 p-0 overflow-hidden">
-                <div className="bg-gradient-to-r from-green-900/30 to-emerald-900/20 px-3 py-2 border-b border-cyan-900/20">
+              <TooltipContent side="bottom" className="w-64 bg-card border-brand/30 p-0 overflow-hidden">
+                <div className="bg-gradient-to-r from-green-900/30 to-emerald-900/20 px-3 py-2 border-b border-brand/20">
                   <p className="text-xs font-bold text-success inline-flex items-center gap-1"><GameIcon ui="money" size={14} className="inline-flex" /> Financial Overview</p>
                 </div>
                 <div className="px-3 py-2 space-y-1.5">
@@ -135,7 +135,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
                   )}
                   <div className="flex justify-between text-xs">
                     <span className="text-subtle">Income/min</span>
-                    <span className="text-cyan-400 font-mono">~${formatNumber(incomePerMinute)}</span>
+                    <span className="text-brand font-mono">~${formatNumber(incomePerMinute)}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-subtle">Total Earned</span>
@@ -144,9 +144,9 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
                 </div>
               </TooltipContent>
             </Tooltip>
-            <div className={`stat-badge stat-badge-power bg-card rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default ${powerGrid.overload ? 'warning-pulse' : ''}`}>
+            <div className={`stat-badge stat-badge-power bg-card rounded-lg px-3 py-1.5 border border-brand/20 cursor-default ${powerGrid.overload ? 'warning-pulse' : ''}`}>
               <span className="text-muted-label inline-flex items-center gap-1"><GameIcon ui="power" size={14} /></span>
-              <span className={`text-sm ${powerPercent >= 80 ? 'text-warning' : powerPercent >= 50 ? 'text-orange-400' : 'text-danger'}`}>
+              <span className={`text-sm ${powerPercent >= 80 ? 'text-warning' : powerPercent >= 50 ? 'text-domain' : 'text-danger'}`}>
                 {formatNumber(powerGrid.totalProduction)}MW
               </span>
               <span className="text-muted-label"> / </span>
@@ -163,7 +163,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
                     } ${buildings.filter(b => b.active).length > 0 ? 'animate-pulse' : ''}`}
                   />
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="bg-card border-cyan-900/30">
+                <TooltipContent side="bottom" className="bg-card border-brand/30">
                   <p className="text-xs font-semibold mb-1" style={{ color: factoryEfficiency >= 0.8 ? '#4ade80' : factoryEfficiency >= 0.5 ? '#facc15' : '#f87171' }}>
                     Factory Efficiency: {(factoryEfficiency * 100).toFixed(0)}%
                   </p>
@@ -174,13 +174,13 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
               </Tooltip>
             </div>
             <div className="stat-badge-separator" />
-            <div className="stat-badge stat-badge-rp bg-card rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default">
+            <div className="stat-badge stat-badge-rp bg-card rounded-lg px-3 py-1.5 border border-brand/20 cursor-default">
               <span className="text-muted-label inline-flex items-center gap-1"><GameIcon ui="researchPoints" size={14} /></span>
-              <span className="text-purple-400 font-mono text-sm">{formatNumber(researchPoints)} RP</span>
+              <span className="text-research font-mono text-sm">{formatNumber(researchPoints)} RP</span>
             </div>
-            <div className="stat-badge stat-badge-cp bg-card rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default">
+            <div className="stat-badge stat-badge-cp bg-card rounded-lg px-3 py-1.5 border border-brand/20 cursor-default">
               <span className="text-muted-label inline-flex items-center gap-1"><GameIcon ui="corporationPoints" size={14} /></span>
-              <span className="text-fuchsia-400 font-mono text-sm">{prestigeState.corporationPoints} CP</span>
+              <span className="text-premium font-mono text-sm">{prestigeState.corporationPoints} CP</span>
             </div>
           </div>
         </div>
@@ -196,7 +196,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
             />
           </div>
 
-          <div className="flex items-center bg-card rounded-lg border border-cyan-900/20 overflow-hidden">
+          <div className="flex items-center bg-card rounded-lg border border-brand/20 overflow-hidden">
             <Button
               variant="ghost"
               size="sm"
@@ -211,7 +211,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
                 key={speed}
                 variant="ghost"
                 size="sm"
-                className={`h-7 px-2 text-xs ${gameSpeed === speed ? 'text-cyan-400 bg-cyan-900/20' : 'text-muted-label'}`}
+                className={`h-7 px-2 text-xs ${gameSpeed === speed ? 'text-brand bg-brand/20' : 'text-muted-label'}`}
                 onClick={() => setGameSpeed(speed)}
               >
                 {speed}x
@@ -230,15 +230,15 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
                 {unreadNotifications > 0 && (
                   <span className={`absolute -top-0.5 -right-0.5 h-4 rounded-full text-[8px] text-white flex items-center justify-center px-1 ${
                     notifications[0]?.type === 'error' ? 'bg-danger' :
-                    notifications[0]?.type === 'warning' ? 'bg-orange-500' :
-                    'bg-cyan-500'
+                    notifications[0]?.type === 'warning' ? 'bg-domain' :
+                    'bg-brand'
                   }`}>
                     {unreadNotifications > 9 ? '9+' : unreadNotifications}
                   </span>
                 )}
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="w-80 max-h-60 overflow-y-auto game-scrollbar bg-card border-cyan-900/30">
+            <TooltipContent side="bottom" className="w-80 max-h-60 overflow-y-auto game-scrollbar bg-card border-brand/30">
               {notifications.length === 0 ? (
                 <p className="text-xs text-muted-label">No notifications</p>
               ) : (
@@ -268,12 +268,12 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
               {activeEvents.map(e => (
                 <Tooltip key={e.id}>
                   <TooltipTrigger asChild>
-                    <Badge variant="outline" className="text-[10px] border-orange-500/50 text-orange-400 bg-orange-900/20 px-1.5 py-0 neon-pulse">
+                    <Badge variant="outline" className="text-[10px] border-domain/50 text-domain bg-domain/20 px-1.5 py-0 neon-pulse">
                       <GameIcon icon={e.icon} size={12} className="inline-flex" /> {e.remaining <= 50 ? `${e.remaining}t` : e.name}
                     </Badge>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="bg-card border-cyan-900/30">
-                    <p className="text-xs font-medium text-orange-300">{e.name}</p>
+                  <TooltipContent side="bottom" className="bg-card border-brand/30">
+                    <p className="text-xs font-medium text-domain">{e.name}</p>
                     <p className="text-[10px] text-subtle mt-0.5">{e.description}</p>
                     <p className="text-[10px] text-muted-label mt-1">Remaining: {e.remaining} ticks</p>
                   </TooltipContent>
@@ -287,13 +287,13 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
               <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${
                 weather.current === 'clear'
                   ? 'border-muted-label text-muted-label bg-muted-label/20'
-                  : 'border-sky-500/50 text-sky-400 bg-sky-900/20'
+                  : 'border-brand/50 text-brand bg-brand/20'
               }`}>
                 <GameIcon icon={WEATHER_DEFS[weather.current]?.icon} size={12} className="inline-flex" /> {WEATHER_DEFS[weather.current]?.name}
               </Badge>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="bg-card border-cyan-900/30">
-              <p className="text-xs font-medium text-sky-300">{WEATHER_DEFS[weather.current]?.name}</p>
+            <TooltipContent side="bottom" className="bg-card border-brand/30">
+              <p className="text-xs font-medium text-brand">{WEATHER_DEFS[weather.current]?.name}</p>
               <p className="text-[10px] text-subtle mt-0.5">{WEATHER_DEFS[weather.current]?.description}</p>
               {weather.remaining > 0 && <p className="text-[10px] text-muted-label mt-1">Remaining: {weather.remaining} ticks</p>}
               {weather.current === 'clear' && <p className="text-[10px] text-muted-label mt-1">Weather changes over time and affects production</p>}
@@ -308,22 +308,22 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-label hover:text-cyan-400" onClick={onExport} aria-label="Export save">
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-label hover:text-brand" onClick={onExport} aria-label="Export save">
                 <Download className="w-3 h-3" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="bg-card border-cyan-900/30">
+            <TooltipContent side="bottom" className="bg-card border-brand/30">
               <p className="text-xs">Export Save</p>
             </TooltipContent>
           </Tooltip>
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-label hover:text-cyan-400" onClick={onImport} aria-label="Import save">
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-label hover:text-brand" onClick={onImport} aria-label="Import save">
                 <Upload className="w-3 h-3" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="bg-card border-cyan-900/30">
+            <TooltipContent side="bottom" className="bg-card border-brand/30">
               <p className="text-xs">Import Save</p>
             </TooltipContent>
           </Tooltip>
@@ -343,7 +343,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
                 {isUsingSupabase ? 'Live' : 'Local'}
               </Badge>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="bg-card border-cyan-900/30">
+            <TooltipContent side="bottom" className="bg-card border-brand/30">
               <p className="text-xs font-medium">{isUsingSupabase ? 'Supabase Connected' : 'Using Local Config'}</p>
               <p className="text-[10px] text-subtle mt-0.5">Game data source</p>
               <Button variant="ghost" size="sm" className="h-6 text-[10px] mt-1 w-full" onClick={reloadConfig}>
@@ -362,18 +362,18 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
                   : <Cloud className="w-3 h-3 text-subtle" />}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="bottom" className="bg-card border-cyan-900/30">
+              <TooltipContent side="bottom" className="bg-card border-brand/30">
                 <p className="text-xs">Save to Cloud</p>
               </TooltipContent>
             </Tooltip>
           ) : (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-label hover:text-cyan-400" onClick={() => promptLogin('cloud_save')}>
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-label hover:text-brand" onClick={() => promptLogin('cloud_save')}>
                   <Cloud className="w-3 h-3" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="bottom" className="bg-card border-cyan-900/30">
+              <TooltipContent side="bottom" className="bg-card border-brand/30">
                 <p className="text-xs">Sign in for Cloud Save</p>
               </TooltipContent>
             </Tooltip>
@@ -384,7 +384,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
           ) : user ? (
             <Tooltip>
               <TooltipTrigger asChild>
-                <button className="flex items-center gap-1.5 bg-card rounded-lg px-2 py-1 border border-cyan-900/20 hover:border-cyan-500/30 transition-colors cursor-pointer">
+                <button className="flex items-center gap-1.5 bg-card rounded-lg px-2 py-1 border border-brand/20 hover:border-brand/30 transition-colors cursor-pointer">
                   {userAvatar ? (
                     <img src={userAvatar} alt="" className="w-5 h-5 rounded-full" />
                   ) : (
@@ -395,21 +395,21 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
                   <span className="text-[10px] text-subtle max-w-[80px] truncate">{userName}</span>
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom" className="w-56 bg-card border-cyan-900/30 p-0 overflow-hidden">
-                <div className="bg-gradient-to-r from-cyan-900/30 to-teal-900/20 px-3 py-2 border-b border-cyan-900/20">
-                  <p className="text-xs font-bold text-cyan-300">{userName}</p>
+              <TooltipContent side="bottom" className="w-56 bg-card border-brand/30 p-0 overflow-hidden">
+                <div className="bg-gradient-to-r from-cyan-900/30 to-teal-900/20 px-3 py-2 border-b border-brand/20">
+                  <p className="text-xs font-bold text-brand">{userName}</p>
                   <p className="text-[10px] text-subtle">{user.email}</p>
                 </div>
                 <div className="p-2 space-y-1">
                   <Button variant="ghost" size="sm" className="w-full justify-start h-7 text-xs" onClick={handleCloudSave}><Cloud className="w-3 h-3 mr-1.5" /> Save to Cloud</Button>
                   <Button variant="ghost" size="sm" className="w-full justify-start h-7 text-xs" onClick={reloadConfig}><RefreshCw className="w-3 h-3 mr-1.5" /> Reload Config</Button>
-                  <div className="border-t border-cyan-900/20 my-1" />
+                  <div className="border-t border-brand/20 my-1" />
                   <Button variant="ghost" size="sm" className="w-full justify-start h-7 text-xs text-danger hover:text-danger" onClick={signOut}><LogOut className="w-3 h-3 mr-1.5" /> Sign Out</Button>
                 </div>
               </TooltipContent>
             </Tooltip>
           ) : (
-            <Button variant="ghost" size="sm" className="h-7 px-3 text-xs text-cyan-400 hover:text-cyan-300 border border-cyan-900/30 hover:border-cyan-500/30 rounded-lg" onClick={() => promptLogin('manual')}>
+            <Button variant="ghost" size="sm" className="h-7 px-3 text-xs text-brand hover:text-brand border border-brand/30 hover:border-brand/30 rounded-lg" onClick={() => promptLogin('manual')}>
               <LogIn className="w-3 h-3 mr-1" /> Sign In
             </Button>
           )}
@@ -417,9 +417,9 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
       </div>
 
       {/* News Ticker - desktop only, inside fixed header */}
-      <div className="hidden lg:block bg-[#0a0e17] border-t border-cyan-900/20 overflow-hidden h-6">
+      <div className="hidden lg:block bg-[#0a0e17] border-t border-brand/20 overflow-hidden h-6">
         <div className="flex items-center h-full px-3">
-          <span className="text-[10px] text-cyan-400 font-bold mr-3 flex-shrink-0">📰 NEWS</span>
+          <span className="text-[10px] text-brand font-bold mr-3 flex-shrink-0">📰 NEWS</span>
           <div className="overflow-hidden flex-1 relative">
             <div className="news-ticker-content text-[10px] text-subtle">
               {notifications.slice(0, 8).map((n, i) => (

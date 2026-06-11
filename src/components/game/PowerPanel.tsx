@@ -24,11 +24,11 @@ const POWER_PLANT_TYPES = getPowerPlantTypes() as PowerPlantType[];
 
 // Power plant metadata with fallback for dynamically added plants
 const POWER_PLANT_META: Record<string, { icon: React.ReactNode; color: string; label: string; glowClass: string; icon: string }> = {
-  coalGenerator: { icon: <Flame className="w-4 h-4" />, color: '#ff6600', label: 'Coal', glowClass: 'text-orange-400', icon: 'gi:fire' },
+  coalGenerator: { icon: <Flame className="w-4 h-4" />, color: '#ff6600', label: 'Coal', glowClass: 'text-domain', icon: 'gi:fire' },
   solarPanel: { icon: <Sun className="w-4 h-4" />, color: '#ffff00', label: 'Solar', glowClass: 'text-warning', icon: 'gi:sun' },
-  windTurbine: { icon: <Wind className="w-4 h-4" />, color: '#00ccff', label: 'Wind', glowClass: 'text-cyan-400', icon: 'gi:air-zigzag' },
+  windTurbine: { icon: <Wind className="w-4 h-4" />, color: '#00ccff', label: 'Wind', glowClass: 'text-brand', icon: 'gi:air-zigzag' },
   nuclearReactor: { icon: <Atom className="w-4 h-4" />, color: '#00ff66', label: 'Nuclear', glowClass: 'text-success', icon: 'gi:nuclear' },
-  antimatterPowerPlant: { icon: <Zap className="w-4 h-4" />, color: '#ff00ff', label: 'Antimatter', glowClass: 'text-fuchsia-400', icon: 'gi:lightning-frequency' },
+  antimatterPowerPlant: { icon: <Zap className="w-4 h-4" />, color: '#ff00ff', label: 'Antimatter', glowClass: 'text-premium', icon: 'gi:lightning-frequency' },
 };
 
 // Fallback meta for power plants not in the static map
@@ -42,7 +42,7 @@ function getPowerPlantMeta(type: string) {
     icon: <Zap className="w-4 h-4" />,
     color,
     label: def?.name ?? type,
-    glowClass: 'text-cyan-400' as const,
+    glowClass: 'text-brand' as const,
     icon: def?.icon ?? 'gi:lightning-frequency',
   };
 }
@@ -337,14 +337,14 @@ export function PowerPanel() {
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-muted-label">demand</span>
-              <span className="text-orange-400 font-mono font-bold text-sm">{formatNumber(totalRealConsumption)}</span>
-              <ArrowDownRight className="w-3.5 h-3.5 text-orange-400" />
+              <span className="text-domain font-mono font-bold text-sm">{formatNumber(totalRealConsumption)}</span>
+              <ArrowDownRight className="w-3.5 h-3.5 text-domain" />
             </div>
           </div>
 
           <div className="h-6 bg-muted-label rounded-full overflow-hidden relative">
             <div
-              className="absolute inset-y-0 left-0 bg-orange-600/20 rounded-full transition-all duration-700"
+              className="absolute inset-y-0 left-0 bg-domain/20 rounded-full transition-all duration-700"
               style={{ width: `${Math.min(100, (totalRealConsumption / Math.max(1, totalRealProduction)) * 100)}%` }}
             />
             <motion.div
@@ -448,17 +448,17 @@ export function PowerPanel() {
       {/* POWER FLOW VISUALIZATION */}
       <div className="game-card rounded-xl bg-card p-4 border border-border">
         <div className="flex items-center gap-2 mb-3">
-          <Activity className="w-4 h-4 text-cyan-400" />
-          <h3 className="text-sm font-semibold text-cyan-400">Power Flow Diagram</h3>
+          <Activity className="w-4 h-4 text-brand" />
+          <h3 className="text-sm font-semibold text-brand">Power Flow Diagram</h3>
         </div>
         <div className="relative bg-[#0a0e17] rounded-lg p-4 overflow-hidden">
           {/* Grid lines background */}
           <div className="absolute inset-0 opacity-5">
             {[...Array(6)].map((_, i) => (
-              <div key={`h-${i}`} className="absolute h-px bg-cyan-400" style={{ top: `${(i + 1) * 16.6}%`, left: '5%', right: '5%' }} />
+              <div key={`h-${i}`} className="absolute h-px bg-brand" style={{ top: `${(i + 1) * 16.6}%`, left: '5%', right: '5%' }} />
             ))}
             {[...Array(8)].map((_, i) => (
-              <div key={`v-${i}`} className="absolute w-px bg-cyan-400" style={{ left: `${(i + 1) * 12.5}%`, top: '5%', bottom: '5%' }} />
+              <div key={`v-${i}`} className="absolute w-px bg-brand" style={{ left: `${(i + 1) * 12.5}%`, top: '5%', bottom: '5%' }} />
             ))}
           </div>
 
@@ -577,7 +577,7 @@ export function PowerPanel() {
               <div className="text-[9px] text-muted-label mb-1 font-bold uppercase tracking-wider">Consumers</div>
               <div className="flex items-center gap-1">
                 <span className="text-xs"><GameIcon icon="gi:castle" size={14} className="inline" /></span>
-                <span className="text-[9px] font-mono text-orange-400">{formatNumber(totalRealConsumption)} MW</span>
+                <span className="text-[9px] font-mono text-domain">{formatNumber(totalRealConsumption)} MW</span>
               </div>
               <div className="text-[9px] text-muted-label">{buildings.filter(b => BUILDING_DEFS[b.type]?.category !== 'power' && b.active).length} buildings</div>
               <div className={`text-[8px] mt-1 px-1.5 py-0.5 rounded ${
@@ -634,8 +634,8 @@ export function PowerPanel() {
               details={[
                 { label: 'Power Production', value: `${def.basePowerProduction} MW`, color: 'text-success' },
                 { label: 'Power Consumption', value: `${def.basePowerConsumption} MW` },
-                ...(def.fuel ? [{ label: 'Fuel Type', value: RESOURCE_META[def.fuel].name, color: 'text-orange-400' }] : []),
-                ...(def.fuelRate ? [{ label: 'Fuel Rate', value: `${(def.fuelRate).toFixed(1)}/s`, color: 'text-orange-400' }] : []),
+                ...(def.fuel ? [{ label: 'Fuel Type', value: RESOURCE_META[def.fuel].name, color: 'text-domain' }] : []),
+                ...(def.fuelRate ? [{ label: 'Fuel Rate', value: `${(def.fuelRate).toFixed(1)}/s`, color: 'text-domain' }] : []),
                 { label: 'Build Cost', value: `$${formatNumber(getBuildingCost(type, instances.length))}`, color: money >= getBuildingCost(type, instances.length) ? 'text-success' : 'text-danger' },
                 { label: 'Current Output', value: `${formatNumber(output)} MW`, color: 'text-warning' },
               ]}
@@ -689,7 +689,7 @@ export function PowerPanel() {
                     <div className="w-12 h-1 bg-muted-label rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full ${
-                          variationPct >= 70 ? 'bg-success' : variationPct >= 40 ? 'bg-warning' : 'bg-cyan-500'
+                          variationPct >= 70 ? 'bg-success' : variationPct >= 40 ? 'bg-warning' : 'bg-brand'
                         }`}
                         style={{ width: `${variationPct}%` }}
                       />
@@ -702,7 +702,7 @@ export function PowerPanel() {
               {/* Fuel status for coal */}
               {type === 'coalGenerator' && activeInstances.length > 0 && (
                 <div className={`flex items-center gap-1 text-[9px] ${fuelLow ? 'text-danger' : 'text-subtle'}`}>
-                  <Fuel className="w-2.5 h-2.5 text-orange-500" />
+                  <Fuel className="w-2.5 h-2.5 text-domain" />
                   <span className="font-mono truncate">{fuelLabel}</span>
                 </div>
               )}
@@ -896,7 +896,7 @@ export function PowerPanel() {
                             </span>
                             {def.fuel && (
                               <div className="flex items-center gap-1">
-                                <Fuel className="w-2.5 h-2.5 text-orange-500" />
+                                <Fuel className="w-2.5 h-2.5 text-domain" />
                                 <span className={`text-[9px] font-mono ${
                                   resources[def.fuel] < 50 ? 'text-danger' : 'text-subtle'
                                 }`}>
@@ -913,7 +913,7 @@ export function PowerPanel() {
                             size="sm"
                             className={`h-7 text-[10px] ${
                               canUpgrade
-                                ? 'border-cyan-700/50 text-cyan-400 hover:bg-cyan-900/30 hover:border-cyan-500'
+                                ? 'border-brand/50 text-brand hover:bg-brand/30 hover:border-brand'
                                 : 'border-muted-label text-muted-label'
                             }`}
                             onClick={() => handleUpgrade(plant.id)}
@@ -989,7 +989,7 @@ export function PowerPanel() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-subtle">Total Demand</span>
-                <span className="text-sm font-mono font-bold text-orange-400">{formatNumber(powerGrid.totalConsumption)} MW</span>
+                <span className="text-sm font-mono font-bold text-domain">{formatNumber(powerGrid.totalConsumption)} MW</span>
               </div>
             </div>
           </div>
@@ -998,8 +998,8 @@ export function PowerPanel() {
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Fuel className="w-4 h-4 text-orange-400" />
-                <h3 className="text-sm font-semibold text-orange-400">Coal Fuel Status</h3>
+                <Fuel className="w-4 h-4 text-domain" />
+                <h3 className="text-sm font-semibold text-domain">Coal Fuel Status</h3>
               </div>
               {coalFuelStatus.isLow && (
                 <Badge variant="outline" className="border-danger/50 text-danger bg-danger/20 text-[9px] neon-pulse">
@@ -1027,7 +1027,7 @@ export function PowerPanel() {
                     className={`h-full rounded-full ${
                       coalFuelStatus.stock < 50 ? 'bg-danger' :
                       coalFuelStatus.stock < resourceCapacity.coal * 0.5 ? 'bg-warning' :
-                      'bg-orange-500'
+                      'bg-domain'
                     }`}
                     style={{ width: `${Math.min(100, (coalFuelStatus.stock / resourceCapacity.coal) * 100)}%` }}
                   />

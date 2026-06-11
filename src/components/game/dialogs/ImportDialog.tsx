@@ -30,9 +30,9 @@ export function ImportDialog({
 }: ImportDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-cyan-900/30 text-subtle max-w-lg w-[calc(100%-1rem)] lg:w-full max-h-[90vh] lg:max-h-none p-4 lg:p-6">
+      <DialogContent className="bg-card border-brand/30 text-subtle max-w-lg w-[calc(100%-1rem)] lg:w-full max-h-[90vh] lg:max-h-none p-4 lg:p-6">
         <DialogHeader>
-          <DialogTitle className="text-cyan-400 flex items-center gap-2 text-sm lg:text-base">
+          <DialogTitle className="text-brand flex items-center gap-2 text-sm lg:text-base">
             <Upload className="w-4 h-4" /> Import Save
           </DialogTitle>
           <DialogDescription className="text-subtle text-xs lg:text-sm">
@@ -47,7 +47,7 @@ export function ImportDialog({
               setImportError('');
             }}
             placeholder="Paste your save string here..."
-            className="bg-[#0a0e17] border-cyan-900/20 text-xs font-mono text-subtle min-h-24 lg:min-h-32 max-h-36 lg:max-h-48 game-scrollbar placeholder:text-muted-label"
+            className="bg-[#0a0e17] border-brand/20 text-xs font-mono text-subtle min-h-24 lg:min-h-32 max-h-36 lg:max-h-48 game-scrollbar placeholder:text-muted-label"
           />
           {importError && (
             <p className="text-xs text-danger flex items-center gap-1">

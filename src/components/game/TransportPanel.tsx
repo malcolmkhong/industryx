@@ -22,9 +22,9 @@ import { GameIcon } from '@/components/game/shared/GameIcon';
 // --- Tier Color Map ---
 const TIER_COLORS: Record<number, { fill: string; stroke: string; text: string; bg: string; label: string }> = {
   0: { fill: '#374151', stroke: '#a0a0a0', text: 'text-subtle', bg: 'bg-muted-label/20', label: 'Raw' },
-  1: { fill: '#164e63', stroke: '#22d3ee', text: 'text-cyan-400', bg: 'bg-cyan-900/20', label: 'T1' },
-  2: { fill: '#431407', stroke: '#f97316', text: 'text-orange-400', bg: 'bg-orange-900/20', label: 'T2' },
-  3: { fill: '#3b0764', stroke: '#a855f7', text: 'text-purple-400', bg: 'bg-purple-900/20', label: 'T3' },
+  1: { fill: '#164e63', stroke: '#22d3ee', text: 'text-brand', bg: 'bg-brand/20', label: 'T1' },
+  2: { fill: '#431407', stroke: '#f97316', text: 'text-domain', bg: 'bg-domain/20', label: 'T2' },
+  3: { fill: '#3b0764', stroke: '#a855f7', text: 'text-research', bg: 'bg-research/20', label: 'T3' },
   4: { fill: '#022c22', stroke: '#00ffcc', text: 'text-success', bg: 'bg-success/20', label: 'T4' },
 };
 
@@ -1502,7 +1502,7 @@ export function TransportPanel() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h2 className="text-xl font-bold text-cyan-400 tracking-wide neon-glow-cyan">
+          <h2 className="text-xl font-bold text-brand tracking-wide neon-glow-cyan">
             Transport & Logistics
           </h2>
           <p className="text-xs text-muted-label mt-0.5">Manage supply chains and logistics networks</p>
@@ -1513,11 +1513,11 @@ export function TransportPanel() {
             <GameIcon icon={weatherDef.icon} size={14} className="inline-flex mr-1" />
             {weatherDef.name}
           </Badge>
-          <Badge variant="outline" className="border-cyan-800/50 text-cyan-400 bg-cyan-900/10 text-xs">
+          <Badge variant="outline" className="border-brand/50 text-brand bg-brand/10 text-xs">
             <Route className="w-3 h-3 mr-1" />
             {store.transportLines.length} lines
           </Badge>
-          <Badge variant="outline" className="border-teal-800/50 text-teal-400 bg-teal-900/10 text-xs">
+          <Badge variant="outline" className="border-brand/50 text-brand bg-brand/10 text-xs">
             <Gauge className="w-3 h-3 mr-1" />
             {formatNumber(totalThroughput)} u/s
           </Badge>
@@ -1527,7 +1527,7 @@ export function TransportPanel() {
       {/* Network Health Gauge + Quick Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
         {/* Network Health - Large gauge */}
-        <div className="game-card rounded-xl bg-card p-3 border border-cyan-900/30 col-span-2 sm:col-span-1 flex flex-col items-center justify-center relative overflow-hidden">
+        <div className="game-card rounded-xl bg-card p-3 border border-brand/30 col-span-2 sm:col-span-1 flex flex-col items-center justify-center relative overflow-hidden">
           <div className="absolute inset-0 opacity-[0.03]" style={{ background: 'radial-gradient(ellipse at 50% 50%, #22d3ee, transparent 70%)' }} />
           <div className="relative z-10 flex flex-col items-center">
             <div className="text-[10px] text-muted-label mb-1">Network Health</div>
@@ -1580,8 +1580,8 @@ export function TransportPanel() {
       {/* Network Graph — Full Width */}
       <div className="game-card rounded-xl bg-card p-4 border border-border">
         <div className="flex items-center gap-2 mb-3">
-          <Database className="w-4 h-4 text-cyan-400" />
-          <h3 className="text-sm font-semibold text-cyan-400">Network Graph</h3>
+          <Database className="w-4 h-4 text-brand" />
+          <h3 className="text-sm font-semibold text-brand">Network Graph</h3>
           <span className="text-[10px] text-muted-label ml-auto">
             {erdNodes.length} nodes · {erdRelations.length} edges · click node to reveal connections · scroll to zoom · drag to pan
           </span>
@@ -1645,8 +1645,8 @@ export function TransportPanel() {
         {/* Production Chain Overview */}
         <div className="game-card rounded-xl bg-card p-4 border border-border">
           <div className="flex items-center gap-2 mb-3">
-            <Link2 className="w-4 h-4 text-cyan-400" />
-            <h3 className="text-sm font-semibold text-cyan-400">Production Chain</h3>
+            <Link2 className="w-4 h-4 text-brand" />
+            <h3 className="text-sm font-semibold text-brand">Production Chain</h3>
             <span className="text-[10px] text-muted-label ml-auto">{productionChain.completeness.toFixed(0)}% connected</span>
           </div>
           {/* Completeness bar */}
@@ -1694,8 +1694,8 @@ export function TransportPanel() {
           {/* Smart Route Builder */}
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
-              <Truck className="w-4 h-4 text-cyan-400" />
-              <h3 className="text-sm font-semibold text-cyan-400">Smart Route Builder</h3>
+              <Truck className="w-4 h-4 text-brand" />
+              <h3 className="text-sm font-semibold text-brand">Smart Route Builder</h3>
             </div>
 
             {/* Transport Type Selector */}
@@ -1712,9 +1712,9 @@ export function TransportPanel() {
                     description={def.description}
                     category="Transport"
                     details={[
-                      { label: 'Throughput', value: `${def.baseThroughput.toFixed(1)} u/s`, color: 'text-cyan-400' },
+                      { label: 'Throughput', value: `${def.baseThroughput.toFixed(1)} u/s`, color: 'text-brand' },
                       { label: 'Base Cost', value: `$${formatNumber(cost)}`, color: 'text-success' },
-                      { label: 'Upgrade x', value: `${def.upgradeMultiplier}`, color: 'text-purple-400' },
+                      { label: 'Upgrade x', value: `${def.upgradeMultiplier}`, color: 'text-research' },
                     ]}
                     side="bottom"
                   >
@@ -1722,7 +1722,7 @@ export function TransportPanel() {
                       onClick={() => setSelectedType(type)}
                       className={`p-2 rounded-lg border text-center w-full ${
                         isSelected
-                          ? 'border-cyan-500/50 bg-cyan-900/20 text-cyan-400'
+                          ? 'border-brand/50 bg-brand/20 text-brand'
                           : 'border-muted-label bg-[#0a0e17] text-subtle hover:border-muted-label'
                       }`}
                     >
@@ -1744,7 +1744,7 @@ export function TransportPanel() {
                   <select
                     value={fromBuilding}
                     onChange={e => handleFromChange(e.target.value)}
-                    className="w-full bg-[#0a0e17] border border-muted-label rounded-lg px-2 py-1.5 text-xs text-subtle focus:border-cyan-500/50 focus:outline-none"
+                    className="w-full bg-[#0a0e17] border border-muted-label rounded-lg px-2 py-1.5 text-xs text-subtle focus:border-brand/50 focus:outline-none"
                   >
                     <option value="">Select source...</option>
                     {producingBuildings.map(b => (
@@ -1760,7 +1760,7 @@ export function TransportPanel() {
                   <select
                     value={carriesResource}
                     onChange={e => { setCarriesResource(e.target.value as ResourceType); setToBuilding(''); }}
-                    className="w-full bg-[#0a0e17] border border-muted-label rounded-lg px-2 py-1.5 text-xs text-subtle focus:border-cyan-500/50 focus:outline-none"
+                    className="w-full bg-[#0a0e17] border border-muted-label rounded-lg px-2 py-1.5 text-xs text-subtle focus:border-brand/50 focus:outline-none"
                     disabled={!fromBuilding}
                   >
                     {!fromBuilding && <option value="">Select source first...</option>}
@@ -1777,7 +1777,7 @@ export function TransportPanel() {
                   <select
                     value={toBuilding}
                     onChange={e => setToBuilding(e.target.value)}
-                    className="w-full bg-[#0a0e17] border border-muted-label rounded-lg px-2 py-1.5 text-xs text-subtle focus:border-cyan-500/50 focus:outline-none"
+                    className="w-full bg-[#0a0e17] border border-muted-label rounded-lg px-2 py-1.5 text-xs text-subtle focus:border-brand/50 focus:outline-none"
                     disabled={!carriesResource}
                   >
                     {!carriesResource && <option value="">Select resource first...</option>}
@@ -1794,23 +1794,23 @@ export function TransportPanel() {
               {/* Live Preview */}
               {previewData && (
                 <div
-                  className="bg-[#0a0e17] rounded-lg p-3 border border-cyan-900/30"
+                  className="bg-[#0a0e17] rounded-lg p-3 border border-brand/30"
                 >
-                  <div className="text-[10px] text-cyan-400 font-semibold mb-2">ROUTE PREVIEW</div>
+                  <div className="text-[10px] text-brand font-semibold mb-2">ROUTE PREVIEW</div>
                   <div className="flex items-center gap-2 mb-2 text-xs">
                     <GameIcon icon={previewData.fromDef?.icon} size={16} />
                     <span className="text-subtle">{previewData.fromDef?.name}</span>
-                    <ArrowRight className="w-3 h-3 text-cyan-400" />
+                    <ArrowRight className="w-3 h-3 text-brand" />
                     <GameIcon icon={RESOURCE_META[carriesResource as ResourceType]?.icon} size={16} />
                     <span className="text-subtle">{RESOURCE_META[carriesResource as ResourceType]?.name}</span>
-                    <ArrowRight className="w-3 h-3 text-cyan-400" />
+                    <ArrowRight className="w-3 h-3 text-brand" />
                     <GameIcon icon={previewData.toDef?.icon} size={16} />
                     <span className="text-subtle">{previewData.toDef?.name}</span>
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
                     <div>
                       <span className="text-muted-label">Est. Throughput</span>
-                      <div className="text-cyan-400 font-mono font-bold">{previewData.estimatedThroughput.toFixed(1)} u/s</div>
+                      <div className="text-brand font-mono font-bold">{previewData.estimatedThroughput.toFixed(1)} u/s</div>
                     </div>
                     <div>
                       <span className="text-muted-label">Cost</span>
@@ -1818,7 +1818,7 @@ export function TransportPanel() {
                     </div>
                     <div>
                       <span className="text-muted-label">Transport</span>
-                      <div className="text-cyan-400 font-mono font-bold"><GameIcon icon={TRANSPORT_DEFS[selectedType].icon} size={14} className="inline-flex" /> {TRANSPORT_DEFS[selectedType].name}</div>
+                      <div className="text-brand font-mono font-bold"><GameIcon icon={TRANSPORT_DEFS[selectedType].icon} size={14} className="inline-flex" /> {TRANSPORT_DEFS[selectedType].name}</div>
                     </div>
                   </div>
                 </div>
@@ -1828,7 +1828,7 @@ export function TransportPanel() {
               <Button
                 onClick={handleBuild}
                 disabled={!fromBuilding || !toBuilding || !carriesResource || fromBuilding === toBuilding}
-                className="w-full bg-cyan-700 hover:bg-cyan-600 text-white"
+                className="w-full bg-brand hover:bg-brand text-white"
                 size="sm"
               >
                 <Truck className="w-3.5 h-3.5 mr-1.5" />
@@ -1840,8 +1840,8 @@ export function TransportPanel() {
           {/* Active Transport Lines */}
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
-              <Route className="w-4 h-4 text-cyan-400" />
-              <h3 className="text-sm font-semibold text-cyan-400">Transport Lines</h3>
+              <Route className="w-4 h-4 text-brand" />
+              <h3 className="text-sm font-semibold text-brand">Transport Lines</h3>
               <span className="text-[10px] text-muted-label ml-auto">{store.transportLines.length} total</span>
               <button onClick={() => toggleSection('lines')} className="text-muted-label hover:text-subtle">
                 {expandedSections.lines ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
@@ -1868,7 +1868,7 @@ export function TransportPanel() {
                         const throughputPct = line.maxThroughput > 0 ? (line.throughput / line.maxThroughput) * 100 : 0;
 
                         return (
-                          <div key={line.id} className={`bg-[#0a0e17] rounded-lg p-3 border ${line.active ? 'border-cyan-900/30 hover:border-cyan-800/50' : 'border-muted-label opacity-60'}`}>
+                          <div key={line.id} className={`bg-[#0a0e17] rounded-lg p-3 border ${line.active ? 'border-brand/30 hover:border-brand/50' : 'border-muted-label opacity-60'}`}>
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-1.5 flex-1 min-w-0">
                                 <div className="flex items-center gap-1 bg-muted-label/50 rounded px-1.5 py-0.5 min-w-0">
@@ -1878,7 +1878,7 @@ export function TransportPanel() {
                                 <div className="flex items-center gap-0.5 flex-shrink-0">
                                   <ArrowRight className="w-3 h-3 text-muted-label" />
                                   <GameIcon icon={RESOURCE_META[line.carriesResource]?.icon} size={12} />
-                                  <ArrowRight className="w-3 h-3 text-cyan-400" />
+                                  <ArrowRight className="w-3 h-3 text-brand" />
                                 </div>
                                 <div className="flex items-center gap-1 bg-muted-label/50 rounded px-1.5 py-0.5 min-w-0">
                                   <GameIcon icon={toDef?.icon} size={12} />
@@ -1917,7 +1917,7 @@ export function TransportPanel() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-6 text-[10px] px-2 text-cyan-400 hover:text-cyan-300"
+                                className="h-6 text-[10px] px-2 text-brand hover:text-brand"
                                 onClick={() => store.upgradeTransportLine(line.id)}
                                 disabled={store.money < upgradeCost}
                               >
@@ -1939,8 +1939,8 @@ export function TransportPanel() {
           {throughputByType.length > 0 && (
             <div className="game-card rounded-xl bg-card p-4 border border-border">
               <div className="flex items-center gap-2 mb-3">
-                <BarChart3 className="w-4 h-4 text-cyan-400" />
-                <h3 className="text-sm font-semibold text-cyan-400">Throughput by Type</h3>
+                <BarChart3 className="w-4 h-4 text-brand" />
+                <h3 className="text-sm font-semibold text-brand">Throughput by Type</h3>
                 <button onClick={() => toggleSection('throughput')} className="text-muted-label hover:text-subtle ml-auto">
                   {expandedSections.throughput ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                 </button>
@@ -1967,7 +1967,7 @@ export function TransportPanel() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-5 text-[9px] px-1.5 text-purple-400 hover:text-purple-300"
+                                className="h-5 text-[9px] px-1.5 text-research hover:text-research"
                                 onClick={() => handleUpgradeAllType(type)}
                                 disabled={store.money < totalUpgradeCost}
                                 title={`Upgrade all ${def.name} lines ($${formatNumber(totalUpgradeCost)})`}
@@ -1991,7 +1991,7 @@ export function TransportPanel() {
                       ))}
                       <div className="pt-2 border-t border-muted-label flex items-center justify-between">
                         <span className="text-xs text-subtle font-medium">Total Network</span>
-                        <span className="text-xs text-cyan-400 font-mono font-bold">{formatNumber(totalThroughput)}/{formatNumber(totalMaxThroughput)} u/s</span>
+                        <span className="text-xs text-brand font-mono font-bold">{formatNumber(totalThroughput)}/{formatNumber(totalMaxThroughput)} u/s</span>
                       </div>
                     </div>
                   </div>
@@ -2007,8 +2007,8 @@ export function TransportPanel() {
           {/* Resource Flow Summary */}
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
-              <Activity className="w-4 h-4 text-cyan-400" />
-              <h3 className="text-sm font-semibold text-cyan-400">Resource Flow</h3>
+              <Activity className="w-4 h-4 text-brand" />
+              <h3 className="text-sm font-semibold text-brand">Resource Flow</h3>
             </div>
             {resourceFlow.length === 0 ? (
               <div className="text-center py-4">
@@ -2046,10 +2046,10 @@ export function TransportPanel() {
           </div>
 
           {/* Bottleneck Detection */}
-          <div className="game-card rounded-xl bg-card p-4 border border-orange-900/30">
+          <div className="game-card rounded-xl bg-card p-4 border border-domain/30">
             <div className="flex items-center gap-2 mb-3">
-              <ShieldAlert className="w-4 h-4 text-orange-400" />
-              <h3 className="text-sm font-semibold text-orange-400">Bottleneck Detection</h3>
+              <ShieldAlert className="w-4 h-4 text-domain" />
+              <h3 className="text-sm font-semibold text-domain">Bottleneck Detection</h3>
               {bottlenecks.length > 0 && (
                 <Badge variant="outline" className="text-[9px] border-danger/50 text-danger ml-auto">
                   {bottlenecks.length} issue{bottlenecks.length !== 1 ? 's' : ''}
@@ -2068,7 +2068,7 @@ export function TransportPanel() {
                   const bDef = BUILDING_DEFS[bn.building.type];
                   const sevColor = bn.severity === 'critical' ? 'text-danger border-red-900/30' : bn.severity === 'warning' ? 'text-warning border-yellow-900/30' : 'text-subtle border-muted-label';
                   const sevIcon = bn.severity === 'critical' ? <XCircle className="w-3 h-3 text-danger" /> : bn.severity === 'warning' ? <AlertTriangle className="w-3 h-3 text-warning" /> : <CircleDot className="w-3 h-3 text-subtle" />;
-                  const typeIcon = bn.type === 'under-supplied' ? <TrendingDown className="w-3 h-3 text-danger" /> : bn.type === 'over-supplied' ? <TrendingUp className="w-3 h-3 text-warning" /> : bn.type === 'capacity' ? <Zap className="w-3 h-3 text-orange-400" /> : bn.type === 'power' ? <ZapOff className="w-3 h-3 text-warning" /> : <Route className="w-3 h-3 text-danger" />;
+                  const typeIcon = bn.type === 'under-supplied' ? <TrendingDown className="w-3 h-3 text-danger" /> : bn.type === 'over-supplied' ? <TrendingUp className="w-3 h-3 text-warning" /> : bn.type === 'capacity' ? <Zap className="w-3 h-3 text-domain" /> : bn.type === 'power' ? <ZapOff className="w-3 h-3 text-warning" /> : <Route className="w-3 h-3 text-danger" />;
                   return (
                     <div key={i} className={`bg-[#0a0e17] rounded-lg p-3 border ${sevColor}`}>
                       <div className="flex items-center gap-1.5 mb-1.5">
@@ -2086,7 +2086,7 @@ export function TransportPanel() {
                       {bn.action && (
                         <Button
                           size="sm"
-                          className="h-5 text-[9px] px-2 mt-1.5 bg-cyan-700 hover:bg-cyan-600 text-white"
+                          className="h-5 text-[9px] px-2 mt-1.5 bg-brand hover:bg-brand text-white"
                           onClick={bn.action.onClick}
                         >
                           {bn.action.label}
@@ -2102,8 +2102,8 @@ export function TransportPanel() {
           {/* Bulk Operations + Auto-Connect */}
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
-              <Package className="w-4 h-4 text-cyan-400" />
-              <h3 className="text-sm font-semibold text-cyan-400">Bulk Operations</h3>
+              <Package className="w-4 h-4 text-brand" />
+              <h3 className="text-sm font-semibold text-brand">Bulk Operations</h3>
             </div>
             <div className="space-y-2">
               <Button
@@ -2130,7 +2130,7 @@ export function TransportPanel() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full h-7 text-[10px] border-cyan-800/50 text-cyan-400 hover:bg-cyan-900/20"
+                  className="w-full h-7 text-[10px] border-brand/50 text-brand hover:bg-brand/20"
                   onClick={() => setShowSuggestions(!showSuggestions)}
                 >
                   <Lightbulb className="w-3 h-3 mr-1" />
@@ -2139,7 +2139,7 @@ export function TransportPanel() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full h-7 text-[10px] border-purple-800/50 text-purple-400 hover:bg-purple-900/20 mt-2"
+                  className="w-full h-7 text-[10px] border-research/50 text-research hover:bg-research/20 mt-2"
                   onClick={() => setShowConnectAllDialog(true)}
                   disabled={connectAllData.routes.length === 0}
                 >
@@ -2153,8 +2153,8 @@ export function TransportPanel() {
           {/* Network Health Details */}
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
-              <Gauge className="w-4 h-4 text-cyan-400" />
-              <h3 className="text-sm font-semibold text-cyan-400">Health Breakdown</h3>
+              <Gauge className="w-4 h-4 text-brand" />
+              <h3 className="text-sm font-semibold text-brand">Health Breakdown</h3>
             </div>
             <div className="space-y-2">
               {[
@@ -2195,12 +2195,12 @@ export function TransportPanel() {
         {showSuggestions && (
           <div
           >
-            <div className="game-card rounded-xl bg-card p-4 border border-cyan-900/30">
+            <div className="game-card rounded-xl bg-card p-4 border border-brand/30">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <Lightbulb className="w-4 h-4 text-cyan-400" />
-                  <h3 className="text-sm font-semibold text-cyan-400">Suggested Routes</h3>
-                  <Badge variant="outline" className="text-[9px] border-cyan-800/50 text-cyan-400">{routeSuggestions.length}</Badge>
+                  <Lightbulb className="w-4 h-4 text-brand" />
+                  <h3 className="text-sm font-semibold text-brand">Suggested Routes</h3>
+                  <Badge variant="outline" className="text-[9px] border-brand/50 text-brand">{routeSuggestions.length}</Badge>
                 </div>
                 <button onClick={() => setShowSuggestions(false)} className="text-muted-label hover:text-subtle">
                   <X className="w-4 h-4" />
@@ -2221,13 +2221,13 @@ export function TransportPanel() {
                     const cheapestCost = getTransportCost(CHEAPEST_TYPE);
                     const canAfford = store.money >= cheapestCost;
                     return (
-                      <div key={i} className="bg-[#0a0e17] rounded-lg p-3 border border-cyan-900/20">
+                      <div key={i} className="bg-[#0a0e17] rounded-lg p-3 border border-brand/20">
                         <div className="flex items-center gap-2 mb-2">
                           <GameIcon icon={fromDef?.icon} size={14} className="inline-flex" />
                           <span className="text-xs text-subtle truncate max-w-[80px]">{fromDef?.name}</span>
-                          <ArrowRight className="w-3 h-3 text-cyan-400 flex-shrink-0" />
+                          <ArrowRight className="w-3 h-3 text-brand flex-shrink-0" />
                           <GameIcon icon={resMeta?.icon} size={14} className="inline-flex" />
-                          <ArrowRight className="w-3 h-3 text-cyan-400 flex-shrink-0" />
+                          <ArrowRight className="w-3 h-3 text-brand flex-shrink-0" />
                           <GameIcon icon={toDef?.icon} size={14} className="inline-flex" />
                           <span className="text-xs text-subtle truncate max-w-[80px]">{toDef?.name}</span>
                         </div>
@@ -2235,7 +2235,7 @@ export function TransportPanel() {
                           <span className="text-[10px] text-muted-label">{sug.reason}</span>
                           <Button
                             size="sm"
-                            className="h-6 text-[10px] px-3 bg-cyan-600 hover:bg-cyan-500 text-white"
+                            className="h-6 text-[10px] px-3 bg-brand hover:bg-brand text-white"
                             onClick={() => handleCreateSuggestedRoute(sug.from.id, sug.to.id, sug.resource)}
                             disabled={!canAfford}
                           >
@@ -2260,24 +2260,24 @@ export function TransportPanel() {
             onClick={() => setShowConnectAllDialog(false)}
           >
             <div
-              className="bg-card rounded-xl border border-cyan-900/50 p-6 max-w-md w-full mx-4 shadow-[0_0_40px_rgba(34,211,238,0.15)]"
+              className="bg-card rounded-xl border border-brand/50 p-6 max-w-md w-full mx-4 shadow-[0_0_40px_rgba(34,211,238,0.15)]"
               onClick={e => e.stopPropagation()}
             >
               <div className="flex items-center gap-2 mb-4">
-                <Link2 className="w-5 h-5 text-cyan-400" />
-                <h3 className="text-base font-bold text-cyan-400">Connect All Routes</h3>
+                <Link2 className="w-5 h-5 text-brand" />
+                <h3 className="text-base font-bold text-brand">Connect All Routes</h3>
               </div>
               <p className="text-xs text-subtle mb-3">
-                This will create <span className="text-cyan-400 font-bold">{connectAllData.routes.length}</span> transport lines using <GameIcon icon={TRANSPORT_DEFS[CHEAPEST_TYPE].icon} size={14} className="inline-flex" /> {TRANSPORT_DEFS[CHEAPEST_TYPE].name} (cheapest).
+                This will create <span className="text-brand font-bold">{connectAllData.routes.length}</span> transport lines using <GameIcon icon={TRANSPORT_DEFS[CHEAPEST_TYPE].icon} size={14} className="inline-flex" /> {TRANSPORT_DEFS[CHEAPEST_TYPE].name} (cheapest).
               </p>
               <div className="bg-[#0a0e17] rounded-lg p-3 mb-4 max-h-40 overflow-y-auto game-scrollbar">
                 {connectAllData.routes.slice(0, 20).map((r, i) => (
                   <div key={i} className="flex items-center gap-1.5 text-[10px] text-subtle py-0.5">
                     <span className="text-muted-label">{i + 1}.</span>
                     <span>{r.fromName}</span>
-                    <ArrowRight className="w-2.5 h-2.5 text-cyan-600" />
+                    <ArrowRight className="w-2.5 h-2.5 text-brand" />
                     <span>{r.resName}</span>
-                    <ArrowRight className="w-2.5 h-2.5 text-cyan-600" />
+                    <ArrowRight className="w-2.5 h-2.5 text-brand" />
                     <span>{r.toName}</span>
                   </div>
                 ))}
@@ -2302,7 +2302,7 @@ export function TransportPanel() {
                 </Button>
                 <Button
                   size="sm"
-                  className="flex-1 h-8 text-xs bg-cyan-600 hover:bg-cyan-500 text-white"
+                  className="flex-1 h-8 text-xs bg-brand hover:bg-brand text-white"
                   onClick={handleConnectAll}
                   disabled={!connectAllData.canAfford || connectAllData.routes.length === 0}
                 >

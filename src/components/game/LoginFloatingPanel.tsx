@@ -58,7 +58,7 @@ const REASON_CONFIGS: Record<LoginPromptReason, ReasonConfig> = {
     mode: 'hard_gate',
     title: 'Cloud Save Requires Account',
     description: 'To save your progress to the cloud, you need to sign in. This protects your empire from browser data loss.',
-    icon: <Cloud className="w-5 h-5 text-cyan-400" />,
+    icon: <Cloud className="w-5 h-5 text-brand" />,
     benefits: [
       'Save progress across devices',
       'Automatic cloud backup',
@@ -71,7 +71,7 @@ const REASON_CONFIGS: Record<LoginPromptReason, ReasonConfig> = {
     mode: 'hard_gate',
     title: 'Cloud Load Requires Account',
     description: 'Loading from the cloud requires authentication to verify your save data.',
-    icon: <Cloud className="w-5 h-5 text-cyan-400" />,
+    icon: <Cloud className="w-5 h-5 text-brand" />,
     benefits: [
       'Load progress from any device',
       'Restore after browser clear',
@@ -110,7 +110,7 @@ const REASON_CONFIGS: Record<LoginPromptReason, ReasonConfig> = {
     mode: 'hard_gate',
     title: 'Mega Projects Require Account',
     description: 'Global mega projects are collaborative efforts. Sign in to contribute and earn exclusive rewards.',
-    icon: <Building2 className="w-5 h-5 text-purple-400" />,
+    icon: <Building2 className="w-5 h-5 text-research" />,
     benefits: [
       'Contribute to global projects',
       'Earn exclusive mega project rewards',
@@ -136,7 +136,7 @@ const REASON_CONFIGS: Record<LoginPromptReason, ReasonConfig> = {
     mode: 'soft_prompt',
     title: 'Prestige Wants Protection!',
     description: 'Prestige is a major milestone! Sign in to secure your Corporation Points and ensure they\'re never lost.',
-    icon: <Sparkles className="w-5 h-5 text-fuchsia-400" />,
+    icon: <Sparkles className="w-5 h-5 text-premium" />,
     benefits: [
       'Secure your Corporation Points',
       'Keep prestige bonuses safe',
@@ -149,7 +149,7 @@ const REASON_CONFIGS: Record<LoginPromptReason, ReasonConfig> = {
     mode: 'soft_prompt',
     title: 'Quick Sign-In Suggestion',
     description: 'You\'ve been playing for a while! Signing in takes seconds and keeps your factory safe forever.',
-    icon: <Shield className="w-5 h-5 text-blue-400" />,
+    icon: <Shield className="w-5 h-5 text-brand" />,
     benefits: [
       'One-click Google sign-in',
       'Your progress stays safe',
@@ -161,7 +161,7 @@ const REASON_CONFIGS: Record<LoginPromptReason, ReasonConfig> = {
     mode: 'soft_prompt',
     title: 'Sign In to IndustriaX',
     description: 'Sign in with your Google account to unlock cloud features and protect your industrial empire.',
-    icon: <Cloud className="w-5 h-5 text-cyan-400" />,
+    icon: <Cloud className="w-5 h-5 text-brand" />,
     benefits: [
       'Cloud save & load',
       'Leaderboard rankings',
@@ -235,7 +235,7 @@ export function LoginFloatingPanel({ open, reason, onClose, onSignInStart }: Log
             : 'opacity-0 scale-95 -translate-y-4'
         }`}
       >
-        <div className="relative bg-[#0d1220] border border-cyan-900/40 rounded-2xl shadow-2xl shadow-cyan-900/20 overflow-hidden">
+        <div className="relative bg-[#0d1220] border border-brand/40 rounded-2xl shadow-2xl shadow-cyan-900/20 overflow-hidden">
           {/* Top accent gradient */}
           <div className="h-1 bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500" />
 
@@ -254,7 +254,7 @@ export function LoginFloatingPanel({ open, reason, onClose, onSignInStart }: Log
           <div className="p-6 pt-5">
             {/* Icon + Title */}
             <div className="flex items-start gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-cyan-900/30 flex items-center justify-center flex-shrink-0 border border-cyan-800/30">
+              <div className="w-10 h-10 rounded-xl bg-brand/30 flex items-center justify-center flex-shrink-0 border border-brand/30">
                 {config.icon}
               </div>
               <div>
@@ -268,7 +268,7 @@ export function LoginFloatingPanel({ open, reason, onClose, onSignInStart }: Log
               <div className={`text-xs px-3 py-2 rounded-lg mb-4 flex items-center gap-2 ${
                 isHardGate
                   ? 'bg-amber-900/20 text-warning border border-amber-800/30'
-                  : 'bg-cyan-900/20 text-cyan-400 border border-cyan-800/30'
+                  : 'bg-brand/20 text-brand border border-brand/30'
               }`}>
                 <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
                 {config.urgencyText}

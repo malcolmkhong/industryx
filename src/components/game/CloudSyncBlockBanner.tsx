@@ -16,7 +16,7 @@ function getBlockIcon(code: CloudBlockState['code']) {
     case 'ACCOUNT_LOCKED':
       return <Lock className="w-10 h-10 text-danger" />;
     case 'ACCESS_DENIED':
-      return <Ban className="w-10 h-10 text-orange-400" />;
+      return <Ban className="w-10 h-10 text-domain" />;
     case 'SESSION_EXPIRED':
       return <WifiOff className="w-10 h-10 text-warning" />;
     case 'VALIDATION_FAILED':
@@ -166,8 +166,8 @@ export function CloudSyncBlockBanner({ blockedState, onSignInAgain }: CloudSyncB
             </p>
 
             {/* Contact Admin section */}
-            <div className="bg-[#1a1525] border border-cyan-900/20 rounded-xl p-4 mb-4">
-              <p className="text-xs font-semibold text-cyan-300 mb-3 uppercase tracking-wider flex items-center justify-center gap-2">
+            <div className="bg-[#1a1525] border border-brand/20 rounded-xl p-4 mb-4">
+              <p className="text-xs font-semibold text-brand mb-3 uppercase tracking-wider flex items-center justify-center gap-2">
                 <MessageCircle className="w-3.5 h-3.5" />
                 Contact Admin
               </p>
@@ -195,7 +195,7 @@ export function CloudSyncBlockBanner({ blockedState, onSignInAgain }: CloudSyncB
             {isSessionExpired && onSignInAgain && (
               <button
                 onClick={handleSignIn}
-                className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-cyan-400 bg-cyan-950/30 border border-cyan-500/20 hover:bg-cyan-900/30 hover:border-cyan-500/30 transition-all duration-200"
+                className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-brand bg-cyan-950/30 border border-brand/20 hover:bg-brand/30 hover:border-brand/30 transition-all duration-200"
               >
                 <WifiOff className="w-4 h-4" />
                 Sign In Again

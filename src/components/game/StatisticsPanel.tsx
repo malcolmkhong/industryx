@@ -394,7 +394,7 @@ export default function StatisticsPanel() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold text-cyan-400 flex items-center gap-2">
+          <h2 className="text-xl font-bold text-brand flex items-center gap-2">
             <BarChart3 className="w-5 h-5" />
             Factory Analytics
           </h2>
@@ -409,7 +409,7 @@ export default function StatisticsPanel() {
               aria-pressed={timeRange === r}
               className={`px-2.5 py-1 text-xs rounded-md border ${
                 timeRange === r
-                  ? 'bg-cyan-900/30 border-cyan-500/50 text-cyan-400'
+                  ? 'bg-brand/30 border-brand/50 text-brand'
                   : 'border-muted-label text-subtle hover:border-muted-label hover:text-subtle'
               }`}
             >
@@ -435,7 +435,7 @@ export default function StatisticsPanel() {
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Money Chart */}
-        <div className="bg-[#0a0e17] rounded-lg border border-cyan-900/20 p-4">
+        <div className="bg-[#0a0e17] rounded-lg border border-brand/20 p-4">
           <h3 className="text-sm font-semibold text-success flex items-center gap-1.5 mb-3">
             <DollarSign className="w-4 h-4" />
             Money Accumulation
@@ -453,7 +453,7 @@ export default function StatisticsPanel() {
         </div>
 
         {/* Power Chart */}
-        <div className="bg-[#0a0e17] rounded-lg border border-cyan-900/20 p-4">
+        <div className="bg-[#0a0e17] rounded-lg border border-brand/20 p-4">
           <h3 className="text-sm font-semibold text-warning flex items-center gap-1.5 mb-3">
             <Zap className="w-4 h-4" />
             Power Grid
@@ -469,8 +469,8 @@ export default function StatisticsPanel() {
         </div>
 
         {/* Efficiency Chart */}
-        <div className="bg-[#0a0e17] rounded-lg border border-cyan-900/20 p-4">
-          <h3 className="text-sm font-semibold text-teal-400 flex items-center gap-1.5 mb-3">
+        <div className="bg-[#0a0e17] rounded-lg border border-brand/20 p-4">
+          <h3 className="text-sm font-semibold text-brand flex items-center gap-1.5 mb-3">
             <Activity className="w-4 h-4" />
             Efficiency Timeline
           </h3>
@@ -484,8 +484,8 @@ export default function StatisticsPanel() {
         </div>
 
         {/* Top Resource Production Chart */}
-        <div className="bg-[#0a0e17] rounded-lg border border-cyan-900/20 p-4">
-          <h3 className="text-sm font-semibold text-cyan-400 flex items-center gap-1.5 mb-3">
+        <div className="bg-[#0a0e17] rounded-lg border border-brand/20 p-4">
+          <h3 className="text-sm font-semibold text-brand flex items-center gap-1.5 mb-3">
             <TrendingUp className="w-4 h-4" />
             Top Resources Over Time
           </h3>
@@ -557,8 +557,8 @@ export default function StatisticsPanel() {
       </div>
 
       {/* Resource Summary Table */}
-      <div className="bg-[#0a0e17] rounded-lg border border-cyan-900/20 p-4">
-        <h3 className="text-sm font-semibold text-cyan-400 mb-3">Resource Summary</h3>
+      <div className="bg-[#0a0e17] rounded-lg border border-brand/20 p-4">
+        <h3 className="text-sm font-semibold text-brand mb-3">Resource Summary</h3>
         <div className="max-h-96 overflow-y-auto game-scrollbar">
           <table className="w-full text-xs">
             <thead>
@@ -596,7 +596,7 @@ export default function StatisticsPanel() {
                         <div className="w-12 h-1.5 bg-muted-label rounded-full overflow-hidden">
                           <div
                             className={`h-full rounded-full transition-all ${
-                              fillPercent >= 80 ? 'bg-danger' : fillPercent >= 50 ? 'bg-warning' : 'bg-cyan-500'
+                              fillPercent >= 80 ? 'bg-danger' : fillPercent >= 50 ? 'bg-warning' : 'bg-brand'
                             }`}
                             style={{ width: `${Math.min(100, fillPercent)}%` }}
                           />
@@ -624,15 +624,15 @@ export default function StatisticsPanel() {
 
       {/* Quick Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-[#0a0e17] rounded-lg border border-cyan-900/20 p-3">
+        <div className="bg-[#0a0e17] rounded-lg border border-brand/20 p-3">
           <p className="text-[10px] text-muted-label uppercase tracking-wider">Current Money</p>
           <p className="text-sm font-bold text-success font-mono">${formatNumber(store.money)}</p>
         </div>
-        <div className="bg-[#0a0e17] rounded-lg border border-cyan-900/20 p-3">
+        <div className="bg-[#0a0e17] rounded-lg border border-brand/20 p-3">
           <p className="text-[10px] text-muted-label uppercase tracking-wider">Total Earned</p>
           <p className="text-sm font-bold text-success font-mono">${formatNumber(store.totalMoneyEarned)}</p>
         </div>
-        <div className="bg-[#0a0e17] rounded-lg border border-cyan-900/20 p-3">
+        <div className="bg-[#0a0e17] rounded-lg border border-brand/20 p-3">
           <p className="text-[10px] text-muted-label uppercase tracking-wider">Power Efficiency</p>
           <p className={`text-sm font-bold font-mono ${
             store.powerGrid.efficiency >= 0.8 ? 'text-success' :
@@ -641,9 +641,9 @@ export default function StatisticsPanel() {
             {(store.powerGrid.efficiency * 100).toFixed(1)}%
           </p>
         </div>
-        <div className="bg-[#0a0e17] rounded-lg border border-cyan-900/20 p-3">
+        <div className="bg-[#0a0e17] rounded-lg border border-brand/20 p-3">
           <p className="text-[10px] text-muted-label uppercase tracking-wider">Peak Efficiency</p>
-          <p className="text-sm font-bold text-teal-400 font-mono">{(store.stats.peakEfficiency * 100).toFixed(1)}%</p>
+          <p className="text-sm font-bold text-brand font-mono">{(store.stats.peakEfficiency * 100).toFixed(1)}%</p>
         </div>
       </div>
     </div>

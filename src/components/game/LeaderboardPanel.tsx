@@ -154,8 +154,8 @@ export default function LeaderboardPanel() {
           <Trophy className="w-5 h-5 text-warning" />
           <h2 className="text-xl font-bold text-warning neon-glow-cyan">LEADERBOARD</h2>
         </div>
-        <div className="rounded-lg border border-cyan-900/20 bg-card p-8 text-center">
-          <Loader2 className="w-8 h-8 text-cyan-400 animate-spin mx-auto mb-3" />
+        <div className="rounded-lg border border-brand/20 bg-card p-8 text-center">
+          <Loader2 className="w-8 h-8 text-brand animate-spin mx-auto mb-3" />
           <p className="text-sm text-subtle">Loading global rankings...</p>
         </div>
       </div>
@@ -177,7 +177,7 @@ export default function LeaderboardPanel() {
             variant="outline"
             size="sm"
             onClick={fetchLeaderboard}
-            className="mt-3 border-cyan-500/30 text-cyan-400 hover:bg-cyan-900/20"
+            className="mt-3 border-brand/30 text-brand hover:bg-brand/20"
           >
             <RefreshCw className="w-3 h-3 mr-1.5" /> Retry
           </Button>
@@ -193,7 +193,7 @@ export default function LeaderboardPanel() {
         <div className="flex items-center gap-2">
           <Trophy className="w-5 h-5 text-warning" />
           <h2 className="text-xl font-bold text-warning neon-glow-cyan">LEADERBOARD</h2>
-          <Badge variant="outline" className="text-[10px] border-cyan-500/30 text-cyan-400 bg-cyan-900/20">
+          <Badge variant="outline" className="text-[10px] border-brand/30 text-brand bg-brand/20">
             <Globe className="w-2.5 h-2.5 mr-1" /> Global
           </Badge>
           {user && (
@@ -211,7 +211,7 @@ export default function LeaderboardPanel() {
             size="sm"
             onClick={fetchLeaderboard}
             disabled={isLoading}
-            className="h-6 w-6 p-0 text-muted-label hover:text-cyan-400"
+            className="h-6 w-6 p-0 text-muted-label hover:text-brand"
             aria-label="Refresh leaderboard"
           >
             <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
@@ -221,14 +221,14 @@ export default function LeaderboardPanel() {
 
       {/* User's Rank Card (only if authenticated and has entries) */}
       {user && userRank && userRank.bestScore > 0 && (
-        <div className="rounded-lg border border-cyan-500/30 bg-cyan-900/10 p-3">
+        <div className="rounded-lg border border-brand/30 bg-brand/10 p-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-xs font-bold text-white shadow-lg">
                 #{userRank.bestRank}
               </div>
               <div>
-                <div className="text-xs font-bold text-cyan-400">Your Best Ranking</div>
+                <div className="text-xs font-bold text-brand">Your Best Ranking</div>
                 <div className="text-[10px] text-muted-label">
                   <GameIcon icon={getRankForScore(userRank.bestScore).icon} size={14} className="inline-flex" /> {getRankForScore(userRank.bestScore).name}
                 </div>
@@ -254,7 +254,7 @@ export default function LeaderboardPanel() {
 
       {/* Leaderboard Table */}
       {entries.length === 0 ? (
-        <div className="rounded-lg border border-cyan-900/20 bg-card p-8 text-center">
+        <div className="rounded-lg border border-brand/20 bg-card p-8 text-center">
           <div className="mb-3"><GameIcon icon="gi:trophy" size={28} /></div>
           <div className="text-sm text-subtle font-medium">No entries yet</div>
           <div className="text-xs text-muted-label mt-1">
@@ -272,10 +272,10 @@ export default function LeaderboardPanel() {
                 key={entry.id}
                 className={`rounded-lg border ${
                   isCurrentUser
-                    ? 'bg-cyan-900/15 border-cyan-500/40 ring-1 ring-cyan-500/20'
+                    ? 'bg-brand/15 border-brand/40 ring-1 ring-cyan-500/20'
                     : entry.rank <= 3
                       ? getRankBadgeBg(entry.rank)
-                      : 'bg-card border-cyan-900/20'
+                      : 'bg-card border-brand/20'
                 } ${isExpanded ? 'ring-1 ring-cyan-900/30' : ''}`}
               >
                 {/* Main Row */}
@@ -296,7 +296,7 @@ export default function LeaderboardPanel() {
                         {entry.corporation_name}
                       </span>
                       {isCurrentUser && (
-                        <Badge variant="outline" className="text-[8px] px-1 py-0 border-cyan-500/40 text-cyan-400 bg-cyan-900/30">
+                        <Badge variant="outline" className="text-[8px] px-1 py-0 border-brand/40 text-brand bg-brand/30">
                           YOU
                         </Badge>
                       )}
@@ -348,21 +348,21 @@ export default function LeaderboardPanel() {
                         </div>
                         <div className="bg-[#0a0e17] rounded-lg p-3">
                           <div className="text-[10px] text-muted-label flex items-center gap-1">
-                            <Building2 className="w-3 h-3 text-cyan-400" /> Buildings
+                            <Building2 className="w-3 h-3 text-brand" /> Buildings
                           </div>
-                          <div className="text-xs font-mono text-cyan-400">{entry.buildings_built}</div>
+                          <div className="text-xs font-mono text-brand">{entry.buildings_built}</div>
                         </div>
                         <div className="bg-[#0a0e17] rounded-lg p-3">
                           <div className="text-[10px] text-muted-label flex items-center gap-1">
-                            <FlaskConical className="w-3 h-3 text-purple-400" /> Research
+                            <FlaskConical className="w-3 h-3 text-research" /> Research
                           </div>
-                          <div className="text-xs font-mono text-purple-400">{entry.research_completed}</div>
+                          <div className="text-xs font-mono text-research">{entry.research_completed}</div>
                         </div>
                         <div className="bg-[#0a0e17] rounded-lg p-3">
                           <div className="text-[10px] text-muted-label flex items-center gap-1">
-                            <ScrollText className="w-3 h-3 text-rose-400" /> Contracts
+                            <ScrollText className="w-3 h-3 text-danger" /> Contracts
                           </div>
-                          <div className="text-xs font-mono text-rose-400">{entry.contracts_completed}</div>
+                          <div className="text-xs font-mono text-danger">{entry.contracts_completed}</div>
                         </div>
                         <div className="bg-[#0a0e17] rounded-lg p-3">
                           <div className="text-[10px] text-muted-label flex items-center gap-1">
@@ -372,9 +372,9 @@ export default function LeaderboardPanel() {
                         </div>
                         <div className="bg-[#0a0e17] rounded-lg p-3">
                           <div className="text-[10px] text-muted-label flex items-center gap-1">
-                            <RotateCcw className="w-3 h-3 text-fuchsia-400" /> Prestiges
+                            <RotateCcw className="w-3 h-3 text-premium" /> Prestiges
                           </div>
-                          <div className="text-xs font-mono text-fuchsia-400">{entry.prestige_count}</div>
+                          <div className="text-xs font-mono text-premium">{entry.prestige_count}</div>
                         </div>
                       </div>
                       <div className="text-[10px] text-muted-label mt-2 flex items-center justify-between">
@@ -392,7 +392,7 @@ export default function LeaderboardPanel() {
 
       {/* Stats Summary */}
       {stats && (
-        <div className="rounded-lg border border-cyan-900/20 bg-card p-3">
+        <div className="rounded-lg border border-brand/20 bg-card p-3">
           <div className="text-xs text-subtle font-medium mb-2">Global Leaderboard Stats</div>
           <div className="grid grid-cols-4 gap-3">
             <div className="text-center">
@@ -402,19 +402,19 @@ export default function LeaderboardPanel() {
               <div className="text-[10px] text-muted-label">Best Score</div>
             </div>
             <div className="text-center">
-              <div className="text-sm font-mono font-bold text-cyan-400">
+              <div className="text-sm font-mono font-bold text-brand">
                 {stats.uniquePlayers}
               </div>
               <div className="text-[10px] text-muted-label">Players</div>
             </div>
             <div className="text-center">
-              <div className="text-sm font-mono font-bold text-purple-400">
+              <div className="text-sm font-mono font-bold text-research">
                 {stats.totalRuns}
               </div>
               <div className="text-[10px] text-muted-label">Total Runs</div>
             </div>
             <div className="text-center">
-              <div className="text-sm font-mono font-bold text-fuchsia-400">
+              <div className="text-sm font-mono font-bold text-premium">
                 {stats.totalPrestiges}
               </div>
               <div className="text-[10px] text-muted-label">Total Prestiges</div>
@@ -424,7 +424,7 @@ export default function LeaderboardPanel() {
       )}
 
       {/* Info Card */}
-      <div className="bg-card border border-cyan-900/20 rounded-xl p-4">
+      <div className="bg-card border border-brand/20 rounded-xl p-4">
         <div className="flex items-start gap-2">
           <Trophy className="w-4 h-4 text-warning mt-0.5 flex-shrink-0" />
           <div className="text-[10px] text-muted-label space-y-1">

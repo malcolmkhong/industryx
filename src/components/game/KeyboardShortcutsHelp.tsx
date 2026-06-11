@@ -57,12 +57,12 @@ export default function KeyboardShortcutsHelp() {
           <div
             className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none"
           >
-            <div className="pointer-events-auto w-full max-w-md bg-card border border-cyan-900/40 rounded-xl shadow-2xl shadow-cyan-900/20 overflow-hidden">
+            <div className="pointer-events-auto w-full max-w-md bg-card border border-brand/40 rounded-xl shadow-2xl shadow-cyan-900/20 overflow-hidden">
               {/* Header */}
-              <div className="flex items-center justify-between px-5 py-3 border-b border-cyan-900/30 bg-gradient-to-r from-cyan-900/20 to-transparent">
+              <div className="flex items-center justify-between px-5 py-3 border-b border-brand/30 bg-gradient-to-r from-cyan-900/20 to-transparent">
                 <div className="flex items-center gap-2">
-                  <Keyboard className="w-4 h-4 text-cyan-400" />
-                  <h2 className="text-sm font-bold text-cyan-400 tracking-wide">Keyboard Shortcuts</h2>
+                  <Keyboard className="w-4 h-4 text-brand" />
+                  <h2 className="text-sm font-bold text-brand tracking-wide">Keyboard Shortcuts</h2>
                 </div>
                 <button
                   onClick={() => setIsOpen(false)}
@@ -81,7 +81,7 @@ export default function KeyboardShortcutsHelp() {
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       {shortcut.keys.map((key, ki) => (
                         <span key={ki}>
-                          <kbd className="inline-flex items-center justify-center min-w-[28px] h-7 px-2 rounded-md bg-[#0a0e17] border border-cyan-900/30 text-[11px] font-mono text-cyan-300 shadow-sm">
+                          <kbd className="inline-flex items-center justify-center min-w-[28px] h-7 px-2 rounded-md bg-[#0a0e17] border border-brand/30 text-[11px] font-mono text-brand shadow-sm">
                             {key}
                           </kbd>
                           {ki < shortcut.keys.length - 1 && (
@@ -95,7 +95,7 @@ export default function KeyboardShortcutsHelp() {
               </div>
 
               {/* Footer hint */}
-              <div className="px-5 py-2.5 border-t border-cyan-900/20 bg-[#0a0e17]/50">
+              <div className="px-5 py-2.5 border-t border-brand/20 bg-[#0a0e17]/50">
                 <p className="text-[10px] text-muted-label text-center">
                   Press <kbd className="px-1 py-0.5 rounded bg-[#0a0e17] border border-muted-label text-[10px] font-mono text-subtle">?</kbd> to toggle this panel
                 </p>

@@ -110,9 +110,9 @@ function ShortcutButton({
       className={`
         absolute flex items-center justify-center
         rounded-full
-        bg-[#0d1220]/90 border border-cyan-900/30
+        bg-[#0d1220]/90 border border-brand/30
         backdrop-blur-md
-        hover:bg-white/[0.08] hover:border-cyan-500/40
+        hover:bg-white/[0.08] hover:border-brand/40
         active:bg-white/[0.12]
         transition-colors duration-150
         group
@@ -131,8 +131,8 @@ function ShortcutButton({
       <span
         className={`
           absolute left-1/2 -translate-x-1/2 whitespace-nowrap
-          text-[10px] font-medium text-cyan-300/90
-          bg-[#0d1220]/95 border border-cyan-900/30 rounded px-1.5 py-0.5
+          text-[10px] font-medium text-brand/90
+          bg-[#0d1220]/95 border border-brand/30 rounded px-1.5 py-0.5
           pointer-events-none opacity-0 group-hover:opacity-100
           transition-opacity duration-150 z-10
           ${isBottom ? 'bottom-full mb-2' : 'top-full mt-2'}

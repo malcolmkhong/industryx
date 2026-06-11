@@ -167,13 +167,13 @@ function getActionTypeBadge(type: string): string {
     case "unlock_account":
       return "bg-success/15 text-success border-success/20";
     case "reset_state":
-      return "bg-orange-500/15 text-orange-400 border-orange-500/20";
+      return "bg-domain/15 text-domain border-domain/20";
     case "resolve_investigation":
       return "bg-warning/15 text-warning border-warning/20";
     case "dismiss_investigation":
       return "bg-zinc-500/15 text-zinc-400 border-zinc-500/20";
     case "edit_state":
-      return "bg-purple-500/15 text-purple-400 border-purple-500/20";
+      return "bg-research/15 text-research border-research/20";
     default:
       return "bg-zinc-500/15 text-zinc-400 border-zinc-500/20";
   }

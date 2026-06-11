@@ -34,50 +34,50 @@ export const NAV_GROUPS: NavGroup[] = [
     id: 'overview',
     label: 'Overview',
     icon: Home,
-    color: 'text-cyan-400',
+    color: 'text-brand',
     tabs: [
-      { id: 'dashboard', label: 'Dashboard', icon: Factory, color: 'text-cyan-400' },
+      { id: 'dashboard', label: 'Dashboard', icon: Factory, color: 'text-brand' },
       { id: 'factoryMap', label: 'Factory Map', icon: MapIcon, color: 'text-success' },
-      { id: 'resourceMonitor', label: 'Monitor', icon: Activity, color: 'text-teal-400' },
-      { id: 'guide', label: 'Guide', icon: BookOpen, color: 'text-lime-400' },
+      { id: 'resourceMonitor', label: 'Monitor', icon: Activity, color: 'text-brand' },
+      { id: 'guide', label: 'Guide', icon: BookOpen, color: 'text-success' },
     ],
   },
   {
     id: 'production',
     label: 'Production',
     icon: Wrench,
-    color: 'text-orange-400',
+    color: 'text-domain',
     tabs: [
       { id: 'resources', label: 'Extraction', icon: Pickaxe, color: 'text-warning' },
-      { id: 'factories', label: 'Factories', icon: Cog, color: 'text-orange-400' },
+      { id: 'factories', label: 'Factories', icon: Cog, color: 'text-domain' },
       { id: 'storage', label: 'Storage', icon: Database, color: 'text-warning' },
       { id: 'power', label: 'Power Grid', icon: Zap, color: 'text-warning' },
-      { id: 'workers', label: 'Workers', icon: Users, color: 'text-sky-400' },
+      { id: 'workers', label: 'Workers', icon: Users, color: 'text-brand' },
     ],
   },
   {
     id: 'logistics',
     label: 'Logistics',
     icon: Truck,
-    color: 'text-blue-400',
+    color: 'text-brand',
     tabs: [
-      { id: 'transport', label: 'Transport', icon: Truck, color: 'text-blue-400' },
+      { id: 'transport', label: 'Transport', icon: Truck, color: 'text-brand' },
       { id: 'market', label: 'Market', icon: TrendingUp, color: 'text-success' },
-      { id: 'contracts', label: 'Contracts', icon: ScrollText, color: 'text-rose-400' },
-      { id: 'droneDelivery', label: 'Drones', icon: Plane, color: 'text-sky-400' },
-      { id: 'tradePost', label: 'Trade Post', icon: ArrowRightLeft, color: 'text-violet-400' },
+      { id: 'contracts', label: 'Contracts', icon: ScrollText, color: 'text-danger' },
+      { id: 'droneDelivery', label: 'Drones', icon: Plane, color: 'text-brand' },
+      { id: 'tradePost', label: 'Trade Post', icon: ArrowRightLeft, color: 'text-research' },
     ],
   },
   {
     id: 'progression',
     label: 'Progression',
     icon: FlaskConical,
-    color: 'text-purple-400',
+    color: 'text-research',
     tabs: [
-      { id: 'research', label: 'Research', icon: FlaskConical, color: 'text-purple-400' },
-      { id: 'automation', label: 'Automation', icon: Bot, color: 'text-teal-400' },
-      { id: 'prestige', label: 'Expand', icon: Globe, color: 'text-fuchsia-400' },
-      { id: 'megaprojects', label: 'Mega Projects', icon: Globe, color: 'text-fuchsia-400' },
+      { id: 'research', label: 'Research', icon: FlaskConical, color: 'text-research' },
+      { id: 'automation', label: 'Automation', icon: Bot, color: 'text-brand' },
+      { id: 'prestige', label: 'Expand', icon: Globe, color: 'text-premium' },
+      { id: 'megaprojects', label: 'Mega Projects', icon: Globe, color: 'text-premium' },
     ],
   },
   {
@@ -88,7 +88,7 @@ export const NAV_GROUPS: NavGroup[] = [
     tabs: [
       { id: 'quests', label: 'Quests', icon: Scroll, color: 'text-warning' },
       { id: 'achievements', label: 'Achievements', icon: Trophy, color: 'text-warning' },
-      { id: 'dailyRewards', label: 'Daily Rewards', icon: Gift, color: 'text-pink-400' },
+      { id: 'dailyRewards', label: 'Daily Rewards', icon: Gift, color: 'text-premium' },
       { id: 'leaderboard', label: 'Leaderboard', icon: Trophy, color: 'text-warning' },
       { id: 'events', label: 'Events', icon: AlertTriangle, color: 'text-danger' },
     ],
@@ -100,7 +100,7 @@ export const NAV_GROUPS: NavGroup[] = [
     color: 'text-success',
     tabs: [
       { id: 'payouts', label: 'Payouts', icon: DollarSign, color: 'text-success' },
-      { id: 'notifications', label: 'Alerts', icon: Bell, color: 'text-cyan-400' },
+      { id: 'notifications', label: 'Alerts', icon: Bell, color: 'text-brand' },
     ],
   },
   {
@@ -109,8 +109,8 @@ export const NAV_GROUPS: NavGroup[] = [
     icon: Database,
     color: 'text-subtle',
     tabs: [
-      { id: 'statistics', label: 'Statistics', icon: BarChart3, color: 'text-teal-400' },
-      { id: 'blueprints', label: 'Blueprints', icon: Save, color: 'text-indigo-400' },
+      { id: 'statistics', label: 'Statistics', icon: BarChart3, color: 'text-brand' },
+      { id: 'blueprints', label: 'Blueprints', icon: Save, color: 'text-brand' },
       { id: 'settings', label: 'Settings', icon: Settings, color: 'text-subtle' },
     ],
   },
@@ -169,7 +169,7 @@ export function GameSidebar({ activeTab, onTabChange }: GameSidebarProps) {
   const BUYMEACOFFEE_URL = 'https://buymeacoffee.com/malcolmkhod';
 
   return (
-    <nav className="hidden lg:flex flex-col w-52 flex-shrink-0 bg-[#0a0e17] border-r border-cyan-900/20">
+    <nav className="hidden lg:flex flex-col w-52 flex-shrink-0 bg-[#0a0e17] border-r border-brand/20">
       <div className="flex flex-col py-2 gap-0.5 px-2 flex-1 overflow-y-auto game-scrollbar">
         {NAV_GROUPS.map(group => {
           const isExpanded = expandedGroups.has(group.id);
@@ -227,7 +227,7 @@ export function GameSidebar({ activeTab, onTabChange }: GameSidebarProps) {
       </div>
 
       {/* ── Support footer (always visible at sidebar bottom) ── */}
-      <div className="flex-shrink-0 border-t border-cyan-900/20 px-2 pt-2 pb-3">
+      <div className="flex-shrink-0 border-t border-brand/20 px-2 pt-2 pb-3">
         <a
           href={BUYMEACOFFEE_URL}
           target="_blank"
@@ -238,7 +238,7 @@ export function GameSidebar({ activeTab, onTabChange }: GameSidebarProps) {
         >
           <Coffee className="w-4 h-4 flex-shrink-0 text-warning" />
           <span className="truncate text-warning">Buy me a coffee</span>
-          <Heart className="w-3 h-3 ml-auto text-rose-400" />
+          <Heart className="w-3 h-3 ml-auto text-danger" />
         </a>
         {/* QR Code hint */}
         <div className="mt-1.5 px-2.5 pb-1">

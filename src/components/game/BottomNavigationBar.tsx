@@ -144,10 +144,10 @@ export function BottomNavigationBar({ activeTab, onTabChange }: BottomNavigation
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="absolute bottom-full left-0 right-0 mx-1.5 mb-1.5 rounded-xl border border-cyan-900/30 bg-[#0a0e17]/95 backdrop-blur-lg shadow-[0_-4px_24px_rgba(0,255,242,0.08)] overflow-hidden"
+            className="absolute bottom-full left-0 right-0 mx-1.5 mb-1.5 rounded-xl border border-brand/30 bg-[#0a0e17]/95 backdrop-blur-lg shadow-[0_-4px_24px_rgba(0,255,242,0.08)] overflow-hidden"
           >
             {/* Panel header */}
-            <div className="flex items-center gap-2 px-3 pt-2.5 pb-1.5 border-b border-cyan-900/20">
+            <div className="flex items-center gap-2 px-3 pt-2.5 pb-1.5 border-b border-brand/20">
               {(() => {
                 const GroupIcon = expandedGroup.icon;
                 return <GroupIcon className={`w-3.5 h-3.5 ${expandedGroup.color}`} />;
@@ -184,7 +184,7 @@ export function BottomNavigationBar({ activeTab, onTabChange }: BottomNavigation
                       min-h-[44px] transition-colors duration-150
                       ${
                         isActive
-                          ? `${tab.color} bg-white/[0.08] border border-cyan-500/20 shadow-[0_0_12px_rgba(0,255,242,0.1)]`
+                          ? `${tab.color} bg-white/[0.08] border border-brand/20 shadow-[0_0_12px_rgba(0,255,242,0.1)]`
                           : 'text-subtle active:bg-white/[0.08] border border-transparent'
                       }
                     `}
@@ -205,7 +205,7 @@ export function BottomNavigationBar({ activeTab, onTabChange }: BottomNavigation
       {/* Main bottom navigation bar */}
       <div
         ref={barRef}
-        className="bg-[#0a0e17]/95 backdrop-blur-lg border-t border-cyan-900/30"
+        className="bg-[#0a0e17]/95 backdrop-blur-lg border-t border-brand/30"
       >
         {/* Top glow line */}
         <div className="h-px bg-gradient-to-r from-transparent via-cyan-500/15 to-transparent" />
@@ -264,12 +264,12 @@ export function BottomNavigationBar({ activeTab, onTabChange }: BottomNavigation
 
                 {/* Active indicator dot */}
                 {(hasActiveTab || isActiveGroup) && !isExpanded && (
-                  <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-cyan-400 shadow-[0_0_6px_rgba(0,255,242,0.6)]" />
+                  <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-brand shadow-[0_0_6px_rgba(0,255,242,0.6)]" />
                 )}
 
                 {/* Expanded chevron indicator */}
                 {isExpanded && (
-                  <ChevronUp className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-2.5 h-2.5 text-cyan-400" />
+                  <ChevronUp className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-2.5 h-2.5 text-brand" />
                 )}
               </button>
             );
@@ -281,7 +281,7 @@ export function BottomNavigationBar({ activeTab, onTabChange }: BottomNavigation
             className={`
               flex items-center justify-center
               min-w-[40px] min-h-[40px] rounded-lg
-              text-muted-label active:text-cyan-400 active:bg-white/[0.06]
+              text-muted-label active:text-brand active:bg-white/[0.06]
               transition-all duration-200
               ${isCompact ? 'flex-col items-center gap-0.5 px-1 py-1' : 'px-2 py-2'}
             `}

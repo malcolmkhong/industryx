@@ -202,11 +202,11 @@ function getRiskBadgeClasses(risk: string | null): string {
     case "critical":
       return "bg-danger/15 text-danger border-danger/20";
     case "high":
-      return "bg-orange-500/15 text-orange-400 border-orange-500/20";
+      return "bg-domain/15 text-domain border-domain/20";
     case "medium":
       return "bg-warning/15 text-warning border-warning/20";
     case "low":
-      return "bg-blue-500/15 text-blue-400 border-blue-500/20";
+      return "bg-brand/15 text-brand border-brand/20";
     case "none":
       return "bg-zinc-500/15 text-zinc-400 border-zinc-500/20";
     default:
@@ -606,8 +606,8 @@ export default function AuditPage() {
 
               <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-orange-400">
+                  <div className="w-9 h-9 rounded-lg bg-domain/10 flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-domain">
                       <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" />
                     </svg>
                   </div>
@@ -620,8 +620,8 @@ export default function AuditPage() {
 
               <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-400">
+                  <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand">
                       <path d="M3 3v18h18" /><path d="m19 9-5 5-4-4-3 3" />
                     </svg>
                   </div>

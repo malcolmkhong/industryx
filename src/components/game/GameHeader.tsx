@@ -155,7 +155,7 @@ export function GameHeader() {
               IX
             </div>
             <div>
-              <h1 className="text-sm font-bold text-cyan-400 neon-glow-cyan tracking-wider">INDUSTRIAX</h1>
+              <h1 className="text-sm font-bold text-brand neon-glow-cyan tracking-wider">INDUSTRIAX</h1>
               <p className="text-[10px] text-muted-label -mt-0.5">Factory Dominion</p>
             </div>
           </div>
@@ -166,7 +166,7 @@ export function GameHeader() {
             {/* Money */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className={`stat-badge stat-badge-money bg-card rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default ${moneyGlow ? 'money-glow' : ''}`}>
+                <div className={`stat-badge stat-badge-money bg-card rounded-lg px-3 py-1.5 border border-brand/20 cursor-default ${moneyGlow ? 'money-glow' : ''}`}>
                   <span className="text-muted-label inline-flex items-center gap-1"><GameIcon ui="money" size={14} /></span>
                   <span className="text-success font-mono font-bold text-sm">${formatNumber(money)}</span>
                   {pendingPayout > 0 && !payoutConfig.autoCollect && (
@@ -176,8 +176,8 @@ export function GameHeader() {
                   )}
                 </div>
               </TooltipTrigger>
-              <TooltipContent side="bottom" className="w-64 bg-card border-cyan-900/30 p-0 overflow-hidden">
-                <div className="bg-gradient-to-r from-green-900/30 to-emerald-900/20 px-3 py-2 border-b border-cyan-900/20">
+              <TooltipContent side="bottom" className="w-64 bg-card border-brand/30 p-0 overflow-hidden">
+                <div className="bg-gradient-to-r from-green-900/30 to-emerald-900/20 px-3 py-2 border-b border-brand/20">
                   <p className="text-xs font-bold text-success inline-flex items-center gap-1"><GameIcon ui="money" size={14} className="inline-flex" /> Financial Overview</p>
                 </div>
                 <div className="px-3 py-2 space-y-1.5">
@@ -189,9 +189,9 @@ export function GameHeader() {
             </Tooltip>
 
             {/* Power */}
-            <div className={`stat-badge stat-badge-power bg-card rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default ${powerGrid.overload ? 'warning-pulse' : ''}`}>
+            <div className={`stat-badge stat-badge-power bg-card rounded-lg px-3 py-1.5 border border-brand/20 cursor-default ${powerGrid.overload ? 'warning-pulse' : ''}`}>
               <span className="text-muted-label inline-flex items-center gap-1"><GameIcon ui="power" size={14} /></span>
-              <span className={`text-sm ${powerPercent >= 80 ? 'text-warning' : powerPercent >= 50 ? 'text-orange-400' : 'text-danger'}`}>
+              <span className={`text-sm ${powerPercent >= 80 ? 'text-warning' : powerPercent >= 50 ? 'text-domain' : 'text-danger'}`}>
                 {formatNumber(powerGrid.totalProduction)}MW
               </span>
               <span className="text-muted-label"> / </span>
@@ -206,15 +206,15 @@ export function GameHeader() {
             <div className="stat-badge-separator" />
 
             {/* Research Points */}
-            <div className="stat-badge stat-badge-rp bg-card rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default">
+            <div className="stat-badge stat-badge-rp bg-card rounded-lg px-3 py-1.5 border border-brand/20 cursor-default">
               <span className="text-muted-label inline-flex items-center gap-1"><GameIcon ui="researchPoints" size={14} /></span>
-              <span className="text-purple-400 font-mono text-sm">{formatNumber(researchPoints)} RP</span>
+              <span className="text-research font-mono text-sm">{formatNumber(researchPoints)} RP</span>
             </div>
 
             {/* Corporation Points */}
-            <div className="stat-badge stat-badge-cp bg-card rounded-lg px-3 py-1.5 border border-cyan-900/20 cursor-default">
+            <div className="stat-badge stat-badge-cp bg-card rounded-lg px-3 py-1.5 border border-brand/20 cursor-default">
               <span className="text-muted-label inline-flex items-center gap-1"><GameIcon ui="corporationPoints" size={14} /></span>
-              <span className="text-fuchsia-400 font-mono text-sm">{prestigeState.corporationPoints} CP</span>
+              <span className="text-premium font-mono text-sm">{prestigeState.corporationPoints} CP</span>
             </div>
           </div>
         </div>
@@ -227,12 +227,12 @@ export function GameHeader() {
           </div>
 
           {/* Speed controls */}
-          <div className="flex items-center bg-card rounded-lg border border-cyan-900/20 overflow-hidden">
+          <div className="flex items-center bg-card rounded-lg border border-brand/20 overflow-hidden">
             <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={togglePause} aria-label={paused ? "Resume game" : "Pause game"}>
               {paused ? <Play className="w-3 h-3 text-success" /> : <Pause className="w-3 h-3 text-warning" />}
             </Button>
             {SPEED_OPTIONS.map(speed => (
-              <Button key={speed} variant="ghost" size="sm" className={`h-7 px-2 text-xs ${gameSpeed === speed ? 'text-cyan-400 bg-cyan-900/20' : 'text-muted-label'}`} onClick={() => setGameSpeed(speed)}>
+              <Button key={speed} variant="ghost" size="sm" className={`h-7 px-2 text-xs ${gameSpeed === speed ? 'text-brand bg-brand/20' : 'text-muted-label'}`} onClick={() => setGameSpeed(speed)}>
                 {speed}x
               </Button>
             ))}
@@ -253,7 +253,7 @@ export function GameHeader() {
                 {isUsingSupabase ? 'Live' : 'Local'}
               </Badge>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="bg-card border-cyan-900/30">
+            <TooltipContent side="bottom" className="bg-card border-brand/30">
               <p className="text-xs font-medium">{isUsingSupabase ? 'Supabase Connected' : 'Using Local Config'}</p>
               <p className="text-[10px] text-subtle mt-0.5">Game data source</p>
               <Button variant="ghost" size="sm" className="h-6 text-[10px] mt-1 w-full" onClick={reloadConfig}>
@@ -268,13 +268,13 @@ export function GameHeader() {
               <Button variant="ghost" size="sm" className="h-7 w-7 p-0 relative" aria-label="Notifications">
                 <Bell className="w-3.5 h-3.5 text-subtle" />
                 {unreadNotifications > 0 && (
-                  <span className={`absolute -top-0.5 -right-0.5 h-4 rounded-full text-[8px] text-white flex items-center justify-center px-1 bg-cyan-500`}>
+                  <span className={`absolute -top-0.5 -right-0.5 h-4 rounded-full text-[8px] text-white flex items-center justify-center px-1 bg-brand`}>
                     {unreadNotifications > 9 ? '9+' : unreadNotifications}
                   </span>
                 )}
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="w-80 max-h-60 overflow-y-auto game-scrollbar bg-card border-cyan-900/30">
+            <TooltipContent side="bottom" className="w-80 max-h-60 overflow-y-auto game-scrollbar bg-card border-brand/30">
               {notifications.length === 0 ? (
                 <p className="text-xs text-muted-label">No notifications</p>
               ) : (
@@ -299,12 +299,12 @@ export function GameHeader() {
               {activeEvents.map(e => (
                 <Tooltip key={e.id}>
                   <TooltipTrigger asChild>
-                    <Badge variant="outline" className="text-[10px] border-orange-500/50 text-orange-400 bg-orange-900/20 px-1.5 py-0 neon-pulse">
+                    <Badge variant="outline" className="text-[10px] border-domain/50 text-domain bg-domain/20 px-1.5 py-0 neon-pulse">
                       <GameIcon icon={e.icon} size={12} className="inline-flex" /> {e.remaining <= 50 ? `${e.remaining}t` : e.name}
                     </Badge>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="bg-card border-cyan-900/30">
-                    <p className="text-xs font-medium text-orange-300">{e.name}</p>
+                  <TooltipContent side="bottom" className="bg-card border-brand/30">
+                    <p className="text-xs font-medium text-domain">{e.name}</p>
                     <p className="text-[10px] text-subtle mt-0.5">{e.description}</p>
                   </TooltipContent>
                 </Tooltip>
@@ -316,13 +316,13 @@ export function GameHeader() {
           <Tooltip>
             <TooltipTrigger asChild>
               <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${
-                weather.current === 'clear' ? 'border-muted-label text-muted-label bg-muted-label/20' : 'border-sky-500/50 text-sky-400 bg-sky-900/20'
+                weather.current === 'clear' ? 'border-muted-label text-muted-label bg-muted-label/20' : 'border-brand/50 text-brand bg-brand/20'
               }`}>
                 <GameIcon icon={WEATHER_DEFS[weather.current]?.icon} size={12} className="inline-flex" /> {WEATHER_DEFS[weather.current]?.name}
               </Badge>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="bg-card border-cyan-900/30">
-              <p className="text-xs font-medium text-sky-300">{WEATHER_DEFS[weather.current]?.name}</p>
+            <TooltipContent side="bottom" className="bg-card border-brand/30">
+              <p className="text-xs font-medium text-brand">{WEATHER_DEFS[weather.current]?.name}</p>
               <p className="text-[10px] text-subtle mt-0.5">{WEATHER_DEFS[weather.current]?.description}</p>
             </TooltipContent>
           </Tooltip>
@@ -350,7 +350,7 @@ export function GameHeader() {
                   : <Cloud className="w-3 h-3 text-subtle" />}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="bottom" className="bg-card border-cyan-900/30">
+              <TooltipContent side="bottom" className="bg-card border-brand/30">
                 <p className="text-xs">Save to Cloud</p>
               </TooltipContent>
             </Tooltip>
@@ -359,21 +359,21 @@ export function GameHeader() {
           {/* Export save */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-label hover:text-cyan-400" onClick={handleExport}>
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-label hover:text-brand" onClick={handleExport}>
                 <Download className="w-3 h-3" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="bg-card border-cyan-900/30"><p className="text-xs">Export Save</p></TooltipContent>
+            <TooltipContent side="bottom" className="bg-card border-brand/30"><p className="text-xs">Export Save</p></TooltipContent>
           </Tooltip>
 
           {/* Import save */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-label hover:text-cyan-400" onClick={() => { setImportString(''); setImportError(''); setImportDialogOpen(true); }}>
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-label hover:text-brand" onClick={() => { setImportString(''); setImportError(''); setImportDialogOpen(true); }}>
                 <Upload className="w-3 h-3" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="bg-card border-cyan-900/30"><p className="text-xs">Import Save</p></TooltipContent>
+            <TooltipContent side="bottom" className="bg-card border-brand/30"><p className="text-xs">Import Save</p></TooltipContent>
           </Tooltip>
 
           {/* Reset */}
@@ -389,7 +389,7 @@ export function GameHeader() {
               <TooltipTrigger asChild>
                 <button
                   onClick={() => setAuthMenuOpen(!authMenuOpen)}
-                  className="flex items-center gap-1.5 bg-card rounded-lg px-2 py-1 border border-cyan-900/20 hover:border-cyan-500/30 transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 bg-card rounded-lg px-2 py-1 border border-brand/20 hover:border-brand/30 transition-colors cursor-pointer"
                 >
                   {userAvatar ? (
                     <img src={userAvatar} alt="" className="w-5 h-5 rounded-full" />
@@ -401,9 +401,9 @@ export function GameHeader() {
                   <span className="text-[10px] text-subtle max-w-[80px] truncate">{userName}</span>
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom" className="w-56 bg-card border-cyan-900/30 p-0 overflow-hidden">
-                <div className="bg-gradient-to-r from-cyan-900/30 to-teal-900/20 px-3 py-2 border-b border-cyan-900/20">
-                  <p className="text-xs font-bold text-cyan-300">{userName}</p>
+              <TooltipContent side="bottom" className="w-56 bg-card border-brand/30 p-0 overflow-hidden">
+                <div className="bg-gradient-to-r from-cyan-900/30 to-teal-900/20 px-3 py-2 border-b border-brand/20">
+                  <p className="text-xs font-bold text-brand">{userName}</p>
                   <p className="text-[10px] text-subtle">{user.email}</p>
                 </div>
                 <div className="p-2 space-y-1">
@@ -416,7 +416,7 @@ export function GameHeader() {
                   <Button variant="ghost" size="sm" className="w-full justify-start h-7 text-xs" onClick={reloadConfig}>
                     <RefreshCw className="w-3 h-3 mr-1.5" /> Reload Config
                   </Button>
-                  <div className="border-t border-cyan-900/20 my-1" />
+                  <div className="border-t border-brand/20 my-1" />
                   <Button variant="ghost" size="sm" className="w-full justify-start h-7 text-xs text-danger hover:text-danger" onClick={signOut}>
                     <LogOut className="w-3 h-3 mr-1.5" /> Sign Out
                   </Button>
@@ -424,7 +424,7 @@ export function GameHeader() {
               </TooltipContent>
             </Tooltip>
           ) : (
-            <Button variant="ghost" size="sm" className="h-7 px-3 text-xs text-cyan-400 hover:text-cyan-300 border border-cyan-900/30 hover:border-cyan-500/30 rounded-lg" onClick={signInWithGoogle}>
+            <Button variant="ghost" size="sm" className="h-7 px-3 text-xs text-brand hover:text-brand border border-brand/30 hover:border-brand/30 rounded-lg" onClick={signInWithGoogle}>
               <LogIn className="w-3 h-3 mr-1" /> Sign In
             </Button>
           )}
@@ -437,7 +437,7 @@ export function GameHeader() {
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 min-w-0">
             <div className="w-7 h-7 rounded-md bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-[10px] font-bold flex-shrink-0">IX</div>
-            <span className="text-[11px] font-bold text-cyan-400 tracking-wider truncate">INDUSTRIAX</span>
+            <span className="text-[11px] font-bold text-brand tracking-wider truncate">INDUSTRIAX</span>
           </div>
           <div className="flex items-center gap-1 text-[10px] flex-shrink-0">
             <span className="text-success font-mono font-bold">${formatNumber(money)}</span>
@@ -447,22 +447,22 @@ export function GameHeader() {
               </button>
             )}
             <span className="text-muted-label">|</span>
-            <span className={powerPercent >= 80 ? 'text-warning' : powerPercent >= 50 ? 'text-orange-400' : 'text-danger'}>
+            <span className={powerPercent >= 80 ? 'text-warning' : powerPercent >= 50 ? 'text-domain' : 'text-danger'}>
               <GameIcon ui="power" size={12} className="inline-flex" />{formatNumber(powerGrid.totalProduction)}/{formatNumber(powerGrid.totalConsumption)}
             </span>
             <span className="text-muted-label">|</span>
-            <span className="text-purple-400 font-mono inline-flex items-center gap-0.5"><GameIcon ui="researchPoints" size={12} className="inline-flex" />{formatNumber(researchPoints)}</span>
+            <span className="text-research font-mono inline-flex items-center gap-0.5"><GameIcon ui="researchPoints" size={12} className="inline-flex" />{formatNumber(researchPoints)}</span>
           </div>
         </div>
 
         {/* Row 2: Speed controls + actions + auth */}
         <div className="flex items-center justify-between gap-1">
-          <div className="flex items-center bg-card rounded-md border border-cyan-900/20 overflow-hidden">
+          <div className="flex items-center bg-card rounded-md border border-brand/20 overflow-hidden">
             <Button variant="ghost" size="sm" className="h-6 px-1.5" onClick={togglePause}>
               {paused ? <Play className="w-2.5 h-2.5 text-success" /> : <Pause className="w-2.5 h-2.5 text-warning" />}
             </Button>
             {SPEED_OPTIONS.map(speed => (
-              <Button key={speed} variant="ghost" size="sm" className={`h-6 px-1.5 text-[9px] ${gameSpeed === speed ? 'text-cyan-400 bg-cyan-900/20' : 'text-muted-label'}`} onClick={() => setGameSpeed(speed)}>
+              <Button key={speed} variant="ghost" size="sm" className={`h-6 px-1.5 text-[9px] ${gameSpeed === speed ? 'text-brand bg-brand/20' : 'text-muted-label'}`} onClick={() => setGameSpeed(speed)}>
                 {speed}x
               </Button>
             ))}
@@ -492,8 +492,8 @@ export function GameHeader() {
                     {userName.charAt(0).toUpperCase()}
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="w-48 bg-card border-cyan-900/30 p-2">
-                  <p className="text-xs font-medium text-cyan-300 mb-1">{userName}</p>
+                <TooltipContent side="bottom" className="w-48 bg-card border-brand/30 p-2">
+                  <p className="text-xs font-medium text-brand mb-1">{userName}</p>
                   <div className="space-y-1">
                     <Button variant="ghost" size="sm" className="w-full justify-start h-6 text-[10px]" onClick={handleCloudSave}><Cloud className="w-2.5 h-2.5 mr-1" /> Save</Button>
                     <Button variant="ghost" size="sm" className="w-full justify-start h-6 text-[10px]" onClick={handleCloudLoad}><Download className="w-2.5 h-2.5 mr-1" /> Load</Button>
@@ -502,7 +502,7 @@ export function GameHeader() {
                 </TooltipContent>
               </Tooltip>
             ) : (
-              <Button variant="ghost" size="sm" className="h-6 px-2 text-[9px] text-cyan-400" onClick={signInWithGoogle}>
+              <Button variant="ghost" size="sm" className="h-6 px-2 text-[9px] text-brand" onClick={signInWithGoogle}>
                 <LogIn className="w-2.5 h-2.5 mr-0.5" /> Sign In
               </Button>
             )}
@@ -512,9 +512,9 @@ export function GameHeader() {
 
       {/* Export Dialog */}
       <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
-        <DialogContent className="bg-card border-cyan-900/30">
+        <DialogContent className="bg-card border-brand/30">
           <DialogHeader>
-            <DialogTitle className="text-cyan-300">Export Save</DialogTitle>
+            <DialogTitle className="text-brand">Export Save</DialogTitle>
           </DialogHeader>
           <Textarea
             value={exportString}
@@ -536,9 +536,9 @@ export function GameHeader() {
 
       {/* Import Dialog */}
       <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
-        <DialogContent className="bg-card border-cyan-900/30">
+        <DialogContent className="bg-card border-brand/30">
           <DialogHeader>
-            <DialogTitle className="text-cyan-300">Import Save</DialogTitle>
+            <DialogTitle className="text-brand">Import Save</DialogTitle>
           </DialogHeader>
           <Textarea
             value={importString}

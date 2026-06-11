@@ -418,36 +418,36 @@ export default function ResourceFlowPanel() {
     <div className="p-3 lg:p-4 space-y-3 max-w-[1400px] mx-auto">
       {/* ─── Header ────────────────────────────────────────── */}
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-teal-500/20 to-cyan-600/20 border border-teal-500/30 flex items-center justify-center">
-          <GitBranch className="w-5 h-5 text-teal-400" />
+        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-teal-500/20 to-cyan-600/20 border border-brand/30 flex items-center justify-center">
+          <GitBranch className="w-5 h-5 text-brand" />
         </div>
         <div className="flex-1">
-          <h2 className="text-xl font-bold text-teal-400 tracking-wide">Resource Flow Tracer</h2>
+          <h2 className="text-xl font-bold text-brand tracking-wide">Resource Flow Tracer</h2>
           <p className="text-xs text-muted-label">Visualize production chains, detect bottlenecks, optimize your factory</p>
         </div>
       </div>
 
       {/* ─── Summary Stats Bar ─────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <div className="bg-card rounded-lg p-3 border border-cyan-900/20">
+        <div className="bg-card rounded-lg p-3 border border-brand/20">
           <p className="text-[9px] text-muted-label uppercase tracking-wider">Active Chains</p>
-          <p className="text-lg font-mono font-bold text-cyan-400">{summaryStats.activeChains}<span className="text-muted-label text-sm">/{summaryStats.totalChains}</span></p>
+          <p className="text-lg font-mono font-bold text-brand">{summaryStats.activeChains}<span className="text-muted-label text-sm">/{summaryStats.totalChains}</span></p>
         </div>
-        <div className="bg-card rounded-lg p-3 border border-cyan-900/20">
+        <div className="bg-card rounded-lg p-3 border border-brand/20">
           <p className="text-[9px] text-muted-label uppercase tracking-wider">Bottlenecks</p>
           <p className={`text-lg font-mono font-bold ${summaryStats.bottleneckCount > 0 ? 'text-danger' : 'text-success'}`}>
             {summaryStats.bottleneckCount + summaryStats.notProducedCount}
           </p>
         </div>
-        <div className="bg-card rounded-lg p-3 border border-cyan-900/20">
+        <div className="bg-card rounded-lg p-3 border border-brand/20">
           <p className="text-[9px] text-muted-label uppercase tracking-wider">Most Constrained</p>
-          <p className="text-sm font-bold text-orange-400 truncate">
+          <p className="text-sm font-bold text-domain truncate">
             {summaryStats.mostConstrained
               ? <><GameIcon icon={RESOURCE_META[summaryStats.mostConstrained.resource].icon} size={14} className="inline-flex" /> {RESOURCE_META[summaryStats.mostConstrained.resource].name}</>
               : '—'}
           </p>
         </div>
-        <div className="bg-card rounded-lg p-3 border border-cyan-900/20">
+        <div className="bg-card rounded-lg p-3 border border-brand/20">
           <p className="text-[9px] text-muted-label uppercase tracking-wider">Throughput</p>
           <p className="text-lg font-mono font-bold text-success">{formatNumber(summaryStats.totalThroughput)}</p>
         </div>
@@ -456,11 +456,11 @@ export default function ResourceFlowPanel() {
       {/* ─── Main Content: SVG + Detail Panel ──────────────── */}
       <div className="flex flex-col lg:flex-row gap-3">
         {/* SVG Flow Visualization */}
-        <Card className="flex-1 bg-[#0a0e17] border-cyan-900/30 overflow-hidden">
+        <Card className="flex-1 bg-[#0a0e17] border-brand/30 overflow-hidden">
           <CardHeader className="pb-2 pt-3 px-4">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-semibold text-subtle flex items-center gap-2">
-                <GitBranch className="w-4 h-4 text-teal-400" />
+                <GitBranch className="w-4 h-4 text-brand" />
                 Flow Diagram
               </CardTitle>
               <div className="flex items-center gap-2">
@@ -468,7 +468,7 @@ export default function ResourceFlowPanel() {
                   placeholder="Search..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="h-7 w-32 text-[11px] bg-card border-cyan-900/30 text-subtle placeholder-gray-600"
+                  className="h-7 w-32 text-[11px] bg-card border-brand/30 text-subtle placeholder-gray-600"
                 />
                 {selectedResource && (
                   <Button
@@ -485,7 +485,7 @@ export default function ResourceFlowPanel() {
             {/* Legend */}
             <div className="flex items-center gap-3 mt-1 text-[9px] text-muted-label">
               <span className="flex items-center gap-1"><span className="w-5 h-0.5 bg-success inline-block rounded" /> High</span>
-              <span className="flex items-center gap-1"><span className="w-5 h-0.5 bg-cyan-400 inline-block rounded" /> Medium</span>
+              <span className="flex items-center gap-1"><span className="w-5 h-0.5 bg-brand inline-block rounded" /> Medium</span>
               <span className="flex items-center gap-1"><span className="w-5 h-0.5 bg-warning inline-block rounded" /> Low</span>
               <span className="flex items-center gap-1"><span className="w-5 h-0.5 border-t border-dashed border-danger inline-block" /> Zero</span>
               <span className="ml-auto text-muted-label">Click a node for details</span>
@@ -708,7 +708,7 @@ export default function ResourceFlowPanel() {
               className="w-full lg:w-80 flex-shrink-0 space-y-3"
             >
               {/* Selected Resource Header */}
-              <Card className="bg-card border-cyan-900/30">
+              <Card className="bg-card border-brand/30">
                 <CardContent className="p-3">
                   <div className="flex items-center gap-3">
                     <div
@@ -774,7 +774,7 @@ export default function ResourceFlowPanel() {
                     <div className="flex-1 h-1.5 bg-muted-label rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-500 ${
-                          fillPercent >= 80 ? 'bg-success' : fillPercent >= 50 ? 'bg-warning' : fillPercent >= 20 ? 'bg-orange-500' : 'bg-danger'
+                          fillPercent >= 80 ? 'bg-success' : fillPercent >= 50 ? 'bg-warning' : fillPercent >= 20 ? 'bg-domain' : 'bg-danger'
                         }`}
                         style={{ width: `${fillPercent}%` }}
                       />
@@ -864,11 +864,11 @@ export default function ResourceFlowPanel() {
               </Card>
 
               {/* Production Chain Trace */}
-              <Card className="bg-card border-cyan-900/30">
+              <Card className="bg-card border-brand/30">
                 <CardHeader className="py-2 px-3">
                   <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <GitBranch className="w-3.5 h-3.5 text-teal-400" />
-                    <span className="text-teal-400">PRODUCTION CHAINS</span>
+                    <GitBranch className="w-3.5 h-3.5 text-brand" />
+                    <span className="text-brand">PRODUCTION CHAINS</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="px-3 pb-3 space-y-2">
@@ -909,11 +909,11 @@ export default function ResourceFlowPanel() {
                                   <div
                                     className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] border ${
                                       isCurrentStep
-                                        ? 'border-cyan-400/50 bg-cyan-900/20 text-cyan-300'
+                                        ? 'border-brand/50 bg-brand/20 text-brand'
                                         : isUpstream
                                           ? stepActive ? 'border-success/30 bg-success/10 text-success' : 'border-red-900/30 bg-danger/10 text-danger'
                                           : isDownstream
-                                            ? stepActive ? 'border-teal-900/30 bg-teal-900/10 text-teal-300' : 'border-muted-label bg-muted-label/20 text-muted-label'
+                                            ? stepActive ? 'border-brand/30 bg-brand/10 text-brand' : 'border-muted-label bg-muted-label/20 text-muted-label'
                                             : 'border-muted-label text-muted-label'
                                     }`}
                                   >
@@ -961,7 +961,7 @@ export default function ResourceFlowPanel() {
 
       {/* ─── Chain Quick Select (when no resource selected) ──── */}
       {!selectedResource && (
-        <Card className="bg-card border-cyan-900/30">
+        <Card className="bg-card border-brand/30">
           <CardHeader className="py-2 px-4">
             <CardTitle className="text-sm font-semibold text-subtle flex items-center gap-2">
               <Zap className="w-4 h-4 text-warning" />
@@ -993,7 +993,7 @@ export default function ResourceFlowPanel() {
                     }}
                     className={`text-left p-3 rounded-lg border ${
                       highlightChain === i
-                        ? 'border-cyan-400/40 bg-cyan-900/10'
+                        ? 'border-brand/40 bg-brand/10'
                         : chainActive
                           ? 'border-success/30 bg-success/5 hover:border-success/30'
                           : chainPartial

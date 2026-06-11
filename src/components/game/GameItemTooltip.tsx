@@ -47,13 +47,13 @@ export function GameItemTooltip({
       <TooltipTrigger asChild>
         {children}
       </TooltipTrigger>
-      <TooltipContent side={side} className="w-72 bg-card border border-cyan-900/40 shadow-[0_0_20px_rgba(0,255,242,0.1)] p-0 overflow-hidden">
+      <TooltipContent side={side} className="w-72 bg-card border border-brand/40 shadow-[0_0_20px_rgba(0,255,242,0.1)] p-0 overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-cyan-900/30 to-teal-900/20 px-3 py-2 border-b border-cyan-900/30">
+        <div className="bg-gradient-to-r from-cyan-900/30 to-teal-900/20 px-3 py-2 border-b border-brand/30">
           <div className="flex items-center gap-2">
             {icon ? <GameIcon icon={icon} size={20} /> : emoji ? <span className="text-lg">{emoji}</span> : null}
             <div>
-              <p className="text-sm font-bold text-cyan-300">{name}</p>
+              <p className="text-sm font-bold text-brand">{name}</p>
               <div className="flex items-center gap-2 mt-0.5">
                 {category && <span className="text-[10px] text-subtle bg-muted-label px-1.5 py-0.5 rounded">{category}</span>}
                 {tier !== undefined && tier > 0 && <span className="text-[10px] text-warning bg-amber-900/30 px-1.5 py-0.5 rounded">Tier {tier}</span>}
@@ -64,15 +64,15 @@ export function GameItemTooltip({
 
         {/* Description */}
         {description && (
-          <div className="px-3 py-2 border-b border-cyan-900/20">
+          <div className="px-3 py-2 border-b border-brand/20">
             <p className="text-xs text-subtle leading-relaxed">{description}</p>
           </div>
         )}
 
         {/* Details */}
         {details && details.length > 0 && (
-          <div className="px-3 py-2 border-b border-cyan-900/20">
-            <p className="text-[10px] font-semibold text-cyan-400 uppercase tracking-wider mb-1.5">Details</p>
+          <div className="px-3 py-2 border-b border-brand/20">
+            <p className="text-[10px] font-semibold text-brand uppercase tracking-wider mb-1.5">Details</p>
             <div className="space-y-1">
               {details.map((row, i) => (
                 <div key={i} className="flex items-center justify-between text-xs">

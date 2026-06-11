@@ -32,16 +32,16 @@ export function OfflineEarningsDialog({
 }: OfflineEarningsDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-cyan-900/30 text-subtle max-w-md w-[calc(100%-1rem)] p-5">
+      <DialogContent className="bg-card border-brand/30 text-subtle max-w-md w-[calc(100%-1rem)] p-5">
         <DialogHeader>
-          <DialogTitle className="text-cyan-400 flex items-center gap-2 text-lg">
+          <DialogTitle className="text-brand flex items-center gap-2 text-lg">
             <span className="text-2xl">👋</span> Welcome Back!
           </DialogTitle>
           <DialogDescription className="text-subtle text-sm mt-1">
             {offlineData && (
               <>
                 You were away for{' '}
-                <span className="text-cyan-300 font-bold">
+                <span className="text-brand font-bold">
                   {formatAwayDuration(offlineData.ticksElapsed)}
                 </span>
                 . During that time:
@@ -63,7 +63,7 @@ export function OfflineEarningsDialog({
               </div>
             )}
 
-            <div className="bg-[#0a0e17] rounded-lg p-3 border border-cyan-900/30 max-h-48 overflow-y-auto game-scrollbar">
+            <div className="bg-[#0a0e17] rounded-lg p-3 border border-brand/30 max-h-48 overflow-y-auto game-scrollbar">
               <div className="text-[10px] text-muted-label mb-2 uppercase tracking-wider">Resources Produced</div>
               <div className="space-y-1">
                 {(Object.entries(offlineData.resources) as [string, number][])
@@ -80,7 +80,7 @@ export function OfflineEarningsDialog({
                           </span>
                           <span className="text-subtle">{meta?.name ?? resource}</span>
                         </div>
-                        <span className="text-cyan-400 font-mono">+{formatNumber(amount)}</span>
+                        <span className="text-brand font-mono">+{formatNumber(amount)}</span>
                       </div>
                     );
                   })}
@@ -96,7 +96,7 @@ export function OfflineEarningsDialog({
             </p>
 
             <Button
-              className="w-full bg-cyan-600 hover:bg-cyan-700 text-white min-h-[44px]"
+              className="w-full bg-brand hover:bg-brand text-white min-h-[44px]"
               onClick={onCollect}
               disabled={!offlineData}
             >

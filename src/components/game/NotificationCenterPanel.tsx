@@ -14,7 +14,7 @@ const typeColors = {
   success: { border: 'border-l-green-500', bg: 'bg-success/10', text: 'text-success', icon: 'lucide:check' },
   warning: { border: 'border-l-yellow-500', bg: 'bg-yellow-900/10', text: 'text-warning', icon: 'lucide:alert-triangle' },
   error: { border: 'border-l-red-500', bg: 'bg-danger/10', text: 'text-danger', icon: 'lucide:x' },
-  info: { border: 'border-l-cyan-500', bg: 'bg-cyan-900/10', text: 'text-cyan-400', icon: 'lucide:info' },
+  info: { border: 'border-l-cyan-500', bg: 'bg-brand/10', text: 'text-brand', icon: 'lucide:info' },
 };
 
 interface NotificationItemProps {
@@ -55,7 +55,7 @@ const MemoizedNotificationItem = React.memo(function MemoizedNotificationItem({
         </p>
         <p className="text-[9px] text-muted-label mt-1">
           Tick {gameTick}
-          {!read && <span className="ml-2 inline-block w-1.5 h-1.5 rounded-full bg-cyan-400 pulse-dot" />}
+          {!read && <span className="ml-2 inline-block w-1.5 h-1.5 rounded-full bg-brand pulse-dot" />}
         </p>
       </div>
       {!read && (
@@ -64,7 +64,7 @@ const MemoizedNotificationItem = React.memo(function MemoizedNotificationItem({
             e.stopPropagation();
             onMarkRead(id);
           }}
-          className="flex-shrink-0 w-5 h-5 rounded flex items-center justify-center text-muted-label hover:text-cyan-400 transition-colors"
+          className="flex-shrink-0 w-5 h-5 rounded flex items-center justify-center text-muted-label hover:text-brand transition-colors"
           title="Mark as read"
         >
           <Check className="w-3 h-3" />
@@ -98,7 +98,7 @@ export function NotificationCenterPanel() {
     { id: 'success', label: 'Success', count: successCount, color: 'text-success' },
     { id: 'warning', label: 'Warning', count: warningCount, color: 'text-warning' },
     { id: 'error', label: 'Error', count: errorCount, color: 'text-danger' },
-    { id: 'info', label: 'Info', count: infoCount, color: 'text-cyan-400' },
+    { id: 'info', label: 'Info', count: infoCount, color: 'text-brand' },
   ];
 
   // Auto-scroll to top when filter changes
@@ -112,7 +112,7 @@ export function NotificationCenterPanel() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-cyan-400 flex items-center gap-2">
+        <h2 className="text-xl font-bold text-brand flex items-center gap-2">
           <Bell className="w-5 h-5" /> Notification Center
         </h2>
         <div className="flex items-center gap-2">
@@ -121,7 +121,7 @@ export function NotificationCenterPanel() {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 text-[10px] border-cyan-800 text-cyan-400 hover:bg-cyan-900/30"
+                className="h-7 text-[10px] border-brand text-brand hover:bg-brand/30"
                 onClick={() => store.markAllNotificationsRead()}
               >
                 <CheckCheck className="w-3 h-3 mr-1" /> Mark All Read
@@ -153,17 +153,17 @@ export function NotificationCenterPanel() {
           <div className="text-lg font-bold text-danger">{errorCount}</div>
           <div className="text-[9px] text-muted-label">Errors</div>
         </div>
-        <div className="bg-card/50 border border-cyan-900/30 rounded-lg p-3 text-center">
-          <div className="text-lg font-bold text-cyan-400">{infoCount}</div>
+        <div className="bg-card/50 border border-brand/30 rounded-lg p-3 text-center">
+          <div className="text-lg font-bold text-brand">{infoCount}</div>
           <div className="text-[9px] text-muted-label">Info</div>
         </div>
       </div>
 
       {/* Unread badge */}
       {unreadCount > 0 && (
-        <div className="flex items-center gap-2 px-3 py-2 bg-cyan-900/10 border border-cyan-800/30 rounded-lg">
-          <span className="inline-block w-2 h-2 rounded-full bg-cyan-400 pulse-dot" />
-          <span className="text-xs text-cyan-300">{unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}</span>
+        <div className="flex items-center gap-2 px-3 py-2 bg-brand/10 border border-brand/30 rounded-lg">
+          <span className="inline-block w-2 h-2 rounded-full bg-brand pulse-dot" />
+          <span className="text-xs text-brand">{unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}</span>
         </div>
       )}
 
@@ -176,7 +176,7 @@ export function NotificationCenterPanel() {
             onClick={() => setFilter(f.id)}
             className={`text-[10px] px-2.5 py-1.5 rounded-lg border whitespace-nowrap ${
               filter === f.id
-                ? `border-cyan-700 bg-cyan-900/20 ${f.color}`
+                ? `border-brand bg-brand/20 ${f.color}`
                 : 'border-muted-label text-muted-label hover:border-muted-label hover:text-subtle'
             }`}
           >

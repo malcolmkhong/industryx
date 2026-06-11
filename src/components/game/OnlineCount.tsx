@@ -43,7 +43,7 @@ export function OnlineCount({ compact = false }: OnlineCountProps) {
             {onlineCount}
           </Badge>
         </TooltipTrigger>
-        <TooltipContent side="bottom" className="bg-card border-cyan-900/30">
+        <TooltipContent side="bottom" className="bg-card border-brand/30">
           <p className="text-xs font-medium text-success">
             {onlineCount} online ({loggedInCount} logged in)
           </p>
@@ -67,7 +67,7 @@ export function OnlineCount({ compact = false }: OnlineCountProps) {
           )}
         </Badge>
       </TooltipTrigger>
-      <TooltipContent side="bottom" className="bg-card border-cyan-900/30 w-56">
+      <TooltipContent side="bottom" className="bg-card border-brand/30 w-56">
         <div className="flex items-center gap-2 mb-1.5">
           <Wifi className="w-3.5 h-3.5 text-success" />
           <p className="text-xs font-semibold text-success">Live Presence</p>
@@ -79,7 +79,7 @@ export function OnlineCount({ compact = false }: OnlineCountProps) {
           </div>
           <div className="flex justify-between text-xs">
             <span className="text-subtle">Logged in</span>
-            <span className="text-cyan-400 font-mono">{loggedInCount}</span>
+            <span className="text-brand font-mono">{loggedInCount}</span>
           </div>
           <div className="flex justify-between text-xs">
             <span className="text-subtle">Anonymous</span>

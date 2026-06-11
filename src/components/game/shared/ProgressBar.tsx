@@ -14,8 +14,8 @@ const VARIANT_BG: Record<ProgressBarVariant, string> = {
   success: 'bg-success',
   warning: 'bg-warning',
   danger: 'bg-danger',
-  primary: 'bg-cyan-500',
-  default: 'bg-cyan-500',
+  primary: 'bg-brand',
+  default: 'bg-brand',
 };
 
 const SIZE_CLASS = 'h-2';

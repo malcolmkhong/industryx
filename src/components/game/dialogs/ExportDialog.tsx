@@ -26,9 +26,9 @@ export function ExportDialog({
 }: ExportDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-cyan-900/30 text-subtle max-w-lg w-[calc(100%-1rem)] lg:w-full max-h-[90vh] lg:max-h-none p-4 lg:p-6">
+      <DialogContent className="bg-card border-brand/30 text-subtle max-w-lg w-[calc(100%-1rem)] lg:w-full max-h-[90vh] lg:max-h-none p-4 lg:p-6">
         <DialogHeader>
-          <DialogTitle className="text-cyan-400 flex items-center gap-2 text-sm lg:text-base">
+          <DialogTitle className="text-brand flex items-center gap-2 text-sm lg:text-base">
             <Download className="w-4 h-4" /> Export Save
           </DialogTitle>
           <DialogDescription className="text-subtle text-xs lg:text-sm">
@@ -39,13 +39,13 @@ export function ExportDialog({
           <Textarea
             readOnly
             value={exportString}
-            className="bg-[#0a0e17] border-cyan-900/20 text-xs font-mono text-subtle min-h-24 lg:min-h-32 max-h-36 lg:max-h-48 game-scrollbar"
+            className="bg-[#0a0e17] border-brand/20 text-xs font-mono text-subtle min-h-24 lg:min-h-32 max-h-36 lg:max-h-48 game-scrollbar"
             onClick={(e) => (e.target as HTMLTextAreaElement).select()}
           />
           <div className="flex items-center gap-2">
             <Button
               onClick={onCopy}
-              className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white min-h-[44px] lg:min-h-0"
+              className="flex-1 bg-brand hover:bg-brand text-white min-h-[44px] lg:min-h-0"
               size="sm"
             >
               {copiedToClipboard ? (

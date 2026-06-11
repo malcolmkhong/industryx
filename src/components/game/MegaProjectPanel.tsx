@@ -18,15 +18,15 @@ import {
 } from 'lucide-react';
 
 const PROJECT_COLORS: Record<string, { border: string; glow: string; bg: string; text: string; badge: string; gradient: string }> = {
-  spaceElevator: { border: 'border-orange-500/40', glow: 'shadow-orange-500/20', bg: 'bg-orange-900/10', text: 'text-orange-400', badge: 'border-orange-500/50 text-orange-400 bg-orange-900/20', gradient: 'linear-gradient(90deg, #f97316, #fb923c)' },
+  spaceElevator: { border: 'border-domain/40', glow: 'shadow-orange-500/20', bg: 'bg-domain/10', text: 'text-domain', badge: 'border-domain/50 text-domain bg-domain/20', gradient: 'linear-gradient(90deg, #f97316, #fb923c)' },
   dysonSphere: { border: 'border-warning/40', glow: 'shadow-yellow-500/20', bg: 'bg-yellow-900/10', text: 'text-warning', badge: 'border-warning/50 text-warning bg-yellow-900/20', gradient: 'linear-gradient(90deg, #eab308, #facc15)' },
-  quantumInternet: { border: 'border-cyan-500/40', glow: 'shadow-cyan-500/20', bg: 'bg-cyan-900/10', text: 'text-cyan-400', badge: 'border-cyan-500/50 text-cyan-400 bg-cyan-900/20', gradient: 'linear-gradient(90deg, #06b6d4, #22d3ee)' },
-  fusionCity: { border: 'border-fuchsia-500/40', glow: 'shadow-fuchsia-500/20', bg: 'bg-fuchsia-900/10', text: 'text-fuchsia-400', badge: 'border-fuchsia-500/50 text-fuchsia-400 bg-fuchsia-900/20', gradient: 'linear-gradient(90deg, #d946ef, #e879f9)' },
+  quantumInternet: { border: 'border-brand/40', glow: 'shadow-cyan-500/20', bg: 'bg-brand/10', text: 'text-brand', badge: 'border-brand/50 text-brand bg-brand/20', gradient: 'linear-gradient(90deg, #06b6d4, #22d3ee)' },
+  fusionCity: { border: 'border-fuchsia-500/40', glow: 'shadow-fuchsia-500/20', bg: 'bg-fuchsia-900/10', text: 'text-premium', badge: 'border-fuchsia-500/50 text-premium bg-fuchsia-900/20', gradient: 'linear-gradient(90deg, #d946ef, #e879f9)' },
   terraformingEngine: { border: 'border-success/40', glow: 'shadow-emerald-500/20', bg: 'bg-success/10', text: 'text-success', badge: 'border-success/50 text-success bg-success/20', gradient: 'linear-gradient(90deg, #10b981, #34d399)' },
   galacticTradeHub: { border: 'border-warning/40', glow: 'shadow-amber-500/20', bg: 'bg-amber-900/10', text: 'text-warning', badge: 'border-warning/50 text-warning bg-amber-900/20', gradient: 'linear-gradient(90deg, #f59e0b, #fbbf24)' },
   deepCoreExtractor: { border: 'border-danger/40', glow: 'shadow-red-500/20', bg: 'bg-danger/10', text: 'text-danger', badge: 'border-danger/50 text-danger bg-danger/20', gradient: 'linear-gradient(90deg, #ef4444, #f87171)' },
-  neuralCommandCenter: { border: 'border-violet-500/40', glow: 'shadow-violet-500/20', bg: 'bg-violet-900/10', text: 'text-violet-400', badge: 'border-violet-500/50 text-violet-400 bg-violet-900/20', gradient: 'linear-gradient(90deg, #8b5cf6, #a78bfa)' },
-  nanoAssemblyMatrix: { border: 'border-teal-500/40', glow: 'shadow-teal-500/20', bg: 'bg-teal-900/10', text: 'text-teal-400', badge: 'border-teal-500/50 text-teal-400 bg-teal-900/20', gradient: 'linear-gradient(90deg, #14b8a6, #2dd4bf)' },
+  neuralCommandCenter: { border: 'border-violet-500/40', glow: 'shadow-violet-500/20', bg: 'bg-violet-900/10', text: 'text-research', badge: 'border-violet-500/50 text-research bg-violet-900/20', gradient: 'linear-gradient(90deg, #8b5cf6, #a78bfa)' },
+  nanoAssemblyMatrix: { border: 'border-brand/40', glow: 'shadow-teal-500/20', bg: 'bg-brand/10', text: 'text-brand', badge: 'border-brand/50 text-brand bg-brand/20', gradient: 'linear-gradient(90deg, #14b8a6, #2dd4bf)' },
 };
 
 const BONUS_ICONS: Record<string, React.ReactNode> = {
@@ -118,19 +118,19 @@ export function MegaProjectPanel() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h2 className="text-xl font-bold text-fuchsia-400 tracking-wide flex items-center gap-2 neon-glow-purple">
+          <h2 className="text-xl font-bold text-premium tracking-wide flex items-center gap-2 neon-glow-purple">
             <Sparkles className="w-5 h-5" />
             MEGA PROJECTS
           </h2>
           <p className="text-xs text-muted-label mt-0.5">Massive endgame constructions that grant permanent empire-wide bonuses</p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="border-fuchsia-500/50 text-fuchsia-400 bg-fuchsia-900/20 text-xs">
+          <Badge variant="outline" className="border-fuchsia-500/50 text-premium bg-fuchsia-900/20 text-xs">
             <Trophy className="w-3 h-3 mr-1" />
             {completedCount}/{store.megaProjects.length} Complete
           </Badge>
           {activeCount > 0 && (
-            <Badge variant="outline" className="border-cyan-500/50 text-cyan-400 bg-cyan-900/20 text-xs">
+            <Badge variant="outline" className="border-brand/50 text-brand bg-brand/20 text-xs">
               <Zap className="w-3 h-3 mr-1" />
               {activeCount} Active
             </Badge>
@@ -155,13 +155,13 @@ export function MegaProjectPanel() {
             </span>
             <span className="text-dim">|</span>
             <span className="flex items-center gap-1">
-              <Eye className="w-3 h-3 text-cyan-500" />
-              <span className="text-cyan-400">{unlockedCount} Unlocked</span>
+              <Eye className="w-3 h-3 text-brand" />
+              <span className="text-brand">{unlockedCount} Unlocked</span>
             </span>
             <span className="text-dim">|</span>
             <span className="flex items-center gap-1">
-              <Zap className="w-3 h-3 text-fuchsia-500" />
-              <span className="text-fuchsia-400">{activeCount} In Progress</span>
+              <Zap className="w-3 h-3 text-premium" />
+              <span className="text-premium">{activeCount} In Progress</span>
             </span>
             <span className="text-dim">|</span>
             <span className="flex items-center gap-1">
@@ -174,7 +174,7 @@ export function MegaProjectPanel() {
         <div className="flex h-2 rounded-full overflow-hidden bg-muted-label mt-2">
           {completedCount > 0 && <div className="bg-success transition-all duration-500" style={{ width: `${(completedCount / store.megaProjects.length) * 100}%` }} />}
           {activeCount > 0 && <div className="bg-fuchsia-500 transition-all duration-500" style={{ width: `${(activeCount / store.megaProjects.length) * 100}%` }} />}
-          {unlockedCount > 0 && <div className="bg-cyan-500/50 transition-all duration-500" style={{ width: `${(unlockedCount / store.megaProjects.length) * 100}%` }} />}
+          {unlockedCount > 0 && <div className="bg-brand/50 transition-all duration-500" style={{ width: `${(unlockedCount / store.megaProjects.length) * 100}%` }} />}
           {/* Locked = remaining space */}
         </div>
       </div>
@@ -183,8 +183,8 @@ export function MegaProjectPanel() {
       {completedCount > 0 && (
         <div className="game-card rounded-xl bg-card p-4 border border-fuchsia-900/30" style={{ boxShadow: '0 0 30px rgba(217,70,239,0.1)' }}>
           <div className="flex items-center gap-2 mb-3">
-            <Sparkles className="w-4 h-4 text-fuchsia-400" />
-            <h3 className="text-sm font-semibold text-fuchsia-400">Active MegaProject Bonuses</h3>
+            <Sparkles className="w-4 h-4 text-premium" />
+            <h3 className="text-sm font-semibold text-premium">Active MegaProject Bonuses</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {store.megaProjects.filter(p => p.completed).map(p => {
@@ -250,7 +250,7 @@ export function MegaProjectPanel() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className={`text-sm font-bold ${project.completed ? (colors?.text ?? 'text-fuchsia-400') : unlocked ? 'text-subtle' : 'text-subtle'}`}>
+                      <h3 className={`text-sm font-bold ${project.completed ? (colors?.text ?? 'text-premium') : unlocked ? 'text-subtle' : 'text-subtle'}`}>
                         {project.name}
                       </h3>
                       {project.completed && (
@@ -259,7 +259,7 @@ export function MegaProjectPanel() {
                         </Badge>
                       )}
                       {project.active && !project.completed && resourcesMet && (
-                        <Badge className={`${colors?.badge ?? 'border-fuchsia-500/50 text-fuchsia-400 bg-fuchsia-900/20'} text-[9px] px-1.5`}>
+                        <Badge className={`${colors?.badge ?? 'border-fuchsia-500/50 text-premium bg-fuchsia-900/20'} text-[9px] px-1.5`}>
                           <Zap className="w-2.5 h-2.5 mr-0.5" /> BUILDING
                         </Badge>
                       )}
@@ -274,7 +274,7 @@ export function MegaProjectPanel() {
                         </Badge>
                       )}
                       {unlocked && !project.active && !project.completed && (
-                        <Badge className="bg-cyan-900/20 text-cyan-400 border-cyan-500/30 text-[9px] px-1.5">
+                        <Badge className="bg-brand/20 text-brand border-brand/30 text-[9px] px-1.5">
                           <Eye className="w-2.5 h-2.5 mr-0.5" /> UNLOCKED
                         </Badge>
                       )}
@@ -300,7 +300,7 @@ export function MegaProjectPanel() {
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="bg-card border-fuchsia-900/30 max-w-xs">
                     <p className="text-xs text-subtle">{BONUS_DETAILS[project.bonus.type] ?? project.bonus.description}</p>
-                    <p className="text-[10px] text-fuchsia-400 mt-1">
+                    <p className="text-[10px] text-premium mt-1">
                       Bonus value: {project.bonus.type === 'buildingCostReduction' ? '-' : '+'}{(project.bonus.value * 100).toFixed(0)}%
                     </p>
                   </TooltipContent>
@@ -375,7 +375,7 @@ export function MegaProjectPanel() {
                           <div className="text-[11px] font-medium text-subtle">
                             Stage {project.currentStage + 1}/{project.stages.length}: {currentStage.name}
                           </div>
-                          <div className={`text-[10px] font-mono ${resourcesMet ? (colors?.text ?? 'text-fuchsia-400') : 'text-warning'}`}>
+                          <div className={`text-[10px] font-mono ${resourcesMet ? (colors?.text ?? 'text-premium') : 'text-warning'}`}>
                             {(project.progress * 100).toFixed(1)}%
                           </div>
                         </div>
@@ -480,7 +480,7 @@ export function MegaProjectPanel() {
                         ) : (
                           <span className="w-3 h-3 rounded-full bg-muted-label" />
                         )}
-                        <span className={s.completed ? 'text-success' : i === project.currentStage ? (colors?.text ?? 'text-fuchsia-400') : 'text-muted-label'}>
+                        <span className={s.completed ? 'text-success' : i === project.currentStage ? (colors?.text ?? 'text-premium') : 'text-muted-label'}>
                           {s.name}
                         </span>
                       </div>
@@ -511,8 +511,8 @@ export function MegaProjectPanel() {
       {/* Info Section */}
       <div className="game-card rounded-xl bg-card p-4 border border-border">
         <div className="flex items-center gap-2 mb-3">
-          <Sparkles className="w-4 h-4 text-fuchsia-400" />
-          <h3 className="text-sm font-semibold text-fuchsia-400">About MegaProjects</h3>
+          <Sparkles className="w-4 h-4 text-premium" />
+          <h3 className="text-sm font-semibold text-premium">About MegaProjects</h3>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-[11px] text-muted-label">
           <div>

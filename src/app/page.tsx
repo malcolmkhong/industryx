@@ -234,7 +234,7 @@ export default function Home() {
         />
       )}
       <div className="h-screen flex flex-col bg-[#0a0e17] text-subtle overflow-hidden safe-area-container">
-        <header ref={headerRef} className="fixed top-0 left-0 right-0 z-50 top-bar-gradient border-b border-cyan-900/30 px-2 lg:px-3 py-1.5 lg:py-2" style={{ paddingTop: 'calc(0.375rem + env(safe-area-inset-top, 0px))' }}>
+        <header ref={headerRef} className="fixed top-0 left-0 right-0 z-50 top-bar-gradient border-b border-brand/30 px-2 lg:px-3 py-1.5 lg:py-2" style={{ paddingTop: 'calc(0.375rem + env(safe-area-inset-top, 0px))' }}>
           <DesktopHeader
             onExport={handleExport}
             onImport={handleImport}

@@ -559,7 +559,7 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
       <div className="mt-3 flex items-center justify-between text-[10px]">
         <div className="flex items-center gap-3">
           <span className="text-muted-label">
-            Chain progress: <span className={allProducing ? 'text-success font-bold' : 'text-orange-400 font-bold'}>
+            Chain progress: <span className={allProducing ? 'text-success font-bold' : 'text-domain font-bold'}>
               {chain.steps.filter(s => (productionRates[s as ResourceType] ?? 0) > 0).length}/{chain.steps.length}
             </span> steps active
           </span>
