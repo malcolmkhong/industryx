@@ -64,6 +64,10 @@ mini-services/
 
 # Z scripts runtime logs
 .zscripts/
+skills/
+planning/
+docs/
+examples/
 
 # Keep-alive script
 keep-alive.sh

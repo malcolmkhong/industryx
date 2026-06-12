@@ -57,9 +57,13 @@ const GAME_LIMITS = {
 // system MUST fail loudly rather than silently use a known secret.
 const HMAC_SECRET = process.env.CHECKSUM_SECRET;
 if (!HMAC_SECRET) {
-  console.error('[SECURITY CRITICAL] CHECKSUM_SECRET environment variable is not set! Anti-cheat system cannot function.');
-  // In production, this should crash the server. For now, we log and disable checksum generation.
-  // generateChecksum will throw if called without a secret.
+  const msg = '[SECURITY CRITICAL] CHECKSUM_SECRET environment variable is not set! Anti-cheat system cannot function. Set CHECKSUM_SECRET in your environment variables.';
+  if (process.env.NODE_ENV === 'production') {
+    // Fail at startup in production so the misconfiguration is caught immediately
+    // rather than on the first game-state request.
+    throw new Error(msg);
+  }
+  console.error(msg);
 }
 
 /**
