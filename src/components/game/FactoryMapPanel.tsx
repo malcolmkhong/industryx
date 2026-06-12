@@ -670,7 +670,7 @@ export default function FactoryMapPanel() {
     } else {
       setSelectedBuildingId(null);
     }
-  }, [buildMode, selectedBuildType, store, buildingPositions]);
+  }, [buildMode, selectedBuildType, buildings, buildBuilding, buildingPositions]);
 
   // Pan handlers
   const handleMouseDown = useCallback((e: React.MouseEvent) => {

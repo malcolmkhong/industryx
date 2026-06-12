@@ -209,7 +209,7 @@ export function ResourcePanel() {
         }
       }
     }, 50);
-  }, [store]);
+  }, [buildings, buildBuilding]);
 
   const handleUpgrade = useCallback((id: string) => {
     upgradeBuilding(id);
@@ -225,7 +225,7 @@ export function ResourcePanel() {
         return next;
       });
     }, 1000);
-  }, [store]);
+  }, [upgradeBuilding]);
 
   const handleToggle = useCallback((id: string) => {
     toggleBuilding(id);
