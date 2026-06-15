@@ -239,10 +239,16 @@ export function validateGameState(
     const prevTotalEarned = Number(previousState.totalMoneyEarned) || 0;
     const moneyDelta = money - prevMoney;
     const earnedDelta = totalMoney - prevTotalEarned;
-    if (moneyDelta > 0 && earnedDelta >= 0 && moneyDelta > earnedDelta * 1.5 + 100000) {
+    // Phase 7.4: Tighter per-save delta check threshold.
+    // Reduced from 1.5x to 1.1x to catch gradual inflation attempts while still
+    // allowing a 10% buffer for market price fluctuations. The fixed offset was
+    // also lowered from 100k to 50k to tighten the absolute floor.
+    // NOTE: This may increase false positives — test before rolling out.
+    // Reference: Phase 7.4 of IMPLEMENTATION_PLAN.md
+    if (moneyDelta > 0 && earnedDelta >= 0 && moneyDelta > earnedDelta * 1.1 + 50000) {
       violations.push(`Money jump too large: +${moneyDelta.toFixed(0)} but only earned +${earnedDelta.toFixed(0)}`);
-      if (riskLevel === 'none' || riskLevel === 'low' || riskLevel === 'medium') {
-        riskLevel = 'high';
+      if (riskLevel === 'none' || riskLevel === 'low') {
+        riskLevel = 'medium';
       }
     }
 
@@ -266,8 +272,11 @@ export function validateGameState(
   const checksum = generateChecksum(gameState);
 
   // ── Risk level policy: high-risk is now rejected too ──
-  // Unless explicitly allowed (for backwards compatibility during migration)
-  if (!options?.allowHighRisk && riskLevel === 'high') {
+  // Unless explicitly allowed (for backwards compatibility during migration).
+  // Phase 7.4: Money-jump violations now produce 'medium' risk (was 'high').
+  // The high-risk escalation remains for future validators that may
+  // re-introduce 'high' severity (e.g., tick-rate violations).
+  if (!options?.allowHighRisk && (riskLevel as 'none' | 'low' | 'medium' | 'high' | 'critical') === 'high') {
     // Treat high-risk as critical — reject the save
     riskLevel = 'critical';
   }

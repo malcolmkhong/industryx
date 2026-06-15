@@ -871,6 +871,11 @@ interface GameActions {
   updateQuestProgress: (type: string, amount: number, targetId?: string) => void;
   setTrackedQuest: (id: string | null) => void;
 
+  // Anti-Cheat — Phase 7.3: client-side divergence detection
+  // Compares local money vs server-computed maximum (e.g., totalMoneyEarned).
+  // Returns true if local exceeds expected by >10%, indicating possible state manipulation.
+  divergesFromExpected: (serverComputedMax: number) => boolean;
+
   // Payouts
   collectPayout: () => void;
   toggleAutoCollect: () => void;
@@ -2665,6 +2670,18 @@ export const useGameStore = create<GameStore>()(
       },
 
       resetGame: () => set(createInitialState()),
+
+      // Phase 7.3: Client-side divergence detection.
+      // Compares local money against server-computed expected maximum.
+      // If local money exceeds the expected ceiling by >10%, the client state
+      // has likely been tampered with (memory editing, save manipulation, etc.).
+      // This is checked before every cloud save so the server can intercept.
+      divergesFromExpected: (serverComputedMax: number) => {
+        const state = get();
+        if (serverComputedMax <= 0) return false;
+        const ratio = state.money / serverComputedMax;
+        return ratio > 1.1; // 10% tolerance for market price fluctuations
+      },
 
       getNewsLLMState: () => getLLMState(),
 

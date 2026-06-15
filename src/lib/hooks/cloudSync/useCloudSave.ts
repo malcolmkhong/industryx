@@ -90,6 +90,25 @@ export function useCloudSave(opts: UseCloudSaveOptions) {
       }
 
       const data = await res.json();
+
+      // Phase 7.3: Handle server-side validation warnings.
+      // Server may accept the save but flag suspicious state (e.g., money exceeding
+      // expected maximum). This provides immediate user feedback and prevents
+      // continued play with potentially manipulated state.
+      if (data.validation_warning) {
+        console.warn('[CloudSave] Server validation warning:', data.validation_warning);
+        useGameStore.getState().addNotification(
+          'warning',
+          `⚠️ Sync warning: ${String(data.validation_warning)}`,
+        );
+        setBlockedState({
+          isBlocked: true,
+          reason: `Server validation warning: ${String(data.validation_warning)}`,
+          code: 'VALIDATION_FAILED',
+          detectedAt: Date.now(),
+        });
+      }
+
       if (data.saved) {
         setServerAuthority({
           serverStateHash: (data.stateHash as string | undefined) ?? serverStateHash,
