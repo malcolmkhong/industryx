@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
 import { initServerValidation, disableServerValidation } from '@/lib/game/serverActions';
 
@@ -53,6 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [deviceId, setDeviceId] = useState<string | null>(null);
+  const signingInRef = useRef(false);
 
   // Phase 1.2: Auto-create anonymous identity on first pageload (zero clicks)
   useEffect(() => {
@@ -177,20 +178,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [deviceId]);
 
   const signInWithGoogle = useCallback(async () => {
-    if (!isSupabaseConfigured) return;
-    const { createBrowserClient } = await import('@supabase/ssr');
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/api/auth/callback`,
-      },
-    });
-    if (error) {
-      console.error('Google sign-in error:', error.message);
+    if (!isSupabaseConfigured || signingInRef.current) return;
+    signingInRef.current = true;
+    try {
+      const { createBrowserClient } = await import('@supabase/ssr');
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/api/auth/callback`,
+        },
+      });
+      if (error) throw new Error(error.message);
+    } finally {
+      setTimeout(() => { signingInRef.current = false; }, 1000);
     }
   }, []);
 
