@@ -108,6 +108,56 @@ Prefer migrations over manual database changes.
 
 ---
 
+## Architecture
+
+This project follows a **server-first** architecture. AI agents must respect these boundaries:
+
+### Public Pages → Server Components
+
+All non-interactive public pages (landing, marketing, docs, error pages) must be implemented as **React Server Components (RSC)** — no `'use client'` directive, no client-side data fetching. Benefits: smaller JS bundle, better SEO, streaming SSR.
+
+Examples:
+- `/` (home/marketing) — RSC
+- `/admin/login` — RSC (with client islands for OAuth only)
+- Error pages (`error.tsx`, `not-found.tsx`, `global-error.tsx`) — RSC
+
+### Game UI → Client Components
+
+All interactive game UI must be **Client Components** with `'use client'`. Zustand store, hot-reloaded state, real-time interactions all require client-side execution.
+
+Examples:
+- `/` game page after auth → Client Component tree under `/src/components/game/**`
+- LoginFloatingPanel, AccountSettingsModal, all panels under `/src/components/game/**`
+
+### Game State → Server Authoritative
+
+Game state lives in **Supabase** (`server_game_state` table) as the single source of truth. The Zustand store on the client is a **local cache + optimistic layer** only. All mutations go through `/api/game/*` endpoints which:
+1. Load authoritative server state
+2. Validate the action server-side
+3. Apply the mutation with `state_version` optimistic lock
+4. Return the new authoritative state
+
+The client never wins a conflict — server state is final. The Zustand store is updated to match the server response, not the other way around.
+
+### Database → Supabase (Source of Truth)
+
+Supabase Postgres is the only database. All schemas, migrations, RLS policies, and functions live in `supabase/migrations/` (gitignored by default, force-added). Every schema change requires a numbered migration file.
+
+**Never:**
+- Create ad-hoc tables via the Supabase dashboard without writing a migration
+- Bypass RLS by using service role in client code
+- Query the database directly from client components (only via `/api/*` routes)
+- Use `localStorage`/`IndexedDB` for authoritative state (only for offline cache)
+
+### Cross-cutting Rules
+
+- **Auth gates** — `stock_market`, `trade_post`, `leaderboard`, `mega_project` require non-guest authenticated users. Both client UI (LoginFloatingPanel) and server API routes (`verifyAuth` + `getUserGuestStatus`) enforce this.
+- **Admin auth** — `/admin/*` requires membership in `admin_users` table (with `ADMIN_UIDS` env var bootstrap). Middleware + API routes both check.
+- **Sentry** — error tracking is wired across client/server/edge runtimes. Don't bypass.
+- **Sentry traces sample rate** — 0.1 (10%). Adjust only if explicit need.
+
+---
+
 ## Deployment Rules
 
 Vercel is the deployment target.
