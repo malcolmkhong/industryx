@@ -351,7 +351,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { userId, action: legacyAction, actionType, payload, gameState } = body;
+  const { userId, action: legacyAction, actionType, payload } = body;
   const action = legacyAction || actionType; // Support both field names
 
   // ✅ Ownership check: userId in request must match authenticated user
@@ -399,16 +399,6 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!gameState || typeof gameState !== "object") {
-    return NextResponse.json(
-      {
-        valid: false,
-        error: "Missing or invalid gameState",
-      } satisfies ActionResponse,
-      { status: 400 },
-    );
-  }
-
   // Load config from Supabase (with cache)
   const config = await loadConfig();
   if (!config) {
@@ -420,6 +410,44 @@ export async function POST(request: Request) {
       { status: 503 },
     );
   }
+
+  // ✅ Phase 2.3: Load authoritative server state from server_game_state.
+  // NEVER trust the client-sent `gameState` — it can be tampered with via
+  // __gameStore.setState or by replaying modified network requests.
+  // The client-sent gameState is now ignored.
+  const supabase = createServiceRoleClient();
+  if (!supabase) {
+    return NextResponse.json(
+      {
+        valid: false,
+        error: "Server unavailable",
+      } satisfies ActionResponse,
+      { status: 503 },
+    );
+  }
+
+  const { data: serverState, error: stateError } = await supabase
+    .from("server_game_state")
+    .select("full_state, money, game_tick, state_version")
+    .eq("user_id", auth.userId)
+    .single();
+
+  if (stateError || !serverState) {
+    return NextResponse.json(
+      {
+        valid: false,
+        error:
+          "No authoritative server state found — initialize session first via /api/auth/initialize-guest or save via /api/game/state",
+        code: "NO_SERVER_STATE",
+      } satisfies ActionResponse,
+      { status: 404 },
+    );
+  }
+
+  // Use server state for validation (cast to Partial<GameState> for validator compat)
+  const gameState = (serverState.full_state ?? {}) as Partial<GameState>;
+  const serverGameTick = Number(serverState.game_tick) || 0;
+  const serverMoney = Number(serverState.money) || 0;
 
   // Dispatch to action handler
   let result: ActionResponse;
@@ -447,7 +475,8 @@ export async function POST(request: Request) {
       result = { valid: false, error: `Unhandled action: ${action}` };
   }
 
-  // ✅ Audit log the action (single write to player_actions only)
+  // ✅ Audit log the action (single write to player_actions only).
+  // Use SERVER tick/money, not client-sent, so the audit log is trustworthy.
   logActionAsync({
     userId: auth.userId,
     actionType: action as
@@ -475,8 +504,8 @@ export async function POST(request: Request) {
       | "bulk_build"
       | "bulk_sell",
     payload,
-    gameTick: Number(gameState.gameTick) || 0,
-    moneyAfter: Number(gameState.money) || 0,
+    gameTick: serverGameTick,
+    moneyAfter: serverMoney,
     isValid: result.valid,
     validationRisk: result.valid ? "none" : "high",
     rejectionReason: result.valid ? undefined : result.error,
