@@ -30,9 +30,21 @@ interface AuditLogEntry {
 
 // ─── Game State Limits (Server-Authoritative) ───────────────────────────
 
+/**
+ * GAME_LIMITS — Static bounds for game state validation.
+ *
+ * These caps prevent cheaters from sending values slightly-below-cap
+ * to bypass delta checks. The values are calibrated to be ~2x the
+ * theoretical maximum legitimate gameplay can produce in 24h.
+ *
+ * Phase 2.7: Tightened MAX_MONEY (1e15→1e12) and MAX_RESOURCE_AMOUNT
+ * (1e12→1e9) based on actual game balance — the old values were
+ * several orders of magnitude beyond what 500 lvl-100 buildings
+ * producing the best resource could legitimately produce.
+ */
 const GAME_LIMITS = {
   /** Maximum money a player can have (sane upper bound) */
-  MAX_MONEY: 1e15,
+  MAX_MONEY: 1e12, // 1 trillion — realistic 24h max for 500 lvl-100 buildings producing best resource
   /** Maximum total buildings */
   MAX_BUILDINGS: 500,
   /** Maximum building level */
@@ -40,7 +52,7 @@ const GAME_LIMITS = {
   /** Maximum game tick per real-world second at 10x speed */
   MAX_TICK_RATE_PER_SECOND: 50,
   /** Maximum resources of any single type */
-  MAX_RESOURCE_AMOUNT: 1e12,
+  MAX_RESOURCE_AMOUNT: 1e9, // 1 billion — realistic 24h max for any single resource type
   /** Maximum research points */
   MAX_RESEARCH_POINTS: 1e9,
   /** Maximum prestige points */
