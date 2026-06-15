@@ -65,13 +65,15 @@ const GAME_LIMITS = {
 
 // ─── HMAC Checksum ─────────────────────────────────────────────────────
 
-// C1 FIX: No hardcoded fallback. If CHECKSUM_SECRET is not set, the anti-cheat
-// system MUST fail loudly rather than silently use a known secret.
+// Phase 5.3: Fail-fast if CHECKSUM_SECRET is missing.
+// Without this secret, the anti-cheat system cannot generate or verify HMAC
+// checksums, making state_hash validation trivially bypassable in production.
 const HMAC_SECRET = process.env.CHECKSUM_SECRET;
 if (!HMAC_SECRET) {
-  console.error('[SECURITY CRITICAL] CHECKSUM_SECRET environment variable is not set! Anti-cheat system cannot function.');
-  // In production, this should crash the server. For now, we log and disable checksum generation.
-  // generateChecksum will throw if called without a secret.
+  throw new Error(
+    '[FATAL] CHECKSUM_SECRET must be set in production. ' +
+    'This protects against state tampering via state_hash validation.'
+  );
 }
 
 /**
