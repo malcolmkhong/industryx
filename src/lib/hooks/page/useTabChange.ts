@@ -3,14 +3,9 @@ import { useGameStore } from '@/lib/game/store';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useLoginPrompt } from '@/lib/hooks/useLoginPrompt';
 import type { GameTab } from '@/lib/game/types';
+import type { LoginPromptReason } from '@/components/game/LoginFloatingPanel';
 
-const GUEST_GATED_TABS: Record<string, 'leaderboard' | 'trading_post' | 'mega_project'> = {
-  leaderboard: 'leaderboard',
-  tradePost: 'trading_post',
-  megaprojects: 'mega_project',
-};
-
-const GUEST_TAB_REASON_MAP: Record<string, 'leaderboard' | 'trading_post' | 'mega_project'> = {
+const GUEST_GATED_TABS: Partial<Record<GameTab, LoginPromptReason>> = {
   leaderboard: 'leaderboard',
   tradePost: 'trading_post',
   megaprojects: 'mega_project',
@@ -21,14 +16,15 @@ const GUEST_TAB_REASON_MAP: Record<string, 'leaderboard' | 'trading_post' | 'meg
 // login instead of navigating.
 export function useTabChange(): (tab: GameTab) => void {
   const setActiveTab = useGameStore(s => s.setActiveTab);
-  const { user, loading: authLoading } = useAuth();
+  const { user, isGuest, loading: authLoading } = useAuth();
   const { promptLogin } = useLoginPrompt();
 
   return useCallback((tab: GameTab) => {
-    if (!user && !authLoading && GUEST_GATED_TABS[tab]) {
-      promptLogin(GUEST_TAB_REASON_MAP[tab]);
+    const reason = GUEST_GATED_TABS[tab];
+    if (reason && (isGuest || (!user && !authLoading))) {
+      promptLogin(reason);
       return;
     }
     setActiveTab(tab);
-  }, [user, authLoading, promptLogin, setActiveTab]);
+  }, [user, isGuest, authLoading, promptLogin, setActiveTab]);
 }

@@ -7,6 +7,7 @@ import { NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { validateGameState } from '@/lib/auth/gameStateValidator';
 import { logActionAsync } from '@/lib/auth/gameStateValidator';
+import { getUserGuestStatus } from '@/lib/auth/guestCheck';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,6 +58,14 @@ export async function POST(request: Request) {
     }
 
     const userId = user.id;
+
+    const guestStatus = await getUserGuestStatus(userId);
+    if (guestStatus.isGuest) {
+      return NextResponse.json(
+        { error: 'Bind Account to submit leaderboard scores', code: 'GUEST_GATED' },
+        { status: 403 }
+      );
+    }
 
     // ── Parse payload ──
     const body: SubmitPayload = await request.json();

@@ -265,6 +265,7 @@ export default function Home() {
             onImport={handleImport}
             onReset={handleReset}
             onTabChange={handleTabChange}
+            onManageAccount={() => setAccountSettingsOpen(true)}
           />
           <MobileHeader
             onExport={handleExport}

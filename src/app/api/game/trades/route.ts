@@ -7,11 +7,19 @@
 import { NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { verifyAuth } from '@/lib/auth/verifyAuth';
+import { getUserGuestStatus } from '@/lib/auth/guestCheck';
 
 export async function GET(request: Request) {
-  // Auth check
   const auth = await verifyAuth();
   if (!auth.success) return auth.response;
+
+  const guestStatus = await getUserGuestStatus(auth.userId);
+  if (guestStatus.isGuest) {
+    return NextResponse.json(
+      { error: 'Bind Account to access trade history', code: 'GUEST_GATED' },
+      { status: 403 }
+    );
+  }
 
   const { searchParams } = new URL(request.url);
   const limit = Math.min(parseInt(searchParams.get('limit') ?? '50'), 200);

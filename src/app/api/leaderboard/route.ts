@@ -5,6 +5,8 @@
 
 import { NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { verifyAuth } from '@/lib/auth/verifyAuth';
+import { getUserGuestStatus } from '@/lib/auth/guestCheck';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,6 +35,17 @@ interface UserRankRow {
 
 export async function GET(request: Request) {
   try {
+    const auth = await verifyAuth();
+    if (!auth.success) return auth.response;
+
+    const guestStatus = await getUserGuestStatus(auth.userId);
+    if (guestStatus.isGuest) {
+      return NextResponse.json(
+        { error: 'Bind Account to access the leaderboard', code: 'GUEST_GATED' },
+        { status: 403 }
+      );
+    }
+
     const supabase = createServiceRoleClient();
     if (!supabase) {
       return NextResponse.json(

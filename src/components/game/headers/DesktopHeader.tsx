@@ -1,13 +1,17 @@
 import { useMemo, useState } from 'react';
 import {
   Bell, Check, Cloud, CloudOff, Download, Loader2, LogIn, LogOut,
-  Pause, Play, RefreshCw, RotateCcw, Settings, Upload, Wifi, WifiOff,
+  Pause, Play, RefreshCw, RotateCcw, Settings, Upload, User, Wifi, WifiOff,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip, TooltipContent, TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useGameStore, formatNumber } from '@/lib/game/store';
 import { WEATHER_DEFS } from '@/lib/game/configCache';
 import { GameIcon } from '@/components/game/shared/GameIcon';
@@ -25,11 +29,12 @@ interface DesktopHeaderProps {
   onImport: () => void;
   onReset: () => void;
   onTabChange: (tab: GameTab) => void;
+  onManageAccount?: () => void;
 }
 
 const SPEED_OPTIONS = [1, 2, 5, 10] as const;
 
-export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: DesktopHeaderProps) {
+export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onManageAccount }: DesktopHeaderProps) {
   const gameTick = useGameStore(s => s.gameTick);
   const gameSpeed = useGameStore(s => s.gameSpeed);
   const paused = useGameStore(s => s.paused);
@@ -382,9 +387,9 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
           {authLoading ? (
             <Loader2 className="w-4 h-4 text-muted-label animate-spin" />
           ) : user ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button className="flex items-center gap-1.5 bg-card rounded-lg px-2 py-1 border border-brand/20 hover:border-brand/30 transition-colors cursor-pointer">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button type="button" className="flex items-center gap-1.5 bg-card rounded-lg px-2 py-1 border border-brand/20 hover:border-brand/30 transition-colors cursor-pointer">
                   {userAvatar ? (
                     <img src={userAvatar} alt="" className="w-5 h-5 rounded-full" />
                   ) : (
@@ -393,21 +398,36 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
                     </div>
                   )}
                   <span className="text-[10px] text-subtle max-w-[80px] truncate">{userName}</span>
+                  {isGuest && (
+                    <span className="text-[8px] px-1 py-0.5 rounded bg-amber-900/30 text-warning border border-warning/30 font-bold uppercase tracking-wider">
+                      Guest
+                    </span>
+                  )}
                 </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="w-56 bg-card border-brand/30 p-0 overflow-hidden">
-                <div className="bg-gradient-to-r from-cyan-900/30 to-teal-900/20 px-3 py-2 border-b border-brand/20">
-                  <p className="text-xs font-bold text-brand">{userName}</p>
-                  <p className="text-[10px] text-subtle">{user.email}</p>
-                </div>
-                <div className="p-2 space-y-1">
-                  <Button variant="ghost" size="sm" className="w-full justify-start h-7 text-xs" onClick={handleCloudSave}><Cloud className="w-3 h-3 mr-1.5" /> Save to Cloud</Button>
-                  <Button variant="ghost" size="sm" className="w-full justify-start h-7 text-xs" onClick={reloadConfig}><RefreshCw className="w-3 h-3 mr-1.5" /> Reload Config</Button>
-                  <div className="border-t border-brand/20 my-1" />
-                  <Button variant="ghost" size="sm" className="w-full justify-start h-7 text-xs text-danger hover:text-danger" onClick={signOut}><LogOut className="w-3 h-3 mr-1.5" /> Sign Out</Button>
-                </div>
-              </TooltipContent>
-            </Tooltip>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 bg-card border-brand/30">
+                <DropdownMenuLabel className="text-xs">
+                  <div className="text-brand font-bold">{userName}</div>
+                  <div className="text-[10px] text-muted-label font-normal">
+                    {isGuest ? 'Playing as Guest' : (user.email ?? 'Google account')}
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={onManageAccount} className="text-xs cursor-pointer">
+                  <User className="w-3 h-3 mr-2" /> Manage Account
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={handleCloudSave} className="text-xs cursor-pointer" disabled={cloudStatus === 'saving'}>
+                  <Cloud className="w-3 h-3 mr-2" /> Save to Cloud
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={reloadConfig} className="text-xs cursor-pointer">
+                  <RefreshCw className="w-3 h-3 mr-2" /> Reload Config
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={signOut} className="text-xs cursor-pointer text-danger focus:text-danger">
+                  <LogOut className="w-3 h-3 mr-2" /> Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : isGuest ? (
             <Button
               variant="ghost"

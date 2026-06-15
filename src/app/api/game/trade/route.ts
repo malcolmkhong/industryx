@@ -4,6 +4,7 @@ import { verifyAuth } from '@/lib/auth/verifyAuth';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 import { isAccountLocked, logActionAsync } from '@/lib/auth/gameStateValidator';
 import { isAdminUserId } from '@/lib/auth/admin';
+import { getUserGuestStatus } from '@/lib/auth/guestCheck';
 import { ResourceType } from '@/lib/game/types';
 import { TRADE_COMMISSION_RATE, TRADABLE_RESOURCES_SET as FALLBACK_TRADABLE_SET } from '@/lib/game/tradeConstants';
 
@@ -45,6 +46,14 @@ async function getTradableSet(): Promise<Set<string>> {
 export async function POST(request: Request) {
   const auth = await verifyAuth();
   if (!auth.success) return auth.response;
+
+  const guestStatus = await getUserGuestStatus(auth.userId);
+  if (guestStatus.isGuest) {
+    return NextResponse.json(
+      { error: 'Bind Account to access Trading Post', code: 'GUEST_GATED' },
+      { status: 403 }
+    );
+  }
 
   const rateLimitResponse = await checkRateLimit(auth.userId, RATE_LIMITS.action, '/api/game/trade');
   if (rateLimitResponse) return rateLimitResponse;
