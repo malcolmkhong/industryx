@@ -653,6 +653,7 @@ export async function fetchGameConfig(): Promise<GameConfig | null> {
         downstreamBuilding: c.downstream_building,
         resourceId: c.resource_id,
       })),
+      tradableResourceIds: [],
       loadedAt: Date.now(),
       source: 'supabase',
     };

@@ -236,11 +236,11 @@ type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
 };
 
-function deepMerge<T extends Record<string, unknown>>(base: T, override: DeepPartial<T>): T {
-  const result = { ...base };
-  for (const key of Object.keys(override) as (keyof T)[]) {
-    const overrideVal = override[key];
-    const baseVal = base[key];
+function deepMerge<T extends object>(base: T, override: DeepPartial<T>): T {
+  const result = { ...base } as Record<string, unknown>;
+  for (const key of Object.keys(override as Record<string, unknown>)) {
+    const overrideVal = (override as Record<string, unknown>)[key];
+    const baseVal = (result as Record<string, unknown>)[key];
     if (
       overrideVal !== undefined &&
       typeof overrideVal === 'object' &&
@@ -250,13 +250,13 @@ function deepMerge<T extends Record<string, unknown>>(base: T, override: DeepPar
       baseVal !== null &&
       !Array.isArray(baseVal)
     ) {
-      result[key] = deepMerge(
+      (result as Record<string, unknown>)[key] = deepMerge(
         baseVal as Record<string, unknown>,
         overrideVal as DeepPartial<Record<string, unknown>>
-      ) as T[keyof T];
+      );
     } else if (overrideVal !== undefined) {
-      result[key] = overrideVal as T[keyof T];
+      (result as Record<string, unknown>)[key] = overrideVal;
     }
   }
-  return result;
+  return result as unknown as T;
 }

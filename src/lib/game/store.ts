@@ -182,7 +182,7 @@ function migrateSaveState(savedState: Record<string, unknown>, fromVersion?: num
     if (!state.megaProjects) {
       state.megaProjects = INITIAL_MEGA_PROJECTS.map(p => ({
         ...p,
-        stages: p.stages.map((s: Record<string, unknown>) => ({ ...s })),
+        stages: p.stages.map((s) => ({ ...s })),
       }));
     }
     if (!state.productionHistory) {
@@ -1973,7 +1973,7 @@ export const useGameStore = create<GameStore>()(
 
         // Play sound for power toggle
         if (def?.category === 'power') {
-          soundEngine.play(newActive ? 'buildPlace' : 'powerOverload', 'events');
+          soundEngine.play(newActive ? 'buildingPlaced' : 'powerOverload', 'events');
         }
 
         set({
@@ -3286,7 +3286,7 @@ export const useGameStore = create<GameStore>()(
 
         return {
           name: currentRank.name,
-          icon: currentRank.icon,
+          emoji: currentRank.icon,
           color: currentRank.color,
           score,
           nextRankScore: nextRank ? nextRank.minScore : null,

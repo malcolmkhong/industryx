@@ -46,7 +46,9 @@ export default sentryEnabled
       widenClientFileUpload: true,
 
       // Don't expose source maps in the browser bundle
-      hideSourceMaps: true,
+      sourcemaps: {
+        deleteSourcemapsAfterUpload: true,
+      },
 
       // Remove Sentry debug logging via treeshake (replaces deprecated disableLogger)
       webpack: {

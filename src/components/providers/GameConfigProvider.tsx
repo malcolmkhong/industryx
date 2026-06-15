@@ -63,6 +63,7 @@ function createFallbackConfig(): GameConfig {
     gameConfig: {},
     balancingRules: [],
     productionChains: [],
+    tradableResourceIds: [],
     loadedAt: Date.now(),
     source: 'fallback',
   };
@@ -184,6 +185,7 @@ export function GameConfigProvider({ children }: { children: React.ReactNode }) 
             gameConfig: defsData.gameConfig || {},
             balancingRules: defsData.balancingRules || [],
             productionChains: defsData.productionChains || [],
+            tradableResourceIds: defsData.tradableResourceIds || [],
             loadedAt: Date.now(),
             source: 'supabase',
           };

@@ -40,7 +40,7 @@ export const selectStorageUpgradeLevels = (s: GameState) => s.storageUpgradeLeve
 
 export const selectProductionSnapshot = (s: GameState) => s.productionSnapshot;
 export const selectResearchPointsPerTick = (s: GameState) =>
-  s.productionSnapshot?.researchPointsPerTick ?? 0;
+  s.productionSnapshot?.rpIncomeRate ?? 0;
 
 // --- Resource filtering helpers ---
 

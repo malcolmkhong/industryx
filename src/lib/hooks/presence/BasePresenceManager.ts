@@ -68,7 +68,7 @@ export abstract class BasePresenceManager<S extends BasePresenceState> {
   }
 
   // Shared state — subclasses initialize in constructor
-  protected abstract readonly state: S;
+  protected abstract state: S;
 
   subscribe(listener: Listener<S>, userRef: { current: unknown }): () => void {
     this.listeners.add(listener);
