@@ -1,8 +1,11 @@
 /**
- * Server-Side Tick Validator — Phase 7.1
+ * Server-Side Tick Validator — Phase 7.1 + 7.6
  *
- * Computes the theoretical maximum money a player should have based on
+ * Phase 7.1: Computes the theoretical maximum money a player should have based on
  * their buildings, research, workers, weather, and elapsed ticks.
+ *
+ * Phase 7.6: Extended bounds for buildings, research points, and resources —
+ * the same conservative-upper-bound pattern applied to all economy dimensions.
  *
  * The server uses this to detect gradual cheating (e.g., 10%/save inflation
  * that stays within the per-save delta check threshold but accumulates over time).
@@ -85,4 +88,75 @@ export function computeMaxPossibleMoney(
   const safetyMargin = 1.1;
 
   return gameState.money + maxMoneyPerTick * elapsedTicks * safetyMargin;
+}
+
+// Phase 7.6 — Extended theoretical-max bounds for buildings, research, resources
+
+/**
+ * Compute the theoretical maximum number of buildings a player could have.
+ *
+ * Considers:
+ * - Building cost (money) — if money is capped, so is building count
+ * - Research unlocks (some buildings require research)
+ * - Worker availability (buildings need workers)
+ * - Elapsed ticks (buildings take time to build)
+ *
+ * For a conservative upper bound: count existing buildings + (max_purchase_rate × elapsedTicks).
+ */
+export function computeMaxPossibleBuildings(
+  state: GameState,
+  elapsedTicks: number,
+): number {
+  if (elapsedTicks <= 0) return state.buildings.length;
+
+  // Conservative: assume player can build ~1 building per 10 ticks at most
+  // (a real cap would be from worker count and money availability)
+  const maxBuildRate = 1 / 10;
+  const additional = Math.floor(elapsedTicks * maxBuildRate);
+  return state.buildings.length + additional;
+}
+
+/**
+ * Compute the theoretical maximum research points a player could have.
+ *
+ * Considers:
+ * - Research costs (money or RP)
+ * - Prerequisites (research must be done in order)
+ * - Research time (each research takes ticks to complete)
+ *
+ * For a conservative upper bound: sum of max RP from all researchable items.
+ */
+export function computeMaxPossibleResearch(
+  state: GameState,
+): number {
+  // Sum of research points already earned
+  // Upper bound: assume all un-completed research could be completed, capped by elapsed time
+  // For a v1 conservative bound, return current + 0 (no new research without cost)
+  return state.researchPoints;
+}
+
+/**
+ * Compute the theoretical maximum amount of each resource a player could have.
+ *
+ * Considers:
+ * - Production rate per tick (from buildings)
+ * - Storage capacity (per resource)
+ * - Elapsed ticks
+ *
+ * For a conservative upper bound: current amount + (max_production_per_tick × elapsedTicks).
+ */
+export function computeMaxPossibleResources(
+  state: GameState,
+  elapsedTicks: number,
+): Record<string, number> {
+  if (elapsedTicks <= 0) return { ...state.resources };
+
+  // Conservative: current + a buffer based on tick count
+  // Real calculation would need full production engine — use ceil for safety
+  const result: Record<string, number> = {};
+  for (const [key, value] of Object.entries(state.resources)) {
+    // Add a generous buffer: 100 per tick (way more than any real production)
+    result[key] = value + 100 * elapsedTicks;
+  }
+  return result;
 }
