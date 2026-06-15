@@ -90,6 +90,11 @@ export function useCloudSync(): CloudSyncState {
     })();
   }, [user, loadFromCloud, migrateGuestToCloud]);
 
+  // ── Reset load gate on sign-out ───────────────────────────────────
+  useEffect(() => {
+    if (!user) initialLoadDone.current = false;
+  }, [user]);
+
   // ── Auto-save every 2 minutes ────────────────────────────────────
   useEffect(() => {
     if (!user) return;
