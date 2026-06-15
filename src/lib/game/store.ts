@@ -2558,7 +2558,7 @@ export const useGameStore = create<GameStore>()(
           }
 
           // ── Validate monetary bounds ──
-          const MAX_MONEY = 1e15;
+          const MAX_MONEY = 1e12;
           const MAX_RESOURCE = 1e12;
           const MAX_RESEARCH_POINTS = 1e9;
           const MAX_BUILDING_LEVEL = 100;
@@ -2662,39 +2662,6 @@ export const useGameStore = create<GameStore>()(
         } catch {
           return false;
         }
-      },
-
-      claimQuestReward: (questId: string) => {
-        const state = get();
-        const quest = state.quests.find(q => q.id === questId);
-        if (!quest || quest.claimed || !quest.completed) return;
-
-        // Phase 2.2: Server validation (fire-and-forget, server catches cheating on next save)
-        void (async () => {
-          try {
-            await import('./actionValidator').then(m =>
-              m.validateActionWithServer('claim_quest', { questId })
-            );
-          } catch {}
-        })();
-
-        const reward = quest.reward;
-        const updates: Partial<GameState> = {
-          money: state.money + reward.money,
-          totalMoneyEarned: state.totalMoneyEarned + reward.money,
-          researchPoints: state.researchPoints + (reward.researchPoints || 0),
-          prestigeState: {
-            ...state.prestigeState,
-            corporationPoints: state.prestigeState.corporationPoints + (reward.corporationPoints || 0),
-          },
-          quests: state.quests.map(q =>
-            q.id === questId ? { ...q, claimed: true } : q
-          ),
-        };
-
-        set(updates);
-        soundEngine.play('moneyEarned', 'building');
-        get().addNotification('success', `Quest reward claimed: ${quest.name}! +$${formatNumber(reward.money)}${reward.researchPoints ? ` +${reward.researchPoints} RP` : ''}${reward.corporationPoints ? ` +${reward.corporationPoints} CP` : ''}`);
       },
 
       updateQuestProgress: (type: string, amount: number, targetId?: string) => {
@@ -3089,6 +3056,7 @@ export const useGameStore = create<GameStore>()(
         
         set({
           money: state.money + quest.reward.money,
+          totalMoneyEarned: state.totalMoneyEarned + quest.reward.money,
           researchPoints: state.researchPoints + (quest.reward.researchPoints ?? 0),
           prestigeState: {
             ...state.prestigeState,
