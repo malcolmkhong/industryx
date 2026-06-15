@@ -37,6 +37,7 @@ import {
 
 interface ActionRequest {
   userId?: string;
+  requestId?: string; // Phase 4.3: UUID v4 nonce for replay protection
   actionType?: string; // New field matching client-side
   action?: string; // Legacy field
   payload: Record<string, unknown>;
@@ -351,11 +352,22 @@ export async function POST(request: Request) {
     );
   }
 
-  const { userId, action: legacyAction, actionType, payload } = body;
+  const { userId, requestId, action: legacyAction, actionType, payload } = body;
   const action = legacyAction || actionType; // Support both field names
 
+  // ✅ Phase 3.7: userId is mandatory (audit M8).
+  if (!userId) {
+    return NextResponse.json(
+      {
+        valid: false,
+        error: "userId is required in request body",
+      } satisfies ActionResponse,
+      { status: 400 },
+    );
+  }
+
   // ✅ Ownership check: userId in request must match authenticated user
-  if (userId && userId !== auth.userId) {
+  if (userId !== auth.userId) {
     console.warn(
       `[ActionAPI] User ${auth.userId} attempted action for ${userId}`,
     );
@@ -449,6 +461,27 @@ export async function POST(request: Request) {
   const serverGameTick = Number(serverState.game_tick) || 0;
   const serverMoney = Number(serverState.money) || 0;
 
+  // Phase 4.3: Replay detection via requestId nonce.
+  const actionHistory: string[] = Array.isArray(
+    (serverState.full_state as Record<string, unknown>)?._action_history,
+  )
+    ? ((serverState.full_state as Record<string, unknown>)
+        ._action_history as string[])
+    : [];
+
+  if (requestId !== undefined && requestId !== null) {
+    if (actionHistory.includes(requestId)) {
+      return NextResponse.json(
+        {
+          valid: false,
+          error: "Duplicate request — possible replay attack",
+          code: "REPLAY_DETECTED",
+        } satisfies ActionResponse,
+        { status: 409 },
+      );
+    }
+  }
+
   // Dispatch to action handler
   let result: ActionResponse;
 
@@ -510,6 +543,32 @@ export async function POST(request: Request) {
     validationRisk: result.valid ? "none" : "high",
     rejectionReason: result.valid ? undefined : result.error,
   });
+
+  // Phase 4.3: Append requestId to history (FIFO, capped at 100)
+  // and persist back to server_game_state with optimistic locking.
+  if (requestId !== undefined && requestId !== null) {
+    const updatedHistory = [...actionHistory, requestId].slice(-100);
+    const currentVersion = serverState.state_version ?? 0;
+    void supabase
+      .from("server_game_state")
+      .update({
+        full_state: {
+          ...(serverState.full_state as Record<string, unknown>),
+          _action_history: updatedHistory,
+        },
+        state_version: currentVersion + 1,
+      })
+      .eq("user_id", auth.userId)
+      .eq("state_version", currentVersion)
+      .then(({ error: updateError }) => {
+        if (updateError) {
+          console.warn(
+            "[ActionAPI] Failed to persist action_history:",
+            updateError.message,
+          );
+        }
+      });
+  }
 
   // NOTE: Trade actions are handled by /api/game/trade.
 
