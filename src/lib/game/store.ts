@@ -1849,6 +1849,16 @@ export const useGameStore = create<GameStore>()(
           console.warn(`[Security] Invalid game speed ${speed} rejected. Allowed: ${ALLOWED_SPEEDS.join(', ')}`);
           return; // Reject invalid speed — do not update state
         }
+
+        // Phase 2.2: Server validation (fire-and-forget, server catches cheating on next save)
+        void (async () => {
+          try {
+            await import('./actionValidator').then(m =>
+              m.validateActionWithServer('set_game_speed', { speed })
+            );
+          } catch {}
+        })();
+
         set({ gameSpeed: speed });
       },
       togglePause: () => set(state => ({ paused: !state.paused })),
@@ -1944,6 +1954,15 @@ export const useGameStore = create<GameStore>()(
         const newBuildings = state.buildings.map(b =>
           b.id === id ? { ...b, active: newActive } : b
         );
+
+        // Phase 2.2: Server validation (fire-and-forget, server catches cheating on next save)
+        void (async () => {
+          try {
+            await import('./actionValidator').then(m =>
+              m.validateActionWithServer('toggle_building', { buildingId: id, enabled: newActive })
+            );
+          } catch {}
+        })();
 
         // Recalculate power grid immediately so UI updates without waiting for next tick
         // Uses productionCalculator's computePowerGrid for consistency with gameTick
