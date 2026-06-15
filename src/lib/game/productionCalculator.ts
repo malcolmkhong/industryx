@@ -409,8 +409,8 @@ export function computePowerGrid(
         // NOTE: Do NOT drain remaining fuel — store leaves it untouched when supply is insufficient
       }
     } else {
+      const bal = getBalance();
       if (b.type === 'solarFarm') {
-        const bal = getBalance();
         const dayFactor = bal.power.solarAmplitudeBase + bal.power.solarAmplitudeSwing * Math.sin(currentTick * bal.power.solarOscillationFreq);
         production *= Math.max(bal.power.solarMinOutput, dayFactor) * cache.weatherSolar;
       }
@@ -422,6 +422,8 @@ export function computePowerGrid(
     }
   }
 
+  const bal = getBalance();
+
   const consumingBuildings = state.buildings.filter(
     b => { const d = getBuildingDef(b.type, _defs); return d && d.category !== 'power' && b.active; }
   );
@@ -431,8 +433,6 @@ export function computePowerGrid(
     if (!def) continue;
     totalConsumption += def.basePowerConsumption * b.level * b.efficiency;
   }
-
-  const bal = getBalance();
   const energyEfficiencyReduction = cache.hasEnergyEfficiency ? bal.research.energyEfficiencyReduction : 0;
   const powerOptimizationReduction = cache.hasPowerOptimization ? bal.research.powerOptimizationReduction : 0;
   totalConsumption *= (1 - energyEfficiencyReduction) * (1 - powerOptimizationReduction) * cache.eventPowerConsumption;

@@ -8,8 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { GameIcon } from '@/components/game/shared/GameIcon';
 import {
-  Trophy, Lock, Check, Zap, Factory, FlaskConical,
-  DollarSign, Rocket, Users, Globe, Target, Award,
+  Trophy, Lock, Check, Zap,
+  Rocket, Users, Target, Award,
   Flame, Shield, Cog, TrendingUp, Star,
   ChevronRight, ChevronDown, Search
 } from 'lucide-react';
@@ -320,41 +320,36 @@ const ACHIEVEMENTS: Achievement[] = [
   },
 ];
 
-const CATEGORY_META: Record<AchievementCategory, { icon: string; color: string; borderColor: string; bgColor: string; icon: React.ReactNode }> = {
+const CATEGORY_META: Record<AchievementCategory, { icon: string; color: string; borderColor: string; bgColor: string }> = {
   Production: {
     icon: 'gi:factory',
     color: 'text-brand',
     borderColor: 'border-brand/30',
     bgColor: 'bg-brand/10',
-    icon: <Factory className="w-4 h-4" />,
   },
   Economy: {
     icon: 'gi:money-stack',
     color: 'text-success',
     borderColor: 'border-success/30',
     bgColor: 'bg-success/10',
-    icon: <DollarSign className="w-4 h-4" />,
   },
   Research: {
     icon: 'gi:chemical-drop',
     color: 'text-research',
     borderColor: 'border-research/30',
     bgColor: 'bg-research/10',
-    icon: <FlaskConical className="w-4 h-4" />,
   },
   Expansion: {
     icon: 'gi:planet-core',
     color: 'text-premium',
     borderColor: 'border-fuchsia-900/30',
     bgColor: 'bg-fuchsia-900/10',
-    icon: <Globe className="w-4 h-4" />,
   },
   Special: {
     icon: 'gi:star-formation',
     color: 'text-warning',
     borderColor: 'border-amber-900/30',
     bgColor: 'bg-amber-900/10',
-    icon: <Star className="w-4 h-4" />,
   },
 };
 

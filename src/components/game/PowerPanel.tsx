@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   Zap, ChevronUp, Power, PowerOff, Hammer,
-  AlertTriangle, Flame, Sun, Wind, Atom, Sparkles,
+  AlertTriangle,
   ArrowUpRight, ArrowDownRight, Shield,
   Gauge, Plug, Fuel, Activity,
   CircleAlert, Minus, Lock, Lightbulb, TrendingUp, Clock
@@ -23,12 +23,12 @@ import { GameIcon } from '@/components/game/shared/GameIcon';
 const POWER_PLANT_TYPES = getPowerPlantTypes() as PowerPlantType[];
 
 // Power plant metadata with fallback for dynamically added plants
-const POWER_PLANT_META: Record<string, { icon: React.ReactNode; color: string; label: string; glowClass: string; icon: string }> = {
-  coalGenerator: { icon: <Flame className="w-4 h-4" />, color: '#ff6600', label: 'Coal', glowClass: 'text-domain', icon: 'gi:fire' },
-    solarFarm: { icon: <Sun className="w-4 h-4" />, color: '#ffff00', label: 'Solar', glowClass: 'text-warning', icon: 'gi:sun' },
-  windTurbine: { icon: <Wind className="w-4 h-4" />, color: '#00ccff', label: 'Wind', glowClass: 'text-brand', icon: 'gi:air-zigzag' },
-  nuclearReactor: { icon: <Atom className="w-4 h-4" />, color: '#00ff66', label: 'Nuclear', glowClass: 'text-success', icon: 'gi:nuclear' },
-  antimatterPowerPlant: { icon: <Zap className="w-4 h-4" />, color: '#ff00ff', label: 'Antimatter', glowClass: 'text-premium', icon: 'gi:lightning-frequency' },
+const POWER_PLANT_META: Record<string, { color: string; label: string; glowClass: string; icon: string }> = {
+  coalGenerator: { color: '#ff6600', label: 'Coal', glowClass: 'text-domain', icon: 'gi:fire' },
+  solarFarm: { color: '#ffff00', label: 'Solar', glowClass: 'text-warning', icon: 'gi:sun' },
+  windTurbine: { color: '#00ccff', label: 'Wind', glowClass: 'text-brand', icon: 'gi:air-zigzag' },
+  nuclearReactor: { color: '#00ff66', label: 'Nuclear', glowClass: 'text-success', icon: 'gi:nuclear' },
+  antimatterPowerPlant: { color: '#ff00ff', label: 'Antimatter', glowClass: 'text-premium', icon: 'gi:lightning-frequency' },
 };
 
 // Fallback meta for power plants not in the static map
@@ -39,7 +39,6 @@ function getPowerPlantMeta(type: string) {
   const tierColors = ['#22d3ee', '#f97316', '#a855f7', '#00ffcc'];
   const color = tierColors[Math.min(def?.tier ?? 0, tierColors.length - 1)];
   return {
-    icon: <Zap className="w-4 h-4" />,
     color,
     label: def?.name ?? type,
     glowClass: 'text-brand' as const,
