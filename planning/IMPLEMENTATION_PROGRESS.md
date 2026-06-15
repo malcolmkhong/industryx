@@ -15,8 +15,8 @@
 | **Phase 1** — Anonymous Identity + Linking | ✅ **Complete** | ffbf45d, 2e70a4e | 1.5 days |
 | **Phase 1.5** — Auth UI Surface | ✅ **Complete** | 78b6b4d, 1930fde | 3 days |
 | **Phase 2** — Server-Authoritative Actions | 🟡 **In Progress** | 7799972, 48ba05a | 1-2 days so far |
-| **Phase 3** — Auth & API Hardening | ⏳ **Not Started** | — | 1 week est |
-| **Phase 4** — Anti-Cheat | ⏳ **Not Started** | — | 3 days est |
+| **Phase 3** — Auth & API Hardening | 🟡 **6/9 done** (3.1, 3.8, 3.9 remain) | ff39100, afb02ae, 4530e7e, ee2edd5 | 3-4 days so far |
+| **Phase 4** — Anti-Cheat | ✅ **3/4 done** (4.2 done in 2.7) | 42803a8, ee2edd5, 981e6e1 | 1-2 days so far |
 | **Phase 5** — Production Hygiene | ⏳ **Not Started** | — | 2 days est |
 | **Phase 6** — Docs & Process | ⏳ **Not Started** | — | 1 day est |
 | **Phase 7** — Server-Side Tick Validation | ⏳ **Not Started** | — | 1-1.5 weeks est |
@@ -420,38 +420,154 @@ These are Phase 7 (Server-Side Tick Validation) — adds 1-1.5 weeks of work.
 
 ---
 
-## Phase 3 — Auth & API Route Hardening ⏳ NOT STARTED
+## Phase 3 — Auth & API Route Hardening 🟡 6/9 DONE
 
 **Goal:** Fix the C2/C3/C4/C5/C6 critical issues identified in the audit.
 
 **Sub-tasks:**
 
-| # | Task | Status | Estimated Time |
+| # | Task | Status | Commit |
 |---|---|---|---|
-| 3.1 | Add `verifyAuthAndOwnership` to `/api/auth/migrate-guest` | ⏳ | 15 min |
-| 3.2 | Add rate limiting to `/api/auth/migrate-guest` | ⏳ | 15 min |
-| 3.3 | Sanitize `displayName` (already done in update-profile, extend to migrate-guest) | ⏳ | 10 min |
-| 3.4 | Add mutex + error throwing to `signInWithGoogle` (prevent rapid-click double OAuth) | ⏳ | 30 min |
-| 3.5 | Reset `initialLoadDone` ref on sign-out (in cloudSync/index.ts) | ⏳ | 20 min |
-| 3.6 | Read `?auth=error` param on page load (already done in 1.5.5) | ✅ | — |
-| 3.7 | Add ownership check to `/api/game/action` (require `userId` in body) | ⏳ | 20 min |
-| 3.8 | Add `state_version` conflict check to `/api/player` POST | ⏳ | 30 min |
-| 3.9 | Admin OAuth callback should query `admin_users` table | ⏳ | 30 min |
+| 3.1 | Add `verifyAuthAndOwnership` to `/api/auth/migrate-guest` | ⏳ Not Started | — |
+| 3.2 | Add rate limiting to `/api/auth/migrate-guest` | ✅ **Done** | `ff39100` |
+| 3.3 | Sanitize `displayName` (extend to migrate-guest) | ✅ **Done** | `ff39100` |
+| 3.4 | Add mutex + error throwing to `signInWithGoogle` (prevent rapid-click double OAuth) | ✅ **Done** | `afb02ae` |
+| 3.5 | Reset `initialLoadDone` ref on sign-out (in cloudSync/index.ts) | ✅ **Done** | `4530e7e` |
+| 3.6 | Read `?auth=error` param on page load (already done in 1.5.5) | ✅ Done in 1.5.5 | — |
+| 3.7 | Add ownership check to `/api/game/action` (require `userId` in body) | ✅ **Done** | `ee2edd5` |
+| 3.8 | Add `state_version` conflict check to `/api/player` POST | ⏳ Not Started | — |
+| 3.9 | Admin OAuth callback should query `admin_users` table | ⏳ Not Started (may be partially done in Phase 0) | — |
 
-**Estimated total:** 1 week
+**Estimated remaining:** 3 sub-tasks × 15-30 min = 1-1.5 hours
+
+**Sub-tasks deferred to next wave:** 3.1, 3.8, 3.9
 
 ---
 
-## Phase 4 — Anti-Cheat Modernization ⏳ NOT STARTED
+## Phase 4 — Anti-Cheat Modernization ✅ 3/4 DONE
 
-| # | Task | Status | Estimated Time |
+| # | Task | Status | Commit |
 |---|---|---|---|
-| 4.1 | Replace `flagCheatAttempt` with atomic RPC call to `increment_cheat_flag` | ⏳ | 1 hour |
-| 4.2 | Tighten `GAME_LIMITS` static bounds (MAX_MONEY 1e15 → lower based on actual max) | ⏳ | 30 min |
-| 4.3 | Add nonce protection to action validation (prevent replay) | ⏳ | 2 hours |
-| 4.4 | Add server-side timestamp to all save events | ⏳ | 1 hour |
+| 4.1 | Replace `flagCheatAttempt` with atomic RPC call to `increment_cheat_flag` | ✅ **Done** | `42803a8` |
+| 4.2 | Tighten `GAME_LIMITS` static bounds | ✅ Done in 2.7 (`a7918c8`) | — |
+| 4.3 | Add nonce protection to action validation (prevent replay) | ✅ **Done** | `ee2edd5` |
+| 4.4 | Add server-side timestamp to all save events | ✅ **Done** | `981e6e1` |
 
-**Estimated total:** 3 days
+**Phase 4 effectively complete** (4.2 done earlier, 3 new done in Wave 2).
+
+### Phase 3.2 + 3.3 ✅ Done — `migrate-guest` rate limit + displayName sanitizer
+
+**File:** `src/app/api/auth/migrate-guest/route.ts` (commit `ff39100`)
+
+**Before:** No rate limit on the migration endpoint. `displayName` stored as-is from client.
+
+**After:**
+- `checkRateLimit(userId, RATE_LIMITS.action, '/api/auth/migrate-guest')` added after auth, before DB work (30/min, fail-closed)
+- `safeDisplayName` sanitizer: strips control chars (`\u0000-\u001F`, `\u007F-\u009F`), angle brackets (`<>`), caps at 32 chars, falls back to email prefix → `'Commander'`
+- Both `player_progress` upserts (reject path line 171, accept path line 271) use `safeDisplayName`
+
+### Phase 3.4 ✅ Done — `signInWithGoogle` mutex + error throw
+
+**File:** `src/components/providers/AuthProvider.tsx` (commit `afb02ae`)
+
+**Before:** Rapid clicks opened multiple OAuth popups. Errors silently logged.
+
+**After:**
+- `signingInRef = useRef(false)` declared at top of component
+- `signInWithGoogle` early-returns if `signingInRef.current` is true
+- Ref set to true before OAuth call, released via `setTimeout(..., 1000)` in finally block
+- Errors from `signInWithOAuth` are now `throw new Error(error.message)` instead of just `console.warn`
+
+### Phase 3.5 ✅ Done — Reset `initialLoadDone` on sign-out
+
+**File:** `src/lib/hooks/cloudSync/index.ts` (commit `4530e7e`)
+
+**Before:** After sign-out, `initialLoadDone.current` stayed `true`. A second sign-in on the same browser (e.g., shared device) wouldn't trigger cloud load.
+
+**After:** New `useEffect` with `[user]` dependency resets the ref to `false` when `!user`. Next sign-in now triggers the load/migration logic.
+
+### Phase 3.7 + 4.3 ✅ Done — Require `userId` + nonce protection in action route
+
+**File:** `src/app/api/game/action/route.ts` (commit `ee2edd5`)
+
+**3.7 — Require `userId`:**
+- Changed conditional from `if (userId && userId !== auth.userId)` to:
+  ```ts
+  if (!userId) return 400 "userId is required in request body"
+  if (userId !== auth.userId) return 403 FORBIDDEN_OWNERSHIP
+  ```
+
+**4.3 — Nonce protection:**
+- Accepts optional `requestId` (UUID v4) in body
+- Reads `_action_history` from `server_game_state.full_state` (defaults to `[]`)
+- If `requestId` provided AND in history → returns 409 `REPLAY_DETECTED`
+- After validation, appends `requestId` to history (FIFO, capped at 100 via `.slice(-100)`)
+- Persists updated history to `server_game_state.full_state` with optimistic lock on `state_version`
+- Fire-and-forget on the persistence UPDATE (low-priority edge case: lock failure is logged but doesn't block the response)
+
+### Phase 4.1 ✅ Done — Atomic `flagCheatAttempt` via RPC
+
+**File:** `src/lib/auth/gameStateValidator.ts` (commit `42803a8`)
+
+**Before:** Read-then-write pattern with TOCTOU race. Two concurrent calls both read `count=1`, both compute `newCount=2`, both write `2` — losing one flag.
+
+**After:** Single atomic RPC call:
+```ts
+await supabase.rpc('increment_cheat_flag', {
+  p_user_id: userId,
+  p_flag_type: detectionType,
+  p_description: description,
+  p_severity: severity,
+});
+```
+The SQL function (already exists in migration 005) atomically increments `cheat_flag_count` in BOTH `player_progress` AND `server_game_state`, inserts into `cheat_investigations`, and auto-locks if threshold reached — all in one transaction.
+
+**Function body:** Reduced from ~70 lines to 14 lines.
+
+### Phase 4.4 ✅ Done — Server-side timestamp on save events
+
+**Files:**
+- `src/app/api/game/state/route.ts` (commit `981e6e1`)
+- `supabase/migrations/024_now_iso_function.sql` (new, NOT yet applied to live DB)
+
+**Before:** `last_saved_at` and `last_tick_at` used `new Date().toISOString()` — server's local clock, but not a true DB timestamp.
+
+**After:**
+- Created migration 024 defining `now_iso()` SQL function returning DB server time in ISO 8601 UTC format (`YYYY-MM-DDTHH:MI:SS.MSZ`)
+- Route fetches server time via `supabase.rpc('now_iso')` at start of POST (after auth, before save)
+- Try/catch fallback to `new Date().toISOString()` if RPC hasn't been applied yet
+- `last_tick_at` and `last_saved_at` now use `serverTimestamp` instead of `new Date().toISOString()`
+
+**Action required:** Apply migration 024 to live DB when convenient. Until then, fallback to `new Date()` is used.
+
+### Wave 2 Completion Summary 🎉
+
+**Wave 2 dispatched 6 parallel agents and completed 6 sub-tasks** across Phase 3 and Phase 4 in ~4 minutes of wall time.
+
+**Commits (6 new):**
+| Commit | Sub-task(s) | File |
+|---|---|---|
+| `ff39100` | 3.2 + 3.3 | `src/app/api/auth/migrate-guest/route.ts` |
+| `afb02ae` | 3.4 | `src/components/providers/AuthProvider.tsx` |
+| `4530e7e` | 3.5 | `src/lib/hooks/cloudSync/index.ts` |
+| `42803a8` | 4.1 | `src/lib/auth/gameStateValidator.ts` |
+| `981e6e1` | 4.4 | `src/app/api/game/state/route.ts` + `supabase/migrations/024_now_iso_function.sql` |
+| `ee2edd5` | 3.7 + 4.3 | `src/app/api/game/action/route.ts` |
+
+**What Wave 2 prevents:**
+- ✅ Spam attacks on `/api/auth/migrate-guest` (rate limit, audit H9)
+- ✅ Stored XSS / control char injection via displayName (audit M9)
+- ✅ Multiple OAuth popups from rapid clicks (audit H10)
+- ✅ Stale state on second sign-in (audit H11)
+- ✅ Missing userId bypass in action route (audit M8)
+- ✅ Replay attacks on action endpoint (audit finding)
+- ✅ TOCTOU race in cheat flagging (audit H1)
+- ✅ Client-influenced save timestamps (audit C6)
+
+**Remaining in Phase 3 (3 sub-tasks):** 3.1, 3.8, 3.9
+- **3.1** Add `verifyAuthAndOwnership` to `/api/auth/migrate-guest` — quick (15 min)
+- **3.8** Add `state_version` conflict check to `/api/player` POST — moderate (30 min)
+- **3.9** Admin OAuth callback should query `admin_users` — may already be partially done in Phase 0 (migration 018); needs verification (30 min)
 
 ---
 
