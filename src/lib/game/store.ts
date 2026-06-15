@@ -2669,6 +2669,15 @@ export const useGameStore = create<GameStore>()(
         const quest = state.quests.find(q => q.id === questId);
         if (!quest || quest.claimed || !quest.completed) return;
 
+        // Phase 2.2: Server validation (fire-and-forget, server catches cheating on next save)
+        void (async () => {
+          try {
+            await import('./actionValidator').then(m =>
+              m.validateActionWithServer('claim_quest', { questId })
+            );
+          } catch {}
+        })();
+
         const reward = quest.reward;
         const updates: Partial<GameState> = {
           money: state.money + reward.money,
@@ -3068,6 +3077,15 @@ export const useGameStore = create<GameStore>()(
         const state = get();
         const quest = state.quests.find(q => q.id === questId);
         if (!quest || !quest.completed || quest.claimed) return;
+
+        // Phase 2.2: Server validation (fire-and-forget, server catches cheating on next save)
+        void (async () => {
+          try {
+            await import('./actionValidator').then(m =>
+              m.validateActionWithServer('claim_quest', { questId })
+            );
+          } catch {}
+        })();
         
         set({
           money: state.money + quest.reward.money,
