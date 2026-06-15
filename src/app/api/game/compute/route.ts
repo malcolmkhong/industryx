@@ -241,7 +241,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { userId, gameState, ticks } = body;
+  const { userId, ticks } = body;
 
   // ✅ Ownership check: userId in request must match authenticated user
   if (userId && userId !== auth.userId) {
@@ -249,14 +249,6 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: 'You can only compute for your own game', code: 'FORBIDDEN_OWNERSHIP' },
       { status: 403 },
-    );
-  }
-
-  // Validate inputs
-  if (!gameState || typeof gameState !== 'object') {
-    return NextResponse.json(
-      { error: 'Missing or invalid gameState' },
-      { status: 400 },
     );
   }
 
@@ -284,9 +276,35 @@ export async function POST(request: Request) {
     );
   }
 
+  // ✅ Phase 2.4: Load authoritative server state as the tick base.
+  // The client-sent `gameState` (if any) is ignored — it can be tampered with
+  // via __gameStore.setState or replay attacks. Server state is the truth.
+  const supabase = createServiceRoleClient();
+  if (!supabase) {
+    return NextResponse.json({ error: 'Server unavailable' }, { status: 503 });
+  }
+
+  const { data: serverState, error: stateError } = await supabase
+    .from('server_game_state')
+    .select('full_state')
+    .eq('user_id', auth.userId)
+    .single();
+
+  if (stateError || !serverState) {
+    return NextResponse.json(
+      {
+        error: 'No authoritative server state found — initialize session first',
+        code: 'NO_SERVER_STATE',
+      },
+      { status: 404 },
+    );
+  }
+
+  const baseGameState = serverState.full_state as GameState;
+
   try {
     // Run the server-side tick computation
-    const result = runServerTicks(gameState, cappedTicks, config);
+    const result = runServerTicks(baseGameState, cappedTicks, config);
 
     const response: ComputeResponse = {
       newState: result.newState,
