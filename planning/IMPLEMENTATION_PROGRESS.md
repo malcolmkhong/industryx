@@ -898,6 +898,37 @@ Removed the dead duplicate `updateQuestProgress` (101 lines of dead code). Merge
 
 ---
 
+### Wave 8 — Phase 7 cron activation (template ready)
+
+Phase 7.2 created the `/api/cron/validate-ticks` endpoint, but it needs to be **triggered periodically** to catch gradual cheaters. Wave 8 added the cron scheduling infrastructure.
+
+**Commit:** `aacb915` — `feat(cron): add migration 025 to schedule Phase 7 validate-ticks + daily cleanup`
+
+**File:** `supabase/migrations/025_pg_cron_validate_ticks.sql` (new, 81 lines)
+
+**Two cron jobs scheduled:**
+
+1. **`validate-active-players-ticks`** — every 5 minutes
+   - Calls `/api/cron/validate-ticks` with `CRON_SECRET` auth
+   - Activates Phase 7.2: queries active players, computes theoretical max money via `serverTickValidator`, flags violators via `increment_cheat_flag` RPC
+2. **`daily-cleanup-3am`** — 3am UTC daily
+   - `player_actions`: 90-day retention cleanup
+   - `rate_limits`: FIFO cap at 100k rows (prevents bloat, per `MONITORING_PLAYBOOK`)
+
+**⚠️ This migration is a TEMPLATE — NOT applied to live DB yet** because of placeholders. Operator setup required:
+
+1. Replace `<APP_URL>` with production URL (e.g. `https://your-app.vercel.app`)
+2. Set `CRON_SECRET` in database: `ALTER DATABASE postgres SET app.cron_secret = '<your-secret>';`
+3. Enable extensions: `pg_cron`, `pg_net` (Supabase default, but explicit)
+4. Apply via `supabase_apply_migration` or `psql`
+5. Verify: `SELECT jobname, schedule, active FROM cron.job;`
+
+**`npx tsc --noEmit` status:** still **0 errors** (no code changes in this wave).
+
+**Branch status:** ahead of origin/main by 62 commits.
+
+---
+
 ## File-by-File Status (new files this session)
 
 ### New API routes
