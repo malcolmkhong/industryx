@@ -2664,108 +2664,6 @@ export const useGameStore = create<GameStore>()(
         }
       },
 
-      updateQuestProgress: (type: string, amount: number, targetId?: string) => {
-        const state = get();
-
-        // For 'reach' type quests, check current game state directly
-        if (type === 'reach') {
-          const efficiency = state.powerGrid.efficiency * 100;
-          const newQuests = state.quests.map(q => {
-            if (q.claimed || q.completed || q.type !== 'reach') return q;
-            const newSteps = q.steps.map(s => {
-              if (s.completed) return s;
-              // Power efficiency reach quest
-              if (s.description.toLowerCase().includes('efficiency')) {
-                const newCurrent = Math.min(Math.round(efficiency), s.target);
-                return { ...s, current: newCurrent, completed: newCurrent >= s.target };
-              }
-              // Generic reach: just set current to amount
-              const newCurrent = Math.min(amount, s.target);
-              return { ...s, current: newCurrent, completed: newCurrent >= s.target };
-            });
-            const allStepsComplete = newSteps.every(s => s.completed);
-            return { ...q, steps: newSteps, completed: allStepsComplete };
-          });
-          set({ quests: newQuests });
-          return;
-        }
-
-        // For 'earn' type quests, track totalMoneyEarned
-        if (type === 'earn') {
-          const newQuests = state.quests.map(q => {
-            if (q.claimed || q.completed || q.type !== 'earn') return q;
-            const newSteps = q.steps.map(s => {
-              if (s.completed) return s;
-              const newCurrent = Math.min(state.totalMoneyEarned, s.target);
-              return { ...s, current: newCurrent, completed: newCurrent >= s.target };
-            });
-            const allStepsComplete = newSteps.every(s => s.completed);
-            return { ...q, steps: newSteps, completed: allStepsComplete };
-          });
-          set({ quests: newQuests });
-          return;
-        }
-
-        // For 'produce' type quests with targetResource
-        if (type === 'produce' && targetId) {
-          const newQuests = state.quests.map(q => {
-            if (q.claimed || q.completed || q.type !== 'produce') return q;
-            // Only update quests that match the target resource
-            if (q.targetResource && q.targetResource !== targetId) return q;
-            const newSteps = q.steps.map(s => {
-              if (s.completed) return s;
-              const newCurrent = s.current + amount;
-              const stepCompleted = newCurrent >= s.target;
-              return { ...s, current: newCurrent, completed: stepCompleted };
-            });
-            const allStepsComplete = newSteps.every(s => s.completed);
-            return { ...q, steps: newSteps, completed: allStepsComplete };
-          });
-          set({ quests: newQuests });
-          return;
-        }
-
-        // For 'build' type quests with targetBuilding
-        if (type === 'build' && targetId) {
-          const newQuests = state.quests.map(q => {
-            if (q.claimed || q.completed || q.type !== 'build') return q;
-            // If quest has a specific targetBuilding, only update quests for that building
-            if (q.targetBuilding && q.targetBuilding !== targetId) {
-              // Still update generic build quests (no targetBuilding)
-              // But skip quests for different buildings
-            }
-            const newSteps = q.steps.map(s => {
-              if (s.completed) return s;
-              const newCurrent = s.current + amount;
-              const stepCompleted = newCurrent >= s.target;
-              return { ...s, current: newCurrent, completed: stepCompleted };
-            });
-            const allStepsComplete = newSteps.every(s => s.completed);
-            return { ...q, steps: newSteps, completed: allStepsComplete };
-          });
-          set({ quests: newQuests });
-          return;
-        }
-
-        // Default: generic type matching (for sell, research, contract, transport, worker, prestige, megaProject)
-        const newQuests = state.quests.map(q => {
-          if (q.claimed || q.completed) return q;
-          if (q.type !== type) return q;
-
-          const newSteps = q.steps.map(s => {
-            if (s.completed) return s;
-            const newCurrent = s.current + amount;
-            const stepCompleted = newCurrent >= s.target;
-            return { ...s, current: newCurrent, completed: stepCompleted };
-          });
-
-          const allStepsComplete = newSteps.every(s => s.completed);
-          return { ...q, steps: newSteps, completed: allStepsComplete };
-        });
-
-        set({ quests: newQuests });
-      },
-
       resetGame: () => set(createInitialState()),
 
       getNewsLLMState: () => getLLMState(),
@@ -3072,24 +2970,104 @@ export const useGameStore = create<GameStore>()(
 
       updateQuestProgress: (type: string, amount: number, targetId?: string) => {
         const state = get();
-        // Delegate to the main updateQuestProgress logic
-        // This is a simplified version for the second store definition
-        set({
-          quests: state.quests.map(q => {
-            if (q.completed || q.claimed) return q;
-            if (q.type !== type) return q;
-            // For produce quests with targetResource, only match if resource matches
-            if (type === 'produce' && q.targetResource && targetId && q.targetResource !== targetId) return q;
-            return {
-              ...q,
-              steps: q.steps.map(s => {
-                const newCurrent = Math.min(s.target, s.current + amount);
+
+        // For 'reach' type quests, check current game state directly
+        if (type === 'reach') {
+          const efficiency = state.powerGrid.efficiency * 100;
+          const newQuests = state.quests.map(q => {
+            if (q.claimed || q.completed || q.type !== 'reach') return q;
+            const newSteps = q.steps.map(s => {
+              if (s.completed) return s;
+              // Power efficiency reach quest
+              if (s.description.toLowerCase().includes('efficiency')) {
+                const newCurrent = Math.min(Math.round(efficiency), s.target);
                 return { ...s, current: newCurrent, completed: newCurrent >= s.target };
-              }),
-              completed: q.steps.every(s => (s.current + amount) >= s.target),
-            };
-          }),
+              }
+              // Generic reach: just set current to amount
+              const newCurrent = Math.min(amount, s.target);
+              return { ...s, current: newCurrent, completed: newCurrent >= s.target };
+            });
+            const allStepsComplete = newSteps.every(s => s.completed);
+            return { ...q, steps: newSteps, completed: allStepsComplete };
+          });
+          set({ quests: newQuests });
+          return;
+        }
+
+        // For 'earn' type quests, track totalMoneyEarned
+        if (type === 'earn') {
+          const newQuests = state.quests.map(q => {
+            if (q.claimed || q.completed || q.type !== 'earn') return q;
+            const newSteps = q.steps.map(s => {
+              if (s.completed) return s;
+              const newCurrent = Math.min(state.totalMoneyEarned, s.target);
+              return { ...s, current: newCurrent, completed: newCurrent >= s.target };
+            });
+            const allStepsComplete = newSteps.every(s => s.completed);
+            return { ...q, steps: newSteps, completed: allStepsComplete };
+          });
+          set({ quests: newQuests });
+          return;
+        }
+
+        // For 'produce' type quests with targetResource
+        if (type === 'produce' && targetId) {
+          const newQuests = state.quests.map(q => {
+            if (q.claimed || q.completed || q.type !== 'produce') return q;
+            // Only update quests that match the target resource
+            if (q.targetResource && q.targetResource !== targetId) return q;
+            const newSteps = q.steps.map(s => {
+              if (s.completed) return s;
+              const newCurrent = s.current + amount;
+              const stepCompleted = newCurrent >= s.target;
+              return { ...s, current: newCurrent, completed: stepCompleted };
+            });
+            const allStepsComplete = newSteps.every(s => s.completed);
+            return { ...q, steps: newSteps, completed: allStepsComplete };
+          });
+          set({ quests: newQuests });
+          return;
+        }
+
+        // For 'build' type quests with targetBuilding
+        if (type === 'build' && targetId) {
+          const newQuests = state.quests.map(q => {
+            if (q.claimed || q.completed || q.type !== 'build') return q;
+            // If quest has a specific targetBuilding, only update quests for that building
+            if (q.targetBuilding && q.targetBuilding !== targetId) {
+              // Still update generic build quests (no targetBuilding)
+              // But skip quests for different buildings
+            }
+            const newSteps = q.steps.map(s => {
+              if (s.completed) return s;
+              const newCurrent = s.current + amount;
+              const stepCompleted = newCurrent >= s.target;
+              return { ...s, current: newCurrent, completed: stepCompleted };
+            });
+            const allStepsComplete = newSteps.every(s => s.completed);
+            return { ...q, steps: newSteps, completed: allStepsComplete };
+          });
+          set({ quests: newQuests });
+          return;
+        }
+
+        // Default: generic type matching (for sell, research, contract, transport, worker, prestige, megaProject)
+        const newQuests = state.quests.map(q => {
+          if (q.claimed || q.completed) return q;
+          if (q.type !== type) return q;
+
+          const newSteps = q.steps.map(s => {
+            if (s.completed) return s;
+            const newCurrent = s.current + amount;
+            const stepCompleted = newCurrent >= s.target;
+            return { ...s, current: newCurrent, completed: stepCompleted };
+          });
+
+          const allStepsComplete = newSteps.every(s => s.completed);
+          return { ...q, steps: newSteps, completed: allStepsComplete };
         });
+
+        set({ quests: newQuests });
       },
 
       setTrackedQuest: (id: string | null) => {
