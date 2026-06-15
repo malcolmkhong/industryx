@@ -2877,6 +2877,15 @@ export const useGameStore = create<GameStore>()(
           return;
         }
 
+        // Phase 2.2: Server validation (fire-and-forget, server catches cheating on next save)
+        void (async () => {
+          try {
+            await import('./actionValidator').then(m =>
+              m.validateActionWithServer('start_drone_mission', { missionId, droneId })
+            );
+          } catch {}
+        })();
+
         // Calculate delivery time with speed upgrade
         const deliveryTicks = Math.max(10, Math.floor(mission.baseTicks / (1 + (drone.speedLevel - 1) * getBalance().drone.speedUpgradeCoeff)));
 
