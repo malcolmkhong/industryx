@@ -1876,6 +1876,16 @@ export const useGameStore = create<GameStore>()(
           return;
         }
 
+        // Phase 2.2: Server validation (fire-and-forget, server catches cheating on next save)
+        // Phase 2.3 will make this blocking; for now it's advisory
+        void (async () => {
+          try {
+            await import('./actionValidator').then(m =>
+              m.validateActionWithServer('build', { buildingType: type })
+            );
+          } catch {}
+        })();
+
         const building: BuildingInstance = {
           id: generateId(),
           type,
@@ -3557,8 +3567,7 @@ export const useGameStore = create<GameStore>()(
   )
 );
 
-// Expose store to window for debugging/testing
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
   (window as unknown as Record<string, unknown>).__gameStore = useGameStore;
 }
 
