@@ -831,6 +831,151 @@ Add alerts for:
 
 ---
 
+## Phase 7 — Server-Side Tick Validation (1–2 weeks)
+
+**Why this phase:** The current plan (Phases 0–6) prevents sudden cheating, fake leaderboard scores, and fake offline progress. However, it does NOT prevent **gradual client-side cheating** — a player who inflates money by 10% per save (keeping within delta check thresholds) can accumulate unlimited money over time.
+
+This phase adds **server-side tick validation** that runs periodically for each active player, computing the theoretical maximum money the player should have based on their buildings, research, and elapsed ticks. Any divergence between client's saved state and server-computed state is flagged.
+
+**Spec invariant:** At any point in time, the server can answer: "Given this player's buildings, research, workers, and time elapsed, the maximum possible money is $X." If the client claims more than X, it's cheating.
+
+### 7.1 Theoretical maximum computation function
+**New file:** `src/lib/game/serverTickValidator.ts`
+
+Create a new module with a function that computes the theoretical maximum money a player should have:
+
+```typescript
+export function computeMaxPossibleMoney(
+  gameState: GameState,
+  elapsedTicks: number,
+  config: GameConfig
+): number {
+  // Compute theoretical max based on:
+  // - Number of each building type × max production rate per tick
+  // - All research effects (production multipliers)
+  // - All worker effects (efficiency bonuses)
+  // - Weather effects (production multipliers)
+  // - Prestige bonuses (production multipliers)
+  // - Cap by elapsedTicks × max_rate_per_tick × max_multiplier
+}
+```
+
+This function uses the **same** `buildMultipliers` and `computeProduction` from `productionCalculator.ts` that the client uses, so the server's expectation matches what the client should have produced.
+
+**Why:** This is the core of the validation. The server can compare client's claimed money against this theoretical max.
+
+### 7.2 Periodic server-side tick validation job
+**New file:** `src/app/api/cron/validate-ticks/route.ts`
+
+A cron-triggered endpoint (via Supabase pg_cron or external scheduler) that:
+
+1. Queries all `server_game_state` rows where `last_tick_at` is within the last 5 minutes (active players)
+2. For each active player:
+   - Load their `server_game_state.full_state`
+   - Compute elapsed ticks since last validation
+   - Call `computeMaxPossibleMoney(state, elapsedTicks, config)`
+   - If `state.money > computedMax * 1.1` (10% tolerance for rounding), flag the account
+3. Flagged accounts: increment `cheat_flag_count`, insert `cheat_investigations` row with `detection_type: 'gradual_money_inflation'`
+
+**Schedule:** Every 5 minutes via Supabase pg_cron:
+```sql
+SELECT cron.schedule('validate-active-players', '*/5 * * * *',
+  $$SELECT net.http_post('https://your-app.com/api/cron/validate-ticks')$$);
+```
+
+**Why:** Without periodic validation, a gradual cheater can accumulate money indefinitely as long as they stay under the per-save delta check threshold. This catches the "slow poison" cheater.
+
+### 7.3 Client-side divergence detection
+**File to update:** `src/lib/game/store.ts`
+
+Add a new method `divergesFromExpected` to the store:
+
+```typescript
+divergesFromExpected: (serverComputedMax: number) => {
+  const state = get();
+  const ratio = state.money / serverComputedMax;
+  return ratio > 1.1; // 10% tolerance
+},
+```
+
+**Also update:** `src/lib/hooks/cloudSync/useCloudSave.ts`
+
+When the server returns a `validation_warning` (e.g., "your money is higher than theoretical max"), the client:
+- Shows a warning toast: "Your game state may be out of sync. Reloading..."
+- Triggers a forced reload from server
+- Logs the divergence to console for debugging
+
+**Why:** Provides immediate user feedback when the server detects divergence. Forces the user to sync, preventing them from continuing with fake state.
+
+### 7.4 Tighten the per-save delta check threshold
+**File to update:** `src/lib/auth/gameStateValidator.ts:228-233`
+
+Current delta check:
+```typescript
+if (moneyDelta > 0 && earnedDelta >= 0 && 
+    moneyDelta > earnedDelta * 1.5 + 100000) {
+  // Flag
+}
+```
+
+Tighten to:
+```typescript
+if (moneyDelta > earnedDelta * 1.1 + 50000) {  // was 1.5 + 100000
+  // Flag with severity: medium (suspicious), not critical
+}
+```
+
+The looser threshold (1.5x) allowed gradual cheaters to blend in. The tighter threshold (1.1x) catches inflation attempts but still allows for legitimate market price fluctuations.
+
+**Note:** This is a **conservative change** that may increase false positives. Test with the actual player base before rolling out.
+
+**Why:** Closes the delta check gap that gradual cheaters exploit.
+
+### 7.5 Admin investigation workflow for gradual cheaters
+**File to update:** `src/app/api/admin/investigations/route.ts` (existing)
+
+The `cheat_investigations` table now gets a new `detection_type`: `'gradual_money_inflation'`. The admin investigation UI needs to:
+
+1. Display this new detection type with a clear explanation
+2. Show the player's money-over-time graph (if available)
+3. Provide a "Reset money to theoretical max" action
+4. Provide a "Ban account" action
+
+**Why:** Automated flagging is only useful if admins can act on it. The current investigation UI only handles `state_tampering` and similar.
+
+### 7.6 Expected value bounds for buildings and research
+**New file:** `src/lib/game/serverTickValidator.ts` (extended)
+
+Add similar theoretical-max functions for:
+- `computeMaxPossibleBuildings(state, elapsedTicks)`: given the player's research and elapsed time, max buildings they could have built
+- `computeMaxPossibleResearch(state)`: given prerequisites completed, max research they could have unlocked
+- `computeMaxPossibleResources(state, elapsedTicks)`: max resource amounts given production rate
+
+These run alongside `computeMaxPossibleMoney` in the periodic validation job.
+
+**Why:** Money is the primary exploit target, but buildings, research, and resources can also be inflated. The same pattern catches all of them.
+
+### Phase 7 Verification
+
+- Test gradual cheat: `__gameStore.setState({money: 5000})` on a fresh account (legitimate: $1000)
+- Wait 5 minutes for the validation cron
+- Verify the account is flagged with `cheat_flag_count` increment
+- Verify `cheat_investigations` has a new row with `detection_type: 'gradual_money_inflation'`
+- Verify the admin can see this in the investigation panel
+
+### Estimated effort
+
+- 7.1 Theoretical max function: 1 day
+- 7.2 Periodic validation job: 1-2 days  
+- 7.3 Client-side divergence detection: 0.5 day
+- 7.4 Tighten delta check: 0.5 day
+- 7.5 Admin investigation UI update: 1 day
+- 7.6 Extended value bounds: 1-2 days
+
+**Total: 5-7 days (1-1.5 weeks)**
+
+---
+
 ## Risk Register
 
 | Risk | Likelihood | Impact | Mitigation |

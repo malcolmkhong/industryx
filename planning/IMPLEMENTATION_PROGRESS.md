@@ -19,9 +19,12 @@
 | **Phase 4** — Anti-Cheat | ⏳ **Not Started** | — | 3 days est |
 | **Phase 5** — Production Hygiene | ⏳ **Not Started** | — | 2 days est |
 | **Phase 6** — Docs & Process | ⏳ **Not Started** | — | 1 day est |
+| **Phase 7** — Server-Side Tick Validation | ⏳ **Not Started** | — | 1-1.5 weeks est |
 
 **Total elapsed:** ~5 days of focused work
-**Total remaining:** ~4 weeks of work
+**Total remaining:** ~5-6 weeks of work
+
+> **Note:** Phase 7 was added in response to a user question about gradual client-side cheating. Phases 0-6 prevent sudden cheating, fake leaderboard, and fake offline, but do NOT prevent gradual inflation via repeated small `__gameStore.setState` calls. Phase 7 adds periodic server-side validation that catches the "slow poison" cheater pattern.
 
 ---
 
