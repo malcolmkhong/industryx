@@ -1,17 +1,61 @@
 # IMPLEMENTATION PLAN — Security & Architecture Hardening
 
 **Source audit:** `planning/PRODUCTION_SECURITY_AUDIT.md`
+**Source spec:** Enterprise Authentication Flow (this document, § Authority)
 **Date:** June 2026
 **Estimated effort:** 3–5 weeks of focused engineering
 **Target:** Production-ready for 1,000+ active players
 
 ---
 
+## Authority & Trust Chain
+
+```
+Supabase Auth
+  ↓
+auth.users                    ← no synthetic creds, no shadow auth
+  ↓
+profiles                     ← one row per auth.user; is_guest flag
+  ↓
+server_game_state            ← authoritative game state
+  ↓
+guest_identities             ← device_id ↔ auth.user_id mapping
+  ↓
+pending_link_operations      ← in-flight merges (idempotent)
+  ↓
+merge_receipts               ← post-merge audit
+  ↓
+merge_audit_log              ← full before/after state snapshots
+```
+
+**No synthetic emails. No synthetic password hashes. No shadow auth system. No localStorage-only accounts. No client-authoritative progress. No direct `auth.identities` mutation. No merge-progress logic in the client.**
+
+---
+
+## Forbidden Patterns
+
+The following are explicitly banned in this codebase:
+
+- **`synthetic_email`** — never generate a fake email to satisfy Supabase's required field
+- **`synthetic_pwd_hash`** — never store a hashed "password" in our tables to simulate auth
+- **Hidden password accounts** — Supabase Auth is the only path to create an account
+- **localStorage-only accounts** — every player must have a row in `auth.users`
+- **Client-authoritative progress** — every tick, every building, every dollar flows through the server
+- **Direct `auth.identities` mutation** — use `supabase.auth.linkIdentity()` or the merge transaction; never raw `UPDATE`
+- **Merge-progress logic in the client** — the merge outcome is decided by a single transaction in the service-role layer
+- **Fingerprint-based ownership recovery** — `device_id` is the primary recovery signal; fingerprint is for risk-scoring only
+
+Any new code or PR that introduces one of these patterns is automatically rejected in review.
+
+---
+
 ## Overview
 
-This plan turns the security audit into a sequence of shippable phases. Each phase is independently verifiable and produces a deployable artifact. Phases 0 and 1 are DB-only and ship first; Phases 2 and 3 are the bulk of the work; Phases 4–6 are hardening and hygiene.
+This plan turns the security audit into a sequence of shippable phases. Each phase is independently verifiable and produces a deployable artifact. Phases 0 and 1 are DB/backend and ship first; Phase 1.5 adds the visible UI surface that consumes the Phase 1 APIs; Phases 2 and 3 are the bulk of the work; Phases 4–6 are hardening and hygiene.
 
-**Critical sequencing rule:** Do not start Phase 2 (server-authoritative actions) before Phase 1 (account linking) is at least stubbed — because removing the `window.__gameStore` exposure will break the offline progress flow if the server-side replacement isn't ready.
+**Critical sequencing rule:** Do not start Phase 2 (server-authoritative actions) before Phase 1 (account linking) is at least stubbed — because removing the `window.__gameStore` exposure will break the offline progress flow if the server-side replacement isn't ready. Likewise, Phase 1.5 (UI) ships immediately after Phase 1 (API) so the merge dialog has a server to call.
+
+**Authority rule:** Every user has a `auth.users` UUID by the time they finish the loading screen. There is no "guest-only" mode. Guests are simply anonymous `auth.users` whose profile has `is_guest = true`.
 
 ---
 
@@ -120,113 +164,318 @@ ON CONFLICT (user_id) DO NOTHING;
 
 ---
 
-## Phase 1 — Account Linking Infrastructure (Days 2–5, 1.5 weeks)
+## Phase 1 — Anonymous Identity + Linking Infrastructure (Days 2–5, 1.5 weeks)
 
-**Why second:** The linking tables already exist in the DB. Wiring them up gives guests a real Supabase identity (which is what makes everything else more secure — rate limits, audits, and cheat detection all need a stable user_id).
+**Why second:** The linking tables already exist in the DB. Wiring them up gives every visitor a real Supabase identity by the time they finish the loading screen. This is what makes rate limits, audits, and cheat detection meaningful — they all need a stable `auth.users.id`.
+
+**Spec invariant:** Every new visitor gets a Supabase Auth UUID automatically. There is no button to click. The "Sign In" / "Bind Account" button is the only path to upgrade to a Google identity.
 
 ### 1.1 Add `signInAnonymously` to AuthProvider
 **File to update:** `src/components/providers/AuthProvider.tsx`
 
 Add to the `AuthState` interface (lines 13-19):
 - `signInAnonymously: () => Promise<void>;`
+- `isGuest: boolean` (derived from `user?.is_anonymous`)
+- `deviceId: string | null` (from localStorage)
 
-Add a new `useCallback` (sibling of `signInWithGoogle`, around line 96):
-- Calls `supabase.auth.signInAnonymously()`
-- On success, persists the returned user.id to localStorage under a new key (e.g., `factory-dominion-guest-uid`)
-- On success, calls `initServerValidation(user.id)`
-- On error, logs and surfaces to caller (does NOT silently swallow — see H10)
+Add a new `useCallback` (sibling of `signInWithGoogle`):
+- Reads `factory-dominion-device-id` from localStorage; if missing, generates a UUID v4 and stores it
+- Calls `supabase.auth.signInAnonymously()` with `options.data = { device_id }`
+- The `handle_new_user` trigger already creates a `profiles` row with `is_guest = true`
+- The client then POSTs to `/api/auth/initialize-guest` (Phase 1.3) to create the `guest_identities` mapping and the `server_game_state` row
+- On error: surface to caller (do NOT silently swallow)
 
-Add to the context provider value (around line 135):
+Add to the context provider value:
 - `signInAnonymously`
+- `isGuest` (memo: `user?.is_anonymous ?? false`)
+- `deviceId`
 
-**Why:** The audit confirmed the user wants anonymous accounts, the DB supports them (`auth.users.is_anonymous` exists, `profiles.is_guest` exists, `handle_new_user` reads `is_anonymous`), and the merge infrastructure is built around them. Without this, there is no Supabase identity to link.
+**Why:** This is the entry point. Every visitor gets a UUID automatically.
 
-### 1.2 Auto-create anonymous identity on first pageload
-**File to update:** `src/components/providers/AuthProvider.tsx` (in the existing `useEffect` around line 38)
+### 1.2 Auto-create anonymous identity on first pageload (zero clicks)
+**File to update:** `src/components/providers/AuthProvider.tsx` (existing `useEffect` around line 38)
 
-In the init effect, after `getSession()` returns no session, if no `factory-dominion-guest-uid` exists in localStorage, call `signInAnonymously()`.
+Init sequence (strict order):
+1. `supabase.auth.getSession()` — if session exists, load user, done
+2. If no session, check `localStorage['factory-dominion-device-id']`:
+   - If missing, generate UUID v4, store
+   - If exists, call `/api/auth/recover-by-device` (Phase 1.7) with the device_id
+3. If no session and recovery failed: call `signInAnonymously()`
+4. After successful anon sign-in: call `/api/auth/initialize-guest` (Phase 1.3) to create the `guest_identities` row and `server_game_state` row
 
-**Why:** Guests need an identity before they can accumulate progress that survives sign-in. Currently they play with zero server identity, so the cloud save flow always treats them as new.
+**Why:** Visitors never see a "Sign In to play" gate. They play, with a real UUID, immediately. The "Bind Account" button is opt-in for upgrading.
 
-### 1.3 Create `/api/auth/anonymous-signin` route
-**New file:** `src/app/api/auth/anonymous-signin/route.ts`
+### 1.3 Create `/api/auth/initialize-guest` route
+**New file:** `src/app/api/auth/initialize-guest/route.ts`
 
 POST handler:
-- Validates request body (just an empty POST is fine)
-- Calls `supabase.auth.admin.createUser({ email: undefined, email_confirm: true })` (server-side admin API)
-- Returns the new user.id
-- Rate-limited at 5/min per IP
+- Body: `{ deviceId, fingerprint? }`
+- Verify session exists (the anon user from 1.1)
+- Verify the user has no existing `server_game_state` row (idempotency)
+- Verify the user has no existing `guest_identities` row
+- Create `server_game_state` row (money=1000, defaults)
+- Create `guest_identities` row: `{ user_id, device_id, fingerprint_hash (nullable), is_primary: true }`
+- Fingerprint (if provided) is hashed (SHA-256) and stored as `fingerprint_hash` — used for risk scoring, NEVER for ownership
+- Rate limit 10/min per user
 
-**Why:** Allows the client to request a fresh anonymous identity for testing or recovery flows. Optional but matches the spec's "anonymous login" expectation.
+**Why:** Creates the authoritative game state and the device mapping. This is what makes the "returning visitor" flow work.
 
-### 1.4 Create `/api/auth/link-identity` route (the guest → Google merge)
+### 1.4 Create `/api/auth/link-identity` route
 **New file:** `src/app/api/auth/link-identity/route.ts`
 
 POST handler:
-- Body: `{ guestUserId, idempotencyKey, preference: 'keep_guest' | 'keep_google' }`
-- Verify session matches an authenticated Google user
-- Verify `guestUserId` is in `auth.users.is_anonymous = true`
-- Rate limit 5/min per Google user
-- Insert into `pending_link_operations` (idempotent on `idempotency_key`)
-- Compute `risk_score` from server-side analysis of both users' `server_game_state` (sum of money + total_money_earned, count of buildings, total research)
-- Compute `preview_version` (a 3-tick simulated state from each side)
-- Return the operation ID + preview
-- Caller is then expected to either confirm or cancel
+- Body: `{ idempotencyKey, previewOnly?: boolean }`
+- Auth: must be a Google-authenticated user (not anonymous)
+- Read the persisted `factory-dominion-guest-uid` from a cookie or the request body's signed token
+- Look up the guest user's `server_game_state` (full preview payload)
+- Look up the Google user's `server_game_state` (full preview payload)
+- **Conflict detection:** if the Google user has its own `server_game_state` with non-trivial progress (game_tick > 100 OR money > 10000), then we have a true merge situation. Create a `pending_link_operations` row with status='pending' and a 24h expiry.
+- If no conflict (Google user is fresh), directly link the Google identity to the anon user's UUID using `supabase.auth.admin.linkIdentity()` and copy the guest's state to the Google user.
+- Compute `risk_score` from both states
+- Compute `preview_version` = both states with their comparison panel data
+- Return the operationId + preview (or success if no conflict)
 
-### 1.5 Create `/api/auth/confirm-link` route
+**Why:** Two paths: clean link (Google is fresh → just upgrade the anon) OR conflict (Google already has progress → show merge dialog).
+
+### 1.5 Create `/api/auth/confirm-link` route (the merge transaction)
 **New file:** `src/app/api/auth/confirm-link/route.ts`
 
 POST handler:
-- Body: `{ operationId, idempotencyKey }`
-- Verify session matches the Google user in the operation
+- Body: `{ operationId, idempotencyKey, preference: 'keep_guest' | 'keep_google' }`
+- Auth: must be a Google-authenticated user matching `google_user_id` in the operation
+- **Save freeze check:** if any other resolution is `status='pending'` for this device, return 409
 - Load the pending operation
 - Check `status === 'pending'` and `expires_at > now()`
-- If `preference === 'keep_guest'`: copy the guest's `server_game_state` to the Google user; insert into `merge_receipts` with `kept_user_id = guestUserId, archived_user_id = googleUserId`; set `profiles.linked_account_id`; sign the guest out
-- If `preference === 'keep_google'`: discard guest state; mark operation `completed`; archive the guest
-- In both cases, write to `merge_audit_log` with full before/after state snapshots
-- Use a single transaction
+- **Single transaction:**
+  - If `preference === 'keep_guest'`:
+    - Copy guest's `server_game_state` row → Google user's `server_game_state` (overwrite)
+    - Link the Google identity to the guest's UUID (the guest UUID survives)
+    - `merge_receipts`: `kept_user_id = guestUserId, archived_user_id = googleUserId`
+    - `guest_identities.superseded_by = googleUserId` (the Google identity is linked, but the user record is the guest)
+    - `profiles.linked_account_id = googleUserId`
+    - `profiles.is_guest = false`
+    - Mark the Google user's old profile as archived
+  - If `preference === 'keep_google'`:
+    - Keep the Google user's state
+    - Discard the guest's state (delete the `server_game_state` row for the guest)
+    - `merge_receipts`: `kept_user_id = googleUserId, archived_user_id = guestUserId`
+    - `guest_identities.superseded_by = googleUserId, superseded_at = now()`
+  - `merge_audit_log`: full before/after snapshots
+  - Update `pending_link_operations` status to `completed`, completed_at = now()
+- Return `{ receiptId, survivingUserId }`
 
-**Why:** This is the actual merge operation. The schema is already built for it (idempotency key, risk score, expires_at, audit log, receipts).
+**Why:** The single transaction guarantees atomicity. Save freeze + single-active-resolution prevents two tabs from racing.
 
-### 1.6 Create `/api/auth/recover-guest` route
-**New file:** `src/app/api/auth/recover-guest/route.ts`
+### 1.6 Create `/api/auth/recover-by-device` route
+**New file:** `src/app/api/auth/recover-by-device/route.ts`
 
 POST handler:
-- Body: `{ fingerprint }`
-- Rate limit 3/min per IP
-- Look up `guest_identities` by `fingerprint_hash` (SHA-256 of the device fingerprint)
-- If found and `is_primary = true` and `superseded_at IS NULL` and the linked auth.users still exists: return a magic-link-style recovery flow (call `supabase.auth.admin.generateLink({ type: 'magiclink', email: ... })` — but anonymous users have no email, so use a custom token)
-- **Open question:** the recovery flow for anonymous users is not natively supported by Supabase. Likely needs a custom token system. For now, return a "use your last device to recover" message.
+- Body: `{ deviceId }`
+- Rate limit 3/min per deviceId
+- Look up `guest_identities` by `device_id` (primary, not superseded)
+- If found and not superseded: sign the user in as anon with the recovered UUID
+  - **Implementation:** use `supabase.auth.admin.generateLink({ type: 'magiclink', email: '...' })` does NOT work for anon users. Alternative: call `supabase.auth.admin.createSession({ user_id, fresh: false })` — returns a refresh token. Set it via SSR cookies.
+- If found but superseded: return `{ recoveredAs: 'linked_to', googleUserId }` and instruct the client to also sign in with Google
+- If not found: return 404
 
-**Why:** Spec requires "recover-guest" but the underlying flow is non-trivial for anonymous users (they have no email to magic-link to). The first iteration can be a "re-link on same device via fingerprint" flow.
+**Why:** This is the **device_id-based recovery** (the primary signal per spec). Fingerprint is never used for recovery.
 
-### 1.7 Update AuthProvider `linkIdentity` helper
-**File to update:** `src/components/providers/AuthProvider.tsx`
+### 1.7 Update AuthProvider to detect conflict and open merge dialog
+**File to update:** `src/components/providers/AuthProvider.tsx` + new file `src/lib/hooks/useMergeFlow.ts`
 
-Add a `linkIdentity` method to the context that:
-- Reads the persisted guest UID from localStorage
-- After Google sign-in completes, calls `/api/auth/link-identity` with the guest UID
-- Routes to the confirmation flow
+New hook `useMergeFlow` exposes:
+- `pendingMerge: { operationId, preview } | null`
+- `openMergeDialog(preview)` — called by `signInWithGoogle` callback when 1.4 returns a conflict
+- `confirmMerge(preference)` — POST to `/api/auth/confirm-link`
+- `cancelMerge()` — DELETE the pending operation
 
-**Why:** Today the spec says "use `supabase.auth.linkIdentity()`" but since we have no anonymous user, there's nothing to link. After 1.1, we have a real anon identity, and we can either use `linkIdentity()` (which links the anon user's identities) or do the full custom merge via 1.4/1.5. **The custom merge is better** because it preserves both sides' state and gives the user a choice.
+`signInWithGoogle` flow update:
+1. OAuth starts, user completes Google
+2. After `onAuthStateChange` fires with the new Google user, check if `localStorage['factory-dominion-guest-uid']` exists and != new Google user.id
+3. If so, POST `/api/auth/link-identity` with `idempotencyKey = uuid()` from client
+4. If response is `conflict: true`, set `pendingMerge` and show the merge dialog
+5. If response is `linked: true` (no conflict), proceed to load game
 
-### 1.8 Wire signInWithGoogle to trigger the link flow
-**File to update:** `src/components/providers/AuthProvider.tsx` (`signInWithGoogle` callback)
+**Why:** The flow must auto-trigger when the conflict is detected, not require the user to click anything beyond the Google sign-in.
 
-After the Google OAuth callback sets the user, if there's a stored `factory-dominion-guest-uid` AND the new Google user's id != the guest UID, call `/api/auth/link-identity`.
+### 1.8 Save freeze during pending merge
+**New file:** `src/lib/hooks/useSaveFreeze.ts`
 
-**Why:** This is the moment when the user explicitly said "I want to keep my guest progress." Triggering the flow automatically makes it a one-click experience.
+Exposes `isSaveFrozen: boolean`.
+
+The hook listens for `pendingMerge != null` (from `useMergeFlow`) and freezes the cloud save flow:
+- `useCloudSave.saveToCloud()` returns `{ success: false, error: 'merge_in_progress' }` while `isSaveFrozen === true`
+- The offline progress computation in `useOfflineProgressCheck` is also gated
+- The save indicator in the header shows a "Merge in progress" badge
+
+The freeze is released when:
+- The merge is confirmed (success)
+- The merge is cancelled
+- The pending operation expires (24h)
+
+**Why:** Prevents a save during merge from corrupting state. Per spec: "Save Freeze During Merge."
 
 ### Phase 1 Verification
 
-- `SELECT count(*) FROM pending_link_operations;` — should be > 0 after one test flow
-- `SELECT count(*) FROM merge_receipts;` — should be > 0 after a confirmed merge
-- `SELECT count(*) FROM merge_audit_log;` — should be > 0 (one per attempt)
-- Manual test: open incognito → play 100 ticks → sign in with Google → confirm "keep guest" → verify cloud state matches what was on the device
+- Open incognito → see auto-signin happen with no button click → check `auth.users` for new anon row
+- Play 100 ticks → click "Bind Account" → confirm "Keep Guest" → verify the guest UUID remains the surviving account, Google is linked
+- Open 2 tabs in the same browser, both sign in with Google using a different Google account than the guest → verify only one merge dialog appears, the other gets a 409
+- Clear localStorage → reload → verify "no device_id → new anon" path
+- Open 2 devices with same device_id, one with progress, one fresh → verify recovery returns the user's data
 
 ---
 
-## Phase 2 — Server-Authoritative Game Actions (Days 6–10, 1.5 weeks)
+## Phase 1.5 — Auth UI Surface (Days 6–8, 3 days)
+
+**Why this phase:** Phase 1 ships the API. This phase makes it visible to users. The merge dialog is the user's most high-stakes moment in the app — a wrong button loses their progress forever. The UI must be clear, accessible, and reuse existing primitives per spec.
+
+**Spec constraint:** Use existing UI primitives (`Dialog / Modal / Card / Button / Badge / StatRow`). Do NOT create a brand-new design system. Do NOT create a separate page.
+
+### 1.5.1 Rename the header button based on auth state
+**Files to update:**
+- `src/components/game/headers/DesktopHeader.tsx`
+- `src/components/game/headers/MobileHeader.tsx`
+- `src/components/game/GameHeader.tsx`
+
+The "Sign In" button (around line 407 in DesktopHeader) becomes:
+- `user === null` → "Sign In" (but with Phase 1.2 in place, this state should be impossible — guarded with a fallback message)
+- `user && isGuest` → "Bind Account" (calls `promptLogin('manual')` → opens `LoginFloatingPanel` for Google)
+- `user && !isGuest` → hide the button (replaced by the account menu)
+
+The button should be near the user's display name / avatar. Add a small `(Guest)` badge next to the name when `isGuest === true`.
+
+**Why:** The spec is explicit: "the current login button should change the text name to bind account." Visitors who are guests see "Bind Account" (not "Sign In") because they're already signed in — they just need to upgrade to Google.
+
+### 1.5.2 Add user avatar / display name to header
+**Files to update:** Same three header files
+
+When `user !== null`:
+- Show `user.user_metadata.picture` as a small avatar (32px circle)
+- If `picture` is null (anon user), show a generated initial in a colored circle (consistent with shadcn `Avatar` component)
+- Show display name (from `profiles.display_name` or `user.email?.split('@')[0]`)
+
+When `isGuest === true`:
+- Show "Guest" instead of email
+- Show the `factory-dominion-guest-uid` shortened (`aaa-111...`) in the tooltip on hover (for support)
+
+**Why:** Right now the header shows "Sign In" as if the user isn't authenticated, even after Phase 1.2 has made them authenticated. The avatar/name surface is what makes the account feel real.
+
+### 1.5.3 Reuse LoginFloatingPanel as the merge dialog
+**Files to update:**
+- `src/components/game/LoginFloatingPanel.tsx` (add a new `mode: 'merge_conflict' | 'merge_confirm_keep_guest' | 'merge_confirm_keep_google' | 'merge_success' | 'merge_failure'`)
+- `src/lib/hooks/useLoginPrompt.ts` (extend `LoginPromptReason` to include merge-specific reasons)
+
+The panel already has:
+- `Dialog / Modal` structure (lines 220-360)
+- `Card` for content blocks
+- `Button` for actions
+- A `mode: 'hard_gate' | 'soft_prompt'` discriminator (line 31)
+
+Add new modes for the merge flow. The new `merge_conflict` mode renders:
+- A 2-column comparison panel on desktop, stacked cards on mobile (per spec)
+- Each column shows: UUID (truncated), Created, Last Active, Prestige, Industry Level, Total Money, Total Ticks, Buildings, Research, Achievements
+- Three actions: "Keep Guest" / "Keep Google" / "Cancel"
+
+The `merge_confirm_*` modes show a single confirmation dialog with a Back button.
+The `merge_success` mode shows the receipt ID and a Continue button.
+The `merge_failure` mode shows a Retry / Cancel pair.
+
+Use the existing `useLoginPrompt` to drive the panel — extend the `LoginPromptReason` union:
+- `'merge_conflict'`
+- `'merge_confirm_keep_guest'`
+- `'merge_confirm_keep_google'`
+- `'merge_success'`
+- `'merge_failure'`
+
+The merge dialog is invoked from the new `useMergeFlow` hook (Phase 1.7), not from a hard-gate trigger.
+
+**Why:** The spec is explicit: "Use existing: Dialog / Modal / Card / Button / Badge / StatRow. Do NOT create a brand-new design system. Do NOT create a separate page." Reusing the existing panel matches the existing UI inventory and avoids divergence.
+
+### 1.5.4 Restrict guest from features that require Google identity
+**Files to update (UI side):**
+- Stock market tab (find via grep on `src/components/game/tabs/`)
+- Trading Post tab
+- Leaderboard tab
+- Mega Projects tab
+
+For each of the four gated tabs, when `isGuest === true`:
+- Render a `Badge` at the top: "Bind Account to access this feature"
+- Disable all interactive controls
+- Show a "Bind Account" button that opens `LoginFloatingPanel` with `reason: 'trading_post' | 'leaderboard' | 'mega_project' | 'stock_market'`
+- API routes that back these tabs return 403 with `code: 'GUEST_GATED'` for anon users
+
+**Files to update (API side):**
+- `src/app/api/game/trade/route.ts`
+- `src/app/api/game/trades/route.ts`
+- `src/app/api/leaderboard/route.ts`
+- `src/app/api/leaderboard/submit/route.ts`
+- (Mega project routes — find via grep)
+
+For each: at the top of POST/GET, after auth, check `if (auth.user?.is_anonymous) return 403`.
+
+**Why:** Spec: "The guest profile are disable for stock market, trade post, leaderboard and mega project." A guest sees the tab but cannot use it. The Bind Account button is the only escape.
+
+### 1.5.5 Add `?auth=error` toast on page load
+**File to update:** `src/app/page.tsx` (new `useEffect` on mount)
+
+```ts
+useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('auth') === 'error') {
+    toast.error('Sign-in failed. Please try again.');
+    // Strip the param from the URL
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+}, []);
+```
+
+Use the `sonner` library which is already in `package.json` (line 59: `"sonner": "^2.0.6"`).
+
+**Why:** Audit H10. Today the OAuth callback writes `?auth=error` on failure but no code reads it. Users never know.
+
+### 1.5.6 Show account menu with Sign Out + Manage Account
+**Files to update:** Three header files
+
+Replace the current "Sign Out" button location with a dropdown menu (use shadcn `DropdownMenu`):
+- Display name + email (or "Guest" + truncated UUID)
+- "Manage Account" → opens a settings modal (Phase 1.5.7)
+- "Sign Out" → calls `signOut()` from AuthProvider
+- If `isGuest`, add a "Bind Account" item at the top
+
+**Why:** Consistent with the "Bind Account" rename — the user's account actions live in one place.
+
+### 1.5.7 Account settings modal
+**New file:** `src/components/game/AccountSettingsModal.tsx`
+
+A modal opened from the account menu. Shows:
+- Account type badge: "Guest" / "Google" / "Linked"
+- Email (if Google) or truncated UUID (if guest)
+- Linked accounts (if any)
+- "Edit display name" → input + save (calls `/api/auth/update-profile`)
+- "Sign Out" button
+- If guest: "Bind Account" button at the top
+
+**New route:** `src/app/api/auth/update-profile/route.ts`
+- POST, body: `{ displayName }`
+- Auth + ownership
+- Sanitize `displayName` (same as 3.3)
+- Update `profiles.display_name` and `auth.users.user_metadata.display_name`
+- Rate limit 5/min
+
+**Why:** Users need a place to see and edit their account. The current app has no profile page at all.
+
+### Phase 1.5 Verification
+
+- Anonymous user logs in → header shows "Guest" + truncated UUID + "Bind Account" button (NOT "Sign In")
+- Guest clicks "Bind Account" → Google sign-in → conflict modal appears with side-by-side comparison
+- Click "Keep Guest" → confirmation modal → success screen with receipt ID → header now shows "Google" + email
+- Try to open Trading Post tab as guest → see "Bind Account to access this feature" badge, controls disabled
+- OAuth callback fails → page-load toast appears
+- Open account menu → see display name, edit it, see the change persist
+
+---
+
+## Phase 2 — Server-Authoritative Game Actions (Days 9–13, 1.5 weeks)
 
 **Why third:** With Phase 1 complete, every player has a stable user_id, which means rate limiting, cheat detection, and audit logs are now meaningful. This phase converts the dead server validation API into a real safety net.
 
@@ -598,18 +847,32 @@ Add alerts for:
 ## File Index (what to touch, by phase)
 
 ### Files to UPDATE
-- `supabase/migrations/018_admin_function_fix.sql` (NEW)
-- `supabase/migrations/019_guest_identities_rls.sql` (NEW)
-- `supabase/migrations/020_dedup_triggers.sql` (NEW)
-- `supabase/migrations/021_profiles_and_guest_identities.sql` (NEW)
-- `supabase/migrations/022_merge_and_link_tables.sql` (NEW)
-- `supabase/migrations/023_uncommitted_functions.sql` (NEW)
-- `supabase/migrations/024_admin_users_policies.sql` (NEW)
-- `src/components/providers/AuthProvider.tsx` (Phases 1, 3)
+- `supabase/migrations/018_admin_function_fix.sql` (NEW — Phase 0)
+- `supabase/migrations/019_guest_identities_rls.sql` (NEW — Phase 0)
+- `supabase/migrations/020_dedup_triggers.sql` (NEW — Phase 0)
+- `supabase/migrations/021_profiles_and_guest_identities.sql` (NEW — Phase 0)
+- `supabase/migrations/022_merge_and_link_tables.sql` (NEW — Phase 0)
+- `supabase/migrations/023_uncommitted_functions.sql` (NEW — Phase 0)
+- `supabase/migrations/024_admin_users_policies.sql` (NEW — Phase 0)
+- `src/components/providers/AuthProvider.tsx` (Phases 1, 1.5, 3)
+- `src/lib/hooks/useLoginPrompt.ts` (Phase 1.5 — add merge reasons)
+- `src/lib/hooks/useMergeFlow.ts` (NEW — Phase 1.7)
+- `src/lib/hooks/useSaveFreeze.ts` (NEW — Phase 1.8)
+- `src/components/game/LoginFloatingPanel.tsx` (Phase 1.5 — new modes)
+- `src/components/game/AccountSettingsModal.tsx` (NEW — Phase 1.5.7)
+- `src/components/game/headers/DesktopHeader.tsx` (Phase 1.5)
+- `src/components/game/headers/MobileHeader.tsx` (Phase 1.5)
+- `src/components/game/GameHeader.tsx` (Phase 1.5)
+- `src/components/game/tabs/StockMarketTab.tsx` (Phase 1.5.4 — disable for guest)
+- `src/components/game/tabs/TradingPostTab.tsx` (Phase 1.5.4)
+- `src/components/game/tabs/LeaderboardTab.tsx` (Phase 1.5.4)
+- `src/components/game/tabs/MegaProjectsTab.tsx` (Phase 1.5.4)
 - `src/app/api/auth/anonymous-signin/route.ts` (NEW — Phase 1)
-- `src/app/api/auth/link-identity/route.ts` (NEW — Phase 1)
-- `src/app/api/auth/confirm-link/route.ts` (NEW — Phase 1)
-- `src/app/api/auth/recover-guest/route.ts` (NEW — Phase 1)
+- `src/app/api/auth/initialize-guest/route.ts` (NEW — Phase 1.3)
+- `src/app/api/auth/link-identity/route.ts` (NEW — Phase 1.4)
+- `src/app/api/auth/confirm-link/route.ts` (NEW — Phase 1.5)
+- `src/app/api/auth/recover-by-device/route.ts` (NEW — Phase 1.6)
+- `src/app/api/auth/update-profile/route.ts` (NEW — Phase 1.5.7)
 - `src/app/api/game/claim-offline/route.ts` (NEW — Phase 2)
 - `src/app/api/auth/migrate-guest/route.ts` (Phases 3)
 - `src/app/api/game/action/route.ts` (Phases 2, 3, 4)
@@ -617,8 +880,12 @@ Add alerts for:
 - `src/app/api/game/state/route.ts` (Phases 3, 4)
 - `src/app/api/player/route.ts` (Phase 3)
 - `src/app/api/leaderboard/submit/route.ts` (Phase 2)
+- `src/app/api/game/trade/route.ts` (Phase 1.5.4 — guest gate)
+- `src/app/api/game/trades/route.ts` (Phase 1.5.4)
+- `src/app/api/leaderboard/route.ts` (Phase 1.5.4)
+- `src/app/api/leaderboard/submit/route.ts` (Phase 1.5.4 + Phase 2)
 - `src/app/admin/auth/callback/route.ts` (Phase 3)
-- `src/app/page.tsx` (Phase 3)
+- `src/app/page.tsx` (Phases 1.5, 3)
 - `src/lib/game/store.ts` (Phases 2, 4)
 - `src/lib/auth/gameStateValidator.ts` (Phases 4, 5)
 - `src/lib/auth/admin.ts` (Phase 5)
@@ -646,15 +913,16 @@ None. The existing files are correct in shape; we add to or replace within them.
 | Phase | Calendar Time | Engineer-Days |
 |-------|--------------|----------------|
 | Phase 0: DB hardening | 1 day | 0.5 |
-| Phase 1: Account linking | 4 days | 3.5 |
+| Phase 1: Account linking (backend) | 4 days | 3.5 |
+| Phase 1.5: Auth UI Surface | 3 days | 2.5 |
 | Phase 2: Server-authoritative | 5 days | 4 |
 | Phase 3: Auth & API hardening | 4 days | 3 |
 | Phase 4: Anti-cheat | 3 days | 2 |
 | Phase 5: Hygiene | 2 days | 1.5 |
 | Phase 6: Docs | 1 day | 0.5 |
-| **Total** | **~3.5 weeks calendar** | **15 engineer-days** |
+| **Total** | **~4 weeks calendar** | **17.5 engineer-days** |
 
-Assuming 1 senior engineer + 1 junior for review/testing, the calendar time is 3-4 weeks. The Phase 1 → Phase 2 dependency means the project should be staffed for at least 4 continuous weeks.
+Assuming 1 senior engineer + 1 junior for review/testing, the calendar time is 4-5 weeks. The Phase 1 → Phase 1.5 → Phase 2 dependency means the project should be staffed for at least 5 continuous weeks.
 
 ---
 
@@ -662,13 +930,18 @@ Assuming 1 senior engineer + 1 junior for review/testing, the calendar time is 3
 
 The plan is "done" when:
 
-1. A player in production cannot set `__gameStore.setState({...})` and have the result persist on the server
-2. A guest user can sign in with Google, see their progress, and explicitly choose to keep or discard it
-3. The `is_game_admin()` function correctly grants admin to anyone in `admin_users` with role admin/super_admin
-4. The migrations in `supabase/migrations/` are sufficient to recreate the live database from scratch
-5. The `guest_identities` RLS does not allow cross-user reads
-6. Production headers include CSP, HSTS, X-Frame-Options
-7. A leaderboard entry cannot be inflated by client-side modifications
-8. Offline progress is computed server-side and capped by elapsed time
+1. A new visitor loads the site, is automatically signed in as an anonymous Supabase user, and never sees a "Sign In" gate before playing
+2. The header shows "Bind Account" (not "Sign In") for guests, with an avatar/guest badge
+3. A guest can click "Bind Account" → Google sign-in → see the side-by-side merge dialog → choose "Keep Guest" or "Keep Google" → confirmation → success with receipt ID
+4. Returning on the same device (same `device_id`) restores the same `auth.users.id` even after a session expiry
+5. A guest who clears localStorage and returns on a new device gets a fresh anonymous account (NOT the old one — that requires explicit recovery)
+6. Guest cannot access Stock Market, Trade Post, Leaderboard, or Mega Projects (disabled with "Bind Account" gate)
+7. A player in production cannot set `__gameStore.setState({...})` and have the result persist on the server
+8. The `is_game_admin()` function correctly grants admin to anyone in `admin_users` with role admin/super_admin
+9. The migrations in `supabase/migrations/` are sufficient to recreate the live database from scratch
+10. The `guest_identities` RLS does not allow cross-user reads
+11. Production headers include CSP, HSTS, X-Frame-Options
+12. A leaderboard entry cannot be inflated by client-side modifications
+13. Offline progress is computed server-side and capped by elapsed time
 
 After all phases ship, re-run the audit checklist. The new grade should be B or better.
