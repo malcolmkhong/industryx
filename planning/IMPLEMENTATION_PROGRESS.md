@@ -793,30 +793,50 @@ The 6.2 agent's output was cut off mid-investigation. Manually completed the sam
 
 ## What's NOT Complete
 
-### From IMPLEMENTATION_PLAN.md (remaining)
+**Phases 0-6 are all complete.** Wave 6 also fixed 73 of 78 pre-existing TS errors. Only 5 errors remain, all out of scope or explicitly deferred:
 
-1. **All of Phase 2** (7 sub-tasks) — the biggest remaining chunk
-2. **All of Phase 3** (9 sub-tasks) — auth route hardening
-3. **All of Phase 4** (4 sub-tasks) — anti-cheat
-4. **All of Phase 5** (5 sub-tasks) — production hygiene
-5. **All of Phase 6** (4 sub-tasks) — documentation
-6. **MobileHeader/GameHeader** DropdownMenu replacement (1.5.6 partial — small)
-7. **Custom JWT approach for anon user session creation** (deferred from 1.6 — known limitation)
+### Remaining (5 errors)
 
-### From PRODUCTION_SECURITY_AUDIT.md (remaining critical issues)
+| Location | Code | Reason |
+|---|---|---|
+| `examples/websocket/frontend.tsx(4,20)` | TS2307 | `socket.io-client` not installed (example code, needs `npm install` or tsconfig exclude) |
+| `examples/websocket/server.ts(2,24)` | TS2307 | `socket.io` not installed (same) |
+| `skills/image-edit/scripts/image-edit.ts(10,4)` | TS2561 | `images` not in `CreateImageEditBody` (skill script, out of project scope) |
+| `skills/stock-analysis-skill/src/analyzer.ts(253,11)` | TS2322 | Type narrowing issue (skill script, out of project scope) |
+| `src/lib/game/store.ts(3073,7)` | TS1117 | Duplicate `updateQuestProgress` — needs careful merge of 5 type-specific handlers from dead code (flagged for follow-up) |
 
-| Issue | Phase |
-|---|---|
-| C2 Server action validation is dead code (still true — `submitActionToServer` is called by `useMergeFlow` but not by store actions) | Phase 2 |
-| `window.__gameStore` still exposed in production | Phase 2.1 |
-| `/api/game/compute` and `/api/game/action` still trust client state | Phase 2.3, 2.4 |
-| Offline progress still client-computed | Phase 2.5 |
-| Leaderboard scoring still uses client values | Phase 2.6 |
-| `flagCheatAttempt` still has TOCTOU race in app code | Phase 4.1 |
-| No nonce for action replay protection | Phase 4.3 |
-| No CSP/HSTS security headers | Phase 5.1 |
-| `typescript.ignoreBuildErrors: true` still hides type errors | Phase 5.2 |
-| `CHECKSUM_SECRET` has no startup crash | Phase 5.3 |
+### Deferred items (not blocking)
+
+1. **MobileHeader/GameHeader** DropdownMenu replacement (1.5.6 partial) — known, low priority
+2. **Custom JWT approach for anon user session creation** (deferred from 1.6) — Supabase limitation
+3. **Duplicate `updateQuestProgress` in store.ts** — needs careful merge (5 type-specific handlers in dead code)
+4. **Migration 024 (`now_iso()`)** — applied to live DB; route works
+5. **Phase 7** — Server-Side Tick Validation (1-1.5 weeks focused sprint)
+
+### Wave 6 — TypeScript error cleanup (73/78 fixed)
+
+Wave 6 dispatched 4 parallel agents to fix pre-existing TypeScript errors exposed when `typescript.ignoreBuildErrors: true` was removed in Phase 5.2.
+
+**Commits (4):**
+
+| Commit | Sub-task | Errors | Files |
+|---|---|---|---|
+| `ba01d5d` | Top 3 files (AchievementPanel, PowerPanel, productionCalculator) | 38 | 3 |
+| `bbbc6e6` | 8 mid-tier files (Dashboard, Contract, ResourceFlow, Market, cloudSync) | 22 | 8 + 1 collateral (PanelStatCard) |
+| `73d79b9` | 10 low-tier files (store.ts partial, providers, balanceConfig, etc.) | 10 | 7 |
+| `6127c74` | Final 6 src/ errors (definitions, page, ResearchPanel, BuildingCard, TransportPanel, instrumentation) | 6 | 6 |
+
+**Total: 73 of 78 errors fixed across 24 files. 5 remain (all out of scope or explicitly deferred).**
+
+**Common patterns found:**
+- **Duplicate property in metadata objects** (15+ errors): `{ icon: string, icon: ReactNode }` — copy-paste bug. Fixed in CATEGORY_META, POWER_PLANT_META.
+- **TS2448/TS2454** (8 errors): Block-scoped variable used before declaration — `bal` in `productionCalculator.ts` was declared in sibling if-block.
+- **Missing type exports** (6 errors): `cloudSync/types.ts` was missing `ServerAuthority`, `SyncResult`, `LoadResult`, `ConflictInfo`.
+- **Wrong property name** (4 errors): `researchPointsPerTick` → `rpIncomeRate`, `buildPlace` → `buildingPlaced`, `icon` → `emoji`, `rank.icon` → `rank.emoji`.
+- **JSX passed to string-typed prop** (3 errors): `<GameIcon icon={someJSX}>` — fixed by rendering directly or changing prop type to `ReactNode`.
+- **Missing module exports** (2 errors): `Building` type added to `types.ts`.
+
+**`npx tsc --noEmit` status:** Down from 78 errors (pre-Wave 6) to 5 errors. CI gate can now be enabled.
 
 ---
 
