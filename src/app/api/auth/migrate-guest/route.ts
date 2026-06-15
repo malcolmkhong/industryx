@@ -18,6 +18,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateGuestMigration } from '@/lib/auth/guestMigrationValidator';
 import { validateGameState, generateChecksum, flagCheatAttempt, logActionAsync } from '@/lib/auth/gameStateValidator';
+import { verifyAuthAndOwnership } from '@/lib/auth/verifyAuth';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 
@@ -38,7 +39,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── Verify user is authenticated ──
+    // ── Verify authentication and ownership ──
+    const auth = await verifyAuthAndOwnership(userId);
+    if (!auth.success) return auth.response;
+
     const supabase = createServiceRoleClient();
     if (!supabase) {
       return NextResponse.json(
@@ -47,20 +51,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.admin.getUserById(userId);
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Invalid user ID or user not authenticated' },
-        { status: 401 }
-      );
-    }
-
     // ── Rate limit (H9: prevent brute-force migration attempts) ──
     const rateLimitResponse = await checkRateLimit(userId, RATE_LIMITS.action, '/api/auth/migrate-guest');
     if (rateLimitResponse) return rateLimitResponse;
 
     // ── Sanitize displayName (M9: strip control chars, angle brackets, cap length) ──
-    const safeDisplayName = String(displayName || user.email?.split('@')[0] || 'Commander')
+    const safeDisplayName = String(displayName || auth.email?.split('@')[0] || 'Commander')
       .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
       .replace(/[<>]/g, '')
       .slice(0, 32);
