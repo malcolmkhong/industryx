@@ -67,6 +67,27 @@ export async function POST(request: Request) {
       );
     }
 
+    // ── Phase 2.6: Fetch server-authoritative game state ──
+    const { data: serverState, error: stateError } = await supabase
+      .from('server_game_state')
+      .select('money, total_money_earned, game_tick, is_locked, lock_reason, state_version')
+      .eq('user_id', userId)
+      .single();
+
+    if (stateError || !serverState) {
+      return NextResponse.json(
+        { error: 'No authoritative server state found', code: 'NO_SERVER_STATE' },
+        { status: 404 },
+      );
+    }
+
+    if (serverState.is_locked) {
+      return NextResponse.json(
+        { error: serverState.lock_reason ?? 'Account locked', code: 'ACCOUNT_LOCKED' },
+        { status: 403 },
+      );
+    }
+
     // ── Parse payload ──
     const body: SubmitPayload = await request.json();
     const {
@@ -101,7 +122,8 @@ export async function POST(request: Request) {
     // ── Server-side score validation ──
     // Recalculate score from game state to prevent client-side manipulation
     const calculatedScore = Math.floor(
-      Number(gameState.totalMoneyEarned || 0) +
+      // Phase 2.6: Use server-authoritative values, not client-sent
+      Number(serverState.total_money_earned || 0) +
       Number((gameState.buildings as unknown[])?.length || 0) * 100 +
       Number((gameState.completedResearch as string[])?.length || 0) * 200 +
       Number((gameState.stats as Record<string, unknown>)?.contractsCompleted || 0) * 50 +
@@ -117,8 +139,9 @@ export async function POST(request: Request) {
         userId,
         actionType: 'prestige',
         payload: { submittedScore: score, calculatedScore, mismatch: true },
-        gameTick,
-        moneyAfter: Number(gameState.money || 0),
+        // Phase 2.6: Use server-authoritative values, not client-sent
+        gameTick: serverState.game_tick,
+        moneyAfter: serverState.money,
         isValid: false,
         validationRisk: 'high',
         rejectionReason: 'Score mismatch between submitted and calculated values',
@@ -167,14 +190,16 @@ export async function POST(request: Request) {
         user_id: userId,
         corporation_name: corporationName || user.user_metadata?.full_name || 'Unknown Corp',
         score: calculatedScore, // Use server-calculated score (authoritative)
-        total_money_earned: totalMoneyEarned,
+        // Phase 2.6: Use server-authoritative values, not client-sent
+        total_money_earned: serverState.total_money_earned,
         buildings_built: buildingsBuilt,
         research_completed: researchCompleted,
         contracts_completed: contractsCompleted,
         prestige_count: prestigeCount,
         play_time_ticks: playTimeTicks,
         rank_name: rankName || null,
-        game_tick: gameTick,
+        // Phase 2.6: Use server-authoritative values, not client-sent
+        game_tick: serverState.game_tick,
       })
       .select('id, score, created_at')
       .single();
@@ -201,10 +226,12 @@ export async function POST(request: Request) {
         leaderboardId: newEntry?.id,
         score: calculatedScore,
         submittedScore: score,
-        gameTick,
+        // Phase 2.6: Use server-authoritative values, not client-sent
+        gameTick: serverState.game_tick,
       },
-      gameTick,
-      moneyAfter: Number(gameState.money || 0),
+      // Phase 2.6: Use server-authoritative values, not client-sent
+      gameTick: serverState.game_tick,
+      moneyAfter: serverState.money,
       isValid: true,
       validationRisk: validation.riskLevel,
     });
