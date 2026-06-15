@@ -167,8 +167,8 @@ New helper: `src/lib/auth/guestCheck.ts` — queries `auth.users.is_anonymous` v
 |---|---|---|---|
 | 2.1 | Remove `window.__gameStore` exposure in production | ✅ **Done** | 10 min |
 | 2.2 | Wire `submitActionToServer` into every store action (buildBuilding, sellResource, buyResource, startResearch, setGameSpeed, toggleBuilding, hireWorker, assignWorker, doPrestige, etc.) | 🟡 1/15 done | 3-4 hours |
-| 2.3 | Make `/api/game/action` load `server_game_state` for validation (not client state) | ⏳ Not Started | 1 hour |
-| 2.4 | Make `/api/game/compute` load `server_game_state` as the base (not client state) | ⏳ Not Started | 1 hour |
+| 2.3 | Make `/api/game/action` load `server_game_state` for validation (not client state) | ✅ **Done** | 1 hour |
+| 2.4 | Make `/api/game/compute` load `server_game_state` as the base (not client state) | ✅ **Done** | 1 hour |
 | 2.5 | Modify existing `/api/game/offline` to accept POST and apply resources (revised — don't create new route) | ⏳ Not Started | 2 hours |
 | 2.6 | Make `/api/leaderboard/submit` use `server_game_state` for scoring (not client) | ⏳ Not Started | 1 hour |
 | 2.7 | Tighten `GAME_LIMITS` static bounds in `gameStateValidator.ts` | ⏳ Not Started | 30 min |
@@ -244,11 +244,53 @@ All follow the same pattern as buildBuilding. ~3-4 hours of repetitive edits.
 ### What's NOT complete in Phase 2
 
 1. **2.2: 14 more store actions** need the same fire-and-forget pattern
-2. **2.3: `/api/game/action` route** still trusts client-sent gameState — this is the critical gap
-3. **2.4: `/api/game/compute`** still uses client-sent state as the base for tick computation
-4. **2.5: `/api/game/offline`** exists but only calculates ticks; needs POST handling to apply resources
-5. **2.6: `/api/leaderboard/submit`** still uses client `gameState.totalMoneyEarned` for scoring
-6. **2.7: GAME_LIMITS** still has loose constants (MAX_MONEY: 1e15)
+2. **2.5: `/api/game/offline`** exists but only calculates ticks; needs POST handling to apply resources
+3. **2.6: `/api/leaderboard/submit`** still uses client `gameState.totalMoneyEarned` for scoring
+4. **2.7: GAME_LIMITS** still has loose constants (MAX_MONEY: 1e15)
+
+### Phase 2.3 ✅ Done
+
+**File:** `src/app/api/game/action/route.ts`
+
+**Before:** The route accepted `gameState: Partial<GameState>` from the request body and passed it to all 6 validators (`validateBuildAction`, `validateSellAction`, etc.). A cheater could send a modified body with `money: 1e15` and the server would happily validate the action as if they had that money.
+
+**After:** The route fetches `server_game_state.full_state` from Supabase (using the same pattern as `/api/game/trade`) and uses THAT as the `gameState` arg to the validators. Client-sent `gameState` is no longer destructured or used.
+
+**Key changes:**
+- Removed `gameState` from request body destructure (line 354 → 244)
+- Removed `if (!gameState)` 400 validation (no longer needed)
+- Added `supabase.from('server_game_state').select('full_state, money, game_tick, state_version').eq('user_id', auth.userId).single()` query
+- Added 404 NO_SERVER_STATE response if no server state exists
+- Audit log now uses `serverState.game_tick` and `serverState.money` (columns) instead of `gameState.gameTick` and `gameState.money` (client-sent)
+
+**Why this works:** The validators use nullish coalescing (`state.money ?? 0`, `state.completedResearch ?? []`, etc.), so casting `full_state` (which is `Record<string, unknown>`) to `Partial<GameState>` is safe without type changes.
+
+**What this enables:** The 14 remaining 2.2 store action wirings can now be upgraded from fire-and-forget to blocking — `if (!validation.approved) return;` will actually reject cheating because the server state is authoritative.
+
+**What this does NOT prevent:**
+- Gradual cheating (10%/save) — still bypasses delta checks (Phase 7)
+- Game tick still runs in the browser — server only sees the result during auto-save
+
+### Phase 2.4 ✅ Done
+
+**File:** `src/app/api/game/compute/route.ts`
+
+**Before:** The route accepted `gameState: GameState` from the request body and passed it to `runServerTicks(gameState, cappedTicks, config)`. A cheater could send a fake gameState (e.g., with 1e15 money) and ask the server to "advance 60000 ticks" from that base. The deltas would be applied to their real save on the next `/api/game/state` call.
+
+**After:** The route fetches `server_game_state.full_state` from Supabase and uses THAT as the base for `runServerTicks()`. Client-sent `gameState` is no longer destructured or used.
+
+**Key changes:**
+- Removed `gameState` from request body destructure (line 244 → 244 in new code, but the field is now ignored)
+- Removed `if (!gameState)` 400 validation (no longer needed)
+- Added `supabase.from('server_game_state').select('full_state').eq('user_id', auth.userId).single()` query
+- Added 404 NO_SERVER_STATE response if no server state exists
+- `runServerTicks(baseGameState, cappedTicks, config)` now uses server-loaded state
+
+**Why this works:** Same nullish-coalescing pattern as 2.3. `server_game_state.full_state` is the full state JSON, so casting to `GameState` is safe.
+
+**What this enables:** Tick computation is now fully server-authoritative. Phase 2.5 (offline progress) can safely call this endpoint to compute elapsed ticks since last save.
+
+**Remaining gap in /api/game/compute:** The `ticks` value is still client-sent. A cheater could send `ticks: 60000` and get 16 hours of progress in one call. Phase 2.5 will fix this by computing elapsed ticks from `last_tick_at` server-side.
 
 ### Known architectural limitation (cannot fix in this plan)
 
