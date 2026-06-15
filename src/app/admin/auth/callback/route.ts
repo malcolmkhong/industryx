@@ -17,13 +17,19 @@ export async function GET(request: Request) {
       } = await supabase.auth.getUser();
 
       if (user) {
-        // Defense-in-depth: verify user is in admin_users table (after env-var middleware check)
+        // Defense-in-depth: verify user is in admin_users table (after env-var middleware check).
+        // Direct table query (not is_game_admin RPC) because auth.uid() returns NULL for
+        // service role clients, which would make the RPC always return false.
+        // Service role bypasses RLS, so this read is safe.
         const serviceRoleClient = createServiceRoleClient();
         if (serviceRoleClient) {
-          const { data: isAdmin, error: adminError } = await serviceRoleClient
-            .rpc("is_game_admin");
+          const { data: adminRecord, error: adminError } = await serviceRoleClient
+            .from("admin_users")
+            .select("user_id, role")
+            .eq("user_id", user.id)
+            .maybeSingle();
 
-          if (adminError || !isAdmin) {
+          if (adminError || !adminRecord) {
             console.warn(
               `[AdminCallback] User ${user.id} not in admin_users — denying access`
             );
