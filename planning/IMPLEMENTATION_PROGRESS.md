@@ -18,6 +18,7 @@
 | **Phase 3** — Auth & API Hardening | ✅ **9/9 Complete** | ff39100, afb02ae, 4530e7e, 325897f, c8f1dba, 4532970 | ~5 days total |
 | **Phase 4** — Anti-Cheat | ✅ **3/4 done** (4.2 done in 2.7) | 42803a8, ee2edd5, 981e6e1 | 1-2 days so far |
 | **Phase 5** — Production Hygiene | ✅ **5/5 Complete** | 573e033, f3055c1, 7b33f5c, fa99010 | ~1 day |
+| **Phase 6** — Docs & Process | ✅ **4/4 Complete** | 7005757, 1b4c03e, da6d5c9, fb98886 | ~30 min |
 | **Phase 5** — Production Hygiene | ⏳ **Not Started** | — | 2 days est |
 | **Phase 6** — Docs & Process | ⏳ **Not Started** | — | 1 day est |
 | **Phase 7** — Server-Side Tick Validation | ⏳ **Not Started** | — | 1-1.5 weeks est |
@@ -731,16 +732,62 @@ CSP uses `'unsafe-inline'` for `script-src`/`style-src` to support Next.js hydra
 
 ---
 
-## Phase 6 — Documentation & Process ⏳ NOT STARTED
+## Phase 6 — Documentation & Process ✅ 4/4 COMPLETE
 
-| # | Task | Status | Estimated Time |
+| # | Task | Status | Commit |
 |---|---|---|---|
-| 6.1 | Update `CLAIM_VERIFICATION_MATRIX.md` with Phase 0-1.5 verification commands | ⏳ | 2 hours |
-| 6.2 | Update `MIGRATION_SAFETY_CHECKLIST.md` | ⏳ | 30 min |
-| 6.3 | Update `MONITORING_PLAYBOOK.md` (cheat flags, pending links, rate limits) | ⏳ | 1 hour |
-| 6.4 | Add `RELEASE_CHECKLIST.md` entries (is_game_admin, migrations tracked, window.__gameStore) | ⏳ | 1 hour |
+| 6.1 | Update `CLAIM_VERIFICATION_MATRIX.md` with Phase 0-1.5 verification commands | ✅ **Done** | `7005757` |
+| 6.2 | Update `MIGRATION_SAFETY_CHECKLIST.md` (admin function safety + migrations 018/024) | ✅ **Done** | `1b4c03e` |
+| 6.3 | Update `MONITORING_PLAYBOOK.md` (cheat flags, pending links, rate limits) | ✅ **Done** | `da6d5c9` |
+| 6.4 | Add `RELEASE_CHECKLIST.md` entries (is_game_admin, migrations tracked, window.__gameStore) | ✅ **Done** | `fb98886` |
 
-**Estimated total:** 1 day
+**Phase 6 complete.** All 4 sub-tasks done in Wave 5 (with 6.2 manually completed after agent output was cut off).
+
+### Wave 5 — Phase 6 docs + quick wins
+
+**Wave 5 dispatched 6 parallel agents** (5 completed normally, 1 — 6.2 — had output cut off and was completed manually).
+
+**Commits (6 new):**
+
+| Commit | What | File |
+|---|---|---|
+| `7005757` | Phase 6.1 — 56 verification rows for Phases 0-7 | `planning/CLAIM_VERIFICATION_MATRIX.md` |
+| `da6d5c9` | Phase 6.3 — 3 database-level alerts | `planning/MONITORING_PLAYBOOK.md` |
+| `fb98886` | Phase 6.4 — 7 production hardening release checks | `planning/RELEASE_CHECKLIST.md` |
+| `1b4c03e` | Phase 6.2 (manual) — admin function safety + migrations 018/024 | `planning/MIGRATION_SAFETY_CHECKLIST.md` |
+| `b03fcfe` | Quick win — align README phase numbering | `planning/README.md` |
+| `222f2c0` | Quick win — store.ts MAX_MONEY sync + dead claimQuestReward removal | `src/lib/game/store.ts` |
+
+**Sub-task details (6.2 manual):**
+The 6.2 agent's output was cut off mid-investigation. Manually completed the same task: added a new "Admin Function Safety" section documenting:
+- The `is_game_admin()` design flaw (auth.uid() returns NULL for service role)
+- Direct table query pattern as the workaround
+- Migration 018 and 024 references
+- Testing SQL: `SET LOCAL ROLE authenticated`, `request.jwt.claim.sub`, etc.
+- Future migration checklist for admin functions
+
+**Sub-task details (store.ts cleanup):**
+- ✅ MAX_MONEY at line 2561 changed from `1e15` to `1e12` (matches `GAME_LIMITS.MAX_MONEY`)
+- ✅ Investigated duplicate `claimQuestReward` (lines 2667 and 3067): confirmed as **real duplicate**, NOT slice pattern (single `create<GameStore>()` call, no slices)
+- ✅ Removed dead first `claimQuestReward` (JavaScript last-key-wins, first was never executing)
+- ✅ Discovered and fixed a bug in the active implementation: missing `totalMoneyEarned` update (the dead copy had it, the active didn't)
+- ⚠️ `updateQuestProgress` also appears twice (same copy-paste issue) — flagged for follow-up, not addressed (out of scope)
+
+**Sub-task details (README alignment):**
+- Added "Phase numbering note" callout at top of README explaining the two schemes
+- Renamed "Phase Order" → "Planning Document Order (Conceptual Stages)" to clarify these are planning documents, not implementation phases
+- Pointed readers to `IMPLEMENTATION_PLAN.md` (for sequential phases) and `IMPLEMENTATION_PROGRESS.md` (for current status)
+
+**What Wave 5 closes:**
+- ✅ Verification matrix for all 9 phases (can audit any future regression claim)
+- ✅ Monitoring alerts for cheat flags, abandoned link operations, rate limit bloat
+- ✅ Release checklist gates for production deployment
+- ✅ Migration safety checklist updated with admin function flaw
+- ✅ Doc drift in planning/README.md resolved
+- ✅ Out-of-sync MAX_MONEY in store.ts aligned with GAME_LIMITS
+- ✅ Dead duplicate `claimQuestReward` removed + missing `totalMoneyEarned` bug fixed
+
+**Phase 6 status: 4/4 complete.** Wave 5 also closed 2 quick-win items from the pending list.
 
 ---
 
