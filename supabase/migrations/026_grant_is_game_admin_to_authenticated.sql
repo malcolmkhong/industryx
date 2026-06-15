@@ -1,0 +1,29 @@
+-- Migration 026: Grant EXECUTE on is_game_admin() to authenticated
+-- so middleware can perform DB-backed admin checks via supabase.rpc().
+--
+-- Before this migration:
+--   - middleware checked ADMIN_UIDS env var only
+--   - admins added via admin_users table (UI) couldn't access /admin/* pages
+--     until the env var was updated and the app redeployed
+--   - API routes already had authoritative check via verifyAdmin()
+--     (1-min in-memory cache, full DB scan via service role)
+--
+-- After this migration:
+--   - middleware can call supabase.rpc('is_game_admin') to check the
+--     current user against the admin_users table (single-row, fast)
+--   - ADMIN_UIDS env var remains as a bootstrap fallback (for initial
+--     deployment before any DB seed exists, or if the RPC is unavailable)
+--   - The function is SECURITY DEFINER so it bypasses RLS on admin_users
+--     and returns true only for the calling user_id
+--
+-- Security model:
+--   - is_game_admin() takes no params, uses auth.uid() internally
+--   - Returns boolean, so no data leak
+--   - Even if a non-admin called it, they'd just get false and be
+--     redirected to /admin/login?error=unauthorized
+--   - anon role is still REVOKED to prevent unauthenticated probing
+--   - authenticated gets EXECUTE for legitimate user checks
+
+GRANT EXECUTE ON FUNCTION public.is_game_admin() TO authenticated;
+-- anon and PUBLIC remain revoked (from migration 017)
+-- service_role keeps EXECUTE for backend usage

@@ -69,14 +69,24 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    // Check if user is an admin
     const adminUids = (process.env.ADMIN_UIDS || '')
       .split(',')
       .map((uid) => uid.trim())
       .filter(Boolean)
 
-    if (!adminUids.includes(user.id)) {
-      // Unauthorized user — redirect to admin login with error
+    if (adminUids.includes(user.id)) {
+      return supabaseResponse
+    }
+
+    let isDbAdmin = false
+    try {
+      const { data } = await supabase.rpc('is_game_admin')
+      isDbAdmin = data === true
+    } catch {
+      isDbAdmin = false
+    }
+
+    if (!isDbAdmin) {
       const url = request.nextUrl.clone()
       url.pathname = '/admin/login'
       url.searchParams.set('error', 'unauthorized')
