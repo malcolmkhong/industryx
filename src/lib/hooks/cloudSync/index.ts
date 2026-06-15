@@ -1,14 +1,16 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useGameStore } from '@/lib/game/store';
 import { useBlockedState } from './useBlockedState';
 import { useServerAuthority } from './useServerAuthority';
 import { useCloudPersistence } from './useCloudPersistence';
+import { useCloudSave } from './useCloudSave';
+import { useCloudLoad } from './useCloudLoad';
 import { useConflictResolution } from './useConflictResolution';
 import { AUTO_SAVE_INTERVAL } from './types';
-import type { CloudSyncState } from './types';
+import type { CloudSyncState, ServerAuthority } from './types';
 
 /**
  * Cloud sync hook with guest-to-auth migration support.
@@ -37,20 +39,20 @@ export function useCloudSync(): CloudSyncState {
     setIsServerAuthoritative,
   } = useServerAuthority();
 
-  // ── Persistence (save, load, migrate) ─────────────────────────────
+  // ── Persistence (state + migration only — save/load are dedicated) ─
   const {
     isSyncing,
     isSyncingState,
+    setIsSyncingState,
     isMigrating,
     lastSyncAt,
     lastAutoSaveAt,
     lastSavedGameTick,
     setLastAutoSaveAtState,
     lastSyncAtState,
+    setLastSyncAtState,
     lastAutoSaveAtState,
     migrationResult,
-    saveToCloud,
-    loadFromCloud,
     migrateGuestToCloud,
   } = useCloudPersistence({
     user,
@@ -61,6 +63,36 @@ export function useCloudSync(): CloudSyncState {
     setServerStateHash,
     setServerStateVersion,
     setIsServerAuthoritative,
+  });
+
+  // ── Compose ServerAuthority for dedicated hooks ───────────────────
+  const serverAuthority: ServerAuthority = {
+    serverStateHash,
+    serverStateVersion,
+    isServerAuthoritative,
+  };
+
+  const setServerAuthority = useCallback((auth: ServerAuthority) => {
+    setServerStateHash(auth.serverStateHash);
+    setServerStateVersion(auth.serverStateVersion);
+    setIsServerAuthoritative(auth.isServerAuthoritative);
+  }, [setServerStateHash, setServerStateVersion, setIsServerAuthoritative]);
+
+  // ── Dedicated save / load hooks (source of truth) ─────────────────
+  const { saveToCloud } = useCloudSave({
+    userId: user?.id ?? null,
+    isSyncingRef: isSyncing,
+    setIsSyncingState,
+    serverAuthority,
+    setServerAuthority,
+    setBlockedState,
+  });
+
+  const { loadFromCloud } = useCloudLoad({
+    userId: user?.id ?? null,
+    serverAuthority,
+    setServerAuthority,
+    setBlockedState,
   });
 
   // ── Conflict resolution ──────────────────────────────────────────
@@ -113,7 +145,10 @@ export function useCloudSync(): CloudSyncState {
 
       const result = await saveToCloud();
       if (result.success) {
+        lastSyncAt.current = Date.now();
+        lastSavedGameTick.current = currentGameTick;
         lastAutoSaveAt.current = Date.now();
+        setLastSyncAtState(lastSyncAt.current);
         setLastAutoSaveAtState(lastAutoSaveAt.current);
       }
     }, AUTO_SAVE_INTERVAL);

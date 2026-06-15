@@ -87,6 +87,7 @@ export function useCloudSave(opts: UseCloudSaveOptions) {
           setBlockedState(mapping.blocked);
           return { success: false, error: mapping.userMessage };
         }
+        return { success: false, error: `Server error: ${res.status}` };
       }
 
       const data = await res.json();
