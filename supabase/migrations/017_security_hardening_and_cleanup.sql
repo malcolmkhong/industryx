@@ -50,10 +50,13 @@ DROP TABLE IF EXISTS public.research_prerequisites CASCADE;
 -- Function takes a p_user_id parameter and has no auth.uid() check.
 -- With GRANT EXECUTE TO authenticated, any logged-in user could flag
 -- other users' accounts (account lockout attack at 3 flags).
-REVOKE EXECUTE ON FUNCTION public.increment_cheat_flag(uuid, text, text, text, integer) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION public.increment_cheat_flag(uuid, text, text, text, integer) FROM anon;
-REVOKE EXECUTE ON FUNCTION public.increment_cheat_flag(uuid, text, text, text, integer) FROM authenticated;
-GRANT EXECUTE ON FUNCTION public.increment_cheat_flag(uuid, text, text, text, integer) TO service_role;
+-- NOTE: function is defined with 4 params (uuid, text, text, text) per
+-- migration 004/005/012. The 5-param signature in the original draft of
+-- this migration did not exist and would have failed the REVOKE.
+REVOKE EXECUTE ON FUNCTION public.increment_cheat_flag(uuid, text, text, text) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.increment_cheat_flag(uuid, text, text, text) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.increment_cheat_flag(uuid, text, text, text) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.increment_cheat_flag(uuid, text, text, text) TO service_role;
 
 -- ────────────────────────────────────────────────────────────────────────────
 -- 3. Drop 2 truly dead SECURITY DEFINER functions (no callers anywhere)

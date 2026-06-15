@@ -340,8 +340,6 @@ export default function AdminManagementPage() {
 
   const totalAdmins = admins.length;
   const superAdminCount = admins.filter((a) => a.role === "super_admin").length;
-  const envAdminUids = (typeof window !== "undefined" ? "" : "").split(",").filter(Boolean);
-  // We check current user against ADMIN_UIDS on the server side
   const isCurrentUser = (admin: AdminUser) => user?.id === admin.userId;
   const isEnvAdmin = (admin: AdminUser) => admin.source === "env" || admin.source === "env+db";
 

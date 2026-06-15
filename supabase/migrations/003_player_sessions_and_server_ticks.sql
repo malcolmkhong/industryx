@@ -1,7 +1,29 @@
 -- Migration: 003_player_sessions_and_server_ticks
--- Description: Add session tracking and server-side tick verification
+-- STALE DOCUMENTATION — see notes below
+--
+-- This migration was authored with the expectation that player_sessions table
+-- and several player_progress columns would already exist via the API.
+-- However, on a fresh database (no API pre-applied schema), running this
+-- migration would create NOTHING because all statements are commented out.
+--
+-- The original intent (server tick verification on player_progress) was
+-- ultimately implemented in a DIFFERENT table: `server_game_state`
+-- (see migration 004_server_authoritative_upgrade.sql), which holds:
+--   - game_tick          (replaces server_game_tick)
+--   - state_hash         (replaces save_checksum)
+--   - last_tick_at       (replaces last_server_tick_at)
+--   - state_version      (optimistic lock, not in original design)
+--   - cheat_flag_count, is_locked, lock_reason (anti-cheat, not in original)
+--
+-- DO NOT create a new migration to "add" the columns from the commented-out
+-- statements below — they are by design in server_game_state, not
+-- player_progress. The two-table design is intentional:
+--   - player_progress: legacy, mostly read-only
+--   - server_game_state: authoritative, source of truth, all gameplay writes
+--
+-- Original (commented-out) statements preserved for historical context only:
 
--- player_sessions table (already created via API, documented here)
+-- player_sessions table (would have been created via API, documented here)
 -- CREATE TABLE IF NOT EXISTS player_sessions (
 --   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 --   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -15,7 +37,7 @@
 --   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 -- );
 
--- player_progress additions (already applied via API, documented here)
+-- player_progress additions (would have been applied via API, documented here)
 -- ALTER TABLE player_progress ADD COLUMN IF NOT EXISTS last_server_tick_at TIMESTAMPTZ;
 -- ALTER TABLE player_progress ADD COLUMN IF NOT EXISTS server_game_tick BIGINT DEFAULT 0;
 -- ALTER TABLE player_progress ADD COLUMN IF NOT EXISTS save_checksum TEXT;
