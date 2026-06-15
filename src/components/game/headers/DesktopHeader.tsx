@@ -59,7 +59,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
   const { moneyGlow } = useMoneyGlowEffect();
   const { user, isGuest, signOut, loading: authLoading } = useAuth();
   const { isUsingSupabase, reload: reloadConfig } = useGameConfig();
-  const { saveToCloud } = useCloudSync();
+  const { saveToCloud, loadFromCloud } = useCloudSync();
   const { promptLogin } = useLoginPrompt();
 
   const [cloudStatus, setCloudStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
@@ -87,6 +87,13 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
   const handleCloudSave = async () => {
     setCloudStatus('saving');
     const result = await saveToCloud();
+    setCloudStatus(result.success ? 'success' : 'error');
+    setTimeout(() => setCloudStatus('idle'), 2000);
+  };
+
+  const handleCloudLoad = async () => {
+    setCloudStatus('saving');
+    const result = await loadFromCloud();
     setCloudStatus(result.success ? 'success' : 'error');
     setTimeout(() => setCloudStatus('idle'), 2000);
   };
@@ -159,6 +166,11 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span
+                    role="status"
+                    aria-label={`Factory efficiency ${(factoryEfficiency * 100).toFixed(0)}% — ${
+                      factoryEfficiency >= 0.8 ? 'running smoothly' :
+                      factoryEfficiency >= 0.5 ? 'needs attention' : 'critical'
+                    }`}
                     className={`ml-1.5 inline-block w-2 h-2 rounded-full ${
                       factoryEfficiency >= 0.8
                         ? 'bg-success shadow-[0_0_6px_rgba(74,222,128,0.6)]'
@@ -205,7 +217,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 px-2 text-xs"
+              className="h-7 px-2 text-xs focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               onClick={togglePause}
               aria-label={paused ? "Resume game" : "Pause game"}
             >
@@ -216,8 +228,9 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
                 key={speed}
                 variant="ghost"
                 size="sm"
-                className={`h-7 px-2 text-xs ${gameSpeed === speed ? 'text-brand bg-brand/20' : 'text-muted-label'}`}
+                className={`h-7 px-2 text-xs focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background ${gameSpeed === speed ? 'text-brand bg-brand/20' : 'text-muted-label'}`}
                 onClick={() => setGameSpeed(speed)}
+                aria-label={`Set game speed to ${speed}x`}
               >
                 {speed}x
               </Button>
@@ -230,7 +243,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 relative" aria-label="Notifications" onClick={() => onTabChange('notifications')}>
+              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 relative focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background" aria-label={`Notifications: ${unreadNotifications} unread`} onClick={() => onTabChange('notifications')}>
                 <Bell className="w-3.5 h-3.5 text-subtle" />
                 {unreadNotifications > 0 && (
                   <span className={`absolute -top-0.5 -right-0.5 h-4 rounded-full text-[8px] text-white flex items-center justify-center px-1 ${
@@ -273,8 +286,13 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
               {activeEvents.map(e => (
                 <Tooltip key={e.id}>
                   <TooltipTrigger asChild>
-                    <Badge variant="outline" className="text-[10px] border-domain/50 text-domain bg-domain/20 px-1.5 py-0 neon-pulse">
-                      <GameIcon icon={e.icon} size={12} className="inline-flex" /> {e.remaining <= 50 ? `${e.remaining}t` : e.name}
+                    <Badge
+                      role="status"
+                      aria-label={`Active event: ${e.name}, ${e.remaining} ticks remaining`}
+                      variant="outline"
+                      className="text-[10px] border-domain/50 text-domain bg-domain/20 px-1.5 py-0 neon-pulse"
+                    >
+                      <GameIcon icon={e.icon} size={12} className="inline-flex" aria-hidden="true" /> {e.remaining <= 50 ? `${e.remaining}t` : e.name}
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="bg-card border-brand/30">
@@ -289,12 +307,17 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${
-                weather.current === 'clear'
-                  ? 'border-muted-label text-muted-label bg-muted-label/20'
-                  : 'border-brand/50 text-brand bg-brand/20'
-              }`}>
-                <GameIcon icon={WEATHER_DEFS[weather.current]?.icon} size={12} className="inline-flex" /> {WEATHER_DEFS[weather.current]?.name}
+              <Badge
+                role="status"
+                aria-label={`Weather: ${WEATHER_DEFS[weather.current]?.name}${weather.remaining > 0 ? `, ${weather.remaining} ticks remaining` : ''}`}
+                variant="outline"
+                className={`text-[10px] px-1.5 py-0 ${
+                  weather.current === 'clear'
+                    ? 'border-muted-label text-muted-label bg-muted-label/20'
+                    : 'border-brand/50 text-brand bg-brand/20'
+                }`}
+              >
+                <GameIcon icon={WEATHER_DEFS[weather.current]?.icon} size={12} className="inline-flex" aria-hidden="true" /> {WEATHER_DEFS[weather.current]?.name}
               </Badge>
             </TooltipTrigger>
             <TooltipContent side="bottom" className="bg-card border-brand/30">
@@ -306,14 +329,19 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
           </Tooltip>
 
           {/* Auto-save indicator */}
-          <div className={`flex items-center gap-1 text-[10px] transition-opacity duration-500 ${showSavedFlash ? 'opacity-100' : 'opacity-40'}`}>
-            <Check className={`w-3 h-3 transition-colors duration-300 ${showSavedFlash ? 'text-success' : 'text-muted-label'}`} />
+          <div
+            role="status"
+            aria-live="polite"
+            aria-label={showSavedFlash ? 'Game saved to cloud' : 'Save pending'}
+            className={`flex items-center gap-1 text-[10px] transition-opacity duration-500 ${showSavedFlash ? 'opacity-100' : 'opacity-40'}`}
+          >
+            <Check aria-hidden="true" className={`w-3 h-3 transition-colors duration-300 ${showSavedFlash ? 'text-success' : 'text-muted-label'}`} />
             <span className={showSavedFlash ? 'text-success' : 'text-muted-label'}>Saved</span>
           </div>
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-label hover:text-brand" onClick={onExport} aria-label="Export save">
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-label hover:text-brand focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background" onClick={onExport} aria-label="Export save">
                 <Download className="w-3 h-3" />
               </Button>
             </TooltipTrigger>
@@ -324,7 +352,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-label hover:text-brand" onClick={onImport} aria-label="Import save">
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-label hover:text-brand focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background" onClick={onImport} aria-label="Import save">
                 <Upload className="w-3 h-3" />
               </Button>
             </TooltipTrigger>
@@ -333,7 +361,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
             </TooltipContent>
           </Tooltip>
 
-          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-label" onClick={onReset} aria-label="Reset game">
+          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-label focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background" onClick={onReset} aria-label="Reset game">
             <RotateCcw className="w-3 h-3" />
           </Button>
 
@@ -341,10 +369,15 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 cursor-default ${
-                isUsingSupabase ? 'border-success/50 text-success bg-success/20' : 'border-warning/50 text-warning bg-amber-900/20'
-              }`}>
-                {isUsingSupabase ? <Wifi className="w-2.5 h-2.5 mr-0.5" /> : <WifiOff className="w-2.5 h-2.5 mr-0.5" />}
+              <Badge
+                role="status"
+                aria-label={`Config source: ${isUsingSupabase ? 'Live (Supabase connected)' : 'Local (using local config)'}`}
+                variant="outline"
+                className={`text-[10px] px-1.5 py-0 cursor-default ${
+                  isUsingSupabase ? 'border-success/50 text-success bg-success/20' : 'border-warning/50 text-warning bg-amber-900/20'
+                }`}
+              >
+                {isUsingSupabase ? <Wifi className="w-2.5 h-2.5 mr-0.5" aria-hidden="true" /> : <WifiOff className="w-2.5 h-2.5 mr-0.5" aria-hidden="true" />}
                 {isUsingSupabase ? 'Live' : 'Local'}
               </Badge>
             </TooltipTrigger>
@@ -360,7 +393,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
           {user ? (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={handleCloudSave} disabled={cloudStatus === 'saving'}>
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background" onClick={handleCloudSave} disabled={cloudStatus === 'saving'}>
                   {cloudStatus === 'saving' ? <Loader2 className="w-3 h-3 animate-spin" />
                   : cloudStatus === 'success' ? <Cloud className="w-3 h-3 text-success" />
                   : cloudStatus === 'error' ? <CloudOff className="w-3 h-3 text-danger" />
@@ -374,7 +407,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
           ) : (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-label hover:text-brand" onClick={() => promptLogin('cloud_save')}>
+                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-label hover:text-brand focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background" onClick={() => promptLogin('cloud_save')}>
                   <Cloud className="w-3 h-3" />
                 </Button>
               </TooltipTrigger>
@@ -389,11 +422,16 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
           ) : user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button type="button" className="flex items-center gap-1.5 bg-card rounded-lg px-2 py-1 border border-brand/20 hover:border-brand/30 transition-colors cursor-pointer">
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 bg-card rounded-lg px-2 py-1 border border-brand/20 hover:border-brand/30 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  aria-label={`Account menu for ${userName}${isGuest ? ' (guest)' : ''}`}
+                  aria-haspopup="menu"
+                >
                   {userAvatar ? (
-                    <img src={userAvatar} alt="" className="w-5 h-5 rounded-full" />
+                    <img src={userAvatar} alt={userName} className="w-5 h-5 rounded-full" />
                   ) : (
-                    <div className="w-5 h-5 rounded-full bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-[9px] font-bold">
+                    <div className="w-5 h-5 rounded-full bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-[9px] font-bold" aria-hidden="true">
                       {userName.charAt(0).toUpperCase()}
                     </div>
                   )}
@@ -413,17 +451,20 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={onManageAccount} className="text-xs cursor-pointer">
+                <DropdownMenuItem onSelect={onManageAccount} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand">
                   <User className="w-3 h-3 mr-2" /> Manage Account
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={handleCloudSave} className="text-xs cursor-pointer" disabled={cloudStatus === 'saving'}>
+                <DropdownMenuItem onSelect={handleCloudSave} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand" disabled={cloudStatus === 'saving'}>
                   <Cloud className="w-3 h-3 mr-2" /> Save to Cloud
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={reloadConfig} className="text-xs cursor-pointer">
+                <DropdownMenuItem onSelect={handleCloudLoad} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand">
+                  <Download className="w-3 h-3 mr-2" /> Load from Cloud
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={reloadConfig} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand">
                   <RefreshCw className="w-3 h-3 mr-2" /> Reload Config
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={signOut} className="text-xs cursor-pointer text-danger focus:text-danger">
+                <DropdownMenuItem onSelect={signOut} className="text-xs cursor-pointer text-danger focus:text-danger focus-visible:ring-2 focus-visible:ring-danger">
                   <LogOut className="w-3 h-3 mr-2" /> Sign Out
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -432,13 +473,13 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 px-3 text-xs text-brand hover:text-brand border border-brand/30 hover:border-brand/30 rounded-lg"
+              className="h-7 px-3 text-xs text-brand hover:text-brand border border-brand/30 hover:border-brand/30 rounded-lg focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               onClick={() => promptLogin('manual')}
             >
               <LogIn className="w-3 h-3 mr-1" /> Bind Account
             </Button>
           ) : (
-            <Button variant="ghost" size="sm" className="h-7 px-3 text-xs text-brand hover:text-brand border border-brand/30 hover:border-brand/30 rounded-lg" onClick={() => promptLogin('manual')}>
+            <Button variant="ghost" size="sm" className="h-7 px-3 text-xs text-brand hover:text-brand border border-brand/30 hover:border-brand/30 rounded-lg focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background" onClick={() => promptLogin('manual')}>
               <LogIn className="w-3 h-3 mr-1" /> Sign In
             </Button>
           )}
@@ -446,11 +487,11 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
       </div>
 
       {/* News Ticker - desktop only, inside fixed header */}
-      <div className="hidden lg:block bg-[#0a0e17] border-t border-brand/20 overflow-hidden h-6">
+      <div className="hidden lg:block bg-[#0a0e17] border-t border-brand/20 overflow-hidden h-6" role="marquee" aria-live="off" aria-label="Live news feed">
         <div className="flex items-center h-full px-3">
           <span className="text-[10px] text-brand font-bold mr-3 flex-shrink-0">📰 NEWS</span>
           <div className="overflow-hidden flex-1 relative">
-            <div className="news-ticker-content text-[10px] text-subtle">
+            <div className="news-ticker-content text-[11px] text-subtle" aria-hidden="true">
               {notifications.slice(0, 8).map((n, i) => (
                 <span key={n.id}>
                   {i > 0 && <span className="text-cyan-700 mx-3">•</span>}
