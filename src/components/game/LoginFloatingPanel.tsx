@@ -13,6 +13,7 @@ import {
   Sparkles,
   Loader2,
   AlertTriangle,
+  AlertCircle,
   TrendingUp,
   Check,
 } from 'lucide-react';
@@ -293,6 +294,32 @@ function formatNum(n: number): string {
   return n.toFixed(0);
 }
 
+function getSignInErrorMessage(err: unknown): string {
+  if (!(err instanceof Error)) {
+    return "We couldn't sign you in. Please try again.";
+  }
+  const msg = err.message.toLowerCase();
+  if (msg.includes('network') || msg.includes('fetch') || msg.includes('timeout') || msg.includes('failed to')) {
+    return 'Connection lost. Please check your network and try again.';
+  }
+  if (msg.includes('provider') && msg.includes('not enabled')) {
+    return 'Google sign-in is currently unavailable. Please try again later.';
+  }
+  if (msg.includes('redirect') || msg.includes('uri') || msg.includes('mismatch')) {
+    return 'Sign-in is misconfigured. Please refresh the page or contact support.';
+  }
+  if (msg.includes('popup') || msg.includes('blocked')) {
+    return 'Your browser blocked the sign-in window. Please allow popups for this site and try again.';
+  }
+  if (msg.includes('cancelled') || msg.includes('canceled') || msg.includes('closed')) {
+    return 'Sign-in was cancelled. You can try again anytime.';
+  }
+  if (msg.includes('access_denied') || msg.includes('denied')) {
+    return 'Access was denied. You can try again or sign in with a different account.';
+  }
+  return 'We couldn’t sign you in. Please try again.';
+}
+
 export function LoginFloatingPanel({
   open,
   reason,
@@ -311,35 +338,49 @@ export function LoginFloatingPanel({
 }: LoginFloatingPanelProps) {
   const { signInWithGoogle, loading: authLoading } = useAuth();
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [signInError, setSignInError] = useState<string | null>(null);
   const [showDismissWarning, setShowDismissWarning] = useState(false);
   const [animateIn, setAnimateIn] = useState(false);
 
   const config = REASON_CONFIGS[reason];
   const isHardGate = config.mode === 'hard_gate';
 
-  // Animate in
   useEffect(() => {
     if (open) {
-      // Trigger animation after a frame
       requestAnimationFrame(() => setAnimateIn(true));
     } else {
-      // Use microtask to avoid synchronous setState in effect
       queueMicrotask(() => {
         setAnimateIn(false);
         setShowDismissWarning(false);
+        setSignInError(null);
       });
     }
   }, [open]);
 
   const handleSignIn = useCallback(async () => {
     setIsSigningIn(true);
+    setSignInError(null);
     onSignInStart?.();
+
+    const timeoutId = window.setTimeout(() => {
+      setIsSigningIn(false);
+      setSignInError('Sign-in is taking longer than expected. Please check your browser and try again.');
+    }, 15000);
+
     try {
       await signInWithGoogle();
-    } catch {
+      window.clearTimeout(timeoutId);
+    } catch (err) {
+      window.clearTimeout(timeoutId);
       setIsSigningIn(false);
+      setSignInError(getSignInErrorMessage(err));
     }
   }, [signInWithGoogle, onSignInStart]);
+
+  const handleRetry = useCallback(() => {
+    setSignInError(null);
+    handleSignIn();
+  }, [handleSignIn]);
 
   const handleDismiss = useCallback(() => {
     if (isHardGate && !showDismissWarning) {
@@ -349,16 +390,32 @@ export function LoginFloatingPanel({
     onClose();
   }, [isHardGate, showDismissWarning, onClose]);
 
+  const handleBackdropClick = useCallback(() => {
+    if (!isHardGate) onClose();
+  }, [isHardGate, onClose]);
+
+  const handleBackdropKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (isHardGate) return;
+    if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClose();
+    }
+  }, [isHardGate, onClose]);
+
   if (!open) return null;
 
   return (
     <>
-      {/* Backdrop */}
       <div
         className={`fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
           animateIn ? 'opacity-100' : 'opacity-0'
         }`}
-        onClick={isHardGate ? undefined : onClose}
+        onClick={handleBackdropClick}
+        onKeyDown={handleBackdropKeyDown}
+        role="button"
+        tabIndex={isHardGate ? -1 : 0}
+        aria-disabled={isHardGate}
+        aria-label="Close dialog"
       />
 
       {/* Panel */}
@@ -376,6 +433,7 @@ export function LoginFloatingPanel({
           {/* Close button (only for soft prompts or after warning) */}
           {config.dismissible && (
             <button
+              type="button"
               onClick={handleDismiss}
               className="absolute top-3 right-3 w-8 h-8 rounded-lg bg-muted-label/80 hover:bg-muted-label flex items-center justify-center text-subtle hover:text-subtle transition-colors z-10"
               aria-label="Close"
@@ -503,9 +561,9 @@ export function LoginFloatingPanel({
 
             {/* Benefits */}
             <div className="space-y-2 mb-5">
-              {config.benefits.map((benefit, i) => (
-                <div key={i} className="flex items-center gap-2.5 text-sm text-subtle">
-                  <div className="w-5 h-5 rounded-full bg-success/30 flex items-center justify-center flex-shrink-0 border border-success/30">
+              {config.benefits.map((benefit) => (
+                <div key={benefit} className="flex items-center gap-2.5 text-sm text-subtle">
+                  <div className="w-5 h-5 rounded-full bg-success/30 flex items-center justify-center flex-shrink-0 border border-success/30" aria-hidden="true">
                     <svg className="w-3 h-3 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
@@ -514,6 +572,30 @@ export function LoginFloatingPanel({
                 </div>
               ))}
             </div>
+
+            {/* Sign-in error (natural-language, with retry) */}
+            {signInError && (
+              <div
+                role="alert"
+                aria-live="assertive"
+                className="mb-4 p-3 rounded-lg bg-danger/20 border border-danger/30"
+              >
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-danger flex-shrink-0 mt-0.5" aria-hidden="true" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-danger font-medium">We couldn’t sign you in</p>
+                    <p className="text-xs text-danger/80 mt-1 break-words">{signInError}</p>
+                    <button
+                      type="button"
+                      onClick={handleRetry}
+                      className="mt-2 text-xs text-danger hover:text-danger/80 underline focus-visible:ring-2 focus-visible:ring-danger rounded px-1"
+                    >
+                      Try again
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Dismiss warning for hard gates */}
             {showDismissWarning && (
@@ -563,8 +645,9 @@ export function LoginFloatingPanel({
             {/* Dismiss link for hard gates */}
             {isHardGate && (
               <button
+                type="button"
                 onClick={handleDismiss}
-                className="w-full mt-3 text-xs text-muted-label hover:text-subtle transition-colors py-1"
+                className="w-full mt-3 text-xs text-muted-label hover:text-subtle transition-colors py-1 focus-visible:ring-2 focus-visible:ring-brand rounded"
               >
                 {showDismissWarning ? 'Continue without saving to cloud' : 'Continue as guest'}
               </button>
@@ -573,8 +656,9 @@ export function LoginFloatingPanel({
             {/* Soft prompt dismiss */}
             {!isHardGate && (
               <button
+                type="button"
                 onClick={onClose}
-                className="w-full mt-3 text-xs text-muted-label hover:text-subtle transition-colors py-1"
+                className="w-full mt-3 text-xs text-muted-label hover:text-subtle transition-colors py-1 focus-visible:ring-2 focus-visible:ring-brand rounded"
               >
                 Maybe later
               </button>
