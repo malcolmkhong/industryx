@@ -14,14 +14,14 @@
 | **Phase 0** — Database Hardening | ✅ **Complete** | 260033b, 343415f | 0.5 day |
 | **Phase 1** — Anonymous Identity + Linking | ✅ **Complete** | ffbf45d, 2e70a4e | 1.5 days |
 | **Phase 1.5** — Auth UI Surface | ✅ **Complete** | 78b6b4d, 1930fde | 3 days |
-| **Phase 2** — Server-Authoritative Actions | ⏳ **Not Started** | — | 1.5 weeks est |
+| **Phase 2** — Server-Authoritative Actions | 🟡 **In Progress** | 7799972, 48ba05a | 1-2 days so far |
 | **Phase 3** — Auth & API Hardening | ⏳ **Not Started** | — | 1 week est |
 | **Phase 4** — Anti-Cheat | ⏳ **Not Started** | — | 3 days est |
 | **Phase 5** — Production Hygiene | ⏳ **Not Started** | — | 2 days est |
 | **Phase 6** — Docs & Process | ⏳ **Not Started** | — | 1 day est |
 | **Phase 7** — Server-Side Tick Validation | ⏳ **Not Started** | — | 1-1.5 weeks est |
 
-**Total elapsed:** ~5 days of focused work
+**Total elapsed:** ~6 days of focused work
 **Total remaining:** ~5-6 weeks of work
 
 > **Note:** Phase 7 was added in response to a user question about gradual client-side cheating. Phases 0-6 prevent sudden cheating, fake leaderboard, and fake offline, but do NOT prevent gradual inflation via repeated small `__gameStore.setState` calls. Phase 7 adds periodic server-side validation that catches the "slow poison" cheater pattern.
@@ -157,7 +157,7 @@ New helper: `src/lib/auth/guestCheck.ts` — queries `auth.users.is_anonymous` v
 
 ---
 
-## Phase 2 — Server-Authoritative Game Actions ⏳ NOT STARTED
+## Phase 2 — Server-Authoritative Game Actions 🟡 IN PROGRESS
 
 **Goal:** Convert the dead server validation API into a real safety net. Remove `window.__gameStore` exposure. Make game state server-authoritative.
 
@@ -165,17 +165,101 @@ New helper: `src/lib/auth/guestCheck.ts` — queries `auth.users.is_anonymous` v
 
 | # | Task | Status | Estimated Time |
 |---|---|---|---|
-| 2.1 | Remove `window.__gameStore` exposure in production | ⏳ | 10 min |
-| 2.2 | Wire `submitActionToServer` into every store action (buildBuilding, sellResource, buyResource, startResearch, setGameSpeed, toggleBuilding, hireWorker, assignWorker, doPrestige, etc.) | ⏳ | 3-4 hours |
-| 2.3 | Make `/api/game/action` load `server_game_state` for validation (not client state) | ⏳ | 1 hour |
-| 2.4 | Make `/api/game/compute` load `server_game_state` as the base (not client state) | ⏳ | 1 hour |
-| 2.5 | Create `/api/game/claim-offline` route + wire offline progress to verify server-side | ⏳ | 2 hours |
-| 2.6 | Make `/api/leaderboard/submit` use `server_game_state` for scoring (not client) | ⏳ | 1 hour |
-| 2.7 | Tighten `GAME_LIMITS` static bounds in `gameStateValidator.ts` | ⏳ | 30 min |
+| 2.1 | Remove `window.__gameStore` exposure in production | ✅ **Done** | 10 min |
+| 2.2 | Wire `submitActionToServer` into every store action (buildBuilding, sellResource, buyResource, startResearch, setGameSpeed, toggleBuilding, hireWorker, assignWorker, doPrestige, etc.) | 🟡 1/15 done | 3-4 hours |
+| 2.3 | Make `/api/game/action` load `server_game_state` for validation (not client state) | ⏳ Not Started | 1 hour |
+| 2.4 | Make `/api/game/compute` load `server_game_state` as the base (not client state) | ⏳ Not Started | 1 hour |
+| 2.5 | Modify existing `/api/game/offline` to accept POST and apply resources (revised — don't create new route) | ⏳ Not Started | 2 hours |
+| 2.6 | Make `/api/leaderboard/submit` use `server_game_state` for scoring (not client) | ⏳ Not Started | 1 hour |
+| 2.7 | Tighten `GAME_LIMITS` static bounds in `gameStateValidator.ts` | ⏳ Not Started | 30 min |
 
-**Critical blocker:** Cannot start until Phase 1.5 is done ✅
+### Phase 2.1 ✅ Done
 
-**Estimated total:** 1.5 weeks
+**File:** `src/lib/game/store.ts:3560-3562`
+
+```ts
+// Before:
+if (typeof window !== 'undefined') {
+  (window as unknown as Record<string, unknown>).__gameStore = useGameStore;
+}
+
+// After:
+if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+  (window as unknown as Record<string, unknown>).__gameStore = useGameStore;
+}
+```
+
+**What this prevents:** `__gameStore.setState({money: 1e15})` from DevTools console in production builds.
+
+**What this does NOT prevent:**
+- Cheater still sees fake money locally until the next save attempt fails
+- Gradual cheating (10%/save) still works because delta checks pass
+- Visual-only cheating (cheater sees fake money for ~2 min between saves)
+
+### Phase 2.2 🟡 Partial (1/15 done)
+
+**New file:** `src/lib/game/actionValidator.ts`
+
+Created a helper that wraps `submitActionToServer()` from `serverActions.ts`:
+
+```ts
+export async function validateActionWithServer(
+  actionType: ValidatedActionType,
+  payload: Record<string, unknown>
+): Promise<ValidatedActionResult> {
+  const validation = await submitActionToServer(actionType, payload);
+  if (!validation.valid) {
+    return { approved: false, error: validation.error ?? 'Action rejected by server' };
+  }
+  return { approved: true };
+}
+```
+
+**Wired into:** `buildBuilding` (the highest-impact action)
+
+**Pattern used in buildBuilding:**
+```ts
+// Phase 2.2: Server validation (fire-and-forget, server catches cheating on next save)
+// Phase 2.3 will make this blocking; for now it's advisory
+void (async () => {
+  try {
+    await import('./actionValidator').then(m =>
+      m.validateActionWithServer('build', { buildingType: type })
+    );
+  } catch {}
+})();
+```
+
+**Why fire-and-forget (not blocking)?** Because the current `/api/game/action` route still uses client-sent state (Phase 2.3 will fix). Until then, the validation just records what the client sent. After 2.3, the call can become blocking (`await ... if (!approved) return`).
+
+**Not yet wired (remaining 14):**
+- sellResource, buyResource, startResearch, setGameSpeed
+- toggleBuilding, hireWorker, assignWorker, doPrestige
+- bulkBuild, bulkSell, buyMarket, sellMarket
+- startDroneMission, collectDrone, claimQuest
+- upgradeBuilding
+
+All follow the same pattern as buildBuilding. ~3-4 hours of repetitive edits.
+
+### What's NOT complete in Phase 2
+
+1. **2.2: 14 more store actions** need the same fire-and-forget pattern
+2. **2.3: `/api/game/action` route** still trusts client-sent gameState — this is the critical gap
+3. **2.4: `/api/game/compute`** still uses client-sent state as the base for tick computation
+4. **2.5: `/api/game/offline`** exists but only calculates ticks; needs POST handling to apply resources
+5. **2.6: `/api/leaderboard/submit`** still uses client `gameState.totalMoneyEarned` for scoring
+6. **2.7: GAME_LIMITS** still has loose constants (MAX_MONEY: 1e15)
+
+### Known architectural limitation (cannot fix in this plan)
+
+Even with all of Phase 2 complete, **the game tick itself still runs in the browser**. The client runs `gameTickAction` locally every tick — builds multipliers, computes production, applies to local Zustand state. The server only sees the result during auto-save (every 2 minutes via `/api/game/state`).
+
+For 1,000 players, this is acceptable. For PvP or competitive integrity, you'd need:
+- Server-side tick computation (server runs production for every active player periodically)
+- WebSocket-based state sync (client is just a view layer)
+- Expected value bounds (server knows theoretical max money given buildings + ticks)
+
+These are Phase 7 (Server-Side Tick Validation) — adds 1-1.5 weeks of work.
 
 ---
 
