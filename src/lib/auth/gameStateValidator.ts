@@ -374,63 +374,22 @@ export async function flagCheatAttempt(
       throw new Error('Supabase service role not configured');
     }
 
-    // H3 FIX: Use atomic increment instead of read-then-write to prevent TOCTOU race.
-    // Instead of reading cheat_flag_count, adding 1, and writing back,
-    // we use an RPC call or direct SQL increment to make it atomic.
-    // Supabase doesn't support atomic increment natively in the JS client,
-    // so we use .rpc() with a custom function, or we do the increment
-    // inside a transaction. For now, we use a safe approach:
-    // 1. Get current count for the lock check
-    // 2. Do an atomic increment via raw SQL (cheat_flag_count = cheat_flag_count + 1)
-    // 3. Check if the new count exceeds the threshold
+    // Phase 4.1: Atomic RPC eliminates TOCTOU race present in the old
+    // read-then-write pattern. increment_cheat_flag handles the increment
+    // on both player_progress and server_game_state, the investigations
+    // insert, and auto-lock if threshold reached — all in one transaction.
+    const { error } = await supabase.rpc('increment_cheat_flag', {
+      p_user_id: userId,
+      p_flag_type: detectionType,
+      p_description: description,
+      p_severity: severity,
+    });
 
-    // Atomic increment using Supabase's .rpc() would be ideal, but since we
-    // don't have a stored procedure for this yet, we use a safer approach:
-    // Update with a conditional that atomically increments.
-
-    const { data: sgs } = await supabase
-      .from('server_game_state')
-      .select('cheat_flag_count')
-      .eq('user_id', userId)
-      .single();
-
-    if (!sgs) {
-      console.warn(`[AntiCheat] No server_game_state for ${userId}, skipping flag`);
-      return;
+    if (error) {
+      console.error('[AntiCheat] Failed to flag cheat attempt:', error.message);
+    } else {
+      console.warn(`[AntiCheat] User ${userId} flagged: ${detectionType} (${severity}).`);
     }
-
-    const previousFlagCount = sgs.cheat_flag_count || 0;
-    const newFlagCount = previousFlagCount + 1;
-
-    // Update with explicit WHERE to reduce race window.
-    // TODO: Replace with Supabase RPC `increment_cheat_flag(userId)` for true atomicity.
-    const { error: updateError } = await supabase
-      .from('server_game_state')
-      .update({
-        cheat_flag_count: newFlagCount,
-        ...(newFlagCount >= GAME_LIMITS.MAX_CHEAT_FLAGS ? {
-          is_locked: true,
-          lock_reason: `Auto-locked after ${newFlagCount} cheat flags. Last: ${description}`,
-        } : {}),
-      })
-      .eq('user_id', userId);
-
-    if (updateError) {
-      console.error('[AntiCheat] Failed to update cheat flag count:', updateError.message);
-    }
-
-    // Log to cheat_investigations
-    await supabase
-      .from('cheat_investigations')
-      .insert({
-        user_id: userId,
-        detection_type: detectionType,
-        severity,
-        description,
-        evidence: { flagCount: newFlagCount },
-      });
-
-    console.warn(`[AntiCheat] User ${userId} flagged: ${detectionType} (${severity}). Flag count: ${newFlagCount}`);
   } catch (err) {
     console.error('[AntiCheat] Failed to flag cheat attempt:', err);
   }
