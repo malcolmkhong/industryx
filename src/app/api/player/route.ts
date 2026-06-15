@@ -14,7 +14,6 @@ import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 import {
   validateGameState,
   logActionAsync,
-  fetchPreviousServerState,
   isAccountLocked,
   flagCheatAttempt,
 } from '@/lib/auth/gameStateValidator';
@@ -119,14 +118,14 @@ export async function GET(request: Request) {
 
 // POST /api/player - Save player progress (SERVER-AUTHORITATIVE)
 export async function POST(request: Request) {
-  let body: { userId?: string; gameState?: Record<string, unknown>; displayName?: string; clientChecksum?: string };
+  let body: { userId?: string; gameState?: Record<string, unknown>; displayName?: string; clientChecksum?: string; clientStateVersion?: number };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const { userId, gameState, displayName, clientChecksum } = body;
+  const { userId, gameState, displayName, clientChecksum, clientStateVersion } = body;
 
   if (!userId || !gameState) {
     return NextResponse.json({ error: 'userId and gameState are required' }, { status: 400 });
@@ -149,8 +148,59 @@ export async function POST(request: Request) {
     );
   }
 
-  // ✅ Fetch previous server state for delta validation
-  const previousState = await fetchPreviousServerState(auth.userId);
+  const supabase = createServiceRoleClient();
+  if (!supabase) {
+    return NextResponse.json(
+      { error: 'Service temporarily unavailable — database not configured' },
+      { status: 503 }
+    );
+  }
+
+  // Fetch current server state for delta validation + state_version for conflict detection
+  const { data: currentServerState } = await supabase
+    .from('server_game_state')
+    .select('full_state, state_hash, game_tick, state_version, money')
+    .eq('user_id', userId)
+    .single();
+
+  // Phase 3.8: State version conflict detection — if client provides clientStateVersion
+  // and DB has a newer version, return 409 with current server version so client
+  // can merge instead of overwriting.
+  if (clientStateVersion !== undefined && currentServerState) {
+    const dbStateVersion = (currentServerState.state_version as number) ?? 0;
+    if (dbStateVersion > clientStateVersion) {
+      console.warn(
+        `[PlayerAPI] STATE_VERSION_CONFLICT for ${auth.userId}: client=${clientStateVersion}, server=${dbStateVersion}`,
+      );
+      logActionAsync({
+        userId: auth.userId,
+        actionType: 'save',
+        payload: {
+          clientStateVersion,
+          serverStateVersion: dbStateVersion,
+          reason: 'state_version_conflict',
+        },
+        gameTick: Number(gameState.gameTick) || 0,
+        moneyAfter: Number(gameState.money) || 0,
+        isValid: true,
+        validationRisk: 'none',
+        rejectionReason: `State version conflict: client=${clientStateVersion}, server=${dbStateVersion}`,
+      });
+      return NextResponse.json(
+        {
+          error: 'Server state is newer than client. Reload to merge.',
+          code: 'STATE_VERSION_CONFLICT',
+          serverStateVersion: dbStateVersion,
+          clientStateVersion,
+        },
+        { status: 409 },
+      );
+    }
+  } else if (clientStateVersion === undefined) {
+    console.warn(`[PlayerAPI] clientStateVersion missing for ${auth.userId} — proceeding without version check`);
+  }
+
+  const previousState = currentServerState?.full_state as Record<string, unknown> | null;
 
   // ✅ Validate game state with delta checks
   const validation = validateGameState(gameState, previousState || undefined);
@@ -204,14 +254,6 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: 'Checksum mismatch — possible state tampering', code: 'CHECKSUM_MISMATCH' },
       { status: 400 },
-    );
-  }
-
-  const supabase = createServiceRoleClient();
-  if (!supabase) {
-    return NextResponse.json(
-      { error: 'Service temporarily unavailable — database not configured' },
-      { status: 503 }
     );
   }
 
