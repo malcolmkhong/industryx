@@ -53,8 +53,7 @@ export async function isAdminUserDb(userId: string): Promise<boolean> {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("admin_users")
-      .select("user_id")
-      .eq("is_active", true);
+      .select("user_id");
     if (error) {
       console.warn("[Auth] admin_users query failed, falling back to ADMIN_UIDS env var:", error.message);
       return isAdminUserId(userId);
