@@ -62,6 +62,7 @@ import { OnlineCount } from '@/components/game/OnlineCount';
 import { CloudSyncBlockBanner } from '@/components/game/CloudSyncBlockBanner';
 import { LoginFloatingPanel } from '@/components/game/LoginFloatingPanel';
 import { useLoginPrompt } from '@/lib/hooks/useLoginPrompt';
+import { useMergeFlow } from '@/lib/hooks/useMergeFlow';
 import { useReducedMotion } from '@/lib/hooks/page/useReducedMotion';
 import { useHydrationGuard } from '@/lib/hooks/page/useHydrationGuard';
 import { useHeaderHeightObserver } from '@/lib/hooks/page/useHeaderHeightObserver';
@@ -74,6 +75,9 @@ import { useAutoOpenGuide } from '@/lib/hooks/page/useAutoOpenGuide';
 import { useGameTickLoop } from '@/lib/hooks/page/useGameTickLoop';
 import { useAutoSaveIndicator } from '@/lib/hooks/page/useAutoSaveIndicator';
 import { useTabChange } from '@/lib/hooks/page/useTabChange';
+import { useEffect } from 'react';
+import { toast } from 'sonner';
+import { AccountSettingsModal } from '@/components/game/AccountSettingsModal';
 
 export default function Home() {
   // Select only the state slices needed (instead of subscribing to entire store)
@@ -128,6 +132,27 @@ export default function Home() {
 
   // Login prompt system
   const { isOpen: loginPromptOpen, reason: loginPromptReason, promptLogin, closePrompt } = useLoginPrompt();
+
+  // Phase 1.5.5: Toast on ?auth=error
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('auth') === 'error') {
+      toast.error('Sign-in failed. Please try again.');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
+  // Phase 1.7: Merge flow (drives the merge dialog)
+  const { state: mergeState, confirmMerge, cancelMerge, closeMerge, retryMerge } = useMergeFlow();
+
+  // Phase 1.5.7: Account settings modal
+  const [accountSettingsOpen, setAccountSettingsOpen] = useState(false);
+  const { signOut } = useAuth();
+  const handleSignOut = useCallback(async () => {
+    setAccountSettingsOpen(false);
+    await signOut();
+  }, [signOut]);
 
   const handleExport = useCallback(() => {
     const saveStr = exportSave();
@@ -298,11 +323,28 @@ export default function Home() {
       {/* Toast notifications */}
       <GameToast />
 
-      {/* Login Floating Panel */}
+      {/* Login Floating Panel (also drives merge dialog via mergeState) */}
       <LoginFloatingPanel
-        open={loginPromptOpen}
-        reason={loginPromptReason}
+        open={loginPromptOpen || mergeState.isOpen}
+        reason={mergeState.isOpen ? mergeState.reason : loginPromptReason}
         onClose={closePrompt}
+        mergePreview={mergeState.preview}
+        mergeOperationId={mergeState.operationId}
+        isMergeConfirming={mergeState.isConfirming}
+        mergeResult={mergeState.result}
+        mergeReceiptId={mergeState.receiptId}
+        mergeError={mergeState.error}
+        onMergeConfirm={confirmMerge}
+        onMergeCancel={cancelMerge}
+        onMergeClose={closeMerge}
+        onMergeRetry={retryMerge}
+      />
+
+      {/* Account Settings Modal */}
+      <AccountSettingsModal
+        open={accountSettingsOpen}
+        onClose={() => setAccountSettingsOpen(false)}
+        onSignOut={handleSignOut}
       />
 
       <OfflineEarningsDialog

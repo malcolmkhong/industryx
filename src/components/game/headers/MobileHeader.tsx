@@ -42,7 +42,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange }: Mobil
   const weather = useGameStore(s => s.weather);
 
   const { showSavedFlash } = useAutoSaveIndicator();
-  const { user, signOut, loading: authLoading } = useAuth();
+  const { user, isGuest, signOut, loading: authLoading } = useAuth();
   const { isUsingSupabase } = useGameConfig();
   const { saveToCloud } = useCloudSync();
   const { promptLogin } = useLoginPrompt();
@@ -195,6 +195,10 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange }: Mobil
                 </div>
               </TooltipContent>
             </Tooltip>
+          ) : isGuest ? (
+            <Button variant="ghost" size="sm" className="h-8 px-2.5 text-[10px] text-brand min-h-[32px]" onClick={() => promptLogin('manual')}>
+              <LogIn className="w-3 h-3 mr-1" /> Bind Account
+            </Button>
           ) : (
             <Button variant="ghost" size="sm" className="h-8 px-2.5 text-[10px] text-brand min-h-[32px]" onClick={() => promptLogin('manual')}>
               <LogIn className="w-3 h-3 mr-1" /> Sign In

@@ -38,6 +38,27 @@ export type LoginPromptReason =
 
 export type PromptMode = 'hard_gate' | 'soft_prompt' | 'merge';
 
+export interface MergePreview {
+  guest: {
+    user_id: string;
+    display_name: string;
+    money: number;
+    total_money_earned: number;
+    game_tick: number;
+    buildings_count: number;
+    is_guest: boolean;
+  };
+  google: {
+    user_id: string;
+    display_name: string;
+    money: number;
+    total_money_earned: number;
+    game_tick: number;
+    buildings_count: number;
+    is_guest: boolean;
+  };
+}
+
 interface LoginFloatingPanelProps {
   /** Whether the panel is visible */
   open: boolean;
@@ -47,6 +68,26 @@ interface LoginFloatingPanelProps {
   onClose: () => void;
   /** Callback after successful sign-in initiation */
   onSignInStart?: () => void;
+  /** Phase 1.5.3: Merge preview data (for merge_conflict reason) */
+  mergePreview?: MergePreview | null;
+  /** Phase 1.5.3: Merge operation id */
+  mergeOperationId?: string | null;
+  /** Phase 1.5.3: Is merge currently executing */
+  isMergeConfirming?: boolean;
+  /** Phase 1.5.3: Merge result state */
+  mergeResult?: 'idle' | 'success' | 'failure';
+  /** Phase 1.5.3: Merge receipt id (on success) */
+  mergeReceiptId?: string | null;
+  /** Phase 1.5.3: Merge error message (on failure) */
+  mergeError?: string | null;
+  /** Phase 1.5.3: Confirm merge with preference */
+  onMergeConfirm?: (preference: 'keep_guest' | 'keep_google') => void;
+  /** Phase 1.5.3: Cancel merge */
+  onMergeCancel?: () => void;
+  /** Phase 1.5.3: Close merge result dialog */
+  onMergeClose?: () => void;
+  /** Phase 1.5.3: Retry merge after failure */
+  onMergeRetry?: () => void;
 }
 
 // ─── Reason Config ──────────────────────────────────────────────────────
@@ -235,7 +276,39 @@ const REASON_CONFIGS: Record<LoginPromptReason, ReasonConfig> = {
 
 // ─── Component ──────────────────────────────────────────────────────────
 
-export function LoginFloatingPanel({ open, reason, onClose, onSignInStart }: LoginFloatingPanelProps) {
+export function StatRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between text-[11px] py-0.5">
+      <span className="text-muted-label">{label}</span>
+      <span className="text-subtle font-mono">{value}</span>
+    </div>
+  );
+}
+
+function formatNum(n: number): string {
+  if (n >= 1e12) return `${(n / 1e12).toFixed(2)}T`;
+  if (n >= 1e9) return `${(n / 1e9).toFixed(2)}B`;
+  if (n >= 1e6) return `${(n / 1e6).toFixed(2)}M`;
+  if (n >= 1e3) return `${(n / 1e3).toFixed(1)}K`;
+  return n.toFixed(0);
+}
+
+export function LoginFloatingPanel({
+  open,
+  reason,
+  onClose,
+  onSignInStart,
+  mergePreview,
+  mergeOperationId,
+  isMergeConfirming,
+  mergeResult,
+  mergeReceiptId,
+  mergeError,
+  onMergeConfirm,
+  onMergeCancel,
+  onMergeClose,
+  onMergeRetry,
+}: LoginFloatingPanelProps) {
   const { signInWithGoogle, loading: authLoading } = useAuth();
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [showDismissWarning, setShowDismissWarning] = useState(false);
@@ -333,6 +406,98 @@ export function LoginFloatingPanel({ open, reason, onClose, onSignInStart }: Log
               }`}>
                 <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
                 {config.urgencyText}
+              </div>
+            )}
+
+            {/* Phase 1.5.3: Merge conflict dialog (side-by-side comparison) */}
+            {reason === 'merge_conflict' && mergePreview && (
+              <div className="mb-4">
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                  <div className="p-3 rounded-lg bg-amber-900/20 border border-amber-800/30">
+                    <div className="text-[10px] uppercase tracking-wider text-warning font-bold mb-2">Guest Profile</div>
+                    <StatRow label="UUID" value={mergePreview.guest.user_id.slice(0, 8) + '...'} />
+                    <StatRow label="Total Money" value={`$${formatNum(mergePreview.guest.total_money_earned)}`} />
+                    <StatRow label="Total Ticks" value={formatNum(mergePreview.guest.game_tick)} />
+                    <StatRow label="Buildings" value={formatNum(mergePreview.guest.buildings_count)} />
+                  </div>
+                  <div className="p-3 rounded-lg bg-brand/20 border border-brand/30">
+                    <div className="text-[10px] uppercase tracking-wider text-brand font-bold mb-2">Google Profile</div>
+                    <StatRow label="UUID" value={mergePreview.google.user_id.slice(0, 8) + '...'} />
+                    <StatRow label="Total Money" value={`$${formatNum(mergePreview.google.total_money_earned)}`} />
+                    <StatRow label="Total Ticks" value={formatNum(mergePreview.google.game_tick)} />
+                    <StatRow label="Buildings" value={formatNum(mergePreview.google.buildings_count)} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => onMergeConfirm?.('keep_guest')}
+                    disabled={isMergeConfirming}
+                    className="w-full h-11 text-sm font-semibold bg-success/20 hover:bg-success/30 text-success border border-success/30 rounded-lg disabled:opacity-50"
+                  >
+                    Keep Guest Profile
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onMergeConfirm?.('keep_google')}
+                    disabled={isMergeConfirming}
+                    className="w-full h-11 text-sm font-semibold bg-brand/20 hover:bg-brand/30 text-brand border border-brand/30 rounded-lg disabled:opacity-50"
+                  >
+                    Keep Google Profile
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onMergeCancel}
+                    disabled={isMergeConfirming}
+                    className="w-full h-9 text-xs text-muted-label hover:text-subtle transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Phase 1.5.3: Merge success screen */}
+            {reason === 'merge_success' && mergeResult === 'success' && (
+              <div className="mb-4 p-4 rounded-lg bg-success/20 border border-success/30 text-center">
+                <p className="text-sm text-success font-medium mb-2">Profile Resolution Complete</p>
+                {mergeReceiptId && (
+                  <p className="text-[10px] text-muted-label font-mono">Receipt: {mergeReceiptId.slice(0, 13)}</p>
+                )}
+                <button
+                  type="button"
+                  onClick={onMergeClose}
+                  className="w-full h-10 text-sm font-semibold bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white rounded-lg mt-3"
+                >
+                  Continue
+                </button>
+              </div>
+            )}
+
+            {/* Phase 1.5.3: Merge failure screen */}
+            {reason === 'merge_failure' && mergeResult === 'failure' && (
+              <div className="mb-4 p-4 rounded-lg bg-danger/20 border border-danger/30 text-center">
+                <p className="text-sm text-danger font-medium mb-2">Conflict Resolution Failed</p>
+                <p className="text-[10px] text-muted-label mb-3">Nothing was changed. Please retry.</p>
+                {mergeError && (
+                  <p className="text-[10px] text-danger font-mono mb-3">{mergeError}</p>
+                )}
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={onMergeRetry}
+                    className="w-full h-10 text-sm font-semibold bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white rounded-lg"
+                  >
+                    Retry
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onMergeCancel}
+                    className="w-full h-9 text-xs text-muted-label hover:text-subtle transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
             )}
 

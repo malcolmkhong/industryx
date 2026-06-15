@@ -52,7 +52,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
 
   const { showSavedFlash } = useAutoSaveIndicator();
   const { moneyGlow } = useMoneyGlowEffect();
-  const { user, signOut, loading: authLoading } = useAuth();
+  const { user, isGuest, signOut, loading: authLoading } = useAuth();
   const { isUsingSupabase, reload: reloadConfig } = useGameConfig();
   const { saveToCloud } = useCloudSync();
   const { promptLogin } = useLoginPrompt();
@@ -408,6 +408,15 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange }: Desk
                 </div>
               </TooltipContent>
             </Tooltip>
+          ) : isGuest ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-3 text-xs text-brand hover:text-brand border border-brand/30 hover:border-brand/30 rounded-lg"
+              onClick={() => promptLogin('manual')}
+            >
+              <LogIn className="w-3 h-3 mr-1" /> Bind Account
+            </Button>
           ) : (
             <Button variant="ghost" size="sm" className="h-7 px-3 text-xs text-brand hover:text-brand border border-brand/30 hover:border-brand/30 rounded-lg" onClick={() => promptLogin('manual')}>
               <LogIn className="w-3 h-3 mr-1" /> Sign In

@@ -31,7 +31,7 @@ import { Textarea } from '@/components/ui/textarea';
 const SPEED_OPTIONS = [1, 2, 5, 10];
 
 export function GameHeader() {
-  const { user, signInWithGoogle, signOut, loading: authLoading } = useAuth();
+  const { user, isGuest, signInWithGoogle, signOut, loading: authLoading } = useAuth();
   const { config, isUsingSupabase, reload: reloadConfig } = useGameConfig();
   const { saveToCloud, loadFromCloud, isSyncing } = useCloudSync();
 
@@ -423,6 +423,10 @@ export function GameHeader() {
                 </div>
               </TooltipContent>
             </Tooltip>
+          ) : isGuest ? (
+            <Button variant="ghost" size="sm" className="h-7 px-3 text-xs text-brand hover:text-brand border border-brand/30 hover:border-brand/30 rounded-lg" onClick={signInWithGoogle}>
+              <LogIn className="w-3 h-3 mr-1" /> Bind Account
+            </Button>
           ) : (
             <Button variant="ghost" size="sm" className="h-7 px-3 text-xs text-brand hover:text-brand border border-brand/30 hover:border-brand/30 rounded-lg" onClick={signInWithGoogle}>
               <LogIn className="w-3 h-3 mr-1" /> Sign In
@@ -501,6 +505,10 @@ export function GameHeader() {
                   </div>
                 </TooltipContent>
               </Tooltip>
+            ) : isGuest ? (
+              <Button variant="ghost" size="sm" className="h-6 px-2 text-[9px] text-brand" onClick={signInWithGoogle}>
+                <LogIn className="w-2.5 h-2.5 mr-0.5" /> Bind Account
+              </Button>
             ) : (
               <Button variant="ghost" size="sm" className="h-6 px-2 text-[9px] text-brand" onClick={signInWithGoogle}>
                 <LogIn className="w-2.5 h-2.5 mr-0.5" /> Sign In
