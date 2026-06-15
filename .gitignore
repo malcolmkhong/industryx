@@ -24,12 +24,24 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# dev server logs
+dev*.log
+
 # local env files
 .env*.local
 .env
 
 # vercel
 .vercel
+skills/
+# supabase/ is gitignored (contains Supabase CLI config), but migrations/ is tracked
+supabase/
+!supabase/migrations/
+.omo/
+/*.md
+!AGENT.md
+!RULES.md
+*.dev.log
 
 # typescript
 *.tsbuildinfo
@@ -43,7 +55,6 @@ upload/
 
 # runtime files
 *.pid
---timeout
 .zscripts/dev.pid
 
 # database
@@ -58,6 +69,9 @@ agent-ctx/
 
 # QA/downloaded screenshots
 download/
+
+# test/debug screenshots
+test-screenshot*.png
 
 # Mini services (backend merged into main project)
 mini-services/
