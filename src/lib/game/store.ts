@@ -2090,6 +2090,15 @@ export const useGameStore = create<GameStore>()(
           return;
         }
 
+        // Phase 2.2: Server validation (fire-and-forget, server catches cheating on next save)
+        void (async () => {
+          try {
+            await import('./actionValidator').then(m =>
+              m.validateActionWithServer('research', { researchId: id })
+            );
+          } catch {}
+        })();
+
         set({
           researchPoints: state.researchPoints - node.cost,
           activeResearch: id,
@@ -2110,6 +2119,15 @@ export const useGameStore = create<GameStore>()(
           get().addNotification('error', `Not enough money! Need $${formatNumber(def.baseHireCost)}`);
           return;
         }
+
+        // Phase 2.2: Server validation (fire-and-forget, server catches cheating on next save)
+        void (async () => {
+          try {
+            await import('./actionValidator').then(m =>
+              m.validateActionWithServer('hire_worker', { workerType: type, count: 1 })
+            );
+          } catch {}
+        })();
 
         const worker: Worker = {
           id: generateId(),
@@ -2132,6 +2150,16 @@ export const useGameStore = create<GameStore>()(
 
       assignWorker: (workerId: string, buildingId: string | null) => {
         const state = get();
+
+        // Phase 2.2: Server validation (fire-and-forget, server catches cheating on next save)
+        void (async () => {
+          try {
+            await import('./actionValidator').then(m =>
+              m.validateActionWithServer('assign_worker', { workerId, buildingId })
+            );
+          } catch {}
+        })();
+
         set({
           workers: state.workers.map(w =>
             w.id === workerId ? { ...w, assignedTo: buildingId } : w
