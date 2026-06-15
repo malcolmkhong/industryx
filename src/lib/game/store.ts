@@ -2348,6 +2348,15 @@ export const useGameStore = create<GameStore>()(
           return;
         }
 
+        // Phase 2.2: Server validation (fire-and-forget, server catches cheating on next save)
+        void (async () => {
+          try {
+            await import('./actionValidator').then(m =>
+              m.validateActionWithServer('do_prestige', {})
+            );
+          } catch {}
+        })();
+
         const pointsEarned = Math.floor(state.buildings.length * getBalance().prestige.cpPerBuilding + state.completedResearch.length * 2 + state.stats.contractsCompleted);
 
         // Calculate score for leaderboard entry
