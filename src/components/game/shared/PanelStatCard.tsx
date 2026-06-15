@@ -25,7 +25,7 @@ const COLOR_MAP: Record<StatColor, { icon: string; value: string; border: string
 interface PanelStatCardProps {
   icon: React.ReactNode;
   label: string;
-  value: string;
+  value: React.ReactNode;
   subtext: string;
   color: StatColor;
   /** Optional trend indicator */

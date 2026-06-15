@@ -131,8 +131,8 @@ export function DashboardPanel() {
   // prestige, research, weather, events, workers) instead of a hardcoded formula
   // that only counted aiLab buildings.
   const rpPerTick = useMemo(() => {
-    return productionSnapshot.researchPointsPerTick || 0;
-  }, [productionSnapshot.researchPointsPerTick]);
+    return productionSnapshot.rpIncomeRate || 0;
+  }, [productionSnapshot.rpIncomeRate]);
 
   // Quick build options
   const quickBuildTypes: BuildingType[] = ['ironMine', 'waterExtractor', 'coalGenerator', 'smelter'];
@@ -1196,7 +1196,7 @@ function RankBar() {
             boxShadow: `0 0 20px ${rank.color}20`,
           }}
         >
-          <GameIcon icon={rank.icon} size={24} />
+          <GameIcon icon={rank.emoji} size={24} />
         </div>
 
         {/* Rank info */}
@@ -1300,7 +1300,7 @@ function WeatherInfoCard() {
   const renderWeatherParticles = () => {
     if (currentWeather === 'clear') return null;
     
-    const particles = [];
+    const particles: React.ReactElement[] = [];
     const count = currentWeather === 'stormy' ? 12 : currentWeather === 'rainy' ? 8 : 6;
     
     for (let i = 0; i < count; i++) {

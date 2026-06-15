@@ -60,6 +60,6 @@ export function extractGameState(): Record<string, unknown> {
     marketNarratives: state.marketNarratives,
     eventLog: state.eventLog,
     productionHistory: state.productionHistory,
-    _version: state._version,
+    _version: (state as unknown as Record<string, unknown>)._version,
   };
 }

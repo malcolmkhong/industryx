@@ -165,10 +165,12 @@ export default function ResourceFlowPanel() {
 
       for (const input of bSnap.inputs) {
         for (const output of bSnap.outputs) {
-          const inRes = input.resource as ResourceType;
-          const outRes = output.resource as ResourceType;
+          const inResRaw = input.resource;
+          const outResRaw = output.resource;
           // Skip money as resource
-          if (inRes === 'money' || outRes === 'money') continue;
+          if (inResRaw === 'money' || outResRaw === 'money') continue;
+          const inRes = inResRaw as ResourceType;
+          const outRes = outResRaw as ResourceType;
 
           // Use actual output rate from snapshot (includes all multipliers)
           const rate = output.amount;
@@ -268,11 +270,11 @@ export default function ResourceFlowPanel() {
     const snap = productionSnapshot;
 
     for (const def of Object.values(BUILDING_DEFS)) {
-      const buildings = buildings.filter(b => b.type === def.type);
-      if (buildings.length === 0) continue;
+      const typedBuildings = buildings.filter(b => b.type === def.type);
+      if (typedBuildings.length === 0) continue;
 
-      const count = buildings.length;
-      const activeBuildings = buildings.filter(b => b.active);
+      const count = typedBuildings.length;
+      const activeBuildings = typedBuildings.filter(b => b.active);
       const activeCount = activeBuildings.length;
 
       // Check outputs — use definition to identify producers, snapshot for actual rates

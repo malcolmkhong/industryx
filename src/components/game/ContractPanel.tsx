@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { useGameStore, formatNumber } from '@/lib/game/store';
+import { useGameStore, formatNumber, GameStore } from '@/lib/game/store';
 import { RESOURCE_META, CONTRACT_TEMPLATES, TIER_INFO } from '@/lib/game/configCache';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +27,7 @@ function getTierBorderColor(tier: number): string {
   return info?.borderColor ?? 'rgba(160,160,160,0.3)';
 }
 
-function ContractCard({ contract, store, fulfillingId, onFulfill }: { contract: Contract; store: ReturnType<typeof useGameStore>; fulfillingId: string | null; onFulfill: (id: string) => void }) {
+function ContractCard({ contract, store, fulfillingId, onFulfill }: { contract: Contract; store: GameStore; fulfillingId: string | null; onFulfill: (id: string) => void }) {
   const timePct = (contract.timeRemaining / contract.timeLimit) * 100;
   const canFulfill = contract.requiredResources.every(r => (store.resources[r.resource] ?? 0) >= r.amount);
   const isUrgent = timePct < 25;

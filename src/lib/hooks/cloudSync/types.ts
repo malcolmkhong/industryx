@@ -62,5 +62,34 @@ export interface CloudSyncState {
   isMigrating: boolean;
 }
 
+// ── Server authority tracking ──────────────────────────
+export interface ServerAuthority {
+  serverStateHash: string | null;
+  serverStateVersion: number | null;
+  isServerAuthoritative: boolean;
+}
+
+// ── Operation results ─────────────────────────────────
+export interface SyncResult {
+  success: boolean;
+  error?: string;
+}
+
+export interface LoadResult {
+  success: boolean;
+  data?: Record<string, unknown>;
+  error?: string;
+  isNew?: boolean;
+  conflict?: 'local' | 'cloud';
+}
+
+// ── Conflict detection ────────────────────────────────
+export interface ConflictInfo {
+  localTick: number;
+  localMoney: number;
+  cloudTick: number;
+  cloudMoney: number;
+}
+
 // Auto-save interval in milliseconds (2 minutes, reduces Supabase load)
 export const AUTO_SAVE_INTERVAL = 120_000;
