@@ -698,6 +698,23 @@ CSP uses `'unsafe-inline'` for `script-src`/`style-src` to support Next.js hydra
 
 **Phase 3 + 5 status:** **13/14 sub-tasks complete** (only 4.2 was done earlier in 2.7).
 
+### Wave 4 — Migration 024 applied + is_game_admin flaw fix
+
+**Commits (1):**
+| Commit | What | File |
+|---|---|---|
+| `d6d71a3` | fix(admin): Phase 3.9 followup — query admin_users directly, not via broken RPC | `src/app/admin/auth/callback/route.ts` |
+
+**Migration 024 (`now_iso()` RPC) applied to live DB** via `supabase_apply_migration`. The route `/api/game/state` now gets true DB server time. The try/catch fallback to `new Date()` is no longer triggered.
+
+**is_game_admin flaw fixed:** The Wave 3 Phase 3.9 commit (`4532970`) used `.rpc("is_game_admin")` via service role client. This was broken because `auth.uid()` returns NULL for service role clients (no authenticated user context in the JWT), which would make the RPC always return `false` — the defense-in-depth check was effectively dead code.
+
+**Fix:** Query `admin_users` table directly with `.eq("user_id", user.id)`. Service role bypasses RLS, so the read is safe. Added a 4-line security-architectural comment explaining WHY the direct query is used (not the RPC) so future maintainers don't "optimize" it back to the broken form.
+
+**What Wave 4 closes:**
+- ✅ True server-time for `/api/game/state` saves (audit C6 fully resolved)
+- ✅ Defense-in-depth admin callback now actually works (audit M4 fully resolved)
+
 ---
 
 ## Phase 5 — Production Hygiene ✅ 5/5 COMPLETE
