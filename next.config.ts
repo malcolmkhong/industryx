@@ -3,7 +3,7 @@ import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  reactStrictMode: false,
+  reactStrictMode: true,
   async headers() {
     return [{
       source: '/(.*)',
