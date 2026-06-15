@@ -43,6 +43,9 @@ export interface BuildingInstance {
   placedAt: number; // tick when placed
 }
 
+/** Active building instance with optional cost metadata for UI cards */
+export type Building = BuildingInstance & { buildCost?: number };
+
 export interface BuildingDefinition {
   type: BuildingType;
   name: string;

@@ -4,7 +4,7 @@ import { useEffect, useState, type RefObject } from 'react';
 // exposes it as a number. Pair with a spacer <div> to prevent content from
 // being hidden under the fixed header.
 export function useHeaderHeightObserver(
-  headerRef: RefObject<HTMLElement>,
+  headerRef: RefObject<HTMLElement | null>,
   enabled: boolean,
 ): number {
   const [headerHeight, setHeaderHeight] = useState(52);

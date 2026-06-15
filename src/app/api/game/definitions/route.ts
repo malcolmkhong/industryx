@@ -187,6 +187,8 @@ async function safeFetchTable<T>(
   pageSize = 2000,
   useSortOrder = true,
 ): Promise<SafeFetchResult<T>> {
+  if (!supabase) return { data: null, error: 'Supabase client not available' };
+
   try {
     // Tables known to have sort_order column
     const tablesWithSortOrder = new Set([

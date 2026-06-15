@@ -9,8 +9,8 @@
 
 export const onRequestError = async (
   error: { digest: string } & Error,
-  request: { path: string; method: string },
-  context: { routerKind: string; routePath: string }
+  request: { path: string; method: string; headers: Record<string, string | string[] | undefined> },
+  context: { routerKind: string; routePath: string; routeType: string },
 ) => {
   const { captureRequestError } = await import('@sentry/nextjs');
   captureRequestError(error, request, context);

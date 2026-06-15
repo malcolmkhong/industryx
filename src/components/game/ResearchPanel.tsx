@@ -121,7 +121,7 @@ export function ResearchPanel() {
           return (
             <div key={cat.id} className="game-card rounded-xl bg-card p-4 border border-border">
               <div className="flex items-center gap-2 mb-3">
-                <div className={cat.color}><GameIcon icon={cat.icon} size={16} /></div>
+                <div className={cat.color}>{cat.icon}</div>
                 <h3 className={`text-sm font-semibold ${cat.color}`}>{cat.name}</h3>
                 <span className="text-[10px] text-muted-label ml-auto">
                   {nodes.filter(n => store.completedResearch.includes(n.id)).length}/{nodes.length}

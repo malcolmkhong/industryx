@@ -2166,7 +2166,7 @@ export function TransportPanel() {
                 <div key={item.label}>
                   <div className="flex items-center justify-between mb-0.5">
                     <div className="flex items-center gap-1 text-[10px] text-subtle">
-                      <GameIcon icon={item.icon} size={16} />
+                      {item.icon}
                       {item.label}
                     </div>
                     <span className={`text-[10px] font-mono font-bold ${
