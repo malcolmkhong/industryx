@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -17,6 +17,20 @@ export async function GET(request: Request) {
       } = await supabase.auth.getUser();
 
       if (user) {
+        // Defense-in-depth: verify user is in admin_users table (after env-var middleware check)
+        const serviceRoleClient = createServiceRoleClient();
+        if (serviceRoleClient) {
+          const { data: isAdmin, error: adminError } = await serviceRoleClient
+            .rpc("is_game_admin");
+
+          if (adminError || !isAdmin) {
+            console.warn(
+              `[AdminCallback] User ${user.id} not in admin_users — denying access`
+            );
+            return NextResponse.redirect(new URL("/admin/forbidden", request.url));
+          }
+        }
+
         const adminUids = (process.env.ADMIN_UIDS || "")
           .split(",")
           .map((uid) => uid.trim())

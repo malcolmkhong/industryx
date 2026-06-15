@@ -104,7 +104,7 @@ const MAX_TOTAL_EFFICIENCY_MULTIPLIER = 15;
  * 3x means we allow up to 3x the theoretically possible maximum before flagging.
  * This prevents false positives while still catching obvious hackers.
  */
-const GENEROSITY_MULTIPLIER = 3;
+const GENEROSITY_MULTIPLIER = 1.5;
 
 // ─── Research Prerequisite Map ──────────────────────────────────────────
 // Built at module load time for O(1) lookups
