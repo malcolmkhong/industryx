@@ -13,6 +13,8 @@ import {
   Sparkles,
   Loader2,
   AlertTriangle,
+  TrendingUp,
+  Check,
 } from 'lucide-react';
 
 // ─── Types ──────────────────────────────────────────────────────────────
@@ -23,12 +25,18 @@ export type LoginPromptReason =
   | 'leaderboard'      // Guest opened Leaderboard tab
   | 'trading_post'     // Guest opened Trading Post tab
   | 'mega_project'     // Guest opened Mega Projects tab
+  | 'stock_market'     // Guest opened Stock Market tab
   | 'progress_milestone' // After 5000 ticks — significant progress at risk
   | 'prestige_available' // Prestige became available — secure your data
   | 'playtime_reminder'  // After 1 hour — one-time gentle nudge
-  | 'manual';          // User clicked Sign In button
+  | 'manual'           // User clicked Sign In / Bind Account button
+  | 'merge_conflict'   // Phase 1.5: guest linked to Google with progress on both sides
+  | 'merge_confirm_keep_guest'   // Phase 1.5: confirmation step before Keep Guest
+  | 'merge_confirm_keep_google'  // Phase 1.5: confirmation step before Keep Google
+  | 'merge_success'    // Phase 1.5: merge completed, show receipt
+  | 'merge_failure';   // Phase 1.5: merge failed, show retry
 
-export type PromptMode = 'hard_gate' | 'soft_prompt';
+export type PromptMode = 'hard_gate' | 'soft_prompt' | 'merge';
 
 interface LoginFloatingPanelProps {
   /** Whether the panel is visible */
@@ -168,6 +176,59 @@ const REASON_CONFIGS: Record<LoginPromptReason, ReasonConfig> = {
       'Player trading',
       'Cross-device play',
     ],
+    dismissible: true,
+  },
+  stock_market: {
+    mode: 'hard_gate',
+    title: 'Stock Market Requires Account',
+    description: 'Trading on the stock market requires a Google account to prevent fraud and protect your investments.',
+    icon: <TrendingUp className="w-5 h-5 text-success" />,
+    benefits: [
+      'Trade resources for profit',
+      'Build your trading portfolio',
+      'Compete with other players',
+    ],
+    urgencyText: 'Bind Account to access the stock market',
+    dismissible: true,
+  },
+  merge_conflict: {
+    mode: 'merge',
+    title: 'Account Conflict Detected',
+    description: 'Choose which profile to keep. Only one profile will remain active.',
+    icon: <ArrowRightLeft className="w-5 h-5 text-warning" />,
+    benefits: [],
+    dismissible: false,
+  },
+  merge_confirm_keep_guest: {
+    mode: 'merge',
+    title: 'Keep Guest Profile?',
+    description: 'Your guest profile will become the surviving account. The Google account access will be attached to it.',
+    icon: <Shield className="w-5 h-5 text-success" />,
+    benefits: [],
+    dismissible: true,
+  },
+  merge_confirm_keep_google: {
+    mode: 'merge',
+    title: 'Keep Google Profile?',
+    description: 'Your Google profile will become the surviving account. The guest profile will be archived.',
+    icon: <Cloud className="w-5 h-5 text-brand" />,
+    benefits: [],
+    dismissible: true,
+  },
+  merge_success: {
+    mode: 'merge',
+    title: 'Profile Resolution Complete',
+    description: 'Your accounts have been merged successfully.',
+    icon: <Check className="w-5 h-5 text-success" />,
+    benefits: [],
+    dismissible: false,
+  },
+  merge_failure: {
+    mode: 'merge',
+    title: 'Conflict Resolution Failed',
+    description: 'Nothing was changed. Please retry.',
+    icon: <AlertTriangle className="w-5 h-5 text-danger" />,
+    benefits: [],
     dismissible: true,
   },
 };
