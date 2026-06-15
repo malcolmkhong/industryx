@@ -49,7 +49,7 @@ export async function GET(request: Request) {
   if (!supabase) {
     return NextResponse.json(
       { error: 'Service temporarily unavailable — database not configured' },
-      { status: 503 }
+      { status: 503 },
     );
   }
 
@@ -148,6 +148,17 @@ export async function POST(request: Request) {
       { error: 'Service temporarily unavailable — database not configured' },
       { status: 503 },
     );
+  }
+
+  // Phase 4.4: Fetch server timestamp from DB (immune to client clock manipulation)
+  // Uses now_iso() RPC defined in supabase/migrations/024_now_iso_function.sql
+  let serverTimestamp: string;
+  try {
+    const { data: serverTimeData } = await supabase.rpc('now_iso');
+    serverTimestamp = serverTimeData ?? new Date().toISOString();
+  } catch {
+    // Fallback to server local clock if RPC is not yet applied
+    serverTimestamp = new Date().toISOString();
   }
 
   // Fetch current server state for delta validation + version conflict check
@@ -296,8 +307,8 @@ export async function POST(request: Request) {
       full_state: gameState,
       state_hash: validation.checksum,
       state_version: currentVersion + 1,
-      last_tick_at: new Date().toISOString(),
-      last_saved_at: new Date().toISOString(),
+      last_tick_at: serverTimestamp,
+      last_saved_at: serverTimestamp,
     }, { onConflict: 'user_id' })
     .select()
     .single();
