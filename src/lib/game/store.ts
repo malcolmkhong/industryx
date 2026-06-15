@@ -2188,6 +2188,15 @@ export const useGameStore = create<GameStore>()(
         // Record player sell in market simulator (affects future prices + freshness tracking)
         const newSimState = recordPlayerSell(state.marketSimState, resource, amount, state.gameTick);
 
+        // Phase 2.2: Server validation (fire-and-forget, server catches cheating on next save)
+        void (async () => {
+          try {
+            await import('./actionValidator').then(m =>
+              m.validateActionWithServer('sell', { resource, amount })
+            );
+          } catch {}
+        })();
+
         set({
           resources: { ...state.resources, [resource]: state.resources[resource] - amount },
           money: state.money + sellPrice,
@@ -2221,6 +2230,15 @@ export const useGameStore = create<GameStore>()(
 
         // Record player buy in market simulator (affects future prices + freshness tracking)
         const newSimState = recordPlayerBuy(state.marketSimState, resource, amount, state.gameTick);
+
+        // Phase 2.2: Server validation (fire-and-forget, server catches cheating on next save)
+        void (async () => {
+          try {
+            await import('./actionValidator').then(m =>
+              m.validateActionWithServer('buy', { resource, amount })
+            );
+          } catch {}
+        })();
 
         set({
           resources: { ...state.resources, [resource]: newAmount },
