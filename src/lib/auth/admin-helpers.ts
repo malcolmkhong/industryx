@@ -87,6 +87,6 @@ export async function logAdminAction(params: {
       console.error("[AdminHelpers] Failed to log admin action:", error.message);
     }
   } catch (err) {
-    console.error("[AdminHelpers] Error logging admin action:", err);
+    console.error("[AdminHelpers] Failed to log admin action:", params.actionType, "by", params.adminId, err);
   }
 }

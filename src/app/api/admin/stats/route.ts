@@ -106,6 +106,7 @@ export async function GET() {
     }
 
     const response = NextResponse.json({ data: stats });
+    response.headers.set("Cache-Control", "private, max-age=30");
     return withSecurityHeaders(response);
   } catch (err) {
     console.error("[Admin/Stats] Error fetching dashboard stats:", err);

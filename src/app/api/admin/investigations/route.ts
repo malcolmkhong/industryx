@@ -400,9 +400,18 @@ export async function GET(request: NextRequest) {
     const total = count ?? 0;
     const totalPages = Math.ceil(total / limit);
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const { count: resolvedToday } = await supabase
+      .from("cheat_investigations")
+      .select("*", { count: "exact", head: true })
+      .in("status", ["resolved", "dismissed"])
+      .gte("resolved_at", today.toISOString());
+
     const response = NextResponse.json({
       data: enrichedInvestigations,
       detection_types: DETECTION_TYPE_LABELS,
+      resolved_today: resolvedToday ?? 0,
       pagination: {
         page,
         limit,
