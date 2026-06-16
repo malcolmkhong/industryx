@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { createClient } from "@/lib/supabase/client";
-import type { User } from "@supabase/supabase-js";
 import { TABLE_CONFIGS, getTableConfig, type TableConfig, type ColumnConfig } from "@/lib/config/tables";
 
 // ─── Types ────────────────────────────────────────────────────────────────
@@ -34,66 +32,12 @@ interface SortConfig {
 
 type ModalMode = "create" | "edit" | null;
 
-interface ToastMessage {
-  id: number;
-  type: "success" | "error" | "info";
-  message: string;
-}
-
-// ─── SVG Icons ────────────────────────────────────────────────────────────
-
-function IconDashboard() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect width="7" height="7" x="3" y="3" rx="1" /><rect width="7" height="7" x="14" y="3" rx="1" /><rect width="7" height="7" x="14" y="14" rx="1" /><rect width="7" height="7" x="3" y="14" rx="1" />
-    </svg>
-  );
-}
+// ─── Inline SVG helpers (used in core content) ────────────────────────────
 
 function IconDatabase() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5V19A9 3 0 0 0 21 19V5" /><path d="M3 12A9 3 0 0 0 21 12" />
-    </svg>
-  );
-}
-
-function IconShield() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
-    </svg>
-  );
-}
-
-function IconUsers() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
-  );
-}
-
-function IconUser() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
-    </svg>
-  );
-}
-
-function IconPerson() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="8" r="5" /><path d="M20 21a8 8 0 0 0-16 0" />
-    </svg>
-  );
-}
-
-function IconLogout() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" x2="9" y1="12" y2="12" />
     </svg>
   );
 }
@@ -170,14 +114,6 @@ function IconX() {
   );
 }
 
-function IconMenu() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="4" x2="20" y1="12" y2="12" /><line x1="4" x2="20" y1="6" y2="6" /><line x1="4" x2="20" y1="18" y2="18" />
-    </svg>
-  );
-}
-
 function IconCheck() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -229,14 +165,11 @@ function truncateStr(str: string, max: number): string {
 // ─── Component ────────────────────────────────────────────────────────────
 
 export default function ConfigTablesPage() {
-  const supabase = createClient();
-  const [user, setUser] = useState<User | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
-
-  // Sidebar state
+  // Table list state
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [tableListLoading, setTableListLoading] = useState(true);
 
   // Data state
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
@@ -245,7 +178,6 @@ export default function ConfigTablesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchDebounced, setSearchDebounced] = useState("");
   const [dataLoading, setDataLoading] = useState(false);
-  const [tableListLoading, setTableListLoading] = useState(true);
 
   // Modal state
   const [modalMode, setModalMode] = useState<ModalMode>(null);
@@ -258,34 +190,18 @@ export default function ConfigTablesPage() {
   const [deleteTarget, setDeleteTarget] = useState<Record<string, unknown> | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Toast
-  const [toasts, setToasts] = useState<ToastMessage[]>([]);
-  const toastIdRef = useState(0);
+  // Error display
+  const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // ─── Auth ───────────────────────────────────────────────────────────────
+  const showError = useCallback((msg: string) => {
+    setError(msg);
+    setTimeout(() => setError(null), 4000);
+  }, []);
 
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      setAuthLoading(false);
-    };
-    getUser();
-  }, [supabase]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.href = "/admin/login";
-  };
-
-  // ─── Toast system ───────────────────────────────────────────────────────
-
-  const addToast = useCallback((type: ToastMessage["type"], message: string) => {
-    const id = Date.now() + Math.random();
-    setToasts((prev) => [...prev, { id, type, message }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4000);
+  const showSuccess = useCallback((msg: string) => {
+    setSuccessMsg(msg);
+    setTimeout(() => setSuccessMsg(null), 4000);
   }, []);
 
   // ─── Fetch table list ──────────────────────────────────────────────────
@@ -299,18 +215,17 @@ export default function ConfigTablesPage() {
         const data = await res.json();
         setCategories(data.categories || []);
 
-        // Auto-select first table
         if (data.categories?.length > 0 && data.categories[0].tables?.length > 0) {
           setSelectedTable(data.categories[0].tables[0].id);
         }
       } catch (err) {
-        addToast("error", "Failed to load table list");
+        showError("Failed to load table list");
       } finally {
         setTableListLoading(false);
       }
     };
     fetchTables();
-  }, [addToast]);
+  }, [showError]);
 
   // ─── Search debounce ───────────────────────────────────────────────────
 
@@ -350,12 +265,12 @@ export default function ConfigTablesPage() {
       setRows(data.data || []);
       setPagination((prev) => ({ ...prev, ...data.pagination }));
     } catch (err) {
-      addToast("error", err instanceof Error ? err.message : "Failed to load data");
+      showError(err instanceof Error ? err.message : "Failed to load data");
       setRows([]);
     } finally {
       setDataLoading(false);
     }
-  }, [selectedTable, pagination.page, pagination.pageSize, sortConfig, searchDebounced, addToast]);
+  }, [selectedTable, pagination.page, pagination.pageSize, sortConfig, searchDebounced, showError]);
 
   useEffect(() => {
     fetchTableData();
@@ -434,17 +349,15 @@ export default function ConfigTablesPage() {
     const tableConfig = getTableConfig(selectedTable);
     if (!tableConfig) return;
 
-    // Validate required fields
     const requiredCols = tableConfig.columns.filter((c) => c.required && !c.hidden);
     for (const col of requiredCols) {
       const val = formData[col.key];
       if (val === undefined || val === null || val === "") {
-        addToast("error", `Required field "${col.label}" is missing`);
+        showError(`Required field "${col.label}" is missing`);
         return;
       }
     }
 
-    // Validate JSON fields
     const jsonCols = tableConfig.columns.filter((c) => c.type === "json");
     for (const col of jsonCols) {
       const val = formData[col.key];
@@ -452,7 +365,7 @@ export default function ConfigTablesPage() {
         try {
           JSON.parse(val);
         } catch {
-          addToast("error", `Invalid JSON in "${col.label}"`);
+          showError(`Invalid JSON in "${col.label}"`);
           return;
         }
       }
@@ -461,7 +374,6 @@ export default function ConfigTablesPage() {
     try {
       setSaving(true);
 
-      // Prepare body - only editable columns
       const body: Record<string, unknown> = {};
       for (const col of tableConfig.columns) {
         if (!col.editable && !col.required) continue;
@@ -494,7 +406,7 @@ export default function ConfigTablesPage() {
           const errData = await res.json().catch(() => null);
           throw new Error(errData?.message || "Failed to create row");
         }
-        addToast("success", "Row created successfully");
+        showSuccess("Row created successfully");
       } else if (modalMode === "edit" && currentRow) {
         const pk = tableConfig.primaryKey;
         const pkValue = String(currentRow[pk]);
@@ -507,15 +419,14 @@ export default function ConfigTablesPage() {
           const errData = await res.json().catch(() => null);
           throw new Error(errData?.message || "Failed to update row");
         }
-        addToast("success", "Row updated successfully");
+        showSuccess("Row updated successfully");
       }
 
       closeModal();
       fetchTableData();
-      // Refresh table list to update row counts
       refreshTableCounts();
     } catch (err) {
-      addToast("error", err instanceof Error ? err.message : "Save failed");
+      showError(err instanceof Error ? err.message : "Save failed");
     } finally {
       setSaving(false);
     }
@@ -539,12 +450,12 @@ export default function ConfigTablesPage() {
         const errData = await res.json().catch(() => null);
         throw new Error(errData?.message || "Failed to delete row");
       }
-      addToast("success", "Row deleted successfully");
+      showSuccess("Row deleted successfully");
       setDeleteTarget(null);
       fetchTableData();
       refreshTableCounts();
     } catch (err) {
-      addToast("error", err instanceof Error ? err.message : "Delete failed");
+      showError(err instanceof Error ? err.message : "Delete failed");
     } finally {
       setDeleting(false);
     }
@@ -572,454 +483,368 @@ export default function ConfigTablesPage() {
     ? currentTableConfig.columns.filter((c) => !c.hidden)
     : [];
 
-  // ─── Get row count for a table ──────────────────────────────────────────
-
-  const getRowCount = (tableId: string): number => {
-    for (const cat of categories) {
-      const t = cat.tables.find((t) => t.id === tableId);
-      if (t) return t.rowCount;
-    }
-    return 0;
-  };
-
-  // ─── Auth loading ───────────────────────────────────────────────────────
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-2 border-warning border-t-transparent rounded-full animate-spin" />
-          <p className="text-zinc-400 text-sm">Loading config tables...</p>
-        </div>
-      </div>
-    );
-  }
-
   // ─── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex flex-col">
-      {/* ─── Top Header ─────────────────────────────────────────────────── */}
-      <header className="h-14 bg-zinc-900/80 border-b border-zinc-800 flex items-center justify-between px-4 sm:px-6 shrink-0 z-30">
-        <div className="flex items-center gap-3">
-          {/* Mobile menu button */}
-          <button
-            className="md:hidden text-zinc-400 hover:text-white p-1"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
-            <IconMenu />
-          </button>
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M2 20h20" /><path d="M5 20V8l7-5 7 5v12" /><path d="M9 20v-6h6v6" />
-            </svg>
-          </div>
-          <h1 className="text-white font-semibold text-sm sm:text-base">IndustriaX Backend</h1>
-          <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-xs bg-warning/10 text-warning border border-warning/20">
-            Admin
-          </span>
-        </div>
-        <div className="flex items-center gap-3 sm:gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-zinc-700 flex items-center justify-center text-zinc-400">
-              <IconUser />
-            </div>
-            <span className="text-zinc-300 text-xs sm:text-sm max-w-[150px] truncate">
-              {user?.email || "Unknown"}
-            </span>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="text-zinc-400 hover:text-danger transition-colors p-1.5 rounded-md hover:bg-zinc-800"
-            title="Sign out"
-          >
-            <IconLogout />
-          </button>
-        </div>
-      </header>
-
-      <div className="flex flex-1 overflow-hidden">
-        {/* ─── Mobile Sidebar Overlay ──────────────────────────────────── */}
-        {sidebarOpen && (
-          <div
-            className="md:hidden fixed inset-0 bg-black/60 z-20"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-
-        {/* ─── Sidebar ────────────────────────────────────────────────── */}
-        <aside className={`
-          fixed md:static inset-y-0 left-0 z-20 md:z-auto
-          w-64 md:w-56 bg-zinc-900/95 md:bg-zinc-900/50 border-r border-zinc-800
-          flex flex-col shrink-0 transition-transform duration-200
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
-          pt-14 md:pt-0
-        `}>
-          {/* Nav items */}
-          <nav className="p-3 space-y-1 border-b border-zinc-800">
-            <a
-              href="/admin"
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-all"
-            >
-              <IconDashboard />
-              <span>Dashboard</span>
-            </a>
-            <a
-              href="/admin/players"
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-all"
-            >
-              <IconPerson />
-              <span>Players</span>
-            </a>
-            <a
-              href="/admin/investigations"
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-all"
-            >
-              <IconShield />
-              <span>Investigations</span>
-            </a>
-            <a
-              href="/admin/audit"
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-all"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M8 21h12a2 2 0 0 0 2-2v-2H10v2a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v3h4" /><path d="M19 3H9v7h14V5a2 2 0 0 0-2-2Z" />
-              </svg>
-              <span>Audit Log</span>
-            </a>
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm bg-warning/10 text-warning border border-warning/20">
-              <IconDatabase />
-              <span className="flex-1">Config Tables</span>
-              <div className="w-1.5 h-1.5 rounded-full bg-warning" />
-            </div>
-            <a
-              href="/admin/admins"
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-all"
-            >
-              <IconUsers />
-              <span>Admin</span>
-            </a>
-          </nav>
-
-          {/* Table list by category */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-4">
-            {tableListLoading ? (
-              <div className="space-y-2">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="h-8 bg-zinc-800/50 rounded animate-pulse" />
-                ))}
-              </div>
-            ) : (
-              categories.map((cat) => (
-                <div key={cat.name}>
-                  <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1.5 px-2">
-                    {cat.name}
-                  </p>
-                  <div className="space-y-0.5">
-                    {cat.tables.map((table) => (
-                      <button
-                        key={table.id}
-                        onClick={() => handleSelectTable(table.id)}
-                        className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs transition-all ${
-                          selectedTable === table.id
-                            ? "bg-warning/10 text-warning border border-warning/20"
-                            : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60"
-                        }`}
-                      >
-                        <span className="text-sm">{table.icon}</span>
-                        <span className="flex-1 text-left truncate">{table.displayName}</span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
-                          selectedTable === table.id
-                            ? "bg-warning/20 text-warning"
-                            : "bg-zinc-800 text-zinc-500"
-                        }`}>
-                          {table.rowCount >= 0 ? table.rowCount : "?"}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-
-          {/* Phase indicator */}
-          <div className="p-3 border-t border-zinc-800">
-            <div className="p-3 bg-zinc-800/50 rounded-lg">
-              <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Phase</p>
-              <p className="text-xs text-warning font-medium">Phase 3 — Admin & Moderation</p>
-              <div className="mt-2 w-full bg-zinc-700 rounded-full h-1.5">
-                <div className="bg-warning h-1.5 rounded-full" style={{ width: "80%" }} />
-              </div>
-            </div>
-          </div>
-        </aside>
-
-        {/* ─── Main Content ───────────────────────────────────────────── */}
-        <main className="flex-1 overflow-y-auto">
-          {!selectedTable || !currentTableConfig ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <div className="text-4xl mb-4">🗄️</div>
-                <h2 className="text-white text-lg font-medium mb-2">Select a table</h2>
-                <p className="text-zinc-500 text-sm">Choose a config table from the sidebar to view and manage its data.</p>
-              </div>
-            </div>
-          ) : (
-            <div className="p-4 sm:p-6">
-              {/* ─── Table Header ─────────────────────────────────────── */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{currentTableConfig.icon}</span>
-                    <h2 className="text-white text-lg font-semibold">{currentTableConfig.displayName}</h2>
-                  </div>
-                  <p className="text-zinc-500 text-xs mt-1">
-                    {currentTableConfig.id} · {pagination.total} row{pagination.total !== 1 ? "s" : ""}
-                  </p>
-                </div>
-                <button
-                  onClick={openCreateModal}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-warning hover:bg-warning text-black font-medium text-sm rounded-lg transition-colors shrink-0"
-                >
-                  <IconPlus />
-                  Add Row
-                </button>
-              </div>
-
-              {/* ─── Search Bar ───────────────────────────────────────── */}
-              <div className="relative mb-4">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">
-                  <IconSearch />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Search across all text columns..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-zinc-900/80 border border-zinc-800 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => { setSearchQuery(""); setSearchDebounced(""); }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
-                  >
-                    <IconX />
-                  </button>
-                )}
-              </div>
-
-              {/* ─── Data Table ───────────────────────────────────────── */}
-              <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl overflow-hidden">
-                {dataLoading ? (
-                  <div className="p-8 space-y-3">
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <div key={i} className="h-10 bg-zinc-800/50 rounded animate-pulse" />
-                    ))}
-                  </div>
-                ) : rows.length === 0 ? (
-                  <div className="p-12 text-center">
-                    <div className="text-3xl mb-3">📭</div>
-                    <p className="text-zinc-400 text-sm">
-                      {searchDebounced ? "No rows match your search." : "This table is empty."}
-                    </p>
-                    {!searchDebounced && (
-                      <button
-                        onClick={openCreateModal}
-                        className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-warning/10 text-warning text-sm rounded-lg hover:bg-warning/20 transition-colors border border-warning/20"
-                      >
-                        <IconPlus />
-                        Create first row
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-zinc-800">
-                            {/* Row actions column */}
-                            <th className="px-3 py-3 text-left text-xs text-zinc-500 font-medium w-20 sticky left-0 bg-zinc-900/95 z-10">
-                              Actions
-                            </th>
-                            {visibleColumns.map((col) => (
-                              <th
-                                key={col.key}
-                                className={`px-3 py-3 text-xs font-medium whitespace-nowrap ${
-                                  col.type === "number" || col.type === "integer"
-                                    ? "text-right"
-                                    : "text-left"
-                                } ${col.sortable ? "cursor-pointer hover:text-zinc-200 select-none" : "text-zinc-500"}`}
-                                onClick={() => col.sortable && handleSort(col.key)}
-                              >
-                                <div className={`flex items-center gap-1 ${col.type === "number" || col.type === "integer" ? "justify-end" : ""}`}>
-                                  <span className={col.key === currentTableConfig.primaryKey ? "text-warning" : "text-zinc-500"}>
-                                    {col.label}
-                                    {col.key === currentTableConfig.primaryKey && (
-                                      <span className="ml-1 text-[9px] text-warning/60">PK</span>
-                                    )}
-                                  </span>
-                                  {col.sortable && sortConfig.column === col.key && (
-                                    <span className="text-warning">
-                                      {sortConfig.order === "asc" ? <IconChevronUp /> : <IconChevronDown />}
-                                    </span>
-                                  )}
-                                  {col.required && (
-                                    <span className="text-danger/60 text-[10px]">*</span>
-                                  )}
-                                </div>
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {rows.map((row, rowIdx) => (
-                            <tr
-                              key={String(row[currentTableConfig.primaryKey] ?? rowIdx)}
-                              className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors group"
-                            >
-                              {/* Actions */}
-                              <td className="px-3 py-2.5 sticky left-0 bg-zinc-900/90 group-hover:bg-zinc-800/40 z-10">
-                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button
-                                    onClick={() => openEditModal(row)}
-                                    className="p-1.5 rounded text-zinc-400 hover:text-warning hover:bg-warning/10 transition-colors"
-                                    title="Edit row"
-                                  >
-                                    <IconEdit />
-                                  </button>
-                                  <button
-                                    onClick={() => setDeleteTarget(row)}
-                                    className="p-1.5 rounded text-zinc-400 hover:text-danger hover:bg-danger/10 transition-colors"
-                                    title="Delete row"
-                                  >
-                                    <IconTrash />
-                                  </button>
-                                </div>
-                              </td>
-                              {visibleColumns.map((col) => (
-                                <td
-                                  key={col.key}
-                                  className={`px-3 py-2.5 text-xs ${
-                                    col.type === "number" || col.type === "integer"
-                                      ? "text-right font-mono"
-                                      : ""
-                                  } ${col.key === currentTableConfig.primaryKey ? "text-warning font-medium" : "text-zinc-300"}`}
-                                >
-                                  {col.type === "boolean" ? (
-                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                                      row[col.key]
-                                        ? "bg-success/15 text-success border border-success/20"
-                                        : "bg-danger/15 text-danger border border-danger/20"
-                                    }`}>
-                                      {row[col.key] ? "true" : "false"}
-                                    </span>
-                                  ) : col.type === "json" ? (
-                                    <JsonCell
-                                      value={row[col.key]}
-                                      colKey={col.key}
-                                      expanded={jsonExpanded[`${rowIdx}-${col.key}`] || false}
-                                      onToggle={() =>
-                                        setJsonExpanded((prev) => ({
-                                          ...prev,
-                                          [`${rowIdx}-${col.key}`]: !prev[`${rowIdx}-${col.key}`],
-                                        }))
-                                      }
-                                    />
-                                  ) : (
-                                    <span className="block max-w-[300px] truncate" title={formatCellValue(row[col.key], col)}>
-                                      {col.key === "icon" ? (
-                                        <span className="inline-flex items-center gap-1">
-                                          <span>{String(row[col.key] ?? "")}</span>
-                                        </span>
-                                      ) : (
-                                        truncateStr(formatCellValue(row[col.key], col), 80)
-                                      )}
-                                    </span>
-                                  )}
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {/* ─── Pagination ──────────────────────────────────── */}
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-zinc-800">
-                      <div className="flex items-center gap-2 text-xs text-zinc-500">
-                        <span>
-                          Showing {((pagination.page - 1) * pagination.pageSize) + 1}–{Math.min(pagination.page * pagination.pageSize, pagination.total)} of {pagination.total}
-                        </span>
-                        <span className="text-zinc-700">|</span>
-                        <div className="flex items-center gap-1">
-                          <span>Rows:</span>
-                          {[10, 25, 50, 100].map((size) => (
-                            <button
-                              key={size}
-                              onClick={() => {
-                                setPagination((prev) => ({ ...prev, pageSize: size, page: 1 }));
-                              }}
-                              className={`px-2 py-0.5 rounded text-xs transition-colors ${
-                                pagination.pageSize === size
-                                  ? "bg-warning/20 text-warning"
-                                  : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
-                              }`}
-                            >
-                              {size}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => setPagination((prev) => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
-                          disabled={pagination.page <= 1}
-                          className="p-1.5 rounded text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                        >
-                          <IconChevronLeft />
-                        </button>
-                        {generatePageNumbers(pagination.page, pagination.totalPages).map((p, i) =>
-                          p === "..." ? (
-                            <span key={`dots-${i}`} className="px-1 text-zinc-600 text-xs">...</span>
-                          ) : (
-                            <button
-                              key={p}
-                              onClick={() => setPagination((prev) => ({ ...prev, page: p as number }))}
-                              className={`w-8 h-8 rounded text-xs transition-colors ${
-                                pagination.page === p
-                                  ? "bg-warning/20 text-warning font-medium"
-                                  : "text-zinc-400 hover:text-white hover:bg-zinc-800"
-                              }`}
-                            >
-                              {p}
-                            </button>
-                          )
-                        )}
-                        <button
-                          onClick={() => setPagination((prev) => ({ ...prev, page: Math.min(prev.totalPages, prev.page + 1) }))}
-                          disabled={pagination.page >= pagination.totalPages}
-                          className="p-1.5 rounded text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                        >
-                          <IconChevronRight />
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
+    <div className="flex flex-1 -m-6" style={{ margin: '-1.5rem' }}>
+      {/* Notification banners */}
+      {(error || successMsg) && (
+        <div className="absolute top-0 left-0 right-0 z-40 p-3">
+          {error && (
+            <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-danger/15 text-danger border border-danger/20 text-sm font-medium">
+              {error}
             </div>
           )}
-        </main>
-      </div>
+          {successMsg && (
+            <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-success/15 text-success border border-success/20 text-sm font-medium mt-1">
+              <IconCheck />
+              {successMsg}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/60 z-20"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* ─── Table List Sidebar ────────────────────────────────────────── */}
+      <aside className={`
+        fixed md:static inset-y-0 left-0 z-20 md:z-auto
+        w-64 md:w-56 bg-zinc-900/95 md:bg-zinc-900/50 border-r border-zinc-800
+        flex flex-col shrink-0 transition-transform duration-200
+        ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+        pt-14 md:pt-0
+      `}>
+        {/* Mobile menu button */}
+        <button
+          className="md:hidden fixed top-3 left-3 z-30 text-zinc-400 hover:text-white p-1 bg-zinc-900/80 rounded"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="4" x2="20" y1="12" y2="12" /><line x1="4" x2="20" y1="6" y2="6" /><line x1="4" x2="20" y1="18" y2="18" />
+          </svg>
+        </button>
+
+        {/* Table list by category */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-4">
+          {tableListLoading ? (
+            <div className="space-y-2">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-8 bg-zinc-800/50 rounded animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            categories.map((cat) => (
+              <div key={cat.name}>
+                <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1.5 px-2">
+                  {cat.name}
+                </p>
+                <div className="space-y-0.5">
+                  {cat.tables.map((table) => (
+                    <button
+                      key={table.id}
+                      onClick={() => handleSelectTable(table.id)}
+                      className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs transition-all ${
+                        selectedTable === table.id
+                          ? "bg-warning/10 text-warning border border-warning/20"
+                          : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60"
+                      }`}
+                    >
+                      <span className="text-sm">{table.icon}</span>
+                      <span className="flex-1 text-left truncate">{table.displayName}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
+                        selectedTable === table.id
+                          ? "bg-warning/20 text-warning"
+                          : "bg-zinc-800 text-zinc-500"
+                      }`}>
+                        {table.rowCount >= 0 ? table.rowCount : "?"}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Phase indicator */}
+        <div className="p-3 border-t border-zinc-800">
+          <div className="p-3 bg-zinc-800/50 rounded-lg">
+            <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Phase</p>
+            <p className="text-xs text-warning font-medium">Phase 3 — Admin & Moderation</p>
+            <div className="mt-2 w-full bg-zinc-700 rounded-full h-1.5">
+              <div className="bg-warning h-1.5 rounded-full" style={{ width: "80%" }} />
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* ─── Main Content ───────────────────────────────────────────────── */}
+      <main className="flex-1 overflow-y-auto">
+        {!selectedTable || !currentTableConfig ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <div className="text-4xl mb-4">🗄️</div>
+              <h2 className="text-white text-lg font-medium mb-2">Select a table</h2>
+              <p className="text-zinc-500 text-sm">Choose a config table from the sidebar to view and manage its data.</p>
+            </div>
+          </div>
+        ) : (
+          <div className="p-4 sm:p-6">
+            {/* ─── Table Header ─────────────────────────────────────────── */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{currentTableConfig.icon}</span>
+                  <h2 className="text-white text-lg font-semibold">{currentTableConfig.displayName}</h2>
+                </div>
+                <p className="text-zinc-500 text-xs mt-1">
+                  {currentTableConfig.id} · {pagination.total} row{pagination.total !== 1 ? "s" : ""}
+                </p>
+              </div>
+              <button
+                onClick={openCreateModal}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-warning hover:bg-warning text-black font-medium text-sm rounded-lg transition-colors shrink-0"
+              >
+                <IconPlus />
+                Add Row
+              </button>
+            </div>
+
+            {/* ─── Search Bar ───────────────────────────────────────────── */}
+            <div className="relative mb-4">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">
+                <IconSearch />
+              </div>
+              <input
+                type="text"
+                placeholder="Search across all text columns..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-zinc-900/80 border border-zinc-800 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => { setSearchQuery(""); setSearchDebounced(""); }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+                >
+                  <IconX />
+                </button>
+              )}
+            </div>
+
+            {/* ─── Data Table ───────────────────────────────────────────── */}
+            <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl overflow-hidden">
+              {dataLoading ? (
+                <div className="p-8 space-y-3">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="h-10 bg-zinc-800/50 rounded animate-pulse" />
+                  ))}
+                </div>
+              ) : rows.length === 0 ? (
+                <div className="p-12 text-center">
+                  <div className="text-3xl mb-3">📭</div>
+                  <p className="text-zinc-400 text-sm">
+                    {searchDebounced ? "No rows match your search." : "This table is empty."}
+                  </p>
+                  {!searchDebounced && (
+                    <button
+                      onClick={openCreateModal}
+                      className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-warning/10 text-warning text-sm rounded-lg hover:bg-warning/20 transition-colors border border-warning/20"
+                    >
+                      <IconPlus />
+                      Create first row
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-zinc-800">
+                          <th className="px-3 py-3 text-left text-xs text-zinc-500 font-medium w-20 sticky left-0 bg-zinc-900/95 z-10">
+                            Actions
+                          </th>
+                          {visibleColumns.map((col) => (
+                            <th
+                              key={col.key}
+                              className={`px-3 py-3 text-xs font-medium whitespace-nowrap ${
+                                col.type === "number" || col.type === "integer"
+                                  ? "text-right"
+                                  : "text-left"
+                              } ${col.sortable ? "cursor-pointer hover:text-zinc-200 select-none" : "text-zinc-500"}`}
+                              onClick={() => col.sortable && handleSort(col.key)}
+                            >
+                              <div className={`flex items-center gap-1 ${col.type === "number" || col.type === "integer" ? "justify-end" : ""}`}>
+                                <span className={col.key === currentTableConfig.primaryKey ? "text-warning" : "text-zinc-500"}>
+                                  {col.label}
+                                  {col.key === currentTableConfig.primaryKey && (
+                                    <span className="ml-1 text-[9px] text-warning/60">PK</span>
+                                  )}
+                                </span>
+                                {col.sortable && sortConfig.column === col.key && (
+                                  <span className="text-warning">
+                                    {sortConfig.order === "asc" ? <IconChevronUp /> : <IconChevronDown />}
+                                  </span>
+                                )}
+                                {col.required && (
+                                  <span className="text-danger/60 text-[10px]">*</span>
+                                )}
+                              </div>
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rows.map((row, rowIdx) => (
+                          <tr
+                            key={String(row[currentTableConfig.primaryKey] ?? rowIdx)}
+                            className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors group"
+                          >
+                            <td className="px-3 py-2.5 sticky left-0 bg-zinc-900/90 group-hover:bg-zinc-800/40 z-10">
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={() => openEditModal(row)}
+                                  className="p-1.5 rounded text-zinc-400 hover:text-warning hover:bg-warning/10 transition-colors"
+                                  title="Edit row"
+                                >
+                                  <IconEdit />
+                                </button>
+                                <button
+                                  onClick={() => setDeleteTarget(row)}
+                                  className="p-1.5 rounded text-zinc-400 hover:text-danger hover:bg-danger/10 transition-colors"
+                                  title="Delete row"
+                                >
+                                  <IconTrash />
+                                </button>
+                              </div>
+                            </td>
+                            {visibleColumns.map((col) => (
+                              <td
+                                key={col.key}
+                                className={`px-3 py-2.5 text-xs ${
+                                  col.type === "number" || col.type === "integer"
+                                    ? "text-right font-mono"
+                                    : ""
+                                } ${col.key === currentTableConfig.primaryKey ? "text-warning font-medium" : "text-zinc-300"}`}
+                              >
+                                {col.type === "boolean" ? (
+                                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                                    row[col.key]
+                                      ? "bg-success/15 text-success border border-success/20"
+                                      : "bg-danger/15 text-danger border border-danger/20"
+                                  }`}>
+                                    {row[col.key] ? "true" : "false"}
+                                  </span>
+                                ) : col.type === "json" ? (
+                                  <JsonCell
+                                    value={row[col.key]}
+                                    colKey={col.key}
+                                    expanded={jsonExpanded[`${rowIdx}-${col.key}`] || false}
+                                    onToggle={() =>
+                                      setJsonExpanded((prev) => ({
+                                        ...prev,
+                                        [`${rowIdx}-${col.key}`]: !prev[`${rowIdx}-${col.key}`],
+                                      }))
+                                    }
+                                  />
+                                ) : (
+                                  <span className="block max-w-[300px] truncate" title={formatCellValue(row[col.key], col)}>
+                                    {col.key === "icon" ? (
+                                      <span className="inline-flex items-center gap-1">
+                                        <span>{String(row[col.key] ?? "")}</span>
+                                      </span>
+                                    ) : (
+                                      truncateStr(formatCellValue(row[col.key], col), 80)
+                                    )}
+                                  </span>
+                                )}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* ─── Pagination ──────────────────────────────────────── */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-zinc-800">
+                    <div className="flex items-center gap-2 text-xs text-zinc-500">
+                      <span>
+                        Showing {((pagination.page - 1) * pagination.pageSize) + 1}–{Math.min(pagination.page * pagination.pageSize, pagination.total)} of {pagination.total}
+                      </span>
+                      <span className="text-zinc-700">|</span>
+                      <div className="flex items-center gap-1">
+                        <span>Rows:</span>
+                        {[10, 25, 50, 100].map((size) => (
+                          <button
+                            key={size}
+                            onClick={() => {
+                              setPagination((prev) => ({ ...prev, pageSize: size, page: 1 }));
+                            }}
+                            className={`px-2 py-0.5 rounded text-xs transition-colors ${
+                              pagination.pageSize === size
+                                ? "bg-warning/20 text-warning"
+                                : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
+                            }`}
+                          >
+                            {size}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setPagination((prev) => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
+                        disabled={pagination.page <= 1}
+                        className="p-1.5 rounded text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <IconChevronLeft />
+                      </button>
+                      {generatePageNumbers(pagination.page, pagination.totalPages).map((p, i) =>
+                        p === "..." ? (
+                          <span key={`dots-${i}`} className="px-1 text-zinc-600 text-xs">...</span>
+                        ) : (
+                          <button
+                            key={p}
+                            onClick={() => setPagination((prev) => ({ ...prev, page: p as number }))}
+                            className={`w-8 h-8 rounded text-xs transition-colors ${
+                              pagination.page === p
+                                ? "bg-warning/20 text-warning font-medium"
+                                : "text-zinc-400 hover:text-white hover:bg-zinc-800"
+                            }`}
+                          >
+                            {p}
+                          </button>
+                        )
+                      )}
+                      <button
+                        onClick={() => setPagination((prev) => ({ ...prev, page: Math.min(prev.totalPages, prev.page + 1) }))}
+                        disabled={pagination.page >= pagination.totalPages}
+                        className="p-1.5 rounded text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <IconChevronRight />
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </main>
 
       {/* ─── Create/Edit Modal ──────────────────────────────────────────── */}
       {modalMode && currentTableConfig && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-[5vh] sm:pt-[10vh]">
           <div className="absolute inset-0 bg-black/70" onClick={closeModal} />
           <div className="relative w-full max-w-2xl mx-4 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl max-h-[85vh] flex flex-col">
-            {/* Modal Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 shrink-0">
               <div className="flex items-center gap-2">
                 <span className="text-lg">{currentTableConfig.icon}</span>
@@ -1035,7 +860,6 @@ export default function ConfigTablesPage() {
               </button>
             </div>
 
-            {/* Modal Body */}
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
               {currentTableConfig.columns
                 .filter((col) => col.editable || (modalMode === "create" && col.required))
@@ -1066,7 +890,7 @@ export default function ConfigTablesPage() {
                           }`}
                         >
                           <span
-                            className={`absolute top-0.5 left-0.5 w-4.5 h-4.5 rounded-full bg-white transition-transform ${
+                            className={`absolute top-0.5 left-0.5 rounded-full bg-white transition-transform ${
                               formData[col.key] === true || formData[col.key] === "true"
                                 ? "translate-x-[18px]"
                                 : "translate-x-0"
@@ -1125,7 +949,6 @@ export default function ConfigTablesPage() {
                 ))}
             </div>
 
-            {/* Modal Footer */}
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-800 shrink-0">
               <button
                 onClick={closeModal}
@@ -1188,26 +1011,6 @@ export default function ConfigTablesPage() {
           </div>
         </div>
       )}
-
-      {/* ─── Toast Notifications ────────────────────────────────────────── */}
-      <div className="fixed bottom-4 right-4 z-50 space-y-2 pointer-events-none">
-        {toasts.map((toast) => (
-          <div
-            key={toast.id}
-            className={`pointer-events-auto flex items-center gap-2 px-4 py-3 rounded-lg shadow-xl text-sm font-medium border animate-in slide-in-from-right ${
-              toast.type === "success"
-                ? "bg-success/15 text-success border-success/20"
-                : toast.type === "error"
-                ? "bg-danger/15 text-danger border-danger/20"
-                : "bg-warning/15 text-warning border-warning/20"
-            }`}
-          >
-            {toast.type === "success" && <IconCheck />}
-            {toast.type === "error" && <IconX />}
-            {toast.message}
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
