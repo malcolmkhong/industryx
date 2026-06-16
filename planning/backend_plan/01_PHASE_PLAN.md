@@ -271,7 +271,7 @@
   - `src/app/admin/error.tsx`
 
 ### Task 2B.3 — Move `/api/admins/*` to `/api/admin/admins/*`
-- **Status:** `[ ]`
+- **Status:** `[x]` — Done (`8489296`)
 - **Severity:** P1 — High
 - **Why:** Architectural inconsistency. All other admin APIs under `/api/admin/*`.
 - **Required changes:**
@@ -286,7 +286,7 @@
   - `src/app/admin/admins/page.tsx` (3 fetch calls)
 
 ### Task 2B.4 — Remove duplicate `/api/config` (root)
-- **Status:** `[ ]`
+- **Status:** `[x]` — Done (`8489296`)
 - **Severity:** P1 — High
 - **Why:** `/api/config` (root) duplicates `/api/tables` functionality but with different response format. Not called by config page.
 - **Required changes:**
@@ -323,7 +323,7 @@
   - `src/lib/admin/navTree.ts` (tree data + role-based visibility filter)
 
 ### Task 2B.6 — Add admin entrance in game UI
-- **Status:** `[ ]`
+- **Status:** `[x]` — Done (`8489296`)
 - **Severity:** P1 — High
 - **Why:** Admin users have no way to discover the admin panel from the game UI.
 - **Required changes:**
@@ -337,7 +337,7 @@
 - **Alternative:** Add to `FloatingActionButton.tsx` shortcuts (gated by admin check)
 
 ### Task 2B.7 — Build `/admin/system-status` page
-- **Status:** `[ ]`
+- **Status:** `[x]` — Done (`fb1be07`)
 - **Severity:** P1 — High
 - **New page**
 - **Route:** `/admin/system-status`
@@ -362,7 +362,7 @@
   - `supabase/migrations/033_create_system_health_table.sql` (track last run timestamps)
 
 ### Task 2B.8 — Build `/admin/jobs` page
-- **Status:** `[ ]`
+- **Status:** `[x]` — Done (`fb1be07`)
 - **Severity:** P1 — High
 - **New page**
 - **Route:** `/admin/jobs`
@@ -382,7 +382,7 @@
   - `supabase/migrations/034_create_admin_jobs_history_table.sql`
 
 ### Task 2B.9 — Build `/admin/market` page
-- **Status:** `[ ]`
+- **Status:** `[x]` — Done (`fb1be07`)
 - **Severity:** P1 — High
 - **New page**
 - **Route:** `/admin/market`
@@ -403,7 +403,7 @@
   - `src/app/api/admin/market/force-tick/route.ts` (POST force)
 
 ### Task 2B.10 — Add `PUT /api/admin/admins/[id]/role` endpoint
-- **Status:** `[ ]`
+- **Status:** `[x]` — Done (`8489296`)
 - **Severity:** P1 — High
 - **Why:** No way to change an admin's role. Must delete and re-add.
 - **Required features:**
@@ -737,17 +737,17 @@
 - [x] **2A.7** — Fix `X-RateLimit-Remaining` hardcoded value
 - [x] **2A.8** — Flush in-memory admin cache on admin add/remove
 
-### Phase 2B — Refactor + System Status (P1) — 3-4 days 🔄 IN PROGRESS
+### Phase 2B — Refactor + System Status (P1) — 3-4 days ✅ COMPLETE (`ce51b3d`, `8489296`, `fb1be07`)
 - [x] **2B.1** — Create `src/app/admin/layout.tsx` (with **Compact Navigation Tree** sidebar — see design spec in task) (`ce51b3d`)
 - [x] **2B.2** — Create `loading.tsx` and `error.tsx` (`ce51b3d`)
-- [ ] **2B.3** — Move `/api/admins/*` to `/api/admin/admins/*`
-- [ ] **2B.4** — Remove duplicate `/api/config` (root)
-- [x] **2B.5** — Create `src/components/admin/` shared library (tree components + AdminHeader done; DataTable, Pagination, ConfirmModal, StatusBadge, EmptyState pending) (`ce51b3d`)
-- [ ] **2B.6** — Add admin entrance in game UI
-- [ ] **2B.7** — Build `/admin/system-status` page
-- [ ] **2B.8** — Build `/admin/jobs` page
-- [ ] **2B.9** — Build `/admin/market` page
-- [ ] **2B.10** — Add `PUT /api/admin/admins/[id]/role` endpoint
+- [x] **2B.3** — Move `/api/admins/*` to `/api/admin/admins/*` (`8489296`)
+- [x] **2B.4** — Remove duplicate `/api/config` (root) (`8489296`)
+- [x] **2B.5** — Create `src/components/admin/` shared library (tree components, AdminHeader, StatusBadge, ConfirmModal, Pagination, EmptyState) (`ce51b3d`, `8489296`)
+- [x] **2B.6** — Add admin entrance in game UI (Shield icon in GameSidebar) (`8489296`)
+- [x] **2B.7** — Build `/admin/system-status` page (`fb1be07`)
+- [x] **2B.8** — Build `/admin/jobs` page (`fb1be07`)
+- [x] **2B.9** — Build `/admin/market` page (`fb1be07`)
+- [x] **2B.10** — Add `PUT /api/admin/admins/[id]/role` endpoint (`8489296`)
 
 ### Phase 2C — New Features + Polish (P2) — 3-5 days
 - [ ] **2C.1** — Build `/admin/economy` page
@@ -783,7 +783,7 @@
 | Phase | Days | Tasks | Risk |
 |---|---|---|---|
 | 2A | 1-2 | 8 | ✅ Complete (`ab131a9`) |
-| 2B | 3-4 | 10 | 🟡 Medium — refactor + 3 new pages |
+| 2B | 3-4 | 10 | ✅ Complete (`ce51b3d`, `8489296`, `fb1be07`) |
 | 2C | 3-5 | 8 | 🟡 Medium — 3 new pages + polish |
 | 2D | TBD | 3 | 🟢 Low — future work |
 | CC | 2-3 | 10 | 🟢 Low — incremental polish |
