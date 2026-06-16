@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import {
   Bell, Check, Cloud, CloudOff, Download, Loader2, LogIn, LogOut,
   Pause, Play, RefreshCw, RotateCcw, Settings, Upload, User, Wifi, WifiOff,
+  Wrench,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -339,31 +340,35 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
             <span className={showSavedFlash ? 'text-success' : 'text-muted-label'}>Saved</span>
           </div>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-label hover:text-brand focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background" onClick={onExport} aria-label="Export save">
-                <Download className="w-3 h-3" />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs text-muted-label hover:text-brand focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                aria-label="Tools menu"
+              >
+                <Wrench aria-hidden="true" className="w-3 h-3" />
               </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="bg-card border-brand/30">
-              <p className="text-xs">Export Save</p>
-            </TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-label hover:text-brand focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background" onClick={onImport} aria-label="Import save">
-                <Upload className="w-3 h-3" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="bg-card border-brand/30">
-              <p className="text-xs">Import Save</p>
-            </TooltipContent>
-          </Tooltip>
-
-          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-label focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background" onClick={onReset} aria-label="Reset game">
-            <RotateCcw className="w-3 h-3" />
-          </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 bg-card border-brand/30">
+              <DropdownMenuLabel className="text-xs">Tools</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={onExport} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand">
+                <Download className="w-3 h-3 mr-2" aria-hidden="true" /> Export Save
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={onImport} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand">
+                <Upload className="w-3 h-3 mr-2" aria-hidden="true" /> Import Save
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={reloadConfig} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand">
+                <RefreshCw className="w-3 h-3 mr-2" aria-hidden="true" /> Reload Config
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={onReset} className="text-xs cursor-pointer text-danger focus:text-danger focus-visible:ring-2 focus-visible:ring-danger">
+                <RotateCcw className="w-3 h-3 mr-2" aria-hidden="true" /> Reset Game
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <OnlineCount />
 
