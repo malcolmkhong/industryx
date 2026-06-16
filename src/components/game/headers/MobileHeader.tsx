@@ -404,6 +404,15 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
       <div className="flex items-center gap-1">
         {authLoading ? (
           <Loader2 className="w-5 h-5 text-muted-label animate-spin" />
+        ) : isGuest ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-11 min-h-[44px] px-3 text-xs text-brand hover:text-brand border border-brand/30 hover:border-brand/30 rounded-lg focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            onClick={() => promptLogin('manual')}
+          >
+            <LogIn className="w-3.5 h-3.5 mr-1" /> Bind Account
+          </Button>
         ) : user ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -462,15 +471,6 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        ) : isGuest ? (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-11 min-h-[44px] px-3 text-xs text-brand hover:text-brand border border-brand/30 hover:border-brand/30 rounded-lg focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            onClick={() => promptLogin('manual')}
-          >
-            <LogIn className="w-3.5 h-3.5 mr-1" /> Bind Account
-          </Button>
         ) : (
           <Button
             variant="ghost"
