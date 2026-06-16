@@ -4,6 +4,16 @@ import { useCallback, useRef, useState } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
 import { BUILDING_DEFS, WEATHER_DEFS } from '@/lib/game/configCache';
 import { GameTab, ResourceType } from '@/lib/game/types';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { DashboardPanel } from '@/components/game/DashboardPanel';
 import { ResourcePanel } from '@/components/game/ResourcePanel';
 import { FactoryPanel } from '@/components/game/FactoryPanel';
@@ -129,6 +139,7 @@ export default function Home() {
   const [importString, setImportString] = useState('');
   const [importError, setImportError] = useState('');
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
 
   // Login prompt system
   const { isOpen: loginPromptOpen, reason: loginPromptReason, promptLogin, closePrompt } = useLoginPrompt();
@@ -194,9 +205,12 @@ export default function Home() {
   }, [importSave, importString]);
 
   const handleReset = useCallback(() => {
-    if (confirm('Are you sure you want to reset? All progress will be lost!')) {
-      resetGame();
-    }
+    setResetConfirmOpen(true);
+  }, []);
+
+  const confirmReset = useCallback(() => {
+    resetGame();
+    setResetConfirmOpen(false);
   }, [resetGame]);
 
   const handleCollectOfflineEarnings = useCallback(() => {
@@ -355,6 +369,27 @@ export default function Home() {
         offlineData={offlineData}
         onCollect={handleCollectOfflineEarnings}
       />
+
+      <AlertDialog open={resetConfirmOpen} onOpenChange={setResetConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset game progress?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently erase all your factories, resources, research, and prestige.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmReset}
+              className="bg-danger text-white hover:bg-danger/90 focus-visible:ring-danger"
+            >
+              Yes, reset everything
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </TooltipProvider>
     </ErrorBoundary>
   );
