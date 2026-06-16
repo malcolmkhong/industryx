@@ -12,7 +12,6 @@ import {
 } from 'lucide-react';
 import { LucideIcon } from 'lucide-react';
 import { SupportButton } from './SupportButton';
-import { isAdminUserDb } from '@/lib/auth/admin';
 
 // ─── Navigation Tab Definition ─────────────────────────────────────────────────
 
@@ -155,8 +154,8 @@ export function GameSidebar({ activeTab, onTabChange }: GameSidebarProps) {
       const supabase = (await import('@/lib/supabase/client')).createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const admin = await isAdminUserDb(user.id);
-        setIsAdmin(admin);
+        const { data } = await supabase.from('admin_users').select('user_id').eq('user_id', user.id).single();
+        setIsAdmin(!!data);
       }
     };
     check();
