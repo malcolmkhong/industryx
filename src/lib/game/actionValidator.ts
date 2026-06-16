@@ -1,5 +1,10 @@
-// Phase 2.2: Wraps store action mutations with server validation
-// Calls /api/game/action and only applies the local change if server approves.
+// Phase 2.3: Wraps store action mutations with server validation.
+// This is now BLOCKING (await) — callers must wait for the server response
+// before applying the local mutation. If the server rejects, the caller
+// must NOT apply the action.
+//
+// The server validates against server_game_state (authoritative), not the
+// client-sent gameState. Replay protection is provided by `requestId`.
 
 'use client';
 
@@ -31,20 +36,27 @@ export interface ValidatedActionResult {
 }
 
 /**
- * Phase 2.2: Validate an action with the server before applying locally.
+ * Phase 2.3: Validate an action with the server (BLOCKING).
+ *
  * Returns { approved: true } if server approves (caller should apply the action).
  * Returns { approved: false, error } if server rejects (caller should NOT apply).
  *
- * The current server validation API only validates the action shape and
- * affordability against the client's claim. Phase 2.3 will make the server
- * load server_game_state for actual validation. Phase 7 will add periodic
- * server-side checks for gradual cheaters.
+ * If the server is unreachable, `submitActionToServer` returns { valid: true }
+ * (degraded mode) so the local action still proceeds — this preserves offline
+ * tolerance. The catch-up will happen on the next 120s cloud save.
+ *
+ * @param actionType The type of action being validated
+ * @param payload The action-specific payload
+ * @param requestId Phase 2.3: UUID v4 nonce for replay protection. If not
+ *   provided, one will be generated. Reusing a requestId causes a 409 from
+ *   the server.
  */
 export async function validateActionWithServer(
   actionType: ValidatedActionType,
-  payload: Record<string, unknown>
+  payload: Record<string, unknown>,
+  requestId?: string,
 ): Promise<ValidatedActionResult> {
-  const validation = await submitActionToServer(actionType, payload);
+  const validation = await submitActionToServer(actionType, payload, requestId);
 
   if (!validation.valid) {
     return {

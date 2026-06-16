@@ -475,24 +475,34 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
 
         {/* More actions for non-auth users (or when no user menu) */}
         {!user && (
-          <Tooltip>
-            <TooltipTrigger asChild>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <button
                 type="button"
                 className={`${btn44Ghost}`}
-                aria-label="More actions"
+                aria-label="Tools menu"
               >
-                <Settings className="w-4 h-4" />
+                <Settings aria-hidden="true" className="w-4 h-4" />
               </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="w-44 bg-card border-brand/30 p-2">
-              <div className="space-y-0.5">
-                <Button variant="ghost" size="sm" className="w-full justify-start h-9 text-[11px] focus-visible:ring-2 focus-visible:ring-brand" onClick={onExport}><Download className="w-3 h-3 mr-1.5" /> Export Save</Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start h-9 text-[11px] focus-visible:ring-2 focus-visible:ring-brand" onClick={onImport}><Upload className="w-3 h-3 mr-1.5" /> Import Save</Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start h-9 text-[11px] text-danger focus-visible:ring-2 focus-visible:ring-danger" onClick={onReset}><RotateCcw className="w-3 h-3 mr-1.5" /> Reset Game</Button>
-              </div>
-            </TooltipContent>
-          </Tooltip>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44 bg-card border-brand/30">
+              <DropdownMenuLabel className="text-xs">Tools</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={onExport} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand">
+                <Download className="w-3 h-3 mr-2" aria-hidden="true" /> Export Save
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={onImport} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand">
+                <Upload className="w-3 h-3 mr-2" aria-hidden="true" /> Import Save
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={reloadConfig} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand">
+                <RefreshCw className="w-3 h-3 mr-2" aria-hidden="true" /> Reload Config
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={onReset} className="text-xs cursor-pointer text-danger focus:text-danger focus-visible:ring-2 focus-visible:ring-danger">
+                <RotateCcw className="w-3 h-3 mr-2" aria-hidden="true" /> Reset Game
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
     </div>

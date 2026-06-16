@@ -6,10 +6,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import {
-  simulateMarketTick, recordPlayerSell, recordPlayerBuy, createInitialSimState,
+  recordPlayerSell, recordPlayerBuy, createInitialSimState,
   MarketSimulationState, MarketSector,
 } from './marketSimulator';
-import { initNewsLLM, addEventToBatch, registerUpdateCallback, updateGameDay, getLLMState, LLMEngineState } from './newsLLM';
+import { initNewsLLM, registerUpdateCallback, getLLMState, LLMEngineState } from './newsLLM';
 import {
   GameState, GameTab, ResourceType, BuildingInstance, BuildingType,
   TransportLine, TransportType, Worker, WorkerType, Contract,
@@ -47,6 +47,13 @@ const SAVE_VERSION = 20;
 // --- Utility Functions ---
 function generateId(): string {
   return Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
+}
+
+function getGlobalPrice(state: GameState, resource: ResourceType): number {
+  const global = state.serverMarket?.prices?.find(p => p.resource === resource);
+  if (global) return global.currentPrice;
+  const local = state.market.find(m => m.resource === resource);
+  return local?.currentPrice ?? 0;
 }
 
 // Helper to compute total bonus value from completed mega projects for a given bonus type
@@ -782,43 +789,43 @@ function createInitialState(): GameState {
 interface GameActions {
   // Core
   gameTickAction: () => void;
-  setGameSpeed: (speed: number) => void;
+  setGameSpeed: (speed: number) => Promise<void>;
   togglePause: () => void;
   setActiveTab: (tab: GameTab) => void;
-  
+
   // Buildings
-  buildBuilding: (type: BuildingType) => void;
+  buildBuilding: (type: BuildingType) => Promise<void>;
   upgradeBuilding: (id: string) => void;
-  toggleBuilding: (id: string) => void;
+  toggleBuilding: (id: string) => Promise<void>;
   selectBuilding: (id: string | null) => void;
-  
+
   // Transport
   buildTransportLine: (type: TransportType, from: string, to: string, resource: ResourceType) => void;
   upgradeTransportLine: (id: string) => void;
   toggleTransportLine: (id: string) => void;
-  
+
   // Research
-  startResearch: (id: string) => void;
-  
+  startResearch: (id: string) => Promise<void>;
+
   // Workers
-  hireWorker: (type: WorkerType) => void;
-  assignWorker: (workerId: string, buildingId: string | null) => void;
+  hireWorker: (type: WorkerType) => Promise<void>;
+  assignWorker: (workerId: string, buildingId: string | null) => Promise<void>;
   levelUpWorker: (workerId: string) => void;
-  
+
   // Market
-  sellResource: (resource: ResourceType, amount: number) => void;
-  buyResource: (resource: ResourceType, amount: number) => void;
+  sellResource: (resource: ResourceType, amount: number) => Promise<void>;
+  buyResource: (resource: ResourceType, amount: number) => Promise<void>;
   toggleAutoSell: (resource: ResourceType) => void;
-  
+
   // Contracts
   acceptContract: (contract: Contract) => void;
   fulfillContract: (id: string) => void;
-  
+
   // Automation
   activateAutomation: (type: string) => void;
-  
+
   // Prestige
-  doPrestige: () => void;
+  doPrestige: () => Promise<void>;
   purchasePrestigeBonus: (id: string) => void;
   
   // Notifications
@@ -867,7 +874,7 @@ interface GameActions {
   claimDailyReward: (day: number) => void;
 
   // Quests
-  claimQuestReward: (questId: string) => void;
+  claimQuestReward: (questId: string) => Promise<void>;
   updateQuestProgress: (type: string, amount: number, targetId?: string) => void;
   setTrackedQuest: (id: string | null) => void;
 
@@ -882,7 +889,7 @@ interface GameActions {
 
   // Drones
   buyDrone: () => void;
-  sendDrone: (missionId: string, droneId: string) => void;
+  sendDrone: (missionId: string, droneId: string) => Promise<void>;
   upgradeDrone: (droneId: string, type: 'speed' | 'capacity' | 'fuelEfficiency') => void;
   generateDroneMissions: () => DroneMission[];
 
@@ -1139,65 +1146,19 @@ export const useGameStore = create<GameStore>()(
         // megaMarketBonus (used by auto-sell pricing below)
         const megaMarketBonus = cache.marketBonus - (cache.hasMarketAnalysis ? 0.2 : 0) - state.prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'marketMultiplier').reduce((sum, b) => sum + b.effect.value, 0);
 
-        // Update market prices using supply-demand simulator (throttled to every 5 ticks)
+        // Sync market prices from global server market (updated every 60s by cron)
+        // Falls back to local market if server hasn't loaded yet
         let newMarket = state.market;
         let newMarketSimState = state.marketSimState;
         let newSectorTrends = state.sectorTrends;
-        if (newTick % 5 === 0) {
-          // Get player production/consumption rates from snapshot
-          const playerProduction: Partial<Record<ResourceType, number>> = {};
-          const playerConsumption: Partial<Record<ResourceType, number>> = {};
-          if (state.productionSnapshot) {
-            for (const [res, rate] of Object.entries(state.productionSnapshot.production)) {
-              if (rate > 0) playerProduction[res as ResourceType] = rate;
-            }
-            for (const [res, rate] of Object.entries(state.productionSnapshot.actualConsumption)) {
-              if (rate > 0) playerConsumption[res as ResourceType] = rate;
-            }
-          }
-
-          const simResult = simulateMarketTick({
-            market: state.market,
-            production: playerProduction,
-            consumption: playerConsumption,
-            activeEvents: state.activeEvents,
-            simState: state.marketSimState,
-            gameTick: newTick,
-            resources: newResources,
-            resourceCapacity: state.resourceCapacity,
+        if (newTick % 5 === 0 && state.serverMarket?.prices) {
+          const globalPrices = state.serverMarket.prices;
+          newMarket = state.market.map(m => {
+            const global = globalPrices.find(p => p.resource === m.resource);
+            return global
+              ? { ...m, currentPrice: global.currentPrice, priceHistory: m.priceHistory }
+              : m;
           });
-          newMarket = simResult.market;
-          newMarketSimState = simResult.simState;
-          newSectorTrends = simResult.sectorTrends;
-
-          // Append news and narratives (cap to prevent unbounded growth)
-          if (simResult.news.length > 0 || simResult.narratives.length > 0) {
-            const MAX_NEWS = 30;
-            const MAX_NARRATIVES = 20;
-            const existingNews = state.marketNews ?? [];
-            const existingNarratives = state.marketNarratives ?? [];
-            set({
-              marketNews: [...simResult.news, ...existingNews].slice(0, MAX_NEWS),
-              marketNarratives: [...simResult.narratives, ...existingNarratives].slice(0, MAX_NARRATIVES),
-            });
-
-            // ── Async LLM Enhancement ──
-            // Try to enhance news text with local LLM (non-blocking)
-            // Only processes news items that have eventPackets and haven't been enhanced yet
-            const newsToEnhance = simResult.news.filter(n => n.eventPacket && n.textSource === 'fallback');
-            if (newsToEnhance.length > 0) {
-              // Update game day for budget tracking
-              updateGameDay(Math.floor(newTick / 86400));
-              // Initialize LLM if needed (lazy, once)
-              initLLMIfNeeded();
-              // Push events to batch buffer — the batch system handles timing and API calls
-              for (const news of newsToEnhance) {
-                if (news.eventPacket) {
-                  addEventToBatch(news.eventPacket, news.id);
-                }
-              }
-            }
-          }
         }
 
         // Process research
@@ -1452,7 +1413,7 @@ export const useGameStore = create<GameStore>()(
           (Object.keys(newResources) as ResourceType[]).forEach(r => {
             const excess = newResources[r] - getCapacity(state, r, undefined, cache) * bal.autoSell.thresholdRatio;
             if (excess > 0) {
-              const marketPrice = newMarket.find(m => m.resource === r)?.currentPrice ?? 0;
+              const marketPrice = getGlobalPrice(state, r);
               const sellPrice = marketPrice * computeSellMultiplier(state, cache);
               const sellAmount = Math.min(excess, 5);
               newResources[r] -= sellAmount;
@@ -1469,17 +1430,15 @@ export const useGameStore = create<GameStore>()(
         // market flooding while still draining faster than the old flat-10 cap.
         let autoSellSimState = newMarketSimState;
         if (state.autoSellResources.length > 0) {
-          // Build market lookup Map for O(1) access
-          const marketMap = new Map(newMarket.map(m => [m.resource, m]));
           state.autoSellResources.forEach(r => {
             const capacity = getCapacity(state, r, undefined, cache);
             const threshold = capacity * bal.autoSell.thresholdRatio;
             const held = newResources[r];
             const excess = held - threshold;
             if (excess > 0) {
-              const marketItem = marketMap.get(r);
-              if (marketItem) {
-                const sellPrice = marketItem.currentPrice * computeSellMultiplier(state, cache);
+              const globalPrice = getGlobalPrice(state, r);
+              if (globalPrice > 0) {
+                const sellPrice = globalPrice * computeSellMultiplier(state, cache);
                 // Sell 50% of excess, but at least 1 and at most 10% of capacity
                 const sellAmount = Math.max(1, Math.min(Math.ceil(excess * bal.autoSell.excessSellRatio), Math.ceil(capacity * bal.autoSell.maxSellCapacityRatio)));
                 const actualSell = Math.min(sellAmount, held); // can't sell more than we have
@@ -1848,21 +1807,22 @@ export const useGameStore = create<GameStore>()(
       // C4 FIX: Validate game speed against allowed values before setting.
       // Without this, a player could set speed to 1000 via console, causing
       // 1000 ticks/second, browser crash, and data corruption.
-      setGameSpeed: (speed: number) => {
+      setGameSpeed: async (speed: number) => {
         const ALLOWED_SPEEDS = [1, 2, 5, 10] as const;
         if (!ALLOWED_SPEEDS.includes(speed as typeof ALLOWED_SPEEDS[number])) {
           console.warn(`[Security] Invalid game speed ${speed} rejected. Allowed: ${ALLOWED_SPEEDS.join(', ')}`);
           return; // Reject invalid speed — do not update state
         }
 
-        // Phase 2.2: Server validation (fire-and-forget, server catches cheating on next save)
-        void (async () => {
-          try {
-            await import('./actionValidator').then(m =>
-              m.validateActionWithServer('set_game_speed', { speed })
-            );
-          } catch {}
-        })();
+        // Phase 2.3: BLOCKING server validation. See actionValidator.ts.
+        const validation = await import('./actionValidator').then(m =>
+          m.validateActionWithServer('set_game_speed', { speed }, generateId())
+        );
+        if (!validation.approved) {
+          console.warn(`[Security] Server rejected game speed ${speed}:`, validation.error);
+          get().addNotification('error', validation.error ?? 'Game speed change rejected by server');
+          return;
+        }
 
         set({ gameSpeed: speed });
       },
@@ -1870,7 +1830,7 @@ export const useGameStore = create<GameStore>()(
       setActiveTab: (tab: GameTab) => set({ activeTab: tab }),
 
       // --- BUILDING ACTIONS ---
-      buildBuilding: (type: BuildingType) => {
+      buildBuilding: async (type: BuildingType) => {
         const state = get();
         const def = BUILDING_DEFS[type];
         if (!def) return;
@@ -1891,15 +1851,15 @@ export const useGameStore = create<GameStore>()(
           return;
         }
 
-        // Phase 2.2: Server validation (fire-and-forget, server catches cheating on next save)
-        // Phase 2.3 will make this blocking; for now it's advisory
-        void (async () => {
-          try {
-            await import('./actionValidator').then(m =>
-              m.validateActionWithServer('build', { buildingType: type })
-            );
-          } catch {}
-        })();
+        // Phase 2.3: BLOCKING. See actionValidator.ts.
+        const validation = await import('./actionValidator').then(m =>
+          m.validateActionWithServer('build', { buildingType: type }, generateId())
+        );
+        if (!validation.approved) {
+          soundEngine.play('error', 'ui');
+          get().addNotification('error', validation.error ?? `Building ${def.name} rejected by server`);
+          return;
+        }
 
         const building: BuildingInstance = {
           id: generateId(),
@@ -1950,7 +1910,7 @@ export const useGameStore = create<GameStore>()(
         get().addNotification('info', `Upgraded ${def.name} to level ${building.level + 1}`);
       },
 
-      toggleBuilding: (id: string) => {
+      toggleBuilding: async (id: string) => {
         const state = get();
         const building = state.buildings.find(b => b.id === id);
         if (!building) return;
@@ -1960,14 +1920,14 @@ export const useGameStore = create<GameStore>()(
           b.id === id ? { ...b, active: newActive } : b
         );
 
-        // Phase 2.2: Server validation (fire-and-forget, server catches cheating on next save)
-        void (async () => {
-          try {
-            await import('./actionValidator').then(m =>
-              m.validateActionWithServer('toggle_building', { buildingId: id, enabled: newActive })
-            );
-          } catch {}
-        })();
+        const validation = await import('./actionValidator').then(m =>
+          m.validateActionWithServer('toggle_building', { buildingId: id, enabled: newActive }, generateId())
+        );
+        if (!validation.approved) {
+          soundEngine.play('error', 'ui');
+          get().addNotification('error', validation.error ?? 'Building toggle rejected by server');
+          return;
+        }
 
         // Recalculate power grid immediately so UI updates without waiting for next tick
         // Uses productionCalculator's computePowerGrid for consistency with gameTick
@@ -2069,7 +2029,7 @@ export const useGameStore = create<GameStore>()(
       },
 
       // --- RESEARCH ACTIONS ---
-      startResearch: (id: string) => {
+      startResearch: async (id: string) => {
         const state = get();
         if (state.activeResearch) {
           get().addNotification('warning', 'Research already in progress!');
@@ -2095,14 +2055,14 @@ export const useGameStore = create<GameStore>()(
           return;
         }
 
-        // Phase 2.2: Server validation (fire-and-forget, server catches cheating on next save)
-        void (async () => {
-          try {
-            await import('./actionValidator').then(m =>
-              m.validateActionWithServer('research', { researchId: id })
-            );
-          } catch {}
-        })();
+        const validation = await import('./actionValidator').then(m =>
+          m.validateActionWithServer('research', { researchId: id }, generateId())
+        );
+        if (!validation.approved) {
+          soundEngine.play('error', 'ui');
+          get().addNotification('error', validation.error ?? `Research "${node.name}" rejected by server`);
+          return;
+        }
 
         set({
           researchPoints: state.researchPoints - node.cost,
@@ -2115,7 +2075,7 @@ export const useGameStore = create<GameStore>()(
       },
 
       // --- WORKER ACTIONS ---
-      hireWorker: (type: WorkerType) => {
+      hireWorker: async (type: WorkerType) => {
         const state = get();
         const def = WORKER_DEFS[type];
         if (!def) return;
@@ -2125,14 +2085,14 @@ export const useGameStore = create<GameStore>()(
           return;
         }
 
-        // Phase 2.2: Server validation (fire-and-forget, server catches cheating on next save)
-        void (async () => {
-          try {
-            await import('./actionValidator').then(m =>
-              m.validateActionWithServer('hire_worker', { workerType: type, count: 1 })
-            );
-          } catch {}
-        })();
+        const validation = await import('./actionValidator').then(m =>
+          m.validateActionWithServer('hire_worker', { workerType: type, count: 1 }, generateId())
+        );
+        if (!validation.approved) {
+          soundEngine.play('error', 'ui');
+          get().addNotification('error', validation.error ?? `Hiring ${def.name} rejected by server`);
+          return;
+        }
 
         const worker: Worker = {
           id: generateId(),
@@ -2153,17 +2113,17 @@ export const useGameStore = create<GameStore>()(
         get().updateQuestProgress('worker', 1);
       },
 
-      assignWorker: (workerId: string, buildingId: string | null) => {
+      assignWorker: async (workerId: string, buildingId: string | null) => {
         const state = get();
 
-        // Phase 2.2: Server validation (fire-and-forget, server catches cheating on next save)
-        void (async () => {
-          try {
-            await import('./actionValidator').then(m =>
-              m.validateActionWithServer('assign_worker', { workerId, buildingId })
-            );
-          } catch {}
-        })();
+        const validation = await import('./actionValidator').then(m =>
+          m.validateActionWithServer('assign_worker', { workerId, buildingId }, generateId())
+        );
+        if (!validation.approved) {
+          soundEngine.play('error', 'ui');
+          get().addNotification('error', validation.error ?? 'Worker assignment rejected by server');
+          return;
+        }
 
         set({
           workers: state.workers.map(w =>
@@ -2177,7 +2137,7 @@ export const useGameStore = create<GameStore>()(
       },
 
       // --- MARKET ACTIONS ---
-      sellResource: (resource: ResourceType, amount: number) => {
+      sellResource: async (resource: ResourceType, amount: number) => {
         const state = get();
         if (state.resources[resource] < amount) {
           soundEngine.play('error', 'ui');
@@ -2185,22 +2145,29 @@ export const useGameStore = create<GameStore>()(
           return;
         }
 
-        const marketItem = state.market.find(m => m.resource === resource);
-        if (!marketItem) return;
+        const globalPrice = getGlobalPrice(state, resource);
+        if (globalPrice <= 0) return;
 
-        const sellPrice = marketItem.currentPrice * amount * computeSellMultiplier(state, buildMultipliers(state));
+        const sellPrice = globalPrice * amount * computeSellMultiplier(state, buildMultipliers(state));
 
         // Record player sell in market simulator (affects future prices + freshness tracking)
         const newSimState = recordPlayerSell(state.marketSimState, resource, amount, state.gameTick);
 
-        // Phase 2.2: Server validation (fire-and-forget, server catches cheating on next save)
-        void (async () => {
-          try {
-            await import('./actionValidator').then(m =>
-              m.validateActionWithServer('sell', { resource, amount })
-            );
-          } catch {}
-        })();
+        // Report trade to global market pressure pool
+        fetch('/api/market/action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ resource, type: 'sell', amount }),
+        }).catch(() => {});
+
+        const validation = await import('./actionValidator').then(m =>
+          m.validateActionWithServer('sell', { resource, amount }, generateId())
+        );
+        if (!validation.approved) {
+          soundEngine.play('error', 'ui');
+          get().addNotification('error', validation.error ?? 'Sell rejected by server');
+          return;
+        }
 
         set({
           resources: { ...state.resources, [resource]: state.resources[resource] - amount },
@@ -2214,12 +2181,12 @@ export const useGameStore = create<GameStore>()(
         get().updateQuestProgress('sell', 1);
       },
 
-      buyResource: (resource: ResourceType, amount: number) => {
+      buyResource: async (resource: ResourceType, amount: number) => {
         const state = get();
-        const marketItem = state.market.find(m => m.resource === resource);
-        if (!marketItem) return;
+        const globalPrice = getGlobalPrice(state, resource);
+        if (globalPrice <= 0) return;
 
-        const cost = marketItem.currentPrice * amount * getBalance().market.buyPriceMarkup;
+        const cost = globalPrice * amount * getBalance().market.buyPriceMarkup;
         if (state.money < cost) {
           soundEngine.play('error', 'ui');
           get().addNotification('error', 'Not enough money!');
@@ -2236,14 +2203,21 @@ export const useGameStore = create<GameStore>()(
         // Record player buy in market simulator (affects future prices + freshness tracking)
         const newSimState = recordPlayerBuy(state.marketSimState, resource, amount, state.gameTick);
 
-        // Phase 2.2: Server validation (fire-and-forget, server catches cheating on next save)
-        void (async () => {
-          try {
-            await import('./actionValidator').then(m =>
-              m.validateActionWithServer('buy', { resource, amount })
-            );
-          } catch {}
-        })();
+        // Report trade to global market pressure pool
+        fetch('/api/market/action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ resource, type: 'buy', amount }),
+        }).catch(() => {});
+
+        const validation = await import('./actionValidator').then(m =>
+          m.validateActionWithServer('buy', { resource, amount }, generateId())
+        );
+        if (!validation.approved) {
+          soundEngine.play('error', 'ui');
+          get().addNotification('error', validation.error ?? 'Buy rejected by server');
+          return;
+        }
 
         set({
           resources: { ...state.resources, [resource]: newAmount },
@@ -2346,21 +2320,21 @@ export const useGameStore = create<GameStore>()(
       },
 
       // --- PRESTIGE ACTIONS ---
-      doPrestige: () => {
+      doPrestige: async () => {
         const state = get();
         if (state.buildings.length < 5) {
           get().addNotification('error', 'Need at least 5 buildings to Global Expand!');
           return;
         }
 
-        // Phase 2.2: Server validation (fire-and-forget, server catches cheating on next save)
-        void (async () => {
-          try {
-            await import('./actionValidator').then(m =>
-              m.validateActionWithServer('do_prestige', {})
-            );
-          } catch {}
-        })();
+        const validation = await import('./actionValidator').then(m =>
+          m.validateActionWithServer('do_prestige', {}, generateId())
+        );
+        if (!validation.approved) {
+          soundEngine.play('error', 'ui');
+          get().addNotification('error', validation.error ?? 'Prestige rejected by server');
+          return;
+        }
 
         const pointsEarned = Math.floor(state.buildings.length * getBalance().prestige.cpPerBuilding + state.completedResearch.length * 2 + state.stats.contractsCompleted);
 
@@ -2750,7 +2724,7 @@ export const useGameStore = create<GameStore>()(
         get().addNotification('success', `🚁 New drone purchased for $${formatNumber(cost)}!`);
       },
 
-      sendDrone: (missionId: string, droneId: string) => {
+      sendDrone: async (missionId: string, droneId: string) => {
         const state = get();
         const drone = state.drones.fleet.find(d => d.id === droneId);
         if (!drone || drone.status !== 'idle') return;
@@ -2768,14 +2742,14 @@ export const useGameStore = create<GameStore>()(
           return;
         }
 
-        // Phase 2.2: Server validation (fire-and-forget, server catches cheating on next save)
-        void (async () => {
-          try {
-            await import('./actionValidator').then(m =>
-              m.validateActionWithServer('start_drone_mission', { missionId, droneId })
-            );
-          } catch {}
-        })();
+        const validation = await import('./actionValidator').then(m =>
+          m.validateActionWithServer('start_drone_mission', { missionId, droneId }, generateId())
+        );
+        if (!validation.approved) {
+          soundEngine.play('error', 'building');
+          get().addNotification('error', validation.error ?? 'Drone mission rejected by server');
+          return;
+        }
 
         // Calculate delivery time with speed upgrade
         const deliveryTicks = Math.max(10, Math.floor(mission.baseTicks / (1 + (drone.speedLevel - 1) * getBalance().drone.speedUpgradeCoeff)));
@@ -2955,20 +2929,20 @@ export const useGameStore = create<GameStore>()(
       },
 
       // --- QUEST ACTIONS ---
-      claimQuestReward: (questId: string) => {
+      claimQuestReward: async (questId: string) => {
         const state = get();
         const quest = state.quests.find(q => q.id === questId);
         if (!quest || !quest.completed || quest.claimed) return;
 
-        // Phase 2.2: Server validation (fire-and-forget, server catches cheating on next save)
-        void (async () => {
-          try {
-            await import('./actionValidator').then(m =>
-              m.validateActionWithServer('claim_quest', { questId })
-            );
-          } catch {}
-        })();
-        
+        const validation = await import('./actionValidator').then(m =>
+          m.validateActionWithServer('claim_quest', { questId }, generateId())
+        );
+        if (!validation.approved) {
+          soundEngine.play('error', 'events');
+          get().addNotification('error', validation.error ?? 'Quest claim rejected by server');
+          return;
+        }
+
         set({
           money: state.money + quest.reward.money,
           totalMoneyEarned: state.totalMoneyEarned + quest.reward.money,

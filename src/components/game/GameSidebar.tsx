@@ -8,7 +8,7 @@ import {
   Save, Bell, BookOpen, Trophy, BarChart3,
   Map as MapIcon, Gift, Scroll, DollarSign, Plane,
   Settings, ChevronDown, ChevronRight, Home, Wrench, Swords, Coins, Database,
-  Activity, Coffee, Heart, ArrowRightLeft,
+  Activity, Coffee, Heart, ArrowRightLeft, Brain,
 } from 'lucide-react';
 import { LucideIcon } from 'lucide-react';
 
@@ -37,6 +37,7 @@ export const NAV_GROUPS: NavGroup[] = [
     color: 'text-brand',
     tabs: [
       { id: 'dashboard', label: 'Dashboard', icon: Factory, color: 'text-brand' },
+      { id: 'advisor', label: 'AI Advisor', icon: Brain, color: 'text-success' },
       { id: 'factoryMap', label: 'Factory Map', icon: MapIcon, color: 'text-success' },
       { id: 'resourceMonitor', label: 'Monitor', icon: Activity, color: 'text-brand' },
       { id: 'guide', label: 'Guide', icon: BookOpen, color: 'text-success' },

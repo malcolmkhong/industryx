@@ -108,6 +108,8 @@ export interface EventPacket {
     oldPrice?: number;
     newPrice?: number;
     basePrice?: number;
+    prodRate?: number;
+    consRate?: number;
   };
 }
 

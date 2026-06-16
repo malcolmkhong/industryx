@@ -1,0 +1,31 @@
+{
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "entry": [
+    "src/lib/game/store.ts",
+    "src/lib/game/actionValidator.ts",
+    "src/lib/game/serverActions.ts",
+    "src/lib/auth/verifyAuth.ts",
+    "src/lib/auth/admin.ts",
+    "src/lib/auth/gameStateValidator.ts",
+    "src/lib/auth/rateLimiter.ts",
+    "src/lib/hooks/useCloudSync.ts",
+    "src/components/ui/**"
+  ],
+  "project": ["src/**/*.{ts,tsx}"],
+  "ignoreDependencies": [
+    "@prisma/client",
+    "prisma",
+    "@tanstack/react-query"
+  ],
+  "next": true,
+  "ignoreExportsUsedInFile": true,
+  "rules": {
+    "files": "warn",
+    "dependencies": "warn",
+    "devDependencies": "warn",
+    "exports": "warn",
+    "types": "warn",
+    "unresolved": "warn",
+    "duplicates": "warn"
+  }
+}

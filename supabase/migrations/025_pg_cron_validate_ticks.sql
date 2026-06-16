@@ -42,7 +42,7 @@ SELECT cron.schedule(
   '*/5 * * * *',  -- every 5 minutes
   $$
     SELECT net.http_post(
-      url := '<APP_URL>/api/cron/validate-ticks',
+      url := 'https://industryx.vercel.app/api/cron/validate-ticks',
       headers := jsonb_build_object(
         'Content-Type', 'application/json',
         'Authorization', 'Bearer ' || current_setting('app.cron_secret', true)
@@ -67,7 +67,7 @@ SELECT cron.schedule(
     -- Clean up old player_actions (keep last 90 days)
     DELETE FROM player_actions
     WHERE created_at < NOW() - INTERVAL '90 days';
-    
+
     -- Clean up rate_limits (cap at 100k rows)
     DELETE FROM rate_limits
     WHERE id NOT IN (

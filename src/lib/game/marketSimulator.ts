@@ -879,6 +879,8 @@ export function simulateMarketTick(input: MarketSimulationInput): MarketSimulati
     const oldPrice = m.currentPrice / (1 + changeRatio);
     const packet = buildEventPacketFromPriceMove(m.resource, oldPrice, m.currentPrice, m.basePrice);
     if (packet) {
+      packet.context.prodRate = production[m.resource] ?? 0;
+      packet.context.consRate = consumption[m.resource] ?? 0;
       candidates.push(newsFromPacket(packet, [m.resource], gameTick, 'price_move'));
     }
   }
@@ -888,6 +890,8 @@ export function simulateMarketTick(input: MarketSimulationInput): MarketSimulati
   for (const { resource, injection } of newInjectionEvents) {
     if (injection.source === 'macro' || injection.intensity >= VOLATILITY_NEWS_MIN_INTENSITY) {
       const packet = buildEventPacketFromVolatility(resource, injection);
+      packet.context.prodRate = production[resource] ?? 0;
+      packet.context.consRate = consumption[resource] ?? 0;
       candidates.push(newsFromPacket(packet, [resource], gameTick, 'volatility'));
     }
   }
@@ -905,6 +909,11 @@ export function simulateMarketTick(input: MarketSimulationInput): MarketSimulati
     const avgChange = totalChange / sectorRes.length;
     const packet = buildEventPacketFromSector(sector, trend, avgChange);
     if (packet) {
+      // Aggregate sector-wide production/consumption
+      let totalProd = 0; let totalCons = 0;
+      for (const r of sectorRes) { totalProd += production[r] ?? 0; totalCons += consumption[r] ?? 0; }
+      packet.context.prodRate = totalProd;
+      packet.context.consRate = totalCons;
       candidates.push(newsFromPacket(packet, sectorRes, gameTick, 'sector'));
     }
   }
@@ -922,6 +931,8 @@ export function simulateMarketTick(input: MarketSimulationInput): MarketSimulati
     if (gameTick - lastTrade > TRADE_FRESHNESS_TICKS) continue;
     const packet = buildEventPacketFromTrade(m.resource, sells, buys);
     if (packet) {
+      packet.context.prodRate = production[m.resource] ?? 0;
+      packet.context.consRate = consumption[m.resource] ?? 0;
       candidates.push(newsFromPacket(packet, [m.resource], gameTick, 'trade'));
     }
   }

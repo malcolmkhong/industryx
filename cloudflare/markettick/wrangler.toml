@@ -1,0 +1,9 @@
+name = "markettick"
+main = "worker.js"
+compatibility_date = "2026-06-01"
+
+[triggers]
+crons = ["* * * * *"]
+
+[vars]
+SUPABASE_SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indra3pxdHNlcXdjeXl5ZXpyb3FxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDY4OTQ0NSwiZXhwIjoyMDk2MjY1NDQ1fQ.jcMZzKMLwWlXIynvGCOSmj9Ap4L3lCWSa5wojFEwmWc"  # Set via: npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY

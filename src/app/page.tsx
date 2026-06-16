@@ -15,6 +15,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { DashboardPanel } from '@/components/game/DashboardPanel';
+import AIAdvisorPanel from '@/components/game/AIAdvisorPanel';
 import { ResourcePanel } from '@/components/game/ResourcePanel';
 import { FactoryPanel } from '@/components/game/FactoryPanel';
 import { TransportPanel } from '@/components/game/TransportPanel';
@@ -85,6 +86,7 @@ import { useAutoOpenGuide } from '@/lib/hooks/page/useAutoOpenGuide';
 import { useGameTickLoop } from '@/lib/hooks/page/useGameTickLoop';
 import { useAutoSaveIndicator } from '@/lib/hooks/page/useAutoSaveIndicator';
 import { useTabChange } from '@/lib/hooks/page/useTabChange';
+import { useServerMarket } from '@/lib/hooks/useServerMarket';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import { AccountSettingsModal } from '@/components/game/AccountSettingsModal';
@@ -127,6 +129,7 @@ export default function Home() {
   useKeyboardShortcuts();
   useAutoOpenGuide();
   useGameTickLoop(effectiveSpeed, paused);
+  useServerMarket();
   const { lastSaveTime, showSavedFlash } = useAutoSaveIndicator();
   const handleTabChange = useTabChange();
   const { signInWithGoogle } = useAuth();
@@ -223,6 +226,7 @@ export default function Home() {
   const renderPanel = () => {
     switch (activeTab) {
       case 'dashboard': return <DashboardPanel />;
+      case 'advisor': return <AIAdvisorPanel />;
       case 'factoryMap': return <FactoryMapPanel />;
       case 'resourceMonitor': return <GlobalResourceMonitorPanel />;
       case 'resources': return <ResourcePanel />;

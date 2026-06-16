@@ -8,13 +8,14 @@ import {
   Activity, Search, AlertTriangle, TrendingUp, TrendingDown,
   Zap, Link2, Navigation, ChevronUp, ChevronDown, Filter,
   ArrowUpDown, Package, BarChart3, Database, AlertCircle,
-  Wallet, FlaskConical, Building2,
+  Wallet, FlaskConical, Building2, GitBranch,
 } from 'lucide-react';
 import { useGameStore, formatNumber, hasUnlimitedStorage } from '@/lib/game/store';
 import { BUILDING_DEFS, RESOURCE_META } from '@/lib/game/configCache';
 import { ResourceType, GameTab } from '@/lib/game/types';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
 import { GameIcon } from '@/components/game/shared/GameIcon';
+import ResourceFlowDiagram from './ResourceFlowDiagram';
 
 // ─── Tier Badge Colors ────────────────────────────────────────────────────────
 const TIER_COLORS: Record<number, { bg: string; text: string; border: string }> = {
@@ -315,6 +316,12 @@ export default function GlobalResourceMonitorPanel() {
     return withCap.reduce((s, r) => s + r.fillPct, 0) / withCap.length;
   }, [allResources]);
 
+  const mostConstrained = useMemo(() => {
+    const withConsumption = allResources.filter(r => r.consumptionRate > 0);
+    if (withConsumption.length === 0) return null;
+    return withConsumption.reduce((worst, r) => r.netRate < worst.netRate ? r : worst);
+  }, [allResources]);
+
   // ─── Summary totals ─────────────────────────────────────────────────────
   const totalProduction = useMemo(() => allResources.reduce((s, r) => s + r.productionRate, 0), [allResources]);
   const totalConsumption = useMemo(() => allResources.reduce((s, r) => s + r.consumptionRate, 0), [allResources]);
@@ -413,7 +420,7 @@ export default function GlobalResourceMonitorPanel() {
       </div>
 
       {/* ─── OVERVIEW STATS ROW ──────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <PanelStatCard
           icon={<Database className="w-4 h-4" />}
           label="Total Resources"
@@ -443,6 +450,14 @@ export default function GlobalResourceMonitorPanel() {
           value={`${avgUtilization.toFixed(1)}%`}
           subtext="avg fill across all"
           color={avgUtilization > 90 ? 'red' : avgUtilization > 70 ? 'orange' : 'sky'}
+        />
+        <PanelStatCard
+          icon={<GitBranch className="w-4 h-4" />}
+          label="Most Constrained"
+          value={mostConstrained ? mostConstrained.name : <span className="text-muted-label text-xs">—</span>}
+          subtext={mostConstrained ? `${mostConstrained.netRate > 0 ? '+' : ''}${formatNumber(mostConstrained.netRate)}/s net` : 'no active consumers'}
+          color={mostConstrained && mostConstrained.netRate < 0 ? 'orange' : 'teal'}
+          trend={mostConstrained && mostConstrained.netRate < 0 ? 'down' : undefined}
         />
       </div>
 
@@ -726,6 +741,9 @@ export default function GlobalResourceMonitorPanel() {
           )}
         </div>
       </div>
+
+      {/* ─── RESOURCE FLOW DIAGRAM ─────────────────────────────────────────── */}
+      <ResourceFlowDiagram />
 
       {/* ─── HOVER INTELLIGENCE OVERLAY (portal to body to avoid transform offset) ── */}
       {hoveredRow && typeof document !== 'undefined' && createPortal(

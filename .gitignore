@@ -89,6 +89,10 @@ server.log
 # Editor history (Zed, VSCode, etc.)
 .history/
 
-# Dev server test logs (created by integration tests)
-dev-server.err
-dev-server.out
+# Development
+bun.lock
+Caddyfile
+worklog.md
+
+# Documentation
+docs/

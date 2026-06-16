@@ -416,6 +416,12 @@ export interface GameState {
   sectorTrends: Partial<Record<import('./marketSimulator').MarketSector, 'up' | 'down' | 'stable'>>;
   marketNews: import('./marketSimulator').MarketNews[];
   marketNarratives: import('./marketSimulator').MarketNarrative[];
+  serverMarket?: {
+    prices: Array<{ resource: string; currentPrice: number; basePrice: number; trend: string; volume: number }>;
+    news: Array<{ title: string; description: string; affectedResources: string[] }>;
+    tick: number;
+    volatility: number;
+  };
   
   // Contracts
   contracts: Contract[];
@@ -504,7 +510,7 @@ export interface GameState {
   productionSnapshot: import('./productionCalculator').ProductionSnapshot;
 }
 
-export type GameTab = 'dashboard' | 'factoryMap' | 'resourceMonitor' | 'resources' | 'factories' | 'storage' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'contracts' | 'quests' | 'automation' | 'prestige' | 'events' | 'megaprojects' | 'statistics' | 'blueprints' | 'guide' | 'achievements' | 'leaderboard' | 'dailyRewards' | 'payouts' | 'droneDelivery' | 'tradePost' | 'notifications' | 'settings';
+export type GameTab = 'dashboard' | 'advisor' | 'factoryMap' | 'resourceMonitor' | 'resources' | 'factories' | 'storage' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'contracts' | 'quests' | 'automation' | 'prestige' | 'events' | 'megaprojects' | 'statistics' | 'blueprints' | 'guide' | 'achievements' | 'leaderboard' | 'dailyRewards' | 'payouts' | 'droneDelivery' | 'tradePost' | 'notifications' | 'settings';
 
 // --- Drone Delivery ---
 export interface Drone {

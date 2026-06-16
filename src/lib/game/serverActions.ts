@@ -39,12 +39,16 @@ export function isServerValidationActive(): boolean {
  * Submit a game action to the server for validation.
  * Returns { valid: true } if the action is approved,
  * or { valid: false, error: string } if rejected.
- * 
+ *
+ * Phase 2.3: `requestId` is REQUIRED for replay protection. Server stores
+ * the last 100 requestIds and rejects duplicates with HTTP 409.
+ *
  * For non-logged-in users, always returns { valid: true } (local-only play).
  */
 export async function submitActionToServer(
   actionType: string,
   payload: Record<string, unknown>,
+  requestId?: string,
 ): Promise<{ valid: boolean; error?: string; correctedState?: Record<string, unknown> }> {
   if (!serverValidationEnabled || !userId) {
     // Not logged in — all actions are local-only
@@ -53,7 +57,7 @@ export async function submitActionToServer(
 
   try {
     const state = useGameStore.getState();
-    
+
     const res = await fetch('/api/game/action', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -61,6 +65,7 @@ export async function submitActionToServer(
         userId,
         actionType,
         payload,
+        requestId, // Phase 2.3: forward nonce for server replay detection
         gameState: {
           money: state.money,
           totalMoneyEarned: state.totalMoneyEarned,
@@ -106,48 +111,48 @@ export async function submitActionToServer(
  * Validate a game speed change through the server.
  * This is the most commonly abused action.
  */
-export async function validateGameSpeed(speed: number): Promise<{ valid: boolean; error?: string }> {
+export async function validateGameSpeed(speed: number, requestId?: string): Promise<{ valid: boolean; error?: string }> {
   // Client-side pre-check
   if (![1, 2, 5, 10].includes(speed)) {
     return { valid: false, error: `Invalid game speed: ${speed}` };
   }
 
-  return submitActionToServer('set_game_speed', { speed });
+  return submitActionToServer('set_game_speed', { speed }, requestId);
 }
 
 /**
  * Validate a build action through the server.
  */
-export async function validateBuildAction(buildingType: string): Promise<{ valid: boolean; error?: string }> {
-  return submitActionToServer('build', { buildingType });
+export async function validateBuildAction(buildingType: string, requestId?: string): Promise<{ valid: boolean; error?: string }> {
+  return submitActionToServer('build', { buildingType }, requestId);
 }
 
 /**
  * Validate a research action through the server.
  */
-export async function validateResearchAction(researchId: string): Promise<{ valid: boolean; error?: string }> {
-  return submitActionToServer('research', { researchId });
+export async function validateResearchAction(researchId: string, requestId?: string): Promise<{ valid: boolean; error?: string }> {
+  return submitActionToServer('research', { researchId }, requestId);
 }
 
 /**
  * Validate a sell action through the server.
  */
-export async function validateSellAction(resource: string, amount: number): Promise<{ valid: boolean; error?: string }> {
-  return submitActionToServer('sell_market', { resource, amount });
+export async function validateSellAction(resource: string, amount: number, requestId?: string): Promise<{ valid: boolean; error?: string }> {
+  return submitActionToServer('sell_market', { resource, amount }, requestId);
 }
 
 /**
  * Validate a buy action through the server.
  */
-export async function validateBuyAction(resource: string, amount: number): Promise<{ valid: boolean; error?: string }> {
-  return submitActionToServer('buy_market', { resource, amount });
+export async function validateBuyAction(resource: string, amount: number, requestId?: string): Promise<{ valid: boolean; error?: string }> {
+  return submitActionToServer('buy_market', { resource, amount }, requestId);
 }
 
 /**
  * Validate an upgrade action through the server.
  */
-export async function validateUpgradeAction(buildingId: string): Promise<{ valid: boolean; error?: string }> {
-  return submitActionToServer('upgrade', { buildingId });
+export async function validateUpgradeAction(buildingId: string, requestId?: string): Promise<{ valid: boolean; error?: string }> {
+  return submitActionToServer('upgrade', { buildingId }, requestId);
 }
 
 /**
