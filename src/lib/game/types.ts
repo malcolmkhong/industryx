@@ -187,11 +187,9 @@ export interface PowerGrid {
 }
 
 // --- Events ---
-export type EventType = 'oilCrisis' | 'energyShortage' | 'aiRevolution' | 'economicBoom' | 'naturalDisaster' | 'techBreakthrough' | 'tradeWar' | 'greenInitiative' | 'spaceRace' | 'marketCrash';
-
 export interface GameEvent {
   id: string;
-  type: EventType;
+  type: string;
   name: string;
   description: string;
   duration: number; // ticks

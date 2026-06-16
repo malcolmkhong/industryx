@@ -25,6 +25,7 @@ import {
 } from './configCache';
 import { migrateSaveBuildings } from './idMigration';
 import { soundEngine } from './soundEngine';
+import { pickRandomArchetype, resolveArchetype, type EventArchetype } from './eventArchetypes';
 import {
   buildMultipliers,
   computePowerGrid,
@@ -1269,27 +1270,45 @@ export const useGameStore = create<GameStore>()(
           }
         });
 
-        // Random events (every ~500 ticks)
         const newActiveEvents = state.activeEvents.map(e => ({
           ...e,
           remaining: e.remaining - 1,
         })).filter(e => e.remaining > 0);
 
         if (newTick % 500 === 0 && Math.random() < bal.event.randomTriggerChance && newActiveEvents.length < 2) {
-          const template = EVENT_TEMPLATES[Math.floor(Math.random() * EVENT_TEMPLATES.length)];
+          const archetype = pickRandomArchetype();
+          const resourcePool = Object.keys(RESOURCE_META)
+            .filter(k => !['money', 'researchPoints', 'corporationPoints'].includes(k)) as ResourceType[];
+          const resolved = resolveArchetype(archetype, resourcePool);
+
           const newEvent: GameEvent = {
             id: generateId(),
-            type: template.type,
-            name: template.name,
-            description: template.description,
-            duration: template.duration,
-            remaining: template.duration,
-            effects: template.effects,
-            icon: template.icon,
+            type: archetype.id,
+            name: resolved.name,
+            description: resolved.description,
+            duration: 200 + Math.floor(Math.random() * 200),
+            remaining: 200 + Math.floor(Math.random() * 200),
+            effects: resolved.effects,
+            icon: resolved.icon,
           };
           newActiveEvents.push(newEvent);
           soundEngine.play('eventTriggered', 'events');
-          notifications.push({ id: generateId(), type: 'warning', message: `Event: ${template.name} - ${template.description}`, gameTick: newTick, read: false });
+          notifications.push({ id: generateId(), type: 'warning', message: `Event: ${resolved.name} - ${resolved.description}`, gameTick: newTick, read: false });
+
+          for (const eff of resolved.effects) {
+            if (eff.type === 'marketPriceMultiplier' && eff.target) {
+              const pressureAmount = Math.round(Math.abs(eff.value - 1) * 100);
+              fetch('/api/market/action', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  resource: eff.target,
+                  type: eff.value > 1 ? 'buy' : 'sell',
+                  amount: pressureAmount,
+                }),
+              }).catch(() => {});
+            }
+          }
         }
 
         // Seasonal events - random trigger each tick, limit 1 active seasonal event
