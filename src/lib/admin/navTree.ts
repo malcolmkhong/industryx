@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   LayoutDashboard, Activity, Users, GitCompare, AlertTriangle,
-  Flag, ScrollText, ShieldCheck, Download, Cog, TrendingUp,
+  Flag, ScrollText, ShieldCheck, Cog, TrendingUp,
   BarChart3, Database, KeyRound, UserCog, Lock, LifeBuoy, Search,
 } from 'lucide-react';
 
@@ -27,7 +27,7 @@ export const ADMIN_NAV_TREE: NavTreeGroup[] = [
     label: 'Overview',
     pages: [
       { id: 'dashboard', label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-      { id: 'system-status', label: 'System Status', href: '/admin/system-status', icon: Activity, phase: 'P1' },
+      { id: 'system-status', label: 'System Status', href: '/admin/system-status', icon: Activity },
       { id: 'player-search', label: 'Quick Search', href: '/admin/players', icon: Search },
     ],
   },
@@ -44,7 +44,7 @@ export const ADMIN_NAV_TREE: NavTreeGroup[] = [
     label: 'Investigations',
     pages: [
       { id: 'investigations-queue', label: 'Queue', href: '/admin/investigations', icon: AlertTriangle },
-      { id: 'reports', label: 'Reports', href: '/admin/reports', icon: Flag, phase: 'P2' },
+      { id: 'reports', label: 'Reports', href: '/admin/reports', icon: Flag },
     ],
   },
   {
@@ -53,16 +53,15 @@ export const ADMIN_NAV_TREE: NavTreeGroup[] = [
     pages: [
       { id: 'player-audit', label: 'Player Audit', href: '/admin/actions/player', icon: ScrollText },
       { id: 'admin-audit', label: 'Admin Audit', href: '/admin/actions/admin', icon: ShieldCheck },
-      { id: 'export-audit', label: 'Export', href: '/admin/actions/export', icon: Download, phase: 'P2' },
     ],
   },
   {
     id: 'operations',
     label: 'Operations',
     pages: [
-      { id: 'jobs', label: 'Jobs', href: '/admin/jobs', icon: Cog, phase: 'P1' },
-      { id: 'market', label: 'Market', href: '/admin/market', icon: TrendingUp, phase: 'P1' },
-      { id: 'economy', label: 'Economy', href: '/admin/economy', icon: BarChart3, phase: 'P2' },
+      { id: 'jobs', label: 'Jobs', href: '/admin/jobs', icon: Cog },
+      { id: 'market', label: 'Market', href: '/admin/market', icon: TrendingUp },
+      { id: 'economy', label: 'Economy', href: '/admin/economy', icon: BarChart3 },
     ],
   },
   {
@@ -79,7 +78,7 @@ export const ADMIN_NAV_TREE: NavTreeGroup[] = [
     pages: [
       { id: 'admin-users', label: 'Admin Users', href: '/admin/admins', icon: UserCog },
       { id: 'permissions', label: 'Permissions', href: '/admin/permissions', icon: Lock, phase: 'P3' },
-      { id: 'support', label: 'Support', href: '/admin/support', icon: LifeBuoy, phase: 'P3' },
+      { id: 'support', label: 'Support', href: '/admin/support', icon: LifeBuoy },
     ],
   },
 ];

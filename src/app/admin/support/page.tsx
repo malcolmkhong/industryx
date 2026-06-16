@@ -1,43 +1,231 @@
 'use client';
 
-import { LifeBuoy, MessageSquare } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { RefreshCw, Send, CheckCircle, XCircle, MessageCircle } from 'lucide-react';
+
+interface Ticket {
+  id: string;
+  user_id: string;
+  subject: string;
+  status: 'open' | 'accepted' | 'resolved';
+  accepted_by: string | null;
+  created_at: string;
+  updated_at: string;
+  resolved_at: string | null;
+}
+
+interface Message {
+  id: string;
+  sender_type: 'player' | 'admin';
+  message: string;
+  created_at: string;
+}
+
+const statusBadge: Record<string, string> = {
+  open: 'bg-red-500/10 text-red-400 border-red-500/20',
+  accepted: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+  resolved: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+};
 
 export default function SupportPage() {
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [reply, setReply] = useState('');
+  const [filter, setFilter] = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [counts, setCounts] = useState({ open: 0, accepted: 0, resolved: 0, total: 0 });
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const fetchTickets = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/support/tickets');
+      if (res.ok) {
+        const data = await res.json();
+        setTickets(data.data || []);
+        setCounts(data.counts || { open: 0, accepted: 0, resolved: 0, total: 0 });
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchTickets(); }, [fetchTickets]);
+
+  const openTicket = async (ticket: Ticket) => {
+    setSelectedTicket(ticket);
+    try {
+      const res = await fetch(`/api/admin/support/tickets/${ticket.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setMessages(data.data?.messages || []);
+      }
+    } catch {}
+  };
+
+  const doAction = async (action: 'accept' | 'resolve') => {
+    if (!selectedTicket) return;
+    setSending(true);
+    try {
+      const res = await fetch(`/api/admin/support/tickets/${selectedTicket.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      if (res.ok) {
+        await fetchTickets();
+        const updated = { ...selectedTicket, status: action === 'accept' ? 'accepted' as const : 'resolved' as const };
+        setSelectedTicket(updated);
+        await openTicket(updated);
+      }
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const sendReply = async () => {
+    if (!reply.trim() || !selectedTicket) return;
+    setSending(true);
+    try {
+      const res = await fetch(`/api/admin/support/tickets/${selectedTicket.id}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: reply.trim() }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMessages((prev) => [...prev, data.data]);
+        setReply('');
+      }
+    } finally {
+      setSending(false);
+    }
+  };
+
+  useEffect(() => {
+    const el = messagesEndRef.current;
+    el?.scrollIntoView({ behavior: 'smooth' });
+  });
+
+  const filtered = filter === 'all' ? tickets : tickets.filter((t) => t.status === filter);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="w-6 h-6 border-2 border-zinc-600 border-t-amber-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-xl font-bold text-white">Support</h2>
-          <p className="text-sm text-zinc-400 mt-1">Player tickets, appeals, and user requests</p>
+          <h2 className="text-xl font-bold text-white">Support Tickets</h2>
+          <p className="text-sm text-zinc-400 mt-1">Player support tickets and chat</p>
         </div>
+        <button type="button" onClick={fetchTickets} className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-white bg-zinc-800/50 hover:bg-zinc-700/50 rounded-lg transition-colors">
+          <RefreshCw className="w-3.5 h-3.5" /> Refresh
+        </button>
       </div>
 
-      <div className="flex flex-col items-center justify-center py-20">
-        <div className="w-16 h-16 rounded-2xl bg-zinc-800/50 border border-zinc-700 flex items-center justify-center mb-6">
-          <LifeBuoy className="w-8 h-8 text-zinc-500" />
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+        {[
+          { label: 'Open', value: counts.open, filter: 'open', color: 'text-red-400' },
+          { label: 'Accepted', value: counts.accepted, filter: 'accepted', color: 'text-amber-400' },
+          { label: 'Resolved', value: counts.resolved, filter: 'resolved', color: 'text-emerald-400' },
+          { label: 'Total', value: counts.total, filter: 'all', color: 'text-blue-400' },
+        ].map((c) => (
+          <button type="button" key={c.label} onClick={() => { setFilter(c.filter); setSelectedTicket(null); }}
+            className={`border rounded-xl p-3 text-left transition-colors ${filter === c.filter ? 'border-zinc-600 bg-zinc-800/50' : 'border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800/30'}`}>
+            <p className={`text-lg font-bold ${c.color}`}>{c.value}</p>
+            <p className="text-xs text-zinc-500">{c.label}</p>
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-1 space-y-2 max-h-[70vh] overflow-y-auto pr-1">
+          {filtered.length === 0 ? (
+            <div className="text-center py-8"><p className="text-sm text-zinc-500">No tickets</p></div>
+          ) : (
+            filtered.map((t) => (
+              <button key={t.id} type="button" onClick={() => openTicket(t)}
+                className={`w-full text-left p-3 rounded-xl border transition-colors ${selectedTicket?.id === t.id ? 'border-amber-500/40 bg-amber-500/5' : 'border-zinc-800 hover:border-zinc-700 bg-zinc-900/50'}`}>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm font-medium text-white truncate flex-1">{t.subject}</span>
+                  <span className={`inline-flex text-[10px] font-semibold px-1.5 py-0.5 rounded border ml-2 shrink-0 ${statusBadge[t.status]}`}>{t.status}</span>
+                </div>
+                <p className="text-xs text-zinc-600">{t.user_id.slice(0, 8)}... · {new Date(t.created_at).toLocaleDateString()}</p>
+              </button>
+            ))
+          )}
         </div>
-        <h3 className="text-lg font-semibold text-white mb-2">Support System</h3>
-        <p className="text-sm text-zinc-400 max-w-md text-center mb-2">
-          The support ticket system is planned for Phase 2D.
-        </p>
-        <p className="text-xs text-zinc-600 max-w-md text-center">
-          Features will include: ticket intake form, email integration, player appeals,
-          account recovery requests, and admin notification workflow.
-        </p>
-        <div className="mt-8 p-4 rounded-xl border border-zinc-800 bg-zinc-900/50 max-w-md w-full">
-          <div className="flex items-start gap-3">
-            <MessageSquare className="w-4 h-4 text-zinc-500 mt-0.5 shrink-0" />
-            <div>
-              <p className="text-xs text-zinc-400 mb-2">
-                In the meantime, player issues can be managed through:
-              </p>
-              <ul className="text-xs text-zinc-500 space-y-1">
-                <li>• Player Detail → Lock/Unlock accounts</li>
-                <li>• Investigations → Review cheat reports</li>
-                <li>• Admin Audit → Track admin actions</li>
-              </ul>
+
+        <div className="lg:col-span-2 border border-zinc-800 rounded-xl flex flex-col max-h-[70vh]">
+          {selectedTicket ? (
+            <>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800 shrink-0">
+                <div>
+                  <h3 className="text-sm font-semibold text-white">{selectedTicket.subject}</h3>
+                  <p className="text-xs text-zinc-500">User: {selectedTicket.user_id.slice(0, 12)}...</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {selectedTicket.status === 'open' && (
+                    <button type="button" onClick={() => doAction('accept')} disabled={sending}
+                      className="flex items-center gap-1 px-3 py-1 text-xs font-medium bg-amber-600 hover:bg-amber-700 disabled:bg-zinc-700 text-white rounded-lg transition-colors">
+                      <CheckCircle className="w-3.5 h-3.5" /> Accept
+                    </button>
+                  )}
+                  {(selectedTicket.status === 'open' || selectedTicket.status === 'accepted') && (
+                    <button type="button" onClick={() => doAction('resolve')} disabled={sending}
+                      className="flex items-center gap-1 px-3 py-1 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 disabled:bg-zinc-700 text-white rounded-lg transition-colors">
+                      <XCircle className="w-3.5 h-3.5" /> Resolve
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
+                {messages.map((m) => (
+                  <div key={m.id} className={`flex ${m.sender_type === 'admin' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[75%] px-3 py-2 rounded-xl text-sm ${
+                      m.sender_type === 'admin'
+                        ? 'bg-amber-600/20 text-amber-100 border border-amber-500/20'
+                        : 'bg-zinc-800 text-zinc-200 border border-zinc-700'
+                    }`}>
+                      <p className="text-[10px] text-zinc-500 mb-0.5">{m.sender_type === 'admin' ? 'Admin' : 'Player'}</p>
+                      <p>{m.message}</p>
+                      <p className="text-[10px] text-zinc-500 mt-1">{new Date(m.created_at).toLocaleTimeString()}</p>
+                    </div>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {selectedTicket.status !== 'resolved' && (
+                <div className="p-3 border-t border-zinc-800 shrink-0">
+                  <div className="flex items-center gap-2">
+                    <input value={reply} onChange={(e) => setReply(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') sendReply(); }}
+                      placeholder="Type a reply..."
+                      className="flex-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500/50" />
+                    <button type="button" onClick={sendReply} disabled={sending || !reply.trim()}
+                      className="p-2 bg-amber-600 hover:bg-amber-700 disabled:bg-zinc-700 text-white rounded-lg transition-colors">
+                      <Send className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center">
+              <MessageCircle className="w-10 h-10 text-zinc-600 mb-3" />
+              <p className="text-sm text-zinc-400">Select a ticket to view</p>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </>

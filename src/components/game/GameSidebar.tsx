@@ -11,6 +11,7 @@ import {
   Activity, Coffee, Heart, ArrowRightLeft, Brain, Shield,
 } from 'lucide-react';
 import { LucideIcon } from 'lucide-react';
+import { SupportButton } from './SupportButton';
 import { isAdminUserDb } from '@/lib/auth/admin';
 
 // ─── Navigation Tab Definition ─────────────────────────────────────────────────
@@ -255,6 +256,10 @@ export function GameSidebar({ activeTab, onTabChange }: GameSidebarProps) {
           </a>
         </div>
       )}
+
+      <div className="flex-shrink-0 border-t border-brand/20 px-2 pt-2">
+        <SupportButton />
+      </div>
 
       {/* ── Support footer (always visible at sidebar bottom) ── */}
       <div className="flex-shrink-0 border-t border-brand/20 px-2 pt-2 pb-3">
