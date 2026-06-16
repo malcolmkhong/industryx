@@ -75,8 +75,8 @@ export function useLoginPrompt(): LoginPromptState {
 
   // Open prompt
   const promptLogin = useCallback((triggerReason: LoginPromptReason) => {
-    // Don't prompt if already authenticated or auth is loading
-    if (user || authLoading) return;
+    // Don't prompt if already fully authenticated (non-anonymous user) or auth is loading
+    if ((user && !user.is_anonymous) || authLoading) return;
     setReason(triggerReason);
     setIsOpen(true);
   }, [user, authLoading]);
