@@ -179,7 +179,7 @@
 **Goal:** Eliminate code duplication, normalize API paths, build 3 high-priority new pages. Estimated: 3-4 days.
 
 ### Task 2B.1 — Create `src/app/admin/layout.tsx` (Compact Navigation Tree Sidebar)
-- **Status:** `[ ]`
+- **Status:** `[x]` — Done (`ce51b3d`)
 - **Severity:** P1 — High
 - **Why:** 3,150 lines of sidebar/header duplication across 7 pages. Maintenance burden. The current per-page sidebar is a flat list — doesn't scale to 14+ admin pages.
 - **Required features:**
@@ -260,7 +260,7 @@
   - **Estimated reduction:** 3,150 → ~300 lines per page
 
 ### Task 2B.2 — Create `src/app/admin/loading.tsx` and `src/app/admin/error.tsx`
-- **Status:** `[ ]`
+- **Status:** `[x]` — Done (`ce51b3d`)
 - **Severity:** P1 — High
 - **Why:** Every page handles loading/error client-side, causing flash of spinner. No error boundary.
 - **Required features:**
@@ -297,7 +297,7 @@
   - `src/app/api/config/route.ts`
 
 ### Task 2B.5 — Create `src/components/admin/` shared library
-- **Status:** `[ ]`
+- **Status:** `[~]` — Partial (`ce51b3d`): tree components + AdminHeader done; DataTable, Pagination, ConfirmModal, StatusBadge, EmptyState pending
 - **Severity:** P1 — High
 - **Components to create:**
   - `AdminIcons.tsx` — extracted from inline SVGs in 7 pages
@@ -737,12 +737,12 @@
 - [x] **2A.7** — Fix `X-RateLimit-Remaining` hardcoded value
 - [x] **2A.8** — Flush in-memory admin cache on admin add/remove
 
-### Phase 2B — Refactor + System Status (P1) — 3-4 days
-- [ ] **2B.1** — Create `src/app/admin/layout.tsx` (with **Compact Navigation Tree** sidebar — see design spec in task)
-- [ ] **2B.2** — Create `loading.tsx` and `error.tsx`
+### Phase 2B — Refactor + System Status (P1) — 3-4 days 🔄 IN PROGRESS
+- [x] **2B.1** — Create `src/app/admin/layout.tsx` (with **Compact Navigation Tree** sidebar — see design spec in task) (`ce51b3d`)
+- [x] **2B.2** — Create `loading.tsx` and `error.tsx` (`ce51b3d`)
 - [ ] **2B.3** — Move `/api/admins/*` to `/api/admin/admins/*`
 - [ ] **2B.4** — Remove duplicate `/api/config` (root)
-- [ ] **2B.5** — Create `src/components/admin/` shared library (incl. `AdminNavigationTree`, `NavigationTreeNode`, `NavigationTreeGroup`)
+- [x] **2B.5** — Create `src/components/admin/` shared library (tree components + AdminHeader done; DataTable, Pagination, ConfirmModal, StatusBadge, EmptyState pending) (`ce51b3d`)
 - [ ] **2B.6** — Add admin entrance in game UI
 - [ ] **2B.7** — Build `/admin/system-status` page
 - [ ] **2B.8** — Build `/admin/jobs` page
