@@ -412,7 +412,6 @@ export interface GameState {
   
   // Market
   market: MarketPrice[];
-  marketSimState: import('./marketSimulator').MarketSimulationState;
   sectorTrends: Partial<Record<import('./marketSimulator').MarketSector, 'up' | 'down' | 'stable'>>;
   marketNews: import('./marketSimulator').MarketNews[];
   marketNarratives: import('./marketSimulator').MarketNarrative[];

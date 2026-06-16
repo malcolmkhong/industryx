@@ -289,7 +289,7 @@ export function MarketPanel() {
     return '#67e8f9';
   }, []);
 
-  const cycle = store.marketSimState?.cycle;
+  const cycle = store.serverMarket?.tick ?? 0;
 
   return (
     <div className="space-y-4">
@@ -342,16 +342,12 @@ export function MarketPanel() {
         {/* Market Cycle Card */}
         <div className="game-card rounded-lg p-3 border border-border">
           <div className="text-[10px] text-muted-label mb-1.5 flex items-center gap-1">
-            <RefreshCw className="w-3 h-3" /> Market Cycle
+            <RefreshCw className="w-3 h-3" /> Market Tick #{cycle}
           </div>
-          {cycle ? (
-            <MarketCycleIndicator
-              phase={cycle.phase}
-              progress={cycle.phaseProgress}
-              multiplier={cycle.globalMultiplier}
-            />
-          ) : (
-            <div className="text-[10px] text-muted-label">Initializing...</div>
+          {store.serverMarket?.volatility != null && (
+            <div className="text-[10px] text-muted-label">
+              Volatility: {(store.serverMarket.volatility * 100).toFixed(1)}%
+            </div>
           )}
         </div>
       </div>
@@ -545,7 +541,7 @@ export function MarketPanel() {
                 const elasticity = RESOURCE_ELASTICITY[m.resource];
                 const prod = store.productionSnapshot?.production[m.resource] ?? 0;
                 const cons = store.productionSnapshot?.actualConsumption[m.resource] ?? 0;
-                const activeInjection = store.marketSimState?.volatilityInjections?.[m.resource];
+                const activeInjection = null as { source: string; intensity: number } | null;
 
                 return (
                   <GameItemTooltip
@@ -1092,38 +1088,7 @@ export function MarketPanel() {
                 <h3 className="text-sm font-semibold text-warning">Active Volatility</h3>
               </div>
               {(() => {
-                const injections = store.marketSimState?.volatilityInjections ?? {};
-                const activeList = Object.entries(injections).filter(([, v]) => v) as [string, VolatilityInjection][];
-                if (activeList.length === 0) {
-                  return <div className="text-[10px] text-muted-label text-center py-3">No active volatility injections</div>;
-                }
-                return (
-                  <div className="space-y-1.5 max-h-48 overflow-y-auto game-scrollbar">
-                    {activeList.map(([resource, inj]) => {
-                      const meta = RESOURCE_META[resource as ResourceType];
-                      const style = inj.source === 'macro' ? 'border-danger/20 bg-danger/5' : inj.source === 'chain' ? 'border-research/20 bg-research/5' : 'border-warning/20 bg-amber-900/5';
-                      return (
-                        <div key={resource} className={`rounded-lg p-2 border ${style}`}>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1.5">
-                              <GameIcon icon={meta?.icon} size={12} />
-                              <span className="text-[10px] text-subtle">{meta?.name ?? resource}</span>
-                            </div>
-                            <span className={`text-[8px] px-1.5 py-0.5 rounded-full border font-bold ${
-                              inj.source === 'macro' ? 'border-danger/30 text-danger' : inj.source === 'chain' ? 'border-research/30 text-research' : 'border-warning/30 text-warning'
-                            }`}>{inj.source.toUpperCase()}</span>
-                          </div>
-                          <div className="flex items-center gap-2 mt-1 text-[9px] text-muted-label">
-                            <span>{inj.direction > 0 ? '▲' : '▼'} {(inj.intensity * 100).toFixed(0)}%</span>
-                            <span>·</span>
-                            <span>{inj.duration} steps left</span>
-                            {inj.label && <><span>·</span><span className="text-subtle">{inj.label}</span></>}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
+                return <div className="text-[10px] text-muted-label text-center py-3">No active volatility injections</div>;
               })()}
             </div>
 

@@ -54,7 +54,6 @@ export function extractGameState(): Record<string, unknown> {
     gameSpeed: state.gameSpeed,
     paused: state.paused,
     productionSnapshot: state.productionSnapshot,
-    marketSimState: state.marketSimState,
     sectorTrends: state.sectorTrends,
     marketNews: state.marketNews,
     marketNarratives: state.marketNarratives,

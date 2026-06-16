@@ -6,8 +6,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import {
-  recordPlayerSell, recordPlayerBuy, createInitialSimState,
-  MarketSimulationState, MarketSector,
 } from './marketSimulator';
 import { initNewsLLM, registerUpdateCallback, getLLMState, LLMEngineState } from './newsLLM';
 import {
@@ -512,9 +510,8 @@ function migrateSaveState(savedState: Record<string, unknown>, fromVersion?: num
     (state as Record<string, unknown>).productionSnapshot = emptyProductionSnapshot();
   }
 
-  // V15 → V16: Add marketSimState + sectorTrends (supply-demand market model)
+  // V15 → V16: Add sectorTrends (supply-demand market model)
   if (version < 16) {
-    (state as Record<string, unknown>).marketSimState = createInitialSimState();
     (state as Record<string, unknown>).sectorTrends = {};
   }
 
@@ -711,7 +708,6 @@ function createInitialState(): GameState {
     researchProgress: 0,
     workers: [],
     market: INITIAL_MARKET.map(m => ({ ...m })),
-    marketSimState: createInitialSimState(),
     sectorTrends: {},
     marketNews: [],
     marketNarratives: [],
@@ -1149,7 +1145,6 @@ export const useGameStore = create<GameStore>()(
         // Sync market prices from global server market (updated every 60s by cron)
         // Falls back to local market if server hasn't loaded yet
         let newMarket = state.market;
-        let newMarketSimState = state.marketSimState;
         let newSectorTrends = state.sectorTrends;
         if (newTick % 5 === 0 && state.serverMarket?.prices) {
           const globalPrices = state.serverMarket.prices;
@@ -1426,9 +1421,6 @@ export const useGameStore = create<GameStore>()(
         }
 
         // Auto-sell specific resources when above threshold capacity
-        // Sells 50% of excess per tick, clamped to [1, capacity*0.1] to prevent
-        // market flooding while still draining faster than the old flat-10 cap.
-        let autoSellSimState = newMarketSimState;
         if (state.autoSellResources.length > 0) {
           state.autoSellResources.forEach(r => {
             const capacity = getCapacity(state, r, undefined, cache);
@@ -1439,20 +1431,21 @@ export const useGameStore = create<GameStore>()(
               const globalPrice = getGlobalPrice(state, r);
               if (globalPrice > 0) {
                 const sellPrice = globalPrice * computeSellMultiplier(state, cache);
-                // Sell 50% of excess, but at least 1 and at most 10% of capacity
                 const sellAmount = Math.max(1, Math.min(Math.ceil(excess * bal.autoSell.excessSellRatio), Math.ceil(capacity * bal.autoSell.maxSellCapacityRatio)));
-                const actualSell = Math.min(sellAmount, held); // can't sell more than we have
+                const actualSell = Math.min(sellAmount, held);
                 newResources[r] -= actualSell;
                 const autoSellEarned = actualSell * sellPrice;
                 moneyEarned += autoSellEarned;
                 moneyIncomeThisTick += autoSellEarned;
                 newStats.totalResourcesSold[r] += actualSell;
-                // Record auto-sell in market simulator (pass gameTick for freshness tracking)
-                autoSellSimState = recordPlayerSell(autoSellSimState, r, actualSell, newTick);
+                fetch('/api/market/action', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ resource: r, type: 'sell', amount: actualSell }),
+                }).catch(() => {});
               }
             }
           });
-          newMarketSimState = autoSellSimState;
         }
 
         const currentEfficiency = effectivePowerEfficiency * transportEfficiency * eventProductionMultiplier;
@@ -1755,7 +1748,6 @@ export const useGameStore = create<GameStore>()(
             plants: powerBuildings,
           },
           market: newMarket,
-          marketSimState: newMarketSimState,
           sectorTrends: newSectorTrends,
           researchPoints: newResearchPoints,
           completedResearch: newCompletedResearch,
@@ -2150,9 +2142,6 @@ export const useGameStore = create<GameStore>()(
 
         const sellPrice = globalPrice * amount * computeSellMultiplier(state, buildMultipliers(state));
 
-        // Record player sell in market simulator (affects future prices + freshness tracking)
-        const newSimState = recordPlayerSell(state.marketSimState, resource, amount, state.gameTick);
-
         // Report trade to global market pressure pool
         fetch('/api/market/action', {
           method: 'POST',
@@ -2174,7 +2163,6 @@ export const useGameStore = create<GameStore>()(
           money: state.money + sellPrice,
           totalMoneyEarned: state.totalMoneyEarned + sellPrice,
           stats: { ...state.stats, totalResourcesSold: { ...state.stats.totalResourcesSold, [resource]: state.stats.totalResourcesSold[resource] + amount } },
-          marketSimState: newSimState,
         });
         soundEngine.play('moneyEarned', 'production');
         get().addNotification('success', `Sold ${formatNumber(amount)} ${RESOURCE_META[resource].name} for $${formatNumber(sellPrice)}`);
@@ -2200,9 +2188,6 @@ export const useGameStore = create<GameStore>()(
           return;
         }
 
-        // Record player buy in market simulator (affects future prices + freshness tracking)
-        const newSimState = recordPlayerBuy(state.marketSimState, resource, amount, state.gameTick);
-
         // Report trade to global market pressure pool
         fetch('/api/market/action', {
           method: 'POST',
@@ -2222,7 +2207,6 @@ export const useGameStore = create<GameStore>()(
         set({
           resources: { ...state.resources, [resource]: newAmount },
           money: state.money - cost,
-          marketSimState: newSimState,
         });
         get().addNotification('info', `Bought ${formatNumber(amount)} ${RESOURCE_META[resource].name} for $${formatNumber(cost)}`);
       },
