@@ -535,7 +535,7 @@ function migrateSaveState(savedState: Record<string, unknown>, fromVersion?: num
   // V17→V18+ Building ID migration (miningDrill→ironMine, quarry→sandMine, goldsmith→jewelleryForge)
   if (version < 18) {
     if (Array.isArray(state.buildings)) {
-      state.buildings = migrateSaveBuildings(state.buildings as any[]);
+      state.buildings = migrateSaveBuildings(state.buildings as Array<{ type: string; [key: string]: unknown }>);
     }
   }
 

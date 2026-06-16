@@ -51,8 +51,8 @@ export const ADMIN_NAV_TREE: NavTreeGroup[] = [
     id: 'actions',
     label: 'Actions',
     pages: [
-      { id: 'player-audit', label: 'Player Audit', href: '/admin/audit', icon: ScrollText },
-      { id: 'admin-audit', label: 'Admin Audit', href: '/admin/admin-audit', icon: ShieldCheck },
+      { id: 'player-audit', label: 'Player Audit', href: '/admin/actions/player', icon: ScrollText },
+      { id: 'admin-audit', label: 'Admin Audit', href: '/admin/actions/admin', icon: ShieldCheck },
       { id: 'export-audit', label: 'Export', href: '/admin/actions/export', icon: Download, phase: 'P2' },
     ],
   },

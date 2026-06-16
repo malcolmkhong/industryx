@@ -29,8 +29,8 @@ export const RATE_LIMITS = {
   sync: { maxRequests: 30, windowMs: 60_000, failClosed: true },
   /** Config/definitions: 30/min, best-effort */
   config: { maxRequests: 30, windowMs: 60_000, failClosed: false },
-  /** General API (heartbeat): 60/min, best-effort */
   general: { maxRequests: 60, windowMs: 60_000, failClosed: false },
+  admin: { maxRequests: 100, windowMs: 60_000, failClosed: false },
 } as const;
 
 interface CheckRateLimitRow {

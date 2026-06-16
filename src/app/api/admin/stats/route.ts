@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyAdmin, withSecurityHeaders } from "@/lib/auth/admin";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
 
 /**
  * GET /api/admin/stats
@@ -13,6 +14,13 @@ export async function GET() {
   if ("error" in authResult) {
     return authResult.error;
   }
+
+  const rateLimitResult = await checkRateLimit(
+    authResult.admin.id,
+    RATE_LIMITS.admin,
+    "admin-stats"
+  );
+  if (rateLimitResult) return rateLimitResult;
 
   try {
     const supabase = createServiceRoleClient();

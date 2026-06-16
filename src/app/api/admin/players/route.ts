@@ -59,10 +59,21 @@ export async function GET(request: NextRequest) {
     // Apply search filters
     if (search) {
       if (uuidRegex.test(search)) {
-        // Search by user_id (exact match)
         query = query.eq("user_id", search);
+      } else {
+        const searchLower = search.toLowerCase();
+        const { data: progressMatches } = await supabase
+          .from("player_progress")
+          .select("user_id")
+          .ilike("display_name", `%${searchLower}%`)
+          .limit(limit);
+
+        if (progressMatches && progressMatches.length > 0) {
+          query = query.in("user_id", progressMatches.map((p) => p.user_id));
+        } else {
+          query = query.eq("user_id", "00000000-0000-0000-0000-000000000000");
+        }
       }
-      // display_name search needs player_progress — handle after initial query
     }
 
     const { data: gameStates, count, error } = await query;
@@ -113,51 +124,6 @@ export async function GET(request: NextRequest) {
         console.error("[Admin/Players] Error fetching user emails:", authErr);
       }
 
-      // If search is not a UUID, filter by display_name or email
-      if (search && !uuidRegex.test(search)) {
-        const searchLower = search.toLowerCase();
-        const matchingUserIds = userIds.filter(uid => {
-          const displayName = (displayNameMap[uid] || "").toLowerCase();
-          const email = (emailMap[uid] || "").toLowerCase();
-          return displayName.includes(searchLower) || email.includes(searchLower);
-        });
-
-        // Filter results to only matching users
-        const filtered = (gameStates || []).filter(
-          (gs: Record<string, unknown>) => matchingUserIds.includes(gs.user_id as string)
-        );
-
-        // If email search found users not in the initial results, do a second query
-        const allAuthMatches = allAuthUsers
-          .filter((u: { id: string; email?: string }) => (u.email || "").toLowerCase().includes(searchLower))
-          .map((u: { id: string; email?: string }) => u.id);
-
-        if (allAuthMatches.length > 0) {
-          const existingIds = new Set(userIds);
-          const newIds = allAuthMatches.filter((id: string) => !existingIds.has(id));
-
-          if (newIds.length > 0) {
-            const { data: extraStates } = await supabase
-              .from("server_game_state")
-              .select(`
-                user_id, money, total_money_earned, research_points,
-                game_tick, game_speed, buildings_count, cheat_flag_count,
-                is_locked, lock_reason, last_saved_at, created_at
-              `)
-              .in("user_id", newIds)
-              .range(0, limit - 1)
-              .order("created_at", { ascending: false });
-
-            if (extraStates) {
-              (filtered as Record<string, unknown>[]).push(...(extraStates as Record<string, unknown>[]));
-            }
-          }
-        }
-
-        // Replace gameStates with filtered results
-        (gameStates as Record<string, unknown>[]).length = 0;
-        (gameStates as Record<string, unknown>[]).push(...filtered);
-      }
     }
 
     // Compose final results
