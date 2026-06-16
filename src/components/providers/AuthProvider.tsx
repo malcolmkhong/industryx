@@ -75,8 +75,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       );
 
-      // Get initial session
-      const { data: { session } } = await supabase.auth.getSession();
+      let session: Session | null = null;
+      try {
+        const result = await supabase.auth.getSession();
+        session = result.data.session;
+      } catch (err) {
+        console.warn('[Auth] getSession failed (Supabase unreachable?):', err);
+      }
+
       if (mounted) {
         setSession(session);
         setUser(session?.user ?? null);
@@ -114,7 +120,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (mounted && signInAnonymouslyRef.fn) {
-          await signInAnonymouslyRef.fn();
+          try {
+            await signInAnonymouslyRef.fn();
+          } catch (err) {
+            console.warn('[Auth] Anonymous sign-in failed:', err);
+          }
         }
       }
 
