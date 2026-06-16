@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { AdminNavigationTree } from '@/components/admin/AdminNavigationTree';
 import { AdminHeader } from '@/components/admin/AdminHeader';
+import { CommandPalette } from '@/components/admin/CommandPalette';
 import { Toaster } from 'sonner';
 
 const AUTH_ROUTES = ['/admin/login', '/admin/forbidden', '/admin/auth'];
@@ -50,6 +51,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <main className="p-6">{children}</main>
       </div>
       <Toaster position="bottom-right" theme="dark" />
+      <CommandPalette />
     </div>
   );
 }
