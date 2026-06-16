@@ -1641,7 +1641,29 @@ export const useGameStore = create<GameStore>()(
               if (mission.reward.resources) {
                 mission.reward.resources.forEach(r => {
                   droneResourceRewards[r.resource] = (droneResourceRewards[r.resource] || 0) + Math.floor(r.amount * capacityMult);
-                });
+        });
+
+        if (newTick % 30 === 0) {
+          const prods = snapshotProduction as Record<string, number>;
+          const conss = snapshotActualConsumption as Record<string, number>;
+          const allResources = new Set([...Object.keys(prods), ...Object.keys(conss)]);
+          for (const res of allResources) {
+            const prod = prods[res] || 0;
+            const cons = conss[res] || 0;
+            const net = prod - cons;
+            if (Math.abs(net) > 0.01) {
+              fetch('/api/market/action', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  resource: res,
+                  type: net > 0 ? 'sell' : 'buy',
+                  amount: Math.round(Math.abs(net)),
+                }),
+              }).catch(() => {});
+            }
+          }
+        }
               }
             }
             return { ...d, status: 'idle' as const, missionEndTick: 0, missionId: null };
