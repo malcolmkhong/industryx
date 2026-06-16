@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyAdmin, withSecurityHeaders } from "@/lib/auth/admin";
+import { verifyAdmin, withSecurityHeaders, clearAdminCache } from "@/lib/auth/admin";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { getAdminRole, hasRole, logAdminAction } from "@/lib/auth/admin-helpers";
 
 /**
  * GET /api/admins
@@ -94,6 +95,14 @@ export async function POST(request: NextRequest) {
     return authResult.error;
   }
 
+  const callerRole = await getAdminRole(authResult.admin);
+  if (!hasRole(callerRole, "super_admin")) {
+    return NextResponse.json(
+      { error: "Forbidden", message: "Only super admins can add admin users" },
+      { status: 403 }
+    );
+  }
+
   try {
     const body = await request.json();
     const { userId, email, role } = body;
@@ -160,6 +169,15 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    await logAdminAction({
+      adminId: authResult.admin.id,
+      actionType: "add_admin",
+      targetUserId: userId,
+      details: { role: adminRole, email: email || null },
+    });
+
+    clearAdminCache();
 
     const response = NextResponse.json({ data }, { status: 201 });
     return withSecurityHeaders(response);

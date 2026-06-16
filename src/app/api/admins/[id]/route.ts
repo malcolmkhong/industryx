@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyAdmin, withSecurityHeaders } from "@/lib/auth/admin";
+import { verifyAdmin, withSecurityHeaders, clearAdminCache } from "@/lib/auth/admin";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { getAdminRole, hasRole, logAdminAction } from "@/lib/auth/admin-helpers";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -10,11 +11,20 @@ interface RouteContext {
  * DELETE /api/admins/[id]
  * Remove an admin user by their admin_users table id.
  * Cannot remove admins defined in ADMIN_UIDS env var.
+ * Requires super_admin role.
  */
 export async function DELETE(_request: NextRequest, context: RouteContext) {
   const authResult = await verifyAdmin();
   if ("error" in authResult) {
     return authResult.error;
+  }
+
+  const callerRole = await getAdminRole(authResult.admin);
+  if (!hasRole(callerRole, "super_admin")) {
+    return NextResponse.json(
+      { error: "Forbidden", message: "Only super admins can remove admin users" },
+      { status: 403 }
+    );
   }
 
   const { id: adminRecordId } = await context.params;
@@ -76,6 +86,15 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
         { status: 500 }
       );
     }
+
+    await logAdminAction({
+      adminId: authResult.admin.id,
+      actionType: "remove_admin",
+      targetUserId: adminRecord.user_id,
+      details: { previousRole: adminRecord.role },
+    });
+
+    clearAdminCache();
 
     const response = NextResponse.json({
       success: true,

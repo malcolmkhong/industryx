@@ -49,6 +49,19 @@ export function canWrite(role: string): boolean {
 }
 
 /**
+ * Check if an admin has a specific role or higher.
+ * Role hierarchy: super_admin > admin > viewer
+ */
+export function hasRole(role: string, required: 'viewer' | 'admin' | 'super_admin'): boolean {
+  const hierarchy: Record<string, number> = {
+    viewer: 1,
+    admin: 2,
+    super_admin: 3,
+  };
+  return (hierarchy[role] ?? 0) >= (hierarchy[required] ?? 0);
+}
+
+/**
  * Log an admin action to the admin_actions audit table.
  * Schema: admin_user_id, target_user_id, action_type, details, created_at
  */

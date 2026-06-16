@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin, withSecurityHeaders } from "@/lib/auth/admin";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { getTableConfig, isAllowedTable } from "@/lib/config/tables";
+import { logAdminAction } from "@/lib/auth/admin-helpers";
 
 interface RouteContext {
   params: Promise<{ table: string }>;
@@ -225,6 +226,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
         { status: 500 }
       );
     }
+
+    await logAdminAction({
+      adminId: authResult.admin.id,
+      actionType: "create_config_row",
+      details: { table: tableName, row: insertData },
+    });
 
     const response = NextResponse.json({ data }, { status: 201 });
     return withSecurityHeaders(response);

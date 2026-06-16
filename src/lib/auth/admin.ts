@@ -67,6 +67,11 @@ export async function isAdminUserDb(userId: string): Promise<boolean> {
   }
 }
 
+export function clearAdminCache(): void {
+  adminCache = new Set();
+  cacheLoadedAt = 0;
+}
+
 /**
  * Verify that the current request is from an authenticated admin user.
  * Returns the admin user info on success, or a NextResponse error on failure.
@@ -119,14 +124,14 @@ export async function verifyAdmin(): Promise<
 }
 
 /**
- * Add common rate limiting and security headers to a response.
+ * Add common security headers to a response.
+ * Rate limit headers are set by the rate limiter when applied; do not advertise
+ * a fixed remaining count that we do not actually track.
  */
 export function withSecurityHeaders(
   response: NextResponse | Response
 ): NextResponse {
   if (response instanceof NextResponse) {
-    response.headers.set("X-RateLimit-Limit", "100");
-    response.headers.set("X-RateLimit-Remaining", "99");
     response.headers.set("X-Content-Type-Options", "nosniff");
     response.headers.set("X-Frame-Options", "DENY");
     response.headers.set("Cache-Control", "no-store");

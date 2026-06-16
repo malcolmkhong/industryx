@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { verifyAdmin, withSecurityHeaders } from '@/lib/auth/admin';
 
 // Allowed config tables (security: only these tables can be queried)
 const ALLOWED_TABLES = [
@@ -25,6 +26,11 @@ const ALLOWED_TABLES = [
 ] as const;
 
 export async function GET(request: Request) {
+  const authResult = await verifyAdmin();
+  if ('error' in authResult) {
+    return authResult.error;
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const table = searchParams.get('table');
@@ -35,31 +41,39 @@ export async function GET(request: Request) {
     if (!table) {
       const result = await getTableList();
       if (!result) {
-        return NextResponse.json(
-          { error: 'Service temporarily unavailable — database not configured' },
-          { status: 503 }
+        return withSecurityHeaders(
+          NextResponse.json(
+            { error: 'Service temporarily unavailable — database not configured' },
+            { status: 503 }
+          )
         );
       }
-      return result;
+      return withSecurityHeaders(result);
     }
 
-    if (!ALLOWED_TABLES.includes(table as any)) {
-      return NextResponse.json({ error: 'Invalid table name' }, { status: 400 });
+    if (!(ALLOWED_TABLES as readonly string[]).includes(table)) {
+      return withSecurityHeaders(
+        NextResponse.json({ error: 'Invalid table name' }, { status: 400 })
+      );
     }
 
     const result = await getTableData(table, page, pageSize);
     if (!result) {
-      return NextResponse.json(
-        { error: 'Service temporarily unavailable — database not configured' },
-        { status: 503 }
+      return withSecurityHeaders(
+        NextResponse.json(
+          { error: 'Service temporarily unavailable — database not configured' },
+          { status: 503 }
+        )
       );
     }
-    return result;
+    return withSecurityHeaders(result);
   } catch (error) {
     console.error('[/api/config] Unhandled error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+    return withSecurityHeaders(
+      NextResponse.json(
+        { error: 'Internal server error' },
+        { status: 500 }
+      )
     );
   }
 }
@@ -113,7 +127,9 @@ async function getTableData(table: string, page: number, pageSize: number): Prom
     'game_config_weather',
   ]);
 
-  let data, error, count;
+  let data: any[] | null = null;
+  let error: { message: string } | null = null;
+  let count: number | null = null;
 
   if (tablesWithSortOrder.has(table)) {
     // Try with sort_order first, fall back to no ordering if column doesn't exist

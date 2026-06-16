@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin, withSecurityHeaders } from "@/lib/auth/admin";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { getTableConfig, isAllowedTable } from "@/lib/config/tables";
+import { logAdminAction } from "@/lib/auth/admin-helpers";
 
 interface RouteContext {
   params: Promise<{ table: string; id: string }>;
@@ -153,6 +154,12 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       );
     }
 
+    await logAdminAction({
+      adminId: authResult.admin.id,
+      actionType: "update_config_row",
+      details: { table: tableName, rowId, changes: updateData },
+    });
+
     const response = NextResponse.json({ data });
     return withSecurityHeaders(response);
   } catch (err) {
@@ -205,6 +212,12 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
         { status: 500 }
       );
     }
+
+    await logAdminAction({
+      adminId: authResult.admin.id,
+      actionType: "delete_config_row",
+      details: { table: tableName, rowId },
+    });
 
     const response = NextResponse.json({
       success: true,
