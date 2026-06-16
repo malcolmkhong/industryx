@@ -62,6 +62,14 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/admin') &&
     !pathname.startsWith(API_PREFIX)
   ) {
+    // Set CSRF cookie on admin page loads so client JS can read it
+    supabaseResponse.cookies.set('csrf_token', crypto.randomUUID(), {
+      httpOnly: false,
+      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: 60 * 60 * 24,
+    });
     // No valid session → redirect to admin login
     if (!user) {
       const url = request.nextUrl.clone()
