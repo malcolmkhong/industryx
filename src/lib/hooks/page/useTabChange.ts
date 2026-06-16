@@ -9,6 +9,7 @@ const GUEST_GATED_TABS: Partial<Record<GameTab, LoginPromptReason>> = {
   leaderboard: 'leaderboard',
   tradePost: 'trading_post',
   megaprojects: 'mega_project',
+  market: 'stock_market',
 };
 
 // Returns a stable tab-change handler that intercepts cloud-required tabs
