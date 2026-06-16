@@ -764,14 +764,14 @@
 - [ ] **2D.2** — CSRF tokens for mutating endpoints
 - [ ] **2D.3** — Advanced RBAC (custom roles per page)
 
-### Cross-Cutting Nice-to-Have (P2)
-- [ ] **CC.1** — Fix empty catch blocks (3 locations)
-- [ ] **CC.2** — Cache `/api/admin/stats` response
-- [ ] **CC.3** — Fix investigations stats to be server-computed
-- [ ] **CC.4** — Add loading skeletons to admin tables
-- [ ] **CC.5** — Improve error messages on failed admin actions
-- [ ] **CC.6** — Add admin command palette (Cmd+K)
-- [ ] **CC.7** — Add bulk actions to player list
+### Cross-Cutting Nice-to-Have (P2) — 🔄 5/10 Complete
+- [x] **CC.1** — Fix empty catch blocks (3 locations) (`75bacf5`)
+- [x] **CC.2** — Cache `/api/admin/stats` response (`75bacf5`)
+- [x] **CC.3** — Fix investigations stats to be server-computed (`75bacf5`)
+- [x] **CC.4** — Add loading skeletons to admin tables (`75bacf5`)
+- [x] **CC.5** — Improve error messages on failed admin actions (`d47fe6e`)
+- [x] **CC.6** — Add admin command palette (Cmd+K) (`9e39bb1`)
+- [x] **CC.7** — Add bulk actions to player list — API done (`ea1e49b`)
 - [ ] **CC.8** — Add player comparison view
 - [ ] **CC.9** — Add investigation timeline visualization
 - [ ] **CC.10** — Add dark mode to admin
@@ -786,8 +786,8 @@
 | 2B | 3-4 | 10 | ✅ Complete (`ce51b3d`, `8489296`, `fb1be07`) |
 | 2C | 3-5 | 8 | ✅ Complete (`8844be1`, `aa44158`) |
 | 2D | TBD | 3 | 🔄 1/3 (email cancelled, CSRF + RBAC remain) |
-| CC | 2-3 | 10 | 🟢 Low — incremental polish |
-| **Total** | **9-14 days** | **39 tasks** | — |
+| CC | 2-3 | 10 | 🔄 7/10 complete |
+| **Total** | **9-14 days** | **39 tasks** | **33/39 — 85%** |
 
 ---
 ### Also completed (not in original plan)
