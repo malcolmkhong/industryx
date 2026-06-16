@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import {
   Bell, Check, Cloud, CloudOff, Download, Loader2, LogIn, LogOut,
   Pause, Play, RefreshCw, RotateCcw, Settings, Upload, User, Wifi, WifiOff,
+  TrendingUp, TrendingDown,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -338,10 +339,18 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
                       <GameIcon icon={e.icon} size={10} className="inline-flex" /> {e.remaining <= 50 ? `${e.remaining}t` : e.name}
                     </Badge>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="bg-card border-brand/30">
-                    <p className="text-xs font-medium text-domain">{e.name}</p>
-                    <p className="text-[10px] text-subtle mt-0.5">{e.description}</p>
-                    <p className="text-[10px] text-muted-label mt-1">Remaining: {e.remaining} ticks</p>
+                  <TooltipContent side="bottom" className="bg-card border-brand/30 w-56">
+                    <p className="text-xs font-medium text-domain mb-1">{e.name}</p>
+                    <p className="text-[10px] text-subtle">{e.description}</p>
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {e.effects.filter(ef => ef.type === 'marketPriceMultiplier').map((ef, i) => (
+                        <span key={`${ef.target}-${i}`} className={`text-[9px] px-1 py-0.5 rounded border ${ef.value > 1 ? 'border-emerald-500/40 text-emerald-400 bg-emerald-500/5' : 'border-red-500/40 text-red-400 bg-red-500/5'}`}>
+                          {ef.value > 1 ? <TrendingUp className="w-2.5 h-2.5 inline mr-0.5" /> : <TrendingDown className="w-2.5 h-2.5 inline mr-0.5" />}
+                          {ef.target?.slice(0, 12)}{(ef.target?.length ?? 0) > 12 ? '…' : ''} {ef.value > 1 ? '+' : ''}{((ef.value - 1) * 100).toFixed(0)}%
+                        </span>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-muted-label mt-1.5">Remaining: {e.remaining} ticks</p>
                   </TooltipContent>
                 </Tooltip>
               ))}
