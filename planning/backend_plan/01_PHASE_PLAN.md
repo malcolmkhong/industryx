@@ -749,15 +749,15 @@
 - [x] **2B.9** — Build `/admin/market` page (`fb1be07`)
 - [x] **2B.10** — Add `PUT /api/admin/admins/[id]/role` endpoint (`8489296`)
 
-### Phase 2C — New Features + Polish (P2) — 3-5 days
-- [ ] **2C.1** — Build `/admin/economy` page
-- [ ] **2C.2** — Build `/admin/reports` page
-- [ ] **2C.3** — Build `/admin/support` page
-- [ ] **2C.4** — DB-side player search
-- [ ] **2C.5** — Per-endpoint rate limiting on admin APIs
-- [ ] **2C.6** — Fix `as any` casts
-- [ ] **2C.7** — Add CSV export for admin audit log
-- [ ] **2C.8** — Rename audit routes for consistency
+### Phase 2C — New Features + Polish (P2) — 3-5 days ✅ COMPLETE (`8844be1`)
+- [x] **2C.1** — Build `/admin/economy` page
+- [x] **2C.2** — Build `/admin/reports` page
+- [x] **2C.3** — Build `/admin/support` page
+- [x] **2C.4** — DB-side player search
+- [x] **2C.5** — Per-endpoint rate limiting on admin APIs
+- [x] **2C.6** — Fix `as any` casts
+- [x] **2C.7** — Add CSV export for admin audit log
+- [x] **2C.8** — Rename audit routes for consistency
 
 ### Phase 2D — Future (P3) — TBD
 - [ ] **2D.1** — Email integration for support tickets
@@ -784,7 +784,7 @@
 |---|---|---|---|
 | 2A | 1-2 | 8 | ✅ Complete (`ab131a9`) |
 | 2B | 3-4 | 10 | ✅ Complete (`ce51b3d`, `8489296`, `fb1be07`) |
-| 2C | 3-5 | 8 | 🟡 Medium — 3 new pages + polish |
+| 2C | 3-5 | 8 | ✅ Complete (`8844be1`) |
 | 2D | TBD | 3 | 🟢 Low — future work |
 | CC | 2-3 | 10 | 🟢 Low — incremental polish |
 | **Total** | **9-14 days** | **39 tasks** | — |
