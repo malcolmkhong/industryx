@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { GameTab } from '@/lib/game/types';
 import {
   Factory, Pickaxe, Cog, Truck, Zap, TrendingUp,
@@ -8,9 +8,10 @@ import {
   Save, Bell, BookOpen, Trophy, BarChart3,
   Map as MapIcon, Gift, Scroll, DollarSign, Plane,
   Settings, ChevronDown, ChevronRight, Home, Wrench, Swords, Coins, Database,
-  Activity, Coffee, Heart, ArrowRightLeft, Brain,
+  Activity, Coffee, Heart, ArrowRightLeft, Brain, Shield,
 } from 'lucide-react';
 import { LucideIcon } from 'lucide-react';
+import { isAdminUserDb } from '@/lib/auth/admin';
 
 // ─── Navigation Tab Definition ─────────────────────────────────────────────────
 
@@ -146,6 +147,20 @@ interface GameSidebarProps {
 }
 
 export function GameSidebar({ activeTab, onTabChange }: GameSidebarProps) {
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const check = async () => {
+      const supabase = (await import('@/lib/supabase/client')).createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const admin = await isAdminUserDb(user.id);
+        setIsAdmin(admin);
+      }
+    };
+    check();
+  }, []);
+
   // Track which groups are expanded - default all expanded
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
     () => new Set(NAV_GROUPS.map(g => g.id))
@@ -226,6 +241,20 @@ export function GameSidebar({ activeTab, onTabChange }: GameSidebarProps) {
           );
         })}
       </div>
+
+      {isAdmin && (
+        <div className="flex-shrink-0 border-t border-brand/20 px-2 pt-2">
+          <a
+            href="/admin"
+            className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium
+              text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 border border-transparent
+              hover:border-amber-500/20 transition-colors"
+          >
+            <Shield className="w-4 h-4 flex-shrink-0" />
+            <span className="truncate">Admin Panel</span>
+          </a>
+        </div>
+      )}
 
       {/* ── Support footer (always visible at sidebar bottom) ── */}
       <div className="flex-shrink-0 border-t border-brand/20 px-2 pt-2 pb-3">

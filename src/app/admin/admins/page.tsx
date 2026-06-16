@@ -137,7 +137,7 @@ export default function AdminManagementPage() {
   const fetchAdmins = useCallback(async () => {
     try {
       setDataLoading(true);
-      const res = await fetch("/api/admins");
+      const res = await fetch("/api/admin/admins");
       if (!res.ok) {
         const errData = await res.json().catch(() => null);
         throw new Error(errData?.message || "Failed to fetch admins");
@@ -179,7 +179,7 @@ export default function AdminManagementPage() {
 
     try {
       setAdding(true);
-      const res = await fetch("/api/admins", {
+      const res = await fetch("/api/admin/admins", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -212,7 +212,7 @@ export default function AdminManagementPage() {
 
     try {
       setRemoving(true);
-      const res = await fetch(`/api/admins/${removeTarget.id}`, {
+      const res = await fetch(`/api/admin/admins/${removeTarget.id}`, {
         method: "DELETE",
       });
       if (!res.ok) {
