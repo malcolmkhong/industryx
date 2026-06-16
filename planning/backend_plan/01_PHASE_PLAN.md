@@ -30,7 +30,7 @@
 **Goal:** Close all 6 critical security gaps. Estimated: 1-2 days. Must complete before any other admin work.
 
 ### Task 2A.1 — Create `/admin/forbidden` page
-- **Status:** `[ ]`
+- **Status:** `[x]` — Done (`ab131a9`)
 - **Severity:** P0 — Critical
 - **Location:** `src/app/admin/forbidden/page.tsx` (does not exist)
 - **Why:** Auth callback at `src/app/admin/auth/callback/route.ts:36` redirects to `/admin/forbidden` when a user authenticates via Google but is not in the `admin_users` table or `ADMIN_UIDS` env. Currently 404.
@@ -48,7 +48,7 @@
   - `src/app/admin/forbidden/page.tsx`
 
 ### Task 2A.2 — Add `verifyAdmin()` to `/api/config` (root)
-- **Status:** `[ ]`
+- **Status:** `[x]` — Done (`ab131a9`)
 - **Severity:** P0 — Critical
 - **Location:** `src/app/api/config/route.ts:27-65`
 - **Why:** The top-level `/api/config` GET handler returns table lists and data for all 19 `game_config_*` tables using the service role client. No admin auth check. Public read of game economy data.
@@ -64,7 +64,7 @@
   - `src/app/api/config/route.ts`
 
 ### Task 2A.3 — Revoke `authenticated` grant on `increment_cheat_flag` RPC
-- **Status:** `[ ]`
+- **Status:** `[x]` — Done (`ab131a9`)
 - **Severity:** P0 — Critical
 - **Location:** Supabase migration `012_atomic_cheat_flag.sql` (line ~127)
 - **Why:** Function takes `p_user_id` as parameter and does NOT check `auth.uid()` against target. Any logged-in user can flag any other user. DoS/harassment vector.
@@ -82,7 +82,7 @@
   - `src/lib/auth/gameStateValidator.ts` (use service role for this RPC)
 
 ### Task 2A.4 — Add `super_admin` guard to `POST /api/admins`
-- **Status:** `[ ]`
+- **Status:** `[x]` — Done (`ab131a9`)
 - **Severity:** P0 — Critical
 - **Location:** `src/app/api/admins/route.ts:91-173`
 - **Why:** Any admin (including `viewer`) can add another admin. Self-promotion to `super_admin` possible. No role check.
@@ -102,7 +102,7 @@
   - `src/lib/auth/admin-helpers.ts` (add `requireRole`)
 
 ### Task 2A.5 — Add audit logging to config table writes
-- **Status:** `[ ]`
+- **Status:** `[x]` — Done (`ab131a9`)
 - **Severity:** P0 — Critical
 - **Location:** `src/app/api/config/[table]/route.ts` POST, `src/app/api/config/[table]/[id]/route.ts` PUT/DELETE
 - **Why:** Game config changes are untraceable. No record of who changed what, when, or what the old value was.
@@ -123,7 +123,7 @@
   - `src/lib/auth/admin-helpers.ts` (add new action types)
 
 ### Task 2A.6 — Add audit logging to admin management
-- **Status:** `[ ]`
+- **Status:** `[x]` — Done (`ab131a9`)
 - **Severity:** P0 — Critical
 - **Location:** `src/app/api/admins/route.ts` POST, `src/app/api/admins/[id]/route.ts` DELETE
 - **Why:** Admin user add/remove operations are untraceable. No record of who added/removed which admin.
@@ -140,7 +140,7 @@
   - `supabase/migrations/032_add_admin_action_types.sql` (NEW)
 
 ### Task 2A.7 — Fix `X-RateLimit-Remaining` hardcoded value
-- **Status:** `[ ]`
+- **Status:** `[x]` — Done (`ab131a9`)
 - **Severity:** P0 — Critical
 - **Location:** `src/lib/auth/admin.ts:124-135`
 - **Why:** `withSecurityHeaders()` sets `X-RateLimit-Remaining: 99` regardless of actual usage. Misleading clients. Potential security audit issue.
@@ -155,7 +155,7 @@
   - `src/lib/auth/admin.ts`
 
 ### Task 2A.8 — Flush in-memory admin cache on admin add/remove
-- **Status:** `[ ]`
+- **Status:** `[x]` — Done (`ab131a9`)
 - **Severity:** P0 — Critical
 - **Location:** `src/lib/auth/admin.ts:18-20` (cache), `src/app/api/admins/route.ts` (no flush)
 - **Why:** `isAdminUserDb()` caches all admin IDs for 60s. Adding/removing an admin takes up to 60s to propagate. Stale authorization.
@@ -727,15 +727,15 @@
 
 ## Summary Checklist (Quick View)
 
-### Phase 2A — Security Blockers (P0) — 1-2 days
-- [ ] **2A.1** — Create `/admin/forbidden` page
-- [ ] **2A.2** — Add `verifyAdmin()` to `/api/config` (root)
-- [ ] **2A.3** — Revoke `authenticated` grant on `increment_cheat_flag` RPC
-- [ ] **2A.4** — Add `super_admin` guard to `POST /api/admins`
-- [ ] **2A.5** — Add audit logging to config table writes
-- [ ] **2A.6** — Add audit logging to admin management
-- [ ] **2A.7** — Fix `X-RateLimit-Remaining` hardcoded value
-- [ ] **2A.8** — Flush in-memory admin cache on admin add/remove
+### Phase 2A — Security Blockers (P0) — 1-2 days ✅ COMPLETE (`ab131a9`)
+- [x] **2A.1** — Create `/admin/forbidden` page
+- [x] **2A.2** — Add `verifyAdmin()` to `/api/config` (root)
+- [x] **2A.3** — Revoke `authenticated` grant on `increment_cheat_flag` RPC
+- [x] **2A.4** — Add `super_admin` guard to `POST /api/admins`
+- [x] **2A.5** — Add audit logging to config table writes
+- [x] **2A.6** — Add audit logging to admin management
+- [x] **2A.7** — Fix `X-RateLimit-Remaining` hardcoded value
+- [x] **2A.8** — Flush in-memory admin cache on admin add/remove
 
 ### Phase 2B — Refactor + System Status (P1) — 3-4 days
 - [ ] **2B.1** — Create `src/app/admin/layout.tsx` (with **Compact Navigation Tree** sidebar — see design spec in task)
@@ -782,7 +782,7 @@
 
 | Phase | Days | Tasks | Risk |
 |---|---|---|---|
-| 2A | 1-2 | 8 | 🟢 Low — small, surgical changes |
+| 2A | 1-2 | 8 | ✅ Complete (`ab131a9`) |
 | 2B | 3-4 | 10 | 🟡 Medium — refactor + 3 new pages |
 | 2C | 3-5 | 8 | 🟡 Medium — 3 new pages + polish |
 | 2D | TBD | 3 | 🟢 Low — future work |
