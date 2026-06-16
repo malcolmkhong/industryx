@@ -14,17 +14,14 @@ const VOLATILITY_DECAY = 0.95;
 const MIN_PRICE = 1;
 const MAX_PRICE = 1_000_000;
 const EVENT_THRESHOLD = 0.04;
+const SPIKE_CAP = 0.40;
+const BREAKER_COOLDOWN = 5;
 
-const DEFAULT_RESOURCES = [
-  { resource: 'iron', basePrice: 10 }, { resource: 'copper', basePrice: 8 },
-  { resource: 'coal', basePrice: 6 }, { resource: 'oil', basePrice: 15 },
-  { resource: 'sand', basePrice: 4 }, { resource: 'lithium', basePrice: 20 },
-  { resource: 'ironPlate', basePrice: 25 }, { resource: 'copperWire', basePrice: 22 },
-  { resource: 'plastic', basePrice: 15 }, { resource: 'steel', basePrice: 40 },
-  { resource: 'circuit', basePrice: 80 }, { resource: 'engine', basePrice: 150 },
-  { resource: 'battery', basePrice: 70 }, { resource: 'gear', basePrice: 50 },
-  { resource: 'aiChip', basePrice: 600 }, { resource: 'robotics', basePrice: 2500 },
-];
+interface BreakerState {
+  cooldown: number;
+  spikes: number;
+  soldOut: boolean;
+}
 
 function clamp(v: number, min: number, max: number) {
   return Math.max(min, Math.min(max, v));
@@ -47,54 +44,70 @@ function marketTick(
   prices: { resource: string; currentPrice: number; basePrice: number }[],
   pressure: Record<string, PressureData>,
   volatility: number,
+  breakers: Record<string, BreakerState>,
 ) {
   const newPrices: MarketPrice[] = [];
   const events: Array<Record<string, unknown>> = [];
+  const newBreakers: Record<string, BreakerState> = { ...breakers };
 
   for (const entry of prices) {
     const p = pressure[entry.resource] || { buyVol: 0, sellVol: 0 };
-    const netPressure = p.buyVol - p.sellVol;
+    const br = breakers[entry.resource] || { cooldown: 0, spikes: 0, soldOut: false };
+    let netPressure = p.buyVol - p.sellVol;
     const oldPrice = entry.currentPrice;
+
+    const isSoldOut = (p.sellVol === 0 && p.buyVol > 0 && netPressure > 0);
+    if (isSoldOut) { br.soldOut = true; br.cooldown = BREAKER_COOLDOWN; netPressure = 0; }
+    if (br.cooldown > 0 && br.soldOut) { netPressure = 0; br.cooldown--; }
+    else if (br.cooldown > 0) { netPressure = Math.min(0, netPressure); br.cooldown--; }
+
     const shift = Math.sign(netPressure) * Math.sqrt(Math.abs(netPressure)) * PRESSURE_FACTOR * (1 + (volatility || 0) * 5);
-    const newPrice = clamp(oldPrice + oldPrice * shift, MIN_PRICE, MAX_PRICE);
+    let newPrice = clamp(oldPrice + oldPrice * shift, MIN_PRICE, MAX_PRICE);
     const changePct = oldPrice > 0 ? (newPrice - oldPrice) / oldPrice : 0;
 
-    if (Math.abs(changePct) >= EVENT_THRESHOLD) {
+    if (Math.abs(changePct) > SPIKE_CAP) {
+      const sign = changePct > 0 ? 1 : -1;
+      newPrice = oldPrice * (1 + sign * SPIKE_CAP);
+      br.spikes++; br.cooldown = BREAKER_COOLDOWN;
       events.push({
-        type: 'price_move',
-        resource: entry.resource,
+        type: 'price_move', resource: entry.resource,
+        delta: `${sign > 0 ? '+' : ''}${(SPIKE_CAP * 100).toFixed(1)}%`,
+        severity: 'high',
+        context: {
+          cause: `CIRCUIT BREAKER: ${(Math.abs(changePct) * 100).toFixed(0)}% spike capped at 40%${br.soldOut ? ' — SOLD OUT' : ''}`,
+          trend: sign > 0 ? 'up' : 'down',
+          oldPrice: Math.round(oldPrice * 100) / 100, newPrice: Math.round(newPrice * 100) / 100,
+          buyVolume: p.buyVol, sellVolume: p.sellVol,
+        },
+      });
+    } else if (Math.abs(changePct) >= EVENT_THRESHOLD) {
+      events.push({
+        type: 'price_move', resource: entry.resource,
         delta: `${changePct > 0 ? '+' : ''}${(Math.abs(changePct) * 100).toFixed(1)}%`,
-        severity:
-          Math.abs(changePct) > 0.10 ? 'high'
-          : Math.abs(changePct) > 0.06 ? 'medium'
-          : 'low',
+        severity: Math.abs(changePct) > 0.10 ? 'high' : Math.abs(changePct) > 0.06 ? 'medium' : 'low',
         context: {
           cause: netPressure > 0 ? 'buy pressure exceeding supply' : 'sell pressure exceeding demand',
           trend: changePct > 0 ? 'up' : 'down',
-          oldPrice: Math.round(oldPrice * 100) / 100,
-          newPrice: Math.round(newPrice * 100) / 100,
-          buyVolume: p.buyVol,
-          sellVolume: p.sellVol,
+          oldPrice: Math.round(oldPrice * 100) / 100, newPrice: Math.round(newPrice * 100) / 100,
+          buyVolume: p.buyVol, sellVolume: p.sellVol,
         },
       });
     }
 
+    if (br.soldOut && p.sellVol > 0) { br.soldOut = false; br.cooldown = 0; }
+    if (br.cooldown <= 0 && !br.soldOut) { br.spikes = 0; }
+
     newPrices.push({
-      resource: entry.resource,
-      currentPrice: Math.round(newPrice * 100) / 100,
+      resource: entry.resource, currentPrice: Math.round(newPrice * 100) / 100,
       basePrice: entry.basePrice,
       trend: changePct > 0.01 ? 'up' : changePct < -0.01 ? 'down' : 'stable',
       volume: p.buyVol + p.sellVol,
     });
+    newBreakers[entry.resource] = br;
   }
 
-  const newVolatility = clamp(
-    (volatility || 0) * VOLATILITY_DECAY + events.length * 0.02,
-    0,
-    1,
-  );
-
-  return { prices: newPrices, events, volatility: newVolatility };
+  const newVolatility = clamp((volatility || 0) * VOLATILITY_DECAY + events.length * 0.02, 0, 1);
+  return { prices: newPrices, events, volatility: newVolatility, breakers: newBreakers };
 }
 
 export async function POST() {
@@ -126,20 +139,44 @@ export async function POST() {
       pressure[row.resource].sellVol += row.sell_volume || 0;
     }
 
-    // 4. Get or initialize prices
-    let prices = (stateData?.prices as MarketPrice[]) || [];
-    if (!Array.isArray(prices) || prices.length === 0) {
-      prices = DEFAULT_RESOURCES.map(r => ({
-        resource: r.resource,
-        currentPrice: r.basePrice,
-        basePrice: r.basePrice,
-        trend: 'stable',
-        volume: 0,
+    // 4. Sync base_prices from game_config_market (admin-added resources)
+    const { data: marketConfig } = await supabase
+      .from('game_config_market')
+      .select('resource_id, base_price');
+    if (marketConfig && marketConfig.length > 0) {
+      const synced = marketConfig.map((m: { resource_id: string; base_price: number }) => ({
+        resource: m.resource_id,
+        basePrice: m.base_price,
       }));
+      await supabase
+        .from('server_market_state')
+        .update({ base_prices: synced })
+        .eq('id', 1);
     }
 
-    // 5. Run market simulation
-    const result = marketTick(prices, pressure, stateData?.volatility || 0);
+    // 5. Get or initialize prices from base_prices
+    let prices = (stateData?.prices as MarketPrice[]) || [];
+    if (!Array.isArray(prices)) prices = [];
+    const basePrices = (stateData?.base_prices as Array<{ resource: string; basePrice: number }>) || [];
+    const existingResources = new Set(prices.map(p => p.resource));
+
+    for (const bp of basePrices) {
+      if (!existingResources.has(bp.resource)) {
+        prices.push({ resource: bp.resource, currentPrice: bp.basePrice, basePrice: bp.basePrice, trend: 'stable', volume: 0 });
+        existingResources.add(bp.resource);
+      }
+    }
+
+    if (prices.length === 0) {
+      prices = [
+        { resource: 'iron', currentPrice: 5, basePrice: 5, trend: 'stable', volume: 0 },
+        { resource: 'copper', currentPrice: 8, basePrice: 8, trend: 'stable', volume: 0 },
+      ];
+    }
+
+    // 5. Run market simulation with circuit breakers
+    const breakers = (stateData?.circuit_breakers as Record<string, BreakerState>) || {};
+    const result = marketTick(prices, pressure, stateData?.volatility || 0, breakers);
 
     // 6. Generate AI news
     let news: Array<Record<string, unknown>> = [];
@@ -179,6 +216,7 @@ export async function POST() {
         prices: result.prices,
         news,
         volatility: result.volatility,
+        circuit_breakers: result.breakers,
         updated_at: new Date().toISOString(),
       })
       .eq('id', 1);
