@@ -432,6 +432,15 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
 
           {authLoading ? (
             <Loader2 className="w-4 h-4 text-muted-label animate-spin" />
+          ) : isGuest ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-3 text-xs text-brand hover:text-brand border border-brand/30 hover:border-brand/30 rounded-lg focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              onClick={() => promptLogin('manual')}
+            >
+              <LogIn className="w-3 h-3 mr-1" /> Bind Account
+            </Button>
           ) : user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -482,15 +491,6 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          ) : isGuest ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-3 text-xs text-brand hover:text-brand border border-brand/30 hover:border-brand/30 rounded-lg focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-              onClick={() => promptLogin('manual')}
-            >
-              <LogIn className="w-3 h-3 mr-1" /> Bind Account
-            </Button>
           ) : (
             <Button variant="ghost" size="sm" className="h-7 px-3 text-xs text-brand hover:text-brand border border-brand/30 hover:border-brand/30 rounded-lg focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background" onClick={() => promptLogin('manual')}>
               <LogIn className="w-3 h-3 mr-1" /> Sign In
