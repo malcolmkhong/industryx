@@ -4,6 +4,7 @@ import "./globals.css";
 import { IconPreloader } from "@/components/game/shared/IconPreloader";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { GameConfigProvider } from "@/components/providers/GameConfigProvider";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -47,6 +48,7 @@ export default function RootLayout({
             </IconPreloader>
           </GameConfigProvider>
         </AuthProvider>
+        <SpeedInsights />
       </body>
     </html>
   );
