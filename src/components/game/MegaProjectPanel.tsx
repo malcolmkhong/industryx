@@ -1,6 +1,7 @@
 'use client';
 
 import { useGameStore, formatNumber } from '@/lib/game/store';
+import { useShallow } from 'zustand/react/shallow';
 import { RESOURCE_META } from '@/lib/game/configCache';
 import { ResourceType } from '@/lib/game/types';
 import { Button } from '@/components/ui/button';
@@ -87,7 +88,7 @@ function getProjectProgressHex(type: string): string {
 }
 
 export function MegaProjectPanel() {
-  const store = useGameStore();
+  const store = useGameStore(useShallow((s) => ({ buildings: s.buildings, completedResearch: s.completedResearch, megaProjects: s.megaProjects, money: s.money, prestigeState: s.prestigeState, resources: s.resources, startMegaProject: s.startMegaProject })));
 
   const isUnlocked = (project: typeof store.megaProjects[0]) => {
     const req = project.unlockRequirement;

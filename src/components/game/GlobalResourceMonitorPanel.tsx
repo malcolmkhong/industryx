@@ -11,6 +11,7 @@ import {
   Wallet, FlaskConical, Building2, GitBranch,
 } from 'lucide-react';
 import { useGameStore, formatNumber, hasUnlimitedStorage } from '@/lib/game/store';
+import { useShallow } from 'zustand/react/shallow';
 import { BUILDING_DEFS, RESOURCE_META } from '@/lib/game/configCache';
 import { ResourceType, GameTab } from '@/lib/game/types';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
@@ -183,7 +184,7 @@ function getNavTargetForResource(resource: ResourceType): GameTab {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function GlobalResourceMonitorPanel() {
-  const store = useGameStore();
+  const store = useGameStore(useShallow((s) => ({ buildings: s.buildings, megaProjects: s.megaProjects, money: s.money, prestigeState: s.prestigeState, productionSnapshot: s.productionSnapshot, researchPoints: s.researchPoints, resourceCapacity: s.resourceCapacity, resources: s.resources, setActiveTab: s.setActiveTab, upgradeBuilding: s.upgradeBuilding })));
 
   // Filters & sorting state
   const [tierFilter, setTierFilter] = useState<number | 'all'>('all');
@@ -574,6 +575,7 @@ export default function GlobalResourceMonitorPanel() {
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-label" />
           <input
             type="text"
+            aria-label="Search resources"
             placeholder="Search resources..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}

@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { useGameStore, formatNumber, GameStore } from '@/lib/game/store';
+import { useShallow } from 'zustand/react/shallow';
 import { RESOURCE_META, CONTRACT_TEMPLATES, TIER_INFO } from '@/lib/game/configCache';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -161,7 +162,7 @@ function ContractCard({ contract, store, fulfillingId, onFulfill }: { contract: 
         <Button
           onClick={() => onFulfill(contract.id)}
           disabled={!canFulfill || fulfillingId === contract.id}
-          className={`w-full text-xs h-8 min-h-[36px] ${canFulfill ? 'bg-success hover:bg-success text-white' : 'bg-muted-label text-muted-label'}`}
+          className={`w-full text-xs h-8 min-h-9 ${canFulfill ? 'bg-success hover:bg-success text-white' : 'bg-muted-label text-muted-label'}`}
           size="sm"
         >
           {fulfillingId === contract.id ? (
@@ -180,7 +181,7 @@ function ContractCard({ contract, store, fulfillingId, onFulfill }: { contract: 
 const MemoizedContractCard = React.memo(ContractCard);
 
 export function ContractPanel() {
-  const store = useGameStore();
+  const store = useGameStore(useShallow((s) => ({ completedContracts: s.completedContracts, contracts: s.contracts, fulfillContract: s.fulfillContract, getPlayerGameTier: s.getPlayerGameTier, resources: s.resources })));
   const [selectedTierFilter, setSelectedTierFilter] = useState<number | null>(null);
   const [expandedHistory, setExpandedHistory] = useState(false);
   const [fulfillingId, setFulfillingId] = useState<string | null>(null);
@@ -389,7 +390,7 @@ export function ContractPanel() {
                   </div>
                   <div className="space-y-3">
                     {tierContracts.map(contract => (
-                      <MemoizedContractCard key={contract.id} contract={contract} store={store} fulfillingId={fulfillingId} onFulfill={handleFulfill} />
+                      <MemoizedContractCard key={contract.id} contract={contract} store={store as GameStore} fulfillingId={fulfillingId} onFulfill={handleFulfill} />
                     ))}
                   </div>
                 </div>

@@ -196,12 +196,14 @@ export function SupportButton() {
               {view === 'new' && (
                 <div className="space-y-3">
                   <input
+                    aria-label="Ticket subject"
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
                     placeholder="Subject..."
                     className="w-full px-3 py-2 bg-background/60 border border-muted-label/30 rounded-lg text-sm text-white placeholder-muted-label focus:outline-none focus:border-warning/60/50"
                   />
                   <textarea
+                    aria-label="Support message"
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     placeholder="Describe your issue..."
@@ -247,6 +249,7 @@ export function SupportButton() {
               <div className="p-3 border-t border-muted-label/40 shrink-0">
                 <div className="flex items-center gap-2">
                   <input
+                    aria-label="Reply message"
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') sendMessage(); }}

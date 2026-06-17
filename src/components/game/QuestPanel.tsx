@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
+import { useShallow } from 'zustand/react/shallow';
 import { WEATHER_DEFS, TIER_INFO } from '@/lib/game/configCache';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { Pin, PinOff, Clock, Lock, Filter, ChevronDown, ChevronRight, Sparkles, ScrollText } from 'lucide-react';
@@ -217,7 +218,7 @@ const MemoizedQuestItem = React.memo(function MemoizedQuestItem({
 });
 
 export function QuestPanel() {
-  const store = useGameStore();
+  const store = useGameStore(useShallow((s) => ({ claimQuestReward: s.claimQuestReward, gameTick: s.gameTick, getPlayerGameTier: s.getPlayerGameTier, quests: s.quests, setTrackedQuest: s.setTrackedQuest, trackedQuest: s.trackedQuest })));
   const quests = store.quests;
   const playerTier = store.getPlayerGameTier();
   const [filterType, setFilterType] = useState<FilterType>('all');

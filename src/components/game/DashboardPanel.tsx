@@ -507,7 +507,7 @@ export function DashboardPanel() {
       </div>
 
       {/* TOP STATS ROW */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {[0, 1, 2, 3].map(i => (
           <motion.div
             key={i}
@@ -545,9 +545,9 @@ export function DashboardPanel() {
       </div>
 
       {/* MAIN GRID */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* LEFT COLUMN */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="md:col-span-2 lg:col-span-2 space-y-4">
           {/* POWER GRID STATUS */}
           <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center justify-between mb-3">
@@ -823,7 +823,7 @@ export function DashboardPanel() {
                 <p className="text-[10px] text-muted-label mt-1">Build extractors and factories to start producing</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                 {topProductionRates.map(([resource, rate]) => {
                   const meta = RESOURCE_META[resource];
                   return (

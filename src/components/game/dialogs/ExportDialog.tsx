@@ -45,7 +45,7 @@ export function ExportDialog({
           <div className="flex items-center gap-2">
             <Button
               onClick={onCopy}
-              className="flex-1 bg-brand hover:bg-brand text-white min-h-[44px] lg:min-h-0"
+              className="flex-1 bg-brand hover:bg-brand text-white min-h-11 lg:min-h-0"
               size="sm"
             >
               {copiedToClipboard ? (
@@ -61,7 +61,7 @@ export function ExportDialog({
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="border-muted-label text-subtle hover:text-subtle min-h-[44px] lg:min-h-0"
+              className="border-muted-label text-subtle hover:text-subtle min-h-11 lg:min-h-0"
               size="sm"
             >
               Close

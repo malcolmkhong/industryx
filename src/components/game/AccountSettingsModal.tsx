@@ -109,6 +109,7 @@ export function AccountSettingsModal({ open, onClose, onSignOut }: AccountSettin
               <label htmlFor="display-name-input" className="text-xs text-muted-label block mb-1.5">Display Name</label>
               <input
                 id="display-name-input"
+                aria-label="Display name"
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}

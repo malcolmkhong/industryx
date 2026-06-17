@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
+import { useShallow } from 'zustand/react/shallow';
 import { PRESTIGE_BONUSES, BUILDING_DEFS } from '@/lib/game/configCache';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +21,7 @@ import {
 } from '@/components/ui/tooltip';
 
 export function PrestigePanel() {
-  const store = useGameStore();
+  const store = useGameStore(useShallow((s) => ({ buildings: s.buildings, completedResearch: s.completedResearch, contracts: s.contracts, doPrestige: s.doPrestige, money: s.money, prestigeState: s.prestigeState, productionSnapshot: s.productionSnapshot, purchasePrestigeBonus: s.purchasePrestigeBonus, researchPoints: s.researchPoints, stats: s.stats, workers: s.workers })));
   const [showPrestigeDialog, setShowPrestigeDialog] = useState(false);
   const [confirmStep, setConfirmStep] = useState(0);
 
@@ -286,7 +287,7 @@ export function PrestigePanel() {
                           <Button
                             onClick={(e) => { e.stopPropagation(); store.purchasePrestigeBonus(bonus.id); }}
                             disabled={!canAfford}
-                            className={`w-full mt-2 text-[10px] h-6 min-h-[36px] ${
+                            className={`w-full mt-2 text-[10px] h-6 min-h-9 ${
                               canAfford ? 'bg-premium/80 hover:bg-premium text-white' : 'bg-muted-label text-muted-label'
                             }`}
                             size="sm"

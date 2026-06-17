@@ -101,7 +101,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
   };
 
   /* ── shared button classes for 44x44 touch targets ── */
-  const btn44 = 'h-11 w-11 min-h-[44px] min-w-[44px] p-0 flex items-center justify-center rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background';
+  const btn44 = 'h-11 w-11 min-h-11 min-w-[44px] p-0 flex items-center justify-center rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background';
   const btn44Ghost = `${btn44} text-muted-label hover:text-brand hover:bg-white/[0.04]`;
 
   return (
@@ -243,7 +243,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
               key={speed}
               variant="ghost"
               size="sm"
-              className={`h-11 min-h-[44px] px-2.5 text-xs font-mono transition-colors focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background ${gameSpeed === speed ? 'text-brand bg-brand/20 font-bold' : 'text-muted-label'}`}
+              className={`h-11 min-h-11 px-2.5 text-xs font-mono transition-colors focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background ${gameSpeed === speed ? 'text-brand bg-brand/20 font-bold' : 'text-muted-label'}`}
               onClick={() => setGameSpeed(speed)}
               aria-label={`Set game speed to ${speed}x`}
             >
@@ -409,7 +409,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
           <Button
             variant="ghost"
             size="sm"
-            className="h-11 min-h-[44px] px-3 text-xs text-brand hover:text-brand border border-brand/30 hover:border-brand/30 rounded-lg focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="h-11 min-h-11 px-3 text-xs text-brand hover:text-brand border border-brand/30 hover:border-brand/30 rounded-lg focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             onClick={() => promptLogin('manual')}
           >
             <LogIn className="w-3.5 h-3.5 mr-1" /> Bind Account
@@ -419,7 +419,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex items-center gap-1.5 bg-card rounded-lg px-2 py-1.5 border border-brand/20 hover:border-brand/30 transition-colors cursor-pointer min-h-[44px] focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="flex items-center gap-1.5 bg-card rounded-lg px-2 py-1.5 border border-brand/20 hover:border-brand/30 transition-colors cursor-pointer min-h-11 focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 aria-label={`Account menu for ${userName}${isGuest ? ' (guest)' : ''}`}
                 aria-haspopup="menu"
               >
@@ -476,7 +476,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
           <Button
             variant="ghost"
             size="sm"
-            className="h-11 min-h-[44px] px-3 text-xs text-brand hover:text-brand border border-brand/30 hover:border-brand/30 rounded-lg focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="h-11 min-h-11 px-3 text-xs text-brand hover:text-brand border border-brand/30 hover:border-brand/30 rounded-lg focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             onClick={() => promptLogin('manual')}
           >
             <LogIn className="w-3.5 h-3.5 mr-1" /> Sign In

@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
+import { useShallow } from 'zustand/react/shallow';
 import { RESOURCE_META, BUILDING_DEFS, PRODUCTION_CHAINS } from '@/lib/game/configCache';
 import { hasUnlimitedStorage } from '@/lib/game/store';
 import { ResourceType, BuildingType } from '@/lib/game/types';
@@ -39,7 +40,7 @@ function getStorageUpgradeCost(currentLevel: number, levels: number = 1): number
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export function StoragePanel() {
-  const store = useGameStore();
+  const store = useGameStore(useShallow((s) => ({ buildings: s.buildings, megaProjects: s.megaProjects, money: s.money, productionSnapshot: s.productionSnapshot, resourceCapacity: s.resourceCapacity, resources: s.resources, storageUpgradeLevels: s.storageUpgradeLevels, upgradeStorage: s.upgradeStorage })));
   const [viewMode, setViewMode] = useState<ViewMode>('overview');
   const [sortMode, setSortMode] = useState<SortMode>('tier');
   const [searchQuery, setSearchQuery] = useState('');
@@ -832,6 +833,7 @@ export function StoragePanel() {
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-label" />
             <input
               type="text"
+              aria-label="Search storage"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search materials..."

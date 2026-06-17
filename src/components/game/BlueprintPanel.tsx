@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
+import { useShallow } from 'zustand/react/shallow';
 import { BUILDING_DEFS, TRANSPORT_DEFS, PRODUCTION_CHAINS, RESOURCE_META } from '@/lib/game/configCache';
 import { BuildingType, TransportType } from '@/lib/game/types';
 import { Button } from '@/components/ui/button';
@@ -28,7 +29,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export function BlueprintPanel() {
-  const store = useGameStore();
+  const store = useGameStore(useShallow((s) => ({ addNotification: s.addNotification, blueprints: s.blueprints, buildings: s.buildings, deleteBlueprint: s.deleteBlueprint, exportBlueprint: s.exportBlueprint, importBlueprint: s.importBlueprint, loadBlueprint: s.loadBlueprint, money: s.money, powerGrid: s.powerGrid, renameBlueprint: s.renameBlueprint, saveBlueprint: s.saveBlueprint, transportLines: s.transportLines, workers: s.workers })));
   const [blueprintName, setBlueprintName] = useState('');
   const [expandedBlueprint, setExpandedBlueprint] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -188,6 +189,7 @@ export function BlueprintPanel() {
           <div className="flex items-center gap-2">
             <input
               type="text"
+              aria-label="Import blueprint code"
               value={importCode}
               onChange={e => setImportCode(e.target.value)}
               placeholder="Paste blueprint code here..."
@@ -294,6 +296,7 @@ export function BlueprintPanel() {
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
+                    aria-label="Blueprint name"
                     value={blueprintName}
                     onChange={e => setBlueprintName(e.target.value)}
                     placeholder={autoName}
@@ -348,6 +351,7 @@ export function BlueprintPanel() {
                               <div className="flex items-center gap-1">
                                 <input
                                   type="text"
+                                  aria-label="Rename value"
                                   value={renameValue}
                                   onChange={e => setRenameValue(e.target.value)}
                                   className="flex-1 bg-card border border-brand rounded px-2 py-0.5 text-xs text-subtle focus:outline-none"
@@ -357,10 +361,10 @@ export function BlueprintPanel() {
                                   }}
                                   autoFocus
                                 />
-                                <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-success min-h-[36px] min-w-[36px]" onClick={() => handleRename(bp.id)} aria-label="Confirm rename">
+                                <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-success min-h-9 min-w-9" onClick={() => handleRename(bp.id)} aria-label="Confirm rename">
                                   <Check className="w-3 h-3" />
                                 </Button>
-                                <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-danger min-h-[36px] min-w-[36px]" onClick={() => setRenamingId(null)} aria-label="Cancel rename">
+                                <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-danger min-h-9 min-w-9" onClick={() => setRenamingId(null)} aria-label="Cancel rename">
                                   <X className="w-3 h-3" />
                                 </Button>
                               </div>
@@ -381,7 +385,7 @@ export function BlueprintPanel() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-6 w-6 p-0 text-muted-label hover:text-brand min-h-[36px] min-w-[36px]"
+                                className="h-6 w-6 p-0 text-muted-label hover:text-brand min-h-9 min-w-9"
                                 onClick={() => {
                                   setRenamingId(bp.id);
                                   setRenameValue(bp.name);
@@ -398,7 +402,7 @@ export function BlueprintPanel() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-6 w-6 p-0 text-muted-label hover:text-brand min-h-[36px] min-w-[36px]"
+                                className="h-6 w-6 p-0 text-muted-label hover:text-brand min-h-9 min-w-9"
                                 onClick={() => handleCopyCode(bp.id)}
                                 aria-label="Export share code"
                               >
@@ -414,7 +418,7 @@ export function BlueprintPanel() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-6 w-6 p-0 text-muted-label hover:text-danger min-h-[36px] min-w-[36px]"
+                                className="h-6 w-6 p-0 text-muted-label hover:text-danger min-h-9 min-w-9"
                                 onClick={() => {
                                   if (confirm('Are you sure you want to delete this blueprint? This cannot be undone.')) {
                                     store.deleteBlueprint(bp.id);
@@ -430,7 +434,7 @@ export function BlueprintPanel() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-6 w-6 p-0 text-muted-label min-h-[36px] min-w-[36px]"
+                            className="h-6 w-6 p-0 text-muted-label min-h-9 min-w-9"
                             onClick={() => setExpandedBlueprint(isExpanded ? null : bp.id)}
                             aria-label={isExpanded ? 'Collapse blueprint details' : 'Expand blueprint details'}
                             aria-expanded={isExpanded}

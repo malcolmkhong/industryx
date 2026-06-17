@@ -82,7 +82,7 @@
   --color-danger: #f87171;         /* replaces text-danger */
   --color-warning: #facc15;        /* replaces text-warning / text-warning */
   --color-brand: #22d3ee;          /* replaces text-brand (matches text-primary) */
-  --color-muted-label: #94a3b8;    /* replaces text-muted-label */
+  --color-muted-label: #94a3b8;    /* WCAG: 7.53:1 on #0a0e17 dark bg (AAA pass) */
   --color-subtle: #9ca3af;         /* replaces text-muted-label */
   --color-dim: #9ca3af;            /* replaces text-muted-label/80 */
   --color-premium: #e879f9;        /* replaces text-premium (prestige) */

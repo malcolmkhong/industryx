@@ -1,6 +1,7 @@
 'use client';
 
 import { useGameStore, formatNumber } from '@/lib/game/store';
+import { useShallow } from 'zustand/react/shallow';
 import { RESOURCE_META, getStreakMultiplier } from '@/lib/game/configCache';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,7 +10,7 @@ import { useReducedMotion } from '@/components/game/shared/useReducedMotion';
 import { GameIcon } from '@/components/game/shared/GameIcon';
 
 export default function DailyRewardsPanel() {
-  const store = useGameStore();
+  const store = useGameStore(useShallow((s) => ({ claimDailyReward: s.claimDailyReward, loginStreak: s.loginStreak })));
   const { loginStreak, claimDailyReward } = store;
   const prefersReducedMotion = useReducedMotion();
 

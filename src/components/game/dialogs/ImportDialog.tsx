@@ -57,7 +57,7 @@ export function ImportDialog({
           <div className="flex items-center gap-2">
             <Button
               onClick={onImport}
-              className="flex-1 bg-warning/70 hover:bg-warning/80 text-white min-h-[44px] lg:min-h-0"
+              className="flex-1 bg-warning/70 hover:bg-warning/80 text-white min-h-11 lg:min-h-0"
               size="sm"
             >
               <Upload className="w-3.5 h-3.5 mr-1" /> Import Save
@@ -68,7 +68,7 @@ export function ImportDialog({
                 onOpenChange(false);
                 setImportError('');
               }}
-              className="border-muted-label text-subtle hover:text-subtle min-h-[44px] lg:min-h-0"
+              className="border-muted-label text-subtle hover:text-subtle min-h-11 lg:min-h-0"
               size="sm"
             >
               Cancel

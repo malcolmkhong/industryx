@@ -1,6 +1,7 @@
 'use client';
 
 import { useGameStore, formatNumber } from '@/lib/game/store';
+import { useShallow } from 'zustand/react/shallow';
 import { motion } from 'framer-motion';
 import { RESOURCE_META, EVENT_TEMPLATES } from '@/lib/game/configCache';
 import { Badge } from '@/components/ui/badge';
@@ -39,7 +40,7 @@ function getPercent(value: number): string {
 }
 
 export function EventPanel() {
-  const store = useGameStore();
+  const store = useGameStore(useShallow((s) => ({ activeEvents: s.activeEvents, eventLog: s.eventLog })));
 
   return (
     <div className="space-y-4">

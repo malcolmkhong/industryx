@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
+import { useShallow } from 'zustand/react/shallow';
 import { PRODUCTION_CHAINS, RESOURCE_META, BUILDING_DEFS } from '@/lib/game/configCache';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -32,7 +33,7 @@ interface ProductionChainPanelProps {
 }
 
 export function ProductionChainPanel({ productionRates }: ProductionChainPanelProps) {
-  const store = useGameStore();
+  const store = useGameStore(useShallow((s) => ({ buildings: s.buildings, resourceCapacity: s.resourceCapacity, resources: s.resources })));
   const [selectedChain, setSelectedChain] = useState(0);
   const [showDetailView, setShowDetailView] = useState(false);
 

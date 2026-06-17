@@ -313,7 +313,7 @@ export function GameSidebar({ activeTab, onTabChange }: GameSidebarProps) {
   const BUYMEACOFFEE_URL = "https://buymeacoffee.com/malcolmkhod";
 
   return (
-    <nav className="hidden lg:flex flex-col w-52 flex-shrink-0 bg-background border-r border-brand/20">
+    <nav className="hidden md:flex flex-col w-16 lg:w-52 flex-shrink-0 bg-background border-r border-brand/20" data-tablet-collapsed="true">
       <div className="flex flex-col py-2 gap-0.5 px-2 flex-1 overflow-y-auto game-scrollbar">
         {NAV_GROUPS.map((group) => {
           const isExpanded = expandedGroups.has(group.id);

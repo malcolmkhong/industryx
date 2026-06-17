@@ -314,7 +314,7 @@ export function BottomNavigationBar({
                 onClick={() => handleGroupTap(group.id)}
                 className={`
                   relative flex items-center justify-center
-                  min-w-[40px] min-h-[40px] rounded-lg
+                  min-w-10 min-h-10 rounded-lg
                   transition-all duration-200
                   active:scale-95
                   ${isCompact ? "flex-col items-center gap-0.5 px-1 py-1" : "px-2 py-2"}
@@ -363,7 +363,7 @@ export function BottomNavigationBar({
             onClick={toggleMode}
             className={`
               flex items-center justify-center
-              min-w-[40px] min-h-[40px] rounded-lg
+              min-w-10 min-h-10 rounded-lg
               text-muted-label active:text-brand active:bg-white/[0.06]
               transition-all duration-200
               ${isCompact ? "flex-col items-center gap-0.5 px-1 py-1" : "px-2 py-2"}

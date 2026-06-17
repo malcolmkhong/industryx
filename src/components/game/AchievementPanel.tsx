@@ -385,6 +385,7 @@ const MemoizedAchievementCard = React.memo(function MemoizedAchievementCard({
         className="w-full p-3 text-left"
         onClick={() => onToggleExpand(achievement.id)}
         aria-expanded={isExpanded}
+        aria-label={`Toggle ${achievement.name} details`}
       >
         <div className="flex items-start gap-3">
           <div

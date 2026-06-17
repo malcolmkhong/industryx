@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
+import { useShallow } from 'zustand/react/shallow';
 import { useSettingsStore, NumberFormat, AnimationSpeed, SpeedLimit, BottomNavMode, QuickAccessShortcut, DEFAULT_QUICK_ACCESS_SHORTCUTS } from '@/lib/game/settingsStore';
 import { soundEngine } from '@/lib/game/soundEngine';
 import { Button } from '@/components/ui/button';
@@ -161,7 +162,7 @@ function LabeledSlider({
 }
 
 export function SettingsPanel() {
-  const store = useGameStore();
+  const store = useGameStore(useShallow((s) => ({ exportSave: s.exportSave, gameTick: s.gameTick, importSave: s.importSave, resetGame: s.resetGame, stats: s.stats })));
   const settings = useSettingsStore();
 
   // Sound preview state
@@ -731,6 +732,7 @@ export function SettingsPanel() {
               </DialogHeader>
               <div className="space-y-3">
                 <textarea
+                  aria-label="Import game state JSON"
                   value={importText}
                   onChange={(e) => { setImportText(e.target.value); setImportError(''); }}
                   placeholder="Paste your save string here..."

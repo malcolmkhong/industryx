@@ -96,7 +96,7 @@ export function OfflineEarningsDialog({
             </p>
 
             <Button
-              className="w-full bg-brand hover:bg-brand text-white min-h-[44px]"
+              className="w-full bg-brand hover:bg-brand text-white min-h-11"
               onClick={onCollect}
               disabled={!offlineData}
             >

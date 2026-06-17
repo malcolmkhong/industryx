@@ -1235,7 +1235,7 @@ export default function FactoryMapPanel() {
                             onClick={() => setSelectedBuildType(isSelected ? null : type)}
                           >
                             <GameIcon icon={def.icon} size={20} />
-                            <span className="text-[11px] text-subtle leading-tight max-w-[48px] truncate">{def.name}</span>
+                            <span className="text-[11px] text-subtle leading-tight max-w-12 truncate">{def.name}</span>
                             <span className={`text-[11px] font-mono ${affordable ? 'text-success' : 'text-danger'}`}>${formatNumber(cost)}</span>
                           </button>
                         );
@@ -1281,7 +1281,7 @@ export default function FactoryMapPanel() {
                                   }}
                                 >
                                   <GameIcon icon={def.icon} size={20} />
-                                  <span className="text-[11px] text-subtle leading-tight max-w-[48px] truncate">{def.name}</span>
+                                  <span className="text-[11px] text-subtle leading-tight max-w-12 truncate">{def.name}</span>
                                   <span className={`text-[11px] font-mono ${affordable ? 'text-success' : 'text-danger'}`}>${formatNumber(cost)}</span>
                                   {count > 0 && (
                                     <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-muted-label text-[11px] text-subtle flex items-center justify-center border border-muted-label">

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useGameStore, formatNumber, isResearchUnlocked } from '@/lib/game/store';
+import { useShallow } from 'zustand/react/shallow';
 import { RESEARCH_TREE, RESOURCE_META } from '@/lib/game/configCache';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,7 +17,7 @@ import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { GameIcon } from '@/components/game/shared/GameIcon';
 
 export function ResearchPanel() {
-  const store = useGameStore();
+  const store = useGameStore(useShallow((s) => ({ activeResearch: s.activeResearch, completedResearch: s.completedResearch, researchPoints: s.researchPoints, researchProgress: s.researchProgress, startResearch: s.startResearch })));
   const [startingResearch, setStartingResearch] = useState<string | null>(null);
 
   const categories: { id: ResearchCategory; name: string; icon: React.ReactNode; color: string }[] = [
@@ -256,7 +257,7 @@ export function ResearchPanel() {
                             setTimeout(() => setStartingResearch(null), 300);
                           }}
                           disabled={startingResearch === node.id}
-                          className="w-full mt-2 bg-research hover:bg-research text-white text-xs h-7 min-h-[36px]"
+                          className="w-full mt-2 bg-research hover:bg-research text-white text-xs h-7 min-h-9"
                           size="sm"
                         >
                           {startingResearch === node.id ? <LoadingSpinner /> : <FlaskConical className="w-3 h-3 mr-1" />}

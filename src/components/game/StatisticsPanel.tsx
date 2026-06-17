@@ -1,7 +1,9 @@
 'use client';
+/* eslint-disable jsx-a11y/control-has-associated-label -- <td> elements are not controls (false positive) */
 
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
+import { useShallow } from 'zustand/react/shallow';
 import { RESOURCE_META } from '@/lib/game/configCache';
 import { ResourceType } from '@/lib/game/types';
 import { BarChart3, TrendingUp, TrendingDown, Minus, Zap, DollarSign, Activity } from 'lucide-react';
@@ -321,7 +323,7 @@ function EfficiencyChart({
 
 export default function StatisticsPanel() {
   const [timeRange, setTimeRange] = useState<TimeRange>(100);
-  const store = useGameStore();
+  const store = useGameStore(useShallow((s) => ({ money: s.money, powerGrid: s.powerGrid, productionHistory: s.productionHistory, resourceCapacity: s.resourceCapacity, resources: s.resources, stats: s.stats, totalMoneyEarned: s.totalMoneyEarned })));
 
   // Responsive chart width
   const containerRef = useRef<HTMLDivElement>(null);

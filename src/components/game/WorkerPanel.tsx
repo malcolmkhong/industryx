@@ -285,7 +285,7 @@ export function WorkerPanel() {
                         setTimeout(() => setHiringType(null), 300);
                       }}
                       disabled={!canAfford || hiringType === type}
-                      className={`w-full text-xs h-7 min-h-[36px] ${canAfford ? 'bg-brand hover:bg-brand text-white' : 'bg-muted-label text-muted-label'}`}
+                      className={`w-full text-xs h-7 min-h-9 ${canAfford ? 'bg-brand hover:bg-brand text-white' : 'bg-muted-label text-muted-label'}`}
                       size="sm"
                     >
                       {hiringType === type ? <LoadingSpinner /> : `Hire for $${formatNumber(def.baseHireCost)}`}
@@ -347,7 +347,7 @@ export function WorkerPanel() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-5 w-5 p-0 text-muted-label hover:text-brand min-h-[36px] min-w-[36px]"
+                          className="h-5 w-5 p-0 text-muted-label hover:text-brand min-h-9 min-w-9"
                           onClick={() => assignWorker(assignedWorker.id, null)}
                           aria-label="Unassign worker"
                         >

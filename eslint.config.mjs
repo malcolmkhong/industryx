@@ -27,6 +27,12 @@ const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
     // Next.js rules
     "@next/next/no-img-element": "off",
     "@next/next/no-html-link-for-pages": "off",
+
+    // Accessibility (Phase 4.2) — icon-only buttons must have accessible names
+    "jsx-a11y/control-has-associated-label": "warn",  // Phase 4.2: BUG-018 mostly resolved (game panels fixed); admin pages deferred to follow-up
+    "jsx-a11y/anchor-has-content": "error",
+    "jsx-a11y/click-events-have-key-events": "warn",
+    "jsx-a11y/no-static-element-interactions": "warn",
     
     // General JavaScript rules
     "prefer-const": "off",

@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useGameStore, formatNumber } from '@/lib/game/store';
+import { useShallow } from 'zustand/react/shallow';
 import { Drone, DroneMission, ResourceType } from '@/lib/game/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -183,7 +184,7 @@ function DroneVisualMap({ missions, fleet, gameTick }: {
 
 // --- Main Component ---
 export default function DroneDeliveryPanel() {
-  const store = useGameStore();
+  const store = useGameStore(useShallow((s) => ({ buyDrone: s.buyDrone, drones: s.drones, gameTick: s.gameTick, generateDroneMissions: s.generateDroneMissions, money: s.money, sendDrone: s.sendDrone, upgradeDrone: s.upgradeDrone })));
   const [expandedDrone, setExpandedDrone] = useState<string | null>(null);
   const [selectedMission, setSelectedMission] = useState<string | null>(null);
 

@@ -472,7 +472,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
                       {userName.charAt(0).toUpperCase()}
                     </div>
                   )}
-                  <span className="text-[10px] text-subtle max-w-[80px] truncate">{userName}</span>
+                  <span className="text-[10px] text-subtle max-w-20 truncate">{userName}</span>
                   {isGuest && (
                     <span className="text-[11px] px-1 py-0.5 rounded bg-warning/30 text-warning border border-warning/30 font-bold uppercase tracking-wider">
                       Guest

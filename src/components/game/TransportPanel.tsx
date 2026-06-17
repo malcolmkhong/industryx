@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
+import { useShallow } from 'zustand/react/shallow';
 import { TRANSPORT_DEFS, BUILDING_DEFS, RESOURCE_META, WEATHER_DEFS } from '@/lib/game/configCache';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -956,7 +957,7 @@ function NetworkGraph({ nodes, relations }: { nodes: ERDNode[]; relations: ERDRe
 }
 
 export function TransportPanel() {
-  const store = useGameStore();
+  const store = useGameStore(useShallow((s) => ({ buildTransportLine: s.buildTransportLine, buildings: s.buildings, money: s.money, powerGrid: s.powerGrid, productionSnapshot: s.productionSnapshot, toggleTransportLine: s.toggleTransportLine, transportLines: s.transportLines, upgradeTransportLine: s.upgradeTransportLine, weather: s.weather })));
   const [selectedType, setSelectedType] = useState<TransportType>('conveyorBelt');
   const [fromBuilding, setFromBuilding] = useState<string>('');
   const [toBuilding, setToBuilding] = useState<string>('');
@@ -2224,12 +2225,12 @@ export function TransportPanel() {
                       <div key={i} className="bg-background rounded-lg p-3 border border-brand/20">
                         <div className="flex items-center gap-2 mb-2">
                           <GameIcon icon={fromDef?.icon} size={14} className="inline-flex" />
-                          <span className="text-xs text-subtle truncate max-w-[80px]">{fromDef?.name}</span>
+                          <span className="text-xs text-subtle truncate max-w-20">{fromDef?.name}</span>
                           <ArrowRight className="w-3 h-3 text-brand flex-shrink-0" />
                           <GameIcon icon={resMeta?.icon} size={14} className="inline-flex" />
                           <ArrowRight className="w-3 h-3 text-brand flex-shrink-0" />
                           <GameIcon icon={toDef?.icon} size={14} className="inline-flex" />
-                          <span className="text-xs text-subtle truncate max-w-[80px]">{toDef?.name}</span>
+                          <span className="text-xs text-subtle truncate max-w-20">{toDef?.name}</span>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] text-muted-label">{sug.reason}</span>

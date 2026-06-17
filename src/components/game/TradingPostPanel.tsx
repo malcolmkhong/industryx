@@ -542,6 +542,7 @@ export function TradingPostPanel() {
               </div>
               <input
                 type="number"
+                aria-label="Trade amount"
                 min={0}
                 max={Math.floor(giveResourceCurrent)}
                 value={giveAmount}

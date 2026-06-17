@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useGameStore } from '@/lib/game/store';
+import { useShallow } from 'zustand/react/shallow';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Bell, Check, CheckCheck, Trash2, Filter } from 'lucide-react';
@@ -75,7 +76,7 @@ const MemoizedNotificationItem = React.memo(function MemoizedNotificationItem({
 });
 
 export function NotificationCenterPanel() {
-  const store = useGameStore();
+  const store = useGameStore(useShallow((s) => ({ clearNotifications: s.clearNotifications, markAllNotificationsRead: s.markAllNotificationsRead, markNotificationRead: s.markNotificationRead, notifications: s.notifications })));
   const [filter, setFilter] = useState<NotificationFilter>('all');
   const listRef = useRef<HTMLDivElement>(null);
 

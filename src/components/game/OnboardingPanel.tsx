@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { GameIcon } from '@/components/game/shared/GameIcon';
 import { useGameStore, formatNumber, GameStore } from '@/lib/game/store';
+import { useShallow } from 'zustand/react/shallow';
 import { BUILDING_DEFS } from '@/lib/game/configCache';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -175,7 +176,7 @@ const KEYBOARD_SHORTCUTS = [
 ];
 
 export function OnboardingPanel() {
-  const store = useGameStore();
+  const store = useGameStore(useShallow((s) => ({ activeResearch: s.activeResearch, buildings: s.buildings, completedResearch: s.completedResearch, gameTick: s.gameTick, money: s.money, powerGrid: s.powerGrid, researchPoints: s.researchPoints, resources: s.resources, totalMoneyEarned: s.totalMoneyEarned })));
   const [skipped, setSkipped] = useState(false);
   const [expandedStep, setExpandedStep] = useState<string | null>(null);
   const [showHints, setShowHints] = useState(false);
@@ -183,7 +184,7 @@ export function OnboardingPanel() {
   const stepStates = useMemo(() => {
     return TUTORIAL_STEPS.map(step => ({
       ...step,
-      completed: step.checkCompleted(store),
+      completed: step.checkCompleted(store as GameStore),
     }));
   }, [store]);
 

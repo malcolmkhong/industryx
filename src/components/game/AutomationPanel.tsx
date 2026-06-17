@@ -1,6 +1,7 @@
 'use client';
 
 import { useGameStore, formatNumber } from '@/lib/game/store';
+import { useShallow } from 'zustand/react/shallow';
 import { AUTOMATION_UNLOCKS, RESEARCH_TREE } from '@/lib/game/configCache';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -22,7 +23,7 @@ const AUTO_ICONS: Record<string, React.ReactNode> = {
 };
 
 export function AutomationPanel() {
-  const store = useGameStore();
+  const store = useGameStore(useShallow((s) => ({ activateAutomation: s.activateAutomation, automationUnlocks: s.automationUnlocks, completedResearch: s.completedResearch, prestigeState: s.prestigeState })));
 
   const activeCount = store.automationUnlocks.filter(a => a.active).length;
   const totalCount = store.automationUnlocks.length;
@@ -142,7 +143,7 @@ export function AutomationPanel() {
                 <Button
                   onClick={() => store.activateAutomation(unlock.type)}
                   disabled={!canActivate}
-                  className={`w-full text-xs h-8 min-h-[36px] ${
+                  className={`w-full text-xs h-8 min-h-9 ${
                     canActivate ? 'bg-brand hover:bg-brand text-white' : 'bg-muted-label text-muted-label'
                   }`}
                   size="sm"
