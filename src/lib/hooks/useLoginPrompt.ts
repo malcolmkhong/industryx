@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
+import { create } from 'zustand';
 import { useGameStore } from '@/lib/game/store';
 import { useAuth } from '@/components/providers/AuthProvider';
 import type { LoginPromptReason } from '@/components/game/LoginFloatingPanel';
@@ -17,6 +18,31 @@ interface LoginPromptState {
   /** Close the login panel */
   closePrompt: () => void;
 }
+
+// ─── Shared Store ───────────────────────────────────────────────────────
+// The login panel open/close state MUST be shared across every caller of
+// useLoginPrompt(). It is consumed in page.tsx (which renders the panel) but
+// triggered from completely separate component trees — the header "Sign In" /
+// "Bind Account" buttons and the guest-gated tab handler (useTabChange).
+//
+// Previously this lived in local useState, so each caller got its own isolated
+// copy: the headers/tab handler flipped their own `isOpen` while the panel in
+// page.tsx read a different one and never opened. Hoisting it into a Zustand
+// store gives every caller a single source of truth.
+
+interface LoginPromptStore {
+  isOpen: boolean;
+  reason: LoginPromptReason;
+  open: (reason: LoginPromptReason) => void;
+  close: () => void;
+}
+
+const useLoginPromptStore = create<LoginPromptStore>((set) => ({
+  isOpen: false,
+  reason: 'manual',
+  open: (reason) => set({ isOpen: true, reason }),
+  close: () => set({ isOpen: false }),
+}));
 
 // ─── Dismissal Tracking ─────────────────────────────────────────────────
 // Track which soft prompts have been dismissed so we don't annoy users
@@ -65,30 +91,34 @@ let progressMilestoneTriggered = false;
 
 export function useLoginPrompt(): LoginPromptState {
   const { user, loading: authLoading } = useAuth();
-  const [isOpen, setIsOpen] = useState(false);
-  const [reason, setReason] = useState<LoginPromptReason>('manual');
+
+  // Shared open/close state (single source of truth across all callers)
+  const isOpen = useLoginPromptStore(s => s.isOpen);
+  const reason = useLoginPromptStore(s => s.reason);
+  const openPanel = useLoginPromptStore(s => s.open);
+  const closePanel = useLoginPromptStore(s => s.close);
+
   const hasCheckedPrestige = useRef(false);
 
   // Game state selectors
   const gameTick = useGameStore(s => s.gameTick);
-  const prestigeState = useGameStore(s => s.prestigeState);
 
   // Open prompt
   const promptLogin = useCallback((triggerReason: LoginPromptReason) => {
     // Don't prompt if already fully authenticated (non-anonymous user) or auth is loading
     if ((user && !user.is_anonymous) || authLoading) return;
-    setReason(triggerReason);
-    setIsOpen(true);
-  }, [user, authLoading]);
+    openPanel(triggerReason);
+  }, [user, authLoading, openPanel]);
 
   // Close prompt
   const closePrompt = useCallback(() => {
-    // Record dismissal for soft prompts
-    if (reason === 'progress_milestone' || reason === 'prestige_available' || reason === 'playtime_reminder') {
-      setDismissal(reason);
+    // Record dismissal for soft prompts (read current reason from the store)
+    const currentReason = useLoginPromptStore.getState().reason;
+    if (currentReason === 'progress_milestone' || currentReason === 'prestige_available' || currentReason === 'playtime_reminder') {
+      setDismissal(currentReason);
     }
-    setIsOpen(false);
-  }, [reason]);
+    closePanel();
+  }, [closePanel]);
 
   // ── Auto-trigger: Progress Milestone ──
   useEffect(() => {
@@ -151,9 +181,9 @@ export function useLoginPrompt(): LoginPromptState {
   useEffect(() => {
     if (user && isOpen) {
       // Use microtask to avoid synchronous setState in effect
-      queueMicrotask(() => setIsOpen(false));
+      queueMicrotask(() => closePanel());
     }
-  }, [user, isOpen]);
+  }, [user, isOpen, closePanel]);
 
   return { isOpen, reason, promptLogin, closePrompt };
 }
