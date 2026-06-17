@@ -45,7 +45,7 @@ const SAVE_VERSION = 20;
 
 // --- Utility Functions ---
 function generateId(): string {
-  return Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
+  return crypto.randomUUID();
 }
 
 function getGlobalPrice(state: GameState, resource: ResourceType): number {
