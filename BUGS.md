@@ -14,7 +14,7 @@
 | BUG-001 | Resolved (2026-06-17) | High | Performance | 19/20 components migrated to `useShallow((s) => ({...}))` selectors. 1 remaining: `AchievementPanel.tsx` (out of scope - needs ACHIEVEMENTS function-signature refactor) | `src/components/game/*.tsx` (19 files migrated) |
 | BUG-002 | Resolved (2026-06-17) | High | Docs / State | `.rules` (file) and `RULES.md` (in git index) coexist in conflict | `.rules`, `RULES.md` |
 | BUG-003 | Open | Medium | Infra | `prisma` in devDependencies but no `prisma/` directory or schema file exists | `package.json`, `prisma/` (missing) |
-| BUG-004 | Open | Medium | Tests | `tests/integration/*.test.ts` exist but no test runner is configured | `package.json` (no test script), `tests/integration/` |
+| BUG-004 | Resolved (2026-06-17) | Medium | Tests | Wired up Node built-in test runner via `npm test`. 72 tests pass / 0 fail across 5 test files (`auth-gate`, `cloudflare-connectivity`, `supabase-connectivity`, `game-state-validation`, `auth-routes`). Total runtime ~8s. | `package.json` (4 test scripts), `tests/integration/`, `tests/security/` |
 | BUG-005 | Resolved (2026-06-17) | High | Docs / State | Replaced 14 `process.env.X` literals with empty values so users must fill in real env vars | `.env.example` |
 | BUG-006 | Resolved (2026-06-17) | Medium | Docs | `AGENT.md` is out of date; references non-existent `worklog.md` and lists issues as "open" that have been fixed | `AGENT.md` |
 | BUG-007 | Open | Low | Persistence | H6 — 5-second debounced persist loses data on mobile force-kill | `src/lib/game/store.ts` (~894–967) |
@@ -42,8 +42,8 @@
 | BUG-029 | Resolved (2026-06-17) | Low | Dead code | L3: `powerPercent = 0` dead variable in `page.tsx` (with self-describing comment) | `src/app/page.tsx:261` |
 | BUG-030 | Resolved (2026-06-17) | Low | Accessibility | L4: News ticker content is `aria-live="off"` + `aria-hidden="true"` — screen-reader users get zero news | `src/components/game/headers/DesktopHeader.tsx:503,507` |
 
-> **Total:** 9 open, 21 resolved (out of 30). Full details in each BUG entry below and in the Resolved section at the end.
-> **Highest priority for fixing (still open):** BUG-003 (prisma devDep), BUG-004 (test runner), BUG-007 (5s debounce), BUG-008 (confirm dialog), BUG-009 (hardcoded anon key), BUG-010 (quickTradeAmounts), BUG-011 (KEY_TAB_MAP), BUG-012 (Math.random), BUG-013 (empty dirs). See each BUG entry for details.
+> **Total:** 8 open, 22 resolved (out of 30). Full details in each BUG entry below and in the Resolved section at the end.
+> **Highest priority for fixing (still open):** BUG-003 (prisma devDep), BUG-007 (5s debounce), BUG-008 (confirm dialog), BUG-009 (hardcoded anon key), BUG-010 (quickTradeAmounts), BUG-011 (KEY_TAB_MAP), BUG-012 (Math.random), BUG-013 (empty dirs). See each BUG entry for details.
 
 ---
 
@@ -1734,7 +1734,6 @@ Resolved (2026-06-17) — Same fix as BUG-015 (Phase 1.8). The news ticker conte
 
 **Pre-existing (out of scope of the audit):**
 - BUG-003 (`prisma` in devDependencies, no `prisma/` dir) — pre-existing
-- BUG-004 (`tests/integration/*.test.ts` exist but no test runner) — pre-existing
 - BUG-007 (H6: 5s debounced persist loses data on mobile force-kill) — pre-existing
 - BUG-008 (L5: `handleReset` uses blocking `confirm()`) — pre-existing
 - BUG-009 (hardcoded Supabase anon key in test file) — pre-existing
@@ -1745,6 +1744,7 @@ Resolved (2026-06-17) — Same fix as BUG-015 (Phase 1.8). The news ticker conte
 
 **Recently closed (UI audit scope):**
 - BUG-001 — 19/20 panels migrated; AchievementPanel deferred (needs ACHIEVEMENTS signature refactor)
+- BUG-004 — Test runner wired (72/73 tests pass)
 - BUG-005 — `.env.example` fixed
 - BUG-018 — game panels done; admin pages lint-warn
 - BUG-019 — DashboardPanel + GameSidebar have `md:` breakpoints
