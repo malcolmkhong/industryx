@@ -42,8 +42,8 @@
 | BUG-029 | Resolved (2026-06-17) | Low | Dead code | L3: `powerPercent = 0` dead variable in `page.tsx` (with self-describing comment) | `src/app/page.tsx:261` |
 | BUG-030 | Resolved (2026-06-17) | Low | Accessibility | L4: News ticker content is `aria-live="off"` + `aria-hidden="true"` — screen-reader users get zero news | `src/components/game/headers/DesktopHeader.tsx:503,507` |
 
-> **Total:** 8 open, 22 resolved (out of 30). Full details in each BUG entry below and in the Resolved section at the end.
-> **Highest priority for fixing (still open):** BUG-003 (prisma devDep), BUG-007 (5s debounce), BUG-008 (confirm dialog), BUG-009 (hardcoded anon key), BUG-010 (quickTradeAmounts), BUG-011 (KEY_TAB_MAP), BUG-012 (Math.random), BUG-013 (empty dirs). See each BUG entry for details.
+> **Total:** 7 open, 23 resolved (out of 30). Full details in each BUG entry below and in the Resolved section at the end.
+> **Highest priority for fixing (still open):** BUG-003 (prisma devDep), BUG-007 (5s debounce), BUG-008 (confirm dialog), BUG-009 (hardcoded anon key), BUG-010 (quickTradeAmounts), BUG-011 (KEY_TAB_MAP),  BUG-013 (empty dirs). See each BUG entry for details.
 
 ---
 
@@ -1746,6 +1746,7 @@ Resolved (2026-06-17) — Same fix as BUG-015 (Phase 1.8). The news ticker conte
 - BUG-001 — 19/20 panels migrated; AchievementPanel deferred (needs ACHIEVEMENTS signature refactor)
 - BUG-004 — Test runner wired (72/73 tests pass)
 - BUG-005 — `.env.example` fixed
+- BUG-012 — `Math.random` for IDs → `crypto.randomUUID` (5/5 tests pass)
 - BUG-018 — game panels done; admin pages lint-warn
 - BUG-019 — DashboardPanel + GameSidebar have `md:` breakpoints
 - BUG-022 — contrast verified 7.53:1 (AAA pass), documented in `globals.css:85`
