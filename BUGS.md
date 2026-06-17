@@ -22,7 +22,7 @@
 | BUG-009 | Open | Low | Security | Hardcoded production Supabase anon key in committed test file | `tests/integration/supabase-connectivity.test.ts` |
 | BUG-010 | Open | Low | UX | L4 — `quickTradeAmounts` doesn't refresh from Supabase market | `src/components/game/TradingPostPanel.tsx` (200–205) |
 | BUG-011 | Open | Low | UX | L2 — `KEY_TAB_MAP` covers only 10 of 25+ tabs | `src/components/game/GameSidebar.tsx` (124–135) |
-| BUG-012 | Open | Low | Security | L1 — `Math.random()` used for IDs and event timing | `src/lib/game/store.ts` (48+), `src/components/game/TradingPostPanel.tsx` (174) |
+| BUG-012 | Resolved (2026-06-17) | Low | Security | `generateId()` in `store.ts:48` now uses `crypto.randomUUID()` (122-bit cryptographic entropy, RFC 4122 v4). Gameplay timing (weather, events, seasons) intentionally remains on `Math.random()` (NOT security-sensitive). Added 5 integration tests in `tests/integration/crypto-id.test.ts` (5/5 pass). | `src/lib/game/store.ts:48`, `tests/integration/crypto-id.test.ts` | `src/lib/game/store.ts` (48+), `src/components/game/TradingPostPanel.tsx` (174) |
 | BUG-013 | Open | Low | Infra | `.omo/` and `skills/` directories are empty and gitignored; may be remnants of removed features | `.omo/`, `skills/` |
 | BUG-014 | Resolved (2026-06-17) | High | Performance | C1: 28 panels eagerly imported — no code-splitting, no `next/dynamic` anywhere | `src/app/page.tsx` |
 | BUG-015 | Resolved (2026-06-17) | High | Accessibility | C2: News ticker `role="marquee"` auto-scrolls 30s with no pause control and no `prefers-reduced-motion` guard | `src/components/game/headers/DesktopHeader.tsx:503` |
@@ -1739,13 +1739,14 @@ Resolved (2026-06-17) — Same fix as BUG-015 (Phase 1.8). The news ticker conte
 - BUG-009 (hardcoded Supabase anon key in test file) — pre-existing
 - BUG-010 (L4: `quickTradeAmounts` doesn't refresh) — pre-existing
 - BUG-011 (L2: `KEY_TAB_MAP` covers only 10 of 25+ tabs) — pre-existing
-- BUG-012 (L1: `Math.random()` for IDs and event timing) — pre-existing
+- 
 - BUG-013 (`.omo/` and `skills/` directories empty) — pre-existing
 
 **Recently closed (UI audit scope):**
 - BUG-001 — 19/20 panels migrated; AchievementPanel deferred (needs ACHIEVEMENTS signature refactor)
 - BUG-004 — Test runner wired (72/73 tests pass)
 - BUG-005 — `.env.example` fixed
+- BUG-012 — `Math.random` for IDs → `crypto.randomUUID` (5/5 tests pass)
 - BUG-012 — `Math.random` for IDs → `crypto.randomUUID` (5/5 tests pass)
 - BUG-018 — game panels done; admin pages lint-warn
 - BUG-019 — DashboardPanel + GameSidebar have `md:` breakpoints
