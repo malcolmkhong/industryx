@@ -19,7 +19,7 @@ IndustriaX ("Factory Dominion: Automated Empire") is a browser-based industrial 
 | `src/lib/hooks/useCloudSync.ts` | 9 | **Barrel re-export** — decomposed to `src/lib/hooks/cloudSync/` (9 files, `9d3b7c1`) |
 | `src/lib/hooks/cloudSync/` | 9 files | `serializeGameState`, `detectConflict`, `mapHttpErrorToBlock`, `useBlockedState`, `useServerAuthority`, `useCloudPersistence`, `useConflictResolution`, `index` facade |
 | `src/lib/hooks/presence/` | 5 files | `BasePresenceManager`, `VisitorPresenceManager`, `AdminPresenceManager` + 2 thin wrapper hooks (`0e83906`) |
-| `src/lib/game/selectors/` | 6 files | 30 named selectors across 5 domains + barrel export (`bb5f868`) |
+| ~~`src/lib/game/selectors/`~~ | — | **STALE — does not exist.** `commit bb5f868` referenced a 6-file / 30-selector library that was never landed. Selectors are now per-field inline (`useGameStore((s) => s.x)`) or object pattern with `useShallow` (19 panels migrated, see BUG-001). |
 
 ### Database Status
 
@@ -202,7 +202,7 @@ See `planning/phases/PHASE_XX_*.md` for detailed task breakdowns. See `PROJECT_R
 1. **Previously Missing Artifacts — ALL NOW EXIST:**
    - ✅ `src/lib/hooks/cloudSync/` — 9 files (`9d3b7c1`)
    - ✅ `src/lib/hooks/presence/` — 5 files (`0e83906`)
-   - ✅ `src/lib/game/selectors/` — 6 files, 30 selectors (`bb5f868`)
+   - ⚠️ `src/lib/game/selectors/` — **stale claim, removed 2026-06-17.** Library was never actually created. Inline per-field `useGameStore((s) => s.x)` and `useShallow` object pattern are used instead. See BUG-001 (19/20 panels migrated).
 
 2. **Open Registry Issues (4):**
    - H6 5s debounce risk — store.ts 5s debounce, mitigated by `beforeunload` only
