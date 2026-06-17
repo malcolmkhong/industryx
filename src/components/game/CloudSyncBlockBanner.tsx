@@ -109,7 +109,7 @@ export function CloudSyncBlockBanner({ blockedState, onSignInAgain }: CloudSyncB
         {/* Main card */}
         <div className="relative overflow-hidden rounded-2xl border border-danger/30 bg-gradient-to-b from-[#1a1020] to-[#0f0a15] shadow-[0_0_60px_rgba(239,68,68,0.15)]">
           {/* Animated top accent bar */}
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-600 via-orange-500 to-red-600 animate-pulse" />
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-danger/80 via-domain to-danger/80 animate-pulse" />
 
           {/* Warning pattern overlay */}
           <div className="absolute inset-0 opacity-[0.02]" style={{
@@ -142,10 +142,10 @@ export function CloudSyncBlockBanner({ blockedState, onSignInAgain }: CloudSyncB
             </p>
 
             {/* Divider */}
-            <div className="w-16 h-px bg-gradient-to-r from-transparent via-red-500/40 to-transparent mx-auto mb-4" />
+            <div className="w-16 h-px bg-gradient-to-r from-transparent via-danger/40 to-transparent mx-auto mb-4" />
 
             {/* Reason box */}
-            <div className="bg-red-950/30 border border-red-900/30 rounded-xl p-4 mb-5 text-left">
+            <div className="bg-danger/10/30 border border-danger/40/30 rounded-xl p-4 mb-5 text-left">
               <p className="text-xs font-semibold text-danger mb-2 uppercase tracking-wider flex items-center gap-2">
                 <AlertTriangle className="w-3.5 h-3.5" />
                 Reason
@@ -195,7 +195,7 @@ export function CloudSyncBlockBanner({ blockedState, onSignInAgain }: CloudSyncB
             {isSessionExpired && onSignInAgain && (
               <button
                 onClick={handleSignIn}
-                className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-brand bg-cyan-950/30 border border-brand/20 hover:bg-brand/30 hover:border-brand/30 transition-all duration-200"
+                className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-brand bg-950-cyan/30 border border-brand/20 hover:bg-brand/30 hover:border-brand/30 transition-all duration-200"
               >
                 <WifiOff className="w-4 h-4" />
                 Sign In Again

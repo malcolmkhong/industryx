@@ -105,7 +105,7 @@ function SupplyDemandBar({ demand, supply }: { demand: number; supply: number })
           <div className="h-full bg-brand/60 rounded-l-full" style={{ width: `${supplyPct}%` }} />
         </div>
       </div>
-      <span className={`text-[8px] font-mono font-bold ${net > 0.1 ? 'text-domain' : net < -0.1 ? 'text-brand' : 'text-muted-label'}`}>
+      <span className={`text-[11px] font-mono font-bold ${net > 0.1 ? 'text-domain' : net < -0.1 ? 'text-brand' : 'text-muted-label'}`}>
         {net > 0.1 ? '▲' : net < -0.1 ? '▼' : '─'}
       </span>
     </div>
@@ -162,9 +162,9 @@ function SectorOverview({ sectorTrends, market }: { sectorTrends: Partial<Record
           }`}>
             <div className="flex items-center justify-between mb-0.5">
               <GameIcon icon={info.icon as `gi:${string}` | `lucide:${string}`} size={12} className={info.color} />
-              {trend === 'up' && <span className="text-[8px] text-success">▲</span>}
-              {trend === 'down' && <span className="text-[8px] text-danger">▼</span>}
-              {trend === 'stable' && <span className="text-[8px] text-muted-label">─</span>}
+              {trend === 'up' && <span className="text-[11px] text-success">▲</span>}
+              {trend === 'down' && <span className="text-[11px] text-danger">▼</span>}
+              {trend === 'stable' && <span className="text-[11px] text-muted-label">─</span>}
             </div>
             <div className={`text-[9px] font-medium ${info.color}`}>{info.name}</div>
             <div className="text-[9px] text-muted-label font-mono">{(avgRatio * 100).toFixed(0)}%</div>
@@ -295,7 +295,7 @@ export function MarketPanel() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="bg-gradient-to-r from-green-900/10 to-transparent -m-0 p-0 rounded-xl">
+        <div className="bg-gradient-to-r from-success/30/10 to-transparent -m-0 p-0 rounded-xl">
           <h2 className="text-xl font-bold text-success tracking-wide neon-glow-green">
             Global Market
           </h2>
@@ -584,27 +584,27 @@ export function MarketPanel() {
                       </div>
                       <div className="flex items-center gap-1.5">
                         {activeInjection && (
-                          <span className={`text-[8px] px-1.5 py-0.5 rounded-full border font-bold inline-flex items-center gap-0.5 ${
+                          <span className={`text-[11px] px-1.5 py-0.5 rounded-full border font-bold inline-flex items-center gap-0.5 ${
                             activeInjection.source === 'macro'
                               ? 'bg-danger/30 text-danger border-danger/30'
                               : activeInjection.source === 'chain'
                                 ? 'bg-research/30 text-research border-research/30'
-                                : 'bg-amber-900/30 text-warning border-warning/30'
+                                : 'bg-warning/30 text-warning border-warning/30'
                           }`}>
                             <AlertTriangle className="w-2.5 h-2.5" />
                             {activeInjection.source === 'macro' ? 'MACRO' : activeInjection.source === 'chain' ? 'CHAIN' : '⚡'}
                           </span>
                         )}
                         {priceRatio > 1.5 && (
-                          <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-domain/30 text-domain border border-domain/30 font-bold inline-flex items-center gap-0.5"><GameIcon icon="gi:flame" size={10} /> HOT</span>
+                          <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-domain/30 text-domain border border-domain/30 font-bold inline-flex items-center gap-0.5"><GameIcon icon="gi:flame" size={10} /> HOT</span>
                         )}
                         {priceRatio < 0.5 && (
-                          <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-brand/30 text-brand border border-brand/30 font-bold inline-flex items-center gap-0.5"><GameIcon icon="gi:falling" size={10} /> LOW</span>
+                          <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-brand/30 text-brand border border-brand/30 font-bold inline-flex items-center gap-0.5"><GameIcon icon="gi:falling" size={10} /> LOW</span>
                         )}
                         {m.trend === 'up' && <span className="text-xs trend-arrow-bounce inline-flex items-center" style={{ filter: 'drop-shadow(0 0 3px rgba(74,222,128,0.5))' }}><GameIcon icon="gi:fast-arrow" size={12} className="text-success rotate-[-90deg]" /></span>}
                         {m.trend === 'down' && <span className="text-xs trend-arrow-bounce inline-flex items-center" style={{ filter: 'drop-shadow(0 0 3px rgba(248,113,113,0.5))' }}><GameIcon icon="gi:fast-arrow" size={12} className="text-danger rotate-90" /></span>}
                         {isAutoSell && (
-                          <span className="text-[8px] px-1 py-0.5 rounded bg-success/30 text-success border border-success/30">AUTO</span>
+                          <span className="text-[11px] px-1 py-0.5 rounded bg-success/30 text-success border border-success/30">AUTO</span>
                         )}
                       </div>
                     </div>
@@ -631,8 +631,8 @@ export function MarketPanel() {
                     {/* Player impact indicator */}
                     {(prod > 0 || cons > 0) && (
                       <div className="flex items-center gap-1 mt-1">
-                        {prod > 0 && <span className="text-[8px] text-success font-mono">+{prod.toFixed(1)}/s</span>}
-                        {cons > 0 && <span className="text-[8px] text-domain font-mono">-{cons.toFixed(1)}/s</span>}
+                        {prod > 0 && <span className="text-[11px] text-success font-mono">+{prod.toFixed(1)}/s</span>}
+                        {cons > 0 && <span className="text-[11px] text-domain font-mono">-{cons.toFixed(1)}/s</span>}
                       </div>
                     )}
                     {/* Bezier Sparkline with base price line */}
@@ -662,7 +662,7 @@ export function MarketPanel() {
                 {/* Selected Resource Detail */}
                 <div className="game-card rounded-xl bg-card p-4 border border-brand/30">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 rounded-xl bg-[#0a0e17] flex items-center justify-center text-2xl">
+                    <div className="w-12 h-12 rounded-xl bg-background flex items-center justify-center text-2xl">
                       <GameIcon icon={selectedMeta.icon} size={24} />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -727,7 +727,7 @@ export function MarketPanel() {
 
                   {/* Player Impact Section */}
                   {(playerImpact.production > 0 || playerImpact.consumption > 0) && (
-                    <div className="mb-3 p-2 rounded-lg border border-muted-label bg-[#0a0e17]">
+                    <div className="mb-3 p-2 rounded-lg border border-muted-label bg-background">
                       <div className="text-[10px] text-subtle font-semibold mb-1.5 flex items-center gap-1">
                         <Zap className="w-3 h-3" /> Your Market Impact
                       </div>
@@ -752,7 +752,7 @@ export function MarketPanel() {
 
                   {/* Correlation Links Quick View */}
                   {(correlationChain.upstream.length > 0 || correlationChain.downstream.length > 0) && (
-                    <div className="mb-3 p-2 rounded-lg border border-muted-label bg-[#0a0e17]">
+                    <div className="mb-3 p-2 rounded-lg border border-muted-label bg-background">
                       <div className="text-[10px] text-subtle font-semibold mb-1.5 flex items-center gap-1">
                         <Link2 className="w-3 h-3" /> Price Links
                       </div>
@@ -780,7 +780,7 @@ export function MarketPanel() {
                         <span>Price History (last 50)</span>
                         <span className="text-muted-label">--- base price</span>
                       </div>
-                      <div className="h-20 bg-[#0a0e17] rounded-lg p-1">
+                      <div className="h-20 bg-background rounded-lg p-1">
                         <BezierSparkline
                           data={selected.priceHistory.slice(-50)}
                           color={selected.trend === 'up' ? '#4ade80' : selected.trend === 'down' ? '#f87171' : '#67e8f9'}
@@ -819,7 +819,7 @@ export function MarketPanel() {
                       className={`flex-1 py-1.5 rounded text-[10px] font-bold ${
                         tradeMode === 'sell'
                           ? 'bg-success/30 text-success border border-success/30'
-                          : 'bg-[#0a0e17] text-muted-label border border-muted-label'
+                          : 'bg-background text-muted-label border border-muted-label'
                       }`}
                     >
                       <ArrowUpRight className="w-3 h-3 inline mr-1" />SELL
@@ -830,7 +830,7 @@ export function MarketPanel() {
                       className={`flex-1 py-1.5 rounded text-[10px] font-bold ${
                         tradeMode === 'buy'
                           ? 'bg-domain/30 text-domain border border-domain/30'
-                          : 'bg-[#0a0e17] text-muted-label border border-muted-label'
+                          : 'bg-background text-muted-label border border-muted-label'
                       }`}
                     >
                       <ArrowDownRight className="w-3 h-3 inline mr-1" />BUY
@@ -846,7 +846,7 @@ export function MarketPanel() {
                         className={`flex-1 py-1.5 rounded text-[10px] font-mono ${
                           tradeAmount === amt
                             ? 'bg-brand/30 text-brand border border-brand/30'
-                            : 'bg-[#0a0e17] text-muted-label border border-muted-label hover:text-subtle'
+                            : 'bg-background text-muted-label border border-muted-label hover:text-subtle'
                         }`}
                       >
                         {amt}x
@@ -857,7 +857,7 @@ export function MarketPanel() {
                       className={`flex-1 py-1.5 rounded text-[10px] font-mono ${
                         tradeAmount === (tradeMode === 'sell' ? maxSell : maxBuy)
                           ? 'bg-brand/30 text-brand border border-brand/30'
-                          : 'bg-[#0a0e17] text-muted-label border border-muted-label hover:text-subtle'
+                          : 'bg-background text-muted-label border border-muted-label hover:text-subtle'
                       }`}
                     >
                       MAX
@@ -945,13 +945,13 @@ export function MarketPanel() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* News Feed */}
           <div className="lg:col-span-2 space-y-3">
-            <div className="game-card rounded-xl bg-card p-4 border border-amber-900/20">
+            <div className="game-card rounded-xl bg-card p-4 border border-warning/20">
               {/* Header with LLM status */}
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Newspaper className="w-4 h-4 text-warning" />
                   <h3 className="text-sm font-semibold text-warning">Market News</h3>
-                  <Badge variant="outline" className="border-warning/30 text-warning bg-amber-900/10 text-[9px]">
+                  <Badge variant="outline" className="border-warning/30 text-warning bg-warning/10 text-[9px]">
                     {(store.marketNews?.length ?? 0)} stories
                   </Badge>
                 </div>
@@ -976,7 +976,7 @@ export function MarketPanel() {
               {llmState.loadState === 'ready' && (llmState.totalCalls > 0 || llmState.cacheHits > 0) && (
                 <div className="flex items-center gap-3 mb-3 text-[9px] text-muted-label">
                   {llmState.model && <span className="font-mono">{llmState.model}</span>}
-                  {llmState.backend && <span className="uppercase text-[8px] px-1.5 py-0.5 rounded bg-muted-label border border-muted-label">{llmState.backend}</span>}
+                  {llmState.backend && <span className="uppercase text-[11px] px-1.5 py-0.5 rounded bg-muted-label border border-muted-label">{llmState.backend}</span>}
                   {llmState.averageGenTimeMs > 0 && <span>Avg {llmState.averageGenTimeMs.toFixed(0)}ms</span>}
                   {llmState.totalCalls > 0 && <span>{llmState.totalCalls} calls</span>}
                   {llmState.llmSuccesses > 0 && <span className="text-success">{llmState.llmSuccesses} ✓</span>}
@@ -999,13 +999,13 @@ export function MarketPanel() {
                     onClick={() => setNewsFilter(f.key)}
                     className={`px-2.5 py-1 rounded-lg text-[10px] ${
                       newsFilter === f.key
-                        ? 'bg-amber-900/30 text-warning border border-warning/30'
+                        ? 'bg-warning/30 text-warning border border-warning/30'
                         : 'bg-card text-muted-label border border-muted-label hover:text-subtle'
                     }`}
                   >
                     {f.label}
                     {f.key !== 'all' && (
-                      <span className="ml-1 text-[8px] opacity-60">
+                      <span className="ml-1 text-[11px] opacity-60">
                         ({(store.marketNews ?? []).filter(n => n.category === f.key).length})
                       </span>
                     )}
@@ -1029,7 +1029,7 @@ export function MarketPanel() {
               ) : (
                 <div className="space-y-2 max-h-[500px] overflow-y-auto game-scrollbar">
                   {filteredNews.map(news => {
-                    const severityBorder = news.severity === 'high' ? 'border-l-red-500' : news.severity === 'medium' ? 'border-l-yellow-500' : 'border-l-gray-600';
+                    const severityBorder = news.severity === 'high' ? 'border-l-danger' : news.severity === 'medium' ? 'border-l-warning/50' : 'border-l-muted-label/40';
                     const style = getSeverityStyle(news.severity);
                     const isLLM = news.textSource === 'llm';
                     return (
@@ -1040,11 +1040,11 @@ export function MarketPanel() {
                             <div className="flex items-center gap-2 mb-1">
                               <span className={`text-xs font-bold ${style.color}`}>{news.title}</span>
                               {isLLM ? (
-                                <span className="inline-flex items-center gap-0.5 text-[8px] px-1.5 py-0.5 rounded-full bg-success/30 text-success border border-success/30 font-bold flex-shrink-0">
+                                <span className="inline-flex items-center gap-0.5 text-[11px] px-1.5 py-0.5 rounded-full bg-success/30 text-success border border-success/30 font-bold flex-shrink-0">
                                   <Sparkles className="w-2.5 h-2.5" /> AI
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-0.5 text-[8px] px-1.5 py-0.5 rounded-full bg-muted-label text-muted-label border border-muted-label font-bold flex-shrink-0">
+                                <span className="inline-flex items-center gap-0.5 text-[11px] px-1.5 py-0.5 rounded-full bg-muted-label text-muted-label border border-muted-label font-bold flex-shrink-0">
                                   Template
                                 </span>
                               )}
@@ -1060,12 +1060,12 @@ export function MarketPanel() {
                             {news.affectedResources.length > 0 && (
                               <div className="flex items-center gap-1 mt-1 flex-wrap">
                                 {news.affectedResources.slice(0, 5).map(r => (
-                                  <span key={r} className="text-[8px] px-1.5 py-0.5 rounded bg-muted-label text-subtle border border-muted-label">
+                                  <span key={r} className="text-[11px] px-1.5 py-0.5 rounded bg-muted-label text-subtle border border-muted-label">
                                     {RESOURCE_META[r]?.name ?? r}
                                   </span>
                                 ))}
                                 {news.affectedResources.length > 5 && (
-                                  <span className="text-[8px] text-muted-label">+{news.affectedResources.length - 5} more</span>
+                                  <span className="text-[11px] text-muted-label">+{news.affectedResources.length - 5} more</span>
                                 )}
                               </div>
                             )}
@@ -1082,7 +1082,7 @@ export function MarketPanel() {
           {/* Narrative + Active Volatility Panel */}
           <div className="space-y-3">
             {/* Active Volatility Injections */}
-            <div className="game-card rounded-xl bg-card p-4 border border-amber-900/20">
+            <div className="game-card rounded-xl bg-card p-4 border border-warning/20">
               <div className="flex items-center gap-2 mb-3">
                 <AlertTriangle className="w-4 h-4 text-warning" />
                 <h3 className="text-sm font-semibold text-warning">Active Volatility</h3>
@@ -1111,9 +1111,9 @@ export function MarketPanel() {
                         <div className={`text-[10px] font-bold ${style.color} mb-0.5`}>{narrative.title}</div>
                         <p className="text-[9px] text-subtle leading-relaxed">{narrative.description}</p>
                         <div className="flex items-center gap-1 mt-1 flex-wrap">
-                          <span className="text-[8px] text-brand">🏭 {narrative.playerAction}</span>
-                          <span className="text-[8px] text-muted-label">→</span>
-                          <span className="text-[8px] text-warning">{narrative.marketEffect}</span>
+                          <span className="text-[11px] text-brand">🏭 {narrative.playerAction}</span>
+                          <span className="text-[11px] text-muted-label">→</span>
+                          <span className="text-[11px] text-warning">{narrative.marketEffect}</span>
                         </div>
                       </div>
                     );

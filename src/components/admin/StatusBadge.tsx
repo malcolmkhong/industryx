@@ -6,11 +6,11 @@ interface StatusBadgeProps {
 }
 
 const variantStyles: Record<StatusBadgeProps['variant'], string> = {
-  success: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  warning: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  danger: 'bg-red-500/10 text-red-400 border-red-500/20',
-  neutral: 'bg-zinc-700/50 text-zinc-400 border-zinc-600/30',
-  info: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+  success: 'bg-success/10 text-success border-success/20',
+  warning: 'bg-warning/60/10 text-warning border-warning/60/20',
+  danger: 'bg-danger/10 text-danger border-danger/20',
+  neutral: 'bg-background/40/50 text-muted-label border-muted-label/20/30',
+  info: 'bg-domain/60/10 text-domain/80 border-domain/20',
 };
 
 export function StatusBadge({ variant, children }: StatusBadgeProps) {

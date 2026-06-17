@@ -212,7 +212,7 @@ export default function PlayersListPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h2 className="text-white text-xl font-bold">Players</h2>
-          <p className="text-zinc-500 text-sm mt-1">
+          <p className="text-muted-label text-sm mt-1">
             Search and manage IndustriaX game players
           </p>
         </div>
@@ -222,7 +222,7 @@ export default function PlayersListPage() {
       <div className="mb-6">
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-label">
               <IconSearch />
             </div>
             <input
@@ -231,7 +231,7 @@ export default function PlayersListPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={handleSearchKeyDown}
-              className="w-full bg-zinc-900/80 border border-zinc-800 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
+              className="w-full bg-background/80/80 border border-muted-label/40 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-muted-label/80 focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors"
             />
           </div>
           <button
@@ -243,14 +243,14 @@ export default function PlayersListPage() {
           {activeSearch && (
             <button
               onClick={clearSearch}
-              className="px-3 py-2.5 text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors border border-zinc-800 shrink-0"
+              className="px-3 py-2.5 text-sm text-muted-label hover:text-white hover:bg-background/60 rounded-lg transition-colors border border-muted-label/40 shrink-0"
             >
               Clear
             </button>
           )}
         </div>
         {activeSearch && (
-          <p className="text-zinc-500 text-xs mt-2">
+          <p className="text-muted-label text-xs mt-2">
             Showing results for: <span className="text-warning">&quot;{activeSearch}&quot;</span>
           </p>
         )}
@@ -258,7 +258,7 @@ export default function PlayersListPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 sm:p-5">
+        <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-4 sm:p-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-warning">
@@ -266,9 +266,9 @@ export default function PlayersListPage() {
               </svg>
             </div>
             <div>
-              <p className="text-zinc-500 text-[10px] sm:text-xs">Total Players</p>
+              <p className="text-muted-label text-[10px] sm:text-xs">Total Players</p>
               {statsLoading ? (
-                <div className="h-6 w-12 bg-zinc-800 rounded animate-pulse mt-1" />
+                <div className="h-6 w-12 bg-background/60 rounded animate-pulse mt-1" />
               ) : (
                 <p className="text-white text-lg sm:text-2xl font-bold">{stats?.total_players ?? 0}</p>
               )}
@@ -276,7 +276,7 @@ export default function PlayersListPage() {
           </div>
         </div>
 
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 sm:p-5">
+        <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-4 sm:p-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-success">
@@ -284,9 +284,9 @@ export default function PlayersListPage() {
               </svg>
             </div>
             <div>
-              <p className="text-zinc-500 text-[10px] sm:text-xs">Online</p>
+              <p className="text-muted-label text-[10px] sm:text-xs">Online</p>
               {statsLoading ? (
-                <div className="h-6 w-12 bg-zinc-800 rounded animate-pulse mt-1" />
+                <div className="h-6 w-12 bg-background/60 rounded animate-pulse mt-1" />
               ) : (
                 <p className="text-white text-lg sm:text-2xl font-bold">{stats?.online_players ?? 0}</p>
               )}
@@ -294,7 +294,7 @@ export default function PlayersListPage() {
           </div>
         </div>
 
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 sm:p-5">
+        <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-4 sm:p-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-danger/10 flex items-center justify-center">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger">
@@ -302,9 +302,9 @@ export default function PlayersListPage() {
               </svg>
             </div>
             <div>
-              <p className="text-zinc-500 text-[10px] sm:text-xs">Locked</p>
+              <p className="text-muted-label text-[10px] sm:text-xs">Locked</p>
               {statsLoading ? (
-                <div className="h-6 w-12 bg-zinc-800 rounded animate-pulse mt-1" />
+                <div className="h-6 w-12 bg-background/60 rounded animate-pulse mt-1" />
               ) : (
                 <p className="text-white text-lg sm:text-2xl font-bold">{stats?.locked_accounts ?? 0}</p>
               )}
@@ -312,7 +312,7 @@ export default function PlayersListPage() {
           </div>
         </div>
 
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 sm:p-5">
+        <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-4 sm:p-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-domain/10 flex items-center justify-center">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-domain">
@@ -320,9 +320,9 @@ export default function PlayersListPage() {
               </svg>
             </div>
             <div>
-              <p className="text-zinc-500 text-[10px] sm:text-xs">Investigations</p>
+              <p className="text-muted-label text-[10px] sm:text-xs">Investigations</p>
               {statsLoading ? (
-                <div className="h-6 w-12 bg-zinc-800 rounded animate-pulse mt-1" />
+                <div className="h-6 w-12 bg-background/60 rounded animate-pulse mt-1" />
               ) : (
                 <p className="text-white text-lg sm:text-2xl font-bold">{stats?.open_investigations ?? 0}</p>
               )}
@@ -332,22 +332,22 @@ export default function PlayersListPage() {
       </div>
 
       {/* Players Table */}
-      <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl overflow-hidden">
+      <div className="bg-background/80/60 border border-muted-label/40 rounded-xl overflow-hidden">
         {dataLoading ? (
           <div className="p-8 space-y-3">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="h-14 bg-zinc-800/50 rounded animate-pulse" />
+              <div key={i} className="h-14 bg-background/60/50 rounded animate-pulse" />
             ))}
           </div>
         ) : players.length === 0 ? (
           <div className="p-12 text-center">
             <div className="text-3xl mb-3">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-zinc-600 mx-auto">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted-label/80 mx-auto">
                 <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
               </svg>
             </div>
-            <p className="text-zinc-400 text-sm mb-2">No players found</p>
-            <p className="text-zinc-600 text-xs">
+            <p className="text-muted-label text-sm mb-2">No players found</p>
+            <p className="text-muted-label/80 text-xs">
               {activeSearch ? "Try a different search term" : "No players have registered yet"}
             </p>
             {activeSearch && (
@@ -365,27 +365,27 @@ export default function PlayersListPage() {
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-zinc-800">
-                    <th className="px-4 py-3 text-left text-xs text-zinc-500 font-medium">Player</th>
-                    <th className="px-4 py-3 text-left text-xs text-zinc-500 font-medium">User ID</th>
-                    <th className="px-4 py-3 text-right text-xs text-zinc-500 font-medium">Money</th>
-                    <th className="px-4 py-3 text-right text-xs text-zinc-500 font-medium">Tick</th>
-                    <th className="px-4 py-3 text-right text-xs text-zinc-500 font-medium">Buildings</th>
-                    <th className="px-4 py-3 text-center text-xs text-zinc-500 font-medium">Flags</th>
-                    <th className="px-4 py-3 text-center text-xs text-zinc-500 font-medium">Status</th>
-                    <th className="px-4 py-3 text-right text-xs text-zinc-500 font-medium">Last Saved</th>
+                  <tr className="border-b border-muted-label/40">
+                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Player</th>
+                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">User ID</th>
+                    <th className="px-4 py-3 text-right text-xs text-muted-label font-medium">Money</th>
+                    <th className="px-4 py-3 text-right text-xs text-muted-label font-medium">Tick</th>
+                    <th className="px-4 py-3 text-right text-xs text-muted-label font-medium">Buildings</th>
+                    <th className="px-4 py-3 text-center text-xs text-muted-label font-medium">Flags</th>
+                    <th className="px-4 py-3 text-center text-xs text-muted-label font-medium">Status</th>
+                    <th className="px-4 py-3 text-right text-xs text-muted-label font-medium">Last Saved</th>
                   </tr>
                 </thead>
                 <tbody>
                   {players.map((player) => (
                     <tr
                       key={player.user_id}
-                      className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors cursor-pointer"
+                      className="border-b border-muted-label/40/50 hover:bg-background/60/30 transition-colors cursor-pointer"
                       onClick={() => { window.location.href = `/admin/players/${player.user_id}`; }}
                     >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center text-zinc-300 text-sm font-medium shrink-0">
+                          <div className="w-8 h-8 rounded-full bg-background/40 flex items-center justify-center text-subtle text-sm font-medium shrink-0">
                             {(player.email || player.display_name || "U")[0].toUpperCase()}
                           </div>
                           <div className="min-w-0">
@@ -393,7 +393,7 @@ export default function PlayersListPage() {
                               {player.email || player.display_name || "Unknown"}
                             </span>
                             {player.display_name && player.email && (
-                              <span className="text-zinc-500 text-[10px] block truncate max-w-[200px]">
+                              <span className="text-muted-label text-[10px] block truncate max-w-[200px]">
                                 {player.display_name}
                               </span>
                             )}
@@ -402,12 +402,12 @@ export default function PlayersListPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <code className="text-zinc-400 text-xs font-mono">
+                          <code className="text-muted-label text-xs font-mono">
                             {truncateUid(player.user_id)}
                           </code>
                           <button
                             onClick={(e) => { e.stopPropagation(); copyToClipboard(player.user_id); }}
-                            className="text-zinc-600 hover:text-zinc-300 transition-colors p-0.5 rounded"
+                            className="text-muted-label/80 hover:text-subtle transition-colors p-0.5 rounded"
                             title="Copy full ID"
                           >
                             {copiedId === player.user_id ? (
@@ -424,12 +424,12 @@ export default function PlayersListPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <span className="text-zinc-300 text-xs font-mono">
+                        <span className="text-subtle text-xs font-mono">
                           {player.game_tick.toLocaleString()}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <span className="text-zinc-300 text-xs">
+                        <span className="text-subtle text-xs">
                           {player.buildings_count}
                         </span>
                       </td>
@@ -440,7 +440,7 @@ export default function PlayersListPage() {
                             {player.cheat_flag_count}
                           </span>
                         ) : (
-                          <span className="text-zinc-600 text-xs">—</span>
+                          <span className="text-muted-label/80 text-xs">—</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-center">
@@ -455,7 +455,7 @@ export default function PlayersListPage() {
                         )}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <span className="text-zinc-500 text-xs">
+                        <span className="text-muted-label text-xs">
                           {player.last_saved_at
                             ? new Date(player.last_saved_at).toLocaleDateString()
                             : "—"}
@@ -468,15 +468,15 @@ export default function PlayersListPage() {
             </div>
 
             {/* Mobile cards */}
-            <div className="md:hidden divide-y divide-zinc-800/50">
+            <div className="md:hidden divide-y divide-background/60/50">
               {players.map((player) => (
                 <div
                   key={player.user_id}
-                  className="p-4 cursor-pointer hover:bg-zinc-800/30 transition-colors"
+                  className="p-4 cursor-pointer hover:bg-background/60/30 transition-colors"
                   onClick={() => { window.location.href = `/admin/players/${player.user_id}`; }}
                 >
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-zinc-700 flex items-center justify-center text-zinc-300 text-sm font-medium shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-background/40 flex items-center justify-center text-subtle text-sm font-medium shrink-0">
                       {(player.email || player.display_name || "U")[0].toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -495,12 +495,12 @@ export default function PlayersListPage() {
                         )}
                       </div>
                       <div className="flex items-center gap-2 mt-1">
-                        <code className="text-zinc-500 text-[10px] font-mono truncate">
+                        <code className="text-muted-label text-[10px] font-mono truncate">
                           {truncateUid(player.user_id, 6)}
                         </code>
                         <button
                           onClick={(e) => { e.stopPropagation(); copyToClipboard(player.user_id); }}
-                          className="text-zinc-600 hover:text-zinc-300 transition-colors p-0.5"
+                          className="text-muted-label/80 hover:text-subtle transition-colors p-0.5"
                         >
                           {copiedId === player.user_id ? (
                             <span className="text-success"><IconCheck /></span>
@@ -513,10 +513,10 @@ export default function PlayersListPage() {
                         <span className="text-success text-xs font-mono">
                           ${formatMoney(player.money)}
                         </span>
-                        <span className="text-zinc-500 text-[10px]">
+                        <span className="text-muted-label text-[10px]">
                           Tick {player.game_tick.toLocaleString()}
                         </span>
-                        <span className="text-zinc-500 text-[10px]">
+                        <span className="text-muted-label text-[10px]">
                           {player.buildings_count} bldgs
                         </span>
                         {player.cheat_flag_count > 0 && (
@@ -533,15 +533,15 @@ export default function PlayersListPage() {
 
             {/* Pagination */}
             {pagination.totalPages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-800">
-                <p className="text-zinc-500 text-xs">
+              <div className="flex items-center justify-between px-4 py-3 border-t border-muted-label/40">
+                <p className="text-muted-label text-xs">
                   {pagination.total} player{pagination.total !== 1 ? "s" : ""} &middot; Page {pagination.page} of {pagination.totalPages}
                 </p>
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={pagination.page <= 1}
-                    className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:text-zinc-700 disabled:cursor-not-allowed transition-colors"
+                    className="p-1.5 rounded-lg text-muted-label hover:text-white hover:bg-background/60 disabled:text-muted-label/30 disabled:cursor-not-allowed transition-colors"
                   >
                     <IconChevronLeft />
                   </button>
@@ -563,7 +563,7 @@ export default function PlayersListPage() {
                         className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors ${
                           pageNum === pagination.page
                             ? "bg-warning/20 text-warning border border-warning/30"
-                            : "text-zinc-400 hover:text-white hover:bg-zinc-800"
+                            : "text-muted-label hover:text-white hover:bg-background/60"
                         }`}
                       >
                         {pageNum}
@@ -573,7 +573,7 @@ export default function PlayersListPage() {
                   <button
                     onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
                     disabled={pagination.page >= pagination.totalPages}
-                    className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:text-zinc-700 disabled:cursor-not-allowed transition-colors"
+                    className="p-1.5 rounded-lg text-muted-label hover:text-white hover:bg-background/60 disabled:text-muted-label/30 disabled:cursor-not-allowed transition-colors"
                   >
                     <IconChevronRight />
                   </button>

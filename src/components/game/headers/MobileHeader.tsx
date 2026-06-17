@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { useMemo, useState } from 'react';
 import {
   Bell, Check, Cloud, CloudOff, Download, Loader2, LogIn, LogOut,
@@ -108,12 +109,12 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
       {/* ── Row 1: Logo + branding + tick counter ── */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
-          <div className="w-7 h-7 rounded-md bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-[10px] font-bold flex-shrink-0 shadow-[0_0_8px_rgba(0,255,242,0.2)]">
+          <div className="w-7 h-7 rounded-md bg-gradient-to-br from-brand to-success/80 flex items-center justify-center text-[10px] font-bold flex-shrink-0 shadow-[0_0_8px_rgba(0,255,242,0.2)]">
             IX
           </div>
           <div className="min-w-0">
             <h1 className="text-[11px] font-bold text-brand neon-glow-cyan tracking-wider truncate">INDUSTRIAX</h1>
-            <p className="text-[8px] text-muted-label -mt-0.5 hidden xs:block">Factory Dominion</p>
+            <p className="text-[11px] text-muted-label -mt-0.5 hidden xs:block">Factory Dominion</p>
           </div>
         </div>
         <span className="text-[9px] text-muted-label font-mono flex-shrink-0">Tick: {formatNumber(gameTick)}</span>
@@ -131,7 +132,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
                 <button
                   type="button"
                   onClick={collectPayout}
-                  className="animate-pulse inline-flex items-center gap-0.5 bg-success/40 hover:bg-emerald-800/50 text-success text-[8px] px-1 py-0.5 rounded border border-success/30 transition-colors min-h-[28px]"
+                  className="animate-pulse inline-flex items-center gap-0.5 bg-success/40 hover:bg-success/50/50 text-success text-[11px] px-1 py-0.5 rounded border border-success/30 transition-colors min-h-[28px]"
                   aria-label={`Collect pending payout: $${formatNumber(pendingPayout)}`}
                   title="Tap to collect pending payout"
                 >
@@ -141,7 +142,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
             </div>
           </TooltipTrigger>
           <TooltipContent side="bottom" className="w-60 bg-card border-brand/30 p-0 overflow-hidden">
-            <div className="bg-gradient-to-r from-green-900/30 to-emerald-900/20 px-3 py-1.5 border-b border-brand/20">
+            <div className="bg-gradient-to-r from-success/30/30 to-success/30/20 px-3 py-1.5 border-b border-brand/20">
               <p className="text-xs font-bold text-success inline-flex items-center gap-1"><GameIcon ui="money" size={12} className="inline-flex" /> Financial Overview</p>
             </div>
             <div className="px-3 py-1.5 space-y-1">
@@ -294,7 +295,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
               >
                 <Bell className="w-4 h-4" />
                 {unreadNotifications > 0 && (
-                  <span className={`absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full text-[8px] text-white flex items-center justify-center px-1 font-bold ${
+                  <span className={`absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full text-[11px] text-white flex items-center justify-center px-1 font-bold ${
                     notifications[0]?.type === 'error' ? 'bg-danger' :
                     notifications[0]?.type === 'warning' ? 'bg-domain' :
                     'bg-brand'
@@ -344,7 +345,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
                     <p className="text-[10px] text-subtle">{e.description}</p>
                     <div className="flex flex-wrap gap-1 mt-1.5">
                       {e.effects.filter(ef => ef.type === 'marketPriceMultiplier').map((ef, i) => (
-                        <span key={`${ef.target}-${i}`} className={`text-[9px] px-1 py-0.5 rounded border ${ef.value > 1 ? 'border-emerald-500/40 text-emerald-400 bg-emerald-500/5' : 'border-red-500/40 text-red-400 bg-red-500/5'}`}>
+                        <span key={`${ef.target}-${i}`} className={`text-[9px] px-1 py-0.5 rounded border ${ef.value > 1 ? 'border-success/40 text-success bg-success/5' : 'border-danger/40 text-danger bg-danger/5'}`}>
                           {ef.value > 1 ? <TrendingUp className="w-2.5 h-2.5 inline mr-0.5" /> : <TrendingDown className="w-2.5 h-2.5 inline mr-0.5" />}
                           {ef.target?.slice(0, 12)}{(ef.target?.length ?? 0) > 12 ? '…' : ''} {ef.value > 1 ? '+' : ''}{((ef.value - 1) * 100).toFixed(0)}%
                         </span>
@@ -380,7 +381,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
           <Tooltip>
             <TooltipTrigger asChild>
               <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-5 cursor-default ${
-                isUsingSupabase ? 'border-success/50 text-success bg-success/20' : 'border-warning/50 text-warning bg-amber-900/20'
+                isUsingSupabase ? 'border-success/50 text-success bg-success/20' : 'border-warning/50 text-warning bg-warning/20'
               }`}>
                 {isUsingSupabase ? <Wifi className="w-2 h-2 mr-0.5" /> : <WifiOff className="w-2 h-2 mr-0.5" />}
                 {isUsingSupabase ? 'Live' : 'Local'}
@@ -423,15 +424,15 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
                 aria-haspopup="menu"
               >
                 {userAvatar ? (
-                  <img src={userAvatar} alt={userName} className="w-6 h-6 rounded-full" />
+                  <Image src={userAvatar} alt={userName} width={24} height={24} className="rounded-full" />
                 ) : (
-                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-[10px] font-bold" aria-hidden="true">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-brand to-success/80 flex items-center justify-center text-[10px] font-bold" aria-hidden="true">
                     {userName.charAt(0).toUpperCase()}
                   </div>
                 )}
                 <span className="text-[10px] text-subtle max-w-[60px] truncate">{userName}</span>
                 {isGuest && (
-                  <span className="text-[7px] px-1 py-0.5 rounded bg-amber-900/30 text-warning border border-warning/30 font-bold uppercase tracking-wider">
+                  <span className="text-[11px] px-1 py-0.5 rounded bg-warning/30 text-warning border border-warning/30 font-bold uppercase tracking-wider">
                     Guest
                   </span>
                 )}

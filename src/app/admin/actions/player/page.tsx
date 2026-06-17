@@ -144,9 +144,9 @@ function getRiskBadgeClasses(risk: string | null): string {
     case "low":
       return "bg-brand/15 text-brand border-brand/20";
     case "none":
-      return "bg-zinc-500/15 text-zinc-400 border-zinc-500/20";
+      return "bg-background/20/15 text-muted-label border-muted-label/10/20";
     default:
-      return "bg-zinc-500/15 text-zinc-400 border-zinc-500/20";
+      return "bg-background/20/15 text-muted-label border-muted-label/10/20";
   }
 }
 
@@ -269,30 +269,30 @@ export default function AuditPage() {
       {/* Page Header */}
       <div className="mb-6">
         <h2 className="text-white text-xl font-bold">Action Audit Log</h2>
-        <p className="text-zinc-500 text-sm mt-1">
+        <p className="text-muted-label text-sm mt-1">
           Monitor all player actions with validation and risk analysis
         </p>
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 mb-6">
+      <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-4 mb-6">
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex-1 min-w-[180px]">
-            <label className="block text-zinc-500 text-[10px] uppercase tracking-wider mb-1.5">User ID</label>
+            <label className="block text-muted-label text-[10px] uppercase tracking-wider mb-1.5">User ID</label>
             <input
               type="text"
               placeholder="Enter user UUID..."
               value={filterUserId}
               onChange={(e) => setFilterUserId(e.target.value)}
-              className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors font-mono"
+              className="w-full bg-background/60/80 border border-muted-label/30 rounded-lg px-3 py-2 text-sm text-white placeholder:text-muted-label/80 focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors font-mono"
             />
           </div>
           <div className="flex-1 min-w-[160px]">
-            <label className="block text-zinc-500 text-[10px] uppercase tracking-wider mb-1.5">Action Type</label>
+            <label className="block text-muted-label text-[10px] uppercase tracking-wider mb-1.5">Action Type</label>
             <select
               value={filterActionType}
               onChange={(e) => { setFilterActionType(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
-              className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors appearance-none"
+              className="w-full bg-background/60/80 border border-muted-label/30 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors appearance-none"
               style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2'%3e%3cpath d='m6 9 6 6 6-6'/%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
             >
               {ACTION_TYPE_OPTIONS.map((at) => (
@@ -301,11 +301,11 @@ export default function AuditPage() {
             </select>
           </div>
           <div className="min-w-[120px]">
-            <label className="block text-zinc-500 text-[10px] uppercase tracking-wider mb-1.5">Valid</label>
+            <label className="block text-muted-label text-[10px] uppercase tracking-wider mb-1.5">Valid</label>
             <select
               value={filterValid}
               onChange={(e) => { setFilterValid(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
-              className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors appearance-none"
+              className="w-full bg-background/60/80 border border-muted-label/30 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors appearance-none"
               style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2'%3e%3cpath d='m6 9 6 6 6-6'/%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
             >
               <option value="all">All</option>
@@ -314,21 +314,21 @@ export default function AuditPage() {
             </select>
           </div>
           <div className="min-w-[140px]">
-            <label className="block text-zinc-500 text-[10px] uppercase tracking-wider mb-1.5">Date From</label>
+            <label className="block text-muted-label text-[10px] uppercase tracking-wider mb-1.5">Date From</label>
             <input
               type="date"
               value={filterDateFrom}
               onChange={(e) => { setFilterDateFrom(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
-              className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
+              className="w-full bg-background/60/80 border border-muted-label/30 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors"
             />
           </div>
           <div className="min-w-[140px]">
-            <label className="block text-zinc-500 text-[10px] uppercase tracking-wider mb-1.5">Date To</label>
+            <label className="block text-muted-label text-[10px] uppercase tracking-wider mb-1.5">Date To</label>
             <input
               type="date"
               value={filterDateTo}
               onChange={(e) => { setFilterDateTo(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
-              className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
+              className="w-full bg-background/60/80 border border-muted-label/30 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors"
             />
           </div>
           <div className="flex items-end gap-2 shrink-0">
@@ -341,7 +341,7 @@ export default function AuditPage() {
             </button>
             <button
               onClick={resetFilters}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-800 text-zinc-400 text-sm rounded-lg hover:bg-zinc-700 hover:text-white transition-colors border border-zinc-700"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-background/60 text-muted-label text-sm rounded-lg hover:bg-background/40 hover:text-white transition-colors border border-muted-label/30"
             >
               <IconRotateCcw />
               Reset
@@ -352,19 +352,19 @@ export default function AuditPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
+        <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
               <IconScrollText />
             </div>
             <div>
-              <p className="text-zinc-500 text-xs">Total Actions</p>
+              <p className="text-muted-label text-xs">Total Actions</p>
               <p className="text-white text-2xl font-bold">{pagination.total}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
+        <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-danger/10 flex items-center justify-center">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger">
@@ -372,13 +372,13 @@ export default function AuditPage() {
               </svg>
             </div>
             <div>
-              <p className="text-zinc-500 text-xs">Invalid</p>
+              <p className="text-muted-label text-xs">Invalid</p>
               <p className="text-white text-2xl font-bold">{invalidActionsToday}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
+        <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-domain/10 flex items-center justify-center">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-domain">
@@ -386,13 +386,13 @@ export default function AuditPage() {
               </svg>
             </div>
             <div>
-              <p className="text-zinc-500 text-xs">High Risk</p>
+              <p className="text-muted-label text-xs">High Risk</p>
               <p className="text-white text-2xl font-bold">{highRiskToday}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
+        <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand">
@@ -400,7 +400,7 @@ export default function AuditPage() {
               </svg>
             </div>
             <div>
-              <p className="text-zinc-500 text-xs">Most Common</p>
+              <p className="text-muted-label text-xs">Most Common</p>
               <p className="text-white text-sm font-bold truncate max-w-[100px]">
                 {mostCommonAction ? formatActionType(mostCommonAction[0]) : "—"}
               </p>
@@ -410,20 +410,20 @@ export default function AuditPage() {
       </div>
 
       {/* Actions Table */}
-      <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl overflow-hidden">
+      <div className="bg-background/80/60 border border-muted-label/40 rounded-xl overflow-hidden">
         {dataLoading ? (
           <div className="p-8 space-y-3">
             {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-12 bg-zinc-800/50 rounded animate-pulse" />
+              <div key={i} className="h-12 bg-background/60/50 rounded animate-pulse" />
             ))}
           </div>
         ) : actions.length === 0 ? (
           <div className="p-12 text-center">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-zinc-600 mx-auto">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted-label/80 mx-auto">
               <path d="M8 21h12a2 2 0 0 0 2-2v-2H10v2a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v3h4" /><path d="M19 3H9v7h14V5a2 2 0 0 0-2-2Z" />
             </svg>
-            <p className="text-zinc-400 text-sm mb-2 mt-3">No actions found</p>
-            <p className="text-zinc-600 text-xs">Adjust your filters and try again.</p>
+            <p className="text-muted-label text-sm mb-2 mt-3">No actions found</p>
+            <p className="text-muted-label/80 text-xs">Adjust your filters and try again.</p>
           </div>
         ) : (
           <>
@@ -431,35 +431,35 @@ export default function AuditPage() {
             <div className="hidden xl:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-zinc-800">
-                    <th className="px-4 py-3 text-left text-xs text-zinc-500 font-medium">Time</th>
-                    <th className="px-4 py-3 text-left text-xs text-zinc-500 font-medium">User ID</th>
-                    <th className="px-4 py-3 text-left text-xs text-zinc-500 font-medium">Action Type</th>
-                    <th className="px-4 py-3 text-right text-xs text-zinc-500 font-medium">Money After</th>
-                    <th className="px-4 py-3 text-left text-xs text-zinc-500 font-medium">Valid</th>
-                    <th className="px-4 py-3 text-left text-xs text-zinc-500 font-medium">Risk Level</th>
-                    <th className="px-4 py-3 text-left text-xs text-zinc-500 font-medium">Rejection Reason</th>
+                  <tr className="border-b border-muted-label/40">
+                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Time</th>
+                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">User ID</th>
+                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Action Type</th>
+                    <th className="px-4 py-3 text-right text-xs text-muted-label font-medium">Money After</th>
+                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Valid</th>
+                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Risk Level</th>
+                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Rejection Reason</th>
                   </tr>
                 </thead>
                 <tbody>
                   {actions.map((action) => (
                     <tr
                       key={action.id}
-                      className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors"
+                      className="border-b border-muted-label/40/50 hover:bg-background/60/30 transition-colors"
                     >
                       <td className="px-4 py-3">
-                        <span className="text-zinc-400 text-xs whitespace-nowrap">
+                        <span className="text-muted-label text-xs whitespace-nowrap">
                           {new Date(action.created_at).toLocaleString()}
                         </span>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <code className="text-zinc-300 text-xs font-mono">
+                          <code className="text-subtle text-xs font-mono">
                             {truncateUid(action.user_id)}
                           </code>
                           <button
                             onClick={() => copyToClipboard(action.user_id)}
-                            className="text-zinc-600 hover:text-zinc-300 transition-colors p-0.5 rounded shrink-0"
+                            className="text-muted-label/80 hover:text-subtle transition-colors p-0.5 rounded shrink-0"
                             title="Copy full ID"
                           >
                             {copiedId === action.user_id ? (
@@ -471,12 +471,12 @@ export default function AuditPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-zinc-300 text-xs">
+                        <span className="text-subtle text-xs">
                           {formatActionType(action.action_type)}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <span className="text-zinc-300 text-xs font-mono">
+                        <span className="text-subtle text-xs font-mono">
                           {formatMoney(action.money_after)}
                         </span>
                       </td>
@@ -491,7 +491,7 @@ export default function AuditPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-zinc-500 text-xs block max-w-[200px] truncate" title={action.rejection_reason || undefined}>
+                        <span className="text-muted-label text-xs block max-w-[200px] truncate" title={action.rejection_reason || undefined}>
                           {truncateStr(action.rejection_reason, 40)}
                         </span>
                       </td>
@@ -502,13 +502,13 @@ export default function AuditPage() {
             </div>
 
             {/* Mobile / Tablet cards */}
-            <div className="xl:hidden divide-y divide-zinc-800/50">
+            <div className="xl:hidden divide-y divide-background/60/50">
               {actions.map((action) => (
                 <div key={action.id} className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-zinc-300 text-xs font-medium">
+                        <span className="text-subtle text-xs font-medium">
                           {formatActionType(action.action_type)}
                         </span>
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getValidBadgeClasses(action.is_valid)}`}>
@@ -516,12 +516,12 @@ export default function AuditPage() {
                         </span>
                       </div>
                       <div className="flex items-center gap-2 mt-1.5">
-                        <code className="text-zinc-500 text-[10px] font-mono truncate">
+                        <code className="text-muted-label text-[10px] font-mono truncate">
                           {truncateUid(action.user_id, 6)}
                         </code>
                         <button
                           onClick={() => copyToClipboard(action.user_id)}
-                          className="text-zinc-600 hover:text-zinc-300 transition-colors p-0.5 shrink-0"
+                          className="text-muted-label/80 hover:text-subtle transition-colors p-0.5 shrink-0"
                         >
                           {copiedId === action.user_id ? (
                             <span className="text-success"><IconCheck /></span>
@@ -535,14 +535,14 @@ export default function AuditPage() {
                       {action.risk_level ? action.risk_level.charAt(0).toUpperCase() + action.risk_level.slice(1) : "None"}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3 text-[10px] text-zinc-500">
+                  <div className="flex items-center gap-3 text-[10px] text-muted-label">
                     <span>{new Date(action.created_at).toLocaleString()}</span>
                     {action.money_after !== null && (
                       <span className="font-mono">{formatMoney(action.money_after)}</span>
                     )}
                   </div>
                   {action.rejection_reason && (
-                    <p className="text-zinc-500 text-[10px] mt-1 truncate">
+                    <p className="text-muted-label text-[10px] mt-1 truncate">
                       {truncateStr(action.rejection_reason, 60)}
                     </p>
                   )}
@@ -552,26 +552,26 @@ export default function AuditPage() {
 
             {/* Pagination */}
             {pagination.totalPages > 1 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-zinc-800">
-                <div className="text-xs text-zinc-500">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-muted-label/40">
+                <div className="text-xs text-muted-label">
                   Showing {((pagination.page - 1) * pagination.limit) + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setPagination((p) => ({ ...p, page: Math.max(1, p.page - 1) }))}
                     disabled={pagination.page <= 1}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs text-zinc-400 hover:text-white bg-zinc-800/50 hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed border border-zinc-700"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs text-muted-label hover:text-white bg-background/60/50 hover:bg-background/60 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed border border-muted-label/30"
                   >
                     <IconChevronLeft />
                     Prev
                   </button>
-                  <span className="text-zinc-500 text-xs">
+                  <span className="text-muted-label text-xs">
                     Page {pagination.page} of {pagination.totalPages}
                   </span>
                   <button
                     onClick={() => setPagination((p) => ({ ...p, page: Math.min(p.totalPages, p.page + 1) }))}
                     disabled={pagination.page >= pagination.totalPages}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs text-zinc-400 hover:text-white bg-zinc-800/50 hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed border border-zinc-700"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs text-muted-label hover:text-white bg-background/60/50 hover:bg-background/60 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed border border-muted-label/30"
                   >
                     Next
                     <IconChevronRight />

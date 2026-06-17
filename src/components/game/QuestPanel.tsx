@@ -16,25 +16,25 @@ function getTierColor(tier: number): string {
 }
 
 const QUEST_TYPE_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  build: { label: 'BUILD', color: 'text-warning', bg: 'bg-amber-900/20', border: 'border-amber-800/40' },
+  build: { label: 'BUILD', color: 'text-warning', bg: 'bg-warning/20', border: 'border-warning/80/40' },
   produce: { label: 'PRODUCE', color: 'text-brand', bg: 'bg-brand/20', border: 'border-brand/40' },
   sell: { label: 'SELL', color: 'text-success', bg: 'bg-success/20', border: 'border-success/40' },
   research: { label: 'RESEARCH', color: 'text-research', bg: 'bg-research/20', border: 'border-research/40' },
-  earn: { label: 'EARN', color: 'text-warning', bg: 'bg-yellow-900/20', border: 'border-yellow-800/40' },
+  earn: { label: 'EARN', color: 'text-warning', bg: 'bg-warning/20', border: 'border-warning/80/40' },
   reach: { label: 'REACH', color: 'text-brand', bg: 'bg-brand/20', border: 'border-brand/40' },
   contract: { label: 'CONTRACT', color: 'text-brand', bg: 'bg-brand/20', border: 'border-brand/40' },
   transport: { label: 'TRANSPORT', color: 'text-domain', bg: 'bg-domain/20', border: 'border-domain/40' },
   worker: { label: 'WORKER', color: 'text-success', bg: 'bg-success/20', border: 'border-success/40' },
-  prestige: { label: 'PRESTIGE', color: 'text-premium', bg: 'bg-fuchsia-900/20', border: 'border-fuchsia-800/40' },
-  megaProject: { label: 'MEGA', color: 'text-danger', bg: 'bg-danger/20', border: 'border-rose-800/40' },
+  prestige: { label: 'PRESTIGE', color: 'text-premium', bg: 'bg-premium/20/20', border: 'border-premium/50/40' },
+  megaProject: { label: 'MEGA', color: 'text-danger', bg: 'bg-danger/20', border: 'border-danger/40/40' },
 };
 
 const CATEGORY_CONFIG: Record<string, { icon: string; label: string; color: string; bg: string; border: string }> = {
   tutorial: { icon: 'gi:book-cover', label: 'Tutorial', color: 'text-brand', bg: 'bg-brand/20', border: 'border-brand/40' },
-  daily: { icon: 'gi:calendar', label: 'Daily', color: 'text-warning', bg: 'bg-amber-900/20', border: 'border-amber-800/40' },
+  daily: { icon: 'gi:calendar', label: 'Daily', color: 'text-warning', bg: 'bg-warning/20', border: 'border-warning/80/40' },
   weekly: { icon: 'gi:calendar', label: 'Weekly', color: 'text-brand', bg: 'bg-brand/20', border: 'border-brand/40' },
-  challenge: { icon: 'gi:medal', label: 'Challenge', color: 'text-danger', bg: 'bg-danger/20', border: 'border-rose-800/40' },
-  milestone: { icon: 'gi:crown', label: 'Milestone', color: 'text-warning', bg: 'bg-yellow-900/20', border: 'border-yellow-800/40' },
+  challenge: { icon: 'gi:medal', label: 'Challenge', color: 'text-danger', bg: 'bg-danger/20', border: 'border-danger/40/40' },
+  milestone: { icon: 'gi:crown', label: 'Milestone', color: 'text-warning', bg: 'bg-warning/20', border: 'border-warning/80/40' },
 };
 
 type FilterType = 'all' | 'active' | 'completed' | QuestType;
@@ -477,7 +477,7 @@ export function QuestPanel() {
           onClick={() => {
             unclaimedQuests.forEach(q => store.claimQuestReward(q.id));
           }}
-          className="w-full py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-green-900/60 via-emerald-800/50 to-green-900/60 border border-success/40 text-success hover:from-green-800/70 hover:via-emerald-700/60 hover:to-green-800/70 hover:border-green-400/60 hover:text-green-200 shadow-[0_0_20px_rgba(74,222,128,0.15)]"
+          className="w-full py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-success/30/60 via-success/50/50 to-success/30/60 border border-success/40 text-success hover:from-800-green/70 hover:via-success/60/60 hover:to-success/50/70 hover:border-400-green/60 hover:text-success/40 shadow-[0_0_20px_rgba(74,222,128,0.15)]"
         >
           <Sparkles className="w-4 h-4" />
           Claim All Rewards ({unclaimedQuests.length} quest{unclaimedQuests.length > 1 ? 's' : ''})
@@ -506,7 +506,7 @@ export function QuestPanel() {
             return (
               <div
                 key={tier}
-                className={`flex-1 rounded-sm flex items-center justify-center text-[8px] font-bold ${
+                className={`flex-1 rounded-sm flex items-center justify-center text-[11px] font-bold ${
                   isUnlocked ? 'opacity-100' : 'opacity-30'
                 } ${isCurrent ? 'ring-1 ring-white/20' : ''}`}
                 style={{ backgroundColor: isUnlocked ? getTierColor(tier) : '#1e293b', color: isUnlocked ? '#000' : '#555' }}
@@ -646,7 +646,7 @@ export function QuestPanel() {
           ? trackedQuestData.steps.reduce((sum, s) => sum + Math.min(1, s.current / Math.max(1, s.target)), 0) / trackedQuestData.steps.length
           : 0;
         return (
-          <div className="bg-gradient-to-r from-cyan-900/20 to-teal-900/10 border border-brand/30 rounded-xl p-3">
+          <div className="bg-gradient-to-r from-brand/20 to-success/30/10 border border-brand/30 rounded-xl p-3">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <Pin className="w-3.5 h-3.5 text-brand" />

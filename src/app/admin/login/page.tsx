@@ -10,14 +10,14 @@ export default function LoginPage() {
   if (!isSupabaseConfigured()) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
-        <div className="bg-zinc-900/80 backdrop-blur-xl border border-zinc-800 rounded-2xl p-8 shadow-2xl max-w-md w-full text-center">
+        <div className="bg-background/80/80 backdrop-blur-xl border border-muted-label/40 rounded-2xl p-8 shadow-2xl max-w-md w-full text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 mb-6 rounded-2xl bg-danger/10">
             <svg className="w-8 h-8 text-danger" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
           </div>
           <h2 className="text-xl font-semibold text-white mb-2">Service Unavailable</h2>
-          <p className="text-zinc-400 text-sm">Authentication service is not configured. Please contact your system administrator.</p>
+          <p className="text-muted-label text-sm">Authentication service is not configured. Please contact your system administrator.</p>
         </div>
       </div>
     );
@@ -58,13 +58,13 @@ export default function LoginPage() {
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-warning/5 rounded-full blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-domain/5 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-amber-900/3 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-warning/3 rounded-full blur-3xl" />
       </div>
 
       <div className="relative w-full max-w-md">
         {/* Logo / Branding */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 mb-6 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/20">
+          <div className="inline-flex items-center justify-center w-20 h-20 mb-6 rounded-2xl bg-gradient-to-br from-warning/60 to-domain/80 shadow-lg shadow-warning/20">
             <svg
               width="40"
               height="40"
@@ -84,16 +84,16 @@ export default function LoginPage() {
           <h1 className="text-3xl font-bold text-white tracking-tight">
             IndustriaX
           </h1>
-          <p className="text-zinc-400 mt-2 text-sm">
+          <p className="text-muted-label mt-2 text-sm">
             Backend Management Console
           </p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-zinc-900/80 backdrop-blur-xl border border-zinc-800 rounded-2xl p-8 shadow-2xl">
+        <div className="bg-background/80/80 backdrop-blur-xl border border-muted-label/40 rounded-2xl p-8 shadow-2xl">
           <div className="text-center mb-6">
             <h2 className="text-xl font-semibold text-white">Sign In</h2>
-            <p className="text-zinc-400 text-sm mt-1">
+            <p className="text-muted-label text-sm mt-1">
               Authenticate with your authorized Google account
             </p>
           </div>
@@ -129,10 +129,10 @@ export default function LoginPage() {
           <button
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3.5 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed text-dim font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl active:scale-[0.98]"
+            className="w-full flex items-center justify-center gap-3 px-4 py-3.5 bg-white hover:bg-background/90 disabled:bg-background/95 disabled:cursor-not-allowed text-dim font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl active:scale-[0.98]"
           >
             {loading ? (
-              <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-800 rounded-full animate-spin" />
+              <div className="w-5 h-5 border-2 border-muted-label/20 border-t-muted-label/10 rounded-full animate-spin" />
             ) : (
               <svg width="20" height="20" viewBox="0 0 24 24">
                 <path
@@ -157,7 +157,7 @@ export default function LoginPage() {
           </button>
 
           {/* Security Notice */}
-          <div className="mt-8 pt-6 border-t border-zinc-800">
+          <div className="mt-8 pt-6 border-t border-muted-label/40">
             <div className="flex items-start gap-3">
               <svg
                 className="w-4 h-4 text-warning mt-0.5 shrink-0"
@@ -173,10 +173,10 @@ export default function LoginPage() {
                 />
               </svg>
               <div>
-                <p className="text-zinc-300 text-xs font-medium">
+                <p className="text-subtle text-xs font-medium">
                   Authorized personnel only
                 </p>
-                <p className="text-zinc-500 text-xs mt-1">
+                <p className="text-muted-label text-xs mt-1">
                   All access is logged and monitored. Password authentication is
                   disabled for security. Only pre-approved Google accounts can
                   access this system.
@@ -186,7 +186,7 @@ export default function LoginPage() {
 
             <div className="flex items-start gap-3 mt-4">
               <svg
-                className="w-4 h-4 text-zinc-500 mt-0.5 shrink-0"
+                className="w-4 h-4 text-muted-label mt-0.5 shrink-0"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -199,10 +199,10 @@ export default function LoginPage() {
                 />
               </svg>
               <div>
-                <p className="text-zinc-400 text-xs font-medium">
+                <p className="text-muted-label text-xs font-medium">
                   Session timeout
                 </p>
-                <p className="text-zinc-500 text-xs mt-1">
+                <p className="text-muted-label text-xs mt-1">
                   Sessions expire after 1 hour of inactivity. You will be
                   automatically signed out.
                 </p>
@@ -213,7 +213,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <div className="text-center mt-6">
-          <p className="text-zinc-600 text-xs">
+          <p className="text-muted-label/80 text-xs">
             IndustriaX Backend v0.1.0 &middot; Secure Infrastructure
           </p>
         </div>

@@ -20,7 +20,7 @@ export function NavigationTreeNode({
   icon: Icon,
   indent = 0,
   badge,
-  badgeColor = 'bg-zinc-700 text-zinc-300',
+  badgeColor = 'bg-background/40 text-subtle',
   phase,
 }: NavigationTreeNodeProps) {
   const pathname = usePathname();
@@ -32,15 +32,15 @@ export function NavigationTreeNode({
       className={[
         'group flex items-center gap-2.5 h-8 rounded-md transition-colors duration-100 cursor-pointer select-none',
         isActive
-          ? 'bg-zinc-800/80 text-white'
-          : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40',
+          ? 'bg-background/60/80 text-white'
+          : 'text-muted-label hover:text-subtle hover:bg-background/60/40',
       ].join(' ')}
       style={{ paddingLeft: `${12 + indent * 16}px`, paddingRight: '8px' }}
     >
       <div
         className={[
           'absolute left-0 top-0 bottom-0 w-0.5 rounded-r transition-colors',
-          isActive ? 'bg-amber-500' : 'bg-transparent group-hover:bg-zinc-600',
+          isActive ? 'bg-warning/60' : 'bg-transparent group-hover:bg-background/30',
         ].join(' ')}
       />
 
@@ -51,7 +51,7 @@ export function NavigationTreeNode({
       </span>
 
       {phase && (
-        <span className="text-[10px] font-semibold text-zinc-600 bg-zinc-800/60 px-1.5 py-0.5 rounded leading-none">
+        <span className="text-[10px] font-semibold text-muted-label/80 bg-background/60/60 px-1.5 py-0.5 rounded leading-none">
           {phase}
         </span>
       )}

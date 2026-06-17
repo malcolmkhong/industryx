@@ -248,7 +248,7 @@ export function FactoryPanel() {
             <Factory className="w-3 h-3 mr-1" />
             {activeFactories}/{totalFactories} Active
           </Badge>
-          <Badge variant="outline" className="border-warning/50 text-warning bg-yellow-900/20 text-xs">
+          <Badge variant="outline" className="border-warning/50 text-warning bg-warning/20 text-xs">
             <Zap className="w-3 h-3 mr-1" />
             {formatNumber(totalPowerConsumption)} MW
           </Badge>
@@ -298,7 +298,7 @@ export function FactoryPanel() {
         </div>
 
         {/* SVG Flow Diagram */}
-        <div className="relative bg-[#0a0e17] rounded-lg p-2 overflow-x-auto">
+        <div className="relative bg-background rounded-lg p-2 overflow-x-auto">
           <svg viewBox="0 0 1200 160" className="w-full h-auto min-w-[500px]" style={{ maxHeight: '180px' }}>
             {/* Background grid pattern */}
             <defs>
@@ -501,7 +501,7 @@ export function FactoryPanel() {
               <div
                 className="overflow-hidden"
               >
-                <div className="mt-3 bg-[#0a0e17] rounded-lg p-3 border" style={{ borderColor: `${tierInfo.color}33` }}>
+                <div className="mt-3 bg-background rounded-lg p-3 border" style={{ borderColor: `${tierInfo.color}33` }}>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: tierInfo.color }} />
@@ -596,7 +596,7 @@ export function FactoryPanel() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search factories..."
-                    className="w-full h-8 pl-8 pr-8 text-xs bg-[#0a0e17] border border-brand/30 rounded-lg text-subtle placeholder:text-muted-label focus:outline-none focus:border-brand/50 transition-colors"
+                    className="w-full h-8 pl-8 pr-8 text-xs bg-background border border-brand/30 rounded-lg text-subtle placeholder:text-muted-label focus:outline-none focus:border-brand/50 transition-colors"
                   />
                   {searchQuery && (
                     <button
@@ -646,7 +646,7 @@ export function FactoryPanel() {
                         side="bottom"
                       >
                       <div
-                        className={`relative rounded-lg p-3 border bg-[#0a0e17] ${
+                        className={`relative rounded-lg p-3 border bg-background ${
                           !unlocked
                             ? 'border-muted-label opacity-60'
                             : canAfford
@@ -668,12 +668,12 @@ export function FactoryPanel() {
                             {chains.length > 0 && (
                               <div className="flex flex-wrap gap-0.5 mt-0.5">
                                 {chains.slice(0, 2).map(chain => (
-                                  <span key={chain.name} className="text-[7px] px-1 py-0 rounded-full border" style={{ borderColor: `${chain.color}40`, color: chain.color, backgroundColor: `${chain.color}10` }}>
+                                  <span key={chain.name} className="text-[11px] px-1 py-0 rounded-full border" style={{ borderColor: `${chain.color}40`, color: chain.color, backgroundColor: `${chain.color}10` }}>
                                     {chain.name}
                                   </span>
                                 ))}
                                 {chains.length > 2 && (
-                                  <span className="text-[7px] text-muted-label">+{chains.length - 2}</span>
+                                  <span className="text-[11px] text-muted-label">+{chains.length - 2}</span>
                                 )}
                               </div>
                             )}
@@ -684,7 +684,7 @@ export function FactoryPanel() {
                         <div className="mb-2">
                           <div className="flex items-center gap-0.5 flex-wrap">
                             {def.inputs?.map((inp, i) => (
-                              <span key={i} className="text-[8px] text-danger/80 bg-danger/20 rounded px-1 py-px">
+                              <span key={i} className="text-[11px] text-danger/80 bg-danger/20 rounded px-1 py-px">
                                 <GameIcon icon={RESOURCE_META[inp.resource].icon} size={10} className="inline-flex" />{inp.amount}
                               </span>
                             ))}
@@ -692,7 +692,7 @@ export function FactoryPanel() {
                               <ArrowRight className="w-2 h-2 text-muted-label flex-shrink-0" />
                             )}
                             {def.outputs?.map((out, i) => (
-                              <span key={i} className="text-[8px] text-success/80 bg-success/20 rounded px-1 py-px">
+                              <span key={i} className="text-[11px] text-success/80 bg-success/20 rounded px-1 py-px">
                                 <GameIcon icon={RESOURCE_META[out.resource].icon} size={10} className="inline-flex" />{out.amount}
                               </span>
                             ))}
@@ -729,7 +729,7 @@ export function FactoryPanel() {
 
                         {existingCount > 0 && (
                           <div className="mt-1 text-center">
-                            <span className="text-[8px] text-muted-label">
+                            <span className="text-[11px] text-muted-label">
                               {buildings.filter(b => b.type === type && b.active).length}/{existingCount} active
                             </span>
                           </div>
@@ -785,7 +785,7 @@ export function FactoryPanel() {
                         return (
                           <div
                             key={building.id}
-                            className={`rounded-lg bg-[#0a0e17] p-2.5 border ${
+                            className={`rounded-lg bg-background p-2.5 border ${
                               building.active
                                 ? `${currentColorClasses.border}`
                                 : 'border-muted-label opacity-60'
@@ -807,11 +807,11 @@ export function FactoryPanel() {
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-1.5 mb-1">
                                   <span className="text-[11px] text-subtle font-medium">{def.name}</span>
-                                  <Badge variant="outline" className={`text-[8px] ${currentColorClasses.badge} ${currentColorClasses.text} px-1 py-0`}>
+                                  <Badge variant="outline" className={`text-[11px] ${currentColorClasses.badge} ${currentColorClasses.text} px-1 py-0`}>
                                     Lv.{building.level}
                                   </Badge>
                                   {!building.active && (
-                                    <Badge variant="outline" className="text-[8px] border-muted-label text-muted-label px-1 py-0">
+                                    <Badge variant="outline" className="text-[11px] border-muted-label text-muted-label px-1 py-0">
                                       OFF
                                     </Badge>
                                   )}
@@ -824,7 +824,7 @@ export function FactoryPanel() {
                                       hasEnough ? 'bg-danger/15' : 'bg-danger/30 border border-danger/50'
                                     }`}>
                                       <GameIcon icon={meta.icon} size={12} className="inline-flex" />
-                                      <span className={`text-[8px] font-mono ${building.active ? (hasEnough ? 'text-danger/80' : 'text-danger') : 'text-muted-label'}`}>
+                                      <span className={`text-[11px] font-mono ${building.active ? (hasEnough ? 'text-danger/80' : 'text-danger') : 'text-muted-label'}`}>
                                         -{formatNumber(rate)}
                                       </span>
                                     </div>
@@ -835,7 +835,7 @@ export function FactoryPanel() {
                                   {effectiveOutputs.map(({ resource: _r, rate, meta }, i) => (
                                     <div key={i} className="flex items-center gap-0.5 bg-success/15 rounded px-1 py-px">
                                       <GameIcon icon={meta.icon} size={12} className="inline-flex" />
-                                      <span className={`text-[8px] font-mono ${building.active ? 'text-success' : 'text-muted-label'}`}>
+                                      <span className={`text-[11px] font-mono ${building.active ? 'text-success' : 'text-muted-label'}`}>
                                         +{formatNumber(rate)}
                                       </span>
                                     </div>
@@ -844,18 +844,18 @@ export function FactoryPanel() {
 
                                 {/* Efficiency bar - compact inline */}
                                 <div className="flex items-center gap-1.5 mt-1">
-                                  <span className="text-[8px] text-muted-label">Eff</span>
+                                  <span className="text-[11px] text-muted-label">Eff</span>
                                   <div className="flex-1 h-1 bg-muted-label rounded-full overflow-hidden">
                                     <div
                                       className={`h-full rounded-full ${
-                                        eff >= 0.8 ? 'bg-gradient-to-r from-green-600 to-green-400' :
-                                        eff >= 0.5 ? 'bg-gradient-to-r from-yellow-600 to-yellow-400' :
-                                        'bg-gradient-to-r from-red-600 to-red-400'
+                                        eff >= 0.8 ? 'bg-gradient-to-r from-success/80 to-success/50' :
+                                        eff >= 0.5 ? 'bg-gradient-to-r from-warning/70 to-warning/50' :
+                                        'bg-gradient-to-r from-danger/80 to-danger/60'
                                       }`}
                                       style={{ width: `${eff * 100}%` }}
                                     />
                                   </div>
-                                  <span className={`text-[8px] font-mono ${
+                                  <span className={`text-[11px] font-mono ${
                                     eff >= 0.8 ? 'text-success' : eff >= 0.5 ? 'text-warning' : 'text-danger'
                                   }`}>
                                     {(eff * 100).toFixed(0)}%
@@ -878,7 +878,7 @@ export function FactoryPanel() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className={`h-5 text-[8px] px-1.5 ${
+                                  className={`h-5 text-[11px] px-1.5 ${
                                     canUpgrade
                                       ? 'border-brand/50 text-brand hover:bg-brand/30'
                                       : 'border-muted-label text-muted-label'
@@ -888,7 +888,7 @@ export function FactoryPanel() {
                                 >
                                   <ChevronUp className="w-2.5 h-2.5" />
                                 </Button>
-                                <span className={`text-[7px] font-mono ${canUpgrade ? 'text-subtle' : 'text-danger'}`}>
+                                <span className={`text-[11px] font-mono ${canUpgrade ? 'text-subtle' : 'text-danger'}`}>
                                   ${formatNumber(upgradeCost)}
                                 </span>
                               </div>
@@ -945,7 +945,7 @@ export function FactoryPanel() {
 
             {/* Selected chain visualization */}
             {PRODUCTION_CHAINS[selectedChain] && (
-              <div className="bg-[#0a0e17] rounded-lg p-3">
+              <div className="bg-background rounded-lg p-3">
                 <div className="flex items-center gap-1 mb-2">
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: PRODUCTION_CHAINS[selectedChain].color }} />
                   <span className="text-xs text-subtle font-medium">{PRODUCTION_CHAINS[selectedChain].name}</span>
@@ -991,8 +991,8 @@ export function FactoryPanel() {
                                 />
                               </div>
                               <div className="flex justify-between mt-0.5">
-                                <span className="text-[8px] text-muted-label font-mono">{formatNumber(stock)}</span>
-                                <span className="text-[8px] text-muted-label font-mono">{formatNumber(capacity)}</span>
+                                <span className="text-[11px] text-muted-label font-mono">{formatNumber(stock)}</span>
+                                <span className="text-[11px] text-muted-label font-mono">{formatNumber(capacity)}</span>
                               </div>
                             </div>
                           </div>
@@ -1067,7 +1067,7 @@ export function FactoryPanel() {
                   .map(([resource, rate]) => {
                     const meta = RESOURCE_META[resource];
                     return (
-                      <div key={resource} className="flex items-center justify-between bg-[#0a0e17] rounded-lg px-3 py-2">
+                      <div key={resource} className="flex items-center justify-between bg-background rounded-lg px-3 py-2">
                         <div className="flex items-center gap-2">
                           <GameIcon icon={meta.icon} size={14} className="inline-flex" />
                           <span className="text-xs text-subtle">{meta.name}</span>
@@ -1110,7 +1110,7 @@ export function FactoryPanel() {
                     const net = production - actualCons;
                     const stock = resources[resource];
                     return (
-                      <div key={resource} className="bg-[#0a0e17] rounded-lg p-3">
+                      <div key={resource} className="bg-background rounded-lg p-3">
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center gap-1.5">
                             <GameIcon icon={meta.icon} size={14} className="inline-flex" />

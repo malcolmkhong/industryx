@@ -113,9 +113,9 @@ function getStatusBadgeClasses(status: string): string {
     case "resolved":
       return "bg-success/15 text-success border-success/20";
     case "dismissed":
-      return "bg-zinc-500/15 text-zinc-400 border-zinc-500/20";
+      return "bg-background/20/15 text-muted-label border-muted-label/10/20";
     default:
-      return "bg-zinc-500/15 text-zinc-400 border-zinc-500/20";
+      return "bg-background/20/15 text-muted-label border-muted-label/10/20";
   }
 }
 
@@ -130,7 +130,7 @@ function getSeverityBadgeClasses(severity: string): string {
     case "low":
       return "bg-brand/15 text-brand border-brand/20";
     default:
-      return "bg-zinc-500/15 text-zinc-400 border-zinc-500/20";
+      return "bg-background/20/15 text-muted-label border-muted-label/10/20";
   }
 }
 
@@ -276,21 +276,21 @@ export default function InvestigationsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h2 className="text-white text-xl font-bold">Cheat Investigations</h2>
-          <p className="text-zinc-500 text-sm mt-1">
+          <p className="text-muted-label text-sm mt-1">
             Monitor and manage cheat detection investigations
           </p>
         </div>
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-4 mb-6">
+      <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-4 mb-6">
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex-1 min-w-[140px]">
-            <label className="block text-zinc-500 text-[10px] uppercase tracking-wider mb-1.5">Status</label>
+            <label className="block text-muted-label text-[10px] uppercase tracking-wider mb-1.5">Status</label>
             <select
               value={filterStatus}
               onChange={(e) => { setFilterStatus(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
-              className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors appearance-none"
+              className="w-full bg-background/60/80 border border-muted-label/30 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors appearance-none"
               style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2'%3e%3cpath d='m6 9 6 6 6-6'/%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
             >
               {STATUS_OPTIONS.map((s) => (
@@ -299,11 +299,11 @@ export default function InvestigationsPage() {
             </select>
           </div>
           <div className="flex-1 min-w-[140px]">
-            <label className="block text-zinc-500 text-[10px] uppercase tracking-wider mb-1.5">Severity</label>
+            <label className="block text-muted-label text-[10px] uppercase tracking-wider mb-1.5">Severity</label>
             <select
               value={filterSeverity}
               onChange={(e) => { setFilterSeverity(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
-              className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors appearance-none"
+              className="w-full bg-background/60/80 border border-muted-label/30 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors appearance-none"
               style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2'%3e%3cpath d='m6 9 6 6 6-6'/%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
             >
               {SEVERITY_OPTIONS.map((s) => (
@@ -312,11 +312,11 @@ export default function InvestigationsPage() {
             </select>
           </div>
           <div className="flex-1 min-w-[160px]">
-            <label className="block text-zinc-500 text-[10px] uppercase tracking-wider mb-1.5">Detection Type</label>
+            <label className="block text-muted-label text-[10px] uppercase tracking-wider mb-1.5">Detection Type</label>
             <select
               value={filterDetectionType}
               onChange={(e) => { setFilterDetectionType(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
-              className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors appearance-none"
+              className="w-full bg-background/60/80 border border-muted-label/30 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors appearance-none"
               style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2'%3e%3cpath d='m6 9 6 6 6-6'/%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
             >
               {DETECTION_TYPE_OPTIONS.map((dt) => (
@@ -336,7 +336,7 @@ export default function InvestigationsPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
+        <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-danger/10 flex items-center justify-center">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger">
@@ -344,13 +344,13 @@ export default function InvestigationsPage() {
               </svg>
             </div>
             <div>
-              <p className="text-zinc-500 text-xs">Open Count</p>
+              <p className="text-muted-label text-xs">Open Count</p>
               <p className="text-white text-2xl font-bold">{openCount}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
+        <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-domain/10 flex items-center justify-center">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-domain">
@@ -358,13 +358,13 @@ export default function InvestigationsPage() {
               </svg>
             </div>
             <div>
-              <p className="text-zinc-500 text-xs">Critical</p>
+              <p className="text-muted-label text-xs">Critical</p>
               <p className="text-white text-2xl font-bold">{criticalCount}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
+        <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-success">
@@ -372,19 +372,19 @@ export default function InvestigationsPage() {
               </svg>
             </div>
             <div>
-              <p className="text-zinc-500 text-xs">Resolved Today</p>
+              <p className="text-muted-label text-xs">Resolved Today</p>
               <p className="text-white text-2xl font-bold">{resolvedToday}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
+        <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
               <IconClipboardList />
             </div>
             <div>
-              <p className="text-zinc-500 text-xs">Total</p>
+              <p className="text-muted-label text-xs">Total</p>
               <p className="text-white text-2xl font-bold">{totalInvestigations}</p>
             </div>
           </div>
@@ -392,20 +392,20 @@ export default function InvestigationsPage() {
       </div>
 
       {/* Investigations Table */}
-      <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl overflow-hidden">
+      <div className="bg-background/80/60 border border-muted-label/40 rounded-xl overflow-hidden">
         {dataLoading ? (
           <div className="p-8 space-y-3">
             {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-14 bg-zinc-800/50 rounded animate-pulse" />
+              <div key={i} className="h-14 bg-background/60/50 rounded animate-pulse" />
             ))}
           </div>
         ) : investigations.length === 0 ? (
           <div className="p-12 text-center">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-zinc-600 mx-auto">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted-label/80 mx-auto">
               <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
             </svg>
-            <p className="text-zinc-400 text-sm mb-2 mt-3">No investigations found</p>
-            <p className="text-zinc-600 text-xs">Adjust filters or wait for new detections.</p>
+            <p className="text-muted-label text-sm mb-2 mt-3">No investigations found</p>
+            <p className="text-muted-label/80 text-xs">Adjust filters or wait for new detections.</p>
           </div>
         ) : (
           <>
@@ -413,21 +413,21 @@ export default function InvestigationsPage() {
             <div className="hidden lg:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-zinc-800">
-                    <th className="px-4 py-3 text-left text-xs text-zinc-500 font-medium">User Email</th>
-                    <th className="px-4 py-3 text-left text-xs text-zinc-500 font-medium">Detection Type</th>
-                    <th className="px-4 py-3 text-left text-xs text-zinc-500 font-medium">Severity</th>
-                    <th className="px-4 py-3 text-left text-xs text-zinc-500 font-medium">Description</th>
-                    <th className="px-4 py-3 text-left text-xs text-zinc-500 font-medium">Status</th>
-                    <th className="px-4 py-3 text-left text-xs text-zinc-500 font-medium">Created</th>
-                    <th className="px-4 py-3 text-right text-xs text-zinc-500 font-medium">Actions</th>
+                  <tr className="border-b border-muted-label/40">
+                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">User Email</th>
+                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Detection Type</th>
+                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Severity</th>
+                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Description</th>
+                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Status</th>
+                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Created</th>
+                    <th className="px-4 py-3 text-right text-xs text-muted-label font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {investigations.map((inv) => (
                     <tr
                       key={inv.id}
-                      className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors"
+                      className="border-b border-muted-label/40/50 hover:bg-background/60/30 transition-colors"
                     >
                       <td className="px-4 py-3">
                         <span className="text-white text-sm truncate max-w-[180px] block">
@@ -435,7 +435,7 @@ export default function InvestigationsPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-zinc-300 text-xs">
+                        <span className="text-subtle text-xs">
                           {formatDetectionType(inv.detection_type)}
                         </span>
                       </td>
@@ -445,7 +445,7 @@ export default function InvestigationsPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-zinc-400 text-xs block max-w-[200px] truncate" title={inv.description || undefined}>
+                        <span className="text-muted-label text-xs block max-w-[200px] truncate" title={inv.description || undefined}>
                           {truncateStr(inv.description || "—", 50)}
                         </span>
                       </td>
@@ -455,7 +455,7 @@ export default function InvestigationsPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-zinc-500 text-xs">
+                        <span className="text-muted-label text-xs">
                           {new Date(inv.created_at).toLocaleDateString()}
                         </span>
                       </td>
@@ -468,14 +468,14 @@ export default function InvestigationsPage() {
                                 placeholder={`${actionType === "resolve" ? "Resolution" : "Dismissal"} note...`}
                                 value={actionNote}
                                 onChange={(e) => setActionNote(e.target.value)}
-                                className="flex-1 bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-warning/50 transition-colors"
+                                className="flex-1 bg-background/60/80 border border-muted-label/30 rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-muted-label/80 focus:outline-none focus:border-warning/50 transition-colors"
                                 autoFocus
                               />
                             </div>
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={() => { setActionTarget(null); setActionType(null); setActionNote(""); }}
-                                className="px-2.5 py-1 text-xs text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
+                                className="px-2.5 py-1 text-xs text-muted-label hover:text-white hover:bg-background/60 rounded-lg transition-colors"
                               >
                                 Cancel
                               </button>
@@ -485,7 +485,7 @@ export default function InvestigationsPage() {
                                 className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-lg transition-colors ${
                                   actionType === "resolve"
                                     ? "bg-success/15 text-success border border-success/20 hover:bg-success/25 disabled:opacity-50"
-                                    : "bg-zinc-500/15 text-zinc-400 border border-zinc-500/20 hover:bg-zinc-500/25 disabled:opacity-50"
+                                    : "bg-background/20/15 text-muted-label border border-muted-label/10/20 hover:bg-background/20/25 disabled:opacity-50"
                                 }`}
                               >
                                 {actionLoading ? (
@@ -501,7 +501,7 @@ export default function InvestigationsPage() {
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               onClick={() => setViewTarget(inv)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-warning hover:bg-warning/10 transition-colors border border-zinc-700 hover:border-warning/20"
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-muted-label hover:text-warning hover:bg-warning/10 transition-colors border border-muted-label/30 hover:border-warning/20"
                             >
                               <IconEye />
                               View
@@ -517,7 +517,7 @@ export default function InvestigationsPage() {
                                 </button>
                                 <button
                                   onClick={() => { setActionTarget(inv.id); setActionType("dismiss"); setActionNote(""); }}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-zinc-400 hover:bg-zinc-500/10 transition-colors border border-zinc-600"
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-muted-label hover:bg-background/20/10 transition-colors border border-muted-label/20"
                                 >
                                   <IconX />
                                   Dismiss
@@ -534,7 +534,7 @@ export default function InvestigationsPage() {
             </div>
 
             {/* Mobile / Tablet cards */}
-            <div className="lg:hidden divide-y divide-zinc-800/50">
+            <div className="lg:hidden divide-y divide-background/60/50">
               {investigations.map((inv) => (
                 <div key={inv.id} className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-2">
@@ -542,7 +542,7 @@ export default function InvestigationsPage() {
                       <p className="text-white text-sm font-medium truncate">
                         {inv.user_email || truncateStr(inv.user_id, 12)}
                       </p>
-                      <p className="text-zinc-500 text-[10px] mt-0.5">
+                      <p className="text-muted-label text-[10px] mt-0.5">
                         {formatDetectionType(inv.detection_type)}
                       </p>
                     </div>
@@ -556,9 +556,9 @@ export default function InvestigationsPage() {
                     </div>
                   </div>
                   {inv.description && (
-                    <p className="text-zinc-400 text-xs mb-2 line-clamp-2">{inv.description}</p>
+                    <p className="text-muted-label text-xs mb-2 line-clamp-2">{inv.description}</p>
                   )}
-                  <p className="text-zinc-600 text-[10px] mb-2">
+                  <p className="text-muted-label/80 text-[10px] mb-2">
                     {new Date(inv.created_at).toLocaleString()}
                   </p>
                   {actionTarget === inv.id ? (
@@ -568,13 +568,13 @@ export default function InvestigationsPage() {
                         placeholder={`${actionType === "resolve" ? "Resolution" : "Dismissal"} note...`}
                         value={actionNote}
                         onChange={(e) => setActionNote(e.target.value)}
-                        className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-warning/50 transition-colors"
+                        className="w-full bg-background/60/80 border border-muted-label/30 rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-muted-label/80 focus:outline-none focus:border-warning/50 transition-colors"
                         autoFocus
                       />
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => { setActionTarget(null); setActionType(null); setActionNote(""); }}
-                          className="px-3 py-1.5 text-xs text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
+                          className="px-3 py-1.5 text-xs text-muted-label hover:text-white hover:bg-background/60 rounded-lg transition-colors"
                         >
                           Cancel
                         </button>
@@ -584,7 +584,7 @@ export default function InvestigationsPage() {
                           className={`inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
                             actionType === "resolve"
                               ? "bg-success/15 text-success border border-success/20 disabled:opacity-50"
-                              : "bg-zinc-500/15 text-zinc-400 border border-zinc-500/20 disabled:opacity-50"
+                              : "bg-background/20/15 text-muted-label border border-muted-label/10/20 disabled:opacity-50"
                           }`}
                         >
                           {actionLoading ? (
@@ -600,7 +600,7 @@ export default function InvestigationsPage() {
                     <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => setViewTarget(inv)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-zinc-400 hover:text-warning hover:bg-warning/10 transition-colors border border-zinc-700"
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-muted-label hover:text-warning hover:bg-warning/10 transition-colors border border-muted-label/30"
                       >
                         <IconEye />
                         View
@@ -616,7 +616,7 @@ export default function InvestigationsPage() {
                           </button>
                           <button
                             onClick={() => { setActionTarget(inv.id); setActionType("dismiss"); setActionNote(""); }}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-zinc-400 hover:bg-zinc-500/10 transition-colors border border-zinc-600"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-muted-label hover:bg-background/20/10 transition-colors border border-muted-label/20"
                           >
                             <IconX />
                             Dismiss
@@ -631,26 +631,26 @@ export default function InvestigationsPage() {
 
             {/* Pagination */}
             {pagination.totalPages > 1 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-zinc-800">
-                <div className="text-xs text-zinc-500">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-muted-label/40">
+                <div className="text-xs text-muted-label">
                   Showing {((pagination.page - 1) * pagination.limit) + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setPagination((p) => ({ ...p, page: Math.max(1, p.page - 1) }))}
                     disabled={pagination.page <= 1}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs text-zinc-400 hover:text-white bg-zinc-800/50 hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed border border-zinc-700"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs text-muted-label hover:text-white bg-background/60/50 hover:bg-background/60 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed border border-muted-label/30"
                   >
                     <IconChevronLeft />
                     Prev
                   </button>
-                  <span className="text-zinc-500 text-xs">
+                  <span className="text-muted-label text-xs">
                     Page {pagination.page} of {pagination.totalPages}
                   </span>
                   <button
                     onClick={() => setPagination((p) => ({ ...p, page: Math.min(p.totalPages, p.page + 1) }))}
                     disabled={pagination.page >= pagination.totalPages}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs text-zinc-400 hover:text-white bg-zinc-800/50 hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed border border-zinc-700"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs text-muted-label hover:text-white bg-background/60/50 hover:bg-background/60 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed border border-muted-label/30"
                   >
                     Next
                     <IconChevronRight />
@@ -665,12 +665,12 @@ export default function InvestigationsPage() {
       {/* ─── View Detail Modal ──────────────────────────────────────────── */}
       {viewTarget && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-lg shadow-2xl max-h-[85vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800 sticky top-0 bg-zinc-900 z-10">
+          <div className="bg-background/80 border border-muted-label/40 rounded-xl w-full max-w-lg shadow-2xl max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-muted-label/40 sticky top-0 bg-background/80 z-10">
               <h3 className="text-white font-semibold">Investigation Detail</h3>
               <button
                 onClick={() => setViewTarget(null)}
-                className="text-zinc-400 hover:text-white transition-colors p-1"
+                className="text-muted-label hover:text-white transition-colors p-1"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M18 6 6 18" /><path d="m6 6 12 12" />
@@ -680,60 +680,60 @@ export default function InvestigationsPage() {
             <div className="p-5 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-zinc-500 text-[10px] uppercase tracking-wider mb-1">User</p>
+                  <p className="text-muted-label text-[10px] uppercase tracking-wider mb-1">User</p>
                   <p className="text-white text-sm">{viewTarget.user_email || "—"}</p>
                 </div>
                 <div>
-                  <p className="text-zinc-500 text-[10px] uppercase tracking-wider mb-1">Status</p>
+                  <p className="text-muted-label text-[10px] uppercase tracking-wider mb-1">Status</p>
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${getStatusBadgeClasses(viewTarget.status)}`}>
                     {viewTarget.status.charAt(0).toUpperCase() + viewTarget.status.slice(1)}
                   </span>
                 </div>
                 <div>
-                  <p className="text-zinc-500 text-[10px] uppercase tracking-wider mb-1">Detection Type</p>
-                  <p className="text-zinc-300 text-sm">{formatDetectionType(viewTarget.detection_type)}</p>
+                  <p className="text-muted-label text-[10px] uppercase tracking-wider mb-1">Detection Type</p>
+                  <p className="text-subtle text-sm">{formatDetectionType(viewTarget.detection_type)}</p>
                 </div>
                 <div>
-                  <p className="text-zinc-500 text-[10px] uppercase tracking-wider mb-1">Severity</p>
+                  <p className="text-muted-label text-[10px] uppercase tracking-wider mb-1">Severity</p>
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${getSeverityBadgeClasses(viewTarget.severity)}`}>
                     {viewTarget.severity.charAt(0).toUpperCase() + viewTarget.severity.slice(1)}
                   </span>
                 </div>
               </div>
               <div>
-                <p className="text-zinc-500 text-[10px] uppercase tracking-wider mb-1">Description</p>
-                <p className="text-zinc-300 text-sm">{viewTarget.description || "—"}</p>
+                <p className="text-muted-label text-[10px] uppercase tracking-wider mb-1">Description</p>
+                <p className="text-subtle text-sm">{viewTarget.description || "—"}</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-zinc-500 text-[10px] uppercase tracking-wider mb-1">Created At</p>
-                  <p className="text-zinc-300 text-xs">{new Date(viewTarget.created_at).toLocaleString()}</p>
+                  <p className="text-muted-label text-[10px] uppercase tracking-wider mb-1">Created At</p>
+                  <p className="text-subtle text-xs">{new Date(viewTarget.created_at).toLocaleString()}</p>
                 </div>
                 {viewTarget.resolved_at && (
                   <div>
-                    <p className="text-zinc-500 text-[10px] uppercase tracking-wider mb-1">Resolved At</p>
-                    <p className="text-zinc-300 text-xs">{new Date(viewTarget.resolved_at).toLocaleString()}</p>
+                    <p className="text-muted-label text-[10px] uppercase tracking-wider mb-1">Resolved At</p>
+                    <p className="text-subtle text-xs">{new Date(viewTarget.resolved_at).toLocaleString()}</p>
                   </div>
                 )}
               </div>
               {viewTarget.resolution_note && (
                 <div>
-                  <p className="text-zinc-500 text-[10px] uppercase tracking-wider mb-1">Resolution Note</p>
-                  <div className="px-3 py-2 rounded-lg bg-zinc-800/50 border border-zinc-700">
-                    <p className="text-zinc-300 text-sm">{viewTarget.resolution_note}</p>
+                  <p className="text-muted-label text-[10px] uppercase tracking-wider mb-1">Resolution Note</p>
+                  <div className="px-3 py-2 rounded-lg bg-background/60/50 border border-muted-label/30">
+                    <p className="text-subtle text-sm">{viewTarget.resolution_note}</p>
                   </div>
                   {viewTarget.resolved_by_email && (
-                    <p className="text-zinc-600 text-[10px] mt-1">by {viewTarget.resolved_by_email}</p>
+                    <p className="text-muted-label/80 text-[10px] mt-1">by {viewTarget.resolved_by_email}</p>
                   )}
                 </div>
               )}
               <div>
-                <p className="text-zinc-500 text-[10px] uppercase tracking-wider mb-1">Investigation ID</p>
-                <p className="text-zinc-400 text-xs font-mono">{viewTarget.id}</p>
+                <p className="text-muted-label text-[10px] uppercase tracking-wider mb-1">Investigation ID</p>
+                <p className="text-muted-label text-xs font-mono">{viewTarget.id}</p>
               </div>
               <div>
-                <p className="text-zinc-500 text-[10px] uppercase tracking-wider mb-1">User ID</p>
-                <p className="text-zinc-400 text-xs font-mono">{viewTarget.user_id}</p>
+                <p className="text-muted-label text-[10px] uppercase tracking-wider mb-1">User ID</p>
+                <p className="text-muted-label text-xs font-mono">{viewTarget.user_id}</p>
               </div>
             </div>
           </div>

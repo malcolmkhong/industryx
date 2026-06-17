@@ -212,7 +212,7 @@ export function PowerPanel() {
       return { icon: 'lucide:alert-triangle', text: 'Build more power plants or deactivate some buildings!', color: 'text-danger', bg: 'bg-danger/20 border-danger/40' };
     }
     if (powerStatus === 'balanced') {
-      return { icon: 'lucide:lightbulb', text: 'Consider adding surplus capacity for expansion', color: 'text-warning', bg: 'bg-yellow-900/20 border-yellow-800/40' };
+      return { icon: 'lucide:lightbulb', text: 'Consider adding surplus capacity for expansion', color: 'text-warning', bg: 'bg-warning/20 border-warning/80/40' };
     }
     return { icon: 'lucide:check-circle', text: 'Great! You have room to expand production', color: 'text-success', bg: 'bg-success/20 border-success/40' };
   }, [powerStatus]);
@@ -275,7 +275,7 @@ export function PowerPanel() {
               powerStatus === 'surplus'
                 ? 'border-success/50 text-success bg-success/20'
                 : powerStatus === 'balanced'
-                  ? 'border-warning/50 text-warning bg-yellow-900/20'
+                  ? 'border-warning/50 text-warning bg-warning/20'
                   : 'border-danger/50 text-danger bg-danger/20'
             }`}
           >
@@ -300,7 +300,7 @@ export function PowerPanel() {
             >
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                 powerStatus === 'surplus' ? 'bg-success/20' :
-                powerStatus === 'balanced' ? 'bg-yellow-900/20' :
+                powerStatus === 'balanced' ? 'bg-warning/20' :
                 'bg-danger/20'
               }`}>
                 <Zap className={`w-5 h-5 ${
@@ -349,10 +349,10 @@ export function PowerPanel() {
             <motion.div
               className={`absolute inset-y-0 left-0 rounded-full transition-all duration-700 power-bar-animated-gradient ${
                 powerStatus === 'surplus'
-                  ? 'bg-gradient-to-r from-green-700 via-green-500 to-green-400'
+                  ? 'bg-gradient-to-r from-success/60 via-success to-success/50'
                   : powerStatus === 'balanced'
-                    ? 'bg-gradient-to-r from-yellow-700 via-yellow-500 to-yellow-400'
-                    : 'bg-gradient-to-r from-red-700 via-red-500 to-red-400'
+                    ? 'bg-gradient-to-r from-warning/80 via-warning/60 to-warning/50'
+                    : 'bg-gradient-to-r from-danger/60 via-danger to-danger/60'
               }`}
               initial={{ width: 0 }}
               animate={{ width: `${Math.min(100, powerRatio * 50)}%` }}
@@ -450,7 +450,7 @@ export function PowerPanel() {
           <Activity className="w-4 h-4 text-brand" />
           <h3 className="text-sm font-semibold text-brand">Power Flow Diagram</h3>
         </div>
-        <div className="relative bg-[#0a0e17] rounded-lg p-4 overflow-hidden">
+        <div className="relative bg-background rounded-lg p-4 overflow-hidden">
           {/* Grid lines background */}
           <div className="absolute inset-0 opacity-5">
             {[...Array(6)].map((_, i) => (
@@ -500,7 +500,7 @@ export function PowerPanel() {
                   powerStatus === 'surplus'
                     ? 'border-success/50 bg-success/20'
                     : powerStatus === 'balanced'
-                      ? 'border-warning/50 bg-yellow-900/20'
+                      ? 'border-warning/50 bg-warning/20'
                       : 'border-danger/50 bg-danger/20'
                 }`}
                 animate={{
@@ -579,9 +579,9 @@ export function PowerPanel() {
                 <span className="text-[9px] font-mono text-domain">{formatNumber(totalRealConsumption)} MW</span>
               </div>
               <div className="text-[9px] text-muted-label">{buildings.filter(b => BUILDING_DEFS[b.type]?.category !== 'power' && b.active).length} buildings</div>
-              <div className={`text-[8px] mt-1 px-1.5 py-0.5 rounded ${
+              <div className={`text-[11px] mt-1 px-1.5 py-0.5 rounded ${
                 realtimeEfficiency >= 0.8 ? 'bg-success/20 text-success' :
-                realtimeEfficiency >= 0.5 ? 'bg-yellow-900/20 text-warning' :
+                realtimeEfficiency >= 0.5 ? 'bg-warning/20 text-warning' :
                 'bg-danger/20 text-danger'
               }`}>
                 {(realtimeEfficiency * 100).toFixed(0)}% eff
@@ -646,12 +646,12 @@ export function PowerPanel() {
             <div
               className={`game-card rounded-xl bg-card p-3 border ${
                 !unlocked ? 'border-muted-label opacity-50' :
-                output > 0 ? 'border-yellow-900/30' : 'border-border'
+                output > 0 ? 'border-warning/30' : 'border-border'
               }`}
             >
               {/* Header */}
               <div className="flex items-center gap-2 mb-2">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-[#0a0e17] ${
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-background ${
                   unlocked ? meta.glowClass : 'text-muted-label'
                 }`}>
                   <GameIcon icon={meta.icon} size={16} />
@@ -733,7 +733,7 @@ export function PowerPanel() {
             <h3 className="text-sm font-semibold text-success">Power Production History</h3>
             <span className="text-[9px] text-muted-label ml-auto">Last {powerHistory.length} snapshots</span>
           </div>
-          <div className="h-16 bg-[#0a0e17] rounded-lg p-1">
+          <div className="h-16 bg-background rounded-lg p-1">
             <PowerSparkline
               data={powerHistory}
               color={powerStatus === 'surplus' ? '#4ade80' : powerStatus === 'balanced' ? '#facc15' : '#f87171'}
@@ -762,7 +762,7 @@ export function PowerPanel() {
               <div className="text-center py-10">
                 <div className="relative inline-block">
                   <Zap className="w-12 h-12 text-dim mx-auto mb-3" />
-                  <div className="absolute -inset-3 rounded-full bg-yellow-900/10 blur-lg" />
+                  <div className="absolute -inset-3 rounded-full bg-warning/10 blur-lg" />
                 </div>
                 <p className="text-sm text-subtle font-medium mb-1">No Power Plants Built</p>
                 <p className="text-[10px] text-muted-label max-w-[200px] mx-auto">Build your first power plant above to start generating electricity</p>
@@ -810,9 +810,9 @@ export function PowerPanel() {
                   return (
                     <div
                       key={plant.id}
-                      className={`rounded-lg bg-[#0a0e17] p-3 border ${
+                      className={`rounded-lg bg-background p-3 border ${
                         plant.active
-                          ? isDerated ? 'border-danger/40' : 'border-yellow-900/30'
+                          ? isDerated ? 'border-danger/40' : 'border-warning/30'
                           : 'border-muted-label opacity-60'
                       }`}
                     >
@@ -842,7 +842,7 @@ export function PowerPanel() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1.5">
                             <span className="text-xs text-subtle font-medium">{def.name}</span>
-                            <Badge variant="outline" className="text-[9px] border-yellow-600/50 text-warning px-1.5 py-0">
+                            <Badge variant="outline" className="text-[9px] border-warning/60/50 text-warning px-1.5 py-0">
                               Lv.{plant.level}
                             </Badge>
                             {!plant.active && (
@@ -870,10 +870,10 @@ export function PowerPanel() {
                             <div className="h-2 bg-muted-label rounded-full overflow-hidden relative">
                               <div
                                 className={`h-full rounded-full ${
-                                  isDerated ? 'bg-gradient-to-r from-red-700 to-red-500' :
-                                  productionPct >= 80 ? 'bg-gradient-to-r from-green-700 to-green-400' :
-                                  productionPct >= 50 ? 'bg-gradient-to-r from-yellow-700 to-yellow-400' :
-                                  'bg-gradient-to-r from-cyan-700 to-cyan-400'
+                                  isDerated ? 'bg-gradient-to-r from-danger/60 to-danger' :
+                                  productionPct >= 80 ? 'bg-gradient-to-r from-success/60 to-success/50' :
+                                  productionPct >= 50 ? 'bg-gradient-to-r from-warning/80 to-warning/50' :
+                                  'bg-gradient-to-r from-brand/80 to-brand/50'
                                 }`}
                                 style={{ width: `${productionPct}%` }}
                               >
@@ -954,7 +954,7 @@ export function PowerPanel() {
                 const unlocked = isBuildingUnlocked(type, completedResearch, prestigeState);
 
                 return (
-                  <div key={type} className="bg-[#0a0e17] rounded-lg p-3">
+                  <div key={type} className="bg-background rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-1.5">
                       <div className={meta.glowClass}><GameIcon icon={meta.icon} size={16} /></div>
                       <span className={`text-xs font-medium flex-1 ${unlocked ? 'text-subtle' : 'text-muted-label'}`}>
@@ -1008,7 +1008,7 @@ export function PowerPanel() {
             </div>
 
             <div className="space-y-2.5">
-              <div className="bg-[#0a0e17] rounded-lg p-3">
+              <div className="bg-background rounded-lg p-3">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-xs text-subtle">Coal Stock</span>
                   <div className="flex items-center gap-1">

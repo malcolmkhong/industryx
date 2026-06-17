@@ -162,11 +162,11 @@ export function DashboardPanel() {
 
   // Empire tier info
   const empireTier = useMemo(() => {
-    if (empireScore >= 50000) return { name: 'Diamond', color: '#b9f2ff', bgColor: 'bg-cyan-100', borderColor: 'border-brand', textColor: 'text-cyan-200', icon: <Gem className="w-4 h-4" />, nextThreshold: null, progress: 1 };
-    if (empireScore >= 10000) return { name: 'Platinum', color: '#e5e4e2', bgColor: 'bg-gray-200', borderColor: 'border-gray-400', textColor: 'text-subtle', icon: <Crown className="w-4 h-4" />, nextThreshold: 50000, progress: (empireScore - 10000) / 40000 };
+    if (empireScore >= 50000) return { name: 'Diamond', color: '#b9f2ff', bgColor: 'bg-brand/20', borderColor: 'border-brand', textColor: 'text-brand/40', icon: <Gem className="w-4 h-4" />, nextThreshold: null, progress: 1 };
+    if (empireScore >= 10000) return { name: 'Platinum', color: '#e5e4e2', bgColor: 'bg-200-gray', borderColor: 'border-muted-label/30', textColor: 'text-subtle', icon: <Crown className="w-4 h-4" />, nextThreshold: 50000, progress: (empireScore - 10000) / 40000 };
     if (empireScore >= 2000) return { name: 'Gold', color: '#ffd700', bgColor: 'bg-warning', borderColor: 'border-warning', textColor: 'text-warning', icon: <Trophy className="w-4 h-4" />, nextThreshold: 10000, progress: (empireScore - 2000) / 8000 };
-    if (empireScore >= 500) return { name: 'Silver', color: '#c0c0c0', bgColor: 'bg-gray-400', borderColor: 'border-muted-label', textColor: 'text-subtle', icon: <Star className="w-4 h-4" />, nextThreshold: 2000, progress: (empireScore - 500) / 1500 };
-    return { name: 'Bronze', color: '#cd7f32', bgColor: 'bg-amber-600', borderColor: 'border-amber-600', textColor: 'text-warning', icon: <Shield className="w-4 h-4" />, nextThreshold: 500, progress: empireScore / 500 };
+    if (empireScore >= 500) return { name: 'Silver', color: '#c0c0c0', bgColor: 'bg-muted-label/40', borderColor: 'border-muted-label', textColor: 'text-subtle', icon: <Star className="w-4 h-4" />, nextThreshold: 2000, progress: (empireScore - 500) / 1500 };
+    return { name: 'Bronze', color: '#cd7f32', bgColor: 'bg-warning/70', borderColor: 'border-warning/60', textColor: 'text-warning', icon: <Shield className="w-4 h-4" />, nextThreshold: 500, progress: empireScore / 500 };
   }, [empireScore]);
 
   // Economy summary values
@@ -210,12 +210,12 @@ export function DashboardPanel() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, type: 'spring' }}
           onClick={() => setActiveTab('dailyRewards')}
-          className="w-full bg-gradient-to-r from-pink-900/25 via-purple-900/20 to-fuchsia-900/25 border border-premium/30 rounded-xl p-3 flex items-center justify-between group hover:border-pink-400/50 cursor-pointer"
+          className="w-full bg-gradient-to-r from-900-pink/25 via-research/20/20 to-premium/30/25 border border-premium/30 rounded-xl p-3 flex items-center justify-between group hover:border-400-pink/50 cursor-pointer"
         >
           <div className="flex items-center gap-3">
             <GameIcon icon="gi:present" size={24} className="animate-bounce" />
             <div className="text-left">
-              <p className="text-sm font-bold text-premium group-hover:text-pink-200 transition-colors">Daily Reward Available!</p>
+              <p className="text-sm font-bold text-premium group-hover:text-premium/40 transition-colors">Daily Reward Available!</p>
               <p className="text-[10px] text-subtle">Click to claim your daily login bonus</p>
             </div>
           </div>
@@ -250,7 +250,7 @@ export function DashboardPanel() {
           >
             <div className="flex flex-col items-center">
               <div style={{ color: empireTier.color }}>{empireTier.icon}</div>
-              <span className="text-[8px] font-bold mt-0.5" style={{ color: empireTier.color }}>{empireTier.name}</span>
+              <span className="text-[11px] font-bold mt-0.5" style={{ color: empireTier.color }}>{empireTier.name}</span>
             </div>
           </div>
           {/* Score info */}
@@ -335,7 +335,7 @@ export function DashboardPanel() {
         const currentStep = trackedQuestData.steps.find(s => !s.completed);
         return (
           <motion.div
-            className="bg-gradient-to-r from-cyan-900/15 to-teal-900/10 border border-brand/25 rounded-xl p-3"
+            className="bg-gradient-to-r from-brand/15 to-success/30/10 border border-brand/25 rounded-xl p-3"
           >
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-1.5">
@@ -375,7 +375,7 @@ export function DashboardPanel() {
 
       {/* GET STARTED CARD - only show when no buildings */}
       {totalBuildings === 0 && (
-        <div className="relative rounded-xl p-8 text-center border border-brand/20 bg-gradient-to-br from-cyan-900/15 via-[#111827] to-teal-900/10 overflow-hidden">
+        <div className="relative rounded-xl p-8 text-center border border-brand/20 bg-gradient-to-br from-brand/15 via-[#111827] to-success/30/10 overflow-hidden">
           {/* Radial gradient overlay for visual depth */}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,255,242,0.06)_0%,transparent_70%)]" />
           {/* Animated diagonal line pattern background */}
@@ -420,7 +420,7 @@ export function DashboardPanel() {
                 className="rounded-md"
               >
                 <Button
-                  className="bg-yellow-600 hover:bg-warning text-white font-semibold px-5 py-2.5 text-xs"
+                  className="bg-warning/70 hover:bg-warning text-white font-semibold px-5 py-2.5 text-xs"
                   onClick={() => setActiveTab('power')}
                 >
                   <Zap className="w-4 h-4 mr-1.5" />
@@ -443,10 +443,10 @@ export function DashboardPanel() {
             </div>
             <div className="mt-6 flex items-center justify-center gap-4 text-[10px] text-muted-label">
               <motion.div
-                className="flex items-center gap-2 bg-yellow-900/20 border border-yellow-700/30 rounded-lg px-3 py-2"
+                className="flex items-center gap-2 bg-warning/20 border border-warning/30 rounded-lg px-3 py-2"
                 whileHover={{ scale: 1.05, borderColor: 'rgba(234,179,8,0.5)' }}
               >
-                <span className="w-5 h-5 rounded-full bg-yellow-600 text-white flex items-center justify-center text-[10px] font-bold">1</span>
+                <span className="w-5 h-5 rounded-full bg-warning/70 text-white flex items-center justify-center text-[10px] font-bold">1</span>
                 <span className="text-warning font-medium">Build Power</span>
               </motion.div>
               <ArrowRight className="w-3 h-3 text-dim" />
@@ -582,7 +582,7 @@ export function DashboardPanel() {
                 <p className="text-sm text-subtle font-medium mb-1">NO POWER GRID</p>
                 <p className="text-xs text-muted-label mb-3">Build a Coal Generator or Solar Panel to start generating power</p>
                 <Button
-                  className="glow-button-cyan bg-yellow-600 hover:bg-warning text-white text-xs font-semibold px-4 py-1.5"
+                  className="glow-button-cyan bg-warning/70 hover:bg-warning text-white text-xs font-semibold px-4 py-1.5"
                   onClick={() => setActiveTab('power')}
                 >
                   <Zap className="w-3 h-3 mr-1" />
@@ -608,9 +608,9 @@ export function DashboardPanel() {
                 />
                 <div
                   className={`absolute inset-y-0 left-0 rounded-full transition-all duration-700 ${
-                    powerPercent >= 80 ? 'bg-gradient-to-r from-green-600 to-green-400' :
-                    powerPercent >= 50 ? 'bg-gradient-to-r from-yellow-600 to-yellow-400' :
-                    'bg-gradient-to-r from-red-600 to-red-400'
+                    powerPercent >= 80 ? 'bg-gradient-to-r from-success/80 to-success/50' :
+                    powerPercent >= 50 ? 'bg-gradient-to-r from-warning/70 to-warning/50' :
+                    'bg-gradient-to-r from-danger/80 to-danger/60'
                   }`}
                   style={{ width: `${Math.min(100, powerPercent)}%` }}
                 >
@@ -670,7 +670,7 @@ export function DashboardPanel() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {/* Net Income */}
-              <div className="bg-[#0a0e17] rounded-lg p-3">
+              <div className="bg-background rounded-lg p-3">
                 <div className="flex items-center gap-2 mb-1.5">
                   <div className="w-6 h-6 rounded-md bg-success/30 flex items-center justify-center">
                     <TrendingUp className="w-3.5 h-3.5 text-success" />
@@ -685,7 +685,7 @@ export function DashboardPanel() {
                 </div>
               </div>
               {/* Total Assets */}
-              <div className="bg-[#0a0e17] rounded-lg p-3">
+              <div className="bg-background rounded-lg p-3">
                 <div className="flex items-center gap-2 mb-1.5">
                   <div className="w-6 h-6 rounded-md bg-brand/30 flex items-center justify-center">
                     <Wallet className="w-3.5 h-3.5 text-brand" />
@@ -700,9 +700,9 @@ export function DashboardPanel() {
                 </div>
               </div>
               {/* Storage Utilization */}
-              <div className="bg-[#0a0e17] rounded-lg p-3">
+              <div className="bg-background rounded-lg p-3">
                 <div className="flex items-center gap-2 mb-1.5">
-                  <div className="w-6 h-6 rounded-md bg-amber-900/30 flex items-center justify-center">
+                  <div className="w-6 h-6 rounded-md bg-warning/30 flex items-center justify-center">
                     <BarChart3 className="w-3.5 h-3.5 text-warning" />
                   </div>
                   <span className="text-[10px] text-muted-label">Storage Used</span>
@@ -744,7 +744,7 @@ export function DashboardPanel() {
               const totalCapacity = topResources.reduce((sum, r) => sum + r.capacity, 0);
               const overallPct = totalCapacity > 0 ? (totalStored / totalCapacity) * 100 : 0;
               return (
-                <div className="mb-3 bg-[#0a0e17] rounded-lg p-3">
+                <div className="mb-3 bg-background rounded-lg p-3">
                   <div className="flex items-center justify-between text-[10px] mb-1.5">
                     <div className="flex items-center gap-3">
                       <span className="text-subtle">Total Stored: <span className="text-brand font-mono font-bold">{formatNumber(totalStored)}</span></span>
@@ -759,7 +759,7 @@ export function DashboardPanel() {
                         overallPct > 90 ? 'bg-danger' :
                         overallPct > 70 ? 'bg-domain' :
                         overallPct > 50 ? 'bg-warning' :
-                        'bg-gradient-to-r from-cyan-600 to-cyan-400'
+                        'bg-gradient-to-r from-brand/70 to-brand/50'
                       }`}
                       style={{ width: `${Math.min(100, overallPct)}%` }}
                     />
@@ -796,7 +796,7 @@ export function DashboardPanel() {
                         className={`h-full rounded-full resource-bar-premium resource-bar-animated transition-all duration-500 ${
                           pct > 90 ? 'bg-danger' :
                           pct > 70 ? 'bg-domain' :
-                          'bg-gradient-to-r from-cyan-600 to-cyan-400'
+                          'bg-gradient-to-r from-brand/70 to-brand/50'
                         }`}
                         style={{ width: `${Math.min(100, pct)}%` }}
                       />
@@ -867,10 +867,10 @@ export function DashboardPanel() {
                     <motion.div
                       key={entry.id}
                       className={`flex items-start gap-2 py-1.5 px-2 rounded text-[11px] border-l-2 ${
-                        entry.type === 'success' ? 'text-success bg-success/5 border-l-green-500' :
-                        entry.type === 'warning' ? 'text-warning bg-yellow-900/5 border-l-yellow-500' :
-                        entry.type === 'error' ? 'text-danger bg-danger/5 border-l-red-500' :
-                        'text-subtle bg-muted-label/5 border-l-gray-600'
+                        entry.type === 'success' ? 'text-success bg-success/5 border-l-success' :
+                        entry.type === 'warning' ? 'text-warning bg-warning/5 border-l-warning/50' :
+                        entry.type === 'error' ? 'text-danger bg-danger/5 border-l-danger' :
+                        'text-subtle bg-muted-label/5 border-l-muted-label/40'
                       }`}
                     >
                       <div className="flex-shrink-0 mt-0.5 text-current">
@@ -955,7 +955,7 @@ export function DashboardPanel() {
                 </div>
                 <div className="h-2 bg-muted-label rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-purple-600 to-purple-400 rounded-full transition-all duration-300"
+                    className="h-full bg-gradient-to-r from-research/80 to-research/50 rounded-full transition-all duration-300"
                     style={{ width: `${activeResearchInfo.progress}%` }}
                   >
                     <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent" />
@@ -989,7 +989,7 @@ export function DashboardPanel() {
             ) : (
               <div className="space-y-2 max-h-48 overflow-y-auto game-scrollbar">
                 {activeEvents.map(event => (
-                  <div key={event.id} className="bg-[#0a0e17] rounded-lg p-3 border border-domain/30">
+                  <div key={event.id} className="bg-background rounded-lg p-3 border border-domain/30">
                     <div className="flex items-center gap-2 mb-1">
                       <GameIcon icon={event.icon} size={14} className="inline-flex" />
                       <span className="text-xs text-domain font-medium">{event.name}</span>
@@ -1042,7 +1042,7 @@ export function DashboardPanel() {
                     key={n.id}
                     className={`text-[11px] py-1.5 px-2 rounded ${
                       n.type === 'success' ? 'text-success bg-success/10' :
-                      n.type === 'warning' ? 'text-warning bg-yellow-900/10' :
+                      n.type === 'warning' ? 'text-warning bg-warning/10' :
                       n.type === 'error' ? 'text-danger bg-danger/10' :
                       'text-subtle bg-muted-label/10'
                     }`}
@@ -1249,7 +1249,7 @@ function RankBar() {
           <Button
             variant="outline"
             size="sm"
-            className="h-8 text-[10px] border-fuchsia-800/50 text-premium hover:bg-fuchsia-900/20"
+            className="h-8 text-[10px] border-premium/50/50 text-premium hover:bg-premium/20/20"
             onClick={() => setActiveTab('resources')}
           >
             <Package className="w-3 h-3 mr-1" />
@@ -1274,18 +1274,18 @@ function WeatherInfoCard() {
 
   // Gradient backgrounds based on weather type
   const weatherGradients: Record<string, string> = {
-    clear: 'from-slate-800/30 to-slate-900/20',
-    sunny: 'from-yellow-900/25 to-orange-900/15',
-    rainy: 'from-blue-900/25 to-slate-900/20',
-    stormy: 'from-purple-900/30 to-slate-900/25',
-    foggy: 'from-gray-700/25 to-gray-900/20',
-    snowy: 'from-blue-200/10 to-indigo-900/15',
+    clear: 'from-muted-label/10/30 to-muted-label/20',
+    sunny: 'from-warning/25 to-domain/20/15',
+    rainy: 'from-muted-label/25/25 to-muted-label/20',
+    stormy: 'from-research/30 to-muted-label/25',
+    foggy: 'from-muted-label/20/25 to-muted-label/10/20',
+    snowy: 'from-200-blue/10 to-research/20/15',
   };
 
   // Border colors based on weather
   const weatherBorders: Record<string, string> = {
-    clear: 'border-slate-700/40',
-    sunny: 'border-yellow-600/40',
+    clear: 'border-muted-label/20/40',
+    sunny: 'border-warning/60/40',
     rainy: 'border-brand/40',
     stormy: 'border-research/40',
     foggy: 'border-muted-label/40',
@@ -1366,7 +1366,7 @@ function WeatherInfoCard() {
 
         {/* Multiplier effects */}
         <div className="grid grid-cols-3 gap-2 mb-3">
-          <div className="bg-[#0a0e17]/60 rounded-lg p-3 text-center">
+          <div className="bg-background/60 rounded-lg p-3 text-center">
             <div className="text-[9px] text-muted-label mb-0.5">Production</div>
             <div className={`text-xs font-bold font-mono flex items-center justify-center gap-0.5 ${
               prodEffect > 0 ? 'text-success' : prodEffect < 0 ? 'text-danger' : 'text-subtle'
@@ -1375,7 +1375,7 @@ function WeatherInfoCard() {
               {prodEffect >= 0 ? '+' : ''}{(prodEffect * 100).toFixed(0)}%
             </div>
           </div>
-          <div className="bg-[#0a0e17]/60 rounded-lg p-3 text-center">
+          <div className="bg-background/60 rounded-lg p-3 text-center">
             <div className="text-[9px] text-muted-label mb-0.5">Solar</div>
             <div className={`text-xs font-bold font-mono flex items-center justify-center gap-0.5 ${
               solarEffect > 0 ? 'text-success' : solarEffect < 0 ? 'text-danger' : 'text-subtle'
@@ -1384,7 +1384,7 @@ function WeatherInfoCard() {
               {solarEffect >= 0 ? '+' : ''}{(solarEffect * 100).toFixed(0)}%
             </div>
           </div>
-          <div className="bg-[#0a0e17]/60 rounded-lg p-3 text-center">
+          <div className="bg-background/60 rounded-lg p-3 text-center">
             <div className="text-[9px] text-muted-label mb-0.5">Wind</div>
             <div className={`text-xs font-bold font-mono flex items-center justify-center gap-0.5 ${
               windEffect > 0 ? 'text-success' : windEffect < 0 ? 'text-danger' : 'text-subtle'
@@ -1618,7 +1618,7 @@ function EfficiencyRing({ efficiency, overload }: { efficiency: number; overload
       </div>
       <span className="text-[10px] text-muted-label mt-1">Efficiency</span>
       {hasGrid && overload && (
-        <span className="text-[8px] text-danger font-semibold">OVERLOAD</span>
+        <span className="text-[11px] text-danger font-semibold">OVERLOAD</span>
       )}
     </div>
   );

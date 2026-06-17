@@ -68,9 +68,9 @@ export function CommandPalette() {
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]">
       <button type="button" className="absolute inset-0 bg-black/60 cursor-default" onClick={() => setOpen(false)} aria-label="Close palette" />
 
-      <div className="relative w-full max-w-lg bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl overflow-hidden">
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-800">
-          <Search className="w-4 h-4 text-zinc-500 shrink-0" />
+      <div className="relative w-full max-w-lg bg-background/80 border border-muted-label/30 rounded-xl shadow-2xl overflow-hidden">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-muted-label/40">
+          <Search className="w-4 h-4 text-muted-label shrink-0" />
           <input
             ref={inputRef}
             value={query}
@@ -80,14 +80,14 @@ export function CommandPalette() {
             }}
             onKeyDown={handleKeyDown}
             placeholder="Search pages..."
-            className="flex-1 bg-transparent text-sm text-white placeholder-zinc-500 focus:outline-none"
+            className="flex-1 bg-transparent text-sm text-white placeholder-muted-label focus:outline-none"
           />
-          <kbd className="text-[10px] text-zinc-600 bg-zinc-800 px-1.5 py-0.5 rounded font-mono">ESC</kbd>
+          <kbd className="text-[10px] text-muted-label/80 bg-background/60 px-1.5 py-0.5 rounded font-mono">ESC</kbd>
         </div>
 
         <div className="max-h-72 overflow-y-auto p-2">
           {filtered.length === 0 ? (
-            <p className="text-sm text-zinc-500 text-center py-6">No results</p>
+            <p className="text-sm text-muted-label text-center py-6">No results</p>
           ) : (
             filtered.map((page, i) => (
               <button
@@ -95,20 +95,20 @@ export function CommandPalette() {
                 type="button"
                 onClick={() => navigate(page.href)}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
-                  i === selectedIndex ? 'bg-amber-500/10 text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50'
+                  i === selectedIndex ? 'bg-warning/60/10 text-white' : 'text-muted-label hover:text-white hover:bg-background/60/50'
                 }`}
               >
                 <page.icon className="w-4 h-4 shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium truncate">{page.label}</p>
-                  <p className="text-xs text-zinc-600">Jump to {page.group.toLowerCase()}</p>
+                  <p className="text-xs text-muted-label/80">Jump to {page.group.toLowerCase()}</p>
                 </div>
               </button>
             ))
           )}
         </div>
 
-        <div className="px-4 py-2 border-t border-zinc-800 flex items-center gap-4 text-[10px] text-zinc-600">
+        <div className="px-4 py-2 border-t border-muted-label/40 flex items-center gap-4 text-[10px] text-muted-label/80">
           <span>↑↓ Navigate</span>
           <span>↵ Open</span>
           <span>Esc Close</span>

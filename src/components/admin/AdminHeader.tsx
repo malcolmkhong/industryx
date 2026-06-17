@@ -25,16 +25,16 @@ export function AdminHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-30 h-14 flex items-center justify-between px-4 bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-800/60">
+    <header className="sticky top-0 z-30 h-14 flex items-center justify-between px-4 bg-background/80 backdrop-blur-xl border-b border-muted-label/40/60">
       <div className="flex items-center gap-2">
-        <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+        <span className="text-xs font-semibold text-muted-label uppercase tracking-wider">
           Backend
         </span>
       </div>
 
       <div className="flex items-center gap-3">
         {email && (
-          <div className="flex items-center gap-2 text-zinc-400">
+          <div className="flex items-center gap-2 text-muted-label">
             <User className="w-3.5 h-3.5" />
             <span className="text-xs font-medium truncate max-w-[160px]">{email}</span>
           </div>
@@ -43,7 +43,7 @@ export function AdminHeader() {
         <button
           type="button"
           onClick={handleLogout}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-800/60 rounded-md transition-colors"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-muted-label hover:text-white hover:bg-background/60/60 rounded-md transition-colors"
         >
           <LogOut className="w-3.5 h-3.5" />
           <span>Sign out</span>

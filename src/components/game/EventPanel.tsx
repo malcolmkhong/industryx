@@ -12,15 +12,15 @@ import {
 import { GameIcon } from '@/components/game/shared/GameIcon';
 
 const DIRECTION_COLORS: Record<string, string> = {
-  up: 'border-emerald-600/50 bg-emerald-900/10',
-  down: 'border-red-600/50 bg-red-900/10',
-  mixed: 'border-amber-600/50 bg-amber-900/10',
+  up: 'border-success/80/50 bg-success/20/10',
+  down: 'border-danger/80/50 bg-danger/20/10',
+  mixed: 'border-warning/50 bg-warning/10',
 };
 
 const DIRECTION_ICONS: Record<string, React.ReactNode> = {
-  up: <ArrowUp className="w-3 h-3 text-emerald-400" />,
-  down: <ArrowDown className="w-3 h-3 text-red-400" />,
-  mixed: <Minus className="w-3 h-3 text-amber-400" />,
+  up: <ArrowUp className="w-3 h-3 text-success" />,
+  down: <ArrowDown className="w-3 h-3 text-danger" />,
+  mixed: <Minus className="w-3 h-3 text-warning" />,
 };
 
 function getEventDirection(effects: { type: string; value: number }[]): 'up' | 'down' | 'mixed' {
@@ -94,7 +94,7 @@ export function EventPanel() {
                         <Badge
                           key={`${effect.target}-${i}`}
                           variant="outline"
-                          className={`text-[10px] ${isUp ? 'border-emerald-500/50 text-emerald-400' : 'border-red-500/50 text-red-400'}`}
+                          className={`text-[10px] ${isUp ? 'border-success/50 text-success' : 'border-danger/50 text-danger'}`}
                         >
                           {isUp ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                           {' '}

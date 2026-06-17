@@ -62,13 +62,13 @@ export default function BackendDashboard() {
   return (
     <>
       {/* Welcome Card */}
-      <div className="bg-gradient-to-br from-amber-500/10 to-orange-600/5 border border-warning/20 rounded-2xl p-6 mb-6">
+      <div className="bg-gradient-to-br from-warning/60/10 to-domain/80/5 border border-warning/20 rounded-2xl p-6 mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-xl sm:text-2xl font-bold text-white">
               Welcome back, Admin
             </h2>
-            <p className="text-zinc-400 text-sm mt-1">
+            <p className="text-muted-label text-sm mt-1">
               IndustriaX Backend Management Console is operational.
             </p>
           </div>
@@ -78,7 +78,7 @@ export default function BackendDashboard() {
             <button
               onClick={fetchDashboardData}
               disabled={statsLoading}
-              className="text-zinc-400 hover:text-warning transition-colors p-1.5 rounded-md hover:bg-zinc-800"
+              className="text-muted-label hover:text-warning transition-colors p-1.5 rounded-md hover:bg-background/60"
               title="Refresh data"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={statsLoading ? "animate-spin" : ""}>
@@ -92,7 +92,7 @@ export default function BackendDashboard() {
       {/* Live Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         {/* Total Players */}
-        <a href="/admin/players" className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5 block hover:border-zinc-700 transition-colors">
+        <a href="/admin/players" className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5 block hover:border-muted-label/30 transition-colors">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-success">
@@ -100,9 +100,9 @@ export default function BackendDashboard() {
               </svg>
             </div>
             <div>
-              <p className="text-zinc-500 text-xs">Total Players</p>
+              <p className="text-muted-label text-xs">Total Players</p>
               <p className="text-white text-2xl font-bold">
-                {statsLoading ? <span className="inline-block w-8 h-6 bg-zinc-800 rounded animate-pulse" /> : (stats?.totalPlayers ?? 0)}
+                {statsLoading ? <span className="inline-block w-8 h-6 bg-background/60 rounded animate-pulse" /> : (stats?.totalPlayers ?? 0)}
               </p>
             </div>
           </div>
@@ -113,7 +113,7 @@ export default function BackendDashboard() {
         </a>
 
         {/* Online Now — real-time via Supabase Presence */}
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
+        <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand">
@@ -121,12 +121,12 @@ export default function BackendDashboard() {
               </svg>
             </div>
             <div>
-              <p className="text-zinc-500 text-xs">Online Now</p>
+              <p className="text-muted-label text-xs">Online Now</p>
               <p className="text-white text-2xl font-bold">
                 {presenceOnlineCount !== null ? (
                   presenceOnlineCount
                 ) : statsLoading ? (
-                  <span className="inline-block w-8 h-6 bg-zinc-800 rounded animate-pulse" />
+                  <span className="inline-block w-8 h-6 bg-background/60 rounded animate-pulse" />
                 ) : (
                   stats?.onlinePlayers ?? 0
                 )}
@@ -149,7 +149,7 @@ export default function BackendDashboard() {
         </div>
 
         {/* Open Investigations */}
-        <a href="/admin/investigations" className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5 block hover:border-zinc-700 transition-colors">
+        <a href="/admin/investigations" className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5 block hover:border-muted-label/30 transition-colors">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-warning">
@@ -157,9 +157,9 @@ export default function BackendDashboard() {
               </svg>
             </div>
             <div>
-              <p className="text-zinc-500 text-xs">Open Investigations</p>
+              <p className="text-muted-label text-xs">Open Investigations</p>
               <p className="text-white text-2xl font-bold">
-                {statsLoading ? <span className="inline-block w-8 h-6 bg-zinc-800 rounded animate-pulse" /> : (stats?.openInvestigations ?? 0)}
+                {statsLoading ? <span className="inline-block w-8 h-6 bg-background/60 rounded animate-pulse" /> : (stats?.openInvestigations ?? 0)}
               </p>
             </div>
           </div>
@@ -170,7 +170,7 @@ export default function BackendDashboard() {
         </a>
 
         {/* Locked Accounts */}
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
+        <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-lg bg-danger/10 flex items-center justify-center">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger">
@@ -178,9 +178,9 @@ export default function BackendDashboard() {
               </svg>
             </div>
             <div>
-              <p className="text-zinc-500 text-xs">Locked Accounts</p>
+              <p className="text-muted-label text-xs">Locked Accounts</p>
               <p className="text-white text-2xl font-bold">
-                {statsLoading ? <span className="inline-block w-8 h-6 bg-zinc-800 rounded animate-pulse" /> : (stats?.lockedAccounts ?? 0)}
+                {statsLoading ? <span className="inline-block w-8 h-6 bg-background/60 rounded animate-pulse" /> : (stats?.lockedAccounts ?? 0)}
               </p>
             </div>
           </div>
@@ -191,7 +191,7 @@ export default function BackendDashboard() {
         </div>
 
         {/* Actions Today */}
-        <a href="/admin/audit" className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5 block hover:border-zinc-700 transition-colors">
+        <a href="/admin/audit" className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5 block hover:border-muted-label/30 transition-colors">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-lg bg-research/10 flex items-center justify-center">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-research">
@@ -199,9 +199,9 @@ export default function BackendDashboard() {
               </svg>
             </div>
             <div>
-              <p className="text-zinc-500 text-xs">Actions Today</p>
+              <p className="text-muted-label text-xs">Actions Today</p>
               <p className="text-white text-2xl font-bold">
-                {statsLoading ? <span className="inline-block w-8 h-6 bg-zinc-800 rounded animate-pulse" /> : (stats?.totalActionsToday ?? 0)}
+                {statsLoading ? <span className="inline-block w-8 h-6 bg-background/60 rounded animate-pulse" /> : (stats?.totalActionsToday ?? 0)}
               </p>
             </div>
           </div>
@@ -212,7 +212,7 @@ export default function BackendDashboard() {
         </a>
 
         {/* Invalid Actions */}
-        <a href="/admin/audit" className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5 block hover:border-zinc-700 transition-colors">
+        <a href="/admin/audit" className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5 block hover:border-muted-label/30 transition-colors">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-lg bg-domain/10 flex items-center justify-center">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-domain">
@@ -220,14 +220,14 @@ export default function BackendDashboard() {
               </svg>
             </div>
             <div>
-              <p className="text-zinc-500 text-xs">Invalid Actions</p>
+              <p className="text-muted-label text-xs">Invalid Actions</p>
               <p className="text-white text-2xl font-bold">
-                {statsLoading ? <span className="inline-block w-8 h-6 bg-zinc-800 rounded animate-pulse" /> : (stats?.invalidActionsToday ?? 0)}
+                {statsLoading ? <span className="inline-block w-8 h-6 bg-background/60 rounded animate-pulse" /> : (stats?.invalidActionsToday ?? 0)}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full bg-orange-400" />
+            <div className="w-2 h-2 rounded-full bg-domain/50" />
             <span className="text-domain text-xs">Flagged today</span>
           </div>
         </a>
@@ -236,7 +236,7 @@ export default function BackendDashboard() {
       {/* Quick Info */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Service Info */}
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
+        <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <h3 className="text-white font-medium text-sm mb-4">Service Information</h3>
           <div className="space-y-3">
             {[
@@ -247,16 +247,16 @@ export default function BackendDashboard() {
               { label: "Framework", value: "Next.js 16 + App Router" },
               { label: "Database", value: "Supabase (PostgreSQL)" },
             ].map((item) => (
-              <div key={item.label} className="flex justify-between items-center py-1.5 border-b border-zinc-800 last:border-0">
-                <span className="text-zinc-500 text-xs">{item.label}</span>
-                <span className="text-zinc-300 text-xs font-mono">{item.value}</span>
+              <div key={item.label} className="flex justify-between items-center py-1.5 border-b border-muted-label/40 last:border-0">
+                <span className="text-muted-label text-xs">{item.label}</span>
+                <span className="text-subtle text-xs font-mono">{item.value}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Recent Player Actions */}
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
+        <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-white font-medium text-sm">Recent Actions</h3>
             <a href="/admin/audit" className="text-warning text-xs hover:text-warning">View all →</a>
@@ -264,25 +264,25 @@ export default function BackendDashboard() {
           <div className="space-y-1">
             {statsLoading ? (
               [1, 2, 3].map((i) => (
-                <div key={i} className="h-10 bg-zinc-800/50 rounded animate-pulse" />
+                <div key={i} className="h-10 bg-background/60/50 rounded animate-pulse" />
               ))
             ) : recentActions.length === 0 ? (
-              <p className="text-zinc-600 text-xs py-4 text-center">No recent actions</p>
+              <p className="text-muted-label/80 text-xs py-4 text-center">No recent actions</p>
             ) : (
               recentActions.map((action, i) => (
-                <div key={i} className="flex items-start gap-3 py-2 border-b border-zinc-800 last:border-0">
+                <div key={i} className="flex items-start gap-3 py-2 border-b border-muted-label/40 last:border-0">
                   <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
                     action.is_valid ? "bg-success" : "bg-danger"
                   }`} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-zinc-300 text-xs font-medium">
+                    <p className="text-subtle text-xs font-medium">
                       {String(action.action_type || "Unknown")}
                     </p>
-                    <p className="text-zinc-500 text-xs truncate">
+                    <p className="text-muted-label text-xs truncate">
                       {(action.user_email as string) || String(action.user_id || "").slice(0, 8) + "..."}
                     </p>
                   </div>
-                  <span className="text-zinc-600 text-[10px] shrink-0">
+                  <span className="text-muted-label/80 text-[10px] shrink-0">
                     {action.created_at
                       ? new Date(action.created_at as string).toLocaleTimeString()
                       : ""}
@@ -294,7 +294,7 @@ export default function BackendDashboard() {
         </div>
 
         {/* Recent Investigations */}
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
+        <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-white font-medium text-sm">Recent Investigations</h3>
             <a href="/admin/investigations" className="text-warning text-xs hover:text-warning">View all →</a>
@@ -302,34 +302,34 @@ export default function BackendDashboard() {
           <div className="space-y-1">
             {statsLoading ? (
               [1, 2, 3].map((i) => (
-                <div key={i} className="h-10 bg-zinc-800/50 rounded animate-pulse" />
+                <div key={i} className="h-10 bg-background/60/50 rounded animate-pulse" />
               ))
             ) : recentInvestigations.length === 0 ? (
-              <p className="text-zinc-600 text-xs py-4 text-center">No recent investigations</p>
+              <p className="text-muted-label/80 text-xs py-4 text-center">No recent investigations</p>
             ) : (
               recentInvestigations.map((inv, i) => (
-                <div key={i} className="flex items-start gap-3 py-2 border-b border-zinc-800 last:border-0">
+                <div key={i} className="flex items-start gap-3 py-2 border-b border-muted-label/40 last:border-0">
                   <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
                     inv.status === "open" ? "bg-warning" :
                     inv.status === "resolved" ? "bg-success" :
                     "bg-danger"
                   }`} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-zinc-300 text-xs font-medium">
+                    <p className="text-subtle text-xs font-medium">
                       {String(inv.detection_type || "Unknown")}
                       <span className={`ml-1.5 px-1.5 py-0.5 rounded text-[10px] ${
                         inv.severity === "high" ? "bg-danger/15 text-danger" :
                         inv.severity === "medium" ? "bg-warning/15 text-warning" :
-                        "bg-zinc-500/15 text-zinc-400"
+                        "bg-background/20/15 text-muted-label"
                       }`}>
                         {String(inv.severity || "low")}
                       </span>
                     </p>
-                    <p className="text-zinc-500 text-xs truncate">
+                    <p className="text-muted-label text-xs truncate">
                       {(inv.user_email as string) || String(inv.user_id || "").slice(0, 8) + "..."}
                     </p>
                   </div>
-                  <span className="text-zinc-600 text-[10px] shrink-0">
+                  <span className="text-muted-label/80 text-[10px] shrink-0">
                     {inv.created_at
                       ? new Date(inv.created_at as string).toLocaleTimeString()
                       : ""}

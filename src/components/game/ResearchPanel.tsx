@@ -171,8 +171,8 @@ export function ResearchPanel() {
                           : isActive
                             ? 'bg-research/10 border border-research/30 neon-pulse shadow-[0_0_15px_rgba(168,85,247,0.15)]'
                             : isAvailable
-                              ? 'bg-[#0a0e17] border border-muted-label hover:border-research/50 hover:-translate-y-0.5 hover:shadow-lg'
-                              : 'bg-[#0a0e17] border border-muted-label opacity-50'
+                              ? 'bg-background border border-muted-label hover:border-research/50 hover:-translate-y-0.5 hover:shadow-lg'
+                              : 'bg-background border border-muted-label opacity-50'
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -186,7 +186,7 @@ export function ResearchPanel() {
                             <span className={`text-xs font-medium ${isCompleted ? 'text-success' : isUnlocked ? 'text-subtle' : 'text-muted-label'}`}>
                               {node.name}
                             </span>
-                            <Badge variant="outline" className="text-[8px] px-1 py-0 border-muted-label text-muted-label">
+                            <Badge variant="outline" className="text-[11px] px-1 py-0 border-muted-label text-muted-label">
                               Tier {node.tier}
                             </Badge>
                           </div>
@@ -215,7 +215,7 @@ export function ResearchPanel() {
                               const preNode = RESEARCH_TREE.find(r => r.id === pre);
                               const preDone = store.completedResearch.includes(pre);
                               return (
-                                <Badge key={pre} variant="outline" className={`text-[8px] px-1 py-0 ${
+                                <Badge key={pre} variant="outline" className={`text-[11px] px-1 py-0 ${
                                   preDone ? 'border-success text-success' : 'border-danger text-danger'
                                 }`}>
                                   {preDone ? 'lucide:check' : 'lucide:x'} {preNode?.name ?? pre}
@@ -231,7 +231,7 @@ export function ResearchPanel() {
                         <div className="mt-2 pt-2 border-t border-muted-label/50">
                           <div className="flex flex-wrap gap-1">
                             {node.effects.map((effect, i) => (
-                              <Badge key={i} variant="outline" className="text-[8px] px-1 py-0 border-brand text-brand">
+                              <Badge key={i} variant="outline" className="text-[11px] px-1 py-0 border-brand text-brand">
                                 {effect.type === 'productionSpeed' ? <><GameIcon icon="gi:lightning-frequency" size={14} className="inline" /> Speed</> :
                                  effect.type === 'unlockBuilding' ? <><GameIcon icon="gi:castle" size={14} className="inline" /> Unlock</> :
                                  effect.type === 'transportSpeed' ? <><GameIcon icon="gi:truck" size={14} className="inline" /> Transport</> :

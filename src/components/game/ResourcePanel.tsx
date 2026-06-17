@@ -245,11 +245,11 @@ export function ResourcePanel() {
           <p className="text-xs text-muted-label mt-0.5">Mine, pump, and extract raw materials from the earth</p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="border-warning/50 text-warning bg-amber-900/20 text-xs">
+          <Badge variant="outline" className="border-warning/50 text-warning bg-warning/20 text-xs">
             <Pickaxe className="w-3 h-3 mr-1" />
             {activeExtractors}/{totalExtractors} Active
           </Badge>
-          <Badge variant="outline" className="border-warning/50 text-warning bg-yellow-900/20 text-xs">
+          <Badge variant="outline" className="border-warning/50 text-warning bg-warning/20 text-xs">
             <Zap className="w-3 h-3 mr-1" />
             {formatNumber(totalPowerConsumption)} MW
           </Badge>
@@ -299,7 +299,7 @@ export function ResourcePanel() {
         </div>
 
         {/* SVG Flow Diagram */}
-        <div className="relative bg-[#0a0e17] rounded-lg p-2 overflow-x-auto">
+        <div className="relative bg-background rounded-lg p-2 overflow-x-auto">
           <svg viewBox="0 0 1200 160" className="w-full h-auto min-w-[500px]" style={{ maxHeight: '180px' }}>
             {/* Background grid pattern */}
             <defs>
@@ -503,7 +503,7 @@ export function ResourcePanel() {
               <div
                 className="overflow-hidden"
               >
-                <div className="mt-3 bg-[#0a0e17] rounded-lg p-3 border" style={{ borderColor: `${tierInfo.color}33` }}>
+                <div className="mt-3 bg-background rounded-lg p-3 border" style={{ borderColor: `${tierInfo.color}33` }}>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: tierInfo.color }} />
@@ -622,7 +622,7 @@ export function ResourcePanel() {
                         side="bottom"
                       >
                       <div
-                        className={`relative rounded-lg p-3 border bg-[#0a0e17] ${
+                        className={`relative rounded-lg p-3 border bg-background ${
                           !unlocked
                             ? 'border-muted-label opacity-60'
                             : canAfford
@@ -647,7 +647,7 @@ export function ResourcePanel() {
                         <div className="mb-2">
                           <div className="flex items-center gap-0.5 flex-wrap">
                             {def.outputs?.map((out, i) => (
-                              <span key={i} className="text-[8px] text-success/80 bg-success/20 rounded px-1 py-px">
+                              <span key={i} className="text-[11px] text-success/80 bg-success/20 rounded px-1 py-px">
                                 <GameIcon icon={RESOURCE_META[out.resource].icon} size={10} className="inline-flex" />{(out.amount * def.baseProductionRate).toFixed(1)}/s
                               </span>
                             ))}
@@ -684,7 +684,7 @@ export function ResourcePanel() {
 
                         {existingCount > 0 && (
                           <div className="mt-1 text-center">
-                            <span className="text-[8px] text-muted-label">
+                            <span className="text-[11px] text-muted-label">
                               {extractorsByType[type].filter(b => b.active).length}/{existingCount} active
                             </span>
                           </div>
@@ -722,7 +722,7 @@ export function ResourcePanel() {
                         return (
                           <div
                             key={building.id}
-                            className={`rounded-lg bg-[#0a0e17] p-2.5 border ${
+                            className={`rounded-lg bg-background p-2.5 border ${
                               building.active
                                 ? `${currentColorClasses.border}`
                                 : 'border-muted-label opacity-60'
@@ -744,11 +744,11 @@ export function ResourcePanel() {
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-1.5 mb-1">
                                   <span className="text-[11px] text-subtle font-medium">{def.name}</span>
-                                  <Badge variant="outline" className={`text-[8px] ${currentColorClasses.badge} ${currentColorClasses.text} px-1 py-0`}>
+                                  <Badge variant="outline" className={`text-[11px] ${currentColorClasses.badge} ${currentColorClasses.text} px-1 py-0`}>
                                     Lv.{building.level}
                                   </Badge>
                                   {!building.active && (
-                                    <Badge variant="outline" className="text-[8px] border-muted-label text-muted-label px-1 py-0">
+                                    <Badge variant="outline" className="text-[11px] border-muted-label text-muted-label px-1 py-0">
                                       OFF
                                     </Badge>
                                   )}
@@ -759,7 +759,7 @@ export function ResourcePanel() {
                                   {effectiveOutputs.map(({ resource: _r, rate, meta }, i) => (
                                     <div key={i} className="flex items-center gap-0.5 bg-success/15 rounded px-1 py-px">
                                       <GameIcon icon={meta.icon} size={10} className="inline-flex" />
-                                      <span className={`text-[8px] font-mono ${building.active ? 'text-success' : 'text-muted-label'}`}>
+                                      <span className={`text-[11px] font-mono ${building.active ? 'text-success' : 'text-muted-label'}`}>
                                         +{formatNumber(rate)}
                                       </span>
                                     </div>
@@ -768,18 +768,18 @@ export function ResourcePanel() {
 
                                 {/* Efficiency bar - compact inline */}
                                 <div className="flex items-center gap-1.5 mt-1">
-                                  <span className="text-[8px] text-muted-label">Eff</span>
+                                  <span className="text-[11px] text-muted-label">Eff</span>
                                   <div className="flex-1 h-1 bg-muted-label rounded-full overflow-hidden">
                                     <div
                                       className={`h-full rounded-full ${
-                                        eff >= 0.8 ? 'bg-gradient-to-r from-green-600 to-green-400' :
-                                        eff >= 0.5 ? 'bg-gradient-to-r from-yellow-600 to-yellow-400' :
-                                        'bg-gradient-to-r from-red-600 to-red-400'
+                                        eff >= 0.8 ? 'bg-gradient-to-r from-success/80 to-success/50' :
+                                        eff >= 0.5 ? 'bg-gradient-to-r from-warning/70 to-warning/50' :
+                                        'bg-gradient-to-r from-danger/80 to-danger/60'
                                       }`}
                                       style={{ width: `${eff * 100}%` }}
                                     />
                                   </div>
-                                  <span className={`text-[8px] font-mono ${
+                                  <span className={`text-[11px] font-mono ${
                                     eff >= 0.8 ? 'text-success' : eff >= 0.5 ? 'text-warning' : 'text-danger'
                                   }`}>
                                     {(eff * 100).toFixed(0)}%
@@ -788,7 +788,7 @@ export function ResourcePanel() {
 
                                 {/* Power deficit warning */}
                                 {building.active && powerGrid.overload && (
-                                  <div className="mt-1 flex items-center gap-1 text-[8px] text-danger bg-danger/20 rounded px-1.5 py-0.5 border border-red-900/30">
+                                  <div className="mt-1 flex items-center gap-1 text-[11px] text-danger bg-danger/20 rounded px-1.5 py-0.5 border border-danger/40/30">
                                     <Zap className="w-2 h-2 flex-shrink-0" />
                                     <span>Power deficit!</span>
                                   </div>
@@ -810,7 +810,7 @@ export function ResourcePanel() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className={`h-5 text-[8px] px-1.5 ${
+                                  className={`h-5 text-[11px] px-1.5 ${
                                     canUpgrade
                                       ? 'border-brand/50 text-brand hover:bg-brand/30'
                                       : 'border-muted-label text-muted-label'
@@ -820,7 +820,7 @@ export function ResourcePanel() {
                                 >
                                   <ChevronUp className="w-2.5 h-2.5" />
                                 </Button>
-                                <span className={`text-[7px] font-mono ${canUpgrade ? 'text-subtle' : 'text-danger'}`}>
+                                <span className={`text-[11px] font-mono ${canUpgrade ? 'text-subtle' : 'text-danger'}`}>
                                   ${formatNumber(upgradeCost)}
                                 </span>
                               </div>
@@ -872,7 +872,7 @@ export function ResourcePanel() {
                 if (isEmpty && prodRate === 0 && consRate === 0) return null;
 
                 return (
-                  <div key={resource} className={`rounded-lg p-2 bg-[#0a0e17] border ${
+                  <div key={resource} className={`rounded-lg p-2 bg-background border ${
                     isFull ? 'border-domain/40' : 'border-muted-label/50'
                   }`}>
                     {/* Header */}
@@ -902,7 +902,7 @@ export function ResourcePanel() {
                       <span className="text-[9px] text-muted-label">/</span>
                       <span className="text-[9px] text-muted-label font-mono">{formatNumber(capacity)}</span>
                       {isFull && (
-                        <span className="text-[8px] text-domain ml-1">FULL</span>
+                        <span className="text-[11px] text-domain ml-1">FULL</span>
                       )}
                     </div>
 
@@ -910,10 +910,10 @@ export function ResourcePanel() {
                     <div className="h-1.5 bg-muted-label rounded-full overflow-hidden relative">
                       <div
                         className={`h-full rounded-full resource-bar-animated transition-all duration-500 ${
-                          pct > 90 ? 'bg-gradient-to-r from-red-600 to-red-400' :
-                          pct > 70 ? 'bg-gradient-to-r from-orange-600 to-orange-400' :
-                          pct > 40 ? 'bg-gradient-to-r from-amber-600 to-amber-400' :
-                          'bg-gradient-to-r from-amber-700 to-amber-500'
+                          pct > 90 ? 'bg-gradient-to-r from-danger/80 to-danger/60' :
+                          pct > 70 ? 'bg-gradient-to-r from-domain/80 to-domain/50' :
+                          pct > 40 ? 'bg-gradient-to-r from-warning/70 to-warning/50' :
+                          'bg-gradient-to-r from-warning/80 to-warning/60'
                         }`}
                         style={{ width: `${Math.min(100, pct)}%` }}
                       />
@@ -925,18 +925,18 @@ export function ResourcePanel() {
                         {prodRate > 0 && (
                           <div className="flex items-center gap-0.5">
                             <ArrowUpFromLine className="w-2 h-2 text-success" />
-                            <span className="text-[8px] text-success font-mono">{formatNumber(prodRate)}</span>
+                            <span className="text-[11px] text-success font-mono">{formatNumber(prodRate)}</span>
                           </div>
                         )}
                         {consRate > 0 && (
                           <div className="flex items-center gap-0.5">
                             <ArrowDownToLine className="w-2 h-2 text-danger" />
-                            <span className="text-[8px] text-danger font-mono">{formatNumber(consRate)}</span>
+                            <span className="text-[11px] text-danger font-mono">{formatNumber(consRate)}</span>
                           </div>
                         )}
                         <div className="flex items-center gap-0.5">
                           <Clock className="w-2 h-2 text-muted-label" />
-                          <span className="text-[8px] text-muted-label font-mono">
+                          <span className="text-[11px] text-muted-label font-mono">
                             {Number.isFinite(capacity) && netRate > 0 ? `+${formatNumber(capacity - amount)}` : '—'}
                           </span>
                         </div>
@@ -947,7 +947,7 @@ export function ResourcePanel() {
                     <div className="flex items-center justify-between mt-1 pt-1 border-t border-muted-label/50">
                       <div className="flex items-center gap-0.5">
                         <Package className="w-2 h-2 text-muted-label" />
-                        <span className="text-[8px] text-muted-label">Lv.{storageUpgradeLevels[resource] ?? 0}</span>
+                        <span className="text-[11px] text-muted-label">Lv.{storageUpgradeLevels[resource] ?? 0}</span>
                       </div>
                       {(() => {
                         const currentLevel = storageUpgradeLevels[resource] ?? 0;
@@ -957,9 +957,9 @@ export function ResourcePanel() {
                           <button
                             onClick={() => upgradeStorage(resource, 1)}
                             disabled={!canAffordUpgrade}
-                            className={`text-[8px] px-1.5 py-0.5 rounded transition-colors ${
+                            className={`text-[11px] px-1.5 py-0.5 rounded transition-colors ${
                               canAffordUpgrade
-                                ? 'text-warning bg-amber-900/20 hover:bg-amber-900/40 border border-amber-800/40'
+                                ? 'text-warning bg-warning/20 hover:bg-warning/40 border border-warning/80/40'
                                 : 'text-muted-label bg-muted-label/30 border border-muted-label/30 cursor-not-allowed'
                             }`}
                           >
@@ -1007,23 +1007,23 @@ export function ResourcePanel() {
                     const isNearing = Number.isFinite(capacity) && fillPct >= 80;
 
                     return (
-                      <div key={resource} className="bg-[#0a0e17] rounded-lg p-2">
+                      <div key={resource} className="bg-background rounded-lg p-2">
                         <div className="flex items-center gap-2 mb-1.5">
                           <GameIcon icon={meta.icon} size={14} className="inline-flex" />
                           <span className="text-[11px] text-subtle flex-1 flex items-center gap-1.5">
                             {meta.name}
                             {isFull && (
-                              <span className="inline-flex items-center text-[8px] font-bold text-danger bg-danger/30 border border-danger/40 rounded px-1 py-px animate-pulse">
+                              <span className="inline-flex items-center text-[11px] font-bold text-danger bg-danger/30 border border-danger/40 rounded px-1 py-px animate-pulse">
                                 FULL
                               </span>
                             )}
                             {!isFull && isAlmostFull && (
-                              <span className="inline-flex items-center gap-0.5 text-[8px] text-danger">
+                              <span className="inline-flex items-center gap-0.5 text-[11px] text-danger">
                                 <span className="w-2 h-2 rounded-full bg-danger"></span> <span className="text-danger">Almost full!</span>
                               </span>
                             )}
                             {!isAlmostFull && isNearing && (
-                              <span className="inline-flex items-center gap-0.5 text-[8px] text-warning">
+                              <span className="inline-flex items-center gap-0.5 text-[11px] text-warning">
                                 <GameIcon icon="gi:hazard-sign" size={14} className="inline" /> <span className="text-warning">Nearing capacity</span>
                               </span>
                             )}
@@ -1043,7 +1043,7 @@ export function ResourcePanel() {
                           {/* Production side (left of center) */}
                           <div className="absolute left-1/2 right-1/2 flex justify-end pr-0.5">
                             <div
-                              className="h-3 bg-gradient-to-l from-green-600 to-green-800 rounded-l"
+                              className="h-3 bg-gradient-to-l from-success/80 to-success/50 rounded-l"
                               style={{ width: `${(rate / maxRate) * 48}%`, minWidth: rate > 0 ? '4px' : '0' }}
                             />
                           </div>
@@ -1051,14 +1051,14 @@ export function ResourcePanel() {
                           {/* Consumption side (right of center) */}
                           <div className="absolute left-1/2 right-1/2 flex pl-0.5">
                             <div
-                              className="h-3 bg-gradient-to-r from-red-600 to-red-800 rounded-r"
+                              className="h-3 bg-gradient-to-r from-danger/80 to-danger/40 rounded-r"
                               style={{ width: `${(consRate / maxRate) * 48}%`, minWidth: consRate > 0 ? '4px' : '0' }}
                             />
                           </div>
 
                           {/* Labels */}
-                          <span className="absolute left-1 text-[7px] text-success font-mono">{formatNumber(rate)}</span>
-                          <span className="absolute right-1 text-[7px] text-danger font-mono">{formatNumber(consRate)}</span>
+                          <span className="absolute left-1 text-[11px] text-success font-mono">{formatNumber(rate)}</span>
+                          <span className="absolute right-1 text-[11px] text-danger font-mono">{formatNumber(consRate)}</span>
                         </div>
                       </div>
                     );
@@ -1083,7 +1083,7 @@ export function ResourcePanel() {
                 const unlocked = isBuildingUnlocked(type, completedResearch, prestigeState);
 
                 return (
-                  <div key={type} className="flex items-center gap-2 bg-[#0a0e17] rounded-lg p-2">
+                  <div key={type} className="flex items-center gap-2 bg-background rounded-lg p-2">
                     <GameIcon icon={def.icon} size={16} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-0.5">
@@ -1102,8 +1102,8 @@ export function ResourcePanel() {
                       </div>
                       {instances.length > 0 && (
                         <div className="flex items-center justify-between mt-0.5">
-                          <span className="text-[8px] text-muted-label">Total Lv.{totalLevel}</span>
-                          <span className="text-[8px] text-muted-label">
+                          <span className="text-[11px] text-muted-label">Total Lv.{totalLevel}</span>
+                          <span className="text-[11px] text-muted-label">
                             {formatNumber(instances.reduce((s, b) => s + def.basePowerConsumption * b.level, 0))} MW
                           </span>
                         </div>

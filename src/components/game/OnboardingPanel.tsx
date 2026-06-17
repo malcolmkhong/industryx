@@ -227,9 +227,9 @@ export function OnboardingPanel() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {STRATEGY_HINTS.map((hint, i) => (
-              <div key={i} className="bg-[#0a0e17] rounded-lg p-3">
+              <div key={i} className="bg-background rounded-lg p-3">
                 <div className="flex items-center gap-1.5 mb-1">
-                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${CATEGORY_COLORS[hint.category]?.dot ?? 'bg-gray-400'}`} title={CATEGORY_COLORS[hint.category]?.label} />
+                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${CATEGORY_COLORS[hint.category]?.dot ?? 'bg-muted-label/40'}`} title={CATEGORY_COLORS[hint.category]?.label} />
                   <GameIcon icon={hint.icon} size={14} className="inline-flex" />
                   <span className="text-xs text-warning font-medium">{hint.title}</span>
                 </div>
@@ -247,8 +247,8 @@ export function OnboardingPanel() {
           </div>
           <div className="space-y-2">
             {PRO_TIPS.map((tip, i) => (
-              <div key={i} className="flex items-center gap-2 bg-[#0a0e17] rounded-lg px-3 py-2">
-                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${CATEGORY_COLORS[tip.category]?.dot ?? 'bg-gray-400'}`} title={CATEGORY_COLORS[tip.category]?.label} />
+              <div key={i} className="flex items-center gap-2 bg-background rounded-lg px-3 py-2">
+                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${CATEGORY_COLORS[tip.category]?.dot ?? 'bg-muted-label/40'}`} title={CATEGORY_COLORS[tip.category]?.label} />
                 <span className="text-xs text-subtle">{tip.title}</span>
               </div>
             ))}
@@ -263,7 +263,7 @@ export function OnboardingPanel() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {KEYBOARD_SHORTCUTS.map((shortcut, i) => (
-              <div key={i} className="flex items-center justify-between bg-[#0a0e17] rounded-lg px-3 py-2">
+              <div key={i} className="flex items-center justify-between bg-background rounded-lg px-3 py-2">
                 <span className="text-[10px] text-subtle">{shortcut.description}</span>
                 <kbd className="text-[10px] font-mono bg-muted-label text-subtle px-2 py-0.5 rounded border border-muted-label">{shortcut.keys}</kbd>
               </div>
@@ -314,7 +314,7 @@ export function OnboardingPanel() {
         </div>
         <div className="h-3 bg-muted-label rounded-full overflow-hidden relative">
           <div
-            className="h-full bg-gradient-to-r from-cyan-600 to-cyan-400 rounded-full transition-all duration-700"
+            className="h-full bg-gradient-to-r from-brand/70 to-brand/50 rounded-full transition-all duration-700"
             style={{ width: `${progressPercent}%` }}
           >
             <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent" />
@@ -411,7 +411,7 @@ export function OnboardingPanel() {
                 <div className="px-4 pb-4 pt-0 border-t border-border/50 mt-0">
                   <div className="pt-3 space-y-3">
                     {/* Detailed Explanation */}
-                    <div className="bg-[#0a0e17] rounded-lg p-3">
+                    <div className="bg-background rounded-lg p-3">
                       <div className="flex items-center gap-1.5 mb-1.5">
                         <Factory className="w-3.5 h-3.5 text-brand" />
                         <span className="text-[10px] text-brand font-medium uppercase tracking-wider">
@@ -422,14 +422,14 @@ export function OnboardingPanel() {
                     </div>
 
                     {/* Tip */}
-                    <div className="bg-amber-900/10 rounded-lg p-3 border border-amber-900/20">
+                    <div className="bg-warning/10 rounded-lg p-3 border border-warning/20">
                       <div className="flex items-center gap-1.5 mb-1.5">
                         <Lightbulb className="w-3.5 h-3.5 text-warning" />
                         <span className="text-[10px] text-warning font-medium uppercase tracking-wider">
                           Pro Tip
                         </span>
                       </div>
-                      <p className="text-xs text-amber-200/70 leading-relaxed">{step.tip}</p>
+                      <p className="text-xs text-warning/40 leading-relaxed">{step.tip}</p>
                     </div>
 
                     {/* Status */}
@@ -478,9 +478,9 @@ export function OnboardingPanel() {
         {showHints && (
           <div className="mt-3 space-y-2">
             {STRATEGY_HINTS.map((hint, i) => (
-              <div key={i} className="bg-[#0a0e17] rounded-lg p-3">
+              <div key={i} className="bg-background rounded-lg p-3">
                 <div className="flex items-center gap-1.5 mb-1">
-                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${CATEGORY_COLORS[hint.category]?.dot ?? 'bg-gray-400'}`} title={CATEGORY_COLORS[hint.category]?.label} />
+                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${CATEGORY_COLORS[hint.category]?.dot ?? 'bg-muted-label/40'}`} title={CATEGORY_COLORS[hint.category]?.label} />
                   <GameIcon icon={hint.icon} size={14} className="inline-flex" />
                   <span className="text-xs text-warning font-medium">{hint.title}</span>
                 </div>
@@ -498,25 +498,25 @@ export function OnboardingPanel() {
           <h3 className="text-sm font-semibold text-research">Game Basics</h3>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="bg-[#0a0e17] rounded-lg p-3">
+          <div className="bg-background rounded-lg p-3">
             <div className="text-xs text-brand font-medium mb-1 flex items-center gap-1"><GameIcon icon="lucide:zap" size={12} className="inline-flex" /> Power System</div>
             <p className="text-[10px] text-muted-label">
               Power plants generate MW. Buildings consume MW. If consumption exceeds production, all buildings lose efficiency.
             </p>
           </div>
-          <div className="bg-[#0a0e17] rounded-lg p-3">
+          <div className="bg-background rounded-lg p-3">
             <div className="text-xs text-warning font-medium mb-1 flex items-center gap-1"><GameIcon icon="lucide:factory" size={12} className="inline-flex" /> Production Chains</div>
             <p className="text-[10px] text-muted-label">
               Raw resources → Tier 1 (Plates/Wire) → Tier 2 (Circuits/Engines) → Tier 3 (AI Chips/Robotics). Higher tiers = more value.
             </p>
           </div>
-          <div className="bg-[#0a0e17] rounded-lg p-3">
+          <div className="bg-background rounded-lg p-3">
             <div className="text-xs text-success font-medium mb-1 flex items-center gap-1"><GameIcon icon="lucide:coins" size={12} className="inline-flex" /> Economy</div>
             <p className="text-[10px] text-muted-label">
               Sell resources on the Market for cash. Complete Contracts for big payouts. Use money to build and upgrade your factory.
             </p>
           </div>
-          <div className="bg-[#0a0e17] rounded-lg p-3">
+          <div className="bg-background rounded-lg p-3">
             <div className="text-xs text-research font-medium mb-1 flex items-center gap-1"><GameIcon icon="lucide:flask-conical" size={12} className="inline-flex" /> Research</div>
             <p className="text-[10px] text-muted-label">
               Spend Research Points to unlock new buildings, speed boosts, and abilities. Research persists through Prestige resets.
@@ -532,21 +532,21 @@ export function OnboardingPanel() {
           <h3 className="text-sm font-semibold text-brand">Your Current Status</h3>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <div className="bg-[#0a0e17] rounded-lg p-3 text-center">
+          <div className="bg-background rounded-lg p-3 text-center">
             <div className="text-[10px] text-muted-label mb-0.5">Money</div>
             <div className="text-sm font-bold font-mono text-success">${formatNumber(store.money)}</div>
           </div>
-          <div className="bg-[#0a0e17] rounded-lg p-3 text-center">
+          <div className="bg-background rounded-lg p-3 text-center">
             <div className="text-[10px] text-muted-label mb-0.5">Buildings</div>
             <div className="text-sm font-bold font-mono text-brand">{store.buildings.length}</div>
           </div>
-          <div className="bg-[#0a0e17] rounded-lg p-3 text-center">
+          <div className="bg-background rounded-lg p-3 text-center">
             <div className="text-[10px] text-muted-label mb-0.5">Power</div>
             <div className={`text-sm font-bold font-mono ${store.powerGrid.overload ? 'text-danger' : 'text-warning'}`}>
               {formatNumber(store.powerGrid.totalProduction)} MW
             </div>
           </div>
-          <div className="bg-[#0a0e17] rounded-lg p-3 text-center">
+          <div className="bg-background rounded-lg p-3 text-center">
             <div className="text-[10px] text-muted-label mb-0.5">Research</div>
             <div className="text-sm font-bold font-mono text-research">{formatNumber(store.researchPoints)} RP</div>
           </div>
@@ -561,8 +561,8 @@ export function OnboardingPanel() {
         </div>
         <div className="space-y-2">
           {PRO_TIPS.map((tip, i) => (
-            <div key={i} className="flex items-center gap-2 bg-[#0a0e17] rounded-lg px-3 py-2">
-              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${CATEGORY_COLORS[tip.category]?.dot ?? 'bg-gray-400'}`} title={CATEGORY_COLORS[tip.category]?.label} />
+            <div key={i} className="flex items-center gap-2 bg-background rounded-lg px-3 py-2">
+              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${CATEGORY_COLORS[tip.category]?.dot ?? 'bg-muted-label/40'}`} title={CATEGORY_COLORS[tip.category]?.label} />
               <span className="text-xs text-subtle">{tip.title}</span>
             </div>
           ))}
@@ -577,7 +577,7 @@ export function OnboardingPanel() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {KEYBOARD_SHORTCUTS.map((shortcut, i) => (
-            <div key={i} className="flex items-center justify-between bg-[#0a0e17] rounded-lg px-3 py-2">
+            <div key={i} className="flex items-center justify-between bg-background rounded-lg px-3 py-2">
               <span className="text-[10px] text-subtle">{shortcut.description}</span>
               <kbd className="text-[10px] font-mono bg-muted-label text-subtle px-2 py-0.5 rounded border border-muted-label">{shortcut.keys}</kbd>
             </div>

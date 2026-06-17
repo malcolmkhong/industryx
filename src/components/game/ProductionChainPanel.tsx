@@ -479,8 +479,8 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
                         key={step}
                         className={`rounded-lg p-3 border ${
                           isBottleneck
-                            ? 'bg-danger/10 border-red-900/30'
-                            : 'bg-[#0a0e17] border-muted-label'
+                            ? 'bg-danger/10 border-danger/40/30'
+                            : 'bg-background border-muted-label'
                         }`}
                       >
                         <div className="flex items-center justify-between mb-1.5">
@@ -490,7 +490,7 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
                               {meta.name}
                             </span>
                             <span
-                              className="text-[8px] px-1.5 py-0.5 rounded-full font-bold"
+                              className="text-[11px] px-1.5 py-0.5 rounded-full font-bold"
                               style={{
                                 backgroundColor: `${tier.stroke}33`,
                                 color: tier.text,

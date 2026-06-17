@@ -35,18 +35,18 @@ export function AdminErrorBanner({
   if (!error) return null;
 
   return (
-    <div className="mb-4 p-3 rounded-xl border border-red-500/20 bg-red-500/5">
+    <div className="mb-4 p-3 rounded-xl border border-danger/20 bg-danger/5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-medium text-red-400">{error.message}</p>
+          <p className="text-sm font-medium text-danger">{error.message}</p>
           {error.detail && (
-            <p className="text-xs text-red-400/60 mt-1 font-mono truncate max-w-lg">{error.detail}</p>
+            <p className="text-xs text-danger/60 mt-1 font-mono truncate max-w-lg">{error.detail}</p>
           )}
         </div>
         <button
           type="button"
           onClick={onDismiss}
-          className="text-red-400/60 hover:text-red-400 shrink-0"
+          className="text-danger/60 hover:text-danger shrink-0"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

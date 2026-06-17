@@ -426,9 +426,9 @@ export function LoginFloatingPanel({
             : 'opacity-0 scale-95 -translate-y-4'
         }`}
       >
-        <div className="relative bg-[#0d1220] border border-brand/40 rounded-2xl shadow-2xl shadow-cyan-900/20 overflow-hidden">
+        <div className="relative bg-[#0d1220] border border-brand/40 rounded-2xl shadow-2xl shadow-brand/20 overflow-hidden">
           {/* Top accent gradient */}
-          <div className="h-1 bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500" />
+          <div className="h-1 bg-gradient-to-r from-brand via-success/70 to-success" />
 
           {/* Close button (only for soft prompts or after warning) */}
           {config.dismissible && (
@@ -459,7 +459,7 @@ export function LoginFloatingPanel({
             {config.urgencyText && (
               <div className={`text-xs px-3 py-2 rounded-lg mb-4 flex items-center gap-2 ${
                 isHardGate
-                  ? 'bg-amber-900/20 text-warning border border-amber-800/30'
+                  ? 'bg-warning/20 text-warning border border-warning/80/30'
                   : 'bg-brand/20 text-brand border border-brand/30'
               }`}>
                 <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
@@ -471,7 +471,7 @@ export function LoginFloatingPanel({
             {reason === 'merge_conflict' && mergePreview && (
               <div className="mb-4">
                 <div className="grid grid-cols-2 gap-2 mb-4">
-                  <div className="p-3 rounded-lg bg-amber-900/20 border border-amber-800/30">
+                  <div className="p-3 rounded-lg bg-warning/20 border border-warning/80/30">
                     <div className="text-[10px] uppercase tracking-wider text-warning font-bold mb-2">Guest Profile</div>
                     <StatRow label="UUID" value={mergePreview.guest.user_id.slice(0, 8) + '...'} />
                     <StatRow label="Total Money" value={`$${formatNum(mergePreview.guest.total_money_earned)}`} />
@@ -525,7 +525,7 @@ export function LoginFloatingPanel({
                 <button
                   type="button"
                   onClick={onMergeClose}
-                  className="w-full h-10 text-sm font-semibold bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white rounded-lg mt-3"
+                  className="w-full h-10 text-sm font-semibold bg-gradient-to-r from-brand/70 to-success/80 hover:from-brand hover:to-success/70 text-white rounded-lg mt-3"
                 >
                   Continue
                 </button>
@@ -544,7 +544,7 @@ export function LoginFloatingPanel({
                   <button
                     type="button"
                     onClick={onMergeRetry}
-                    className="w-full h-10 text-sm font-semibold bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white rounded-lg"
+                    className="w-full h-10 text-sm font-semibold bg-gradient-to-r from-brand/70 to-success/80 hover:from-brand hover:to-success/70 text-white rounded-lg"
                   >
                     Retry
                   </button>
@@ -610,7 +610,7 @@ export function LoginFloatingPanel({
             <Button
               onClick={handleSignIn}
               disabled={isSigningIn || authLoading}
-              className="w-full h-12 text-sm font-semibold bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white rounded-xl shadow-lg shadow-cyan-900/30 transition-all duration-200 hover:shadow-cyan-800/40"
+              className="w-full h-12 text-sm font-semibold bg-gradient-to-r from-brand/70 to-success/80 hover:from-brand hover:to-success/70 text-white rounded-xl shadow-lg shadow-brand/30 transition-all duration-200 hover:shadow-brand/80/40"
             >
               {isSigningIn || authLoading ? (
                 <>

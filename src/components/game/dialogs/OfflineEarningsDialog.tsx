@@ -53,7 +53,7 @@ export function OfflineEarningsDialog({
         {offlineData && (
           <div className="space-y-3 mt-2">
             {offlineData.money > 0 && (
-              <div className="bg-[#0a0e17] rounded-lg p-3 border border-success/30">
+              <div className="bg-background rounded-lg p-3 border border-success/30">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-subtle">Money Earned</span>
                   <span className="text-sm text-success font-mono font-bold">
@@ -63,7 +63,7 @@ export function OfflineEarningsDialog({
               </div>
             )}
 
-            <div className="bg-[#0a0e17] rounded-lg p-3 border border-brand/30 max-h-48 overflow-y-auto game-scrollbar">
+            <div className="bg-background rounded-lg p-3 border border-brand/30 max-h-48 overflow-y-auto game-scrollbar">
               <div className="text-[10px] text-muted-label mb-2 uppercase tracking-wider">Resources Produced</div>
               <div className="space-y-1">
                 {(Object.entries(offlineData.resources) as [string, number][])

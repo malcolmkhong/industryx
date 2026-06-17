@@ -121,7 +121,7 @@ export function PayoutPanel() {
     <div className="space-y-4">
       {/* Money Balance Header */}
       <Card className="bg-card border-brand/30 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-green-900/10 via-transparent to-emerald-900/10 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-r from-success/30/10 via-transparent to-success/30/10 pointer-events-none" />
         <CardContent className="p-4 relative">
           <div className="flex items-center justify-between">
             <div>
@@ -228,7 +228,7 @@ export function PayoutPanel() {
             {/* Extractor Income */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-md bg-amber-900/20 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-md bg-warning/20 flex items-center justify-center">
                   <Pickaxe className="w-4 h-4 text-warning" />
                 </div>
                 <div>
@@ -256,7 +256,7 @@ export function PayoutPanel() {
             {/* Power Income */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-md bg-yellow-900/20 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-md bg-warning/20 flex items-center justify-center">
                   <Zap className="w-4 h-4 text-warning" />
                 </div>
                 <div>

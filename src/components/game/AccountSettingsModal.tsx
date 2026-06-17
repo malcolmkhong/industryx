@@ -63,13 +63,13 @@ export function AccountSettingsModal({ open, onClose, onSignOut }: AccountSettin
   };
 
   const accountTypeBadge = isGuest
-    ? { label: 'Guest', className: 'bg-amber-900/30 text-warning border-warning/30' }
+    ? { label: 'Guest', className: 'bg-warning/30 text-warning border-warning/30' }
     : { label: 'Google', className: 'bg-success/30 text-success border-success/30' };
 
   return (
     <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="relative bg-[#0d1220] border border-brand/40 rounded-2xl shadow-2xl shadow-cyan-900/20 max-w-md w-full overflow-hidden">
-        <div className="h-1 bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500" />
+      <div className="relative bg-[#0d1220] border border-brand/40 rounded-2xl shadow-2xl shadow-brand/20 max-w-md w-full overflow-hidden">
+        <div className="h-1 bg-gradient-to-r from-brand via-success/70 to-success" />
 
         <button
           type="button"
@@ -99,7 +99,7 @@ export function AccountSettingsModal({ open, onClose, onSignOut }: AccountSettin
           </div>
 
           {isGuest && (
-            <div className="mb-4 p-3 rounded-lg bg-amber-900/20 border border-amber-800/30 text-xs text-warning">
+            <div className="mb-4 p-3 rounded-lg bg-warning/20 border border-warning/80/30 text-xs text-warning">
               Playing as Guest. Your progress is tied to this device. Bind your account to protect it across devices.
             </div>
           )}
@@ -137,7 +137,7 @@ export function AccountSettingsModal({ open, onClose, onSignOut }: AccountSettin
               type="button"
               onClick={handleSave}
               disabled={isSaving}
-              className="flex-1 h-10 text-sm font-semibold bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white rounded-lg"
+              className="flex-1 h-10 text-sm font-semibold bg-gradient-to-r from-brand/70 to-success/80 hover:from-brand hover:to-success/70 text-white rounded-lg"
             >
               <Save className="w-4 h-4 mr-2" />
               {isSaving ? 'Saving...' : 'Save'}

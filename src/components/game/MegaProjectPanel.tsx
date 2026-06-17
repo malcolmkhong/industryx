@@ -18,15 +18,15 @@ import {
 } from 'lucide-react';
 
 const PROJECT_COLORS: Record<string, { border: string; glow: string; bg: string; text: string; badge: string; gradient: string }> = {
-  spaceElevator: { border: 'border-domain/40', glow: 'shadow-orange-500/20', bg: 'bg-domain/10', text: 'text-domain', badge: 'border-domain/50 text-domain bg-domain/20', gradient: 'linear-gradient(90deg, #f97316, #fb923c)' },
-  dysonSphere: { border: 'border-warning/40', glow: 'shadow-yellow-500/20', bg: 'bg-yellow-900/10', text: 'text-warning', badge: 'border-warning/50 text-warning bg-yellow-900/20', gradient: 'linear-gradient(90deg, #eab308, #facc15)' },
-  quantumInternet: { border: 'border-brand/40', glow: 'shadow-cyan-500/20', bg: 'bg-brand/10', text: 'text-brand', badge: 'border-brand/50 text-brand bg-brand/20', gradient: 'linear-gradient(90deg, #06b6d4, #22d3ee)' },
-  fusionCity: { border: 'border-fuchsia-500/40', glow: 'shadow-fuchsia-500/20', bg: 'bg-fuchsia-900/10', text: 'text-premium', badge: 'border-fuchsia-500/50 text-premium bg-fuchsia-900/20', gradient: 'linear-gradient(90deg, #d946ef, #e879f9)' },
-  terraformingEngine: { border: 'border-success/40', glow: 'shadow-emerald-500/20', bg: 'bg-success/10', text: 'text-success', badge: 'border-success/50 text-success bg-success/20', gradient: 'linear-gradient(90deg, #10b981, #34d399)' },
-  galacticTradeHub: { border: 'border-warning/40', glow: 'shadow-amber-500/20', bg: 'bg-amber-900/10', text: 'text-warning', badge: 'border-warning/50 text-warning bg-amber-900/20', gradient: 'linear-gradient(90deg, #f59e0b, #fbbf24)' },
-  deepCoreExtractor: { border: 'border-danger/40', glow: 'shadow-red-500/20', bg: 'bg-danger/10', text: 'text-danger', badge: 'border-danger/50 text-danger bg-danger/20', gradient: 'linear-gradient(90deg, #ef4444, #f87171)' },
-  neuralCommandCenter: { border: 'border-violet-500/40', glow: 'shadow-violet-500/20', bg: 'bg-violet-900/10', text: 'text-research', badge: 'border-violet-500/50 text-research bg-violet-900/20', gradient: 'linear-gradient(90deg, #8b5cf6, #a78bfa)' },
-  nanoAssemblyMatrix: { border: 'border-brand/40', glow: 'shadow-teal-500/20', bg: 'bg-brand/10', text: 'text-brand', badge: 'border-brand/50 text-brand bg-brand/20', gradient: 'linear-gradient(90deg, #14b8a6, #2dd4bf)' },
+  spaceElevator: { border: 'border-domain/40', glow: 'shadow-domain/20', bg: 'bg-domain/10', text: 'text-domain', badge: 'border-domain/50 text-domain bg-domain/20', gradient: 'linear-gradient(90deg, #f97316, #fb923c)' },
+  dysonSphere: { border: 'border-warning/40', glow: 'shadow-warning/20', bg: 'bg-warning/10', text: 'text-warning', badge: 'border-warning/50 text-warning bg-warning/20', gradient: 'linear-gradient(90deg, #eab308, #facc15)' },
+  quantumInternet: { border: 'border-brand/40', glow: 'shadow-brand/20', bg: 'bg-brand/10', text: 'text-brand', badge: 'border-brand/50 text-brand bg-brand/20', gradient: 'linear-gradient(90deg, #06b6d4, #22d3ee)' },
+  fusionCity: { border: 'border-premium/40', glow: 'shadow-premium/20', bg: 'bg-premium/20/10', text: 'text-premium', badge: 'border-premium/50 text-premium bg-premium/20/20', gradient: 'linear-gradient(90deg, #d946ef, #e879f9)' },
+  terraformingEngine: { border: 'border-success/40', glow: 'shadow-success/20', bg: 'bg-success/10', text: 'text-success', badge: 'border-success/50 text-success bg-success/20', gradient: 'linear-gradient(90deg, #10b981, #34d399)' },
+  galacticTradeHub: { border: 'border-warning/40', glow: 'shadow-warning/20', bg: 'bg-warning/10', text: 'text-warning', badge: 'border-warning/50 text-warning bg-warning/20', gradient: 'linear-gradient(90deg, #f59e0b, #fbbf24)' },
+  deepCoreExtractor: { border: 'border-danger/40', glow: 'shadow-danger/20', bg: 'bg-danger/10', text: 'text-danger', badge: 'border-danger/50 text-danger bg-danger/20', gradient: 'linear-gradient(90deg, #ef4444, #f87171)' },
+  neuralCommandCenter: { border: 'border-research/40', glow: 'shadow-research/20', bg: 'bg-research/20/10', text: 'text-research', badge: 'border-research/50 text-research bg-research/20/20', gradient: 'linear-gradient(90deg, #8b5cf6, #a78bfa)' },
+  nanoAssemblyMatrix: { border: 'border-brand/40', glow: 'shadow-success/70/20', bg: 'bg-brand/10', text: 'text-brand', badge: 'border-brand/50 text-brand bg-brand/20', gradient: 'linear-gradient(90deg, #14b8a6, #2dd4bf)' },
 };
 
 const BONUS_ICONS: Record<string, React.ReactNode> = {
@@ -125,7 +125,7 @@ export function MegaProjectPanel() {
           <p className="text-xs text-muted-label mt-0.5">Massive endgame constructions that grant permanent empire-wide bonuses</p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="border-fuchsia-500/50 text-premium bg-fuchsia-900/20 text-xs">
+          <Badge variant="outline" className="border-premium/50 text-premium bg-premium/20/20 text-xs">
             <Trophy className="w-3 h-3 mr-1" />
             {completedCount}/{store.megaProjects.length} Complete
           </Badge>
@@ -136,7 +136,7 @@ export function MegaProjectPanel() {
             </Badge>
           )}
           {pausedCount > 0 && (
-            <Badge variant="outline" className="border-warning/50 text-warning bg-amber-900/20 text-xs">
+            <Badge variant="outline" className="border-warning/50 text-warning bg-warning/20 text-xs">
               <Pause className="w-3 h-3 mr-1" />
               {pausedCount} Paused
             </Badge>
@@ -173,7 +173,7 @@ export function MegaProjectPanel() {
         {/* Visual progress bar */}
         <div className="flex h-2 rounded-full overflow-hidden bg-muted-label mt-2">
           {completedCount > 0 && <div className="bg-success transition-all duration-500" style={{ width: `${(completedCount / store.megaProjects.length) * 100}%` }} />}
-          {activeCount > 0 && <div className="bg-fuchsia-500 transition-all duration-500" style={{ width: `${(activeCount / store.megaProjects.length) * 100}%` }} />}
+          {activeCount > 0 && <div className="bg-premium transition-all duration-500" style={{ width: `${(activeCount / store.megaProjects.length) * 100}%` }} />}
           {unlockedCount > 0 && <div className="bg-brand/50 transition-all duration-500" style={{ width: `${(unlockedCount / store.megaProjects.length) * 100}%` }} />}
           {/* Locked = remaining space */}
         </div>
@@ -181,7 +181,7 @@ export function MegaProjectPanel() {
 
       {/* Completed MegaProjects Bonuses */}
       {completedCount > 0 && (
-        <div className="game-card rounded-xl bg-card p-4 border border-fuchsia-900/30" style={{ boxShadow: '0 0 30px rgba(217,70,239,0.1)' }}>
+        <div className="game-card rounded-xl bg-card p-4 border border-premium/20/30" style={{ boxShadow: '0 0 30px rgba(217,70,239,0.1)' }}>
           <div className="flex items-center gap-2 mb-3">
             <Sparkles className="w-4 h-4 text-premium" />
             <h3 className="text-sm font-semibold text-premium">Active MegaProject Bonuses</h3>
@@ -219,7 +219,7 @@ export function MegaProjectPanel() {
               key={project.type}
               className={`game-card rounded-xl bg-card border ${
                 project.completed
-                  ? `${colors?.border ?? 'border-fuchsia-500/40'} ring-1 ring-fuchsia-500/20`
+                  ? `${colors?.border ?? 'border-premium/40'} ring-1 ring-premium/20`
                   : project.active
                     ? `${colors?.border ?? 'border-muted-label/40'}`
                     : unlocked
@@ -239,7 +239,7 @@ export function MegaProjectPanel() {
                 <div className="flex items-start gap-3 mb-3">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
                     project.completed
-                      ? `${colors?.bg ?? 'bg-fuchsia-900/10'} neon-pulse`
+                      ? `${colors?.bg ?? 'bg-premium/20/10'} neon-pulse`
                       : project.active
                         ? `${colors?.bg ?? 'bg-muted-label/50'}`
                         : unlocked
@@ -259,12 +259,12 @@ export function MegaProjectPanel() {
                         </Badge>
                       )}
                       {project.active && !project.completed && resourcesMet && (
-                        <Badge className={`${colors?.badge ?? 'border-fuchsia-500/50 text-premium bg-fuchsia-900/20'} text-[9px] px-1.5`}>
+                        <Badge className={`${colors?.badge ?? 'border-premium/50 text-premium bg-premium/20/20'} text-[9px] px-1.5`}>
                           <Zap className="w-2.5 h-2.5 mr-0.5" /> BUILDING
                         </Badge>
                       )}
                       {project.active && !project.completed && !resourcesMet && (
-                        <Badge className="border-warning/50 text-warning bg-amber-900/20 text-[9px] px-1.5">
+                        <Badge className="border-warning/50 text-warning bg-warning/20 text-[9px] px-1.5">
                           <Pause className="w-2.5 h-2.5 mr-0.5" /> PAUSED
                         </Badge>
                       )}
@@ -298,7 +298,7 @@ export function MegaProjectPanel() {
                       </div>
                     </div>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="bg-card border-fuchsia-900/30 max-w-xs">
+                  <TooltipContent side="bottom" className="bg-card border-premium/20/30 max-w-xs">
                     <p className="text-xs text-subtle">{BONUS_DETAILS[project.bonus.type] ?? project.bonus.description}</p>
                     <p className="text-[10px] text-premium mt-1">
                       Bonus value: {project.bonus.type === 'buildingCostReduction' ? '-' : '+'}{(project.bonus.value * 100).toFixed(0)}%
@@ -308,7 +308,7 @@ export function MegaProjectPanel() {
 
                 {/* Unlock Requirements (if locked) */}
                 {!unlocked && !project.completed && (
-                  <div className="bg-[#0a0e17] rounded-lg p-3 mb-3">
+                  <div className="bg-background rounded-lg p-3 mb-3">
                     <div className="text-[10px] text-muted-label font-medium mb-1.5 flex items-center gap-1">
                       <Lock className="w-3 h-3" /> Unlock Requirements
                     </div>
@@ -340,7 +340,7 @@ export function MegaProjectPanel() {
                     <>
                       {/* Paused Warning */}
                       {!resourcesMet && (
-                        <div className="bg-amber-900/10 border border-warning/20 rounded-lg p-3 mb-3 flex items-center gap-2">
+                        <div className="bg-warning/10 border border-warning/20 rounded-lg p-3 mb-3 flex items-center gap-2">
                           <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0" />
                           <div className="text-[10px]">
                             <div className="text-warning font-medium">Construction Paused</div>
@@ -370,7 +370,7 @@ export function MegaProjectPanel() {
                       </div>
 
                       {/* Current Stage Info */}
-                      <div className="bg-[#0a0e17] rounded-lg p-3 mb-3">
+                      <div className="bg-background rounded-lg p-3 mb-3">
                         <div className="flex items-center justify-between mb-2">
                           <div className="text-[11px] font-medium text-subtle">
                             Stage {project.currentStage + 1}/{project.stages.length}: {currentStage.name}
@@ -440,7 +440,7 @@ export function MegaProjectPanel() {
                       <div className="flex items-center gap-2">
                         {resourcesMet ? (
                           <div className="flex-1 text-center text-[11px] text-subtle flex items-center justify-center gap-1.5">
-                            <span className={`inline-block w-2 h-2 rounded-full ${colors?.text?.replace('text-', 'bg-') ?? 'bg-fuchsia-400'}`} style={{ animation: 'neonPulse 2s ease-in-out infinite' }} />
+                            <span className={`inline-block w-2 h-2 rounded-full ${colors?.text?.replace('text-', 'bg-') ?? 'bg-premium/60'}`} style={{ animation: 'neonPulse 2s ease-in-out infinite' }} />
                             Construction in progress...
                           </div>
                         ) : (
@@ -476,7 +476,7 @@ export function MegaProjectPanel() {
                         {s.completed ? (
                           <Check className="w-3 h-3 text-success" />
                         ) : i === project.currentStage ? (
-                          <span className={`w-3 h-3 rounded-full border ${colors?.border ?? 'border-fuchsia-500/40'} ${colors?.bg ?? 'bg-fuchsia-900/10'}`} style={{ animation: 'neonPulse 2s ease-in-out infinite' }} />
+                          <span className={`w-3 h-3 rounded-full border ${colors?.border ?? 'border-premium/40'} ${colors?.bg ?? 'bg-premium/20/10'}`} style={{ animation: 'neonPulse 2s ease-in-out infinite' }} />
                         ) : (
                           <span className="w-3 h-3 rounded-full bg-muted-label" />
                         )}

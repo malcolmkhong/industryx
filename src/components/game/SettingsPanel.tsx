@@ -351,7 +351,7 @@ export function SettingsPanel() {
             value={String(settings.speedLimit)}
             onValueChange={(v) => settings.setSpeedLimit(Number(v) as SpeedLimit)}
           >
-            <SelectTrigger className="w-32 h-8 text-xs bg-[#0a0e17] border-muted-label">
+            <SelectTrigger className="w-32 h-8 text-xs bg-background border-muted-label">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-card border-muted-label">
@@ -372,7 +372,7 @@ export function SettingsPanel() {
             value={settings.numberFormat}
             onValueChange={(v) => settings.setNumberFormat(v as NumberFormat)}
           >
-            <SelectTrigger className="w-32 h-8 text-xs bg-[#0a0e17] border-muted-label">
+            <SelectTrigger className="w-32 h-8 text-xs bg-background border-muted-label">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-card border-muted-label">
@@ -394,7 +394,7 @@ export function SettingsPanel() {
               { key: 'error' as const, label: 'Error', color: 'text-danger', icon: 'gi:cross-mark' },
               { key: 'info' as const, label: 'Info', color: 'text-brand', icon: 'gi:info' },
             ]).map(({ key, label, color, icon }) => (
-              <div key={key} className="flex items-center justify-between bg-[#0a0e17] rounded-lg px-3 py-2">
+              <div key={key} className="flex items-center justify-between bg-background rounded-lg px-3 py-2">
                 <span className={`text-xs ${color} inline-flex items-center gap-1`}><GameIcon icon={icon} size={14} className="inline" /> {label}</span>
                 <Switch
                   checked={settings.notificationFilters[key]}
@@ -460,7 +460,7 @@ export function SettingsPanel() {
               { key: 'events' as const, label: 'Events', icon: <AlertTriangle className="w-3 h-3" />, preview: 'eventTriggered' },
               { key: 'ui' as const, label: 'UI', icon: <MousePointerClick className="w-3 h-3" />, preview: 'buttonClick' },
             ]).map(({ key, label, icon, preview }) => (
-              <div key={key} className="flex items-center justify-between bg-[#0a0e17] rounded-lg px-3 py-2">
+              <div key={key} className="flex items-center justify-between bg-background rounded-lg px-3 py-2">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-muted-label">{icon}</span>
                   <span className="text-xs text-subtle">{label}</span>
@@ -567,7 +567,7 @@ export function SettingsPanel() {
             value={settings.animationSpeed}
             onValueChange={(v) => settings.setAnimationSpeed(v as AnimationSpeed)}
           >
-            <SelectTrigger className="w-32 h-8 text-xs bg-[#0a0e17] border-muted-label">
+            <SelectTrigger className="w-32 h-8 text-xs bg-background border-muted-label">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-card border-muted-label">
@@ -604,7 +604,7 @@ export function SettingsPanel() {
             value={settings.bottomNavMode}
             onValueChange={(v) => settings.setBottomNavMode(v as BottomNavMode)}
           >
-            <SelectTrigger className="w-36 h-8 text-xs bg-[#0a0e17] border-muted-label">
+            <SelectTrigger className="w-36 h-8 text-xs bg-background border-muted-label">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-card border-muted-label">
@@ -669,7 +669,7 @@ export function SettingsPanel() {
               return (
                 <div
                   key={shortcut.id}
-                  className="flex items-center gap-2 bg-[#0a0e17] rounded-lg px-3 py-2 group"
+                  className="flex items-center gap-2 bg-background rounded-lg px-3 py-2 group"
                 >
                   <GripVertical className="w-3 h-3 text-muted-label cursor-grab" />
                   {IconComponent && <IconComponent className={`w-3.5 h-3.5 ${shortcut.color}`} />}
@@ -714,7 +714,7 @@ export function SettingsPanel() {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-10 text-xs border-amber-800/50 text-warning hover:bg-amber-900/30 hover:border-warning justify-start"
+                className="h-10 text-xs border-warning/80/50 text-warning hover:bg-warning/30 hover:border-warning justify-start"
               >
                 <Upload className="w-4 h-4 mr-2" />
                 Import Save
@@ -734,7 +734,7 @@ export function SettingsPanel() {
                   value={importText}
                   onChange={(e) => { setImportText(e.target.value); setImportError(''); }}
                   placeholder="Paste your save string here..."
-                  className="w-full bg-[#0a0e17] border border-brand/20 rounded-lg p-3 text-xs font-mono text-subtle min-h-24 max-h-36 overflow-y-auto game-scrollbar placeholder:text-muted-label focus:outline-none focus:border-brand/50"
+                  className="w-full bg-background border border-brand/20 rounded-lg p-3 text-xs font-mono text-subtle min-h-24 max-h-36 overflow-y-auto game-scrollbar placeholder:text-muted-label focus:outline-none focus:border-brand/50"
                 />
                 {importError && (
                   <p className="text-xs text-danger">{importError}</p>
@@ -742,7 +742,7 @@ export function SettingsPanel() {
                 <div className="flex gap-2">
                   <Button
                     onClick={handleImport}
-                    className="flex-1 bg-amber-600 hover:bg-amber-700 text-white h-8 text-xs"
+                    className="flex-1 bg-warning/70 hover:bg-warning/80 text-white h-8 text-xs"
                   >
                     <Upload className="w-3 h-3 mr-1" /> Import
                   </Button>
@@ -810,7 +810,7 @@ export function SettingsPanel() {
                 Reset Game
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-card border-red-900/30 text-subtle max-w-sm p-4">
+            <DialogContent className="bg-card border-danger/40/30 text-subtle max-w-sm p-4">
               <DialogHeader>
                 <DialogTitle className="text-danger text-sm">
                   {resetDoubleConfirm ? <><GameIcon icon="gi:hazard-sign" size={16} className="inline" /> FINAL CONFIRMATION</> : 'Reset Game?'}
@@ -852,7 +852,7 @@ export function SettingsPanel() {
         icon={<Coffee className="w-4 h-4 text-warning" />}
         defaultOpen={true}
       >
-        <div className="bg-[#0a0e17] rounded-lg p-4 border border-amber-900/20">
+        <div className="bg-background rounded-lg p-4 border border-warning/20">
           <div className="flex items-start gap-3">
             <div className="w-9 h-9 rounded-lg bg-warning/10 border border-warning/20 flex items-center justify-center flex-shrink-0 mt-0.5">
               <Coffee className="w-4.5 h-4.5 text-warning" />
@@ -867,7 +867,7 @@ export function SettingsPanel() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-lg
-                  bg-gradient-to-r from-amber-500 to-orange-500
+                  bg-gradient-to-r from-warning/60 to-domain
                   text-white text-xs font-semibold
                   shadow-[0_0_16px_rgba(245,158,11,0.15)]"
               >
@@ -878,7 +878,7 @@ export function SettingsPanel() {
             </div>
           </div>
           {/* QR Code */}
-          <div className="mt-4 pt-3 border-t border-amber-900/20 flex flex-col items-center gap-2">
+          <div className="mt-4 pt-3 border-t border-warning/20 flex flex-col items-center gap-2">
             <p className="text-[10px] text-muted-label">Or scan to support</p>
             <a
               href={BUYMEACOFFEE_URL}
@@ -903,7 +903,7 @@ export function SettingsPanel() {
       >
         <div className="grid grid-cols-2 gap-3">
           {/* Game version */}
-          <div className="bg-[#0a0e17] rounded-lg p-3">
+          <div className="bg-background rounded-lg p-3">
             <div className="flex items-center gap-2 mb-1">
               <FileText className="w-3 h-3 text-muted-label" />
               <span className="text-[10px] text-muted-label">Version</span>
@@ -912,7 +912,7 @@ export function SettingsPanel() {
           </div>
 
           {/* Total play time */}
-          <div className="bg-[#0a0e17] rounded-lg p-3">
+          <div className="bg-background rounded-lg p-3">
             <div className="flex items-center gap-2 mb-1">
               <Clock className="w-3 h-3 text-muted-label" />
               <span className="text-[10px] text-muted-label">Play Time</span>
@@ -921,7 +921,7 @@ export function SettingsPanel() {
           </div>
 
           {/* Save file size */}
-          <div className="bg-[#0a0e17] rounded-lg p-3">
+          <div className="bg-background rounded-lg p-3">
             <div className="flex items-center gap-2 mb-1">
               <HardDrive className="w-3 h-3 text-muted-label" />
               <span className="text-[10px] text-muted-label">Save Size</span>
@@ -930,7 +930,7 @@ export function SettingsPanel() {
           </div>
 
           {/* Total ticks */}
-          <div className="bg-[#0a0e17] rounded-lg p-3">
+          <div className="bg-background rounded-lg p-3">
             <div className="flex items-center gap-2 mb-1">
               <Volume1 className="w-3 h-3 text-muted-label" />
               <span className="text-[10px] text-muted-label">Game Ticks</span>
@@ -940,7 +940,7 @@ export function SettingsPanel() {
         </div>
 
         {/* Credits */}
-        <div className="bg-[#0a0e17] rounded-lg p-3 mt-1">
+        <div className="bg-background rounded-lg p-3 mt-1">
           <p className="text-xs text-subtle text-center">
             <span className="text-brand font-bold">Factory Dominion</span>: Automated Empire
           </p>
@@ -961,7 +961,7 @@ export function SettingsPanel() {
       >
         <div className="space-y-3">
           {/* v1.2.0 */}
-          <div className="bg-[#0a0e17] rounded-lg p-3 border border-brand/20">
+          <div className="bg-background rounded-lg p-3 border border-brand/20">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-brand font-mono">v1.2.0</span>
@@ -986,7 +986,7 @@ export function SettingsPanel() {
           </div>
 
           {/* v1.1.0 */}
-          <div className="bg-[#0a0e17] rounded-lg p-3 border border-muted-label/30">
+          <div className="bg-background rounded-lg p-3 border border-muted-label/30">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-bold text-subtle font-mono">v1.1.0</span>
               <span className="text-[9px] text-muted-label">Feb 2025</span>
@@ -1008,7 +1008,7 @@ export function SettingsPanel() {
           </div>
 
           {/* v1.0.0 */}
-          <div className="bg-[#0a0e17] rounded-lg p-3 border border-muted-label/30">
+          <div className="bg-background rounded-lg p-3 border border-muted-label/30">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-bold text-subtle font-mono">v1.0.0</span>
               <span className="text-[9px] text-muted-label">Jan 2025</span>

@@ -86,7 +86,7 @@ function RadarChart({ values, labels, colors, size = 160 }: {
             y={pos.y}
             textAnchor="middle"
             dominantBaseline="middle"
-            className="text-[8px] fill-gray-400"
+            className="text-[11px] fill-muted-label/40"
           >
             {label}
           </text>
@@ -249,7 +249,7 @@ export function WorkerPanel() {
                     ]}
                     side="bottom"
                   >
-                  <div className="bg-[#0a0e17] rounded-lg p-3 border border-muted-label">
+                  <div className="bg-background rounded-lg p-3 border border-muted-label">
                     <div className="flex items-center gap-3 mb-2">
                       <div className="w-10 h-10 rounded-lg bg-brand/20 flex items-center justify-center text-xl">
                         <GameIcon icon={def.icon} size={16} />
@@ -333,7 +333,7 @@ export function WorkerPanel() {
                 const assignedWorker = workers.find(w => w.assignedTo === building.id);
 
                 return (
-                  <div key={building.id} className="flex items-center gap-3 bg-[#0a0e17] rounded-lg p-3 border border-muted-label/50">
+                  <div key={building.id} className="flex items-center gap-3 bg-background rounded-lg p-3 border border-muted-label/50">
                     <GameIcon icon={def.icon} size={20} />
                     <div className="flex-1 min-w-0">
                       <div className="text-xs text-subtle font-medium truncate">{def.name}</div>
@@ -341,7 +341,7 @@ export function WorkerPanel() {
                     </div>
                     {assignedWorker ? (
                       <div className="flex items-center gap-1.5">
-                        <Badge variant="outline" className="text-[8px] border-success text-success px-1.5 py-0">
+                        <Badge variant="outline" className="text-[11px] border-success text-success px-1.5 py-0">
                           {assignedWorker.type.slice(0, 3).toUpperCase()} Lv.{assignedWorker.level}
                         </Badge>
                         <Button
@@ -406,7 +406,7 @@ export function WorkerPanel() {
                   const xpPercent = (worker.experience / xpNeeded) * 100;
 
                   return (
-                    <div key={worker.id} className="bg-[#0a0e17] rounded-lg p-3 border border-muted-label">
+                    <div key={worker.id} className="bg-background rounded-lg p-3 border border-muted-label">
                       <div className="flex items-center gap-2 mb-2">
                         <GameIcon icon={def.icon} size={16} />
                         <span className="text-xs text-subtle font-medium">{def.name}</span>
@@ -430,7 +430,7 @@ export function WorkerPanel() {
                       <div className="flex items-center gap-2 mb-2">
                         <div className="flex-1 h-1.5 bg-muted-label rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-gradient-to-r from-sky-600 to-sky-400 rounded-full transition-all"
+                            className="h-full bg-gradient-to-r from-600-sky to-brand/50 rounded-full transition-all"
                             style={{ width: `${xpPercent}%` }}
                           />
                         </div>
@@ -521,8 +521,8 @@ export function WorkerPanel() {
             {/* Stats under radar */}
             <div className="grid grid-cols-3 gap-1.5 mt-3">
               {radarData.labels.map((label, i) => (
-                <div key={label} className="bg-[#0a0e17] rounded px-2 py-1 text-center">
-                  <div className="text-[8px] text-muted-label">{label}</div>
+                <div key={label} className="bg-background rounded px-2 py-1 text-center">
+                  <div className="text-[11px] text-muted-label">{label}</div>
                   <div className="text-[10px] font-mono" style={{ color: radarData.colors[i] }}>
                     {(radarData.values[i] * 100).toFixed(0)}%
                   </div>
@@ -549,18 +549,18 @@ export function WorkerPanel() {
               </div>
               <div className="h-2 bg-muted-label rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-green-600 to-green-400 rounded-full transition-all"
+                  className="h-full bg-gradient-to-r from-success/80 to-success/50 rounded-full transition-all"
                   style={{ width: `${productivityComparison.coveragePct}%` }}
                 />
               </div>
-              <div className="text-[8px] text-muted-label mt-0.5">
+              <div className="text-[11px] text-muted-label mt-0.5">
                 {productivityComparison.buildingsWithWorkers}/{productivityComparison.activeBuildings} buildings staffed
               </div>
             </div>
 
             {/* Assigned vs Unassigned comparison */}
             <div className="space-y-2">
-              <div className="bg-[#0a0e17] rounded-lg p-3 border border-success/30">
+              <div className="bg-background rounded-lg p-3 border border-success/30">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[10px] text-success font-medium flex items-center gap-1">
                     <Zap className="w-3 h-3" /> Assigned
@@ -578,7 +578,7 @@ export function WorkerPanel() {
                 </div>
               </div>
 
-              <div className="bg-[#0a0e17] rounded-lg p-3 border border-muted-label/50">
+              <div className="bg-background rounded-lg p-3 border border-muted-label/50">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[10px] text-subtle font-medium flex items-center gap-1">
                     <Users className="w-3 h-3" /> Unassigned
@@ -598,7 +598,7 @@ export function WorkerPanel() {
             </div>
 
             {productivityComparison.unassignedCount > 0 && (
-              <div className="mt-2 text-[9px] text-warning/80 bg-yellow-900/10 rounded px-2 py-1 border border-warning/20">
+              <div className="mt-2 text-[9px] text-warning/80 bg-warning/10 rounded px-2 py-1 border border-warning/20">
                 <GameIcon icon="gi:hazard-sign" size={14} className="inline" /> {productivityComparison.unassignedCount} worker{productivityComparison.unassignedCount > 1 ? 's' : ''} not assigned — assign them to boost production!
               </div>
             )}
@@ -618,7 +618,7 @@ export function WorkerPanel() {
                 const assigned = workers.filter(w => w.assignedTo).length;
 
                 return (
-                  <div key={type} className="bg-[#0a0e17] rounded-lg px-3 py-2">
+                  <div key={type} className="bg-background rounded-lg px-3 py-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <GameIcon icon={def.icon} size={14} className="inline-flex" />

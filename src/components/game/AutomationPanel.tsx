@@ -40,7 +40,7 @@ export function AutomationPanel() {
             <Bot className="w-3 h-3 mr-1" />
             {activeCount}/{totalCount} active
           </Badge>
-          <Badge variant="outline" className="border-fuchsia-500/50 text-premium bg-fuchsia-900/20 text-xs">
+          <Badge variant="outline" className="border-premium/50 text-premium bg-premium/20/20 text-xs">
             {store.prestigeState.corporationPoints} CP
           </Badge>
         </div>
@@ -54,7 +54,7 @@ export function AutomationPanel() {
         </div>
         <div className="h-3 bg-muted-label rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-teal-600 to-teal-400 rounded-full transition-all duration-500"
+            className="h-full bg-gradient-to-r from-success/80 to-success/50 rounded-full transition-all duration-500"
             style={{ width: `${(activeCount / totalCount) * 100}%` }}
           />
         </div>

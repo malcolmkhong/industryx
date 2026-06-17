@@ -21,7 +21,7 @@ export function OnlineCount({ compact = false }: OnlineCountProps) {
   if (!isConnected) {
     if (compact) {
       return (
-        <Badge variant="outline" className="text-[8px] px-1 py-0 border-muted-label text-muted-label">
+        <Badge variant="outline" className="text-[11px] px-1 py-0 border-muted-label text-muted-label">
           <WifiOff className="w-2 h-2 mr-0.5" />
         </Badge>
       );
@@ -38,7 +38,7 @@ export function OnlineCount({ compact = false }: OnlineCountProps) {
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <Badge variant="outline" className="text-[8px] px-1 py-0 border-success/50 text-success bg-success/20 cursor-default">
+          <Badge variant="outline" className="text-[11px] px-1 py-0 border-success/50 text-success bg-success/20 cursor-default">
             <Users className="w-2 h-2 mr-0.5" />
             {onlineCount}
           </Badge>

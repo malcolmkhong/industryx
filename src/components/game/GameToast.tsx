@@ -24,25 +24,25 @@ const TOAST_COLORS = {
     border: 'border-success/50',
     bg: 'bg-success/20',
     icon: 'text-success',
-    glow: 'shadow-green-500/10',
+    glow: 'shadow-success/10',
   },
   warning: {
     border: 'border-warning/50',
-    bg: 'bg-yellow-900/20',
+    bg: 'bg-warning/20',
     icon: 'text-warning',
-    glow: 'shadow-yellow-500/10',
+    glow: 'shadow-warning/10',
   },
   error: {
     border: 'border-danger/50',
     bg: 'bg-danger/20',
     icon: 'text-danger',
-    glow: 'shadow-red-500/10',
+    glow: 'shadow-danger/10',
   },
   info: {
     border: 'border-brand/50',
     bg: 'bg-brand/20',
     icon: 'text-brand',
-    glow: 'shadow-cyan-500/10',
+    glow: 'shadow-brand/10',
   },
 };
 

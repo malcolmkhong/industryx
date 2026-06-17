@@ -14,16 +14,16 @@ interface JobInfo {
 }
 
 const typeIcons: Record<string, React.ReactNode> = {
-  cloudflare_worker: <Zap className="w-3.5 h-3.5 text-amber-400" />,
-  cron: <Clock className="w-3.5 h-3.5 text-blue-400" />,
-  manual: <Timer className="w-3.5 h-3.5 text-zinc-400" />,
+  cloudflare_worker: <Zap className="w-3.5 h-3.5 text-warning" />,
+  cron: <Clock className="w-3.5 h-3.5 text-domain/80" />,
+  manual: <Timer className="w-3.5 h-3.5 text-muted-label" />,
 };
 
 const statusBadge: Record<string, string> = {
-  ok: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  late: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  failed: 'bg-red-500/10 text-red-400 border-red-500/20',
-  unknown: 'bg-zinc-700/50 text-zinc-400 border-zinc-600/30',
+  ok: 'bg-success/10 text-success border-success/20',
+  late: 'bg-warning/60/10 text-warning border-warning/60/20',
+  failed: 'bg-danger/10 text-danger border-danger/20',
+  unknown: 'bg-background/40/50 text-muted-label border-muted-label/20/30',
 };
 
 function formatLastRun(iso: string | null): string {
@@ -76,7 +76,7 @@ export default function JobsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-6 h-6 border-2 border-zinc-600 border-t-amber-500 rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-muted-label/20 border-t-warning/60 rounded-full animate-spin" />
       </div>
     );
   }
@@ -86,12 +86,12 @@ export default function JobsPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-bold text-white">Scheduled Jobs</h2>
-          <p className="text-sm text-zinc-400 mt-1">Background jobs and cron triggers</p>
+          <p className="text-sm text-muted-label mt-1">Background jobs and cron triggers</p>
         </div>
         <button
           type="button"
           onClick={fetchJobs}
-          className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-white bg-zinc-800/50 hover:bg-zinc-700/50 rounded-lg transition-colors"
+          className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-label hover:text-white bg-background/60/50 hover:bg-background/40/50 rounded-lg transition-colors"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           Refresh
@@ -100,27 +100,27 @@ export default function JobsPage() {
 
       {jobs.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16">
-          <Clock className="w-10 h-10 text-zinc-600 mb-4" />
-          <p className="text-sm text-zinc-400">No jobs configured</p>
+          <Clock className="w-10 h-10 text-muted-label/80 mb-4" />
+          <p className="text-sm text-muted-label">No jobs configured</p>
         </div>
       ) : (
         <div className="space-y-3">
           {jobs.map((job) => (
             <div
               key={job.name}
-              className="border border-zinc-800 rounded-xl p-4 hover:border-zinc-700/60 transition-colors"
+              className="border border-muted-label/40 rounded-xl p-4 hover:border-muted-label/30/60 transition-colors"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3 min-w-0">
                   <div className="mt-1">{typeIcons[job.type]}</div>
                   <div className="min-w-0">
                     <h3 className="text-sm font-semibold text-white">{job.name}</h3>
-                    <p className="text-xs text-zinc-500 mt-0.5">{job.detail}</p>
+                    <p className="text-xs text-muted-label mt-0.5">{job.detail}</p>
                     <div className="flex items-center gap-3 mt-1.5">
-                      <span className="text-xs text-zinc-600">
+                      <span className="text-xs text-muted-label/80">
                         Schedule: {job.schedule}
                       </span>
-                      <span className="text-xs text-zinc-600">
+                      <span className="text-xs text-muted-label/80">
                         Last run: {formatLastRun(job.lastRun)}
                       </span>
                     </div>
@@ -140,7 +140,7 @@ export default function JobsPage() {
                       type="button"
                       onClick={() => triggerJob(job)}
                       disabled={runningJob === job.name}
-                      className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded-md transition-colors disabled:opacity-50"
+                      className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-muted-label hover:text-white bg-background/60 hover:bg-background/40 rounded-md transition-colors disabled:opacity-50"
                     >
                       <Play className={`w-3 h-3 ${runningJob === job.name ? 'animate-pulse' : ''}`} />
                       Run

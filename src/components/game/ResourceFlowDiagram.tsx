@@ -277,7 +277,7 @@ export default function ResourceFlowDiagram() {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-teal-500/20 to-cyan-600/20 border border-brand/30 flex items-center justify-center">
+        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-success/70/20 to-brand/70/20 border border-brand/30 flex items-center justify-center">
           <GitBranch className="w-5 h-5 text-brand" />
         </div>
         <div className="flex-1">
@@ -314,7 +314,7 @@ export default function ResourceFlowDiagram() {
         </div>
       </div>
 
-      <Card className="bg-[#0a0e17] border-brand/30 overflow-hidden">
+      <Card className="bg-background border-brand/30 overflow-hidden">
         <CardHeader className="pb-2 pt-3 px-4">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-semibold text-subtle flex items-center gap-2">
@@ -326,7 +326,7 @@ export default function ResourceFlowDiagram() {
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="h-7 w-32 text-[11px] bg-card border-brand/30 text-subtle placeholder-gray-600"
+                className="h-7 w-32 text-[11px] bg-card border-brand/30 text-subtle placeholder-muted-label"
               />
               {selectedResource && (
                 <Button
@@ -386,7 +386,7 @@ export default function ResourceFlowDiagram() {
                 x={TIER_X[i] * svgDims.w}
                 y={20}
                 textAnchor="middle"
-                className="fill-gray-600 text-[10px] font-semibold uppercase tracking-wider"
+                className="fill-muted-label text-[10px] font-semibold uppercase tracking-wider"
               >
                 {label}
               </text>
@@ -497,7 +497,7 @@ export default function ResourceFlowDiagram() {
                     y={nodeRadius + 12}
                     textAnchor="middle"
                     fontSize={8}
-                    className="fill-gray-400"
+                    className="fill-muted-label/40"
                     opacity={isDimmed ? 0.2 : 0.9}
                   >
                     {meta.name.length > 10 ? meta.name.substring(0, 9) + '\u2026' : meta.name}
@@ -507,7 +507,7 @@ export default function ResourceFlowDiagram() {
                     y={nodeRadius + 22}
                     textAnchor="middle"
                     fontSize={7}
-                    className={node.netRate > 0 ? 'fill-green-400' : node.netRate < 0 ? 'fill-red-400' : 'fill-gray-500'}
+                    className={node.netRate > 0 ? 'fill-success' : node.netRate < 0 ? 'fill-danger/60' : 'fill-muted-label'}
                     fontFamily="monospace"
                     opacity={isDimmed ? 0.15 : 0.8}
                   >
@@ -580,8 +580,8 @@ export default function ResourceFlowDiagram() {
                         : chainActive
                           ? 'border-success/30 bg-success/5 hover:border-success/30'
                           : chainPartial
-                            ? 'border-amber-900/30 bg-amber-900/5 hover:border-amber-700/30'
-                            : 'border-muted-label bg-[#0a0e17] hover:border-muted-label'
+                            ? 'border-warning/30 bg-warning/5 hover:border-warning/70/30'
+                            : 'border-muted-label bg-background hover:border-muted-label'
                     }`}
                   >
                     <div className="flex items-center gap-1.5 mb-1">
@@ -590,7 +590,7 @@ export default function ResourceFlowDiagram() {
                         style={{ background: chain.color }}
                       />
                       <span className="text-[11px] font-medium text-subtle truncate">{chain.name}</span>
-                      {chainActive && <Badge variant="outline" className="text-[8px] h-3.5 px-1 border-success/30 text-success ml-auto">ACTIVE</Badge>}
+                      {chainActive && <Badge variant="outline" className="text-[11px] h-3.5 px-1 border-success/30 text-success ml-auto">ACTIVE</Badge>}
                     </div>
                     <div className="flex items-center gap-0.5 flex-wrap">
                       {chain.steps.slice(0, 5).map((step: string, si: number) => {

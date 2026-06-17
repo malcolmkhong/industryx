@@ -1,28 +1,99 @@
-'use client';
+"use client";
 
-import { useState, useCallback, useEffect, useRef } from 'react';
-import { GameTab } from '@/lib/game/types';
-import { NAV_GROUPS, getGroupForTab } from '@/components/game/GameSidebar';
-import { useSettingsStore, BottomNavMode } from '@/lib/game/settingsStore';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useCallback, useEffect, useRef } from "react";
+import { GameTab } from "@/lib/game/types";
+import { NAV_GROUPS, getGroupForTab } from "@/components/game/GameSidebar";
+import { useSettingsStore, BottomNavMode } from "@/lib/game/settingsStore";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  Home, Wrench, Truck, FlaskConical, Trophy, Coins, Database,
-  Factory, Pickaxe, Cog, Zap, TrendingUp, Users, ScrollText, Bot, Globe,
-  AlertTriangle, Bell, BookOpen, BarChart3, Map as MapIcon, Gift, Scroll,
-  DollarSign, Plane, Settings, Search, Clock, Star, Heart, Eye,
-  ChevronUp, ChevronDown, Plus, Minus, X, Check,
-  Activity, Save, Swords,
-} from 'lucide-react';
+  Home,
+  Wrench,
+  Truck,
+  FlaskConical,
+  Trophy,
+  Coins,
+  Database,
+  Factory,
+  Pickaxe,
+  Cog,
+  Zap,
+  TrendingUp,
+  Users,
+  ScrollText,
+  Bot,
+  Globe,
+  AlertTriangle,
+  Bell,
+  BookOpen,
+  BarChart3,
+  Map as MapIcon,
+  Gift,
+  Scroll,
+  DollarSign,
+  Plane,
+  Settings,
+  Search,
+  Clock,
+  Star,
+  Heart,
+  Eye,
+  ChevronUp,
+  ChevronDown,
+  Plus,
+  Minus,
+  X,
+  Check,
+  Activity,
+  Save,
+  Swords, // Reserved for future PvP/Battles feature (no GameTab yet)
+} from "lucide-react";
 
 // ─── Icon Map (exported for use by FAB and other components) ────────────────────
 
-export const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
-  Home, Wrench, Truck, FlaskConical, Trophy, Coins, Database,
-  Factory, Pickaxe, Cog, Zap, TrendingUp, Users, ScrollText, Bot, Globe,
-  AlertTriangle, Bell, BookOpen, BarChart3, Map: MapIcon, Gift, Scroll,
-  DollarSign, Plane, Settings, Search, Clock, Star, Heart, Eye,
-  ChevronUp, ChevronDown, Plus, Minus, X, Check,
-  Activity, Save, Swords,
+export const ICON_MAP: Record<
+  string,
+  React.ComponentType<{ className?: string }>
+> = {
+  Home,
+  Wrench,
+  Truck,
+  FlaskConical,
+  Trophy,
+  Coins,
+  Database,
+  Factory,
+  Pickaxe,
+  Cog,
+  Zap,
+  TrendingUp,
+  Users,
+  ScrollText,
+  Bot,
+  Globe,
+  AlertTriangle,
+  Bell,
+  BookOpen,
+  BarChart3,
+  Map: MapIcon,
+  Gift,
+  Scroll,
+  DollarSign,
+  Plane,
+  Settings,
+  Search,
+  Clock,
+  Star,
+  Heart,
+  Eye,
+  ChevronUp,
+  ChevronDown,
+  Plus,
+  Minus,
+  X,
+  Check,
+  Activity,
+  Save,
+  Swords, // Reserved for future PvP/Battles feature (no GameTab yet)
 };
 
 // ─── Props Interface ────────────────────────────────────────────────────────────
@@ -45,7 +116,7 @@ const panelVariants = {
     y: 0,
     scale: 1,
     transition: {
-      type: 'spring' as const,
+      type: "spring" as const,
       stiffness: 400,
       damping: 30,
       mass: 0.8,
@@ -57,7 +128,7 @@ const panelVariants = {
     scale: 0.98,
     transition: {
       duration: 0.15,
-      ease: 'easeIn' as const,
+      ease: "easeIn" as const,
     },
   },
 };
@@ -70,7 +141,7 @@ const tabItemVariants = {
     transition: {
       delay: i * 0.04,
       duration: 0.2,
-      ease: 'easeOut' as const,
+      ease: "easeOut" as const,
     },
   }),
   exit: { opacity: 0, y: 4, transition: { duration: 0.1 } },
@@ -78,9 +149,12 @@ const tabItemVariants = {
 
 // ─── Component ──────────────────────────────────────────────────────────────────
 
-export function BottomNavigationBar({ activeTab, onTabChange }: BottomNavigationBarProps) {
-  const bottomNavMode = useSettingsStore(state => state.bottomNavMode);
-  const setBottomNavMode = useSettingsStore(state => state.setBottomNavMode);
+export function BottomNavigationBar({
+  activeTab,
+  onTabChange,
+}: BottomNavigationBarProps) {
+  const bottomNavMode = useSettingsStore((state) => state.bottomNavMode);
+  const setBottomNavMode = useSettingsStore((state) => state.setBottomNavMode);
 
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -105,16 +179,16 @@ export function BottomNavigationBar({ activeTab, onTabChange }: BottomNavigation
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('touchstart', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
     };
   }, [expandedGroupId]);
 
   const handleGroupTap = useCallback((groupId: string) => {
-    setExpandedGroupId(prev => (prev === groupId ? null : groupId));
+    setExpandedGroupId((prev) => (prev === groupId ? null : groupId));
   }, []);
 
   const handleSubTabSelect = useCallback(
@@ -122,19 +196,23 @@ export function BottomNavigationBar({ activeTab, onTabChange }: BottomNavigation
       onTabChange(tabId);
       setExpandedGroupId(null);
     },
-    [onTabChange]
+    [onTabChange],
   );
 
   const toggleMode = useCallback(() => {
-    const next: BottomNavMode = bottomNavMode === 'compact' ? 'quick' : 'compact';
+    const next: BottomNavMode =
+      bottomNavMode === "compact" ? "quick" : "compact";
     setBottomNavMode(next);
   }, [bottomNavMode, setBottomNavMode]);
 
-  const isCompact = bottomNavMode === 'compact';
-  const expandedGroup = NAV_GROUPS.find(g => g.id === expandedGroupId);
+  const isCompact = bottomNavMode === "compact";
+  const expandedGroup = NAV_GROUPS.find((g) => g.id === expandedGroupId);
 
   return (
-    <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+    <div
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-40"
+      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+    >
       {/* Slide-up sub-tab panel */}
       <AnimatePresence>
         {expandedGroup && (
@@ -144,15 +222,19 @@ export function BottomNavigationBar({ activeTab, onTabChange }: BottomNavigation
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="absolute bottom-full left-0 right-0 mx-1.5 mb-1.5 rounded-xl border border-brand/30 bg-[#0a0e17]/95 backdrop-blur-lg shadow-[0_-4px_24px_rgba(0,255,242,0.08)] overflow-hidden"
+            className="absolute bottom-full left-0 right-0 mx-1.5 mb-1.5 rounded-xl border border-brand/30 bg-background/95 backdrop-blur-lg shadow-[0_-4px_24px_rgba(0,255,242,0.08)] overflow-hidden"
           >
             {/* Panel header */}
             <div className="flex items-center gap-2 px-3 pt-2.5 pb-1.5 border-b border-brand/20">
               {(() => {
                 const GroupIcon = expandedGroup.icon;
-                return <GroupIcon className={`w-3.5 h-3.5 ${expandedGroup.color}`} />;
+                return (
+                  <GroupIcon className={`w-3.5 h-3.5 ${expandedGroup.color}`} />
+                );
               })()}
-              <span className={`text-[11px] font-bold uppercase tracking-wider ${expandedGroup.color}`}>
+              <span
+                className={`text-[11px] font-bold uppercase tracking-wider ${expandedGroup.color}`}
+              >
                 {expandedGroup.label}
               </span>
               <button
@@ -179,13 +261,14 @@ export function BottomNavigationBar({ activeTab, onTabChange }: BottomNavigation
                     animate="visible"
                     exit="exit"
                     onClick={() => handleSubTabSelect(tab.id)}
+                    aria-current={isActive ? "page" : undefined}
                     className={`
                       flex items-center gap-2 px-2.5 py-2.5 rounded-lg text-[11px] font-medium
-                      min-h-[44px] transition-colors duration-150
+                      min-h-11 transition-colors duration-150
                       ${
                         isActive
                           ? `${tab.color} bg-white/[0.08] border border-brand/20 shadow-[0_0_12px_rgba(0,255,242,0.1)]`
-                          : 'text-subtle active:bg-white/[0.08] border border-transparent'
+                          : "text-subtle active:bg-white/[0.08] border border-transparent"
                       }
                     `}
                   >
@@ -197,7 +280,7 @@ export function BottomNavigationBar({ activeTab, onTabChange }: BottomNavigation
             </div>
 
             {/* Subtle glow border at bottom of panel */}
-            <div className="h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent" />
+            <div className="h-px bg-gradient-to-r from-transparent via-brand/20 to-transparent" />
           </motion.div>
         )}
       </AnimatePresence>
@@ -205,25 +288,25 @@ export function BottomNavigationBar({ activeTab, onTabChange }: BottomNavigation
       {/* Main bottom navigation bar */}
       <div
         ref={barRef}
-        className="bg-[#0a0e17]/95 backdrop-blur-lg border-t border-brand/30"
+        className="bg-background/95 backdrop-blur-lg border-t border-brand/30"
       >
         {/* Top glow line */}
-        <div className="h-px bg-gradient-to-r from-transparent via-cyan-500/15 to-transparent" />
+        <div className="h-px bg-gradient-to-r from-transparent via-brand/15 to-transparent" />
 
         <div
           className={`
             flex items-center
-            ${isCompact ? 'gap-0 px-0.5' : 'gap-0 px-0.5'}
+            ${isCompact ? "gap-0 px-0.5" : "gap-0 px-0.5"}
             justify-around
           `}
-          style={{ paddingTop: '6px', paddingBottom: '6px' }}
+          style={{ paddingTop: "6px", paddingBottom: "6px" }}
         >
           {/* Navigation group buttons */}
-          {NAV_GROUPS.map(group => {
+          {NAV_GROUPS.map((group) => {
             const GroupIcon = group.icon;
             const isActiveGroup = group.id === activeGroup?.id;
             const isExpanded = expandedGroupId === group.id;
-            const hasActiveTab = group.tabs.some(t => t.id === activeTab);
+            const hasActiveTab = group.tabs.some((t) => t.id === activeTab);
 
             return (
               <button
@@ -234,13 +317,13 @@ export function BottomNavigationBar({ activeTab, onTabChange }: BottomNavigation
                   min-w-[40px] min-h-[40px] rounded-lg
                   transition-all duration-200
                   active:scale-95
-                  ${isCompact ? 'flex-col items-center gap-0.5 px-1 py-1' : 'px-2 py-2'}
+                  ${isCompact ? "flex-col items-center gap-0.5 px-1 py-1" : "px-2 py-2"}
                   ${
                     isExpanded
                       ? `${group.color} bg-white/[0.1] shadow-[0_0_16px_rgba(0,255,242,0.12)]`
                       : hasActiveTab || isActiveGroup
                         ? `${group.color} bg-white/[0.04]`
-                        : 'text-muted-label active:text-subtle active:bg-white/[0.06]'
+                        : "text-muted-label active:text-subtle active:bg-white/[0.06]"
                   }
                 `}
                 aria-label={group.label}
@@ -248,14 +331,14 @@ export function BottomNavigationBar({ activeTab, onTabChange }: BottomNavigation
               >
                 <GroupIcon
                   className={`flex-shrink-0 ${
-                    isCompact ? 'w-5 h-5' : 'w-[18px] h-[18px]'
+                    isCompact ? "w-5 h-5" : "w-[18px] h-[18px]"
                   }`}
                 />
                 {isCompact && (
                   <span
                     className={`
-                      text-[8px] font-medium leading-tight truncate max-w-[44px]
-                      ${hasActiveTab || isActiveGroup || isExpanded ? 'opacity-100' : 'opacity-60'}
+                      text-[11px] font-medium leading-tight truncate max-w-[44px]
+                      ${hasActiveTab || isActiveGroup || isExpanded ? "opacity-100" : "opacity-60"}
                     `}
                   >
                     {group.label}
@@ -283,14 +366,16 @@ export function BottomNavigationBar({ activeTab, onTabChange }: BottomNavigation
               min-w-[40px] min-h-[40px] rounded-lg
               text-muted-label active:text-brand active:bg-white/[0.06]
               transition-all duration-200
-              ${isCompact ? 'flex-col items-center gap-0.5 px-1 py-1' : 'px-2 py-2'}
+              ${isCompact ? "flex-col items-center gap-0.5 px-1 py-1" : "px-2 py-2"}
             `}
-            aria-label={isCompact ? 'Switch to quick mode' : 'Switch to compact mode'}
+            aria-label={
+              isCompact ? "Switch to quick mode" : "Switch to compact mode"
+            }
           >
             {isCompact ? (
               <>
                 <ChevronDown className="w-4 h-4" />
-                <span className="text-[8px] font-medium opacity-60">Quick</span>
+                <span className="text-[11px] font-medium opacity-60">Quick</span>
               </>
             ) : (
               <ChevronUp className="w-[18px] h-[18px]" />

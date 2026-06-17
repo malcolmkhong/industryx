@@ -620,7 +620,7 @@ function NetworkGraph({ nodes, relations }: { nodes: ERDNode[]; relations: ERDRe
         {Array.from(tierColumns.values()).map(col => (
           <div key={col.label} className="flex items-center gap-1">
             <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: col.color }} />
-            <span className="text-[8px] text-muted-label font-medium">{col.label}</span>
+            <span className="text-[11px] text-muted-label font-medium">{col.label}</span>
           </div>
         ))}
       </div>
@@ -1509,7 +1509,7 @@ export function TransportPanel() {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {/* Weather Indicator */}
-          <Badge variant="outline" className="border-amber-800/50 text-warning bg-amber-900/10 text-[10px]">
+          <Badge variant="outline" className="border-warning/80/50 text-warning bg-warning/10 text-[10px]">
             <GameIcon icon={weatherDef.icon} size={14} className="inline-flex mr-1" />
             {weatherDef.name}
           </Badge>
@@ -1600,12 +1600,12 @@ export function TransportPanel() {
       {/* Weather & Production Chain — Below Graph */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Weather Effects */}
-        <div className="game-card rounded-xl bg-card p-4 border border-amber-900/30">
+        <div className="game-card rounded-xl bg-card p-4 border border-warning/30">
           <div className="flex items-center gap-2 mb-3">
             <Cloud className="w-4 h-4 text-warning" />
             <h3 className="text-sm font-semibold text-warning">Weather Effects</h3>
           </div>
-          <div className="bg-[#0a0e17] rounded-lg p-3 border border-amber-900/20">
+          <div className="bg-background rounded-lg p-3 border border-warning/20">
             <div className="flex items-center gap-2 mb-2">
               <GameIcon icon={weatherDef.icon} size={24} />
               <div>
@@ -1652,7 +1652,7 @@ export function TransportPanel() {
           {/* Completeness bar */}
           <div className="h-2 bg-muted-label rounded-full overflow-hidden mb-3">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-cyan-700 to-cyan-400 transition-all duration-700"
+              className="h-full rounded-full bg-gradient-to-r from-brand/80 to-brand/50 transition-all duration-700"
               style={{ width: `${Math.min(100, productionChain.completeness)}%` }}
             />
           </div>
@@ -1660,7 +1660,7 @@ export function TransportPanel() {
             {productionChain.tiers.map(tier => {
               const tc = TIER_COLORS[tier.tier] ?? TIER_COLORS[0];
               return (
-                <div key={tier.tier} className="bg-[#0a0e17] rounded-lg p-2 border border-muted-label/50">
+                <div key={tier.tier} className="bg-background rounded-lg p-2 border border-muted-label/50">
                   <div className="flex items-center gap-2 mb-1.5">
                     <Badge variant="outline" className={`text-[9px] px-1.5 ${tc.text} border-current`}>
                       {tc.label}
@@ -1723,7 +1723,7 @@ export function TransportPanel() {
                       className={`p-2 rounded-lg border text-center w-full ${
                         isSelected
                           ? 'border-brand/50 bg-brand/20 text-brand'
-                          : 'border-muted-label bg-[#0a0e17] text-subtle hover:border-muted-label'
+                          : 'border-muted-label bg-background text-subtle hover:border-muted-label'
                       }`}
                     >
                       <GameIcon icon={def.icon} size={20} />
@@ -1744,7 +1744,7 @@ export function TransportPanel() {
                   <select
                     value={fromBuilding}
                     onChange={e => handleFromChange(e.target.value)}
-                    className="w-full bg-[#0a0e17] border border-muted-label rounded-lg px-2 py-1.5 text-xs text-subtle focus:border-brand/50 focus:outline-none"
+                    className="w-full bg-background border border-muted-label rounded-lg px-2 py-1.5 text-xs text-subtle focus:border-brand/50 focus:outline-none"
                   >
                     <option value="">Select source...</option>
                     {producingBuildings.map(b => (
@@ -1760,7 +1760,7 @@ export function TransportPanel() {
                   <select
                     value={carriesResource}
                     onChange={e => { setCarriesResource(e.target.value as ResourceType); setToBuilding(''); }}
-                    className="w-full bg-[#0a0e17] border border-muted-label rounded-lg px-2 py-1.5 text-xs text-subtle focus:border-brand/50 focus:outline-none"
+                    className="w-full bg-background border border-muted-label rounded-lg px-2 py-1.5 text-xs text-subtle focus:border-brand/50 focus:outline-none"
                     disabled={!fromBuilding}
                   >
                     {!fromBuilding && <option value="">Select source first...</option>}
@@ -1777,7 +1777,7 @@ export function TransportPanel() {
                   <select
                     value={toBuilding}
                     onChange={e => setToBuilding(e.target.value)}
-                    className="w-full bg-[#0a0e17] border border-muted-label rounded-lg px-2 py-1.5 text-xs text-subtle focus:border-brand/50 focus:outline-none"
+                    className="w-full bg-background border border-muted-label rounded-lg px-2 py-1.5 text-xs text-subtle focus:border-brand/50 focus:outline-none"
                     disabled={!carriesResource}
                   >
                     {!carriesResource && <option value="">Select resource first...</option>}
@@ -1794,7 +1794,7 @@ export function TransportPanel() {
               {/* Live Preview */}
               {previewData && (
                 <div
-                  className="bg-[#0a0e17] rounded-lg p-3 border border-brand/30"
+                  className="bg-background rounded-lg p-3 border border-brand/30"
                 >
                   <div className="text-[10px] text-brand font-semibold mb-2">ROUTE PREVIEW</div>
                   <div className="flex items-center gap-2 mb-2 text-xs">
@@ -1868,7 +1868,7 @@ export function TransportPanel() {
                         const throughputPct = line.maxThroughput > 0 ? (line.throughput / line.maxThroughput) * 100 : 0;
 
                         return (
-                          <div key={line.id} className={`bg-[#0a0e17] rounded-lg p-3 border ${line.active ? 'border-brand/30 hover:border-brand/50' : 'border-muted-label opacity-60'}`}>
+                          <div key={line.id} className={`bg-background rounded-lg p-3 border ${line.active ? 'border-brand/30 hover:border-brand/50' : 'border-muted-label opacity-60'}`}>
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-1.5 flex-1 min-w-0">
                                 <div className="flex items-center gap-1 bg-muted-label/50 rounded px-1.5 py-0.5 min-w-0">
@@ -1890,9 +1890,9 @@ export function TransportPanel() {
                             <div className="h-2 bg-muted-label rounded-full overflow-hidden relative mb-2">
                               <div
                                 className={`h-full rounded-full transition-all duration-700 ${
-                                  throughputPct > 80 ? 'bg-gradient-to-r from-red-700 to-red-400' :
-                                  throughputPct > 50 ? 'bg-gradient-to-r from-yellow-700 to-yellow-400' :
-                                  'bg-gradient-to-r from-cyan-700 to-cyan-400'
+                                  throughputPct > 80 ? 'bg-gradient-to-r from-danger/60 to-danger/60' :
+                                  throughputPct > 50 ? 'bg-gradient-to-r from-warning/80 to-warning/50' :
+                                  'bg-gradient-to-r from-brand/80 to-brand/50'
                                 }`}
                                 style={{ width: `${Math.min(100, throughputPct)}%` }}
                               />
@@ -1980,9 +1980,9 @@ export function TransportPanel() {
                           <div className="h-3 bg-muted-label rounded-full overflow-hidden relative">
                             <div
                               className={`h-full rounded-full transition-all duration-700 ${
-                                utilization > 80 ? 'bg-gradient-to-r from-red-700 to-red-400' :
-                                utilization > 50 ? 'bg-gradient-to-r from-yellow-700 to-yellow-400' :
-                                'bg-gradient-to-r from-green-700 to-green-400'
+                                utilization > 80 ? 'bg-gradient-to-r from-danger/60 to-danger/60' :
+                                utilization > 50 ? 'bg-gradient-to-r from-warning/80 to-warning/50' :
+                                'bg-gradient-to-r from-success/60 to-success/50'
                               }`}
                               style={{ width: `${Math.min(100, utilization)}%` }}
                             />
@@ -2066,11 +2066,11 @@ export function TransportPanel() {
               <div className="space-y-2 max-h-64 overflow-y-auto game-scrollbar">
                 {bottlenecks.map((bn, i) => {
                   const bDef = BUILDING_DEFS[bn.building.type];
-                  const sevColor = bn.severity === 'critical' ? 'text-danger border-red-900/30' : bn.severity === 'warning' ? 'text-warning border-yellow-900/30' : 'text-subtle border-muted-label';
+                  const sevColor = bn.severity === 'critical' ? 'text-danger border-danger/40/30' : bn.severity === 'warning' ? 'text-warning border-warning/30' : 'text-subtle border-muted-label';
                   const sevIcon = bn.severity === 'critical' ? <XCircle className="w-3 h-3 text-danger" /> : bn.severity === 'warning' ? <AlertTriangle className="w-3 h-3 text-warning" /> : <CircleDot className="w-3 h-3 text-subtle" />;
                   const typeIcon = bn.type === 'under-supplied' ? <TrendingDown className="w-3 h-3 text-danger" /> : bn.type === 'over-supplied' ? <TrendingUp className="w-3 h-3 text-warning" /> : bn.type === 'capacity' ? <Zap className="w-3 h-3 text-domain" /> : bn.type === 'power' ? <ZapOff className="w-3 h-3 text-warning" /> : <Route className="w-3 h-3 text-danger" />;
                   return (
-                    <div key={i} className={`bg-[#0a0e17] rounded-lg p-3 border ${sevColor}`}>
+                    <div key={i} className={`bg-background rounded-lg p-3 border ${sevColor}`}>
                       <div className="flex items-center gap-1.5 mb-1.5">
                         {sevIcon}
                         {typeIcon}
@@ -2119,7 +2119,7 @@ export function TransportPanel() {
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full h-7 text-[10px] border-yellow-800/50 text-warning hover:bg-yellow-900/20"
+                className="w-full h-7 text-[10px] border-warning/80/50 text-warning hover:bg-warning/20"
                 onClick={handleDeactivateAll}
                 disabled={store.transportLines.every(l => !l.active)}
               >
@@ -2221,7 +2221,7 @@ export function TransportPanel() {
                     const cheapestCost = getTransportCost(CHEAPEST_TYPE);
                     const canAfford = store.money >= cheapestCost;
                     return (
-                      <div key={i} className="bg-[#0a0e17] rounded-lg p-3 border border-brand/20">
+                      <div key={i} className="bg-background rounded-lg p-3 border border-brand/20">
                         <div className="flex items-center gap-2 mb-2">
                           <GameIcon icon={fromDef?.icon} size={14} className="inline-flex" />
                           <span className="text-xs text-subtle truncate max-w-[80px]">{fromDef?.name}</span>
@@ -2270,7 +2270,7 @@ export function TransportPanel() {
               <p className="text-xs text-subtle mb-3">
                 This will create <span className="text-brand font-bold">{connectAllData.routes.length}</span> transport lines using <GameIcon icon={TRANSPORT_DEFS[CHEAPEST_TYPE].icon} size={14} className="inline-flex" /> {TRANSPORT_DEFS[CHEAPEST_TYPE].name} (cheapest).
               </p>
-              <div className="bg-[#0a0e17] rounded-lg p-3 mb-4 max-h-40 overflow-y-auto game-scrollbar">
+              <div className="bg-background rounded-lg p-3 mb-4 max-h-40 overflow-y-auto game-scrollbar">
                 {connectAllData.routes.slice(0, 20).map((r, i) => (
                   <div key={i} className="flex items-center gap-1.5 text-[10px] text-subtle py-0.5">
                     <span className="text-muted-label">{i + 1}.</span>

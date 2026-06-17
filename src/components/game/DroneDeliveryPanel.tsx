@@ -105,14 +105,14 @@ function DroneVisualMap({ missions, fleet, gameTick }: {
 
   if (buildings.length < 2) {
     return (
-      <div className="h-32 flex items-center justify-center text-muted-label text-xs border border-brand/20 rounded-lg bg-[#0a0e17]">
+      <div className="h-32 flex items-center justify-center text-muted-label text-xs border border-brand/20 rounded-lg bg-background">
         Build more buildings to unlock delivery routes
       </div>
     );
   }
 
   return (
-    <div className="relative h-40 border border-brand/20 rounded-lg bg-[#0a0e17] overflow-hidden">
+    <div className="relative h-40 border border-brand/20 rounded-lg bg-background overflow-hidden">
       <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 80" preserveAspectRatio="xMidYMid meet">
         {/* Grid lines */}
         {Array.from({ length: 5 }).map((_, i) => (
@@ -306,7 +306,7 @@ export default function DroneDeliveryPanel() {
                     </div>
                     <div className="w-full h-1.5 bg-muted-label rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-sky-500 to-cyan-400 rounded-full"
+                        className="h-full bg-gradient-to-r from-brand/80 to-brand/50 rounded-full"
                         style={{
                           width: drone.missionEndTick > 0
                             ? `${Math.max(0, Math.min(100, (1 - (drone.missionEndTick - gameTick) / Math.max(1, drone.missionEndTick)) * 100))}%`
@@ -337,7 +337,7 @@ export default function DroneDeliveryPanel() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-6 text-[10px] px-2 border-warning/30 text-warning hover:bg-yellow-900/20"
+                            className="h-6 text-[10px] px-2 border-warning/30 text-warning hover:bg-warning/20"
                             disabled={drone.speedLevel >= 5 || money < 500 * drone.speedLevel}
                             onClick={(e) => {
                               e.stopPropagation();
@@ -479,7 +479,7 @@ export default function DroneDeliveryPanel() {
                             const fuel = fuelCostForDrone(drone);
                             const ticks = ticksForDrone(drone);
                             return (
-                              <div key={drone.id} className="flex items-center justify-between bg-[#0a0e17] rounded-md px-2 py-1.5">
+                              <div key={drone.id} className="flex items-center justify-between bg-background rounded-md px-2 py-1.5">
                                 <div className="text-[10px]">
                                   <span className="text-subtle">Drone #{droneIdx + 1}</span>
                                   <span className="text-muted-label ml-2">

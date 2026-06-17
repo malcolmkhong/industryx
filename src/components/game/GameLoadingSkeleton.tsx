@@ -6,10 +6,10 @@ interface GameLoadingSkeletonProps {
 
 export function GameLoadingSkeleton({ headerHeight }: GameLoadingSkeletonProps) {
   return (
-    <div className="h-screen flex flex-col bg-[#0a0e17] text-subtle overflow-hidden safe-area-container">
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-brand/30 px-2 lg:px-3 py-1.5 lg:py-2 bg-[#0a0e17]">
+    <div className="h-screen flex flex-col bg-background text-subtle overflow-hidden safe-area-container">
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-brand/30 px-2 lg:px-3 py-1.5 lg:py-2 bg-background">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-base font-bold shadow-[0_0_12px_rgba(0,255,242,0.2)]">
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-brand to-success/80 flex items-center justify-center text-base font-bold shadow-[0_0_12px_rgba(0,255,242,0.2)]">
             IX
           </div>
           <div>
@@ -34,13 +34,13 @@ export function GameLoadingSkeleton({ headerHeight }: GameLoadingSkeletonProps) 
         </nav>
         <main className="flex-1 min-h-0 p-4 flex items-center justify-center">
           <div className="text-center loading-skeleton-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-cyan-500/20 to-teal-600/20 flex items-center justify-center text-3xl loading-icon-pulse">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-brand/20 to-success/80/20 flex items-center justify-center text-3xl loading-icon-pulse">
               <GameIcon ui="production" size={32} />
             </div>
             <p className="text-brand font-bold text-lg">Loading Factory...</p>
             <p className="text-muted-label text-xs mt-1">Initializing industrial empire</p>
             <div className="mt-4 w-48 h-1 bg-muted-label rounded-full overflow-hidden mx-auto">
-              <div className="h-full bg-gradient-to-r from-cyan-600 to-teal-500 rounded-full loading-progress-bar" />
+              <div className="h-full bg-gradient-to-r from-brand/70 to-success/70 rounded-full loading-progress-bar" />
             </div>
           </div>
         </main>

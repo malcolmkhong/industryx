@@ -342,21 +342,21 @@ const CATEGORY_META: Record<AchievementCategory, { icon: string; color: string; 
   Expansion: {
     icon: 'gi:planet-core',
     color: 'text-premium',
-    borderColor: 'border-fuchsia-900/30',
-    bgColor: 'bg-fuchsia-900/10',
+    borderColor: 'border-premium/20/30',
+    bgColor: 'bg-premium/20/10',
   },
   Special: {
     icon: 'gi:star-formation',
     color: 'text-warning',
-    borderColor: 'border-amber-900/30',
-    bgColor: 'bg-amber-900/10',
+    borderColor: 'border-warning/30',
+    bgColor: 'bg-warning/10',
   },
 };
 
 const TIER_COLORS = {
   1: { label: 'Bronze', color: 'text-domain', bg: 'bg-domain/20', border: 'border-domain/30' },
   2: { label: 'Silver', color: 'text-subtle', bg: 'bg-muted-label/30', border: 'border-muted-label/30' },
-  3: { label: 'Gold', color: 'text-warning', bg: 'bg-yellow-900/20', border: 'border-yellow-800/30' },
+  3: { label: 'Gold', color: 'text-warning', bg: 'bg-warning/20', border: 'border-warning/80/30' },
 };
 
 interface AchievementCardProps {
@@ -407,7 +407,7 @@ const MemoizedAchievementCard = React.memo(function MemoizedAchievementCard({
               </span>
               <Badge
                 variant="outline"
-                className={`text-[8px] h-3.5 px-1 ${tierMeta.bg} ${tierMeta.color} ${tierMeta.border}`}
+                className={`text-[11px] h-3.5 px-1 ${tierMeta.bg} ${tierMeta.color} ${tierMeta.border}`}
               >
                 {tierMeta.label}
               </Badge>
@@ -425,10 +425,10 @@ const MemoizedAchievementCard = React.memo(function MemoizedAchievementCard({
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
                       achievement.progressValue >= 0.75
-                        ? 'bg-gradient-to-r from-green-600 to-green-400'
+                        ? 'bg-gradient-to-r from-success/80 to-success/50'
                         : achievement.progressValue >= 0.4
-                          ? 'bg-gradient-to-r from-yellow-600 to-yellow-400'
-                          : 'bg-gradient-to-r from-gray-600 to-gray-400'
+                          ? 'bg-gradient-to-r from-warning/70 to-warning/50'
+                          : 'bg-gradient-to-r from-muted-label/30 to-muted-label/30'
                     }`}
                     style={{ width: `${Math.min(100, achievement.progressValue * 100)}%` }}
                   />
@@ -457,7 +457,7 @@ const MemoizedAchievementCard = React.memo(function MemoizedAchievementCard({
         >
         <div className="px-3 pb-3 pt-0 border-t border-border/50 mt-0">
           <div className="pt-2.5 space-y-2">
-            <div className="bg-[#0a0e17] rounded-lg p-3">
+            <div className="bg-background rounded-lg p-3">
               <div className="text-[10px] text-muted-label mb-0.5">Reward</div>
               <div className={`text-xs font-medium ${achievement.unlocked ? 'text-success' : meta.color}`}>
                 <GameIcon icon="gi:present" size={14} className="inline" /> {achievement.reward}
@@ -474,14 +474,14 @@ const MemoizedAchievementCard = React.memo(function MemoizedAchievementCard({
               </div>
             </div>
             {!achievement.unlocked && (
-              <div className="bg-[#0a0e17] rounded-lg p-3">
+              <div className="bg-background rounded-lg p-3">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[10px] text-muted-label">Current Progress</span>
                   <span className="text-xs font-mono text-brand">{achievement.progressLabel}</span>
                 </div>
                 <div className="h-2 bg-muted-label rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-cyan-600 to-cyan-400 rounded-full transition-all duration-500"
+                    className="h-full bg-gradient-to-r from-brand/70 to-brand/50 rounded-full transition-all duration-500"
                     style={{ width: `${Math.min(100, achievement.progressValue * 100)}%` }}
                   />
                 </div>
@@ -548,7 +548,7 @@ export function AchievementPanel() {
           <p className="text-xs text-muted-label mt-0.5">Track your milestones and accomplishments</p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="border-warning/50 text-warning bg-amber-900/20 text-xs">
+          <Badge variant="outline" className="border-warning/50 text-warning bg-warning/20 text-xs">
             <Trophy className="w-3 h-3 mr-1" />
             {unlockedCount}/{totalAchievements}
           </Badge>
@@ -557,9 +557,9 @@ export function AchievementPanel() {
 
       {/* Stats Summary */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="game-card rounded-xl bg-card p-3 border border-amber-900/20">
+        <div className="game-card rounded-xl bg-card p-3 border border-warning/20">
           <div className="flex items-center gap-2 mb-1.5">
-            <div className="w-7 h-7 rounded-lg bg-amber-900/20 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-warning/20 flex items-center justify-center">
               <Trophy className="w-4 h-4 text-warning" />
             </div>
             <span className="text-[10px] text-muted-label uppercase tracking-wider">Unlocked</span>
@@ -604,7 +604,7 @@ export function AchievementPanel() {
       </div>
 
       {/* Overall Progress Bar */}
-      <div className="game-card rounded-xl bg-card p-4 border border-amber-900/20">
+      <div className="game-card rounded-xl bg-card p-4 border border-warning/20">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <Trophy className="w-4 h-4 text-warning" />
@@ -614,7 +614,7 @@ export function AchievementPanel() {
         </div>
         <div className="h-3 bg-muted-label rounded-full overflow-hidden relative">
           <div
-            className="h-full bg-gradient-to-r from-amber-600 to-amber-400 rounded-full transition-all duration-700"
+            className="h-full bg-gradient-to-r from-warning/70 to-warning/50 rounded-full transition-all duration-700"
             style={{ width: `${(unlockedCount / Math.max(1, totalAchievements)) * 100}%` }}
           >
             <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent" />
@@ -634,7 +634,7 @@ export function AchievementPanel() {
                       cat === 'Production' ? 'bg-brand' :
                       cat === 'Economy' ? 'bg-success' :
                       cat === 'Research' ? 'bg-research' :
-                      cat === 'Expansion' ? 'bg-fuchsia-400' :
+                      cat === 'Expansion' ? 'bg-premium/60' :
                       'bg-warning'
                     }`}
                     style={{ width: `${pct}%` }}
@@ -662,7 +662,7 @@ export function AchievementPanel() {
               className={`h-7 text-[10px] ${
                 isActive
                   ? cat === 'All'
-                    ? 'border-warning/50 text-warning bg-amber-900/20'
+                    ? 'border-warning/50 text-warning bg-warning/20'
                     : `${meta!.borderColor} ${meta!.color} ${meta!.bgColor}`
                   : 'border-muted-label text-muted-label hover:text-subtle'
               }`}
@@ -705,7 +705,7 @@ export function AchievementPanel() {
               return (
                 <div
                   key={a.id}
-                  className="flex items-center gap-1.5 bg-[#0a0e17] rounded-lg px-2.5 py-1.5"
+                  className="flex items-center gap-1.5 bg-background rounded-lg px-2.5 py-1.5"
                 >
                   <GameIcon icon={a.icon} size={12} className="inline-flex grayscale opacity-50" />
                   <span className="text-[10px] text-muted-label">{a.name}</span>

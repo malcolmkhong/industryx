@@ -57,9 +57,9 @@ function ContractCard({ contract, store, fulfillingId, onFulfill }: { contract: 
       ]}
       side="right"
     >
-      <div className={`bg-[#0a0e17] rounded-lg p-4 border-l-2 ${
-        isUrgent ? 'border-l-red-500 border border-red-900/50' :
-        canFulfill ? 'border-l-green-500 border border-success/30' :
+      <div className={`bg-background rounded-lg p-4 border-l-2 ${
+        isUrgent ? 'border-l-danger border border-danger/40/50' :
+        canFulfill ? 'border-l-success border border-success/30' :
         `border border-muted-label`
       }`} style={{ borderLeftColor: tierColor }}>
         <div className="flex items-center justify-between mb-2">
@@ -229,7 +229,7 @@ export function ContractPanel() {
           <p className="text-xs text-muted-label mt-0.5">Complete deliveries for rewards — contracts scale with your tier</p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="border-rose-500/50 text-danger bg-danger/20 text-xs">
+          <Badge variant="outline" className="border-danger/50 text-danger bg-danger/20 text-xs">
             <ScrollText className="w-3 h-3 mr-1" />
             {activeContracts.length} active
           </Badge>
@@ -257,7 +257,7 @@ export function ContractPanel() {
             return (
               <div
                 key={tier}
-                className={`flex-1 rounded-sm flex items-center justify-center text-[8px] font-bold transition-all ${
+                className={`flex-1 rounded-sm flex items-center justify-center text-[11px] font-bold transition-all ${
                   isUnlocked ? 'opacity-100' : 'opacity-30'
                 } ${isCurrent ? 'ring-1 ring-white/20' : ''}`}
                 style={{ backgroundColor: isUnlocked ? getTierColor(tier) : '#1e293b', color: isUnlocked ? '#000' : '#555' }}
@@ -320,7 +320,7 @@ export function ContractPanel() {
           aria-pressed={selectedTierFilter === null}
           className={`px-2 py-1 rounded-md text-[10px] font-medium ${
             selectedTierFilter === null
-              ? 'bg-danger/30 text-danger border border-rose-700/50'
+              ? 'bg-danger/30 text-danger border border-700-rose/50'
               : 'bg-muted-label/30 text-muted-label border border-muted-label hover:bg-muted-label/50'
           }`}
         >
@@ -352,7 +352,7 @@ export function ContractPanel() {
               {isUnlocked ? (
                 <>
                   <GameIcon icon={TIER_INFO[tier]?.icon} size={12} className="inline-flex" /> T{tier}
-                  {count > 0 && <span className="bg-muted-label rounded-full w-3.5 h-3.5 flex items-center justify-center text-[8px]">{count}</span>}
+                  {count > 0 && <span className="bg-muted-label rounded-full w-3.5 h-3.5 flex items-center justify-center text-[11px]">{count}</span>}
                 </>
               ) : (
                 <>
@@ -429,11 +429,11 @@ export function ContractPanel() {
                         </div>
                         <div className="flex items-center gap-2">
                           {c.completed ? (
-                            <Badge className="text-[8px] bg-success/20 text-success border-0">
+                            <Badge className="text-[11px] bg-success/20 text-success border-0">
                               <Check className="w-2.5 h-2.5 mr-0.5" /> Done
                             </Badge>
                           ) : (
-                            <Badge className="text-[8px] bg-danger/20 text-danger border-0">
+                            <Badge className="text-[11px] bg-danger/20 text-danger border-0">
                               <X className="w-2.5 h-2.5 mr-0.5" /> Failed
                             </Badge>
                           )}

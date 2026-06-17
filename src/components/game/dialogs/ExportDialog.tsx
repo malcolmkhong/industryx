@@ -39,7 +39,7 @@ export function ExportDialog({
           <Textarea
             readOnly
             value={exportString}
-            className="bg-[#0a0e17] border-brand/20 text-xs font-mono text-subtle min-h-24 lg:min-h-32 max-h-36 lg:max-h-48 game-scrollbar"
+            className="bg-background border-brand/20 text-xs font-mono text-subtle min-h-24 lg:min-h-32 max-h-36 lg:max-h-48 game-scrollbar"
             onClick={(e) => (e.target as HTMLTextAreaElement).select()}
           />
           <div className="flex items-center gap-2">

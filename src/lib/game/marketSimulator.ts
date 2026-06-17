@@ -1119,14 +1119,14 @@ export function recordPlayerBuy(simState: MarketSimulationState, resource: Resou
 
 export function getSectorInfo(sector: MarketSector): { name: string; color: string; icon: string } {
   switch (sector) {
-    case 'raw_minerals':    return { name: 'Raw Minerals', color: 'text-amber-400', icon: 'gi:ore' };
-    case 'raw_organic':     return { name: 'Organic & Rare', color: 'text-emerald-400', icon: 'gi:oil-rig' };
-    case 'basic_materials': return { name: 'Basic Materials', color: 'text-sky-400', icon: 'gi:metal-bar' };
-    case 'components':      return { name: 'Components', color: 'text-violet-400', icon: 'gi:circuitry' };
-    case 'advanced':        return { name: 'Advanced Goods', color: 'text-rose-400', icon: 'gi:gear-hammer' };
-    case 'high_tech':       return { name: 'High Tech', color: 'text-fuchsia-400', icon: 'gi:processor' };
-    case 'endgame':         return { name: 'Endgame', color: 'text-purple-400', icon: 'gi:atomic-slashes' };
-    case 'agriculture':     return { name: 'Agriculture', color: 'text-lime-400', icon: 'gi:fertilizer-bag' };
+    case 'raw_minerals':    return { name: 'Raw Minerals', color: 'text-warning', icon: 'gi:ore' };
+    case 'raw_organic':     return { name: 'Organic & Rare', color: 'text-success', icon: 'gi:oil-rig' };
+    case 'basic_materials': return { name: 'Basic Materials', color: 'text-brand/80', icon: 'gi:metal-bar' };
+    case 'components':      return { name: 'Components', color: 'text-research', icon: 'gi:circuitry' };
+    case 'advanced':        return { name: 'Advanced Goods', color: 'text-danger', icon: 'gi:gear-hammer' };
+    case 'high_tech':       return { name: 'High Tech', color: 'text-premium', icon: 'gi:processor' };
+    case 'endgame':         return { name: 'Endgame', color: 'text-research', icon: 'gi:atomic-slashes' };
+    case 'agriculture':     return { name: 'Agriculture', color: 'text-success', icon: 'gi:fertilizer-bag' };
   }
 }
 
@@ -1134,9 +1134,9 @@ export function getSectorInfo(sector: MarketSector): { name: string; color: stri
 
 export function getSeverityStyle(severity: 'low' | 'medium' | 'high'): { color: string; bg: string; border: string; dot: string } {
   switch (severity) {
-    case 'high':   return { color: 'text-red-400', bg: 'bg-red-900/10', border: 'border-red-500/20', dot: 'bg-red-500' };
-    case 'medium': return { color: 'text-yellow-400', bg: 'bg-yellow-900/10', border: 'border-yellow-500/20', dot: 'bg-yellow-500' };
-    case 'low':    return { color: 'text-gray-400', bg: 'bg-gray-900/10', border: 'border-gray-500/20', dot: 'bg-gray-500' };
+    case 'high':   return { color: 'text-danger', bg: 'bg-danger/20/10', border: 'border-danger/20', dot: 'bg-danger' };
+    case 'medium': return { color: 'text-warning', bg: 'bg-warning/10', border: 'border-warning/20', dot: 'bg-warning/50' };
+    case 'low':    return { color: 'text-muted-label', bg: 'bg-900-gray/10', border: 'border-muted-label/40/20', dot: 'bg-muted-label/40' };
   }
 }
 

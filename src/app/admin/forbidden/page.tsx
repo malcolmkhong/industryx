@@ -32,14 +32,14 @@ export default function ForbiddenPage() {
       {/* Background gradient effects */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-danger/5 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-amber-900/5 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-red-900/3 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-warning/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-danger/20/3 rounded-full blur-3xl" />
       </div>
 
       <div className="relative w-full max-w-md">
         {/* Logo / Branding */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 mb-6 rounded-2xl bg-gradient-to-br from-red-500 to-rose-600 shadow-lg shadow-red-500/20">
+          <div className="inline-flex items-center justify-center w-20 h-20 mb-6 rounded-2xl bg-gradient-to-br from-danger to-danger/80 shadow-lg shadow-danger/20">
             <svg
               width="40"
               height="40"
@@ -57,13 +57,13 @@ export default function ForbiddenPage() {
           <h1 className="text-3xl font-bold text-white tracking-tight">
             Access Denied
           </h1>
-          <p className="text-zinc-400 mt-2 text-sm">
+          <p className="text-muted-label mt-2 text-sm">
             You are not authorized to access the IndustriaX Backend
           </p>
         </div>
 
         {/* Forbidden Card */}
-        <div className="bg-zinc-900/80 backdrop-blur-xl border border-zinc-800 rounded-2xl p-8 shadow-2xl">
+        <div className="bg-background/80/80 backdrop-blur-xl border border-muted-label/40 rounded-2xl p-8 shadow-2xl">
           <div className="text-center mb-6">
             <div className="inline-flex items-center justify-center w-12 h-12 mb-4 rounded-xl bg-danger/10">
               <svg
@@ -81,7 +81,7 @@ export default function ForbiddenPage() {
               </svg>
             </div>
             <h2 className="text-xl font-semibold text-white">Restricted Area</h2>
-            <p className="text-zinc-400 text-sm mt-2">
+            <p className="text-muted-label text-sm mt-2">
               Your Google account is signed in but does not have admin
               privileges. If you believe this is an error, contact the system
               administrator.
@@ -90,10 +90,10 @@ export default function ForbiddenPage() {
 
           {/* Account info */}
           {email && (
-            <div className="mb-6 p-4 bg-zinc-800/50 border border-zinc-700 rounded-xl">
+            <div className="mb-6 p-4 bg-background/60/50 border border-muted-label/30 rounded-xl">
               <div className="flex items-center gap-3">
                 <svg
-                  className="w-4 h-4 text-zinc-500 shrink-0"
+                  className="w-4 h-4 text-muted-label shrink-0"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -106,8 +106,8 @@ export default function ForbiddenPage() {
                   />
                 </svg>
                 <div className="min-w-0 flex-1">
-                  <p className="text-zinc-400 text-xs">Signed in as</p>
-                  <p className="text-zinc-200 text-sm font-medium truncate">
+                  <p className="text-muted-label text-xs">Signed in as</p>
+                  <p className="text-subtle text-sm font-medium truncate">
                     {email}
                   </p>
                 </div>
@@ -121,10 +121,10 @@ export default function ForbiddenPage() {
               type="button"
               onClick={handleSignOut}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-zinc-800 hover:bg-zinc-700 disabled:bg-zinc-800/50 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-all duration-200 border border-zinc-700 active:scale-[0.98]"
+              className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-background/60 hover:bg-background/40 disabled:bg-background/60/50 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-all duration-200 border border-muted-label/30 active:scale-[0.98]"
             >
               {loading ? (
-                <div className="w-5 h-5 border-2 border-zinc-500 border-t-white rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-muted-label/10 border-t-white rounded-full animate-spin" />
               ) : (
                 <svg
                   className="w-5 h-5"
@@ -145,7 +145,7 @@ export default function ForbiddenPage() {
 
             <a
               href="/"
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-transparent hover:bg-zinc-800/50 text-zinc-400 hover:text-zinc-200 font-medium rounded-xl transition-all duration-200"
+              className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-transparent hover:bg-background/60/50 text-muted-label hover:text-subtle font-medium rounded-xl transition-all duration-200"
             >
               <svg
                 className="w-4 h-4"
@@ -165,10 +165,10 @@ export default function ForbiddenPage() {
           </div>
 
           {/* Info notice */}
-          <div className="mt-8 pt-6 border-t border-zinc-800">
+          <div className="mt-8 pt-6 border-t border-muted-label/40">
             <div className="flex items-start gap-3">
               <svg
-                className="w-4 h-4 text-zinc-500 mt-0.5 shrink-0"
+                className="w-4 h-4 text-muted-label mt-0.5 shrink-0"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -181,10 +181,10 @@ export default function ForbiddenPage() {
                 />
               </svg>
               <div>
-                <p className="text-zinc-300 text-xs font-medium">
+                <p className="text-subtle text-xs font-medium">
                   Why am I seeing this?
                 </p>
-                <p className="text-zinc-500 text-xs mt-1">
+                <p className="text-muted-label text-xs mt-1">
                   Admin access is granted only to pre-approved accounts. Your
                   sign-in attempt was successful, but this account is not on the
                   admin allowlist. This incident has been logged.
@@ -196,7 +196,7 @@ export default function ForbiddenPage() {
 
         {/* Footer */}
         <div className="text-center mt-6">
-          <p className="text-zinc-600 text-xs">
+          <p className="text-muted-label/80 text-xs">
             IndustriaX Backend v0.1.0 &middot; Secure Infrastructure
           </p>
         </div>

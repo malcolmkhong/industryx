@@ -577,7 +577,7 @@ export default function GlobalResourceMonitorPanel() {
             placeholder="Search resources..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-8 pl-8 pr-8 bg-[#0a0e17] border border-muted-label/30 rounded-lg text-xs text-subtle placeholder:text-muted-label focus:outline-none focus:border-brand/50 focus:ring-1 focus:ring-teal-500/20 transition-colors"
+            className="w-full h-8 pl-8 pr-8 bg-background border border-muted-label/30 rounded-lg text-xs text-subtle placeholder:text-muted-label focus:outline-none focus:border-brand/50 focus:ring-1 focus:ring-success/70/20 transition-colors"
           />
           {searchQuery && (
             <button
@@ -852,7 +852,7 @@ export default function GlobalResourceMonitorPanel() {
                       e.stopPropagation();
                       handleQuickUpgrade(hoveredRow.resource);
                     }}
-                    className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-yellow-900/30 border border-yellow-700/40 text-warning hover:bg-yellow-900/50 transition-colors"
+                    className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-warning/30 border border-warning/40 text-warning hover:bg-warning/50 transition-colors"
                     aria-label="Quick upgrade producer"
                     title="Upgrade lowest-level producer"
                   >

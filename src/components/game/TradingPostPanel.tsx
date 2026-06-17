@@ -26,7 +26,7 @@ import {
   Clock,
   TrendingUp,
 } from "lucide-react";
-import { MarketPriceChart } from "./TradingPostPanel/MarketPriceChart";
+import { MarketPriceChart } from "./MarketPriceChart";
 
 // ─── Server-enforced cooldown (mirrors src/app/api/game/trade/route.ts) ─────
 const TRADE_COOLDOWN_SECONDS = 300;
@@ -478,7 +478,7 @@ export function TradingPostPanel() {
           </h2>
           <Badge
             variant="outline"
-            className="text-[10px] border-violet-500/30 text-research bg-violet-900/20"
+            className="text-[10px] border-research/30 text-research bg-research/20/20"
           >
             15% commission
           </Badge>
@@ -511,7 +511,7 @@ export function TradingPostPanel() {
                 }
               }}
             >
-              <SelectTrigger className="w-full bg-[#0a0e17] border-brand/30 text-sm">
+              <SelectTrigger className="w-full bg-background border-brand/30 text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-[#0d1220] border-brand/30 max-h-60">
@@ -548,7 +548,7 @@ export function TradingPostPanel() {
                 onChange={(e) =>
                   setGiveAmount(Math.max(0, parseInt(e.target.value) || 0))
                 }
-                className="w-full bg-[#0a0e17] border border-brand/30 rounded-md px-3 py-2 text-sm font-mono text-brand focus:border-violet-500/50 focus:outline-none focus:ring-1 focus:ring-violet-500/30 transition-colors"
+                className="w-full bg-background border border-brand/30 rounded-md px-3 py-2 text-sm font-mono text-brand focus:border-research/50 focus:outline-none focus:ring-1 focus:ring-research/30 transition-colors"
               />
             </div>
 
@@ -575,7 +575,7 @@ export function TradingPostPanel() {
               whileTap={{ scale: 0.9 }}
               transition={{ duration: 0.3 }}
               onClick={swapResources}
-              className="w-10 h-10 rounded-full border border-violet-500/30 bg-violet-900/20 flex items-center justify-center text-research hover:bg-violet-900/40 hover:border-violet-500/50 transition-colors"
+              className="w-10 h-10 rounded-full border border-research/30 bg-research/20/20 flex items-center justify-center text-research hover:bg-research/20/40 hover:border-research/50 transition-colors"
               aria-label="Swap give and receive resources"
             >
               <ArrowRightLeft className="w-4 h-4" />
@@ -596,7 +596,7 @@ export function TradingPostPanel() {
                 }
               }}
             >
-              <SelectTrigger className="w-full bg-[#0a0e17] border-brand/30 text-sm">
+              <SelectTrigger className="w-full bg-background border-brand/30 text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-[#0d1220] border-brand/30 max-h-60">
@@ -617,7 +617,7 @@ export function TradingPostPanel() {
 
             <div className="space-y-1">
               <div className="text-[10px] text-muted-label">You will receive</div>
-              <div className="bg-[#0a0e17] border border-brand/30 rounded-md px-3 py-2 text-sm font-mono text-research">
+              <div className="bg-background border border-brand/30 rounded-md px-3 py-2 text-sm font-mono text-research">
                 {giveResource !== receiveResource
                   ? receiveAmount > 0
                     ? receiveAmount.toFixed(2)
@@ -712,7 +712,7 @@ export function TradingPostPanel() {
           {receiveCapacity !== Infinity &&
             receiveResourceCurrent + receiveAmount > receiveCapacity &&
             receiveAmount > 0 && (
-              <div className="flex items-center gap-2 text-[10px] text-warning bg-yellow-900/10 border border-warning/20 rounded-lg px-3 py-2">
+              <div className="flex items-center gap-2 text-[10px] text-warning bg-warning/10 border border-warning/20 rounded-lg px-3 py-2">
                 <AlertTriangle className="w-3 h-3 flex-shrink-0" />
                 {RESOURCE_META[receiveResource]?.name ?? receiveResource}{" "}
                 storage would overflow. Receive amount will be capped.
@@ -739,7 +739,7 @@ export function TradingPostPanel() {
           <Button
             onClick={handleExecuteTrade}
             disabled={!canTrade}
-            className="w-full sm:w-auto bg-violet-600 hover:bg-violet-500 text-white border-0 disabled:opacity-40"
+            className="w-full sm:w-auto bg-research/80 hover:bg-research text-white border-0 disabled:opacity-40"
             size="sm"
           >
             {isTrading ? (
@@ -809,7 +809,7 @@ export function TradingPostPanel() {
                 disabled={!canClick}
                 className={`bg-card border rounded-lg p-3 text-center transition-colors ${
                   canClick
-                    ? "border-violet-500/20 hover:border-violet-500/40 hover:bg-violet-900/10 cursor-pointer"
+                    ? "border-research/20 hover:border-research/40 hover:bg-research/20/10 cursor-pointer"
                     : "border-brand/10 opacity-40 cursor-not-allowed"
                 }`}
               >
@@ -867,7 +867,7 @@ export function TradingPostPanel() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: idx * 0.1 }}
-                  className="flex items-center gap-3 bg-yellow-900/10 border border-warning/20 rounded-lg px-3 py-2"
+                  className="flex items-center gap-3 bg-warning/10 border border-warning/20 rounded-lg px-3 py-2"
                 >
                   <AlertTriangle className="w-3 h-3 text-warning flex-shrink-0" />
                   <div className="flex-1 text-xs">
@@ -890,7 +890,7 @@ export function TradingPostPanel() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-6 text-[10px] px-2 border-violet-500/30 text-research hover:bg-violet-900/20 flex-shrink-0"
+                    className="h-6 text-[10px] px-2 border-research/30 text-research hover:bg-research/20/20 flex-shrink-0"
                     onClick={() => {
                       setGiveResource(s.resource);
                       setReceiveResource(s.suggestTradeFor);
@@ -967,14 +967,14 @@ export function TradingPostPanel() {
                   </span>
                   {entry.serverValidated ? (
                     <span
-                      className="text-[8px] text-success ml-1"
+                      className="text-[11px] text-success ml-1"
                       title="Server-validated"
                     >
                       ✓
                     </span>
                   ) : (
                     <span
-                      className="text-[8px] text-warning ml-1"
+                      className="text-[11px] text-warning ml-1"
                       title="Optimistic (not server-validated)"
                     >
                       ⚠

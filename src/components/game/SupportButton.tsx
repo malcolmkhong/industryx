@@ -21,9 +21,9 @@ interface Message {
 }
 
 const statusColors: Record<string, string> = {
-  open: 'bg-red-500/10 text-red-400 border-red-500/20',
-  accepted: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  resolved: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+  open: 'bg-danger/10 text-danger border-danger/20',
+  accepted: 'bg-warning/60/10 text-warning border-warning/60/20',
+  resolved: 'bg-success/10 text-success border-success/20',
 };
 
 export function SupportButton() {
@@ -126,7 +126,7 @@ export function SupportButton() {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium text-zinc-400 hover:text-amber-400 hover:bg-amber-500/10 border border-transparent hover:border-amber-500/20 transition-colors"
+        className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium text-muted-label hover:text-warning hover:bg-warning/60/10 border border-transparent hover:border-warning/60/20 transition-colors"
       >
         <MessageCircle className="w-4 h-4 flex-shrink-0" />
         <span className="truncate">Support</span>
@@ -135,11 +135,11 @@ export function SupportButton() {
       {open && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center pointer-events-none">
           <button type="button" className="absolute inset-0 bg-black/60 cursor-default" onClick={() => setOpen(false)} aria-label="Close panel" />
-          <div className="relative w-full sm:w-[400px] max-h-[600px] bg-zinc-900 border border-zinc-700 rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col pointer-events-auto m-0 sm:m-4">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800 shrink-0">
+          <div className="relative w-full sm:w-[400px] max-h-[600px] bg-background/80 border border-muted-label/30 rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col pointer-events-auto m-0 sm:m-4">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-muted-label/40 shrink-0">
               <div className="flex items-center gap-2">
                 {view === 'chat' && (
-                  <button type="button" onClick={() => { setView('list'); setSelectedTicket(null); }} className="text-zinc-500 hover:text-white">
+                  <button type="button" onClick={() => { setView('list'); setSelectedTicket(null); }} className="text-muted-label hover:text-white">
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                 )}
@@ -149,11 +149,11 @@ export function SupportButton() {
               </div>
               <div className="flex items-center gap-1">
                 {view === 'list' && (
-                  <button type="button" onClick={() => setView('new')} className="p-1 text-zinc-400 hover:text-white rounded">
+                  <button type="button" onClick={() => setView('new')} className="p-1 text-muted-label hover:text-white rounded">
                     <Plus className="w-4 h-4" />
                   </button>
                 )}
-                <button type="button" onClick={() => setOpen(false)} className="p-1 text-zinc-500 hover:text-white rounded">
+                <button type="button" onClick={() => setOpen(false)} className="p-1 text-muted-label hover:text-white rounded">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -163,12 +163,12 @@ export function SupportButton() {
               {view === 'list' && (
                 <>
                   {loading ? (
-                    <div className="flex justify-center py-8"><div className="w-5 h-5 border-2 border-zinc-600 border-t-amber-500 rounded-full animate-spin" /></div>
+                    <div className="flex justify-center py-8"><div className="w-5 h-5 border-2 border-muted-label/20 border-t-warning/60 rounded-full animate-spin" /></div>
                   ) : tickets.length === 0 ? (
                     <div className="text-center py-8">
-                      <MessageCircle className="w-10 h-10 text-zinc-600 mx-auto mb-3" />
-                      <p className="text-sm text-zinc-400">No tickets yet</p>
-                      <p className="text-xs text-zinc-600 mt-1">Create a new ticket for help</p>
+                      <MessageCircle className="w-10 h-10 text-muted-label/80 mx-auto mb-3" />
+                      <p className="text-sm text-muted-label">No tickets yet</p>
+                      <p className="text-xs text-muted-label/80 mt-1">Create a new ticket for help</p>
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -177,7 +177,7 @@ export function SupportButton() {
                           key={t.id}
                           type="button"
                           onClick={() => openChat(t)}
-                          className="w-full text-left p-3 rounded-xl border border-zinc-800 hover:border-zinc-700 bg-zinc-900/50 hover:bg-zinc-800/50 transition-colors"
+                          className="w-full text-left p-3 rounded-xl border border-muted-label/40 hover:border-muted-label/30 bg-background/80/50 hover:bg-background/60/50 transition-colors"
                         >
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-sm font-medium text-white truncate">{t.subject}</span>
@@ -185,7 +185,7 @@ export function SupportButton() {
                               {t.status}
                             </span>
                           </div>
-                          <p className="text-xs text-zinc-500">{new Date(t.created_at).toLocaleDateString()}</p>
+                          <p className="text-xs text-muted-label">{new Date(t.created_at).toLocaleDateString()}</p>
                         </button>
                       ))}
                     </div>
@@ -199,20 +199,20 @@ export function SupportButton() {
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
                     placeholder="Subject..."
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500/50"
+                    className="w-full px-3 py-2 bg-background/60 border border-muted-label/30 rounded-lg text-sm text-white placeholder-muted-label focus:outline-none focus:border-warning/60/50"
                   />
                   <textarea
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     placeholder="Describe your issue..."
                     rows={4}
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500/50 resize-none"
+                    className="w-full px-3 py-2 bg-background/60 border border-muted-label/30 rounded-lg text-sm text-white placeholder-muted-label focus:outline-none focus:border-warning/60/50 resize-none"
                   />
                   <button
                     type="button"
                     onClick={createTicket}
                     disabled={sending || !subject.trim() || !message.trim()}
-                    className="w-full py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-zinc-700 text-white text-sm font-medium rounded-lg transition-colors"
+                    className="w-full py-2 bg-warning/70 hover:bg-warning/80 disabled:bg-background/40 text-white text-sm font-medium rounded-lg transition-colors"
                   >
                     {sending ? 'Sending...' : 'Submit Ticket'}
                   </button>
@@ -230,11 +230,11 @@ export function SupportButton() {
                     <div key={m.id} className={`flex ${m.sender_type === 'player' ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[80%] px-3 py-2 rounded-xl text-sm ${
                         m.sender_type === 'player'
-                          ? 'bg-amber-600/20 text-amber-100 border border-amber-500/20'
-                          : 'bg-zinc-800 text-zinc-200 border border-zinc-700'
+                          ? 'bg-warning/70/20 text-warning/30 border border-warning/60/20'
+                          : 'bg-background/60 text-subtle border border-muted-label/30'
                       }`}>
                         <p>{m.message}</p>
-                        <p className="text-[10px] text-zinc-500 mt-1">{new Date(m.created_at).toLocaleTimeString()}</p>
+                        <p className="text-[10px] text-muted-label mt-1">{new Date(m.created_at).toLocaleTimeString()}</p>
                       </div>
                     </div>
                   ))}
@@ -244,20 +244,20 @@ export function SupportButton() {
             </div>
 
             {view === 'chat' && selectedTicket?.status !== 'resolved' && (
-              <div className="p-3 border-t border-zinc-800 shrink-0">
+              <div className="p-3 border-t border-muted-label/40 shrink-0">
                 <div className="flex items-center gap-2">
                   <input
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') sendMessage(); }}
                     placeholder="Type a message..."
-                    className="flex-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500/50"
+                    className="flex-1 px-3 py-2 bg-background/60 border border-muted-label/30 rounded-lg text-sm text-white placeholder-muted-label focus:outline-none focus:border-warning/60/50"
                   />
                   <button
                     type="button"
                     onClick={sendMessage}
                     disabled={sending || !message.trim()}
-                    className="p-2 bg-amber-600 hover:bg-amber-700 disabled:bg-zinc-700 text-white rounded-lg transition-colors"
+                    className="p-2 bg-warning/70 hover:bg-warning/80 disabled:bg-background/40 text-white rounded-lg transition-colors"
                   >
                     <Send className="w-4 h-4" />
                   </button>

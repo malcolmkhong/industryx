@@ -37,16 +37,16 @@ interface UserRankInfo {
 // ─── Helpers ────────────────────────────────────────────────────────────
 
 const getRankBadgeColor = (rank: number) => {
-  if (rank === 1) return 'from-yellow-400 to-amber-600'; // Gold
-  if (rank === 2) return 'from-gray-300 to-gray-500'; // Silver
-  if (rank === 3) return 'from-amber-600 to-amber-800'; // Bronze
-  return 'from-gray-600 to-gray-700';
+  if (rank === 1) return 'from-warning/50 to-warning/70'; // Gold
+  if (rank === 2) return 'from-300-gray to-muted-label/40'; // Silver
+  if (rank === 3) return 'from-warning/70 to-warning/90'; // Bronze
+  return 'from-muted-label/30 to-muted-label/20';
 };
 
 const getRankBadgeBg = (rank: number) => {
   if (rank === 1) return 'bg-warning/20 border-warning/40';
-  if (rank === 2) return 'bg-gray-400/20 border-gray-400/40';
-  if (rank === 3) return 'bg-amber-600/20 border-amber-600/40';
+  if (rank === 2) return 'bg-muted-label/40/20 border-muted-label/30/40';
+  if (rank === 3) return 'bg-warning/20 border-warning/60/40';
   return 'bg-muted-label/50 border-muted-label/40';
 };
 
@@ -170,7 +170,7 @@ export default function LeaderboardPanel() {
           <Trophy className="w-5 h-5 text-warning" />
           <h2 className="text-xl font-bold text-warning neon-glow-cyan">LEADERBOARD</h2>
         </div>
-        <div className="rounded-lg border border-red-900/30 bg-card p-8 text-center">
+        <div className="rounded-lg border border-danger/40/30 bg-card p-8 text-center">
           <WifiOff className="w-8 h-8 text-danger mx-auto mb-3" />
           <p className="text-sm text-danger">{error}</p>
           <Button
@@ -224,7 +224,7 @@ export default function LeaderboardPanel() {
         <div className="rounded-lg border border-brand/30 bg-brand/10 p-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-xs font-bold text-white shadow-lg">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand to-success/80 flex items-center justify-center text-xs font-bold text-white shadow-lg">
                 #{userRank.bestRank}
               </div>
               <div>
@@ -244,7 +244,7 @@ export default function LeaderboardPanel() {
 
       {/* Not signed in notice */}
       {!user && (
-        <div className="rounded-lg border border-amber-900/30 bg-amber-900/10 p-3 flex items-center gap-2">
+        <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 flex items-center gap-2">
           <LogIn className="w-4 h-4 text-warning flex-shrink-0" />
           <div className="text-xs text-warning">
             Sign in to submit your score and compete on the global leaderboard. Prestige to record your run!
@@ -272,11 +272,11 @@ export default function LeaderboardPanel() {
                 key={entry.id}
                 className={`rounded-lg border ${
                   isCurrentUser
-                    ? 'bg-brand/15 border-brand/40 ring-1 ring-cyan-500/20'
+                    ? 'bg-brand/15 border-brand/40 ring-1 ring-brand/20'
                     : entry.rank <= 3
                       ? getRankBadgeBg(entry.rank)
                       : 'bg-card border-brand/20'
-                } ${isExpanded ? 'ring-1 ring-cyan-900/30' : ''}`}
+                } ${isExpanded ? 'ring-1 ring-brand/30' : ''}`}
               >
                 {/* Main Row */}
                 <button
@@ -296,7 +296,7 @@ export default function LeaderboardPanel() {
                         {entry.corporation_name}
                       </span>
                       {isCurrentUser && (
-                        <Badge variant="outline" className="text-[8px] px-1 py-0 border-brand/40 text-brand bg-brand/30">
+                        <Badge variant="outline" className="text-[11px] px-1 py-0 border-brand/40 text-brand bg-brand/30">
                           YOU
                         </Badge>
                       )}
@@ -340,37 +340,37 @@ export default function LeaderboardPanel() {
                   <div className="overflow-hidden">
                     <div className="px-3 pb-3 pt-0 border-t border-muted-label/50">
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
-                        <div className="bg-[#0a0e17] rounded-lg p-3">
+                        <div className="bg-background rounded-lg p-3">
                           <div className="text-[10px] text-muted-label flex items-center gap-1">
                             <Coins className="w-3 h-3 text-success" /> Money Earned
                           </div>
                           <div className="text-xs font-mono text-success">${formatNumber(entry.total_money_earned)}</div>
                         </div>
-                        <div className="bg-[#0a0e17] rounded-lg p-3">
+                        <div className="bg-background rounded-lg p-3">
                           <div className="text-[10px] text-muted-label flex items-center gap-1">
                             <Building2 className="w-3 h-3 text-brand" /> Buildings
                           </div>
                           <div className="text-xs font-mono text-brand">{entry.buildings_built}</div>
                         </div>
-                        <div className="bg-[#0a0e17] rounded-lg p-3">
+                        <div className="bg-background rounded-lg p-3">
                           <div className="text-[10px] text-muted-label flex items-center gap-1">
                             <FlaskConical className="w-3 h-3 text-research" /> Research
                           </div>
                           <div className="text-xs font-mono text-research">{entry.research_completed}</div>
                         </div>
-                        <div className="bg-[#0a0e17] rounded-lg p-3">
+                        <div className="bg-background rounded-lg p-3">
                           <div className="text-[10px] text-muted-label flex items-center gap-1">
                             <ScrollText className="w-3 h-3 text-danger" /> Contracts
                           </div>
                           <div className="text-xs font-mono text-danger">{entry.contracts_completed}</div>
                         </div>
-                        <div className="bg-[#0a0e17] rounded-lg p-3">
+                        <div className="bg-background rounded-lg p-3">
                           <div className="text-[10px] text-muted-label flex items-center gap-1">
                             <Clock className="w-3 h-3 text-warning" /> Play Time
                           </div>
                           <div className="text-xs font-mono text-warning">{formatPlayTime(entry.play_time_ticks)}</div>
                         </div>
-                        <div className="bg-[#0a0e17] rounded-lg p-3">
+                        <div className="bg-background rounded-lg p-3">
                           <div className="text-[10px] text-muted-label flex items-center gap-1">
                             <RotateCcw className="w-3 h-3 text-premium" /> Prestiges
                           </div>

@@ -4,8 +4,8 @@
    - Subheadings: text-xs font-medium
    - Labels: text-[10px] uppercase tracking-wider
    - Values: text-lg font-bold font-mono
-   - Badges: text-[8px] font-bold
-   - Micro: text-[7px] (chain badges only)
+   - Badges: text-[11px] font-bold
+   - Micro: text-[11px] (chain badges only)
 */
 
 /* z-index System:
@@ -78,27 +78,27 @@
   --color-industrial-hover: #1e3a5f;
 
   /* Semantic color tokens (05.1) — migrate hardcoded colors to these */
-  --color-success: #4ade80;        /* replaces text-green-400 */
-  --color-danger: #f87171;         /* replaces text-red-400 */
-  --color-warning: #facc15;        /* replaces text-yellow-400 / text-amber-400 */
-  --color-brand: #22d3ee;          /* replaces text-cyan-400 (matches text-primary) */
-  --color-muted-label: #94a3b8;    /* replaces text-gray-500 */
-  --color-subtle: #9ca3af;         /* replaces text-gray-400 */
-  --color-dim: #9ca3af;            /* replaces text-gray-600 */
-  --color-premium: #e879f9;        /* replaces text-fuchsia-400 (prestige) */
-  --color-research: #c084fc;       /* replaces text-purple-400 (research) */
+  --color-success: #4ade80;        /* replaces text-success */
+  --color-danger: #f87171;         /* replaces text-danger */
+  --color-warning: #facc15;        /* replaces text-warning / text-warning */
+  --color-brand: #22d3ee;          /* replaces text-brand (matches text-primary) */
+  --color-muted-label: #94a3b8;    /* replaces text-muted-label */
+  --color-subtle: #9ca3af;         /* replaces text-muted-label */
+  --color-dim: #9ca3af;            /* replaces text-muted-label/80 */
+  --color-premium: #e879f9;        /* replaces text-premium (prestige) */
+  --color-research: #c084fc;       /* replaces text-research (research) */
 
   /* Industrial + Domain token extensions (05.1 Groups 5-6) */
-  --color-industrial: #0ea5e9;      /* replaces text-blue-400, text-sky-400 (alias for --color-brand family) */
-  --color-domain: #fb923c;          /* replaces text-orange-400 (Tier 2, transport, events) */
-  --color-rose: #fb7185;            /* replaces text-rose-400 (danger-adjacent, pink-500+subtle) */
-  --color-fuchsia: #e879f9;        /* replaces text-fuchsia-400 (alias for --color-premium) */
-  --color-violet: #a78bfa;         /* replaces text-violet-400 (research-adjacent) */
-  --color-pink: #f472b6;           /* replaces text-pink-400 (prestige/expansion) */
-  --color-teal: #2dd4bf;           /* replaces text-teal-400 (research/variant) */
-  --color-sky: #38bdf8;            /* replaces text-sky-400 (industrial/variant) */
-  --color-indigo: #818cf8;         /* replaces text-indigo-400 (industrial/variant) */
-  --color-lime: #a3e635;           /* replaces text-lime-400 (success-adjacent) */
+  --color-industrial: #0ea5e9;      /* replaces text-domain/80, text-brand/80 (alias for --color-brand family) */
+  --color-domain: #fb923c;          /* replaces text-domain (Tier 2, transport, events) */
+  --color-rose: #fb7185;            /* replaces text-danger (danger-adjacent, pink-500+subtle) */
+  --color-fuchsia: #e879f9;        /* replaces text-premium (alias for --color-premium) */
+  --color-violet: #a78bfa;         /* replaces text-research (research-adjacent) */
+  --color-pink: #f472b6;           /* replaces text-premium (prestige/expansion) */
+  --color-teal: #2dd4bf;           /* replaces text-success/80 (research/variant) */
+  --color-sky: #38bdf8;            /* replaces text-brand/80 (industrial/variant) */
+  --color-indigo: #818cf8;         /* replaces text-research (industrial/variant) */
+  --color-lime: #a3e635;           /* replaces text-success (success-adjacent) */
 }
 
 :root {
@@ -1095,16 +1095,6 @@ body.reduce-motion *::after {
   .glow-button-cyan:hover {
     transform: none;
   }
-}
-
-/* ===== News Ticker Animation ===== */
-@keyframes tickerScroll {
-  0% { transform: translateX(100%); }
-  100% { transform: translateX(-100%); }
-}
-.news-ticker-content {
-  animation: tickerScroll 30s linear infinite;
-  white-space: nowrap;
 }
 
 /* ===== Notification Center Polish ===== */

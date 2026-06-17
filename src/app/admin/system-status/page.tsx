@@ -35,24 +35,24 @@ interface SystemStatusData {
 }
 
 const statusIcons: Record<string, React.ReactNode> = {
-  healthy: <CheckCircle2 className="w-4 h-4 text-emerald-400" />,
-  degraded: <AlertCircle className="w-4 h-4 text-amber-400" />,
-  down: <XCircle className="w-4 h-4 text-red-400" />,
-  unknown: <HelpCircle className="w-4 h-4 text-zinc-500" />,
+  healthy: <CheckCircle2 className="w-4 h-4 text-success" />,
+  degraded: <AlertCircle className="w-4 h-4 text-warning" />,
+  down: <XCircle className="w-4 h-4 text-danger/60" />,
+  unknown: <HelpCircle className="w-4 h-4 text-muted-label" />,
 };
 
 const statusColors: Record<string, string> = {
-  healthy: 'border-emerald-500/20 bg-emerald-500/5',
-  degraded: 'border-amber-500/20 bg-amber-500/5',
-  down: 'border-red-500/20 bg-red-500/5',
-  unknown: 'border-zinc-700 bg-zinc-800/30',
+  healthy: 'border-success/20 bg-success/5',
+  degraded: 'border-warning/60/20 bg-warning/60/5',
+  down: 'border-danger/20 bg-danger/5',
+  unknown: 'border-muted-label/30 bg-background/60/30',
 };
 
 const jobStatusBadge: Record<string, string> = {
-  ok: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  late: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  failed: 'bg-red-500/10 text-red-400 border-red-500/20',
-  unknown: 'bg-zinc-700/50 text-zinc-400 border-zinc-600/30',
+  ok: 'bg-success/10 text-success border-success/20',
+  late: 'bg-warning/60/10 text-warning border-warning/60/20',
+  failed: 'bg-danger/10 text-danger/60 border-danger/20',
+  unknown: 'bg-background/40/50 text-muted-label border-muted-label/20/30',
 };
 
 function formatUptime(seconds: number): string {
@@ -100,7 +100,7 @@ export default function SystemStatusPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-6 h-6 border-2 border-zinc-600 border-t-amber-500 rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-muted-label/20 border-t-warning/60 rounded-full animate-spin" />
       </div>
     );
   }
@@ -110,7 +110,7 @@ export default function SystemStatusPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-bold text-white">System Status</h2>
-          <p className="text-sm text-zinc-400 mt-1">
+          <p className="text-sm text-muted-label mt-1">
             Infrastructure health and connectivity monitoring
           </p>
         </div>
@@ -118,7 +118,7 @@ export default function SystemStatusPage() {
           type="button"
           onClick={fetchStatus}
           disabled={refreshing}
-          className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-white bg-zinc-800/50 hover:bg-zinc-700/50 rounded-lg transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-label hover:text-white bg-background/60/50 hover:bg-background/40/50 rounded-lg transition-colors disabled:opacity-50"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
           Refresh
@@ -131,32 +131,32 @@ export default function SystemStatusPage() {
           <div
             className={[
               'flex items-center gap-3 rounded-xl border p-4 mb-6',
-              data.status === 'healthy' ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-amber-500/20 bg-amber-500/5',
+              data.status === 'healthy' ? 'border-success/20 bg-success/5' : 'border-warning/60/20 bg-warning/60/5',
             ].join(' ')}
           >
             <div
               className={[
                 'w-3 h-3 rounded-full animate-pulse',
-                data.status === 'healthy' ? 'bg-emerald-400' : 'bg-amber-400',
+                data.status === 'healthy' ? 'bg-success/60' : 'bg-warning/50',
               ].join(' ')}
             />
             <div className="flex-1">
               <p className="text-sm font-semibold text-white capitalize">
                 System {data.status}
               </p>
-              <p className="text-xs text-zinc-400">
+              <p className="text-xs text-muted-label">
                 {data.summary.healthy} healthy · {data.summary.degraded} degraded · {data.summary.down} down
                 {data.summary.unknown > 0 && ` · ${data.summary.unknown} unknown`}
               </p>
             </div>
-            <div className="text-right text-xs text-zinc-500">
+            <div className="text-right text-xs text-muted-label">
               <div>Uptime {formatUptime(data.uptime)}</div>
               <div>Response {data.responseTimeMs}ms</div>
             </div>
           </div>
 
           {/* Services Grid */}
-          <h3 className="text-sm font-semibold text-zinc-300 mb-3">Services</h3>
+          <h3 className="text-sm font-semibold text-subtle mb-3">Services</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
             {data.services.map((svc) => (
               <div
@@ -167,9 +167,9 @@ export default function SystemStatusPage() {
                   <span className="text-sm font-medium text-white">{svc.name}</span>
                   {statusIcons[svc.status]}
                 </div>
-                <p className="text-xs text-zinc-400">{svc.detail || svc.status}</p>
+                <p className="text-xs text-muted-label">{svc.detail || svc.status}</p>
                 {svc.latencyMs !== undefined && (
-                  <p className="text-xs text-zinc-500 mt-1">{svc.latencyMs}ms latency</p>
+                  <p className="text-xs text-muted-label mt-1">{svc.latencyMs}ms latency</p>
                 )}
               </div>
             ))}
@@ -178,24 +178,24 @@ export default function SystemStatusPage() {
           {/* Jobs Table */}
           {data.jobs.length > 0 && (
             <>
-              <h3 className="text-sm font-semibold text-zinc-300 mb-3">Cron Jobs</h3>
-              <div className="overflow-x-auto rounded-xl border border-zinc-800 mb-6">
+              <h3 className="text-sm font-semibold text-subtle mb-3">Cron Jobs</h3>
+              <div className="overflow-x-auto rounded-xl border border-muted-label/40 mb-6">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-zinc-800">
-                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-zinc-400">Job</th>
-                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-zinc-400 hidden sm:table-cell">Schedule</th>
-                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-zinc-400">Last Run</th>
-                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-zinc-400">Status</th>
-                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-zinc-400 hidden md:table-cell">Detail</th>
+                    <tr className="border-b border-muted-label/40">
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-label">Job</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-label hidden sm:table-cell">Schedule</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-label">Last Run</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-label">Status</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-label hidden md:table-cell">Detail</th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.jobs.map((job) => (
-                      <tr key={job.name} className="border-b border-zinc-800/60 last:border-0">
+                      <tr key={job.name} className="border-b border-muted-label/40/60 last:border-0">
                         <td className="px-4 py-2.5 text-sm text-white">{job.name}</td>
-                        <td className="px-4 py-2.5 text-xs text-zinc-500 hidden sm:table-cell">{job.schedule}</td>
-                        <td className="px-4 py-2.5 text-xs text-zinc-400">
+                        <td className="px-4 py-2.5 text-xs text-muted-label hidden sm:table-cell">{job.schedule}</td>
+                        <td className="px-4 py-2.5 text-xs text-muted-label">
                           {formatLastRun(job.lastRun)}
                         </td>
                         <td className="px-4 py-2.5">
@@ -203,7 +203,7 @@ export default function SystemStatusPage() {
                             {job.status}
                           </span>
                         </td>
-                        <td className="px-4 py-2.5 text-xs text-zinc-500 hidden md:table-cell max-w-[200px] truncate">
+                        <td className="px-4 py-2.5 text-xs text-muted-label hidden md:table-cell max-w-[200px] truncate">
                           {job.detail}
                         </td>
                       </tr>
@@ -217,15 +217,15 @@ export default function SystemStatusPage() {
           {/* Alerts */}
           {data.alerts.length > 0 && (
             <>
-              <h3 className="text-sm font-semibold text-zinc-300 mb-3">Alerts</h3>
+              <h3 className="text-sm font-semibold text-subtle mb-3">Alerts</h3>
               <div className="space-y-2 mb-6">
                 {data.alerts.map((alert) => (
                   <div
                     key={alert}
-                    className="flex items-start gap-3 p-3 rounded-lg border border-amber-500/10 bg-amber-500/5"
+                    className="flex items-start gap-3 p-3 rounded-lg border border-warning/60/10 bg-warning/60/5"
                   >
-                    <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
-                    <p className="text-xs text-amber-300/80">{alert}</p>
+                    <AlertCircle className="w-4 h-4 text-warning mt-0.5 shrink-0" />
+                    <p className="text-xs text-warning/80/80">{alert}</p>
                   </div>
                 ))}
               </div>
@@ -233,7 +233,7 @@ export default function SystemStatusPage() {
           )}
 
           {/* Timestamp */}
-          <p className="text-xs text-zinc-600 text-right">
+          <p className="text-xs text-muted-label/80 text-right">
             Last checked: {new Date(data.timestamp).toLocaleString()}
           </p>
         </>

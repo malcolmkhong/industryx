@@ -191,7 +191,7 @@ export function BlueprintPanel() {
               value={importCode}
               onChange={e => setImportCode(e.target.value)}
               placeholder="Paste blueprint code here..."
-              className="flex-1 bg-[#0a0e17] border border-muted-label rounded-lg px-3 py-2 text-xs text-subtle focus:border-brand/50 focus:outline-none font-mono"
+              className="flex-1 bg-background border border-muted-label rounded-lg px-3 py-2 text-xs text-subtle focus:border-brand/50 focus:outline-none font-mono"
               onKeyDown={e => e.key === 'Enter' && handleImport()}
             />
             <Button
@@ -234,7 +234,7 @@ export function BlueprintPanel() {
             ) : (
               <>
                 {/* Current layout summary */}
-                <div className="bg-[#0a0e17] rounded-lg p-3 mb-3">
+                <div className="bg-background rounded-lg p-3 mb-3">
                   <div className="text-[10px] text-muted-label mb-2">Current Factory Layout</div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
                     <div>
@@ -297,7 +297,7 @@ export function BlueprintPanel() {
                     value={blueprintName}
                     onChange={e => setBlueprintName(e.target.value)}
                     placeholder={autoName}
-                    className="flex-1 bg-[#0a0e17] border border-muted-label rounded-lg px-3 py-2 text-xs text-subtle focus:border-brand/50 focus:outline-none placeholder:text-muted-label"
+                    className="flex-1 bg-background border border-muted-label rounded-lg px-3 py-2 text-xs text-subtle focus:border-brand/50 focus:outline-none placeholder:text-muted-label"
                     onKeyDown={e => e.key === 'Enter' && handleSave()}
                   />
                   <Button
@@ -338,7 +338,7 @@ export function BlueprintPanel() {
                   const comparison = isExpanded ? getComparison(bp.id) : null;
 
                   return (
-                    <div key={bp.id} className="bg-[#0a0e17] rounded-lg border border-muted-label hover:border-brand/40">
+                    <div key={bp.id} className="bg-background rounded-lg border border-muted-label hover:border-brand/40">
                       {/* Header row */}
                       <div className="flex items-center justify-between p-3">
                         <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -489,7 +489,7 @@ export function BlueprintPanel() {
 
                           {/* Comparison: Missing buildings */}
                           {comparison && comparison.missingBuildings.length > 0 && (
-                            <div className="bg-[#0a0e17] rounded-lg p-3 mb-3 border border-amber-900/20">
+                            <div className="bg-background rounded-lg p-3 mb-3 border border-warning/20">
                               <div className="text-[10px] text-warning font-medium mb-2 flex items-center gap-1">
                                 <AlertTriangle className="w-3 h-3" />
                                 Missing Buildings to Complete Layout
@@ -592,7 +592,7 @@ export function BlueprintPanel() {
             </div>
             <div className="space-y-2 max-h-80 overflow-y-auto game-scrollbar">
               {PRODUCTION_CHAINS.map((chain, i) => (
-                <div key={i} className="bg-[#0a0e17] rounded-lg p-2">
+                <div key={i} className="bg-background rounded-lg p-2">
                   <div className="text-[10px] text-subtle font-medium mb-1">{chain.name}</div>
                   <div className="flex items-center gap-1 flex-wrap">
                     {chain.steps.map((step, j) => (

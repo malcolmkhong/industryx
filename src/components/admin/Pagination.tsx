@@ -26,7 +26,7 @@ export function Pagination({ page, totalPages, onPageChange }: PaginationProps) 
 
   return (
     <div className="flex items-center justify-between pt-4">
-      <p className="text-xs text-zinc-500">
+      <p className="text-xs text-muted-label">
         Page {page} of {totalPages}
       </p>
       <div className="flex items-center gap-1">
@@ -34,13 +34,13 @@ export function Pagination({ page, totalPages, onPageChange }: PaginationProps) 
           type="button"
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
-          className="px-2.5 py-1.5 text-xs font-medium text-zinc-400 hover:text-white bg-zinc-800/50 hover:bg-zinc-700/50 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          className="px-2.5 py-1.5 text-xs font-medium text-muted-label hover:text-white bg-background/60/50 hover:bg-background/40/50 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
         >
           Prev
         </button>
         {pages.map((p, i) =>
           p === '...' ? (
-            <span key={`dots-${i}`} className="px-1.5 text-xs text-zinc-600">
+            <span key={`dots-${i}`} className="px-1.5 text-xs text-muted-label/80">
               ...
             </span>
           ) : (
@@ -51,8 +51,8 @@ export function Pagination({ page, totalPages, onPageChange }: PaginationProps) 
               className={[
                 'px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors',
                 p === page
-                  ? 'bg-amber-500/20 text-amber-400'
-                  : 'text-zinc-400 hover:text-white bg-zinc-800/50 hover:bg-zinc-700/50',
+                  ? 'bg-warning/60/20 text-warning'
+                  : 'text-muted-label hover:text-white bg-background/60/50 hover:bg-background/40/50',
               ].join(' ')}
             >
               {p}
@@ -63,7 +63,7 @@ export function Pagination({ page, totalPages, onPageChange }: PaginationProps) 
           type="button"
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages}
-          className="px-2.5 py-1.5 text-xs font-medium text-zinc-400 hover:text-white bg-zinc-800/50 hover:bg-zinc-700/50 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          className="px-2.5 py-1.5 text-xs font-medium text-muted-label hover:text-white bg-background/60/50 hover:bg-background/40/50 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
         >
           Next
         </button>

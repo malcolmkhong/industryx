@@ -26,7 +26,7 @@ function getRoleBadgeClasses(role: string): string {
     case "super_admin":
       return "bg-warning/15 text-warning border-warning/20";
     case "viewer":
-      return "bg-zinc-500/15 text-zinc-400 border-zinc-500/20";
+      return "bg-background/20/15 text-muted-label border-muted-label/10/20";
     default:
       return "bg-success/15 text-success border-success/20";
   }
@@ -50,7 +50,7 @@ function getSourceBadgeClasses(source: string): string {
     case "env+db":
       return "bg-brand/15 text-brand border-brand/20";
     default:
-      return "bg-zinc-500/15 text-zinc-400 border-zinc-500/20";
+      return "bg-background/20/15 text-muted-label border-muted-label/10/20";
   }
 }
 
@@ -256,7 +256,7 @@ export default function AdminManagementPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h2 className="text-white text-xl font-bold">Admin Users</h2>
-          <p className="text-zinc-500 text-sm mt-1">
+          <p className="text-muted-label text-sm mt-1">
             Manage admin access and roles for the IndustriaX Backend
           </p>
         </div>
@@ -284,7 +284,7 @@ export default function AdminManagementPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
+        <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-warning">
@@ -292,13 +292,13 @@ export default function AdminManagementPage() {
               </svg>
             </div>
             <div>
-              <p className="text-zinc-500 text-xs">Total Admins</p>
+              <p className="text-muted-label text-xs">Total Admins</p>
               <p className="text-white text-2xl font-bold">{totalAdmins}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
+        <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-success">
@@ -306,13 +306,13 @@ export default function AdminManagementPage() {
               </svg>
             </div>
             <div>
-              <p className="text-zinc-500 text-xs">Active Sessions</p>
+              <p className="text-muted-label text-xs">Active Sessions</p>
               <p className="text-white text-2xl font-bold">1</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-5">
+        <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-lg bg-domain/10 flex items-center justify-center">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-domain">
@@ -320,7 +320,7 @@ export default function AdminManagementPage() {
               </svg>
             </div>
             <div>
-              <p className="text-zinc-500 text-xs">Super Admins</p>
+              <p className="text-muted-label text-xs">Super Admins</p>
               <p className="text-white text-2xl font-bold">{superAdminCount}</p>
             </div>
           </div>
@@ -328,22 +328,22 @@ export default function AdminManagementPage() {
       </div>
 
       {/* Admin Users Table */}
-      <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl overflow-hidden">
+      <div className="bg-background/80/60 border border-muted-label/40 rounded-xl overflow-hidden">
         {dataLoading ? (
           <div className="p-8 space-y-3">
             {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-14 bg-zinc-800/50 rounded animate-pulse" />
+              <div key={i} className="h-14 bg-background/60/50 rounded animate-pulse" />
             ))}
           </div>
         ) : admins.length === 0 ? (
           <div className="p-12 text-center">
             <div className="text-3xl mb-3">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-zinc-600 mx-auto">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted-label/80 mx-auto">
                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
               </svg>
             </div>
-            <p className="text-zinc-400 text-sm mb-2">No admin users found</p>
-            <p className="text-zinc-600 text-xs">Add an admin user to get started.</p>
+            <p className="text-muted-label text-sm mb-2">No admin users found</p>
+            <p className="text-muted-label/80 text-xs">Add an admin user to get started.</p>
             <button
               onClick={() => setShowAddModal(true)}
               className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-warning/10 text-warning text-sm rounded-lg hover:bg-warning/20 transition-colors border border-warning/20"
@@ -358,13 +358,13 @@ export default function AdminManagementPage() {
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-zinc-800">
-                    <th className="px-4 py-3 text-left text-xs text-zinc-500 font-medium">User</th>
-                    <th className="px-4 py-3 text-left text-xs text-zinc-500 font-medium">User ID</th>
-                    <th className="px-4 py-3 text-left text-xs text-zinc-500 font-medium">Role</th>
-                    <th className="px-4 py-3 text-left text-xs text-zinc-500 font-medium">Source</th>
-                    <th className="px-4 py-3 text-left text-xs text-zinc-500 font-medium">Added</th>
-                    <th className="px-4 py-3 text-right text-xs text-zinc-500 font-medium">Actions</th>
+                  <tr className="border-b border-muted-label/40">
+                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">User</th>
+                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">User ID</th>
+                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Role</th>
+                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Source</th>
+                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Added</th>
+                    <th className="px-4 py-3 text-right text-xs text-muted-label font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -376,11 +376,11 @@ export default function AdminManagementPage() {
                     return (
                       <tr
                         key={admin.userId}
-                        className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors"
+                        className="border-b border-muted-label/40/50 hover:bg-background/60/30 transition-colors"
                       >
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center text-zinc-300 text-sm font-medium shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-background/40 flex items-center justify-center text-subtle text-sm font-medium shrink-0">
                               {(admin.email || "U")[0].toUpperCase()}
                             </div>
                             <div className="min-w-0">
@@ -399,12 +399,12 @@ export default function AdminManagementPage() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <code className="text-zinc-400 text-xs font-mono">
+                            <code className="text-muted-label text-xs font-mono">
                               {truncateUid(admin.userId)}
                             </code>
                             <button
                               onClick={() => copyToClipboard(admin.userId)}
-                              className="text-zinc-600 hover:text-zinc-300 transition-colors p-0.5 rounded"
+                              className="text-muted-label/80 hover:text-subtle transition-colors p-0.5 rounded"
                               title="Copy full ID"
                             >
                               {copiedId === admin.userId ? (
@@ -426,7 +426,7 @@ export default function AdminManagementPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="text-zinc-500 text-xs">
+                          <span className="text-muted-label text-xs">
                             {admin.createdAt
                               ? new Date(admin.createdAt).toLocaleDateString()
                               : "—"}
@@ -442,11 +442,11 @@ export default function AdminManagementPage() {
                               Remove
                             </button>
                           ) : isMe ? (
-                            <span className="text-zinc-600 text-xs">Current user</span>
+                            <span className="text-muted-label/80 text-xs">Current user</span>
                           ) : isEnv ? (
-                            <span className="text-zinc-600 text-xs">ENV-defined</span>
+                            <span className="text-muted-label/80 text-xs">ENV-defined</span>
                           ) : (
-                            <span className="text-zinc-600 text-xs">Protected</span>
+                            <span className="text-muted-label/80 text-xs">Protected</span>
                           )}
                         </td>
                       </tr>
@@ -457,7 +457,7 @@ export default function AdminManagementPage() {
             </div>
 
             {/* Mobile cards */}
-            <div className="md:hidden divide-y divide-zinc-800/50">
+            <div className="md:hidden divide-y divide-background/60/50">
               {admins.map((admin) => {
                 const isMe = isCurrentUser(admin);
                 const isEnv = isEnvAdmin(admin);
@@ -466,7 +466,7 @@ export default function AdminManagementPage() {
                 return (
                   <div key={admin.userId} className="p-4">
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-full bg-zinc-700 flex items-center justify-center text-zinc-300 text-sm font-medium shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-background/40 flex items-center justify-center text-subtle text-sm font-medium shrink-0">
                         {(admin.email || "U")[0].toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -484,12 +484,12 @@ export default function AdminManagementPage() {
                           </span>
                         </div>
                         <div className="flex items-center gap-2 mt-1.5">
-                          <code className="text-zinc-500 text-[10px] font-mono truncate">
+                          <code className="text-muted-label text-[10px] font-mono truncate">
                             {truncateUid(admin.userId, 6)}
                           </code>
                           <button
                             onClick={() => copyToClipboard(admin.userId)}
-                            className="text-zinc-600 hover:text-zinc-300 transition-colors p-0.5"
+                            className="text-muted-label/80 hover:text-subtle transition-colors p-0.5"
                           >
                             {copiedId === admin.userId ? (
                               <span className="text-success"><IconCheck /></span>
@@ -503,7 +503,7 @@ export default function AdminManagementPage() {
                             {admin.source === "env" ? "ENV" : admin.source === "env+db" ? "ENV+DB" : "Database"}
                           </span>
                           {admin.createdAt && (
-                            <span className="text-zinc-600 text-[10px]">
+                            <span className="text-muted-label/80 text-[10px]">
                               Added {new Date(admin.createdAt).toLocaleDateString()}
                             </span>
                           )}
@@ -530,8 +530,8 @@ export default function AdminManagementPage() {
       {/* ─── Add Admin Modal ──────────────────────────────────────────────── */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800">
+          <div className="bg-background/80 border border-muted-label/40 rounded-xl w-full max-w-md shadow-2xl">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-muted-label/40">
               <h3 className="text-white font-semibold">Add Admin User</h3>
               <button
                 onClick={() => {
@@ -540,7 +540,7 @@ export default function AdminManagementPage() {
                   setFormEmail("");
                   setFormRole("admin");
                 }}
-                className="text-zinc-400 hover:text-white transition-colors p-1"
+                className="text-muted-label hover:text-white transition-colors p-1"
               >
                 <IconX />
               </button>
@@ -548,7 +548,7 @@ export default function AdminManagementPage() {
 
             <div className="p-5 space-y-4">
               <div>
-                <label className="block text-zinc-400 text-xs font-medium mb-1.5">
+                <label className="block text-muted-label text-xs font-medium mb-1.5">
                   User UUID <span className="text-danger">*</span>
                 </label>
                 <input
@@ -556,15 +556,15 @@ export default function AdminManagementPage() {
                   placeholder="e.g. 550e8400-e29b-41d4-a716-446655440000"
                   value={formUserId}
                   onChange={(e) => setFormUserId(e.target.value)}
-                  className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors font-mono"
+                  className="w-full bg-background/60/80 border border-muted-label/30 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-muted-label/80 focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors font-mono"
                 />
-                <p className="text-zinc-600 text-[10px] mt-1">
+                <p className="text-muted-label/80 text-[10px] mt-1">
                   The Supabase Auth user ID (UUID format)
                 </p>
               </div>
 
               <div>
-                <label className="block text-zinc-400 text-xs font-medium mb-1.5">
+                <label className="block text-muted-label text-xs font-medium mb-1.5">
                   Email <span className="text-danger">*</span>
                 </label>
                 <input
@@ -572,18 +572,18 @@ export default function AdminManagementPage() {
                   placeholder="user@example.com"
                   value={formEmail}
                   onChange={(e) => setFormEmail(e.target.value)}
-                  className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
+                  className="w-full bg-background/60/80 border border-muted-label/30 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-muted-label/80 focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-zinc-400 text-xs font-medium mb-1.5">
+                <label className="block text-muted-label text-xs font-medium mb-1.5">
                   Role
                 </label>
                 <select
                   value={formRole}
                   onChange={(e) => setFormRole(e.target.value)}
-                  className="w-full bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors appearance-none"
+                  className="w-full bg-background/60/80 border border-muted-label/30 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors appearance-none"
                   style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2'%3e%3cpath d='m6 9 6 6 6-6'/%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
                 >
                   <option value="admin">Admin</option>
@@ -593,21 +593,21 @@ export default function AdminManagementPage() {
                 <div className="flex gap-3 mt-2">
                   <div className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-success" />
-                    <span className="text-zinc-500 text-[10px]">Admin — Full access</span>
+                    <span className="text-muted-label text-[10px]">Admin — Full access</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-warning" />
-                    <span className="text-zinc-500 text-[10px]">Super — Can manage admins</span>
+                    <span className="text-muted-label text-[10px]">Super — Can manage admins</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-zinc-400" />
-                    <span className="text-zinc-500 text-[10px]">Viewer — Read only</span>
+                    <span className="w-2 h-2 rounded-full bg-background/10" />
+                    <span className="text-muted-label text-[10px]">Viewer — Read only</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-zinc-800">
+            <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-muted-label/40">
               <button
                 onClick={() => {
                   setShowAddModal(false);
@@ -615,7 +615,7 @@ export default function AdminManagementPage() {
                   setFormEmail("");
                   setFormRole("admin");
                 }}
-                className="px-4 py-2 text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
+                className="px-4 py-2 text-sm text-muted-label hover:text-white hover:bg-background/60 rounded-lg transition-colors"
               >
                 Cancel
               </button>
@@ -644,7 +644,7 @@ export default function AdminManagementPage() {
       {/* ─── Remove Confirmation Modal ────────────────────────────────────── */}
       {removeTarget && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-sm shadow-2xl">
+          <div className="bg-background/80 border border-muted-label/40 rounded-xl w-full max-w-sm shadow-2xl">
             <div className="p-6 text-center">
               <div className="w-12 h-12 rounded-full bg-danger/10 flex items-center justify-center mx-auto mb-4">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger">
@@ -652,17 +652,17 @@ export default function AdminManagementPage() {
                 </svg>
               </div>
               <h3 className="text-white font-semibold text-lg mb-2">Remove Admin</h3>
-              <p className="text-zinc-400 text-sm mb-1">
+              <p className="text-muted-label text-sm mb-1">
                 Are you sure you want to remove this admin?
               </p>
-              <p className="text-zinc-500 text-xs">
+              <p className="text-muted-label text-xs">
                 {removeTarget.email || removeTarget.userId}
               </p>
             </div>
             <div className="flex items-center justify-center gap-3 px-6 pb-6">
               <button
                 onClick={() => setRemoveTarget(null)}
-                className="px-4 py-2 text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors border border-zinc-700"
+                className="px-4 py-2 text-sm text-muted-label hover:text-white hover:bg-background/60 rounded-lg transition-colors border border-muted-label/30"
               >
                 Cancel
               </button>

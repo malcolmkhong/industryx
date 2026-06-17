@@ -10,7 +10,7 @@ export function AdminEmptyState({ icon, title, description, action }: AdminEmpty
     <div className="flex flex-col items-center justify-center py-16 px-4">
       {icon || (
         <svg
-          className="w-10 h-10 text-zinc-600 mb-4"
+          className="w-10 h-10 text-muted-label/80 mb-4"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -23,8 +23,8 @@ export function AdminEmptyState({ icon, title, description, action }: AdminEmpty
           />
         </svg>
       )}
-      <h3 className="text-sm font-medium text-zinc-400 mb-1">{title}</h3>
-      {description && <p className="text-xs text-zinc-500 max-w-sm text-center">{description}</p>}
+      <h3 className="text-sm font-medium text-muted-label mb-1">{title}</h3>
+      {description && <p className="text-xs text-muted-label max-w-sm text-center">{description}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>
   );

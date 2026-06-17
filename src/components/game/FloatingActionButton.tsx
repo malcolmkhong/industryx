@@ -482,11 +482,11 @@ export function FloatingActionButton({ onTabChange }: FloatingActionButtonProps)
             className={`
               relative flex items-center justify-center
               rounded-full
-              bg-gradient-to-br from-cyan-500 to-teal-600
+              bg-gradient-to-br from-brand to-success/80
               shadow-[0_0_20px_rgba(0,255,242,0.3)]
               cursor-grab active:cursor-grabbing
               select-none touch-none
-              focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0e17]
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0e17]
             `}
             style={{
               width: FAB_SIZE,

@@ -77,11 +77,11 @@ export default function ComparePage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-bold text-white">Compare Players</h2>
-          <p className="text-sm text-zinc-400 mt-1">Side-by-side comparison of up to 4 players</p>
+          <p className="text-sm text-muted-label mt-1">Side-by-side comparison of up to 4 players</p>
         </div>
       </div>
 
-      <div className="border border-zinc-800 rounded-xl p-4 mb-6 bg-zinc-900/50">
+      <div className="border border-muted-label/40 rounded-xl p-4 mb-6 bg-background/80/50">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
           {ids.map((id, i) => (
             <input
@@ -89,16 +89,16 @@ export default function ComparePage() {
               value={id}
               onChange={(e) => updateId(i, e.target.value)}
               placeholder={`Player ${i + 1} UUID...`}
-              className="px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-xs text-white placeholder-zinc-500 font-mono focus:outline-none focus:border-amber-500/50"
+              className="px-3 py-2 bg-background/60 border border-muted-label/30 rounded-lg text-xs text-white placeholder-muted-label font-mono focus:outline-none focus:border-warning/60/50"
             />
           ))}
         </div>
-        {error && <p className="text-xs text-red-400 mb-2">{error}</p>}
+        {error && <p className="text-xs text-danger mb-2">{error}</p>}
         <button
           type="button"
           onClick={compare}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-zinc-700 text-white text-sm font-medium rounded-lg transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-warning/70 hover:bg-warning/80 disabled:bg-background/40 text-white text-sm font-medium rounded-lg transition-colors"
         >
           <GitCompare className="w-4 h-4" />
           {loading ? 'Comparing...' : 'Compare'}
@@ -106,13 +106,13 @@ export default function ComparePage() {
       </div>
 
       {players.length >= 2 && (
-        <div className="overflow-x-auto rounded-xl border border-zinc-800">
+        <div className="overflow-x-auto rounded-xl border border-muted-label/40">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-zinc-800">
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-zinc-400 w-32">Metric</th>
+              <tr className="border-b border-muted-label/40">
+                <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-label w-32">Metric</th>
                 {players.map((p) => (
-                  <th key={p.userId} className="text-right px-4 py-2.5 text-xs font-semibold text-zinc-400">
+                  <th key={p.userId} className="text-right px-4 py-2.5 text-xs font-semibold text-muted-label">
                     {p.displayName}
                   </th>
                 ))}
@@ -120,8 +120,8 @@ export default function ComparePage() {
             </thead>
             <tbody>
               {METRICS.map((m) => (
-                <tr key={m.key} className="border-b border-zinc-800/60 last:border-0 hover:bg-zinc-800/30">
-                  <td className="px-4 py-2 text-zinc-400">{m.label}</td>
+                <tr key={m.key} className="border-b border-muted-label/40/60 last:border-0 hover:bg-background/60/30">
+                  <td className="px-4 py-2 text-muted-label">{m.label}</td>
                   {players.map((p) => {
                     const val = p[m.key];
                     const isHighest = players.every(
@@ -130,7 +130,7 @@ export default function ComparePage() {
                     return (
                       <td
                         key={p.userId}
-                        className={`px-4 py-2 text-right font-mono ${isHighest && typeof val === 'number' ? 'text-amber-400' : 'text-white'}`}
+                        className={`px-4 py-2 text-right font-mono ${isHighest && typeof val === 'number' ? 'text-warning' : 'text-white'}`}
                       >
                         {m.format(val)}
                       </td>
@@ -145,8 +145,8 @@ export default function ComparePage() {
 
       {!loading && players.length === 0 && !error && (
         <div className="flex flex-col items-center justify-center py-16">
-          <Users className="w-10 h-10 text-zinc-600 mb-4" />
-          <p className="text-sm text-zinc-400">Enter player UUIDs above to compare</p>
+          <Users className="w-10 h-10 text-muted-label/80 mb-4" />
+          <p className="text-sm text-muted-label">Enter player UUIDs above to compare</p>
         </div>
       )}
     </>

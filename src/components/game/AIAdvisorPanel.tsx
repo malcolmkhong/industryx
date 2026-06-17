@@ -41,9 +41,9 @@ interface Recommendation {
 // --- Priority Config ---
 const PRIORITY_CONFIG: Record<Priority, { label: string; color: string; bgColor: string; hoverBg: string; borderColor: string; glowColor: string; dotColor: string }> = {
   critical: { label: 'CRITICAL', color: 'text-danger', bgColor: 'bg-danger/20', hoverBg: 'hover:bg-danger/30', borderColor: 'border-danger/40', glowColor: 'rgba(248,113,113,0.15)', dotColor: 'bg-danger' },
-  important: { label: 'IMPORTANT', color: 'text-warning', bgColor: 'bg-amber-900/20', hoverBg: 'hover:bg-amber-900/30', borderColor: 'border-warning/40', glowColor: 'rgba(251,191,36,0.12)', dotColor: 'bg-warning' },
+  important: { label: 'IMPORTANT', color: 'text-warning', bgColor: 'bg-warning/20', hoverBg: 'hover:bg-warning/30', borderColor: 'border-warning/40', glowColor: 'rgba(251,191,36,0.12)', dotColor: 'bg-warning' },
   suggested: { label: 'SUGGESTED', color: 'text-brand', bgColor: 'bg-brand/20', hoverBg: 'hover:bg-brand/30', borderColor: 'border-brand/40', glowColor: 'rgba(34,211,238,0.10)', dotColor: 'bg-brand' },
-  optional: { label: 'OPTIONAL', color: 'text-subtle', bgColor: 'bg-muted-label/20', hoverBg: 'hover:bg-muted-label/30', borderColor: 'border-muted-label/40', glowColor: 'rgba(156,163,175,0.08)', dotColor: 'bg-gray-400' },
+  optional: { label: 'OPTIONAL', color: 'text-subtle', bgColor: 'bg-muted-label/20', hoverBg: 'hover:bg-muted-label/30', borderColor: 'border-muted-label/40', glowColor: 'rgba(156,163,175,0.08)', dotColor: 'bg-muted-label/40' },
 };
 
 // --- Helper: find building that produces a resource ---
@@ -206,14 +206,14 @@ function HealthBar({ label, value, color, barColor }: { label: string; value: nu
   const pct = Math.round(value);
   return (
     <div className="flex items-center gap-1.5">
-      <span className={`text-[8px] ${color} w-[52px] text-right font-medium`}>{label}</span>
+      <span className={`text-[11px] ${color} w-[52px] text-right font-medium`}>{label}</span>
       <div className="flex-1 h-1.5 bg-muted-label rounded-full overflow-hidden">
         <div
           className={`h-full ${barColor} rounded-full transition-all duration-500`}
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className={`text-[8px] ${color} font-mono w-6`}>{pct}</span>
+      <span className={`text-[11px] ${color} font-mono w-6`}>{pct}</span>
     </div>
   );
 }
@@ -331,7 +331,7 @@ function RecommendationCard({
 // --- Quick Stat Card ---
 function QuickStatCard({ icon: Icon, label, value, color, subtext }: { icon: React.ElementType; label: string; value: string; color: string; subtext?: string }) {
   return (
-    <div className="bg-[#0a0e17] rounded-lg border border-brand/20 p-3 flex flex-col gap-1">
+    <div className="bg-background rounded-lg border border-brand/20 p-3 flex flex-col gap-1">
       <div className="flex items-center gap-1.5">
         <Icon className={`w-3.5 h-3.5 ${color}`} />
         <span className="text-[10px] text-muted-label uppercase tracking-wider">{label}</span>
@@ -1095,7 +1095,7 @@ export default function AIAdvisorPanel() {
       {/* Health Score + Quick Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-4">
         {/* Health Score */}
-        <Card className="bg-[#0a0e17] border border-brand/20">
+        <Card className="bg-background border border-brand/20">
           <CardContent className="p-4 flex items-center justify-center">
             <HealthGauge score={healthScore} breakdown={healthBreakdown} />
           </CardContent>
@@ -1136,7 +1136,7 @@ export default function AIAdvisorPanel() {
 
       {/* Production Chain Status */}
       {uniqueChainStatuses.length > 0 && (
-        <Card className="bg-[#0a0e17] border border-brand/20">
+        <Card className="bg-background border border-brand/20">
           <CardHeader className="pb-2 pt-3 px-4">
             <CardTitle className="text-sm font-semibold text-subtle flex items-center gap-2">
               <Link2 className="w-3.5 h-3.5 text-brand" />
@@ -1175,7 +1175,7 @@ export default function AIAdvisorPanel() {
         </h3>
 
         {visibleRecommendations.length === 0 ? (
-          <Card className="bg-[#0a0e17] border border-brand/20">
+          <Card className="bg-background border border-brand/20">
             <CardContent className="p-6 text-center">
               <div className="text-3xl mb-2"><GameIcon icon="gi:check-mark" size={28} /></div>
               <p className="text-sm text-subtle font-medium">All systems operational!</p>

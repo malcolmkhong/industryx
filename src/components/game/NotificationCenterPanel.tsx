@@ -11,10 +11,10 @@ import { GameIcon } from '@/components/game/shared/GameIcon';
 type NotificationFilter = 'all' | 'success' | 'warning' | 'error' | 'info';
 
 const typeColors = {
-  success: { border: 'border-l-green-500', bg: 'bg-success/10', text: 'text-success', icon: 'lucide:check' },
-  warning: { border: 'border-l-yellow-500', bg: 'bg-yellow-900/10', text: 'text-warning', icon: 'lucide:alert-triangle' },
-  error: { border: 'border-l-red-500', bg: 'bg-danger/10', text: 'text-danger', icon: 'lucide:x' },
-  info: { border: 'border-l-cyan-500', bg: 'bg-brand/10', text: 'text-brand', icon: 'lucide:info' },
+  success: { border: 'border-l-success', bg: 'bg-success/10', text: 'text-success', icon: 'lucide:check' },
+  warning: { border: 'border-l-warning/50', bg: 'bg-warning/10', text: 'text-warning', icon: 'lucide:alert-triangle' },
+  error: { border: 'border-l-danger', bg: 'bg-danger/10', text: 'text-danger', icon: 'lucide:x' },
+  info: { border: 'border-l-brand', bg: 'bg-brand/10', text: 'text-brand', icon: 'lucide:info' },
 };
 
 interface NotificationItemProps {
@@ -129,7 +129,7 @@ export function NotificationCenterPanel() {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 text-[10px] border-red-900/50 text-danger hover:bg-danger/30"
+                className="h-7 text-[10px] border-danger/40/50 text-danger hover:bg-danger/30"
                 onClick={() => store.clearNotifications()}
               >
                 <Trash2 className="w-3 h-3 mr-1" /> Clear All
@@ -145,11 +145,11 @@ export function NotificationCenterPanel() {
           <div className="text-lg font-bold text-success">{successCount}</div>
           <div className="text-[9px] text-muted-label">Success</div>
         </div>
-        <div className="bg-card/50 border border-yellow-900/30 rounded-lg p-3 text-center">
+        <div className="bg-card/50 border border-warning/30 rounded-lg p-3 text-center">
           <div className="text-lg font-bold text-warning">{warningCount}</div>
           <div className="text-[9px] text-muted-label">Warnings</div>
         </div>
-        <div className="bg-card/50 border border-red-900/30 rounded-lg p-3 text-center">
+        <div className="bg-card/50 border border-danger/40/30 rounded-lg p-3 text-center">
           <div className="text-lg font-bold text-danger">{errorCount}</div>
           <div className="text-[9px] text-muted-label">Errors</div>
         </div>

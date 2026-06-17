@@ -56,7 +56,6 @@ function ensureLoaded() {
           addCollection(data);
           loaded = true;
           notifyAll();
-          console.log(`[IconPreloader] Loaded ${Object.keys(data.icons).length} icons with prefix "${data.prefix}"`);
           return;
         }
       } catch (error) {
@@ -92,7 +91,7 @@ export function IconPreloader({ children }: { children: React.ReactNode }) {
 
   if (!isReady) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0e17]">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
           <p className="text-sm text-subtle">Loading icons...</p>

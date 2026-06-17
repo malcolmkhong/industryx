@@ -124,7 +124,6 @@ export function GameConfigProvider({ children }: { children: React.ReactNode }) 
         setLastUpdated(cachedConfig.loadedAt);
         setVersion(v => v + 1);
         setLoading(false);
-        console.log('[GameConfigProvider] Loaded from cache:', Object.keys(cachedConfig.buildings).length, 'buildings');
 
         // Still fetch fresh data in background (stale-while-revalidate)
         fetchFreshConfig().then(freshConfig => {
@@ -189,7 +188,6 @@ export function GameConfigProvider({ children }: { children: React.ReactNode }) 
             loadedAt: Date.now(),
             source: 'supabase',
           };
-          console.log('[GameConfigProvider] Fetched fresh config:', Object.keys(defsData.buildings).length, 'buildings');
           return supabaseConfig;
         }
       }

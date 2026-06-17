@@ -42,10 +42,10 @@ export function AdminNavigationTree() {
 
   return (
     <aside
-      className="fixed left-0 top-0 bottom-0 z-40 flex flex-col bg-zinc-950/95 backdrop-blur-xl border-r border-zinc-800/60 transition-all duration-200 overflow-hidden"
+      className="fixed left-0 top-0 bottom-0 z-40 flex flex-col bg-background/95 backdrop-blur-xl border-r border-muted-label/40/60 transition-all duration-200 overflow-hidden"
       style={{ width: collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_WIDTH }}
     >
-      <div className="flex items-center justify-between h-14 px-3 border-b border-zinc-800/60 shrink-0">
+      <div className="flex items-center justify-between h-14 px-3 border-b border-muted-label/40/60 shrink-0">
         {!collapsed && (
           <span className="text-sm font-bold text-white tracking-tight truncate">
             IndustriaX
@@ -56,7 +56,7 @@ export function AdminNavigationTree() {
           onClick={toggleCollapsed}
           className={[
             'flex items-center justify-center w-7 h-7 rounded-md transition-colors',
-            'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/60',
+            'text-muted-label hover:text-subtle hover:bg-background/60/60',
             collapsed ? 'mx-auto' : '',
           ].join(' ')}
         >
@@ -88,11 +88,11 @@ export function AdminNavigationTree() {
         ))}
       </nav>
 
-      <div className="border-t border-zinc-800/60 p-2 shrink-0">
+      <div className="border-t border-muted-label/40/60 p-2 shrink-0">
         <a
           href="/"
           className={[
-            'flex items-center gap-2.5 h-8 rounded-md transition-colors text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/40',
+            'flex items-center gap-2.5 h-8 rounded-md transition-colors text-muted-label hover:text-subtle hover:bg-background/60/40',
             collapsed ? 'justify-center px-0' : 'px-3',
           ].join(' ')}
         >

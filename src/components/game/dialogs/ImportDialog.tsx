@@ -47,7 +47,7 @@ export function ImportDialog({
               setImportError('');
             }}
             placeholder="Paste your save string here..."
-            className="bg-[#0a0e17] border-brand/20 text-xs font-mono text-subtle min-h-24 lg:min-h-32 max-h-36 lg:max-h-48 game-scrollbar placeholder:text-muted-label"
+            className="bg-background border-brand/20 text-xs font-mono text-subtle min-h-24 lg:min-h-32 max-h-36 lg:max-h-48 game-scrollbar placeholder:text-muted-label"
           />
           {importError && (
             <p className="text-xs text-danger flex items-center gap-1">
@@ -57,7 +57,7 @@ export function ImportDialog({
           <div className="flex items-center gap-2">
             <Button
               onClick={onImport}
-              className="flex-1 bg-amber-600 hover:bg-amber-700 text-white min-h-[44px] lg:min-h-0"
+              className="flex-1 bg-warning/70 hover:bg-warning/80 text-white min-h-[44px] lg:min-h-0"
               size="sm"
             >
               <Upload className="w-3.5 h-3.5 mr-1" /> Import Save

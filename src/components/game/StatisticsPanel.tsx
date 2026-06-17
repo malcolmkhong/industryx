@@ -435,7 +435,7 @@ export default function StatisticsPanel() {
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Money Chart */}
-        <div className="bg-[#0a0e17] rounded-lg border border-brand/20 p-4">
+        <div className="bg-background rounded-lg border border-brand/20 p-4">
           <h3 className="text-sm font-semibold text-success flex items-center gap-1.5 mb-3">
             <DollarSign className="w-4 h-4" />
             Money Accumulation
@@ -453,7 +453,7 @@ export default function StatisticsPanel() {
         </div>
 
         {/* Power Chart */}
-        <div className="bg-[#0a0e17] rounded-lg border border-brand/20 p-4">
+        <div className="bg-background rounded-lg border border-brand/20 p-4">
           <h3 className="text-sm font-semibold text-warning flex items-center gap-1.5 mb-3">
             <Zap className="w-4 h-4" />
             Power Grid
@@ -469,7 +469,7 @@ export default function StatisticsPanel() {
         </div>
 
         {/* Efficiency Chart */}
-        <div className="bg-[#0a0e17] rounded-lg border border-brand/20 p-4">
+        <div className="bg-background rounded-lg border border-brand/20 p-4">
           <h3 className="text-sm font-semibold text-brand flex items-center gap-1.5 mb-3">
             <Activity className="w-4 h-4" />
             Efficiency Timeline
@@ -484,7 +484,7 @@ export default function StatisticsPanel() {
         </div>
 
         {/* Top Resource Production Chart */}
-        <div className="bg-[#0a0e17] rounded-lg border border-brand/20 p-4">
+        <div className="bg-background rounded-lg border border-brand/20 p-4">
           <h3 className="text-sm font-semibold text-brand flex items-center gap-1.5 mb-3">
             <TrendingUp className="w-4 h-4" />
             Top Resources Over Time
@@ -557,7 +557,7 @@ export default function StatisticsPanel() {
       </div>
 
       {/* Resource Summary Table */}
-      <div className="bg-[#0a0e17] rounded-lg border border-brand/20 p-4">
+      <div className="bg-background rounded-lg border border-brand/20 p-4">
         <h3 className="text-sm font-semibold text-brand mb-3">Resource Summary</h3>
         <div className="max-h-96 overflow-y-auto game-scrollbar">
           <table className="w-full text-xs">
@@ -624,15 +624,15 @@ export default function StatisticsPanel() {
 
       {/* Quick Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-[#0a0e17] rounded-lg border border-brand/20 p-3">
+        <div className="bg-background rounded-lg border border-brand/20 p-3">
           <p className="text-[10px] text-muted-label uppercase tracking-wider">Current Money</p>
           <p className="text-sm font-bold text-success font-mono">${formatNumber(store.money)}</p>
         </div>
-        <div className="bg-[#0a0e17] rounded-lg border border-brand/20 p-3">
+        <div className="bg-background rounded-lg border border-brand/20 p-3">
           <p className="text-[10px] text-muted-label uppercase tracking-wider">Total Earned</p>
           <p className="text-sm font-bold text-success font-mono">${formatNumber(store.totalMoneyEarned)}</p>
         </div>
-        <div className="bg-[#0a0e17] rounded-lg border border-brand/20 p-3">
+        <div className="bg-background rounded-lg border border-brand/20 p-3">
           <p className="text-[10px] text-muted-label uppercase tracking-wider">Power Efficiency</p>
           <p className={`text-sm font-bold font-mono ${
             store.powerGrid.efficiency >= 0.8 ? 'text-success' :
@@ -641,7 +641,7 @@ export default function StatisticsPanel() {
             {(store.powerGrid.efficiency * 100).toFixed(1)}%
           </p>
         </div>
-        <div className="bg-[#0a0e17] rounded-lg border border-brand/20 p-3">
+        <div className="bg-background rounded-lg border border-brand/20 p-3">
           <p className="text-[10px] text-muted-label uppercase tracking-wider">Peak Efficiency</p>
           <p className="text-sm font-bold text-brand font-mono">{(store.stats.peakEfficiency * 100).toFixed(1)}%</p>
         </div>

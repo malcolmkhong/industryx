@@ -515,14 +515,14 @@ export default function ConfigTablesPage() {
       {/* ─── Table List Sidebar ────────────────────────────────────────── */}
       <aside className={`
         fixed md:static inset-y-0 left-0 z-20 md:z-auto
-        w-64 md:w-56 bg-zinc-900/95 md:bg-zinc-900/50 border-r border-zinc-800
+        w-64 md:w-56 bg-background/80/95 md:bg-background/80/50 border-r border-muted-label/40
         flex flex-col shrink-0 transition-transform duration-200
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
         pt-14 md:pt-0
       `}>
         {/* Mobile menu button */}
         <button
-          className="md:hidden fixed top-3 left-3 z-30 text-zinc-400 hover:text-white p-1 bg-zinc-900/80 rounded"
+          className="md:hidden fixed top-3 left-3 z-30 text-muted-label hover:text-white p-1 bg-background/80/80 rounded"
           onClick={() => setSidebarOpen(!sidebarOpen)}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -535,13 +535,13 @@ export default function ConfigTablesPage() {
           {tableListLoading ? (
             <div className="space-y-2">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-8 bg-zinc-800/50 rounded animate-pulse" />
+                <div key={i} className="h-8 bg-background/60/50 rounded animate-pulse" />
               ))}
             </div>
           ) : (
             categories.map((cat) => (
               <div key={cat.name}>
-                <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1.5 px-2">
+                <p className="text-[10px] text-muted-label uppercase tracking-wider mb-1.5 px-2">
                   {cat.name}
                 </p>
                 <div className="space-y-0.5">
@@ -552,7 +552,7 @@ export default function ConfigTablesPage() {
                       className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs transition-all ${
                         selectedTable === table.id
                           ? "bg-warning/10 text-warning border border-warning/20"
-                          : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60"
+                          : "text-muted-label hover:text-subtle hover:bg-background/60/60"
                       }`}
                     >
                       <span className="text-sm">{table.icon}</span>
@@ -560,7 +560,7 @@ export default function ConfigTablesPage() {
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
                         selectedTable === table.id
                           ? "bg-warning/20 text-warning"
-                          : "bg-zinc-800 text-zinc-500"
+                          : "bg-background/60 text-muted-label"
                       }`}>
                         {table.rowCount >= 0 ? table.rowCount : "?"}
                       </span>
@@ -573,11 +573,11 @@ export default function ConfigTablesPage() {
         </div>
 
         {/* Phase indicator */}
-        <div className="p-3 border-t border-zinc-800">
-          <div className="p-3 bg-zinc-800/50 rounded-lg">
-            <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Phase</p>
+        <div className="p-3 border-t border-muted-label/40">
+          <div className="p-3 bg-background/60/50 rounded-lg">
+            <p className="text-[10px] text-muted-label uppercase tracking-wider mb-1">Phase</p>
             <p className="text-xs text-warning font-medium">Phase 3 — Admin & Moderation</p>
-            <div className="mt-2 w-full bg-zinc-700 rounded-full h-1.5">
+            <div className="mt-2 w-full bg-background/40 rounded-full h-1.5">
               <div className="bg-warning h-1.5 rounded-full" style={{ width: "80%" }} />
             </div>
           </div>
@@ -591,7 +591,7 @@ export default function ConfigTablesPage() {
             <div className="text-center">
               <div className="text-4xl mb-4">🗄️</div>
               <h2 className="text-white text-lg font-medium mb-2">Select a table</h2>
-              <p className="text-zinc-500 text-sm">Choose a config table from the sidebar to view and manage its data.</p>
+              <p className="text-muted-label text-sm">Choose a config table from the sidebar to view and manage its data.</p>
             </div>
           </div>
         ) : (
@@ -603,7 +603,7 @@ export default function ConfigTablesPage() {
                   <span className="text-lg">{currentTableConfig.icon}</span>
                   <h2 className="text-white text-lg font-semibold">{currentTableConfig.displayName}</h2>
                 </div>
-                <p className="text-zinc-500 text-xs mt-1">
+                <p className="text-muted-label text-xs mt-1">
                   {currentTableConfig.id} · {pagination.total} row{pagination.total !== 1 ? "s" : ""}
                 </p>
               </div>
@@ -618,7 +618,7 @@ export default function ConfigTablesPage() {
 
             {/* ─── Search Bar ───────────────────────────────────────────── */}
             <div className="relative mb-4">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-label">
                 <IconSearch />
               </div>
               <input
@@ -626,12 +626,12 @@ export default function ConfigTablesPage() {
                 placeholder="Search across all text columns..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-zinc-900/80 border border-zinc-800 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
+                className="w-full bg-background/80/80 border border-muted-label/40 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-muted-label/80 focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors"
               />
               {searchQuery && (
                 <button
                   onClick={() => { setSearchQuery(""); setSearchDebounced(""); }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-label hover:text-subtle"
                 >
                   <IconX />
                 </button>
@@ -639,17 +639,17 @@ export default function ConfigTablesPage() {
             </div>
 
             {/* ─── Data Table ───────────────────────────────────────────── */}
-            <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl overflow-hidden">
+            <div className="bg-background/80/60 border border-muted-label/40 rounded-xl overflow-hidden">
               {dataLoading ? (
                 <div className="p-8 space-y-3">
                   {[1, 2, 3, 4, 5].map((i) => (
-                    <div key={i} className="h-10 bg-zinc-800/50 rounded animate-pulse" />
+                    <div key={i} className="h-10 bg-background/60/50 rounded animate-pulse" />
                   ))}
                 </div>
               ) : rows.length === 0 ? (
                 <div className="p-12 text-center">
                   <div className="text-3xl mb-3">📭</div>
-                  <p className="text-zinc-400 text-sm">
+                  <p className="text-muted-label text-sm">
                     {searchDebounced ? "No rows match your search." : "This table is empty."}
                   </p>
                   {!searchDebounced && (
@@ -667,8 +667,8 @@ export default function ConfigTablesPage() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-zinc-800">
-                          <th className="px-3 py-3 text-left text-xs text-zinc-500 font-medium w-20 sticky left-0 bg-zinc-900/95 z-10">
+                        <tr className="border-b border-muted-label/40">
+                          <th className="px-3 py-3 text-left text-xs text-muted-label font-medium w-20 sticky left-0 bg-background/80/95 z-10">
                             Actions
                           </th>
                           {visibleColumns.map((col) => (
@@ -678,11 +678,11 @@ export default function ConfigTablesPage() {
                                 col.type === "number" || col.type === "integer"
                                   ? "text-right"
                                   : "text-left"
-                              } ${col.sortable ? "cursor-pointer hover:text-zinc-200 select-none" : "text-zinc-500"}`}
+                              } ${col.sortable ? "cursor-pointer hover:text-subtle select-none" : "text-muted-label"}`}
                               onClick={() => col.sortable && handleSort(col.key)}
                             >
                               <div className={`flex items-center gap-1 ${col.type === "number" || col.type === "integer" ? "justify-end" : ""}`}>
-                                <span className={col.key === currentTableConfig.primaryKey ? "text-warning" : "text-zinc-500"}>
+                                <span className={col.key === currentTableConfig.primaryKey ? "text-warning" : "text-muted-label"}>
                                   {col.label}
                                   {col.key === currentTableConfig.primaryKey && (
                                     <span className="ml-1 text-[9px] text-warning/60">PK</span>
@@ -705,20 +705,20 @@ export default function ConfigTablesPage() {
                         {rows.map((row, rowIdx) => (
                           <tr
                             key={String(row[currentTableConfig.primaryKey] ?? rowIdx)}
-                            className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors group"
+                            className="border-b border-muted-label/40/50 hover:bg-background/60/30 transition-colors group"
                           >
-                            <td className="px-3 py-2.5 sticky left-0 bg-zinc-900/90 group-hover:bg-zinc-800/40 z-10">
+                            <td className="px-3 py-2.5 sticky left-0 bg-background/80/90 group-hover:bg-background/60/40 z-10">
                               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button
                                   onClick={() => openEditModal(row)}
-                                  className="p-1.5 rounded text-zinc-400 hover:text-warning hover:bg-warning/10 transition-colors"
+                                  className="p-1.5 rounded text-muted-label hover:text-warning hover:bg-warning/10 transition-colors"
                                   title="Edit row"
                                 >
                                   <IconEdit />
                                 </button>
                                 <button
                                   onClick={() => setDeleteTarget(row)}
-                                  className="p-1.5 rounded text-zinc-400 hover:text-danger hover:bg-danger/10 transition-colors"
+                                  className="p-1.5 rounded text-muted-label hover:text-danger hover:bg-danger/10 transition-colors"
                                   title="Delete row"
                                 >
                                   <IconTrash />
@@ -732,7 +732,7 @@ export default function ConfigTablesPage() {
                                   col.type === "number" || col.type === "integer"
                                     ? "text-right font-mono"
                                     : ""
-                                } ${col.key === currentTableConfig.primaryKey ? "text-warning font-medium" : "text-zinc-300"}`}
+                                } ${col.key === currentTableConfig.primaryKey ? "text-warning font-medium" : "text-subtle"}`}
                               >
                                 {col.type === "boolean" ? (
                                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
@@ -774,12 +774,12 @@ export default function ConfigTablesPage() {
                   </div>
 
                   {/* ─── Pagination ──────────────────────────────────────── */}
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-zinc-800">
-                    <div className="flex items-center gap-2 text-xs text-zinc-500">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-muted-label/40">
+                    <div className="flex items-center gap-2 text-xs text-muted-label">
                       <span>
                         Showing {((pagination.page - 1) * pagination.pageSize) + 1}–{Math.min(pagination.page * pagination.pageSize, pagination.total)} of {pagination.total}
                       </span>
-                      <span className="text-zinc-700">|</span>
+                      <span className="text-muted-label/30">|</span>
                       <div className="flex items-center gap-1">
                         <span>Rows:</span>
                         {[10, 25, 50, 100].map((size) => (
@@ -791,7 +791,7 @@ export default function ConfigTablesPage() {
                             className={`px-2 py-0.5 rounded text-xs transition-colors ${
                               pagination.pageSize === size
                                 ? "bg-warning/20 text-warning"
-                                : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
+                                : "text-muted-label hover:text-subtle hover:bg-background/60"
                             }`}
                           >
                             {size}
@@ -803,13 +803,13 @@ export default function ConfigTablesPage() {
                       <button
                         onClick={() => setPagination((prev) => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
                         disabled={pagination.page <= 1}
-                        className="p-1.5 rounded text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        className="p-1.5 rounded text-muted-label hover:text-white hover:bg-background/60 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                       >
                         <IconChevronLeft />
                       </button>
                       {generatePageNumbers(pagination.page, pagination.totalPages).map((p, i) =>
                         p === "..." ? (
-                          <span key={`dots-${i}`} className="px-1 text-zinc-600 text-xs">...</span>
+                          <span key={`dots-${i}`} className="px-1 text-muted-label/80 text-xs">...</span>
                         ) : (
                           <button
                             key={p}
@@ -817,7 +817,7 @@ export default function ConfigTablesPage() {
                             className={`w-8 h-8 rounded text-xs transition-colors ${
                               pagination.page === p
                                 ? "bg-warning/20 text-warning font-medium"
-                                : "text-zinc-400 hover:text-white hover:bg-zinc-800"
+                                : "text-muted-label hover:text-white hover:bg-background/60"
                             }`}
                           >
                             {p}
@@ -827,7 +827,7 @@ export default function ConfigTablesPage() {
                       <button
                         onClick={() => setPagination((prev) => ({ ...prev, page: Math.min(prev.totalPages, prev.page + 1) }))}
                         disabled={pagination.page >= pagination.totalPages}
-                        className="p-1.5 rounded text-zinc-400 hover:text-white hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        className="p-1.5 rounded text-muted-label hover:text-white hover:bg-background/60 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                       >
                         <IconChevronRight />
                       </button>
@@ -844,8 +844,8 @@ export default function ConfigTablesPage() {
       {modalMode && currentTableConfig && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-[5vh] sm:pt-[10vh]">
           <div className="absolute inset-0 bg-black/70" onClick={closeModal} />
-          <div className="relative w-full max-w-2xl mx-4 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl max-h-[85vh] flex flex-col">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 shrink-0">
+          <div className="relative w-full max-w-2xl mx-4 bg-background/80 border border-muted-label/40 rounded-xl shadow-2xl max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-muted-label/40 shrink-0">
               <div className="flex items-center gap-2">
                 <span className="text-lg">{currentTableConfig.icon}</span>
                 <h3 className="text-white font-semibold">
@@ -854,7 +854,7 @@ export default function ConfigTablesPage() {
               </div>
               <button
                 onClick={closeModal}
-                className="p-1.5 rounded text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+                className="p-1.5 rounded text-muted-label hover:text-white hover:bg-background/60 transition-colors"
               >
                 <IconX />
               </button>
@@ -865,7 +865,7 @@ export default function ConfigTablesPage() {
                 .filter((col) => col.editable || (modalMode === "create" && col.required))
                 .map((col) => (
                   <div key={col.key}>
-                    <label className="flex items-center gap-1 text-xs font-medium text-zinc-400 mb-1.5">
+                    <label className="flex items-center gap-1 text-xs font-medium text-muted-label mb-1.5">
                       {col.label}
                       {col.required && <span className="text-danger">*</span>}
                       {col.key === currentTableConfig.primaryKey && (
@@ -886,7 +886,7 @@ export default function ConfigTablesPage() {
                           className={`relative w-10 h-5.5 rounded-full transition-colors ${
                             formData[col.key] === true || formData[col.key] === "true"
                               ? "bg-warning"
-                              : "bg-zinc-700"
+                              : "bg-background/40"
                           }`}
                         >
                           <span
@@ -898,7 +898,7 @@ export default function ConfigTablesPage() {
                             style={{ width: 18, height: 18 }}
                           />
                         </button>
-                        <span className="text-xs text-zinc-400">
+                        <span className="text-xs text-muted-label">
                           {formData[col.key] === true || formData[col.key] === "true" ? "Yes" : "No"}
                         </span>
                       </div>
@@ -910,7 +910,7 @@ export default function ConfigTablesPage() {
                             setFormData((prev) => ({ ...prev, [col.key]: e.target.value }))
                           }
                           rows={6}
-                          className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs text-zinc-300 font-mono focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 resize-y transition-colors"
+                          className="w-full bg-background/60 border border-muted-label/30 rounded-lg px-3 py-2 text-xs text-subtle font-mono focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 resize-y transition-colors"
                           placeholder="{}"
                         />
                         <JsonPreview value={formData[col.key]} />
@@ -923,7 +923,7 @@ export default function ConfigTablesPage() {
                           setFormData((prev) => ({ ...prev, [col.key]: e.target.value }))
                         }
                         step={col.type === "integer" ? "1" : "0.01"}
-                        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
+                        className="w-full bg-background/60 border border-muted-label/30 rounded-lg px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors"
                       />
                     ) : col.type === "date" ? (
                       <input
@@ -932,7 +932,7 @@ export default function ConfigTablesPage() {
                         onChange={(e) =>
                           setFormData((prev) => ({ ...prev, [col.key]: e.target.value }))
                         }
-                        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
+                        className="w-full bg-background/60 border border-muted-label/30 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors"
                       />
                     ) : (
                       <input
@@ -941,7 +941,7 @@ export default function ConfigTablesPage() {
                         onChange={(e) =>
                           setFormData((prev) => ({ ...prev, [col.key]: e.target.value }))
                         }
-                        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-amber-500/20 transition-colors"
+                        className="w-full bg-background/60 border border-muted-label/30 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors"
                         placeholder={col.required ? "Required" : "Optional"}
                       />
                     )}
@@ -949,10 +949,10 @@ export default function ConfigTablesPage() {
                 ))}
             </div>
 
-            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-800 shrink-0">
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-muted-label/40 shrink-0">
               <button
                 onClick={closeModal}
-                className="px-4 py-2 text-sm text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
+                className="px-4 py-2 text-sm text-muted-label hover:text-white bg-background/60 hover:bg-background/40 rounded-lg transition-colors"
               >
                 Cancel
               </button>
@@ -975,17 +975,17 @@ export default function ConfigTablesPage() {
       {deleteTarget && currentTableConfig && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/70" onClick={() => setDeleteTarget(null)} />
-          <div className="relative w-full max-w-md mx-4 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl p-6">
+          <div className="relative w-full max-w-md mx-4 bg-background/80 border border-muted-label/40 rounded-xl shadow-2xl p-6">
             <div className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-full bg-danger/10 flex items-center justify-center shrink-0">
                 <IconTrash />
               </div>
               <div>
                 <h3 className="text-white font-semibold mb-1">Delete Row</h3>
-                <p className="text-zinc-400 text-sm">
+                <p className="text-muted-label text-sm">
                   Are you sure you want to delete this record? This action cannot be undone.
                 </p>
-                <div className="mt-3 px-3 py-2 bg-zinc-800/50 rounded-lg text-xs font-mono text-zinc-500">
+                <div className="mt-3 px-3 py-2 bg-background/60/50 rounded-lg text-xs font-mono text-muted-label">
                   {currentTableConfig.primaryKey} = {String(deleteTarget[currentTableConfig.primaryKey])}
                 </div>
               </div>
@@ -993,7 +993,7 @@ export default function ConfigTablesPage() {
             <div className="flex items-center justify-end gap-3 mt-6">
               <button
                 onClick={() => setDeleteTarget(null)}
-                className="px-4 py-2 text-sm text-zinc-400 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
+                className="px-4 py-2 text-sm text-muted-label hover:text-white bg-background/60 hover:bg-background/40 rounded-lg transition-colors"
               >
                 Cancel
               </button>
@@ -1029,7 +1029,7 @@ function JsonCell({
   onToggle: () => void;
 }) {
   if (value === null || value === undefined) {
-    return <span className="text-zinc-600">null</span>;
+    return <span className="text-muted-label/80">null</span>;
   }
 
   const str = typeof value === "string" ? value : JSON.stringify(value, null, 2);
@@ -1038,7 +1038,7 @@ function JsonCell({
   return (
     <div className="max-w-[300px]">
       <div
-        className={`text-[11px] font-mono text-zinc-400 bg-zinc-800/50 rounded px-2 py-1 ${
+        className={`text-[11px] font-mono text-muted-label bg-background/60/50 rounded px-2 py-1 ${
           expanded ? "max-h-64 overflow-y-auto" : "max-h-8 overflow-hidden"
         }`}
       >
@@ -1061,7 +1061,7 @@ function JsonCell({
 
 function JsonPreview({ value }: { value: unknown }) {
   if (value === null || value === undefined || value === "") {
-    return <p className="text-[10px] text-zinc-600 mt-1">Empty JSON</p>;
+    return <p className="text-[10px] text-muted-label/80 mt-1">Empty JSON</p>;
   }
 
   let formatted = "";
@@ -1074,7 +1074,7 @@ function JsonPreview({ value }: { value: unknown }) {
     );
   }
   return (
-    <div className="mt-1 px-2 py-1 bg-zinc-800/30 rounded text-[10px] font-mono text-zinc-500 max-h-24 overflow-y-auto">
+    <div className="mt-1 px-2 py-1 bg-background/60/30 rounded text-[10px] font-mono text-muted-label max-h-24 overflow-y-auto">
       <pre className="whitespace-pre-wrap">{formatted}</pre>
     </div>
   );

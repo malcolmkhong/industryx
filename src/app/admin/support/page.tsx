@@ -22,9 +22,9 @@ interface Message {
 }
 
 const statusBadge: Record<string, string> = {
-  open: 'bg-red-500/10 text-red-400 border-red-500/20',
-  accepted: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  resolved: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+  open: 'bg-danger/10 text-danger border-danger/20',
+  accepted: 'bg-warning/60/10 text-warning border-warning/60/20',
+  resolved: 'bg-success/10 text-success/60 border-success/20',
 };
 
 export default function SupportPage() {
@@ -114,7 +114,7 @@ export default function SupportPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-6 h-6 border-2 border-zinc-600 border-t-amber-500 rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-muted-label/20 border-t-warning/60 rounded-full animate-spin" />
       </div>
     );
   }
@@ -124,24 +124,24 @@ export default function SupportPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-bold text-white">Support Tickets</h2>
-          <p className="text-sm text-zinc-400 mt-1">Player support tickets and chat</p>
+          <p className="text-sm text-muted-label mt-1">Player support tickets and chat</p>
         </div>
-        <button type="button" onClick={fetchTickets} className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-white bg-zinc-800/50 hover:bg-zinc-700/50 rounded-lg transition-colors">
+        <button type="button" onClick={fetchTickets} className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-label hover:text-white bg-background/60/50 hover:bg-background/40/50 rounded-lg transition-colors">
           <RefreshCw className="w-3.5 h-3.5" /> Refresh
         </button>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
         {[
-          { label: 'Open', value: counts.open, filter: 'open', color: 'text-red-400' },
-          { label: 'Accepted', value: counts.accepted, filter: 'accepted', color: 'text-amber-400' },
-          { label: 'Resolved', value: counts.resolved, filter: 'resolved', color: 'text-emerald-400' },
-          { label: 'Total', value: counts.total, filter: 'all', color: 'text-blue-400' },
+          { label: 'Open', value: counts.open, filter: 'open', color: 'text-danger' },
+          { label: 'Accepted', value: counts.accepted, filter: 'accepted', color: 'text-warning' },
+          { label: 'Resolved', value: counts.resolved, filter: 'resolved', color: 'text-success/60' },
+          { label: 'Total', value: counts.total, filter: 'all', color: 'text-domain/80' },
         ].map((c) => (
           <button type="button" key={c.label} onClick={() => { setFilter(c.filter); setSelectedTicket(null); }}
-            className={`border rounded-xl p-3 text-left transition-colors ${filter === c.filter ? 'border-zinc-600 bg-zinc-800/50' : 'border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800/30'}`}>
+            className={`border rounded-xl p-3 text-left transition-colors ${filter === c.filter ? 'border-muted-label/20 bg-background/60/50' : 'border-muted-label/40 bg-background/80/50 hover:bg-background/60/30'}`}>
             <p className={`text-lg font-bold ${c.color}`}>{c.value}</p>
-            <p className="text-xs text-zinc-500">{c.label}</p>
+            <p className="text-xs text-muted-label">{c.label}</p>
           </button>
         ))}
       </div>
@@ -149,39 +149,39 @@ export default function SupportPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-1 space-y-2 max-h-[70vh] overflow-y-auto pr-1">
           {filtered.length === 0 ? (
-            <div className="text-center py-8"><p className="text-sm text-zinc-500">No tickets</p></div>
+            <div className="text-center py-8"><p className="text-sm text-muted-label">No tickets</p></div>
           ) : (
             filtered.map((t) => (
               <button key={t.id} type="button" onClick={() => openTicket(t)}
-                className={`w-full text-left p-3 rounded-xl border transition-colors ${selectedTicket?.id === t.id ? 'border-amber-500/40 bg-amber-500/5' : 'border-zinc-800 hover:border-zinc-700 bg-zinc-900/50'}`}>
+                className={`w-full text-left p-3 rounded-xl border transition-colors ${selectedTicket?.id === t.id ? 'border-warning/60/40 bg-warning/60/5' : 'border-muted-label/40 hover:border-muted-label/30 bg-background/80/50'}`}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-sm font-medium text-white truncate flex-1">{t.subject}</span>
                   <span className={`inline-flex text-[10px] font-semibold px-1.5 py-0.5 rounded border ml-2 shrink-0 ${statusBadge[t.status]}`}>{t.status}</span>
                 </div>
-                <p className="text-xs text-zinc-600">{t.user_id.slice(0, 8)}... · {new Date(t.created_at).toLocaleDateString()}</p>
+                <p className="text-xs text-muted-label/80">{t.user_id.slice(0, 8)}... · {new Date(t.created_at).toLocaleDateString()}</p>
               </button>
             ))
           )}
         </div>
 
-        <div className="lg:col-span-2 border border-zinc-800 rounded-xl flex flex-col max-h-[70vh]">
+        <div className="lg:col-span-2 border border-muted-label/40 rounded-xl flex flex-col max-h-[70vh]">
           {selectedTicket ? (
             <>
-              <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800 shrink-0">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-muted-label/40 shrink-0">
                 <div>
                   <h3 className="text-sm font-semibold text-white">{selectedTicket.subject}</h3>
-                  <p className="text-xs text-zinc-500">User: {selectedTicket.user_id.slice(0, 12)}...</p>
+                  <p className="text-xs text-muted-label">User: {selectedTicket.user_id.slice(0, 12)}...</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {selectedTicket.status === 'open' && (
                     <button type="button" onClick={() => doAction('accept')} disabled={sending}
-                      className="flex items-center gap-1 px-3 py-1 text-xs font-medium bg-amber-600 hover:bg-amber-700 disabled:bg-zinc-700 text-white rounded-lg transition-colors">
+                      className="flex items-center gap-1 px-3 py-1 text-xs font-medium bg-warning/70 hover:bg-warning/80 disabled:bg-background/40 text-white rounded-lg transition-colors">
                       <CheckCircle className="w-3.5 h-3.5" /> Accept
                     </button>
                   )}
                   {(selectedTicket.status === 'open' || selectedTicket.status === 'accepted') && (
                     <button type="button" onClick={() => doAction('resolve')} disabled={sending}
-                      className="flex items-center gap-1 px-3 py-1 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 disabled:bg-zinc-700 text-white rounded-lg transition-colors">
+                      className="flex items-center gap-1 px-3 py-1 text-xs font-medium bg-success/80 hover:bg-success/60 disabled:bg-background/40 text-white rounded-lg transition-colors">
                       <XCircle className="w-3.5 h-3.5" /> Resolve
                     </button>
                   )}
@@ -193,12 +193,12 @@ export default function SupportPage() {
                   <div key={m.id} className={`flex ${m.sender_type === 'admin' ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[75%] px-3 py-2 rounded-xl text-sm ${
                       m.sender_type === 'admin'
-                        ? 'bg-amber-600/20 text-amber-100 border border-amber-500/20'
-                        : 'bg-zinc-800 text-zinc-200 border border-zinc-700'
+                        ? 'bg-warning/70/20 text-warning/30 border border-warning/60/20'
+                        : 'bg-background/60 text-subtle border border-muted-label/30'
                     }`}>
-                      <p className="text-[10px] text-zinc-500 mb-0.5">{m.sender_type === 'admin' ? 'Admin' : 'Player'}</p>
+                      <p className="text-[10px] text-muted-label mb-0.5">{m.sender_type === 'admin' ? 'Admin' : 'Player'}</p>
                       <p>{m.message}</p>
-                      <p className="text-[10px] text-zinc-500 mt-1">{new Date(m.created_at).toLocaleTimeString()}</p>
+                      <p className="text-[10px] text-muted-label mt-1">{new Date(m.created_at).toLocaleTimeString()}</p>
                     </div>
                   </div>
                 ))}
@@ -206,14 +206,14 @@ export default function SupportPage() {
               </div>
 
               {selectedTicket.status !== 'resolved' && (
-                <div className="p-3 border-t border-zinc-800 shrink-0">
+                <div className="p-3 border-t border-muted-label/40 shrink-0">
                   <div className="flex items-center gap-2">
                     <input value={reply} onChange={(e) => setReply(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') sendReply(); }}
                       placeholder="Type a reply..."
-                      className="flex-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500/50" />
+                      className="flex-1 px-3 py-2 bg-background/60 border border-muted-label/30 rounded-lg text-sm text-white placeholder-muted-label focus:outline-none focus:border-warning/60/50" />
                     <button type="button" onClick={sendReply} disabled={sending || !reply.trim()}
-                      className="p-2 bg-amber-600 hover:bg-amber-700 disabled:bg-zinc-700 text-white rounded-lg transition-colors">
+                      className="p-2 bg-warning/70 hover:bg-warning/80 disabled:bg-background/40 text-white rounded-lg transition-colors">
                       <Send className="w-4 h-4" />
                     </button>
                   </div>
@@ -222,8 +222,8 @@ export default function SupportPage() {
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center">
-              <MessageCircle className="w-10 h-10 text-zinc-600 mb-3" />
-              <p className="text-sm text-zinc-400">Select a ticket to view</p>
+              <MessageCircle className="w-10 h-10 text-muted-label/80 mb-3" />
+              <p className="text-sm text-muted-label">Select a ticket to view</p>
             </div>
           )}
         </div>

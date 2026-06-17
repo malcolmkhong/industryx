@@ -38,9 +38,6 @@ skills/
 supabase/
 !supabase/migrations/
 .omo/
-/*.md
-!AGENT.md
-!RULES.md
 *.dev.log
 
 # typescript
@@ -98,4 +95,3 @@ worklog.md
 docs/
 
 skills/
-

@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import Image from 'next/image';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Bell, Check, Cloud, CloudOff, Download, Loader2, LogIn, LogOut,
-  Pause, Play, RefreshCw, RotateCcw, Settings, Upload, User, Wifi, WifiOff,
+  Newspaper, Pause, Play, RefreshCw, RotateCcw, Settings, Upload, User, Wifi, WifiOff,
   Wrench, TrendingUp, TrendingDown,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -82,6 +83,20 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
   }, [buildings, powerGrid.efficiency]);
 
   const unreadNotifications = notifications.filter(n => !n.read).length;
+
+  // News ticker: rotate through top 3 notifications every 5s (Phase 1.8)
+  const [headlineIndex, setHeadlineIndex] = useState(0);
+  const topHeadlines = notifications.slice(0, 3);
+  useEffect(() => {
+    if (topHeadlines.length < 2) {
+      // Reset to 0 so a single notification is always shown at index 0
+      // (avoids stale index pointing past the end of a shortened list)
+      setHeadlineIndex(0);
+      return;
+    }
+    const t = setInterval(() => setHeadlineIndex((i) => (i + 1) % topHeadlines.length), 5000);
+    return () => clearInterval(t);
+  }, [topHeadlines.length]);
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Commander';
   const userAvatar = user?.user_metadata?.avatar_url;
 
@@ -105,7 +120,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
         {/* Logo & Money */}
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-base font-bold shadow-[0_0_12px_rgba(0,255,242,0.2)]">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-brand to-success/80 flex items-center justify-center text-base font-bold shadow-[0_0_12px_rgba(0,255,242,0.2)]">
               IX
             </div>
             <div>
@@ -123,7 +138,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
                   {pendingPayout > 0 && !payoutConfig.autoCollect && (
                     <button
                       onClick={collectPayout}
-                      className="ml-2 animate-pulse inline-flex items-center gap-1 bg-success/40 hover:bg-emerald-800/50 text-success text-[10px] px-1.5 py-0.5 rounded-md border border-success/30 transition-colors"
+                      className="ml-2 animate-pulse inline-flex items-center gap-1 bg-success/40 hover:bg-success/50/50 text-success text-[10px] px-1.5 py-0.5 rounded-md border border-success/30 transition-colors"
                       title="Click to collect pending payout"
                     >
                       <GameIcon ui="money" size={12} className="inline-flex" /> ${formatNumber(pendingPayout)}
@@ -132,7 +147,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
                 </div>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="w-64 bg-card border-brand/30 p-0 overflow-hidden">
-                <div className="bg-gradient-to-r from-green-900/30 to-emerald-900/20 px-3 py-2 border-b border-brand/20">
+                <div className="bg-gradient-to-r from-success/30/30 to-success/30/20 px-3 py-2 border-b border-brand/20">
                   <p className="text-xs font-bold text-success inline-flex items-center gap-1"><GameIcon ui="money" size={14} className="inline-flex" /> Financial Overview</p>
                 </div>
                 <div className="px-3 py-2 space-y-1.5">
@@ -247,7 +262,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
               <Button variant="ghost" size="sm" className="h-7 w-7 p-0 relative focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background" aria-label={`Notifications: ${unreadNotifications} unread`} onClick={() => onTabChange('notifications')}>
                 <Bell className="w-3.5 h-3.5 text-subtle" />
                 {unreadNotifications > 0 && (
-                  <span className={`absolute -top-0.5 -right-0.5 h-4 rounded-full text-[8px] text-white flex items-center justify-center px-1 ${
+                  <span className={`absolute -top-0.5 -right-0.5 h-4 rounded-full text-[11px] text-white flex items-center justify-center px-1 ${
                     notifications[0]?.type === 'error' ? 'bg-danger' :
                     notifications[0]?.type === 'warning' ? 'bg-domain' :
                     'bg-brand'
@@ -301,7 +316,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
                     <p className="text-[10px] text-subtle">{e.description}</p>
                     <div className="flex flex-wrap gap-1 mt-1.5">
                       {e.effects.filter(ef => ef.type === 'marketPriceMultiplier').map((ef, i) => (
-                        <span key={`${ef.target}-${i}`} className={`text-[9px] px-1 py-0.5 rounded border ${ef.value > 1 ? 'border-emerald-500/40 text-emerald-400 bg-emerald-500/5' : 'border-red-500/40 text-red-400 bg-red-500/5'}`}>
+                        <span key={`${ef.target}-${i}`} className={`text-[9px] px-1 py-0.5 rounded border ${ef.value > 1 ? 'border-success/40 text-success bg-success/5' : 'border-danger/40 text-danger bg-danger/5'}`}>
                           {ef.value > 1 ? <TrendingUp className="w-2.5 h-2.5 inline mr-0.5" /> : <TrendingDown className="w-2.5 h-2.5 inline mr-0.5" />}
                           {ef.target?.slice(0, 12)}{(ef.target?.length ?? 0) > 12 ? '…' : ''} {ef.value > 1 ? '+' : ''}{((ef.value - 1) * 100).toFixed(0)}%
                         </span>
@@ -387,7 +402,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
                 aria-label={`Config source: ${isUsingSupabase ? 'Live (Supabase connected)' : 'Local (using local config)'}`}
                 variant="outline"
                 className={`text-[10px] px-1.5 py-0 cursor-default ${
-                  isUsingSupabase ? 'border-success/50 text-success bg-success/20' : 'border-warning/50 text-warning bg-amber-900/20'
+                  isUsingSupabase ? 'border-success/50 text-success bg-success/20' : 'border-warning/50 text-warning bg-warning/20'
                 }`}
               >
                 {isUsingSupabase ? <Wifi className="w-2.5 h-2.5 mr-0.5" aria-hidden="true" /> : <WifiOff className="w-2.5 h-2.5 mr-0.5" aria-hidden="true" />}
@@ -451,15 +466,15 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
                   aria-haspopup="menu"
                 >
                   {userAvatar ? (
-                    <img src={userAvatar} alt={userName} className="w-5 h-5 rounded-full" />
+                    <Image src={userAvatar} alt={userName} width={20} height={20} className="rounded-full" />
                   ) : (
-                    <div className="w-5 h-5 rounded-full bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-[9px] font-bold" aria-hidden="true">
+                    <div className="w-5 h-5 rounded-full bg-gradient-to-br from-brand to-success/80 flex items-center justify-center text-[9px] font-bold" aria-hidden="true">
                       {userName.charAt(0).toUpperCase()}
                     </div>
                   )}
                   <span className="text-[10px] text-subtle max-w-[80px] truncate">{userName}</span>
                   {isGuest && (
-                    <span className="text-[8px] px-1 py-0.5 rounded bg-amber-900/30 text-warning border border-warning/30 font-bold uppercase tracking-wider">
+                    <span className="text-[11px] px-1 py-0.5 rounded bg-warning/30 text-warning border border-warning/30 font-bold uppercase tracking-wider">
                       Guest
                     </span>
                   )}
@@ -499,22 +514,36 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
         </div>
       </div>
 
-      {/* News Ticker - desktop only, inside fixed header */}
-      <div className="hidden lg:block bg-[#0a0e17] border-t border-brand/20 overflow-hidden h-6" role="marquee" aria-live="off" aria-label="Live news feed">
-        <div className="flex items-center h-full px-3">
-          <span className="text-[10px] text-brand font-bold mr-3 flex-shrink-0">📰 NEWS</span>
-          <div className="overflow-hidden flex-1 relative">
-            <div className="news-ticker-content text-[11px] text-subtle" aria-hidden="true">
-              {notifications.slice(0, 8).map((n, i) => (
-                <span key={n.id}>
-                  {i > 0 && <span className="text-cyan-700 mx-3">•</span>}
-                  {n.message}
-                </span>
-              ))}
-              {notifications.length === 0 && 'Welcome to IndustriaX! Build your first Mining Drill to start producing resources.'}
-            </div>
-          </div>
-        </div>
+      {/* News Ticker - desktop only, inside fixed header (Phase 1.8: a11y fix) */}
+      <div
+        className="hidden lg:flex items-center h-6 px-3 gap-2 bg-background border-t border-brand/20"
+        role="region"
+        aria-label="Live news feed"
+      >
+        <Newspaper className="w-3 h-3 text-brand flex-shrink-0" aria-hidden="true" />
+        <span className="text-[10px] text-brand font-bold flex-shrink-0">NEWS</span>
+        <ul
+          className="flex-1 overflow-hidden"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {topHeadlines.length > 0 ? (
+            topHeadlines[Math.min(headlineIndex, topHeadlines.length - 1)] && (
+              <li key={topHeadlines[Math.min(headlineIndex, topHeadlines.length - 1)].id} className="text-[11px] text-subtle truncate">
+                {topHeadlines[Math.min(headlineIndex, topHeadlines.length - 1)].message}
+              </li>
+            )
+          ) : (
+            <li className="text-[11px] text-muted-label italic truncate">
+              Welcome to IndustriaX! Build your first Mining Drill to start producing resources.
+            </li>
+          )}
+        </ul>
+        {topHeadlines.length > 1 && (
+          <span className="text-[9px] text-muted-label flex-shrink-0">
+            {headlineIndex + 1}/{topHeadlines.length}
+          </span>
+        )}
       </div>
     </>
   );

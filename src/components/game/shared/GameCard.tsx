@@ -18,12 +18,12 @@ interface GameCardProps {
 }
 
 const ACCENT_MAP = {
-  cyan: 'border-l-cyan-500 border-l-[3px]',
-  orange: 'border-l-orange-500 border-l-[3px]',
-  purple: 'border-l-purple-500 border-l-[3px]',
-  emerald: 'border-l-emerald-500 border-l-[3px]',
-  amber: 'border-l-amber-500 border-l-[3px]',
-  red: 'border-l-red-500 border-l-[3px]',
+  cyan: 'border-l-brand border-l-[3px]',
+  orange: 'border-l-domain border-l-[3px]',
+  purple: 'border-l-research border-l-[3px]',
+  emerald: 'border-l-success border-l-[3px]',
+  amber: 'border-l-warning/50 border-l-[3px]',
+  red: 'border-l-danger border-l-[3px]',
   none: '',
 };
 
@@ -35,7 +35,7 @@ export function GameCard({ children, className, accent = 'none', hoverable = fal
         'rounded-xl border border-muted-label/30 bg-[#111827] p-4 transition-all duration-300',
         ACCENT_MAP[accent],
         hoverable && 'hover:border-muted-label/50 hover:shadow-lg hover:scale-[1.01]',
-        clickable && 'cursor-pointer focus-visible:ring-2 focus-visible:ring-cyan-500/50',
+        clickable && 'cursor-pointer focus-visible:ring-2 focus-visible:ring-brand/50',
         className,
       )}
       onClick={onClick}

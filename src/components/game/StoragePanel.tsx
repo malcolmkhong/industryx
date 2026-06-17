@@ -284,7 +284,7 @@ export function StoragePanel() {
       <div
         className="overflow-hidden"
       >
-        <div className="mt-2 bg-[#0a0e17] rounded-lg p-3 border border-muted-label/50 space-y-3">
+        <div className="mt-2 bg-background rounded-lg p-3 border border-muted-label/50 space-y-3">
           {/* Rate Breakdown */}
           <div>
             <div className="flex items-center gap-1.5 mb-2">
@@ -349,7 +349,7 @@ export function StoragePanel() {
                       disabled={!canAfford}
                       className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-[10px] font-medium ${
                         canAfford
-                          ? 'bg-amber-600/20 text-warning border border-warning/40 hover:bg-amber-600/30 hover:border-warning/60'
+                          ? 'bg-warning/70/20 text-warning border border-warning/40 hover:bg-warning/70/30 hover:border-warning/60'
                           : 'bg-muted-label/30 text-muted-label border border-muted-label/30 cursor-not-allowed'
                       }`}
                     >
@@ -560,7 +560,7 @@ export function StoragePanel() {
           const colorMap = {
             critical: 'border-danger/40 bg-danger/10',
             shortage: 'border-domain/40 bg-domain/10',
-            overflow: 'border-warning/40 bg-yellow-900/10',
+            overflow: 'border-warning/40 bg-warning/10',
             bottleneck: 'border-research/40 bg-research/10',
           };
           const labelMap = {
@@ -580,7 +580,7 @@ export function StoragePanel() {
                 <div className="flex items-center gap-2 mb-0.5">
                   <GameIcon icon={meta.icon} size={14} className="inline-flex" />
                   <span className="text-sm font-semibold text-subtle">{meta.name}</span>
-                  <span className={`text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                  <span className={`text-[11px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
                     alert.type === 'critical' ? 'bg-danger/20 text-danger' :
                     alert.type === 'shortage' ? 'bg-domain/20 text-domain' :
                     alert.type === 'overflow' ? 'bg-warning/20 text-warning' :
@@ -633,9 +633,9 @@ export function StoragePanel() {
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: chain.color }} />
                 <span className="text-sm font-semibold" style={{ color: chain.color }}>{chain.name}</span>
                 {allActive ? (
-                  <span className="text-[8px] bg-success/20 text-success px-1.5 py-0.5 rounded font-bold">ACTIVE</span>
+                  <span className="text-[11px] bg-success/20 text-success px-1.5 py-0.5 rounded font-bold">ACTIVE</span>
                 ) : bottleneck ? (
-                  <span className="text-[8px] bg-danger/20 text-danger px-1.5 py-0.5 rounded font-bold">BLOCKED</span>
+                  <span className="text-[11px] bg-danger/20 text-danger px-1.5 py-0.5 rounded font-bold">BLOCKED</span>
                 ) : null}
               </div>
               <div className="flex items-center gap-1 flex-wrap">
@@ -817,7 +817,7 @@ export function StoragePanel() {
                   onClick={() => setSortMode(tab.mode)}
                   className={`px-2 py-1 rounded-md text-[10px] font-medium ${
                     sortMode === tab.mode
-                      ? 'bg-amber-600/20 text-warning border border-warning/30'
+                      ? 'bg-warning/70/20 text-warning border border-warning/30'
                       : 'text-muted-label hover:text-subtle border border-transparent'
                   }`}
                 >
@@ -835,7 +835,7 @@ export function StoragePanel() {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search materials..."
-              className="w-full bg-muted-label/50 border border-muted-label/40 rounded-lg pl-7 pr-7 py-1.5 text-[10px] text-subtle placeholder-gray-600 focus:outline-none focus:border-brand/40"
+              className="w-full bg-muted-label/50 border border-muted-label/40 rounded-lg pl-7 pr-7 py-1.5 text-[10px] text-subtle placeholder-muted-label focus:outline-none focus:border-brand/40"
             />
             {searchQuery && (
               <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2">
@@ -860,7 +860,7 @@ export function StoragePanel() {
 function Badge({ level }: { level: number }) {
   const color = level >= 20 ? 'text-success bg-success/20' : level >= 10 ? 'text-brand bg-brand/20' : 'text-warning bg-warning/20';
   return (
-    <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${color}`}>
+    <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${color}`}>
       LV{level}
     </span>
   );

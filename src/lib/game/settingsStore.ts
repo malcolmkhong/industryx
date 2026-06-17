@@ -20,13 +20,13 @@ export interface QuickAccessShortcut {
 }
 
 export const DEFAULT_QUICK_ACCESS_SHORTCUTS: QuickAccessShortcut[] = [
-  { id: 'home', label: 'Home', icon: 'Home', action: 'dashboard', color: 'text-cyan-400' },
-  { id: 'search', label: 'Search', icon: 'Search', action: 'factoryMap', color: 'text-emerald-400' },
-  { id: 'notifications', label: 'Alerts', icon: 'Bell', action: 'notifications', color: 'text-cyan-400' },
-  { id: 'inventory', label: 'Storage', icon: 'Database', action: 'storage', color: 'text-amber-300' },
-  { id: 'favorites', label: 'Market', icon: 'TrendingUp', action: 'market', color: 'text-green-400' },
-  { id: 'recent', label: 'Recent', icon: 'Clock', action: 'statistics', color: 'text-teal-400' },
-  { id: 'settings', label: 'Settings', icon: 'Settings', action: 'settings', color: 'text-gray-400' },
+  { id: 'home', label: 'Home', icon: 'Home', action: 'dashboard', color: 'text-brand' },
+  { id: 'search', label: 'Search', icon: 'Search', action: 'factoryMap', color: 'text-success' },
+  { id: 'notifications', label: 'Alerts', icon: 'Bell', action: 'notifications', color: 'text-brand' },
+  { id: 'inventory', label: 'Storage', icon: 'Database', action: 'storage', color: 'text-warning/80' },
+  { id: 'favorites', label: 'Market', icon: 'TrendingUp', action: 'market', color: 'text-success' },
+  { id: 'recent', label: 'Recent', icon: 'Clock', action: 'statistics', color: 'text-success/80' },
+  { id: 'settings', label: 'Settings', icon: 'Settings', action: 'settings', color: 'text-muted-label' },
 ];
 
 export interface NotificationFilters {
@@ -76,6 +76,9 @@ export interface SettingsState {
   quickAccessShortcuts: QuickAccessShortcut[];
   maxQuickAccessShortcuts: number; // 4-12
 
+  // Sidebar group expansion state (persisted; array form for JSON-safety)
+  expandedGroups: string[];
+
   // Meta
   _version: number;
 }
@@ -112,6 +115,10 @@ interface SettingsActions {
   reorderQuickAccessShortcuts: (fromIndex: number, toIndex: number) => void;
   setMaxQuickAccessShortcuts: (v: number) => void;
   resetQuickAccessShortcuts: () => void;
+
+  // Sidebar
+  setExpandedGroups: (groups: string[]) => void;
+  toggleExpandedGroup: (groupId: string) => void;
 
   // Reset
   resetSettings: () => void;
@@ -150,6 +157,7 @@ const initialState: SettingsState = {
   fabEnabled: true,
   quickAccessShortcuts: DEFAULT_QUICK_ACCESS_SHORTCUTS,
   maxQuickAccessShortcuts: 7,
+  expandedGroups: ['overview', 'production', 'logistics', 'progression', 'rewards', 'finance', 'system'],
 
   _version: 2,
 };
@@ -212,7 +220,17 @@ export const useSettingsStore = create<SettingsStore>()(
       resetQuickAccessShortcuts: () => set({
         quickAccessShortcuts: DEFAULT_QUICK_ACCESS_SHORTCUTS,
         maxQuickAccessShortcuts: 7,
+  expandedGroups: ['overview', 'production', 'logistics', 'progression', 'rewards', 'finance', 'system'],
       }),
+
+      // Sidebar group expansion
+      setExpandedGroups: (groups) => set({ expandedGroups: groups }),
+      toggleExpandedGroup: (groupId) =>
+        set((state) => ({
+          expandedGroups: state.expandedGroups.includes(groupId)
+            ? state.expandedGroups.filter((id) => id !== groupId)
+            : [...state.expandedGroups, groupId],
+        })),
 
       // Reset
       resetSettings: () => set({ ...initialState }),
