@@ -6,7 +6,11 @@
     "dev": "next dev -p 3000",
     "build": "next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/ && rm -rf .next/standalone/node_modules/sharp .next/standalone/node_modules/@img .next/standalone/node_modules/detect-libc",
     "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "node --test --test-reporter=spec tests/integration/**/*.test.ts tests/security/**/*.test.ts",
+    "test:integration": "node --test tests/integration/**/*.test.ts",
+    "test:security": "node --test tests/security/**/*.test.ts",
+    "test:all": "node --test tests/integration/**/*.test.ts tests/security/**/*.test.ts"
   },
   "dependencies": {
     "@iconify/react": "^6.0.2",

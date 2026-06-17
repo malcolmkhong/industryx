@@ -60,7 +60,7 @@ describe('Cloudflare Workers Connectivity', () => {
         console.log('  ⚠️  Worker timed out — may be cold-starting');
       } else {
         assert.fail(
-          `News Generator unreachable: ${err.message}\n` +
+          `News Generator unreachable: ${(err as Error).message}\n` +
           `URL: ${NEWS_GENERATOR_URL}\n` +
           'Check: wrangler deploy is active, worker has no errors'
         );
@@ -89,7 +89,7 @@ describe('Cloudflare Workers Connectivity', () => {
       console.log('  Worker name: markettick');
       console.log('  Schedule: every minute (* * * * *)');
     } catch (err: unknown) {
-      assert.fail(`Could not read wrangler.toml: ${err.message}`);
+      assert.fail(`Could not read wrangler.toml: ${(err as Error).message}`);
     }
   });
 
@@ -105,10 +105,10 @@ describe('Cloudflare Workers Connectivity', () => {
       assert.ok(r.status < 500, `Worker returned ${r.status}`);
       console.log('  ✅ Worker root URL is alive');
     } catch (err) {
-      if (err.name === 'TimeoutError') {
+      if ((err as Error).name === 'TimeoutError') {
         console.log('  ⚠️  Worker cold start timeout');
       } else {
-        assert.fail(`Worker unreachable: ${err.message}`);
+        assert.fail(`Worker unreachable: ${(err as Error).message}`);
       }
     }
   });
@@ -139,7 +139,7 @@ describe('API Routes Connectivity', () => {
         `recover-by-device returned ${r.status} — service error`
       );
     } catch (err: unknown) {
-      assert.fail(`recover-by-device unreachable: ${err.message}`);
+      assert.fail(`recover-by-device unreachable: ${(err as Error).message}`);
     }
   });
 
@@ -156,10 +156,10 @@ describe('API Routes Connectivity', () => {
 
       assert.ok(r.status < 500, `Market tick returned ${r.status}`);
     } catch (err) {
-      if (err.name === 'TimeoutError') {
+      if ((err as Error).name === 'TimeoutError') {
         console.log('  ⚠️  Market tick timed out (cold start or processing)');
       } else {
-        assert.fail(`Market tick unreachable: ${err.message}`);
+        assert.fail(`Market tick unreachable: ${(err as Error).message}`);
       }
     }
   });

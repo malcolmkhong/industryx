@@ -44,7 +44,7 @@ const GUEST_GATED_TABS: Partial<Record<GameTab, LoginPromptReason>> = {
 
 // The FIXED version (commit 0ecf87d)
 function shouldOpenLoginPrompt(
-  user: { is_anonymous?: boolean } | null,
+  user: { id?: string; is_anonymous?: boolean } | null,
   authLoading: boolean
 ): boolean {
   // Fixed: only skip if the user is a FULLY authenticated (non-anonymous) user
@@ -63,7 +63,7 @@ function shouldOpenLoginPrompt_BROKEN(
 
 function evaluateGate(
   tab: GameTab,
-  user: { is_anonymous?: boolean } | null,
+  user: { id?: string; is_anonymous?: boolean } | null,
   isGuest: boolean,
   authLoading: boolean
 ): { blocked: boolean; reason?: LoginPromptReason } {
