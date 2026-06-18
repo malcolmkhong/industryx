@@ -212,6 +212,8 @@ These are absolutely forbidden without explicit user approval:
 - Removing, renaming, or converting `.rules` to a directory (it is a Zed-recognized file at the project root)
 - Adding documentation references to `worklog.md` (it does not exist in this project)
 
+- Do not retry the same failed action more than 3 times. If the issue cannot be resolved after 3 attempts, stop and either fix the root cause or ask me for assistance before continuing.
+
 ---
 
 ## Architecture Quick Reference

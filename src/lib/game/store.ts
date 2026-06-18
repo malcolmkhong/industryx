@@ -712,6 +712,15 @@ function createInitialState(): GameState {
     sectorTrends: {},
     marketNews: [],
     marketNarratives: [],
+    // Server-authoritative market data. Populated by useServerMarket polling /api/market/state
+    // every 10s. Initialized to empty so the first render of MarketPanel doesn't crash on
+    // undefined prices — see AUDIT_FIXES_2026_06_18.md P0-#4.
+    serverMarket: {
+      prices: [],
+      news: [],
+      tick: 0,
+      volatility: 0,
+    },
     contracts: [],
     completedContracts: 0,
     automationUnlocks: AUTOMATION_UNLOCKS.map(a => ({ ...a })),

@@ -300,7 +300,7 @@ export function ResourcePanel() {
 
         {/* SVG Flow Diagram */}
         <div className="relative bg-background rounded-lg p-2 overflow-x-auto">
-          <svg viewBox="0 0 1200 160" className="w-full h-auto min-w-[500px]" style={{ maxHeight: '180px' }}>
+          <svg viewBox="0 0 1200 160" className="w-full h-auto min-w-125" style={{ maxHeight: '180px' }}>
             {/* Background grid pattern */}
             <defs>
               <pattern id="extFlowGrid" width="20" height="20" patternUnits="userSpaceOnUse">
@@ -703,7 +703,7 @@ export function ResourcePanel() {
                       <h4 className={`text-xs font-semibold ${currentColorClasses.text}`}>Active Extractors</h4>
                       <span className="text-[9px] text-muted-label">({currentTabBuildings.length})</span>
                     </div>
-                    <div className="space-y-1.5 max-h-[400px] overflow-y-auto game-scrollbar pr-1">
+                    <div className="space-y-1.5 max-h-100 overflow-y-auto game-scrollbar pr-1">
                       {currentTabBuildings.map(building => {
                         const def = BUILDING_DEFS[building.type];
                         if (!def) return null;
@@ -732,7 +732,7 @@ export function ResourcePanel() {
                               {/* Toggle + Emoji */}
                               <button
                                 onClick={() => handleToggle(building.id)}
-                                className={`text-base hover:scale-110 flex-shrink-0 ${
+                                className={`text-base hover:scale-110 shrink-0 ${
                                   building.active ? 'opacity-100' : 'grayscale opacity-50'
                                 }`}
                                 title={building.active ? 'Click to disable' : 'Click to enable'}
@@ -772,9 +772,9 @@ export function ResourcePanel() {
                                   <div className="flex-1 h-1 bg-muted-label rounded-full overflow-hidden">
                                     <div
                                       className={`h-full rounded-full ${
-                                        eff >= 0.8 ? 'bg-gradient-to-r from-success/80 to-success/50' :
-                                        eff >= 0.5 ? 'bg-gradient-to-r from-warning/70 to-warning/50' :
-                                        'bg-gradient-to-r from-danger/80 to-danger/60'
+                                        eff >= 0.8 ? 'bg-linear-to-r from-success/80 to-success/50' :
+                                        eff >= 0.5 ? 'bg-linear-to-r from-warning/70 to-warning/50' :
+                                        'bg-linear-to-r from-danger/80 to-danger/60'
                                       }`}
                                       style={{ width: `${eff * 100}%` }}
                                     />
@@ -789,14 +789,14 @@ export function ResourcePanel() {
                                 {/* Power deficit warning */}
                                 {building.active && powerGrid.overload && (
                                   <div className="mt-1 flex items-center gap-1 text-[11px] text-danger bg-danger/20 rounded px-1.5 py-0.5 border border-danger/40/30">
-                                    <Zap className="w-2 h-2 flex-shrink-0" />
+                                    <Zap className="w-2 h-2 shrink-0" />
                                     <span>Power deficit!</span>
                                   </div>
                                 )}
                               </div>
 
                               {/* Upgrade + Toggle - compact */}
-                              <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                              <div className="flex flex-col items-end gap-1 shrink-0">
                                 <button
                                   onClick={() => handleToggle(building.id)}
                                   className={`w-6 h-6 rounded-full flex items-center justify-center border ${
@@ -910,10 +910,10 @@ export function ResourcePanel() {
                     <div className="h-1.5 bg-muted-label rounded-full overflow-hidden relative">
                       <div
                         className={`h-full rounded-full resource-bar-animated transition-all duration-500 ${
-                          pct > 90 ? 'bg-gradient-to-r from-danger/80 to-danger/60' :
-                          pct > 70 ? 'bg-gradient-to-r from-domain/80 to-domain/50' :
-                          pct > 40 ? 'bg-gradient-to-r from-warning/70 to-warning/50' :
-                          'bg-gradient-to-r from-warning/80 to-warning/60'
+                          pct > 90 ? 'bg-linear-to-r from-danger/80 to-danger/60' :
+                          pct > 70 ? 'bg-linear-to-r from-domain/80 to-domain/50' :
+                          pct > 40 ? 'bg-linear-to-r from-warning/70 to-warning/50' :
+                          'bg-linear-to-r from-warning/80 to-warning/60'
                         }`}
                         style={{ width: `${Math.min(100, pct)}%` }}
                       />
@@ -1043,7 +1043,7 @@ export function ResourcePanel() {
                           {/* Production side (left of center) */}
                           <div className="absolute left-1/2 right-1/2 flex justify-end pr-0.5">
                             <div
-                              className="h-3 bg-gradient-to-l from-success/80 to-success/50 rounded-l"
+                              className="h-3 bg-linear-to-l from-success/80 to-success/50 rounded-l"
                               style={{ width: `${(rate / maxRate) * 48}%`, minWidth: rate > 0 ? '4px' : '0' }}
                             />
                           </div>
@@ -1051,7 +1051,7 @@ export function ResourcePanel() {
                           {/* Consumption side (right of center) */}
                           <div className="absolute left-1/2 right-1/2 flex pl-0.5">
                             <div
-                              className="h-3 bg-gradient-to-r from-danger/80 to-danger/40 rounded-r"
+                              className="h-3 bg-linear-to-r from-danger/80 to-danger/40 rounded-r"
                               style={{ width: `${(consRate / maxRate) * 48}%`, minWidth: consRate > 0 ? '4px' : '0' }}
                             />
                           </div>

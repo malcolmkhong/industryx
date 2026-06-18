@@ -331,7 +331,7 @@ export function BlueprintPanel() {
                 <p className="text-[10px] text-muted-label mt-1">Save your factory layout to recreate it later</p>
               </div>
             ) : (
-              <div className="space-y-2 max-h-[500px] overflow-y-auto game-scrollbar relative">
+              <div className="space-y-2 max-h-125 overflow-y-auto game-scrollbar relative">
                 {store.blueprints.map(bp => {
                   const isExpanded = expandedBlueprint === bp.id;
                   const isRenaming = renamingId === bp.id;
@@ -345,7 +345,7 @@ export function BlueprintPanel() {
                       {/* Header row */}
                       <div className="flex items-center justify-between p-3">
                         <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <Layout className="w-4 h-4 text-brand flex-shrink-0" />
+                          <Layout className="w-4 h-4 text-brand shrink-0" />
                           <div className="min-w-0 flex-1">
                             {isRenaming ? (
                               <div className="flex items-center gap-1">
@@ -379,7 +379,7 @@ export function BlueprintPanel() {
                             )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-1 flex-shrink-0">
+                        <div className="flex items-center gap-1 shrink-0">
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
@@ -574,15 +574,15 @@ export function BlueprintPanel() {
             </div>
             <div className="space-y-2 text-[11px] text-muted-label">
               <p className="flex items-start gap-1.5">
-                <Share2 className="w-3 h-3 mt-0.5 flex-shrink-0 text-brand" />
+                <Share2 className="w-3 h-3 mt-0.5 shrink-0 text-brand" />
                 Click the share icon on any blueprint to copy its code
               </p>
               <p className="flex items-start gap-1.5">
-                <Download className="w-3 h-3 mt-0.5 flex-shrink-0 text-brand" />
+                <Download className="w-3 h-3 mt-0.5 shrink-0 text-brand" />
                 Paste codes into the Import section to load shared layouts
               </p>
               <p className="flex items-start gap-1.5">
-                <Copy className="w-3 h-3 mt-0.5 flex-shrink-0 text-brand" />
+                <Copy className="w-3 h-3 mt-0.5 shrink-0 text-brand" />
                 Share codes are compact base64 strings you can send anywhere
               </p>
             </div>
@@ -605,7 +605,7 @@ export function BlueprintPanel() {
                           <GameIcon icon={RESOURCE_META[step as keyof typeof RESOURCE_META]?.icon} size={12} className="inline-flex" /> {RESOURCE_META[step as keyof typeof RESOURCE_META]?.name}
                         </span>
                         {j < chain.steps.length - 1 && (
-                          <ArrowRight className="w-2.5 h-2.5 text-muted-label flex-shrink-0" />
+                          <ArrowRight className="w-2.5 h-2.5 text-muted-label shrink-0" />
                         )}
                       </div>
                     ))}

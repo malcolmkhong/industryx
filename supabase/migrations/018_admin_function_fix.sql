@@ -49,7 +49,19 @@ GRANT EXECUTE ON FUNCTION public.increment_cheat_flag(uuid, text, text, text) TO
 
 -- ============================================================================
 -- 4. Seed admin_users table
+-- Guarded: hardcoding production admin UUIDs in a migration is a security
+-- anti-pattern. On fresh local DBs the auth.users table is empty — skip the
+-- seed and let admins grant themselves access via the admin UI / SQL.
+-- (Same fix as migration 004's PART 10 admin seed.)
 -- ============================================================================
-INSERT INTO public.admin_users (user_id, email, role)
-VALUES ('1b4d0dc3-e4d2-4fc0-b731-9782243ad061', 'malcolmkhong@gmail.com', 'super_admin')
-ON CONFLICT (user_id) DO NOTHING;
+DO $admin_seed$
+BEGIN
+  IF EXISTS (SELECT 1 FROM auth.users WHERE id = '1b4d0dc3-e4d2-4fc0-b731-9782243ad061') THEN
+    INSERT INTO public.admin_users (user_id, email, role)
+    VALUES ('1b4d0dc3-e4d2-4fc0-b731-9782243ad061', 'malcolmkhong@gmail.com', 'super_admin')
+    ON CONFLICT (user_id) DO NOTHING;
+  ELSE
+    RAISE NOTICE '[018] auth user 1b4d0dc3-... not present (fresh local DB) — skipping admin seed. Add admin via UI or SQL.';
+  END IF;
+END
+$admin_seed$;

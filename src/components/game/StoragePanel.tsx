@@ -498,13 +498,13 @@ export function StoragePanel() {
           className={`w-full flex items-center gap-2 px-3 py-2 transition-colors hover:bg-muted-label/30 text-left ${isExpanded ? 'bg-muted-label/20' : ''}`}
         >
           {/* Color Dot */}
-          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: meta.color }} />
+          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: meta.color }} />
 
           {/* Emoji + Name */}
-          <div className="flex items-center gap-1.5 min-w-[120px]">
+          <div className="flex items-center gap-1.5 min-w-30">
             <GameIcon icon={meta.icon} size={14} className="inline-flex" />
             <span className="text-xs font-medium text-subtle truncate">{meta.name}</span>
-            {hasAlert && <AlertCircle className="w-3 h-3 text-domain flex-shrink-0" />}
+            {hasAlert && <AlertCircle className="w-3 h-3 text-domain shrink-0" />}
           </div>
 
           {/* Capacity Bar */}
@@ -513,21 +513,21 @@ export function StoragePanel() {
           </div>
 
           {/* Stock / Capacity */}
-          <div className="text-right min-w-[80px]">
+          <div className="text-right min-w-20">
             <span className="text-xs font-mono text-subtle">{formatNumber(amount)}</span>
             <span className="text-[10px] text-muted-label">/</span>
             <span className="text-[10px] text-muted-label font-mono">{unlimited ? '∞' : formatNumber(capacity)}</span>
           </div>
 
           {/* Net Rate */}
-          <div className="min-w-[60px] text-right">
+          <div className="min-w-15 text-right">
             {renderRateBadge(netRate, prodRate, consRate)}
           </div>
 
           {/* Expand Chevron */}
           {isExpanded
-            ? <ChevronDown className="w-3.5 h-3.5 text-muted-label flex-shrink-0" />
-            : <ChevronRight className="w-3.5 h-3.5 text-muted-label flex-shrink-0" />
+            ? <ChevronDown className="w-3.5 h-3.5 text-muted-label shrink-0" />
+            : <ChevronRight className="w-3.5 h-3.5 text-muted-label shrink-0" />
           }
         </button>
         {isExpanded && renderResourceDetail(res)}
@@ -594,7 +594,7 @@ export function StoragePanel() {
               </div>
               <button
                 onClick={() => { setExpandedResource(alert.resource); setViewMode('overview'); }}
-                className="text-[9px] text-brand hover:text-brand flex-shrink-0 mt-1"
+                className="text-[9px] text-brand hover:text-brand shrink-0 mt-1"
               >
                 View →
               </button>
@@ -663,7 +663,7 @@ export function StoragePanel() {
                         )}
                       </div>
                       {si < chain.steps.length - 1 && (
-                        <ArrowRight className="w-3 h-3 text-muted-label flex-shrink-0" />
+                        <ArrowRight className="w-3 h-3 text-muted-label shrink-0" />
                       )}
                     </div>
                   );
@@ -754,7 +754,7 @@ export function StoragePanel() {
   return (
     <div className="h-full flex flex-col gap-3 p-4 overflow-hidden">
       {/* Header */}
-      <div className="flex-shrink-0">
+      <div className="shrink-0">
         <div className="flex items-center gap-2 mb-3">
           <Database className="w-5 h-5 text-warning" />
           <h2 className="text-xl font-bold text-subtle neon-glow-cyan">Storage Management</h2>
@@ -829,7 +829,7 @@ export function StoragePanel() {
           )}
 
           {/* Search */}
-          <div className="relative flex-1 min-w-[140px] max-w-[220px]">
+          <div className="relative flex-1 min-w-35 max-w-55">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-label" />
             <input
               type="text"

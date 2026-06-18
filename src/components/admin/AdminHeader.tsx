@@ -36,7 +36,7 @@ export function AdminHeader() {
         {email && (
           <div className="flex items-center gap-2 text-muted-label">
             <User className="w-3.5 h-3.5" />
-            <span className="text-xs font-medium truncate max-w-[160px]">{email}</span>
+            <span className="text-xs font-medium truncate max-w-40">{email}</span>
           </div>
         )}
 

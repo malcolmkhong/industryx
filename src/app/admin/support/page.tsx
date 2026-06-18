@@ -208,11 +208,19 @@ export default function SupportPage() {
               {selectedTicket.status !== 'resolved' && (
                 <div className="p-3 border-t border-muted-label/40 shrink-0">
                   <div className="flex items-center gap-2">
-                    <input value={reply} onChange={(e) => setReply(e.target.value)}
+                    <label htmlFor="support-reply" className="sr-only">Reply to ticket</label>
+                    <input
+                      id="support-reply"
+                      name="reply"
+                      aria-label="Reply to ticket"
+                      autoComplete="off"
+                      value={reply}
+                      onChange={(e) => setReply(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') sendReply(); }}
                       placeholder="Type a reply..."
                       className="flex-1 px-3 py-2 bg-background/60 border border-muted-label/30 rounded-lg text-sm text-white placeholder-muted-label focus:outline-none focus:border-warning/60/50" />
                     <button type="button" onClick={sendReply} disabled={sending || !reply.trim()}
+                      aria-label="Send reply"
                       className="p-2 bg-warning/70 hover:bg-warning/80 disabled:bg-background/40 text-white rounded-lg transition-colors">
                       <Send className="w-4 h-4" />
                     </button>

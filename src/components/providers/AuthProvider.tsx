@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import type { User, Session } from '@supabase/supabase-js';
 import { initServerValidation, disableServerValidation } from '@/lib/game/serverActions';
 
@@ -49,6 +50,7 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(isSupabaseConfigured);
@@ -66,7 +68,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setDeviceId(devId);
 
     let mounted = true;
-    const signInAnonymouslyRef: { fn: (() => Promise<void>) | null } = { fn: null };
 
     const initAuth = async () => {
       const { createBrowserClient } = await import('@supabase/ssr');
@@ -93,8 +94,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // Phase 1.2: If no session, try device-based recovery, then auto-signin anon
+      // Phase 1.2 + AUDIT_FIXES_2026_06_18.md P0-#2:
+      // If no session, try device-based recovery. Supabase can't createSession
+      // for an existing anon user, so the recovery flow is:
+      //   1. recover-by-device → tells us "yes, a guest for this device exists"
+      //   2. signInAnonymously() → creates a fresh auth.users row
+      //   3. claim-guest → re-assigns the old guest's server data to the new user
+      //   4. onAuthStateChange (subscribed below) picks up the new session and
+      //      updates context state.
       if (mounted && !session) {
+        let shouldClaim = false;
         try {
           const recoverRes = await fetch('/api/auth/recover-by-device', {
             method: 'POST',
@@ -102,29 +111,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             body: JSON.stringify({ deviceId: devId }),
           });
           if (recoverRes.ok) {
-            const { recoveredAs } = await recoverRes.json();
-            if (recoveredAs === 'recovered') {
-              const { data: { session: newSession } } = await supabase.auth.getSession();
-              if (mounted && newSession) {
-                setSession(newSession);
-                setUser(newSession.user ?? null);
-                if (newSession.user?.id) {
-                  initServerValidation(newSession.user.id);
-                }
-                return;
-              }
+            const data = (await recoverRes.json()) as {
+              recovered?: boolean;
+              recoveredAs?: string;
+              userId?: string;
+            };
+            if (data.recoveredAs === 'recovered' || data.recovered === true) {
+              shouldClaim = true;
             }
           }
         } catch (err) {
           console.warn('[Auth] Device recovery failed:', err);
         }
 
-        if (mounted && signInAnonymouslyRef.fn) {
-          try {
-            await signInAnonymouslyRef.fn();
-          } catch (err) {
-            console.warn('[Auth] Anonymous sign-in failed:', err);
+        // Inline anon sign-in (was previously delegated to a never-assigned
+        // signInAnonymouslyRef.fn, leaving the fallback dead).
+        try {
+          const { data, error } = await supabase.auth.signInAnonymously({
+            options: { data: { device_id: devId } },
+          });
+          if (error) {
+            console.warn('[Auth] Anonymous sign-in failed:', error.message);
+          } else if (data.user && shouldClaim) {
+            // Attach the device's prior data to the new anon user.
+            try {
+              const claimRes = await fetch('/api/auth/claim-guest', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ newUserId: data.user.id, deviceId: devId }),
+              });
+              if (claimRes.ok) {
+                console.log('[Auth] Guest data claimed for new anon user');
+              } else {
+                console.warn('[Auth] claim-guest non-ok:', claimRes.status);
+              }
+            } catch (err) {
+              console.warn('[Auth] claim-guest failed:', err);
+            }
           }
+        } catch (err) {
+          console.warn('[Auth] Anonymous sign-in threw:', err);
         }
       }
 
@@ -176,16 +202,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (data.user) {
       // Phase 1.3: Initialize guest profile + server_game_state + device mapping
       try {
-        await fetch('/api/auth/initialize-guest', {
+        const res = await fetch('/api/auth/initialize-guest', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ deviceId: devId }),
         });
+        // Capacity gate: if at MAX_TOTAL_PLAYERS, redirect to waitlist.
+        // Server returns 503 + { error: 'capacity_full', redirect: '/waitlist' }.
+        if (res.status === 503) {
+          const body = await res.json().catch(() => ({}));
+          if (body?.error === 'capacity_full') {
+            router.push('/waitlist');
+            return;
+          }
+        }
       } catch (err) {
         console.warn('[Auth] initialize-guest failed (non-fatal):', err);
       }
     }
-  }, [deviceId]);
+  }, [deviceId, router]);
 
   const signInWithGoogle = useCallback(async () => {
     if (!isSupabaseConfigured || signingInRef.current) return;

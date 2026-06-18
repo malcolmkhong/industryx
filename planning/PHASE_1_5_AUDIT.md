@@ -59,7 +59,7 @@ The `'stock_market'` reason and config already exist in LoginFloatingPanel REASO
   {userAvatar ? (
     <img src={userAvatar} alt="" className="w-5 h-5 rounded-full" />
   ) : (
-    <div className="w-5 h-5 rounded-full bg-gradient-to-br from-cyan-500 to-teal-600">
+    <div className="w-5 h-5 rounded-full bg-linear-to-br from-cyan-500 to-teal-600">
       {userName.charAt(0).toUpperCase()}
     </div>
   )}

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAdminPresence } from "@/lib/hooks/useAdminPresence";
 
@@ -62,7 +63,7 @@ export default function BackendDashboard() {
   return (
     <>
       {/* Welcome Card */}
-      <div className="bg-gradient-to-br from-warning/60/10 to-domain/80/5 border border-warning/20 rounded-2xl p-6 mb-6">
+      <div className="bg-linear-to-br from-warning/60/10 to-domain/80/5 border border-warning/20 rounded-2xl p-6 mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-xl sm:text-2xl font-bold text-white">
@@ -76,8 +77,10 @@ export default function BackendDashboard() {
             <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
             <span className="text-success text-sm font-medium">System Online</span>
             <button
+              type="button"
               onClick={fetchDashboardData}
               disabled={statsLoading}
+              aria-label="Refresh dashboard data"
               className="text-muted-label hover:text-warning transition-colors p-1.5 rounded-md hover:bg-background/60"
               title="Refresh data"
             >
@@ -92,7 +95,7 @@ export default function BackendDashboard() {
       {/* Live Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         {/* Total Players */}
-        <a href="/admin/players" className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5 block hover:border-muted-label/30 transition-colors">
+        <Link href="/admin/players" className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5 block hover:border-muted-label/30 transition-colors">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-success">
@@ -110,7 +113,7 @@ export default function BackendDashboard() {
             <div className="w-2 h-2 rounded-full bg-success" />
             <span className="text-success text-xs">Registered accounts</span>
           </div>
-        </a>
+        </Link>
 
         {/* Online Now — real-time via Supabase Presence */}
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
@@ -149,7 +152,7 @@ export default function BackendDashboard() {
         </div>
 
         {/* Open Investigations */}
-        <a href="/admin/investigations" className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5 block hover:border-muted-label/30 transition-colors">
+        <Link href="/admin/investigations" className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5 block hover:border-muted-label/30 transition-colors">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-warning">
@@ -167,7 +170,7 @@ export default function BackendDashboard() {
             <div className="w-2 h-2 rounded-full bg-warning" />
             <span className="text-warning text-xs">Pending review</span>
           </div>
-        </a>
+        </Link>
 
         {/* Locked Accounts */}
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
@@ -191,7 +194,7 @@ export default function BackendDashboard() {
         </div>
 
         {/* Actions Today */}
-        <a href="/admin/audit" className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5 block hover:border-muted-label/30 transition-colors">
+        <Link href="/admin/audit" className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5 block hover:border-muted-label/30 transition-colors">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-lg bg-research/10 flex items-center justify-center">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-research">
@@ -209,10 +212,10 @@ export default function BackendDashboard() {
             <div className="w-2 h-2 rounded-full bg-research" />
             <span className="text-research text-xs">Player actions logged</span>
           </div>
-        </a>
+        </Link>
 
         {/* Invalid Actions */}
-        <a href="/admin/audit" className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5 block hover:border-muted-label/30 transition-colors">
+        <Link href="/admin/audit" className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5 block hover:border-muted-label/30 transition-colors">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-lg bg-domain/10 flex items-center justify-center">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-domain">
@@ -230,7 +233,7 @@ export default function BackendDashboard() {
             <div className="w-2 h-2 rounded-full bg-domain/50" />
             <span className="text-domain text-xs">Flagged today</span>
           </div>
-        </a>
+        </Link>
       </div>
 
       {/* Quick Info */}
@@ -259,7 +262,7 @@ export default function BackendDashboard() {
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-white font-medium text-sm">Recent Actions</h3>
-            <a href="/admin/audit" className="text-warning text-xs hover:text-warning">View all →</a>
+            <Link href="/admin/audit" className="text-warning text-xs hover:text-warning">View all →</Link>
           </div>
           <div className="space-y-1">
             {statsLoading ? (
@@ -297,7 +300,7 @@ export default function BackendDashboard() {
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-white font-medium text-sm">Recent Investigations</h3>
-            <a href="/admin/investigations" className="text-warning text-xs hover:text-warning">View all →</a>
+            <Link href="/admin/investigations" className="text-warning text-xs hover:text-warning">View all →</Link>
           </div>
           <div className="space-y-1">
             {statsLoading ? (
@@ -343,3 +346,4 @@ export default function BackendDashboard() {
     </>
   );
 }
+

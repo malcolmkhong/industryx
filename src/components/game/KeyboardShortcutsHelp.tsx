@@ -49,17 +49,24 @@ export default function KeyboardShortcutsHelp() {
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-100 bg-black/60 backdrop-blur-sm"
             onClick={() => setIsOpen(false)}
+            onKeyDown={(e) => { if (e.key === 'Escape') setIsOpen(false); }}
+            role="button"
+            tabIndex={0}
+            aria-label="Close keyboard shortcuts"
           />
 
           {/* Modal */}
           <div
-            className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none"
+            className="fixed inset-0 z-101 flex items-center justify-center p-4 pointer-events-none"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Keyboard shortcuts"
           >
             <div className="pointer-events-auto w-full max-w-md bg-card border border-brand/40 rounded-xl shadow-2xl shadow-brand/20 overflow-hidden">
               {/* Header */}
-              <div className="flex items-center justify-between px-5 py-3 border-b border-brand/30 bg-gradient-to-r from-brand/20 to-transparent">
+              <div className="flex items-center justify-between px-5 py-3 border-b border-brand/30 bg-linear-to-r from-brand/20 to-transparent">
                 <div className="flex items-center gap-2">
                   <Keyboard className="w-4 h-4 text-brand" />
                   <h2 className="text-sm font-bold text-brand tracking-wide">Keyboard Shortcuts</h2>
@@ -78,10 +85,10 @@ export default function KeyboardShortcutsHelp() {
                 {SHORTCUTS.map((shortcut, index) => (
                   <div key={index} className="flex items-center justify-between gap-4">
                     <span className="text-xs text-subtle">{shortcut.description}</span>
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       {shortcut.keys.map((key, ki) => (
                         <span key={ki}>
-                          <kbd className="inline-flex items-center justify-center min-w-[28px] h-7 px-2 rounded-md bg-background border border-brand/30 text-[11px] font-mono text-brand shadow-sm">
+                          <kbd className="inline-flex items-center justify-center min-w-7 h-7 px-2 rounded-md bg-background border border-brand/30 text-[11px] font-mono text-brand shadow-sm">
                             {key}
                           </kbd>
                           {ki < shortcut.keys.length - 1 && (

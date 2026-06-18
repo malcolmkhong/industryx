@@ -18,15 +18,11 @@ const SIDEBAR_COLLAPSED = 64;
 
 export function AdminNavigationTree() {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false;
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored !== null) {
-      setCollapsed(stored === 'true');
-    }
-  }, []);
+    return stored !== null ? stored === 'true' : false;
+  });
 
   const toggleCollapsed = useCallback(() => {
     setCollapsed((prev) => {

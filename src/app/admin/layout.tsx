@@ -13,13 +13,11 @@ const AUTH_ROUTES = ['/admin/login', '/admin/forbidden', '/admin/auth'];
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [loading, setLoading] = useState(true);
+  const isAuthRoute = AUTH_ROUTES.some((r) => pathname.startsWith(r));
+  const [loading, setLoading] = useState(!isAuthRoute);
 
   useEffect(() => {
-    if (AUTH_ROUTES.some((r) => pathname.startsWith(r))) {
-      setLoading(false);
-      return;
-    }
+    if (isAuthRoute) return;
 
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -29,9 +27,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       }
       setLoading(false);
     });
-  }, [router, pathname]);
+  }, [router, pathname, isAuthRoute]);
 
-  if (AUTH_ROUTES.some((r) => pathname.startsWith(r))) {
+  if (isAuthRoute) {
     return <>{children}</>;
   }
 
@@ -46,7 +44,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="min-h-screen bg-background">
       <AdminNavigationTree />
-      <div className="pl-[240px] transition-all duration-200">
+      <div className="pl-0 lg:pl-60 transition-all duration-200">
         <AdminHeader />
         <main className="p-6">{children}</main>
       </div>

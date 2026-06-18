@@ -1,0 +1,14 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^Select-String -Path src/\\*\\*/\\*\\.ts,src/\\*\\*/\\*\\.tsx -Pattern \"useOnlinePresence\\|useCloudSync\\|useAdminPresence\\|useMergeFlow\\|useLoginPrompt\\|useServerMarket\\|settingsStore\" -SimpleMatch 2>\\$null \\| Group-Object Path \\| Select-Object Name, Count \\| Format-Table -AutoSize$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "Out-File": true,
+        "Out-Null": true,
+        "/^powershell -Command \"cd a:\\\\industryx\\\\industryx ; Select-String -Path src/components/game/headers/MobileHeader\\.tsx -Pattern '<button\\|<Button' -Context 0,2\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

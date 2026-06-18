@@ -46,6 +46,7 @@ export function AdminErrorBanner({
         <button
           type="button"
           onClick={onDismiss}
+          aria-label="Dismiss error"
           className="text-danger/60 hover:text-danger shrink-0"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

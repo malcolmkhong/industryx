@@ -1,3 +1,4 @@
+/* eslint-disable jsx-a11y/control-has-associated-label */
 "use client";
 
 import { useEffect, useState, useCallback, use } from "react";
@@ -458,7 +459,7 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
                   </pre>
                   {hasMoreLines && !jsonExpanded && (
                     <div className="relative">
-                      <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-background/80/60 to-transparent pointer-events-none" />
+                      <div className="absolute bottom-0 left-0 right-0 h-12 bg-linear-to-t from-background/80/60 to-transparent pointer-events-none" />
                     </div>
                   )}
                 </div>
@@ -537,7 +538,7 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
                               )}
                             </td>
                             <td className="px-4 py-2.5">
-                              <span className="text-muted-label text-xs truncate block max-w-[200px]">
+                              <span className="text-muted-label text-xs truncate block max-w-50">
                                 {action.rejection_reason || "—"}
                               </span>
                             </td>
@@ -618,6 +619,7 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
                       </thead>
                       <tbody>
                         {player.investigations.map((inv) => (
+                          /* eslint-disable-next-line jsx-a11y/control-has-associated-label -- <tr> is a table row, not a form control */
                           <tr key={inv.id} className="border-b border-muted-label/40/50 hover:bg-background/60/30 transition-colors">
                             <td className="px-4 py-2.5">
                               <code className="text-subtle text-xs font-mono">{inv.detection_type}</code>
@@ -628,7 +630,7 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
                               </span>
                             </td>
                             <td className="px-4 py-2.5">
-                              <span className="text-muted-label text-xs truncate block max-w-[300px]">
+                              <span className="text-muted-label text-xs truncate block max-w-75">
                                 {inv.description || "—"}
                               </span>
                             </td>
@@ -710,10 +712,11 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
 
             {confirmModal.action === "lock" && (
               <div className="px-5 pb-2">
-                <label className="block text-muted-label text-xs font-medium mb-1.5">
+                <label htmlFor="lock-reason" className="block text-muted-label text-xs font-medium mb-1.5">
                   Reason (optional)
                 </label>
                 <input
+                  id="lock-reason"
                   type="text"
                   placeholder="e.g. Suspected cheating"
                   value={lockReason}

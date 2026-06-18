@@ -86,6 +86,7 @@ export default function ComparePage() {
           {ids.map((id, i) => (
             <input
               key={`player-input-${i}`}
+              aria-label={`Player ${i + 1} UUID`}
               value={id}
               onChange={(e) => updateId(i, e.target.value)}
               placeholder={`Player ${i + 1} UUID...`}
@@ -110,9 +111,9 @@ export default function ComparePage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-muted-label/40">
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-label w-32">Metric</th>
+                <th scope="col" className="text-left px-4 py-2.5 text-xs font-semibold text-muted-label w-32">Metric</th>
                 {players.map((p) => (
-                  <th key={p.userId} className="text-right px-4 py-2.5 text-xs font-semibold text-muted-label">
+                  <th scope="col" key={p.userId} className="text-right px-4 py-2.5 text-xs font-semibold text-muted-label">
                     {p.displayName}
                   </th>
                 ))}

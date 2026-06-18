@@ -213,7 +213,7 @@ const MapBuildingTile = memo(function MapBuildingTile({
             <GameIcon icon={def.icon} size={20} />
             {/* Level badge */}
             <div className="flex items-center gap-0.5 mt-0.5">
-              <Badge className="text-[11px] px-0.5 py-0 h-3 min-w-[12px] bg-muted-label/80 text-subtle border-muted-label/50">
+              <Badge className="text-[11px] px-0.5 py-0 h-3 min-w-3 bg-muted-label/80 text-subtle border-muted-label/50">
                 {building.level}
               </Badge>
             </div>
@@ -1362,7 +1362,9 @@ export default function FactoryMapPanel() {
           {/* Map container with zoom/pan */}
           <div
             ref={mapRef}
-            className="w-full h-full overflow-hidden cursor-crosshair min-w-[600px]"
+            className="w-full h-full overflow-hidden cursor-crosshair min-w-150"
+            role="application"
+            aria-label="Factory map — click cells to place buildings"
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
@@ -1435,12 +1437,16 @@ export default function FactoryMapPanel() {
                                 : 'border-muted-label/20'
                             }
                           `}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`Build on cell row ${r}, column ${c}`}
                           style={{
                             background: canPlace && isHovered
                               ? undefined
                               : `linear-gradient(135deg, ${getTerrainTint(r).bg}, rgba(10, 15, 26, 0.5))`,
                           }}
                           onClick={() => handleCellClick(r, c)}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCellClick(r, c); } }}
                           onMouseEnter={() => setHoveredCell({ row: r, col: c })}
                           onMouseLeave={() => setHoveredCell(null)}
                         >
@@ -1475,7 +1481,7 @@ export default function FactoryMapPanel() {
         </div>
 
         {/* Right Panel: Selected Building / Quick Stats */}
-        <div className="lg:w-64 flex-shrink-0 space-y-3">
+        <div className="lg:w-64 shrink-0 space-y-3">
           <>
             {selectedBuilding ? (
               <SelectedBuildingPanel

@@ -58,13 +58,13 @@ export default function LoginPage() {
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-warning/5 rounded-full blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-domain/5 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-warning/3 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-150 h-150 bg-warning/3 rounded-full blur-3xl" />
       </div>
 
       <div className="relative w-full max-w-md">
         {/* Logo / Branding */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 mb-6 rounded-2xl bg-gradient-to-br from-warning/60 to-domain/80 shadow-lg shadow-warning/20">
+          <div className="inline-flex items-center justify-center w-20 h-20 mb-6 rounded-2xl bg-linear-to-br from-warning/60 to-domain/80 shadow-lg shadow-warning/20">
             <svg
               width="40"
               height="40"

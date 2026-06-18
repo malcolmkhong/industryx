@@ -299,7 +299,7 @@ export function FactoryPanel() {
 
         {/* SVG Flow Diagram */}
         <div className="relative bg-background rounded-lg p-2 overflow-x-auto">
-          <svg viewBox="0 0 1200 160" className="w-full h-auto min-w-[500px]" style={{ maxHeight: '180px' }}>
+          <svg viewBox="0 0 1200 160" className="w-full h-auto min-w-125" style={{ maxHeight: '180px' }}>
             {/* Background grid pattern */}
             <defs>
               <pattern id="flowGrid" width="20" height="20" patternUnits="userSpaceOnUse">
@@ -690,7 +690,7 @@ export function FactoryPanel() {
                               </span>
                             ))}
                             {def.inputs && def.inputs.length > 0 && (
-                              <ArrowRight className="w-2 h-2 text-muted-label flex-shrink-0" />
+                              <ArrowRight className="w-2 h-2 text-muted-label shrink-0" />
                             )}
                             {def.outputs?.map((out, i) => (
                               <span key={i} className="text-[11px] text-success/80 bg-success/20 rounded px-1 py-px">
@@ -750,7 +750,7 @@ export function FactoryPanel() {
                       <h3 className={`text-xs font-semibold ${currentColorClasses.text}`}>Active Factories</h3>
                       <span className="text-[9px] text-muted-label">({currentTierBuildings.length})</span>
                     </div>
-                    <div className="space-y-1.5 max-h-[400px] overflow-y-auto game-scrollbar pr-1">
+                    <div className="space-y-1.5 max-h-100 overflow-y-auto game-scrollbar pr-1">
                       {currentTierBuildings.map(building => {
                         const def = BUILDING_DEFS[building.type];
                         if (!def) return null;
@@ -796,7 +796,7 @@ export function FactoryPanel() {
                               {/* Toggle + Emoji */}
                               <button
                                 onClick={() => handleToggle(building.id)}
-                                className={`text-base hover:scale-110 flex-shrink-0 ${
+                                className={`text-base hover:scale-110 shrink-0 ${
                                   building.active ? 'opacity-100' : 'grayscale opacity-50'
                                 }`}
                                 title={building.active ? 'Click to disable' : 'Click to enable'}
@@ -831,7 +831,7 @@ export function FactoryPanel() {
                                     </div>
                                   ))}
                                   {effectiveInputs.length > 0 && (
-                                    <ArrowRight className="w-2.5 h-2.5 text-muted-label flex-shrink-0" />
+                                    <ArrowRight className="w-2.5 h-2.5 text-muted-label shrink-0" />
                                   )}
                                   {effectiveOutputs.map(({ resource: _r, rate, meta }, i) => (
                                     <div key={i} className="flex items-center gap-0.5 bg-success/15 rounded px-1 py-px">
@@ -849,9 +849,9 @@ export function FactoryPanel() {
                                   <div className="flex-1 h-1 bg-muted-label rounded-full overflow-hidden">
                                     <div
                                       className={`h-full rounded-full ${
-                                        eff >= 0.8 ? 'bg-gradient-to-r from-success/80 to-success/50' :
-                                        eff >= 0.5 ? 'bg-gradient-to-r from-warning/70 to-warning/50' :
-                                        'bg-gradient-to-r from-danger/80 to-danger/60'
+                                        eff >= 0.8 ? 'bg-linear-to-r from-success/80 to-success/50' :
+                                        eff >= 0.5 ? 'bg-linear-to-r from-warning/70 to-warning/50' :
+                                        'bg-linear-to-r from-danger/80 to-danger/60'
                                       }`}
                                       style={{ width: `${eff * 100}%` }}
                                     />
@@ -865,7 +865,7 @@ export function FactoryPanel() {
                               </div>
 
                               {/* Upgrade + Toggle - compact */}
-                              <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                              <div className="flex flex-col items-end gap-1 shrink-0">
                                 <button
                                   onClick={() => handleToggle(building.id)}
                                   className={`w-6 h-6 rounded-full flex items-center justify-center border ${

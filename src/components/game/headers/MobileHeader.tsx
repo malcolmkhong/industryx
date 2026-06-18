@@ -101,7 +101,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
   };
 
   /* ── shared button classes for 44x44 touch targets ── */
-  const btn44 = 'h-11 w-11 min-h-11 min-w-[44px] p-0 flex items-center justify-center rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background';
+  const btn44 = 'h-11 w-11 min-h-11 min-w-11 p-0 flex items-center justify-center rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background';
   const btn44Ghost = `${btn44} text-muted-label hover:text-brand hover:bg-white/[0.04]`;
 
   return (
@@ -109,7 +109,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
       {/* ── Row 1: Logo + branding + tick counter ── */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
-          <div className="w-7 h-7 rounded-md bg-gradient-to-br from-brand to-success/80 flex items-center justify-center text-[10px] font-bold flex-shrink-0 shadow-[0_0_8px_rgba(0,255,242,0.2)]">
+          <div className="w-7 h-7 rounded-md bg-linear-to-br from-brand to-success/80 flex items-center justify-center text-[10px] font-bold shrink-0 shadow-[0_0_8px_rgba(0,255,242,0.2)]">
             IX
           </div>
           <div className="min-w-0">
@@ -117,7 +117,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
             <p className="text-[11px] text-muted-label -mt-0.5 hidden xs:block">Factory Dominion</p>
           </div>
         </div>
-        <span className="text-[9px] text-muted-label font-mono flex-shrink-0">Tick: {formatNumber(gameTick)}</span>
+        <span className="text-[9px] text-muted-label font-mono shrink-0">Tick: {formatNumber(gameTick)}</span>
       </div>
 
       {/* ── Row 2: Stats — money (with glow + tooltip), power, RP, CP ── */}
@@ -132,7 +132,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
                 <button
                   type="button"
                   onClick={collectPayout}
-                  className="animate-pulse inline-flex items-center gap-0.5 bg-success/40 hover:bg-success/50/50 text-success text-[11px] px-1 py-0.5 rounded border border-success/30 transition-colors min-h-[28px]"
+                  className="animate-pulse inline-flex items-center gap-0.5 bg-success/40 hover:bg-success/50/50 text-success text-[11px] px-1 py-0.5 rounded border border-success/30 transition-colors min-h-7"
                   aria-label={`Collect pending payout: $${formatNumber(pendingPayout)}`}
                   title="Tap to collect pending payout"
                 >
@@ -142,7 +142,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
             </div>
           </TooltipTrigger>
           <TooltipContent side="bottom" className="w-60 bg-card border-brand/30 p-0 overflow-hidden">
-            <div className="bg-gradient-to-r from-success/30/30 to-success/30/20 px-3 py-1.5 border-b border-brand/20">
+            <div className="bg-linear-to-r from-success/30/30 to-success/30/20 px-3 py-1.5 border-b border-brand/20">
               <p className="text-xs font-bold text-success inline-flex items-center gap-1"><GameIcon ui="money" size={12} className="inline-flex" /> Financial Overview</p>
             </div>
             <div className="px-3 py-1.5 space-y-1">
@@ -177,7 +177,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
                 {formatNumber(powerGrid.totalProduction)}/{formatNumber(powerGrid.totalConsumption)}
               </span>
               <span
-                className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                   factoryEfficiency >= 0.8
                     ? 'bg-success shadow-[0_0_4px_rgba(74,222,128,0.6)]'
                     : factoryEfficiency >= 0.5
@@ -228,7 +228,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
 
       {/* ── Row 3: Speed controls + power bar ── */}
       <div className="flex items-center gap-2">
-        <div className="flex items-center bg-card rounded-lg border border-brand/20 overflow-hidden flex-shrink-0">
+        <div className="flex items-center bg-card rounded-lg border border-brand/20 overflow-hidden shrink-0">
           <Button
             variant="ghost"
             size="sm"
@@ -253,8 +253,8 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
         </div>
 
         <div className="flex items-center gap-1.5 flex-1 min-w-0">
-          <span className="text-[9px] text-muted-label font-mono flex-shrink-0">PWR</span>
-          <div className="flex-1 h-2 bg-muted-label rounded-full overflow-hidden min-w-[30px]">
+          <span className="text-[9px] text-muted-label font-mono shrink-0">PWR</span>
+          <div className="flex-1 h-2 bg-muted-label rounded-full overflow-hidden min-w-7.5">
             <div
               className={`h-full transition-all duration-500 rounded-full ${
                 powerPercent >= 80 ? 'bg-success' : powerPercent >= 50 ? 'bg-warning' : 'bg-danger'
@@ -262,7 +262,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
               style={{ width: `${powerPercent}%` }}
             />
           </div>
-          <span className={`text-[9px] font-mono flex-shrink-0 ${powerPercent >= 80 ? 'text-success' : powerPercent >= 50 ? 'text-warning' : 'text-danger'}`}>
+          <span className={`text-[9px] font-mono shrink-0 ${powerPercent >= 80 ? 'text-success' : powerPercent >= 50 ? 'text-warning' : 'text-danger'}`}>
             {powerPercent.toFixed(0)}%
           </span>
         </div>
@@ -295,7 +295,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
               >
                 <Bell className="w-4 h-4" />
                 {unreadNotifications > 0 && (
-                  <span className={`absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full text-[11px] text-white flex items-center justify-center px-1 font-bold ${
+                  <span className={`absolute -top-0.5 -right-0.5 min-w-4 h-4 rounded-full text-[11px] text-white flex items-center justify-center px-1 font-bold ${
                     notifications[0]?.type === 'error' ? 'bg-danger' :
                     notifications[0]?.type === 'warning' ? 'bg-domain' :
                     'bg-brand'
@@ -426,11 +426,11 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
                 {userAvatar ? (
                   <Image src={userAvatar} alt={userName} width={24} height={24} className="rounded-full" />
                 ) : (
-                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-brand to-success/80 flex items-center justify-center text-[10px] font-bold" aria-hidden="true">
+                  <div className="w-6 h-6 rounded-full bg-linear-to-br from-brand to-success/80 flex items-center justify-center text-[10px] font-bold" aria-hidden="true">
                     {userName.charAt(0).toUpperCase()}
                   </div>
                 )}
-                <span className="text-[10px] text-subtle max-w-[60px] truncate">{userName}</span>
+                <span className="text-[10px] text-subtle max-w-15 truncate">{userName}</span>
                 {isGuest && (
                   <span className="text-[11px] px-1 py-0.5 rounded bg-warning/30 text-warning border border-warning/30 font-bold uppercase tracking-wider">
                     Guest

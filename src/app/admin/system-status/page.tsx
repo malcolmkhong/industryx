@@ -183,11 +183,11 @@ export default function SystemStatusPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-muted-label/40">
-                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-label">Job</th>
-                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-label hidden sm:table-cell">Schedule</th>
-                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-label">Last Run</th>
-                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-label">Status</th>
-                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-label hidden md:table-cell">Detail</th>
+                      <th scope="col" className="text-left px-4 py-2.5 text-xs font-semibold text-muted-label">Job</th>
+                      <th scope="col" className="text-left px-4 py-2.5 text-xs font-semibold text-muted-label hidden sm:table-cell">Schedule</th>
+                      <th scope="col" className="text-left px-4 py-2.5 text-xs font-semibold text-muted-label">Last Run</th>
+                      <th scope="col" className="text-left px-4 py-2.5 text-xs font-semibold text-muted-label">Status</th>
+                      <th scope="col" className="text-left px-4 py-2.5 text-xs font-semibold text-muted-label hidden md:table-cell">Detail</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -203,7 +203,7 @@ export default function SystemStatusPage() {
                             {job.status}
                           </span>
                         </td>
-                        <td className="px-4 py-2.5 text-xs text-muted-label hidden md:table-cell max-w-[200px] truncate">
+                        <td className="px-4 py-2.5 text-xs text-muted-label hidden md:table-cell max-w-50 truncate">
                           {job.detail}
                         </td>
                       </tr>

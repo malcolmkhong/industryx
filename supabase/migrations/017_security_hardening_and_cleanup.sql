@@ -86,10 +86,21 @@ REVOKE EXECUTE ON FUNCTION public.is_game_admin() FROM authenticated;
 GRANT EXECUTE ON FUNCTION public.is_game_admin() TO service_role;
 
 -- handle_new_user: called by on_auth_user_created trigger (bypasses EXECUTE grants)
-REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM anon;
-REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM authenticated;
-GRANT EXECUTE ON FUNCTION public.handle_new_user() TO service_role;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.proname = 'handle_new_user'
+  ) THEN
+    REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM PUBLIC;
+    REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM anon;
+    REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM authenticated;
+    GRANT EXECUTE ON FUNCTION public.handle_new_user() TO service_role;
+  END IF;
+END $$;
 
 -- rls_auto_enable: called by ensure_rls event trigger (bypasses EXECUTE grants)
 REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM PUBLIC;

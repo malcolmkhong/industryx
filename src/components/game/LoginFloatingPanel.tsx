@@ -407,7 +407,7 @@ export function LoginFloatingPanel({
   return (
     <>
       <div
-        className={`fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+        className={`fixed inset-0 z-100 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
           animateIn ? 'opacity-100' : 'opacity-0'
         }`}
         onClick={handleBackdropClick}
@@ -420,7 +420,7 @@ export function LoginFloatingPanel({
 
       {/* Panel */}
       <div
-        className={`fixed z-[101] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-md transition-all duration-300 ${
+        className={`fixed z-101 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-md transition-all duration-300 ${
           animateIn
             ? 'opacity-100 scale-100 translate-y-0'
             : 'opacity-0 scale-95 -translate-y-4'
@@ -428,7 +428,7 @@ export function LoginFloatingPanel({
       >
         <div className="relative bg-[#0d1220] border border-brand/40 rounded-2xl shadow-2xl shadow-brand/20 overflow-hidden">
           {/* Top accent gradient */}
-          <div className="h-1 bg-gradient-to-r from-brand via-success/70 to-success" />
+          <div className="h-1 bg-linear-to-r from-brand via-success/70 to-success" />
 
           {/* Close button (only for soft prompts or after warning) */}
           {config.dismissible && (
@@ -446,7 +446,7 @@ export function LoginFloatingPanel({
           <div className="p-6 pt-5">
             {/* Icon + Title */}
             <div className="flex items-start gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-brand/30 flex items-center justify-center flex-shrink-0 border border-brand/30">
+              <div className="w-10 h-10 rounded-xl bg-brand/30 flex items-center justify-center shrink-0 border border-brand/30">
                 {config.icon}
               </div>
               <div>
@@ -462,7 +462,7 @@ export function LoginFloatingPanel({
                   ? 'bg-warning/20 text-warning border border-warning/80/30'
                   : 'bg-brand/20 text-brand border border-brand/30'
               }`}>
-                <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                 {config.urgencyText}
               </div>
             )}
@@ -525,7 +525,7 @@ export function LoginFloatingPanel({
                 <button
                   type="button"
                   onClick={onMergeClose}
-                  className="w-full h-10 text-sm font-semibold bg-gradient-to-r from-brand/70 to-success/80 hover:from-brand hover:to-success/70 text-white rounded-lg mt-3"
+                  className="w-full h-10 text-sm font-semibold bg-linear-to-r from-brand/70 to-success/80 hover:from-brand hover:to-success/70 text-white rounded-lg mt-3"
                 >
                   Continue
                 </button>
@@ -544,7 +544,7 @@ export function LoginFloatingPanel({
                   <button
                     type="button"
                     onClick={onMergeRetry}
-                    className="w-full h-10 text-sm font-semibold bg-gradient-to-r from-brand/70 to-success/80 hover:from-brand hover:to-success/70 text-white rounded-lg"
+                    className="w-full h-10 text-sm font-semibold bg-linear-to-r from-brand/70 to-success/80 hover:from-brand hover:to-success/70 text-white rounded-lg"
                   >
                     Retry
                   </button>
@@ -563,7 +563,7 @@ export function LoginFloatingPanel({
             <div className="space-y-2 mb-5">
               {config.benefits.map((benefit) => (
                 <div key={benefit} className="flex items-center gap-2.5 text-sm text-subtle">
-                  <div className="w-5 h-5 rounded-full bg-success/30 flex items-center justify-center flex-shrink-0 border border-success/30" aria-hidden="true">
+                  <div className="w-5 h-5 rounded-full bg-success/30 flex items-center justify-center shrink-0 border border-success/30" aria-hidden="true">
                     <svg className="w-3 h-3 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
@@ -581,10 +581,10 @@ export function LoginFloatingPanel({
                 className="mb-4 p-3 rounded-lg bg-danger/20 border border-danger/30"
               >
                 <div className="flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-danger flex-shrink-0 mt-0.5" aria-hidden="true" />
+                  <AlertCircle className="w-4 h-4 text-danger shrink-0 mt-0.5" aria-hidden="true" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-danger font-medium">We couldn’t sign you in</p>
-                    <p className="text-xs text-danger/80 mt-1 break-words">{signInError}</p>
+                    <p className="text-xs text-danger/80 mt-1 wrap-break-word">{signInError}</p>
                     <button
                       type="button"
                       onClick={handleRetry}
@@ -610,7 +610,7 @@ export function LoginFloatingPanel({
             <Button
               onClick={handleSignIn}
               disabled={isSigningIn || authLoading}
-              className="w-full h-12 text-sm font-semibold bg-gradient-to-r from-brand/70 to-success/80 hover:from-brand hover:to-success/70 text-white rounded-xl shadow-lg shadow-brand/30 transition-all duration-200 hover:shadow-brand/80/40"
+              className="w-full h-12 text-sm font-semibold bg-linear-to-r from-brand/70 to-success/80 hover:from-brand hover:to-success/70 text-white rounded-xl shadow-lg shadow-brand/30 transition-all duration-200 hover:shadow-brand/80/40"
             >
               {isSigningIn || authLoading ? (
                 <>

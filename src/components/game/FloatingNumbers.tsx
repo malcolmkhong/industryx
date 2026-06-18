@@ -98,7 +98,7 @@ export default function FloatingNumbers() {
   }, [resources, money]);
 
   return (
-    <div className="fixed top-12 left-16 z-[90] pointer-events-none" style={{ width: '480px', height: '40px' }}>
+    <div className="fixed top-12 left-16 z-90 pointer-events-none" style={{ width: '480px', height: '40px' }}>
       <AnimatePresence>
         {entries.map(entry => (
           <motion.div

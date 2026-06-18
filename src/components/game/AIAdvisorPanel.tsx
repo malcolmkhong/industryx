@@ -206,7 +206,7 @@ function HealthBar({ label, value, color, barColor }: { label: string; value: nu
   const pct = Math.round(value);
   return (
     <div className="flex items-center gap-1.5">
-      <span className={`text-[11px] ${color} w-[52px] text-right font-medium`}>{label}</span>
+      <span className={`text-[11px] ${color} w-13 text-right font-medium`}>{label}</span>
       <div className="flex-1 h-1.5 bg-muted-label rounded-full overflow-hidden">
         <div
           className={`h-full ${barColor} rounded-full transition-all duration-500`}
@@ -303,7 +303,7 @@ function RecommendationCard({
             </div>
 
             {/* Navigate + Dismiss */}
-            <div className="flex items-center gap-1 flex-shrink-0">
+            <div className="flex items-center gap-1 shrink-0">
               <Button
                 size="sm"
                 variant="outline"
@@ -1205,7 +1205,7 @@ export default function AIAdvisorPanel() {
         <Card className="bg-success/10 border border-success/20">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
-              <Brain className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
+              <Brain className="w-5 h-5 text-success shrink-0 mt-0.5" />
               <div>
                 <h4 className="text-sm font-semibold text-success">Getting Started</h4>
                 <p className="text-xs text-subtle mt-1">
@@ -1221,7 +1221,7 @@ export default function AIAdvisorPanel() {
         <Card className="bg-brand/10 border border-brand/20">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
-              <Lightbulb className="w-4 h-4 text-brand flex-shrink-0 mt-0.5" />
+              <Lightbulb className="w-4 h-4 text-brand shrink-0 mt-0.5" />
               <div>
                 <h4 className="text-xs font-semibold text-brand">Pro Tip</h4>
                 <p className="text-xs text-subtle mt-1">

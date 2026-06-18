@@ -237,9 +237,10 @@ export default function AdminAuditPage() {
       {/* Filter Bar */}
       <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-4 mb-6">
         <div className="flex flex-wrap items-end gap-3">
-          <div className="flex-1 min-w-[180px]">
-            <label className="block text-muted-label text-[10px] uppercase tracking-wider mb-1.5">Action Type</label>
+          <div className="flex-1 min-w-45">
+            <label htmlFor="filter-action-type" className="block text-muted-label text-[10px] uppercase tracking-wider mb-1.5">Action Type</label>
             <select
+              id="filter-action-type"
               value={filterActionType}
               onChange={(e) => { setFilterActionType(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
               className="w-full bg-background/60/80 border border-muted-label/30 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors appearance-none"
@@ -250,36 +251,40 @@ export default function AdminAuditPage() {
               ))}
             </select>
           </div>
-          <div className="min-w-[140px]">
-            <label className="block text-muted-label text-[10px] uppercase tracking-wider mb-1.5">Date From</label>
+          <div className="min-w-35">
+            <label htmlFor="filter-date-from" className="block text-muted-label text-[10px] uppercase tracking-wider mb-1.5">Date From</label>
             <input
+              id="filter-date-from"
               type="date"
               value={filterDateFrom}
               onChange={(e) => { setFilterDateFrom(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
+              aria-label="Date from"
               className="w-full bg-background/60/80 border border-muted-label/30 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors"
             />
           </div>
-          <div className="min-w-[140px]">
-            <label className="block text-muted-label text-[10px] uppercase tracking-wider mb-1.5">Date To</label>
+          <div className="min-w-35">
+            <label htmlFor="filter-date-to" className="block text-muted-label text-[10px] uppercase tracking-wider mb-1.5">Date To</label>
             <input
+              id="filter-date-to"
               type="date"
               value={filterDateTo}
               onChange={(e) => { setFilterDateTo(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
+              aria-label="Date to"
               className="w-full bg-background/60/80 border border-muted-label/30 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors"
             />
           </div>
           <div className="flex items-end gap-2 shrink-0">
             <button
+              type="button"
               onClick={() => fetchAdminActions()}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-warning hover:bg-warning text-black font-medium text-sm rounded-lg transition-colors"
-            >
-              <IconRotateCcw />
+              className="inline-flex items-center gap-2 px-4 py-2 bg-warning hover:bg-warning text-black font-medium text-sm rounded-lg transition-colors">
+              <IconRotateCcw aria-hidden="true" />
               Refresh
             </button>
             <button
+              type="button"
               onClick={resetFilters}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-background/60 text-muted-label text-sm rounded-lg hover:bg-background/40 hover:text-white transition-colors border border-muted-label/30"
-            >
+              className="inline-flex items-center gap-2 px-4 py-2 bg-background/60 text-muted-label text-sm rounded-lg hover:bg-background/40 hover:text-white transition-colors border border-muted-label/30">
               Reset
             </button>
           </div>
@@ -361,12 +366,12 @@ export default function AdminAuditPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-muted-label/40">
-                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Time</th>
-                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Admin</th>
-                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Action</th>
-                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Target User</th>
-                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Details</th>
-                    <th className="px-4 py-3 text-right text-xs text-muted-label font-medium">View</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs text-muted-label font-medium">Time</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs text-muted-label font-medium">Admin</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs text-muted-label font-medium">Action</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs text-muted-label font-medium">Target User</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs text-muted-label font-medium">Details</th>
+                    <th scope="col" className="px-4 py-3 text-right text-xs text-muted-label font-medium">View</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -404,7 +409,7 @@ export default function AdminAuditPage() {
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-muted-label text-xs block max-w-[200px] truncate">
+                        <span className="text-muted-label text-xs block max-w-50 truncate">
                           {action.details?.reason
                             ? String(action.details.reason)
                             : action.details?.note
@@ -500,16 +505,23 @@ export default function AdminAuditPage() {
 
       {/* ─── Detail Modal ───────────────────────────────────────────────── */}
       {detailAction && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setDetailAction(null)} />
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Action details for ${formatActionType(detailAction.action_type)}`}
+        >
+          <div className="absolute inset-0 bg-black/60" onClick={() => setDetailAction(null)} onKeyDown={(e) => { if (e.key === 'Escape') setDetailAction(null); }} role="button" tabIndex={0} aria-label="Close" />
           <div className="relative bg-background/80 border border-muted-label/40 rounded-xl max-w-lg w-full max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between px-5 py-4 border-b border-muted-label/40">
               <h3 className="text-white font-medium text-sm">Action Details</h3>
               <button
+                type="button"
                 onClick={() => setDetailAction(null)}
+                aria-label="Close details"
                 className="text-muted-label hover:text-white transition-colors p-1"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                   <path d="M18 6 6 18" /><path d="m6 6 12 12" />
                 </svg>
               </button>

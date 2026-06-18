@@ -123,7 +123,7 @@ function SettingRow({
           <p className="text-[10px] text-muted-label mt-0.5">{description}</p>
         )}
       </div>
-      <div className="flex-shrink-0">{children}</div>
+      <div className="shrink-0">{children}</div>
     </div>
   );
 }
@@ -856,7 +856,7 @@ export function SettingsPanel() {
       >
         <div className="bg-background rounded-lg p-4 border border-warning/20">
           <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-lg bg-warning/10 border border-warning/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <div className="w-9 h-9 rounded-lg bg-warning/10 border border-warning/20 flex items-center justify-center shrink-0 mt-0.5">
               <Coffee className="w-4.5 h-4.5 text-warning" />
             </div>
             <div className="flex-1 min-w-0">
@@ -869,7 +869,7 @@ export function SettingsPanel() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-lg
-                  bg-gradient-to-r from-warning/60 to-domain
+                  bg-linear-to-r from-warning/60 to-domain
                   text-white text-xs font-semibold
                   shadow-[0_0_16px_rgba(245,158,11,0.15)]"
               >

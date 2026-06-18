@@ -92,11 +92,11 @@ export default function EconomyPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-muted-label/40">
-                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-label">#</th>
-                  <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-label">Player</th>
-                  <th className="text-right px-4 py-2.5 text-xs font-semibold text-muted-label">Money</th>
-                  <th className="text-right px-4 py-2.5 text-xs font-semibold text-muted-label hidden sm:table-cell">Total Earned</th>
-                  <th className="text-right px-4 py-2.5 text-xs font-semibold text-muted-label hidden md:table-cell">Tick</th>
+                  <th scope="col" className="text-left px-4 py-2.5 text-xs font-semibold text-muted-label">#</th>
+                  <th scope="col" className="text-left px-4 py-2.5 text-xs font-semibold text-muted-label">Player</th>
+                  <th scope="col" className="text-right px-4 py-2.5 text-xs font-semibold text-muted-label">Money</th>
+                  <th scope="col" className="text-right px-4 py-2.5 text-xs font-semibold text-muted-label hidden sm:table-cell">Total Earned</th>
+                  <th scope="col" className="text-right px-4 py-2.5 text-xs font-semibold text-muted-label hidden md:table-cell">Tick</th>
                 </tr>
               </thead>
               <tbody>

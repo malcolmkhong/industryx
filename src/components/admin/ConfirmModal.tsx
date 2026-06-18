@@ -32,7 +32,13 @@ export function ConfirmModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="confirm-modal-title"
+      aria-describedby="confirm-modal-desc"
+    >
       <button
         type="button"
         className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-default"
@@ -40,8 +46,8 @@ export function ConfirmModal({
         aria-label="Close modal"
       />
       <div className="relative bg-background/80 border border-muted-label/40 rounded-xl p-6 shadow-2xl max-w-sm w-full mx-4">
-        <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
-        <p className="text-sm text-muted-label mb-6">{message}</p>
+        <h3 id="confirm-modal-title" className="text-lg font-semibold text-white mb-2">{title}</h3>
+        <p id="confirm-modal-desc" className="text-sm text-muted-label mb-6">{message}</p>
         <div className="flex justify-end gap-3">
           <button
             type="button"

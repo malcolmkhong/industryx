@@ -354,17 +354,8 @@ export function updateFromSupabase(config: GameConfig): void {
   configSource = 'supabase';
   configLoadedAt = Date.now();
   configVersion++;
-
-  console.log(
-    `[ConfigCache] Updated from Supabase (v${configVersion}): ` +
-    `${Object.keys(BUILDING_DEFS).length} buildings, ` +
-    `${Object.keys(RESOURCE_META).length} resources, ` +
-    `${RESEARCH_TREE.length} research nodes, ` +
-    `${TRADABLE_RESOURCE_IDS.length} tradable resources`
-  );
 }
 
-// ============================================
 // Reset function — reverts to local data.ts defaults
 // ============================================
 
@@ -393,8 +384,6 @@ export function resetToLocal(): void {
   configSource = 'local';
   configLoadedAt = Date.now();
   configVersion++;
-
-  console.log('[ConfigCache] Reset to local defaults');
 }
 
 // ============================================
@@ -417,6 +406,5 @@ export function migrateBuildingDefs(): void {
 
   if (migrationCount > 0) {
     BUILDING_DEFS = migrated;
-    console.log(`[ConfigCache] Migrated ${migrationCount} building IDs`);
   }
 }

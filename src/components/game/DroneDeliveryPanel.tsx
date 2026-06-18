@@ -246,12 +246,15 @@ export default function DroneDeliveryPanel() {
               {fleet.map((drone, idx) => (
               <div
                 key={drone.id}
+                role="button"
+                tabIndex={0}
                 className={`bg-card border rounded-lg p-3 cursor-pointer ${
                   drone.status === 'delivering'
                     ? 'border-brand/30 shadow-[0_0_8px_rgba(56,189,248,0.1)]'
                     : 'border-brand/20 hover:border-brand/40'
                 }`}
                 onClick={() => setExpandedDrone(expandedDrone === drone.id ? null : drone.id)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedDrone(expandedDrone === drone.id ? null : drone.id); } }}
                 aria-expanded={expandedDrone === drone.id}
               >
                 <div className="flex items-center justify-between">
@@ -307,7 +310,7 @@ export default function DroneDeliveryPanel() {
                     </div>
                     <div className="w-full h-1.5 bg-muted-label rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-brand/80 to-brand/50 rounded-full"
+                        className="h-full bg-linear-to-r from-brand/80 to-brand/50 rounded-full"
                         style={{
                           width: drone.missionEndTick > 0
                             ? `${Math.max(0, Math.min(100, (1 - (drone.missionEndTick - gameTick) / Math.max(1, drone.missionEndTick)) * 100))}%`
@@ -434,10 +437,14 @@ export default function DroneDeliveryPanel() {
               return (
                 <div
                   key={mission.id}
+                  role="button"
+                  tabIndex={0}
                   className={`bg-card border rounded-lg p-3 cursor-pointer ${
                     isSelected ? 'border-brand/40 shadow-[0_0_8px_rgba(0,255,242,0.1)]' : 'border-brand/20 hover:border-brand/40'
                   }`}
                   onClick={() => setSelectedMission(isSelected ? null : mission.id)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedMission(isSelected ? null : mission.id); } }}
+                  aria-pressed={isSelected}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-xs">

@@ -128,14 +128,14 @@ export function SupportButton() {
         onClick={() => setOpen(!open)}
         className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium text-muted-label hover:text-warning hover:bg-warning/60/10 border border-transparent hover:border-warning/60/20 transition-colors"
       >
-        <MessageCircle className="w-4 h-4 flex-shrink-0" />
+        <MessageCircle className="w-4 h-4 shrink-0" />
         <span className="truncate">Support</span>
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center pointer-events-none">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center pointer-events-none" role="dialog" aria-modal="true" aria-label="Support">
           <button type="button" className="absolute inset-0 bg-black/60 cursor-default" onClick={() => setOpen(false)} aria-label="Close panel" />
-          <div className="relative w-full sm:w-[400px] max-h-[600px] bg-background/80 border border-muted-label/30 rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col pointer-events-auto m-0 sm:m-4">
+          <div className="relative w-full sm:w-100 max-h-150 bg-background/80 border border-muted-label/30 rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col pointer-events-auto m-0 sm:m-4">
             <div className="flex items-center justify-between px-4 py-3 border-b border-muted-label/40 shrink-0">
               <div className="flex items-center gap-2">
                 {view === 'chat' && (

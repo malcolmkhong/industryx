@@ -230,7 +230,7 @@ export function OnboardingPanel() {
             {STRATEGY_HINTS.map((hint, i) => (
               <div key={i} className="bg-background rounded-lg p-3">
                 <div className="flex items-center gap-1.5 mb-1">
-                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${CATEGORY_COLORS[hint.category]?.dot ?? 'bg-muted-label/40'}`} title={CATEGORY_COLORS[hint.category]?.label} />
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${CATEGORY_COLORS[hint.category]?.dot ?? 'bg-muted-label/40'}`} title={CATEGORY_COLORS[hint.category]?.label} />
                   <GameIcon icon={hint.icon} size={14} className="inline-flex" />
                   <span className="text-xs text-warning font-medium">{hint.title}</span>
                 </div>
@@ -249,7 +249,7 @@ export function OnboardingPanel() {
           <div className="space-y-2">
             {PRO_TIPS.map((tip, i) => (
               <div key={i} className="flex items-center gap-2 bg-background rounded-lg px-3 py-2">
-                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${CATEGORY_COLORS[tip.category]?.dot ?? 'bg-muted-label/40'}`} title={CATEGORY_COLORS[tip.category]?.label} />
+                <span className={`w-2 h-2 rounded-full shrink-0 ${CATEGORY_COLORS[tip.category]?.dot ?? 'bg-muted-label/40'}`} title={CATEGORY_COLORS[tip.category]?.label} />
                 <span className="text-xs text-subtle">{tip.title}</span>
               </div>
             ))}
@@ -315,13 +315,13 @@ export function OnboardingPanel() {
         </div>
         <div className="h-3 bg-muted-label rounded-full overflow-hidden relative">
           <div
-            className="h-full bg-gradient-to-r from-brand/70 to-brand/50 rounded-full transition-all duration-700"
+            className="h-full bg-linear-to-r from-brand/70 to-brand/50 rounded-full transition-all duration-700"
             style={{ width: `${progressPercent}%` }}
           >
-            <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent" />
+            <div className="absolute inset-0 bg-linear-to-b from-white/10 to-transparent" />
           </div>
           <div className="absolute inset-0 overflow-hidden rounded-full">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-[conveyorFlow_2s_linear_infinite]" />
+            <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/5 to-transparent animate-[conveyorFlow_2s_linear_infinite]" />
           </div>
         </div>
         {allCompleted && (
@@ -358,7 +358,7 @@ export function OnboardingPanel() {
                 <div className="flex items-start gap-3">
                   {/* Step number / checkmark */}
                   <div
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
                       step.completed
                         ? 'bg-success/30 text-success'
                         : isNextStep
@@ -400,7 +400,7 @@ export function OnboardingPanel() {
 
                   {/* Expand indicator */}
                   <ChevronRight
-                    className={`w-4 h-4 text-muted-label flex-shrink-0 ${
+                    className={`w-4 h-4 text-muted-label shrink-0 ${
                       isExpanded ? 'rotate-90' : ''
                     }`}
                   />
@@ -481,7 +481,7 @@ export function OnboardingPanel() {
             {STRATEGY_HINTS.map((hint, i) => (
               <div key={i} className="bg-background rounded-lg p-3">
                 <div className="flex items-center gap-1.5 mb-1">
-                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${CATEGORY_COLORS[hint.category]?.dot ?? 'bg-muted-label/40'}`} title={CATEGORY_COLORS[hint.category]?.label} />
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${CATEGORY_COLORS[hint.category]?.dot ?? 'bg-muted-label/40'}`} title={CATEGORY_COLORS[hint.category]?.label} />
                   <GameIcon icon={hint.icon} size={14} className="inline-flex" />
                   <span className="text-xs text-warning font-medium">{hint.title}</span>
                 </div>
@@ -563,7 +563,7 @@ export function OnboardingPanel() {
         <div className="space-y-2">
           {PRO_TIPS.map((tip, i) => (
             <div key={i} className="flex items-center gap-2 bg-background rounded-lg px-3 py-2">
-              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${CATEGORY_COLORS[tip.category]?.dot ?? 'bg-muted-label/40'}`} title={CATEGORY_COLORS[tip.category]?.label} />
+              <span className={`w-2 h-2 rounded-full shrink-0 ${CATEGORY_COLORS[tip.category]?.dot ?? 'bg-muted-label/40'}`} title={CATEGORY_COLORS[tip.category]?.label} />
               <span className="text-xs text-subtle">{tip.title}</span>
             </div>
           ))}

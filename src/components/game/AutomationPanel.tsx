@@ -55,7 +55,7 @@ export function AutomationPanel() {
         </div>
         <div className="h-3 bg-muted-label rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-success/80 to-success/50 rounded-full transition-all duration-500"
+            className="h-full bg-linear-to-r from-success/80 to-success/50 rounded-full transition-all duration-500"
             style={{ width: `${(activeCount / totalCount) * 100}%` }}
           />
         </div>

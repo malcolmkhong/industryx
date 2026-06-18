@@ -565,11 +565,11 @@ export default function StatisticsPanel() {
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-muted-label">
-                <th className="text-left py-2 px-2 text-muted-label font-medium">Resource</th>
-                <th className="text-right py-2 px-2 text-muted-label font-medium">Current</th>
-                <th className="text-right py-2 px-2 text-muted-label font-medium">Capacity</th>
-                <th className="text-right py-2 px-2 text-muted-label font-medium">Rate/s</th>
-                <th className="text-center py-2 px-2 text-muted-label font-medium">Trend</th>
+                <th scope="col" className="text-left py-2 px-2 text-muted-label font-medium">Resource</th>
+                <th scope="col" className="text-right py-2 px-2 text-muted-label font-medium">Current</th>
+                <th scope="col" className="text-right py-2 px-2 text-muted-label font-medium">Capacity</th>
+                <th scope="col" className="text-right py-2 px-2 text-muted-label font-medium">Rate/s</th>
+                <th scope="col" className="text-center py-2 px-2 text-muted-label font-medium">Trend</th>
               </tr>
             </thead>
             <tbody>
@@ -588,7 +588,7 @@ export default function StatisticsPanel() {
                   <tr key={res} className="border-b border-muted-label/50 hover:bg-muted-label/20">
                     <td className="py-1.5 px-2">
                       <div className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: meta.color }} />
+                        <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: meta.color }} />
                         <span className="text-subtle"><GameIcon icon={meta.icon} size={14} className="inline-flex" /> {meta.name}</span>
                       </div>
                     </td>

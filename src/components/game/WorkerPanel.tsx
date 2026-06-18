@@ -356,6 +356,7 @@ export function WorkerPanel() {
                       </div>
                     ) : (
                       <select
+                        aria-label="Assign worker to building"
                         className="h-6 text-[9px] bg-muted-label border border-muted-label rounded text-subtle px-1"
                         value=""
                         onChange={(e) => {
@@ -430,7 +431,7 @@ export function WorkerPanel() {
                       <div className="flex items-center gap-2 mb-2">
                         <div className="flex-1 h-1.5 bg-muted-label rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-gradient-to-r from-600-sky to-brand/50 rounded-full transition-all"
+                            className="h-full bg-linear-to-r from-600-sky to-brand/50 rounded-full transition-all"
                             style={{ width: `${xpPercent}%` }}
                           />
                         </div>
@@ -456,6 +457,7 @@ export function WorkerPanel() {
                       {/* Assign to building */}
                       <div className="flex items-center gap-2">
                         <select
+                          aria-label="Select building for worker"
                           value={worker.assignedTo ?? ''}
                           onChange={e => assignWorker(worker.id, e.target.value || null)}
                           className="flex-1 bg-card border border-muted-label rounded px-2 py-1 text-[10px] text-subtle focus:border-brand/50 focus:outline-none"
@@ -549,7 +551,7 @@ export function WorkerPanel() {
               </div>
               <div className="h-2 bg-muted-label rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-success/80 to-success/50 rounded-full transition-all"
+                  className="h-full bg-linear-to-r from-success/80 to-success/50 rounded-full transition-all"
                   style={{ width: `${productivityComparison.coveragePct}%` }}
                 />
               </div>

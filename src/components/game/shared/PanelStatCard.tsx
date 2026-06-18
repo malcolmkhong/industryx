@@ -37,7 +37,7 @@ function PanelStatCardImpl({ icon, label, value, subtext, color, trend }: PanelS
 
   return (
     <div
-      className={`game-card rounded-xl bg-gradient-to-br ${c.gradientFrom} to-transparent p-3 border ${c.border} ${c.borderAccent} border-l-[3px] transition-all duration-200 hover:scale-[1.02] hover:shadow-lg cursor-default`}
+      className={`game-card rounded-xl bg-linear-to-br ${c.gradientFrom} to-transparent p-3 border ${c.border} ${c.borderAccent} border-l-[3px] transition-all duration-200 hover:scale-[1.02] hover:shadow-lg cursor-default`}
     >
       <div className="flex items-center gap-2 mb-1.5">
         <div className={`w-7 h-7 rounded-lg ${c.bg} flex items-center justify-center transition-transform duration-300`}>

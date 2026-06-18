@@ -60,7 +60,7 @@ export default function DailyRewardsPanel() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-premium to-danger/80 flex items-center justify-center shadow-[0_0_12px_rgba(236,72,153,0.3)]">
+        <div className="w-10 h-10 rounded-lg bg-linear-to-br from-premium to-danger/80 flex items-center justify-center shadow-[0_0_12px_rgba(236,72,153,0.3)]">
           <Gift className="w-5 h-5 text-white" />
         </div>
         <div>
@@ -157,7 +157,7 @@ export default function DailyRewardsPanel() {
               className={`
                 relative rounded-xl p-3
                 ${isJackpot && !isClaimed
-                  ? 'bg-gradient-to-br from-warning/40 via-warning/30 to-warning/40 border-2 border-warning/50 shadow-[0_0_20px_rgba(245,158,11,0.2)]'
+                  ? 'bg-linear-to-br from-warning/40 via-warning/30 to-warning/40 border-2 border-warning/50 shadow-[0_0_20px_rgba(245,158,11,0.2)]'
                   : isToday && !isClaimed
                     ? 'bg-card border-2 border-premium/60 shadow-[0_0_16px_rgba(236,72,153,0.25)]'
                     : isClaimed

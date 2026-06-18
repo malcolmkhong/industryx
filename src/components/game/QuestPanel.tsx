@@ -111,7 +111,7 @@ const MemoizedQuestItem = React.memo(function MemoizedQuestItem({
             disabled={quest.claimed || isLocked}
           >
             <div className="flex items-center gap-2 cursor-help min-w-0">
-              <GameIcon icon={quest.icon} size={24} className="flex-shrink-0" />
+              <GameIcon icon={quest.icon} size={24} className="shrink-0" />
               <div className="min-w-0">
                 <h4 className={`text-sm font-semibold truncate ${
                   isLocked ? 'text-muted-label' :
@@ -145,7 +145,7 @@ const MemoizedQuestItem = React.memo(function MemoizedQuestItem({
           </GameItemTooltip>
         </div>
 
-        <div className="flex items-center gap-1.5 flex-shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
           {!isLocked && !quest.claimed && (
             <button
               onClick={() => onTrack(isTracked ? null : quest.id)}
@@ -339,7 +339,7 @@ export function QuestPanel() {
               disabled={quest.claimed || isLocked}
             >
               <div className="flex items-center gap-2 cursor-help min-w-0">
-                <GameIcon icon={quest.icon} size={24} className="flex-shrink-0" />
+                <GameIcon icon={quest.icon} size={24} className="shrink-0" />
                 <div className="min-w-0">
                   <h4 className={`text-sm font-semibold truncate ${
                     isLocked ? 'text-muted-label' :
@@ -380,7 +380,7 @@ export function QuestPanel() {
             </GameItemTooltip>
           </div>
 
-          <div className="flex items-center gap-1.5 flex-shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             {!isLocked && !quest.claimed && (
               <button
                 onClick={() => store.setTrackedQuest(isTracked ? null : quest.id)}
@@ -478,7 +478,7 @@ export function QuestPanel() {
           onClick={() => {
             unclaimedQuests.forEach(q => store.claimQuestReward(q.id));
           }}
-          className="w-full py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-success/30/60 via-success/50/50 to-success/30/60 border border-success/40 text-success hover:from-800-green/70 hover:via-success/60/60 hover:to-success/50/70 hover:border-400-green/60 hover:text-success/40 shadow-[0_0_20px_rgba(74,222,128,0.15)]"
+          className="w-full py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 bg-linear-to-r from-success/30/60 via-success/50/50 to-success/30/60 border border-success/40 text-success hover:from-800-green/70 hover:via-success/60/60 hover:to-success/50/70 hover:border-400-green/60 hover:text-success/40 shadow-[0_0_20px_rgba(74,222,128,0.15)]"
         >
           <Sparkles className="w-4 h-4" />
           Claim All Rewards ({unclaimedQuests.length} quest{unclaimedQuests.length > 1 ? 's' : ''})
@@ -647,7 +647,7 @@ export function QuestPanel() {
           ? trackedQuestData.steps.reduce((sum, s) => sum + Math.min(1, s.current / Math.max(1, s.target)), 0) / trackedQuestData.steps.length
           : 0;
         return (
-          <div className="bg-gradient-to-r from-brand/20 to-success/30/10 border border-brand/30 rounded-xl p-3">
+          <div className="bg-linear-to-r from-brand/20 to-success/30/10 border border-brand/30 rounded-xl p-3">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <Pin className="w-3.5 h-3.5 text-brand" />

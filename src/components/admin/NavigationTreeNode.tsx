@@ -59,7 +59,7 @@ export function NavigationTreeNode({
       {badge !== undefined && badge !== null && (
         <span
           className={[
-            'text-[10px] font-semibold px-1.5 py-0.5 rounded leading-none min-w-[18px] text-center',
+            'text-[10px] font-semibold px-1.5 py-0.5 rounded leading-none min-w-4.5 text-center',
             badgeColor,
           ].join(' ')}
         >

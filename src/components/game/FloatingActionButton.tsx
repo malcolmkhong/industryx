@@ -112,8 +112,8 @@ function ShortcutButton({
         rounded-full
         bg-[#0d1220]/90 border border-brand/30
         backdrop-blur-md
-        hover:bg-white/[0.08] hover:border-brand/40
-        active:bg-white/[0.12]
+        hover:bg-white/8 hover:border-brand/40
+        active:bg-white/12
         transition-colors duration-150
         group
       `}
@@ -414,7 +414,7 @@ export function FloatingActionButton({ onTabChange }: FloatingActionButtonProps)
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={reducedMotion ? { duration: 0.01 } : { duration: 0.2 }}
-            className="fixed inset-0 z-[35] bg-black/20 backdrop-blur-sm"
+            className="fixed inset-0 z-35 bg-black/20 backdrop-blur-sm"
             onClick={() => setIsExpanded(false)}
             aria-hidden="true"
           />
@@ -482,11 +482,11 @@ export function FloatingActionButton({ onTabChange }: FloatingActionButtonProps)
             className={`
               relative flex items-center justify-center
               rounded-full
-              bg-gradient-to-br from-brand to-success/80
+              bg-linear-to-br from-brand to-success/80
               shadow-[0_0_20px_rgba(0,255,242,0.3)]
               cursor-grab active:cursor-grabbing
               select-none touch-none
-              focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0e17]
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-industrial-dark
             `}
             style={{
               width: FAB_SIZE,

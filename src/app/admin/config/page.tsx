@@ -509,6 +509,10 @@ export default function ConfigTablesPage() {
         <div
           className="md:hidden fixed inset-0 bg-black/60 z-20"
           onClick={() => setSidebarOpen(false)}
+          onKeyDown={(e) => { if (e.key === 'Escape') setSidebarOpen(false); }}
+          role="button"
+          tabIndex={0}
+          aria-label="Close sidebar"
         />
       )}
 
@@ -524,6 +528,7 @@ export default function ConfigTablesPage() {
         <button
           className="md:hidden fixed top-3 left-3 z-30 text-muted-label hover:text-white p-1 bg-background/80/80 rounded"
           onClick={() => setSidebarOpen(!sidebarOpen)}
+          aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <line x1="4" x2="20" y1="12" y2="12" /><line x1="4" x2="20" y1="6" y2="6" /><line x1="4" x2="20" y1="18" y2="18" />
@@ -618,11 +623,16 @@ export default function ConfigTablesPage() {
 
             {/* ─── Search Bar ───────────────────────────────────────────── */}
             <div className="relative mb-4">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-label">
+              <label htmlFor="config-search" className="sr-only">Search rows</label>
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-label" aria-hidden="true">
                 <IconSearch />
               </div>
               <input
-                type="text"
+                id="config-search"
+                type="search"
+                name="search"
+                autoComplete="off"
+                aria-label="Search across all text columns"
                 placeholder="Search across all text columns..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -630,10 +640,12 @@ export default function ConfigTablesPage() {
               />
               {searchQuery && (
                 <button
+                  type="button"
+                  aria-label="Clear search"
                   onClick={() => { setSearchQuery(""); setSearchDebounced(""); }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-label hover:text-subtle"
                 >
-                  <IconX />
+                  <IconX aria-hidden="true" />
                 </button>
               )}
             </div>
@@ -668,11 +680,12 @@ export default function ConfigTablesPage() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-muted-label/40">
-                          <th className="px-3 py-3 text-left text-xs text-muted-label font-medium w-20 sticky left-0 bg-background/80/95 z-10">
+                          <th scope="col" className="px-3 py-3 text-left text-xs text-muted-label font-medium w-20 sticky left-0 bg-background/80/95 z-10">
                             Actions
                           </th>
                           {visibleColumns.map((col) => (
                             <th
+                              scope="col"
                               key={col.key}
                               className={`px-3 py-3 text-xs font-medium whitespace-nowrap ${
                                 col.type === "number" || col.type === "integer"
@@ -707,6 +720,7 @@ export default function ConfigTablesPage() {
                             key={String(row[currentTableConfig.primaryKey] ?? rowIdx)}
                             className="border-b border-muted-label/40/50 hover:bg-background/60/30 transition-colors group"
                           >
+                            {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- <td> is a table cell, not a control */}
                             <td className="px-3 py-2.5 sticky left-0 bg-background/80/90 group-hover:bg-background/60/40 z-10">
                               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button
@@ -755,7 +769,7 @@ export default function ConfigTablesPage() {
                                     }
                                   />
                                 ) : (
-                                  <span className="block max-w-[300px] truncate" title={formatCellValue(row[col.key], col)}>
+                                  <span className="block max-w-75 truncate" title={formatCellValue(row[col.key], col)}>
                                     {col.key === "icon" ? (
                                       <span className="inline-flex items-center gap-1">
                                         <span>{String(row[col.key] ?? "")}</span>
@@ -842,21 +856,28 @@ export default function ConfigTablesPage() {
 
       {/* ─── Create/Edit Modal ──────────────────────────────────────────── */}
       {modalMode && currentTableConfig && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-[5vh] sm:pt-[10vh]">
-          <div className="absolute inset-0 bg-black/70" onClick={closeModal} />
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center pt-[5vh] sm:pt-[10vh]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="config-modal-title"
+        >
+          <div className="absolute inset-0 bg-black/70" onClick={closeModal} onKeyDown={(e) => { if (e.key === 'Escape') closeModal(); }} role="button" tabIndex={0} aria-label="Close" />
           <div className="relative w-full max-w-2xl mx-4 bg-background/80 border border-muted-label/40 rounded-xl shadow-2xl max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between px-6 py-4 border-b border-muted-label/40 shrink-0">
               <div className="flex items-center gap-2">
-                <span className="text-lg">{currentTableConfig.icon}</span>
-                <h3 className="text-white font-semibold">
+                <span className="text-lg" aria-hidden="true">{currentTableConfig.icon}</span>
+                <h3 id="config-modal-title" className="text-white font-semibold">
                   {modalMode === "create" ? "Add Row" : "Edit Row"} — {currentTableConfig.displayName}
                 </h3>
               </div>
               <button
+                type="button"
                 onClick={closeModal}
+                aria-label="Close dialog"
                 className="p-1.5 rounded text-muted-label hover:text-white hover:bg-background/60 transition-colors"
               >
-                <IconX />
+                <IconX aria-hidden="true" />
               </button>
             </div>
 
@@ -865,9 +886,12 @@ export default function ConfigTablesPage() {
                 .filter((col) => col.editable || (modalMode === "create" && col.required))
                 .map((col) => (
                   <div key={col.key}>
-                    <label className="flex items-center gap-1 text-xs font-medium text-muted-label mb-1.5">
+                    <label
+                      htmlFor={`config-field-${col.key}`}
+                      className="flex items-center gap-1 text-xs font-medium text-muted-label mb-1.5"
+                    >
                       {col.label}
-                      {col.required && <span className="text-danger">*</span>}
+                      {col.required && <span className="text-danger" aria-hidden="true">*</span>}
                       {col.key === currentTableConfig.primaryKey && (
                         <span className="text-[9px] text-warning/60 ml-1">PK</span>
                       )}
@@ -877,6 +901,9 @@ export default function ConfigTablesPage() {
                       <div className="flex items-center gap-3">
                         <button
                           type="button"
+                          role="switch"
+                          aria-checked={formData[col.key] === true || formData[col.key] === "true"}
+                          aria-label={`Toggle ${col.label}`}
                           onClick={() =>
                             setFormData((prev) => ({
                               ...prev,
@@ -892,7 +919,7 @@ export default function ConfigTablesPage() {
                           <span
                             className={`absolute top-0.5 left-0.5 rounded-full bg-white transition-transform ${
                               formData[col.key] === true || formData[col.key] === "true"
-                                ? "translate-x-[18px]"
+                                ? "translate-x-4.5"
                                 : "translate-x-0"
                             }`}
                             style={{ width: 18, height: 18 }}
@@ -905,6 +932,9 @@ export default function ConfigTablesPage() {
                     ) : col.type === "json" ? (
                       <div>
                         <textarea
+                          id={`config-field-${col.key}`}
+                          aria-label={col.label}
+                          aria-required={col.required ? "true" : undefined}
                           value={(() => { const v = formData[col.key]; return typeof v === "string" ? v : JSON.stringify(v, null, 2) ?? ""; })()}
                           onChange={(e) =>
                             setFormData((prev) => ({ ...prev, [col.key]: e.target.value }))
@@ -917,6 +947,9 @@ export default function ConfigTablesPage() {
                       </div>
                     ) : col.type === "integer" || col.type === "number" ? (
                       <input
+                        id={`config-field-${col.key}`}
+                        aria-label={col.label}
+                        aria-required={col.required ? "true" : undefined}
                         type="number"
                         value={String(formData[col.key] ?? "")}
                         onChange={(e) =>
@@ -927,6 +960,9 @@ export default function ConfigTablesPage() {
                       />
                     ) : col.type === "date" ? (
                       <input
+                        id={`config-field-${col.key}`}
+                        aria-label={col.label}
+                        aria-required={col.required ? "true" : undefined}
                         type="date"
                         value={formData[col.key] ? String(formData[col.key]).split("T")[0] : ""}
                         onChange={(e) =>
@@ -936,6 +972,9 @@ export default function ConfigTablesPage() {
                       />
                     ) : (
                       <input
+                        id={`config-field-${col.key}`}
+                        aria-label={col.label}
+                        aria-required={col.required ? "true" : undefined}
                         type="text"
                         value={String(formData[col.key] ?? "")}
                         onChange={(e) =>
@@ -973,16 +1012,22 @@ export default function ConfigTablesPage() {
 
       {/* ─── Delete Confirmation Dialog ─────────────────────────────────── */}
       {deleteTarget && currentTableConfig && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/70" onClick={() => setDeleteTarget(null)} />
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="config-delete-title"
+          aria-describedby="config-delete-desc"
+        >
+          <div className="absolute inset-0 bg-black/70" onClick={() => setDeleteTarget(null)} onKeyDown={(e) => { if (e.key === 'Escape') setDeleteTarget(null); }} role="button" tabIndex={0} aria-label="Close" />
           <div className="relative w-full max-w-md mx-4 bg-background/80 border border-muted-label/40 rounded-xl shadow-2xl p-6">
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-full bg-danger/10 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-full bg-danger/10 flex items-center justify-center shrink-0" aria-hidden="true">
                 <IconTrash />
               </div>
               <div>
-                <h3 className="text-white font-semibold mb-1">Delete Row</h3>
-                <p className="text-muted-label text-sm">
+                <h3 id="config-delete-title" className="text-white font-semibold mb-1">Delete Row</h3>
+                <p id="config-delete-desc" className="text-muted-label text-sm">
                   Are you sure you want to delete this record? This action cannot be undone.
                 </p>
                 <div className="mt-3 px-3 py-2 bg-background/60/50 rounded-lg text-xs font-mono text-muted-label">
@@ -1036,7 +1081,7 @@ function JsonCell({
   const isShort = str.length <= 100;
 
   return (
-    <div className="max-w-[300px]">
+    <div className="max-w-75">
       <div
         className={`text-[11px] font-mono text-muted-label bg-background/60/50 rounded px-2 py-1 ${
           expanded ? "max-h-64 overflow-y-auto" : "max-h-8 overflow-hidden"

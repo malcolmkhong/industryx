@@ -238,7 +238,7 @@ export default function Home() {
       useGameStore.getState().collectOfflineProgress(offlineData);
       setOfflineData(null);
     }
-  }, [offlineData]);
+  }, [offlineData, setOfflineData]);
 
   const renderPanel = () => {
     switch (activeTab) {
@@ -311,7 +311,7 @@ export default function Home() {
         </header>
 
         {/* Spacer for fixed header — height tracks header dynamically via ResizeObserver */}
-        <div className="flex-shrink-0" style={{ height: headerHeight }} />
+        <div className="shrink-0" style={{ height: headerHeight }} />
 
         {/* MAIN CONTENT */}
         <div className="flex flex-1 min-h-0 overflow-hidden">

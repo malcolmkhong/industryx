@@ -277,7 +277,7 @@ export default function ResourceFlowDiagram() {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-success/70/20 to-brand/70/20 border border-brand/30 flex items-center justify-center">
+        <div className="w-10 h-10 rounded-lg bg-linear-to-br from-success/70/20 to-brand/70/20 border border-brand/30 flex items-center justify-center">
           <GitBranch className="w-5 h-5 text-brand" />
         </div>
         <div className="flex-1">
@@ -348,7 +348,7 @@ export default function ResourceFlowDiagram() {
             <span className="ml-auto text-muted-label">Click a node for details</span>
           </div>
         </CardHeader>
-        <CardContent className="p-0 relative max-h-[600px] overflow-y-auto game-scrollbar" style={{ height: Math.max(400, flowNodes.length * 8 + 100) }}>
+        <CardContent className="p-0 relative max-h-150 overflow-y-auto game-scrollbar" style={{ height: Math.max(400, flowNodes.length * 8 + 100) }}>
           <svg
             ref={svgRef}
             width="100%"
@@ -586,7 +586,7 @@ export default function ResourceFlowDiagram() {
                   >
                     <div className="flex items-center gap-1.5 mb-1">
                       <span
-                        className="w-2 h-2 rounded-full flex-shrink-0"
+                        className="w-2 h-2 rounded-full shrink-0"
                         style={{ background: chain.color }}
                       />
                       <span className="text-[11px] font-medium text-subtle truncate">{chain.name}</span>

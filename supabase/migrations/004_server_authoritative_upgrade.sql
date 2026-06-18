@@ -528,15 +528,25 @@ CREATE TRIGGER trg_validate_player_save
 
 -- Insert research prerequisites from the existing game_config_research table
 -- The prerequisites field in game_config_research is a JSONB array of research IDs
-INSERT INTO research_prerequisites (research_id, prerequisite_id)
-SELECT
-  r.id AS research_id,
-  prereq::TEXT AS prerequisite_id
-FROM game_config_research r,
-     jsonb_array_elements_text(r.prerequisites) AS prereq
-WHERE r.prerequisites IS NOT NULL
-  AND jsonb_array_length(r.prerequisites) > 0
-ON CONFLICT (research_id, prerequisite_id) DO NOTHING;
+-- Guarded: game_config_research is created by migration 009 (which runs after
+-- this one). On fresh local DBs that table doesn't exist yet — skip silently.
+DO $research_seed$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'game_config_research') THEN
+    INSERT INTO research_prerequisites (research_id, prerequisite_id)
+    SELECT
+      r.id AS research_id,
+      prereq::TEXT AS prerequisite_id
+    FROM game_config_research r,
+         jsonb_array_elements_text(r.prerequisites) AS prereq
+    WHERE r.prerequisites IS NOT NULL
+      AND jsonb_array_length(r.prerequisites) > 0
+    ON CONFLICT (research_id, prerequisite_id) DO NOTHING;
+  ELSE
+    RAISE NOTICE '[004] game_config_research not yet created (created in migration 009) — skipping research_prerequisites seed';
+  END IF;
+END
+$research_seed$;
 
 
 -- ============================================================================
@@ -649,12 +659,24 @@ CREATE INDEX IF NOT EXISTS idx_admin_users_user_id ON public.admin_users(user_id
 CREATE INDEX IF NOT EXISTS idx_admin_users_email ON public.admin_users(email);
 
 -- Seed the initial admin user
-INSERT INTO public.admin_users (user_id, email, role)
-VALUES (
-  '1b4d0dc3-e4d2-4fc0-b731-9782243ad061',
-  'admin@industriax.com',
-  'super_admin'
-) ON CONFLICT (user_id) DO NOTHING;
+-- Guarded: hardcoding production admin UUIDs in a migration is a security
+-- anti-pattern. On fresh local DBs the auth.users table is empty — skip the
+-- seed and let admins grant themselves access via the admin UI / SQL.
+-- Production DBs that already have this user will see ON CONFLICT skip.
+DO $admin_seed$
+BEGIN
+  IF EXISTS (SELECT 1 FROM auth.users WHERE id = '1b4d0dc3-e4d2-4fc0-b731-9782243ad061') THEN
+    INSERT INTO public.admin_users (user_id, email, role)
+    VALUES (
+      '1b4d0dc3-e4d2-4fc0-b731-9782243ad061',
+      'admin@industriax.com',
+      'super_admin'
+    ) ON CONFLICT (user_id) DO NOTHING;
+  ELSE
+    RAISE NOTICE '[004] auth user 1b4d0dc3-... not present (fresh local DB) — skipping admin seed. Add admin via UI or SQL.';
+  END IF;
+END
+$admin_seed$;
 
 
 -- ============================================================================

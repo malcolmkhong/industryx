@@ -115,7 +115,7 @@ export default function GameToast() {
   }, []);
 
   return (
-    <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none" role="status" aria-live="polite" style={{ maxWidth: '360px' }}>
+    <div className="fixed bottom-4 right-4 z-100 flex flex-col gap-2 pointer-events-none" role="status" aria-live="polite" style={{ maxWidth: '360px' }}>
       <AnimatePresence mode="popLayout">
         {toasts.map(toast => {
           const colors = TOAST_COLORS[toast.type];
@@ -125,14 +125,14 @@ export default function GameToast() {
               key={toast.id}
               className={`game-toast pointer-events-auto flex items-start gap-2.5 p-3 rounded-lg bg-card border ${colors.border} shadow-lg ${colors.glow}`}
             >
-              <Icon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${colors.icon}`} />
-              <p className="text-xs text-subtle leading-relaxed flex-1 min-w-0 break-words">
+              <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${colors.icon}`} />
+              <p className="text-xs text-subtle leading-relaxed flex-1 min-w-0 wrap-break-word">
                 {toast.message}
               </p>
               <button
                 onClick={() => dismissToast(toast.id)}
                 aria-label="Close notification"
-                className="flex-shrink-0 p-0.5 rounded hover:bg-white/10 transition-colors"
+                className="shrink-0 p-0.5 rounded hover:bg-white/10 transition-colors"
               >
                 <X className="w-3 h-3 text-muted-label hover:text-subtle" />
               </button>

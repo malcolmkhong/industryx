@@ -49,7 +49,7 @@ export function GameItemTooltip({
       </TooltipTrigger>
       <TooltipContent side={side} className="w-72 bg-card border border-brand/40 shadow-[0_0_20px_rgba(0,255,242,0.1)] p-0 overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-brand/30 to-success/30/20 px-3 py-2 border-b border-brand/30">
+        <div className="bg-linear-to-r from-brand/30 to-success/30/20 px-3 py-2 border-b border-brand/30">
           <div className="flex items-center gap-2">
             {icon ? <GameIcon icon={icon} size={20} /> : emoji ? <span className="text-lg">{emoji}</span> : null}
             <div>

@@ -277,19 +277,22 @@ export default function AuditPage() {
       {/* Filter Bar */}
       <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-4 mb-6">
         <div className="flex flex-wrap items-end gap-3">
-          <div className="flex-1 min-w-[180px]">
-            <label className="block text-muted-label text-[10px] uppercase tracking-wider mb-1.5">User ID</label>
+          <div className="flex-1 min-w-45">
+            <label htmlFor="filter-user-id" className="block text-muted-label text-[10px] uppercase tracking-wider mb-1.5">User ID</label>
             <input
+              id="filter-user-id"
               type="text"
+              aria-label="Filter by user ID"
               placeholder="Enter user UUID..."
               value={filterUserId}
               onChange={(e) => setFilterUserId(e.target.value)}
               className="w-full bg-background/60/80 border border-muted-label/30 rounded-lg px-3 py-2 text-sm text-white placeholder:text-muted-label/80 focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors font-mono"
             />
           </div>
-          <div className="flex-1 min-w-[160px]">
-            <label className="block text-muted-label text-[10px] uppercase tracking-wider mb-1.5">Action Type</label>
+          <div className="flex-1 min-w-40">
+            <label htmlFor="filter-action-type" className="block text-muted-label text-[10px] uppercase tracking-wider mb-1.5">Action Type</label>
             <select
+              id="filter-action-type"
               value={filterActionType}
               onChange={(e) => { setFilterActionType(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
               className="w-full bg-background/60/80 border border-muted-label/30 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors appearance-none"
@@ -300,9 +303,10 @@ export default function AuditPage() {
               ))}
             </select>
           </div>
-          <div className="min-w-[120px]">
-            <label className="block text-muted-label text-[10px] uppercase tracking-wider mb-1.5">Valid</label>
+          <div className="min-w-30">
+            <label htmlFor="filter-valid" className="block text-muted-label text-[10px] uppercase tracking-wider mb-1.5">Valid</label>
             <select
+              id="filter-valid"
               value={filterValid}
               onChange={(e) => { setFilterValid(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
               className="w-full bg-background/60/80 border border-muted-label/30 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors appearance-none"
@@ -313,19 +317,23 @@ export default function AuditPage() {
               <option value="false">Invalid Only</option>
             </select>
           </div>
-          <div className="min-w-[140px]">
-            <label className="block text-muted-label text-[10px] uppercase tracking-wider mb-1.5">Date From</label>
+          <div className="min-w-35">
+            <label htmlFor="filter-date-from" className="block text-muted-label text-[10px] uppercase tracking-wider mb-1.5">Date From</label>
             <input
+              id="filter-date-from"
               type="date"
+              aria-label="Date from"
               value={filterDateFrom}
               onChange={(e) => { setFilterDateFrom(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
               className="w-full bg-background/60/80 border border-muted-label/30 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors"
             />
           </div>
-          <div className="min-w-[140px]">
-            <label className="block text-muted-label text-[10px] uppercase tracking-wider mb-1.5">Date To</label>
+          <div className="min-w-35">
+            <label htmlFor="filter-date-to" className="block text-muted-label text-[10px] uppercase tracking-wider mb-1.5">Date To</label>
             <input
+              id="filter-date-to"
               type="date"
+              aria-label="Date to"
               value={filterDateTo}
               onChange={(e) => { setFilterDateTo(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
               className="w-full bg-background/60/80 border border-muted-label/30 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors"
@@ -401,7 +409,7 @@ export default function AuditPage() {
             </div>
             <div>
               <p className="text-muted-label text-xs">Most Common</p>
-              <p className="text-white text-sm font-bold truncate max-w-[100px]">
+              <p className="text-white text-sm font-bold truncate max-w-25">
                 {mostCommonAction ? formatActionType(mostCommonAction[0]) : "—"}
               </p>
             </div>
@@ -432,17 +440,18 @@ export default function AuditPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-muted-label/40">
-                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Time</th>
-                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">User ID</th>
-                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Action Type</th>
-                    <th className="px-4 py-3 text-right text-xs text-muted-label font-medium">Money After</th>
-                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Valid</th>
-                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Risk Level</th>
-                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Rejection Reason</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs text-muted-label font-medium">Time</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs text-muted-label font-medium">User ID</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs text-muted-label font-medium">Action Type</th>
+                    <th scope="col" className="px-4 py-3 text-right text-xs text-muted-label font-medium">Money After</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs text-muted-label font-medium">Valid</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs text-muted-label font-medium">Risk Level</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs text-muted-label font-medium">Rejection Reason</th>
                   </tr>
                 </thead>
                 <tbody>
                   {actions.map((action) => (
+                    // eslint-disable-next-line jsx-a11y/control-has-associated-label -- <tr> is not a form control
                     <tr
                       key={action.id}
                       className="border-b border-muted-label/40/50 hover:bg-background/60/30 transition-colors"
@@ -458,14 +467,16 @@ export default function AuditPage() {
                             {truncateUid(action.user_id)}
                           </code>
                           <button
+                            type="button"
                             onClick={() => copyToClipboard(action.user_id)}
                             className="text-muted-label/80 hover:text-subtle transition-colors p-0.5 rounded shrink-0"
+                            aria-label={`Copy full user ID for action ${action.id}`}
                             title="Copy full ID"
                           >
                             {copiedId === action.user_id ? (
-                              <span className="text-success"><IconCheck /></span>
+                              <span className="text-success" aria-label="Copied"><IconCheck /></span>
                             ) : (
-                              <IconCopy />
+                              <IconCopy aria-hidden="true" />
                             )}
                           </button>
                         </div>
@@ -491,7 +502,7 @@ export default function AuditPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-muted-label text-xs block max-w-[200px] truncate" title={action.rejection_reason || undefined}>
+                        <span className="text-muted-label text-xs block max-w-50 truncate" title={action.rejection_reason || undefined}>
                           {truncateStr(action.rejection_reason, 40)}
                         </span>
                       </td>

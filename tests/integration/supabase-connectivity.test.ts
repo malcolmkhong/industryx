@@ -14,8 +14,10 @@ import assert from "node:assert/strict";
 // ─── Constants from the actual codebase ──────────────────────────────
 
 const SUPABASE_URL = "https://wkkzqtseqwcyyyezroqq.supabase.co";
-const ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indra3pxdHNlcXdjeXl5ZXpyb3FxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2ODk0NDUsImV4cCI6MjA5NjI2NTQ0NX0.gj7FF4_GPL30LbquDw1EylUGRQbWRqiA5lgEH7aPZm4";
+// SECURITY: read anon key from env so the test never embeds production credentials.
+// Falls back to a placeholder so the test is still importable in CI without secrets.
+// The connectivity check will skip network assertions if the env var is missing.
+const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "test-placeholder-key";
 
 function supabaseHeaders(extra: Record<string, string> = {}) {
   return { apikey: ANON_KEY, "Content-Type": "application/json", ...extra };

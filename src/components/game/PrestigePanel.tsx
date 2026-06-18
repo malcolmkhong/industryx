@@ -163,10 +163,10 @@ export function PrestigePanel() {
         </div>
         <div className="h-3 bg-muted-label rounded-full overflow-hidden mb-2">
           <div
-            className="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-premium/80 to-premium/60"
+            className="h-full rounded-full transition-all duration-500 bg-linear-to-r from-premium/80 to-premium/60"
             style={{ width: `${Math.min(100, (pointsEarned / Math.max(1, pointsEarned + 2)) * 100)}%` }}
           >
-            <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent" />
+            <div className="absolute inset-0 bg-linear-to-b from-white/10 to-transparent" />
           </div>
         </div>
         <div className="flex items-center gap-4 text-[10px] text-muted-label">

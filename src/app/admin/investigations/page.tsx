@@ -285,9 +285,10 @@ export default function InvestigationsPage() {
       {/* Filter Bar */}
       <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-4 mb-6">
         <div className="flex flex-wrap items-end gap-3">
-          <div className="flex-1 min-w-[140px]">
-            <label className="block text-muted-label text-[10px] uppercase tracking-wider mb-1.5">Status</label>
+          <div className="flex-1 min-w-35">
+            <label htmlFor="filter-status" className="block text-muted-label text-[10px] uppercase tracking-wider mb-1.5">Status</label>
             <select
+              id="filter-status"
               value={filterStatus}
               onChange={(e) => { setFilterStatus(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
               className="w-full bg-background/60/80 border border-muted-label/30 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors appearance-none"
@@ -298,9 +299,10 @@ export default function InvestigationsPage() {
               ))}
             </select>
           </div>
-          <div className="flex-1 min-w-[140px]">
-            <label className="block text-muted-label text-[10px] uppercase tracking-wider mb-1.5">Severity</label>
+          <div className="flex-1 min-w-35">
+            <label htmlFor="filter-severity" className="block text-muted-label text-[10px] uppercase tracking-wider mb-1.5">Severity</label>
             <select
+              id="filter-severity"
               value={filterSeverity}
               onChange={(e) => { setFilterSeverity(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
               className="w-full bg-background/60/80 border border-muted-label/30 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors appearance-none"
@@ -311,9 +313,10 @@ export default function InvestigationsPage() {
               ))}
             </select>
           </div>
-          <div className="flex-1 min-w-[160px]">
-            <label className="block text-muted-label text-[10px] uppercase tracking-wider mb-1.5">Detection Type</label>
+          <div className="flex-1 min-w-40">
+            <label htmlFor="filter-detection-type" className="block text-muted-label text-[10px] uppercase tracking-wider mb-1.5">Detection Type</label>
             <select
+              id="filter-detection-type"
               value={filterDetectionType}
               onChange={(e) => { setFilterDetectionType(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
               className="w-full bg-background/60/80 border border-muted-label/30 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors appearance-none"
@@ -414,13 +417,13 @@ export default function InvestigationsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-muted-label/40">
-                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">User Email</th>
-                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Detection Type</th>
-                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Severity</th>
-                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Description</th>
-                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Status</th>
-                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Created</th>
-                    <th className="px-4 py-3 text-right text-xs text-muted-label font-medium">Actions</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs text-muted-label font-medium">User Email</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs text-muted-label font-medium">Detection Type</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs text-muted-label font-medium">Severity</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs text-muted-label font-medium">Description</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs text-muted-label font-medium">Status</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs text-muted-label font-medium">Created</th>
+                    <th scope="col" className="px-4 py-3 text-right text-xs text-muted-label font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -430,7 +433,7 @@ export default function InvestigationsPage() {
                       className="border-b border-muted-label/40/50 hover:bg-background/60/30 transition-colors"
                     >
                       <td className="px-4 py-3">
-                        <span className="text-white text-sm truncate max-w-[180px] block">
+                        <span className="text-white text-sm truncate max-w-45 block">
                           {inv.user_email || truncateStr(inv.user_id, 12)}
                         </span>
                       </td>
@@ -445,7 +448,7 @@ export default function InvestigationsPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-muted-label text-xs block max-w-[200px] truncate" title={inv.description || undefined}>
+                        <span className="text-muted-label text-xs block max-w-50 truncate" title={inv.description || undefined}>
                           {truncateStr(inv.description || "—", 50)}
                         </span>
                       </td>
@@ -461,27 +464,44 @@ export default function InvestigationsPage() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         {actionTarget === inv.id ? (
-                          <div className="flex flex-col items-end gap-2">
+                          <div
+                            className="flex flex-col items-end gap-2"
+                            role="dialog"
+                            aria-label={actionType === "resolve" ? "Resolve investigation" : "Dismiss investigation"}
+                          >
                             <div className="flex items-center gap-2 w-full">
+                              <label htmlFor={`action-note-${inv.id}`} className="sr-only">
+                                {actionType === "resolve" ? "Resolution note" : "Dismissal note"}
+                              </label>
                               <input
+                                id={`action-note-${inv.id}`}
                                 type="text"
+                                name="actionNote"
+                                required
+                                aria-required="true"
+                                aria-label={actionType === "resolve" ? "Resolution note (required)" : "Dismissal note (required)"}
                                 placeholder={`${actionType === "resolve" ? "Resolution" : "Dismissal"} note...`}
                                 value={actionNote}
                                 onChange={(e) => setActionNote(e.target.value)}
+                                aria-invalid={!actionNote.trim() ? "true" : undefined}
                                 className="flex-1 bg-background/60/80 border border-muted-label/30 rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-muted-label/80 focus:outline-none focus:border-warning/50 transition-colors"
                                 autoFocus
                               />
                             </div>
                             <div className="flex items-center gap-2">
                               <button
+                                type="button"
                                 onClick={() => { setActionTarget(null); setActionType(null); setActionNote(""); }}
+                                aria-label={`Cancel ${actionType} action`}
                                 className="px-2.5 py-1 text-xs text-muted-label hover:text-white hover:bg-background/60 rounded-lg transition-colors"
                               >
                                 Cancel
                               </button>
                               <button
+                                type="button"
                                 onClick={() => actionType && handleAction(inv.id, actionType)}
                                 disabled={actionLoading || !actionNote.trim()}
+                                aria-label={actionType === "resolve" ? `Confirm resolve for investigation ${inv.id}` : `Confirm dismiss for investigation ${inv.id}`}
                                 className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-lg transition-colors ${
                                   actionType === "resolve"
                                     ? "bg-success/15 text-success border border-success/20 hover:bg-success/25 disabled:opacity-50"
@@ -563,8 +583,14 @@ export default function InvestigationsPage() {
                   </p>
                   {actionTarget === inv.id ? (
                     <div className="space-y-2">
+                      <label htmlFor={`mobile-action-note-${inv.id}`} className="sr-only">
+                        {actionType === "resolve" ? "Resolution note (required)" : "Dismissal note (required)"}
+                      </label>
                       <input
+                        id={`mobile-action-note-${inv.id}`}
                         type="text"
+                        aria-required="true"
+                        aria-label={actionType === "resolve" ? "Resolution note (required)" : "Dismissal note (required)"}
                         placeholder={`${actionType === "resolve" ? "Resolution" : "Dismissal"} note...`}
                         value={actionNote}
                         onChange={(e) => setActionNote(e.target.value)}
@@ -573,12 +599,15 @@ export default function InvestigationsPage() {
                       />
                       <div className="flex items-center gap-2">
                         <button
+                          type="button"
                           onClick={() => { setActionTarget(null); setActionType(null); setActionNote(""); }}
+                          aria-label="Cancel action"
                           className="px-3 py-1.5 text-xs text-muted-label hover:text-white hover:bg-background/60 rounded-lg transition-colors"
                         >
                           Cancel
                         </button>
                         <button
+                          type="button"
                           onClick={() => actionType && handleAction(inv.id, actionType)}
                           disabled={actionLoading || !actionNote.trim()}
                           className={`inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
@@ -664,15 +693,22 @@ export default function InvestigationsPage() {
 
       {/* ─── View Detail Modal ──────────────────────────────────────────── */}
       {viewTarget && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+        <div
+          className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="investigation-detail-title"
+        >
           <div className="bg-background/80 border border-muted-label/40 rounded-xl w-full max-w-lg shadow-2xl max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between px-5 py-4 border-b border-muted-label/40 sticky top-0 bg-background/80 z-10">
-              <h3 className="text-white font-semibold">Investigation Detail</h3>
+              <h3 id="investigation-detail-title" className="text-white font-semibold">Investigation Detail</h3>
               <button
+                type="button"
                 onClick={() => setViewTarget(null)}
+                aria-label="Close details"
                 className="text-muted-label hover:text-white transition-colors p-1"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M18 6 6 18" /><path d="m6 6 12 12" />
                 </svg>
               </button>

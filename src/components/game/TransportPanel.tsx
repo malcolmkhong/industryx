@@ -582,6 +582,8 @@ function NetworkGraph({ nodes, relations }: { nodes: ERDNode[]; relations: ERDRe
     <div
       ref={containerRef}
       className="bg-[#060a12] rounded-lg overflow-hidden relative border border-muted-label/40 w-full"
+      role="application"
+      aria-label="Transport network map"
       style={{ aspectRatio: '1 / 1', maxHeight: '560px' }}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
@@ -630,6 +632,8 @@ function NetworkGraph({ nodes, relations }: { nodes: ERDNode[]; relations: ERDRe
       <div
         className="w-full h-full overflow-hidden"
         data-game-interactive
+        role="presentation"
+        aria-hidden="true"
         style={{ cursor: isPanning ? 'grabbing' : 'grab', touchAction: 'none' }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -1653,7 +1657,7 @@ export function TransportPanel() {
           {/* Completeness bar */}
           <div className="h-2 bg-muted-label rounded-full overflow-hidden mb-3">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-brand/80 to-brand/50 transition-all duration-700"
+              className="h-full rounded-full bg-linear-to-r from-brand/80 to-brand/50 transition-all duration-700"
               style={{ width: `${Math.min(100, productionChain.completeness)}%` }}
             />
           </div>
@@ -1672,9 +1676,9 @@ export function TransportPanel() {
                     {tier.buildings.map(b => (
                       <div key={b.id} className="flex items-center gap-1 text-[10px]">
                         {b.connected ? (
-                          <CheckCircle2 className="w-3 h-3 text-success flex-shrink-0" />
+                          <CheckCircle2 className="w-3 h-3 text-success shrink-0" />
                         ) : (
-                          <XCircle className="w-3 h-3 text-danger flex-shrink-0" />
+                          <XCircle className="w-3 h-3 text-danger shrink-0" />
                         )}
                         <span className="truncate"><GameIcon icon={b.icon} size={14} className="inline-flex" /> {b.name}</span>
                       </div>
@@ -1741,8 +1745,9 @@ export function TransportPanel() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {/* From Building */}
                 <div>
-                  <label className="text-[10px] text-muted-label mb-1 block">From (Producer)</label>
+                  <label htmlFor="transport-from" className="text-[10px] text-muted-label mb-1 block">From (Producer)</label>
                   <select
+                    id="transport-from"
                     value={fromBuilding}
                     onChange={e => handleFromChange(e.target.value)}
                     className="w-full bg-background border border-muted-label rounded-lg px-2 py-1.5 text-xs text-subtle focus:border-brand/50 focus:outline-none"
@@ -1757,8 +1762,9 @@ export function TransportPanel() {
                 </div>
                 {/* Carries Resource - Filtered by From outputs */}
                 <div>
-                  <label className="text-[10px] text-muted-label mb-1 block">Carries Resource</label>
+                  <label htmlFor="transport-carries" className="text-[10px] text-muted-label mb-1 block">Carries Resource</label>
                   <select
+                    id="transport-carries"
                     value={carriesResource}
                     onChange={e => { setCarriesResource(e.target.value as ResourceType); setToBuilding(''); }}
                     className="w-full bg-background border border-muted-label rounded-lg px-2 py-1.5 text-xs text-subtle focus:border-brand/50 focus:outline-none"
@@ -1774,8 +1780,9 @@ export function TransportPanel() {
                 </div>
                 {/* To Building - Filtered by resource consumers */}
                 <div>
-                  <label className="text-[10px] text-muted-label mb-1 block">To (Consumer)</label>
+                  <label htmlFor="transport-to" className="text-[10px] text-muted-label mb-1 block">To (Consumer)</label>
                   <select
+                    id="transport-to"
                     value={toBuilding}
                     onChange={e => setToBuilding(e.target.value)}
                     className="w-full bg-background border border-muted-label rounded-lg px-2 py-1.5 text-xs text-subtle focus:border-brand/50 focus:outline-none"
@@ -1874,16 +1881,16 @@ export function TransportPanel() {
                               <div className="flex items-center gap-1.5 flex-1 min-w-0">
                                 <div className="flex items-center gap-1 bg-muted-label/50 rounded px-1.5 py-0.5 min-w-0">
                                   <GameIcon icon={fromDef?.icon} size={12} />
-                                  <span className="text-[10px] text-subtle truncate max-w-[70px]">{fromDef?.name}</span>
+                                  <span className="text-[10px] text-subtle truncate max-w-17.5">{fromDef?.name}</span>
                                 </div>
-                                <div className="flex items-center gap-0.5 flex-shrink-0">
+                                <div className="flex items-center gap-0.5 shrink-0">
                                   <ArrowRight className="w-3 h-3 text-muted-label" />
                                   <GameIcon icon={RESOURCE_META[line.carriesResource]?.icon} size={12} />
                                   <ArrowRight className="w-3 h-3 text-brand" />
                                 </div>
                                 <div className="flex items-center gap-1 bg-muted-label/50 rounded px-1.5 py-0.5 min-w-0">
                                   <GameIcon icon={toDef?.icon} size={12} />
-                                  <span className="text-[10px] text-subtle truncate max-w-[70px]">{toDef?.name}</span>
+                                  <span className="text-[10px] text-subtle truncate max-w-17.5">{toDef?.name}</span>
                                 </div>
                               </div>
                             </div>
@@ -1891,9 +1898,9 @@ export function TransportPanel() {
                             <div className="h-2 bg-muted-label rounded-full overflow-hidden relative mb-2">
                               <div
                                 className={`h-full rounded-full transition-all duration-700 ${
-                                  throughputPct > 80 ? 'bg-gradient-to-r from-danger/60 to-danger/60' :
-                                  throughputPct > 50 ? 'bg-gradient-to-r from-warning/80 to-warning/50' :
-                                  'bg-gradient-to-r from-brand/80 to-brand/50'
+                                  throughputPct > 80 ? 'bg-linear-to-r from-danger/60 to-danger/60' :
+                                  throughputPct > 50 ? 'bg-linear-to-r from-warning/80 to-warning/50' :
+                                  'bg-linear-to-r from-brand/80 to-brand/50'
                                 }`}
                                 style={{ width: `${Math.min(100, throughputPct)}%` }}
                               />
@@ -1981,9 +1988,9 @@ export function TransportPanel() {
                           <div className="h-3 bg-muted-label rounded-full overflow-hidden relative">
                             <div
                               className={`h-full rounded-full transition-all duration-700 ${
-                                utilization > 80 ? 'bg-gradient-to-r from-danger/60 to-danger/60' :
-                                utilization > 50 ? 'bg-gradient-to-r from-warning/80 to-warning/50' :
-                                'bg-gradient-to-r from-success/60 to-success/50'
+                                utilization > 80 ? 'bg-linear-to-r from-danger/60 to-danger/60' :
+                                utilization > 50 ? 'bg-linear-to-r from-warning/80 to-warning/50' :
+                                'bg-linear-to-r from-success/60 to-success/50'
                               }`}
                               style={{ width: `${Math.min(100, utilization)}%` }}
                             />
@@ -2226,9 +2233,9 @@ export function TransportPanel() {
                         <div className="flex items-center gap-2 mb-2">
                           <GameIcon icon={fromDef?.icon} size={14} className="inline-flex" />
                           <span className="text-xs text-subtle truncate max-w-20">{fromDef?.name}</span>
-                          <ArrowRight className="w-3 h-3 text-brand flex-shrink-0" />
+                          <ArrowRight className="w-3 h-3 text-brand shrink-0" />
                           <GameIcon icon={resMeta?.icon} size={14} className="inline-flex" />
-                          <ArrowRight className="w-3 h-3 text-brand flex-shrink-0" />
+                          <ArrowRight className="w-3 h-3 text-brand shrink-0" />
                           <GameIcon icon={toDef?.icon} size={14} className="inline-flex" />
                           <span className="text-xs text-subtle truncate max-w-20">{toDef?.name}</span>
                         </div>
@@ -2258,10 +2265,16 @@ export function TransportPanel() {
         {showConnectAllDialog && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Connect all routes confirmation"
             onClick={() => setShowConnectAllDialog(false)}
+            onKeyDown={(e) => { if (e.key === 'Escape') setShowConnectAllDialog(false); }}
+            tabIndex={0}
           >
             <div
               className="bg-card rounded-xl border border-brand/50 p-6 max-w-md w-full mx-4 shadow-[0_0_40px_rgba(34,211,238,0.15)]"
+              role="presentation"
               onClick={e => e.stopPropagation()}
             >
               <div className="flex items-center gap-2 mb-4">

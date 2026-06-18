@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'crypto';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
+import { getCapacityStatus } from '@/lib/capacity';
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,6 +46,17 @@ export async function POST(request: NextRequest) {
       '/api/auth/initialize-guest'
     );
     if (rateLimitResponse) return rateLimitResponse;
+
+    // Capacity check — reject new guest signups at MAX_TOTAL_PLAYERS
+    // Idempotent: the auth.users row from signInAnonymously stays, but no game state is created.
+    // Client redirects to /waitlist on this signal.
+    const capacity = await getCapacityStatus();
+    if (capacity.status === 'full') {
+      return NextResponse.json(
+        { error: 'capacity_full', redirect: '/waitlist' },
+        { status: 503 }
+      );
+    }
 
     const { data: existingState } = await supabase
       .from('server_game_state')

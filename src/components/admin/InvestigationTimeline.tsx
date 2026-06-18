@@ -51,7 +51,7 @@ export function InvestigationTimeline({ events }: InvestigationTimelineProps) {
   }
 
   return (
-    <div className="relative pl-6 before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-px before:bg-background/60">
+    <div className="relative pl-6 before:absolute before:left-1.75 before:top-2 before:bottom-2 before:w-px before:bg-background/60">
       {events.map((event, i) => (
         <div key={event.id || `event-${i}`} className={`relative pb-5 last:pb-0`}>
           <div className="absolute -left-6 top-0.5 flex items-center justify-center w-3.5 h-3.5 rounded-full bg-background/80 border border-muted-label/30">

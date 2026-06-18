@@ -1,9 +1,15 @@
 // ============================================
 // POST /api/market/tick
-// Manual market tick processor — can be called
-// by Vercel Cron or manually via curl.
-// Does everything the Cloudflare worker does,
-// using the existing Supabase service role client.
+// Thin proxy to the same apply_market_tick RPC the Cloudflare Worker uses.
+// Useful for manual debugging and dev triggers.
+//
+// Per the architecture rules:
+//   - Next.js route EXECUTES the simulation LOCALLY (same TypeScript port of
+//     marketEngine that the Cloudflare Worker runs in JS)
+//   - Supabase VALIDATES + PERSISTS via the apply_market_tick RPC (the gate)
+//
+// No direct REST writes to server_market_state here. The RPC is the sole
+// writer of tick, prices, volatility, circuit_breakers.
 // ============================================
 
 import { NextResponse } from 'next/server';
@@ -16,6 +22,9 @@ const MAX_PRICE = 1_000_000;
 const EVENT_THRESHOLD = 0.04;
 const SPIKE_CAP = 0.40;
 const BREAKER_COOLDOWN = 5;
+const SUPPLY_DEMAND_SCALE = 0.1;
+const NEWS_WORKER_URL =
+  process.env.MARKET_NEWS_WORKER_URL || 'https://newsgenerator.malcolmkhong.workers.dev';
 
 interface BreakerState {
   cooldown: number;
@@ -139,52 +148,70 @@ export async function POST() {
       pressure[row.resource].sellVol += row.sell_volume || 0;
     }
 
-    // 4. Sync base_prices from game_config_market (admin-added resources)
-    const { data: marketConfig } = await supabase
-      .from('game_config_market')
-      .select('resource_id, base_price');
-    if (marketConfig && marketConfig.length > 0) {
-      const synced = marketConfig.map((m: { resource_id: string; base_price: number }) => ({
-        resource: m.resource_id,
-        basePrice: m.base_price,
-      }));
-      await supabase
-        .from('server_market_state')
-        .update({ base_prices: synced })
-        .eq('id', 1);
-    }
-
-    // 5. Get or initialize prices from base_prices
-    let prices = (stateData?.prices as MarketPrice[]) || [];
-    if (!Array.isArray(prices)) prices = [];
-    const basePrices = (stateData?.base_prices as Array<{ resource: string; basePrice: number }>) || [];
-    const existingResources = new Set(prices.map(p => p.resource));
-
-    for (const bp of basePrices) {
-      if (!existingResources.has(bp.resource)) {
-        prices.push({ resource: bp.resource, currentPrice: bp.basePrice, basePrice: bp.basePrice, trend: 'stable', volume: 0 });
-        existingResources.add(bp.resource);
+    // 3b. Add global supply/demand pressure (same as Cloudflare Worker)
+    const { data: supplyDemandRows } = await supabase
+      .from('market_supply_demand')
+      .select('resource, production, consumption');
+    if (supplyDemandRows) {
+      for (const row of supplyDemandRows) {
+        if (!pressure[row.resource]) {
+          pressure[row.resource] = { buyVol: 0, sellVol: 0 };
+        }
+        const production = Number(row.production) || 0;
+        const consumption = Number(row.consumption) || 0;
+        pressure[row.resource].sellVol += production * SUPPLY_DEMAND_SCALE;
+        pressure[row.resource].buyVol += consumption * SUPPLY_DEMAND_SCALE;
       }
     }
 
-    if (prices.length === 0) {
+    // 4. Get or initialize prices
+    let prices = (stateData?.prices as MarketPrice[]) || [];
+    if (!Array.isArray(prices) || prices.length === 0) {
       prices = [
         { resource: 'iron', currentPrice: 5, basePrice: 5, trend: 'stable', volume: 0 },
         { resource: 'copper', currentPrice: 8, basePrice: 8, trend: 'stable', volume: 0 },
       ];
     }
 
-    // 5. Run market simulation with circuit breakers
+    // 5. Run simulation LOCALLY (same logic as Cloudflare Worker marketEngine.js)
     const breakers = (stateData?.circuit_breakers as Record<string, BreakerState>) || {};
     const result = marketTick(prices, pressure, stateData?.volatility || 0, breakers);
 
-    // 6. Generate AI news
+    // 6. PERSIST via the Supabase RPC — the validated gate (Rule 1).
+    //    The RPC: validates bounds, increments tick atomically, writes
+    //    game_config_market_history, clears market_player_pressure.
+    //    No direct REST write to server_market_state here.
+    const newTick = (stateData?.tick || 0) + 1;
+    const { data: rpcSummary, error: rpcError } = await supabase.rpc(
+      'apply_market_tick',
+      {
+        p_tick: newTick,
+        p_prices: result.prices as unknown as Record<string, unknown>[],
+        p_events: result.events as unknown as Record<string, unknown>[],
+        p_volatility: result.volatility,
+        p_breakers: result.breakers as unknown as Record<string, unknown>,
+      }
+    );
+
+    if (rpcError) {
+      console.error('[MarketTick] RPC rejected tick', newTick, ':', rpcError.message);
+      return NextResponse.json(
+        {
+          tick: newTick,
+          events: result.events.length,
+          headlines: 0,
+          volatility: result.volatility,
+          error: rpcError.message,
+        },
+        { status: 409 } // Conflict — another caller beat us to this tick
+      );
+    }
+
+    // 7. Generate AI news (informational, separate from market state)
     let news: Array<Record<string, unknown>> = [];
     if (result.events.length > 0) {
       try {
-        const newsUrl = process.env.MARKET_NEWS_WORKER_URL ||
-          'https://newsgenerator.malcolmkhong.workers.dev';
-        const newsRes = await fetch(newsUrl, {
+        const newsRes = await fetch(NEWS_WORKER_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ events: result.events.slice(0, 8) }),
@@ -207,34 +234,20 @@ export async function POST() {
       }
     }
 
-    // 7. Store updated state
-    const newTick = (stateData?.tick || 0) + 1;
-    await supabase
-      .from('server_market_state')
-      .update({
-        tick: newTick,
-        prices: result.prices,
-        news,
-        volatility: result.volatility,
-        circuit_breakers: result.breakers,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', 1);
-
-    // 8. Clear pressure pool
-    if (pressureRows && pressureRows.length > 0) {
-      const ids = pressureRows.map(r => r.user_id);
-      const resources = pressureRows.map(r => r.resource);
+    // 8. Persist news (separate from market state — informational only, no RPC needed)
+    if (news.length > 0) {
       await supabase
-        .from('market_player_pressure')
-        .delete()
-        .in('user_id', ids)
-        .in('resource', resources);
+        .from('server_market_state')
+        .update({ news, updated_at: new Date().toISOString() })
+        .eq('id', 1);
     }
 
+    const summary = Array.isArray(rpcSummary) ? rpcSummary[0] : rpcSummary;
     return NextResponse.json({
-      tick: newTick,
-      events: result.events.length,
+      tick: summary?.tick_number ?? newTick,
+      events: summary?.events_recorded ?? result.events.length,
+      prices_recorded: summary?.prices_recorded ?? result.prices.length,
+      history_inserted: summary?.history_inserted ?? 0,
       headlines: news.length,
       volatility: result.volatility,
     });

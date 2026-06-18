@@ -1,6 +1,12 @@
 // Phase 1.4: Link anonymous guest to Google account
 // Creates a pending_link_operations row for the merge dialog.
 // The actual merge happens in /api/auth/confirm-link.
+//
+// FIX (AUDIT_FIXES_2026_06_18.md P0-#3): Accept `deviceId` in the request body
+// as a fallback when the `factory-dominion-guest-uid` cookie is missing (e.g.,
+// user cleared cookies before signing in with Google). The deviceId is used to
+// query `guest_identities` for the prior guest identity, preventing silent
+// data loss for the guest's progress.
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
@@ -11,7 +17,10 @@ import { cookies } from 'next/headers';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { idempotencyKey } = body as { idempotencyKey?: string };
+    const { idempotencyKey, deviceId } = body as {
+      idempotencyKey?: string;
+      deviceId?: string;
+    };
 
     if (!idempotencyKey) {
       return NextResponse.json(
@@ -46,7 +55,24 @@ export async function POST(request: NextRequest) {
     }
 
     const cookieStore = await cookies();
-    const guestUserId = cookieStore.get('factory-dominion-guest-uid')?.value;
+    let guestUserId = cookieStore.get('factory-dominion-guest-uid')?.value;
+
+    // Fallback: if the cookie is missing (e.g., user cleared cookies), try to
+    // find the prior guest by deviceId in `guest_identities`. This prevents
+    // silent data loss for guest progress when the user re-signs-in with Google
+    // on the same device after clearing cookies.
+    if (!guestUserId && deviceId) {
+      const { data: identityByDevice } = await supabase
+        .from('guest_identities')
+        .select('user_id, is_primary')
+        .eq('device_id', deviceId)
+        .eq('is_primary', true)
+        .maybeSingle();
+
+      if (identityByDevice?.user_id && identityByDevice.user_id !== auth.userId) {
+        guestUserId = identityByDevice.user_id;
+      }
+    }
 
     if (!guestUserId || guestUserId === auth.userId) {
       return NextResponse.json({

@@ -87,11 +87,9 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
   // News ticker: rotate through top 3 notifications every 5s (Phase 1.8)
   const [headlineIndex, setHeadlineIndex] = useState(0);
   const topHeadlines = notifications.slice(0, 3);
+  const displayedHeadlineIndex = topHeadlines.length > 0 ? Math.min(headlineIndex, topHeadlines.length - 1) : 0;
   useEffect(() => {
     if (topHeadlines.length < 2) {
-      // Reset to 0 so a single notification is always shown at index 0
-      // (avoids stale index pointing past the end of a shortened list)
-      setHeadlineIndex(0);
       return;
     }
     const t = setInterval(() => setHeadlineIndex((i) => (i + 1) % topHeadlines.length), 5000);
@@ -120,7 +118,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
         {/* Logo & Money */}
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-brand to-success/80 flex items-center justify-center text-base font-bold shadow-[0_0_12px_rgba(0,255,242,0.2)]">
+            <div className="w-10 h-10 rounded-lg bg-linear-to-br from-brand to-success/80 flex items-center justify-center text-base font-bold shadow-[0_0_12px_rgba(0,255,242,0.2)]">
               IX
             </div>
             <div>
@@ -147,7 +145,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
                 </div>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="w-64 bg-card border-brand/30 p-0 overflow-hidden">
-                <div className="bg-gradient-to-r from-success/30/30 to-success/30/20 px-3 py-2 border-b border-brand/20">
+                <div className="bg-linear-to-r from-success/30/30 to-success/30/20 px-3 py-2 border-b border-brand/20">
                   <p className="text-xs font-bold text-success inline-flex items-center gap-1"><GameIcon ui="money" size={14} className="inline-flex" /> Financial Overview</p>
                 </div>
                 <div className="px-3 py-2 space-y-1.5">
@@ -421,11 +419,11 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
           {user ? (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background" onClick={handleCloudSave} disabled={cloudStatus === 'saving'}>
-                  {cloudStatus === 'saving' ? <Loader2 className="w-3 h-3 animate-spin" />
-                  : cloudStatus === 'success' ? <Cloud className="w-3 h-3 text-success" />
-                  : cloudStatus === 'error' ? <CloudOff className="w-3 h-3 text-danger" />
-                  : <Cloud className="w-3 h-3 text-subtle" />}
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background" aria-label="Save to Cloud" onClick={handleCloudSave} disabled={cloudStatus === 'saving'}>
+                  {cloudStatus === 'saving' ? <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
+                  : cloudStatus === 'success' ? <Cloud className="w-3 h-3 text-success" aria-hidden="true" />
+                  : cloudStatus === 'error' ? <CloudOff className="w-3 h-3 text-danger" aria-hidden="true" />
+                  : <Cloud className="w-3 h-3 text-subtle" aria-hidden="true" />}
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="bg-card border-brand/30">
@@ -435,8 +433,8 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
           ) : (
             <Tooltip>
               <TooltipTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-label hover:text-brand focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background" onClick={() => promptLogin('cloud_save')}>
-                  <Cloud className="w-3 h-3" />
+                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-label hover:text-brand focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background" aria-label="Sign in for Cloud Save" onClick={() => promptLogin('cloud_save')}>
+                  <Cloud className="w-3 h-3" aria-hidden="true" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="bg-card border-brand/30">
@@ -468,7 +466,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
                   {userAvatar ? (
                     <Image src={userAvatar} alt={userName} width={20} height={20} className="rounded-full" />
                   ) : (
-                    <div className="w-5 h-5 rounded-full bg-gradient-to-br from-brand to-success/80 flex items-center justify-center text-[9px] font-bold" aria-hidden="true">
+                    <div className="w-5 h-5 rounded-full bg-linear-to-br from-brand to-success/80 flex items-center justify-center text-[9px] font-bold" aria-hidden="true">
                       {userName.charAt(0).toUpperCase()}
                     </div>
                   )}
@@ -520,8 +518,8 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
         role="region"
         aria-label="Live news feed"
       >
-        <Newspaper className="w-3 h-3 text-brand flex-shrink-0" aria-hidden="true" />
-        <span className="text-[10px] text-brand font-bold flex-shrink-0">NEWS</span>
+        <Newspaper className="w-3 h-3 text-brand shrink-0" aria-hidden="true" />
+        <span className="text-[10px] text-brand font-bold shrink-0">NEWS</span>
         <ul
           className="flex-1 overflow-hidden"
           aria-live="polite"
@@ -540,7 +538,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
           )}
         </ul>
         {topHeadlines.length > 1 && (
-          <span className="text-[9px] text-muted-label flex-shrink-0">
+          <span className="text-[9px] text-muted-label shrink-0">
             {headlineIndex + 1}/{topHeadlines.length}
           </span>
         )}

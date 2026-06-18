@@ -94,11 +94,16 @@ export function CloudSyncBlockBanner({ blockedState, onSignInAgain }: CloudSyncB
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] flex items-center justify-center transition-all duration-500 ${
+      role="dialog"
+      aria-modal="true"
+      aria-label="Sync blocked notification"
+      className={`fixed inset-0 z-9999 flex items-center justify-center transition-all duration-500 ${
         visible ? 'bg-black/70 backdrop-blur-sm' : 'bg-black/0'
       }`}
       style={{ pointerEvents: 'all' }}
       onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => { if (e.key === 'Escape') setVisible(false); }}
+      tabIndex={-1}
     >
       {/* Banner card - centered */}
       <div
@@ -107,9 +112,9 @@ export function CloudSyncBlockBanner({ blockedState, onSignInAgain }: CloudSyncB
         }`}
       >
         {/* Main card */}
-        <div className="relative overflow-hidden rounded-2xl border border-danger/30 bg-gradient-to-b from-[#1a1020] to-[#0f0a15] shadow-[0_0_60px_rgba(239,68,68,0.15)]">
+        <div className="relative overflow-hidden rounded-2xl border border-danger/30 bg-linear-to-b from-[#1a1020] to-[#0f0a15] shadow-[0_0_60px_rgba(239,68,68,0.15)]">
           {/* Animated top accent bar */}
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-danger/80 via-domain to-danger/80 animate-pulse" />
+          <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-danger/80 via-domain to-danger/80 animate-pulse" />
 
           {/* Warning pattern overlay */}
           <div className="absolute inset-0 opacity-[0.02]" style={{
@@ -142,7 +147,7 @@ export function CloudSyncBlockBanner({ blockedState, onSignInAgain }: CloudSyncB
             </p>
 
             {/* Divider */}
-            <div className="w-16 h-px bg-gradient-to-r from-transparent via-danger/40 to-transparent mx-auto mb-4" />
+            <div className="w-16 h-px bg-linear-to-r from-transparent via-danger/40 to-transparent mx-auto mb-4" />
 
             {/* Reason box */}
             <div className="bg-danger/10/30 border border-danger/40/30 rounded-xl p-4 mb-5 text-left">

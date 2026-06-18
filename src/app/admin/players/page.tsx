@@ -1,3 +1,4 @@
+/* eslint-disable jsx-a11y/control-has-associated-label */
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -203,7 +204,11 @@ export default function PlayersListPage() {
     <>
       {/* Error banner */}
       {error && (
-        <div className="mb-4 flex items-center gap-2 px-4 py-3 rounded-lg bg-danger/15 text-danger border border-danger/20 text-sm font-medium">
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="mb-4 flex items-center gap-2 px-4 py-3 rounded-lg bg-danger/15 text-danger border border-danger/20 text-sm font-medium"
+        >
           {error}
         </div>
       )}
@@ -222,27 +227,38 @@ export default function PlayersListPage() {
       <div className="mb-6">
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-label">
+            <label htmlFor="players-search" className="sr-only">
+              Search players by email, user ID, or display name
+            </label>
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-label" aria-hidden="true">
               <IconSearch />
             </div>
             <input
-              type="text"
+              id="players-search"
+              type="search"
+              name="search"
+              autoComplete="off"
               placeholder="Search by email, user ID, or display name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={handleSearchKeyDown}
+              aria-label="Search players by email, user ID, or display name"
               className="w-full bg-background/80/80 border border-muted-label/40 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-muted-label/80 focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors"
             />
           </div>
           <button
+            type="button"
             onClick={handleSearch}
+            aria-label="Search players"
             className="px-4 py-2.5 bg-warning hover:bg-warning text-black font-medium text-sm rounded-lg transition-colors shrink-0"
           >
             Search
           </button>
           {activeSearch && (
             <button
+              type="button"
               onClick={clearSearch}
+              aria-label="Clear search"
               className="px-3 py-2.5 text-sm text-muted-label hover:text-white hover:bg-background/60 rounded-lg transition-colors border border-muted-label/40 shrink-0"
             >
               Clear
@@ -260,7 +276,7 @@ export default function PlayersListPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-4 sm:p-5">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center" aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-warning">
                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
               </svg>
@@ -278,7 +294,7 @@ export default function PlayersListPage() {
 
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-4 sm:p-5">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center" aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-success">
                 <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
               </svg>
@@ -296,7 +312,7 @@ export default function PlayersListPage() {
 
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-4 sm:p-5">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-danger/10 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-lg bg-danger/10 flex items-center justify-center" aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger">
                 <rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
               </svg>
@@ -314,7 +330,7 @@ export default function PlayersListPage() {
 
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-4 sm:p-5">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-domain/10 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-lg bg-domain/10 flex items-center justify-center" aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-domain">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
               </svg>
@@ -341,7 +357,7 @@ export default function PlayersListPage() {
           </div>
         ) : players.length === 0 ? (
           <div className="p-12 text-center">
-            <div className="text-3xl mb-3">
+            <div className="text-3xl mb-3" aria-hidden="true">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted-label/80 mx-auto">
                 <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
               </svg>
@@ -352,6 +368,7 @@ export default function PlayersListPage() {
             </p>
             {activeSearch && (
               <button
+                type="button"
                 onClick={clearSearch}
                 className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-warning/10 text-warning text-sm rounded-lg hover:bg-warning/20 transition-colors border border-warning/20"
               >
@@ -366,14 +383,14 @@ export default function PlayersListPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-muted-label/40">
-                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Player</th>
-                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">User ID</th>
-                    <th className="px-4 py-3 text-right text-xs text-muted-label font-medium">Money</th>
-                    <th className="px-4 py-3 text-right text-xs text-muted-label font-medium">Tick</th>
-                    <th className="px-4 py-3 text-right text-xs text-muted-label font-medium">Buildings</th>
-                    <th className="px-4 py-3 text-center text-xs text-muted-label font-medium">Flags</th>
-                    <th className="px-4 py-3 text-center text-xs text-muted-label font-medium">Status</th>
-                    <th className="px-4 py-3 text-right text-xs text-muted-label font-medium">Last Saved</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs text-muted-label font-medium">Player</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs text-muted-label font-medium">User ID</th>
+                    <th scope="col" className="px-4 py-3 text-right text-xs text-muted-label font-medium">Money</th>
+                    <th scope="col" className="px-4 py-3 text-right text-xs text-muted-label font-medium">Tick</th>
+                    <th scope="col" className="px-4 py-3 text-right text-xs text-muted-label font-medium">Buildings</th>
+                    <th scope="col" className="px-4 py-3 text-center text-xs text-muted-label font-medium">Flags</th>
+                    <th scope="col" className="px-4 py-3 text-center text-xs text-muted-label font-medium">Status</th>
+                    <th scope="col" className="px-4 py-3 text-right text-xs text-muted-label font-medium">Last Saved</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -382,6 +399,10 @@ export default function PlayersListPage() {
                       key={player.user_id}
                       className="border-b border-muted-label/40/50 hover:bg-background/60/30 transition-colors cursor-pointer"
                       onClick={() => { window.location.href = `/admin/players/${player.user_id}`; }}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.location.href = `/admin/players/${player.user_id}`; } }}
+                      tabIndex={0}
+                      role="link"
+                      aria-label={`View details for ${player.email ?? player.user_id}`}
                     >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
@@ -389,11 +410,11 @@ export default function PlayersListPage() {
                             {(player.email || player.display_name || "U")[0].toUpperCase()}
                           </div>
                           <div className="min-w-0">
-                            <span className="text-white text-sm truncate block max-w-[200px]">
+                            <span className="text-white text-sm truncate block max-w-50">
                               {player.email || player.display_name || "Unknown"}
                             </span>
                             {player.display_name && player.email && (
-                              <span className="text-muted-label text-[10px] block truncate max-w-[200px]">
+                              <span className="text-muted-label text-[10px] block truncate max-w-50">
                                 {player.display_name}
                               </span>
                             )}
@@ -406,14 +427,16 @@ export default function PlayersListPage() {
                             {truncateUid(player.user_id)}
                           </code>
                           <button
+                            type="button"
                             onClick={(e) => { e.stopPropagation(); copyToClipboard(player.user_id); }}
                             className="text-muted-label/80 hover:text-subtle transition-colors p-0.5 rounded"
+                            aria-label={`Copy full user ID for ${player.email ?? player.user_id}`}
                             title="Copy full ID"
                           >
                             {copiedId === player.user_id ? (
-                              <span className="text-success"><IconCheck /></span>
+                              <span className="text-success" aria-label="Copied"><IconCheck /></span>
                             ) : (
-                              <IconCopy />
+                              <IconCopy aria-hidden="true" />
                             )}
                           </button>
                         </div>
@@ -474,6 +497,10 @@ export default function PlayersListPage() {
                   key={player.user_id}
                   className="p-4 cursor-pointer hover:bg-background/60/30 transition-colors"
                   onClick={() => { window.location.href = `/admin/players/${player.user_id}`; }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.location.href = `/admin/players/${player.user_id}`; } }}
+                  tabIndex={0}
+                  role="link"
+                  aria-label={`View details for ${player.email ?? player.user_id}`}
                 >
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-full bg-background/40 flex items-center justify-center text-subtle text-sm font-medium shrink-0">
@@ -499,13 +526,15 @@ export default function PlayersListPage() {
                           {truncateUid(player.user_id, 6)}
                         </code>
                         <button
+                          type="button"
                           onClick={(e) => { e.stopPropagation(); copyToClipboard(player.user_id); }}
                           className="text-muted-label/80 hover:text-subtle transition-colors p-0.5"
+                          aria-label={`Copy full user ID for ${player.email ?? player.user_id}`}
                         >
                           {copiedId === player.user_id ? (
-                            <span className="text-success"><IconCheck /></span>
+                            <span className="text-success" aria-label="Copied"><IconCheck /></span>
                           ) : (
-                            <IconCopy />
+                            <IconCopy aria-hidden="true" />
                           )}
                         </button>
                       </div>
@@ -539,11 +568,13 @@ export default function PlayersListPage() {
                 </p>
                 <div className="flex items-center gap-1">
                   <button
+                    type="button"
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={pagination.page <= 1}
+                    aria-label="Previous page"
                     className="p-1.5 rounded-lg text-muted-label hover:text-white hover:bg-background/60 disabled:text-muted-label/30 disabled:cursor-not-allowed transition-colors"
                   >
-                    <IconChevronLeft />
+                    <IconChevronLeft aria-hidden="true" />
                   </button>
                   {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
                     let pageNum: number;
@@ -559,7 +590,10 @@ export default function PlayersListPage() {
                     return (
                       <button
                         key={pageNum}
+                        type="button"
                         onClick={() => setPage(pageNum)}
+                        aria-label={`Go to page ${pageNum}`}
+                        aria-current={pageNum === pagination.page ? "page" : undefined}
                         className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors ${
                           pageNum === pagination.page
                             ? "bg-warning/20 text-warning border border-warning/30"
@@ -571,11 +605,13 @@ export default function PlayersListPage() {
                     );
                   })}
                   <button
+                    type="button"
                     onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
                     disabled={pagination.page >= pagination.totalPages}
+                    aria-label="Next page"
                     className="p-1.5 rounded-lg text-muted-label hover:text-white hover:bg-background/60 disabled:text-muted-label/30 disabled:cursor-not-allowed transition-colors"
                   >
-                    <IconChevronRight />
+                    <IconChevronRight aria-hidden="true" />
                   </button>
                 </div>
               </div>

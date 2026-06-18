@@ -93,21 +93,31 @@ export function useCloudSave(opts: UseCloudSaveOptions) {
       const data = await res.json();
 
       // Phase 7.3: Handle server-side validation warnings.
-      // Server may accept the save but flag suspicious state (e.g., money exceeding
-      // expected maximum). This provides immediate user feedback and prevents
-      // continued play with potentially manipulated state.
-      if (data.validation_warning) {
-        console.warn('[CloudSave] Server validation warning:', data.validation_warning);
+      // Server returns { saved, stateHash, stateVersion, validation: { isValid, riskLevel, violations } }
+      // The save is accepted (data.saved === true) but flagged with a riskLevel. We surface medium/high/critical
+      // to the user so they can investigate — admins bypass this server-side and won't see the warning.
+      // FIX: previously read data.validation_warning (a string) which the server never returned.
+      // Audit: see AUDIT_FIXES_2026_06_18.md P0-#1.
+      const validation = data.validation as
+        | { isValid?: boolean; riskLevel?: 'low' | 'medium' | 'high' | 'critical'; violations?: string[] }
+        | undefined;
+      if (data.saved && validation && validation.riskLevel && validation.riskLevel !== 'low') {
+        const violationList = Array.isArray(validation.violations) ? validation.violations : [];
+        const summary = violationList.length > 0 ? violationList.join('; ') : 'No details provided';
+        console.warn('[CloudSave] Server validation warning:', validation.riskLevel, summary);
         useGameStore.getState().addNotification(
           'warning',
-          `⚠️ Sync warning: ${String(data.validation_warning)}`,
+          `⚠️ Sync warning (${validation.riskLevel}): ${summary}`,
         );
-        setBlockedState({
-          isBlocked: true,
-          reason: `Server validation warning: ${String(data.validation_warning)}`,
-          code: 'VALIDATION_FAILED',
-          detectedAt: Date.now(),
-        });
+        // Only block on critical — medium/high get a warning but gameplay continues
+        if (validation.riskLevel === 'critical') {
+          setBlockedState({
+            isBlocked: true,
+            reason: `Server validation critical: ${summary}`,
+            code: 'VALIDATION_FAILED',
+            detectedAt: Date.now(),
+          });
+        }
       }
 
       if (data.saved) {

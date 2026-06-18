@@ -210,7 +210,7 @@ export function DashboardPanel() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, type: 'spring' }}
           onClick={() => setActiveTab('dailyRewards')}
-          className="w-full bg-gradient-to-r from-900-pink/25 via-research/20/20 to-premium/30/25 border border-premium/30 rounded-xl p-3 flex items-center justify-between group hover:border-400-pink/50 cursor-pointer"
+          className="w-full bg-linear-to-r from-900-pink/25 via-research/20/20 to-premium/30/25 border border-premium/30 rounded-xl p-3 flex items-center justify-between group hover:border-400-pink/50 cursor-pointer"
         >
           <div className="flex items-center gap-3">
             <GameIcon icon="gi:present" size={24} className="animate-bounce" />
@@ -335,7 +335,7 @@ export function DashboardPanel() {
         const currentStep = trackedQuestData.steps.find(s => !s.completed);
         return (
           <motion.div
-            className="bg-gradient-to-r from-brand/15 to-success/30/10 border border-brand/25 rounded-xl p-3"
+            className="bg-linear-to-r from-brand/15 to-success/30/10 border border-brand/25 rounded-xl p-3"
           >
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-1.5">
@@ -357,7 +357,7 @@ export function DashboardPanel() {
                   <p className="text-[10px] text-muted-label truncate">{currentStep.description}: {Math.min(currentStep.current, currentStep.target)}/{currentStep.target}</p>
                 )}
               </div>
-              <div className="text-right flex-shrink-0">
+              <div className="text-right shrink-0">
                 <div className="text-[10px] text-brand font-mono">{Math.round(tProgress * 100)}%</div>
                 <div className="w-16 h-1 bg-muted-label rounded-full overflow-hidden mt-0.5">
                   <div className="h-full bg-brand rounded-full" style={{ width: `${tProgress * 100}%` }} />
@@ -375,7 +375,7 @@ export function DashboardPanel() {
 
       {/* GET STARTED CARD - only show when no buildings */}
       {totalBuildings === 0 && (
-        <div className="relative rounded-xl p-8 text-center border border-brand/20 bg-gradient-to-br from-brand/15 via-[#111827] to-success/30/10 overflow-hidden">
+        <div className="relative rounded-xl p-8 text-center border border-brand/20 bg-linear-to-br from-brand/15 via-industrial-card to-success/30/10 overflow-hidden">
           {/* Radial gradient overlay for visual depth */}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,255,242,0.06)_0%,transparent_70%)]" />
           {/* Animated diagonal line pattern background */}
@@ -608,16 +608,16 @@ export function DashboardPanel() {
                 />
                 <div
                   className={`absolute inset-y-0 left-0 rounded-full transition-all duration-700 ${
-                    powerPercent >= 80 ? 'bg-gradient-to-r from-success/80 to-success/50' :
-                    powerPercent >= 50 ? 'bg-gradient-to-r from-warning/70 to-warning/50' :
-                    'bg-gradient-to-r from-danger/80 to-danger/60'
+                    powerPercent >= 80 ? 'bg-linear-to-r from-success/80 to-success/50' :
+                    powerPercent >= 50 ? 'bg-linear-to-r from-warning/70 to-warning/50' :
+                    'bg-linear-to-r from-danger/80 to-danger/60'
                   }`}
                   style={{ width: `${Math.min(100, powerPercent)}%` }}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent" />
+                  <div className="absolute inset-0 bg-linear-to-b from-white/10 to-transparent" />
                 </div>
                 <div className="absolute inset-0 overflow-hidden rounded-full">
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-[conveyorFlow_2s_linear_infinite]" />
+                  <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/5 to-transparent animate-[conveyorFlow_2s_linear_infinite]" />
                 </div>
               </div>
               <div className="flex justify-between mt-1">
@@ -759,7 +759,7 @@ export function DashboardPanel() {
                         overallPct > 90 ? 'bg-danger' :
                         overallPct > 70 ? 'bg-domain' :
                         overallPct > 50 ? 'bg-warning' :
-                        'bg-gradient-to-r from-brand/70 to-brand/50'
+                        'bg-linear-to-r from-brand/70 to-brand/50'
                       }`}
                       style={{ width: `${Math.min(100, overallPct)}%` }}
                     />
@@ -796,7 +796,7 @@ export function DashboardPanel() {
                         className={`h-full rounded-full resource-bar-premium resource-bar-animated transition-all duration-500 ${
                           pct > 90 ? 'bg-danger' :
                           pct > 70 ? 'bg-domain' :
-                          'bg-gradient-to-r from-brand/70 to-brand/50'
+                          'bg-linear-to-r from-brand/70 to-brand/50'
                         }`}
                         style={{ width: `${Math.min(100, pct)}%` }}
                       />
@@ -873,7 +873,7 @@ export function DashboardPanel() {
                         'text-subtle bg-muted-label/5 border-l-muted-label/40'
                       }`}
                     >
-                      <div className="flex-shrink-0 mt-0.5 text-current">
+                      <div className="shrink-0 mt-0.5 text-current">
                         {entry.type === 'success' && <CheckCircle2 className="w-3.5 h-3.5" />}
                         {entry.type === 'warning' && <AlertTriangle className="w-3.5 h-3.5" />}
                         {entry.type === 'error' && <XCircle className="w-3.5 h-3.5" />}
@@ -882,7 +882,7 @@ export function DashboardPanel() {
                       <div className="flex-1 min-w-0">
                         <span className="truncate block">{entry.message}</span>
                       </div>
-                      <span className="text-[9px] text-muted-label flex-shrink-0 mt-0.5">
+                      <span className="text-[9px] text-muted-label shrink-0 mt-0.5">
                         t:{entry.gameTick}
                       </span>
                     </motion.div>
@@ -955,10 +955,10 @@ export function DashboardPanel() {
                 </div>
                 <div className="h-2 bg-muted-label rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-research/80 to-research/50 rounded-full transition-all duration-300"
+                    className="h-full bg-linear-to-r from-research/80 to-research/50 rounded-full transition-all duration-300"
                     style={{ width: `${activeResearchInfo.progress}%` }}
                   >
-                    <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent" />
+                    <div className="absolute inset-0 bg-linear-to-b from-white/10 to-transparent" />
                   </div>
                 </div>
                 <div className="text-right mt-1">
@@ -1152,7 +1152,7 @@ function BuildingCategoryRow({
 
   return (
     <div className="flex items-center gap-3">
-      <div className={`${color} w-5 flex-shrink-0`}>{icon}</div>
+      <div className={`${color} w-5 shrink-0`}>{icon}</div>
       <div className="flex-1">
         <div className="flex items-center justify-between mb-0.5">
           <span className="text-xs text-subtle">{label}</span>
@@ -1230,7 +1230,7 @@ function RankBar() {
                     boxShadow: `0 0 8px ${rank.color}66`,
                   }}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-b from-white/15 to-transparent" />
+                  <div className="absolute inset-0 bg-linear-to-b from-white/15 to-transparent" />
                 </div>
               </div>
             </div>
@@ -1336,7 +1336,7 @@ function WeatherInfoCard() {
   };
 
   return (
-    <div className={`weather-card-${currentWeather} game-card rounded-xl bg-gradient-to-br ${weatherGradients[currentWeather] || ''} p-4 border ${weatherBorders[currentWeather] || 'border-border'} relative overflow-hidden`}>
+    <div className={`weather-card-${currentWeather} game-card rounded-xl bg-linear-to-br ${weatherGradients[currentWeather] || ''} p-4 border ${weatherBorders[currentWeather] || 'border-border'} relative overflow-hidden`}>
       {/* Animated weather particles */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {renderWeatherParticles()}
@@ -1489,7 +1489,7 @@ function IncomeChart({ productionRates }: { productionRates: Record<string, numb
         <span className="text-[10px] text-muted-label">projected</span>
       </div>
       <div className="flex items-center gap-4">
-        <svg width={width} height={height} className="flex-shrink-0">
+        <svg width={width} height={height} className="shrink-0">
           <defs>
             <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#22c55e" stopOpacity="0.3" />

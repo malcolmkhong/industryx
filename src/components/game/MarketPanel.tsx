@@ -296,7 +296,7 @@ export function MarketPanel() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="bg-gradient-to-r from-success/30/10 to-transparent -m-0 p-0 rounded-xl">
+        <div className="bg-linear-to-r from-success/30/10 to-transparent m-0 p-0 rounded-xl">
           <h2 className="text-xl font-bold text-success tracking-wide neon-glow-green">
             Global Market
           </h2>
@@ -521,7 +521,7 @@ export function MarketPanel() {
             </div>
 
             {/* Resource Cards with Sparklines */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[500px] overflow-y-auto game-scrollbar scroll-fade">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-125 overflow-y-auto game-scrollbar scroll-fade">
               {filteredMarket.length === 0 && (
                 <div className="col-span-full flex flex-col items-center justify-center py-8 text-muted-label">
                   <Package className="w-8 h-8 mb-2 opacity-50" />
@@ -602,7 +602,7 @@ export function MarketPanel() {
                         {priceRatio < 0.5 && (
                           <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-brand/30 text-brand border border-brand/30 font-bold inline-flex items-center gap-0.5"><GameIcon icon="gi:falling" size={10} /> LOW</span>
                         )}
-                        {m.trend === 'up' && <span className="text-xs trend-arrow-bounce inline-flex items-center" style={{ filter: 'drop-shadow(0 0 3px rgba(74,222,128,0.5))' }}><GameIcon icon="gi:fast-arrow" size={12} className="text-success rotate-[-90deg]" /></span>}
+                        {m.trend === 'up' && <span className="text-xs trend-arrow-bounce inline-flex items-center" style={{ filter: 'drop-shadow(0 0 3px rgba(74,222,128,0.5))' }}><GameIcon icon="gi:fast-arrow" size={12} className="text-success -rotate-90" /></span>}
                         {m.trend === 'down' && <span className="text-xs trend-arrow-bounce inline-flex items-center" style={{ filter: 'drop-shadow(0 0 3px rgba(248,113,113,0.5))' }}><GameIcon icon="gi:fast-arrow" size={12} className="text-danger rotate-90" /></span>}
                         {isAutoSell && (
                           <span className="text-[11px] px-1 py-0.5 rounded bg-success/30 text-success border border-success/30">AUTO</span>
@@ -1028,7 +1028,7 @@ export function MarketPanel() {
                   )}
                 </div>
               ) : (
-                <div className="space-y-2 max-h-[500px] overflow-y-auto game-scrollbar">
+                <div className="space-y-2 max-h-125 overflow-y-auto game-scrollbar">
                   {filteredNews.map(news => {
                     const severityBorder = news.severity === 'high' ? 'border-l-danger' : news.severity === 'medium' ? 'border-l-warning/50' : 'border-l-muted-label/40';
                     const style = getSeverityStyle(news.severity);
@@ -1041,11 +1041,11 @@ export function MarketPanel() {
                             <div className="flex items-center gap-2 mb-1">
                               <span className={`text-xs font-bold ${style.color}`}>{news.title}</span>
                               {isLLM ? (
-                                <span className="inline-flex items-center gap-0.5 text-[11px] px-1.5 py-0.5 rounded-full bg-success/30 text-success border border-success/30 font-bold flex-shrink-0">
+                                <span className="inline-flex items-center gap-0.5 text-[11px] px-1.5 py-0.5 rounded-full bg-success/30 text-success border border-success/30 font-bold shrink-0">
                                   <Sparkles className="w-2.5 h-2.5" /> AI
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-0.5 text-[11px] px-1.5 py-0.5 rounded-full bg-muted-label text-muted-label border border-muted-label font-bold flex-shrink-0">
+                                <span className="inline-flex items-center gap-0.5 text-[11px] px-1.5 py-0.5 rounded-full bg-muted-label text-muted-label border border-muted-label font-bold shrink-0">
                                   Template
                                 </span>
                               )}

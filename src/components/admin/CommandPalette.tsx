@@ -1,3 +1,4 @@
+/* eslint-disable jsx-a11y/control-has-associated-label */
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -65,14 +66,25 @@ export function CommandPalette() {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]">
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Command palette"
+    >
       <button type="button" className="absolute inset-0 bg-black/60 cursor-default" onClick={() => setOpen(false)} aria-label="Close palette" />
 
       <div className="relative w-full max-w-lg bg-background/80 border border-muted-label/30 rounded-xl shadow-2xl overflow-hidden">
         <div className="flex items-center gap-3 px-4 py-3 border-b border-muted-label/40">
-          <Search className="w-4 h-4 text-muted-label shrink-0" />
+          <Search className="w-4 h-4 text-muted-label shrink-0" aria-hidden="true" />
           <input
             ref={inputRef}
+            id="command-palette-input"
+            role="combobox"
+            aria-expanded={filtered.length > 0}
+            aria-autocomplete="list"
+            aria-controls="command-palette-list"
+            aria-label="Search pages"
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -85,7 +97,7 @@ export function CommandPalette() {
           <kbd className="text-[10px] text-muted-label/80 bg-background/60 px-1.5 py-0.5 rounded font-mono">ESC</kbd>
         </div>
 
-        <div className="max-h-72 overflow-y-auto p-2">
+        <div id="command-palette-list" className="max-h-72 overflow-y-auto p-2" role="listbox">
           {filtered.length === 0 ? (
             <p className="text-sm text-muted-label text-center py-6">No results</p>
           ) : (

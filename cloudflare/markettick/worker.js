@@ -30,7 +30,7 @@ const DEFAULT_RESOURCES = [
   { resource: 'aiChip', basePrice: 600 }, { resource: 'robotics', basePrice: 2500 },
 ];
 
-export default {
+const worker = {
   // ── Cron trigger ─────────────────────────────────
   async scheduled(event, env, ctx) {
     console.log('[MarketTick] Cron fired');
@@ -68,112 +68,143 @@ export default {
   },
 };
 
+export default worker;
+
 // ── Tick Processor ───────────────────────────────────
+//
+// Per the architecture rules:
+//   - Cloudflare EXECUTES the simulation (marketEngine.tick() is the engine)
+//   - Supabase VALIDATES + PERSISTS (via the apply_market_tick RPC, the gate)
+//
+// This worker no longer writes server_market_state directly. Every market
+// tick must go through the apply_market_tick RPC which validates bounds,
+// increments the tick atomically, writes history, and clears the pressure
+// pool — all in one transaction.
 
-async function processTick(supabaseKey) {
-  const headers = {
-    'apikey': supabaseKey,
-    'Authorization': `Bearer ${supabaseKey}`,
-    'Content-Type': 'application/json',
-  };
-
-  // 1. Read current state
-  const stateRes = await fetch(
-    `${SUPABASE_URL}/rest/v1/server_market_state?id=eq.1&select=*`,
+async function fetchState(headers) {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/server_market_state?id=eq.1&select=tick,prices,volatility,circuit_breakers`,
     { headers: { ...headers, 'Accept': 'application/json' } }
   );
-  const stateData = await stateRes.json();
-  const state = stateData?.[0] || null;
+  const rows = await res.json();
+  return rows?.[0] || null;
+}
 
-  // 2. Read aggregate player pressure
-  const pressureRes = await fetch(
-    `${SUPABASE_URL}/rest/v1/market_player_pressure?select=*`,
+async function fetchPressure(headers) {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/market_player_pressure?select=resource,buy_volume,sell_volume`,
     { headers: { ...headers, 'Accept': 'application/json' } }
   );
-  const pressureRows = await pressureRes.json();
-
-  // Aggregate pressure per resource
+  const rows = await res.json();
   const pressure = {};
-  for (const row of pressureRows) {
-    if (!pressure[row.resource]) {
-      pressure[row.resource] = { buyVol: 0, sellVol: 0 };
-    }
+  for (const row of rows || []) {
+    if (!pressure[row.resource]) pressure[row.resource] = { buyVol: 0, sellVol: 0 };
     pressure[row.resource].buyVol += row.buy_volume || 0;
     pressure[row.resource].sellVol += row.sell_volume || 0;
   }
+  return pressure;
+}
 
-  // 3. Get or initialize prices
+async function callApplyMarketTick(headers, payload) {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/rpc/apply_market_tick`,
+    {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+    }
+  );
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => ({}));
+    const msg = errBody?.message || `HTTP ${res.status}`;
+    throw new Error(`apply_market_tick RPC failed: ${msg}`);
+  }
+  return res.json();
+}
+
+async function fetchAINews(events) {
+  try {
+    const res = await fetch(NEWS_WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ events: events.slice(0, 8) }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.headlines || [];
+    }
+  } catch (err) {
+    console.warn('[MarketTick] AI news fetch failed:', err.message);
+  }
+  // Fallback: template news
+  return events.slice(0, 5).map(e => ({
+    title: `${e.resource} Market Update`,
+    description: `${e.resource} prices moved ${e.delta} due to ${e.context.cause}.`,
+    affectedResources: [e.resource],
+  }));
+}
+
+async function persistNews(headers, news) {
+  if (!news || news.length === 0) return;
+  await fetch(`${SUPABASE_URL}/rest/v1/server_market_state?id=eq.1`, {
+    method: 'PATCH',
+    headers: { ...headers, 'Prefer': 'return=minimal' },
+    body: JSON.stringify({ news, updated_at: new Date().toISOString() }),
+  });
+}
+
+async function processTick(supabaseKey) {
+  const headers = {
+    apikey: supabaseKey,
+    Authorization: `Bearer ${supabaseKey}`,
+    'Content-Type': 'application/json',
+  };
+
+  // 1. Read current state (read-only — direct REST is fine)
+  const state = await fetchState(headers);
+
+  // 2. Aggregate player pressure
+  const pressure = await fetchPressure(headers);
+
+  // 3. Initialize prices if first tick
   let prices = state?.prices || [];
   if (!Array.isArray(prices) || prices.length === 0) {
     prices = createInitialPrices(DEFAULT_RESOURCES);
   }
 
-  // 4. Run market simulation
-  const currentVolatility = state?.volatility || 0;
-  const result = tick(prices, pressure, currentVolatility);
+  // 4. Run simulation LOCALLY — Cloudflare EXECUTES (per Rule 1)
+  const result = tick(
+    prices,
+    pressure,
+    state?.volatility || 0,
+    state?.circuit_breakers || {}
+  );
 
-  // 5. Generate AI news
-  let news = [];
-  if (result.events.length > 0) {
-    try {
-      const newsRes = await fetch(NEWS_WORKER_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ events: result.events.slice(0, 8) }),
-      });
-      if (newsRes.ok) {
-        const newsData = await newsRes.json();
-        news = newsData.headlines || [];
-      }
-    } catch (err) {
-      console.warn('[MarketTick] AI news failed, using templates');
-    }
-
-    // If AI failed, generate template news
-    if (news.length === 0) {
-      news = result.events.slice(0, 5).map(e => ({
-        title: `${e.resource} Market Update`,
-        description: `${e.resource} prices moved ${e.delta} due to ${e.context.cause}.`,
-        affectedResources: [e.resource],
-      }));
-    }
-  }
-
-  // 6. Store updated state
+  // 5. Persist via Supabase RPC — the validated gate (Rule 1)
+  //    The RPC: validates bounds, increments tick, writes history, clears pressure.
   const newTick = (state?.tick || 0) + 1;
-  const updateBody = {
-    tick: newTick,
-    prices: result.prices,
-    news,
-    volatility: result.volatility,
-    updated_at: new Date().toISOString(),
-  };
-
-  await fetch(`${SUPABASE_URL}/rest/v1/server_market_state?id=eq.1`, {
-    method: 'PATCH',
-    headers: { ...headers, 'Prefer': 'return=minimal' },
-    body: JSON.stringify(updateBody),
-  });
-
-  // 7. Clear pressure pool
-  if (pressureRows.length > 0) {
-    const deleteIds = pressureRows.map(r => `user_id=eq.${r.user_id}&resource=eq.${r.resource}`).join('&or=');
-    if (deleteIds) {
-      // Delete in batches (Supabase REST has URL length limits)
-      for (let i = 0; i < pressureRows.length; i += 50) {
-        const batch = pressureRows.slice(i, i + 50);
-        const filter = batch.map(r =>
-          `(user_id.eq.${r.user_id},resource.eq.${r.resource})`
-        ).join(',');
-        await fetch(
-          `${SUPABASE_URL}/rest/v1/market_player_pressure?or=(${encodeURIComponent(filter)})`,
-          { method: 'DELETE', headers }
-        );
-      }
-    }
+  let summary;
+  try {
+    summary = await callApplyMarketTick(headers, {
+      p_tick: newTick,
+      p_prices: result.prices,
+      p_events: result.events,
+      p_volatility: result.volatility,
+      p_breakers: result.breakers,
+    });
+  } catch (err) {
+    console.error('[MarketTick] RPC rejected tick', newTick, ':', err.message);
+    // Don't retry — next cron tick will compute against fresh state.
+    return { tick: newTick, events: 0, headlines: 0, volatility: result.volatility, error: err.message };
   }
 
-  console.log(`[MarketTick] Tick ${newTick}: ${result.events.length} events, ${news.length} headlines`);
+  // 6. Generate AI news (informational, separate from market state)
+  const news = result.events.length > 0 ? await fetchAINews(result.events) : [];
+
+  // 7. Persist news (separate from market state — no RPC needed, low-risk)
+  await persistNews(headers, news);
+
+  console.log(`[MarketTick] tick=${newTick} events=${result.events.length} headlines=${news.length}`);
 
   return {
     tick: newTick,

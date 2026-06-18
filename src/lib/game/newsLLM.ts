@@ -222,7 +222,7 @@ async function callCloudflareWorker(
         }
       } catch { /* ignore parse error */ }
 
-      console.log(`[NewsLLM] Rate limited (429). Retrying after ${retryAfterMs}ms (attempt ${retryCount + 1}/${MAX_429_RETRIES})`);
+      // Rate-limited; silent backoff.
       await new Promise(resolve => setTimeout(resolve, retryAfterMs));
       return callCloudflareWorker(packets, retryCount + 1);
     }

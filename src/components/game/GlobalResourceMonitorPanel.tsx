@@ -463,7 +463,7 @@ export default function GlobalResourceMonitorPanel() {
       </div>
 
       {/* ─── SUMMARY BAR ─────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-3 px-3 py-2 bg-[#111827] rounded-lg border border-muted-label/30">
+      <div className="flex flex-wrap items-center gap-3 px-3 py-2 bg-industrial-card rounded-lg border border-muted-label/30">
         <div className="flex items-center gap-1.5 text-xs">
           <TrendingUp className="w-3.5 h-3.5 text-success" />
           <span className="text-subtle">Total Prod:</span>
@@ -486,7 +486,7 @@ export default function GlobalResourceMonitorPanel() {
       </div>
 
       {/* ─── CURRENCY TABLE ────────────────────────────────────────────── */}
-      <div className="bg-[#111827] rounded-xl border border-muted-label/30 overflow-hidden">
+      <div className="bg-industrial-card rounded-xl border border-muted-label/30 overflow-hidden">
         {/* Currency table header */}
         <div className="grid grid-cols-[1.5rem_1fr_5rem_4rem_4rem_4rem] sm:grid-cols-[1.5rem_1fr_6rem_5rem_5rem_5rem] items-center gap-1 px-3 py-2 bg-[#0d1220] border-b border-muted-label/30 text-[10px] text-muted-label uppercase tracking-wider select-none">
           <div />
@@ -626,7 +626,7 @@ export default function GlobalResourceMonitorPanel() {
       </div>
 
       {/* ─── RESOURCE INTELLIGENCE TABLE ─────────────────────────────────── */}
-      <div ref={tableContainerRef} className="bg-[#111827] rounded-xl border border-muted-label/30 overflow-hidden">
+      <div ref={tableContainerRef} className="bg-industrial-card rounded-xl border border-muted-label/30 overflow-hidden">
         {/* Table header */}
         <div className="grid grid-cols-[2.5rem_1fr_3rem_5rem_4rem_4rem_4rem_4.5rem_1.5rem] sm:grid-cols-[2.5rem_1fr_3.5rem_6rem_5rem_5rem_5rem_5.5rem_1.5rem] items-center gap-1 px-3 py-2 bg-[#0d1220] border-b border-muted-label/30 text-[10px] text-muted-label uppercase tracking-wider select-none">
           <div />
@@ -655,7 +655,7 @@ export default function GlobalResourceMonitorPanel() {
         </div>
 
         {/* Table body */}
-        <div className="max-h-[600px] overflow-y-auto game-scrollbar">
+        <div className="max-h-150 overflow-y-auto game-scrollbar">
           {filteredResources.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-label">
               <Filter className="w-8 h-8 mb-2 opacity-40" />
@@ -670,6 +670,7 @@ export default function GlobalResourceMonitorPanel() {
               return (
                 <div
                   key={row.resource}
+                  role="row"
                   className={`grid grid-cols-[2.5rem_1fr_3rem_5rem_4rem_4rem_4rem_4.5rem_1.5rem] sm:grid-cols-[2.5rem_1fr_3.5rem_6rem_5rem_5rem_5rem_5.5rem_1.5rem] items-center gap-1 px-3 py-1.5 border-b border-muted-label/50 transition-colors hover:bg-brand/10 cursor-default ${
                     isCriticalBg ? 'bg-danger/10' : ''
                   }`}
@@ -750,12 +751,12 @@ export default function GlobalResourceMonitorPanel() {
       {/* ─── HOVER INTELLIGENCE OVERLAY (portal to body to avoid transform offset) ── */}
       {hoveredRow && typeof document !== 'undefined' && createPortal(
         <div
-          className="fixed z-[100] pointer-events-none"
+          className="fixed z-100 pointer-events-none"
           style={{ left: hover.overlayLeft, top: hover.overlayTop }}
         >
           <AnimatePresence>
             <motion.div
-              className="pointer-events-auto w-72 bg-[#111827]/95 border border-brand/40 rounded-xl backdrop-blur-sm shadow-xl shadow-black/40 overflow-hidden"
+              className="pointer-events-auto w-72 bg-industrial-card/95 border border-brand/40 rounded-xl backdrop-blur-sm shadow-xl shadow-black/40 overflow-hidden"
               onMouseEnter={cancelHide}
               onMouseLeave={onLeave}
             >
@@ -902,7 +903,7 @@ export default function GlobalResourceMonitorPanel() {
         {toast && (
           <motion.div
             key={toast.id}
-            className="fixed bottom-4 right-4 z-[200] bg-[#111827] border border-brand/40 rounded-lg px-4 py-2 shadow-xl shadow-black/40"
+            className="fixed bottom-4 right-4 z-200 bg-industrial-card border border-brand/40 rounded-lg px-4 py-2 shadow-xl shadow-black/40"
           >
             <div className="flex items-center gap-2 text-xs text-brand">
               <Zap className="w-3.5 h-3.5" />

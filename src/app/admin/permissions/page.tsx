@@ -68,6 +68,7 @@ export default function PermissionsPage() {
             <label htmlFor="admin-user-id" className="text-xs text-muted-label mb-1 block">Admin User ID</label>
             <input
               id="admin-user-id"
+              aria-label="Admin user ID"
               value={userId}
               onChange={(e) => setUserId(e.target.value)}
               placeholder="UUID of admin user..."

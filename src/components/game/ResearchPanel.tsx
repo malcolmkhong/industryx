@@ -96,7 +96,7 @@ export function ResearchPanel() {
                 className="h-full research-progress-gradient rounded-full transition-all duration-300 relative"
                 style={{ width: `${Math.min(100, (store.researchProgress / activeResearchNode.timeRequired) * 100)}%` }}
               >
-                <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent" />
+                <div className="absolute inset-0 bg-linear-to-b from-white/10 to-transparent" />
               </div>
             </div>
           </div>
@@ -193,7 +193,7 @@ export function ResearchPanel() {
                           </div>
                           <p className="text-[10px] text-subtle truncate">{node.description}</p>
                         </div>
-                        <div className="text-right flex-shrink-0">
+                        <div className="text-right shrink-0">
                           {isCompleted ? (
                             <Badge className="text-[9px] bg-success/30 text-success border-0">Done</Badge>
                           ) : isActive ? (

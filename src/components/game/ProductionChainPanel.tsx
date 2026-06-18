@@ -120,7 +120,7 @@ export function ProductionChainPanel({ productionRates }: ProductionChainPanelPr
             <button
               key={c.name}
               onClick={() => setSelectedChain(i)}
-              className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] font-medium border relative ${
+              className={`shrink-0 px-2.5 py-1 rounded-full text-[10px] font-medium border relative ${
                 i === selectedChain
                   ? 'text-white border-transparent shadow-lg'
                   : 'text-subtle border-muted-label/50 bg-muted-label/50 hover:border-muted-label hover:text-subtle'

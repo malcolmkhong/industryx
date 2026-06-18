@@ -224,7 +224,7 @@ export default function LeaderboardPanel() {
         <div className="rounded-lg border border-brand/30 bg-brand/10 p-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand to-success/80 flex items-center justify-center text-xs font-bold text-white shadow-lg">
+              <div className="w-8 h-8 rounded-lg bg-linear-to-br from-brand to-success/80 flex items-center justify-center text-xs font-bold text-white shadow-lg">
                 #{userRank.bestRank}
               </div>
               <div>
@@ -245,7 +245,7 @@ export default function LeaderboardPanel() {
       {/* Not signed in notice */}
       {!user && (
         <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 flex items-center gap-2">
-          <LogIn className="w-4 h-4 text-warning flex-shrink-0" />
+          <LogIn className="w-4 h-4 text-warning shrink-0" />
           <div className="text-xs text-warning">
             Sign in to submit your score and compete on the global leaderboard. Prestige to record your run!
           </div>
@@ -282,10 +282,10 @@ export default function LeaderboardPanel() {
                 <button
                   onClick={() => toggleExpand(entry.id)}
                   aria-expanded={isExpanded}
-                  className="w-full flex items-center gap-3 p-3 text-left hover:bg-white/[0.02] transition-colors"
+                  className="w-full flex items-center gap-3 p-3 text-left hover:bg-white/2 transition-colors"
                 >
                   {/* Rank Badge */}
-                  <div className={`flex-shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br ${getRankBadgeColor(entry.rank)} flex items-center justify-center text-xs font-bold text-white shadow-lg`}>
+                  <div className={`shrink-0 w-8 h-8 rounded-lg bg-linear-to-br ${getRankBadgeColor(entry.rank)} flex items-center justify-center text-xs font-bold text-white shadow-lg`}>
                     {getRankIcon(entry.rank)}
                   </div>
 
@@ -301,11 +301,11 @@ export default function LeaderboardPanel() {
                         </Badge>
                       )}
                       {entry.rank_name ? (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted-label/80 text-subtle flex-shrink-0">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted-label/80 text-subtle shrink-0">
                           {entry.rank_name}
                         </span>
                       ) : (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted-label/80 text-subtle flex-shrink-0">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted-label/80 text-subtle shrink-0">
                           <GameIcon icon={rankInfo.icon} size={12} className="inline-flex" /> {rankInfo.name}
                         </span>
                       )}
@@ -324,13 +324,13 @@ export default function LeaderboardPanel() {
                   </div>
 
                   {/* Score */}
-                  <div className="text-right flex-shrink-0">
+                  <div className="text-right shrink-0">
                     <div className="text-sm font-mono font-bold text-warning">{formatNumber(entry.score)}</div>
                     <div className="text-[10px] text-muted-label">Score</div>
                   </div>
 
                   {/* Expand Toggle */}
-                  <div className="flex-shrink-0 text-muted-label">
+                  <div className="shrink-0 text-muted-label">
                     {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                   </div>
                 </button>
@@ -426,7 +426,7 @@ export default function LeaderboardPanel() {
       {/* Info Card */}
       <div className="bg-card border border-brand/20 rounded-xl p-4">
         <div className="flex items-start gap-2">
-          <Trophy className="w-4 h-4 text-warning mt-0.5 flex-shrink-0" />
+          <Trophy className="w-4 h-4 text-warning mt-0.5 shrink-0" />
           <div className="text-[10px] text-muted-label space-y-1">
             <p>
               <span className="text-subtle font-semibold">How it works:</span> The leaderboard records your score every time you prestige (Global Expand).

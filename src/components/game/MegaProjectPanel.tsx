@@ -342,7 +342,7 @@ export function MegaProjectPanel() {
                       {/* Paused Warning */}
                       {!resourcesMet && (
                         <div className="bg-warning/10 border border-warning/20 rounded-lg p-3 mb-3 flex items-center gap-2">
-                          <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0" />
+                          <AlertTriangle className="w-4 h-4 text-warning shrink-0" />
                           <div className="text-[10px]">
                             <div className="text-warning font-medium">Construction Paused</div>
                             <div className="text-warning/60">Resources must be held to continue. Progress resumes automatically when all materials are available.</div>
@@ -364,7 +364,7 @@ export function MegaProjectPanel() {
                               background: `linear-gradient(90deg, ${progressHex} ${project.progress * 100}%, #1f2937 ${project.progress * 100}%)`,
                             } : undefined} />
                             {i < project.stages.length - 1 && (
-                              <ChevronRight className="w-3 h-3 text-dim flex-shrink-0" />
+                              <ChevronRight className="w-3 h-3 text-dim shrink-0" />
                             )}
                           </div>
                         ))}
@@ -506,7 +506,7 @@ export function MegaProjectPanel() {
         })}
 
         {/* Gradient scroll indicator at bottom of project grid */}
-        <div className="hidden lg:block absolute bottom-0 left-0 right-0 h-8 pointer-events-none bg-gradient-to-t from-[#0a0e17] to-transparent opacity-50" />
+        <div className="hidden lg:block absolute bottom-0 left-0 right-0 h-8 pointer-events-none bg-linear-to-t from-industrial-dark to-transparent opacity-50" />
       </div>
 
       {/* Info Section */}

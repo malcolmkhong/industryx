@@ -99,6 +99,25 @@ CREATE POLICY "Service role full access on player_progress" ON player_progress
 -- PART 7: admin_users
 -- Fix infinite recursion caused by self-referencing RLS policies
 -- ============================================================================
+
+-- Define is_game_admin() here (it was originally created in migration 018
+-- but PART 7's policies reference it). Migration 018's CREATE OR REPLACE
+-- will update the definition later if needed.
+CREATE OR REPLACE FUNCTION public.is_game_admin()
+RETURNS boolean
+LANGUAGE plpgsql
+STABLE SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.admin_users
+    WHERE user_id = auth.uid()
+      AND role IN ('admin', 'super_admin')
+  )
+  OR auth.uid()::text = '1b4d0dc3-e4d2-4fc0-b731-9782243ad061';
+END;
+$$;
+
 DROP POLICY IF EXISTS "Super admins can view all admin users" ON admin_users;
 DROP POLICY IF EXISTS "Admins can view their own record" ON admin_users;
 DROP POLICY IF EXISTS "Super admins can insert admin users" ON admin_users;

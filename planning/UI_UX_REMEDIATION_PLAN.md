@@ -70,14 +70,14 @@ The work is organized into 5 phases:
 
 **Before:**
 ```tsx
-<span className="text-[10px] text-brand font-bold mr-3 flex-shrink-0">📰 NEWS</span>
+<span className="text-[10px] text-brand font-bold mr-3 shrink-0">📰 NEWS</span>
 ```
 
 **After:**
 ```tsx
 import { Newspaper } from 'lucide-react';
 // …
-<span className="text-[10px] text-brand font-bold mr-3 flex-shrink-0 flex items-center gap-1">
+<span className="text-[10px] text-brand font-bold mr-3 shrink-0 flex items-center gap-1">
   <Newspaper className="w-3 h-3" aria-hidden="true" />
   NEWS
 </span>
@@ -186,7 +186,7 @@ Add `expandedGroups: Set<string>` and `setExpandedGroups: (g: Set<string>) => vo
 
 **Before (DesktopHeader):**
 ```tsx
-<div className="hidden lg:block bg-[#0a0e17] ... overflow-hidden h-6" role="marquee" aria-live="off" aria-label="Live news feed">
+<div className="hidden lg:block bg-industrial-dark ... overflow-hidden h-6" role="marquee" aria-live="off" aria-label="Live news feed">
   <span ...>📰 NEWS</span>
   <div className="news-ticker-content text-[11px] text-subtle" aria-hidden="true">
     {notifications.slice(0, 8).map((n, i) => ( <span key={n.id}>...</span> ))}
@@ -207,12 +207,12 @@ useEffect(() => {
 
 return (
   <div
-    className="hidden lg:flex items-center h-6 px-3 gap-2 bg-[#0a0e17] border-t border-brand/20"
+    className="hidden lg:flex items-center h-6 px-3 gap-2 bg-industrial-dark border-t border-brand/20"
     role="region"
     aria-label="Live news feed"
   >
-    <Newspaper className="w-3 h-3 text-brand flex-shrink-0" aria-hidden="true" />
-    <span className="text-[10px] text-brand font-bold flex-shrink-0">NEWS</span>
+    <Newspaper className="w-3 h-3 text-brand shrink-0" aria-hidden="true" />
+    <span className="text-[10px] text-brand font-bold shrink-0">NEWS</span>
     <ul
       className="flex-1 overflow-hidden"
       aria-live="polite"
@@ -225,7 +225,7 @@ return (
       )}
     </ul>
     {top3.length > 1 && (
-      <span className="text-[9px] text-muted-label flex-shrink-0">
+      <span className="text-[9px] text-muted-label shrink-0">
         {headlineIndex + 1}/{top3.length}
       </span>
     )}
@@ -517,6 +517,6 @@ There are no automated tests currently (BUG-004). For each phase:
 
 ---
 
-**Status:** Pending user approval before any code changes.
+**Status:** Phases 1–4 executed (2026-06-17, see `BUGS.md` resolution log: BUG-014, 015, 016, 017, 020, 021, 023, 024, 026, 027, 028, 029, 030). **Phase 5 (Verification) and partial items (BUG-017 hex residue, BUG-018 admin sweep, BUG-019 remaining panels, BUG-025 typography) remain.**
 **Owner:** TBD (per AGENT.md, the agent that executes must read this plan and BUGS.md first).
-**Last updated:** 2026-06-17
+**Last updated:** 2026-06-17 (status updated)

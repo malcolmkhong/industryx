@@ -145,24 +145,66 @@ export async function POST(request: Request) {
 
   const { data: marketRows, error: marketError } = await supabase
     .from('game_config_market')
-    .select('resource_id, base_price')
+    .select('resource_id, base_price, sector, elasticity')
     .in('resource_id', [giveResource, receiveResource]);
 
   if (marketError || !marketRows || marketRows.length < 2) {
     return NextResponse.json({ error: 'Market config unavailable' }, { status: 503 });
   }
 
+  // Read LIVE current prices from server_market_state (Gap 1 fix).
+  // Fall back to base_price only when market hasn't initialized yet (first tick).
+  const { data: marketState } = await supabase
+    .from('server_market_state')
+    .select('prices')
+    .eq('id', 1)
+    .single();
+
+  const livePrices = (marketState?.prices ?? []) as Array<{
+    resource: string;
+    currentPrice: number;
+    basePrice: number;
+  }>;
+  const livePriceMap = new Map(livePrices.map((p) => [p.resource, p.currentPrice]));
+
   const giveRow = marketRows.find((r: { resource_id: string }) => r.resource_id === giveResource);
   const receiveRow = marketRows.find((r: { resource_id: string }) => r.resource_id === receiveResource);
 
-  const givePrice = Number((giveRow as { base_price?: number } | undefined)?.base_price ?? 0);
-  const receivePrice = Number((receiveRow as { base_price?: number } | undefined)?.base_price ?? 0);
+  const giveBasePrice = Number((giveRow as { base_price?: number } | undefined)?.base_price ?? 0);
+  const receiveBasePrice = Number((receiveRow as { base_price?: number } | undefined)?.base_price ?? 0);
+  // Phase 2 (Gap 3): per-resource elasticity now lives in `game_config_market.elasticity`.
+  // Trade route reads it directly; new resources added via admin UI get the default (0.4).
+  const giveElasticity = Number((giveRow as { elasticity?: number } | undefined)?.elasticity ?? 0.4);
+  const receiveElasticity = Number((receiveRow as { elasticity?: number } | undefined)?.elasticity ?? 0.4);
+
+  // Prefer live current price; fall back to base price when no market data yet
+  const givePrice = livePriceMap.get(giveResource) ?? giveBasePrice;
+  const receivePrice = livePriceMap.get(receiveResource) ?? receiveBasePrice;
 
   if (!Number.isFinite(givePrice) || !Number.isFinite(receivePrice) || givePrice <= 0 || receivePrice <= 0) {
     return NextResponse.json({ error: 'Invalid market prices for trade resources' }, { status: 503 });
   }
 
-  const receiveAmount = (giveAmount * givePrice * (1 - TRADE_COMMISSION_RATE)) / receivePrice;
+  // Slippage: large trades (relative to typical volume) move price against trader.
+  // Formula: slippageRatio = (giveAmount / 1000) * elasticity * 0.001
+  // At giveAmount=1000, elasticity=0.5: ~0.05% slippage (negligible at normal volumes)
+  // At giveAmount=1_000_000, elasticity=0.5: ~50% slippage (capped below)
+  const giveValue = giveAmount * givePrice;
+  const SLIPPAGE_COEFFICIENT = 0.001;
+  const MAX_SLIPPAGE = 0.25; // hard cap 25%
+  const giveSlippage = Math.min(
+    MAX_SLIPPAGE,
+    Math.sqrt(giveValue / 1000) * giveElasticity * SLIPPAGE_COEFFICIENT,
+  );
+  const receiveSlippage = Math.min(
+    MAX_SLIPPAGE,
+    Math.sqrt(giveValue / 1000) * receiveElasticity * SLIPPAGE_COEFFICIENT,
+  );
+  // Apply slippage: trade fills at a slightly worse price
+  const effectiveGivePrice = givePrice * (1 - giveSlippage);
+  const effectiveReceivePrice = receivePrice * (1 + receiveSlippage);
+
+  const receiveAmount = (giveAmount * effectiveGivePrice * (1 - TRADE_COMMISSION_RATE)) / effectiveReceivePrice;
   const currentReceive = resources[receiveResource] ?? 0;
   const receiveCap = resourceCapacity[receiveResource] ?? Number.POSITIVE_INFINITY;
   const finalReceiveAmount = Math.max(0, Math.min(receiveAmount, receiveCap - currentReceive));
@@ -215,18 +257,40 @@ export async function POST(request: Request) {
     game_tick: Number(updatedState.game_tick) || 0,
   });
 
+  // Record effective (live) prices in history — not just the static base_price.
+  // This gives the price chart real data to plot.
   await supabase.from('game_config_market_history').insert([
     {
       resource_id: giveResource,
-      base_price: givePrice,
+      base_price: effectiveGivePrice,
       game_tick: Number(updatedState.game_tick) || 0,
     },
     {
       resource_id: receiveResource,
-      base_price: receivePrice,
+      base_price: effectiveReceivePrice,
       game_tick: Number(updatedState.game_tick) || 0,
     },
   ]);
+
+  // Record player trade pressure so the market tick can move prices.
+  // This is what closes the loop: trades affect prices, prices affect trades.
+  try {
+    await supabase.rpc('upsert_market_pressure', {
+      p_user_id: auth.userId,
+      p_resource: giveResource,
+      p_buy_volume: 0,
+      p_sell_volume: giveValue, // sell-pressure on what they gave
+    });
+    await supabase.rpc('upsert_market_pressure', {
+      p_user_id: auth.userId,
+      p_resource: receiveResource,
+      p_buy_volume: giveValue, // buy-pressure on what they received
+      p_sell_volume: 0,
+    });
+  } catch (pressureErr) {
+    // Non-fatal: pressure recording is best-effort; trade already succeeded
+    console.warn('[Trade] Failed to record market pressure:', pressureErr);
+  }
 
   logActionAsync({
     userId: auth.userId,
@@ -238,6 +302,8 @@ export async function POST(request: Request) {
       receiveAmount: finalReceiveAmount,
       commissionRate: TRADE_COMMISSION_RATE,
       source: 'server_authoritative_trade',
+      livePriceUsed: true,
+      slippage: { give: giveSlippage, receive: receiveSlippage },
     },
     gameTick: Number(updatedState.game_tick) || 0,
     moneyAfter: Number((fullState.money as number) || 0),
@@ -254,5 +320,16 @@ export async function POST(request: Request) {
     resources: updatedState.resources,
     stateVersion: Number(updatedState.state_version) || nextStateVersion,
     serverValidated: true,
+    // Live-price transparency for the client UI
+    pricing: {
+      giveBasePrice: giveBasePrice,
+      receiveBasePrice: receiveBasePrice,
+      giveLivePrice: givePrice,
+      receiveLivePrice: receivePrice,
+      giveEffectivePrice: effectiveGivePrice,
+      receiveEffectivePrice: effectiveReceivePrice,
+      slippage: { give: giveSlippage, receive: receiveSlippage },
+      usedLivePrice: livePriceMap.has(giveResource) || livePriceMap.has(receiveResource),
+    },
   });
 }

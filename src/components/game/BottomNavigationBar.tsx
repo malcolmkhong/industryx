@@ -239,7 +239,7 @@ export function BottomNavigationBar({
               </span>
               <button
                 onClick={() => setExpandedGroupId(null)}
-                className="ml-auto p-1.5 rounded-md text-muted-label hover:text-subtle hover:bg-white/[0.05] transition-colors min-w-[32px] min-h-[32px] flex items-center justify-center"
+                className="ml-auto p-1.5 rounded-md text-muted-label hover:text-subtle hover:bg-white/5 transition-colors min-w-8 min-h-8 flex items-center justify-center"
                 aria-label="Close panel"
               >
                 <X className="w-4 h-4" />
@@ -267,12 +267,12 @@ export function BottomNavigationBar({
                       min-h-11 transition-colors duration-150
                       ${
                         isActive
-                          ? `${tab.color} bg-white/[0.08] border border-brand/20 shadow-[0_0_12px_rgba(0,255,242,0.1)]`
-                          : "text-subtle active:bg-white/[0.08] border border-transparent"
+                          ? `${tab.color} bg-white/8 border border-brand/20 shadow-[0_0_12px_rgba(0,255,242,0.1)]`
+                          : "text-subtle active:bg-white/8 border border-transparent"
                       }
                     `}
                   >
-                    <TabIcon className="w-4 h-4 flex-shrink-0" />
+                    <TabIcon className="w-4 h-4 shrink-0" />
                     <span className="truncate">{tab.label}</span>
                   </motion.button>
                 );
@@ -280,7 +280,7 @@ export function BottomNavigationBar({
             </div>
 
             {/* Subtle glow border at bottom of panel */}
-            <div className="h-px bg-gradient-to-r from-transparent via-brand/20 to-transparent" />
+            <div className="h-px bg-linear-to-r from-transparent via-brand/20 to-transparent" />
           </motion.div>
         )}
       </AnimatePresence>
@@ -291,7 +291,7 @@ export function BottomNavigationBar({
         className="bg-background/95 backdrop-blur-lg border-t border-brand/30"
       >
         {/* Top glow line */}
-        <div className="h-px bg-gradient-to-r from-transparent via-brand/15 to-transparent" />
+        <div className="h-px bg-linear-to-r from-transparent via-brand/15 to-transparent" />
 
         <div
           className={`
@@ -320,24 +320,24 @@ export function BottomNavigationBar({
                   ${isCompact ? "flex-col items-center gap-0.5 px-1 py-1" : "px-2 py-2"}
                   ${
                     isExpanded
-                      ? `${group.color} bg-white/[0.1] shadow-[0_0_16px_rgba(0,255,242,0.12)]`
+                      ? `${group.color} bg-white/10 shadow-[0_0_16px_rgba(0,255,242,0.12)]`
                       : hasActiveTab || isActiveGroup
-                        ? `${group.color} bg-white/[0.04]`
-                        : "text-muted-label active:text-subtle active:bg-white/[0.06]"
+                        ? `${group.color} bg-white/4`
+                        : "text-muted-label active:text-subtle active:bg-white/6"
                   }
                 `}
                 aria-label={group.label}
                 aria-expanded={isExpanded}
               >
                 <GroupIcon
-                  className={`flex-shrink-0 ${
-                    isCompact ? "w-5 h-5" : "w-[18px] h-[18px]"
+                  className={`shrink-0 ${
+                    isCompact ? "w-5 h-5" : "w-4.5 h-4.5"
                   }`}
                 />
                 {isCompact && (
                   <span
                     className={`
-                      text-[11px] font-medium leading-tight truncate max-w-[44px]
+                      text-[11px] font-medium leading-tight truncate max-w-11
                       ${hasActiveTab || isActiveGroup || isExpanded ? "opacity-100" : "opacity-60"}
                     `}
                   >
@@ -364,7 +364,7 @@ export function BottomNavigationBar({
             className={`
               flex items-center justify-center
               min-w-10 min-h-10 rounded-lg
-              text-muted-label active:text-brand active:bg-white/[0.06]
+              text-muted-label active:text-brand active:bg-white/6
               transition-all duration-200
               ${isCompact ? "flex-col items-center gap-0.5 px-1 py-1" : "px-2 py-2"}
             `}
@@ -378,7 +378,7 @@ export function BottomNavigationBar({
                 <span className="text-[11px] font-medium opacity-60">Quick</span>
               </>
             ) : (
-              <ChevronUp className="w-[18px] h-[18px]" />
+              <ChevronUp className="w-4.5 h-4.5" />
             )}
           </button>
         </div>

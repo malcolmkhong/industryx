@@ -43,9 +43,11 @@ export function MarketPriceChart({
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError(null);
-    fetch(`/api/game/market-history?resource=${encodeURIComponent(resourceId)}&hours=${hours}`)
+    queueMicrotask(() => {
+      if (!cancelled) { setLoading(true); setError(null); }
+    });
+    const controller = new AbortController();
+    fetch(`/api/game/market-history?resource=${encodeURIComponent(resourceId)}&hours=${hours}`, { signal: controller.signal })
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();

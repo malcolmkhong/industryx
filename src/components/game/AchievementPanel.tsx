@@ -389,7 +389,7 @@ const MemoizedAchievementCard = React.memo(function MemoizedAchievementCard({
       >
         <div className="flex items-start gap-3">
           <div
-            className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl flex-shrink-0 ${
+            className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl shrink-0 ${
               achievement.unlocked
                 ? `${meta.bgColor}`
                 : 'bg-muted-label/30 grayscale'
@@ -426,10 +426,10 @@ const MemoizedAchievementCard = React.memo(function MemoizedAchievementCard({
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
                       achievement.progressValue >= 0.75
-                        ? 'bg-gradient-to-r from-success/80 to-success/50'
+                        ? 'bg-linear-to-r from-success/80 to-success/50'
                         : achievement.progressValue >= 0.4
-                          ? 'bg-gradient-to-r from-warning/70 to-warning/50'
-                          : 'bg-gradient-to-r from-muted-label/30 to-muted-label/30'
+                          ? 'bg-linear-to-r from-warning/70 to-warning/50'
+                          : 'bg-linear-to-r from-muted-label/30 to-muted-label/30'
                     }`}
                     style={{ width: `${Math.min(100, achievement.progressValue * 100)}%` }}
                   />
@@ -443,7 +443,7 @@ const MemoizedAchievementCard = React.memo(function MemoizedAchievementCard({
               </div>
             )}
           </div>
-          <div className="flex-shrink-0">
+          <div className="shrink-0">
             <ChevronRight
               className={`w-3.5 h-3.5 text-muted-label ${
                 isExpanded ? 'rotate-90' : ''
@@ -482,7 +482,7 @@ const MemoizedAchievementCard = React.memo(function MemoizedAchievementCard({
                 </div>
                 <div className="h-2 bg-muted-label rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-brand/70 to-brand/50 rounded-full transition-all duration-500"
+                    className="h-full bg-linear-to-r from-brand/70 to-brand/50 rounded-full transition-all duration-500"
                     style={{ width: `${Math.min(100, achievement.progressValue * 100)}%` }}
                   />
                 </div>
@@ -615,10 +615,10 @@ export function AchievementPanel() {
         </div>
         <div className="h-3 bg-muted-label rounded-full overflow-hidden relative">
           <div
-            className="h-full bg-gradient-to-r from-warning/70 to-warning/50 rounded-full transition-all duration-700"
+            className="h-full bg-linear-to-r from-warning/70 to-warning/50 rounded-full transition-all duration-700"
             style={{ width: `${(unlockedCount / Math.max(1, totalAchievements)) * 100}%` }}
           >
-            <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent" />
+            <div className="absolute inset-0 bg-linear-to-b from-white/10 to-transparent" />
           </div>
         </div>
         {/* Per-category mini bars */}

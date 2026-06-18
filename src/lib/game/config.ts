@@ -658,7 +658,7 @@ export async function fetchGameConfig(): Promise<GameConfig | null> {
       source: 'supabase',
     };
 
-    console.log(`[GameConfig] Loaded from Supabase: ${Object.keys(config.buildings).length} buildings, ${Object.keys(config.resources).length} resources`);
+    // Quietly loaded — debug via dev tools if needed.
     return config;
   } catch (error) {
     console.warn('[GameConfig] Failed to load from Supabase, will use fallback:', error);

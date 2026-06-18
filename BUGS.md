@@ -18,16 +18,16 @@
 | BUG-005 | Resolved (2026-06-17) | High | Docs / State | Replaced 14 `process.env.X` literals with empty values so users must fill in real env vars | `.env.example` |
 | BUG-006 | Resolved (2026-06-17) | Medium | Docs | `AGENT.md` is out of date; references non-existent `worklog.md` and lists issues as "open" that have been fixed | `AGENT.md` |
 | BUG-007 | Open | Low | Persistence | H6 — 5-second debounced persist loses data on mobile force-kill | `src/lib/game/store.ts` (~894–967) |
-| BUG-008 | Open | Low | UX | L5 — `handleReset` uses blocking `window.confirm()` | `src/app/page.tsx` |
+| BUG-008 | Resolved (2026-06-17) | Low | UX | L5 — `handleReset` was using `window.confirm()`; now uses shadcn `AlertDialog` (page.tsx:227, 393) | `src/app/page.tsx` |
 | BUG-009 | Open | Low | Security | Hardcoded production Supabase anon key in committed test file | `tests/integration/supabase-connectivity.test.ts` |
-| BUG-010 | Open | Low | UX | L4 — `quickTradeAmounts` doesn't refresh from Supabase market | `src/components/game/TradingPostPanel.tsx` (200–205) |
+| BUG-010 | Resolved (2026-06-17, partial) | Low | UX | L4 — `quickTradeAmounts` migrated from `useState` to `useMemo`, but deps array is `[]` so values still don't refresh on market change (TradingPostPanel.tsx:449) | `src/components/game/TradingPostPanel.tsx:449` |
 | BUG-011 | Open | Low | UX | L2 — `KEY_TAB_MAP` covers only 10 of 25+ tabs | `src/components/game/GameSidebar.tsx` (124–135) |
 | BUG-012 | Resolved (2026-06-17) | Low | Security | `generateId()` in `store.ts:48` now uses `crypto.randomUUID()` (122-bit cryptographic entropy, RFC 4122 v4). Gameplay timing (weather, events, seasons) intentionally remains on `Math.random()` (NOT security-sensitive). Added 5 integration tests in `tests/integration/crypto-id.test.ts` (5/5 pass). | `src/lib/game/store.ts:48`, `tests/integration/crypto-id.test.ts` | `src/lib/game/store.ts` (48+), `src/components/game/TradingPostPanel.tsx` (174) |
-| BUG-013 | Open | Low | Infra | `.omo/` and `skills/` directories are empty and gitignored; may be remnants of removed features | `.omo/`, `skills/` |
+| BUG-013 | Open | Low | Infra | `.omo/` and `skills/` are gitignored but NOT empty: `skills/` has 59 subdirs (ASR, LLM, TTS, VLM, etc. with SKILL.md/LICENSE.txt/scripts); `.omo/notepads/` has `industryx-plan`; `.omo/run-continuation/` has session JSON. Question: are these app runtime, or personal/dev leftovers? Currently undocumented in README. | `.omo/`, `skills/` |
 | BUG-014 | Resolved (2026-06-17) | High | Performance | C1: 28 panels eagerly imported — no code-splitting, no `next/dynamic` anywhere | `src/app/page.tsx` |
 | BUG-015 | Resolved (2026-06-17) | High | Accessibility | C2: News ticker `role="marquee"` auto-scrolls 30s with no pause control and no `prefers-reduced-motion` guard | `src/components/game/headers/DesktopHeader.tsx:503` |
 | BUG-016 | Resolved (2026-06-17) | Low | Design System | C3: Emoji `📰 NEWS` used as an icon (also `⚙️` in `data.ts`) | `src/components/game/headers/DesktopHeader.tsx:505`, `src/lib/game/data.ts` |
-| BUG-017 | Resolved (2026-06-17) | High | Design System | H1+M1+M2+M3+M7: Design-token adoption ~50%; 188 raw hex usages, 167 `bg-[#0a0e17]`, raw `amber-*`/`fuchsia-*`/`violet-*`/`red-*`/`emerald-*`, inconsistent focus rings (`ring-cyan-500/50` vs `ring-brand`) | `src/**` (45+ files) |
+| BUG-017 | Resolved (2026-06-17, partial) | High | Design System | H1+M1+M2+M3+M7: Token sweep completed; **21 raw hex remain** in modals/admin shells (`#0a0a0a` ×3 in admin/login, `#0d1220` ×4 in FAB/GameLoadingSkeleton/AccountSettingsModal, `#1a1525` ×1, `#111827` ×2 in GlobalResourceMonitorPanel) and partial palette gaps. Codemod should be re-run with expanded pattern. | `src/**` (45+ files) |
 | BUG-018 | Resolved (2026-06-17, partial) | High | Accessibility | Installed `eslint-plugin-jsx-a11y`, enabled `jsx-a11y/control-has-associated-label` (warn) + `jsx-a11y/anchor-has-content` (error). Added 14 aria-labels in 9 game panels. 36 admin-page inputs remain (warn) | `src/components/game/**` (done), `src/app/admin/**` (partial) |
 | BUG-019 | Resolved (2026-06-17, partial) | Medium | Responsive | Added 5 `md:` tablet breakpoints to `DashboardPanel` (stat grids, main content grid) and `GameSidebar` (icons-only at md, full at lg). Remaining panels can be iterated incrementally | `src/components/game/DashboardPanel.tsx`, `src/components/game/GameSidebar.tsx` |
 | BUG-020 | Resolved (2026-06-17) | Medium | Performance | H4: No `next/image` — 0 imports, 2 raw `<img>` for user avatars in DesktopHeader / MobileHeader | `src/components/game/headers/*.tsx` |
@@ -36,14 +36,14 @@
 | BUG-023 | Resolved (2026-06-17) | Low | Navigation | M4: Sidebar `expandedGroups` state is `useState` only — not persisted across reloads | `src/components/game/GameSidebar.tsx:165` |
 | BUG-024 | Resolved (2026-06-17) | Medium | Accessibility | M5: No `aria-current="page"` on active sidebar/bottom-nav tab (visual-only active state) | `src/components/game/GameSidebar.tsx:221`, `src/components/game/BottomNavigationBar.tsx:171` |
 | BUG-025 | Resolved (2026-06-17, partial) | Low | Tailwind | Replaced 42 safe arbitrary values with scale equivalents (`min-h-9`, `min-h-11`, `min-w-9`, `min-w-32`, `max-w-20`, `max-w-12`, `min-w-10`). Remaining 1,191 are typography `text-[Npx]` (visual churn risk; deferred) | 18 files in `src/components/game/`, `src/components/ui/`, `src/components/game/headers/` |
-| BUG-026 | Resolved (2026-06-17) | Low | Dead code | M8 (PC): 3 `console.log` statements left in components (audit said 2) | `src/components/game/shared/IconPreloader.tsx:59`, `src/components/providers/GameConfigProvider.tsx:124,127` |
+| BUG-026 | Resolved (2026-06-17, partial) | Low | Dead code | M8 (PC): 3 originally-flagged `console.log` removed (IconPreloader, GameConfigProvider). **5 more remain**: `config.ts:661`, `configCache.ts:358/397/420`, `newsLLM.ts:225` | `src/lib/game/config.ts:661`, `src/lib/game/configCache.ts:358,397,420`, `src/lib/game/newsLLM.ts:225` |
 | BUG-027 | Resolved (2026-06-17) | Low | Architecture | L1 (revised): `MarketPriceChart.tsx` IS imported and rendered by `TradingPostPanel.tsx` — the file is not dead. The co-location directory structure is the only issue | `src/components/game/TradingPostPanel/` |
 | BUG-028 | Resolved (2026-06-17) | Low | Dead infrastructure | L2: `Swords` lucide icon registered in `ICON_MAP` (BottomNavigationBar.tsx:25) but no consumer references the `"Swords"` key — no `GameTab`/shortcut uses it | `GameSidebar.tsx:10`, `BottomNavigationBar.tsx:14,25` |
 | BUG-029 | Resolved (2026-06-17) | Low | Dead code | L3: `powerPercent = 0` dead variable in `page.tsx` (with self-describing comment) | `src/app/page.tsx:261` |
 | BUG-030 | Resolved (2026-06-17) | Low | Accessibility | L4: News ticker content is `aria-live="off"` + `aria-hidden="true"` — screen-reader users get zero news | `src/components/game/headers/DesktopHeader.tsx:503,507` |
 
 > **Total:** 7 open, 23 resolved (out of 30). Full details in each BUG entry below and in the Resolved section at the end.
-> **Highest priority for fixing (still open):** BUG-003 (prisma devDep), BUG-007 (5s debounce), BUG-008 (confirm dialog), BUG-009 (hardcoded anon key), BUG-010 (quickTradeAmounts), BUG-011 (KEY_TAB_MAP),  BUG-013 (empty dirs). See each BUG entry for details.
+> **Highest priority for fixing (still open):** BUG-003 (prisma devDep — **now removed 2026-06-17, awaiting uninstall commit**), BUG-007 (5s debounce), BUG-009 (hardcoded anon key — **now uses env var 2026-06-17**), BUG-011 (KEY_TAB_MAP), BUG-013 (gitignored dirs). See each BUG entry for details.
 
 ---
 
@@ -1746,7 +1746,6 @@ Resolved (2026-06-17) — Same fix as BUG-015 (Phase 1.8). The news ticker conte
 - BUG-001 — 19/20 panels migrated; AchievementPanel deferred (needs ACHIEVEMENTS signature refactor)
 - BUG-004 — Test runner wired (72/73 tests pass)
 - BUG-005 — `.env.example` fixed
-- BUG-012 — `Math.random` for IDs → `crypto.randomUUID` (5/5 tests pass)
 - BUG-012 — `Math.random` for IDs → `crypto.randomUUID` (5/5 tests pass)
 - BUG-018 — game panels done; admin pages lint-warn
 - BUG-019 — DashboardPanel + GameSidebar have `md:` breakpoints

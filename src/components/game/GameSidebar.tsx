@@ -313,7 +313,7 @@ export function GameSidebar({ activeTab, onTabChange }: GameSidebarProps) {
   const BUYMEACOFFEE_URL = "https://buymeacoffee.com/malcolmkhod";
 
   return (
-    <nav className="hidden md:flex flex-col w-16 lg:w-52 flex-shrink-0 bg-background border-r border-brand/20" data-tablet-collapsed="true">
+    <nav className="hidden md:flex flex-col w-16 lg:w-52 shrink-0 bg-background border-r border-brand/20" data-tablet-collapsed="true">
       <div className="flex flex-col py-2 gap-0.5 px-2 flex-1 overflow-y-auto game-scrollbar">
         {NAV_GROUPS.map((group) => {
           const isExpanded = expandedGroups.has(group.id);
@@ -328,11 +328,11 @@ export function GameSidebar({ activeTab, onTabChange }: GameSidebarProps) {
                 aria-expanded={isExpanded}
                 className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
                   isActiveGroup
-                    ? `${group.color} bg-white/[0.03]`
-                    : "text-muted-label hover:text-subtle hover:bg-white/[0.02]"
+                    ? `${group.color} bg-white/3`
+                    : "text-muted-label hover:text-subtle hover:bg-white/2"
                 }`}
               >
-                <GroupIcon className="w-3 h-3 flex-shrink-0" />
+                <GroupIcon className="w-3 h-3 shrink-0" />
                 <span className="flex-1 text-left truncate">{group.label}</span>
                 {isExpanded ? (
                   <ChevronDown className="w-3 h-3 text-muted-label" />
@@ -355,11 +355,11 @@ export function GameSidebar({ activeTab, onTabChange }: GameSidebarProps) {
                         aria-current={isActive ? "page" : undefined}
                         className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-1 focus-visible:ring-offset-gray-900 ${
                           isActive
-                            ? `${tab.color} bg-white/[0.05] border border-white/[0.08] shadow-[0_0_8px_rgba(34,211,238,0.05)]`
-                            : "text-muted-label hover:text-subtle hover:bg-white/[0.03] border border-transparent"
+                            ? `${tab.color} bg-white/5 border border-white/8 shadow-[0_0_8px_rgba(34,211,238,0.05)]`
+                            : "text-muted-label hover:text-subtle hover:bg-white/3 border border-transparent"
                         }`}
                       >
-                        <TabIcon className="w-3.5 h-3.5 flex-shrink-0" />
+                        <TabIcon className="w-3.5 h-3.5 shrink-0" />
                         <span className="truncate">{tab.label}</span>
                       </button>
                     );
@@ -372,25 +372,25 @@ export function GameSidebar({ activeTab, onTabChange }: GameSidebarProps) {
       </div>
 
       {isAdmin && (
-        <div className="flex-shrink-0 border-t border-brand/20 px-2 pt-2">
+        <div className="shrink-0 border-t border-brand/20 px-2 pt-2">
           <a
             href="/admin"
             className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium
               text-warning hover:text-warning/80 hover:bg-warning/60/10 border border-transparent
               hover:border-warning/60/20 transition-colors"
           >
-            <Shield className="w-4 h-4 flex-shrink-0" />
+            <Shield className="w-4 h-4 shrink-0" />
             <span className="truncate">Admin Panel</span>
           </a>
         </div>
       )}
 
-      <div className="flex-shrink-0 border-t border-brand/20 px-2 pt-2">
+      <div className="shrink-0 border-t border-brand/20 px-2 pt-2">
         <SupportButton />
       </div>
 
       {/* ── Support footer (always visible at sidebar bottom) ── */}
-      <div className="flex-shrink-0 border-t border-brand/20 px-2 pt-2 pb-3">
+      <div className="shrink-0 border-t border-brand/20 px-2 pt-2 pb-3">
         <a
           href={BUYMEACOFFEE_URL}
           target="_blank"
@@ -399,7 +399,7 @@ export function GameSidebar({ activeTab, onTabChange }: GameSidebarProps) {
             text-warning border border-transparent"
           aria-label="Support the developer on Buy Me a Coffee"
         >
-          <Coffee className="w-4 h-4 flex-shrink-0 text-warning" />
+          <Coffee className="w-4 h-4 shrink-0 text-warning" />
           <span className="truncate text-warning">Buy me a coffee</span>
           <Heart className="w-3 h-3 ml-auto text-danger" />
         </a>

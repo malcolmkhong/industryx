@@ -121,7 +121,7 @@ export function PayoutPanel() {
     <div className="space-y-4">
       {/* Money Balance Header */}
       <Card className="bg-card border-brand/30 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-success/30/10 via-transparent to-success/30/10 pointer-events-none" />
+        <div className="absolute inset-0 bg-linear-to-r from-success/30/10 via-transparent to-success/30/10 pointer-events-none" />
         <CardContent className="p-4 relative">
           <div className="flex items-center justify-between">
             <div>

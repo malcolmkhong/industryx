@@ -403,7 +403,7 @@ export function ContractPanel() {
             <GameCard className="p-0">
               <button
                 onClick={() => setExpandedHistory(!expandedHistory)}
-                className="w-full flex items-center gap-2 p-4 hover:bg-white/[0.02] transition-colors"
+                className="w-full flex items-center gap-2 p-4 hover:bg-white/2 transition-colors"
                 aria-label={expandedHistory ? 'Collapse contract history' : 'Expand contract history'}
                 aria-expanded={expandedHistory}
               >

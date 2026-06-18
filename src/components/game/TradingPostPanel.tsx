@@ -60,10 +60,22 @@ interface TradeHistoryEntry {
   createdAt?: string;
 }
 
-// ─── Helper: get base price for a resource ────────────────────────────────────
-function getBasePrice(resource: ResourceType): number {
-  const marketEntry = INITIAL_MARKET.find((m) => m.resource === resource);
-  return marketEntry?.basePrice ?? 1;
+// ─── Helper: get current price for a resource ────────────────────────────────
+//
+// Gap 2 fix: prefer the LIVE price from `state.market` (synced from the server
+// market state every 5 ticks via `useServerMarket`). Falls back to the static
+// `INITIAL_MARKET.basePrice` only if the live market hasn't been populated yet
+// (e.g., SSR, first render before polling completes).
+function getBasePrice(
+  resource: ResourceType,
+  liveMarket: { resource: ResourceType; currentPrice: number; basePrice: number }[],
+): number {
+  const live = liveMarket.find((m) => m.resource === resource);
+  if (live && Number.isFinite(live.currentPrice) && live.currentPrice > 0) {
+    return live.currentPrice;
+  }
+  const fallback = INITIAL_MARKET.find((m) => m.resource === resource);
+  return fallback?.basePrice ?? 1;
 }
 
 // ─── Helper: calculate receive amount ─────────────────────────────────────────
@@ -71,9 +83,10 @@ function calculateReceiveAmount(
   giveResource: ResourceType,
   giveAmount: number,
   receiveResource: ResourceType,
+  liveMarket: { resource: ResourceType; currentPrice: number; basePrice: number }[],
 ): number {
-  const givePrice = getBasePrice(giveResource);
-  const receivePrice = getBasePrice(receiveResource);
+  const givePrice = getBasePrice(giveResource, liveMarket);
+  const receivePrice = getBasePrice(receiveResource, liveMarket);
   if (receivePrice === 0) return 0;
   return (giveAmount * givePrice * (1 - TRADE_COMMISSION_RATE)) / receivePrice;
 }
@@ -82,16 +95,59 @@ function calculateReceiveAmount(
 function formatExchangeRate(
   giveResource: ResourceType,
   receiveResource: ResourceType,
+  liveMarket: { resource: ResourceType; currentPrice: number; basePrice: number }[],
 ): string {
-  const givePrice = getBasePrice(giveResource);
-  const receivePrice = getBasePrice(receiveResource);
+  const givePrice = getBasePrice(giveResource, liveMarket);
+  const receivePrice = getBasePrice(receiveResource, liveMarket);
   if (receivePrice === 0 || givePrice === 0) return "N/A";
   const rate = (givePrice * (1 - TRADE_COMMISSION_RATE)) / receivePrice;
   if (rate >= 1) return rate.toFixed(2);
   return rate.toFixed(3);
 }
 
+// ─── Price-change badge ───────────────────────────────────────────────────────
+//
+// Gap 2: shows whether the live price has moved from the base price.
+// Renders nothing if no live data is available yet (avoids layout shift on
+// first render before `useServerMarket` polls).
+function PriceChangeBadge({
+  resource,
+  liveMarket,
+}: {
+  resource: ResourceType;
+  liveMarket: { resource: ResourceType; currentPrice: number; basePrice: number }[];
+}) {
+  const live = liveMarket.find((m) => m.resource === resource);
+  if (!live || !Number.isFinite(live.currentPrice) || !Number.isFinite(live.basePrice) || live.basePrice <= 0) {
+    return null;
+  }
+  const changePct = ((live.currentPrice - live.basePrice) / live.basePrice) * 100;
+  if (Math.abs(changePct) < 0.05) return null; // < 0.05% — don't show
+  const isUp = changePct > 0;
+  return (
+    <span
+      className={`inline-flex items-center gap-0.5 font-mono ${
+        isUp ? "text-success" : "text-danger"
+      }`}
+      title={`Live price ${isUp ? "above" : "below"} base: ${formatNumber(live.currentPrice)} vs ${formatNumber(live.basePrice)}`}
+    >
+      {isUp ? "▲" : "▼"} {Math.abs(changePct).toFixed(1)}%
+    </span>
+  );
+}
+
 // ─── Server-authoritative trade call ───────────────────────────────────────────
+export interface TradePricing {
+  giveBasePrice: number;
+  receiveBasePrice: number;
+  giveLivePrice: number;
+  receiveLivePrice: number;
+  giveEffectivePrice: number;
+  receiveEffectivePrice: number;
+  slippage: { give: number; receive: number };
+  usedLivePrice: boolean;
+}
+
 async function executeTradeOnServer(
   giveResource: ResourceType,
   giveAmount: number,
@@ -104,6 +160,7 @@ async function executeTradeOnServer(
   serverValidated: boolean;
   retryAfter?: number;
   code?: string;
+  pricing?: TradePricing;
 }> {
   try {
     const response = await fetch("/api/game/trade", {
@@ -146,6 +203,7 @@ async function executeTradeOnServer(
       updatedResources: (data as { resources?: Record<string, number> })
         .resources,
       serverValidated: true,
+      pricing: (data as { pricing?: TradePricing }).pricing,
     };
   } catch (err) {
     console.error("[Trade] Server request failed:", err);
@@ -207,6 +265,10 @@ export function TradingPostPanel() {
   // Game store selectors (C5 FIX: proper selectors, not entire store)
   const resources = useGameStore((s) => s.resources);
   const resourceCapacity = useGameStore((s) => s.resourceCapacity);
+  // Gap 2: live market is the source of truth for prices.
+  // `state.market` is updated every 5 ticks from `state.serverMarket.prices`,
+  // which `useServerMarket()` polls from `/api/market/state` every 10s.
+  const liveMarket = useGameStore((s) => s.market);
   const gameTick = useGameStore((s) => s.gameTick);
 
   // ─── Load trade history from server on mount ────────────────────────────────
@@ -261,8 +323,8 @@ export function TradingPostPanel() {
 
   // ─── Computed values ────────────────────────────────────────────────────────
   const receiveAmount = useMemo(
-    () => calculateReceiveAmount(giveResource, giveAmount, receiveResource),
-    [giveResource, giveAmount, receiveResource],
+    () => calculateReceiveAmount(giveResource, giveAmount, receiveResource, liveMarket),
+    [giveResource, giveAmount, receiveResource, liveMarket],
   );
 
   const giveResourceCurrent = resources[giveResource] ?? 0;
@@ -335,7 +397,7 @@ export function TradingPostPanel() {
   // ─── Execute trade (C5 FIX: now goes through server validation) ──────────
   const executeTrade = useCallback(
     async (gRes: ResourceType, gAmt: number, rRes: ResourceType) => {
-      const rAmt = calculateReceiveAmount(gRes, gAmt, rRes);
+      const rAmt = calculateReceiveAmount(gRes, gAmt, rRes, liveMarket);
       if (rAmt <= 0) return;
 
       const state = useGameStore.getState();
@@ -446,12 +508,13 @@ export function TradingPostPanel() {
   );
 
   // Quick trade: calculate receive amounts
+  // Gap 2: depends on liveMarket so presets update when the server price moves.
   const quickTradeAmounts = useMemo(() => {
     return QUICK_TRADE_PRESETS.map((p) => ({
       ...p,
-      receiveAmount: calculateReceiveAmount(p.give, p.giveAmount, p.receive),
+      receiveAmount: calculateReceiveAmount(p.give, p.giveAmount, p.receive, liveMarket),
     }));
-  }, []);
+  }, [liveMarket]);
 
   // ─── Set amount to max available ────────────────────────────────────────────
   const setMaxGive = useCallback(() => {
@@ -675,7 +738,7 @@ export function TradingPostPanel() {
               Rate:{" "}
               <span className="text-brand font-mono">
                 1 {RESOURCE_META[giveResource]?.name ?? giveResource} ={" "}
-                {formatExchangeRate(giveResource, receiveResource)}{" "}
+                {formatExchangeRate(giveResource, receiveResource, liveMarket)}{" "}
                 {RESOURCE_META[receiveResource]?.name ?? receiveResource}
               </span>
             </span>
@@ -689,12 +752,20 @@ export function TradingPostPanel() {
               <Info className="w-3 h-3" />
               Server-validated
             </span>
+            <PriceChangeBadge
+              resource={giveResource}
+              liveMarket={liveMarket}
+            />
+            <PriceChangeBadge
+              resource={receiveResource}
+              liveMarket={liveMarket}
+            />
           </div>
 
           {/* Trade error display */}
           {tradeError && (
             <div className="flex items-center gap-2 text-[10px] text-danger bg-danger/10 border border-danger/20 rounded-lg px-3 py-2">
-              <AlertTriangle className="w-3 h-3 flex-shrink-0" />
+              <AlertTriangle className="w-3 h-3 shrink-0" />
               {tradeError}
             </div>
           )}
@@ -702,7 +773,7 @@ export function TradingPostPanel() {
           {/* Insufficient resources warning */}
           {giveResourceCurrent < giveAmount && giveAmount > 0 && (
             <div className="flex items-center gap-2 text-[10px] text-danger bg-danger/10 border border-danger/20 rounded-lg px-3 py-2">
-              <AlertTriangle className="w-3 h-3 flex-shrink-0" />
+              <AlertTriangle className="w-3 h-3 shrink-0" />
               Not enough {RESOURCE_META[giveResource]?.name ?? giveResource}.
               You have {formatNumber(giveResourceCurrent)} but need{" "}
               {formatNumber(giveAmount)}.
@@ -714,7 +785,7 @@ export function TradingPostPanel() {
             receiveResourceCurrent + receiveAmount > receiveCapacity &&
             receiveAmount > 0 && (
               <div className="flex items-center gap-2 text-[10px] text-warning bg-warning/10 border border-warning/20 rounded-lg px-3 py-2">
-                <AlertTriangle className="w-3 h-3 flex-shrink-0" />
+                <AlertTriangle className="w-3 h-3 shrink-0" />
                 {RESOURCE_META[receiveResource]?.name ?? receiveResource}{" "}
                 storage would overflow. Receive amount will be capped.
               </div>
@@ -722,7 +793,7 @@ export function TradingPostPanel() {
 
           {isInCooldown && (
             <div className="flex items-center gap-2 text-[10px] text-brand bg-brand/10 border border-brand/20 rounded-lg px-3 py-2 font-mono">
-              <Clock className="w-3 h-3 flex-shrink-0 animate-pulse" />
+              <Clock className="w-3 h-3 shrink-0 animate-pulse" />
               Trade cooldown — wait {cooldownDisplay}
               <span className="ml-auto h-1.5 w-24 bg-brand/30 rounded-full overflow-hidden">
                 <span
@@ -775,7 +846,7 @@ export function TradingPostPanel() {
           </h3>
           <div className="flex items-center gap-2 text-[10px] text-muted-label">
             <span className="font-mono">
-              {formatExchangeRate(giveResource, receiveResource)} per unit
+              {formatExchangeRate(giveResource, receiveResource, liveMarket)} per unit
             </span>
             <span className="text-dim">|</span>
             <span>showing 24h</span>
@@ -870,7 +941,7 @@ export function TradingPostPanel() {
                   transition={{ delay: idx * 0.1 }}
                   className="flex items-center gap-3 bg-warning/10 border border-warning/20 rounded-lg px-3 py-2"
                 >
-                  <AlertTriangle className="w-3 h-3 text-warning flex-shrink-0" />
+                  <AlertTriangle className="w-3 h-3 text-warning shrink-0" />
                   <div className="flex-1 text-xs">
                     <span className="text-warning">
                       {RESOURCE_META[s.resource]?.name ?? s.resource}
@@ -891,7 +962,7 @@ export function TradingPostPanel() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-6 text-[10px] px-2 border-research/30 text-research hover:bg-research/20/20 flex-shrink-0"
+                    className="h-6 text-[10px] px-2 border-research/30 text-research hover:bg-research/20/20 shrink-0"
                     onClick={() => {
                       setGiveResource(s.resource);
                       setReceiveResource(s.suggestTradeFor);
@@ -981,7 +1052,7 @@ export function TradingPostPanel() {
                       ⚠
                     </span>
                   )}
-                  <span className="ml-auto text-[10px] text-muted-label flex-shrink-0">
+                  <span className="ml-auto text-[10px] text-muted-label shrink-0">
                     {entry.createdAt
                       ? timeAgo(entry.createdAt)
                       : ticksAgo === 0
@@ -998,7 +1069,7 @@ export function TradingPostPanel() {
       {/* ─── Info Card ────────────────────────────────────────────────────── */}
       <div className="bg-card border border-brand/20 rounded-xl p-4">
         <div className="flex items-start gap-2">
-          <Info className="w-4 h-4 text-muted-label mt-0.5 flex-shrink-0" />
+          <Info className="w-4 h-4 text-muted-label mt-0.5 shrink-0" />
           <div className="text-[10px] text-muted-label space-y-1">
             <p>
               <span className="text-subtle font-semibold">How it works:</span>{" "}

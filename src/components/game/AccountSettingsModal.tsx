@@ -67,9 +67,9 @@ export function AccountSettingsModal({ open, onClose, onSignOut }: AccountSettin
     : { label: 'Google', className: 'bg-success/30 text-success border-success/30' };
 
   return (
-    <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-110 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Account settings">
       <div className="relative bg-[#0d1220] border border-brand/40 rounded-2xl shadow-2xl shadow-brand/20 max-w-md w-full overflow-hidden">
-        <div className="h-1 bg-gradient-to-r from-brand via-success/70 to-success" />
+        <div className="h-1 bg-linear-to-r from-brand via-success/70 to-success" />
 
         <button
           type="button"
@@ -82,7 +82,7 @@ export function AccountSettingsModal({ open, onClose, onSignOut }: AccountSettin
 
         <div className="p-6 pt-5">
           <div className="flex items-start gap-3 mb-5">
-            <div className="w-10 h-10 rounded-xl bg-brand/30 flex items-center justify-center flex-shrink-0 border border-brand/30">
+            <div className="w-10 h-10 rounded-xl bg-brand/30 flex items-center justify-center shrink-0 border border-brand/30">
               <User className="w-5 h-5 text-brand" />
             </div>
             <div>
@@ -138,7 +138,7 @@ export function AccountSettingsModal({ open, onClose, onSignOut }: AccountSettin
               type="button"
               onClick={handleSave}
               disabled={isSaving}
-              className="flex-1 h-10 text-sm font-semibold bg-gradient-to-r from-brand/70 to-success/80 hover:from-brand hover:to-success/70 text-white rounded-lg"
+              className="flex-1 h-10 text-sm font-semibold bg-linear-to-r from-brand/70 to-success/80 hover:from-brand hover:to-success/70 text-white rounded-lg"
             >
               <Save className="w-4 h-4 mr-2" />
               {isSaving ? 'Saving...' : 'Save'}

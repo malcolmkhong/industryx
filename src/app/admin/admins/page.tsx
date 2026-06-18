@@ -261,22 +261,32 @@ export default function AdminManagementPage() {
           </p>
         </div>
         <button
+          type="button"
           onClick={() => setShowAddModal(true)}
+          aria-label="Open add admin dialog"
           className="inline-flex items-center gap-2 px-4 py-2 bg-warning hover:bg-warning text-black font-medium text-sm rounded-lg transition-colors shrink-0"
         >
-          <IconPlus />
+          <IconPlus aria-hidden="true" />
           Add Admin
         </button>
       </div>
 
       {/* Inline notifications */}
       {error && (
-        <div className="mb-4 flex items-center gap-2 px-4 py-3 rounded-lg bg-danger/15 text-danger border border-danger/20 text-sm font-medium">
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="mb-4 flex items-center gap-2 px-4 py-3 rounded-lg bg-danger/15 text-danger border border-danger/20 text-sm font-medium"
+        >
           {error}
         </div>
       )}
       {successMsg && (
-        <div className="mb-4 flex items-center gap-2 px-4 py-3 rounded-lg bg-success/15 text-success border border-success/20 text-sm font-medium">
+        <div
+          role="status"
+          aria-live="polite"
+          className="mb-4 flex items-center gap-2 px-4 py-3 rounded-lg bg-success/15 text-success border border-success/20 text-sm font-medium"
+        >
           <IconCheck />
           {successMsg}
         </div>
@@ -345,10 +355,12 @@ export default function AdminManagementPage() {
             <p className="text-muted-label text-sm mb-2">No admin users found</p>
             <p className="text-muted-label/80 text-xs">Add an admin user to get started.</p>
             <button
+              type="button"
               onClick={() => setShowAddModal(true)}
+              aria-label="Open add admin dialog"
               className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-warning/10 text-warning text-sm rounded-lg hover:bg-warning/20 transition-colors border border-warning/20"
             >
-              <IconPlus />
+              <IconPlus aria-hidden="true" />
               Add Admin
             </button>
           </div>
@@ -359,12 +371,12 @@ export default function AdminManagementPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-muted-label/40">
-                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">User</th>
-                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">User ID</th>
-                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Role</th>
-                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Source</th>
-                    <th className="px-4 py-3 text-left text-xs text-muted-label font-medium">Added</th>
-                    <th className="px-4 py-3 text-right text-xs text-muted-label font-medium">Actions</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs text-muted-label font-medium">User</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs text-muted-label font-medium">User ID</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs text-muted-label font-medium">Role</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs text-muted-label font-medium">Source</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs text-muted-label font-medium">Added</th>
+                    <th scope="col" className="px-4 py-3 text-right text-xs text-muted-label font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -378,6 +390,7 @@ export default function AdminManagementPage() {
                         key={admin.userId}
                         className="border-b border-muted-label/40/50 hover:bg-background/60/30 transition-colors"
                       >
+                        {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- <td> is a table cell, not a control */}
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full bg-background/40 flex items-center justify-center text-subtle text-sm font-medium shrink-0">
@@ -385,7 +398,7 @@ export default function AdminManagementPage() {
                             </div>
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className="text-white text-sm truncate max-w-[200px]">
+                                <span className="text-white text-sm truncate max-w-50">
                                   {admin.email || "No email"}
                                 </span>
                                 {isMe && (
@@ -403,14 +416,16 @@ export default function AdminManagementPage() {
                               {truncateUid(admin.userId)}
                             </code>
                             <button
+                              type="button"
                               onClick={() => copyToClipboard(admin.userId)}
                               className="text-muted-label/80 hover:text-subtle transition-colors p-0.5 rounded"
+                              aria-label={`Copy full user ID for ${admin.email ?? "this admin"}`}
                               title="Copy full ID"
                             >
                               {copiedId === admin.userId ? (
-                                <span className="text-success"><IconCheck /></span>
+                                <span className="text-success" aria-label="Copied"><IconCheck /></span>
                               ) : (
-                                <IconCopy />
+                                <IconCopy aria-hidden="true" />
                               )}
                             </button>
                           </div>
@@ -435,10 +450,12 @@ export default function AdminManagementPage() {
                         <td className="px-4 py-3 text-right">
                           {canRemove ? (
                             <button
+                              type="button"
                               onClick={() => setRemoveTarget(admin)}
+                              aria-label={`Remove admin ${admin.email ?? admin.userId}`}
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-danger hover:text-danger hover:bg-danger/10 transition-colors border border-danger/20"
                             >
-                              <IconTrash />
+                              <IconTrash aria-hidden="true" />
                               Remove
                             </button>
                           ) : isMe ? (
@@ -488,13 +505,15 @@ export default function AdminManagementPage() {
                             {truncateUid(admin.userId, 6)}
                           </code>
                           <button
+                            type="button"
                             onClick={() => copyToClipboard(admin.userId)}
                             className="text-muted-label/80 hover:text-subtle transition-colors p-0.5"
+                            aria-label={`Copy full user ID for ${admin.email ?? "this admin"}`}
                           >
                             {copiedId === admin.userId ? (
-                              <span className="text-success"><IconCheck /></span>
+                              <span className="text-success" aria-label="Copied"><IconCheck /></span>
                             ) : (
-                              <IconCopy />
+                              <IconCopy aria-hidden="true" />
                             )}
                           </button>
                         </div>
@@ -510,10 +529,12 @@ export default function AdminManagementPage() {
                         </div>
                         {canRemove && (
                           <button
+                            type="button"
                             onClick={() => setRemoveTarget(admin)}
+                            aria-label={`Remove admin ${admin.email ?? admin.userId}`}
                             className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-danger hover:text-danger hover:bg-danger/10 transition-colors border border-danger/20"
                           >
-                            <IconTrash />
+                            <IconTrash aria-hidden="true" />
                             Remove
                           </button>
                         )}
@@ -529,17 +550,25 @@ export default function AdminManagementPage() {
 
       {/* ─── Add Admin Modal ──────────────────────────────────────────────── */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+        <div
+          className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="add-admin-title"
+        >
           <div className="bg-background/80 border border-muted-label/40 rounded-xl w-full max-w-md shadow-2xl">
             <div className="flex items-center justify-between px-5 py-4 border-b border-muted-label/40">
-              <h3 className="text-white font-semibold">Add Admin User</h3>
+              <h3 id="add-admin-title" className="text-white font-semibold">Add Admin User</h3>
+              {/* id matches aria-labelledby on the modal wrapper below */}
               <button
+                type="button"
                 onClick={() => {
                   setShowAddModal(false);
                   setFormUserId("");
                   setFormEmail("");
                   setFormRole("admin");
                 }}
+                aria-label="Close add admin dialog"
                 className="text-muted-label hover:text-white transition-colors p-1"
               >
                 <IconX />
@@ -548,27 +577,41 @@ export default function AdminManagementPage() {
 
             <div className="p-5 space-y-4">
               <div>
-                <label className="block text-muted-label text-xs font-medium mb-1.5">
-                  User UUID <span className="text-danger">*</span>
+                <label htmlFor="add-admin-userid" className="block text-muted-label text-xs font-medium mb-1.5">
+                  User UUID <span className="text-danger" aria-hidden="true">*</span>
                 </label>
+                {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
                 <input
+                  id="add-admin-userid"
+                  name="userId"
                   type="text"
+                  required
+                  autoComplete="off"
+                  inputMode="text"
+                  aria-required="true"
+                  aria-describedby="add-admin-userid-hint"
                   placeholder="e.g. 550e8400-e29b-41d4-a716-446655440000"
                   value={formUserId}
                   onChange={(e) => setFormUserId(e.target.value)}
                   className="w-full bg-background/60/80 border border-muted-label/30 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-muted-label/80 focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors font-mono"
                 />
-                <p className="text-muted-label/80 text-[10px] mt-1">
+                <p id="add-admin-userid-hint" className="text-muted-label/80 text-[10px] mt-1">
                   The Supabase Auth user ID (UUID format)
                 </p>
               </div>
 
               <div>
-                <label className="block text-muted-label text-xs font-medium mb-1.5">
-                  Email <span className="text-danger">*</span>
+                <label htmlFor="add-admin-email" className="block text-muted-label text-xs font-medium mb-1.5">
+                  Email <span className="text-danger" aria-hidden="true">*</span>
                 </label>
+                {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
                 <input
+                  id="add-admin-email"
+                  name="email"
                   type="email"
+                  required
+                  autoComplete="email"
+                  aria-required="true"
                   placeholder="user@example.com"
                   value={formEmail}
                   onChange={(e) => setFormEmail(e.target.value)}
@@ -577,10 +620,13 @@ export default function AdminManagementPage() {
               </div>
 
               <div>
-                <label className="block text-muted-label text-xs font-medium mb-1.5">
+                <label htmlFor="add-admin-role" className="block text-muted-label text-xs font-medium mb-1.5">
                   Role
                 </label>
                 <select
+                  id="add-admin-role"
+                  name="role"
+                  aria-describedby="add-admin-role-hint"
                   value={formRole}
                   onChange={(e) => setFormRole(e.target.value)}
                   className="w-full bg-background/60/80 border border-muted-label/30 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors appearance-none"
@@ -590,17 +636,17 @@ export default function AdminManagementPage() {
                   <option value="super_admin">Super Admin</option>
                   <option value="viewer">Viewer</option>
                 </select>
-                <div className="flex gap-3 mt-2">
+                <div id="add-admin-role-hint" className="flex gap-3 mt-2 flex-wrap">
                   <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-success" />
+                    <span className="w-2 h-2 rounded-full bg-success" aria-hidden="true" />
                     <span className="text-muted-label text-[10px]">Admin — Full access</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-warning" />
+                    <span className="w-2 h-2 rounded-full bg-warning" aria-hidden="true" />
                     <span className="text-muted-label text-[10px]">Super — Can manage admins</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-background/10" />
+                    <span className="w-2 h-2 rounded-full bg-muted-label/40" aria-hidden="true" />
                     <span className="text-muted-label text-[10px]">Viewer — Read only</span>
                   </div>
                 </div>
@@ -609,6 +655,7 @@ export default function AdminManagementPage() {
 
             <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-muted-label/40">
               <button
+                type="button"
                 onClick={() => {
                   setShowAddModal(false);
                   setFormUserId("");
@@ -620,6 +667,7 @@ export default function AdminManagementPage() {
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleAddAdmin}
                 disabled={adding}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-warning hover:bg-warning disabled:bg-warning/50 text-black font-medium text-sm rounded-lg transition-colors"
@@ -643,24 +691,31 @@ export default function AdminManagementPage() {
 
       {/* ─── Remove Confirmation Modal ────────────────────────────────────── */}
       {removeTarget && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+        <div
+          className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="remove-admin-title"
+          aria-describedby="remove-admin-desc"
+        >
           <div className="bg-background/80 border border-muted-label/40 rounded-xl w-full max-w-sm shadow-2xl">
             <div className="p-6 text-center">
-              <div className="w-12 h-12 rounded-full bg-danger/10 flex items-center justify-center mx-auto mb-4">
+              <div className="w-12 h-12 rounded-full bg-danger/10 flex items-center justify-center mx-auto mb-4" aria-hidden="true">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger">
                   <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
                 </svg>
               </div>
-              <h3 className="text-white font-semibold text-lg mb-2">Remove Admin</h3>
-              <p className="text-muted-label text-sm mb-1">
+              <h3 id="remove-admin-title" className="text-white font-semibold text-lg mb-2">Remove Admin</h3>
+              <p id="remove-admin-desc" className="text-muted-label text-sm mb-1">
                 Are you sure you want to remove this admin?
               </p>
-              <p className="text-muted-label text-xs">
+              <p className="text-muted-label text-xs" aria-hidden="true">
                 {removeTarget.email || removeTarget.userId}
               </p>
             </div>
             <div className="flex items-center justify-center gap-3 px-6 pb-6">
               <button
+                type="button"
                 onClick={() => setRemoveTarget(null)}
                 className="px-4 py-2 text-sm text-muted-label hover:text-white hover:bg-background/60 rounded-lg transition-colors border border-muted-label/30"
               >

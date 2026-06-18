@@ -5,5 +5,32 @@ compatibility_date = "2026-06-01"
 [triggers]
 crons = ["* * * * *"]
 
+[placement]
+mode = "smart"
+
+# Non-secret vars (committed to repo). Add public-safe values here.
 [vars]
-SUPABASE_SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indra3pxdHNlcXdjeXl5ZXpyb3FxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDY4OTQ0NSwiZXhwIjoyMDk2MjY1NDQ1fQ.jcMZzKMLwWlXIynvGCOSmj9Ap4L3lCWSa5wojFEwmWc"  # Set via: npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+
+# Secrets (NOT committed). Set per environment via:
+#   npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+# Then redeploy with `npx wrangler deploy`.
+#
+# Previous hardcoded key has been REMOVED for security — the
+# committed value would have granted anyone with repo access
+# full Supabase service-role. If the old key was ever pushed
+# to a remote, ROTATE IT in Supabase Dashboard → Settings → API.
+
+[observability]
+enabled = false
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
+invocation_logs = true
+
+[observability.traces]
+enabled = true
+persist = true
+head_sampling_rate = 1

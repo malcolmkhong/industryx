@@ -349,19 +349,19 @@ export function PowerPanel() {
             <motion.div
               className={`absolute inset-y-0 left-0 rounded-full transition-all duration-700 power-bar-animated-gradient ${
                 powerStatus === 'surplus'
-                  ? 'bg-gradient-to-r from-success/60 via-success to-success/50'
+                  ? 'bg-linear-to-r from-success/60 via-success to-success/50'
                   : powerStatus === 'balanced'
-                    ? 'bg-gradient-to-r from-warning/80 via-warning/60 to-warning/50'
-                    : 'bg-gradient-to-r from-danger/60 via-danger to-danger/60'
+                    ? 'bg-linear-to-r from-warning/80 via-warning/60 to-warning/50'
+                    : 'bg-linear-to-r from-danger/60 via-danger to-danger/60'
               }`}
               initial={{ width: 0 }}
               animate={{ width: `${Math.min(100, powerRatio * 50)}%` }}
               transition={{ duration: 0.7 }}
             >
-              <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent" />
+              <div className="absolute inset-0 bg-linear-to-b from-white/10 to-transparent" />
               <div className="absolute inset-0 overflow-hidden rounded-full">
                 <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+                  className="absolute inset-0 bg-linear-to-r from-transparent via-white/10 to-transparent"
                   animate={{ x: ['-100%', '100%'] }}
                   transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
                 />
@@ -435,7 +435,7 @@ export function PowerPanel() {
           <motion.div
             className="mt-3 flex items-center gap-2 bg-danger/20 border border-danger/40 rounded-lg p-3"
           >
-            <CircleAlert className="w-4 h-4 text-danger flex-shrink-0" />
+            <CircleAlert className="w-4 h-4 text-danger shrink-0" />
             <div>
               <p className="text-xs text-danger font-medium">Power Grid Overloaded!</p>
               <p className="text-[10px] text-danger/70">All buildings operating at {(realtimeEfficiency * 100).toFixed(0)}% efficiency. Build more power plants or disable buildings.</p>
@@ -461,7 +461,7 @@ export function PowerPanel() {
             ))}
           </div>
 
-          <div className="relative grid grid-cols-3 gap-2 min-h-[120px]">
+          <div className="relative grid grid-cols-3 gap-2 min-h-30">
             {/* LEFT: Producers */}
             <div className="flex flex-col items-center justify-center gap-1">
               <div className="text-[9px] text-muted-label mb-1 font-bold uppercase tracking-wider">Producers</div>
@@ -765,10 +765,10 @@ export function PowerPanel() {
                   <div className="absolute -inset-3 rounded-full bg-warning/10 blur-lg" />
                 </div>
                 <p className="text-sm text-subtle font-medium mb-1">No Power Plants Built</p>
-                <p className="text-[10px] text-muted-label max-w-[200px] mx-auto">Build your first power plant above to start generating electricity</p>
+                <p className="text-[10px] text-muted-label max-w-50 mx-auto">Build your first power plant above to start generating electricity</p>
               </div>
             ) : (
-              <div className="space-y-2 max-h-[500px] overflow-y-auto game-scrollbar pr-1">
+              <div className="space-y-2 max-h-125 overflow-y-auto game-scrollbar pr-1">
                 {powerPlants.map(plant => {
                   const def = BUILDING_DEFS[plant.type];
                   if (!def) return null;
@@ -870,19 +870,19 @@ export function PowerPanel() {
                             <div className="h-2 bg-muted-label rounded-full overflow-hidden relative">
                               <div
                                 className={`h-full rounded-full ${
-                                  isDerated ? 'bg-gradient-to-r from-danger/60 to-danger' :
-                                  productionPct >= 80 ? 'bg-gradient-to-r from-success/60 to-success/50' :
-                                  productionPct >= 50 ? 'bg-gradient-to-r from-warning/80 to-warning/50' :
-                                  'bg-gradient-to-r from-brand/80 to-brand/50'
+                                  isDerated ? 'bg-linear-to-r from-danger/60 to-danger' :
+                                  productionPct >= 80 ? 'bg-linear-to-r from-success/60 to-success/50' :
+                                  productionPct >= 50 ? 'bg-linear-to-r from-warning/80 to-warning/50' :
+                                  'bg-linear-to-r from-brand/80 to-brand/50'
                                 }`}
                                 style={{ width: `${productionPct}%` }}
                               >
-                                <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent" />
+                                <div className="absolute inset-0 bg-linear-to-b from-white/10 to-transparent" />
                               </div>
                               {plant.active && !isDerated && (
                                 <div className="absolute inset-0 overflow-hidden rounded-full">
                                   <div
-                                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+                                    className="absolute inset-0 bg-linear-to-r from-transparent via-white/10 to-transparent"
                                   />
                                 </div>
                               )}
@@ -906,7 +906,7 @@ export function PowerPanel() {
                           </div>
                         </div>
 
-                        <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                        <div className="flex flex-col items-end gap-1.5 shrink-0">
                           <Button
                             variant="outline"
                             size="sm"
