@@ -1,7 +1,7 @@
 # Database Centralization Migration — TODO Checklist
 
 > **Single source of truth** for tracking the database access centralization migration.
-> Last updated: 2026-06-22 (iteration 7 complete)
+> Last updated: 2026-06-23 (iteration 8 complete)
 > Related: [DB_ACCESS_CENTRALIZATION_AUDIT_2026_06_20.md](./DB_ACCESS_CENTRALIZATION_AUDIT_2026_06_20.md)
 
 ---
@@ -217,26 +217,58 @@ Earlier checklist marked Iteration 5 complete, but the route was still using a w
 - [x] Run `npx eslint src` — 0 errors
 - [x] MCP live-resolve test — INSERT + UPDATE (resolve) + DELETE round-trip succeeded against `cheat_investigations` (count back to 6 pre-test rows after cleanup)
 
-### Iteration 8 — remaining admin/player routes (~20 routes)
+### Iteration 8 — remaining admin/player routes (~17 routes)
 
-- [ ] Migrate `src/app/api/admin/players/route.ts`
-- [ ] Migrate `src/app/api/admin/players/[id]/route.ts`
-- [ ] Migrate `src/app/api/admin/players/[id]/lock/route.ts`
-- [ ] Migrate `src/app/api/admin/players/bulk/route.ts`
-- [ ] Migrate `src/app/api/admin/players/compare/route.ts`
-- [ ] Migrate `src/app/api/admin/stats/route.ts`
-- [ ] Migrate `src/app/api/admin/economy/route.ts`
-- [ ] Migrate `src/app/api/admin/jobs/route.ts`
-- [ ] Migrate `src/app/api/admin/market/route.ts`
-- [ ] Migrate `src/app/api/admin/market/resources/route.ts`
-- [ ] Migrate `src/app/api/admin/market/resources/[id]/route.ts`
-- [ ] Migrate `src/app/api/admin/audit/export/route.ts`
-- [ ] Migrate `src/app/api/admin/system-status/route.ts`
-- [ ] Migrate `src/app/api/admin/monitoring/route.ts`
-- [ ] Migrate `src/app/api/admin/actions/route.ts`
-- [ ] Migrate `src/app/api/admin/admin-actions/route.ts`
-- [ ] Run `npm run lint` — zero new errors
-- [ ] Run dev server, verify
+- [x] Migrate `src/app/api/admin/players/route.ts`
+  - // Affected: 3 inline queries (server_game_state + player_progress + auth admin) → `listPlayersForAdmin`, `searchPlayerProgressByDisplayName`, `listPlayerProgressByIds`, `filterAuthUsersByIds`
+- [ ] Migrate `src/app/api/admin/players/[id]/route.ts` *(file missing on disk — out of scope)*
+- [ ] Migrate `src/app/api/admin/players/[id]/lock/route.ts` *(file missing on disk — out of scope)*
+- [x] Migrate `src/app/api/admin/players/bulk/route.ts`
+  - // Affected: 1 inline update (server_game_state per-userId) → `setPlayerLockStateBulk`
+- [x] Migrate `src/app/api/admin/players/compare/route.ts`
+  - // Affected: 2 inline queries (server_game_state + player_progress) → `loadPlayersByIds` + `listPlayerProgressByIds`
+- [x] Migrate `src/app/api/admin/stats/route.ts`
+  - // Affected: 6 parallel count queries (server_game_state x2, cheat_investigations, player_actions x2, player_sessions) → `countPlayersTotal`, `countLockedPlayers`, `countOpenCheatInvestigations`, `countActionsSince`, `countInvalidActionsSince`, `countOnlinePlayers`
+- [x] Migrate `src/app/api/admin/economy/route.ts`
+  - // Affected: 5 inline queries (server_game_state x3 + player_actions) → `sumMoneyAcrossAllPlayers`, `topEarners`, `countActivePlayersSince`, `countLockedPlayers`, `countActionsSince`
+- [x] Migrate `src/app/api/admin/jobs/route.ts`
+  - // Affected: 2 inline queries (server_market_state + cheat_investigations) → `getLatestMarketTickInfo`, `getLatestCheatInvestigation`
+- [x] Migrate `src/app/api/admin/market/route.ts`
+  - // Affected: 5 inline queries (server_market_state x2 + game_config_market + 2x update) → `getLatestMarketStateExtended`, `listAllMarketConfig`, `updateMarketCircuitBreakers`
+- [x] Migrate `src/app/api/admin/market/resources/route.ts`
+  - // Affected: 5 inline queries (game_config_market CRUD x3 + admin_actions x2) → `getMarketConfigById`, `createMarketConfigWithError`, `updateMarketConfigWithError`, `deleteMarketConfig`, `logAdminActionResource`. Also added new DELETE handler.
+- [ ] Migrate `src/app/api/admin/market/resources/[id]/route.ts` *(file missing on disk — out of scope)*
+- [x] Migrate `src/app/api/admin/audit/export/route.ts`
+  - // Affected: 1 inline query (admin_actions) → `listAdminActionsForExport`
+- [x] Migrate `src/app/api/admin/system-status/route.ts`
+  - // Affected: 5 inline queries (game_config_game + server_game_state x2 + cheat_investigations x2 + admin_users) → `pingGameConfig`, `countPlayersTotal`, `getLatestMarketTickInfo`, `getLatestMarketNews`, `countLockedPlayers`, `countOpenCheatInvestigations`, `getLatestCheatInvestigation`, `countAdmins`
+- [x] Migrate `src/app/api/admin/monitoring/route.ts`
+  - // Affected: 1 inline RPC (`pg_database_size`) → `getDatabaseSizeMb`
+- [x] Migrate `src/app/api/admin/actions/route.ts`
+  - // Affected: 1 inline query (player_actions + auth admin) → `listPlayerActionsWithFilters` + `filterAuthUsersByIds`
+- [x] Migrate `src/app/api/admin/admin-actions/route.ts`
+  - // Affected: 3 inline queries (admin_actions + admin_users + auth admin) → `listAdminActionsWithFilters`, `listAdmins`, `listAllAuthUsers`
+
+**New db/ helpers added in iteration 8** (6 files + 17 extensions):
+- **New files:**
+  - `src/lib/db/playerProgress.ts` (41 lines) — `searchPlayerProgressByDisplayName`, `listPlayerProgressByIds`
+  - `src/lib/db/adminUsers.ts` (41 lines) — `listAllAuthUsers`, `filterAuthUsersByIds`
+  - `src/lib/db/playerActions.ts` (99 lines) — `countActionsSince`, `countInvalidActionsSince`, `countOnlinePlayers`, `listPlayerActionsWithFilters`, `listAdminActionsForExport`
+  - `src/lib/db/configMarket.ts` (172 lines) — full CRUD: `listAllMarketConfig`, `getMarketConfigById`, `createMarketConfig`, `createMarketConfigWithError`, `updateMarketConfig`, `updateMarketConfigWithError`, `deleteMarketConfig`
+  - `src/lib/db/configGame.ts` (13 lines) — `pingGameConfig`
+  - `src/lib/db/infra.ts` (26 lines) — `getDatabaseSizeMb`
+- **Extensions:**
+  - `src/lib/db/serverGameState.ts` (+144 lines) — `listPlayersForAdmin`, `loadPlayersByIds`, `sumMoneyAcrossAllPlayers`, `topEarners`, `countPlayersTotal`, `countLockedPlayers`, `countActivePlayersSince`, `setPlayerLockStateBulk`
+  - `src/lib/db/market.ts` (+60 lines) — `getLatestMarketStateExtended`, `getLatestMarketTickAndBreakers`, `updateMarketCircuitBreakers`, `getLatestMarketTickInfo`, `getLatestMarketNews`
+  - `src/lib/db/cheatInvestigations.ts` (+40 lines) — `getLatestCheatInvestigation`, `countOpenCheatInvestigations`, `countRecentCheatFlagsSince`
+  - `src/lib/db/adminActions.ts` (+30 lines) — `listAdminActionsWithFilters`, `logAdminActionResource`
+  - `src/lib/db/admins.ts` (+15 lines) — `countAdmins`
+
+**Validation after iteration 8:**
+- [x] Run `npx tsc --noEmit` — 0 errors project-wide
+- [x] Run `npm run lint` — 0 errors / 0 warnings
+- [x] Run grep: zero `supabase.from(` or `supabase.rpc(` in all 13 iteration 8 routes
+- [ ] Run dev server, verify — pending (build step skipped; tsc + lint cover static correctness; live smoke test deferred to iteration 9/10)
 
 ### Iteration 9 — remaining auth/config/utility routes (~10 routes)
 
