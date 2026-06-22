@@ -33,7 +33,9 @@ dev*.log
 
 # vercel
 .vercel
-skills/
+skills/**/*.generated
+skills/**/*.cache
+skills/tmp/
 # supabase/ is gitignored (contains Supabase CLI config), but migrations/ is tracked
 supabase/
 !supabase/migrations/
@@ -43,6 +45,25 @@ supabase/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# build/lint/tsc output captures (regenerated on demand)
+build-output.txt
+lint-output.txt
+ts-output.txt
+
+# dev server stderr/stdout redirects
+dev-server.err
+dev-server.out
+
+# dead shell scripts (Linux paths, irrelevant on this Windows project)
+start-dev.sh
+keep-alive.sh
+
+# vector store experiments (orphaned)
+chroma/
+
+# stale dated audit snapshots (move to planning/<date>_audit/ instead)
+AUDIT_FIXES_*.md
 
 # backup folders
 Backup */
@@ -60,9 +81,6 @@ db/
 
 # agent context
 agent-ctx/
-
-# MCP config (contains tokens)
-.vscode/mcp.json
 
 # QA/downloaded screenshots
 download/
@@ -94,4 +112,10 @@ worklog.md
 # Documentation
 docs/
 
-skills/
+# AI tooling (machine-local, never push)
+.agents/
+.opencode/
+.hermes/
+.github/copilot-instructions.md
+.vscode/mcp.json
+.eslintcache

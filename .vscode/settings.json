@@ -9,6 +9,13 @@
         "/^powershell -Command \"cd a:\\\\industryx\\\\industryx ; Select-String -Path src/components/game/headers/MobileHeader\\.tsx -Pattern '<button\\|<Button' -Context 0,2\"$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^npx eslint src/app/api/auth/claim-guest/route\\.ts src/app/api/auth/link-identity/route\\.ts 2>&1; \\$LASTEXITCODE$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
-    }
+    },
+  "git.decorations.enabled": true,
+  "explorer.decorations.badges": true,
+  "explorer.decorations.colors": true
 }

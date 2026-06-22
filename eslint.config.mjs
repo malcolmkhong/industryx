@@ -50,7 +50,27 @@ const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
     "no-useless-escape": "off",
   },
 }, {
-  ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts", "examples/**", "skills"]
+  ignores: [
+    "node_modules/**",
+    ".next/**",
+    "out/**",
+    "build/**",
+    "next-env.d.ts",
+    "examples/**",
+    "skills/**",
+    ".history/**",
+    "tests/**",
+    "chroma/**",
+    "cloudflare/**",
+    "planning/**",
+    "scripts/**",
+    "public/**",
+    "dev-server.err",
+    "lint-output.txt",
+    "build-output.txt",
+    "convert_to_svg.py",
+    "convert_to_svg_color.py",
+  ]
 }];
 
 export default eslintConfig;

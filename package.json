@@ -6,13 +6,14 @@
     "dev": "next dev -p 3000",
     "build": "next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/ && rm -rf .next/standalone/node_modules/sharp .next/standalone/node_modules/@img .next/standalone/node_modules/detect-libc",
     "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
-    "lint": "eslint .",
+    "lint": "eslint . --cache",
     "test": "node --test --test-reporter=spec tests/integration/**/*.test.ts tests/security/**/*.test.ts",
     "test:integration": "node --test tests/integration/**/*.test.ts",
     "test:security": "node --test tests/security/**/*.test.ts",
     "test:all": "node --test tests/integration/**/*.test.ts tests/security/**/*.test.ts"
   },
   "dependencies": {
+    "@fingerprintjs/fingerprintjs": "^4.6.2",
     "@iconify/react": "^6.0.2",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
@@ -63,6 +64,7 @@
     "supabase": "^2.107.0",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
+    "vaul": "^1.1.2",
     "zustand": "^5.0.6"
   },
   "devDependencies": {
