@@ -131,3 +131,15 @@ docs/
 .github/copilot-instructions.md
 .vscode/mcp.json
 .eslintcache
+
+# User-installed skill marketplace (not project files)
+skills/
+skills-lock.json
+
+# Local-only planning scratch + scratch tests
+planning/archive/
+planning/new/
+tests/staging/
+
+# Asset artifacts not for source control
+public/ChatGPT Image*.png
