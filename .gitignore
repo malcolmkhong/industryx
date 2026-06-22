@@ -37,7 +37,15 @@ skills/**/*.generated
 skills/**/*.cache
 skills/tmp/
 # supabase/ is gitignored (contains Supabase CLI config), but migrations/ is tracked
-supabase/
+# Be specific about what to ignore rather than ignoring the whole folder,
+# otherwise negation rules below the directory pattern are unreachable.
+supabase/.env*
+supabase/.gitignore
+supabase/config.toml
+supabase/.branches
+supabase/.temp
+supabase/.cache
+supabase/.DS_Store
 !supabase/migrations/
 .omo/
 *.dev.log
