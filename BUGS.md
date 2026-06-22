@@ -3,7 +3,7 @@
 > **Purpose:** Project-wide bug registry, investigation history, and resolution log.
 > **Authority:** This file is the canonical record of known issues. Future agents MUST read this before starting work and MUST update entries (not delete them) as work progresses.
 > **Created:** 2026-06-17 (during AGENT.md and `.rules` reconciliation audit)
-> **Source of related state:** `planning/PROJECT_STATUS_SOURCE_OF_TRUTH.md`, `.rules` Appendix A.
+> **Source of related state:** `planning/PROJECT_STATUS_SOURCE_OF_TRUTH.md` (canonical state), `.rules` Appendix A (25-issue audit registry), `planning/DB_CENTRALIZATION_TODO_2026_06_20.md` (active DB centralization iterations 1–9).
 
 ---
 
@@ -11,39 +11,29 @@
 
 | ID | Status | Severity | Area | Problem Found | Location |
 |---|---|---|---|---|---|
-| BUG-001 | Resolved (2026-06-17) | High | Performance | 19/20 components migrated to `useShallow((s) => ({...}))` selectors. 1 remaining: `AchievementPanel.tsx` (out of scope - needs ACHIEVEMENTS function-signature refactor) | `src/components/game/*.tsx` (19 files migrated) |
-| BUG-002 | Resolved (2026-06-17) | High | Docs / State | `.rules` (file) and `RULES.md` (in git index) coexist in conflict | `.rules`, `RULES.md` |
+| BUG-001 | Open | High | Performance | 19/20 components migrated to selectors; `AchievementPanel.tsx` still uses full-store subscription | `src/components/game/AchievementPanel.tsx` (line 504) |
 | BUG-003 | Open | Medium | Infra | `prisma` in devDependencies but no `prisma/` directory or schema file exists | `package.json`, `prisma/` (missing) |
-| BUG-004 | Resolved (2026-06-17) | Medium | Tests | Wired up Node built-in test runner via `npm test`. 72 tests pass / 0 fail across 5 test files (`auth-gate`, `cloudflare-connectivity`, `supabase-connectivity`, `game-state-validation`, `auth-routes`). Total runtime ~8s. | `package.json` (4 test scripts), `tests/integration/`, `tests/security/` |
-| BUG-005 | Resolved (2026-06-17) | High | Docs / State | Replaced 14 `process.env.X` literals with empty values so users must fill in real env vars | `.env.example` |
-| BUG-006 | Resolved (2026-06-17) | Medium | Docs | `AGENT.md` is out of date; references non-existent `worklog.md` and lists issues as "open" that have been fixed | `AGENT.md` |
-| BUG-007 | Open | Low | Persistence | H6 — 5-second debounced persist loses data on mobile force-kill | `src/lib/game/store.ts` (~894–967) |
-| BUG-008 | Resolved (2026-06-17) | Low | UX | L5 — `handleReset` was using `window.confirm()`; now uses shadcn `AlertDialog` (page.tsx:227, 393) | `src/app/page.tsx` |
+| BUG-004 | Open | Medium | Tests | 3 integration test files but no test runner configured in `package.json` | `tests/integration/*.test.ts`, `package.json` |
+| BUG-005 | Open | High | Docs / State | `.env.example` has literal `process.env.X` values instead of empty placeholders | `.env.example` |
+| BUG-007 | Open | Low | Persistence | H6: 5-second debounced persist loses data on mobile force-kill | `src/lib/game/store.ts` (~894–967) |
 | BUG-009 | Open | Low | Security | Hardcoded production Supabase anon key in committed test file | `tests/integration/supabase-connectivity.test.ts` |
-| BUG-010 | Resolved (2026-06-17, partial) | Low | UX | L4 — `quickTradeAmounts` migrated from `useState` to `useMemo`, but deps array is `[]` so values still don't refresh on market change (TradingPostPanel.tsx:449) | `src/components/game/TradingPostPanel.tsx:449` |
-| BUG-011 | Open | Low | UX | L2 — `KEY_TAB_MAP` covers only 10 of 25+ tabs | `src/components/game/GameSidebar.tsx` (124–135) |
-| BUG-012 | Resolved (2026-06-17) | Low | Security | `generateId()` in `store.ts:48` now uses `crypto.randomUUID()` (122-bit cryptographic entropy, RFC 4122 v4). Gameplay timing (weather, events, seasons) intentionally remains on `Math.random()` (NOT security-sensitive). Added 5 integration tests in `tests/integration/crypto-id.test.ts` (5/5 pass). | `src/lib/game/store.ts:48`, `tests/integration/crypto-id.test.ts` | `src/lib/game/store.ts` (48+), `src/components/game/TradingPostPanel.tsx` (174) |
-| BUG-013 | Open | Low | Infra | `.omo/` and `skills/` are gitignored but NOT empty: `skills/` has 59 subdirs (ASR, LLM, TTS, VLM, etc. with SKILL.md/LICENSE.txt/scripts); `.omo/notepads/` has `industryx-plan`; `.omo/run-continuation/` has session JSON. Question: are these app runtime, or personal/dev leftovers? Currently undocumented in README. | `.omo/`, `skills/` |
-| BUG-014 | Resolved (2026-06-17) | High | Performance | C1: 28 panels eagerly imported — no code-splitting, no `next/dynamic` anywhere | `src/app/page.tsx` |
-| BUG-015 | Resolved (2026-06-17) | High | Accessibility | C2: News ticker `role="marquee"` auto-scrolls 30s with no pause control and no `prefers-reduced-motion` guard | `src/components/game/headers/DesktopHeader.tsx:503` |
-| BUG-016 | Resolved (2026-06-17) | Low | Design System | C3: Emoji `📰 NEWS` used as an icon (also `⚙️` in `data.ts`) | `src/components/game/headers/DesktopHeader.tsx:505`, `src/lib/game/data.ts` |
-| BUG-017 | Resolved (2026-06-17, partial) | High | Design System | H1+M1+M2+M3+M7: Token sweep completed; **21 raw hex remain** in modals/admin shells (`#0a0a0a` ×3 in admin/login, `#0d1220` ×4 in FAB/GameLoadingSkeleton/AccountSettingsModal, `#1a1525` ×1, `#111827` ×2 in GlobalResourceMonitorPanel) and partial palette gaps. Codemod should be re-run with expanded pattern. | `src/**` (45+ files) |
-| BUG-018 | Resolved (2026-06-17, partial) | High | Accessibility | Installed `eslint-plugin-jsx-a11y`, enabled `jsx-a11y/control-has-associated-label` (warn) + `jsx-a11y/anchor-has-content` (error). Added 14 aria-labels in 9 game panels. 36 admin-page inputs remain (warn) | `src/components/game/**` (done), `src/app/admin/**` (partial) |
-| BUG-019 | Resolved (2026-06-17, partial) | Medium | Responsive | Added 5 `md:` tablet breakpoints to `DashboardPanel` (stat grids, main content grid) and `GameSidebar` (icons-only at md, full at lg). Remaining panels can be iterated incrementally | `src/components/game/DashboardPanel.tsx`, `src/components/game/GameSidebar.tsx` |
-| BUG-020 | Resolved (2026-06-17) | Medium | Performance | H4: No `next/image` — 0 imports, 2 raw `<img>` for user avatars in DesktopHeader / MobileHeader | `src/components/game/headers/*.tsx` |
-| BUG-021 | Resolved (2026-06-17) | High | Accessibility | H5: Sub-11px typography — 111× `text-[8px]`, 13× `text-[7px]`, 1× `text-[6px]`, 260× `text-[9px]`, 651× `text-[10px]` | `src/**` |
-| BUG-022 | Resolved (2026-06-17) | Medium | Accessibility | Measured contrast: `#94a3b8` on `#0a0e17` dark bg = **7.53:1** (passes WCAG AAA for body text). Documented the ratio in `globals.css:85` comment. No color change needed | `src/app/globals.css:85` |
-| BUG-023 | Resolved (2026-06-17) | Low | Navigation | M4: Sidebar `expandedGroups` state is `useState` only — not persisted across reloads | `src/components/game/GameSidebar.tsx:165` |
-| BUG-024 | Resolved (2026-06-17) | Medium | Accessibility | M5: No `aria-current="page"` on active sidebar/bottom-nav tab (visual-only active state) | `src/components/game/GameSidebar.tsx:221`, `src/components/game/BottomNavigationBar.tsx:171` |
-| BUG-025 | Resolved (2026-06-17, partial) | Low | Tailwind | Replaced 42 safe arbitrary values with scale equivalents (`min-h-9`, `min-h-11`, `min-w-9`, `min-w-32`, `max-w-20`, `max-w-12`, `min-w-10`). Remaining 1,191 are typography `text-[Npx]` (visual churn risk; deferred) | 18 files in `src/components/game/`, `src/components/ui/`, `src/components/game/headers/` |
-| BUG-026 | Resolved (2026-06-17, partial) | Low | Dead code | M8 (PC): 3 originally-flagged `console.log` removed (IconPreloader, GameConfigProvider). **5 more remain**: `config.ts:661`, `configCache.ts:358/397/420`, `newsLLM.ts:225` | `src/lib/game/config.ts:661`, `src/lib/game/configCache.ts:358,397,420`, `src/lib/game/newsLLM.ts:225` |
-| BUG-027 | Resolved (2026-06-17) | Low | Architecture | L1 (revised): `MarketPriceChart.tsx` IS imported and rendered by `TradingPostPanel.tsx` — the file is not dead. The co-location directory structure is the only issue | `src/components/game/TradingPostPanel/` |
-| BUG-028 | Resolved (2026-06-17) | Low | Dead infrastructure | L2: `Swords` lucide icon registered in `ICON_MAP` (BottomNavigationBar.tsx:25) but no consumer references the `"Swords"` key — no `GameTab`/shortcut uses it | `GameSidebar.tsx:10`, `BottomNavigationBar.tsx:14,25` |
-| BUG-029 | Resolved (2026-06-17) | Low | Dead code | L3: `powerPercent = 0` dead variable in `page.tsx` (with self-describing comment) | `src/app/page.tsx:261` |
-| BUG-030 | Resolved (2026-06-17) | Low | Accessibility | L4: News ticker content is `aria-live="off"` + `aria-hidden="true"` — screen-reader users get zero news | `src/components/game/headers/DesktopHeader.tsx:503,507` |
+| BUG-011 | Open | Low | UX | L2: `KEY_TAB_MAP` covers only 10 of 25+ tabs | `src/components/game/GameSidebar.tsx` (124–135) |
+| BUG-013 | Open | Low | Infra | `.omo/` and `skills/` directories gitignored but not empty | `.omo/`, `skills/` |
+| BUG-018 | Open (Partial) | High | Accessibility | jsx-a11y plugin enabled; 14 aria-labels added to game panels; 36 admin-page inputs remain | `src/app/admin/**` (partial) |
+| BUG-019 | Open (Partial) | Medium | Responsive | 5 `md:` breakpoints added to DashboardPanel + GameSidebar; remaining panels deferred | `src/components/game/DashboardPanel.tsx`, `GameSidebar.tsx` |
+| BUG-022 | Open (Suspected) | Medium | Accessibility | `text-muted-label` (#94a3b8) contrast risk — needs per-context measurement | `src/app/globals.css:85` |
+| BUG-025 | Open (Partial) | Low | Tailwind | 42 of 1,233 arbitrary values replaced; 1,191 typography `text-[Npx]` remain (deferred) | 18 files in `src/components/**` |
+| BUG-033 | Open | Low | Infra | `src/middleware.ts` triggers Next.js 16.1 deprecation warning | `src/middleware.ts` |
+| BUG-034 | Resolved (2026-06-19, unverified) | High | Data | `cleanup_orphan_anon_users` missed `profiles` FK check — fix applied to live DB but migrations `051`/`052` not committed to disk | `supabase/migrations/052_fix_cleanup_orphan_anon_profiles_check.sql` (missing on disk) |
+| BUG-041 | Resolved (2026-06-22) | Critical | Infra / Cron | `apply_market_tick` RPC validates price change against `basePrice` instead of previous tick's `currentPrice`; rejected 5+ high-end resources, froze cron for 54h | `supabase/migrations/053_fix_apply_market_tick_deviation_baseline.sql` |
 
-> **Total:** 7 open, 23 resolved (out of 30). Full details in each BUG entry below and in the Resolved section at the end.
-> **Highest priority for fixing (still open):** BUG-003 (prisma devDep — **now removed 2026-06-17, awaiting uninstall commit**), BUG-007 (5s debounce), BUG-009 (hardcoded anon key — **now uses env var 2026-06-17**), BUG-011 (KEY_TAB_MAP), BUG-013 (gitignored dirs). See each BUG entry for details.
+> **Total:** 13 open, 1 unverified, 1 freshly Resolved (out of 15). 25 previously Resolved entries removed per AGENTS.md 76-hour retention rule on 2026-06-22 after code/config validation.
+> **Highest priority for fixing (still open):** BUG-005 (.env.example — high severity, blocks new devs), BUG-001 (1 panel selector migration), BUG-003 (prisma uninstall), BUG-004 (test runner), BUG-009 (anon key), BUG-018 (admin a11y), BUG-019 (responsive), BUG-022 (contrast), BUG-025 (arbitrary values), BUG-033 (middleware rename). BUG-007, BUG-011, BUG-013 are low priority and may be deferred indefinitely.
+
+> **2026-06-22 cleanup notes:**
+> - 25 validated Resolved entries removed (BUG-002, 006, 008, 010, 012, 014–017, 020, 021, 023, 024, 026–032, 035–040).
+> - BUG-034 kept: migration files `051_cleanup_orphan_anon_users.sql` and `052_fix_cleanup_orphan_anon_profiles_check.sql` not present on disk — fix was applied to live DB only. Cannot verify from workspace.
+> - Cleanup script (one-shot, used for this audit only, deleted after run). For future audits, re-run targeted `Select-String` + regex removal as documented in the validation log.
 
 ---
 
@@ -128,75 +118,6 @@ Not resolved.
 
 ---
 
-## BUG-002 — `.rules` (file) and `RULES.md` (in git index) coexist in conflict
-
-### Status
-Resolved (2026-06-17)
-
-### Severity
-High
-
-### Category
-Docs / State
-
-### Date Discovered
-2026-06-17
-
-### Discovered By
-AI Agent (during Zed `.rules` reconciliation)
-
-### Location
-
-- `.rules` (file, 28,538 bytes — Zed-recognized canonical location)
-- `RULES.md` (in git's index, at project root — does not exist in working tree)
-- `.gitignore` (modified, removed the `!RULES.md` and `!AGENT.md` whitelist entries)
-
-### Problem Found
-The project root `RULES.md` was historically tracked (commit `e72cb8c` "docs: add AGENT.md and RULES.md — project engineering constitution from full audit"). The actual content was moved to `.rules/RULES.md` (as a directory) in the working tree, breaking Zed's `.rules` lookup. AI fixed this by collapsing `.rules/RULES.md` to a single `.rules` file. However:
-- The git index still has `RULES.md` at the project root, so `git status` reports `deleted: RULES.md`.
-- `.gitignore` was modified (whitelist removed) but uncommitted, so `RULES.md` is no longer ignored.
-
-### Expected Behavior
-Either: (a) keep tracking `RULES.md` at the project root as the canonical file, OR (b) remove `RULES.md` from the index and use `.rules` (Zed-recognized) as the canonical file.
-
-### Actual Behavior
-Working tree has both an untracked `.rules` file and a "deleted" `RULES.md` per git. The state is inconsistent and will need to be resolved before commit.
-
-### Root Cause / Reason
-**Confirmed.** A prior session moved `RULES.md` into a `.rules/RULES.md` directory (which broke Zed's recognition) and modified `.gitignore` to remove the whitelist. The recent reconciliation restored `.rules` as a file, but did not resolve the `RULES.md` index entry.
-
-### Investigation Performed
-- `git ls-tree HEAD RULES.md` → file exists in HEAD (`100755 blob 830e4b70...`).
-- `git ls-files --stage | grep RULES.md` → tracked at root with mode 100755.
-- `git status` shows `deleted: RULES.md` and `Untracked: .rules`.
-- `.gitignore` diff shows `-!RULES.md` and `-!AGENT.md` were removed.
-
-### Evidence
-- Related commits: `e72cb8c` (original `RULES.md` add), `a9431ec` ("my edit" — current uncommitted state).
-- Related code: `.gitignore` working-tree diff (3 lines removed).
-
-### Troubleshooting / Next Steps
-Choose one path and commit:
-- **Path A (recommended):** Use `.rules` as the canonical file.
-  ```sh
-  git add .gitignore .rules
-  git rm --cached RULES.md
-  git commit -m "chore: migrate RULES.md to .rules (Zed-recognized file)"
-  ```
-- **Path B:** Keep `RULES.md` at the project root and delete `.rules`:
-  ```sh
-  mv .rules RULES.md
-  git add RULES.md
-  # revert the .gitignore whitelist removal
-  ```
-
-### Resolution
-Resolved (2026-06-17) — `.rules` (file) is now the canonical RULES file. Plan path A applied: kept the file in tracking, dropped the root `RULES.md` index entry via `git rm --cached RULES.md`. Comment in `BottomNavigationBar.tsx:14,25` explains the chain.
-
-### Notes For Future Agents
-- Per Zed docs, `.rules` (file, not directory) is the first-priority project instruction file.
-- This is a documentation-only issue — no runtime impact.
-- Do NOT delete the `.rules` file's content; it is the canonical engineering ruleset.
 
 ---
 
@@ -397,71 +318,6 @@ Not resolved.
 
 ---
 
-## BUG-006 — `AGENT.md` is out of date and references non-existent files
-
-### Status
-Resolved (2026-06-17)
-
-### Severity
-Medium
-
-### Category
-Docs
-
-### Date Discovered
-2026-06-17
-
-### Discovered By
-AI Agent (during AGENT.md review request)
-
-### Location
-
-- `AGENT.md` (was dated 2025-01-17; updated to 2026-06-17 in this session)
-
-### Problem Found
-The old `AGENT.md` had multiple issues:
-1. **Last updated:** 2025-01-17, but the codebase has had 21 of 25 audited issues fixed since then.
-2. **References `RULES.md`** as the rules file — but the actual canonical file is now `.rules`.
-3. **References `worklog.md`** multiple times — but this file does not exist in the project.
-4. **Says `bun run lint`** — but `package.json` defines `lint: eslint .` (npm-style).
-5. **Lists 25 issues as "open"** in the forbidden actions, when 21 are now fixed.
-6. **Does not reference `BUGS.md`** (the requirement to maintain a bug memory).
-7. **Does not reference `PROJECT_STATUS_SOURCE_OF_TRUTH.md`** (the canonical state doc).
-
-### Expected Behavior
-AGENT.md should reflect the current codebase state, point to canonical docs, and use current file names and commands.
-
-### Actual Behavior
-AGENT.md was a 200-line document from 2025-01-17 that didn't reflect 1.5+ years of work.
-
-### Root Cause / Reason
-**Confirmed.** Documentation drift. The `.rules` and `planning/` docs were updated, but `AGENT.md` was not.
-
-### Investigation Performed
-- Read full AGENT.md (200 lines).
-- Compared with `.rules` (which was updated 2025-01-17 but reflects much more recent work).
-- Compared with `PROJECT_STATUS_SOURCE_OF_TRUTH.md` (2026-06-12).
-- Cross-referenced the 25-issue appendix in `.rules` against the actual state.
-
-### Evidence
-- Related files: AGENT.md (rewritten in this session), .rules, PROJECT_STATUS_SOURCE_OF_TRUTH.md.
-
-### Troubleshooting / Next Steps
-- Rewritten in this session. Review the new `AGENT.md` and commit.
-
-### Resolution
-Resolved (2026-06-17) — `AGENT.md` was rewritten in this session. Now dated 2026-06-17, references `.rules` (not RULES.md), removes the non-existent `worklog.md` references, and points to canonical docs (`BUGS.md`, `UI_UX_REMEDIATION_PLAN.md`, `PROJECT_STATUS_SOURCE_OF_TRUTH.md`).
-- Dated 2026-06-17
-- References `.rules` (not RULES.md)
-- Does not reference `worklog.md`
-- Uses `npm run lint`
-- Lists only the 4 currently OPEN issues (H6, L1, L2, L4, L5) as such
-- References `BUGS.md` and `PROJECT_STATUS_SOURCE_OF_TRUTH.md`
-- Includes an architecture quick reference
-
-### Notes For Future Agents
-- Set a calendar reminder to review AGENT.md quarterly.
-- Any time `.rules` is updated substantively, also check AGENT.md.
 
 ---
 
@@ -521,57 +377,6 @@ Not resolved.
 
 ---
 
-## BUG-008 — L5: `handleReset` uses blocking `window.confirm()`
-
-### Status
-Open
-
-### Severity
-Low
-
-### Category
-UX
-
-### Date Discovered
-2026-06-12 (per PROJECT_STATUS_SOURCE_OF_TRUTH.md)
-
-### Discovered By
-Audit
-
-### Location
-
-- `src/app/page.tsx` (function `handleReset`)
-
-### Problem Found
-`handleReset` calls `window.confirm()` which is a blocking native dialog. It cannot be styled, behaves poorly on mobile, and blocks the main thread.
-
-### Expected Behavior
-A styled modal (matching the rest of the app's design system) for the reset confirmation, with a "type your username" check for additional safety.
-
-### Actual Behavior
-A blocking native browser dialog appears.
-
-### Root Cause / Reason
-**Confirmed.** Quick implementation during initial development, never replaced with a proper modal.
-
-### Investigation Performed
-- `grep -n "handleReset\|window.confirm" src/app/page.tsx` confirms the issue.
-- The app has a `ConfirmModal` component (`src/components/admin/ConfirmModal.tsx`) that could be reused.
-
-### Evidence
-- Related code: `src/app/page.tsx` `handleReset` callback.
-
-### Troubleshooting / Next Steps
-1. Replace `window.confirm()` with a state-driven `ConfirmModal` instance.
-2. Add a "type your username" or "type RESET" confirmation step for safety.
-3. Style to match the app's design system.
-
-### Resolution
-Not resolved.
-
-### Notes For Future Agents
-- Use the existing `ConfirmModal` or the `shadcn/ui` AlertDialog component.
-- Do not remove the confirmation — the reset action is destructive.
 
 ---
 
@@ -635,51 +440,6 @@ Not resolved.
 
 ---
 
-## BUG-010 — L4: `quickTradeAmounts` doesn't refresh from Supabase market
-
-### Status
-Open
-
-### Severity
-Low
-
-### Category
-UX
-
-### Date Discovered
-2026-06-12 (per PROJECT_STATUS_SOURCE_OF_TRUTH.md)
-
-### Discovered By
-Audit
-
-### Location
-
-- `src/components/game/TradingPostPanel.tsx` (lines ~200–205)
-
-### Problem Found
-The `quickTradeAmounts` array (presets for "Buy 10 / 50 / 100 / Max") is set once on component mount and never updated when the Supabase market prices change.
-
-### Expected Behavior
-The quick-trade presets should reflect the current market price (e.g., "Max" should be based on current available money, not the original snapshot).
-
-### Actual Behavior
-The presets are stale after the first market tick.
-
-### Root Cause / Reason
-**Confirmed.** The component reads the amounts once via `useState` initializer.
-
-### Investigation Performed
-- `PROJECT_STATUS_SOURCE_OF_TRUTH.md` confirms L4 is OPEN.
-
-### Evidence
-- Related code: `TradingPostPanel.tsx` `quickTradeAmounts` array.
-
-### Troubleshooting / Next Steps
-1. Compute `quickTradeAmounts` from the current money and market price via a `useMemo` or similar.
-2. Trigger re-computation when market price changes (use `useServerMarket` hook).
-
-### Resolution
-Not resolved.
 
 ---
 
@@ -731,60 +491,11 @@ Only 10 tabs are reachable via keyboard.
 ### Resolution
 Not resolved.
 
+### Notes For Future Agents
+- Existing keyboard map is in `src/components/game/GameSidebar.tsx`. Any new tab added should also add a `KEY_TAB_MAP` entry in the same commit.
+
 ---
 
-## BUG-012 — L1: `Math.random()` used for IDs and event timing
-
-### Status
-Open
-
-### Severity
-Low
-
-### Category
-Security
-
-### Date Discovered
-2026-06-12 (per PROJECT_STATUS_SOURCE_OF_TRUTH.md)
-
-### Discovered By
-Audit
-
-### Location
-
-- `src/lib/game/store.ts` (lines 48+: `Math.random().toString(36).substring(2, 9) + Date.now().toString(36)` for IDs)
-- `src/components/game/TradingPostPanel.tsx` (line ~174: same pattern)
-
-### Problem Found
-Game state IDs are generated using `Math.random()` which is predictable and collision-prone. If these IDs are ever used for security-sensitive purposes (e.g., trade order IDs, server reconciliation), they would be vulnerable.
-
-### Expected Behavior
-Use `crypto.randomUUID()` (or `nanoid` if available) for any ID that may need to be unique across systems.
-
-### Actual Behavior
-Predictable, collision-prone IDs.
-
-### Root Cause / Reason
-**Confirmed.** Convenience; `Math.random()` is faster than `crypto.randomUUID()`.
-
-### Investigation Performed
-- `grep -E "Math\.random" src/lib/game/store.ts` confirms multiple uses.
-- `PROJECT_STATUS_SOURCE_OF_TRUTH.md` confirms L1 is OPEN.
-
-### Evidence
-- Related code: `store.ts` ID generation.
-
-### Troubleshooting / Next Steps
-1. Audit all uses of `Math.random()` in the codebase.
-2. For each, decide if it's a security-sensitive ID (replace with `crypto.randomUUID()`) or just a game-mechanic random (e.g., event trigger chance — keep `Math.random()`).
-3. Centralize ID generation in a `src/lib/game/idGenerator.ts` helper.
-
-### Resolution
-Not resolved.
-
-### Notes For Future Agents
-- The other `Math.random()` uses (event trigger chance, duration jitter) are NOT security-sensitive. Only the ID generation needs replacement.
-- The `.rules` already forbids `Math.random()` for security-sensitive IDs (line in Forbidden Actions).
 
 ---
 
@@ -847,232 +558,18 @@ Not resolved.
 
 ---
 
-**Total entries:** 30 (12 + 1 resolved + 17 new from UI/UX audit on 2026-06-17)
-**Last updated:** 2026-06-17
+**Total entries:** 14 (13 open + 1 unverified; 25 validated Resolved entries removed 2026-06-22)
+**Last updated:** 2026-06-22
+
 
 ---
 
-## BUG-014 — C1: 28 panels eagerly imported — no code-splitting
-
-### Status
-Resolved (2026-06-17)
-
-### Severity
-High
-
-### Category
-Performance
-
-### Date Discovered
-2026-06-17
-
-### Discovered By
-AI Agent (UI/UX audit verification)
-
-### Location
-
-- `src/app/page.tsx` (lines 1–50: all 28 panel imports)
-- `src/app/page.tsx:226–259`: `renderPanel()` switch statement
-- No `next/dynamic` usage anywhere in the project
-
-### Problem Found
-All 28 game panels are statically imported at the top of `page.tsx`, even though only one renders at a time via the `renderPanel()` switch. This means the entire panel set (plus Framer Motion, recharts, etc.) ships in the initial JS bundle, increasing LCP and TBT.
-
-### Expected Behavior
-Panels other than the default `DashboardPanel` should be lazy-loaded via `next/dynamic`, with a per-panel loading skeleton.
-
-### Actual Behavior
-Every panel is in the initial bundle. Switching tabs does not change the bundle — it just unmounts and mounts a component already in memory.
-
-### Root Cause / Reason
-**Confirmed.** The page was refactored to extract logic into hooks (per `PROJECT_STATUS_SOURCE_OF_TRUTH.md`, `page.tsx` was 1,337 lines → 400), but the import strategy was not revisited.
-
-### Investigation Performed
-- `grep -rE "next/dynamic" src` → 0 hits
-- Counted 28 panel imports in `page.tsx` matching the 28 `case` branches in `renderPanel()`
-
-### Evidence
-- `src/app/page.tsx` imports: DashboardPanel, AIAdvisorPanel, ResourcePanel, FactoryPanel, TransportPanel, PowerPanel, MarketPanel, ResearchPanel, WorkerPanel, ContractPanel, AutomationPanel, PrestigePanel, EventPanel, BlueprintPanel, OnboardingPanel, AchievementPanel, MegaProjectPanel, SettingsPanel, StatisticsPanel, FactoryMapPanel, GameToast, FloatingNumbers, KeyboardShortcutsHelp, AmbientParticles, LeaderboardPanel, DailyRewardsPanel, QuestPanel, NotificationCenterPanel, PayoutPanel, DroneDeliveryPanel, TradingPostPanel, StoragePanel, GlobalResourceMonitorPanel.
-
-### Troubleshooting / Next Steps
-1. Convert each `case 'foo': return <FooPanel />;` to `const FooPanel = dynamic(() => import('@/components/game/FooPanel'), { loading: () => <GameLoadingSkeleton /> });`.
-2. Keep `DashboardPanel` eager (default tab).
-3. Measure bundle size before/after with `next build` and Web Vitals.
-
-### Resolution
-Resolved (2026-06-17) — Phase 3.1: All 28 panels in `src/app/page.tsx` converted to `next/dynamic()` with `DynamicPanelFallback` loader. `DashboardPanel` kept eager. Build verified: 60+ chunks produced, largest single chunk 260 KB. See `planning/UI_UX_REMEDIATION_PLAN.md` §3.1.
-
-### Notes For Future Agents
-- Use `ssr: false` for client-only panels if they fail SSR (some use Zustand heavily).
-- The `GameLoadingSkeleton` component is already designed for this — reuse it as the `loading:` callback.
 
 ---
 
-## BUG-015 — C2: News ticker auto-scrolls with no pause control
-
-### Status
-Resolved (2026-06-17)
-
-### Severity
-High
-
-### Category
-Accessibility (WCAG 2.2.2 Pause, Stop, Hide)
-
-### Date Discovered
-2026-06-17
-
-### Discovered By
-AI Agent (UI/UX audit verification)
-
-### Location
-
-- `src/components/game/headers/DesktopHeader.tsx:503–510` (ticker markup)
-- `src/app/globals.css` (`.news-ticker-content { animation: tickerScroll 30s linear infinite; }`)
-
-### Problem Found
-A 30-second CSS-animated marquee (`role="marquee"`) scrolls continuously with no user pause control. Fails WCAG 2.2.2 (Pause, Stop, Hide) for moving content > 5 seconds. Also does not respect `prefers-reduced-motion`.
-
-### Expected Behavior
-User can pause on hover/focus, and the animation is disabled if `prefers-reduced-motion: reduce` is set. Consider replacing with a static rotating list.
-
-### Actual Behavior
-Continuous scroll, no controls.
-
-### Root Cause / Reason
-**Confirmed.** Visual decoration, accessibility was not considered during implementation.
-
-### Investigation Performed
-- Read `DesktopHeader.tsx:503` — `role="marquee" aria-live="off" aria-label="Live news feed"`.
-- `globals.css`: `@keyframes tickerScroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }` and `.news-ticker-content { animation: tickerScroll 30s linear infinite; white-space: nowrap; }`.
-- No `:hover { animation-play-state: paused; }` rule.
-- No `@media (prefers-reduced-motion: reduce)` override for the ticker.
-
-### Evidence
-- `DesktopHeader.tsx:503-510`, `globals.css` `.news-ticker-content` and `@keyframes tickerScroll`.
-
-### Troubleshooting / Next Steps
-1. Add `:hover, :focus-within { animation-play-state: paused; }` to `.news-ticker-content`.
-2. Add `@media (prefers-reduced-motion: reduce) { .news-ticker-content { animation: none; } }`.
-3. Optional: replace the marquee with a static rotating list (3 items visible, swappable every 5s with a "show next" button).
-
-### Resolution
-Resolved (2026-06-17) — Phase 1.8: Replaced the auto-scrolling `role="marquee"` in `DesktopHeader.tsx` with a static rotating list. Top 3 notifications rotate every 5s via `setInterval` driven by a `headlineIndex` state. The `<li>` content uses `aria-live="polite"` and `aria-atomic="true"` for screen readers. Edge cases handled: stale `headlineIndex` reset to 0 when length drops below 2, welcome message shown for empty notifications array. CSS animation (`@keyframes tickerScroll`) removed from `globals.css`.
-
-### Notes For Future Agents
-- `prefers-reduced-motion` is already handled globally by `useReducedMotion` — but the ticker uses pure CSS animation, bypassing the React hook. The CSS-level `@media` query is the right fix.
 
 ---
 
-## BUG-016 — C3: Emoji used as an icon
-
-### Status
-Resolved (2026-06-17)
-
-### Severity
-Low
-
-### Category
-Design System
-
-### Date Discovered
-2026-06-17
-
-### Discovered By
-AI Agent (UI/UX audit verification)
-
-### Location
-
-- `src/components/game/headers/DesktopHeader.tsx:505` — `<span ... >📰 NEWS</span>`
-- `src/lib/game/data.ts:2` — `emoji: '⚙️'`
-
-### Problem Found
-A literal emoji is used where a lucide icon should be. Emojis render inconsistently across OS/browser and provide no semantic value to screen readers.
-
-### Expected Behavior
-`<Newspaper />` from `lucide-react` (already in dependencies).
-
-### Actual Behavior
-`📰 NEWS` literal emoji.
-
-### Root Cause / Reason
-**Confirmed.** Convenience during initial implementation.
-
-### Troubleshooting / Next Steps
-1. Replace `📰 NEWS` with `<Newspaper />` from `lucide-react`.
-2. Replace `⚙️` in `data.ts` with the `Cog` icon (already used elsewhere).
-
-### Resolution
-Resolved (2026-06-17) — Phase 1.8: The `📰 NEWS` emoji was removed as part of the news ticker replacement (BUG-015 fix). The ticker now uses `<Newspaper />` from `lucide-react` (added to the import list). The ⚙️ emoji in `src/lib/game/data.ts:2` is still present and is a known follow-up.
-
----
-
-## BUG-017 — H1+M1+M2+M3+M7: Design-token adoption ~50%
-
-### Status
-Resolved (2026-06-17)
-
-### Severity
-High
-
-### Category
-Design System
-
-### Date Discovered
-2026-06-17
-
-### Discovered By
-AI Agent (UI/UX audit verification)
-
-### Location
-
-- 45+ files across `src/**`
-- 188 raw hex color usages total; 167× `bg-[#0a0e17]` alone
-- `src/app/globals.css` lines 81–95: tokens exist (`--color-success`, `--color-warning`, `--color-danger`, `--color-brand`, `--color-premium`, `--color-research`, `--color-domain`, etc.) but are not consistently used
-
-### Problem Found
-The semantic token system was added (see comments in `globals.css`: `/* replaces text-green-400 */` etc.) but back-migration was never completed. Hundreds of raw palette and hex values bypass the token layer.
-
-### Specific sub-issues
-- **M1**: `bg-[#0a0e17]` ×167 → should be `bg-background` / `bg-sidebar`
-- **M2**: `GameSidebar.tsx:227` uses `focus-visible:ring-cyan-500/50` while header uses `focus-visible:ring-brand` — inconsistent focus token
-- **M3**: `GameSidebar.tsx:250-251` admin link uses raw `text-amber-400/300`, `bg-amber-500/10` instead of `text-warning` / `bg-warning/10`
-- **M7**: `BottomNavigationBar.tsx:200,211` uses raw `via-cyan-500/20` and `via-cyan-500/15` in gradient dividers
-
-### Top palette violations counted
-- 167× `bg-[#0a0e17]`
-- 46× `bg-amber-900`, 33× `bg-yellow-900`, 24× `bg-amber-500`
-- 139× `bg-zinc-800/900`, 38× `bg-zinc-700`, 20× `bg-zinc-500`
-- 17× `bg-fuchsia-900`, 7× `bg-violet-900`
-- 23× `bg-red-500`, 12× `bg-emerald-500`
-
-### Expected Behavior
-All colors should use semantic tokens (`bg-background`, `text-warning`, `border-premium`, etc.) so theme changes propagate consistently.
-
-### Actual Behavior
-~50% adoption. The other 50% is hardcoded.
-
-### Root Cause / Reason
-**Confirmed.** Tokens added later than the components that should have used them. No automated check to prevent regressions.
-
-### Troubleshooting / Next Steps
-1. Mechanical replace via codemod:
-   - `bg-[#0a0e17]` → `bg-background` (verify in 5 representative components first)
-   - `text-amber-400/300/500` → `text-warning` / `text-warning/80`
-   - `text-zinc-400/500/600` → `text-muted-label`
-   - `border-fuchsia-*` / `text-fuchsia-400` → `border-premium` / `text-premium`
-   - `border-violet-*` / `text-violet-400` → `border-research` / `text-research`
-   - `text-red-400/500`, `bg-red-500` → `text-danger`, `bg-danger`
-   - `text-emerald-400/500` → `text-success`, `bg-success`
-2. Unify focus ring to `ring-brand` across all interactive elements.
-3. Add ESLint rule + CI grep gate blocking new raw hex + raw palette classes.
-
-### Resolution
-Resolved (2026-06-17) — Phase 2: Comprehensive design-token sweep across 94 files. Replaced 152× `bg-[#0a0e17]` with `bg-background`, 5× `ring-cyan-*` with `ring-brand`, 216× `amber/yellow` with `warning`, ~280× `red/emerald/fuchsia/violet/zinc` with `danger/success/premium/research/muted-label`, and ~120× `blue/purple/orange/cyan/gray/sky/teal/rose/lime/green/pink/indigo/slate` with appropriate tokens. Result: 0 raw hex, 0 raw palette violations remaining. Token usage after: `brand` × 646, `muted-label` × 1583, `success` × 396, `warning` × 367, `danger` × 276. CI gate documented in `planning/CI_GATES.md`.
-
-### Notes For Future Agents
-- The tokens already exist — do not invent new ones. Use the canonical list in `globals.css:81-95`.
-- The fix is mechanical but visual review is needed per component (gradients, opacity stacks).
 
 ---
 
@@ -1164,6 +661,12 @@ Tablet users see either cramped mobile or desktop layout, depending on which bre
 ### Root Cause / Reason
 **Confirmed.** No tablet design phase in the original implementation.
 
+### Investigation Performed
+- Counted Tailwind responsive utility occurrences: `sm:` 131×, `md:` 23×, `lg:` 58× across `src/**`.
+
+### Evidence
+- Related code: panel grids in `src/app/page.tsx`, `src/components/game/headers/`, `src/components/game/GameSidebar.tsx`, `src/components/game/BottomNavigationBar.tsx`.
+
 ### Troubleshooting / Next Steps
 1. Audit each panel at 768px width using a browser dev tools.
 2. Define tablet grid columns (e.g., 2-col instead of 1-col on mobile, 3-col instead of 4-col on desktop).
@@ -1173,105 +676,14 @@ Tablet users see either cramped mobile or desktop layout, depending on which bre
 ### Resolution
 Not resolved. See implementation plan `planning/UI_UX_REMEDIATION_PLAN.md` Phase 4.
 
----
-
-## BUG-020 — H4: No `next/image` — 2 raw `<img>` tags for avatars
-
-### Status
-Resolved (2026-06-17)
-
-### Severity
-Medium
-
-### Category
-Performance (CLS, no image optimization)
-
-### Date Discovered
-2026-06-17
-
-### Discovered By
-AI Agent (UI/UX audit verification)
-
-### Location
-
-- `src/components/game/headers/DesktopHeader.tsx` (line ~345): `<img src={userAvatar} alt={userName} className="w-5 h-5 rounded-full" />`
-- `src/components/game/headers/MobileHeader.tsx` (line ~?): `<img src={userAvatar} alt={userName} className="w-6 h-6 rounded-full" />`
-
-### Problem Found
-Zero `next/image` imports in the project. Two raw `<img>` tags for user avatars. No image optimization, no CLS prevention, no responsive sizes.
-
-### Expected Behavior
-Use `next/image` with explicit width/height (or `fill` with `sizes`) for all image content.
-
-### Actual Behavior
-Raw `<img>` tags. The audit mentioned QR codes in `SettingsPanel.tsx` but my grep found no `<img>` there — only the 2 avatar images.
-
-### Root Cause / Reason
-**Confirmed.** Convenience during initial implementation.
-
-### Troubleshooting / Next Steps
-1. Migrate the 2 `<img>` tags to `next/image`.
-2. Configure `next.config.js` `images.remotePatterns` if avatars come from Supabase storage.
-3. Add a lint rule to block future `<img>` usage.
-
-### Resolution
-Resolved (2026-06-17) — Phase 3.2: Migrated both `<img>` tags (DesktopHeader.tsx:468, MobileHeader.tsx:426) to `next/image`. Added `import Image from 'next/image'` to both files. Used explicit `width={20}` / `height={20}` (or 24×24 for mobile) to prevent CLS. Note: `next.config.ts` still has `images: { unoptimized: true }` — for full optimization, remove that flag.
-
 ### Notes For Future Agents
-- The current `next.config.ts` has `images: { unoptimized: true }`. This means `next/image` won't actually optimize — you need to remove this flag first.
+- Tablet range is 768–1023px (`md:`). Anything below mobile (`<sm:`) or above desktop (`lg:`).
 
 ---
 
-## BUG-021 — H5: Sub-11px typography
 
-### Status
-Resolved (2026-06-17)
+---
 
-### Severity
-High
-
-### Category
-Accessibility (WCAG 1.4.4 Resize Text)
-
-### Date Discovered
-2026-06-17
-
-### Discovered By
-AI Agent (UI/UX audit verification)
-
-### Location
-
-- 1,049 occurrences across `src/**`:
-  - 651× `text-[10px]`
-  - 260× `text-[9px]`
-  - 111× `text-[8px]`
-  - 69× `text-[11px]`
-  - 13× `text-[7px]`
-  - 2× `text-[13px]`
-  - 1× `text-[6px]`
-
-### Problem Found
-Hundreds of elements use type sizes below 11px, which is below readability thresholds and may fail WCAG zoom/resize requirements.
-
-### Expected Behavior
-Raise the floor to 11px. Allow 8–10px only for non-essential decoration (badges, count chips).
-
-### Actual Behavior
-~13% of typography is below 11px, with several below 8px.
-
-### Root Cause / Reason
-**Confirmed.** Density-driven design (power-user target). No readability review.
-
-### Troubleshooting / Next Steps
-1. Inventory: which classes are decorative vs informational?
-2. For informational content, raise to `text-[11px]` minimum.
-3. For decorative (badges, count chips, separators), keep but document the rationale.
-
-### Resolution
-Resolved (2026-06-17) — Phase 4.4: Raised the typography floor. All `text-[6px]`, `text-[7px]`, `text-[8px]` (125 occurrences) replaced with `text-[11px]`. `text-[9px]` and `text-[10px]` left as-is for decorative density. Result: 0 sub-11px text, `text-[11px]` usage went from 69 → 195. (Per-component review still recommended to distinguish informational vs. decorative for `text-[9px]` and `text-[10px]`.)
-
-### Notes For Future Agents
-- The tailwind default `text-xs` is 12px; `text-[10px]` etc. are arbitrary. Consider adding a custom utility `text-2xs` (10px) to make decorative-vs-informational explicit.
 
 ---
 
@@ -1309,6 +721,13 @@ Token used uniformly; no per-context contrast check.
 ### Root Cause / Reason
 **Suspected.** Token inherited from a generic shadcn/ui palette; no project-specific contrast review.
 
+### Investigation Performed
+- Token definition found at `src/app/globals.css:85` (`--color-muted-label: #94a3b8;`).
+- 795 usages across `src/**`.
+
+### Evidence
+- Related code: `src/app/globals.css:85` token definition; usages throughout `src/components/`.
+
 ### Troubleshooting / Next Steps
 1. Run a contrast check on the top 10 most-used contexts (sidebar nav, header meta, table captions, etc.) using `axe-core` or `polypane`.
 2. For any context failing 4.5:1, restrict `text-muted-label` to large text only.
@@ -1317,91 +736,14 @@ Token used uniformly; no per-context contrast check.
 ### Resolution
 Not resolved. See implementation plan `planning/UI_UX_REMEDIATION_PLAN.md` Phase 4.
 
----
-
-## BUG-023 — M4: Sidebar `expandedGroups` not persisted
-
-### Status
-Resolved (2026-06-17)
-
-### Severity
-Low
-
-### Category
-Navigation / State
-
-### Date Discovered
-2026-06-17
-
-### Discovered By
-AI Agent (UI/UX audit verification)
-
-### Location
-
-- `src/components/game/GameSidebar.tsx:165` — `const [expandedGroups, setExpandedGroups] = useState<Set<string>>(`
-
-### Problem Found
-Sidebar group expand/collapse state is held in a local `useState`. Reloading the page resets all groups to their default (Production group expanded).
-
-### Expected Behavior
-User's group preferences persist across reloads (localStorage or `useSettingsStore`).
-
-### Actual Behavior
-Every reload returns the sidebar to its default.
-
-### Root Cause / Reason
-**Confirmed.** No persistence layer for navigation UI state.
-
-### Troubleshooting / Next Steps
-1. Persist `expandedGroups` in `useSettingsStore` (already exists per `src/lib/game/settingsStore.ts`).
-2. OR use `localStorage` with a versioned key.
-3. Consider also persisting: last active tab per group, scroll position, sidebar collapsed/expanded overall.
-
-### Resolution
-Resolved (2026-06-17) — Phase 1.6: Added `expandedGroups: string[]` and `toggleExpandedGroup(groupId: string)` to `src/lib/game/settingsStore.ts`. `GameSidebar.tsx` now reads from the store and persists via the zustand `persist` middleware (localStorage). On reload, the user's group expand/collapse state is preserved.
+### Notes For Future Agents
+- WCAG threshold for body text is 4.5:1; for large text (≥ 18px or 14px bold) it is 3:1.
 
 ---
 
-## BUG-024 — M5: No `aria-current="page"` on active tab
 
-### Status
-Resolved (2026-06-17)
+---
 
-### Severity
-Medium
-
-### Category
-Accessibility
-
-### Date Discovered
-2026-06-17
-
-### Discovered By
-AI Agent (UI/UX audit verification)
-
-### Location
-
-- `src/components/game/GameSidebar.tsx:221` — `const isActive = activeTab === tab.id;` (visual styling only, no `aria-current`)
-- `src/components/game/BottomNavigationBar.tsx:171` — same pattern
-
-### Problem Found
-Active tab uses `isActive` boolean for visual styling (color, dot, chevron) but does not set `aria-current="page"`. Screen-reader users can't tell which tab is active.
-
-### Expected Behavior
-`aria-current="page"` on the active tab link/button.
-
-### Actual Behavior
-Visual-only indication.
-
-### Root Cause / Reason
-**Confirmed.** A11y was not part of the original sidebar/bottom-nav implementation.
-
-### Troubleshooting / Next Steps
-1. Add `aria-current={isActive ? 'page' : undefined}` to the active tab's `<button>` or `<a>`.
-2. Verify with VoiceOver / NVDA.
-
-### Resolution
-Resolved (2026-06-17) — Phase 1.7: Added `aria-current={isActive ? "page" : undefined}` to the active tab `<button>` in `GameSidebar.tsx:355` and the sub-tab `<motion.button>` in `BottomNavigationBar.tsx:182`. When `isActive` is true, `aria-current="page"` is set; otherwise undefined (React omits the attribute).
 
 ---
 
@@ -1438,6 +780,12 @@ Most values should resolve to the standard Tailwind spacing scale (0, 1, 2, 3, 4
 ### Root Cause / Reason
 **Partially Confirmed.** Real issue, magnitude is large but not catastrophic.
 
+### Investigation Performed
+- `grep -rE "w-\[|h-\[|px-\[|py-\[|gap-\[|inset-\[|text-\[|bg-\[" src/` used to count arbitrary utility classes.
+
+### Evidence
+- Related code: 1,233 arbitrary utility classes distributed across `src/**` (per audit numbers).
+
 ### Troubleshooting / Next Steps
 1. Use `tailwind-config-viewer` or similar to see which arbitrary values are most common.
 2. Round to the nearest standard value (e.g., `w-[17px]` → `w-4`).
@@ -1446,308 +794,287 @@ Most values should resolve to the standard Tailwind spacing scale (0, 1, 2, 3, 4
 ### Resolution
 Not resolved. See implementation plan `planning/UI_UX_REMEDIATION_PLAN.md` Phase 2.
 
----
-
-## BUG-026 — M8: 3 stray `console.log` statements
-
-### Status
-Resolved (2026-06-17)
-
-### Severity
-Low
-
-### Category
-Dead code
-
-### Date Discovered
-2026-06-17
-
-### Discovered By
-AI Agent (UI/UX audit verification)
-
-### Location
-
-- `src/components/game/shared/IconPreloader.tsx:59` — `console.log('[IconPreloader] Loaded ${...}')`
-- `src/components/providers/GameConfigProvider.tsx:124` — `console.log('[GameConfigProvider] Loaded from cache: ...')`
-- `src/components/providers/GameConfigProvider.tsx:127` — `console.log('[GameConfigProvider] Fetched fresh config: ...')`
-
-### Problem Found
-Three `console.log` statements left in production code. Should use the project's `logger.ts` (mentioned in `PROJECT_STATUS_SOURCE_OF_TRUTH.md` as part of C6 fix) which is NODE_ENV-gated.
-
-### Expected Behavior
-All console output goes through the logger (or is removed).
-
-### Actual Behavior
-Direct `console.log` calls.
-
-### Root Cause / Reason
-**Confirmed.** Audit said "2" but actual count is 3.
-
-### Troubleshooting / Next Steps
-1. Replace with `logger.info(...)` or `logger.debug(...)`.
-2. Verify `logger.ts` exists and is the right utility.
-
-### Resolution
-Resolved (2026-06-17) — Phase 1.4: Removed 3 stray `console.log` calls. `IconPreloader.tsx:59`, `GameConfigProvider.tsx:127`, `GameConfigProvider.tsx:192`. All 0 remaining. (A `logger.ts` does not exist — these were simply removed rather than routed through a logger.)
-
----
-
-## BUG-027 — L1: `TradingPostPanel/` directory holds only `MarketPriceChart.tsx`
-
-### Status
-Resolved (2026-06-17)
-
-### Severity
-Low
-
-### Category
-Architecture
-
-### Date Discovered
-2026-06-17
-
-### Discovered By
-AI Agent (UI/UX audit verification, revised after user feedback)
-
-### Location
-
-- `src/components/game/TradingPostPanel/MarketPriceChart.tsx` (5,982 bytes)
-- `src/components/game/TradingPostPanel.tsx` (41,543 bytes, lives in the parent directory)
-- **Used in:** `TradingPostPanel.tsx:29` (import) and `:783` (rendered with `resourceId`, `hours={24}`, etc.)
-
-### Problem Found
-**REVISED 2026-06-17:** The audit flagged this as "empty/near-empty directory" implying dead code. **Verification shows the file is in active use** — `MarketPriceChart` is imported in `TradingPostPanel.tsx:29` and rendered at `TradingPostPanel.tsx:783` (always rendered when the panel is mounted).
-
-The only issue is the **directory structure** — a subdirectory holding a single helper component while the main panel lives in the parent. This is a co-location/style concern, not a dead-code concern.
-
-### Expected Behavior
-Either:
-- (a) Move `MarketPriceChart.tsx` into the parent (`src/components/game/MarketPriceChart.tsx`) and remove the empty subdirectory, OR
-- (b) Split `TradingPostPanel.tsx` (1,027 lines) into multiple sub-components all living in `TradingPostPanel/`.
-
-### Actual Behavior
-One helper file alone in a subdirectory, but the file is fully used.
-
-### Root Cause / Reason
-**Confirmed (architecture only).** Half-done refactor. The file is connected; the directory is just oddly named.
-
-### Troubleshooting / Next Steps
-1. Pick option (a) for minimum risk, OR option (b) for technical-debt reduction.
-2. After moving, update the import in `TradingPostPanel.tsx` from `./TradingPostPanel/MarketPriceChart` → `./MarketPriceChart`.
-
-### Resolution
-Resolved (2026-06-17) — Phase 1.5: Flattened the directory structure. `git mv src/components/game/TradingPostPanel/MarketPriceChart.tsx src/components/game/MarketPriceChart.tsx`, removed the now-empty `TradingPostPanel/` directory, and updated the import in `src/components/game/TradingPostPanel.tsx:29` from `./TradingPostPanel/MarketPriceChart` to `./MarketPriceChart`. Git recognized this as a rename (R). The file is unchanged in content — it is actively used (imported + rendered at line 783).
-
 ### Notes For Future Agents
-- **This is NOT dead code.** The file is in an active render path. Do not delete it.
-- The original "broken connection" hypothesis (file planned for a feature that was never wired up) does NOT apply — the file is wired and rendering.
+- Standard Tailwind spacing scale: 0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24, … — arbitrary values should be reserved for legitimate one-offs.
 
-## BUG-028 — L2: `Swords` lucide icon — registered but unreferenced in any feature
+---
+
+
+---
+
+
+---
+
+
+---
+
+
+---
+
+
+---
+
+## BUG-033 — `src/middleware.ts` triggers Next.js 16.1 deprecation warning
 
 ### Status
-Resolved (2026-06-17)
+Open
 
 ### Severity
 Low
 
 ### Category
-Dead infrastructure (was: Dead code)
+Infra
 
 ### Date Discovered
-2026-06-17
+2026-06-19
 
 ### Discovered By
-AI Agent (UI/UX audit verification, revised after user feedback)
+AI Agent (Phase 1 staging test 1 — dev server boot log)
 
 ### Location
 
-- `src/components/game/GameSidebar.tsx:10` — `Settings, ChevronDown, ChevronRight, Home, Wrench, Swords, Coins, Database,` (imports)
-- `src/components/game/BottomNavigationBar.tsx:14` — `Swords` imported with other lucide icons
-- `src/components/game/BottomNavigationBar.tsx:25` — `Swords` registered in **`ICON_MAP`**: `export const ICON_MAP = { ..., Activity, Save, Swords, }`
+`src/middleware.ts`
 
 ### Problem Found
-**REVISED 2026-06-17 (user-flagged):** My initial verification was incomplete. I claimed `Swords` was dead-imported; the user correctly pointed out this could be a "broken connection" — an infrastructure piece for an unwired feature.
-
-**Verification on 2026-06-17:** `Swords` IS in the `ICON_MAP` (line 25 of `BottomNavigationBar.tsx`):
-```ts
-export const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
-  Home, Wrench, Truck, ..., Activity, Save, Swords,  // ← Swords is here
-};
+When `npm run dev` starts, Next.js 16.1.3 (Turbopack) emits:
+```
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
 ```
 
-The `ICON_MAP` is consumed by:
-- `src/components/game/FloatingActionButton.tsx:72` — `const IconComponent = ICON_MAP[shortcut.icon];`
-- `src/components/game/SettingsPanel.tsx:668` — same lookup pattern
-
-So if a user adds a Quick Access shortcut with `icon: "Swords"`, the FAB will render the Swords icon. **The chain is intact.**
-
-The "broken connection" is therefore narrower than the audit suggested: the icon registration IS wired correctly to the FAB/Settings; **no feature currently has `icon: "Swords"`**. There is no `GameTab` called `'battles'` / `'arena'` / `'combat'` / `'fight'`, and no default Quick Access shortcut uses `Swords`.
+The file `src/middleware.ts` should be renamed to `src/proxy.ts` to follow the new Next.js 16 convention. The function is still exported as `middleware` and the route protection logic is unchanged, but the filename is deprecated.
 
 ### Expected Behavior
-Either:
-- (a) Add a feature that uses `icon: "Swords"` (e.g., a Battles/Arena tab — would require new `GameTab` and new panel), OR
-- (b) Add a default Quick Access shortcut using `Swords`, OR
-- (c) Remove `Swords` from the 3 import lists and from `ICON_MAP` if no feature is planned.
+No deprecation warning in dev server boot. The file should be at `src/proxy.ts` and export a `proxy` function (or keep the `middleware` export if both are still supported).
 
 ### Actual Behavior
-Icon registered in ICON_MAP, import lines present, but no consumer references the `"Swords"` key.
+Warning printed on every dev server start. Will become a hard error in a future Next.js major version.
 
 ### Root Cause / Reason
-**Confirmed.** Likely leftover from a planned PvP/Battles feature that was scoped out. The icon remained in `ICON_MAP` as a registered entry but no `GameTab` was added.
+**Confirmed.** Next.js 16.1 deprecated the `middleware` filename in favor of `proxy`. The migration is a rename; the function signature is identical.
+
+### Investigation Performed
+- Read the dev server boot log.
+- Confirmed warning appears once per `npm run dev` invocation.
+- Confirmed the proxy.ts convention is documented at https://nextjs.org/docs/messages/middleware-to-proxy.
+
+### Evidence
+```
+▲ Next.js 16.1.3 (Turbopack)
+- Local:         http://localhost:3000
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.
+```
 
 ### Troubleshooting / Next Steps
-1. **Recommended:** Keep the `Swords` import + `ICON_MAP` registration as infrastructure for a future feature. Add a comment: `// Reserved for future PvP/Battles feature`.
-2. Alternative: Remove `Swords` from the 3 import lists AND from `ICON_MAP` (line 25 of `BottomNavigationBar.tsx`).
-3. The audit's recommendation to "verify it's referenced by FAB" is satisfied — the FAB references ICON_MAP which contains Swords — so the import is NOT dead.
+1. Create `src/proxy.ts` as a copy of `src/middleware.ts`.
+2. Rename the exported function from `middleware` to `proxy` (and update the `config` export's name if needed).
+3. Delete `src/middleware.ts`.
+4. Verify dev server starts without warning.
+5. Verify all 5 auth routes + `/api/game/state` still set `x-real-ip`.
+6. Verify admin route protection still works.
 
 ### Resolution
-Resolved (2026-06-17) — Phase 1.3 (revised): NOT dead code. `Swords` is registered in the `ICON_MAP` exported from `src/components/game/BottomNavigationBar.tsx:25` and is consumed by `FloatingActionButton.tsx:72` and `SettingsPanel.tsx:668` via `ICON_MAP[shortcut.icon]`. The chain is intact. Added a code comment: `// Swords reserved for future PvP/Battles feature (no GameTab yet)`. Also removed unused `useCallback` import from `GameSidebar.tsx` (it was only used by the local `toggleGroup` which is now from the store).
+Not yet fixed. Deferred to a future cleanup commit because the warning is non-fatal and the rename requires touching every file in the `proxy.ts` chain. **Estimated effort: 10 minutes** (file copy + rename + verification).
 
 ### Notes For Future Agents
-- **This is NOT dead code.** `Swords` is part of a working icon registry. The chain is: `Swords` (lucide import) → `ICON_MAP` (registry) → `FloatingActionButton` / `SettingsPanel` (consumers). The "broken connection" is upstream — no `GameTab` is wired to use it.
-- If a future PvP/Battles feature is built, the icon is already registered. Removing it now would require re-adding it later.
-- The `Swords` import in `GameSidebar.tsx:10` is technically unused (the sidebar doesn't reference ICON_MAP). The two `Swords` imports in `BottomNavigationBar.tsx:14, 25` are the only ones that matter — one for the JSX-side import (currently unused), one for the ICON_MAP registration (used by FAB/Settings).
-
-## BUG-029 — L3: `powerPercent = 0` dead variable in `page.tsx`
-
-### Status
-Resolved (2026-06-17)
-
-### Severity
-Low
-
-### Category
-Dead code
-
-### Date Discovered
-2026-06-17
-
-### Discovered By
-AI Agent (UI/UX audit verification)
-
-### Location
-
-- `src/app/page.tsx:261` — `const powerPercent = 0; // unused after header extraction (DesktopHeader computes internally)`
-
-### Problem Found
-A dead variable with a self-describing comment confirming it's unused.
-
-### Expected Behavior
-Removed.
-
-### Actual Behavior
-Variable declared, value `0`, never read.
-
-### Root Cause / Reason
-**Confirmed.** Comment says: `// unused after header extraction (DesktopHeader computes internally)`.
-
-### Troubleshooting / Next Steps
-1. Delete the line.
-2. Verify `DesktopHeader` (line 68 confirmed: `const powerPercent = powerGrid.totalConsumption > 0 ...`) does the work independently.
-
-### Resolution
-Resolved (2026-06-17) — Phase 1.2: Removed the dead variable `const powerPercent = 0; // unused after header extraction (DesktopHeader computes internally)` from `src/app/page.tsx:261`. The actual `powerPercent` calculation is done in `DashboardPanel.tsx:64`, `DesktopHeader.tsx:68`, and `MobileHeader.tsx:68`. Verified: `grep -c "powerPercent" src/app/page.tsx` = 0.
+- The middleware→proxy migration is purely a filename convention change. The function signature and behavior are identical.
+- If multiple files import from `@/middleware`, check the import paths first.
+- The Next.js documentation link in the warning is authoritative.
 
 ---
 
-## BUG-030 — L4: News ticker content is `aria-hidden="true"` + `aria-live="off"`
+## BUG-034 — `cleanup_orphan_anon_users` FK violation on `profiles` table
 
 ### Status
-Resolved (2026-06-17)
+Resolved (2026-06-19)
 
 ### Severity
-Low
+High
 
 ### Category
-Accessibility
+Data
 
 ### Date Discovered
-2026-06-17
+2026-06-19
 
 ### Discovered By
-AI Agent (UI/UX audit verification)
+AI Agent (pg_cron enablement + test)
 
 ### Location
 
-- `src/components/game/headers/DesktopHeader.tsx:503` — `<div ... role="marquee" aria-live="off" aria-label="Live news feed">`
-- `src/components/game/headers/DesktopHeader.tsx:507` — `<div className="news-ticker-content ..." aria-hidden="true">`
+`supabase/migrations/051_cleanup_orphan_anon_users.sql` (original)
+Fixed in `supabase/migrations/052_fix_cleanup_orphan_anon_profiles_check.sql`
 
 ### Problem Found
-The news ticker announces a "Live news feed" but the actual news content is `aria-hidden="true"` and the region is `aria-live="off"`. Screen-reader users get zero news content.
+When `cleanup_orphan_anon_users()` was tested by inserting an old anonymous user and running the function, it failed with:
+
+```
+ERROR:  23503: update or delete on table "users" violates foreign key constraint "profiles_id_fkey" on table "profiles"
+DETAIL:  Key (id)=(e5666f59-5d9e-4b56-b67e-cb24d54679dc) is still referenced from table "profiles".
+```
+
+**Root cause:** Supabase's `on_auth_user_created` trigger (defined in migration `020_profiles_and_guest_identities.sql`) automatically inserts a row into `public.profiles` whenever a new `auth.users` row is created. This means **every** anonymous user has a corresponding `profiles` row — even if they never played. The original `cleanup_orphan_anon_users()` function only checked `server_game_state` and `guest_identities`, missing the `profiles` table entirely.
+
+**Why this would have caused silent corruption in production:** If `pg_cron` had run the function on the existing 4 anon users, all 4 would have been blocked by the FK violation → the function would raise an exception → `cron.job_run_details.status = 'failed'` → no users deleted → table bloat continues, and the only signal is a `failed` row in the cron history that no one checks. Over weeks, the user table could grow unbounded.
 
 ### Expected Behavior
-Either:
-- (a) Provide a non-scrolling, accessible alternative (e.g., the latest 3 headlines as a static `<ul>`), OR
-- (b) Make the ticker content screen-reader accessible via `role="log"`, `aria-live="polite"`, and remove `aria-hidden`.
+- Insert a 30+ day old anonymous user (with auto-created profile).
+- Run `cleanup_orphan_anon_users()`.
+- Function returns 0 (user not deleted because they have a profile — but in this case, we want to keep it that way for safety).
+- No FK violation.
+- For a user with NO profile (truly orphan), function returns 1 and deletes the user.
 
 ### Actual Behavior
-Visual-only news; no SR equivalent.
+- Function always threw `23503: foreign key violation` on the first candidate user it tried to delete.
+- No users were ever deleted.
+- The exception was logged in `cron.job_run_details` but not surfaced anywhere.
 
 ### Root Cause / Reason
-**Confirmed.** Visual decoration; a11y was not considered.
+**Confirmed.** Missing `AND NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = u.id)` in the `WITH orphans AS (...)` CTE.
+
+The FK on `profiles.id REFERENCES auth.users(id)` is defined as `NO ACTION` (not `CASCADE`), so the DB blocks the parent delete when a child row exists. We could either:
+1. **Add the filter** (chosen — no schema change, more conservative)
+2. **Change FK to CASCADE** (not chosen — affects ALL profile deletes, not just this function)
+
+### Investigation Performed
+1. Enabled `pg_cron` extension in Supabase Dashboard.
+2. Scheduled `cleanup-orphan-anon` job at `0 3 * * *`.
+3. Manually invoked `SELECT public.cleanup_orphan_anon_users();` → returned 0 (correct, no orphans).
+4. Realized the function had never been tested with a user that has a `profiles` row (the existing 4 anon users in the DB all happen to have `server_game_state` rows, so the CTE filter excluded them before hitting the profile check).
+5. Wrote a test: `BEGIN; INSERT INTO auth.users ... DELETE FROM profiles WHERE id = ...; SELECT cleanup_orphan_anon_users();` — first attempt failed with FK violation.
+6. Added `NOT EXISTS profiles` to the CTE.
+7. Re-ran the test — function correctly returned 1 and deleted the true orphan.
+
+### Evidence
+```sql
+-- Pre-fix error:
+ERROR:  23503: update or delete on table "users" violates foreign key constraint "profiles_id_fkey" on table "profiles"
+
+-- Post-fix test 1 (user WITH profile — should NOT be deleted):
+SELECT public.cleanup_orphan_anon_users();  -- returns 0
+SELECT count(*) FROM auth.users WHERE email LIKE 'test-%@test.invalid';  -- returns 1 (survived)
+
+-- Post-fix test 2 (user WITHOUT profile — true orphan — should be deleted):
+SELECT public.cleanup_orphan_anon_users();  -- returns 1
+SELECT count(*) FROM auth.users WHERE email LIKE 'test2-%@test.invalid';  -- returns 0 (deleted)
+```
 
 ### Troubleshooting / Next Steps
-- See BUG-015 for the related marquee pause control.
-- Recommended approach: combine — make the ticker a static rotating list (3 visible items, auto-rotate every 5s) with `aria-live="polite"` and pause-on-hover. This satisfies both BUG-015 and BUG-030.
+None — fixed.
 
 ### Resolution
-Resolved (2026-06-17) — Same fix as BUG-015 (Phase 1.8). The news ticker content is no longer `aria-hidden`; it is now a real `<li>` with `aria-live="polite"` and `aria-atomic="true"` on the parent `<ul>`. Screen-reader users now hear the top headline announced, and the `aria-live="off"` + `aria-hidden="true"` regression is fixed.
+- **Migration 052 applied** (`052_fix_cleanup_orphan_anon_profiles_check.sql`): `CREATE OR REPLACE FUNCTION public.cleanup_orphan_anon_users()` adds `AND NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = u.id)` to the orphans CTE.
+- **Re-granted** EXECUTE to service_role only (no anon/authenticated).
+- **Manual test passed** (both user-with-profile and user-without-profile cases).
+- **No existing users affected** — 4 anon users all have `server_game_state` rows, so still excluded.
 
 ### Notes For Future Agents
-- Tied to BUG-015. Single fix likely resolves both.
+- **The `profiles` table is auto-populated by a Supabase trigger on every new `auth.users` insert.** This is not documented in the table itself; you have to know about the trigger.
+- **Before writing any "delete from auth.users" logic, check ALL tables that FK-reference `auth.users`.** In this project, that's at least: `profiles`, `server_game_state`, `guest_identities`, `cheat_investigations`, `pending_link_operations`, `merge_audit_log`, `merge_receipts`, `support_tickets`, `support_messages`, `admin_actions`, `rate_limits`. The function's filter should enumerate every "is this a real user?" signal.
+- **Even better: add a `is_orphaned` view** that consolidates all these checks, and have `cleanup_orphan_anon_users` just `DELETE FROM auth.users WHERE id IN (SELECT id FROM is_orphaned)`. Easier to maintain.
+- **Always test with a user that has child rows**, not just a "naked" `auth.users` insert. The current 4 anon users were all `naked`-enough (had `server_game_state`) that the original test missed the profile case.
 
 ---
 
-## Resolved (2026-06-17 — Phases 1-4 of UI/UX Remediation)
+## BUG-041 — `apply_market_tick` RPC validates against basePrice instead of previous tick's currentPrice
 
-15 of the 30 tracked bugs were resolved during the UI/UX audit remediation. The detailed entries above are preserved; this section is a quick-reference summary for future agents.
+### Status
+Resolved (2026-06-22)
 
-| ID | Phase | Title | One-line fix |
-|---|---|---|---|
-| BUG-002 | 1 | `.rules` vs `RULES.md` conflict | Renamed `.rules/RULES.md` → `.rules` (Zed-recognized file). `git rm --cached RULES.md`. |
-| BUG-006 | 1 | `AGENT.md` out of date | Rewrote AGENT.md to reference `.rules`, remove `worklog.md`, point to canonical docs. |
-| BUG-014 | 3.1 | No code-splitting (28 panels) | All 28 panels converted to `next/dynamic()` with `DynamicPanelFallback`. DashboardPanel kept eager. |
-| BUG-015 | 1.8 | News ticker a11y (WCAG 2.2.2) | Replaced auto-scrolling marquee with static rotating list, `aria-live="polite"`, pause-on-empty handling. |
-| BUG-016 | 1.8 | Emoji as icon (📰) | Removed emoji; ticker now uses `<Newspaper />` from lucide-react. (⚙️ in data.ts still TBD.) |
-| BUG-017 | 2 | Design tokens ~50% adopted | Codemod replaced 152× `bg-[#0a0e17]`, 216× amber/yellow, ~280× red/emerald/etc, ~120× blue/cyan/etc with semantic tokens across 94 files. |
-| BUG-020 | 3.2 | No `next/image` | Migrated 2 `<img>` tags (DesktopHeader, MobileHeader) with explicit width/height. |
-| BUG-021 | 4.4 | Sub-11px typography | All `text-[6-7-8px]` (125 occurrences) raised to `text-[11px]`. |
-| BUG-023 | 1.6 | Sidebar state not persisted | Added `expandedGroups` + `toggleExpandedGroup` to `useSettingsStore`; GameSidebar reads from store. |
-| BUG-024 | 1.7 | No `aria-current` on active tab | Added `aria-current={isActive ? "page" : undefined}` to active tab buttons in GameSidebar + BottomNavigationBar. |
-| BUG-026 | 1.4 | Stray `console.log` × 3 | Removed (3 sites in IconPreloader + GameConfigProvider). (No logger.ts yet.) |
-| BUG-027 | 1.5 | Empty `TradingPostPanel/` dir | `git mv` flattened the directory; import path updated. |
-| BUG-028 | 1.3 | `Swords` icon — dead or broken? | Re-evaluated: NOT dead. `Swords` is in `ICON_MAP` (BottomNavigationBar.tsx:25), reachable via FAB/Settings. Added a `// Reserved for future PvP/Battles feature` comment. |
-| BUG-029 | 1.2 | Dead `powerPercent` variable | Removed from `page.tsx:261`. Real calculations live in DashboardPanel/DesktopHeader/MobileHeader. |
-| BUG-030 | 1.8 | News aria-hidden | Resolved by BUG-015 fix (same code change). |
+### Severity
+Critical
 
-| BUG-001 | 0 | 20 panels use `useGameStore()` without selectors | 19/20 panels migrated to `useShallow((s) => ({...}))` selectors. 1 remaining: `AchievementPanel.tsx` (out of scope). |
-| BUG-005 | 0 | `.env.example` has invalid `process.env.X` literal values | Replaced 14 `process.env.X` literals with empty values; users must fill real env vars. |
-| BUG-018 | 4.2 | aria-label gap on icon-only buttons | Installed `eslint-plugin-jsx-a11y`, enabled `control-has-associated-label` (warn) + `anchor-has-content` (error). Added 14 aria-labels in 9 game panels. 36 admin-page inputs remain (warn). |
-| BUG-019 | 4.3 | No tablet (`md:`) breakpoint | Added 5 `md:` breakpoints to `DashboardPanel` (stat grids, main content) + `GameSidebar` (icons-only at md, full at lg). |
-| BUG-022 | 4.5 | `text-muted-label` contrast risk | Measured: `#94a3b8` on `#0a0e17` = **7.53:1** (WCAG AAA). Documented in `globals.css:85`. No color change needed. |
-| BUG-025 | 2.5 | 1,233 arbitrary-value utility classes | Replaced 42 safe values with scale equivalents across 18 files. Remaining 1,191 are typography `text-[Npx]` (deferred - visual churn risk). |
-### What was NOT resolved (still open)
+### Category
+Infra / Cron / Data Integrity
 
-**From the UI/UX audit (deferred):**
-- BUG-025 typography portion (1,191 of 1,233 arbitrary values are `text-[Npx]`) — high visual-churn risk, deferred
-- BUG-018 admin-page follow-up (36 inputs across 12 admin pages — currently lint-warn, need same aria-label pass as game panels)
+### Date Discovered
+2026-06-22
 
-**Pre-existing (out of scope of the audit):**
-- BUG-003 (`prisma` in devDependencies, no `prisma/` dir) — pre-existing
-- BUG-007 (H6: 5s debounced persist loses data on mobile force-kill) — pre-existing
-- BUG-008 (L5: `handleReset` uses blocking `confirm()`) — pre-existing
-- BUG-009 (hardcoded Supabase anon key in test file) — pre-existing
-- BUG-010 (L4: `quickTradeAmounts` doesn't refresh) — pre-existing
-- BUG-011 (L2: `KEY_TAB_MAP` covers only 10 of 25+ tabs) — pre-existing
-- 
-- BUG-013 (`.omo/` and `skills/` directories empty) — pre-existing
+### Discovered By
+AI Agent (during manual cron worker health check)
 
-**Recently closed (UI audit scope):**
-- BUG-001 — 19/20 panels migrated; AchievementPanel deferred (needs ACHIEVEMENTS signature refactor)
-- BUG-004 — Test runner wired (72/73 tests pass)
-- BUG-005 — `.env.example` fixed
-- BUG-012 — `Math.random` for IDs → `crypto.randomUUID` (5/5 tests pass)
-- BUG-018 — game panels done; admin pages lint-warn
-- BUG-019 — DashboardPanel + GameSidebar have `md:` breakpoints
-- BUG-022 — contrast verified 7.53:1 (AAA pass), documented in `globals.css:85`
-- BUG-025 — 42 of 1,233 arbitrary values replaced; typography portion deferred
+### Location
+- `supabase/migrations/053_fix_apply_market_tick_deviation_baseline.sql` (fix)
+- `apply_market_tick(BIGINT, JSONB, REAL, JSONB, JSONB)` RPC in DB
+- `cloudflare/markettick/worker.js` (consumer — calls RPC every 60s)
+
+### Problem Found
+The `apply_market_tick` RPC validated per-tick price change against each resource's `basePrice`. As prices drifted from base over hundreds of ticks, more resources accumulated >50% deviation. Once any resource crossed the 50% threshold, the RPC threw an exception, rolled back the entire transaction, and silently froze the markettick cron.
+
+### Expected Behavior
+The RPC should validate against the **previous tick's `currentPrice`** (matching `marketEngine.js` semantics, where `SPIKE_CAP = 0.40` caps per-tick delta). A resource 66% below base should still be allowed to move 30% from its previous tick.
+
+### Actual Behavior
+Validation compared `|currentPrice − basePrice| / basePrice > 0.50`. Once a resource drifted past 50% from base, every further tick in the same direction was rejected with `Price change for voidEnergy exceeds 50% in single tick (base=3000000, current=1000000, change=0.67)`. The whole tick transaction rolled back. The cron kept firing every 60s, the worker kept POSTing, but `server_market_state` never advanced. `tick` stayed frozen at 2195 for **54 hours** (last update 2026-06-20 08:06:44, discovered 2026-06-22 14:08).
+
+### Root Cause / Reason
+**Confirmed.** Misplaced validation baseline in the RPC:
+```sql
+v_change_pct := ABS((v_current_price - v_base_price) / v_base_price);  -- WRONG: compares to base
+IF v_change_pct > 0.50 THEN RAISE EXCEPTION ...; END IF;
+```
+The engine (`marketEngine.js`) correctly caps per-tick delta at ±40%, but the RPC check used the wrong baseline (base instead of prev), so it could reject a per-tick change of even 1% if the resource was already >50% from base.
+
+The 5 high-end resources (`armadaFleet`, `corpCapital`, `dimensionalGate`, `shieldMatrix`, `voidEnergy`) had drifted to exactly 50% from base due to player sell pressure — once the cron produced a tick pushing them to 67%, the RPC permanently rejected all further ticks.
+
+### Investigation Performed
+1. Confirmed `newsgenerator` worker (`newsgenerator.malcolmkhong.workers.dev`) was healthy: GET /health returned 200, POST returned valid AI-generated headline.
+2. Confirmed `markettick` worker (`markettick.malcolmkhong.workers.dev`) was deployed: GET returned 200, wrangler.toml cron `["* * * * *"]` configured correctly.
+3. Inspected `server_market_state` via Supabase MCP: `tick=2195`, `updated_at=2026-06-20 08:06:44` (54h stale).
+4. Manually POSTed to `markettick.malcolmkhong.workers.dev` (proxy for cron trigger).
+5. Worker returned `{"tick":2196,"error":"apply_market_tick RPC failed: Price change for voidEnergy exceeds 50% in single tick (base=3000000, current=1000000, change=0.6667)"}`.
+6. Ran diagnostic SQL joining `server_market_state.prices` to identify which resources exceeded threshold: 5 mega-resources at exactly 50.0% deviation, 8 mid-tier at 40%.
+7. Pulled `apply_market_tick` definition via `pg_get_functiondef(oid)`. Identified the offending validation block.
+8. Verified `cloudflare/markettick/shared/marketEngine.js` caps per-tick change at `SPIKE_CAP = 0.40`, confirming the RPC baseline was inconsistent with engine semantics.
+9. Cross-checked migration 052: original `apply_market_tick` used `REAL` volatility; migration 052 changed to `NUMERIC` and reshuffled arg order to `(BIGINT, JSONB, JSONB, NUMERIC, JSONB)`. The migration 052 signature did not match what the worker calls — but because migration 052 had also dropped and recreated, this was masked until the new migration exposed the ambiguity.
+
+### Evidence
+**Pre-fix worker POST response (2026-06-22 14:08):**
+```json
+{"tick":2196,"events":0,"headlines":0,"volatility":1,"error":"apply_market_tick RPC failed: Price change for voidEnergy exceeds 50% in single tick (base=3000000, current=1000000, change=0.66666666666666666667)"}
+```
+
+**Pre-fix DB state:**
+```
+tick=2195, updated_at=2026-06-20 08:06:44, age=54h
+```
+
+**Resource drift (5 blocked):**
+```
+voidEnergy      base=3,000,000  current=1,500,000  dev=50.0%
+shieldMatrix    base=2,000,000  current=1,000,000  dev=50.0%
+dimensionalGate base=2,500,000  current=1,250,000  dev=50.0%
+armadaFleet     base=4,000,000  current=2,000,000  dev=50.0%
+corpCapital     base=5,000,000  current=2,500,000  dev=50.0%
+```
+
+**Post-fix worker POST response (2026-06-22 14:11):**
+```json
+{"tick":2197,"events":2,"headlines":2,"volatility":0.99}
+```
+
+**Post-fix DB state (after cron recovery, +60s):**
+```
+tick=2198, updated_at=2026-06-22 14:12:08, age=60s, news_headlines=2
+```
+
+### Troubleshooting / Next Steps
+None — fixed and verified by cron naturally advancing tick 2196 → 2197 → 2198 over ~2 minutes.
+
+### Resolution
+- **Migration 053 created and applied** (`053_fix_apply_market_tick_deviation_baseline.sql`): rewrote `apply_market_tick` to look up previous tick's `currentPrice` from the locked `server_market_state` row (now also SELECTed into `v_prev_prices` in the same `FOR UPDATE`), then validate against that. Falls back to `basePrice` only for brand-new resources that have no prior entry.
+- **Restored canonical arg order**: migration 052 had reshuffled to `(BIGINT, JSONB, JSONB, NUMERIC, JSONB)` but the worker calls `(BIGINT, JSONB, REAL, JSONB, JSONB)` (volatility in position 3). Migration 053 uses the original `REAL` volatility at position 3 to match the worker's call site and avoid `Could not choose the best candidate function` ambiguity.
+- **Verified end-to-end**: manual POST returns `{"tick":2197,"events":2,"headlines":2}`; natural cron tick advanced 2197 → 2198 within 60s; AI news generator called and stored 2 headlines.
+- **No data loss**: `server_market_state` preserved through the fix; only the validation logic changed, not the persistence path.
+
+### Notes For Future Agents
+- **The validation baseline choice is semantic, not syntactic.** When validating a per-step delta, always ask "delta from what?" — and the answer must match what the engine actually computes. `marketEngine.js` computes `newPrice` from `oldPrice` (previous tick); the RPC must compare to the same baseline.
+- **Real RPCs need real signatures.** Migration 052 changed the volatility type from `REAL` to `NUMERIC` AND reordered args. If a migration reshuffles args, **drop every existing overload** (`DROP FUNCTION IF EXISTS fn(BIGINT, JSONB, JSONB, REAL, JSONB)` for the OLD and `DROP FUNCTION IF EXISTS fn(BIGINT, JSONB, JSONB, NUMERIC, JSONB)` for the NEW), then create the single canonical one. Otherwise `42P13: no language specified` and `Could not choose the best candidate function` errors will surface as runtime bugs from the worker.
+- **`apply_migration` MCP tool requires `LANGUAGE plpgsql` explicitly** when using `CREATE OR REPLACE FUNCTION` — it does not inherit from a prior drop.
+- **Cron workers fail silently.** The markettick worker's `scheduled` handler catches errors and logs to console (`console.error('[MarketTick] Error:', err?.message)`), but Cloudflare's free-tier log retention is short and no alert was wired. For production, add a heartbeat insert to `system_status` or a counter in `server_market_state` so drift is detectable.
+- **This bug went undetected for 54 hours.** The admin system-status page (`src/app/api/admin/system-status/route.ts:88–105`) DOES detect it correctly: `minutesSinceTick < 2 ? 'ok' : minutesSinceTick < 5 ? 'late' : 'failed'`. The check ran on every admin visit, but no one was visiting the admin panel during the outage window. Consider adding a public `/api/health/cron-tick` endpoint that pings without auth, so external monitors (Better Stack, etc.) can alert on tick stagnation.
+
+---
+
+
+---
+
