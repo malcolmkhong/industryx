@@ -21,6 +21,7 @@ interface AuthState {
   deviceId: string | null;
   signInAnonymously: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  signInWithGithub: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -32,6 +33,7 @@ const AuthContext = createContext<AuthState>({
   deviceId: null,
   signInAnonymously: async () => {},
   signInWithGoogle: async () => {},
+  signInWithGithub: async () => {},
   signOut: async () => {},
 });
 
@@ -237,26 +239,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 }
   }, [deviceId, router]);
 
-  const signInWithGoogle = useCallback(async () => {
-    if (!isSupabaseConfigured || signingInRef.current) return;
-    signingInRef.current = true;
-    try {
-      const { createBrowserClient } = await import('@supabase/ssr');
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/api/auth/callback`,
-        },
-      });
-      if (error) throw new Error(error.message);
-    } finally {
-      setTimeout(() => { signingInRef.current = false; }, 1000);
-    }
-  }, []);
+  /**
+   * Provider-agnostic OAuth sign-in.
+   * Used by signInWithGoogle and signInWithGithub.
+   * Keeping a single source of truth for the redirect target and
+   * signingInRef guard logic.
+   */
+  const signInWithOAuthProvider = useCallback(
+    async (provider: 'google' | 'github') => {
+      if (!isSupabaseConfigured || signingInRef.current) return;
+      signingInRef.current = true;
+      try {
+        const { createBrowserClient } = await import('@supabase/ssr');
+        const supabase = createBrowserClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider,
+          options: {
+            redirectTo: `${window.location.origin}/api/auth/callback`,
+          },
+        });
+        if (error) throw new Error(error.message);
+      } finally {
+        setTimeout(() => { signingInRef.current = false; }, 1000);
+      }
+    },
+    []
+  );
+
+  const signInWithGoogle = useCallback(
+    () => signInWithOAuthProvider('google'),
+    [signInWithOAuthProvider]
+  );
+
+  const signInWithGithub = useCallback(
+    () => signInWithOAuthProvider('github'),
+    [signInWithOAuthProvider]
+  );
 
   const signOut = useCallback(async () => {
     disableServerValidation();
@@ -288,6 +309,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         deviceId,
         signInAnonymously,
         signInWithGoogle,
+        signInWithGithub,
         signOut,
       }}
     >

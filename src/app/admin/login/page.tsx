@@ -5,6 +5,7 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
+  const [loadingProvider, setLoadingProvider] = useState<'google' | 'github' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   if (!isSupabaseConfigured()) {
@@ -35,12 +36,17 @@ export default function LoginPage() {
     }
   }
 
-  const handleGoogleLogin = async () => {
+  /**
+   * Provider-agnostic admin login.
+   * Admin login only — admin email allowlist is enforced in /admin/auth/callback.
+   */
+  const handleOAuthLogin = async (provider: 'google' | 'github') => {
     setLoading(true);
+    setLoadingProvider(provider);
     setError(null);
 
     const { error: authError } = await supabase.auth.signInWithOAuth({
-      provider: "google",
+      provider,
       options: {
         redirectTo: `${window.location.origin}/admin/auth/callback`,
       },
@@ -49,8 +55,12 @@ export default function LoginPage() {
     if (authError) {
       setError(authError.message);
       setLoading(false);
+      setLoadingProvider(null);
     }
   };
+
+  const handleGoogleLogin = () => handleOAuthLogin('google');
+  const handleGithubLogin = () => handleOAuthLogin('github');
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
@@ -94,7 +104,7 @@ export default function LoginPage() {
           <div className="text-center mb-6">
             <h2 className="text-xl font-semibold text-white">Sign In</h2>
             <p className="text-muted-label text-sm mt-1">
-              Authenticate with your authorized Google account
+              Authenticate with your authorized Google or GitHub account
             </p>
           </div>
 
@@ -153,7 +163,41 @@ export default function LoginPage() {
                 />
               </svg>
             )}
-            <span>{loading ? "Connecting..." : "Sign in with Google"}</span>
+            <span>
+              {loading && loadingProvider === 'google'
+                ? "Connecting..."
+                : "Sign in with Google"}
+            </span>
+          </button>
+
+          {/* GitHub Sign In Button */}
+          <button
+            onClick={handleGithubLogin}
+            disabled={loading}
+            className="mt-3 w-full flex items-center justify-center gap-3 px-4 py-3.5 bg-[#24292e] hover:bg-[#1b1f23] disabled:bg-[#1b1f23]/80 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl active:scale-[0.98]"
+          >
+            {loading && loadingProvider === 'github' ? (
+              <div className="w-5 h-5 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+            ) : (
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  fillRule="evenodd"
+                  clipRule="evenodd"
+                  d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2Z"
+                />
+              </svg>
+            )}
+            <span>
+              {loading && loadingProvider === 'github'
+                ? "Connecting..."
+                : "Sign in with GitHub"}
+            </span>
           </button>
 
           {/* Security Notice */}

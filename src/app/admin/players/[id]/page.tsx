@@ -2,6 +2,8 @@
 "use client";
 
 import { useEffect, useState, useCallback, use } from "react";
+import { UserAvatar } from "@/components/admin/UserAvatar";
+import { StatusBadge } from "@/components/admin/StatusBadge";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -51,6 +53,20 @@ interface PlayerDetail {
   progress: Record<string, unknown> | null;
   recent_actions: PlayerAction[];
   investigations: Investigation[];
+}
+
+interface AuthUserEnriched {
+  id: string;
+  email?: string;
+  is_anonymous?: boolean;
+  provider?: string;
+  providers?: string[];
+  full_name?: string;
+  avatar_url?: string;
+  created_at?: string;
+  last_sign_in_at?: string;
+  email_confirmed_at?: string;
+  banned_until?: string | null;
 }
 
 // ─── Inline SVG helpers (used in core content) ────────────────────────────
@@ -171,6 +187,34 @@ function countBuildings(buildings: Record<string, unknown> | unknown[] | null): 
   return 0;
 }
 
+function providerLabel(provider: string): string {
+  const known: Record<string, string> = {
+    google: "Google",
+    github: "GitHub",
+    email: "Email",
+    azure: "Azure",
+    apple: "Apple",
+    facebook: "Facebook",
+    twitter: "Twitter / X",
+    discord: "Discord",
+  };
+  return known[provider] ?? provider.charAt(0).toUpperCase() + provider.slice(1);
+}
+
+function formatRelative(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "—";
+  const diffMs = Date.now() - then;
+  if (diffMs < 60_000) return "just now";
+  const fmt = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+  if (diffMs < 3_600_000) return fmt.format(-Math.round(diffMs / 60_000), "minute");
+  if (diffMs < 86_400_000) return fmt.format(-Math.round(diffMs / 3_600_000), "hour");
+  if (diffMs < 30 * 86_400_000) return fmt.format(-Math.round(diffMs / 86_400_000), "day");
+  if (diffMs < 365 * 86_400_000) return fmt.format(-Math.round(diffMs / (30 * 86_400_000)), "month");
+  return fmt.format(-Math.round(diffMs / (365 * 86_400_000)), "year");
+}
+
 // ─── Component ────────────────────────────────────────────────────────────
 
 export default function PlayerDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -178,6 +222,8 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
 
   // Data
   const [player, setPlayer] = useState<PlayerDetail | null>(null);
+  const [authUser, setAuthUser] = useState<AuthUserEnriched | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(true);
 
   // Lock/Unlock modal
@@ -224,6 +270,30 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
   useEffect(() => {
     fetchPlayer();
   }, [fetchPlayer]);
+
+  // ─── Fetch auth (independent — non-blocking if 404) ─────────────────────
+
+  const fetchAuth = useCallback(async () => {
+    try {
+      setAuthLoading(true);
+      const res = await fetch(`/api/admin/players/${playerId}/auth`);
+      if (!res.ok) {
+        // 404 = no auth row (data integrity edge case). Don't show error.
+        setAuthUser(null);
+        return;
+      }
+      const data = await res.json();
+      setAuthUser(data.data || null);
+    } catch {
+      setAuthUser(null);
+    } finally {
+      setAuthLoading(false);
+    }
+  }, [playerId]);
+
+  useEffect(() => {
+    fetchAuth();
+  }, [fetchAuth]);
 
   // ─── Lock/Unlock handler ────────────────────────────────────────────────
 
@@ -335,9 +405,12 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
             <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5 sm:p-6 mb-6">
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                 <div className="flex items-start gap-4">
-                  <div className="w-14 h-14 rounded-xl bg-background/40 flex items-center justify-center text-subtle text-xl font-bold shrink-0">
-                    {(player.email || player.display_name || "U")[0].toUpperCase()}
-                  </div>
+                  <UserAvatar
+                    avatarUrl={authUser?.avatar_url ?? null}
+                    email={player.email}
+                    displayName={player.display_name}
+                    size={56}
+                  />
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h2 className="text-white text-lg font-bold">
@@ -353,8 +426,25 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
                           Active
                         </span>
                       )}
+                      {authUser?.is_anonymous && (
+                        <StatusBadge variant="neutral">Guest</StatusBadge>
+                      )}
+                      {authUser?.provider && !authUser.is_anonymous && (
+                        <StatusBadge variant="info">{providerLabel(authUser.provider)}</StatusBadge>
+                      )}
+                      {authUser?.banned_until && (
+                        <StatusBadge variant="danger">Banned</StatusBadge>
+                      )}
+                      {authUser && authUser.email_confirmed_at === null && (
+                        <StatusBadge variant="warning">Email Unverified</StatusBadge>
+                      )}
                     </div>
-                    <p className="text-muted-label text-sm mt-1">{player.email || "No email"}</p>
+                    {authUser?.full_name && authUser.full_name !== player.display_name && (
+                      <p className="text-white text-sm mt-1">{authUser.full_name}</p>
+                    )}
+                    <p className="text-muted-label text-sm mt-1">
+                      {player.email || (authUser?.is_anonymous ? "Guest (no email)" : "No email")}
+                    </p>
                     <div className="flex items-center gap-3 mt-2 flex-wrap">
                       <code className="text-muted-label text-[10px] font-mono">
                         ID: {truncateUid(player.user_id, 12)}
@@ -362,6 +452,19 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
                       <span className="text-muted-label/80 text-[10px]">
                         Joined {gameState?.created_at ? new Date(gameState.created_at).toLocaleDateString() : "—"}
                       </span>
+                      {!authLoading && authUser?.last_sign_in_at && (
+                        <span
+                          className="text-muted-label/80 text-[10px]"
+                          title={authUser.last_sign_in_at}
+                        >
+                          Last sign-in {formatRelative(authUser.last_sign_in_at)}
+                        </span>
+                      )}
+                      {!authLoading && authUser && !authUser.last_sign_in_at && (
+                        <span className="text-muted-label/80 text-[10px]">
+                          Last sign-in: never
+                        </span>
+                      )}
                     </div>
                     {isLocked && gameState?.lock_reason && (
                       <div className="mt-2 px-3 py-2 rounded-lg bg-danger/10 border border-danger/20">

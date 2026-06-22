@@ -1,7 +1,8 @@
-/* eslint-disable jsx-a11y/control-has-associated-label */
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { UserAvatar } from "@/components/admin/UserAvatar";
+import { StatusBadge } from "@/components/admin/StatusBadge";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -9,6 +10,12 @@ interface PlayerRow {
   user_id: string;
   email: string | null;
   display_name: string | null;
+  avatar_url: string | null;
+  provider: string | null;
+  providers: string[] | null;
+  is_anonymous: boolean;
+  last_sign_in_at: string | null;
+  email_confirmed_at: string | null;
   money: number;
   game_tick: number;
   buildings_count: number;
@@ -95,6 +102,43 @@ function formatMoney(value: number): string {
   if (value >= 1_000_000) return (value / 1_000_000).toFixed(1) + "M";
   if (value >= 1_000) return (value / 1_000).toFixed(1) + "K";
   return value.toLocaleString();
+}
+
+/**
+ * Human-friendly label for OAuth providers.
+ * Falls back to title-case of the raw string for unknown providers
+ * (e.g. "keycloak" → "Keycloak", "discord" → "Discord").
+ */
+function providerLabel(provider: string): string {
+  const known: Record<string, string> = {
+    google: "Google",
+    github: "GitHub",
+    email: "Email",
+    azure: "Azure",
+    apple: "Apple",
+    facebook: "Facebook",
+    twitter: "Twitter / X",
+    discord: "Discord",
+  };
+  return known[provider] ?? provider.charAt(0).toUpperCase() + provider.slice(1);
+}
+
+/**
+ * Compact relative-time formatter ("3h ago", "2d ago", "just now").
+ * No external deps — uses Intl.RelativeTimeFormat.
+ */
+function formatRelative(iso: string | null): string {
+  if (!iso) return "—";
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "—";
+  const diffMs = Date.now() - then;
+  if (diffMs < 60_000) return "just now";
+  const fmt = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+  if (diffMs < 3_600_000) return fmt.format(-Math.round(diffMs / 60_000), "minute");
+  if (diffMs < 86_400_000) return fmt.format(-Math.round(diffMs / 3_600_000), "hour");
+  if (diffMs < 30 * 86_400_000) return fmt.format(-Math.round(diffMs / 86_400_000), "day");
+  if (diffMs < 365 * 86_400_000) return fmt.format(-Math.round(diffMs / (30 * 86_400_000)), "month");
+  return fmt.format(-Math.round(diffMs / (365 * 86_400_000)), "year");
 }
 
 // ─── Component ────────────────────────────────────────────────────────────
@@ -390,6 +434,7 @@ export default function PlayersListPage() {
                     <th scope="col" className="px-4 py-3 text-right text-xs text-muted-label font-medium">Buildings</th>
                     <th scope="col" className="px-4 py-3 text-center text-xs text-muted-label font-medium">Flags</th>
                     <th scope="col" className="px-4 py-3 text-center text-xs text-muted-label font-medium">Status</th>
+                    <th scope="col" className="px-4 py-3 text-right text-xs text-muted-label font-medium">Last Sign-In</th>
                     <th scope="col" className="px-4 py-3 text-right text-xs text-muted-label font-medium">Last Saved</th>
                   </tr>
                 </thead>
@@ -406,13 +451,24 @@ export default function PlayersListPage() {
                     >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-background/40 flex items-center justify-center text-subtle text-sm font-medium shrink-0">
-                            {(player.email || player.display_name || "U")[0].toUpperCase()}
-                          </div>
+                          <UserAvatar
+                            avatarUrl={player.avatar_url}
+                            email={player.email}
+                            displayName={player.display_name}
+                            size={32}
+                          />
                           <div className="min-w-0">
-                            <span className="text-white text-sm truncate block max-w-50">
-                              {player.email || player.display_name || "Unknown"}
-                            </span>
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="text-white text-sm truncate max-w-50">
+                                {player.email || player.display_name || (player.is_anonymous ? "Guest" : "Unknown")}
+                              </span>
+                              {player.is_anonymous && (
+                                <StatusBadge variant="neutral">Guest</StatusBadge>
+                              )}
+                              {player.provider && !player.is_anonymous && (
+                                <StatusBadge variant="info">{providerLabel(player.provider)}</StatusBadge>
+                              )}
+                            </div>
                             {player.display_name && player.email && (
                               <span className="text-muted-label text-[10px] block truncate max-w-50">
                                 {player.display_name}
@@ -478,6 +534,14 @@ export default function PlayersListPage() {
                         )}
                       </td>
                       <td className="px-4 py-3 text-right">
+                        <span
+                          className="text-muted-label text-xs"
+                          title={player.last_sign_in_at ?? "Never signed in"}
+                        >
+                          {formatRelative(player.last_sign_in_at)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
                         <span className="text-muted-label text-xs">
                           {player.last_saved_at
                             ? new Date(player.last_saved_at).toLocaleDateString()
@@ -503,14 +567,22 @@ export default function PlayersListPage() {
                   aria-label={`View details for ${player.email ?? player.user_id}`}
                 >
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-background/40 flex items-center justify-center text-subtle text-sm font-medium shrink-0">
-                      {(player.email || player.display_name || "U")[0].toUpperCase()}
-                    </div>
+                    <UserAvatar
+                      avatarUrl={player.avatar_url}
+                      email={player.email}
+                      displayName={player.display_name}
+                      size={40}
+                    />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-white text-sm font-medium truncate">
-                          {player.email || player.display_name || "Unknown"}
+                          {player.email || player.display_name || (player.is_anonymous ? "Guest" : "Unknown")}
                         </span>
+                        {player.is_anonymous ? (
+                          <StatusBadge variant="neutral">Guest</StatusBadge>
+                        ) : player.provider ? (
+                          <StatusBadge variant="info">{providerLabel(player.provider)}</StatusBadge>
+                        ) : null}
                         {player.is_locked ? (
                           <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium border bg-danger/15 text-danger border-danger/20">
                             Locked
