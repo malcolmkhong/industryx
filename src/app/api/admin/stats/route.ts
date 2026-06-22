@@ -1,14 +1,20 @@
-import { NextResponse } from "next/server";
-import { verifyAdmin, withSecurityHeaders } from "@/lib/auth/admin";
-import { createServiceRoleClient } from "@/lib/supabase/server";
-import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
-
 /**
  * GET /api/admin/stats
  * Dashboard aggregate statistics.
- * Returns: total players, online players, open investigations, locked accounts,
- *          total actions today, invalid actions today.
+ * Iteration 8: routed through db/serverGameState.ts, db/playerActions.ts,
+ * db/cheatInvestigations.ts.
  */
+import { NextResponse } from "next/server";
+import { verifyAdmin, withSecurityHeaders } from "@/lib/auth/admin";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
+import { countPlayersTotal, countLockedPlayers } from "@/lib/db/serverGameState";
+import {
+  countActionsSince,
+  countInvalidActionsSince,
+  countOnlinePlayers,
+} from "@/lib/db/playerActions";
+import { countOpenCheatInvestigations } from "@/lib/db/cheatInvestigations";
+
 export async function GET() {
   const authResult = await verifyAdmin();
   if ("error" in authResult) {
@@ -22,97 +28,36 @@ export async function GET() {
   );
   if (rateLimitResult) return rateLimitResult;
 
-  try {
-    const supabase = createServiceRoleClient();
-    if (!supabase) {
-      return NextResponse.json(
-        { error: 'Service temporarily unavailable — database not configured' },
-        { status: 503 }
-      );
-    }
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayISO = today.toISOString();
 
-    // Calculate "today" in ISO format for date-based queries
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayISO = today.toISOString();
+  const [
+    total_players,
+    online_players,
+    open_investigations,
+    locked_accounts,
+    total_actions_today,
+    invalid_actions_today,
+  ] = await Promise.all([
+    countPlayersTotal(),
+    countOnlinePlayers(),
+    countOpenCheatInvestigations(),
+    countLockedPlayers(),
+    countActionsSince(todayISO),
+    countInvalidActionsSince(todayISO),
+  ]);
 
-    // Run all count queries in parallel for performance
-    const [
-      totalPlayersResult,
-      onlinePlayersResult,
-      openInvestigationsResult,
-      lockedAccountsResult,
-      totalActionsTodayResult,
-      invalidActionsTodayResult,
-    ] = await Promise.all([
-      // Total players
-      supabase
-        .from("server_game_state")
-        .select("user_id", { count: "exact", head: true }),
-
-      // Online players
-      supabase
-        .from("player_sessions")
-        .select("user_id", { count: "exact", head: true })
-        .eq("is_online", true),
-
-      // Open investigations
-      supabase
-        .from("cheat_investigations")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "open"),
-
-      // Locked accounts
-      supabase
-        .from("server_game_state")
-        .select("user_id", { count: "exact", head: true })
-        .eq("is_locked", true),
-
-      // Total actions today
-      supabase
-        .from("player_actions")
-        .select("id", { count: "exact", head: true })
-        .gte("created_at", todayISO),
-
-      // Invalid actions today
-      supabase
-        .from("player_actions")
-        .select("id", { count: "exact", head: true })
-        .eq("is_valid", false)
-        .gte("created_at", todayISO),
-    ]);
-
-    const stats = {
-      total_players: totalPlayersResult.count ?? 0,
-      online_players: onlinePlayersResult.count ?? 0,
-      open_investigations: openInvestigationsResult.count ?? 0,
-      locked_accounts: lockedAccountsResult.count ?? 0,
-      total_actions_today: totalActionsTodayResult.count ?? 0,
-      invalid_actions_today: invalidActionsTodayResult.count ?? 0,
-    };
-
-    // Log any errors from the queries (non-critical, return partial data)
-    const errors = [
-      totalPlayersResult.error,
-      onlinePlayersResult.error,
-      openInvestigationsResult.error,
-      lockedAccountsResult.error,
-      totalActionsTodayResult.error,
-      invalidActionsTodayResult.error,
-    ].filter(Boolean);
-
-    if (errors.length > 0) {
-      console.error("[Admin/Stats] Some queries had errors:", errors);
-    }
-
-    const response = NextResponse.json({ data: stats });
-    response.headers.set("Cache-Control", "private, max-age=30");
-    return withSecurityHeaders(response);
-  } catch (err) {
-    console.error("[Admin/Stats] Error fetching dashboard stats:", err);
-    return NextResponse.json(
-      { error: "Internal Server Error", message: "Failed to fetch dashboard stats" },
-      { status: 500 }
-    );
-  }
+  const response = NextResponse.json({
+    data: {
+      total_players,
+      online_players,
+      open_investigations,
+      locked_accounts,
+      total_actions_today,
+      invalid_actions_today,
+    },
+  });
+  response.headers.set("Cache-Control", "private, max-age=30");
+  return withSecurityHeaders(response);
 }

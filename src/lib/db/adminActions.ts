@@ -92,3 +92,87 @@ export async function listAdminActions(
   }
   return (data ?? []) as AdminActionRow[];
 }
+// ============================================
+// Iteration 8 — admin-actions filters
+// ============================================
+
+export interface ListAdminActionsFilters {
+  adminUserId?: string;
+  targetUserId?: string;
+  actionType?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+export interface ListAdminActionsResult {
+  actions: AdminActionRow[];
+  total: number;
+}
+
+/**
+ * Filtered, paginated admin-actions query. Returns the row list and the
+ * total count for pagination metadata.
+ *
+ * Replaces the inline supabase query in src/app/api/admin/admin-actions/route.ts.
+ */
+export async function listAdminActionsWithFilters(
+  page: number,
+  limit: number,
+  filters: ListAdminActionsFilters,
+): Promise<ListAdminActionsResult> {
+  const supabase = await createClient();
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
+  let query = supabase
+    .from('admin_actions')
+    .select('*', { count: 'exact' })
+    .range(from, to)
+    .order('created_at', { ascending: false });
+
+  if (filters.adminUserId) query = query.eq('admin_user_id', filters.adminUserId);
+  if (filters.targetUserId) query = query.eq('target_user_id', filters.targetUserId);
+  if (filters.actionType) query = query.eq('action_type', filters.actionType);
+  if (filters.dateFrom) query = query.gte('created_at', filters.dateFrom);
+  if (filters.dateTo) query = query.lte('created_at', filters.dateTo);
+
+  const { data, count, error } = await query;
+  if (error) {
+    console.error('[AdminActions] Error listing actions (filtered):', error.message);
+    return { actions: [], total: 0 };
+  }
+  return { actions: (data ?? []) as AdminActionRow[], total: count ?? 0 };
+}
+// ============================================
+// Iteration 8 — admin_actions resource-audit insert (target_id + payload)
+// ============================================
+
+export interface LogAdminActionResourceParams {
+  adminId: string;
+  actionType: string;
+  targetId: string;
+  payload?: Record<string, unknown>;
+  ipAddress?: string | null;
+}
+
+/**
+ * Insert an admin_actions row for resource-mutation audit logs (e.g.
+ * market.create_resource, market.update_resource). Distinct from
+ * `logAdminAction` because the schema uses `target_id` (string) instead
+ * of `target_user_id` (uuid) for non-user resources.
+ */
+export async function logAdminActionResource(
+  params: LogAdminActionResourceParams,
+): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from('admin_actions').insert({
+    admin_user_id: params.adminId,
+    action_type: params.actionType,
+    target_id: params.targetId,
+    payload: params.payload ?? {},
+    ip_address: params.ipAddress ?? null,
+  });
+  if (error) {
+    console.error('[AdminActions] Resource audit insert failed:', error.message);
+  }
+}

@@ -4,12 +4,21 @@
 // Authoritative: data lives in the `game_config_market` table.
 // The market tick (/api/market/tick) syncs new rows to `server_market_state`
 // on the next 60s cycle, so resources added here become tradable automatically.
+//
+// Iteration 8: routed through db/configMarket.ts and db/adminActions.ts.
 // ============================================
 
 import { NextResponse } from 'next/server';
 import { verifyAdmin, withSecurityHeaders } from '@/lib/auth/admin';
 import { canWrite } from '@/lib/auth/admin-helpers';
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import {
+  getMarketConfigById,
+  createMarketConfigWithError,
+  updateMarketConfigWithError,
+  deleteMarketConfig,
+  type ValidSector,
+} from '@/lib/db/configMarket';
+import { logAdminActionResource } from '@/lib/db/adminActions';
 
 const VALID_SECTORS = [
   'raw_minerals',
@@ -21,7 +30,6 @@ const VALID_SECTORS = [
   'endgame',
   'agriculture',
 ] as const;
-type ValidSector = (typeof VALID_SECTORS)[number];
 
 const RESOURCE_ID_RE = /^[a-z][a-z0-9-]{0,49}$/;
 
@@ -89,50 +97,27 @@ export async function POST(request: Request) {
   }
   const data = validation.data;
 
-  const supabase = createServiceRoleClient();
-  if (!supabase) {
-    return withSecurityHeaders(
-      NextResponse.json({ error: 'Database not configured' }, { status: 503 }),
-    );
-  }
-
-  // Check uniqueness
-  const { data: existing } = await supabase
-    .from('game_config_market')
-    .select('resource_id')
-    .eq('resource_id', data.resource_id)
-    .maybeSingle();
+  // Check uniqueness via the read helper
+  const existing = await getMarketConfigById(data.resource_id);
   if (existing) {
     return withSecurityHeaders(
       NextResponse.json({ error: `Resource "${data.resource_id}" already exists` }, { status: 409 }),
     );
   }
 
-  const { data: inserted, error: insertError } = await supabase
-    .from('game_config_market')
-    .insert({
-      resource_id: data.resource_id,
-      base_price: data.base_price,
-      sector: data.sector,
-      elasticity: data.elasticity,
-      is_tradable: data.is_tradable,
-    })
-    .select('resource_id, base_price, sector, elasticity, is_tradable')
-    .single();
-
-  if (insertError || !inserted) {
+  const { data: inserted, errorCode, errorMessage } = await createMarketConfigWithError(data);
+  if (!inserted) {
     return withSecurityHeaders(
-      NextResponse.json({ error: insertError?.message ?? 'Insert failed' }, { status: 500 }),
+      NextResponse.json({ error: errorMessage ?? 'Insert failed' }, { status: 500 }),
     );
   }
 
-  // Audit log
-  await supabase.from('admin_actions').insert({
-    admin_user_id: authResult.admin.id,
-    action_type: 'market.create_resource',
-    target_id: data.resource_id,
+  await logAdminActionResource({
+    adminId: authResult.admin.id,
+    actionType: 'market.create_resource',
+    targetId: data.resource_id,
     payload: data as Record<string, unknown>,
-    ip_address: request.headers.get('x-forwarded-for') ?? null,
+    ipAddress: request.headers.get('x-forwarded-for') ?? null,
   });
 
   return withSecurityHeaders(
@@ -164,45 +149,67 @@ export async function PUT(request: Request) {
   }
   const data = validation.data;
 
-  const supabase = createServiceRoleClient();
-  if (!supabase) {
-    return withSecurityHeaders(
-      NextResponse.json({ error: 'Database not configured' }, { status: 503 }),
-    );
-  }
-
-  const { data: updated, error: updateError } = await supabase
-    .from('game_config_market')
-    .update({
-      base_price: data.base_price,
-      sector: data.sector,
-      elasticity: data.elasticity,
-      is_tradable: data.is_tradable,
-    })
-    .eq('resource_id', data.resource_id)
-    .select('resource_id, base_price, sector, elasticity, is_tradable')
-    .single();
-
-  if (updateError || !updated) {
-    const code = updateError?.code;
+  const { data: updated, errorCode, errorMessage } = await updateMarketConfigWithError(
+    data.resource_id,
+    data,
+  );
+  if (!updated) {
     return withSecurityHeaders(
       NextResponse.json(
-        { error: updateError?.message ?? 'Update failed', code: code ?? 'UNKNOWN' },
-        { status: code === 'PGRST116' ? 404 : 500 },
+        { error: errorMessage ?? 'Update failed', code: errorCode ?? 'UNKNOWN' },
+        { status: errorCode === 'PGRST116' ? 404 : 500 },
       ),
     );
   }
 
-  // Audit log
-  await supabase.from('admin_actions').insert({
-    admin_user_id: authResult.admin.id,
-    action_type: 'market.update_resource',
-    target_id: data.resource_id,
+  await logAdminActionResource({
+    adminId: authResult.admin.id,
+    actionType: 'market.update_resource',
+    targetId: data.resource_id,
     payload: data as Record<string, unknown>,
-    ip_address: request.headers.get('x-forwarded-for') ?? null,
+    ipAddress: request.headers.get('x-forwarded-for') ?? null,
   });
 
   return withSecurityHeaders(
     NextResponse.json({ success: true, resource: updated }),
+  );
+}
+
+// ─── DELETE: remove resource ────────────────────────────────────────────
+export async function DELETE(request: Request) {
+  const authResult = await verifyAdmin();
+  if ('error' in authResult) return authResult.error;
+
+  if (!(await canWrite(authResult.admin.id))) {
+    return withSecurityHeaders(
+      NextResponse.json({ error: 'Write permission required' }, { status: 403 }),
+    );
+  }
+
+  const url = new URL(request.url);
+  const resourceId = url.searchParams.get('resource_id') ?? '';
+  if (!RESOURCE_ID_RE.test(resourceId)) {
+    return withSecurityHeaders(
+      NextResponse.json({ error: 'resource_id query param must be kebab-case' }, { status: 400 }),
+    );
+  }
+
+  const ok = await deleteMarketConfig(resourceId);
+  if (!ok) {
+    return withSecurityHeaders(
+      NextResponse.json({ error: 'Delete failed (resource not found or in use)' }, { status: 404 }),
+    );
+  }
+
+  await logAdminActionResource({
+    adminId: authResult.admin.id,
+    actionType: 'market.delete_resource',
+    targetId: resourceId,
+    payload: {},
+    ipAddress: request.headers.get('x-forwarded-for') ?? null,
+  });
+
+  return withSecurityHeaders(
+    NextResponse.json({ success: true, resource_id: resourceId }),
   );
 }

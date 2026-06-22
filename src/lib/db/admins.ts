@@ -310,3 +310,15 @@ export async function updateAdminRole(
   }
   return true;
 }
+// ============================================
+// Iteration 8 — admin_users count for system-status
+// ============================================
+
+export async function countAdmins(): Promise<number> {
+  const supabase = await createClient();
+  if (!supabase) return 0;
+  const { count } = await supabase
+    .from('admin_users')
+    .select('user_id', { count: 'exact', head: true });
+  return count ?? 0;
+}

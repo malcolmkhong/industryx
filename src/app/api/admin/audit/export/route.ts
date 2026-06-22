@@ -1,6 +1,11 @@
+/**
+ * GET /api/admin/audit/export
+ * CSV export of admin_actions. Iteration 8: routed through db/adminActions.ts.
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin } from "@/lib/auth/admin";
-import { createServiceRoleClient } from "@/lib/supabase/server";
+import { listAdminActionsForExport } from "@/lib/db/playerActions";
 
 function csvEscape(value: unknown): string {
   const str = value == null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value);
@@ -14,41 +19,22 @@ export async function GET(request: NextRequest) {
   const authResult = await verifyAdmin();
   if ("error" in authResult) return authResult.error;
 
-  const supabase = createServiceRoleClient();
-  if (!supabase) {
-    return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
-  }
-
   const url = new URL(request.url);
-  const dateFrom = url.searchParams.get('date_from');
-  const dateTo = url.searchParams.get('date_to');
+  const dateFrom = url.searchParams.get('date_from') || undefined;
+  const dateTo = url.searchParams.get('date_to') || undefined;
 
-  let query = supabase
-    .from('admin_actions')
-    .select('admin_user_id, target_user_id, action_type, details, created_at')
-    .order('created_at', { ascending: false });
+  const rows = await listAdminActionsForExport({ dateFrom, dateTo });
 
-  if (dateFrom) query = query.gte('created_at', dateFrom);
-  if (dateTo) query = query.lte('created_at', dateTo);
-
-  const { data, error } = await query;
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  const rows = data || [];
   const headers = ['Admin User ID', 'Target User ID', 'Action', 'Details', 'Timestamp'];
   const csvLines = [headers.join(',')];
 
   for (const row of rows) {
-    const record = row as Record<string, unknown>;
     csvLines.push([
-      csvEscape(record.admin_user_id),
-      csvEscape(record.target_user_id),
-      csvEscape(record.action_type),
-      csvEscape(record.details),
-      csvEscape(record.created_at),
+      csvEscape(row.admin_user_id),
+      csvEscape(row.target_user_id),
+      csvEscape(row.action_type),
+      csvEscape(row.details),
+      csvEscape(row.created_at),
     ].join(','));
   }
 

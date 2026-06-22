@@ -519,3 +519,176 @@ export async function unlockServerGameState(userId: string): Promise<boolean> {
 
   return !error;
 }
+// ============================================
+// Iteration 8 — admin player listing + aggregates
+// ============================================
+
+const ADMIN_PLAYER_COLUMNS =
+  'user_id, money, total_money_earned, research_points, game_tick, game_speed, buildings_count, cheat_flag_count, is_locked, lock_reason, last_saved_at, created_at';
+
+export interface AdminPlayerRow {
+  user_id: string;
+  money: number | null;
+  total_money_earned: number | null;
+  research_points: number | null;
+  game_tick: number | null;
+  game_speed: number | null;
+  buildings_count: number | null;
+  cheat_flag_count: number | null;
+  is_locked: boolean | null;
+  lock_reason: string | null;
+  last_saved_at: string | null;
+  created_at: string | null;
+}
+
+export interface AdminPlayerListResult {
+  players: AdminPlayerRow[];
+  total: number;
+}
+
+/**
+ * Search and list players for the admin dashboard.
+ * Pass `userIdFilter` (array) to restrict to a specific set of user_ids
+ * (used for display-name search that resolves to a set of matching users).
+ * Pass `excludeUuid` (e.g. all-zeros) to force an empty result.
+ */
+export async function listPlayersForAdmin(
+  page: number,
+  limit: number,
+  filters: {
+    userIdFilter?: string[];
+    excludeUuid?: string;
+  } = {},
+): Promise<AdminPlayerListResult> {
+  const supabase = createServiceRoleClient();
+  if (!supabase) return { players: [], total: 0 };
+
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
+  let query = supabase
+    .from('server_game_state')
+    .select(ADMIN_PLAYER_COLUMNS, { count: 'exact' })
+    .range(from, to)
+    .order('created_at', { ascending: false });
+
+  if (filters.userIdFilter && filters.userIdFilter.length > 0) {
+    query = query.in('user_id', filters.userIdFilter);
+  } else if (filters.excludeUuid) {
+    query = query.eq('user_id', filters.excludeUuid);
+  }
+
+  const { data, count, error } = await query;
+  if (error) return { players: [], total: 0 };
+  return { players: (data ?? []) as AdminPlayerRow[], total: count ?? 0 };
+}
+
+/**
+ * Bulk-load player rows for admin operations (lock, reset, compare).
+ */
+export async function loadPlayersByIds(
+  userIds: string[],
+): Promise<AdminPlayerRow[]> {
+  if (userIds.length === 0) return [];
+  const supabase = createServiceRoleClient();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from('server_game_state')
+    .select(ADMIN_PLAYER_COLUMNS)
+    .in('user_id', userIds);
+  return (data ?? []) as AdminPlayerRow[];
+}
+
+// Aggregate queries for admin dashboard (economy)
+
+export interface MoneyAggregate {
+  money: number;
+  total_money_earned: number;
+}
+
+export async function sumMoneyAcrossAllPlayers(): Promise<{
+  totalMoney: number;
+  totalEarned: number;
+  playerCount: number;
+}> {
+  const supabase = createServiceRoleClient();
+  if (!supabase) return { totalMoney: 0, totalEarned: 0, playerCount: 0 };
+  const { data } = await supabase
+    .from('server_game_state')
+    .select('money, total_money_earned');
+  const rows = data ?? [];
+  return {
+    totalMoney: rows.reduce((s, r) => s + (Number(r.money) || 0), 0),
+    totalEarned: rows.reduce((s, r) => s + (Number(r.total_money_earned) || 0), 0),
+    playerCount: rows.length,
+  };
+}
+
+export async function topEarners(limit: number): Promise<AdminPlayerRow[]> {
+  const supabase = createServiceRoleClient();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from('server_game_state')
+    .select(ADMIN_PLAYER_COLUMNS)
+    .order('total_money_earned', { ascending: false })
+    .limit(limit);
+  return (data ?? []) as AdminPlayerRow[];
+}
+
+export async function countPlayersTotal(): Promise<number> {
+  const supabase = createServiceRoleClient();
+  if (!supabase) return 0;
+  const { count } = await supabase
+    .from('server_game_state')
+    .select('user_id', { count: 'exact', head: true });
+  return count ?? 0;
+}
+
+export async function countLockedPlayers(): Promise<number> {
+  const supabase = createServiceRoleClient();
+  if (!supabase) return 0;
+  const { count } = await supabase
+    .from('server_game_state')
+    .select('user_id', { count: 'exact', head: true })
+    .eq('is_locked', true);
+  return count ?? 0;
+}
+
+export async function countActivePlayersSince(sinceISO: string): Promise<number> {
+  const supabase = createServiceRoleClient();
+  if (!supabase) return 0;
+  const { count } = await supabase
+    .from('server_game_state')
+    .select('user_id', { count: 'exact', head: true })
+    .gte('last_saved_at', sinceISO);
+  return count ?? 0;
+}
+// ============================================
+// Iteration 8 — bulk lock/unlock helper for admin bulk actions
+// ============================================
+
+export async function setPlayerLockStateBulk(
+  userIds: string[],
+  isLocked: boolean,
+  lockReason: string | null,
+): Promise<{ successCount: number; failCount: number }> {
+  if (userIds.length === 0) return { successCount: 0, failCount: 0 };
+  const supabase = createServiceRoleClient();
+  if (!supabase) return { successCount: 0, failCount: userIds.length };
+
+  let successCount = 0;
+  let failCount = 0;
+  for (const userId of userIds) {
+    const { error } = await supabase
+      .from('server_game_state')
+      .update({
+        is_locked: isLocked,
+        lock_reason: isLocked ? lockReason : null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId);
+    if (!error) successCount++;
+    else failCount++;
+  }
+  return { successCount, failCount };
+}

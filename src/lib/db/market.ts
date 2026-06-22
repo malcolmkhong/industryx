@@ -122,3 +122,119 @@ export async function updateMarketNews(news: unknown): Promise<boolean> {
   }
   return true;
 }
+// ============================================
+// Iteration 8 — admin / system-status helpers
+// ============================================
+
+export interface MarketStateWithConfig {
+  tick: number;
+  prices: Record<string, number>;
+  base_prices: Record<string, number>;
+  volatility: number | null;
+  circuit_breakers: Record<string, unknown>;
+  news: unknown;
+  updated_at: string;
+}
+
+/**
+ * Latest server_market_state row joined with the full base_prices/circuit_breakers
+ * payload. Used by /api/admin/market for resource overview.
+ */
+export async function getLatestMarketStateExtended(): Promise<MarketStateWithConfig | null> {
+  const supabase = createServiceRoleClient();
+  if (!supabase) return null;
+  const { data } = await supabase
+    .from('server_market_state')
+    .select('tick, prices, base_prices, volatility, circuit_breakers, news, updated_at')
+    .order('tick', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return (data as MarketStateWithConfig | null) ?? null;
+}
+
+export async function getLatestMarketTickAndBreakers(): Promise<{
+  tick: number;
+  circuit_breakers: Record<string, unknown> | null;
+} | null> {
+  const supabase = createServiceRoleClient();
+  if (!supabase) return null;
+  const { data } = await supabase
+    .from('server_market_state')
+    .select('tick, circuit_breakers')
+    .order('tick', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!data) return null;
+  return {
+    tick: data.tick as number,
+    circuit_breakers: (data.circuit_breakers as Record<string, unknown> | null) ?? null,
+  };
+}
+
+export async function updateMarketCircuitBreakers(
+  breakers: Record<string, unknown>,
+): Promise<boolean> {
+  const supabase = createServiceRoleClient();
+  if (!supabase) return false;
+  const { error } = await supabase
+    .from('server_market_state')
+    .update({ circuit_breakers: breakers, updated_at: new Date().toISOString() })
+    .eq('id', 1);
+  return !error;
+}
+// ============================================
+// Iteration 8 — getLatestMarketTickInfo for jobs dashboard
+// ============================================
+
+export interface LatestMarketTickInfo {
+  tick: number;
+  updated_at: string;
+  resourceCount: number;
+}
+
+/**
+ * Returns the latest tick + updated_at + count of resources in `prices`.
+ * Used by /api/admin/jobs and /api/admin/system-status.
+ */
+export async function getLatestMarketTickInfo(): Promise<LatestMarketTickInfo | null> {
+  const supabase = createServiceRoleClient();
+  if (!supabase) return null;
+  const { data } = await supabase
+    .from('server_market_state')
+    .select('tick, updated_at, prices')
+    .order('tick', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!data) return null;
+  const prices = (data.prices as Record<string, unknown> | null) ?? {};
+  return {
+    tick: data.tick as number,
+    updated_at: data.updated_at as string,
+    resourceCount: Object.keys(prices).length,
+  };
+}
+// ============================================
+// Iteration 8 — getLatestMarketTickWithNews for system-status
+// ============================================
+
+export interface LatestMarketNewsRow {
+  news: unknown;
+  updated_at: string;
+}
+
+/**
+ * Returns the latest server_market_state row with non-null news array.
+ * Used by /api/admin/system-status for the "AI News Generator" service check.
+ */
+export async function getLatestMarketNews(): Promise<LatestMarketNewsRow | null> {
+  const supabase = createServiceRoleClient();
+  if (!supabase) return null;
+  const { data } = await supabase
+    .from('server_market_state')
+    .select('news, updated_at')
+    .not('news', 'is', null)
+    .order('tick', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return (data as LatestMarketNewsRow | null) ?? null;
+}

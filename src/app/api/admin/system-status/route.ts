@@ -1,6 +1,16 @@
+/**
+ * GET /api/admin/system-status
+ * Service health dashboard for admins.
+ * Iteration 8: routed through db/serverGameState.ts, db/cheatInvestigations.ts,
+ * db/market.ts, db/admins.ts, db/configGame.ts.
+ */
 import { NextResponse } from "next/server";
 import { verifyAdmin, withSecurityHeaders } from "@/lib/auth/admin";
-import { createServiceRoleClient } from "@/lib/supabase/server";
+import { countPlayersTotal, countLockedPlayers } from "@/lib/db/serverGameState";
+import { countOpenCheatInvestigations, getLatestCheatInvestigation } from "@/lib/db/cheatInvestigations";
+import { getLatestMarketTickInfo, getLatestMarketNews } from "@/lib/db/market";
+import { countAdmins } from "@/lib/db/admins";
+import { pingGameConfig } from "@/lib/db/configGame";
 
 interface ServiceStatus {
   name: string;
@@ -26,121 +36,83 @@ export async function GET() {
   const jobs: JobStatus[] = [];
   const alerts: string[] = [];
 
-  const supabase = createServiceRoleClient();
-  const dbAvailable = !!supabase;
-
   // 1. Database connectivity
-  if (supabase) {
-    const dbStart = Date.now();
-    const { error: dbError } = await supabase.from('game_config_game').select('id').limit(1);
-    const dbLatency = Date.now() - dbStart;
-    services.push({
-      name: 'Database',
-      status: dbError ? 'degraded' : 'healthy',
-      latencyMs: dbLatency,
-      detail: dbError ? dbError.message : undefined,
-    });
-    if (dbError) alerts.push(`Database error: ${dbError.message}`);
-  } else {
-    services.push({ name: 'Database', status: 'down', detail: 'Service role client not configured' });
-    alerts.push('Database unavailable');
-  }
+  const dbStart = Date.now();
+  const ping = await pingGameConfig();
+  const dbLatency = Date.now() - dbStart;
+  services.push({
+    name: 'Database',
+    status: ping.ok ? 'healthy' : 'degraded',
+    latencyMs: dbLatency,
+    detail: ping.ok ? undefined : ping.error,
+  });
+  if (!ping.ok) alerts.push(`Database error: ${ping.error}`);
 
-  // 2. Admin stats (player count, investigations)
-  if (supabase) {
-    const { count: playerCount } = await supabase.from('server_game_state').select('*', { count: 'exact', head: true });
-    const { count: openInvestigations } = await supabase.from('cheat_investigations').select('*', { count: 'exact', head: true }).eq('status', 'open');
-    const { count: lockedAccounts } = await supabase.from('server_game_state').select('*', { count: 'exact', head: true }).eq('is_locked', true);
-    const { count: adminCount } = await supabase.from('admin_users').select('*', { count: 'exact', head: true });
+  // 2. Admin stats (player count, investigations, etc.)
+  const [playerCount, openInvestigations, lockedAccounts, adminCount] = await Promise.all([
+    countPlayersTotal(),
+    countOpenCheatInvestigations(),
+    countLockedPlayers(),
+    countAdmins(),
+  ]);
 
-    services.push({ name: 'Auth', status: 'healthy' });
-  } else {
-    services.push({ name: 'Auth', status: 'unknown' });
-  }
+  services.push({ name: 'Auth', status: 'healthy' });
 
   // 3. Market tick worker (Cloudflare)
-  if (supabase) {
-    const { data: marketState } = await supabase
-      .from('server_market_state')
-      .select('tick, updated_at, prices')
-      .order('tick', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (marketState) {
-      const lastTick = new Date(marketState.updated_at);
-      const minutesSinceTick = (Date.now() - lastTick.getTime()) / 60_000;
-
-      const jobStatus = minutesSinceTick < 2 ? 'ok' : minutesSinceTick < 5 ? 'late' : 'failed';
-      jobs.push({
-        name: 'Market Tick',
-        schedule: 'Every 60 seconds',
-        lastRun: marketState.updated_at,
-        status: jobStatus,
-        detail: `Tick #${marketState.tick} · ${marketState.prices ? Object.keys(marketState.prices).length : 0} resources tracked`,
-      });
-
-      if (jobStatus !== 'ok') {
-        alerts.push(`Market tick is ${jobStatus}: last run ${Math.round(minutesSinceTick)} min ago`);
-      }
-
-      services.push({
-        name: 'Cloudflare Worker (markettick)',
-        status: jobStatus === 'ok' ? 'healthy' : jobStatus === 'late' ? 'degraded' : 'down',
-        detail: `Last tick: ${lastTick.toISOString()}`,
-      });
-    } else {
-      jobs.push({ name: 'Market Tick', schedule: 'Every 60 seconds', lastRun: null, status: 'unknown', detail: 'No market state data' });
-      services.push({ name: 'Cloudflare Worker (markettick)', status: 'unknown', detail: 'No market state data' });
-      alerts.push('Market tick worker: no data in server_market_state');
+  const marketTick = await getLatestMarketTickInfo();
+  if (marketTick) {
+    const lastTick = new Date(marketTick.updated_at);
+    const minutesSinceTick = (Date.now() - lastTick.getTime()) / 60_000;
+    const jobStatus = minutesSinceTick < 2 ? 'ok' : minutesSinceTick < 5 ? 'late' : 'failed';
+    jobs.push({
+      name: 'Market Tick',
+      schedule: 'Every 60 seconds',
+      lastRun: marketTick.updated_at,
+      status: jobStatus,
+      detail: `Tick #${marketTick.tick} · ${marketTick.resourceCount} resources tracked`,
+    });
+    if (jobStatus !== 'ok') {
+      alerts.push(`Market tick is ${jobStatus}: last run ${Math.round(minutesSinceTick)} min ago`);
     }
+    services.push({
+      name: 'Cloudflare Worker (markettick)',
+      status: jobStatus === 'ok' ? 'healthy' : jobStatus === 'late' ? 'degraded' : 'down',
+      detail: `Last tick: ${lastTick.toISOString()}`,
+    });
+  } else {
+    jobs.push({ name: 'Market Tick', schedule: 'Every 60 seconds', lastRun: null, status: 'unknown', detail: 'No market state data' });
+    services.push({ name: 'Cloudflare Worker (markettick)', status: 'unknown', detail: 'No market state data' });
+    alerts.push('Market tick worker: no data in server_market_state');
   }
 
   // 4. News generator worker
-  if (supabase) {
-    const { data: recentNews } = await supabase
-      .from('server_market_state')
-      .select('news, updated_at')
-      .not('news', 'is', null)
-      .order('tick', { ascending: false })
-      .limit(1)
-      .single();
-
-    const hasNews = recentNews?.news && Array.isArray(recentNews.news) && recentNews.news.length > 0;
-    services.push({
-      name: 'AI News Generator',
-      status: hasNews ? 'healthy' : 'degraded',
-      detail: hasNews ? `${recentNews.news.length} headlines generated` : 'No recent news',
-    });
-    if (!hasNews) alerts.push('AI news generator: no headlines in latest tick');
-  }
+  const recentNews = await getLatestMarketNews();
+  const hasNews = recentNews?.news && Array.isArray(recentNews.news) && (recentNews.news as unknown[]).length > 0;
+  services.push({
+    name: 'AI News Generator',
+    status: hasNews ? 'healthy' : 'degraded',
+    detail: hasNews ? `${(recentNews!.news as unknown[]).length} headlines generated` : 'No recent news',
+  });
+  if (!hasNews) alerts.push('AI news generator: no headlines in latest tick');
 
   // 5. Validation cron
-  if (supabase) {
-    const { data: recentCheatFlags } = await supabase
-      .from('cheat_investigations')
-      .select('created_at')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+  const recentCheatFlags = await getLatestCheatInvestigation();
+  const lastFlagTime = recentCheatFlags?.created_at ? new Date(recentCheatFlags.created_at).getTime() : null;
+  const minutesSinceFlag = lastFlagTime ? (Date.now() - lastFlagTime) / 60_000 : null;
 
-    const lastFlagTime = recentCheatFlags?.created_at ? new Date(recentCheatFlags.created_at).getTime() : null;
-    const minutesSinceFlag = lastFlagTime ? (Date.now() - lastFlagTime) / 60_000 : null;
-
-    jobs.push({
-      name: 'Validate Ticks (Cron)',
-      schedule: 'Every 5 minutes',
-      lastRun: recentCheatFlags?.created_at || null,
-      status: 'ok',
-      detail: lastFlagTime
-        ? `Investigation activity seen (last: ${Math.round(minutesSinceFlag!)} min ago)`
-        : 'No recent investigation activity',
-    });
-  }
+  jobs.push({
+    name: 'Validate Ticks (Cron)',
+    schedule: 'Every 5 minutes',
+    lastRun: recentCheatFlags?.created_at ?? null,
+    status: 'ok',
+    detail: lastFlagTime
+      ? `Investigation activity seen (last: ${Math.round(minutesSinceFlag!)} min ago)`
+      : 'No recent investigation activity',
+  });
 
   // 6. Overall status
-  const downServices = services.filter(s => s.status === 'down').length;
-  const degradedServices = services.filter(s => s.status === 'degraded').length;
+  const downServices = services.filter((s) => s.status === 'down').length;
+  const degradedServices = services.filter((s) => s.status === 'degraded').length;
   const overallStatus = downServices > 0 ? 'degraded' : degradedServices > 1 ? 'degraded' : 'healthy';
 
   const response = NextResponse.json({
@@ -151,13 +123,12 @@ export async function GET() {
     services,
     jobs,
     alerts,
-    summary: {
-      healthy: services.filter(s => s.status === 'healthy').length,
-      degraded: degradedServices,
-      down: downServices,
-      unknown: services.filter(s => s.status === 'unknown').length,
+    stats: {
+      playerCount,
+      openInvestigations,
+      lockedAccounts,
+      adminCount,
     },
   });
-
   return withSecurityHeaders(response);
 }

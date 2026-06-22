@@ -238,4 +238,46 @@ export async function enrichLatestInvestigation(
     return 0;
   }
   return data?.length ?? 0;
+}// ============================================
+// Iteration 8 — getLatestCheatInvestigation for jobs dashboard
+// ============================================
+
+export interface LatestCheatInvestigationRow {
+  created_at: string;
+}
+
+/**
+ * Returns the most recent cheat_investigation created_at timestamp.
+ * Used by /api/admin/jobs for the "Validate Ticks" cron row.
+ */
+export async function getLatestCheatInvestigation(): Promise<LatestCheatInvestigationRow | null> {
+  const supabase = createServiceRoleClient();
+  if (!supabase) return null;
+  const { data } = await supabase
+    .from('cheat_investigations')
+    .select('created_at')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return (data as LatestCheatInvestigationRow | null) ?? null;
+}
+
+export async function countOpenCheatInvestigations(): Promise<number> {
+  const supabase = createServiceRoleClient();
+  if (!supabase) return 0;
+  const { count } = await supabase
+    .from('cheat_investigations')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'open');
+  return count ?? 0;
+}
+
+export async function countRecentCheatFlagsSince(sinceISO: string): Promise<number> {
+  const supabase = createServiceRoleClient();
+  if (!supabase) return 0;
+  const { count } = await supabase
+    .from('cheat_investigations')
+    .select('id', { count: 'exact', head: true })
+    .gte('created_at', sinceISO);
+  return count ?? 0;
 }

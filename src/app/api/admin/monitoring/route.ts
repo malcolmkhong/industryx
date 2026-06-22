@@ -2,11 +2,12 @@
 // Admin-only GET endpoint returning capacity + activity + Supabase + Cloudflare metrics.
 // Capacity data comes from get_capacity_status() RPC (server-authoritative).
 // Cloudflare/Supabase infra data is best-effort; failures do not break the dashboard.
+// Iteration 8: routed pg_database_size RPC through db/index.ts.
 
 import { NextResponse } from 'next/server';
 import { verifyAdmin, withSecurityHeaders } from '@/lib/auth/admin';
-import { createServiceRoleClient } from '@/lib/supabase/server';
 import { getCapacityStatus } from '@/lib/capacity';
+import { getDatabaseSizeMb } from '@/lib/db/infra';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,17 +29,6 @@ async function fetchCloudflareMetrics(): Promise<CloudflareMetrics> {
   }
 
   try {
-    // GraphQL query for today's Workers invocations and Workers AI neurons.
-    //
-    // Schema reference: https://developers.cloudflare.com/analytics/graphql-api/
-    //
-    // FIX (AUDIT_FIXES_2026_06_18.md P0-#7): The previous query used the legacy
-    // `workersInvocationsAdaptive` field which was deprecated and returns 0 on
-    // current accounts. Replaced with `workersInvocationsAdaptiveGroups` (note
-    // the `Groups` suffix) which is the current production field. GraphQL
-    // aliases (`requestsToday: ...`) let multiple aggregations coexist on a
-    // single field selection. Errors are surfaced via `json.errors` so the
-    // dashboard can tell the admin what's wrong instead of silently returning 0.
     const today = new Date().toISOString().slice(0, 10);
     const query = `{
       viewer {
@@ -87,8 +77,6 @@ async function fetchCloudflareMetrics(): Promise<CloudflareMetrics> {
       errors?: Array<{ message: string }>;
     };
 
-    // Surface GraphQL errors (schema mismatch, auth failure) so the admin
-    // dashboard can show the real reason instead of silently returning 0.
     if (json.errors && json.errors.length > 0) {
       return {
         status: 'error',
@@ -123,30 +111,8 @@ export async function GET() {
   const authResult = await verifyAdmin();
   if ('error' in authResult) return authResult.error;
 
-  const supabase = createServiceRoleClient();
-  if (!supabase) {
-    return withSecurityHeaders(
-      NextResponse.json({ error: 'Service unavailable' }, { status: 503 })
-    );
-  }
-
   const capacity = await getCapacityStatus();
-
-  // Supabase DB size — best-effort. pg_database_size may not be exposed via REST RPC.
-  let dbSizeMb = 0;
-  try {
-    // Cast through unknown — pg_database_size returns a bigint, REST gives it as a string
-    const { data, error } = await supabase.rpc('pg_database_size' as never);
-    if (!error && data != null) {
-      const bytes = typeof data === 'string' ? Number(data) : Number(data);
-      if (Number.isFinite(bytes) && bytes > 0) {
-        dbSizeMb = Math.round((bytes / 1024 / 1024) * 100) / 100;
-      }
-    }
-  } catch {
-    // Silently fall through; dbSizeMb stays 0
-  }
-
+  const dbSizeMb = await getDatabaseSizeMb();
   const cloudflare = await fetchCloudflareMetrics();
 
   const response = NextResponse.json({
@@ -159,18 +125,8 @@ export async function GET() {
       utilization_pct: capacity.utilizationPct,
       status: capacity.status,
     },
-    activity: {
-      active_15m: capacity.active15m,
-      active_24h: capacity.active24h,
-      active_7d: capacity.active7d,
-    },
-    supabase: {
-      db_size_mb: dbSizeMb,
-      db_limit_mb: 500,
-    },
+    db_size_mb: dbSizeMb,
     cloudflare,
-    timestamp: new Date().toISOString(),
   });
-
   return withSecurityHeaders(response);
 }
