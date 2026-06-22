@@ -7,6 +7,11 @@ import { isAdminUserId } from '@/lib/auth/admin';
 import { getUserGuestStatus } from '@/lib/auth/guestCheck';
 import { ResourceType } from '@/lib/game/types';
 import { TRADE_COMMISSION_RATE, TRADABLE_RESOURCES_SET as FALLBACK_TRADABLE_SET } from '@/lib/game/tradeConstants';
+import {
+  loadServerGameStateForTrade,
+  saveServerGameStateOptimistic,
+} from '@/lib/db/serverGameState';
+import { recordTrade } from '@/lib/db/trades';
 
 interface TradeRequest {
   giveResource?: ResourceType;
@@ -100,13 +105,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const { data: serverState, error: stateError } = await supabase
-    .from('server_game_state')
-    .select('resources, full_state, game_tick, state_version, last_trade_at')
-    .eq('user_id', auth.userId)
-    .single();
-
-  if (stateError || !serverState) {
+  const serverState = await loadServerGameStateForTrade(auth.userId);
+  if (!serverState) {
     return NextResponse.json({ error: 'No authoritative server state found' }, { status: 404 });
   }
 
@@ -226,35 +226,33 @@ export async function POST(request: Request) {
     resources: newResources,
   };
 
-  const { data: updatedState, error: updateError } = await supabase
-    .from('server_game_state')
-    .update({
-      resources: newResources,
-      full_state: updatedFullState,
+  const updatedState = await saveServerGameStateOptimistic(
+    auth.userId,
+    currentVersion,
+    {
+      resources: newResources as never,
+      full_state: updatedFullState as never,
       state_version: nextStateVersion,
       last_trade_at: new Date().toISOString(),
-    })
-    .eq('user_id', auth.userId)
-    .eq('state_version', currentVersion)
-    .select('resources, state_version, game_tick')
-    .single();
+    }
+  );
 
-  if (updateError || !updatedState) {
+  if (!updatedState) {
     return NextResponse.json(
       { error: 'Trade conflict — state changed, please retry', code: 'STATE_VERSION_CONFLICT' },
       { status: 409 },
     );
   }
 
-  await supabase.from('trade_history').insert({
-    user_id: auth.userId,
-    give_resource: giveResource,
-    give_amount: giveAmount,
-    receive_resource: receiveResource,
-    receive_amount: finalReceiveAmount,
-    commission_rate: TRADE_COMMISSION_RATE,
-    server_validated: true,
-    game_tick: Number(updatedState.game_tick) || 0,
+  await recordTrade({
+    userId: auth.userId,
+    giveResource: giveResource,
+    giveAmount: giveAmount,
+    receiveResource: receiveResource,
+    receiveAmount: finalReceiveAmount,
+    commissionRate: TRADE_COMMISSION_RATE,
+    gameTick: Number(updatedState.game_tick) || 0,
+    serverStateVersion: nextStateVersion,
   });
 
   // Record effective (live) prices in history — not just the static base_price.

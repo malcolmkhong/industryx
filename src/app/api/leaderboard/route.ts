@@ -4,9 +4,9 @@
 // ============================================================================
 
 import { NextResponse } from 'next/server';
-import { createServiceRoleClient } from '@/lib/supabase/server';
 import { verifyAuth } from '@/lib/auth/verifyAuth';
 import { getUserGuestStatus } from '@/lib/auth/guestCheck';
+import { getLeaderboard, getUserRank } from '@/lib/db/leaderboard';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,39 +46,17 @@ export async function GET(request: Request) {
       );
     }
 
-    const supabase = createServiceRoleClient();
-    if (!supabase) {
-      return NextResponse.json(
-        { error: 'Database not configured' },
-        { status: 503 },
-      );
-    }
-
     const { searchParams } = new URL(request.url);
     const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
     const userId = searchParams.get('userId') || undefined;
 
-    // Fetch top leaderboard entries using the stored function
-    const { data: entries, error: entriesError } = await supabase
-      .rpc('get_leaderboard', { p_limit: limit, p_user_id: userId || null });
-
-    if (entriesError) {
-      console.error('[Leaderboard] Failed to fetch entries:', entriesError.message);
-      return NextResponse.json(
-        { error: 'Failed to fetch leaderboard' },
-        { status: 500 },
-      );
-    }
+    // Fetch top leaderboard entries
+    const entries = await getLeaderboard(limit);
 
     // Fetch user's rank if authenticated
     let userRank: UserRankRow | null = null;
     if (userId) {
-      const { data: rankData, error: rankError } = await supabase
-        .rpc('get_user_rank', { p_user_id: userId });
-
-      if (!rankError && rankData && rankData.length > 0) {
-        userRank = rankData[0] as UserRankRow;
-      }
+      userRank = await getUserRank(userId);
     }
 
     // Format entries for the frontend

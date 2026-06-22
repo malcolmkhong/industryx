@@ -49,6 +49,7 @@ function PaginationLink({
   ...props
 }: PaginationLinkProps) {
   return (
+    // eslint-disable-next-line jsx-a11y/anchor-has-content -- children passed via spread props
     <a
       aria-current={isActive ? "page" : undefined}
       data-slot="pagination-link"

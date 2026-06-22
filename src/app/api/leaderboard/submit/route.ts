@@ -8,6 +8,8 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { validateGameState } from '@/lib/auth/gameStateValidator';
 import { logActionAsync } from '@/lib/auth/gameStateValidator';
 import { getUserGuestStatus } from '@/lib/auth/guestCheck';
+import { loadServerGameStateForLeaderboard } from '@/lib/db/serverGameState';
+import { submitScore, getUserRank, getRecentSubmissionsByUser } from '@/lib/db/leaderboard';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,13 +70,8 @@ export async function POST(request: Request) {
     }
 
     // ── Phase 2.6: Fetch server-authoritative game state ──
-    const { data: serverState, error: stateError } = await supabase
-      .from('server_game_state')
-      .select('money, total_money_earned, game_tick, is_locked, lock_reason, state_version')
-      .eq('user_id', userId)
-      .single();
-
-    if (stateError || !serverState) {
+    const serverState = await loadServerGameStateForLeaderboard(userId);
+    if (!serverState) {
       return NextResponse.json(
         { error: 'No authoritative server state found', code: 'NO_SERVER_STATE' },
         { status: 404 },
@@ -166,17 +163,14 @@ export async function POST(request: Request) {
 
     // ── Rate limit: max 1 submission per minute per user ──
     const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString();
-    const { data: recentSubmissions, error: rlError } = await supabase
-      .from('leaderboard')
-      .select('id')
-      .eq('user_id', userId)
-      .gte('created_at', oneMinuteAgo)
-      .limit(1);
-
-    if (rlError) {
-      console.error('[Leaderboard] Rate limit check failed:', rlError.message);
+    let recentSubmissions: { id: string; created_at: string }[] = [];
+    try {
+      recentSubmissions = await getRecentSubmissionsByUser(userId, oneMinuteAgo, 1);
+    } catch (rlErr) {
+      console.error('[Leaderboard] Rate limit check failed:', rlErr instanceof Error ? rlErr.message : rlErr);
       // Fail open — don't block submissions if we can't check
-    } else if (recentSubmissions && recentSubmissions.length > 0) {
+    }
+    if (recentSubmissions.length > 0) {
       return NextResponse.json(
         { error: 'Please wait before submitting another score' },
         { status: 429 },
@@ -184,28 +178,24 @@ export async function POST(request: Request) {
     }
 
     // ── Insert leaderboard entry ──
-    const { data: newEntry, error: insertError } = await supabase
-      .from('leaderboard')
-      .insert({
-        user_id: userId,
-        corporation_name: corporationName || user.user_metadata?.full_name || 'Unknown Corp',
-        score: calculatedScore, // Use server-calculated score (authoritative)
-        // Phase 2.6: Use server-authoritative values, not client-sent
-        total_money_earned: serverState.total_money_earned,
-        buildings_built: buildingsBuilt,
-        research_completed: researchCompleted,
-        contracts_completed: contractsCompleted,
-        prestige_count: prestigeCount,
-        play_time_ticks: playTimeTicks,
-        rank_name: rankName || null,
-        // Phase 2.6: Use server-authoritative values, not client-sent
-        game_tick: serverState.game_tick,
-      })
-      .select('id, score, created_at')
-      .single();
+    const newEntry = await submitScore({
+      user_id: userId,
+      corporation_name: corporationName || user.user_metadata?.full_name || 'Unknown Corp',
+      score: calculatedScore, // Use server-calculated score (authoritative)
+      // Phase 2.6: Use server-authoritative values, not client-sent
+      total_money_earned: serverState.total_money_earned,
+      buildings_built: buildingsBuilt,
+      research_completed: researchCompleted,
+      contracts_completed: contractsCompleted,
+      prestige_count: prestigeCount,
+      play_time_ticks: playTimeTicks,
+      rank_name: rankName || null,
+      // Phase 2.6: Use server-authoritative values, not client-sent
+      game_tick: serverState.game_tick,
+    });
 
-    if (insertError) {
-      console.error('[Leaderboard] Insert failed:', insertError.message);
+    if (!newEntry) {
+      console.error('[Leaderboard] Insert returned no row');
       return NextResponse.json(
         { error: 'Failed to submit score' },
         { status: 500 },
@@ -213,10 +203,7 @@ export async function POST(request: Request) {
     }
 
     // ── Get user's rank after submission ──
-    const { data: rankData } = await supabase
-      .rpc('get_user_rank', { p_user_id: userId });
-
-    const userRank = rankData?.[0] as { best_score: number; best_rank: number; total_runs: number } | undefined;
+    const userRank = await getUserRank(userId);
 
     // ── Audit log ──
     logActionAsync({

@@ -30,6 +30,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
+import { logRequestIp } from '@/app/api/auth/request-ip-log-helper';
+import { loadLockState } from '@/lib/db/serverGameState';
 
 // Per-user tables that we re-assign from old guest to new anon.
 // Add new tables here as the schema evolves.
@@ -89,6 +91,10 @@ export async function POST(request: NextRequest) {
     );
     if (rateLimitResponse) return rateLimitResponse;
 
+    // Phase 1: log request IP for analytics (correlation only)
+    logRequestIp(request, '/api/auth/claim-guest', newUserId);
+    if (rateLimitResponse) return rateLimitResponse;
+
     // 1. Find the old guest identity by device_id
     const { data: oldIdentity, error: identityError } = await supabase
       .from('guest_identities')
@@ -121,6 +127,18 @@ export async function POST(request: NextRequest) {
     }
 
     const oldUserId = oldIdentity.user_id;
+
+    // Phase 3: refuse re-claim if old user_id is locked (Google-anchored enforcement).
+    // This is the canonical fix for the E1 risk in the 2026-06-18 audit:
+    // a banned guest-only user can no longer clear cookies and re-claim via
+    // claim-guest. The lock authority is server_game_state.is_locked.
+    // (Delegated to @/lib/db/serverGameState.)
+    if (await loadLockState(oldUserId)) {
+      return NextResponse.json(
+        { error: 'Previous account is locked', code: 'previous_account_locked' },
+        { status: 403 }
+      );
+    }
 
     // 2. Re-assign per-user tables from oldUserId -> newUserId
     //    We use individual updates per table (not a single transaction) so a

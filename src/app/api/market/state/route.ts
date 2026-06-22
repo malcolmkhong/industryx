@@ -5,21 +5,12 @@
 // ============================================
 
 import { NextResponse } from 'next/server';
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { getMarketState } from '@/lib/db/market';
 
 export async function GET() {
-  const supabase = createServiceRoleClient();
-  if (!supabase) {
-    return NextResponse.json({ error: 'Database unavailable' }, { status: 503 });
-  }
+  const data = await getMarketState();
 
-  const { data, error } = await supabase
-    .from('server_market_state')
-    .select('tick, prices, news, volatility')
-    .eq('id', 1)
-    .single();
-
-  if (error || !data) {
+  if (!data) {
     return NextResponse.json({
       tick: 0,
       prices: [],

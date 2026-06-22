@@ -17,6 +17,13 @@ import { verifyAuth } from '@/lib/auth/verifyAuth';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 import { logActionAsync } from '@/lib/auth/gameStateValidator';
 import {
+  loadServerGameStateForTick,
+  loadServerGameStateLiteForOffline,
+  loadPlayerProgressGameState,
+  saveServerGameStateOptimistic,
+  isServerGameStateAvailable,
+} from '@/lib/db/serverGameState';
+import {
   SupabaseBuilding,
   SupabaseRecipe,
   SupabaseResearch,
@@ -235,8 +242,8 @@ export async function GET(request: Request) {
   const rateLimitResponse = await checkRateLimit(auth.userId, RATE_LIMITS.compute, '/api/game/offline');
   if (rateLimitResponse) return rateLimitResponse;
 
-  const supabase = createServiceRoleClient();
-  if (!supabase) {
+  // If the DB is unavailable, surface 503 (matches previous behavior).
+  if (!isServerGameStateAvailable()) {
     return NextResponse.json(
       { error: 'Service temporarily unavailable — database not configured' },
       { status: 503 }
@@ -244,28 +251,20 @@ export async function GET(request: Request) {
   }
 
   // Get player's last save from server_game_state (source of truth)
-  const { data: sgs, error: sgsError } = await supabase
-    .from('server_game_state')
-    .select('full_state, last_saved_at, game_tick, game_speed')
-    .eq('user_id', auth.userId)
-    .single();
+  // Lightweight fetch — only the columns needed for offline-tick calculation
+  const sgs = await loadServerGameStateLiteForOffline(auth.userId);
 
-  if (sgsError || !sgs) {
+  if (!sgs) {
     // Fallback to player_progress (backwards compat)
-    const { data: pp, error: ppError } = await supabase
-      .from('player_progress')
-      .select('game_state')
-      .eq('user_id', auth.userId)
-      .single();
+    const gameState = await loadPlayerProgressGameState(auth.userId);
 
-    if (ppError || !pp?.game_state) {
+    if (!gameState) {
       return NextResponse.json({
         offlineTicks: 0,
         message: 'No previous save found',
       });
     }
 
-    const gameState = pp.game_state as Record<string, unknown>;
     const gameSpeed = Number(gameState.gameSpeed) || 1;
     const lastGameTick = Number(gameState.gameTick) || 0;
 
@@ -347,21 +346,16 @@ export async function POST(request: Request) {
 
   // ─── Load Authoritative Server State ──────────────────────────────────
 
-  const supabase = createServiceRoleClient();
-  if (!supabase) {
+  if (!isServerGameStateAvailable()) {
     return NextResponse.json(
       { error: 'Service temporarily unavailable — database not configured' },
       { status: 503 },
     );
   }
 
-  const { data: serverState, error: stateError } = await supabase
-    .from('server_game_state')
-    .select('full_state, game_tick, game_speed, state_version, last_tick_at, money, is_locked, lock_reason')
-    .eq('user_id', auth.userId)
-    .single();
+  const serverState = await loadServerGameStateForTick(auth.userId);
 
-  if (stateError || !serverState) {
+  if (!serverState) {
     return NextResponse.json(
       { error: 'No authoritative server state found', code: 'NO_SERVER_STATE' },
       { status: 404 },
@@ -411,7 +405,7 @@ export async function POST(request: Request) {
   // ─── Run Server Ticks ─────────────────────────────────────────────────
   // Use serverState.full_state as the authoritative base — never client-sent gameState
 
-  const baseGameState = serverState.full_state as GameState;
+  const baseGameState = serverState.full_state as unknown as GameState;
   let result: { newState: GameState; productionSnapshot: ProductionSnapshot };
   try {
     result = runServerTicks(baseGameState, elapsedTicks, config);
@@ -430,21 +424,19 @@ export async function POST(request: Request) {
   const newGameTick = Number(serverState.game_tick) + elapsedTicks;
   const newMoney = result.newState.money ?? 0;
 
-  const { data: updated, error: updateError } = await supabase
-    .from('server_game_state')
-    .update({
-      full_state: result.newState,
+  const updated = await saveServerGameStateOptimistic(
+    auth.userId,
+    currentVersion, // optimistic lock
+    {
+      full_state: result.newState as never,
       game_tick: newGameTick,
       state_version: nextVersion,
       last_tick_at: new Date().toISOString(),
       money: newMoney,
-    })
-    .eq('user_id', auth.userId)
-    .eq('state_version', currentVersion) // optimistic lock
-    .select('state_version')
-    .single();
+    }
+  );
 
-  if (updateError || !updated) {
+  if (!updated) {
     return NextResponse.json(
       { error: 'Concurrent state change — please retry', code: 'STATE_VERSION_CONFLICT' },
       { status: 409 },

@@ -14,6 +14,7 @@ import { GameConfig } from '@/lib/game/config';
 import { GameState } from '@/lib/game/types';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 import { logActionAsync } from '@/lib/auth/gameStateValidator';
+import { loadActivePlayersSince } from '@/lib/db/serverGameState';
 import {
   BUILDING_DEFS,
   WORKER_DEFS,
@@ -234,18 +235,16 @@ export async function POST(request: Request): Promise<NextResponse> {
     // ── 4. Query active players (last_tick_at within 5 minutes) ──────
     const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
 
-    const { data: activePlayers, error: queryError } = await supabase
-      .from('server_game_state')
-      .select('user_id, full_state, game_tick, game_speed, last_tick_at, money')
-      .gt('last_tick_at', fiveMinAgo)
-      .returns<ServerGameStateRow[]>();
-
-    if (queryError) {
-      console.error('[Cron] validate-ticks: query error:', queryError.message);
+    let activePlayers;
+    try {
+      activePlayers = await loadActivePlayersSince(fiveMinAgo);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error('[Cron] validate-ticks: query error:', message);
       return NextResponse.json({ error: 'Failed to query active players' }, { status: 500 });
     }
 
-    if (!activePlayers || activePlayers.length === 0) {
+    if (activePlayers.length === 0) {
       return NextResponse.json({
         players_checked: 0,
         flagged_count: 0,

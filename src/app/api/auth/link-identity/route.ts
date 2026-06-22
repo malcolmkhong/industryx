@@ -8,18 +8,23 @@
 // query `guest_identities` for the prior guest identity, preventing silent
 // data loss for the guest's progress.
 
+import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
+
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
+import { loadServerGameStateForPreview } from '@/lib/db/serverGameState';
 import { verifyAuth } from '@/lib/auth/verifyAuth';
-import { cookies } from 'next/headers';
+import { logRequestIp } from '@/app/api/auth/request-ip-log-helper';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { idempotencyKey, deviceId } = body as {
+    const { idempotencyKey, deviceId, fingerprintHash, userAgent } = body as {
       idempotencyKey?: string;
       deviceId?: string;
+      fingerprintHash?: string;
+      userAgent?: string;
     };
 
     if (!idempotencyKey) {
@@ -46,6 +51,15 @@ export async function POST(request: NextRequest) {
     );
     if (rateLimitResponse) return rateLimitResponse;
 
+    // Phase 1: log request IP for analytics (correlation only)
+    logRequestIp(request, '/api/auth/link-identity', auth.userId);
+
+    // Phase 1: read IP + UA from request headers for the audit fields
+    const { hashIp, extractClientIp } = await import('@/app/api/auth/request-ip-log-helper');
+    const realIp = extractClientIp(request.headers);
+    const ipHashValue = hashIp(realIp);
+    const requestUserAgent = userAgent ?? request.headers.get('user-agent') ?? null;
+
     const supabase = createServiceRoleClient();
     if (!supabase) {
       return NextResponse.json(
@@ -55,6 +69,10 @@ export async function POST(request: NextRequest) {
     }
 
     const cookieStore = await cookies();
+    console.log(
+  '[LinkIdentity] cookie guest uid:',
+  cookieStore.get('factory-dominion-guest-uid')?.value
+);
     let guestUserId = cookieStore.get('factory-dominion-guest-uid')?.value;
 
     // Fallback: if the cookie is missing (e.g., user cleared cookies), try to
@@ -102,21 +120,23 @@ export async function POST(request: NextRequest) {
         .eq('id', existingOp.id);
     }
 
-    const { data: guestState } = await supabase
-      .from('server_game_state')
-      .select('money, total_money_earned, buildings_count, game_tick, is_locked')
-      .eq('user_id', guestUserId)
-      .single();
+    const guestState = await loadServerGameStateForPreview(guestUserId);
 
-    const { data: googleState } = await supabase
-      .from('server_game_state')
-      .select('money, total_money_earned, buildings_count, game_tick, is_locked')
-      .eq('user_id', auth.userId)
-      .single();
+    const googleState = await loadServerGameStateForPreview(auth.userId);
 
     if (guestState?.is_locked) {
       return NextResponse.json(
         { error: 'Guest account is locked' },
+        { status: 403 }
+      );
+    }
+
+    // Phase 3: refuse link if Google user_id is locked. Closes the E8 risk
+    // from the 2026-06-18 audit: a Google-locked user could re-link from a
+    // new device. Lock authority is server_game_state.is_locked.
+    if (googleState?.is_locked === true) {
+      return NextResponse.json(
+        { error: 'Account is locked', code: 'account_locked' },
         { status: 403 }
       );
     }
@@ -176,6 +196,13 @@ export async function POST(request: NextRequest) {
         risk_flags: [],
         preview_version: previewVersion,
         expires_at: expiresAt,
+        // Phase 1: correlation fields (never used for enforcement)
+        ...(fingerprintHash ? { fingerprint_hash: fingerprintHash } : {}),
+        ...(deviceId ? { device_id: deviceId } : {}),
+        // Pre-existing IP/UA columns — now populated
+        ip_hash: ipHashValue,
+        ip_region: null, // not in scope for Phase 1
+        user_agent: requestUserAgent,
       })
       .select('id')
       .single();

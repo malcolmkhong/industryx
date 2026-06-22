@@ -79,6 +79,10 @@ upload/
 *.db
 db/
 
+# allow tracked db/ helper modules under src/ (TypeScript, not sqlite)
+!src/lib/db/
+!src/lib/db/**
+
 # agent context
 agent-ctx/
 

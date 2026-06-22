@@ -2,15 +2,22 @@
 // device_id is the PRIMARY recovery signal. Fingerprint is NEVER used for recovery.
 
 import { NextRequest, NextResponse } from 'next/server';
+
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
+import { logRequestIp } from '@/app/api/auth/request-ip-log-helper';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { deviceId } = body as { deviceId?: string };
+    const { deviceId, fingerprintHash, fingerprint } = body as {
+      deviceId?: string;
+      fingerprintHash?: string;
+      fingerprint?: string;
+    };
 
     if (!deviceId) {
+      
       return NextResponse.json(
         { error: 'deviceId is required' },
         { status: 400 }
@@ -32,14 +39,21 @@ export async function POST(request: NextRequest) {
     );
     if (rateLimitResponse) return rateLimitResponse;
 
+    // Phase 1: log request IP for analytics (correlation only)
+    logRequestIp(request, '/api/auth/recover-by-device', null);
+
     const { data: identity } = await supabase
       .from('guest_identities')
-      .select('user_id, superseded_at, superseded_by, is_primary')
+      .select('user_id, fingerprint_hash, superseded_at, superseded_by, is_primary')
       .eq('device_id', deviceId)
       .eq('is_primary', true)
       .single();
 
     if (!identity) {
+        console.log(
+    '[RecoverByDevice] No identity found for device:',
+    deviceId
+  );
       return NextResponse.json(
         { recovered: false, reason: 'no_identity' },
         { status: 404 }
@@ -80,10 +94,22 @@ export async function POST(request: NextRequest) {
       .eq('user_id', identity.user_id)
       .eq('device_id', deviceId);
 
+    // Phase 1: if the client provided a fingerprint_hash and the stored
+    // row doesn't have one, persist it for correlation.
+    // (This is best-effort; never used for recovery denial.)
+    if (fingerprintHash && !identity.fingerprint_hash) {
+      await supabase
+        .from('guest_identities')
+        .update({ fingerprint_hash: fingerprintHash })
+        .eq('user_id', identity.user_id)
+        .eq('device_id', deviceId);
+    }
+
     return NextResponse.json({
       recovered: true,
       recoveredAs: 'recovered',
       userId: identity.user_id,
+      fingerprintHash: identity.fingerprint_hash ?? fingerprintHash ?? null,
       message: 'Recovery signal confirmed. Session establishment requires client-side flow.',
     });
   } catch (error) {

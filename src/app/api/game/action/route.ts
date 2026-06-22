@@ -11,6 +11,9 @@ import { verifyAuth } from "@/lib/auth/verifyAuth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
 import { logActionAsync } from "@/lib/auth/gameStateValidator";
 import {
+  loadServerGameStateForAction,
+  saveServerGameStateOptimistic,  isServerGameStateAvailable,} from "@/lib/db/serverGameState";
+import {
   SupabaseBuilding,
   SupabaseRecipe,
   SupabaseResearch,
@@ -427,8 +430,7 @@ export async function POST(request: Request) {
   // NEVER trust the client-sent `gameState` — it can be tampered with via
   // __gameStore.setState or by replaying modified network requests.
   // The client-sent gameState is now ignored.
-  const supabase = createServiceRoleClient();
-  if (!supabase) {
+  if (!isServerGameStateAvailable()) {
     return NextResponse.json(
       {
         valid: false,
@@ -438,13 +440,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const { data: serverState, error: stateError } = await supabase
-    .from("server_game_state")
-    .select("full_state, money, game_tick, state_version")
-    .eq("user_id", auth.userId)
-    .single();
+  const serverState = await loadServerGameStateForAction(auth.userId);
 
-  if (stateError || !serverState) {
+  if (!serverState) {
     return NextResponse.json(
       {
         valid: false,
@@ -549,25 +547,23 @@ export async function POST(request: Request) {
   if (requestId !== undefined && requestId !== null) {
     const updatedHistory = [...actionHistory, requestId].slice(-100);
     const currentVersion = serverState.state_version ?? 0;
-    void supabase
-      .from("server_game_state")
-      .update({
+    void saveServerGameStateOptimistic(
+      auth.userId,
+      currentVersion,
+      {
         full_state: {
           ...(serverState.full_state as Record<string, unknown>),
           _action_history: updatedHistory,
-        },
+        } as never,
         state_version: currentVersion + 1,
-      })
-      .eq("user_id", auth.userId)
-      .eq("state_version", currentVersion)
-      .then(({ error: updateError }) => {
-        if (updateError) {
-          console.warn(
-            "[ActionAPI] Failed to persist action_history:",
-            updateError.message,
-          );
-        }
-      });
+      }
+    ).then((updated) => {
+      if (!updated) {
+        console.warn(
+          "[ActionAPI] Failed to persist action_history (CAS mismatch or DB error)"
+        );
+      }
+    });
   }
 
   // NOTE: Trade actions are handled by /api/game/trade.

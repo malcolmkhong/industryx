@@ -1,5 +1,21 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
+// Capture the real client IP for analytics logging on auth routes.
+// Phase 1 — Foundation (Storage + Audit).
+// IP is for ANALYTICS ONLY; never used for bans, locks, or recovery denial.
+const REAL_IP_HEADERS = ['cf-connecting-ip', 'x-real-ip', 'x-forwarded-for'] as const
+
+function extractRealIp(headers: Headers): string {
+  for (const name of REAL_IP_HEADERS) {
+    const value = headers.get(name)
+    if (value) {
+      // x-forwarded-for is a comma-separated list; first entry is the original client
+      return value.split(',')[0]?.trim() || 'unknown'
+    }
+  }
+  return 'unknown'
+}
+
 // Paths that should bypass auth checks entirely (let them handle their own auth)
 const AUTH_ROUTES = ['/admin/login', '/admin/auth/callback', '/api/auth/']
 
@@ -9,9 +25,14 @@ const API_PREFIX = '/api/'
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // Capture real client IP for analytics logging (Phase 1)
+  const realIp = extractRealIp(request.headers)
+
   // Skip middleware logic entirely for auth callback routes
   if (AUTH_ROUTES.some((path) => pathname.startsWith(path))) {
-    return NextResponse.next()
+    const res = NextResponse.next()
+    res.headers.set('x-real-ip', realIp)
+    return res
   }
 
   // If Supabase is not configured, skip auth checks entirely
@@ -102,6 +123,8 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Propagate x-real-ip to API routes for analytics (Phase 1)
+  supabaseResponse.headers.set('x-real-ip', realIp)
   return supabaseResponse
 }
 

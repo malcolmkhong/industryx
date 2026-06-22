@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin, withSecurityHeaders } from "@/lib/auth/admin";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { computeMaxPossibleMoney } from "@/lib/game/serverTickValidator";
+import { listInvestigations, countResolvedSince } from "@/lib/db/cheatInvestigations";
 import type { GameState } from "@/lib/game/types";
 import type {
   GameConfig,
@@ -300,35 +301,14 @@ export async function GET(request: NextRequest) {
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
-    // Build query with filters
-    let query = supabase
-      .from("cheat_investigations")
-      .select("*", { count: "exact" })
-      .range(from, to)
-      .order("created_at", { ascending: false });
-
-    if (status) {
-      query = query.eq("status", status);
-    }
-    if (severity) {
-      query = query.eq("severity", severity);
-    }
-    if (detectionType) {
-      query = query.eq("detection_type", detectionType);
-    }
-
-    const { data: investigations, count, error } = await query;
-
-    if (error) {
-      console.error(
-        "[Admin/Investigations] Error fetching investigations:",
-        error.message,
-      );
-      return NextResponse.json(
-        { error: "Database Error", message: error.message },
-        { status: 500 },
-      );
-    }
+    // Fetch investigations via centralized helper
+    const { data: investigations, total } = await listInvestigations({
+      ...(status ? { status: status as 'open' | 'resolved' | 'dismissed' } : {}),
+      ...(severity ? { severity: severity as 'low' | 'medium' | 'high' | 'critical' } : {}),
+      ...(detectionType ? { detectionType } : {}),
+      from,
+      to,
+    });
 
     // Batch lookup user emails via Supabase Auth Admin API
     let emailMap: Record<string, string> = {};
@@ -397,21 +377,16 @@ export async function GET(request: NextRequest) {
       }),
     );
 
-    const total = count ?? 0;
     const totalPages = Math.ceil(total / limit);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const { count: resolvedToday } = await supabase
-      .from("cheat_investigations")
-      .select("*", { count: "exact", head: true })
-      .in("status", ["resolved", "dismissed"])
-      .gte("resolved_at", today.toISOString());
+    const resolvedToday = await countResolvedSince(today.toISOString());
 
     const response = NextResponse.json({
       data: enrichedInvestigations,
       detection_types: DETECTION_TYPE_LABELS,
-      resolved_today: resolvedToday ?? 0,
+      resolved_today: resolvedToday,
       pagination: {
         page,
         limit,

@@ -14,6 +14,12 @@
 
 import { NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import {
+  getMarketStateFull,
+  getAllPlayerPressure,
+  getAllSupplyDemand,
+  updateMarketNews,
+} from '@/lib/db/market';
 
 const PRESSURE_FACTOR = 0.0005;
 const VOLATILITY_DECAY = 0.95;
@@ -127,20 +133,14 @@ export async function POST() {
 
   try {
     // 1. Read current state
-    const { data: stateData } = await supabase
-      .from('server_market_state')
-      .select('*')
-      .eq('id', 1)
-      .single();
+    const stateData = await getMarketStateFull();
 
     // 2. Read player pressure
-    const { data: pressureRows } = await supabase
-      .from('market_player_pressure')
-      .select('*');
+    const pressureRows = await getAllPlayerPressure();
 
     // 3. Aggregate pressure
     const pressure: Record<string, PressureData> = {};
-    for (const row of pressureRows || []) {
+    for (const row of pressureRows) {
       if (!pressure[row.resource]) {
         pressure[row.resource] = { buyVol: 0, sellVol: 0 };
       }
@@ -149,23 +149,19 @@ export async function POST() {
     }
 
     // 3b. Add global supply/demand pressure (same as Cloudflare Worker)
-    const { data: supplyDemandRows } = await supabase
-      .from('market_supply_demand')
-      .select('resource, production, consumption');
-    if (supplyDemandRows) {
-      for (const row of supplyDemandRows) {
-        if (!pressure[row.resource]) {
-          pressure[row.resource] = { buyVol: 0, sellVol: 0 };
-        }
-        const production = Number(row.production) || 0;
-        const consumption = Number(row.consumption) || 0;
-        pressure[row.resource].sellVol += production * SUPPLY_DEMAND_SCALE;
-        pressure[row.resource].buyVol += consumption * SUPPLY_DEMAND_SCALE;
+    const supplyDemandRows = await getAllSupplyDemand();
+    for (const row of supplyDemandRows) {
+      if (!pressure[row.resource]) {
+        pressure[row.resource] = { buyVol: 0, sellVol: 0 };
       }
+      const production = Number(row.production) || 0;
+      const consumption = Number(row.consumption) || 0;
+      pressure[row.resource].sellVol += production * SUPPLY_DEMAND_SCALE;
+      pressure[row.resource].buyVol += consumption * SUPPLY_DEMAND_SCALE;
     }
 
     // 4. Get or initialize prices
-    let prices = (stateData?.prices as MarketPrice[]) || [];
+    let prices = (stateData?.prices as unknown as MarketPrice[]) || [];
     if (!Array.isArray(prices) || prices.length === 0) {
       prices = [
         { resource: 'iron', currentPrice: 5, basePrice: 5, trend: 'stable', volume: 0 },
@@ -174,8 +170,21 @@ export async function POST() {
     }
 
     // 5. Run simulation LOCALLY (same logic as Cloudflare Worker marketEngine.js)
-    const breakers = (stateData?.circuit_breakers as Record<string, BreakerState>) || {};
+    const breakers = (stateData?.circuit_breakers as unknown as Record<string, BreakerState>) || {};
     const result = marketTick(prices, pressure, stateData?.volatility || 0, breakers);
+
+    // 5b. Clamp computed prices to within 50% of basePrice.
+    //     The RPC (apply_market_tick) validates ABS((current - base) / base) <= 0.50
+    //     and rejects the entire tick if any resource exceeds. Since prices can
+    //     drift (mean reversion is slow), the per-tick change can compound.
+    //     Clamp here so the RPC accepts the batch.
+    for (const p of result.prices) {
+      if (!p.basePrice || p.basePrice <= 0) continue;
+      const minAllowed = p.basePrice * 0.5;
+      const maxAllowed = p.basePrice * 1.5;
+      if (p.currentPrice < minAllowed) p.currentPrice = minAllowed;
+      if (p.currentPrice > maxAllowed) p.currentPrice = maxAllowed;
+    }
 
     // 6. PERSIST via the Supabase RPC — the validated gate (Rule 1).
     //    The RPC: validates bounds, increments tick atomically, writes
@@ -236,10 +245,7 @@ export async function POST() {
 
     // 8. Persist news (separate from market state — informational only, no RPC needed)
     if (news.length > 0) {
-      await supabase
-        .from('server_market_state')
-        .update({ news, updated_at: new Date().toISOString() })
-        .eq('id', 1);
+      await updateMarketNews(news);
     }
 
     const summary = Array.isArray(rpcSummary) ? rpcSummary[0] : rpcSummary;
