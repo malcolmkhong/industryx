@@ -33,9 +33,13 @@ export default defineConfig({
       'public/**',
       'scripts/**',
       'supabase/**',
+      // Legacy node:test files — run via `npm test` (tsx --test), not Vitest
+      'tests/integration/**',
+      'tests/security/**',
     ],
     // happy-dom is lighter than jsdom and works for our React components
     environment: 'happy-dom',
+    setupFiles: ['./tests/setup.ts'],
     globals: false,
     testTimeout: 15_000,
     hookTimeout: 30_000,
