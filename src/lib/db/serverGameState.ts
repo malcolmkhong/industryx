@@ -484,6 +484,33 @@ export async function getGameTick(userId: string): Promise<number | null> {
 }
 
 /**
+ * Paginated read of `full_state` JSONB for every player. Used by
+ * /api/market/aggregate-supply to recompute global supply/demand.
+ *
+ * Caller passes a page size; returns the next page + whether more rows exist.
+ * Avoids loading the entire table into memory at once.
+ */
+export async function pageServerGameStateFullState(
+  offset: number,
+  pageSize: number,
+): Promise<{ rows: { full_state: unknown }[]; hasMore: boolean } | null> {
+  const supabase = createServiceRoleClient();
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('server_game_state')
+    .select('full_state')
+    .range(offset, offset + pageSize - 1);
+  if (error) {
+    console.error('[serverGameState] pageFullState failed:', error.message);
+    return null;
+  }
+  return {
+    rows: (data ?? []) as { full_state: unknown }[],
+    hasMore: (data?.length ?? 0) === pageSize,
+  };
+}
+
+/**
  * Sync `player_progress.game_state` for backwards compatibility. Used
  * by POST /api/game/state (thin: user_id + game_state only).
  */

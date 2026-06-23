@@ -15,10 +15,17 @@
 //       capturedAt: 1234567890
 //     }
 //   }
+//
+// Iteration 9e of DB centralization migration:
+//   - paginated server_game_state read routed through
+//     db/serverGameState#pageServerGameStateFullState.
+//   - upsert_supply_demand RPC stays inline (narrow SQL function, no
+//     helper value). Documented inline.
 // ============================================
 
 import { NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
+import { pageServerGameStateFullState } from '@/lib/db/serverGameState';
 
 interface ProductionSnapshot {
   production?: Record<string, number>;
@@ -27,69 +34,58 @@ interface ProductionSnapshot {
   capturedAt?: number;
 }
 
-interface ServerGameState {
-  full_state: Record<string, unknown> | null;
-}
+const PAGE = 1000;
 
 export async function POST() {
+  // The RPC client needs service-role to write market_supply_demand; not
+  // routed through a helper because it is a one-off SQL function with no
+  // other callers.
   const supabase = createServiceRoleClient();
   if (!supabase) {
     return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
   }
 
-  // 1. Read all server_game_state rows
-  //    Using a paginated select to bound memory; default page size is 1000.
-  const allRows: ServerGameState[] = [];
-  const PAGE = 1000;
+  // 1. Read all server_game_state rows via paginated helper
+  let playersScanned = 0;
   let offset = 0;
-  let hasMore = true;
-
-  while (hasMore) {
-    const { data, error } = await supabase
-      .from('server_game_state')
-      .select('full_state')
-      .range(offset, offset + PAGE - 1);
-    if (error) {
-      return NextResponse.json({ error: `Read failed: ${error.message}` }, { status: 500 });
-    }
-    if (!data || data.length === 0) {
-      hasMore = false;
-    } else {
-      allRows.push(...(data as ServerGameState[]));
-      if (data.length < PAGE) {
-        hasMore = false;
-      } else {
-        offset += PAGE;
-      }
-    }
-  }
-
-  // 2. Aggregate production + consumption per resource
   const productionTotals = new Map<string, number>();
   const consumptionTotals = new Map<string, number>();
   const playerCounts = new Map<string, number>();
 
-  for (const row of allRows) {
-    const snapshot = row.full_state?.productionSnapshot as ProductionSnapshot | undefined;
-    if (!snapshot) continue;
-
-    for (const [resource, value] of Object.entries(snapshot.production ?? {})) {
-      if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) continue;
-      productionTotals.set(resource, (productionTotals.get(resource) ?? 0) + value);
-      playerCounts.set(resource, (playerCounts.get(resource) ?? 0) + 1);
+  while (true) {
+    const page = await pageServerGameStateFullState(offset, PAGE);
+    if (page === null) {
+      return NextResponse.json({ error: 'Read failed' }, { status: 500 });
     }
+    if (page.rows.length === 0) break;
 
-    for (const [resource, value] of Object.entries(snapshot.actualConsumption ?? {})) {
-      if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) continue;
-      consumptionTotals.set(resource, (consumptionTotals.get(resource) ?? 0) + value);
-      // Don't double-count: player contributes to BOTH production and consumption for same resource
-      if (!productionTotals.has(resource)) {
+    for (const row of page.rows) {
+      playersScanned += 1;
+      const fullState = (row.full_state ?? {}) as Record<string, unknown>;
+      const snapshot = fullState.productionSnapshot as ProductionSnapshot | undefined;
+      if (!snapshot) continue;
+
+      for (const [resource, value] of Object.entries(snapshot.production ?? {})) {
+        if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) continue;
+        productionTotals.set(resource, (productionTotals.get(resource) ?? 0) + value);
         playerCounts.set(resource, (playerCounts.get(resource) ?? 0) + 1);
       }
+
+      for (const [resource, value] of Object.entries(snapshot.actualConsumption ?? {})) {
+        if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) continue;
+        consumptionTotals.set(resource, (consumptionTotals.get(resource) ?? 0) + value);
+        // Don't double-count: player contributes to BOTH production and consumption for same resource
+        if (!productionTotals.has(resource)) {
+          playerCounts.set(resource, (playerCounts.get(resource) ?? 0) + 1);
+        }
+      }
     }
+
+    if (!page.hasMore) break;
+    offset += PAGE;
   }
 
-  // 3. Upsert into market_supply_demand
+  // 2. Upsert into market_supply_demand
   const resources = new Set([...productionTotals.keys(), ...consumptionTotals.keys()]);
   let written = 0;
   for (const resource of resources) {
@@ -111,7 +107,7 @@ export async function POST() {
 
   return NextResponse.json({
     success: true,
-    playersScanned: allRows.length,
+    playersScanned,
     resourcesAggregated: written,
     durationMs: Date.now(),
   });
