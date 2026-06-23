@@ -7,7 +7,10 @@
 import { createHmac } from 'crypto';
 
 import { createServiceRoleClient } from '@/lib/supabase/server';
-import { enrichLatestInvestigation } from '@/lib/db/cheatInvestigations';
+import {
+  enrichLatestInvestigation,
+  incrementCheatFlag,
+} from '@/lib/db/cheatInvestigations';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -433,24 +436,20 @@ export async function flagCheatAttempt(
   options: FlagCheatAttemptOptions = {},
 ): Promise<void> {
   try {
-    const supabase = createServiceRoleClient();
-    if (!supabase) {
-      throw new Error('Supabase service role not configured');
-    }
-
     // Phase 4.1: Atomic RPC eliminates TOCTOU race present in the old
     // read-then-write pattern. increment_cheat_flag handles the increment
     // on both player_progress and server_game_state, the investigations
     // insert, and auto-lock if threshold reached — all in one transaction.
-    const { error } = await supabase.rpc('increment_cheat_flag', {
-      p_user_id: userId,
-      p_flag_type: detectionType,
-      p_description: description,
-      p_severity: severity,
+    // Delegated to db/cheatInvestigations.ts (Iteration 10).
+    const ok = await incrementCheatFlag({
+      userId,
+      flagType: detectionType,
+      description,
+      severity,
     });
 
-    if (error) {
-      console.error('[AntiCheat] Failed to flag cheat attempt:', error.message);
+    if (!ok) {
+      console.error('[AntiCheat] Failed to flag cheat attempt: increment_cheat_flag RPC failed');
       return;
     }
 

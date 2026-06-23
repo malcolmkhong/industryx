@@ -5,7 +5,7 @@
 // IMPORTANT: Do NOT use active/online/session metrics for capacity enforcement.
 // Idle games have offline players who still consume resources.
 
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { getCapacityStatusRpc } from '@/lib/db/capacity';
 
 export type CapacityStatus = 'healthy' | 'warning' | 'full';
 
@@ -40,13 +40,12 @@ const FALLBACK: CapacityInfo = {
 /**
  * Server-side. Returns full capacity info from get_capacity_status() RPC.
  * Use this in API routes (server components, route handlers).
+ *
+ * Iteration 10: RPC call delegated to src/lib/db/capacity.ts.
  */
 export async function getCapacityStatus(): Promise<CapacityInfo> {
-  const supabase = createServiceRoleClient();
-  if (!supabase) return FALLBACK;
-  const { data, error } = await supabase.rpc('get_capacity_status');
-  if (error || !data?.[0]) return FALLBACK;
-  const row = data[0];
+  const row = await getCapacityStatusRpc();
+  if (!row) return FALLBACK;
   return {
     max: Number(row.max_total_players),
     total: Number(row.total_players),
@@ -54,7 +53,7 @@ export async function getCapacityStatus(): Promise<CapacityInfo> {
     guests: Number(row.guest_users),
     waitlistCount: Number(row.waitlist_count),
     utilizationPct: Number(row.utilization_pct),
-    status: row.status as CapacityStatus,
+    status: row.status,
     active15m: Number(row.active_15m),
     active24h: Number(row.active_24h),
     active7d: Number(row.active_7d),

@@ -4,7 +4,7 @@
 // ============================================
 
 import { NextResponse } from 'next/server';
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { checkRateLimitRpc } from '@/lib/db/rateLimits';
 
 export interface RateLimitConfig {
   maxRequests: number;
@@ -40,13 +40,6 @@ export const RATE_LIMITS = {
   admin: { maxRequests: 60, windowMs: 60_000, failClosed: false },
 } as const;
 
-interface CheckRateLimitRow {
-  allowed: boolean;
-  current_count: number;
-  max_requests: number;
-  reset_at: string;
-}
-
 /**
  * Check if a request should be rate-limited.
  * Returns null if allowed, or a NextResponse with 429 (or 503 on DB error for fail-closed) if blocked.
@@ -54,6 +47,9 @@ interface CheckRateLimitRow {
  * H2 FIX: Backed by Supabase `check_rate_limit` RPC. Works across multi-instance
  * deployments, survives restarts, ~5-10ms latency per check. Falls back to
  * fail-open (or 503 for fail-closed) if the DB is unreachable.
+ *
+ * Iteration 10: the underlying RPC call is now delegated to
+ * src/lib/db/rateLimits.ts#checkRateLimitRpc.
  *
  * @param identifier - Usually the userId or IP address
  * @param config - Rate limit configuration (with failClosed flag)
@@ -64,30 +60,16 @@ export async function checkRateLimit(
   config: RateLimitConfig,
   endpoint: string,
 ): Promise<NextResponse | null> {
-  const supabase = createServiceRoleClient();
-  if (!supabase) {
-    console.warn(`[RateLimit] ${endpoint}: service role not configured, ${config.failClosed ? 'blocking' : 'allowing'}`);
-    return config.failClosed
-      ? serviceUnavailableResponse()
-      : null;
-  }
-
   try {
-    const { data, error } = await supabase.rpc('check_rate_limit', {
-      p_identifier: identifier,
-      p_endpoint: endpoint,
-      p_window_seconds: Math.floor(config.windowMs / 1000),
-      p_max_requests: config.maxRequests,
+    const result = await checkRateLimitRpc({
+      identifier,
+      endpoint,
+      windowSeconds: Math.floor(config.windowMs / 1000),
+      maxRequests: config.maxRequests,
     });
 
-    if (error) {
-      console.warn(`[RateLimit] ${endpoint}: RPC error: ${error.message}`);
-      return config.failClosed ? serviceUnavailableResponse() : null;
-    }
-
-    const result = (data as CheckRateLimitRow[] | null)?.[0];
     if (!result) {
-      console.warn(`[RateLimit] ${endpoint}: empty RPC result`);
+      console.warn(`[RateLimit] ${endpoint}: RPC unavailable or empty result`);
       return config.failClosed ? serviceUnavailableResponse() : null;
     }
 

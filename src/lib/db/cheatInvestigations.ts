@@ -281,3 +281,41 @@ export async function countRecentCheatFlagsSince(sinceISO: string): Promise<numb
     .gte('created_at', sinceISO);
   return count ?? 0;
 }
+
+// ============================================
+// Iteration 10 — increment_cheat_flag RPC wrapper
+// ============================================
+
+/**
+ * Atomic cheat-flag increment.
+ *
+ * Phase 4.1: this RPC eliminates the TOCTOU race present in the old
+ * read-then-write pattern. It handles the increment on both
+ * player_progress and server_game_state, the investigations insert, and
+ * auto-lock if threshold is reached — all in one transaction.
+ *
+ * Returns true if the RPC succeeded (error === null), false on any
+ * failure (DB unreachable, RPC error, etc.).
+ */
+export async function incrementCheatFlag(params: {
+  userId: string;
+  flagType: string;
+  description: string;
+  severity: InvestigationSeverity;
+}): Promise<boolean> {
+  const supabase = createServiceRoleClient();
+  if (!supabase) return false;
+
+  const { error } = await supabase.rpc('increment_cheat_flag', {
+    p_user_id: params.userId,
+    p_flag_type: params.flagType,
+    p_description: params.description,
+    p_severity: params.severity,
+  });
+
+  if (error) {
+    console.error('[CheatInvestigations] increment_cheat_flag failed:', error.message);
+    return false;
+  }
+  return true;
+}

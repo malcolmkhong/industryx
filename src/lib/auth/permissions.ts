@@ -1,76 +1,61 @@
-import { createServiceRoleClient } from '@/lib/supabase/server';
+// ============================================
+// src/lib/auth/permissions.ts
+// Auth/policy module for admin permissions.
+//
+// All data access is delegated to src/lib/db/adminPermissions.ts (the
+// data-access layer). This file is the policy layer: it re-exports the
+// typed Permission enum and provides thin wrappers that callers in
+// src/app/api/admin/** import.
+// ============================================
 
-const VALID_PERMISSIONS = [
-  'view_players',
-  'lock_players',
-  'edit_config',
-  'manage_admins',
-  'view_audit',
-  'manage_market',
-  'manage_investigations',
-  'view_economy',
-] as const;
+import {
+  adminHasPermission,
+  getValidPermissions,
+  grantPermission as grantPermissionDb,
+  listPermissionsForAdmin,
+  revokePermission as revokePermissionDb,
+  type DbPermission,
+} from '@/lib/db/adminPermissions';
 
-export type Permission = (typeof VALID_PERMISSIONS)[number];
+// Re-export the valid permission list (single source of truth).
+export { getValidPermissions };
 
-export function getValidPermissions(): readonly string[] {
-  return VALID_PERMISSIONS;
+export type Permission = DbPermission;
+
+/**
+ * List all permission strings granted to an admin user.
+ */
+export function getUserPermissions(userId: string): Promise<Permission[]> {
+  return listPermissionsForAdmin(userId);
 }
 
-export async function getUserPermissions(userId: string): Promise<Permission[]> {
-  const supabase = createServiceRoleClient();
-  if (!supabase) return [];
-
-  const { data } = await supabase
-    .from('admin_permissions')
-    .select('permission')
-    .eq('admin_user_id', userId);
-
-  return (data || []).map((r) => r.permission as Permission);
+/**
+ * Check whether an admin user has a specific permission grant.
+ */
+export function hasPermission(
+  userId: string,
+  permission: Permission,
+): Promise<boolean> {
+  return adminHasPermission(userId, permission);
 }
 
-export async function hasPermission(userId: string, permission: Permission): Promise<boolean> {
-  const supabase = createServiceRoleClient();
-  if (!supabase) return false;
-
-  const { count, error } = await supabase
-    .from('admin_permissions')
-    .select('*', { count: 'exact', head: true })
-    .eq('admin_user_id', userId)
-    .eq('permission', permission);
-
-  return !error && (count ?? 0) > 0;
-}
-
-export async function grantPermission(
+/**
+ * Grant a permission to an admin user.
+ */
+export function grantPermission(
   adminUserId: string,
   permission: Permission,
   grantedBy: string,
 ): Promise<boolean> {
-  const supabase = createServiceRoleClient();
-  if (!supabase) return false;
-
-  const { error } = await supabase.from('admin_permissions').upsert({
-    admin_user_id: adminUserId,
-    permission,
-    granted_by: grantedBy,
-  });
-
-  return !error;
+  return grantPermissionDb(adminUserId, permission, grantedBy);
 }
 
-export async function revokePermission(
+/**
+ * Revoke a permission from an admin user.
+ */
+export function revokePermission(
   adminUserId: string,
   permission: Permission,
 ): Promise<boolean> {
-  const supabase = createServiceRoleClient();
-  if (!supabase) return false;
-
-  const { error } = await supabase
-    .from('admin_permissions')
-    .delete()
-    .eq('admin_user_id', adminUserId)
-    .eq('permission', permission);
-
-  return !error;
+  return revokePermissionDb(adminUserId, permission);
 }
