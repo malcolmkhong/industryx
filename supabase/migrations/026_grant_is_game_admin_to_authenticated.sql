@@ -1,15 +1,15 @@
 -- Migration 026: Grant EXECUTE on is_game_admin() to authenticated
--- so middleware can perform DB-backed admin checks via supabase.rpc().
+-- so proxy can perform DB-backed admin checks via supabase.rpc().
 --
 -- Before this migration:
---   - middleware checked ADMIN_UIDS env var only
+--   - proxy checked ADMIN_UIDS env var only
 --   - admins added via admin_users table (UI) couldn't access /admin/* pages
 --     until the env var was updated and the app redeployed
 --   - API routes already had authoritative check via verifyAdmin()
 --     (1-min in-memory cache, full DB scan via service role)
 --
 -- After this migration:
---   - middleware can call supabase.rpc('is_game_admin') to check the
+--   - proxy can call supabase.rpc('is_game_admin') to check the
 --     current user against the admin_users table (single-row, fast)
 --   - ADMIN_UIDS env var remains as a bootstrap fallback (for initial
 --     deployment before any DB seed exists, or if the RPC is unavailable)

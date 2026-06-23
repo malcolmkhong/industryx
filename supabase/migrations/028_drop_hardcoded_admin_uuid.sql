@@ -7,7 +7,7 @@
 -- hardcoded fallback is redundant AND a security anti-pattern:
 -- emptying admin_users would still grant access via the OR clause.
 --
--- Middleware also has the same UUID via ADMIN_UIDS env var as a
+-- proxy also has the same UUID via ADMIN_UIDS env var as a
 -- bootstrap safety net, so removing it from the function is safe.
 
 CREATE OR REPLACE FUNCTION public.is_game_admin()

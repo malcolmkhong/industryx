@@ -24,7 +24,7 @@ export async function GET(request: Request) {
                 cookieStore.set(name, value, options)
               );
             } catch {
-              // Can be ignored if middleware is refreshing sessions
+              // Can be ignored if proxy is refreshing sessions
             }
           },
         },

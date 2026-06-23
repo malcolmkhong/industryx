@@ -17,7 +17,7 @@ export async function GET(request: Request) {
       } = await supabase.auth.getUser();
 
       if (user) {
-        // Defense-in-depth: verify user is in admin_users table (after env-var middleware check).
+        // Defense-in-depth: verify user is in admin_users table (after env-var proxy check).
         // Direct table query (not is_game_admin RPC) because auth.uid() returns NULL for
         // service role clients, which would make the RPC always return false.
         // Service role bypasses RLS, so this read is safe.
