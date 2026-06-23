@@ -22,13 +22,13 @@ const AUTH_ROUTES = ['/admin/login', '/admin/auth/callback', '/api/auth/']
 // API routes handle their own auth — let them through
 const API_PREFIX = '/api/'
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Capture real client IP for analytics logging (Phase 1)
   const realIp = extractRealIp(request.headers)
 
-  // Skip middleware logic entirely for auth callback routes
+  // Skip proxy logic entirely for auth callback routes
   if (AUTH_ROUTES.some((path) => pathname.startsWith(path))) {
     const res = NextResponse.next()
     res.headers.set('x-real-ip', realIp)
