@@ -1,7 +1,7 @@
 # Database Centralization Migration — TODO Checklist
 
 > **Single source of truth** for tracking the database access centralization migration.
-> Last updated: 2026-06-23 (iteration 8 complete)
+> Last updated: 2026-06-23 (iter 9a partial: 2 of 5 auth routes complete)
 > Related: [DB_ACCESS_CENTRALIZATION_AUDIT_2026_06_20.md](./DB_ACCESS_CENTRALIZATION_AUDIT_2026_06_20.md)
 
 ---
