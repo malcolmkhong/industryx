@@ -22,7 +22,7 @@ describe('GET /api/auth/me', () => {
     const req = buildRequest({ url: '/api/auth/me' });
     const res = await GET();
     expect(res.status).toBe(401);
-    const body = await readJson(res);
+    const body = await readJson<{ error?: string }>(res);
     expect(body.error).toBe('Unauthorized');
   });
 

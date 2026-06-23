@@ -33,7 +33,7 @@ describe('POST /api/auth/initialize-guest', () => {
     });
     const res = await POST(req);
     expect(res.status).toBe(400);
-    const body = await readJson(res);
+    const body = await readJson<{ error?: string }>(res);
     expect(body.error).toMatch(/deviceId/);
   });
 

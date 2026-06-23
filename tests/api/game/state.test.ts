@@ -17,7 +17,7 @@ describe('GET /api/game/state', () => {
     const req = buildRequest({ method: 'GET', url: '/api/game/state' });
     const res = await GET(req);
     expect(res.status).toBe(400);
-    const body = await readJson(res);
+    const body = await readJson<{ error?: string }>(res);
     expect(body.error).toMatch(/userId/);
   });
 

@@ -15,7 +15,8 @@ import { POST as submitScore } from '@/app/api/leaderboard/submit/route';
 
 describe('GET /api/leaderboard', () => {
   it('returns 401 when not authenticated', async () => {
-    const res = await GET();
+    const req = buildRequest({ method: 'GET', url: '/api/leaderboard' });
+    const res = await GET(req);
     expect(res.status).toBe(401);
   });
 });
