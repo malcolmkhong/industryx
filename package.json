@@ -8,9 +8,18 @@
     "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
     "lint": "eslint . --cache",
     "test": "tsx --test --test-reporter=spec tests/integration/*.test.ts tests/security/*.test.ts",
+    "test:vitest": "vitest run --reporter=verbose",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:unit": "vitest run tests/unit",
+    "test:components": "vitest run tests/components",
+    "test:db": "vitest run tests/db",
+    "test:workflow": "vitest run tests/workflow",
+    "test:performance": "vitest run tests/performance",
     "test:integration": "tsx --test tests/integration/*.test.ts",
     "test:security": "tsx --test tests/security/*.test.ts",
-    "test:all": "tsx --test tests/integration/*.test.ts tests/security/*.test.ts"
+    "test:all": "npm run test && npm run test:vitest"
   },
   "dependencies": {
     "@fingerprintjs/fingerprintjs": "^4.6.2",
@@ -75,15 +84,19 @@
     "@types/jsdom": "^28.0.3",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4.7.0",
+    "@vitest/ui": "^2.1.9",
     "bun-types": "^1.3.4",
     "eslint": "^9",
     "eslint-config-next": "^16.1.1",
     "eslint-plugin-jsx-a11y": "^6.10.2",
+    "happy-dom": "^15.11.7",
     "jsdom": "^29.1.1",
     "knip": "^6.16.1",
     "tailwindcss": "^4",
     "tsx": "^4.22.4",
     "tw-animate-css": "^1.3.5",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^2.1.9"
   }
 }
