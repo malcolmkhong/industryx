@@ -7,15 +7,28 @@
 // user cleared cookies before signing in with Google). The deviceId is used to
 // query `guest_identities` for the prior guest identity, preventing silent
 // data loss for the guest's progress.
+//
+// Iteration 9d of DB centralization migration:
+//   - pending_link_operations lookup + insert routed through db/linkOps.
+//   - guest_identities device fallback routed through db/guestIdentities.
+//   - profiles display_name + is_guest reads routed through db/profiles.
+//   - server_game_state preview reads already routed via db/serverGameState.
+//   - 4 inline .from() calls replaced.
 
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
-import { createServiceRoleClient } from '@/lib/supabase/server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 import { loadServerGameStateForPreview } from '@/lib/db/serverGameState';
 import { verifyAuth } from '@/lib/auth/verifyAuth';
 import { logRequestIp } from '@/app/api/auth/request-ip-log-helper';
+import { findPrimaryIdentityByDevice } from '@/lib/db/guestIdentities';
+import { getProfileDisplayAndGuestFlag } from '@/lib/db/profiles';
+import {
+  findLinkOperationByIdempotency,
+  insertLinkOperation,
+  setLinkOperationStatus,
+} from '@/lib/db/linkOps';
 
 export async function POST(request: NextRequest) {
   try {
@@ -60,14 +73,6 @@ export async function POST(request: NextRequest) {
     const ipHashValue = hashIp(realIp);
     const requestUserAgent = userAgent ?? request.headers.get('user-agent') ?? null;
 
-    const supabase = createServiceRoleClient();
-    if (!supabase) {
-      return NextResponse.json(
-        { error: 'Service not configured' },
-        { status: 503 }
-      );
-    }
-
     const cookieStore = await cookies();
     console.log(
   '[LinkIdentity] cookie guest uid:',
@@ -80,12 +85,7 @@ export async function POST(request: NextRequest) {
     // silent data loss for guest progress when the user re-signs-in with Google
     // on the same device after clearing cookies.
     if (!guestUserId && deviceId) {
-      const { data: identityByDevice } = await supabase
-        .from('guest_identities')
-        .select('user_id, is_primary')
-        .eq('device_id', deviceId)
-        .eq('is_primary', true)
-        .maybeSingle();
+      const identityByDevice = await findPrimaryIdentityByDevice(deviceId);
 
       if (identityByDevice?.user_id && identityByDevice.user_id !== auth.userId) {
         guestUserId = identityByDevice.user_id;
@@ -99,12 +99,10 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const { data: existingOp } = await supabase
-      .from('pending_link_operations')
-      .select('id, status, expires_at')
-      .eq('idempotency_key', idempotencyKey)
-      .eq('google_user_id', auth.userId)
-      .single();
+    const existingOp = await findLinkOperationByIdempotency(
+      idempotencyKey,
+      auth.userId,
+    );
 
     if (existingOp && existingOp.status === 'pending') {
       if (new Date(existingOp.expires_at) > new Date()) {
@@ -114,10 +112,7 @@ export async function POST(request: NextRequest) {
           message: 'Existing pending operation',
         });
       }
-      await supabase
-        .from('pending_link_operations')
-        .update({ status: 'expired', completed_at: new Date().toISOString() })
-        .eq('id', existingOp.id);
+      await setLinkOperationStatus(existingOp.id, 'expired');
     }
 
     const guestState = await loadServerGameStateForPreview(guestUserId);
@@ -141,17 +136,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('display_name, is_guest')
-      .eq('id', guestUserId)
-      .single();
+    const profile = await getProfileDisplayAndGuestFlag(guestUserId);
 
-    const { data: googleProfile } = await supabase
-      .from('profiles')
-      .select('display_name')
-      .eq('id', auth.userId)
-      .single();
+    const googleProfile = await getProfileDisplayAndGuestFlag(auth.userId);
 
     const previewVersion = {
       guest: {
@@ -185,30 +172,26 @@ export async function POST(request: NextRequest) {
 
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
-    const { data: operation, error: opError } = await supabase
-      .from('pending_link_operations')
-      .insert({
-        guest_user_id: guestUserId,
-        google_user_id: auth.userId,
-        idempotency_key: idempotencyKey,
-        status: 'pending',
-        risk_score: riskScore,
-        risk_flags: [],
-        preview_version: previewVersion,
-        expires_at: expiresAt,
-        // Phase 1: correlation fields (never used for enforcement)
-        ...(fingerprintHash ? { fingerprint_hash: fingerprintHash } : {}),
-        ...(deviceId ? { device_id: deviceId } : {}),
-        // Pre-existing IP/UA columns — now populated
-        ip_hash: ipHashValue,
-        ip_region: null, // not in scope for Phase 1
-        user_agent: requestUserAgent,
-      })
-      .select('id')
-      .single();
+    const operationId = await insertLinkOperation({
+      guest_user_id: guestUserId,
+      google_user_id: auth.userId,
+      idempotency_key: idempotencyKey,
+      status: 'pending',
+      risk_score: riskScore,
+      risk_flags: [],
+      preview_version: previewVersion,
+      expires_at: expiresAt,
+      // Phase 1: correlation fields (never used for enforcement)
+      ...(fingerprintHash ? { fingerprint_hash: fingerprintHash } : {}),
+      ...(deviceId ? { device_id: deviceId } : {}),
+      // Pre-existing IP/UA columns — now populated
+      ip_hash: ipHashValue,
+      ip_region: null, // not in scope for Phase 1
+      user_agent: requestUserAgent,
+    });
 
-    if (opError || !operation) {
-      console.error('[LinkIdentity] Failed to create operation:', opError);
+    if (!operationId) {
+      console.error('[LinkIdentity] Failed to create operation');
       return NextResponse.json(
         { error: 'Failed to create merge operation' },
         { status: 500 }
@@ -217,7 +200,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       conflict: true,
-      operationId: operation.id,
+      operationId,
       preview: previewVersion,
       riskScore,
       expiresAt,

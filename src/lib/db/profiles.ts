@@ -108,3 +108,25 @@ export async function markProfileAsGuest(userId: string): Promise<boolean> {
   }
   return true;
 }
+
+/**
+ * Read the display name + guest flag for one user. Used by
+ * /api/auth/link-identity to build the merge preview.
+ * Returns null if the user has no profile row.
+ */
+export async function getProfileDisplayAndGuestFlag(
+  userId: string,
+): Promise<{ display_name: string | null; is_guest: boolean } | null> {
+  const supabase = await createServiceRoleClient();
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('display_name, is_guest')
+    .eq('id', userId)
+    .maybeSingle();
+  if (error) {
+    console.error('[profiles] getDisplayAndGuestFlag failed:', error.message);
+    return null;
+  }
+  return (data ?? null) as { display_name: string | null; is_guest: boolean } | null;
+}

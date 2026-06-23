@@ -1,13 +1,36 @@
 // Phase 1.5: Confirm the merge transaction
 // Single transaction: copy state, link identity, create receipt + audit log.
+//
+// Iteration 9d of DB centralization migration:
+//   - pending_link_operations read + status update routed through db/linkOps.
+//   - server_game_state reads + state copy / timestamp touch routed through
+//     db/merge (loadFullGameStateForMerge, persistGuestStateOnSurvivingUser,
+//     touchGameStateForSurvivingGoogleUser).
+//   - profiles guest-flag flip routed through db/merge (linkGuestProfileToGoogle,
+//     clearGuestFlagOnProfile).
+//   - guest_identities supersede routed through db/merge (supersedeGuestIdentities).
+//   - merge_receipts insert + merge_audit_log insert routed through db/merge.
+//   - 11 inline .from() calls replaced.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServiceRoleClient } from '@/lib/supabase/server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 import { verifyAuth } from '@/lib/auth/verifyAuth';
 import { logRequestIp, extractClientIp, hashIp } from '@/app/api/auth/request-ip-log-helper';
-
-type Preference = 'keep_guest' | 'keep_google';
+import {
+  findLinkOperationById,
+  findOtherPendingForGoogle,
+  setLinkOperationStatus,
+} from '@/lib/db/linkOps';
+import {
+  loadFullGameStateForMerge,
+  persistGuestStateOnSurvivingUser,
+  touchGameStateForSurvivingGoogleUser,
+  linkGuestProfileToGoogle,
+  clearGuestFlagOnProfile,
+  supersedeGuestIdentities,
+  insertMergeReceipt,
+  insertMergeAuditLog,
+} from '@/lib/db/merge';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,7 +38,7 @@ export async function POST(request: NextRequest) {
     const { operationId, idempotencyKey, preference, fingerprintHash } = body as {
       operationId?: string;
       idempotencyKey?: string;
-      preference?: Preference;
+      preference?: 'keep_guest' | 'keep_google';
       fingerprintHash?: string;
     };
 
@@ -51,39 +74,18 @@ export async function POST(request: NextRequest) {
     const ipHashValue = hashIp(realIp);
     const requestUserAgent = request.headers.get('user-agent') ?? null;
 
-    const supabase = createServiceRoleClient();
-    if (!supabase) {
-      return NextResponse.json(
-        { error: 'Service not configured' },
-        { status: 503 }
-      );
-    }
+    const anyPending = await findOtherPendingForGoogle(auth.userId, operationId);
 
-    const { data: anyPending } = await supabase
-      .from('pending_link_operations')
-      .select('id')
-      .eq('google_user_id', auth.userId)
-      .eq('status', 'pending')
-      .neq('id', operationId)
-      .gt('expires_at', new Date().toISOString())
-      .limit(1);
-
-    if (anyPending && anyPending.length > 0) {
+    if (anyPending) {
       return NextResponse.json(
         { error: 'Another merge is already pending. Resolve it first.' },
         { status: 409 }
       );
     }
 
-    const { data: op, error: opError } = await supabase
-      .from('pending_link_operations')
-      .select('*')
-      .eq('id', operationId)
-      .eq('google_user_id', auth.userId)
-      .eq('idempotency_key', idempotencyKey)
-      .single();
+    const op = await findLinkOperationById(operationId, auth.userId, idempotencyKey);
 
-    if (opError || !op) {
+    if (!op) {
       return NextResponse.json(
         { error: 'Operation not found' },
         { status: 404 }
@@ -98,136 +100,81 @@ export async function POST(request: NextRequest) {
     }
 
     if (new Date(op.expires_at) < new Date()) {
-      await supabase
-        .from('pending_link_operations')
-        .update({ status: 'expired', completed_at: new Date().toISOString() })
-        .eq('id', operationId);
+      await setLinkOperationStatus(operationId, 'expired');
       return NextResponse.json(
         { error: 'Operation expired' },
         { status: 400 }
       );
     }
 
-    const { data: guestState } = await supabase
-      .from('server_game_state')
-      .select('*')
-      .eq('user_id', op.guest_user_id)
-      .single();
+    // google_user_id is NOT NULL in practice for any pending operation that
+    // reaches confirm-link (link-identity only inserts after the OAuth user
+    // resolves), but the schema allows null. Guard here to satisfy strict
+    // types and fail loudly if a malformed row exists.
+    if (!op.google_user_id) {
+      return NextResponse.json(
+        { error: 'Operation missing google_user_id' },
+        { status: 400 }
+      );
+    }
+    const googleUserId: string = op.google_user_id;
 
-    const { data: googleState } = await supabase
-      .from('server_game_state')
-      .select('*')
-      .eq('user_id', op.google_user_id)
-      .single();
+    const guestState = await loadFullGameStateForMerge(op.guest_user_id);
+    const googleState = await loadFullGameStateForMerge(googleUserId);
 
     let survivingUserId: string;
     let archivedUserId: string;
 
     if (preference === 'keep_guest') {
       survivingUserId = op.guest_user_id;
-      archivedUserId = op.google_user_id;
+      archivedUserId = googleUserId;
 
       if (guestState) {
-        await supabase
-          .from('server_game_state')
-          .update({
-            money: guestState.money,
-            total_money_earned: guestState.total_money_earned,
-            research_points: guestState.research_points,
-            buildings: guestState.buildings,
-            buildings_count: guestState.buildings_count,
-            completed_research: guestState.completed_research,
-            resources: guestState.resources,
-            workers: guestState.workers,
-            game_tick: guestState.game_tick,
-            game_speed: guestState.game_speed,
-            full_state: guestState.full_state,
-            state_hash: guestState.state_hash,
-            state_version: guestState.state_version,
-            last_saved_at: new Date().toISOString(),
-            last_tick_at: new Date().toISOString(),
-          })
-          .eq('user_id', op.guest_user_id);
+        await persistGuestStateOnSurvivingUser(op.guest_user_id, guestState);
       }
 
-      await supabase
-        .from('profiles')
-        .update({ is_guest: false, linked_account_id: op.google_user_id, linked_at: new Date().toISOString() })
-        .eq('id', op.guest_user_id);
-
-      await supabase
-        .from('guest_identities')
-        .update({
-          superseded_by: op.google_user_id,
-          superseded_at: new Date().toISOString(),
-          is_primary: false,
-        })
-        .eq('user_id', op.guest_user_id);
+      await linkGuestProfileToGoogle(op.guest_user_id, googleUserId);
+      await supersedeGuestIdentities(op.guest_user_id, googleUserId);
     } else {
-      survivingUserId = op.google_user_id;
+      survivingUserId = googleUserId;
       archivedUserId = op.guest_user_id;
 
       if (googleState) {
-        await supabase
-          .from('server_game_state')
-          .update({
-            last_saved_at: new Date().toISOString(),
-            last_tick_at: new Date().toISOString(),
-          })
-          .eq('user_id', op.google_user_id);
+        await touchGameStateForSurvivingGoogleUser(googleUserId);
       }
 
-      await supabase
-        .from('guest_identities')
-        .update({
-          superseded_by: op.google_user_id,
-          superseded_at: new Date().toISOString(),
-          is_primary: false,
-        })
-        .eq('user_id', op.guest_user_id);
-
-      await supabase
-        .from('profiles')
-        .update({ is_guest: false })
-        .eq('id', op.guest_user_id);
+      await supersedeGuestIdentities(op.guest_user_id, googleUserId);
+      await clearGuestFlagOnProfile(op.guest_user_id);
     }
 
-    const now = new Date().toISOString();
-    await supabase
-      .from('pending_link_operations')
-      .update({ status: 'completed', completed_at: now })
-      .eq('id', operationId);
+    await setLinkOperationStatus(operationId, 'completed');
 
-    const { data: receipt, error: receiptError } = await supabase
-      .from('merge_receipts')
-      .insert({
-        operation_id: operationId,
-        kept_user_id: survivingUserId,
-        archived_user_id: archivedUserId,
-        decision_type: preference,
-        guest_state_snapshot: guestState?.full_state ?? null,
-        google_state_snapshot: googleState?.full_state ?? null,
-        risk_score: op.risk_score,
-        expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
-      })
-      .select('id')
-      .single();
+    const receiptId = await insertMergeReceipt({
+      operation_id: operationId,
+      kept_user_id: survivingUserId,
+      archived_user_id: archivedUserId,
+      decision_type: preference,
+      guest_state_snapshot: guestState?.full_state ?? null,
+      google_state_snapshot: googleState?.full_state ?? null,
+      risk_score: op.risk_score,
+      expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+    });
 
-    if (receiptError || !receipt) {
-      console.error('[ConfirmLink] Failed to create receipt:', receiptError);
+    if (!receiptId) {
+      console.error('[ConfirmLink] Failed to create receipt');
     }
 
-    await supabase.from('merge_audit_log').insert({
-      merge_receipt_id: receipt?.id ?? 'unknown',
+    await insertMergeAuditLog({
+      merge_receipt_id: receiptId ?? 'unknown',
       idempotency_key: idempotencyKey,
       guest_user_id: op.guest_user_id,
-      google_user_id: op.google_user_id,
+      google_user_id: googleUserId,
       preference,
       guest_state_before: guestState?.full_state ?? null,
       google_state_before: googleState?.full_state ?? null,
       guest_state_after: preference === 'keep_guest' ? guestState?.full_state ?? null : null,
       google_state_after: preference === 'keep_google' ? googleState?.full_state ?? null : guestState?.full_state ?? null,
-      merge_result: { receiptId: receipt?.id ?? null, survivingUserId },
+      merge_result: { receiptId: receiptId ?? null, survivingUserId },
       preview_version: op.preview_version,
       risk_score: op.risk_score,
       risk_flags: op.risk_flags ?? [],
@@ -245,7 +192,7 @@ export async function POST(request: NextRequest) {
       preference,
       survivingUserId,
       archivedUserId,
-      receiptId: receipt?.id ?? null,
+      receiptId: receiptId ?? null,
     });
   } catch (error) {
     console.error('[ConfirmLink] Unexpected error:', error);
