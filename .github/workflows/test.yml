@@ -98,6 +98,11 @@ jobs:
 
       - name: Run tests
         run: npm test
+        env:
+          # The anon key is public by design (designed for browser bundles).
+          # Required by tests/integration/supabase-connectivity.test.ts.
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: https://wkkzqtseqwcyyyezroqq.supabase.co
 
       - name: Run security tests
         run: npm run test:security

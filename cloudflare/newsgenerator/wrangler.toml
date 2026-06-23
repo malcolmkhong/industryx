@@ -1,0 +1,27 @@
+name = "newsgenerator"
+main = "worker.js"
+compatibility_date = "2026-06-01"
+
+# No [triggers] — this worker is invoked via fetch from
+# /api/news-llm (Next.js route) and the news generator tests.
+
+# Non-secret vars (committed to repo). Add public-safe values here.
+[vars]
+
+# Secrets (NOT committed). Set per environment via:
+#   npx wrangler secret put GROQ_API_KEY
+# Then redeploy with `npx wrangler deploy`.
+# The Cloudflare Workers AI binding (env.AI) is enabled by default on
+# the account — no extra config needed in wrangler.toml.
+
+[placement]
+mode = "smart"
+
+[observability]
+enabled = false
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
