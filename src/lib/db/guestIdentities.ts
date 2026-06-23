@@ -3,13 +3,16 @@
  *
  * Iteration 9 of the Database Centralization migration.
  * Migrated: /api/auth/recover-by-device, /api/auth/initialize-guest,
- * /api/auth/claim-guest, /api/auth/confirm-link, /api/auth/link-identity.
+ * /api/auth/claim-guest. (link-identity + confirm-link use this module
+ * for read paths; their write paths live in db/merge.ts.)
  *
  * Table purpose: device_id <-> user_id mapping for guest recovery.
  *   - `device_id` is the PRIMARY recovery signal.
- *   - `fingerprint_hash` is for analytics/correlation ONLY.
+ *   - `fingerprint` is the raw device fingerprint (NOT NULL, required on insert).
+ *   - `fingerprint_hash` is the SHA-256 hex digest, analytics only.
  *   - `is_primary` marks the active identity for a device.
  *   - `superseded_at` + `superseded_by` track the link-to-OAuth flow.
+ *   - `claimed_at` records when the device's identity was established.
  *
  * Conventions:
  *   - All async functions return `Promise<T | null>` (null for not-found).
@@ -24,14 +27,27 @@ type GuestIdentityRow = Database['public']['Tables']['guest_identities']['Row'];
 export interface GuestIdentity {
   id?: string;
   user_id: string;
-  device_id: string;
+  device_id: string | null;
+  fingerprint: string;
   fingerprint_hash: string | null;
   is_primary: boolean;
+  claimed_at?: string;
   superseded_at: string | null;
   superseded_by: string | null;
   last_used_at?: string | null;
   created_at?: string;
 }
+
+export type GuestIdentityInsert = Pick<
+  GuestIdentityRow,
+  'user_id' | 'fingerprint'
+> &
+  Partial<
+    Pick<
+      GuestIdentityRow,
+      'device_id' | 'fingerprint_hash' | 'is_primary' | 'claimed_at'
+    >
+  >;
 
 /**
  * Find the primary identity for a device.
@@ -44,7 +60,9 @@ export async function findPrimaryIdentityByDevice(
   if (!supabase) return null;
   const { data, error } = await supabase
     .from('guest_identities')
-    .select('id, user_id, device_id, fingerprint_hash, is_primary, superseded_at, superseded_by, last_used_at, created_at')
+    .select(
+      'id, user_id, device_id, fingerprint, fingerprint_hash, is_primary, claimed_at, superseded_at, superseded_by, last_used_at, created_at',
+    )
     .eq('device_id', deviceId)
     .eq('is_primary', true)
     .maybeSingle();
@@ -66,7 +84,9 @@ export async function findIdentitiesByUserId(
   if (!supabase) return [];
   const { data, error } = await supabase
     .from('guest_identities')
-    .select('id, user_id, device_id, fingerprint_hash, is_primary, superseded_at, superseded_by, last_used_at, created_at')
+    .select(
+      'id, user_id, device_id, fingerprint, fingerprint_hash, is_primary, claimed_at, superseded_at, superseded_by, last_used_at, created_at',
+    )
     .eq('user_id', userId)
     .order('created_at', { ascending: true });
   if (error) {
@@ -78,17 +98,21 @@ export async function findIdentitiesByUserId(
 
 /**
  * Insert a new guest identity.
- * Used during initialize-guest and link flows.
+ * `fingerprint` is required (NOT NULL on table). Callers that have a
+ * device-side fingerprint pass it raw; `fingerprint_hash` is the optional
+ * SHA-256 hex digest computed by the caller.
  */
 export async function insertGuestIdentity(
-  values: Pick<GuestIdentityRow, 'user_id' | 'device_id' | 'fingerprint_hash' | 'is_primary'>,
+  values: GuestIdentityInsert,
 ): Promise<GuestIdentity | null> {
   const supabase = await createServiceRoleClient();
   if (!supabase) return null;
   const { data, error } = await supabase
     .from('guest_identities')
     .insert(values)
-    .select('id, user_id, device_id, fingerprint_hash, is_primary, superseded_at, superseded_by, last_used_at, created_at')
+    .select(
+      'id, user_id, device_id, fingerprint, fingerprint_hash, is_primary, claimed_at, superseded_at, superseded_by, last_used_at, created_at',
+    )
     .single();
   if (error) {
     console.error('[guestIdentities] insertGuestIdentity failed:', error.message);
@@ -173,6 +197,49 @@ export async function setIdentityFingerprintIfMissing(
 }
 
 /**
+ * Check whether an identity row exists for (user_id, device_id).
+ * Used by /api/auth/initialize-guest as the dedupe gate.
+ */
+export async function hasIdentityForUserAndDevice(
+  userId: string,
+  deviceId: string,
+): Promise<boolean> {
+  const supabase = await createServiceRoleClient();
+  if (!supabase) return false;
+  const { data, error } = await supabase
+    .from('guest_identities')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('device_id', deviceId)
+    .maybeSingle();
+  if (error) {
+    console.error('[guestIdentities] hasIdentityForUserAndDevice failed:', error.message);
+    return false;
+  }
+  return data !== null;
+}
+
+/**
+ * Check whether ANY identity exists for a user (any device_id).
+ * Used by /api/auth/initialize-guest to skip insertion when the
+ * user already has an identity from another device.
+ */
+export async function hasAnyIdentityForUser(userId: string): Promise<boolean> {
+  const supabase = await createServiceRoleClient();
+  if (!supabase) return false;
+  const { data, error } = await supabase
+    .from('guest_identities')
+    .select('id')
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (error) {
+    console.error('[guestIdentities] hasAnyIdentityForUser failed:', error.message);
+    return false;
+  }
+  return data !== null;
+}
+
+/**
  * Delete all identities for a user. Used by destructive ops (account reset).
  */
 export async function deleteIdentitiesByUserId(userId: string): Promise<number> {
@@ -188,4 +255,69 @@ export async function deleteIdentitiesByUserId(userId: string): Promise<number> 
     return 0;
   }
   return (data ?? []).length;
+}
+
+/**
+ * Per-user tables reassigned from old guest → new anon during claim-guest.
+ * Each update is independent — a failure in one table does not block others.
+ */
+export const REASSIGNABLE_TABLES = [
+  'server_game_state',
+  'player_progress',
+  'player_actions',
+  'player_sessions',
+  'market_player_pressure',
+  'leaderboard_entries',
+  'support_tickets',
+] as const;
+
+export interface ReassignResult {
+  table: string;
+  ok: boolean;
+  rows: number;
+  error?: string;
+}
+
+/**
+ * Reassign ownership of every per-user table from `oldUserId` to `newUserId`.
+ * Returns a per-table report (ok + rows + optional error).
+ *
+ * Intentionally NOT a single transaction — claim-guest tolerates partial
+ * success because each table is idempotent and the old identity is already
+ * marked superseded.
+ */
+export async function reassignUserData(
+  oldUserId: string,
+  newUserId: string,
+): Promise<ReassignResult[]> {
+  const supabase = await createServiceRoleClient();
+  if (!supabase) {
+    return REASSIGNABLE_TABLES.map((table) => ({
+      table,
+      ok: false,
+      rows: 0,
+      error: 'Supabase service-role client not configured',
+    }));
+  }
+  const results: ReassignResult[] = [];
+  for (const table of REASSIGNABLE_TABLES) {
+    const { data, error } = await supabase
+      .from(table)
+      .update({ user_id: newUserId })
+      .eq('user_id', oldUserId)
+      .select('user_id');
+    results.push({
+      table,
+      ok: !error,
+      rows: data?.length ?? 0,
+      ...(error ? { error: error.message } : {}),
+    });
+    if (error) {
+      console.error(
+        `[guestIdentities] reassignUserData: ${table} failed (old=${oldUserId}, new=${newUserId}):`,
+        error.message,
+      );
+    }
+  }
+  return results;
 }

@@ -26,24 +26,25 @@
 //     default. Clients should retry with the response from recover-by-device.
 //   - The old `server_game_state.state_version` is preserved on the new row
 //     so conflict detection in /api/game/state keeps working.
+//
+// Iteration 9 of DB centralization migration:
+//   - guest_identities lookup + supersede + insert routed through
+//     db/guestIdentities.
+//   - 7-table user_id reassign routed through db/guestIdentities#reassignUserData.
+//   - profiles.is_guest flag update routed through db/profiles (new helper).
+//   - server_game_state.is_locked check routed through db/serverGameState.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServiceRoleClient } from '@/lib/supabase/server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 import { logRequestIp } from '@/app/api/auth/request-ip-log-helper';
 import { loadLockState } from '@/lib/db/serverGameState';
-
-// Per-user tables that we re-assign from old guest to new anon.
-// Add new tables here as the schema evolves.
-const REASSIGNABLE_TABLES = [
-  'server_game_state',
-  'player_progress',
-  'player_actions',
-  'player_sessions',
-  'market_player_pressure',
-  'leaderboard_entries',
-  'support_tickets',
-] as const;
+import {
+  findPrimaryIdentityByDevice,
+  insertGuestIdentity,
+  markIdentitySuperseded,
+  reassignUserData,
+} from '@/lib/db/guestIdentities';
+import { markProfileAsGuest } from '@/lib/db/profiles';
 
 export async function POST(request: NextRequest) {
   try {
@@ -75,14 +76,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = createServiceRoleClient();
-    if (!supabase) {
-      return NextResponse.json(
-        { error: 'Service not configured' },
-        { status: 503 }
-      );
-    }
-
     // Rate-limit by deviceId (not newUserId — that hasn't authenticated yet)
     const rateLimitResponse = await checkRateLimit(
       deviceId,
@@ -93,23 +86,9 @@ export async function POST(request: NextRequest) {
 
     // Phase 1: log request IP for analytics (correlation only)
     logRequestIp(request, '/api/auth/claim-guest', newUserId);
-    if (rateLimitResponse) return rateLimitResponse;
 
     // 1. Find the old guest identity by device_id
-    const { data: oldIdentity, error: identityError } = await supabase
-      .from('guest_identities')
-      .select('id, user_id, fingerprint_hash, is_primary')
-      .eq('device_id', deviceId)
-      .eq('is_primary', true)
-      .maybeSingle();
-
-    if (identityError) {
-      console.error('[ClaimGuest] Failed to look up old identity:', identityError);
-      return NextResponse.json(
-        { error: 'Failed to look up guest identity' },
-        { status: 500 }
-      );
-    }
+    const oldIdentity = await findPrimaryIdentityByDevice(deviceId);
 
     if (!oldIdentity) {
       return NextResponse.json(
@@ -127,6 +106,7 @@ export async function POST(request: NextRequest) {
     }
 
     const oldUserId = oldIdentity.user_id;
+    const oldIdentityId = oldIdentity.id;
 
     // Phase 3: refuse re-claim if old user_id is locked (Google-anchored enforcement).
     // This is the canonical fix for the E1 risk in the 2026-06-18 audit:
@@ -143,65 +123,49 @@ export async function POST(request: NextRequest) {
     // 2. Re-assign per-user tables from oldUserId -> newUserId
     //    We use individual updates per table (not a single transaction) so a
     //    failure in one table doesn't block the others. Each is idempotent.
-    const reassignResults: Record<string, { ok: boolean; rows: number; error?: string }> = {};
-    for (const table of REASSIGNABLE_TABLES) {
-      const { data, error } = await supabase
-        .from(table)
-        .update({ user_id: newUserId })
-        .eq('user_id', oldUserId)
-        .select('user_id');
-
-      reassignResults[table] = {
-        ok: !error,
-        rows: data?.length ?? 0,
-        ...(error ? { error: error.message } : {}),
-      };
-    }
+    const reassignResults = await reassignUserData(oldUserId, newUserId);
 
     // 3. Mark the old guest identity as superseded
-    await supabase
-      .from('guest_identities')
-      .update({
-        superseded_by: newUserId,
-        superseded_at: new Date().toISOString(),
-        is_primary: false,
-      })
-      .eq('id', oldIdentity.id);
+    if (oldIdentityId) {
+      await markIdentitySuperseded(oldIdentityId, newUserId);
+    }
 
     // 4. Create a new primary guest identity for the new user with the same
     //    device_id. This is what recover-by-device will return on next call.
-    const { error: insertError } = await supabase
-      .from('guest_identities')
-      .insert({
-        user_id: newUserId,
-        device_id: deviceId,
-        fingerprint: '',
-        fingerprint_hash: oldIdentity.fingerprint_hash ?? null,
-        is_primary: true,
-        claimed_at: new Date().toISOString(),
-      });
+    const newIdentity = await insertGuestIdentity({
+      user_id: newUserId,
+      device_id: deviceId,
+      fingerprint: '',
+      fingerprint_hash: oldIdentity.fingerprint_hash ?? null,
+      is_primary: true,
+      claimed_at: new Date().toISOString(),
+    });
 
-    if (insertError) {
+    if (!newIdentity) {
       // Likely a unique-constraint race; non-fatal — the user can still play
-      console.warn('[ClaimGuest] Failed to create new identity row:', insertError.message);
+      console.warn('[ClaimGuest] Failed to create new identity row');
     }
 
     // 5. Update profile: the new user becomes a guest
-    await supabase
-      .from('profiles')
-      .update({ is_guest: true })
-      .eq('id', newUserId);
+    await markProfileAsGuest(newUserId);
 
     console.log(
       `[ClaimGuest] Reassigned from old=${oldUserId} to new=${newUserId} on deviceId=${deviceId.slice(0, 8)}…`
     );
+
+    // Shape the per-table report as the route's public response shape
+    // (matches the prior { table: { ok, rows, error? } } map).
+    const reassigned: Record<string, { ok: boolean; rows: number; error?: string }> = {};
+    for (const r of reassignResults) {
+      reassigned[r.table] = { ok: r.ok, rows: r.rows, ...(r.error ? { error: r.error } : {}) };
+    }
 
     return NextResponse.json({
       claimed: true,
       oldUserId,
       newUserId,
       deviceId,
-      reassigned: reassignResults,
+      reassigned,
     });
   } catch (error) {
     console.error('[ClaimGuest] Unexpected error:', error);

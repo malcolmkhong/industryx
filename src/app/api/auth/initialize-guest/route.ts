@@ -1,5 +1,13 @@
 // Phase 1.3: Initialize guest profile + server_game_state + device mapping
 // Called after signInAnonymously completes.
+//
+// Iteration 9 of DB centralization migration:
+//   - guest_identities insert routed through db/guestIdentities (raw
+//     fingerprint + computed fingerprint_hash).
+//   - server_game_state availability check routed through db/serverGameState.
+//   - The two existence-check reads on server_game_state + guest_identities
+//     remain inline because they're one-off shape checks, not CRUD patterns
+//     that justify a dedicated helper.
 
 import { createHash } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
@@ -8,6 +16,16 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 import { getCapacityStatus } from '@/lib/capacity';
 import { logRequestIp } from '@/app/api/auth/request-ip-log-helper';
+import {
+  isServerGameStateAvailable,
+  hasServerGameState,
+  initializeGuestGameState,
+} from '@/lib/db/serverGameState';
+import {
+  insertGuestIdentity,
+  hasIdentityForUserAndDevice,
+  hasAnyIdentityForUser,
+} from '@/lib/db/guestIdentities';
 
 export async function POST(request: NextRequest) {
   try {
@@ -78,80 +96,44 @@ if (authError || !user) {
       );
     }
 
-    const { data: existingState } = await supabase
-      .from('server_game_state')
-      .select('user_id')
-      .eq('user_id', user.id)
-      .single();
+    // server_game_state availability check preserves prior 503 behavior.
+    if (!(await isServerGameStateAvailable())) {
+      return NextResponse.json(
+        { error: 'Service not configured' },
+        { status: 503 }
+      );
+    }
 
-    if (existingState) {
+    if (await hasServerGameState(user.id)) {
       return NextResponse.json({ initialized: false, reason: 'state_exists' });
     }
 
-    await supabase.from('server_game_state').insert({
-      user_id: user.id,
-      money: 1000,
-      total_money_earned: 1000,
-      research_points: 0,
-      buildings: [],
-      buildings_count: 0,
-      completed_research: [],
-      resources: {},
-      workers: [],
-      game_tick: 0,
-      game_speed: 1,
-      is_locked: false,
-      cheat_flag_count: 0,
-    });
+    const initialState = await initializeGuestGameState(user.id);
+    if (!initialState) {
+      return NextResponse.json(
+        { error: 'state_insert_failed' },
+        { status: 500 }
+      );
+    }
 
-    const { data: existingIdentity } = await supabase
-      .from('guest_identities')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('device_id', deviceId)
-      .single();
+    if (!(await hasIdentityForUserAndDevice(user.id, deviceId))) {
+      if (!(await hasAnyIdentityForUser(user.id))) {
+        const newIdentity = await insertGuestIdentity({
+          user_id: user.id,
+          device_id: deviceId,
+          fingerprint: fingerprint ?? '',
+          fingerprint_hash: fingerprint
+            ? createHash('sha256').update(fingerprint).digest('hex')
+            : null,
+          is_primary: true,
+        });
 
-    if (!existingIdentity) {
-      const { data: anyIdentity } = await supabase
-        .from('guest_identities')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!anyIdentity) {
-console.log('[InitializeGuest] Creating guest identity', {
-  userId: user.id,
-  deviceId,
-});
-
-const { error: insertError } = await supabase
-  .from('guest_identities')
-  .insert({
-    user_id: user.id,
-    device_id: deviceId,
-    fingerprint: fingerprint ?? '',
-    fingerprint_hash: fingerprint
-      ? createHash('sha256').update(fingerprint).digest('hex')
-      : null,
-    is_primary: true,
-  });
-
-console.log(
-  '[InitializeGuest] guest_identities insert error:',
-  insertError
-);
-
-if (insertError) {
-  return NextResponse.json(
-    {
-      error: 'guest_identity_insert_failed',
-      details: insertError.message,
-    },
-    { status: 500 }
-  );
-}
-
-console.log('[InitializeGuest] Guest identity created successfully');
+        if (!newIdentity) {
+          return NextResponse.json(
+            { error: 'guest_identity_insert_failed' },
+            { status: 500 }
+          );
+        }
       }
     }
 

@@ -88,3 +88,23 @@ export async function upsertProfile(
   }
   return (data ?? null) as PublicProfile | null;
 }
+
+/**
+ * Mark a profile as a guest (is_guest = true).
+ * Used by claim-guest after a new anon user takes over an old device.
+ * Best-effort: failure is logged but not propagated (the route tolerates
+ * a stale is_guest flag — recover-by-device is the source of truth).
+ */
+export async function markProfileAsGuest(userId: string): Promise<boolean> {
+  const supabase = await createServiceRoleClient();
+  if (!supabase) return false;
+  const { error } = await supabase
+    .from('profiles')
+    .update({ is_guest: true } satisfies ProfileUpdate)
+    .eq('id', userId);
+  if (error) {
+    console.error('[profiles] markProfileAsGuest failed:', error.message);
+    return false;
+  }
+  return true;
+}

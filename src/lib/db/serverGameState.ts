@@ -403,6 +403,67 @@ export async function upsertServerGameState(
 }
 
 /**
+ * Check whether a user already has a game_state row. Used by
+ * /api/auth/initialize-guest to short-circuit duplicate initialization.
+ * Returns true if a row exists, false otherwise (including on error —
+ * callers fall through to the insert path).
+ */
+export async function hasServerGameState(userId: string): Promise<boolean> {
+  const supabase = createServiceRoleClient();
+  if (!supabase) return false;
+  const { data, error } = await supabase
+    .from('server_game_state')
+    .select('user_id')
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (error) {
+    console.error('[serverGameState] hasServerGameState failed:', error.message);
+    return false;
+  }
+  return data !== null;
+}
+
+/**
+ * Initial-state values for a fresh guest user.
+ * Mirrors the constants previously inlined in /api/auth/initialize-guest.
+ */
+export const INITIAL_GUEST_STATE_VALUES = {
+  money: 1000,
+  total_money_earned: 1000,
+  research_points: 0,
+  buildings: [],
+  buildings_count: 0,
+  completed_research: [],
+  resources: {},
+  workers: [],
+  game_tick: 0,
+  game_speed: 1,
+  is_locked: false,
+  cheat_flag_count: 0,
+} as const;
+
+/**
+ * Insert the initial game state for a brand-new guest user.
+ * Caller must verify no prior state exists (see hasServerGameState).
+ */
+export async function initializeGuestGameState(
+  userId: string,
+): Promise<ServerGameStateRow | null> {
+  const supabase = createServiceRoleClient();
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('server_game_state')
+    .insert({ user_id: userId, ...INITIAL_GUEST_STATE_VALUES })
+    .select()
+    .single();
+  if (error) {
+    console.error('[serverGameState] initializeGuestGameState failed:', error.message);
+    return null;
+  }
+  return data as ServerGameStateRow;
+}
+
+/**
  * Sync `player_progress.game_state` for backwards compatibility. Used
  * by POST /api/game/state (thin: user_id + game_state only).
  */
