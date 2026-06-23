@@ -77,6 +77,10 @@ jobs:
         env:
           # Skip telemetry during CI builds
           NEXT_TELEMETRY_DISABLED: '1'
+          # Required at build time: next build evaluates API route modules
+          # (page data collection). gameStateValidator.ts throws if this is
+          # missing — fail-closed by design (AGENTS.md Security-First).
+          CHECKSUM_SECRET: ${{ secrets.CHECKSUM_SECRET }}
 
   # ── Test suite (integration + security) ──
   test:
