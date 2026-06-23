@@ -1,20 +1,21 @@
 import { NextResponse } from "next/server";
-import { createServiceRoleClient } from "@/lib/supabase/server";
+import { pingGameConfig } from "@/lib/db/configGame";
 
+// Iteration 9 close-out: replaced inline supabase.from('game_config_game')
+// with the existing pingGameConfig helper (added in iter 8 for
+// /api/admin/system-status). The helper already returns { ok, error }
+// so we don't need the raw supabase client here.
 export async function GET() {
   const startTime = Date.now();
 
-  // Test Supabase connectivity
-  const supabase = createServiceRoleClient();
-  let dbStatus: 'connected' | 'error' | 'unavailable' = 'unavailable';
-  let dbLatencyMs: number | null = null;
-
-  if (supabase) {
-    const dbStart = Date.now();
-    const { error } = await supabase.from('game_config_game').select('id').limit(1);
-    dbLatencyMs = Date.now() - dbStart;
-    dbStatus = error ? 'error' : 'connected';
-  }
+  const dbStart = Date.now();
+  const ping = await pingGameConfig();
+  const dbLatencyMs = Date.now() - dbStart;
+  const dbStatus: 'connected' | 'error' | 'unavailable' = ping.ok
+    ? 'connected'
+    : ping.error?.includes('not configured')
+      ? 'unavailable'
+      : 'error';
 
   const overallStatus = dbStatus === 'connected' ? 'ok' : dbStatus === 'error' ? 'degraded' : 'unavailable';
 
@@ -30,6 +31,6 @@ export async function GET() {
     },
     responseTimeMs: Date.now() - startTime,
   }, {
-    status: overallStatus === 'ok' ? 200 : overallStatus === 'degraded' ? 503 : 503,
+    status: overallStatus === 'ok' ? 200 : 503,
   });
 }
