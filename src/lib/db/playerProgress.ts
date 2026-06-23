@@ -2,8 +2,8 @@
  * playerProgress.ts — Centralized DB access for the `player_progress` table.
  *
  * Iteration 8. Read-only access for admin player search and display.
- * Writes (updateDisplayName etc.) intentionally not exposed here yet —
- * the live update path lives in `auth/admin.ts` via profile sync.
+ * Iteration 9c added `upsertPlayerProgress` for the migrate-guest flow
+ * (initial cloud save after guest-to-OAuth migration).
  *
  * Pattern follows the rest of src/lib/db/*: thin wrappers around
  * `createServiceRoleClient()` that return plain objects (no Supabase types).
@@ -42,4 +42,35 @@ export async function listPlayerProgressByIds(
     .select('user_id, display_name')
     .in('user_id', userIds);
   return (data ?? []) as PlayerProgressRow[];
+}
+
+/**
+ * Upsert a player_progress row. Used by /api/auth/migrate-guest to
+ * persist the initial display_name + game_state snapshot after a guest
+ * migrates to OAuth.
+ *
+ * Returns true on success, false on error. Callers should log + continue
+ * (player_progress is a backwards-compat mirror of server_game_state; a
+ * failure here does not block the migration).
+ */
+export async function upsertPlayerProgress(
+  userId: string,
+  values: {
+    display_name?: string | null;
+    game_state?: Record<string, unknown> | null;
+  },
+): Promise<boolean> {
+  const supabase = createServiceRoleClient();
+  if (!supabase) return false;
+  const { error } = await supabase
+    .from('player_progress')
+    .upsert(
+      { user_id: userId, ...values },
+      { onConflict: 'user_id' },
+    );
+  if (error) {
+    console.error('[playerProgress] upsert failed:', error.message);
+    return false;
+  }
+  return true;
 }

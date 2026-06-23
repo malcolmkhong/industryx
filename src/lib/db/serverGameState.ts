@@ -464,6 +464,26 @@ export async function initializeGuestGameState(
 }
 
 /**
+ * Read just `game_tick` for a user. Used by /api/auth/migrate-guest to
+ * detect "cloud state already exists — refuse migration".
+ * Returns null if the user has no row OR the table is unavailable.
+ */
+export async function getGameTick(userId: string): Promise<number | null> {
+  const supabase = createServiceRoleClient();
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('server_game_state')
+    .select('game_tick')
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (error) {
+    console.error('[serverGameState] getGameTick failed:', error.message);
+    return null;
+  }
+  return data?.game_tick ?? null;
+}
+
+/**
  * Sync `player_progress.game_state` for backwards compatibility. Used
  * by POST /api/game/state (thin: user_id + game_state only).
  */

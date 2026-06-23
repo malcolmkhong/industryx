@@ -13,14 +13,27 @@
 // 5. If valid → save as initial cloud state, return success
 // 6. If invalid → reject/flag, return failure with reasons
 // 7. After migration → cloud is authoritative for all future saves
+//
+// Iteration 9c of DB centralization migration:
+//   - server_game_state existence check routed through db/serverGameState#getGameTick
+//   - server_game_state upserts (reject + accept branches) routed through
+//     db/serverGameState#upsertServerGameState
+//   - player_progress upserts routed through db/playerProgress#upsertPlayerProgress
+//   - 6 inline .from() calls replaced
+//   - Validation, audit logging, and cheat flagging remain inline — those are
+//     auth policy concerns, not CRUD patterns.
 // ============================================
 
 import { NextRequest, NextResponse } from 'next/server';
 import { validateGuestMigration } from '@/lib/auth/guestMigrationValidator';
 import { validateGameState, generateChecksum, flagCheatAttempt, logActionAsync } from '@/lib/auth/gameStateValidator';
 import { verifyAuthAndOwnership } from '@/lib/auth/verifyAuth';
-import { createServiceRoleClient } from '@/lib/supabase/server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
+import {
+  upsertServerGameState,
+  getGameTick,
+} from '@/lib/db/serverGameState';
+import { upsertPlayerProgress } from '@/lib/db/playerProgress';
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,14 +56,6 @@ export async function POST(request: NextRequest) {
     const auth = await verifyAuthAndOwnership(userId);
     if (!auth.success) return auth.response;
 
-    const supabase = createServiceRoleClient();
-    if (!supabase) {
-      return NextResponse.json(
-        { error: 'Server not configured for authentication' },
-        { status: 500 }
-      );
-    }
-
     // ── Rate limit (H9: prevent brute-force migration attempts) ──
     const rateLimitResponse = await checkRateLimit(userId, RATE_LIMITS.action, '/api/auth/migrate-guest');
     if (rateLimitResponse) return rateLimitResponse;
@@ -62,20 +67,16 @@ export async function POST(request: NextRequest) {
       .slice(0, 32);
 
     // ── Check if user already has cloud state ──
-    const { data: existingState } = await supabase
-      .from('server_game_state')
-      .select('user_id, game_tick')
-      .eq('user_id', userId)
-      .single();
+    const existingTick = await getGameTick(userId);
 
-    if (existingState) {
+    if (existingTick !== null) {
       // User already has cloud state — this is NOT a first-time migration.
       // Cloud is authoritative. Don't overwrite.
       return NextResponse.json({
         migrated: false,
         reason: 'Cloud state already exists — cloud is authoritative',
         action: 'use_cloud',
-        cloudTick: existingState.game_tick,
+        cloudTick: existingTick,
       });
     }
 
@@ -129,53 +130,48 @@ export async function POST(request: NextRequest) {
 
       // Create a fresh server state entry (marked as flagged)
       const checksum = generateChecksum(gameState);
-      await supabase
-        .from('server_game_state')
-        .upsert({
-          user_id: userId,
-          money: 1000, // Reset to starting money
-          total_money_earned: 1000,
-          research_points: 0,
+      await upsertServerGameState({
+        user_id: userId,
+        money: 1000, // Reset to starting money
+        total_money_earned: 1000,
+        research_points: 0,
+        buildings: [],
+        buildings_count: 0,
+        completed_research: [],
+        resources: {},
+        workers: [],
+        game_tick: 0,
+        game_speed: 1,
+        full_state: {
+          money: 1000,
+          totalMoneyEarned: 1000,
+          gameTick: 0,
+          gameSpeed: 1,
           buildings: [],
-          buildings_count: 0,
-          completed_research: [],
           resources: {},
-          workers: [],
-          game_tick: 0,
-          game_speed: 1,
-          full_state: {
-            money: 1000,
-            totalMoneyEarned: 1000,
-            gameTick: 0,
-            gameSpeed: 1,
-            buildings: [],
-            resources: {},
-            completedResearch: [],
-            researchPoints: 0,
-          },
-          state_hash: checksum,
-          state_version: 1,
-          is_locked: false,
-          cheat_flag_count: 1, // Already flagged once
-        }, { onConflict: 'user_id' });
+          completedResearch: [],
+          researchPoints: 0,
+        },
+        state_hash: checksum,
+        state_version: 1,
+        is_locked: false,
+        cheat_flag_count: 1, // Already flagged once
+      });
 
       // Also update player_progress for backwards compat
-      await supabase
-        .from('player_progress')
-        .upsert({
-          user_id: userId,
-          display_name: safeDisplayName,
-          game_state: {
-            money: 1000,
-            totalMoneyEarned: 1000,
-            gameTick: 0,
-            gameSpeed: 1,
-            buildings: [],
-            resources: {},
-            completedResearch: [],
-            researchPoints: 0,
-          },
-        }, { onConflict: 'user_id' });
+      await upsertPlayerProgress(userId, {
+        display_name: safeDisplayName,
+        game_state: {
+          money: 1000,
+          totalMoneyEarned: 1000,
+          gameTick: 0,
+          gameSpeed: 1,
+          buildings: [],
+          resources: {},
+          completedResearch: [],
+          researchPoints: 0,
+        },
+      });
 
       return NextResponse.json({
         migrated: false,
@@ -221,38 +217,36 @@ export async function POST(request: NextRequest) {
     const workers = (gameState.workers as Array<Record<string, unknown>>) || [];
     const checksum = generateChecksum(gameState);
 
-    const { error: upsertError } = await supabase
-      .from('server_game_state')
-      .upsert({
-        user_id: userId,
-        money: Number(gameState.money) || 0,
-        total_money_earned: Number(gameState.totalMoneyEarned) || 0,
-        research_points: Number(gameState.researchPoints) || 0,
-        buildings: buildings.map(b => ({
-          type: b.type,
-          level: b.level,
-          active: b.active,
-          efficiency: b.efficiency,
-        })),
-        buildings_count: buildings.length,
-        completed_research: completedResearch,
-        resources,
-        workers: workers.map(w => ({
-          type: w.type,
-          level: w.level,
-          assignedTo: w.assignedTo,
-        })),
-        game_tick: Number(gameState.gameTick) || 0,
-        game_speed: Number(gameState.gameSpeed) || 1,
-        full_state: gameState,
-        state_hash: checksum,
-        state_version: 1,
-        is_locked: false,
-        cheat_flag_count: migrationResult.action === 'accept_with_flag' ? 1 : 0,
-      }, { onConflict: 'user_id' });
+    const initialState = await upsertServerGameState({
+      user_id: userId,
+      money: Number(gameState.money) || 0,
+      total_money_earned: Number(gameState.totalMoneyEarned) || 0,
+      research_points: Number(gameState.researchPoints) || 0,
+      buildings: buildings.map(b => ({
+        type: b.type,
+        level: b.level,
+        active: b.active,
+        efficiency: b.efficiency,
+      })) as never,
+      buildings_count: buildings.length,
+      completed_research: completedResearch,
+      resources: resources as never,
+      workers: workers.map(w => ({
+        type: w.type,
+        level: w.level,
+        assignedTo: w.assignedTo,
+      })) as never,
+      game_tick: Number(gameState.gameTick) || 0,
+      game_speed: Number(gameState.gameSpeed) || 1,
+      full_state: gameState as never,
+      state_hash: checksum,
+      state_version: 1,
+      is_locked: false,
+      cheat_flag_count: migrationResult.action === 'accept_with_flag' ? 1 : 0,
+    });
 
-    if (upsertError) {
-      console.error('[MigrateGuest] Failed to save initial cloud state:', upsertError.message);
+    if (!initialState) {
+      console.error('[MigrateGuest] Failed to save initial cloud state');
       return NextResponse.json(
         { error: 'Failed to save cloud state' },
         { status: 500 }
@@ -260,13 +254,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Also save to player_progress for backwards compatibility
-    await supabase
-      .from('player_progress')
-      .upsert({
-        user_id: userId,
-        display_name: safeDisplayName,
-        game_state: gameState,
-      }, { onConflict: 'user_id' });
+    await upsertPlayerProgress(userId, {
+      display_name: safeDisplayName,
+      game_state: gameState,
+    });
 
     return NextResponse.json({
       migrated: true,
