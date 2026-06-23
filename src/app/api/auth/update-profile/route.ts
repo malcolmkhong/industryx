@@ -1,10 +1,12 @@
 // Phase 1.5.7: Update user profile (display_name)
 // Sanitizes display name before storing.
+//
+// Iteration 9: routed through db/profiles.ts.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServiceRoleClient } from '@/lib/supabase/server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 import { verifyAuthAndOwnership } from '@/lib/auth/verifyAuth';
+import { updateProfileDisplayName } from '@/lib/db/profiles';
 
 const MAX_DISPLAY_NAME_LENGTH = 32;
 const FORBIDDEN_CHARS_REGEX = /[<>{}\[\]\\\/|`$%^&*+=]/;
@@ -55,18 +57,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = createServiceRoleClient();
-    if (!supabase) {
+    const updated = await updateProfileDisplayName(userId, safeName || null);
+    if (!updated) {
       return NextResponse.json(
-        { error: 'Service not configured' },
-        { status: 503 }
+        { error: 'Profile not found or update failed' },
+        { status: 404 }
       );
     }
-
-    await supabase
-      .from('profiles')
-      .update({ display_name: safeName || null })
-      .eq('id', userId);
 
     return NextResponse.json({
       success: true,

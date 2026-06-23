@@ -1,23 +1,29 @@
 // Phase 1.6: Recover guest account by device_id
 // device_id is the PRIMARY recovery signal. Fingerprint is NEVER used for recovery.
+//
+// Iteration 9: routed through db/guestIdentities.ts.
 
 import { NextRequest, NextResponse } from 'next/server';
 
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 import { logRequestIp } from '@/app/api/auth/request-ip-log-helper';
+import {
+  findPrimaryIdentityByDevice,
+  setIdentityFingerprintIfMissing,
+  touchIdentityLastUsed,
+} from '@/lib/db/guestIdentities';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { deviceId, fingerprintHash, fingerprint } = body as {
+    const { deviceId, fingerprintHash, fingerprint: _fingerprint } = body as {
       deviceId?: string;
       fingerprintHash?: string;
       fingerprint?: string;
     };
 
     if (!deviceId) {
-      
       return NextResponse.json(
         { error: 'deviceId is required' },
         { status: 400 }
@@ -42,18 +48,12 @@ export async function POST(request: NextRequest) {
     // Phase 1: log request IP for analytics (correlation only)
     logRequestIp(request, '/api/auth/recover-by-device', null);
 
-    const { data: identity } = await supabase
-      .from('guest_identities')
-      .select('user_id, fingerprint_hash, superseded_at, superseded_by, is_primary')
-      .eq('device_id', deviceId)
-      .eq('is_primary', true)
-      .single();
-
+    const identity = await findPrimaryIdentityByDevice(deviceId);
     if (!identity) {
-        console.log(
-    '[RecoverByDevice] No identity found for device:',
-    deviceId
-  );
+      console.log(
+        '[RecoverByDevice] No identity found for device:',
+        deviceId
+      );
       return NextResponse.json(
         { recovered: false, reason: 'no_identity' },
         { status: 404 }
@@ -78,31 +78,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Phase 1.6 NOTE: Supabase does not expose createSession for anon users.
-    // The client will use this response to know the recovery was possible,
-    // and the actual session creation requires a client-side flow.
-    // For anon users, this means the recovery returns the userId but
-    // the client must then establish a session via signInAnonymously
-    // and then merge the identity. This is a known limitation.
-    // For Phase 1, we return the recovered user info and the client
-    // can store it as a hint. Full recovery requires Phase 1.5+ work
-    // or a custom JWT approach.
-
-    await supabase
-      .from('guest_identities')
-      .update({ last_used_at: new Date().toISOString() })
-      .eq('user_id', identity.user_id)
-      .eq('device_id', deviceId);
+    await touchIdentityLastUsed(identity.user_id, deviceId);
 
     // Phase 1: if the client provided a fingerprint_hash and the stored
     // row doesn't have one, persist it for correlation.
-    // (This is best-effort; never used for recovery denial.)
     if (fingerprintHash && !identity.fingerprint_hash) {
-      await supabase
-        .from('guest_identities')
-        .update({ fingerprint_hash: fingerprintHash })
-        .eq('user_id', identity.user_id)
-        .eq('device_id', deviceId);
+      await setIdentityFingerprintIfMissing(
+        identity.user_id,
+        deviceId,
+        fingerprintHash
+      );
     }
 
     return NextResponse.json({
