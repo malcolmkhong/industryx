@@ -34,9 +34,9 @@ Iter 9 closed: auth/config/utility routes all migrated (5 sub-iterations).
 
 ---
 
-## Remaining inline `.from(` callers in `/api` (post iter 9)
+## Remaining inline `.from(` callers in `/api` (post iter 9f)
 
-13 routes still use raw `supabase.from(...)` — helpers exist for all of them but routes were not retrofitted. Documented for follow-up sweep:
+12 routes still use raw `supabase.from(...)` — helpers exist for all of them but routes were not retrofitted. Documented for follow-up sweep:
 
 | Route | `.from(` count | Helper available |
 |---|---|---|
@@ -51,12 +51,7 @@ Iter 9 closed: auth/config/utility routes all migrated (5 sub-iterations).
 | `admin/support/tickets` | 1 | `db/supportTickets.ts` |
 | `game/definitions` | 1 | `db/serverGameState.ts` |
 | `game/market-history` | 1 | `db/market.ts` |
-| `health` | 1 | none (intentional — health probe) |
-| `tables` | 1 | none (intentional — admin meta) |
-
----
-
-## 2026-06-22 Re-verification Pass — Iteration 5
+| `tables` | 1 | none (intentional — dynamic table name) |
 
 ---
 
@@ -326,23 +321,31 @@ Earlier checklist marked Iteration 5 complete, but the route was still using a w
 
 ### Iteration 9 — remaining auth/config/utility routes (~10 routes)
 
-- [ ] Migrate `src/app/api/auth/initialize-guest/route.ts`
-- [ ] Migrate `src/app/api/auth/confirm-link/route.ts`
-- [ ] Migrate `src/app/api/auth/claim-guest/route.ts` (already done in Iter 1 — verify)
-- [ ] Migrate `src/app/api/auth/link-identity/route.ts` (already done in Iter 1 — verify)
-- [ ] Migrate `src/app/api/auth/migrate-guest/route.ts`
-- [ ] Migrate `src/app/api/auth/recover-by-device/route.ts`
-- [ ] Migrate `src/app/api/auth/update-profile/route.ts`
-- [ ] Migrate `src/app/api/auth/me/route.ts` (uses `createClient` not service role)
-- [ ] Migrate `src/app/api/config/[table]/route.ts`
-- [ ] Migrate `src/app/api/config/[table]/[id]/route.ts`
-- [ ] Migrate `src/app/api/waitlist/route.ts`
-- [ ] Migrate `src/app/api/tables/route.ts`
-- [ ] Migrate `src/app/api/health/route.ts`
-- [ ] Migrate `src/app/api/player/route.ts`
-- [ ] Migrate `src/app/api/admin/auth/callback/route.ts`
-- [ ] Run `npm run lint` — zero new errors
-- [ ] Run dev server, verify
+| Route | Status | Commit | Notes |
+|---|---|---|---|
+| `auth/initialize-guest` | ✅ Done | `85f5082` (9b) | 6 helpers, retain service-role for `auth.getUser` |
+| `auth/confirm-link` | ✅ Done | `ecca3fb` (9d) | 13 helpers, the 257-LOC merge tx |
+| `auth/claim-guest` | ✅ Done | `85f5082` (9b) | 6 helpers, 7-table user_id reassign encapsulated |
+| `auth/link-identity` | ✅ Done | `ecca3fb` (9d) | 7 helpers |
+| `auth/migrate-guest` | ✅ Done | `c7a256b` (9c) | 4 helpers, server_game_state upsert + player_progress mirror |
+| `auth/recover-by-device` | ✅ Done | `f9dc9aa` (9a) | 3 helpers |
+| `auth/update-profile` | ✅ Done | `f9dc9aa` (9a) | 1 helper |
+| `auth/me` | ✅ Already clean | (pre-iter 9) | Uses `createClient` from `@/lib/supabase/server`, not service-role. No `.from()` calls. Out of scope for service-role centralization. |
+| `config/[table]` | ⏸ Intentionally skipped | — | Dynamic table name from URL param. Typed helpers require a fixed table; abstracting requires either `as never` casts (loses type safety) or a dynamic dispatcher (over-engineering for 2 admin-only routes). |
+| `config/[table]/[id]` | ⏸ Intentionally skipped | — | Same dynamic-table-name rationale. |
+| `waitlist` | ⏸ Already minimal | — | RPC-only (`submit_waitlist`). 1 caller, narrow SQL function. Matches the `upsert_supply_demand` RPC pattern in aggregate-supply. No `.from()` calls. |
+| `tables` | ⏸ Intentionally skipped | — | Dynamic `supabase.from(table.id)` in a loop over `TABLE_CONFIGS`. Same dynamic-table-name rationale as `config/[table]/*`. |
+| `health` | ✅ Done | `e9b0d73` (9f) | 1 helper (`pingGameConfig`, pre-existing from iter 8). 1 `.from()` removed. |
+| `player` | ⏸ Deferred | — | 5 inline `.from()` calls + integration with `gameStateValidator`. Defer to a separate sweep (helpers exist in `db/serverGameState.ts` + `db/profiles.ts`). |
+| `admin/auth/callback` | ⏸ File missing | — | No file at `src/app/api/admin/auth/callback/route.ts` — out of scope. |
+
+- [x] Run `npm run lint` — zero new errors (verified per sub-iteration, exit 0)
+- [x] Run dev server, verify — ✅ Done 2026-06-23:
+  - `GET /api/health` → 200 OK (db.status=connected, latencyMs=660)
+  - `POST /api/waitlist` (no body) → 400
+  - `GET /api/auth/me` → 401
+  - `POST /api/auth/initialize-guest` (with body, no auth) → 401
+  - `POST /api/auth/update-profile` (with body, no auth) → 400
 
 ### Iteration 10 — game state helpers (engine integration)
 
