@@ -1,8 +1,62 @@
 # Database Centralization Migration — TODO Checklist
 
 > **Single source of truth** for tracking the database access centralization migration.
-> Last updated: 2026-06-23 (iter 9a partial: 2 of 5 auth routes complete)
+> Last updated: 2026-06-23 (iter 9 complete — all 5 sub-iterations 9a–9e shipped)
 > Related: [DB_ACCESS_CENTRALIZATION_AUDIT_2026_06_20.md](./DB_ACCESS_CENTRALIZATION_AUDIT_2026_06_20.md)
+
+---
+
+## 2026-06-23 — Iteration 9 Complete
+
+Iter 9 closed: auth/config/utility routes all migrated (5 sub-iterations).
+
+| Commit | Slice | Routes migrated | Helpers created/extended |
+|---|---|---|---|
+| `f9dc9aa` | 9a | `update-profile`, `recover-by-device` | `profiles.ts`, `guestIdentities.ts` (NEW) |
+| `85f5082` | 9b | `initialize-guest`, `claim-guest` | `guestIdentities` (+3), `serverGameState` (+3), `profiles` (+1) |
+| `c7a256b` | 9c | `migrate-guest` | `serverGameState#getGameTick`, `playerProgress#upsertPlayerProgress` |
+| `ecca3fb` | 9d | `link-identity`, `confirm-link` (257 LOC merge tx) | `linkOps.ts` (NEW), `merge.ts` (NEW), `profiles#getProfileDisplayAndGuestFlag` |
+| `7e1b3f8` | 9e | `market/aggregate-supply` | `serverGameState#pageServerGameStateFullState` |
+
+**Net iter-9 impact:**
+- 39 inline `.from(...)` calls removed across 8 auth routes + 1 market route.
+- 4 new helpers in `src/lib/db/`: `linkOps.ts`, `merge.ts`, plus extensive expansion of `guestIdentities.ts`, `serverGameState.ts`, `profiles.ts`, `playerProgress.ts`.
+- 13 new exported functions across helpers.
+
+**Skipped (intentional, with rationale in commit messages):**
+- `/api/config/[table]/route.ts` and `/api/config/[table]/[id]/route.ts` use `supabase.from(tableName)` where `tableName` is a URL param. Typed helpers require a fixed table; abstracting would require either `as never` casts on every call (loses type safety) or a dynamic dispatcher (over-engineering for 2 admin-only routes). Left inline.
+- `upsert_supply_demand` RPC in `aggregate-supply`: 1 caller, narrow SQL function. No abstraction value.
+- `auth.getUser()` in `initialize-guest`: needs the service-role client for bearer-token resolution.
+
+**Strict-typed helpers caught one latent bug:** `pending_link_operations.google_user_id` is nullable in schema, but `confirm-link` never guarded against null. Added defensive 400 check.
+
+**Validation across all 5 sub-iterations:** `npx tsc --noEmit` → 0 errors. `npm run lint` → 0 errors. All 5 commits pushed to `origin/main`.
+
+---
+
+## Remaining inline `.from(` callers in `/api` (post iter 9)
+
+13 routes still use raw `supabase.from(...)` — helpers exist for all of them but routes were not retrofitted. Documented for follow-up sweep:
+
+| Route | `.from(` count | Helper available |
+|---|---|---|
+| `admin/investigations` | 11 | `db/cheatInvestigations.ts` |
+| `game/compute` | 8 | `db/serverGameState.ts` |
+| `game/offline` | 7 | `db/serverGameState.ts` |
+| `player` | 5 | `db/profiles.ts` / `db/serverGameState.ts` |
+| `game/action` | 4 | `db/serverGameState.ts` |
+| `game/trade` | 4 | `db/trades.ts` / `db/serverGameState.ts` |
+| `game/heartbeat` | 3 | `db/serverGameState.ts` |
+| `admin/market` | 1 | `db/market.ts` |
+| `admin/support/tickets` | 1 | `db/supportTickets.ts` |
+| `game/definitions` | 1 | `db/serverGameState.ts` |
+| `game/market-history` | 1 | `db/market.ts` |
+| `health` | 1 | none (intentional — health probe) |
+| `tables` | 1 | none (intentional — admin meta) |
+
+---
+
+## 2026-06-22 Re-verification Pass — Iteration 5
 
 ---
 
