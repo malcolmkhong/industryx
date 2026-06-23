@@ -1,10 +1,10 @@
--- ============================================================================
+﻿-- ============================================================================
 -- Migration: 008_trade_history
 -- Description: Create trade_history table (was missing from migrations)
 -- Purpose: Formalize the trade_history table that exists on Supabase but has
 --          no migration file. If the project is reset, this table would be lost.
 --
--- Run this in Supabase SQL Editor (Dashboard → SQL Editor → New Query)
+-- Run this in Supabase SQL Editor (Dashboard â†’ SQL Editor â†’ New Query)
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS trade_history (
@@ -31,15 +31,19 @@ CREATE INDEX IF NOT EXISTS idx_trade_history_receive_resource ON trade_history(r
 ALTER TABLE trade_history ENABLE ROW LEVEL SECURITY;
 
 -- Policies
+DROP POLICY IF EXISTS "Service role full access on trade_history" ON trade_history;
 CREATE POLICY "Service role full access on trade_history" ON trade_history
   FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
 
+DROP POLICY IF EXISTS "Users can view own trades" ON trade_history;
 CREATE POLICY "Users can view own trades" ON trade_history
   FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert own trades" ON trade_history;
 CREATE POLICY "Users can insert own trades" ON trade_history
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Admin read access
+DROP POLICY IF EXISTS "Admin read access on trade_history" ON trade_history;
 CREATE POLICY "Admin read access on trade_history" ON trade_history
   FOR SELECT USING (is_game_admin());

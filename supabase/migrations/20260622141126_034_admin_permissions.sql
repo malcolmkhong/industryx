@@ -1,4 +1,4 @@
--- ============================================================================
+﻿-- ============================================================================
 -- Migration 034: Granular admin permissions (RBAC)
 -- ============================================================================
 
@@ -16,6 +16,7 @@ CREATE INDEX idx_admin_permissions_user ON admin_permissions(admin_user_id);
 -- Grant super_admins all permissions by default
 ALTER TABLE admin_permissions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Service role full access" ON admin_permissions;
 CREATE POLICY "Service role full access"
   ON admin_permissions FOR ALL
   USING (auth.role() = 'service_role')

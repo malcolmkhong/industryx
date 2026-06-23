@@ -1,11 +1,11 @@
--- 040_capacity_and_waitlist.sql
+﻿-- 040_capacity_and_waitlist.sql
 -- Capacity protection system for the idle game.
 -- Enforces MAX_TOTAL_PLAYERS (configurable, default 500) at the application layer.
--- No triggers on auth.users — all checks happen in the app/server layer.
+-- No triggers on auth.users â€” all checks happen in the app/server layer.
 -- Waitlist submissions create a support_ticket so the existing admin support
 -- panel surfaces them (no duplicate system).
 
--- ─── App config (single source of truth for capacity limit) ───────────
+-- â”€â”€â”€ App config (single source of truth for capacity limit) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 CREATE TABLE IF NOT EXISTS app_config (
   key        TEXT PRIMARY KEY,
   value      JSONB NOT NULL,
@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS app_config (
 
 ALTER TABLE app_config ENABLE ROW LEVEL SECURITY;
 -- Service role manages everything (admin only via API)
+DROP POLICY IF EXISTS "Service role manages app_config" ON app_config;
 CREATE POLICY "Service role manages app_config" ON app_config
   FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
 
@@ -22,7 +23,7 @@ INSERT INTO app_config (key, value, updated_at)
 VALUES ('capacity', jsonb_build_object('max', 500), now())
 ON CONFLICT (key) DO NOTHING;
 
--- ─── Waitlist table ──────────────────────────────────────────────────
+-- â”€â”€â”€ Waitlist table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 CREATE TABLE IF NOT EXISTS waitlist_entries (
   id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email        TEXT NOT NULL,
@@ -46,13 +47,15 @@ CREATE INDEX IF NOT EXISTS idx_waitlist_email
 
 ALTER TABLE waitlist_entries ENABLE ROW LEVEL SECURITY;
 -- Anyone can submit (anon signup form)
+DROP POLICY IF EXISTS "Anyone can submit waitlist" ON waitlist_entries;
 CREATE POLICY "Anyone can submit waitlist" ON waitlist_entries
   FOR INSERT WITH CHECK (true);
 -- Service role manages (admin only via API)
+DROP POLICY IF EXISTS "Service role manages waitlist" ON waitlist_entries;
 CREATE POLICY "Service role manages waitlist" ON waitlist_entries
   FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
 
--- ─── get_capacity_status() RPC ────────────────────────────────────────
+-- â”€â”€â”€ get_capacity_status() RPC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 -- Returns TOTAL registered players (auth.users + guest_identities count),
 -- the configured max, utilization, status, plus activity metrics (analytics only).
 CREATE OR REPLACE FUNCTION get_capacity_status()
@@ -64,7 +67,7 @@ RETURNS TABLE(
   waitlist_count         BIGINT,
   utilization_pct        NUMERIC,
   status                 TEXT,  -- 'healthy' | 'warning' | 'full'
-  -- Activity metrics (analytics only — DO NOT use for enforcement)
+  -- Activity metrics (analytics only â€” DO NOT use for enforcement)
   active_15m             BIGINT,
   active_24h             BIGINT,
   active_7d              BIGINT
@@ -108,7 +111,7 @@ BEGIN
     v_status := 'healthy';
   END IF;
 
-  -- Activity (analytics only — NOT used for capacity enforcement)
+  -- Activity (analytics only â€” NOT used for capacity enforcement)
   SELECT count(*) INTO v_active_15m FROM server_game_state WHERE last_tick_at > now() - interval '15 minutes';
   SELECT count(*) INTO v_active_24h FROM server_game_state WHERE last_tick_at > now() - interval '24 hours';
   SELECT count(*) INTO v_active_7d FROM server_game_state WHERE last_tick_at > now() - interval '7 days';
@@ -158,7 +161,7 @@ BEGIN
   END;
 END $$;
 
--- ─── submit_waitlist() RPC ───────────────────────────────────────────
+-- â”€â”€â”€ submit_waitlist() RPC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 -- Atomically creates waitlist_entries row + support_tickets + support_messages
 -- so admin sees it in the existing /admin/support panel.
 CREATE OR REPLACE FUNCTION submit_waitlist(
@@ -192,13 +195,13 @@ BEGIN
   RETURNING id INTO v_id;
 
   IF v_id IS NULL THEN
-    -- Existing entry — fetch
+    -- Existing entry â€” fetch
     SELECT id, ticket_id INTO v_existing_id, v_existing_ticket
     FROM waitlist_entries WHERE email = lower(trim(p_email));
     v_id := v_existing_id;
     v_ticket_id := v_existing_ticket;
   ELSE
-    -- New entry — create a support ticket (reuses existing system)
+    -- New entry â€” create a support ticket (reuses existing system)
     INSERT INTO support_tickets (user_id, subject, status)
     VALUES (
       NULL,
@@ -241,7 +244,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- ─── set_capacity() RPC (admin only) ─────────────────────────────────
+-- â”€â”€â”€ set_capacity() RPC (admin only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 CREATE OR REPLACE FUNCTION set_capacity(p_max INTEGER)
 RETURNS void AS $$
 BEGIN
@@ -255,7 +258,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- ─── Grants ──────────────────────────────────────────────────────────
+-- â”€â”€â”€ Grants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 GRANT EXECUTE ON FUNCTION get_capacity_status() TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION submit_waitlist(TEXT, TEXT, TEXT) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION set_capacity(INTEGER) TO service_role;
@@ -264,4 +267,4 @@ GRANT EXECUTE ON FUNCTION set_capacity(INTEGER) TO service_role;
 COMMENT ON TABLE app_config IS 'App-wide configuration. Capacity limit lives here as the single source of truth.';
 COMMENT ON TABLE waitlist_entries IS 'Pre-launch capacity waitlist. Each entry auto-creates a support_ticket for admin review.';
 COMMENT ON FUNCTION get_capacity_status IS 'Returns total registered players (auth.users + guest_identities), max capacity, status, and activity metrics. Capacity enforcement reads from here.';
-COMMENT ON FUNCTION submit_waitlist IS 'Atomically inserts waitlist_entries + support_tickets + support_messages. No duplicate support system — admins use /admin/support.';
+COMMENT ON FUNCTION submit_waitlist IS 'Atomically inserts waitlist_entries + support_tickets + support_messages. No duplicate support system â€” admins use /admin/support.';

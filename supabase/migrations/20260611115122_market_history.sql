@@ -1,4 +1,4 @@
--- ============================================================================
+﻿-- ============================================================================
 -- Migration: 015_market_history
 -- Description: Time-series price history for market manipulation detection + UI
 -- Purpose:     Record a price sample every time a trade executes. Enables:
@@ -8,16 +8,16 @@
 --
 -- DESIGN:
 --   - Records ONLY on successful trades (passive data collection)
---   - 1 row per (resource, trade) — every trade contributes 2 rows (give + receive)
+--   - 1 row per (resource, trade) â€” every trade contributes 2 rows (give + receive)
 --   - Indexed by (resource_id, recorded_at DESC) for fast range queries
 --   - Service role only writes (via trade route); anyone can read (for public charts)
 --
 -- CLEANUP:
 --   - Rows older than 30 days should be pruned (cron job or scheduled function)
---   - At ~1000 trades/day/player × 2 rows/trade × 1000 players = 2M rows/day
+--   - At ~1000 trades/day/player Ã— 2 rows/trade Ã— 1000 players = 2M rows/day
 --   - 30-day retention = ~60M rows (manageable in Postgres; could partition by month)
 --
--- Run this in Supabase SQL Editor (Dashboard → SQL Editor → New Query)
+-- Run this in Supabase SQL Editor (Dashboard â†’ SQL Editor â†’ New Query)
 -- ============================================================================
 
 
@@ -47,7 +47,8 @@ DO $$ BEGIN
     WHERE tablename = 'game_config_market_history'
       AND policyname = 'Service role full access on game_config_market_history'
   ) THEN
-    CREATE POLICY "Service role full access on game_config_market_history"
+    DROP POLICY IF EXISTS "Service role full access on game_config_market_history" ON game_config_market_history;
+CREATE POLICY "Service role full access on game_config_market_history"
       ON game_config_market_history
       FOR ALL
       USING (auth.role() = 'service_role')
@@ -59,7 +60,8 @@ DO $$ BEGIN
     WHERE tablename = 'game_config_market_history'
       AND policyname = 'Anyone can read game_config_market_history'
   ) THEN
-    CREATE POLICY "Anyone can read game_config_market_history"
+    DROP POLICY IF EXISTS "Anyone can read game_config_market_history" ON game_config_market_history;
+CREATE POLICY "Anyone can read game_config_market_history"
       ON game_config_market_history
       FOR SELECT
       USING (true);

@@ -1,4 +1,4 @@
--- ============================================================================
+﻿-- ============================================================================
 -- Migration: 009_game_config_tables
 -- Description: Create all 19 game_config_* tables for disaster recovery
 -- Purpose: These tables were created directly in the Supabase dashboard and had
@@ -8,7 +8,7 @@
 -- NOTE: This migration uses CREATE TABLE IF NOT EXISTS so it is safe to run
 --       on an existing Supabase instance. It will NOT destroy any data.
 --
--- Run this in Supabase SQL Editor (Dashboard → SQL Editor → New Query)
+-- Run this in Supabase SQL Editor (Dashboard â†’ SQL Editor â†’ New Query)
 -- ============================================================================
 
 -- ============================================================================
@@ -44,11 +44,13 @@ CREATE INDEX IF NOT EXISTS idx_gcb_sort_order ON game_config_buildings(sort_orde
 ALTER TABLE game_config_buildings ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_buildings' AND policyname = 'Service role full access on game_config_buildings') THEN
-    CREATE POLICY "Service role full access on game_config_buildings" ON game_config_buildings
+    DROP POLICY IF EXISTS "Service role full access on game_config_buildings" ON game_config_buildings;
+CREATE POLICY "Service role full access on game_config_buildings" ON game_config_buildings
       FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_buildings' AND policyname = 'Anyone can read game_config_buildings') THEN
-    CREATE POLICY "Anyone can read game_config_buildings" ON game_config_buildings FOR SELECT USING (true);
+    DROP POLICY IF EXISTS "Anyone can read game_config_buildings" ON game_config_buildings;
+CREATE POLICY "Anyone can read game_config_buildings" ON game_config_buildings FOR SELECT USING (true);
   END IF;
 END $$;
 
@@ -75,11 +77,13 @@ CREATE INDEX IF NOT EXISTS idx_gcr_sort_order ON game_config_resources(sort_orde
 ALTER TABLE game_config_resources ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_resources' AND policyname = 'Service role full access on game_config_resources') THEN
-    CREATE POLICY "Service role full access on game_config_resources" ON game_config_resources
+    DROP POLICY IF EXISTS "Service role full access on game_config_resources" ON game_config_resources;
+CREATE POLICY "Service role full access on game_config_resources" ON game_config_resources
       FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_resources' AND policyname = 'Anyone can read game_config_resources') THEN
-    CREATE POLICY "Anyone can read game_config_resources" ON game_config_resources FOR SELECT USING (true);
+    DROP POLICY IF EXISTS "Anyone can read game_config_resources" ON game_config_resources;
+CREATE POLICY "Anyone can read game_config_resources" ON game_config_resources FOR SELECT USING (true);
   END IF;
 END $$;
 
@@ -102,11 +106,13 @@ CREATE INDEX IF NOT EXISTS idx_gcpr_resource_id ON game_config_production_recipe
 ALTER TABLE game_config_production_recipes ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_production_recipes' AND policyname = 'Service role full access on game_config_production_recipes') THEN
-    CREATE POLICY "Service role full access on game_config_production_recipes" ON game_config_production_recipes
+    DROP POLICY IF EXISTS "Service role full access on game_config_production_recipes" ON game_config_production_recipes;
+CREATE POLICY "Service role full access on game_config_production_recipes" ON game_config_production_recipes
       FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_production_recipes' AND policyname = 'Anyone can read game_config_production_recipes') THEN
-    CREATE POLICY "Anyone can read game_config_production_recipes" ON game_config_production_recipes FOR SELECT USING (true);
+    DROP POLICY IF EXISTS "Anyone can read game_config_production_recipes" ON game_config_production_recipes;
+CREATE POLICY "Anyone can read game_config_production_recipes" ON game_config_production_recipes FOR SELECT USING (true);
   END IF;
 END $$;
 
@@ -129,11 +135,13 @@ CREATE INDEX IF NOT EXISTS idx_gcpc_resource ON game_config_production_chains(re
 ALTER TABLE game_config_production_chains ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_production_chains' AND policyname = 'Service role full access on game_config_production_chains') THEN
-    CREATE POLICY "Service role full access on game_config_production_chains" ON game_config_production_chains
+    DROP POLICY IF EXISTS "Service role full access on game_config_production_chains" ON game_config_production_chains;
+CREATE POLICY "Service role full access on game_config_production_chains" ON game_config_production_chains
       FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_production_chains' AND policyname = 'Anyone can read game_config_production_chains') THEN
-    CREATE POLICY "Anyone can read game_config_production_chains" ON game_config_production_chains FOR SELECT USING (true);
+    DROP POLICY IF EXISTS "Anyone can read game_config_production_chains" ON game_config_production_chains;
+CREATE POLICY "Anyone can read game_config_production_chains" ON game_config_production_chains FOR SELECT USING (true);
   END IF;
 END $$;
 
@@ -164,11 +172,13 @@ CREATE INDEX IF NOT EXISTS idx_gcre_sort_order ON game_config_research(sort_orde
 ALTER TABLE game_config_research ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_research' AND policyname = 'Service role full access on game_config_research') THEN
-    CREATE POLICY "Service role full access on game_config_research" ON game_config_research
+    DROP POLICY IF EXISTS "Service role full access on game_config_research" ON game_config_research;
+CREATE POLICY "Service role full access on game_config_research" ON game_config_research
       FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_research' AND policyname = 'Anyone can read game_config_research') THEN
-    CREATE POLICY "Anyone can read game_config_research" ON game_config_research FOR SELECT USING (true);
+    DROP POLICY IF EXISTS "Anyone can read game_config_research" ON game_config_research;
+CREATE POLICY "Anyone can read game_config_research" ON game_config_research FOR SELECT USING (true);
   END IF;
 END $$;
 
@@ -193,11 +203,13 @@ CREATE INDEX IF NOT EXISTS idx_gca_sort_order ON game_config_automation(sort_ord
 ALTER TABLE game_config_automation ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_automation' AND policyname = 'Service role full access on game_config_automation') THEN
-    CREATE POLICY "Service role full access on game_config_automation" ON game_config_automation
+    DROP POLICY IF EXISTS "Service role full access on game_config_automation" ON game_config_automation;
+CREATE POLICY "Service role full access on game_config_automation" ON game_config_automation
       FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_automation' AND policyname = 'Anyone can read game_config_automation') THEN
-    CREATE POLICY "Anyone can read game_config_automation" ON game_config_automation FOR SELECT USING (true);
+    DROP POLICY IF EXISTS "Anyone can read game_config_automation" ON game_config_automation;
+CREATE POLICY "Anyone can read game_config_automation" ON game_config_automation FOR SELECT USING (true);
   END IF;
 END $$;
 
@@ -222,11 +234,13 @@ CREATE INDEX IF NOT EXISTS idx_gcw_sort_order ON game_config_workers(sort_order)
 ALTER TABLE game_config_workers ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_workers' AND policyname = 'Service role full access on game_config_workers') THEN
-    CREATE POLICY "Service role full access on game_config_workers" ON game_config_workers
+    DROP POLICY IF EXISTS "Service role full access on game_config_workers" ON game_config_workers;
+CREATE POLICY "Service role full access on game_config_workers" ON game_config_workers
       FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_workers' AND policyname = 'Anyone can read game_config_workers') THEN
-    CREATE POLICY "Anyone can read game_config_workers" ON game_config_workers FOR SELECT USING (true);
+    DROP POLICY IF EXISTS "Anyone can read game_config_workers" ON game_config_workers;
+CREATE POLICY "Anyone can read game_config_workers" ON game_config_workers FOR SELECT USING (true);
   END IF;
 END $$;
 
@@ -252,11 +266,13 @@ CREATE INDEX IF NOT EXISTS idx_gct_sort_order ON game_config_transport(sort_orde
 ALTER TABLE game_config_transport ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_transport' AND policyname = 'Service role full access on game_config_transport') THEN
-    CREATE POLICY "Service role full access on game_config_transport" ON game_config_transport
+    DROP POLICY IF EXISTS "Service role full access on game_config_transport" ON game_config_transport;
+CREATE POLICY "Service role full access on game_config_transport" ON game_config_transport
       FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_transport' AND policyname = 'Anyone can read game_config_transport') THEN
-    CREATE POLICY "Anyone can read game_config_transport" ON game_config_transport FOR SELECT USING (true);
+    DROP POLICY IF EXISTS "Anyone can read game_config_transport" ON game_config_transport;
+CREATE POLICY "Anyone can read game_config_transport" ON game_config_transport FOR SELECT USING (true);
   END IF;
 END $$;
 
@@ -280,11 +296,13 @@ CREATE INDEX IF NOT EXISTS idx_gcm_sort_order ON game_config_market(sort_order);
 ALTER TABLE game_config_market ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_market' AND policyname = 'Service role full access on game_config_market') THEN
-    CREATE POLICY "Service role full access on game_config_market" ON game_config_market
+    DROP POLICY IF EXISTS "Service role full access on game_config_market" ON game_config_market;
+CREATE POLICY "Service role full access on game_config_market" ON game_config_market
       FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_market' AND policyname = 'Anyone can read game_config_market') THEN
-    CREATE POLICY "Anyone can read game_config_market" ON game_config_market FOR SELECT USING (true);
+    DROP POLICY IF EXISTS "Anyone can read game_config_market" ON game_config_market;
+CREATE POLICY "Anyone can read game_config_market" ON game_config_market FOR SELECT USING (true);
   END IF;
 END $$;
 
@@ -308,11 +326,13 @@ CREATE INDEX IF NOT EXISTS idx_gcpb_sort_order ON game_config_prestige_bonuses(s
 ALTER TABLE game_config_prestige_bonuses ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_prestige_bonuses' AND policyname = 'Service role full access on game_config_prestige_bonuses') THEN
-    CREATE POLICY "Service role full access on game_config_prestige_bonuses" ON game_config_prestige_bonuses
+    DROP POLICY IF EXISTS "Service role full access on game_config_prestige_bonuses" ON game_config_prestige_bonuses;
+CREATE POLICY "Service role full access on game_config_prestige_bonuses" ON game_config_prestige_bonuses
       FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_prestige_bonuses' AND policyname = 'Anyone can read game_config_prestige_bonuses') THEN
-    CREATE POLICY "Anyone can read game_config_prestige_bonuses" ON game_config_prestige_bonuses FOR SELECT USING (true);
+    DROP POLICY IF EXISTS "Anyone can read game_config_prestige_bonuses" ON game_config_prestige_bonuses;
+CREATE POLICY "Anyone can read game_config_prestige_bonuses" ON game_config_prestige_bonuses FOR SELECT USING (true);
   END IF;
 END $$;
 
@@ -330,11 +350,13 @@ CREATE TABLE IF NOT EXISTS game_config_rank_thresholds (
 ALTER TABLE game_config_rank_thresholds ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_rank_thresholds' AND policyname = 'Service role full access on game_config_rank_thresholds') THEN
-    CREATE POLICY "Service role full access on game_config_rank_thresholds" ON game_config_rank_thresholds
+    DROP POLICY IF EXISTS "Service role full access on game_config_rank_thresholds" ON game_config_rank_thresholds;
+CREATE POLICY "Service role full access on game_config_rank_thresholds" ON game_config_rank_thresholds
       FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_rank_thresholds' AND policyname = 'Anyone can read game_config_rank_thresholds') THEN
-    CREATE POLICY "Anyone can read game_config_rank_thresholds" ON game_config_rank_thresholds FOR SELECT USING (true);
+    DROP POLICY IF EXISTS "Anyone can read game_config_rank_thresholds" ON game_config_rank_thresholds;
+CREATE POLICY "Anyone can read game_config_rank_thresholds" ON game_config_rank_thresholds FOR SELECT USING (true);
   END IF;
 END $$;
 
@@ -367,11 +389,13 @@ CREATE INDEX IF NOT EXISTS idx_gcqd_sort_order ON game_config_quest_definitions(
 ALTER TABLE game_config_quest_definitions ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_quest_definitions' AND policyname = 'Service role full access on game_config_quest_definitions') THEN
-    CREATE POLICY "Service role full access on game_config_quest_definitions" ON game_config_quest_definitions
+    DROP POLICY IF EXISTS "Service role full access on game_config_quest_definitions" ON game_config_quest_definitions;
+CREATE POLICY "Service role full access on game_config_quest_definitions" ON game_config_quest_definitions
       FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_quest_definitions' AND policyname = 'Anyone can read game_config_quest_definitions') THEN
-    CREATE POLICY "Anyone can read game_config_quest_definitions" ON game_config_quest_definitions FOR SELECT USING (true);
+    DROP POLICY IF EXISTS "Anyone can read game_config_quest_definitions" ON game_config_quest_definitions;
+CREATE POLICY "Anyone can read game_config_quest_definitions" ON game_config_quest_definitions FOR SELECT USING (true);
   END IF;
 END $$;
 
@@ -391,11 +415,13 @@ CREATE TABLE IF NOT EXISTS game_config_daily_rewards (
 ALTER TABLE game_config_daily_rewards ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_daily_rewards' AND policyname = 'Service role full access on game_config_daily_rewards') THEN
-    CREATE POLICY "Service role full access on game_config_daily_rewards" ON game_config_daily_rewards
+    DROP POLICY IF EXISTS "Service role full access on game_config_daily_rewards" ON game_config_daily_rewards;
+CREATE POLICY "Service role full access on game_config_daily_rewards" ON game_config_daily_rewards
       FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_daily_rewards' AND policyname = 'Anyone can read game_config_daily_rewards') THEN
-    CREATE POLICY "Anyone can read game_config_daily_rewards" ON game_config_daily_rewards FOR SELECT USING (true);
+    DROP POLICY IF EXISTS "Anyone can read game_config_daily_rewards" ON game_config_daily_rewards;
+CREATE POLICY "Anyone can read game_config_daily_rewards" ON game_config_daily_rewards FOR SELECT USING (true);
   END IF;
 END $$;
 
@@ -422,11 +448,13 @@ CREATE INDEX IF NOT EXISTS idx_gcet_sort_order ON game_config_event_templates(so
 ALTER TABLE game_config_event_templates ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_event_templates' AND policyname = 'Service role full access on game_config_event_templates') THEN
-    CREATE POLICY "Service role full access on game_config_event_templates" ON game_config_event_templates
+    DROP POLICY IF EXISTS "Service role full access on game_config_event_templates" ON game_config_event_templates;
+CREATE POLICY "Service role full access on game_config_event_templates" ON game_config_event_templates
       FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_event_templates' AND policyname = 'Anyone can read game_config_event_templates') THEN
-    CREATE POLICY "Anyone can read game_config_event_templates" ON game_config_event_templates FOR SELECT USING (true);
+    DROP POLICY IF EXISTS "Anyone can read game_config_event_templates" ON game_config_event_templates;
+CREATE POLICY "Anyone can read game_config_event_templates" ON game_config_event_templates FOR SELECT USING (true);
   END IF;
 END $$;
 
@@ -457,11 +485,13 @@ CREATE INDEX IF NOT EXISTS idx_gcse_sort_order ON game_config_seasonal_events(so
 ALTER TABLE game_config_seasonal_events ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_seasonal_events' AND policyname = 'Service role full access on game_config_seasonal_events') THEN
-    CREATE POLICY "Service role full access on game_config_seasonal_events" ON game_config_seasonal_events
+    DROP POLICY IF EXISTS "Service role full access on game_config_seasonal_events" ON game_config_seasonal_events;
+CREATE POLICY "Service role full access on game_config_seasonal_events" ON game_config_seasonal_events
       FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_seasonal_events' AND policyname = 'Anyone can read game_config_seasonal_events') THEN
-    CREATE POLICY "Anyone can read game_config_seasonal_events" ON game_config_seasonal_events FOR SELECT USING (true);
+    DROP POLICY IF EXISTS "Anyone can read game_config_seasonal_events" ON game_config_seasonal_events;
+CREATE POLICY "Anyone can read game_config_seasonal_events" ON game_config_seasonal_events FOR SELECT USING (true);
   END IF;
 END $$;
 
@@ -487,11 +517,13 @@ CREATE INDEX IF NOT EXISTS idx_gcmp_sort_order ON game_config_mega_projects(sort
 ALTER TABLE game_config_mega_projects ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_mega_projects' AND policyname = 'Service role full access on game_config_mega_projects') THEN
-    CREATE POLICY "Service role full access on game_config_mega_projects" ON game_config_mega_projects
+    DROP POLICY IF EXISTS "Service role full access on game_config_mega_projects" ON game_config_mega_projects;
+CREATE POLICY "Service role full access on game_config_mega_projects" ON game_config_mega_projects
       FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_mega_projects' AND policyname = 'Anyone can read game_config_mega_projects') THEN
-    CREATE POLICY "Anyone can read game_config_mega_projects" ON game_config_mega_projects FOR SELECT USING (true);
+    DROP POLICY IF EXISTS "Anyone can read game_config_mega_projects" ON game_config_mega_projects;
+CREATE POLICY "Anyone can read game_config_mega_projects" ON game_config_mega_projects FOR SELECT USING (true);
   END IF;
 END $$;
 
@@ -549,11 +581,13 @@ CREATE TABLE IF NOT EXISTS game_config_game (
 ALTER TABLE game_config_game ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_game' AND policyname = 'Service role full access on game_config_game') THEN
-    CREATE POLICY "Service role full access on game_config_game" ON game_config_game
+    DROP POLICY IF EXISTS "Service role full access on game_config_game" ON game_config_game;
+CREATE POLICY "Service role full access on game_config_game" ON game_config_game
       FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_game' AND policyname = 'Anyone can read game_config_game') THEN
-    CREATE POLICY "Anyone can read game_config_game" ON game_config_game FOR SELECT USING (true);
+    DROP POLICY IF EXISTS "Anyone can read game_config_game" ON game_config_game;
+CREATE POLICY "Anyone can read game_config_game" ON game_config_game FOR SELECT USING (true);
   END IF;
 END $$;
 
@@ -579,17 +613,19 @@ CREATE INDEX IF NOT EXISTS idx_gcw_sort_order ON game_config_weather(sort_order)
 ALTER TABLE game_config_weather ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_weather' AND policyname = 'Service role full access on game_config_weather') THEN
-    CREATE POLICY "Service role full access on game_config_weather" ON game_config_weather
+    DROP POLICY IF EXISTS "Service role full access on game_config_weather" ON game_config_weather;
+CREATE POLICY "Service role full access on game_config_weather" ON game_config_weather
       FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_weather' AND policyname = 'Anyone can read game_config_weather') THEN
-    CREATE POLICY "Anyone can read game_config_weather" ON game_config_weather FOR SELECT USING (true);
+    DROP POLICY IF EXISTS "Anyone can read game_config_weather" ON game_config_weather;
+CREATE POLICY "Anyone can read game_config_weather" ON game_config_weather FOR SELECT USING (true);
   END IF;
 END $$;
 
 
 -- ============================================================================
--- 19. game_config_balancing_rules (currently 0 rows — ready for future use)
+-- 19. game_config_balancing_rules (currently 0 rows â€” ready for future use)
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS game_config_balancing_rules (
   id TEXT PRIMARY KEY,
@@ -612,11 +648,13 @@ CREATE INDEX IF NOT EXISTS idx_gcbr_is_active ON game_config_balancing_rules(is_
 ALTER TABLE game_config_balancing_rules ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_balancing_rules' AND policyname = 'Service role full access on game_config_balancing_rules') THEN
-    CREATE POLICY "Service role full access on game_config_balancing_rules" ON game_config_balancing_rules
+    DROP POLICY IF EXISTS "Service role full access on game_config_balancing_rules" ON game_config_balancing_rules;
+CREATE POLICY "Service role full access on game_config_balancing_rules" ON game_config_balancing_rules
       FOR ALL USING (auth.role() = 'service_role') WITH CHECK (auth.role() = 'service_role');
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'game_config_balancing_rules' AND policyname = 'Anyone can read game_config_balancing_rules') THEN
-    CREATE POLICY "Anyone can read game_config_balancing_rules" ON game_config_balancing_rules FOR SELECT USING (true);
+    DROP POLICY IF EXISTS "Anyone can read game_config_balancing_rules" ON game_config_balancing_rules;
+CREATE POLICY "Anyone can read game_config_balancing_rules" ON game_config_balancing_rules FOR SELECT USING (true);
   END IF;
 END $$;
 
@@ -737,41 +775,41 @@ END $$;
 -- ============================================================================
 --
 -- TABLES (19):
---   game_config_buildings          — 20 columns, PK: id (text)
---   game_config_resources          — 9 columns, PK: id (text)
---   game_config_production_recipes — 6 columns, PK: id (text), FKs: buildings, resources
---   game_config_production_chains  — 5 columns, PK: id (text), FKs: buildings, resources
---   game_config_research           — 13 columns, PK: id (text)
---   game_config_automation         — 9 columns, PK: id (text)
---   game_config_workers            — 9 columns, PK: id (text)
---   game_config_transport          — 10 columns, PK: id (text)
---   game_config_market             — 8 columns, PK: resource_id (text), FK: resources
---   game_config_prestige_bonuses   — 8 columns, PK: id (text)
---   game_config_rank_thresholds    — 4 columns, PK: rank (smallint)
---   game_config_quest_definitions  — 14 columns, PK: id (text)
---   game_config_daily_rewards      — 6 columns, PK: day (smallint)
---   game_config_event_templates    — 10 columns, PK: id (text)
---   game_config_seasonal_events    — 13 columns, PK: id (text)
---   game_config_mega_projects      — 10 columns, PK: id (text)
---   game_config_game               — 44 columns, PK: id (text), default 'global'
---   game_config_weather            — 10 columns, PK: id (text)
---   game_config_balancing_rules    — 11 columns, PK: id (text)
+--   game_config_buildings          â€” 20 columns, PK: id (text)
+--   game_config_resources          â€” 9 columns, PK: id (text)
+--   game_config_production_recipes â€” 6 columns, PK: id (text), FKs: buildings, resources
+--   game_config_production_chains  â€” 5 columns, PK: id (text), FKs: buildings, resources
+--   game_config_research           â€” 13 columns, PK: id (text)
+--   game_config_automation         â€” 9 columns, PK: id (text)
+--   game_config_workers            â€” 9 columns, PK: id (text)
+--   game_config_transport          â€” 10 columns, PK: id (text)
+--   game_config_market             â€” 8 columns, PK: resource_id (text), FK: resources
+--   game_config_prestige_bonuses   â€” 8 columns, PK: id (text)
+--   game_config_rank_thresholds    â€” 4 columns, PK: rank (smallint)
+--   game_config_quest_definitions  â€” 14 columns, PK: id (text)
+--   game_config_daily_rewards      â€” 6 columns, PK: day (smallint)
+--   game_config_event_templates    â€” 10 columns, PK: id (text)
+--   game_config_seasonal_events    â€” 13 columns, PK: id (text)
+--   game_config_mega_projects      â€” 10 columns, PK: id (text)
+--   game_config_game               â€” 44 columns, PK: id (text), default 'global'
+--   game_config_weather            â€” 10 columns, PK: id (text)
+--   game_config_balancing_rules    â€” 11 columns, PK: id (text)
 --
 -- INDEXES: Created for sort_order, category, tier, and frequently queried columns
 --
 -- RLS POLICIES:
 --   - Service role: full access (USING auth.role() = 'service_role')
---   - Public: read-only (USING true) — game configs are public data
+--   - Public: read-only (USING true) â€” game configs are public data
 --
 -- TRIGGERS:
 --   - Auto-update updated_at on row change for 15 tables
 --
 -- FOREIGN KEYS:
---   - production_recipes.building_id → buildings.id
---   - production_recipes.resource_id → resources.id
---   - production_chains.upstream_building → buildings.id
---   - production_chains.downstream_building → buildings.id
---   - production_chains.resource_id → resources.id
---   - market.resource_id → resources.id
+--   - production_recipes.building_id â†’ buildings.id
+--   - production_recipes.resource_id â†’ resources.id
+--   - production_chains.upstream_building â†’ buildings.id
+--   - production_chains.downstream_building â†’ buildings.id
+--   - production_chains.resource_id â†’ resources.id
+--   - market.resource_id â†’ resources.id
 --
 -- ============================================================================

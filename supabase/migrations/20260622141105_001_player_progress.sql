@@ -1,4 +1,4 @@
--- Migration: 001_player_progress
+﻿-- Migration: 001_player_progress
 -- Description: Create player_progress table for cloud save functionality
 -- Created: Task 7+8
 
@@ -16,17 +16,21 @@ ALTER TABLE player_progress ADD COLUMN IF NOT EXISTS buildings_count INT DEFAULT
 ALTER TABLE player_progress ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Service role can do everything (used by API routes with service role key)
+DROP POLICY IF EXISTS "Service role can do everything" ON player_progress;
 CREATE POLICY "Service role can do everything" ON player_progress
   FOR ALL USING (true) WITH CHECK (true);
 
 -- Policy: Users can read their own data
+DROP POLICY IF EXISTS "Users can read own data" ON player_progress;
 CREATE POLICY "Users can read own data" ON player_progress
   FOR SELECT USING (auth.uid() = user_id);
 
 -- Policy: Users can update their own data
+DROP POLICY IF EXISTS "Users can update own data" ON player_progress;
 CREATE POLICY "Users can update own data" ON player_progress
   FOR UPDATE USING (auth.uid() = user_id);
 
 -- Policy: Users can insert their own data
+DROP POLICY IF EXISTS "Users can insert own data" ON player_progress;
 CREATE POLICY "Users can insert own data" ON player_progress
   FOR INSERT WITH CHECK (auth.uid() = user_id);

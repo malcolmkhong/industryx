@@ -32,13 +32,16 @@ CREATE INDEX IF NOT EXISTS idx_player_actions_is_valid ON player_actions(is_vali
 ALTER TABLE player_actions ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Service role can do everything (used by API routes)
+DROP POLICY IF EXISTS "Service role can do everything on actions" ON player_actions;
 CREATE POLICY "Service role can do everything on actions" ON player_actions
   FOR ALL USING (true) WITH CHECK (true);
 
 -- Policy: Users can read their own actions
+DROP POLICY IF EXISTS "Users can read own actions" ON player_actions;
 CREATE POLICY "Users can read own actions" ON player_actions
   FOR SELECT USING (auth.uid() = user_id);
 
 -- Policy: Users can insert their own actions
+DROP POLICY IF EXISTS "Users can insert own actions" ON player_actions;
 CREATE POLICY "Users can insert own actions" ON player_actions
   FOR INSERT WITH CHECK (auth.uid() = user_id);

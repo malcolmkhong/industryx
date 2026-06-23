@@ -1,5 +1,5 @@
--- 029_server_market.sql
--- Unified global market — same prices & news for all players
+﻿-- 029_server_market.sql
+-- Unified global market â€” same prices & news for all players
 -- Player buy/sell actions contribute to a shared pressure pool,
 -- processed every 60 seconds by a Cloudflare Cron worker.
 
@@ -32,13 +32,14 @@ CREATE TABLE IF NOT EXISTS market_player_pressure (
 -- Enable RLS for player pressure (players insert/update own rows)
 ALTER TABLE market_player_pressure ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Players can upsert own pressure" ON market_player_pressure;
 CREATE POLICY "Players can upsert own pressure"
   ON market_player_pressure FOR ALL
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
 -- Cron worker needs full access (service role bypasses RLS)
--- No explicit policy needed — service role skips RLS
+-- No explicit policy needed â€” service role skips RLS
 
 -- RPC: upsert player market pressure (called by /api/market/action)
 CREATE OR REPLACE FUNCTION upsert_market_pressure(

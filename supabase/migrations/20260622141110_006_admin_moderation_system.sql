@@ -1,21 +1,21 @@
--- ============================================================================
+﻿-- ============================================================================
 -- Migration: 006_admin_moderation_system
 -- Description: Create admin audit trail and restore investigation resolution
 -- Purpose: Enable admin moderation with full action history and investigation
 --          resolution workflow (columns dropped in 005, now needed for admin panel)
 --
 -- CHANGES:
---   1. CREATE admin_actions table — audit trail for all admin operations
+--   1. CREATE admin_actions table â€” audit trail for all admin operations
 --   2. ADD back resolution columns to cheat_investigations (dropped in 005)
 --
--- Run this in Supabase SQL Editor (Dashboard → SQL Editor → New Query)
+-- Run this in Supabase SQL Editor (Dashboard â†’ SQL Editor â†’ New Query)
 -- ============================================================================
 
 
 -- ============================================================================
 -- PART 1: Create admin_actions table
 -- Purpose: Immutable audit trail for every admin operation. This table is
---          append-only — admins should never UPDATE or DELETE rows. All
+--          append-only â€” admins should never UPDATE or DELETE rows. All
 --          mutations go through the service role (backend API).
 -- ============================================================================
 
@@ -58,8 +58,8 @@ CREATE TABLE IF NOT EXISTS admin_actions (
 COMMENT ON TABLE admin_actions IS 'Immutable audit trail for all admin moderation actions. Append-only, accessed via service role only.';
 
 -- Column comments for discoverability
-COMMENT ON COLUMN admin_actions.admin_user_id IS 'The admin who performed the action. CASCADE on delete — if admin is removed, their action records are removed too.';
-COMMENT ON COLUMN admin_actions.target_user_id IS 'The user targeted by the action. Nullable — some actions (e.g. global reset) have no specific target. SET NULL on delete to preserve audit history.';
+COMMENT ON COLUMN admin_actions.admin_user_id IS 'The admin who performed the action. CASCADE on delete â€” if admin is removed, their action records are removed too.';
+COMMENT ON COLUMN admin_actions.target_user_id IS 'The user targeted by the action. Nullable â€” some actions (e.g. global reset) have no specific target. SET NULL on delete to preserve audit history.';
 COMMENT ON COLUMN admin_actions.action_type IS 'Type of admin action performed. Constrained to known enum values for query consistency.';
 COMMENT ON COLUMN admin_actions.details IS 'Flexible JSONB context: reason, investigation_id, old_value, new_value, etc.';
 COMMENT ON COLUMN admin_actions.created_at IS 'Timestamp when the admin action was performed. Defaults to NOW().';
@@ -84,7 +84,7 @@ CREATE INDEX IF NOT EXISTS idx_admin_actions_created_at
 
 -- ============================================================================
 -- PART 1b: Row-Level Security for admin_actions
--- Policy: Service role has full access. No regular user access — this is an
+-- Policy: Service role has full access. No regular user access â€” this is an
 --         admin-only table accessed exclusively through backend API routes
 --         that authenticate via service role key.
 -- ============================================================================
@@ -93,7 +93,8 @@ CREATE INDEX IF NOT EXISTS idx_admin_actions_created_at
 ALTER TABLE admin_actions ENABLE ROW LEVEL SECURITY;
 
 -- Service role full access policy (used by backend API)
--- This is the ONLY policy — regular users have zero access
+-- This is the ONLY policy â€” regular users have zero access
+DROP POLICY IF EXISTS "Service role full access on admin_actions" ON admin_actions;
 CREATE POLICY "Service role full access on admin_actions" ON admin_actions
   FOR ALL USING (true) WITH CHECK (true);
 
@@ -110,7 +111,7 @@ CREATE POLICY "Service role full access on admin_actions" ON admin_actions
 --         Using ADD COLUMN IF NOT EXISTS for idempotency.
 -- ============================================================================
 
--- Who resolved the investigation (nullable — open/investigating cases have no resolver yet)
+-- Who resolved the investigation (nullable â€” open/investigating cases have no resolver yet)
 -- FK to auth.users but NO on-delete cascade: if the admin user is deleted,
 -- we still want to know WHO resolved the investigation. The UUID alone is
 -- sufficient for historical records even if the user no longer exists.
@@ -118,17 +119,17 @@ ALTER TABLE cheat_investigations
   ADD COLUMN IF NOT EXISTS resolved_by UUID REFERENCES auth.users(id);
 
 -- Free-text note explaining the resolution decision
--- Nullable — not all resolutions require a detailed note
+-- Nullable â€” not all resolutions require a detailed note
 ALTER TABLE cheat_investigations
   ADD COLUMN IF NOT EXISTS resolution_note TEXT;
 
 -- When the investigation was resolved
--- Nullable — only set when status transitions to 'resolved' or 'dismissed'
+-- Nullable â€” only set when status transitions to 'resolved' or 'dismissed'
 ALTER TABLE cheat_investigations
   ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ;
 
 -- Column comments for documentation
-COMMENT ON COLUMN cheat_investigations.resolved_by IS 'Admin who resolved/dismissed the investigation. Nullable for open/investigating cases. FK without CASCADE — preserve audit history if admin is deleted.';
+COMMENT ON COLUMN cheat_investigations.resolved_by IS 'Admin who resolved/dismissed the investigation. Nullable for open/investigating cases. FK without CASCADE â€” preserve audit history if admin is deleted.';
 COMMENT ON COLUMN cheat_investigations.resolution_note IS 'Free-text explanation of the resolution decision. Nullable.';
 COMMENT ON COLUMN cheat_investigations.resolved_at IS 'Timestamp when the investigation was resolved or dismissed. Nullable until resolution.';
 
@@ -138,9 +139,9 @@ COMMENT ON COLUMN cheat_investigations.resolved_at IS 'Timestamp when the invest
 -- ============================================================================
 --
 -- NEW TABLE:
---   admin_actions → Immutable audit trail for admin operations
---     Columns: id (UUID PK), admin_user_id (UUID FK→auth.users CASCADE),
---              target_user_id (UUID FK→auth.users SET NULL, nullable),
+--   admin_actions â†’ Immutable audit trail for admin operations
+--     Columns: id (UUID PK), admin_user_id (UUID FKâ†’auth.users CASCADE),
+--              target_user_id (UUID FKâ†’auth.users SET NULL, nullable),
 --              action_type (TEXT CHECK enum),
 --              details (JSONB DEFAULT '{}'),
 --              created_at (TIMESTAMPTZ DEFAULT NOW())
@@ -149,8 +150,8 @@ COMMENT ON COLUMN cheat_investigations.resolved_at IS 'Timestamp when the invest
 --     RLS: Enabled, service-role-only access (no user-level policies)
 --
 -- MODIFIED TABLE:
---   cheat_investigations → Restored 3 columns dropped in migration 005
---     Added: resolved_by (UUID FK→auth.users, nullable)
+--   cheat_investigations â†’ Restored 3 columns dropped in migration 005
+--     Added: resolved_by (UUID FKâ†’auth.users, nullable)
 --            resolution_note (TEXT, nullable)
 --            resolved_at (TIMESTAMPTZ, nullable)
 --

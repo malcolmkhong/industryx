@@ -1,13 +1,13 @@
--- ============================================================================
+﻿-- ============================================================================
 -- Migration: 004_server_authoritative_upgrade
 -- Description: Upgrade database for server-authoritative game model
 -- Purpose: Prevent cheating by making the server the source of truth
 --
--- Run this in Supabase SQL Editor (Dashboard → SQL Editor → New Query)
+-- Run this in Supabase SQL Editor (Dashboard â†’ SQL Editor â†’ New Query)
 -- ============================================================================
 
 -- ============================================================================
--- PART 1: Fix existing tables — add missing columns and tighten validation
+-- PART 1: Fix existing tables â€” add missing columns and tighten validation
 -- ============================================================================
 
 -- Ensure player_sessions table exists (was created via API but never formalized)
@@ -33,7 +33,8 @@ DO $$ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies WHERE tablename = 'player_sessions' AND policyname = 'Service role can do everything on sessions'
   ) THEN
-    CREATE POLICY "Service role can do everything on sessions" ON player_sessions
+    DROP POLICY IF EXISTS "Service role can do everything on sessions" ON player_sessions;
+CREATE POLICY "Service role can do everything on sessions" ON player_sessions
       FOR ALL USING (true) WITH CHECK (true);
   END IF;
 
@@ -41,7 +42,8 @@ DO $$ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies WHERE tablename = 'player_sessions' AND policyname = 'Users can read own sessions'
   ) THEN
-    CREATE POLICY "Users can read own sessions" ON player_sessions
+    DROP POLICY IF EXISTS "Users can read own sessions" ON player_sessions;
+CREATE POLICY "Users can read own sessions" ON player_sessions
       FOR SELECT USING (auth.uid() = user_id);
   END IF;
 END $$;
@@ -80,7 +82,7 @@ ALTER TABLE player_actions ADD CONSTRAINT player_actions_action_type_check
 
 
 -- ============================================================================
--- PART 2: New table — validated_actions queue
+-- PART 2: New table â€” validated_actions queue
 -- Purpose: Client must submit actions here FIRST, server validates,
 --          client only applies result after server approval
 -- ============================================================================
@@ -125,18 +127,21 @@ CREATE INDEX IF NOT EXISTS idx_validated_actions_is_valid ON validated_actions(i
 -- Enable RLS on validated_actions
 ALTER TABLE validated_actions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Service role can do everything on validated_actions" ON validated_actions;
 CREATE POLICY "Service role can do everything on validated_actions" ON validated_actions
   FOR ALL USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Users can read own validated actions" ON validated_actions;
 CREATE POLICY "Users can read own validated actions" ON validated_actions
   FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert own validated actions" ON validated_actions;
 CREATE POLICY "Users can insert own validated actions" ON validated_actions
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 
 -- ============================================================================
--- PART 3: New table — server_game_state
+-- PART 3: New table â€” server_game_state
 -- Purpose: The AUTHORITATIVE game state computed by the server.
 --          This is the source of truth, NOT the client's localStorage.
 -- ============================================================================
@@ -192,9 +197,11 @@ CREATE INDEX IF NOT EXISTS idx_server_game_state_last_tick ON server_game_state(
 -- Enable RLS on server_game_state
 ALTER TABLE server_game_state ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Service role can do everything on server_game_state" ON server_game_state;
 CREATE POLICY "Service role can do everything on server_game_state" ON server_game_state
   FOR ALL USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Users can read own server game state" ON server_game_state;
 CREATE POLICY "Users can read own server game state" ON server_game_state
   FOR SELECT USING (auth.uid() = user_id);
 
@@ -203,7 +210,7 @@ CREATE POLICY "Users can read own server game state" ON server_game_state
 
 
 -- ============================================================================
--- PART 4: New table — research_prerequisites
+-- PART 4: New table â€” research_prerequisites
 -- Purpose: Store research dependency tree server-side for validation
 -- ============================================================================
 
@@ -221,15 +228,17 @@ CREATE INDEX IF NOT EXISTS idx_research_prereq_prereq ON research_prerequisites(
 -- Enable RLS on research_prerequisites
 ALTER TABLE research_prerequisites ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Service role can do everything on research_prerequisites" ON research_prerequisites;
 CREATE POLICY "Service role can do everything on research_prerequisites" ON research_prerequisites
   FOR ALL USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Anyone can read research prerequisites" ON research_prerequisites;
 CREATE POLICY "Anyone can read research prerequisites" ON research_prerequisites
   FOR SELECT USING (true);
 
 
 -- ============================================================================
--- PART 5: New table — cheat_investigations
+-- PART 5: New table â€” cheat_investigations
 -- Purpose: Track detailed cheat incidents for admin review
 -- ============================================================================
 
@@ -269,6 +278,7 @@ CREATE INDEX IF NOT EXISTS idx_cheat_investigations_created_at ON cheat_investig
 -- Enable RLS on cheat_investigations
 ALTER TABLE cheat_investigations ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Service role can do everything on cheat_investigations" ON cheat_investigations;
 CREATE POLICY "Service role can do everything on cheat_investigations" ON cheat_investigations
   FOR ALL USING (true) WITH CHECK (true);
 
@@ -464,7 +474,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- ============================================================================
--- PART 7: Trigger — Auto-validate on save attempts
+-- PART 7: Trigger â€” Auto-validate on save attempts
 -- ============================================================================
 
 -- Trigger function: Validate state before allowing a save
@@ -504,7 +514,7 @@ BEGIN
         'Money jump detected. Server: ' || v_server_money || ', Client: ' || NEW.money,
         'critical'
       );
-      -- Don't reject outright — could be legitimate offline earnings
+      -- Don't reject outright â€” could be legitimate offline earnings
       -- But flag for investigation
     END IF;
   END IF;
@@ -529,7 +539,7 @@ CREATE TRIGGER trg_validate_player_save
 -- Insert research prerequisites from the existing game_config_research table
 -- The prerequisites field in game_config_research is a JSONB array of research IDs
 -- Guarded: game_config_research is created by migration 009 (which runs after
--- this one). On fresh local DBs that table doesn't exist yet — skip silently.
+-- this one). On fresh local DBs that table doesn't exist yet â€” skip silently.
 DO $research_seed$
 BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'game_config_research') THEN
@@ -543,7 +553,7 @@ BEGIN
       AND jsonb_array_length(r.prerequisites) > 0
     ON CONFLICT (research_id, prerequisite_id) DO NOTHING;
   ELSE
-    RAISE NOTICE '[004] game_config_research not yet created (created in migration 009) — skipping research_prerequisites seed';
+    RAISE NOTICE '[004] game_config_research not yet created (created in migration 009) â€” skipping research_prerequisites seed';
   END IF;
 END
 $research_seed$;
@@ -593,7 +603,8 @@ DO $$ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies WHERE tablename = 'admin_users' AND policyname = 'Super admins can view all admin users'
   ) THEN
-    CREATE POLICY "Super admins can view all admin users"
+    DROP POLICY IF EXISTS "Super admins can view all admin users" ON public.admin_users;
+CREATE POLICY "Super admins can view all admin users"
       ON public.admin_users FOR SELECT
       USING (
         EXISTS (
@@ -607,7 +618,8 @@ DO $$ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies WHERE tablename = 'admin_users' AND policyname = 'Admins can view their own record'
   ) THEN
-    CREATE POLICY "Admins can view their own record"
+    DROP POLICY IF EXISTS "Admins can view their own record" ON public.admin_users;
+CREATE POLICY "Admins can view their own record"
       ON public.admin_users FOR SELECT
       USING (user_id = auth.uid());
   END IF;
@@ -616,7 +628,8 @@ DO $$ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies WHERE tablename = 'admin_users' AND policyname = 'Super admins can insert admin users'
   ) THEN
-    CREATE POLICY "Super admins can insert admin users"
+    DROP POLICY IF EXISTS "Super admins can insert admin users" ON public.admin_users;
+CREATE POLICY "Super admins can insert admin users"
       ON public.admin_users FOR INSERT
       WITH CHECK (
         EXISTS (
@@ -630,7 +643,8 @@ DO $$ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies WHERE tablename = 'admin_users' AND policyname = 'Super admins can update admin users'
   ) THEN
-    CREATE POLICY "Super admins can update admin users"
+    DROP POLICY IF EXISTS "Super admins can update admin users" ON public.admin_users;
+CREATE POLICY "Super admins can update admin users"
       ON public.admin_users FOR UPDATE
       USING (
         EXISTS (
@@ -644,7 +658,8 @@ DO $$ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies WHERE tablename = 'admin_users' AND policyname = 'Super admins can delete admin users'
   ) THEN
-    CREATE POLICY "Super admins can delete admin users"
+    DROP POLICY IF EXISTS "Super admins can delete admin users" ON public.admin_users;
+CREATE POLICY "Super admins can delete admin users"
       ON public.admin_users FOR DELETE
       USING (
         EXISTS (
@@ -660,7 +675,7 @@ CREATE INDEX IF NOT EXISTS idx_admin_users_email ON public.admin_users(email);
 
 -- Seed the initial admin user
 -- Guarded: hardcoding production admin UUIDs in a migration is a security
--- anti-pattern. On fresh local DBs the auth.users table is empty — skip the
+-- anti-pattern. On fresh local DBs the auth.users table is empty â€” skip the
 -- seed and let admins grant themselves access via the admin UI / SQL.
 -- Production DBs that already have this user will see ON CONFLICT skip.
 DO $admin_seed$
@@ -673,7 +688,7 @@ BEGIN
       'super_admin'
     ) ON CONFLICT (user_id) DO NOTHING;
   ELSE
-    RAISE NOTICE '[004] auth user 1b4d0dc3-... not present (fresh local DB) — skipping admin seed. Add admin via UI or SQL.';
+    RAISE NOTICE '[004] auth user 1b4d0dc3-... not present (fresh local DB) â€” skipping admin seed. Add admin via UI or SQL.';
   END IF;
 END
 $admin_seed$;
@@ -684,27 +699,27 @@ $admin_seed$;
 -- ============================================================================
 --
 -- EXISTING TABLES MODIFIED:
---   player_progress   → Added validated_state_hash, last_validated_tick,
+--   player_progress   â†’ Added validated_state_hash, last_validated_tick,
 --                        cheat_flag_count, is_locked, lock_reason
---   player_actions    → Extended action_type enum with 14 new types
---   player_sessions   → Formalized (was created via API, now has RLS)
+--   player_actions    â†’ Extended action_type enum with 14 new types
+--   player_sessions   â†’ Formalized (was created via API, now has RLS)
 --
 -- NEW TABLES:
---   validated_actions      → Action validation queue (pending → validated → applied)
---   server_game_state      → Authoritative server-side game state
---   research_prerequisites → Server-side research dependency tree
---   cheat_investigations   → Detailed cheat incident tracking
---   admin_users            → Admin access control (was never applied)
+--   validated_actions      â†’ Action validation queue (pending â†’ validated â†’ applied)
+--   server_game_state      â†’ Authoritative server-side game state
+--   research_prerequisites â†’ Server-side research dependency tree
+--   cheat_investigations   â†’ Detailed cheat incident tracking
+--   admin_users            â†’ Admin access control (was never applied)
 --
 -- NEW FUNCTIONS:
---   validate_research_prereqs()  → Check if research prerequisites are met
---   validate_game_action()       → Server-side action validation
---   compute_offline_ticks()      → Server-authoritative offline progress
---   lock_cheater_account()       → Lock a cheating account
---   increment_cheat_flag()       → Flag + auto-lock after threshold
---   cleanup_stale_sessions()     → Maintenance cleanup
+--   validate_research_prereqs()  â†’ Check if research prerequisites are met
+--   validate_game_action()       â†’ Server-side action validation
+--   compute_offline_ticks()      â†’ Server-authoritative offline progress
+--   lock_cheater_account()       â†’ Lock a cheating account
+--   increment_cheat_flag()       â†’ Flag + auto-lock after threshold
+--   cleanup_stale_sessions()     â†’ Maintenance cleanup
 --
 -- NEW TRIGGERS:
---   trg_validate_player_save     → Auto-validate on every save attempt
+--   trg_validate_player_save     â†’ Auto-validate on every save attempt
 --
 -- ============================================================================

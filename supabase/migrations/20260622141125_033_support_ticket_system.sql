@@ -1,4 +1,4 @@
--- ============================================================================
+﻿-- ============================================================================
 -- Migration 033: Support ticket system
 -- ============================================================================
 -- In-app chat-based support: players create tickets, admins accept and reply,
@@ -50,10 +50,12 @@ CREATE TRIGGER trigger_support_tickets_updated_at
 -- RLS: Players can read their own tickets
 ALTER TABLE support_tickets ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Players can read own tickets" ON support_tickets;
 CREATE POLICY "Players can read own tickets"
   ON support_tickets FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Players can create tickets" ON support_tickets;
 CREATE POLICY "Players can create tickets"
   ON support_tickets FOR INSERT
   WITH CHECK (auth.uid() = user_id);
@@ -61,6 +63,7 @@ CREATE POLICY "Players can create tickets"
 -- RLS: Players can read/write messages on their own tickets
 ALTER TABLE support_messages ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Players can read messages on own tickets" ON support_messages;
 CREATE POLICY "Players can read messages on own tickets"
   ON support_messages FOR SELECT
   USING (
@@ -71,6 +74,7 @@ CREATE POLICY "Players can read messages on own tickets"
     )
   );
 
+DROP POLICY IF EXISTS "Players can insert messages on own tickets" ON support_messages;
 CREATE POLICY "Players can insert messages on own tickets"
   ON support_messages FOR INSERT
   WITH CHECK (
