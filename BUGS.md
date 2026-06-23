@@ -224,23 +224,25 @@ Either: (a) a `test` script exists in `package.json` and the tests run on demand
 Tests are committed but cannot be executed. They serve as documentation of intent (the `auth-gate.test.ts` literally references commit SHAs in its test names) but provide no automated verification.
 
 ### Root Cause / Reason
-**Suspected.** A prior AI session added the test files and devDeps but did not finalize the test runner choice or add a script. The tests use `node:test` syntax (compatible with Vitest, Jest 29+, or `node --test`).
+**Confirmed.** The test scripts use `tests/**/.test.ts` arguments. GitHub Actions runs Node 20.20.2, whose `node --test` CLI does **not** expand `**` globs. That leaves the literal path `tests/integration/**/*.test.ts`, and the runner exits with `Could not find '/home/runner/work/industryx/industryx/tests/integration/**/*.test.ts'` before executing the suite. Local runs on newer Node versions can mask this because newer runners accept the pattern.
 
 ### Investigation Performed
 - `cat package.json | grep -E "test|vitest|jest"` → only `lint` script exists; no test script.
 - The 3 test files use `import { describe, it } from 'node:test'` — Node's built-in test runner.
 - Tests reference live external endpoints (Supabase, Cloudflare, Vercel production) — would be flaky in CI.
+- 2026-06-23 CI run `28020745757`, job `82936315712`: `npm test` failed immediately with `Could not find '/home/runner/work/industryx/industryx/tests/integration/**/*.test.ts'`.
+- Local repro: `npx -y node@20 --test tests/integration/**/*.test.ts` fails with the same literal-path error, while `npx -y node@20 --test tests/integration/*.test.ts` reaches test execution.
 
 ### Evidence
 - Related commits: `f42d5cd` (test files), `a9431ec` (devDeps).
 - Related code: `tests/integration/*.test.ts` content.
 
 ### Troubleshooting / Next Steps
-1. Decide on a runner (recommend Vitest — supports `node:test` imports and the existing devDeps).
-2. Add a `vitest.config.ts` and `scripts.test = "vitest run"` to `package.json`.
+1. Replace `**` in `package.json` test scripts with shell-expandable `*` patterns (all current test files are flat under `tests/integration/` and `tests/security/`).
+2. Run the GitHub Actions workflow on Node 22+ so the built-in test runner can execute `.ts` test files.
 3. Decide if the live-network tests should run in CI (likely: gate behind `RUN_SMOKE=1`).
 4. Remove the hardcoded anon key from `supabase-connectivity.test.ts` (BUG-009).
-5. Add the test command to CI.
+5. If nested test directories are needed later, switch to an explicit file-enumeration wrapper instead of `**`.
 
 ### Resolution
 Not resolved.
@@ -1077,4 +1079,3 @@ None — fixed and verified by cron naturally advancing tick 2196 → 2197 → 2
 
 
 ---
-
