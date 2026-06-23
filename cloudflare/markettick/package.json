@@ -1,0 +1,12 @@
+{
+  "name": "markettick",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Cloudflare Worker: 60s cron that runs the global market simulation and forwards events to newsgenerator.",
+  "main": "worker.js",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  }
+}

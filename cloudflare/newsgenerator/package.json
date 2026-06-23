@@ -1,0 +1,12 @@
+{
+  "name": "newsgenerator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Cloudflare Worker: AI-powered batched news headline generator (Workers AI / Llama 3.1 8B).",
+  "main": "worker.js",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  }
+}
