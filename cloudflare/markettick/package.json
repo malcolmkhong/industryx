@@ -6,6 +6,7 @@
   "description": "Cloudflare Worker: 60s cron that runs the global market simulation and forwards events to newsgenerator.",
   "main": "worker.js",
   "scripts": {
+    "build": "echo 'no build step for markettick (pure Workers script)'",
     "deploy": "wrangler deploy",
     "tail": "wrangler tail"
   },

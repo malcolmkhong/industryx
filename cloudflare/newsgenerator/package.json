@@ -6,6 +6,7 @@
   "description": "Cloudflare Worker: AI-powered batched news headline generator (Workers AI / Llama 3.1 8B).",
   "main": "worker.js",
   "scripts": {
+    "build": "echo 'no build step for newsgenerator (pure Workers script)'",
     "deploy": "wrangler deploy",
     "tail": "wrangler tail"
   },
