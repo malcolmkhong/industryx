@@ -613,7 +613,7 @@ The SQL function (already exists in migration 005) atomically increments `cheat_
 
 **File:** `src/app/admin/auth/callback/route.ts` (commit `4532970`)
 
-**Before:** Only the env-var middleware check existed. The callback itself didn't verify the user was in `admin_users` table.
+**Before:** Only the env-var proxy check existed. The callback itself didn't verify the user was in `admin_users` table.
 
 **After:**
 - After code exchange + `getUser()`, calls `serviceRoleClient.rpc('is_game_admin')` to verify

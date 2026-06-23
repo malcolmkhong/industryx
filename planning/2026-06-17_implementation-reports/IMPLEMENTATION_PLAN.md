@@ -694,9 +694,9 @@ Mirror the logic from `/api/game/state` route: accept `clientStateVersion` in bo
 ### 3.9 Admin OAuth callback should query `admin_users`
 **File to update:** `src/app/admin/auth/callback/route.ts:26-30`
 
-After code exchange, in addition to the env-var check, query `admin_users` via service role. The `is_game_admin()` function should be used if available, but since middleware runs before this, the direct query is acceptable here.
+After code exchange, in addition to the env-var check, query `admin_users` via service role. The `is_game_admin()` function should be used if available, but since proxy runs before this, the direct query is acceptable here.
 
-**Why:** Audit M4. The env-var check in middleware is fast but stale. The callback is the second-line check.
+**Why:** Audit M4. The env-var check in proxy is fast but stale. The callback is the second-line check.
 
 ### Phase 3 Verification
 

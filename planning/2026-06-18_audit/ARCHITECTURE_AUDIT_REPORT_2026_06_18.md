@@ -545,7 +545,7 @@ The fingerprint is **dead data** in the current system. It's collected, hashed, 
 
 ### 8.4 Recommendation
 
-1. **Add IP capture to middleware** (Cloudflare/Vercel edge already provides `cf-connecting-ip` / `x-real-ip`). Store in a `request_log` table with 30-day TTL.
+1. **Add IP capture to proxy** (Cloudflare/Vercel edge already provides `cf-connecting-ip` / `x-real-ip`). Store in a `request_log` table with 30-day TTL.
 2. **Capture IP at every auth-route entry** (init, recover, claim, link, confirm, migrate) and hash before storing.
 3. **Add IP-based rate limit** as a secondary signal: "20 anon requests per IP per minute" on top of user/device limits.
 4. **Fix the `admin_actions` schema/code mismatch** (see §2.4 P0) so that admin actions are auditable.
@@ -662,7 +662,7 @@ The fingerprint is **dead data** in the current system. It's collected, hashed, 
 | **F-6** | **P0** | 11+ migrations on disk are not applied to the live database. The `supabase db push` workflow is broken. Migrations 025, 026, 027, 028, 029, 031, 032, 033, 034, 035, 036, 039 are in the file system but absent from `supabase_migrations.schema_migrations`. | `supabase_migrations.schema_migrations` shows 15 applied; filesystem has 40+ | Add CI gate: `supabase db diff` must show no drift. If drift, fail the build. |
 | **F-7** | **P1** | `recover-by-device` and `claim-guest` have **no auth check**. An attacker can submit arbitrary `deviceId` and `newUserId` UUIDs. Rate-limit is also by `deviceId`, which the attacker controls. | [src/app/api/auth/recover-by-device/route.ts](src/app/api/auth/recover-by-device/route.ts) + [src/app/api/auth/claim-guest/route.ts](src/app/api/auth/claim-guest/route.ts) | (a) Require `Authorization: Bearer <accessToken>` and verify the user owns the new user_id; (b) switch rate-limit identifier to IP |
 | **F-8** | **P1** | Lock state is per-`auth.users` only. There is no per-device, per-fingerprint, or per-IP lock. A banned user can re-sign-in anon and start fresh. | `server_game_state.is_locked` only; no other lock column anywhere | Add `is_locked`, `lock_reason`, `cheat_flag_count` to `guest_identities` and propagate locks on fingerprint/deviceId match |
-| **F-9** | **P1** | `merge_audit_log` and `pending_link_operations` have `ip_hash`/`ip_region`/`user_agent` columns that are never populated. `merge_audit_log` is 0/0/0 in production. | Live query + [src/app/api/auth/confirm-link/route.ts:209-226](src/app/api/auth/confirm-link/route.ts#L209-L226) + [src/app/api/auth/link-identity/route.ts:155-169](src/app/api/auth/link-identity/route.ts#L155-L169) | Add IP/UA capture in middleware; pass to the link/confirm handlers; hash before storing |
+| **F-9** | **P1** | `merge_audit_log` and `pending_link_operations` have `ip_hash`/`ip_region`/`user_agent` columns that are never populated. `merge_audit_log` is 0/0/0 in production. | Live query + [src/app/api/auth/confirm-link/route.ts:209-226](src/app/api/auth/confirm-link/route.ts#L209-L226) + [src/app/api/auth/link-identity/route.ts:155-169](src/app/api/auth/link-identity/route.ts#L155-L169) | Add IP/UA capture in proxy; pass to the link/confirm handlers; hash before storing |
 | **F-10** | **P1** | `market_player_pressure` RLS policy has no `qual` and no `with_check`. Any authenticated user can write to any row. | Live `pg_policies` for `market_player_pressure` | Add `qual: auth.uid() = user_id` and `with_check: auth.uid() = user_id` |
 | **F-11** | **P2** | The fingerprint is dead data. Collected, hashed, stored, copied during recovery — never read for any decision. | `guest_identities.fingerprint`, `.fingerprint_hash`; `grep_search "fingerprint"` returns only writes | Either remove collection or wire to a fraud signal (e.g., soft-ban 3 accounts/hour from one fingerprint) |
 | **F-12** | **P2** | `validate_game_action` and `compute_offline_ticks` are callable by `anon`+`authenticated`. Validation bypass + free production. | Live `pg_proc` grants | Lock to service_role |
@@ -688,9 +688,9 @@ The fingerprint is **dead data** in the current system. It's collected, hashed, 
 2. **REVOKE** `EXECUTE` on `set_capacity`, `apply_market_tick`, `upsert_market_pressure`, `upsert_supply_demand`, `validate_game_action`, `compute_offline_ticks` from `anon` and `authenticated`. **GRANT** to `service_role` only.
 3. **Apply migration 032** (extend admin_actions action_types and add the `ip_address`, `target_id`, `payload` columns that the code is writing — or vice versa).
 4. **Add a CI gate**: `supabase db diff` against the local migration history. Fail the build on drift.
-5. **Wire `validateCsrf`** into every cookie-auth `POST` handler. Use the `csrf_token` cookie the middleware already sets.
+5. **Wire `validateCsrf`** into every cookie-auth `POST` handler. Use the `csrf_token` cookie the proxy already sets.
 6. **Add `qual: auth.uid() = user_id`** to `market_player_pressure` policies.
-7. **Add IP capture** in Next.js middleware (Cloudflare: `cf-connecting-ip`) and pass to auth handlers via request header. Hash before storing.
+7. **Add IP capture** in Next.js proxy (Cloudflare: `cf-connecting-ip`) and pass to auth handlers via request header. Hash before storing.
 
 ### 10.5 Open questions for the user
 
@@ -705,7 +705,7 @@ The fingerprint is **dead data** in the current system. It's collected, hashed, 
 ## Appendix A — Methodology and provenance
 
 - **Live queries**: ~50 `mcp_supabase__execute_sql` calls against `wkkzqtseqwcyyyezroqq`.
-- **Code reads**: ~20 files from `src/app/api/auth/`, `src/app/api/admin/`, `src/app/api/game/`, `src/lib/auth/`, `src/components/providers/`, `src/middleware.ts`.
+- **Code reads**: ~20 files from `src/app/api/auth/`, `src/app/api/admin/`, `src/app/api/game/`, `src/lib/auth/`, `src/components/providers/`, `src/proxy.ts`.
 - **Migration reads**: 1 file (`031_revoke_increment_cheat_flag_from_authenticated.sql`), 1 config (`supabase/config.toml`).
 - **Searches**: `grep_search` for `validateCsrf`, `x-forwarded-for`, `fingerprint`.
 - **All findings labeled** `[verified-live]`, `[code-only]`, or `[migration-file-only]`.

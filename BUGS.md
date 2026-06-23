@@ -23,12 +23,12 @@
 | BUG-019 | Open (Partial) | Medium | Responsive | 5 `md:` breakpoints added to DashboardPanel + GameSidebar; remaining panels deferred | `src/components/game/DashboardPanel.tsx`, `GameSidebar.tsx` |
 | BUG-022 | Open (Suspected) | Medium | Accessibility | `text-muted-label` (#94a3b8) contrast risk — needs per-context measurement | `src/app/globals.css:85` |
 | BUG-025 | Open (Partial) | Low | Tailwind | 42 of 1,233 arbitrary values replaced; 1,191 typography `text-[Npx]` remain (deferred) | 18 files in `src/components/**` |
-| BUG-033 | Open | Low | Infra | `src/middleware.ts` triggers Next.js 16.1 deprecation warning | `src/middleware.ts` |
+| BUG-033 | Open | Low | Infra | `src/proxy.ts` triggers Next.js 16.1 deprecation warning | `src/proxy.ts` |
 | BUG-034 | Resolved (2026-06-19, unverified) | High | Data | `cleanup_orphan_anon_users` missed `profiles` FK check — fix applied to live DB but migrations `051`/`052` not committed to disk | `supabase/migrations/052_fix_cleanup_orphan_anon_profiles_check.sql` (missing on disk) |
 | BUG-041 | Resolved (2026-06-22) | Critical | Infra / Cron | `apply_market_tick` RPC validates price change against `basePrice` instead of previous tick's `currentPrice`; rejected 5+ high-end resources, froze cron for 54h | `supabase/migrations/053_fix_apply_market_tick_deviation_baseline.sql` |
 
 > **Total:** 13 open, 1 unverified, 1 freshly Resolved (out of 15). 25 previously Resolved entries removed per AGENTS.md 76-hour retention rule on 2026-06-22 after code/config validation.
-> **Highest priority for fixing (still open):** BUG-005 (.env.example — high severity, blocks new devs), BUG-001 (1 panel selector migration), BUG-003 (prisma uninstall), BUG-004 (test runner), BUG-009 (anon key), BUG-018 (admin a11y), BUG-019 (responsive), BUG-022 (contrast), BUG-025 (arbitrary values), BUG-033 (middleware rename). BUG-007, BUG-011, BUG-013 are low priority and may be deferred indefinitely.
+> **Highest priority for fixing (still open):** BUG-005 (.env.example — high severity, blocks new devs), BUG-001 (1 panel selector migration), BUG-003 (prisma uninstall), BUG-004 (test runner), BUG-009 (anon key), BUG-018 (admin a11y), BUG-019 (responsive), BUG-022 (contrast), BUG-025 (arbitrary values), BUG-033 (proxy rename). BUG-007, BUG-011, BUG-013 are low priority and may be deferred indefinitely.
 
 > **2026-06-22 cleanup notes:**
 > - 25 validated Resolved entries removed (BUG-002, 006, 008, 010, 012, 014–017, 020, 021, 023, 024, 026–032, 035–040).
@@ -340,7 +340,7 @@ Audit (originally identified in deep audit)
 
 ### Location
 
-- `src/lib/game/store.ts` (~lines 894–967 — debounced `persist` middleware)
+- `src/lib/game/store.ts` (~lines 894–967 — debounced `persist` proxy)
 - `src/lib/hooks/cloudSync/useCloudPersistence.ts` (cloud sync)
 
 ### Problem Found
@@ -814,7 +814,7 @@ Not resolved. See implementation plan `planning/UI_UX_REMEDIATION_PLAN.md` Phase
 
 ---
 
-## BUG-033 — `src/middleware.ts` triggers Next.js 16.1 deprecation warning
+## BUG-033 — `src/proxy.ts` triggers Next.js 16.1 deprecation warning
 
 ### Status
 Open
@@ -833,41 +833,41 @@ AI Agent (Phase 1 staging test 1 — dev server boot log)
 
 ### Location
 
-`src/middleware.ts`
+`src/proxy.ts`
 
 ### Problem Found
 When `npm run dev` starts, Next.js 16.1.3 (Turbopack) emits:
 ```
-⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+⚠ The "proxy" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/proxy-to-proxy
 ```
 
-The file `src/middleware.ts` should be renamed to `src/proxy.ts` to follow the new Next.js 16 convention. The function is still exported as `middleware` and the route protection logic is unchanged, but the filename is deprecated.
+The file `src/proxy.ts` should be renamed to `src/proxy.ts` to follow the new Next.js 16 convention. The function is still exported as `proxy` and the route protection logic is unchanged, but the filename is deprecated.
 
 ### Expected Behavior
-No deprecation warning in dev server boot. The file should be at `src/proxy.ts` and export a `proxy` function (or keep the `middleware` export if both are still supported).
+No deprecation warning in dev server boot. The file should be at `src/proxy.ts` and export a `proxy` function (or keep the `proxy` export if both are still supported).
 
 ### Actual Behavior
 Warning printed on every dev server start. Will become a hard error in a future Next.js major version.
 
 ### Root Cause / Reason
-**Confirmed.** Next.js 16.1 deprecated the `middleware` filename in favor of `proxy`. The migration is a rename; the function signature is identical.
+**Confirmed.** Next.js 16.1 deprecated the `proxy` filename in favor of `proxy`. The migration is a rename; the function signature is identical.
 
 ### Investigation Performed
 - Read the dev server boot log.
 - Confirmed warning appears once per `npm run dev` invocation.
-- Confirmed the proxy.ts convention is documented at https://nextjs.org/docs/messages/middleware-to-proxy.
+- Confirmed the proxy.ts convention is documented at https://nextjs.org/docs/messages/proxy-to-proxy.
 
 ### Evidence
 ```
 ▲ Next.js 16.1.3 (Turbopack)
 - Local:         http://localhost:3000
-⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.
+⚠ The "proxy" file convention is deprecated. Please use "proxy" instead.
 ```
 
 ### Troubleshooting / Next Steps
-1. Create `src/proxy.ts` as a copy of `src/middleware.ts`.
-2. Rename the exported function from `middleware` to `proxy` (and update the `config` export's name if needed).
-3. Delete `src/middleware.ts`.
+1. Create `src/proxy.ts` as a copy of `src/proxy.ts`.
+2. Rename the exported function from `proxy` to `proxy` (and update the `config` export's name if needed).
+3. Delete `src/proxy.ts`.
 4. Verify dev server starts without warning.
 5. Verify all 5 auth routes + `/api/game/state` still set `x-real-ip`.
 6. Verify admin route protection still works.
@@ -876,8 +876,8 @@ Warning printed on every dev server start. Will become a hard error in a future 
 Not yet fixed. Deferred to a future cleanup commit because the warning is non-fatal and the rename requires touching every file in the `proxy.ts` chain. **Estimated effort: 10 minutes** (file copy + rename + verification).
 
 ### Notes For Future Agents
-- The middleware→proxy migration is purely a filename convention change. The function signature and behavior are identical.
-- If multiple files import from `@/middleware`, check the import paths first.
+- The proxy→proxy migration is purely a filename convention change. The function signature and behavior are identical.
+- If multiple files import from `@/proxy`, check the import paths first.
 - The Next.js documentation link in the warning is authoritative.
 
 ---

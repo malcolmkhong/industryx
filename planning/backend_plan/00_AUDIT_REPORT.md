@@ -108,9 +108,9 @@ The admin subsystem is **functional but architecturally fragmented**. All 9 admi
 ### 1.5 Auth & Permission Model
 
 **3-layer admin detection:**
-1. `ADMIN_UIDS` env var (bootstrap) — checked in `src/middleware.ts:72-79` and `src/lib/auth/admin.ts:22-27`
+1. `ADMIN_UIDS` env var (bootstrap) — checked in `src/proxy.ts:72-79` and `src/lib/auth/admin.ts:22-27`
 2. `admin_users` DB table (authoritative) — checked via `isAdminUserDb()` with 60s in-memory cache
-3. `is_game_admin()` SECURITY DEFINER RPC — used by RLS and middleware
+3. `is_game_admin()` SECURITY DEFINER RPC — used by RLS and proxy
 
 **3 roles:**
 - `viewer` — read-only (cannot lock/unlock, cannot pass `is_game_admin()`)

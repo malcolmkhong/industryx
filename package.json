@@ -7,10 +7,10 @@
     "build": "next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/ && rm -rf .next/standalone/node_modules/sharp .next/standalone/node_modules/@img .next/standalone/node_modules/detect-libc",
     "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
     "lint": "eslint . --cache",
-    "test": "find tests/integration tests/security -name '*.test.ts' -type f -print0 | xargs -0 node --test --test-reporter=spec",
-    "test:integration": "find tests/integration -name '*.test.ts' -type f -print0 | xargs -0 node --test",
-    "test:security": "find tests/security -name '*.test.ts' -type f -print0 | xargs -0 node --test",
-    "test:all": "find tests/integration tests/security -name '*.test.ts' -type f -print0 | xargs -0 node --test"
+    "test": "tsx --test --test-reporter=spec tests/integration/*.test.ts tests/security/*.test.ts",
+    "test:integration": "tsx --test tests/integration/*.test.ts",
+    "test:security": "tsx --test tests/security/*.test.ts",
+    "test:all": "tsx --test tests/integration/*.test.ts tests/security/*.test.ts"
   },
   "dependencies": {
     "@fingerprintjs/fingerprintjs": "^4.6.2",
@@ -81,6 +81,7 @@
     "jsdom": "^29.1.1",
     "knip": "^6.16.1",
     "tailwindcss": "^4",
+    "tsx": "^4.22.4",
     "tw-animate-css": "^1.3.5",
     "typescript": "^5"
   }

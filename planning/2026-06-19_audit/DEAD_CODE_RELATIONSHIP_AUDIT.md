@@ -14,14 +14,14 @@
 | Field | Value |
 |---|---|
 | **Item Name** | `src/lib/auth/csrf.ts` — CSRF token utility (server) |
-| **Original Purpose** | Generate / set / validate CSRF tokens for state-changing requests. Companion to `src/middleware.ts` cookie-set logic. |
-| **Related Active Files** | `src/middleware.ts` (sets `csrf_token` cookie inline via `crypto.randomUUID()`, not via helper), `src/lib/admin/fetchWrapper.ts` (client `adminFetch` adds `X-CSRF-Token` header from cookie), all `/api/admin/*` routes (do **NOT** call `validateCsrf()`) |
+| **Original Purpose** | Generate / set / validate CSRF tokens for state-changing requests. Companion to `src/proxy.ts` cookie-set logic. |
+| **Related Active Files** | `src/proxy.ts` (sets `csrf_token` cookie inline via `crypto.randomUUID()`, not via helper), `src/lib/admin/fetchWrapper.ts` (client `adminFetch` adds `X-CSRF-Token` header from cookie), all `/api/admin/*` routes (do **NOT** call `validateCsrf()`) |
 | **Canonical Version** | None — file is the only server-side CSRF helper |
 | **Legacy Version** | None — the file is the original |
-| **Evidence** | `grep` of `validateCsrf` / `setCsrfCookie` / `generateCsrfToken` / `extractCsrfToken` across codebase returns ZERO imports. Middleware re-implements the cookie-set with its own `crypto.randomUUID()`. `fetchWrapper.ts` reads cookie on client. NO API route calls `validateCsrf()`. |
+| **Evidence** | `grep` of `validateCsrf` / `setCsrfCookie` / `generateCsrfToken` / `extractCsrfToken` across codebase returns ZERO imports. proxy re-implements the cookie-set with its own `crypto.randomUUID()`. `fetchWrapper.ts` reads cookie on client. NO API route calls `validateCsrf()`. |
 | **Risk Level** | **HIGH** — security gap. The cookie is set on every request but never validated server-side. Any cross-origin form could mutate admin state. |
-| **Verdict** | **REPLACED** (by inline middleware logic) but **CRITICAL SECURITY GAP** — server-side validation missing. |
-| **Recommended Action** | **DO NOT DELETE.** Wire `validateCsrf()` into all `/api/admin/*` POST/PATCH/DELETE routes. After wiring, middleware can call `setCsrfCookie()` instead of inline. See BUG-035. |
+| **Verdict** | **REPLACED** (by inline proxy logic) but **CRITICAL SECURITY GAP** — server-side validation missing. |
+| **Recommended Action** | **DO NOT DELETE.** Wire `validateCsrf()` into all `/api/admin/*` POST/PATCH/DELETE routes. After wiring, proxy can call `setCsrfCookie()` instead of inline. See BUG-035. |
 
 ---
 
@@ -31,7 +31,7 @@
 |---|---|
 | **Item Name** | `src/lib/admin/fetchWrapper.ts` — `adminFetch` helper |
 | **Original Purpose** | Client-side fetch wrapper that auto-adds `Content-Type: application/json` and `X-CSRF-Token` header (from `csrf_token` cookie) for non-GET admin requests. |
-| **Related Active Files** | `csrf.ts` (token generator — see A1), `middleware.ts` (cookie source), all `/admin/*` pages (call `fetch()` directly without wrapper) |
+| **Related Active Files** | `csrf.ts` (token generator — see A1), `proxy.ts` (cookie source), all `/admin/*` pages (call `fetch()` directly without wrapper) |
 | **Canonical Version** | None — wrapper is the only client-side CSRF-aware fetch |
 | **Legacy Version** | None — the wrapper is the original |
 | **Evidence** | `grep adminFetch` across codebase returns ZERO imports. All 8 admin pages that POST (`/admin/players/[id]`, `/admin/investigations`, `/admin/jobs`, `/admin/reports`, etc.) use raw `fetch()` without CSRF header. |

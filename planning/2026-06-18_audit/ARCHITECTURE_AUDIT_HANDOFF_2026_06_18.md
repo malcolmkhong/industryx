@@ -252,5 +252,5 @@ where n.nspname='public' and proname='increment_cheat_flag';
 - The `BUDGET` of `app_config` table beyond `capacity` key.
 - The `profiles` table contents (every user has one, but I didn't trace which fields are populated by which code path).
 - The actual count of `auth.users` rows and ratio of `is_anonymous=true` vs `false`.
-- Whether `is_game_admin` RPC exists and what it returns — only saw it referenced in middleware and RLS policies, not its definition.
+- Whether `is_game_admin` RPC exists and what it returns — only saw it referenced in proxy and RLS policies, not its definition.
 - The contents of `game_config_balancing_rules`, which is queried by `validateGuestMigration` and the server engine.

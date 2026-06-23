@@ -30,7 +30,7 @@ Phase 1B Follow-Up closed H3 fallback (removed read-then-write fallback, added f
 | H2 | In-memory rate limiter does not scale | rateLimiter.ts | 14 |
 | H5 | solarPanel naming collision | types.ts | 34-35 |
 | M6 | Stale Prisma schema | prisma/schema.prisma | all |
-| M7 | Admin auth via env var ADMIN_UIDS | middleware.ts | 64-74 |
+| M7 | Admin auth via env var ADMIN_UIDS | proxy.ts | 64-74 |
 | M8 | Weak blueprint import validation | store.ts | 3274-3277 |
 | L1 | Math.random() for IDs | store.ts | 48+ |
 | L6 | prisma in dependencies not devDependencies | package.json | 57 |
@@ -101,11 +101,11 @@ Steps:
 
 ### 01.4 M7 — Admin Auth Migration Plan (Design Only)
 
-Current: `middleware.ts` reads ADMIN_UIDS env var. Requires redeployment to change admins.
+Current: `proxy.ts` reads ADMIN_UIDS env var. Requires redeployment to change admins.
 
 Design (do NOT implement in this phase):
 1. `admin_users` table already exists (migration 006)
-2. Update middleware to query `admin_users` table as primary source
+2. Update proxy to query `admin_users` table as primary source
 3. Keep ADMIN_UIDS as fallback for bootstrapping
 4. Write migration 013 to insert existing UIDs into admin_users table
 

@@ -184,7 +184,7 @@
 - **Why:** 3,150 lines of sidebar/header duplication across 7 pages. Maintenance burden. The current per-page sidebar is a flat list — doesn't scale to 14+ admin pages.
 - **Required features:**
   - Server-side `verifyAdmin()` (use `createServerClient` from `@/lib/supabase/server`)
-  - If not admin → redirect to `/admin/login` (middleware already does this, but defense-in-depth)
+  - If not admin → redirect to `/admin/login` (proxy already does this, but defense-in-depth)
   - Render `<AdminNavigationTree>` + `<AdminHeader>` + `{children}`
   - Use `getAdminRole()` to show/hide write actions and entire tree branches
   - Include toast provider (Sonner from `@/components/ui/sonner`)
@@ -587,7 +587,7 @@
   - Skip for API routes using Bearer auth
 - **Files to create:**
   - `src/lib/auth/csrf.ts`
-  - `src/middleware.ts` (add CSRF validation)
+  - `src/proxy.ts` (add CSRF validation)
 
 ### Task 2D.3 — Advanced RBAC (custom roles per page)
 - **Status:** `[ ]`

@@ -163,7 +163,7 @@ Before any code is accepted, these checks MUST pass:
 - Admin API routes MUST use `verifyAdmin()` from `@/lib/auth/admin.ts`
 - Admin write operations MUST additionally use `canWrite()` from `@/lib/auth/admin-helpers.ts`
 - Auth failures MUST return 401, not redirect
-- Session refresh is handled by middleware — do NOT duplicate in API routes
+- Session refresh is handled by proxy — do NOT duplicate in API routes
 
 ### Authorization — Admin Roles
 | Role | Can Read | Can Write |
@@ -385,7 +385,7 @@ Supabase (PostgreSQL + Auth + Presence)
 | M4 | Inaccurate rpPerTick calculation | `DashboardPanel.tsx` | 99-101 | Can be 2-5x off from actual rate. Misleading for players. |
 | M5 | Meaningless storageUtilization | `DashboardPanel.tsx` | 155-161 | Mixing iron (100 cap) with nanoMaterial (3 cap) produces nonsense percentage. |
 | M6 | Stale Prisma schema | `schema.prisma` | 1-32 | Contains User/Post models from starter, NOT the game tables. Misleading. |
-| M7 | Admin auth via env var allowlist | `middleware.ts` | 64-69 | Adding/removing admins requires redeployment. Should use DB table. |
+| M7 | Admin auth via env var allowlist | `proxy.ts` | 64-69 | Adding/removing admins requires redeployment. Should use DB table. |
 | M8 | Weak blueprint import validation | `store.ts` | 3274-3277 | Same issue as C3 but for blueprints — arbitrary data injection. |
 
 ### 🟢 LOW (6)

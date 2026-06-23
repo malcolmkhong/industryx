@@ -107,10 +107,20 @@ jobs:
           # Required by tests/integration/supabase-connectivity.test.ts.
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_SUPABASE_URL: https://wkkzqtseqwcyyyezroqq.supabase.co
+          # Live HTTP tests hit production endpoints. CI runs them in skip
+          # mode (RUN_LIVE_TESTS unset) to avoid flakiness and rate-limit
+          # tripping. Set to "1" in a manual dispatch to run them against
+          # staging or production.
+          RUN_LIVE_TESTS: ${{ vars.RUN_LIVE_TESTS || '0' }}
+          BASE_URL: ${{ vars.BASE_URL || '' }}
+          NEWS_GENERATOR_URL: ${{ vars.NEWS_GENERATOR_URL || '' }}
 
       - name: Run security tests
         run: npm run test:security
         continue-on-error: false
+        env:
+          RUN_LIVE_TESTS: ${{ vars.RUN_LIVE_TESTS || '0' }}
+          BASE_URL: ${{ vars.BASE_URL || '' }}
 
   # ── Design-system CI gate (prevents design-token regressions) ──
   ci-gate:

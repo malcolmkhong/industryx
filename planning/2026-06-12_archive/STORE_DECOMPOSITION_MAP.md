@@ -55,7 +55,7 @@ Top-level functions (from scan, lines approximate):
 - `generateDroneMissionsFromState` (L110)
 - `migrateSaveState` (L176)
 - (default state initializers, L600+)
-- (create() with persist middleware, ~L2700+)
+- (create() with persist proxy, ~L2700+)
 - (gameTickAction, ~L1000 lines)
 - (other 41 actions scattered)
 
@@ -148,7 +148,7 @@ function applyTickSteps(state: GameState, effectiveSpeed: number): Partial<GameS
 
 19 migrations in `migrateSaveState` (L176, ~440 lines). Each migration is a `if (fromVersion === N) { ... }` block. **Order matters** — each migration transforms version N → N+1.
 
-Proposed extraction: `src/lib/game/storeMigrations.ts` — single file containing all 19 migrations, called from the persist middleware's `migrate` callback. This is a **pure refactor** (move only, no logic change) and should be the **first** step in the implementation (lowest risk, biggest LOC reduction).
+Proposed extraction: `src/lib/game/storeMigrations.ts` — single file containing all 19 migrations, called from the persist proxy's `migrate` callback. This is a **pure refactor** (move only, no logic change) and should be the **first** step in the implementation (lowest risk, biggest LOC reduction).
 
 **Effort:** 1 day (move + verify with old save data in dev environment)
 **Risk:** LOW — migrations are pure functions of the saved state

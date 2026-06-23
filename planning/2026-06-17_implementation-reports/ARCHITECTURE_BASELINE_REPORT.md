@@ -121,7 +121,7 @@ src/
 │   │   └── useAutoOpenGuide.ts          (20)
 │   ├── auth/                             # 5 auth/security files
 │   ├── config/                           # 1 table config
-│   └── supabase/                         # 3 Supabase client/server/middleware
+│   └── supabase/                         # 3 Supabase client/server/proxy
 ```
 
 ### 1.2 Major Architectural Changes from Phase 0 + Phase 1
@@ -251,7 +251,7 @@ src/
 | State properties | 28 top-level slices |
 | Actions | 42 |
 | Save version | 19 |
-| Middleware | `persist()` with custom `debouncedPersistStorage` (5s debounce) |
+| proxy | `persist()` with custom `debouncedPersistStorage` (5s debounce) |
 | Resource types | 67 (T0–T5) |
 
 **The store is a God File.** It contains:
@@ -259,7 +259,7 @@ src/
 - All 42 actions
 - The entire `gameTickAction` (~1,000 lines) — the game engine
 - Save migration logic (19 versions)
-- Persist middleware configuration
+- Persist proxy configuration
 - Helper utilities (formatNumber, etc.)
 
 ### 4.2 Selector Adoption
@@ -353,7 +353,7 @@ These values are recomputed independently in multiple components:
 | M2 | Hardcoded income rates in tooltip | page.tsx:245-247 |
 | M3 | Inaccurate rpPerTick calculation | DashboardPanel.tsx:122-124 |
 | M4 | Meaningless storageUtilization | DashboardPanel.tsx:178-184 |
-| M5 | Admin auth via env var allowlist | middleware.ts |
+| M5 | Admin auth via env var allowlist | proxy.ts |
 | M6 | Weak blueprint import validation | store.ts:3274-3277 |
 | M7 | 6 `any` type usages | HeaderAuth, DesktopHeader, MobileHeader, useOnlinePresence, config/route |
 | M8 | PrestigeBonus.effect.type is `string` | types.ts:234 |

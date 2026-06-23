@@ -551,7 +551,7 @@ src/
 │   │   ├── useOnlinePresence.ts
 │   │   └── useServerMarket.ts
 │   └── admin/                              # fetchWrapper, navTree
-└── middleware.ts                           # Auth middleware
+└── proxy.ts                           # Auth proxy
 
 supabase/
 └── migrations/                             # 17 SQL migrations (root is gitignored; this folder is whitelisted)

@@ -3,13 +3,13 @@
 > **Date:** 2026-06-11
 > **Issue:** M7 — Admin auth via env var `ADMIN_UIDS` (RULES.md §2.5)
 > **Status:** Design only (no implementation in this phase)
-> **Reference:** `src/middleware.ts:64-74` (current implementation)
+> **Reference:** `src/proxy.ts:64-74` (current implementation)
 
 ---
 
 ## Problem
 
-Current admin authentication in `middleware.ts:64-74` uses an environment variable `ADMIN_UIDS` as an allowlist. Adding or removing admins requires:
+Current admin authentication in `proxy.ts:64-74` uses an environment variable `ADMIN_UIDS` as an allowlist. Adding or removing admins requires:
 
 1. Update the env var on the deployment platform (Vercel, etc.)
 2. Redeploy the application
@@ -31,7 +31,7 @@ Per RULES.md §5:
 | `admin` | ✅ All admin data | ✅ All mutations | `admin_users.role` |
 | `super_admin` | ✅ All admin data | ✅ All mutations + manage admins | `ADMIN_UIDS` env var (implicit) |
 
-**Current flow (`middleware.ts:64-74`):**
+**Current flow (`proxy.ts:64-74`):**
 
 ```typescript
 // 1. Check env var for super_admin
@@ -100,10 +100,10 @@ WHERE u.id = ANY(string_to_array(current_setting('app.admin_uids_to_bootstrap', 
 ON CONFLICT (user_id) DO NOTHING;
 ```
 
-**Step 2: Update middleware** — Single source: `admin_users` table. Env var becomes bootstrap-only.
+**Step 2: Update proxy** — Single source: `admin_users` table. Env var becomes bootstrap-only.
 
 ```typescript
-// src/middleware.ts (target)
+// src/proxy.ts (target)
 export async function checkAdminRole(userId: string): Promise<AdminRole | null> {
   // Single source: admin_users table
   const { data, error } = await supabase
@@ -151,11 +151,11 @@ Phase 02+ scope. Required for full self-service admin management:
 
 ### Rollback Strategy
 
-**Immediate rollback** (within minutes): Restore `ADMIN_UIDS` check in middleware. System continues to work.
+**Immediate rollback** (within minutes): Restore `ADMIN_UIDS` check in proxy. System continues to work.
 
 **Safe migration order:**
 
-1. Deploy middleware change to read from `admin_users` table only
+1. Deploy proxy change to read from `admin_users` table only
 2. Run bootstrap migration to seed `admin_users` from `ADMIN_UIDS`
 3. Verify all admins can still access
 4. Leave `ADMIN_UIDS` env var in place as fallback
@@ -166,7 +166,7 @@ Phase 02+ scope. Required for full self-service admin management:
 - [ ] Create `013_admin_users_bootstrap.sql` migration
 - [ ] Run migration on production Supabase
 - [ ] Verify all env-var admins are in `admin_users` table
-- [ ] Update `src/middleware.ts:64-74` to single-source
+- [ ] Update `src/proxy.ts:64-74` to single-source
 - [ ] Add `src/lib/auth/admin-bootstrap.ts` for startup seeding
 - [ ] Wire `ensureBootstrapAdmins()` into app startup
 - [ ] Test: existing super_admin still works
@@ -205,6 +205,6 @@ Phase 02+ scope. Required for full self-service admin management:
 
 **Priority:** Medium — current env-var approach works but is operationally painful. Not a security emergency.
 
-**Effort estimate:** 1-2 days (migration + middleware update + testing)
+**Effort estimate:** 1-2 days (migration + proxy update + testing)
 
 **Blocking dependencies:** None
