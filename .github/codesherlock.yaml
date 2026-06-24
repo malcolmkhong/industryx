@@ -1,0 +1,20 @@
+# Trigger reviews for PRs targeting these branches
+target_branches: ["main"]
+
+# Focus review on these quality characteristics
+preferred_characteristics: 
+  - "Modularity"
+  - "Resource Utilization" 
+  - "Exception Handling"
+  - "Monitoring and Logging"
+  - "Dependency Injection"
+  - "Code Injection"
+  - "Input Validation"
+
+# Custom rules specific to your project
+additional_instructions:
+  - No exposed secrets or API keys
+  - No console.log, print, System.out.println left in code
+  - All public methods must have documentation
+  - Include error handling for external API calls
+  - Use dependency injection for database connections
