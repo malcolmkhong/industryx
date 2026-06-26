@@ -40,6 +40,7 @@ export default defineConfig({
     // happy-dom is lighter than jsdom and works for our React components
     environment: 'happy-dom',
     setupFiles: ['./tests/setup.ts'],
+    setupFilesAfterEnv: ['./tests/setup-after-env.ts'],
     globals: false,
     testTimeout: 15_000,
     hookTimeout: 30_000,
