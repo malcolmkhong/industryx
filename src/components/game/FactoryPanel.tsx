@@ -34,18 +34,19 @@ const TIER_CONFIG = {
   2: { label: 'T2 — Manufacturing', shortLabel: 'T2', color: 'orange', icon: 'gi:big-gear', borderColor: 'border-domain/40', hex: '#f97316' },
   3: { label: 'T3 — High-Tech', shortLabel: 'T3', color: 'purple', icon: 'gi:brain', borderColor: 'border-research/40', hex: '#a855f7' },
   4: { label: 'T4 — Singularity', shortLabel: 'T4', color: 'emerald', icon: 'gi:sparkles', borderColor: 'border-success/40', hex: '#00ffcc' },
-  5: { label: 'T5 — Transcendent', shortLabel: 'T5', color: 'red', icon: 'gi:galactic-carrier', borderColor: 'border-danger/40', hex: '#ff1744' },
+  5: { label: 'T5 — Transcendent', shortLabel: 'T5', color: 'red', icon: 'gi:spaceship', borderColor: 'border-danger/40', hex: '#ff1744' },
 };
 
 
 
 // Flow diagram tier nodes
 const FLOW_TIERS = [
-  { key: 'raw', label: 'Raw Materials', icon: <Pickaxe className="w-4 h-4" />, color: '#6b7280', bgClass: 'bg-muted-label/30', borderClass: 'border-muted-label/40', textClass: 'text-subtle' },
-  { key: 't1', label: 'T1 Processing', icon: <Flame className="w-4 h-4" />, color: '#22d3ee', bgClass: 'bg-brand/20', borderClass: 'border-brand/40', textClass: 'text-brand' },
-  { key: 't2', label: 'T2 Manufacturing', icon: <Cog className="w-4 h-4" />, color: '#f97316', bgClass: 'bg-domain/20', borderClass: 'border-domain/40', textClass: 'text-domain' },
-  { key: 't3', label: 'T3 High-Tech', icon: <Sparkles className="w-4 h-4" />, color: '#a855f7', bgClass: 'bg-research/20', borderClass: 'border-research/40', textClass: 'text-research' },
-  { key: 't4', label: 'T4 Singularity', icon: <Sparkles className="w-4 h-4" />, color: '#00ffcc', bgClass: 'bg-success/20', borderClass: 'border-success/40', textClass: 'text-success' },
+  { key: 'raw', label: 'Raw Materials', icon: <Pickaxe className="w-4 h-4" />, iconName: 'mining', color: '#6b7280', bgClass: 'bg-muted-label/30', borderClass: 'border-muted-label/40', textClass: 'text-subtle' },
+  { key: 't1', label: 'T1 Processing', icon: <Flame className="w-4 h-4" />, iconName: 'anvil-impact', color: '#22d3ee', bgClass: 'bg-brand/20', borderClass: 'border-brand/40', textClass: 'text-brand' },
+  { key: 't2', label: 'T2 Manufacturing', icon: <Cog className="w-4 h-4" />, iconName: 'big-gear', color: '#f97316', bgClass: 'bg-domain/20', borderClass: 'border-domain/40', textClass: 'text-domain' },
+  { key: 't3', label: 'T3 High-Tech', icon: <Sparkles className="w-4 h-4" />, iconName: 'sparkles', color: '#a855f7', bgClass: 'bg-research/20', borderClass: 'border-research/40', textClass: 'text-research' },
+  { key: 't4', label: 'T4 Singularity', icon: <Sparkles className="w-4 h-4" />, iconName: 'vortex', color: '#00ffcc', bgClass: 'bg-success/20', borderClass: 'border-success/40', textClass: 'text-success' },
+  { key: 't5', label: 'T5 Transcendent', icon: <Sparkles className="w-4 h-4" />, iconName: 'spaceship', color: '#ff1744', bgClass: 'bg-danger/20', borderClass: 'border-danger/40', textClass: 'text-danger' },
 ] as const;
 
 // Resource tier mapping for flow diagram
@@ -308,7 +309,7 @@ export function FactoryPanel() {
 
         {/* SVG Flow Diagram */}
         <div className="relative bg-background rounded-lg p-2 overflow-x-auto">
-          <svg viewBox="0 0 1200 160" className="w-full h-auto min-w-125" style={{ maxHeight: '180px' }}>
+          <svg viewBox="0 0 1400 160" className="w-full h-auto min-w-125" style={{ maxHeight: '180px' }}>
             {/* Background grid pattern */}
             <defs>
               <pattern id="flowGrid" width="20" height="20" patternUnits="userSpaceOnUse">
@@ -335,7 +336,7 @@ export function FactoryPanel() {
                 ) : null
               ))}
             </defs>
-            <rect width="1200" height="160" fill="url(#flowGrid)" />
+            <rect width="1400" height="160" fill="url(#flowGrid)" />
 
             {/* Connection lines with animated flow */}
             {FLOW_TIERS.map((tier, i) => (
@@ -432,19 +433,14 @@ export function FactoryPanel() {
                     strokeWidth="1"
                     strokeOpacity="0.4"
                   />
-                  {/* Tier label */}
-                  <text
-                    x={cx}
-                    y={55}
-                    textAnchor="middle"
-                    fill={tier.color}
-                    fontSize="11"
-                    fontFamily="sans-serif"
-                    fontWeight="bold"
-                    dominantBaseline="middle"
-                  >
-                    {tier.key === 'raw' ? <GameIcon icon="gi:mining" size={14} className="inline-flex" /> : tier.key === 't1' ? <GameIcon icon="gi:anvil-impact" size={14} className="inline-flex" /> : tier.key === 't2' ? <GameIcon icon="gi:big-gear" size={14} className="inline-flex" /> : tier.key === 't3' ? <GameIcon icon="gi:sparkles" size={14} className="inline-flex" /> : <GameIcon icon="gi:vortex" size={14} className="inline-flex" />}
-                  </text>
+                  {/* Tier icon — SVG <image> since game-icons are solid paths and tint cleanly */}
+                  <image
+                    x={cx - 12}
+                    y={38}
+                    width={24}
+                    height={24}
+                    href={`https://api.iconify.design/game-icons/${tier.iconName}.svg?color=${encodeURIComponent(tier.color)}`}
+                  />
                   {/* Tier name */}
                   <text
                     x={cx}
@@ -914,7 +910,7 @@ export function FactoryPanel() {
                 {currentTierBuildings.length === 0 && (
                   <div className="game-card-empty rounded-xl p-6 text-center">
                     <div className="text-4xl mb-3">
-                      {selectedTier === 1 ? <GameIcon icon="gi:anvil-impact" size={14} className="inline-flex" /> : selectedTier === 2 ? <GameIcon icon="gi:big-gear" size={14} className="inline-flex" /> : selectedTier === 3 ? <GameIcon icon="gi:sparkles" size={14} className="inline-flex" /> : selectedTier === 4 ? <GameIcon icon="gi:vortex" size={14} className="inline-flex" /> : <GameIcon icon="gi:galactic-carrier" size={14} className="inline-flex" />}
+                      {selectedTier === 1 ? <GameIcon icon="gi:anvil-impact" size={14} className="inline-flex" /> : selectedTier === 2 ? <GameIcon icon="gi:big-gear" size={14} className="inline-flex" /> : selectedTier === 3 ? <GameIcon icon="gi:sparkles" size={14} className="inline-flex" /> : selectedTier === 4 ? <GameIcon icon="gi:vortex" size={14} className="inline-flex" /> : <GameIcon icon="gi:spaceship" size={14} className="inline-flex" />}
                     </div>
                     <h3 className="text-base font-bold text-brand mb-2">No {currentTierConfig.label} Factories</h3>
                     <p className="text-sm text-subtle mb-1">Build your first factory to start processing materials</p>

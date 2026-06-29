@@ -72,6 +72,9 @@ const ALL_ICON_IDS = [
   'air-zigzag', 'coins', 'crosshair', 'fire', 'gem-chain',
   'helicopter', 'house', 'linked-rings', 'open-book', 'podium-winner',
   'race-car', 'radioactive', 'sleepy', 'stopwatch', 'world',
+  // Exist in game-icons but missing from preload list
+  'atomic-slashes', 'battery-100', 'bridge', 'capitol', 'gate',
+  'nuclear-bomb', 'shield', 'spaceship', 'star-cycle',
 ];
 
 async function fetchIconData() {

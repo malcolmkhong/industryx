@@ -95,7 +95,7 @@ export const BUILDING_ICON_MAP: Record<string, string> = {
   bauxiteMine: 'gi:mining-helmet',
   wolframiteMine: 'gi:obelisk',
   rareEarthExtractor: 'gi:crystal-shine',
-  silverMine: 'gi:round-silver-shield',
+  silverMine: 'gi:round-shield',
   goldMine: 'gi:gold-bar',
 
   // Tier 1 Factories
@@ -127,7 +127,7 @@ export const BUILDING_ICON_MAP: Record<string, string> = {
   hydrogenPlant: 'gi:h2o',
   reinforcedConcretePlant: 'gi:concrete-bag',
   powerCellPlant: 'gi:battery-100',
-  silverRefinery: 'gi:round-silver-shield',
+  silverRefinery: 'gi:round-shield',
   goldRefinery: 'gi:gold-bar',
 
   // Tier 3 Factories
@@ -146,11 +146,11 @@ export const BUILDING_ICON_MAP: Record<string, string> = {
   neuralLab: 'gi:thought-bubble',
   quantumAssembler: 'gi:atom',
   opticalComputingLab: 'gi:laser-burst',
-  carbonCompositePlant: 'gi:carbon-fiber',
+  carbonCompositePlant: 'gi:rope-coil',
   structuralFrameFactory: 'gi:bridge',
   fusionReactor: 'gi:nuclear-bomb',
   solarPanelFactory: 'gi:solar-power',
-  creditMint: 'gi:credit-card',
+  creditMint: 'gi:id-card',
 
   // Tier 4 Factories
   singularityForge: 'gi:vortex',
@@ -162,10 +162,10 @@ export const BUILDING_ICON_MAP: Record<string, string> = {
   megaStructureFactory: 'gi:castle',
   voidCrystallizer: 'gi:implosion',
   quantumResonanceLab: 'gi:atom',
-  arcologyBuilder: 'gi:city',
-  habitatModuleFactory: 'gi:home',
-  luxuryGoodsFactory: 'gi:diamond',
-  tradeHub: 'gi:handshake',
+  arcologyBuilder: 'gi:modern-city',
+  habitatModuleFactory: 'gi:house',
+  luxuryGoodsFactory: 'gi:cut-diamond',
+  tradeHub: 'gi:hand',
   teleporterGate: 'gi:teleport',
 
   // Tier 4 Endgame Buildings
@@ -177,9 +177,9 @@ export const BUILDING_ICON_MAP: Record<string, string> = {
 
   // Tier 5 Transcendent
   omniscienceArray: 'gi:brain',
-  worldEngine: 'gi:earth',
-  planetaryShield: 'gi:shield',
-  starReactor: 'gi:star',
+  worldEngine: 'gi:earth-africa-europe',
+  planetaryShield: 'gi:round-shield',
+  starReactor: 'gi:round-star',
   voidEngine: 'gi:hole',
   quantumExchange: 'gi:chart',
   megaCorpHQ: 'gi:bank',
