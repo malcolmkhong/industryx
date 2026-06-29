@@ -24,6 +24,7 @@ const TIER_CONFIG: Record<number, { label: string; color: string; bg: string; bo
   2: { label: 'Tier 2 — Manufactured', color: '#f97316', bg: 'bg-domain/20', border: 'border-domain/40' },
   3: { label: 'Tier 3 — High-Tech', color: '#a855f7', bg: 'bg-research/20', border: 'border-research/40' },
   4: { label: 'Tier 4 — Singularity', color: '#00ffcc', bg: 'bg-success/20', border: 'border-success/40' },
+  5: { label: 'Tier 5 — Transcendent', color: '#ff1744', bg: 'bg-danger/20', border: 'border-danger/40' },
 };
 
 type ViewMode = 'overview' | 'dependencies' | 'alerts';
@@ -684,7 +685,7 @@ export function StoragePanel() {
   // ─── Overview View ────────────────────────────────────────────────────────
   const renderOverviewView = () => (
     <div className="space-y-3">
-      {([0, 1, 2, 3, 4] as const).map(tier => {
+      {([0, 1, 2, 3, 4, 5] as const).map(tier => {
         const config = TIER_CONFIG[tier];
         const resources = groupedResources[tier];
         const activeInTier = resources.filter(r => {

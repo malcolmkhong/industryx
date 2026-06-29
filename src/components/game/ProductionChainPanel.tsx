@@ -20,6 +20,8 @@ const TIER_COLORS = [
   { fill: '#164e63', stroke: '#0e7490', text: '#22d3ee', label: 'Tier 1' },    // Tier 1 - Cyan
   { fill: '#7c2d12', stroke: '#c2410c', text: '#fb923c', label: 'Tier 2' },    // Tier 2 - Orange
   { fill: '#581c87', stroke: '#7e22ce', text: '#c084fc', label: 'Tier 3' },    // Tier 3 - Purple
+  { fill: '#064e3b', stroke: '#047857', text: '#6ee7b7', label: 'Tier 4' },    // Tier 4 - Emerald
+  { fill: '#7f1d1d', stroke: '#dc2626', text: '#fca5a5', label: 'Tier 5' },    // Tier 5 - Crimson
 ];
 
 // Node dimensions for SVG layout

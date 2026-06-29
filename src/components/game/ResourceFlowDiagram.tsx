@@ -56,7 +56,7 @@ const STATUS_COLORS: Record<BottleneckStatus, { border: string; bg: string; text
   ok: { border: '#22d3ee', bg: 'rgba(34,211,238,0.08)', text: '#22d3ee', label: '' },
 };
 
-const TIER_X = [0.07, 0.28, 0.50, 0.72, 0.91];
+const TIER_X = [0.05, 0.22, 0.40, 0.58, 0.76, 0.94];
 
 export default function ResourceFlowDiagram() {
   const {
@@ -380,7 +380,7 @@ export default function ResourceFlowDiagram() {
               </marker>
             </defs>
 
-            {['Raw', 'T1', 'T2', 'T3', 'T4'].map((label, i) => (
+            {['Raw', 'T1', 'T2', 'T3', 'T4', 'T5'].map((label, i) => (
               <text
                 key={label}
                 x={TIER_X[i] * svgDims.w}

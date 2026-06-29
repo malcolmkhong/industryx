@@ -395,6 +395,7 @@ export default function GlobalResourceMonitorPanel() {
     { value: 2, label: 'T2' },
     { value: 3, label: 'T3' },
     { value: 4, label: 'T4' },
+    { value: 5, label: 'T5' },
   ];
 
   return (
