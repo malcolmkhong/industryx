@@ -20,11 +20,11 @@ import ResourceFlowDiagram from './ResourceFlowDiagram';
 
 // ─── Tier Badge Colors ────────────────────────────────────────────────────────
 const TIER_COLORS: Record<number, { bg: string; text: string; border: string }> = {
-  0: { bg: 'bg-muted-label', text: 'text-subtle', border: 'border-muted-label' },
+  0: { bg: 'bg-warning/30', text: 'text-warning', border: 'border-warning' },
   1: { bg: 'bg-brand/30', text: 'text-brand', border: 'border-brand' },
   2: { bg: 'bg-domain/30', text: 'text-domain', border: 'border-domain' },
   3: { bg: 'bg-research/30', text: 'text-research', border: 'border-research' },
-  4: { bg: 'bg-brand/30', text: 'text-brand', border: 'border-brand' },
+  4: { bg: 'bg-success/30', text: 'text-success', border: 'border-success' },
   5: { bg: 'bg-danger/30', text: 'text-danger', border: 'border-danger' },
 };
 
