@@ -65,7 +65,9 @@ describe("generateId (BUG-012 fix)", () => {
     // store module. We use a regex on the source file to verify the
     // implementation uses crypto.randomUUID.
     // (This is a static check; the runtime check is in tsc build.)
-    const src = "src/lib/game/store.ts";
+    // After store decomposition (commit 2805ca7), generateId lives in its
+    // own utility file. store.ts re-exports it from ./utils/generateId.
+    const src = "src/lib/game/utils/generateId.ts";
     let storeSource: string;
     try {
       storeSource = await fs.readFile(src, "utf-8");
@@ -75,7 +77,7 @@ describe("generateId (BUG-012 fix)", () => {
     }
     // Find the generateId function body
     const match = storeSource.match(
-      /function generateId\(\): string \{[\s\S]*?\}/,
+      /export function generateId\(\): string \{[\s\S]*?\}/,
     );
     assert.ok(match, "Could not find generateId function in store.ts");
     assert.ok(
