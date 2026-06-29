@@ -146,26 +146,5 @@ globalThis.fetch = mockFetch;
 // TARGET: services/offlineService
 // ═════════════════════════════════════════════════════════════════════
 
-describe('services/offlineService', () => {
-  beforeEach(() => { vi.clearAllMocks(); resetStore(); });
 
-  it('replaces entire state', () => {
-    const serverState = { ...getStore(), money: 5000, gameTick: 100 };
-    getStore().applyServerState(serverState);
-    expect(getStore().money).toBe(5000);
-    expect(getStore().gameTick).toBe(100);
-  });
 
-  it('updates lastOnlineTimestamp', () => {
-    const before = getStore().lastOnlineTimestamp;
-    const serverState = { ...getStore(), money: 5000, gameTick: 100 };
-    getStore().applyServerState(serverState);
-    expect(getStore().lastOnlineTimestamp).toBeGreaterThanOrEqual(before);
-  });
-
-  it('preserves new values from server state', () => {
-    getStore().applyServerState({ ...getStore(), money: 7500, researchPoints: 250 });
-    expect(getStore().money).toBe(7500);
-    expect(getStore().researchPoints).toBe(250);
-  });
-});

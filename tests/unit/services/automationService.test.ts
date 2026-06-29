@@ -60,12 +60,12 @@ vi.mock('@/lib/game/configCache', () => ({
   WORKER_DEFS: {},
   TRANSPORT_DEFS: {},
   RESEARCH_TREE: [
-    { id: 'autoSorting', name: 'Auto Sorting', description: '', category: 'logistics', tier: 1, cost: 100, timeRequired: 30, prerequisites: [], effects: [], icon: '', sortOrder: 1 },
+    { id: 'autoSorting' as any, name: 'Auto Sorting', description: '', category: 'logistics', tier: 1, cost: 100, timeRequired: 30, prerequisites: [], effects: [], icon: '', sortOrder: 1 },
   ],
   AUTOMATION_UNLOCKS: [
     { type: 'autoTrading', name: 'Auto Trading', cost: 10, requiresResearch: null, icon: '', active: false },
-    { type: 'autoSorting', name: 'Auto Sorting', cost: 20, requiresResearch: 'autoSorting', icon: '', active: false },
-    { type: 'autoCollect', name: 'Auto Collect', cost: 5, requiresResearch: null, icon: '', active: false },
+    { type: 'autoSorting' as any, name: 'Auto Sorting', cost: 20, requiresResearch: 'autoSorting' as any, icon: '', active: false },
+    { type: 'autoCollect' as any, name: 'Auto Collect', cost: 5, requiresResearch: null, icon: '', active: false },
   ],
   PRESTIGE_BONUSES: [],
   RANK_THRESHOLDS: HOIST_RANK_THRESHOLDS,
@@ -170,10 +170,10 @@ describe('services/automationService', () => {
   });
 
   it('activateAutomation rejects when research requirement not met', () => {
-    // autoSorting requires 'autoSorting' research which is not completed
-    getStore().activateAutomation('autoSorting');
+    // autoSorting requires 'autoSorting' as any research which is not completed
+    getStore().activateAutomation('autoSorting' as any);
 
-    expect(getStore().automationUnlocks.find(a => a.type === 'autoSorting')?.active).toBe(false);
+    expect(getStore().automationUnlocks.find(a => a.type === 'autoSorting' as any)?.active).toBe(false);
   });
 
   it('activateAutomation does nothing for unknown type', () => {
@@ -185,10 +185,11 @@ describe('services/automationService', () => {
   });
 
   it('activateAutomation autoCollect activates successfully', () => {
-    expect(getStore().automationUnlocks.find(a => a.type === 'autoCollect')?.active).toBe(false);
+    expect(getStore().automationUnlocks.find(a => a.type === 'autoCollect' as any)?.active).toBe(false);
 
-    getStore().activateAutomation('autoCollect');
+    getStore().activateAutomation('autoCollect' as any);
 
-    expect(getStore().automationUnlocks.find(a => a.type === 'autoCollect')?.active).toBe(true);
+    expect(getStore().automationUnlocks.find(a => a.type === 'autoCollect' as any)?.active).toBe(true);
   });
 });
+

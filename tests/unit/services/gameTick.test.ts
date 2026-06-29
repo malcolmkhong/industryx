@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { ResourceType, BuildingType, Contract, WeatherType } from '@/lib/game/types';
 
-const mockEmptySnapshot = vi.hoisted(() => ({
+const emptyMockSnapshot = vi.hoisted(() => ({
   production: {}, consumption: {}, actualConsumption: {}, buildings: {},
   powerProduction: 0, powerConsumption: 0, powerEfficiency: 1, powerOverload: false,
   payoutPerCycle: 0, payoutBreakdown: { extractors: 0, factories: 0, power: 0 },
@@ -66,7 +66,14 @@ vi.mock('@/lib/game/productionCalculator', () => ({
   computePayout: vi.fn(() => ({ amountPerCycle: 0, breakdown: { extractors: 0, factories: 0, power: 0 } })),
   computeEndgameIncome: vi.fn(() => ({ moneyPerTick: 0, researchPerTick: 0, corpPerTick: 0 })),
   computeSellMultiplier: vi.fn(() => 0.5),
-  emptyProductionSnapshot,
+  emptyProductionSnapshot: vi.fn(() => ({
+    production: {}, consumption: {}, actualConsumption: {}, buildings: {},
+    powerProduction: 0, powerConsumption: 0, powerEfficiency: 1, powerOverload: false,
+    payoutPerCycle: 0, payoutBreakdown: { extractors: 0, factories: 0, power: 0 },
+    sellMultiplier: 0.5, endgameMoney: 0, endgameResearch: 0, endgameCorp: 0,
+    moneyIncomeRate: 0, moneyExpenseRate: 0, rpIncomeRate: 0, rpExpenseRate: 0,
+    cpIncomeRate: 0, cpExpenseRate: 0,
+  })),
 }));
 
 vi.mock('@/lib/game/configCache', () => ({
@@ -86,7 +93,14 @@ vi.mock('@/lib/game/configCache', () => ({
   SEASONAL_EVENTS: [],
   WEEKLY_DAILY_REWARDS: HOIST_WEEKLY_REWARDS,
   getStreakMultiplier: vi.fn(() => 1),
-  emptyProductionSnapshot,
+  emptyProductionSnapshot: vi.fn(() => ({
+    production: {}, consumption: {}, actualConsumption: {}, buildings: {},
+    powerProduction: 0, powerConsumption: 0, powerEfficiency: 1, powerOverload: false,
+    payoutPerCycle: 0, payoutBreakdown: { extractors: 0, factories: 0, power: 0 },
+    sellMultiplier: 0.5, endgameMoney: 0, endgameResearch: 0, endgameCorp: 0,
+    moneyIncomeRate: 0, moneyExpenseRate: 0, rpIncomeRate: 0, rpExpenseRate: 0,
+    cpIncomeRate: 0, cpExpenseRate: 0,
+  })),
 }));
 
 vi.mock('@/lib/game/balanceConfig', () => ({
@@ -199,3 +213,4 @@ describe('Module: services/gameTick', () => {
     expect(getStore().resources.ironPlate).toBeGreaterThan(0);
   });
 });
+

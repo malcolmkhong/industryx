@@ -174,7 +174,7 @@ describe('services/notificationService', () => {
 
   it('markAllNotificationsRead marks all as read', () => {
     getStore().addNotification('info', 'First');
-    getStore().addNotification('warn', 'Second');
+    getStore().addNotification('warning', 'Second');
     getStore().addNotification('error', 'Third');
     getStore().markAllNotificationsRead();
     expect(getStore().notifications.every((n: { read: boolean }) => n.read)).toBe(true);
@@ -198,3 +198,4 @@ describe('services/notificationService', () => {
     expect(n.type).toBe('success');
   });
 });
+

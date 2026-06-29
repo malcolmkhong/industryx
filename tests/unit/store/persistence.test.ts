@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { ResourceType } from '@/lib/game/types';
 
 const HOIST_BUILDING_DEFS = vi.hoisted((): Record<string, Record<string, unknown>> => ({}));
 const HOIST_WEEKLY_REWARDS = vi.hoisted((): Record<string, unknown>[] => ([]));
@@ -122,3 +123,5 @@ describe('Module: store/persistence', () => {
     expect(decoded).toHaveProperty('_version');
   });
 });
+
+

@@ -14,7 +14,7 @@ import { GET } from '@/app/api/admin/investigations/route';
 
 describe('GET /api/admin/investigations', () => {
   it('returns 401 when not authenticated', async () => {
-    const res = await GET();
+    const res = await GET(buildRequest({ url: '/api/admin/investigations' }));
     expect([401, 403]).toContain(res.status);
   });
 });
