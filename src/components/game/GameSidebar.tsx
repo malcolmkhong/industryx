@@ -1,8 +1,11 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useSettingsStore } from "@/lib/game/settingsStore";
 import { GameTab } from "@/lib/game/types";
+import { useTabChange } from "@/lib/hooks/page/useTabChange";
 import {
   Factory,
   Pickaxe,
@@ -272,12 +275,9 @@ export function getGroupForTab(tabId: GameTab): NavGroup | undefined {
 
 // ─── Desktop Sidebar Component ─────────────────────────────────────────────────
 
-interface GameSidebarProps {
-  activeTab: GameTab;
-  onTabChange: (tab: GameTab) => void;
-}
-
-export function GameSidebar({ activeTab, onTabChange }: GameSidebarProps) {
+export function GameSidebar() {
+  const pathname = usePathname();
+  const handleTabChange = useTabChange();
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -305,6 +305,9 @@ export function GameSidebar({ activeTab, onTabChange }: GameSidebarProps) {
     () => new Set(expandedGroupsArray),
     [expandedGroupsArray],
   );
+
+  // Derive active tab from URL pathname instead of props
+  const activeTab = pathname.startsWith("/game/") ? pathname.slice(6).split("/")[0] as GameTab : "dashboard";
 
   // Find which group contains the active tab, auto-expand it if collapsed
   const activeGroup = getGroupForTab(activeTab);
@@ -349,9 +352,15 @@ export function GameSidebar({ activeTab, onTabChange }: GameSidebarProps) {
                     const isActive = activeTab === tab.id;
 
                     return (
-                      <button
+                      <Link
                         key={tab.id}
-                        onClick={() => onTabChange(tab.id)}
+                        href={`/game/${tab.id}`}
+                        prefetch
+                        onClick={(e) => {
+                          if (!handleTabChange(tab.id)) {
+                            e.preventDefault();
+                          }
+                        }}
                         aria-current={isActive ? "page" : undefined}
                         className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-1 focus-visible:ring-offset-gray-900 ${
                           isActive
@@ -361,7 +370,7 @@ export function GameSidebar({ activeTab, onTabChange }: GameSidebarProps) {
                       >
                         <TabIcon className="w-3.5 h-3.5 shrink-0" />
                         <span className="truncate">{tab.label}</span>
-                      </button>
+                      </Link>
                     );
                   })}
                 </div>

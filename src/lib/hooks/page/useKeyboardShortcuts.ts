@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useGameStore } from '@/lib/game/store';
+import { useNavigateToTab } from '@/lib/hooks/page/useNavigateToTab';
 import { KEY_TAB_MAP } from '@/components/game/GameSidebar';
 
 const SPEED_OPTIONS = [1, 2, 5, 10] as const;
@@ -8,7 +10,8 @@ const SPEED_OPTIONS = [1, 2, 5, 10] as const;
 // pause, + / - change game speed, Escape deselects the active building.
 // Ignores key events when the user is typing in an input.
 export function useKeyboardShortcuts(): void {
-  const setActiveTab = useGameStore(s => s.setActiveTab);
+  const navigateToTab = useNavigateToTab();
+  const router = useRouter();
   const togglePause = useGameStore(s => s.togglePause);
   const setGameSpeed = useGameStore(s => s.setGameSpeed);
   const selectBuilding = useGameStore(s => s.selectBuilding);
@@ -23,7 +26,7 @@ export function useKeyboardShortcuts(): void {
 
       if (KEY_TAB_MAP[e.key]) {
         e.preventDefault();
-        setActiveTab(KEY_TAB_MAP[e.key]);
+        navigateToTab(KEY_TAB_MAP[e.key]);
         return;
       }
 
@@ -57,5 +60,5 @@ export function useKeyboardShortcuts(): void {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setActiveTab, togglePause, setGameSpeed, selectBuilding, gameSpeed]);
+  }, [navigateToTab, router, togglePause, setGameSpeed, selectBuilding, gameSpeed]);
 }

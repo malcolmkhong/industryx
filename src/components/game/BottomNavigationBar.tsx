@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { GameTab } from "@/lib/game/types";
 import { NAV_GROUPS, getGroupForTab } from "@/components/game/GameSidebar";
 import { useSettingsStore, BottomNavMode } from "@/lib/game/settingsStore";
+import { useTabChange } from "@/lib/hooks/page/useTabChange";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Home,
@@ -98,9 +101,12 @@ export const ICON_MAP: Record<
 
 // ─── Props Interface ────────────────────────────────────────────────────────────
 
+// Now derives `activeTab` from URL pathname instead of being passed in as a prop.
+// The mobile bar lives inside the game layout, so it's always mounted under
+// `/game/...` and reading the path is the single source of truth.
 interface BottomNavigationBarProps {
-  activeTab: GameTab;
-  onTabChange: (tab: GameTab) => void;
+  activeTab?: GameTab;
+  onTabChange?: (tab: GameTab) => void;
 }
 
 // ─── Animation Variants ─────────────────────────────────────────────────────────
@@ -150,9 +156,11 @@ const tabItemVariants = {
 // ─── Component ──────────────────────────────────────────────────────────────────
 
 export function BottomNavigationBar({
-  activeTab,
+  activeTab: activeTabProp,
   onTabChange,
 }: BottomNavigationBarProps) {
+  const pathname = usePathname();
+  const handleTabChange = useTabChange();
   const bottomNavMode = useSettingsStore((state) => state.bottomNavMode);
   const setBottomNavMode = useSettingsStore((state) => state.setBottomNavMode);
 
@@ -160,8 +168,26 @@ export function BottomNavigationBar({
   const panelRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
 
+  // URL is the source of truth; the optional prop still wins if a caller passes it
+  // (keeps backwards compatibility for any other mounts).
+  const activeTab: GameTab = activeTabProp
+    ?? (pathname.startsWith("/game/")
+      ? (pathname.slice(6).split("/")[0] as GameTab)
+      : "dashboard");
+
   // Derive the active group from the active tab
   const activeGroup = getGroupForTab(activeTab);
+
+  // Sub-tab handler: defers to the passed-in callback for backwards compatibility,
+  // but with URL-based nav we already rely on <Link> in the JSX so this just
+  // collapses the slide-up panel.
+  const handleSubTabSelect = useCallback(
+    (tabId: GameTab) => {
+      onTabChange?.(tabId);
+      setExpandedGroupId(null);
+    },
+    [onTabChange],
+  );
 
   // Close panel on outside click — this is an event handler (not a direct
   // setState in the effect body), so it satisfies the react-hooks lint rule.
@@ -190,14 +216,6 @@ export function BottomNavigationBar({
   const handleGroupTap = useCallback((groupId: string) => {
     setExpandedGroupId((prev) => (prev === groupId ? null : groupId));
   }, []);
-
-  const handleSubTabSelect = useCallback(
-    (tabId: GameTab) => {
-      onTabChange(tabId);
-      setExpandedGroupId(null);
-    },
-    [onTabChange],
-  );
 
   const toggleMode = useCallback(() => {
     const next: BottomNavMode =
@@ -253,28 +271,38 @@ export function BottomNavigationBar({
                 const isActive = activeTab === tab.id;
 
                 return (
-                  <motion.button
+                  <motion.div
                     key={tab.id}
                     custom={i}
                     variants={tabItemVariants}
                     initial="hidden"
                     animate="visible"
                     exit="exit"
-                    onClick={() => handleSubTabSelect(tab.id)}
-                    aria-current={isActive ? "page" : undefined}
-                    className={`
-                      flex items-center gap-2 px-2.5 py-2.5 rounded-lg text-[11px] font-medium
-                      min-h-11 transition-colors duration-150
-                      ${
-                        isActive
-                          ? `${tab.color} bg-white/8 border border-brand/20 shadow-[0_0_12px_rgba(0,255,242,0.1)]`
-                          : "text-subtle active:bg-white/8 border border-transparent"
-                      }
-                    `}
                   >
-                    <TabIcon className="w-4 h-4 shrink-0" />
-                    <span className="truncate">{tab.label}</span>
-                  </motion.button>
+                    <Link
+                      href={`/game/${tab.id}`}
+                      prefetch
+                      onClick={(e) => {
+                        setExpandedGroupId(null);
+                        if (!handleTabChange(tab.id)) {
+                          e.preventDefault();
+                        }
+                      }}
+                      aria-current={isActive ? "page" : undefined}
+                      className={`
+                        flex items-center gap-2 px-2.5 py-2.5 rounded-lg text-[11px] font-medium
+                        min-h-11 transition-colors duration-150
+                        ${
+                          isActive
+                            ? `${tab.color} bg-white/8 border border-brand/20 shadow-[0_0_12px_rgba(0,255,242,0.1)]`
+                            : "text-subtle active:bg-white/8 border border-transparent"
+                        }
+                      `}
+                    >
+                      <TabIcon className="w-4 h-4 shrink-0" />
+                      <span className="truncate">{tab.label}</span>
+                    </Link>
+                  </motion.div>
                 );
               })}
             </div>

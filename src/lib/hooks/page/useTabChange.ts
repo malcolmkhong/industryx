@@ -1,5 +1,6 @@
+'use client';
+
 import { useCallback } from 'react';
-import { useGameStore } from '@/lib/game/store';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useLoginPrompt } from '@/lib/hooks/useLoginPrompt';
 import type { GameTab } from '@/lib/game/types';
@@ -12,20 +13,22 @@ const GUEST_GATED_TABS: Partial<Record<GameTab, LoginPromptReason>> = {
   market: 'stock_market',
 };
 
-// Returns a stable tab-change handler that intercepts cloud-required tabs
-// (leaderboard, trading post, mega projects) for guest users and prompts
-// login instead of navigating.
-export function useTabChange(): (tab: GameTab) => void {
-  const setActiveTab = useGameStore(s => s.setActiveTab);
+// Returns a stable tab-gate handler.
+//
+//   true  → caller may proceed with navigation (e.g. <Link> click, router.push)
+//   false → caller must preventDefault / skip navigation; a login prompt was shown.
+//
+// Existing callers that ignore the return value keep working unchanged.
+export function useTabChange(): (tab: GameTab) => boolean {
   const { user, isGuest, loading: authLoading } = useAuth();
   const { promptLogin } = useLoginPrompt();
 
-  return useCallback((tab: GameTab) => {
+  return useCallback((tab: GameTab): boolean => {
     const reason = GUEST_GATED_TABS[tab];
     if (reason && (isGuest || (!user && !authLoading))) {
       promptLogin(reason);
-      return;
+      return false;
     }
-    setActiveTab(tab);
-  }, [user, isGuest, authLoading, promptLogin, setActiveTab]);
+    return true;
+  }, [user, isGuest, authLoading, promptLogin]);
 }
