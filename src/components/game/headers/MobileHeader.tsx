@@ -1,9 +1,9 @@
 import Image from 'next/image';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Bell, Check, Cloud, CloudOff, Download, Loader2, LogIn, LogOut,
-  Pause, Play, RefreshCw, RotateCcw, Settings, Upload, User, Wifi, WifiOff,
-  TrendingUp, TrendingDown,
+  Newspaper, Pause, Play, RefreshCw, RotateCcw, Upload, User, Wifi, WifiOff,
+  Wrench, TrendingUp, TrendingDown,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -86,6 +86,16 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Commander';
   const userAvatar = user?.user_metadata?.avatar_url;
 
+  // News ticker: rotate through top 3 notifications every 5s
+  const [headlineIndex, setHeadlineIndex] = useState(0);
+  const topHeadlines = notifications.slice(0, 3);
+  const safeIndex = topHeadlines.length > 0 ? Math.min(headlineIndex, topHeadlines.length - 1) : 0;
+  useEffect(() => {
+    if (topHeadlines.length < 2) return;
+    const t = setInterval(() => setHeadlineIndex(i => (i + 1) % topHeadlines.length), 5000);
+    return () => clearInterval(t);
+  }, [topHeadlines.length]);
+
   const handleCloudSave = async () => {
     setCloudStatus('saving');
     const result = await saveToCloud();
@@ -106,18 +116,15 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
 
   return (
     <div className="flex lg:hidden flex-col gap-1">
-      {/* ── Row 1: Logo + branding + tick counter ── */}
-      <div className="flex items-center justify-between gap-2">
+      {/* ── Row 1: Logo + news ticker + tick counter ── */}
+      <div className="flex items-center gap-1.5 min-h-7">
         <HoverCard openDelay={300} closeDelay={100}>
           <HoverCardTrigger asChild>
-            <div className="flex items-center gap-1.5 min-w-0 cursor-pointer" tabIndex={0}>
-              <div className="w-7 h-7 rounded-md bg-linear-to-br from-brand to-success/80 flex items-center justify-center text-[10px] font-bold shrink-0 shadow-[0_0_8px_rgba(0,255,242,0.2)]">
+            <div className="flex items-center gap-1.5 cursor-pointer shrink-0" tabIndex={0}>
+              <div className="w-6 h-6 rounded-md bg-linear-to-br from-brand to-success/80 flex items-center justify-center text-[9px] font-bold shrink-0 shadow-[0_0_6px_rgba(0,255,242,0.2)]">
                 IX
               </div>
-              <div className="min-w-0">
-                <h1 className="text-[11px] font-bold text-brand neon-glow-cyan tracking-wider truncate">INDUSTRIAX</h1>
-                <p className="text-[11px] text-subtle -mt-0.5 hidden xs:block">Factory Dominion</p>
-              </div>
+              <h1 className="text-[11px] font-bold text-brand neon-glow-cyan tracking-wider">INDUSTRIAX</h1>
             </div>
           </HoverCardTrigger>
           <HoverCardContent side="bottom" align="start" className="w-72 bg-card border-brand/30 p-0 overflow-hidden">
@@ -132,9 +139,26 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
             </div>
           </HoverCardContent>
         </HoverCard>
+
+        <div className="flex-1 min-w-0 flex items-center gap-1 px-1.5 h-6 rounded bg-card/40 border border-brand/10 overflow-hidden">
+          <Newspaper aria-hidden="true" className="w-3 h-3 text-brand shrink-0" />
+          <div className="flex-1 min-w-0 overflow-hidden">
+            {topHeadlines.length > 0 ? (
+              <p key={topHeadlines[safeIndex]?.id ?? 'h'} className="text-[10px] text-subtle truncate animate-in fade-in duration-300">
+                {topHeadlines[safeIndex]?.message}
+              </p>
+            ) : (
+              <p className="text-[10px] text-subtle truncate">Factory Dominion — manage resources, research, expand.</p>
+            )}
+          </div>
+          {topHeadlines.length > 1 && (
+            <span className="text-[9px] font-mono shrink-0 text-subtle">{safeIndex + 1}/{topHeadlines.length}</span>
+          )}
+        </div>
+
         <HoverCard openDelay={200} closeDelay={100}>
           <HoverCardTrigger asChild>
-            <span className="text-[9px] text-subtle font-mono shrink-0 cursor-default hover:text-brand transition-colors">Tick: {formatNumber(gameTick)}</span>
+            <span className="text-[9px] font-mono shrink-0 cursor-default text-subtle hover:text-brand transition-colors">Tick: {formatNumber(gameTick)}</span>
           </HoverCardTrigger>
           <HoverCardContent side="bottom" className="w-56 bg-card border-brand/30">
             <p className="text-xs font-bold text-brand">Game Tick</p>
@@ -490,6 +514,74 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
 
           {/* Online count */}
           <OnlineCount compact />
+
+          {/* Cloud save — mirrors desktop standalone button */}
+          {user ? (
+            <HoverCard openDelay={200} closeDelay={100}>
+              <HoverCardTrigger asChild>
+                <button
+                  type="button"
+                  className="h-9 w-9 min-h-9 min-w-9 p-0 flex items-center justify-center rounded-lg text-subtle hover:text-brand hover:bg-white/[0.04] transition-colors focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background relative"
+                  onClick={handleCloudSave}
+                  aria-label="Save to Cloud"
+                  disabled={cloudStatus === 'saving'}
+                >
+                  {cloudStatus === 'saving' ? (
+                    <Loader2 className="w-4 h-4 text-brand animate-spin" aria-hidden="true" />
+                  ) : cloudStatus === 'success' ? (
+                    <Cloud className="w-4 h-4 text-success" aria-hidden="true" />
+                  ) : cloudStatus === 'error' ? (
+                    <CloudOff className="w-4 h-4 text-danger" aria-hidden="true" />
+                  ) : (
+                    <Cloud className="w-4 h-4" aria-hidden="true" />
+                  )}
+                </button>
+              </HoverCardTrigger>
+              <HoverCardContent side="bottom" className="w-60 bg-card border-brand/30 p-0 overflow-hidden">
+                <div className="bg-linear-to-r from-brand/20 to-research/10 px-3 py-1.5 border-b border-brand/20">
+                  <p className="text-xs font-bold text-brand inline-flex items-center gap-1.5">
+                    <Cloud className="w-3 h-3" /> Cloud Save
+                  </p>
+                </div>
+                <div className="px-3 py-1.5 space-y-1">
+                  <div className="flex justify-between text-[10px]">
+                    <span className="text-subtle">Status</span>
+                    <span className="font-mono font-bold text-subtle">
+                      {cloudStatus === 'saving' ? 'Saving…' : cloudStatus === 'success' ? 'Synced' : cloudStatus === 'error' ? 'Failed' : 'Idle'}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-muted-label pt-1 border-t border-muted-label/20 leading-relaxed">
+                    Tap to push your save to Supabase. Auto-saves locally every few seconds.
+                  </p>
+                </div>
+              </HoverCardContent>
+            </HoverCard>
+          ) : (
+            <HoverCard openDelay={200} closeDelay={100}>
+              <HoverCardTrigger asChild>
+                <button
+                  type="button"
+                  className="h-9 w-9 min-h-9 min-w-9 p-0 flex items-center justify-center rounded-lg text-subtle hover:text-brand hover:bg-white/[0.04] transition-colors focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  onClick={() => promptLogin('cloud_save')}
+                  aria-label="Sign in for Cloud Save"
+                >
+                  <Cloud className="w-4 h-4" aria-hidden="true" />
+                </button>
+              </HoverCardTrigger>
+              <HoverCardContent side="bottom" className="w-60 bg-card border-warning/30 p-0 overflow-hidden">
+                <div className="bg-linear-to-r from-warning/20 to-domain/10 px-3 py-1.5 border-b border-warning/20">
+                  <p className="text-xs font-bold text-warning inline-flex items-center gap-1.5">
+                    <Cloud className="w-3 h-3" /> Cloud Save Locked
+                  </p>
+                </div>
+                <div className="px-3 py-1.5">
+                  <p className="text-[10px] text-subtle leading-relaxed">
+                    Sign in to enable cloud saves that sync across all your devices.
+                  </p>
+                </div>
+              </HoverCardContent>
+            </HoverCard>
+          )}
         </div>
       </div>
 
@@ -594,37 +686,35 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
           </Button>
         )}
 
-        {/* More actions for non-auth users (or when no user menu) */}
-        {!user && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className={`${btn44Ghost}`}
-                aria-label="Tools menu"
-              >
-                <Settings aria-hidden="true" className="w-4 h-4" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44 bg-card border-brand/30">
-              <DropdownMenuLabel className="text-xs">Tools</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={onExport} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand">
-                <Download className="w-3 h-3 mr-2" aria-hidden="true" /> Export Save
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={onImport} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand">
-                <Upload className="w-3 h-3 mr-2" aria-hidden="true" /> Import Save
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={reloadConfig} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand">
-                <RefreshCw className="w-3 h-3 mr-2" aria-hidden="true" /> Reload Config
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={onReset} className="text-xs cursor-pointer text-danger focus:text-danger focus-visible:ring-2 focus-visible:ring-danger">
-                <RotateCcw className="w-3 h-3 mr-2" aria-hidden="true" /> Reset Game
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+        {/* Tools menu — always visible (matches desktop) */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className={`${btn44Ghost}`}
+              aria-label="Tools menu"
+            >
+              <Wrench aria-hidden="true" className="w-4 h-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-44 bg-card border-brand/30">
+            <DropdownMenuLabel className="text-xs">Tools</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={onExport} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand">
+              <Download className="w-3 h-3 mr-2" aria-hidden="true" /> Export Save
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={onImport} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand">
+              <Upload className="w-3 h-3 mr-2" aria-hidden="true" /> Import Save
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={reloadConfig} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand">
+              <RefreshCw className="w-3 h-3 mr-2" aria-hidden="true" /> Reload Config
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={onReset} className="text-xs cursor-pointer text-danger focus:text-danger focus-visible:ring-2 focus-visible:ring-danger">
+              <RotateCcw className="w-3 h-3 mr-2" aria-hidden="true" /> Reset Game
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );
