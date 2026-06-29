@@ -8,9 +8,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  Tooltip, TooltipContent, TooltipTrigger,
-} from '@/components/ui/tooltip';
-import {
   HoverCard, HoverCardContent, HoverCardTrigger,
 } from '@/components/ui/hover-card';
 import {
@@ -129,7 +126,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
                 </div>
                 <div>
                   <h1 className="text-sm font-bold text-brand neon-glow-cyan tracking-wider">INDUSTRIAX</h1>
-                  <p className="text-[10px] text-muted-label -mt-0.5">Factory Dominion</p>
+                  <p className="text-[10px] text-subtle -mt-0.5">Factory Dominion</p>
                 </div>
               </div>
             </HoverCardTrigger>
@@ -350,7 +347,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
                 key={speed}
                 variant="ghost"
                 size="sm"
-                className={`h-7 px-2 text-xs focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background ${gameSpeed === speed ? 'text-brand bg-brand/20' : 'text-muted-label'}`}
+                className={`h-7 px-2 text-xs focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background ${gameSpeed === speed ? 'text-brand bg-brand/20' : 'text-subtle hover:text-brand'}`}
                 onClick={() => setGameSpeed(speed)}
                 aria-label={`Set game speed to ${speed}x`}
               >
@@ -361,7 +358,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
 
           <HoverCard openDelay={200} closeDelay={100}>
             <HoverCardTrigger asChild>
-              <div className="text-[10px] text-muted-label font-mono cursor-default">
+              <div className="text-[10px] text-subtle font-mono cursor-default hover:text-brand transition-colors">
                 Tick: {formatNumber(gameTick)}
               </div>
             </HoverCardTrigger>
@@ -389,10 +386,10 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
             </HoverCardContent>
           </HoverCard>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
+          <HoverCard openDelay={200} closeDelay={100}>
+            <HoverCardTrigger asChild>
               <Button variant="ghost" size="sm" className="h-7 w-7 p-0 relative focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background" aria-label={`Notifications: ${unreadNotifications} unread`} onClick={() => onTabChange('notifications')}>
-                <Bell className="w-3.5 h-3.5 text-subtle" />
+                <Bell className="w-3.5 h-3.5 text-subtle hover:text-brand transition-colors" />
                 {unreadNotifications > 0 && (
                   <span className={`absolute -top-0.5 -right-0.5 h-4 rounded-full text-[11px] text-white flex items-center justify-center px-1 ${
                     notifications[0]?.type === 'error' ? 'bg-danger' :
@@ -403,86 +400,117 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
                   </span>
                 )}
               </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="w-80 max-h-60 overflow-y-auto game-scrollbar bg-card border-brand/30">
-              {notifications.length === 0 ? (
-                <p className="text-xs text-muted-label">No notifications</p>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2 mb-2 pb-1.5 border-b border-muted-label">
-                    <Bell className="w-3 h-3 text-subtle" />
-                    <span className="text-[10px] font-semibold text-subtle">
-                      {unreadNotifications > 0 ? `${unreadNotifications} New ${notifications[0]?.type === 'error' ? 'Alert' : notifications[0]?.type === 'warning' ? 'Warning' : 'Event'}${unreadNotifications > 1 ? 's' : ''}` : 'No New Notifications'}
-                    </span>
+            </HoverCardTrigger>
+            <HoverCardContent side="bottom" className="w-80 bg-card border-brand/30 p-0 overflow-hidden">
+              <div className="bg-linear-to-r from-brand/20 to-research/10 px-3 py-1.5 border-b border-brand/20">
+                <p className="text-xs font-bold text-brand inline-flex items-center gap-1.5">
+                  <Bell className="w-3 h-3" /> Notifications
+                </p>
+              </div>
+              <div className="px-3 py-1.5 space-y-1">
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-subtle">Unread</span>
+                  <span className={`font-mono font-bold ${unreadNotifications > 0 ? 'text-brand' : 'text-subtle'}`}>{unreadNotifications}</span>
+                </div>
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-subtle">Total</span>
+                  <span className="text-subtle font-mono">{notifications.length}</span>
+                </div>
+                {notifications.length === 0 ? (
+                  <p className="text-[10px] text-muted-label pt-1 border-t border-muted-label/20">No notifications yet. Click to view the activity log.</p>
+                ) : (
+                  <div className="pt-1 border-t border-muted-label/20 max-h-40 overflow-y-auto game-scrollbar space-y-1">
+                    {notifications.slice(0, 10).map(n => (
+                      <div key={n.id} className={`text-[10px] py-0.5 ${
+                        n.type === 'success' ? 'text-success' :
+                        n.type === 'warning' ? 'text-warning' :
+                        n.type === 'error' ? 'text-danger' : 'text-subtle'
+                      }`}>
+                        {n.message}
+                      </div>
+                    ))}
                   </div>
-                  {notifications.slice(0, 10).map(n => (
-                    <div key={n.id} className={`text-xs py-1 border-b border-muted-label last:border-0 ${
-                      n.type === 'success' ? 'text-success' :
-                      n.type === 'warning' ? 'text-warning' :
-                      n.type === 'error' ? 'text-danger' : 'text-subtle'
-                    }`}>
-                      {n.message}
-                    </div>
-                  ))}
-                </>
-              )}
-            </TooltipContent>
-          </Tooltip>
+                )}
+              </div>
+            </HoverCardContent>
+          </HoverCard>
 
           {activeEvents.length > 0 && (
             <div className="flex items-center gap-1">
               {activeEvents.map(e => (
-                <Tooltip key={e.id}>
-                  <TooltipTrigger asChild>
+                <HoverCard key={e.id} openDelay={200} closeDelay={100}>
+                  <HoverCardTrigger asChild>
                     <Badge
                       role="status"
                       aria-label={`Active event: ${e.name}, ${e.remaining} ticks remaining`}
                       variant="outline"
-                      className="text-[10px] border-domain/50 text-domain bg-domain/20 px-1.5 py-0 neon-pulse"
+                      className="text-[10px] border-domain/50 text-domain bg-domain/20 px-1.5 py-0 neon-pulse cursor-default"
                     >
                       <GameIcon icon={e.icon} size={12} className="inline-flex" aria-hidden="true" /> {e.remaining <= 50 ? `${e.remaining}t` : e.name}
                     </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="bg-card border-brand/30 w-56">
-                    <p className="text-xs font-medium text-domain mb-1">{e.name}</p>
-                    <p className="text-[10px] text-subtle">{e.description}</p>
-                    <div className="flex flex-wrap gap-1 mt-1.5">
-                      {e.effects.filter(ef => ef.type === 'marketPriceMultiplier').map((ef, i) => (
-                        <span key={`${ef.target}-${i}`} className={`text-[9px] px-1 py-0.5 rounded border ${ef.value > 1 ? 'border-success/40 text-success bg-success/5' : 'border-danger/40 text-danger bg-danger/5'}`}>
-                          {ef.value > 1 ? <TrendingUp className="w-2.5 h-2.5 inline mr-0.5" /> : <TrendingDown className="w-2.5 h-2.5 inline mr-0.5" />}
-                          {ef.target?.slice(0, 12)}{(ef.target?.length ?? 0) > 12 ? '…' : ''} {ef.value > 1 ? '+' : ''}{((ef.value - 1) * 100).toFixed(0)}%
-                        </span>
-                      ))}
+                  </HoverCardTrigger>
+                  <HoverCardContent side="bottom" className="w-64 bg-card border-domain/30 p-0 overflow-hidden">
+                    <div className="bg-linear-to-r from-domain/20 to-warning/10 px-3 py-1.5 border-b border-domain/20">
+                      <p className="text-xs font-bold text-domain inline-flex items-center gap-1.5">
+                        <GameIcon icon={e.icon} size={14} className="inline-flex" /> {e.name}
+                      </p>
                     </div>
-                    <p className="text-[10px] text-muted-label mt-1.5">Remaining: {e.remaining} ticks</p>
-                  </TooltipContent>
-                </Tooltip>
+                    <div className="px-3 py-1.5 space-y-1">
+                      <p className="text-[10px] text-subtle leading-relaxed">{e.description}</p>
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {e.effects.filter(ef => ef.type === 'marketPriceMultiplier').map((ef, i) => (
+                          <span key={`${ef.target}-${i}`} className={`text-[9px] px-1 py-0.5 rounded border ${ef.value > 1 ? 'border-success/40 text-success bg-success/5' : 'border-danger/40 text-danger bg-danger/5'}`}>
+                            {ef.value > 1 ? <TrendingUp className="w-2.5 h-2.5 inline mr-0.5" /> : <TrendingDown className="w-2.5 h-2.5 inline mr-0.5" />}
+                            {ef.target?.slice(0, 12)}{(ef.target?.length ?? 0) > 12 ? '…' : ''} {ef.value > 1 ? '+' : ''}{((ef.value - 1) * 100).toFixed(0)}%
+                          </span>
+                        ))}
+                      </div>
+                      <div className="flex justify-between text-[10px] pt-1 border-t border-muted-label/20">
+                        <span className="text-subtle">Remaining</span>
+                        <span className="text-warning font-mono font-bold">{e.remaining} ticks</span>
+                      </div>
+                    </div>
+                  </HoverCardContent>
+                </HoverCard>
               ))}
             </div>
           )}
 
-          <Tooltip>
-            <TooltipTrigger asChild>
+          <HoverCard openDelay={200} closeDelay={100}>
+            <HoverCardTrigger asChild>
               <Badge
                 role="status"
                 aria-label={`Weather: ${WEATHER_DEFS[weather.current]?.name}${weather.remaining > 0 ? `, ${weather.remaining} ticks remaining` : ''}`}
                 variant="outline"
-                className={`text-[10px] px-1.5 py-0 ${
+                className={`text-[10px] px-1.5 py-0 cursor-default ${
                   weather.current === 'clear'
-                    ? 'border-muted-label text-muted-label bg-muted-label/20'
+                    ? 'border-subtle/50 text-subtle bg-subtle/20'
                     : 'border-brand/50 text-brand bg-brand/20'
                 }`}
               >
                 <GameIcon icon={WEATHER_DEFS[weather.current]?.icon} size={12} className="inline-flex" aria-hidden="true" /> {WEATHER_DEFS[weather.current]?.name}
               </Badge>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="bg-card border-brand/30">
-              <p className="text-xs font-medium text-brand">{WEATHER_DEFS[weather.current]?.name}</p>
-              <p className="text-[10px] text-subtle mt-0.5">{WEATHER_DEFS[weather.current]?.description}</p>
-              {weather.remaining > 0 && <p className="text-[10px] text-muted-label mt-1">Remaining: {weather.remaining} ticks</p>}
-              {weather.current === 'clear' && <p className="text-[10px] text-muted-label mt-1">Weather changes over time and affects production</p>}
-            </TooltipContent>
-          </Tooltip>
+            </HoverCardTrigger>
+            <HoverCardContent side="bottom" className="w-64 bg-card border-brand/30 p-0 overflow-hidden">
+              <div className="bg-linear-to-r from-brand/20 to-research/10 px-3 py-1.5 border-b border-brand/20">
+                <p className="text-xs font-bold text-brand inline-flex items-center gap-1.5">
+                  <GameIcon icon={WEATHER_DEFS[weather.current]?.icon} size={14} className="inline-flex" /> {WEATHER_DEFS[weather.current]?.name}
+                </p>
+              </div>
+              <div className="px-3 py-1.5 space-y-1">
+                <p className="text-[10px] text-subtle leading-relaxed">{WEATHER_DEFS[weather.current]?.description}</p>
+                {weather.remaining > 0 && (
+                  <div className="flex justify-between text-[10px] pt-1 border-t border-muted-label/20">
+                    <span className="text-subtle">Remaining</span>
+                    <span className="text-brand font-mono font-bold">{weather.remaining} ticks</span>
+                  </div>
+                )}
+                <p className="text-[10px] text-muted-label pt-1 border-t border-muted-label/20 leading-relaxed">
+                  Weather shifts over time and modifies production rates across all buildings.
+                </p>
+              </div>
+            </HoverCardContent>
+          </HoverCard>
 
           {/* Auto-save indicator */}
           <HoverCard openDelay={200} closeDelay={100}>
@@ -493,8 +521,8 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
                 aria-label={showSavedFlash ? 'Game saved to cloud' : 'Save pending'}
                 className={`flex items-center gap-1 text-[10px] transition-opacity duration-500 cursor-default ${showSavedFlash ? 'opacity-100' : 'opacity-40'}`}
               >
-                <Check aria-hidden="true" className={`w-3 h-3 transition-colors duration-300 ${showSavedFlash ? 'text-success' : 'text-muted-label'}`} />
-                <span className={showSavedFlash ? 'text-success' : 'text-muted-label'}>Saved</span>
+                <Check aria-hidden="true" className={`w-3 h-3 transition-colors duration-300 ${showSavedFlash ? 'text-success' : 'text-subtle'}`} />
+                <span className={showSavedFlash ? 'text-success' : 'text-subtle'}>Saved</span>
               </div>
             </HoverCardTrigger>
             <HoverCardContent side="bottom" className="w-64 bg-card border-brand/30">
@@ -512,7 +540,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 px-2 text-xs text-muted-label hover:text-brand focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="h-7 px-2 text-xs text-subtle hover:text-brand hover:bg-brand/10 focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 aria-label="Tools menu"
               >
                 <Wrench aria-hidden="true" className="w-3 h-3" />
@@ -539,8 +567,8 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
 
           <OnlineCount />
 
-          <Tooltip>
-            <TooltipTrigger asChild>
+          <HoverCard openDelay={200} closeDelay={100}>
+            <HoverCardTrigger asChild>
               <Badge
                 role="status"
                 aria-label={`Config source: ${isUsingSupabase ? 'Live (Supabase connected)' : 'Local (using local config)'}`}
@@ -552,54 +580,117 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
                 {isUsingSupabase ? <Wifi className="w-2.5 h-2.5 mr-0.5" aria-hidden="true" /> : <WifiOff className="w-2.5 h-2.5 mr-0.5" aria-hidden="true" />}
                 {isUsingSupabase ? 'Live' : 'Local'}
               </Badge>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="bg-card border-brand/30">
-              <p className="text-xs font-medium">{isUsingSupabase ? 'Supabase Connected' : 'Using Local Config'}</p>
-              <p className="text-[10px] text-subtle mt-0.5">Game data source</p>
-              <Button variant="ghost" size="sm" className="h-6 text-[10px] mt-1 w-full" onClick={reloadConfig}>
-                <RefreshCw className="w-2.5 h-2.5 mr-1" /> Refresh Config
-              </Button>
-            </TooltipContent>
-          </Tooltip>
+            </HoverCardTrigger>
+            <HoverCardContent side="bottom" className="w-64 bg-card border-brand/30 p-0 overflow-hidden">
+              <div className={`bg-linear-to-r px-3 py-1.5 border-b ${isUsingSupabase ? 'from-success/20 to-brand/10 border-success/20' : 'from-warning/20 to-domain/10 border-warning/20'}`}>
+                <p className={`text-xs font-bold inline-flex items-center gap-1.5 ${isUsingSupabase ? 'text-success' : 'text-warning'}`}>
+                  {isUsingSupabase ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+                  {isUsingSupabase ? 'Live (Supabase)' : 'Local Config'}
+                </p>
+              </div>
+              <div className="px-3 py-1.5 space-y-1">
+                <p className="text-[10px] text-subtle leading-relaxed">
+                  {isUsingSupabase
+                    ? 'Game data is fetched live from the Supabase backend. All players see the same economy.'
+                    : 'Game data is served from your browser cache. Sign in to switch to the live shared economy.'}
+                </p>
+                <Button variant="ghost" size="sm" className="h-6 text-[10px] mt-1 w-full text-brand hover:text-brand hover:bg-brand/10 focus-visible:ring-2 focus-visible:ring-brand" onClick={reloadConfig}>
+                  <RefreshCw className="w-2.5 h-2.5 mr-1" /> Refresh Config
+                </Button>
+              </div>
+            </HoverCardContent>
+          </HoverCard>
 
           {user ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background" aria-label="Save to Cloud" onClick={handleCloudSave} disabled={cloudStatus === 'saving'}>
-                  {cloudStatus === 'saving' ? <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
-                  : cloudStatus === 'success' ? <Cloud className="w-3 h-3 text-success" aria-hidden="true" />
-                  : cloudStatus === 'error' ? <CloudOff className="w-3 h-3 text-danger" aria-hidden="true" />
-                  : <Cloud className="w-3 h-3 text-subtle" aria-hidden="true" />}
+            <HoverCard openDelay={200} closeDelay={100}>
+              <HoverCardTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background" aria-label="Save to Cloud" onClick={handleCloudSave} disabled={cloudStatus === 'saving'}>
+                  {cloudStatus === 'saving' ? <Loader2 className="w-3.5 h-3.5 text-brand animate-spin" aria-hidden="true" />
+                  : cloudStatus === 'success' ? <Cloud className="w-3.5 h-3.5 text-success" aria-hidden="true" />
+                  : cloudStatus === 'error' ? <CloudOff className="w-3.5 h-3.5 text-danger" aria-hidden="true" />
+                  : <Cloud className="w-3.5 h-3.5 text-subtle hover:text-brand transition-colors" aria-hidden="true" />}
                 </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="bg-card border-brand/30">
-                <p className="text-xs">Save to Cloud</p>
-              </TooltipContent>
-            </Tooltip>
+              </HoverCardTrigger>
+              <HoverCardContent side="bottom" className="w-64 bg-card border-brand/30 p-0 overflow-hidden">
+                <div className="bg-linear-to-r from-brand/20 to-research/10 px-3 py-1.5 border-b border-brand/20">
+                  <p className="text-xs font-bold text-brand inline-flex items-center gap-1.5">
+                    <Cloud className="w-3 h-3" /> Cloud Save
+                  </p>
+                </div>
+                <div className="px-3 py-1.5 space-y-1">
+                  <div className="flex justify-between text-[10px]">
+                    <span className="text-subtle">Status</span>
+                    <span className={`font-mono font-bold ${
+                      cloudStatus === 'saving' ? 'text-brand' :
+                      cloudStatus === 'success' ? 'text-success' :
+                      cloudStatus === 'error' ? 'text-danger' : 'text-subtle'
+                    }`}>
+                      {cloudStatus === 'saving' ? 'Saving…' :
+                       cloudStatus === 'success' ? 'Synced' :
+                       cloudStatus === 'error' ? 'Failed' : 'Idle'}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-muted-label pt-1 border-t border-muted-label/20 leading-relaxed">
+                    Click to push your save to Supabase. Progress auto-saves locally every few seconds.
+                  </p>
+                </div>
+              </HoverCardContent>
+            </HoverCard>
           ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-label hover:text-brand focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background" aria-label="Sign in for Cloud Save" onClick={() => promptLogin('cloud_save')}>
-                  <Cloud className="w-3 h-3" aria-hidden="true" />
+            <HoverCard openDelay={200} closeDelay={100}>
+              <HoverCardTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-subtle hover:text-brand focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background" aria-label="Sign in for Cloud Save" onClick={() => promptLogin('cloud_save')}>
+                  <Cloud className="w-3.5 h-3.5" aria-hidden="true" />
                 </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="bg-card border-brand/30">
-                <p className="text-xs">Sign in for Cloud Save</p>
-              </TooltipContent>
-            </Tooltip>
+              </HoverCardTrigger>
+              <HoverCardContent side="bottom" className="w-64 bg-card border-warning/30 p-0 overflow-hidden">
+                <div className="bg-linear-to-r from-warning/20 to-domain/10 px-3 py-1.5 border-b border-warning/20">
+                  <p className="text-xs font-bold text-warning inline-flex items-center gap-1.5">
+                    <Cloud className="w-3 h-3" /> Cloud Save Locked
+                  </p>
+                </div>
+                <div className="px-3 py-1.5 space-y-1">
+                  <p className="text-[10px] text-subtle leading-relaxed">
+                    Sign in to enable cloud saves that sync across all your devices.
+                  </p>
+                  <p className="text-[10px] text-muted-label pt-1 border-t border-muted-label/20 leading-relaxed">
+                    Click the button or the "Bind Account" link to get started.
+                  </p>
+                </div>
+              </HoverCardContent>
+            </HoverCard>
           )}
 
           {authLoading ? (
-            <Loader2 className="w-4 h-4 text-muted-label animate-spin" />
+            <Loader2 className="w-4 h-4 text-subtle animate-spin" />
           ) : isGuest ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-3 text-xs text-brand hover:text-brand border border-brand/30 hover:border-brand/30 rounded-lg focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-              onClick={() => promptLogin('manual')}
-            >
-              <LogIn className="w-3 h-3 mr-1" /> Bind Account
-            </Button>
+            <HoverCard openDelay={200} closeDelay={100}>
+              <HoverCardTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-3 text-xs text-brand hover:text-brand border border-brand/30 hover:border-brand/40 hover:bg-brand/10 rounded-lg focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  onClick={() => promptLogin('manual')}
+                >
+                  <LogIn className="w-3 h-3 mr-1" /> Bind Account
+                </Button>
+              </HoverCardTrigger>
+              <HoverCardContent side="bottom" className="w-64 bg-card border-brand/30 p-0 overflow-hidden">
+                <div className="bg-linear-to-r from-brand/20 to-success/10 px-3 py-1.5 border-b border-brand/20">
+                  <p className="text-xs font-bold text-brand inline-flex items-center gap-1.5">
+                    <LogIn className="w-3 h-3" /> Bind Account
+                  </p>
+                </div>
+                <div className="px-3 py-1.5 space-y-1">
+                  <p className="text-[10px] text-subtle leading-relaxed">
+                    Link a permanent account to your progress to unlock cloud save, cross-device sync, and leaderboards.
+                  </p>
+                  <p className="text-[10px] text-muted-label pt-1 border-t border-muted-label/20 leading-relaxed">
+                    Currently playing as guest — your save stays in this browser until you bind.
+                  </p>
+                </div>
+              </HoverCardContent>
+            </HoverCard>
           ) : user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -651,7 +742,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button variant="ghost" size="sm" className="h-7 px-3 text-xs text-brand hover:text-brand border border-brand/30 hover:border-brand/30 rounded-lg focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background" onClick={() => promptLogin('manual')}>
+            <Button variant="ghost" size="sm" className="h-7 px-3 text-xs text-brand hover:text-brand border border-brand/30 hover:border-brand/40 hover:bg-brand/10 rounded-lg focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background" onClick={() => promptLogin('manual')}>
               <LogIn className="w-3 h-3 mr-1" /> Sign In
             </Button>
           )}
@@ -678,13 +769,13 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
               </li>
             )
           ) : (
-            <li className="text-[11px] text-muted-label italic truncate">
+            <li className="text-[11px] text-subtle italic truncate">
               Welcome to IndustriaX! Build your first Mining Drill to start producing resources.
             </li>
           )}
         </ul>
         {topHeadlines.length > 1 && (
-          <span className="text-[9px] text-muted-label shrink-0">
+          <span className="text-[9px] text-subtle shrink-0">
             {headlineIndex + 1}/{topHeadlines.length}
           </span>
         )}
