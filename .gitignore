@@ -149,3 +149,8 @@ public/ChatGPT Image*.png
 # Tool binaries too large for GitHub
 tools/
 
+# Claude Code working directory
+.claude/
+
+# Codex history (contains codebase-memory-mcp tool data)
+.history/

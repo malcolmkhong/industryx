@@ -43,7 +43,7 @@ export function useServerMarket() {
           },
         });
       } catch {
-        // Network error — keep last known state
+        // Network error â€” keep last known state
       }
     }, POLL_INTERVAL);
 
