@@ -11,6 +11,9 @@ import {
   Tooltip, TooltipContent, TooltipTrigger,
 } from '@/components/ui/tooltip';
 import {
+  HoverCard, HoverCardContent, HoverCardTrigger,
+} from '@/components/ui/hover-card';
+import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -108,23 +111,47 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
     <div className="flex lg:hidden flex-col gap-1">
       {/* ── Row 1: Logo + branding + tick counter ── */}
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <div className="w-7 h-7 rounded-md bg-linear-to-br from-brand to-success/80 flex items-center justify-center text-[10px] font-bold shrink-0 shadow-[0_0_8px_rgba(0,255,242,0.2)]">
-            IX
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-[11px] font-bold text-brand neon-glow-cyan tracking-wider truncate">INDUSTRIAX</h1>
-            <p className="text-[11px] text-muted-label -mt-0.5 hidden xs:block">Factory Dominion</p>
-          </div>
-        </div>
-        <span className="text-[9px] text-muted-label font-mono shrink-0">Tick: {formatNumber(gameTick)}</span>
+        <HoverCard openDelay={300} closeDelay={100}>
+          <HoverCardTrigger asChild>
+            <div className="flex items-center gap-1.5 min-w-0 cursor-pointer" tabIndex={0}>
+              <div className="w-7 h-7 rounded-md bg-linear-to-br from-brand to-success/80 flex items-center justify-center text-[10px] font-bold shrink-0 shadow-[0_0_8px_rgba(0,255,242,0.2)]">
+                IX
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-[11px] font-bold text-brand neon-glow-cyan tracking-wider truncate">INDUSTRIAX</h1>
+                <p className="text-[11px] text-muted-label -mt-0.5 hidden xs:block">Factory Dominion</p>
+              </div>
+            </div>
+          </HoverCardTrigger>
+          <HoverCardContent side="bottom" align="start" className="w-72 bg-card border-brand/30 p-0 overflow-hidden">
+            <div className="bg-linear-to-r from-brand/20 to-success/20 px-3 py-1.5 border-b border-brand/20">
+              <p className="text-xs font-bold text-brand">INDUSTRIAX</p>
+              <p className="text-[10px] text-subtle mt-0.5">Factory Dominion — v1.0</p>
+            </div>
+            <div className="px-3 py-1.5">
+              <p className="text-[10px] text-subtle leading-relaxed">
+                A resource-management idle empire. Build extractors, process materials, research tech, and expand into megaprojects across 5 tiers.
+              </p>
+            </div>
+          </HoverCardContent>
+        </HoverCard>
+        <HoverCard openDelay={200} closeDelay={100}>
+          <HoverCardTrigger asChild>
+            <span className="text-[9px] text-muted-label font-mono shrink-0 cursor-default">Tick: {formatNumber(gameTick)}</span>
+          </HoverCardTrigger>
+          <HoverCardContent side="bottom" className="w-56 bg-card border-brand/30">
+            <p className="text-xs font-bold text-brand">Game Tick</p>
+            <p className="text-[10px] text-muted-label mt-0.5">Speed: {gameSpeed}x · {paused ? 'Paused' : 'Running'}</p>
+            <p className="text-[10px] text-subtle mt-1 leading-relaxed">Each tick advances production, consumption, and event timers.</p>
+          </HoverCardContent>
+        </HoverCard>
       </div>
 
       {/* ── Row 2: Stats — money (with glow + tooltip), power, RP, CP ── */}
       <div className="flex items-center gap-1 flex-wrap text-[10px]">
-        {/* Money badge with Financial Overview tooltip */}
-        <Tooltip>
-          <TooltipTrigger asChild>
+        {/* Money badge with Financial Overview hover card */}
+        <HoverCard openDelay={150} closeDelay={100}>
+          <HoverCardTrigger asChild>
             <div className={`inline-flex items-center gap-1 bg-card rounded-md px-2 py-1 border border-brand/20 cursor-default ${moneyGlow ? 'money-glow' : ''}`}>
               <GameIcon ui="money" size={12} className="inline-flex" />
               <span className="text-success font-mono font-bold text-xs">${formatNumber(money)}</span>
@@ -140,8 +167,8 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
                 </button>
               )}
             </div>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="w-60 bg-card border-brand/30 p-0 overflow-hidden">
+          </HoverCardTrigger>
+          <HoverCardContent side="bottom" className="w-64 bg-card border-brand/30 p-0 overflow-hidden">
             <div className="bg-linear-to-r from-success/30/30 to-success/30/20 px-3 py-1.5 border-b border-brand/20">
               <p className="text-xs font-bold text-success inline-flex items-center gap-1"><GameIcon ui="money" size={12} className="inline-flex" /> Financial Overview</p>
             </div>
@@ -165,12 +192,12 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
                 <span className="text-success font-mono">${formatNumber(totalMoneyEarned)}</span>
               </div>
             </div>
-          </TooltipContent>
-        </Tooltip>
+          </HoverCardContent>
+        </HoverCard>
 
-        {/* Power badge with efficiency dot */}
-        <Tooltip>
-          <TooltipTrigger asChild>
+        {/* Power badge with efficiency hover card */}
+        <HoverCard openDelay={150} closeDelay={100}>
+          <HoverCardTrigger asChild>
             <div className={`inline-flex items-center gap-1 bg-card rounded-md px-2 py-1 border border-brand/20 cursor-default ${powerGrid.overload ? 'warning-pulse' : ''}`}>
               <GameIcon ui="power" size={12} className="inline-flex" />
               <span className={`font-mono ${powerPercent >= 80 ? 'text-warning' : powerPercent >= 50 ? 'text-domain' : 'text-danger'}`}>
@@ -186,44 +213,65 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
                 } ${buildings.filter(b => b.active).length > 0 ? 'animate-pulse' : ''}`}
               />
             </div>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="bg-card border-brand/30">
-            <p className="text-xs font-semibold mb-1" style={{ color: factoryEfficiency >= 0.8 ? '#4ade80' : factoryEfficiency >= 0.5 ? '#facc15' : '#f87171' }}>
-              Factory Efficiency: {(factoryEfficiency * 100).toFixed(0)}%
-            </p>
-            <p className="text-[10px] text-subtle">
-              {factoryEfficiency >= 0.8 ? 'Running smoothly!' : factoryEfficiency >= 0.5 ? 'Some buildings need attention' : 'Critical: Check power & buildings'}
-            </p>
-          </TooltipContent>
-        </Tooltip>
+          </HoverCardTrigger>
+          <HoverCardContent side="bottom" className="w-64 bg-card border-brand/30 p-0 overflow-hidden">
+            <div className={`px-3 py-1.5 border-b border-brand/20 ${
+              factoryEfficiency >= 0.8 ? 'bg-success/20' :
+              factoryEfficiency >= 0.5 ? 'bg-warning/20' :
+              'bg-danger/20'
+            }`}>
+              <p className="text-xs font-bold" style={{ color: factoryEfficiency >= 0.8 ? '#4ade80' : factoryEfficiency >= 0.5 ? '#facc15' : '#f87171' }}>
+                Factory Efficiency: {(factoryEfficiency * 100).toFixed(0)}%
+              </p>
+            </div>
+            <div className="px-3 py-1.5 space-y-1">
+              <div className="flex justify-between text-[10px]">
+                <span className="text-subtle">Status</span>
+                <span className="font-mono text-subtle">{factoryEfficiency >= 0.8 ? 'Running smoothly' : factoryEfficiency >= 0.5 ? 'Needs attention' : 'Critical'}</span>
+              </div>
+              <div className="flex justify-between text-[10px]">
+                <span className="text-subtle">Production</span>
+                <span className="text-success font-mono">{formatNumber(powerGrid.totalProduction)} MW</span>
+              </div>
+              <div className="flex justify-between text-[10px]">
+                <span className="text-subtle">Consumption</span>
+                <span className="text-warning font-mono">{formatNumber(powerGrid.totalConsumption)} MW</span>
+              </div>
+              <div className="flex justify-between text-[10px]">
+                <span className="text-subtle">Capacity</span>
+                <span className="text-brand font-mono">{powerPercent.toFixed(0)}%</span>
+              </div>
+            </div>
+          </HoverCardContent>
+        </HoverCard>
 
         {/* RP badge */}
-        <Tooltip>
-          <TooltipTrigger asChild>
+        <HoverCard openDelay={200} closeDelay={100}>
+          <HoverCardTrigger asChild>
             <div className="inline-flex items-center gap-1 bg-card rounded-md px-2 py-1 border border-brand/20 cursor-default">
               <GameIcon ui="researchPoints" size={12} className="inline-flex" />
               <span className="text-research font-mono">{formatNumber(researchPoints)}</span>
             </div>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="bg-card border-brand/30">
-            <p className="text-xs text-research font-medium">Research Points</p>
-            <p className="text-[10px] text-subtle mt-0.5">Earned through exploration and research</p>
-          </TooltipContent>
-        </Tooltip>
+          </HoverCardTrigger>
+          <HoverCardContent side="bottom" className="w-56 bg-card border-research/30">
+            <p className="text-xs font-bold text-research">Research Points</p>
+            <p className="text-[10px] text-subtle mt-0.5">Earned through exploration and research. Spend in the Research Lab to unlock permanent tech upgrades.</p>
+          </HoverCardContent>
+        </HoverCard>
 
         {/* CP badge */}
-        <Tooltip>
-          <TooltipTrigger asChild>
+        <HoverCard openDelay={200} closeDelay={100}>
+          <HoverCardTrigger asChild>
             <div className="inline-flex items-center gap-1 bg-card rounded-md px-2 py-1 border border-brand/20 cursor-default">
               <GameIcon ui="corporationPoints" size={12} className="inline-flex" />
               <span className="text-premium font-mono">{prestigeState.corporationPoints}</span>
             </div>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="bg-card border-brand/30">
-            <p className="text-xs text-premium font-medium">Corporation Points</p>
-            <p className="text-[10px] text-subtle mt-0.5">Gained on prestige reset</p>
-          </TooltipContent>
-        </Tooltip>
+          </HoverCardTrigger>
+          <HoverCardContent side="bottom" className="w-56 bg-card border-premium/30">
+            <p className="text-xs font-bold text-premium">Corporation Points</p>
+            <p className="text-[10px] text-subtle mt-0.5">Gained on Global Expansion. Spend on permanent bonuses like game speed, production multipliers, and new building tiers.</p>
+          </HoverCardContent>
+        </HoverCard>
       </div>
 
       {/* ── Row 3: Speed controls + power bar ── */}

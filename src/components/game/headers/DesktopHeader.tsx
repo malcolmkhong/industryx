@@ -11,11 +11,14 @@ import {
   Tooltip, TooltipContent, TooltipTrigger,
 } from '@/components/ui/tooltip';
 import {
+  HoverCard, HoverCardContent, HoverCardTrigger,
+} from '@/components/ui/hover-card';
+import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useGameStore, formatNumber } from '@/lib/game/store';
-import { WEATHER_DEFS } from '@/lib/game/configCache';
+import { WEATHER_DEFS, RESEARCH_TREE } from '@/lib/game/configCache';
 import { GameIcon } from '@/components/game/shared/GameIcon';
 import { OnlineCount } from '@/components/game/OnlineCount';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -52,6 +55,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
   const powerGrid = useGameStore(s => s.powerGrid);
   const productionSnapshot = useGameStore(s => s.productionSnapshot);
   const buildings = useGameStore(s => s.buildings);
+  const completedResearch = useGameStore(s => s.completedResearch);
   const researchPoints = useGameStore(s => s.researchPoints);
   const notifications = useGameStore(s => s.notifications);
   const activeEvents = useGameStore(s => s.activeEvents);
@@ -117,19 +121,54 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
       <div className="hidden lg:flex items-center justify-between gap-4 flex-wrap">
         {/* Logo & Money */}
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-lg bg-linear-to-br from-brand to-success/80 flex items-center justify-center text-base font-bold shadow-[0_0_12px_rgba(0,255,242,0.2)]">
-              IX
-            </div>
-            <div>
-              <h1 className="text-sm font-bold text-brand neon-glow-cyan tracking-wider">INDUSTRIAX</h1>
-              <p className="text-[10px] text-muted-label -mt-0.5">Factory Dominion</p>
-            </div>
-          </div>
+          <HoverCard openDelay={300} closeDelay={100}>
+            <HoverCardTrigger asChild>
+              <div className="flex items-center gap-2.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-lg" tabIndex={0}>
+                <div className="w-10 h-10 rounded-lg bg-linear-to-br from-brand to-success/80 flex items-center justify-center text-base font-bold shadow-[0_0_12px_rgba(0,255,242,0.2)]">
+                  IX
+                </div>
+                <div>
+                  <h1 className="text-sm font-bold text-brand neon-glow-cyan tracking-wider">INDUSTRIAX</h1>
+                  <p className="text-[10px] text-muted-label -mt-0.5">Factory Dominion</p>
+                </div>
+              </div>
+            </HoverCardTrigger>
+            <HoverCardContent side="bottom" align="start" className="w-80 bg-card border-brand/30 p-0 overflow-hidden">
+              <div className="bg-linear-to-r from-brand/20 to-success/20 px-3 py-2 border-b border-brand/20">
+                <p className="text-xs font-bold text-brand inline-flex items-center gap-1.5">
+                  <GameIcon ui="money" size={14} className="inline-flex" /> INDUSTRIAX
+                </p>
+                <p className="text-[10px] text-subtle mt-0.5">Factory Dominion — v1.0</p>
+              </div>
+              <div className="px-3 py-2 space-y-2">
+                <p className="text-[11px] text-subtle leading-relaxed">
+                  A resource-management idle empire. Build extractors, process materials, research tech, and expand into megaprojects across 5 tiers.
+                </p>
+                <div className="grid grid-cols-2 gap-1.5 pt-1.5 border-t border-muted-label/20">
+                  <div className="text-[10px]">
+                    <div className="text-muted-label">Total Buildings</div>
+                    <div className="text-subtle font-mono font-semibold">{buildings.length}</div>
+                  </div>
+                  <div className="text-[10px]">
+                    <div className="text-muted-label">Game Tick</div>
+                    <div className="text-subtle font-mono font-semibold">{formatNumber(gameTick)}</div>
+                  </div>
+                  <div className="text-[10px]">
+                    <div className="text-muted-label">Prestige Points</div>
+                    <div className="text-premium font-mono font-semibold">{prestigeState.corporationPoints} CP</div>
+                  </div>
+                  <div className="text-[10px]">
+                    <div className="text-muted-label">Player</div>
+                    <div className="text-subtle font-mono font-semibold truncate">{userName}</div>
+                  </div>
+                </div>
+              </div>
+            </HoverCardContent>
+          </HoverCard>
           <div className="stat-badge-separator" />
           <div className="flex items-center gap-4 text-xs">
-            <Tooltip>
-              <TooltipTrigger asChild>
+            <HoverCard openDelay={150} closeDelay={100}>
+              <HoverCardTrigger asChild>
                 <div className={`stat-badge stat-badge-money bg-card rounded-lg px-3 py-1.5 border border-brand/20 cursor-default ${moneyGlow ? 'money-glow' : ''}`}>
                   <span className="text-muted-label inline-flex items-center gap-1"><GameIcon ui="money" size={14} /></span>
                   <span className="text-success font-mono font-bold text-sm">${formatNumber(money)}</span>
@@ -143,8 +182,8 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
                     </button>
                   )}
                 </div>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="w-64 bg-card border-brand/30 p-0 overflow-hidden">
+              </HoverCardTrigger>
+              <HoverCardContent side="bottom" className="w-72 bg-card border-brand/30 p-0 overflow-hidden">
                 <div className="bg-linear-to-r from-success/30/30 to-success/30/20 px-3 py-2 border-b border-brand/20">
                   <p className="text-xs font-bold text-success inline-flex items-center gap-1"><GameIcon ui="money" size={14} className="inline-flex" /> Financial Overview</p>
                 </div>
@@ -168,8 +207,8 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
                     <span className="text-success font-mono">${formatNumber(totalMoneyEarned)}</span>
                   </div>
                 </div>
-              </TooltipContent>
-            </Tooltip>
+              </HoverCardContent>
+            </HoverCard>
             <div className={`stat-badge stat-badge-power bg-card rounded-lg px-3 py-1.5 border border-brand/20 cursor-default ${powerGrid.overload ? 'warning-pulse' : ''}`}>
               <span className="text-muted-label inline-flex items-center gap-1"><GameIcon ui="power" size={14} /></span>
               <span className={`text-sm ${powerPercent >= 80 ? 'text-warning' : powerPercent >= 50 ? 'text-domain' : 'text-danger'}`}>
@@ -177,15 +216,15 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
               </span>
               <span className="text-muted-label"> / </span>
               <span className="text-subtle text-sm">{formatNumber(powerGrid.totalConsumption)}MW</span>
-              <Tooltip>
-                <TooltipTrigger asChild>
+              <HoverCard openDelay={150} closeDelay={100}>
+                <HoverCardTrigger asChild>
                   <span
                     role="status"
                     aria-label={`Factory efficiency ${(factoryEfficiency * 100).toFixed(0)}% — ${
                       factoryEfficiency >= 0.8 ? 'running smoothly' :
                       factoryEfficiency >= 0.5 ? 'needs attention' : 'critical'
                     }`}
-                    className={`ml-1.5 inline-block w-2 h-2 rounded-full ${
+                    className={`ml-1.5 inline-block w-2 h-2 rounded-full cursor-default ${
                       factoryEfficiency >= 0.8
                         ? 'bg-success shadow-[0_0_6px_rgba(74,222,128,0.6)]'
                         : factoryEfficiency >= 0.5
@@ -193,26 +232,95 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
                           : 'bg-danger shadow-[0_0_6px_rgba(248,113,113,0.6)]'
                     } ${buildings.filter(b => b.active).length > 0 ? 'animate-pulse' : ''}`}
                   />
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="bg-card border-brand/30">
-                  <p className="text-xs font-semibold mb-1" style={{ color: factoryEfficiency >= 0.8 ? '#4ade80' : factoryEfficiency >= 0.5 ? '#facc15' : '#f87171' }}>
-                    Factory Efficiency: {(factoryEfficiency * 100).toFixed(0)}%
-                  </p>
-                  <p className="text-[10px] text-subtle">
-                    {factoryEfficiency >= 0.8 ? 'Running smoothly!' : factoryEfficiency >= 0.5 ? 'Some buildings need attention' : 'Critical: Check power & buildings'}
-                  </p>
-                </TooltipContent>
-              </Tooltip>
+                </HoverCardTrigger>
+                <HoverCardContent side="bottom" className="w-72 bg-card border-brand/30 p-0 overflow-hidden">
+                  <div className={`px-3 py-2 border-b border-brand/20 ${
+                    factoryEfficiency >= 0.8 ? 'bg-success/20' :
+                    factoryEfficiency >= 0.5 ? 'bg-warning/20' :
+                    'bg-danger/20'
+                  }`}>
+                    <p className="text-xs font-bold" style={{ color: factoryEfficiency >= 0.8 ? '#4ade80' : factoryEfficiency >= 0.5 ? '#facc15' : '#f87171' }}>
+                      Factory Efficiency: {(factoryEfficiency * 100).toFixed(0)}%
+                    </p>
+                  </div>
+                  <div className="px-3 py-2 space-y-1.5">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-subtle">Status</span>
+                      <span className="font-mono text-subtle">{factoryEfficiency >= 0.8 ? 'Running smoothly' : factoryEfficiency >= 0.5 ? 'Needs attention' : 'Critical'}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-subtle">Production</span>
+                      <span className="text-success font-mono">{formatNumber(powerGrid.totalProduction)} MW</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-subtle">Consumption</span>
+                      <span className="text-warning font-mono">{formatNumber(powerGrid.totalConsumption)} MW</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-subtle">Capacity</span>
+                      <span className="text-brand font-mono">{powerPercent.toFixed(0)}%</span>
+                    </div>
+                  </div>
+                </HoverCardContent>
+              </HoverCard>
             </div>
             <div className="stat-badge-separator" />
-            <div className="stat-badge stat-badge-rp bg-card rounded-lg px-3 py-1.5 border border-brand/20 cursor-default">
-              <span className="text-muted-label inline-flex items-center gap-1"><GameIcon ui="researchPoints" size={14} /></span>
-              <span className="text-research font-mono text-sm">{formatNumber(researchPoints)} RP</span>
-            </div>
-            <div className="stat-badge stat-badge-cp bg-card rounded-lg px-3 py-1.5 border border-brand/20 cursor-default">
-              <span className="text-muted-label inline-flex items-center gap-1"><GameIcon ui="corporationPoints" size={14} /></span>
-              <span className="text-premium font-mono text-sm">{prestigeState.corporationPoints} CP</span>
-            </div>
+            <HoverCard openDelay={200} closeDelay={100}>
+              <HoverCardTrigger asChild>
+                <div className="stat-badge stat-badge-rp bg-card rounded-lg px-3 py-1.5 border border-brand/20 cursor-default">
+                  <span className="text-muted-label inline-flex items-center gap-1"><GameIcon ui="researchPoints" size={14} /></span>
+                  <span className="text-research font-mono text-sm">{formatNumber(researchPoints)} RP</span>
+                </div>
+              </HoverCardTrigger>
+              <HoverCardContent side="bottom" className="w-72 bg-card border-research/30 p-0 overflow-hidden">
+                <div className="bg-linear-to-r from-research/20 to-brand/10 px-3 py-2 border-b border-research/20">
+                  <p className="text-xs font-bold text-research inline-flex items-center gap-1.5">
+                    <GameIcon ui="researchPoints" size={14} className="inline-flex" /> Research Points
+                  </p>
+                </div>
+                <div className="px-3 py-2 space-y-1.5">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-subtle">Balance</span>
+                    <span className="text-research font-mono font-bold">{formatNumber(researchPoints)} RP</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-subtle">Tech Unlocked</span>
+                    <span className="text-brand font-mono">{completedResearch.length} / {RESEARCH_TREE.length}</span>
+                  </div>
+                  <p className="text-[10px] text-muted-label pt-1.5 border-t border-muted-label/20 leading-relaxed">
+                    Spend RP to unlock permanent tech upgrades. RP is generated by Research Labs and consumed by active research.
+                  </p>
+                </div>
+              </HoverCardContent>
+            </HoverCard>
+            <HoverCard openDelay={200} closeDelay={100}>
+              <HoverCardTrigger asChild>
+                <div className="stat-badge stat-badge-cp bg-card rounded-lg px-3 py-1.5 border border-brand/20 cursor-default">
+                  <span className="text-muted-label inline-flex items-center gap-1"><GameIcon ui="corporationPoints" size={14} /></span>
+                  <span className="text-premium font-mono text-sm">{prestigeState.corporationPoints} CP</span>
+                </div>
+              </HoverCardTrigger>
+              <HoverCardContent side="bottom" className="w-72 bg-card border-premium/30 p-0 overflow-hidden">
+                <div className="bg-linear-to-r from-premium/20 to-domain/10 px-3 py-2 border-b border-premium/20">
+                  <p className="text-xs font-bold text-premium inline-flex items-center gap-1.5">
+                    <GameIcon ui="corporationPoints" size={14} className="inline-flex" /> Corporation Points
+                  </p>
+                </div>
+                <div className="px-3 py-2 space-y-1.5">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-subtle">Balance</span>
+                    <span className="text-premium font-mono font-bold">{prestigeState.corporationPoints} CP</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-subtle">Total Expansions</span>
+                    <span className="text-brand font-mono">{prestigeState.totalPrestiges}</span>
+                  </div>
+                  <p className="text-[10px] text-muted-label pt-1.5 border-t border-muted-label/20 leading-relaxed">
+                    CP is earned by completing Global Expansion. Spend it on permanent bonuses like game speed, production multipliers, and new building tiers.
+                  </p>
+                </div>
+              </HoverCardContent>
+            </HoverCard>
           </div>
         </div>
 
@@ -251,9 +359,35 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
             ))}
           </div>
 
-          <div className="text-[10px] text-muted-label font-mono">
-            Tick: {formatNumber(gameTick)}
-          </div>
+          <HoverCard openDelay={200} closeDelay={100}>
+            <HoverCardTrigger asChild>
+              <div className="text-[10px] text-muted-label font-mono cursor-default">
+                Tick: {formatNumber(gameTick)}
+              </div>
+            </HoverCardTrigger>
+            <HoverCardContent side="bottom" className="w-64 bg-card border-brand/30 p-0 overflow-hidden">
+              <div className="bg-linear-to-r from-brand/20 to-research/10 px-3 py-1.5 border-b border-brand/20">
+                <p className="text-xs font-bold text-brand">Game Tick</p>
+              </div>
+              <div className="px-3 py-1.5 space-y-1">
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-subtle">Current Tick</span>
+                  <span className="text-brand font-mono font-bold">{formatNumber(gameTick)}</span>
+                </div>
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-subtle">Game Speed</span>
+                  <span className="text-success font-mono">{gameSpeed}x</span>
+                </div>
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-subtle">Status</span>
+                  <span className="font-mono text-subtle">{paused ? 'Paused' : 'Running'}</span>
+                </div>
+                <p className="text-[10px] text-muted-label pt-1 border-t border-muted-label/20 leading-relaxed">
+                  Each tick advances all building production, consumption, and event timers. Higher speed = more ticks per second.
+                </p>
+              </div>
+            </HoverCardContent>
+          </HoverCard>
 
           <Tooltip>
             <TooltipTrigger asChild>
@@ -351,15 +485,27 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
           </Tooltip>
 
           {/* Auto-save indicator */}
-          <div
-            role="status"
-            aria-live="polite"
-            aria-label={showSavedFlash ? 'Game saved to cloud' : 'Save pending'}
-            className={`flex items-center gap-1 text-[10px] transition-opacity duration-500 ${showSavedFlash ? 'opacity-100' : 'opacity-40'}`}
-          >
-            <Check aria-hidden="true" className={`w-3 h-3 transition-colors duration-300 ${showSavedFlash ? 'text-success' : 'text-muted-label'}`} />
-            <span className={showSavedFlash ? 'text-success' : 'text-muted-label'}>Saved</span>
-          </div>
+          <HoverCard openDelay={200} closeDelay={100}>
+            <HoverCardTrigger asChild>
+              <div
+                role="status"
+                aria-live="polite"
+                aria-label={showSavedFlash ? 'Game saved to cloud' : 'Save pending'}
+                className={`flex items-center gap-1 text-[10px] transition-opacity duration-500 cursor-default ${showSavedFlash ? 'opacity-100' : 'opacity-40'}`}
+              >
+                <Check aria-hidden="true" className={`w-3 h-3 transition-colors duration-300 ${showSavedFlash ? 'text-success' : 'text-muted-label'}`} />
+                <span className={showSavedFlash ? 'text-success' : 'text-muted-label'}>Saved</span>
+              </div>
+            </HoverCardTrigger>
+            <HoverCardContent side="bottom" className="w-64 bg-card border-brand/30">
+              <p className="text-xs font-bold text-success inline-flex items-center gap-1.5">
+                <Check className="w-3 h-3" /> Auto-Save
+              </p>
+              <p className="text-[10px] text-subtle mt-1 leading-relaxed">
+                Progress saves automatically to your browser every few seconds. Sign in and bind an account to enable cloud sync across devices.
+              </p>
+            </HoverCardContent>
+          </HoverCard>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
