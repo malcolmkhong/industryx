@@ -32,6 +32,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Restore ESLint cache
+        uses: actions/cache@v4
+        with:
+          path: .eslintcache
+          key: eslint-${{ runner.os }}-${{ hashFiles('**/.eslintrc*', '**/eslint.config.*', 'src/**/*.{ts,tsx,js,jsx}') }}
+          restore-keys: |
+            eslint-${{ runner.os }}-
+
       - name: Run ESLint
         run: npm run lint
 
@@ -50,6 +58,16 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Restore TypeScript build info
+        uses: actions/cache@v4
+        with:
+          path: |
+            *.tsbuildinfo
+            .tsbuildinfo
+          key: tsbuildinfo-${{ runner.os }}-${{ hashFiles('tsconfig.json', 'src/**/*.{ts,tsx}') }}
+          restore-keys: |
+            tsbuildinfo-${{ runner.os }}-
 
       - name: Run tsc --noEmit
         run: npx tsc --noEmit
