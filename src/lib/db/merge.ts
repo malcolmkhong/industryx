@@ -27,7 +27,7 @@ type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 
 export type MergeDecisionType = 'keep_guest' | 'keep_google';
 
-export interface MergeReceipt {
+interface MergeReceipt {
   id: string;
   operation_id: string;
   kept_user_id: string;

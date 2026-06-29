@@ -11,12 +11,10 @@
     "src/lib/hooks/useCloudSync.ts",
     "src/components/ui/**"
   ],
-  "project": ["src/**/*.{ts,tsx}"],
-  "ignoreDependencies": [
-    "@prisma/client",
-    "prisma",
-    "@tanstack/react-query"
+  "project": [
+    "src/**/*.{ts,tsx}"
   ],
+  "ignoreDependencies": [],
   "next": true,
   "ignoreExportsUsedInFile": true,
   "rules": {

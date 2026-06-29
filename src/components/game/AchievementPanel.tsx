@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
 import { BUILDING_DEFS } from '@/lib/game/configCache';
-import { GameStore } from '@/lib/game/store';
+import type { GameStore } from '@/lib/game/store-types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { GameIcon } from '@/components/game/shared/GameIcon';

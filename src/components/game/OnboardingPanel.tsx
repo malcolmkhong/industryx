@@ -2,14 +2,13 @@
 
 import { useState, useMemo } from 'react';
 import { GameIcon } from '@/components/game/shared/GameIcon';
-import { useGameStore, formatNumber, GameStore } from '@/lib/game/store';
+import { useGameStore, formatNumber } from '@/lib/game/store';
+import type { GameStore } from '@/lib/game/store-types';
 import { useShallow } from 'zustand/react/shallow';
-import { BUILDING_DEFS } from '@/lib/game/configCache';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
-  Zap, Pickaxe, TrendingUp, Flame, DollarSign,
-  FlaskConical, Check, ChevronRight, X, Lightbulb,
+  Check, ChevronRight, X, Lightbulb,
   Factory, BookOpen, Target, Rocket, Shield,
   Keyboard, Star
 } from 'lucide-react';

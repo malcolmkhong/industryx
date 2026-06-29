@@ -54,6 +54,7 @@ const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
     "node_modules/**",
     ".next/**",
     "out/**",
+    "html/**",
     "build/**",
     "next-env.d.ts",
     "examples/**",

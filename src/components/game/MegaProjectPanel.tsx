@@ -88,7 +88,7 @@ function getProjectProgressHex(type: string): string {
 }
 
 export function MegaProjectPanel() {
-  const store = useGameStore(useShallow((s) => ({ buildings: s.buildings, completedResearch: s.completedResearch, megaProjects: s.megaProjects, money: s.money, prestigeState: s.prestigeState, resources: s.resources, startMegaProject: s.startMegaProject })));
+  const store = useGameStore(useShallow((s) => ({ buildings: s.buildings, completedResearch: s.completedResearch, megaProjects: s.megaProjects, money: s.money, prestigeState: s.prestigeState, resources: s.resources, startMegaProject: s.startMegaProject, contributeToMegaProject: s.contributeToMegaProject })));
 
   const isUnlocked = (project: typeof store.megaProjects[0]) => {
     const req = project.unlockRequirement;
@@ -451,6 +451,17 @@ export function MegaProjectPanel() {
                           </div>
                         )}
                       </div>
+
+                      {/* Verify Resources */}
+                      <Button
+                        onClick={() => store.contributeToMegaProject(project.type)}
+                        size="sm"
+                        variant="outline"
+                        className="w-full text-xs h-8 mt-2"
+                      >
+                        <Check className="w-3.5 h-3.5 mr-1" />
+                        Verify Resources
+                      </Button>
                     </>
                   );
                 })()}

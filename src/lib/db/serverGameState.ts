@@ -361,7 +361,7 @@ export async function loadServerGameStateForDeltaCheck(
  * NOTE: This is a non-locking write. Callers that need optimistic
  * concurrency should use `saveServerGameStateOptimistic` instead.
  */
-export async function saveServerGameState(
+async function saveServerGameState(
   userId: string,
   patch: ServerGameStateUpdate
 ): Promise<ServerGameStateRow | null> {
@@ -590,7 +590,7 @@ export async function saveServerGameStateOptimistic(
  * Lock a user's account with a given reason. Used by admin actions.
  * Returns true on success, false otherwise.
  */
-export async function lockServerGameState(
+async function lockServerGameState(
   userId: string,
   reason: string
 ): Promise<boolean> {
@@ -612,7 +612,7 @@ export async function lockServerGameState(
 /**
  * Unlock a user's account. Returns true on success.
  */
-export async function unlockServerGameState(userId: string): Promise<boolean> {
+async function unlockServerGameState(userId: string): Promise<boolean> {
   const supabase = createServiceRoleClient();
   if (!supabase) return false;
 
@@ -709,7 +709,7 @@ export async function loadPlayersByIds(
 
 // Aggregate queries for admin dashboard (economy)
 
-export interface MoneyAggregate {
+interface MoneyAggregate {
   money: number;
   total_money_earned: number;
 }

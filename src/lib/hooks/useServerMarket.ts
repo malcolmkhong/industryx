@@ -43,7 +43,7 @@ export function useServerMarket() {
           },
         });
       } catch {
-        // Network error — keep last known state
+        // Network error � keep last known state
       }
     }, POLL_INTERVAL);
 
@@ -51,16 +51,4 @@ export function useServerMarket() {
   }, []);
 
   return null;
-}
-
-export async function recordMarketAction(resource: string, type: 'buy' | 'sell', amount: number) {
-  try {
-    await fetch('/api/market/action', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ resource, type, amount }),
-    });
-  } catch {
-    // Non-blocking — pressure can be recorded next action
-  }
 }

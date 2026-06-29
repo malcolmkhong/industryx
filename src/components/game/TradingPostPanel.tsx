@@ -1096,4 +1096,3 @@ export function TradingPostPanel() {
   );
 }
 
-export default TradingPostPanel;

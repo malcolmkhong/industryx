@@ -430,5 +430,3 @@ export function PayoutPanel() {
     </div>
   );
 }
-
-export default PayoutPanel;

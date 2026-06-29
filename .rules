@@ -1,7 +1,8 @@
 # RULES.md — IndustriaX Project Engineering Rules
 
-> **Last Updated:** 2025-01-17 (Post Deep Audit — 25 issues identified)
+ > **Last Updated:** 2026-06-29 (Post Knip audit — 15 unused files, 52 unused exports investigated)
 > **Status:** These rules are derived from REAL vulnerabilities and architectural weaknesses found in the codebase. Every rule exists because something broke, could break, or is currently broken.
+> **Companion:** Read [AGENTS.md](./AGENTS.md) for operating philosophy, communication style (caveman), feature development workflow, and the full project decision framework. AGENT.md (legacy) was merged into AGENTS.md on 2026-06-19.
 
 ---
 

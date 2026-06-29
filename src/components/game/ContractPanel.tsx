@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { useGameStore, formatNumber, GameStore } from '@/lib/game/store';
+import { useGameStore, formatNumber } from '@/lib/game/store';
+import type { GameStore } from '@/lib/game/store-types';
 import { useShallow } from 'zustand/react/shallow';
 import { RESOURCE_META, CONTRACT_TEMPLATES, TIER_INFO } from '@/lib/game/configCache';
 import { Button } from '@/components/ui/button';

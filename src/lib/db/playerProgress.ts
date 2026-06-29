@@ -45,6 +45,17 @@ export async function listPlayerProgressByIds(
 }
 
 /**
+ * Get a single player's progress by user_id.
+ * Returns the full row or null if not found.
+ */
+export async function getPlayerProgressByUserId(
+  userId: string,
+): Promise<PlayerProgressRow | null> {
+  const rows = await listPlayerProgressByIds([userId]);
+  return rows[0] ?? null;
+}
+
+/**
  * Upsert a player_progress row. Used by /api/auth/migrate-guest to
  * persist the initial display_name + game_state snapshot after a guest
  * migrates to OAuth.

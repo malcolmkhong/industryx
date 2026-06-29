@@ -12,6 +12,7 @@ import {
   Mountain, Drill, Container, Warehouse, ArrowDownToLine,
   ArrowUpFromLine, Workflow, Gauge, X,
 } from 'lucide-react';
+import ResourceFlowDiagram from '@/components/game/ResourceFlowDiagram';
 import { ResourceType, ExtractorType } from '@/lib/game/types';
 import { getExtractorTypes, getBasicExtractors, getAdvancedExtractors, getSpecializedExtractors } from '@/lib/game/buildingDiscovery';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
@@ -1115,7 +1116,19 @@ export function ResourcePanel() {
             </div>
           </div>
         </div>
+
       </div>
+
+      {/* Production Chain Flow */}
+      <details className="mt-4 group">
+        <summary className="text-xs text-muted-label cursor-pointer hover:text-subtle list-none flex items-center gap-1">
+          <Workflow className="w-3.5 h-3.5" />
+          Production Chain Flow
+        </summary>
+        <div className="mt-2 bg-background rounded-lg p-3">
+          <ResourceFlowDiagram />
+        </div>
+      </details>
     </div>
   );
 }

@@ -778,3 +778,4 @@ export function eventPacketToMarketNews(
       : 'trade',
   };
 }
+

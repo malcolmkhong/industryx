@@ -145,3 +145,7 @@ tests/staging/
 
 # Asset artifacts not for source control
 public/ChatGPT Image*.png
+
+# Tool binaries too large for GitHub
+tools/
+

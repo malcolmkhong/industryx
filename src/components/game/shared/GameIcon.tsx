@@ -161,4 +161,3 @@ function GameIconImpl({
 export const GameIcon = memo(GameIconImpl);
 GameIcon.displayName = 'GameIcon';
 
-export default GameIcon;

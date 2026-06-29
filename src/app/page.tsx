@@ -42,7 +42,7 @@ const LeaderboardPanel = dynamic(() => import('@/components/game/LeaderboardPane
 const DailyRewardsPanel = dynamic(() => import('@/components/game/DailyRewardsPanel').then(m => m.default), { loading: () => <DynamicPanelFallback /> });
 const QuestPanel = dynamic(() => import('@/components/game/QuestPanel').then(m => ({ default: m.QuestPanel })), { loading: () => <DynamicPanelFallback /> });
 const NotificationCenterPanel = dynamic(() => import('@/components/game/NotificationCenterPanel').then(m => ({ default: m.NotificationCenterPanel })), { loading: () => <DynamicPanelFallback /> });
-const PayoutPanel = dynamic(() => import('@/components/game/PayoutPanel').then(m => m.default), { loading: () => <DynamicPanelFallback /> });
+ const PayoutPanel = dynamic(() => import('@/components/game/PayoutPanel').then(m => ({ default: m.PayoutPanel })), { loading: () => <DynamicPanelFallback /> });
 const DroneDeliveryPanel = dynamic(() => import('@/components/game/DroneDeliveryPanel').then(m => m.default), { loading: () => <DynamicPanelFallback /> });
 const TradingPostPanel = dynamic(() => import('@/components/game/TradingPostPanel').then(m => ({ default: m.TradingPostPanel })), { loading: () => <DynamicPanelFallback /> });
 const StoragePanel = dynamic(() => import('@/components/game/StoragePanel').then(m => ({ default: m.StoragePanel })), { loading: () => <DynamicPanelFallback /> });

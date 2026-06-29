@@ -13,6 +13,7 @@ import {
   Zap, Flame, Package, RefreshCw, Link2, Layers, Newspaper, AlertTriangle,
   Cpu, Sparkles
 } from 'lucide-react';
+import { MarketPriceChart } from '@/components/game/MarketPriceChart';
 import { ResourceType } from '@/lib/game/types';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
@@ -795,6 +796,17 @@ export function MarketPanel() {
                       </div>
                     </div>
                   )}
+
+                  {/* Server Price History */}
+                  <details className="mt-2 group">
+                    <summary className="text-[10px] text-muted-label cursor-pointer hover:text-subtle list-none flex items-center gap-1">
+                      <BarChart3 className="w-3 h-3" />
+                      Server Price History
+                    </summary>
+                    <div className="mt-2">
+                      <MarketPriceChart resourceId={selectedResource ?? ""} hours={24} width={400} height={100} />
+                    </div>
+                  </details>
                 </div>
 
                 {/* Trade Controls */}
