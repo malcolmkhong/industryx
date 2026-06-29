@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { useLoginPrompt } from '@/lib/hooks/useLoginPrompt';
 import { Button } from '@/components/ui/button';
-import { X, User, LogOut, Cloud, Save } from 'lucide-react';
+import { X, User, LogOut, Cloud, Save, Link2 } from 'lucide-react';
 
 interface AccountSettingsModalProps {
   open: boolean;
@@ -13,6 +14,7 @@ interface AccountSettingsModalProps {
 
 export function AccountSettingsModal({ open, onClose, onSignOut }: AccountSettingsModalProps) {
   const { user, isGuest } = useAuth();
+  const { promptLogin } = useLoginPrompt();
   const [displayName, setDisplayName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -102,6 +104,20 @@ export function AccountSettingsModal({ open, onClose, onSignOut }: AccountSettin
             <div className="mb-4 p-3 rounded-lg bg-warning/20 border border-warning/80/30 text-xs text-warning">
               Playing as Guest. Your progress is tied to this device. Bind your account to protect it across devices.
             </div>
+          )}
+
+          {isGuest && (
+            <Button
+              type="button"
+              onClick={() => {
+                onClose();
+                promptLogin('manual');
+              }}
+              className="w-full h-10 text-sm font-semibold bg-linear-to-r from-brand/70 to-success/80 hover:from-brand hover:to-success/70 text-white rounded-lg mb-5"
+            >
+              <Link2 className="w-4 h-4 mr-2" />
+              Bind Account
+            </Button>
           )}
 
           <div className="space-y-3 mb-5">

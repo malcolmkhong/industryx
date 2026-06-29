@@ -26,7 +26,8 @@ export function useTabChange(): (tab: GameTab) => boolean {
   return useCallback((tab: GameTab): boolean => {
     const reason = GUEST_GATED_TABS[tab];
     if (reason && (isGuest || (!user && !authLoading))) {
-      promptLogin(reason);
+      // Pass the tab so useLoginPrompt can replay navigation after sign-in.
+      promptLogin(reason, tab);
       return false;
     }
     return true;

@@ -1,10 +1,12 @@
 'use client';
 
 import { useCallback, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { create } from 'zustand';
 import { useGameStore } from '@/lib/game/store';
 import { useAuth } from '@/components/providers/AuthProvider';
 import type { LoginPromptReason } from '@/components/game/LoginFloatingPanel';
+import type { GameTab } from '@/lib/game/types';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -13,8 +15,13 @@ interface LoginPromptState {
   isOpen: boolean;
   /** The reason the panel was triggered */
   reason: LoginPromptReason;
-  /** Open the login panel with a specific reason */
-  promptLogin: (reason: LoginPromptReason) => void;
+  /**
+   * Tab the user wanted to open but couldn't because they were a guest.
+   * After successful sign-in we navigate here so the original intent isn't lost.
+   */
+  pendingTab: GameTab | null;
+  /** Open the login panel with a specific reason (and optional pending tab) */
+  promptLogin: (reason: LoginPromptReason, pendingTab?: GameTab | null) => void;
   /** Close the login panel */
   closePrompt: () => void;
 }
@@ -33,15 +40,23 @@ interface LoginPromptState {
 interface LoginPromptStore {
   isOpen: boolean;
   reason: LoginPromptReason;
-  open: (reason: LoginPromptReason) => void;
+  pendingTab: GameTab | null;
+  open: (reason: LoginPromptReason, pendingTab?: GameTab | null) => void;
   close: () => void;
+  consumePendingTab: () => GameTab | null;
 }
 
-const useLoginPromptStore = create<LoginPromptStore>((set) => ({
+const useLoginPromptStore = create<LoginPromptStore>((set, get) => ({
   isOpen: false,
   reason: 'manual',
-  open: (reason) => set({ isOpen: true, reason }),
-  close: () => set({ isOpen: false }),
+  pendingTab: null,
+  open: (reason, pendingTab) => set({ isOpen: true, reason, pendingTab: pendingTab ?? null }),
+  close: () => set({ isOpen: false, pendingTab: null }),
+  consumePendingTab: () => {
+    const tab = get().pendingTab;
+    if (tab) set({ pendingTab: null });
+    return tab;
+  },
 }));
 
 // ─── Dismissal Tracking ─────────────────────────────────────────────────
@@ -91,23 +106,28 @@ let progressMilestoneTriggered = false;
 
 export function useLoginPrompt(): LoginPromptState {
   const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
 
   // Shared open/close state (single source of truth across all callers)
   const isOpen = useLoginPromptStore(s => s.isOpen);
   const reason = useLoginPromptStore(s => s.reason);
+  const pendingTab = useLoginPromptStore(s => s.pendingTab);
   const openPanel = useLoginPromptStore(s => s.open);
   const closePanel = useLoginPromptStore(s => s.close);
+  const consumePendingTab = useLoginPromptStore(s => s.consumePendingTab);
 
   const hasCheckedPrestige = useRef(false);
 
   // Game state selectors
   const gameTick = useGameStore(s => s.gameTick);
 
-  // Open prompt
-  const promptLogin = useCallback((triggerReason: LoginPromptReason) => {
+  // Open prompt — accepts an optional pending tab the guest wanted to navigate to.
+  // When the user signs in, we replay the navigation so they actually land where
+  // they tried to go instead of being silently dumped back on the previous page.
+  const promptLogin = useCallback((triggerReason: LoginPromptReason, tab?: GameTab | null) => {
     // Don't prompt if already fully authenticated (non-anonymous user) or auth is loading
     if ((user && !user.is_anonymous) || authLoading) return;
-    openPanel(triggerReason);
+    openPanel(triggerReason, tab ?? null);
   }, [user, authLoading, openPanel]);
 
   // Close prompt
@@ -177,13 +197,20 @@ export function useLoginPrompt(): LoginPromptState {
     return () => clearInterval(checkInterval);
   }, [user, authLoading, promptLogin]);
 
-  // Close prompt when user signs in
+  // Close prompt when user signs in AND replay any pending gated-tab navigation.
+  // If the user clicked a gated tab (market, leaderboard, tradePost, megaprojects)
+  // while signed out, that click was preventDefault'd. We capture the intent in
+  // `pendingTab` and replay it once auth transitions to a real account.
   useEffect(() => {
-    if (user && isOpen) {
-      // Use microtask to avoid synchronous setState in effect
-      queueMicrotask(() => closePanel());
-    }
-  }, [user, isOpen, closePanel]);
+    if (!user || user.is_anonymous) return;
+    if (!isOpen) return;
 
-  return { isOpen, reason, promptLogin, closePrompt };
+    queueMicrotask(() => {
+      const tab = consumePendingTab();
+      closePanel();
+      if (tab) router.push(`/game/${tab}`);
+    });
+  }, [user, isOpen, closePanel, consumePendingTab, router]);
+
+  return { isOpen, reason, pendingTab, promptLogin, closePrompt };
 }
