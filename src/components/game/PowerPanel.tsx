@@ -18,6 +18,7 @@ import { getPowerPlantTypes } from '@/lib/game/buildingDiscovery';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
 import { GameIcon } from '@/components/game/shared/GameIcon';
+import { formatRemaining, formatDuration } from '@/lib/utils/time';
 
 // Dynamic power plant types from BUILDING_DEFS (includes Supabase buildings)
 const POWER_PLANT_TYPES = getPowerPlantTypes() as PowerPlantType[];
@@ -617,8 +618,8 @@ export function PowerPanel() {
           let fuelLabel = '';
           let fuelLow = false;
           if (type === 'coalGenerator' && activeInstances.length > 0) {
-            const hoursRemaining = coalFuelStatus.ticksRemaining === Infinity ? '∞' : formatNumber(coalFuelStatus.ticksRemaining);
-            fuelLabel = `${formatNumber(coalFuelStatus.stock)} (${hoursRemaining}t)`;
+            const hoursRemaining = coalFuelStatus.ticksRemaining === Infinity ? '∞' : formatDuration(coalFuelStatus.ticksRemaining);
+            fuelLabel = `${formatNumber(coalFuelStatus.stock)} (${hoursRemaining})`;
             fuelLow = coalFuelStatus.isLow;
           }
 
@@ -1044,8 +1045,8 @@ export function PowerPanel() {
               <PanelStatCard
                 icon={<Clock className="w-4 h-4" />}
                 label="Remaining"
-                value={coalFuelStatus.ticksRemaining === Infinity ? '∞' : formatNumber(coalFuelStatus.ticksRemaining)}
-                subtext="ticks of fuel"
+                value={coalFuelStatus.ticksRemaining === Infinity ? '∞' : formatDuration(coalFuelStatus.ticksRemaining)}
+                subtext="fuel remaining"
                 color={coalFuelStatus.ticksRemaining < 500 ? 'red' : 'sky'}
                 trend={coalFuelStatus.ticksRemaining < 500 ? 'down' : 'neutral'}
               />

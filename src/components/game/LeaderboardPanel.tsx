@@ -8,6 +8,7 @@ import { Trophy, ChevronDown, ChevronUp, Building2, FlaskConical, ScrollText, Co
 import { GameIcon } from '@/components/game/shared/GameIcon';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { formatDuration } from '@/lib/utils/time';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -57,11 +58,6 @@ const getRankIcon = (rank: number) => {
   return <span className="text-xs font-bold">#{rank}</span>;
 };
 
-const formatPlayTime = (ticks: number) => {
-  if (ticks >= 3600) return `${(ticks / 3600).toFixed(1)}h`;
-  if (ticks >= 60) return `${Math.floor(ticks / 60)}m`;
-  return `${ticks}s`;
-};
 
 const getRankForScore = (score: number) => {
   for (let i = RANK_THRESHOLDS.length - 1; i >= 0; i--) {
@@ -368,7 +364,7 @@ export default function LeaderboardPanel() {
                           <div className="text-[10px] text-muted-label flex items-center gap-1">
                             <Clock className="w-3 h-3 text-warning" /> Play Time
                           </div>
-                          <div className="text-xs font-mono text-warning">{formatPlayTime(entry.play_time_ticks)}</div>
+                          <div className="text-xs font-mono text-warning">{formatDuration(entry.play_time_ticks)}</div>
                         </div>
                         <div className="bg-background rounded-lg p-3">
                           <div className="text-[10px] text-muted-label flex items-center gap-1">

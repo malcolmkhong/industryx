@@ -7,6 +7,7 @@ import { RESEARCH_TREE, RESOURCE_META } from '@/lib/game/configCache';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { formatRemaining, formatDuration } from '@/lib/utils/time';
 import {
   FlaskConical, Lock, Check, ChevronRight, Timer,
   Zap, Cog, Truck, Bot, Brain, Atom, BarChart3, Users
@@ -87,7 +88,7 @@ export function ResearchPanel() {
                 </div>
                 <div className="text-[10px] text-muted-label">
                   <Timer className="w-2.5 h-2.5 inline mr-0.5" />
-                  {formatNumber(store.researchProgress)}/{formatNumber(activeResearchNode.timeRequired)} ticks
+                  {formatNumber(store.researchProgress)}/{formatDuration(activeResearchNode.timeRequired)}
                 </div>
               </div>
             </div>
@@ -146,7 +147,7 @@ export function ResearchPanel() {
                       tier={node.tier}
                       details={[
                         { label: 'Cost', value: `${formatNumber(node.cost)} RP`, color: 'text-research' },
-                        { label: 'Time Required', value: `${node.timeRequired} ticks` },
+                        { label: 'Time Required', value: formatDuration(node.timeRequired) },
                         ...node.effects.map((effect, i) => ({
                           label: `Effect ${i + 1}`,
                           value: `${effect.type === 'productionSpeed' ? 'Speed' : effect.type === 'unlockBuilding' ? 'Unlock' : effect.type === 'transportSpeed' ? 'Transport' : effect.type === 'powerEfficiency' ? 'Power' : effect.type === 'marketBonus' ? 'Market' : effect.type === 'workerEfficiency' ? 'Workers' : effect.type === 'unlockTransport' ? 'Unlock' : effect.type === 'storageBonus' ? 'Storage' : 'Bonus'} +${(effect.value * 100).toFixed(0)}%${effect.target ? ` (${effect.target})` : ''}`,
@@ -201,7 +202,7 @@ export function ResearchPanel() {
                           ) : (
                             <div>
                               <div className="text-[10px] text-research font-mono">{formatNumber(node.cost)} RP</div>
-                              <div className="text-[9px] text-muted-label">{node.timeRequired} ticks</div>
+                              <div className="text-[9px] text-muted-label">{formatDuration(node.timeRequired)}</div>
                             </div>
                           )}
                         </div>

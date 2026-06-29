@@ -7,6 +7,7 @@ import { ResourceType } from '@/lib/game/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { GameIcon } from '@/components/game/shared/GameIcon';
+import { formatDuration } from '@/lib/utils/time';
 import {
   Tooltip,
   TooltipContent,
@@ -432,7 +433,7 @@ export function MegaProjectPanel() {
 
                         {/* Time estimate */}
                         <div className="mt-2 text-[10px] text-muted-label">
-                          <GameIcon icon="gi:clockwork" size={12} className="inline" /> Est. {currentStage.timeRequired} ticks ({(currentStage.timeRequired / 60).toFixed(0)} min at 1x)
+                          <GameIcon icon="gi:clockwork" size={12} className="inline" /> Est. {formatDuration(currentStage.timeRequired)} ({(currentStage.timeRequired / 60).toFixed(0)} min at 1x)
                           {!resourcesMet && <span className="text-warning ml-2">(paused until resources available)</span>}
                         </div>
                       </div>

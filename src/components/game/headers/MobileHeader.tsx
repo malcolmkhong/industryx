@@ -18,6 +18,8 @@ import { useGameStore, formatNumber } from '@/lib/game/store';
 import { WEATHER_DEFS } from '@/lib/game/configCache';
 import { GameIcon } from '@/components/game/shared/GameIcon';
 import { OnlineCount } from '@/components/game/OnlineCount';
+import { useTickFormat } from '@/lib/hooks/useTickFormat';
+import { formatByMode, formatRemaining } from '@/lib/utils/time';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useGameConfig } from '@/components/providers/GameConfigProvider';
 import { useCloudSync } from '@/lib/hooks/useCloudSync';
@@ -38,6 +40,7 @@ const SPEED_OPTIONS = [1, 2, 5, 10] as const;
 
 export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManageAccount }: MobileHeaderProps) {
   const gameTick = useGameStore(s => s.gameTick);
+  const [tickFormat] = useTickFormat();
   const gameSpeed = useGameStore(s => s.gameSpeed);
   const paused = useGameStore(s => s.paused);
   const prestigeState = useGameStore(s => s.prestigeState);
@@ -158,7 +161,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
 
         <HoverCard openDelay={200} closeDelay={100}>
           <HoverCardTrigger asChild>
-            <span className="text-[9px] font-mono shrink-0 cursor-default text-subtle hover:text-brand transition-colors">Tick: {formatNumber(gameTick)}</span>
+            <span className="text-[9px] font-mono shrink-0 cursor-default text-subtle hover:text-brand transition-colors">Tick: {formatByMode(gameTick, tickFormat)}</span>
           </HoverCardTrigger>
           <HoverCardContent side="bottom" className="w-56 bg-card border-brand/30">
             <p className="text-xs font-bold text-brand">Game Tick</p>
@@ -441,7 +444,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
                       </div>
                       <div className="flex justify-between text-[10px] pt-1 border-t border-muted-label/20">
                         <span className="text-subtle">Remaining</span>
-                        <span className="text-warning font-mono font-bold">{e.remaining} ticks</span>
+                        <span className="text-warning font-mono font-bold">{formatRemaining(e.remaining)}</span>
                       </div>
                     </div>
                   </HoverCardContent>
@@ -472,7 +475,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
                 {weather.remaining > 0 && (
                   <div className="flex justify-between text-[10px] pt-1 border-t border-muted-label/20">
                     <span className="text-subtle">Remaining</span>
-                    <span className="text-brand font-mono font-bold">{weather.remaining} ticks</span>
+                    <span className="text-brand font-mono font-bold">{formatRemaining(weather.remaining)}</span>
                   </div>
                 )}
                 <p className="text-[10px] text-muted-label pt-1 border-t border-muted-label/20 leading-relaxed">

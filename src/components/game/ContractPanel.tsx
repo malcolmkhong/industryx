@@ -7,6 +7,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { RESOURCE_META, CONTRACT_TEMPLATES, TIER_INFO } from '@/lib/game/configCache';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { formatRemaining, formatDuration } from '@/lib/utils/time';
 import {
   ScrollText, Package, Clock, Check, X, AlertTriangle,
   Star, Trophy, Coins, FlaskConical, Globe, Lock, ChevronDown, ChevronRight
@@ -51,7 +52,7 @@ function ContractCard({ contract, store, fulfillingId, onFulfill }: { contract: 
           color: store.resources[r.resource] >= r.amount ? 'text-success' : 'text-danger',
         })),
         { label: 'Tier', value: `${tierInfo?.name ?? 'Unknown'}`, color: `text-[${tierColor}]` },
-        { label: 'Time Limit', value: `${formatNumber(contract.timeLimit)} ticks` },
+        { label: 'Time Limit', value: formatDuration(contract.timeLimit) },
         { label: 'Difficulty', value: `${'★'.repeat(contract.difficulty)}`, color: contract.difficulty >= 4 ? 'text-danger' : contract.difficulty >= 3 ? 'text-domain' : 'text-subtle' },
         { label: 'Money Reward', value: `$${formatNumber(contract.reward.money)}`, color: 'text-success' },
         ...(contract.reward.researchPoints ? [{ label: 'RP Reward', value: `${contract.reward.researchPoints} RP`, color: 'text-research' as string }] : []),
@@ -119,7 +120,7 @@ function ContractCard({ contract, store, fulfillingId, onFulfill }: { contract: 
               Time Remaining
             </span>
             <span className={`font-mono ${isUrgent ? 'text-danger' : 'text-subtle'}`}>
-              {formatNumber(contract.timeRemaining)} / {formatNumber(contract.timeLimit)} ticks
+              {formatRemaining(contract.timeRemaining)} / {formatDuration(contract.timeLimit)}
             </span>
           </div>
           <div

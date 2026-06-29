@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { RESOURCE_META, EVENT_TEMPLATES } from '@/lib/game/configCache';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { formatRemaining, formatDuration } from '@/lib/utils/time';
 import {
   AlertTriangle, Clock, Zap, TrendingUp, TrendingDown,
   Factory, FlaskConical, Truck, Shield, Activity, Globe, ArrowUp, ArrowDown, Minus
@@ -123,7 +124,7 @@ export function EventPanel() {
                       />
                     </div>
                     <span className="text-[10px] text-subtle font-mono whitespace-nowrap">
-                      {formatNumber(event.remaining)} / {formatNumber(event.duration)} ticks
+                      {formatRemaining(event.remaining)} / {formatDuration(event.duration)}
                     </span>
                   </div>
                   </motion.div>
@@ -145,7 +146,7 @@ export function EventPanel() {
               <div key={`${event.id}-${i}`} className="flex items-center gap-2 text-[11px] text-muted-label py-1 border-b border-muted-label/50">
                 <span className="text-sm">{event.icon}</span>
                 <span>{event.name}</span>
-                <span className="ml-auto text-[9px] text-muted-label">Tick {event.remaining}</span>
+                <span className="ml-auto text-[9px] text-muted-label">{formatRemaining(event.remaining)}</span>
               </div>
             ))}
           </div>

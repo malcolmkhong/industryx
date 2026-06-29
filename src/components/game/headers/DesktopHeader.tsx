@@ -24,6 +24,10 @@ import { useCloudSync } from '@/lib/hooks/useCloudSync';
 import { useLoginPrompt } from '@/lib/hooks/useLoginPrompt';
 import { useAutoSaveIndicator } from '@/lib/hooks/page/useAutoSaveIndicator';
 import { useMoneyGlowEffect } from '@/lib/hooks/page/useMoneyGlowEffect';
+import { useTickFormat } from '@/lib/hooks/useTickFormat';
+import {
+  formatByMode, formatDuration, formatClock, formatShortDate, formatRemaining,
+} from '@/lib/utils/time';
 import type { GameTab } from '@/lib/game/types';
 
 interface DesktopHeaderProps {
@@ -64,6 +68,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
   const { isUsingSupabase, reload: reloadConfig } = useGameConfig();
   const { saveToCloud, loadFromCloud } = useCloudSync();
   const { promptLogin } = useLoginPrompt();
+  const [tickFormat] = useTickFormat();
 
   const [cloudStatus, setCloudStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 
@@ -359,7 +364,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
           <HoverCard openDelay={200} closeDelay={100}>
             <HoverCardTrigger asChild>
               <div className="text-[10px] text-subtle font-mono cursor-default hover:text-brand transition-colors">
-                Tick: {formatNumber(gameTick)}
+                Tick: {formatByMode(gameTick, tickFormat)}
               </div>
             </HoverCardTrigger>
             <HoverCardContent side="bottom" className="w-64 bg-card border-brand/30 p-0 overflow-hidden">
@@ -369,7 +374,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
               <div className="px-3 py-1.5 space-y-1">
                 <div className="flex justify-between text-[10px]">
                   <span className="text-subtle">Current Tick</span>
-                  <span className="text-brand font-mono font-bold">{formatNumber(gameTick)}</span>
+                  <span className="text-brand font-mono font-bold">{formatByMode(gameTick, tickFormat)}</span>
                 </div>
                 <div className="flex justify-between text-[10px]">
                   <span className="text-subtle">Game Speed</span>
@@ -442,7 +447,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
                   <HoverCardTrigger asChild>
                     <Badge
                       role="status"
-                      aria-label={`Active event: ${e.name}, ${e.remaining} ticks remaining`}
+                      aria-label={`Active event: ${e.name}, ${formatRemaining(e.remaining)} remaining`}
                       variant="outline"
                       className="text-[10px] border-domain/50 text-domain bg-domain/20 px-1.5 py-0 neon-pulse cursor-default"
                     >
@@ -467,7 +472,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
                       </div>
                       <div className="flex justify-between text-[10px] pt-1 border-t border-muted-label/20">
                         <span className="text-subtle">Remaining</span>
-                        <span className="text-warning font-mono font-bold">{e.remaining} ticks</span>
+                        <span className="text-warning font-mono font-bold">{formatRemaining(e.remaining)}</span>
                       </div>
                     </div>
                   </HoverCardContent>
@@ -480,7 +485,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
             <HoverCardTrigger asChild>
               <Badge
                 role="status"
-                aria-label={`Weather: ${WEATHER_DEFS[weather.current]?.name}${weather.remaining > 0 ? `, ${weather.remaining} ticks remaining` : ''}`}
+                aria-label={`Weather: ${WEATHER_DEFS[weather.current]?.name}${weather.remaining > 0 ? `, ${formatRemaining(weather.remaining)} remaining` : ''}`}
                 variant="outline"
                 className={`text-[10px] px-1.5 py-0 cursor-default ${
                   weather.current === 'clear'
@@ -502,7 +507,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
                 {weather.remaining > 0 && (
                   <div className="flex justify-between text-[10px] pt-1 border-t border-muted-label/20">
                     <span className="text-subtle">Remaining</span>
-                    <span className="text-brand font-mono font-bold">{weather.remaining} ticks</span>
+                    <span className="text-brand font-mono font-bold">{formatRemaining(weather.remaining)}</span>
                   </div>
                 )}
                 <p className="text-[10px] text-muted-label pt-1 border-t border-muted-label/20 leading-relaxed">

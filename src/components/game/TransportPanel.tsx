@@ -19,6 +19,7 @@ import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GameIcon } from '@/components/game/shared/GameIcon';
+import { formatRemaining } from '@/lib/utils/time';
 
 // --- Tier Color Map ---
 const TIER_COLORS: Record<number, { fill: string; stroke: string; text: string; bg: string; label: string }> = {
@@ -1641,7 +1642,7 @@ export function TransportPanel() {
             </div>
             {store.weather.current !== 'clear' && (
               <div className="mt-2 text-[10px] text-muted-label">
-                Changes in {store.weather.remaining} ticks
+                Changes in {formatRemaining(store.weather.remaining)}
               </div>
             )}
           </div>

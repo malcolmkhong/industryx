@@ -5,6 +5,8 @@ import { useGameStore, formatNumber } from '@/lib/game/store';
 import { useShallow } from 'zustand/react/shallow';
 import { useSettingsStore, NumberFormat, AnimationSpeed, SpeedLimit, BottomNavMode, QuickAccessShortcut, DEFAULT_QUICK_ACCESS_SHORTCUTS } from '@/lib/game/settingsStore';
 import { soundEngine } from '@/lib/game/soundEngine';
+import { useTickFormat } from '@/lib/hooks/useTickFormat';
+import { formatDuration } from '@/lib/utils/time';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
@@ -164,6 +166,7 @@ function LabeledSlider({
 export function SettingsPanel() {
   const store = useGameStore(useShallow((s) => ({ exportSave: s.exportSave, gameTick: s.gameTick, importSave: s.importSave, resetGame: s.resetGame, stats: s.stats })));
   const settings = useSettingsStore();
+  const [tickFormat, setTickFormat] = useTickFormat();
 
   // Sound preview state
   const [lastPreviewSound, setLastPreviewSound] = useState<string | null>(null);
@@ -267,16 +270,8 @@ export function SettingsPanel() {
     soundEngine.play('buttonClick', 'ui');
   }, [store, resetDoubleConfirm]);
 
-  // Play time calculation
-  const playTimeTicks = store.stats.playTime;
-  const playTimeSeconds = Math.floor(playTimeTicks);
-  const playTimeMinutes = Math.floor(playTimeSeconds / 60);
-  const playTimeHours = Math.floor(playTimeMinutes / 60);
-  const playTimeDisplay = playTimeHours > 0
-    ? `${playTimeHours}h ${playTimeMinutes % 60}m`
-    : playTimeMinutes > 0
-      ? `${playTimeMinutes}m ${playTimeSeconds % 60}s`
-      : `${playTimeSeconds}s`;
+  // Play time display (shared formatter)
+  const playTimeDisplay = formatDuration(store.stats.playTime);
 
   // Save file size estimate
   const saveSizeEstimate = (() => {
@@ -380,6 +375,22 @@ export function SettingsPanel() {
               <SelectItem value="standard" className="text-xs">Standard (1.5K)</SelectItem>
               <SelectItem value="scientific" className="text-xs">Scientific (1.5e3)</SelectItem>
               <SelectItem value="compact" className="text-xs">Compact (1.5k)</SelectItem>
+            </SelectContent>
+          </Select>
+        </SettingRow>
+
+        {/* Time format */}
+        <SettingRow
+          label="Time Format"
+          description="How durations are displayed across panels"
+        >
+          <Select value={tickFormat} onValueChange={(v) => setTickFormat(v as 'human' | 'ticks')}>
+            <SelectTrigger className="w-32 h-8 text-xs bg-background border-muted-label">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-card border-muted-label">
+              <SelectItem value="human" className="text-xs">Human (1h 32m)</SelectItem>
+              <SelectItem value="ticks" className="text-xs">Ticks (5,520)</SelectItem>
             </SelectContent>
           </Select>
         </SettingRow>

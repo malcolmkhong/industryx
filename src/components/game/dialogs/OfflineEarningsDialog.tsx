@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { GameIcon } from '@/components/game/shared/GameIcon';
 import { formatNumber } from '@/lib/game/store';
+import { formatDurationLong } from '@/lib/utils/time';
 import { RESOURCE_META } from '@/lib/game/configCache';
 import type { OfflineProgressData } from '@/lib/hooks/page/useOfflineProgressCheck';
 
@@ -18,11 +19,6 @@ interface OfflineEarningsDialogProps {
   onCollect: () => void;
 }
 
-function formatAwayDuration(ticksElapsed: number): string {
-  if (ticksElapsed >= 3600) return `${(ticksElapsed / 3600).toFixed(1)} hours`;
-  if (ticksElapsed >= 60) return `${Math.floor(ticksElapsed / 60)} minutes`;
-  return `${ticksElapsed} seconds`;
-}
 
 export function OfflineEarningsDialog({
   open,
@@ -42,7 +38,7 @@ export function OfflineEarningsDialog({
               <>
                 You were away for{' '}
                 <span className="text-brand font-bold">
-                  {formatAwayDuration(offlineData.ticksElapsed)}
+                  {formatDurationLong(offlineData.ticksElapsed)}
                 </span>
                 . During that time:
               </>

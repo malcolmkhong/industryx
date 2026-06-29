@@ -9,6 +9,7 @@ import { Pin, PinOff, Clock, Lock, Filter, ChevronDown, ChevronRight, Sparkles, 
 import { GameCard } from '@/components/game/shared/GameCard';
 import { Quest, QuestType } from '@/lib/game/types';
 import { GameIcon } from '@/components/game/shared/GameIcon';
+import { formatRemaining } from '@/lib/utils/time';
 
 const TIER_COLORS = ['#a0a0a0', '#22d3ee', '#f97316', '#a855f7', '#00ffcc'];
 
@@ -256,15 +257,6 @@ export function QuestPanel() {
     return result;
   }, [questsByTier, filterType, quests]);
 
-  const formatTimeRemaining = (ticks: number) => {
-    if (ticks <= 0) return 'Expired';
-    if (ticks < 60) return `${ticks} ticks`;
-    const minutes = Math.floor(ticks / 60);
-    if (minutes < 60) return `~${minutes}m`;
-    const hours = Math.floor(minutes / 60);
-    return `~${hours}h ${minutes % 60}m`;
-  };
-
   const renderQuest = (quest: Quest, isLocked: boolean = false) => {
     const allStepsComplete = quest.steps.every(s => s.completed);
     const progress = quest.steps.length > 0
@@ -306,7 +298,7 @@ export function QuestPanel() {
       const remaining = quest.expiresAt - store.gameTick;
       tooltipDetails.push({
         label: 'Time Remaining',
-        value: formatTimeRemaining(Math.max(0, remaining)),
+        value: formatRemaining(Math.max(0, remaining)),
         color: remaining > 100 ? 'text-brand' : remaining > 30 ? 'text-warning' : 'text-danger',
       });
     }
@@ -365,7 +357,7 @@ export function QuestPanel() {
                     {quest.expiresAt && quest.expiresAt > 0 && !quest.claimed && !isLocked && (
                       <span className="flex items-center gap-0.5 text-[9px] text-warning">
                         <Clock className="w-2.5 h-2.5" />
-                        {formatTimeRemaining(Math.max(0, quest.expiresAt - store.gameTick))}
+                        {formatRemaining(Math.max(0, quest.expiresAt - store.gameTick))}
                       </span>
                     )}
                     {isLocked && (

@@ -27,6 +27,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { MarketPriceChart } from "./MarketPriceChart";
+import { formatRemaining } from "@/lib/utils/time";
 
 // ─── Server-enforced cooldown (mirrors src/app/api/game/trade/route.ts) ─────
 const TRADE_COOLDOWN_SECONDS = 300;
@@ -1057,7 +1058,7 @@ export function TradingPostPanel() {
                       ? timeAgo(entry.createdAt)
                       : ticksAgo === 0
                         ? "just now"
-                        : `${ticksAgo} ticks ago`}
+                        : `${formatRemaining(ticksAgo)} ago`}
                   </span>
                 </motion.div>
               );

@@ -7,6 +7,8 @@ import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { useTickFormat } from '@/lib/hooks/useTickFormat';
+import { formatByMode, formatRemaining, formatDuration, formatTicks } from '@/lib/utils/time';
 import {
   Factory, Users, Zap, TrendingUp, AlertTriangle, FlaskConical,
   Activity, Pickaxe, Cog, Shield, Clock, Bell,
@@ -28,6 +30,7 @@ export function DashboardPanel() {
   const buildings = useGameStore((s) => s.buildings);
   const resources = useGameStore((s) => s.resources);
   const resourceCapacity = useGameStore((s) => s.resourceCapacity);
+  const [tickFormat] = useTickFormat();
   const money = useGameStore((s) => s.money);
   const totalMoneyEarned = useGameStore((s) => s.totalMoneyEarned);
   const powerGrid = useGameStore((s) => s.powerGrid);
@@ -949,7 +952,7 @@ export function DashboardPanel() {
                     <p className="text-xs text-subtle font-medium">{activeResearchInfo.name}</p>
                     <p className="text-[10px] text-muted-label">
                       <Timer className="w-2.5 h-2.5 inline mr-0.5" />
-                      {formatNumber(researchProgress)} / {formatNumber(activeResearchInfo.timeRequired)} ticks
+                      {formatNumber(researchProgress)} / {formatDuration(activeResearchInfo.timeRequired)}
                     </p>
                   </div>
                 </div>
@@ -998,7 +1001,7 @@ export function DashboardPanel() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1">
                         <Clock className="w-2.5 h-2.5 text-muted-label" />
-                        <span className="text-[10px] text-muted-label">{event.remaining} ticks left</span>
+                        <span className="text-[10px] text-muted-label">{formatRemaining(event.remaining)} left</span>
                       </div>
                       <div className="h-1 w-16 bg-muted-label rounded-full overflow-hidden">
                         <div
@@ -1121,7 +1124,7 @@ export function DashboardPanel() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-label">Play Time</span>
-                <span className="text-subtle font-mono">{formatNumber(stats.playTime)} ticks</span>
+                <span className="text-subtle font-mono">{formatByMode(stats.playTime, tickFormat)}</span>
               </div>
             </div>
           </div>
@@ -1265,6 +1268,7 @@ function RankBar() {
 function WeatherInfoCard() {
   const weather = useGameStore((s) => s.weather);
   const gameTickLocal = useGameStore((s) => s.gameTick);
+  const [tickFormat] = useTickFormat();
   const currentWeather = weather.current as WeatherType;
   const weatherDef = WEATHER_DEFS[currentWeather];
   if (!weatherDef) return null;
@@ -1402,24 +1406,12 @@ function WeatherInfoCard() {
             {isEffectActive ? 'Weather ends in' : 'Next change in'}
           </span>
           <span className="text-brand font-mono">
-            {isEffectActive ? formatTicksToTime(weather.remaining) : formatTicksToTime(ticksUntilChange)}
+            {isEffectActive ? formatRemaining(weather.remaining) : formatRemaining(ticksUntilChange)}
           </span>
         </div>
       </div>
     </div>
   );
-}
-
-// Helper to format ticks to a readable time string
-function formatTicksToTime(ticks: number): string {
-  if (ticks <= 0) return 'Now';
-  if (ticks < 60) return `${ticks} ticks`;
-  const minutes = Math.floor(ticks / 60);
-  const seconds = ticks % 60;
-  if (minutes < 60) return `~${minutes}m ${seconds > 0 ? `${seconds}s` : ''}`;
-  const hours = Math.floor(minutes / 60);
-  const remMinutes = minutes % 60;
-  return `~${hours}h ${remMinutes > 0 ? `${remMinutes}m` : ''}`;
 }
 
 // --- Income Sparkline Chart Component ---

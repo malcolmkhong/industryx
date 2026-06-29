@@ -18,14 +18,7 @@ import {
   Send, ShoppingBag,
 } from 'lucide-react';
 import { GameIcon } from '@/components/game/shared/GameIcon';
-
-// --- Helper: format tick duration ---
-function formatDuration(ticks: number): string {
-  if (ticks < 60) return `${ticks}s`;
-  const mins = Math.floor(ticks / 60);
-  const secs = ticks % 60;
-  return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
-}
+import { formatRemaining, formatDuration } from '@/lib/utils/time';
 
 // --- Drone Status Badge ---
 function DroneStatusBadge({ status }: { status: Drone['status'] }) {
@@ -306,7 +299,7 @@ export default function DroneDeliveryPanel() {
                   <div className="mt-2">
                     <div className="flex justify-between text-[10px] text-muted-label mb-1">
                       <span>Delivering...</span>
-                      <span>{Math.max(0, drone.missionEndTick - gameTick)} ticks remaining</span>
+                      <span>{formatRemaining(Math.max(0, drone.missionEndTick - gameTick))} remaining</span>
                     </div>
                     <div className="w-full h-1.5 bg-muted-label rounded-full overflow-hidden">
                       <div
@@ -491,7 +484,7 @@ export default function DroneDeliveryPanel() {
                                 <div className="text-[10px]">
                                   <span className="text-subtle">Drone #{droneIdx + 1}</span>
                                   <span className="text-muted-label ml-2">
-                                    {formatDuration(ticks)} · ${formatNumber(fuel)} fuel
+                                    {formatRemaining(ticks)} · ${formatNumber(fuel)} fuel
                                   </span>
                                 </div>
                                 <Button

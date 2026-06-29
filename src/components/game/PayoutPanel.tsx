@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
 import { GameIcon } from '@/components/game/shared/GameIcon';
+import { formatRemaining, formatDuration } from '@/lib/utils/time';
 
 export function PayoutPanel() {
   const buildings = useGameStore((s) => s.buildings);
@@ -155,7 +156,7 @@ export function PayoutPanel() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-2xl font-bold text-brand font-mono">
-                  {ticksUntilPayout}t
+                  {formatRemaining(ticksUntilPayout)}
                 </span>
                 <span className="text-xs text-muted-label">
                   ~{secondsUntilPayout}s
@@ -163,7 +164,7 @@ export function PayoutPanel() {
               </div>
               <Progress value={payoutProgress} className="h-2 bg-muted-label [&>div]:bg-brand" />
               <div className="flex items-center justify-between text-[10px] text-muted-label">
-                <span>Every {payoutConfig.basePayoutInterval} ticks</span>
+                <span>Every {formatDuration(payoutConfig.basePayoutInterval)}</span>
                 <span>{Math.round(payoutProgress)}%</span>
               </div>
             </div>
@@ -420,7 +421,7 @@ export function PayoutPanel() {
       <Card className="bg-card border-brand/30">
         <CardContent className="p-4">
           <p className="text-[10px] text-muted-label leading-relaxed">
-            <GameIcon icon="gi:light-bulb" size={14} className="inline" /> <span className="text-muted-label">How Payouts Work:</span> Every {payoutConfig.basePayoutInterval} ticks, 
+            <GameIcon icon="gi:light-bulb" size={14} className="inline" /> <span className="text-muted-label">How Payouts Work:</span> Every {formatDuration(payoutConfig.basePayoutInterval)}, 
             your factory generates a payout based on active buildings. Extractors earn ${extractorRate}/cycle, 
             Factories earn ${factoryRate}/cycle, and Power Plants earn ${powerRate}/cycle per building (scaled by level and efficiency). 
             The total is modified by game speed, average building efficiency, prestige bonuses, and active events.
