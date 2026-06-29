@@ -70,7 +70,7 @@ export function getSpecializedExtractors(): BuildingType[] {
  * Get all factory building types from BUILDING_DEFS, grouped by tier.
  */
 export function getFactoryTypesByTier(): Record<number, BuildingType[]> {
-  const tiers: Record<number, BuildingType[]> = { 1: [], 2: [], 3: [], 4: [] };
+  const tiers: Record<number, BuildingType[]> = { 1: [], 2: [], 3: [], 4: [], 5: [] };
   Object.keys(BUILDING_DEFS)
     .filter(id => BUILDING_DEFS[id]?.category === 'factory')
     .forEach(id => {
@@ -78,10 +78,8 @@ export function getFactoryTypesByTier(): Record<number, BuildingType[]> {
       const tier = def.tier;
       if (tiers[tier]) {
         tiers[tier].push(id as BuildingType);
-      } else if (tier > 4) {
-        // Higher tiers go into tier 4
-        tiers[4].push(id as BuildingType);
       }
+      // Unknown / out-of-range tiers are dropped — TIER_INFO only defines 0–5.
     });
   // Sort each tier by name
   for (const tier of Object.keys(tiers)) {

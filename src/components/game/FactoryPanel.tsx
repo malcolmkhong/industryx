@@ -27,12 +27,14 @@ const TIER_1_FACTORIES = factoryTiers[1] as FactoryType[];
 const TIER_2_FACTORIES = factoryTiers[2] as FactoryType[];
 const TIER_3_FACTORIES = factoryTiers[3] as FactoryType[];
 const TIER_4_FACTORIES = factoryTiers[4] as FactoryType[];
+const TIER_5_FACTORIES = factoryTiers[5] as FactoryType[];
 
 const TIER_CONFIG = {
   1: { label: 'T1 — Processing', shortLabel: 'T1', color: 'cyan', icon: 'gi:flame-tunnel', borderColor: 'border-brand/40', hex: '#22d3ee' },
   2: { label: 'T2 — Manufacturing', shortLabel: 'T2', color: 'orange', icon: 'gi:big-gear', borderColor: 'border-domain/40', hex: '#f97316' },
   3: { label: 'T3 — High-Tech', shortLabel: 'T3', color: 'purple', icon: 'gi:brain', borderColor: 'border-research/40', hex: '#a855f7' },
   4: { label: 'T4 — Singularity', shortLabel: 'T4', color: 'emerald', icon: 'gi:sparkles', borderColor: 'border-success/40', hex: '#00ffcc' },
+  5: { label: 'T5 — Transcendent', shortLabel: 'T5', color: 'red', icon: 'gi:galactic-carrier', borderColor: 'border-danger/40', hex: '#ff1744' },
 };
 
 
@@ -85,6 +87,7 @@ export function FactoryPanel() {
     2: factoryBuildings.filter(b => TIER_2_FACTORIES.includes(b.type as FactoryType)),
     3: factoryBuildings.filter(b => TIER_3_FACTORIES.includes(b.type as FactoryType)),
     4: factoryBuildings.filter(b => TIER_4_FACTORIES.includes(b.type as FactoryType)),
+    5: factoryBuildings.filter(b => TIER_5_FACTORIES.includes(b.type as FactoryType)),
   }), [factoryBuildings]);
 
   // Production rates for factories — aggregated from productionSnapshot (single source of truth)
@@ -131,6 +134,7 @@ export function FactoryPanel() {
       2: { production: 0, consumption: 0, resources: new Set<string>() },
       3: { production: 0, consumption: 0, resources: new Set<string>() },
       4: { production: 0, consumption: 0, resources: new Set<string>() },
+      5: { production: 0, consumption: 0, resources: new Set<string>() },
     };
     Object.entries(productionSnapshot.production).forEach(([res, rate]) => {
       const tier = getResourceTier(res as ResourceType);
@@ -160,8 +164,13 @@ export function FactoryPanel() {
     : 0;
 
   // Current tier data
-  const currentTierConfig = TIER_CONFIG[selectedTier as 1 | 2 | 3 | 4];
-  const currentFactories = selectedTier === 1 ? TIER_1_FACTORIES : selectedTier === 2 ? TIER_2_FACTORIES : selectedTier === 3 ? TIER_3_FACTORIES : TIER_4_FACTORIES;
+  const currentTierConfig = TIER_CONFIG[selectedTier as 1 | 2 | 3 | 4 | 5];
+  const currentFactories =
+    selectedTier === 1 ? TIER_1_FACTORIES :
+    selectedTier === 2 ? TIER_2_FACTORIES :
+    selectedTier === 3 ? TIER_3_FACTORIES :
+    selectedTier === 4 ? TIER_4_FACTORIES :
+    TIER_5_FACTORIES;
   const filteredFactories = useMemo(() => {
     if (!searchQuery.trim()) return currentFactories;
     const q = searchQuery.toLowerCase().trim();
@@ -171,7 +180,7 @@ export function FactoryPanel() {
       return def.name.toLowerCase().includes(q);
     });
   }, [currentFactories, searchQuery]);
-  const currentTierBuildings = factoriesByTier[selectedTier as 1 | 2 | 3 | 4] ?? [];
+  const currentTierBuildings = factoriesByTier[selectedTier as 1 | 2 | 3 | 4 | 5] ?? [];
   const currentColorClasses = getTierColorClasses(currentTierConfig.color as TierColor);
 
   // Find which production chains a factory belongs to
@@ -544,7 +553,7 @@ export function FactoryPanel() {
         <div className="lg:col-span-2 space-y-3">
           {/* TIER TAB SELECTOR */}
           <div className="flex items-center gap-1 p-1 bg-card rounded-xl border border-border">
-            {([1, 2, 3, 4] as const).map(tier => {
+            {([1, 2, 3, 4, 5] as const).map(tier => {
               const config = TIER_CONFIG[tier];
               const colors = getTierColorClasses(config.color as TierColor);
               const tierBuildings = factoriesByTier[tier];
@@ -905,7 +914,7 @@ export function FactoryPanel() {
                 {currentTierBuildings.length === 0 && (
                   <div className="game-card-empty rounded-xl p-6 text-center">
                     <div className="text-4xl mb-3">
-                      {selectedTier === 1 ? <GameIcon icon="gi:anvil-impact" size={14} className="inline-flex" /> : selectedTier === 2 ? <GameIcon icon="gi:big-gear" size={14} className="inline-flex" /> : selectedTier === 3 ? <GameIcon icon="gi:sparkles" size={14} className="inline-flex" /> : <GameIcon icon="gi:vortex" size={14} className="inline-flex" />}
+                      {selectedTier === 1 ? <GameIcon icon="gi:anvil-impact" size={14} className="inline-flex" /> : selectedTier === 2 ? <GameIcon icon="gi:big-gear" size={14} className="inline-flex" /> : selectedTier === 3 ? <GameIcon icon="gi:sparkles" size={14} className="inline-flex" /> : selectedTier === 4 ? <GameIcon icon="gi:vortex" size={14} className="inline-flex" /> : <GameIcon icon="gi:galactic-carrier" size={14} className="inline-flex" />}
                     </div>
                     <h3 className="text-base font-bold text-brand mb-2">No {currentTierConfig.label} Factories</h3>
                     <p className="text-sm text-subtle mb-1">Build your first factory to start processing materials</p>
