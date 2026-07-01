@@ -50,14 +50,19 @@ export type GuestIdentityInsert = Pick<
   >;
 
 /**
- * Find the active (non-superseded) identity for a fingerprint_hash.
+ * Find the active (non-superseded) identity for a raw fingerprint value.
  * Used by /api/auth/quickstart to detect returning users whose deviceId
  * was lost but whose fingerprint survived (localStorage wiped).
+ *
+ * Queries the `fingerprint` column — the column with the unique partial
+ * index (guest_identities_active_fingerprint_uidx), NOT fingerprint_hash.
+ * fingerprint_hash is analytics-only and nullable; it has no uniqueness
+ * guarantee and is the wrong column to query for recovery.
  *
  * Returns null if no active identity exists for this fingerprint.
  */
 export async function findIdentityByFingerprint(
-  fingerprintHash: string,
+  fingerprint: string,
 ): Promise<GuestIdentity | null> {
   const supabase = await createServiceRoleClient();
   if (!supabase) return null;
@@ -66,7 +71,7 @@ export async function findIdentityByFingerprint(
     .select(
       'id, user_id, device_id, fingerprint, fingerprint_hash, is_primary, claimed_at, superseded_at, superseded_by, last_used_at, created_at',
     )
-    .eq('fingerprint_hash', fingerprintHash)
+    .eq('fingerprint', fingerprint)
     .is('superseded_by', null)
     .maybeSingle();
   if (error) {

@@ -80,11 +80,10 @@ export async function POST(request: NextRequest) {
       // No explicit existingUserId: check fingerprint first.
       // Handles the case where localStorage was wiped (new deviceId) but
       // fingerprint survived — fingerprint is more stable than deviceId.
-      const fingerprintHash = fingerprint
-        ? createHash('sha256').update(fingerprint).digest('hex')
-        : null;
-      if (fingerprintHash) {
-        const fingerprintIdentity = await findIdentityByFingerprint(fingerprintHash);
+      // Uses raw fingerprint value: the unique partial index is on
+      // `fingerprint`, not fingerprint_hash (which is analytics-only).
+      if (fingerprint) {
+        const fingerprintIdentity = await findIdentityByFingerprint(fingerprint);
         if (fingerprintIdentity) {
           // Fingerprint matched an active identity — reuse that user.
           // Game state will be detected as existing below (idempotent).
