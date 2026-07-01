@@ -18,7 +18,7 @@ import {
   Pencil, Check, X, Hammer, AlertTriangle, Clock
 } from 'lucide-react';
 import { LoadingSpinner } from '@/components/game/shared/LoadingSpinner';
-import { GameIcon } from '@/components/game/shared/GameIcon';
+import { GameIcon } from '@/components/icons';
 
 // Color map for building category bars in the distribution preview
 const CATEGORY_COLORS: Record<string, string> = {

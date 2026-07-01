@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
-import { useShallow } from 'zustand/react/shallow';
 import { useSettingsStore, NumberFormat, AnimationSpeed, SpeedLimit, BottomNavMode, QuickAccessShortcut, DEFAULT_QUICK_ACCESS_SHORTCUTS } from '@/lib/game/settingsStore';
 import { soundEngine } from '@/lib/game/soundEngine';
 import { useTickFormat } from '@/lib/hooks/useTickFormat';
@@ -18,14 +17,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
   Settings,
   Coffee,
   Heart,
@@ -33,9 +24,6 @@ import {
   Volume2,
   VolumeX,
   Monitor,
-  Save,
-  Download,
-  Upload,
   Trash2,
   RotateCcw,
   Info,
@@ -45,7 +33,6 @@ import {
   AlertTriangle,
   MousePointerClick,
   FileText,
-  HardDrive,
   Clock,
   ChevronDown,
   ChevronUp,
@@ -61,7 +48,7 @@ import {
 } from 'lucide-react';
 
 import { ICON_MAP } from '@/components/game/BottomNavigationBar';
-import { GameIcon } from '@/components/game/shared/GameIcon';
+import { GameIcon } from '@/components/icons';
 
 // Collapsible section component
 function SettingsSection({
@@ -164,17 +151,13 @@ function LabeledSlider({
 }
 
 export function SettingsPanel() {
-  const store = useGameStore(useShallow((s) => ({ exportSave: s.exportSave, gameTick: s.gameTick, importSave: s.importSave, resetGame: s.resetGame, stats: s.stats })));
+  const stats = useGameStore((s) => s.stats);
+  const gameTick = useGameStore((s) => s.gameTick);
   const settings = useSettingsStore();
   const [tickFormat, setTickFormat] = useTickFormat();
 
   // Sound preview state
   const [lastPreviewSound, setLastPreviewSound] = useState<string | null>(null);
-
-  // Clear/Reset confirmation state
-  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
-  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
-  const [resetDoubleConfirm, setResetDoubleConfirm] = useState(false);
 
   // Sync settings to sound engine on mount and when they change
   useEffect(() => {
@@ -217,76 +200,8 @@ export function SettingsPanel() {
     setTimeout(() => setLastPreviewSound(null), 500);
   }, []);
 
-  // Export save
-  const handleExport = useCallback(() => {
-    soundEngine.init();
-    soundEngine.play('buttonClick', 'ui');
-    const saveStr = store.exportSave();
-    navigator.clipboard.writeText(saveStr).catch(() => {});
-  }, [store]);
-
-  // Import save
-  const [importText, setImportText] = useState('');
-  const [importDialogOpen, setImportDialogOpen] = useState(false);
-  const [importError, setImportError] = useState('');
-
-  const handleImport = useCallback(() => {
-    if (!importText.trim()) {
-      setImportError('Please paste a save string.');
-      return;
-    }
-    const success = store.importSave(importText.trim());
-    if (success) {
-      setImportDialogOpen(false);
-      setImportText('');
-      setImportError('');
-      soundEngine.init();
-      soundEngine.play('buttonClick', 'ui');
-    } else {
-      setImportError('Invalid save data. Please check and try again.');
-      soundEngine.init();
-      soundEngine.play('error', 'ui');
-    }
-  }, [store, importText]);
-
-  // Clear save
-  const handleClearSave = useCallback(() => {
-    localStorage.removeItem('factory-dominion');
-    setClearConfirmOpen(false);
-    soundEngine.init();
-    soundEngine.play('buttonClick', 'ui');
-  }, []);
-
-  // Reset game
-  const handleResetGame = useCallback(() => {
-    if (!resetDoubleConfirm) {
-      setResetDoubleConfirm(true);
-      return;
-    }
-    store.resetGame();
-    setResetConfirmOpen(false);
-    setResetDoubleConfirm(false);
-    soundEngine.init();
-    soundEngine.play('buttonClick', 'ui');
-  }, [store, resetDoubleConfirm]);
-
   // Play time display (shared formatter)
-  const playTimeDisplay = formatDuration(store.stats.playTime);
-
-  // Save file size estimate
-  const saveSizeEstimate = (() => {
-    try {
-      const data = localStorage.getItem('factory-dominion');
-      if (data) {
-        const bytes = new Blob([data]).size;
-        if (bytes > 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-        return `${bytes} B`;
-      }
-    } catch {
-      // ignore
-    }
-    return '~1 KB';
-  })();
+  const playTimeDisplay = formatDuration(stats.playTime);
 
   // Game version
   const gameVersion = '1.2.0';
@@ -702,163 +617,6 @@ export function SettingsPanel() {
         </div>
       </SettingsSection>
 
-      {/* ====== SAVE MANAGEMENT ====== */}
-      <SettingsSection
-        title="Save Management"
-        icon={<Save className="w-4 h-4 text-warning" />}
-        defaultOpen={true}
-      >
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {/* Export save */}
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-10 text-xs border-brand/50 text-brand hover:bg-brand/30 hover:border-brand justify-start"
-            onClick={handleExport}
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Export Save to Clipboard
-          </Button>
-
-          {/* Import save */}
-          <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
-            <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-10 text-xs border-warning/80/50 text-warning hover:bg-warning/30 hover:border-warning justify-start"
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                Import Save
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-card border-brand/30 text-subtle max-w-md p-4">
-              <DialogHeader>
-                <DialogTitle className="text-warning flex items-center gap-2 text-sm">
-                  <Upload className="w-4 h-4" /> Import Save
-                </DialogTitle>
-                <DialogDescription className="text-subtle text-xs">
-                  Paste your save data below. This will overwrite your current game!
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-3">
-                <textarea
-                  aria-label="Import game state JSON"
-                  value={importText}
-                  onChange={(e) => { setImportText(e.target.value); setImportError(''); }}
-                  placeholder="Paste your save string here..."
-                  className="w-full bg-background border border-brand/20 rounded-lg p-3 text-xs font-mono text-subtle min-h-24 max-h-36 overflow-y-auto game-scrollbar placeholder:text-muted-label focus:outline-none focus:border-brand/50"
-                />
-                {importError && (
-                  <p className="text-xs text-danger">{importError}</p>
-                )}
-                <div className="flex gap-2">
-                  <Button
-                    onClick={handleImport}
-                    className="flex-1 bg-warning/70 hover:bg-warning/80 text-white h-8 text-xs"
-                  >
-                    <Upload className="w-3 h-3 mr-1" /> Import
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => { setImportDialogOpen(false); setImportError(''); }}
-                    className="border-muted-label text-subtle h-8 text-xs"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          {/* Clear save */}
-          <Dialog open={clearConfirmOpen} onOpenChange={setClearConfirmOpen}>
-            <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-10 text-xs border-domain/50 text-domain hover:bg-domain/30 hover:border-domain justify-start"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Clear Save Data
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-card border-domain/30 text-subtle max-w-sm p-4">
-              <DialogHeader>
-                <DialogTitle className="text-domain text-sm">Clear Save Data?</DialogTitle>
-                <DialogDescription className="text-subtle text-xs">
-                  This will remove your saved game from this browser. You cannot undo this action. Make sure to export your save first if you want to keep it.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="flex gap-2 mt-2">
-                <Button
-                  onClick={handleClearSave}
-                  className="flex-1 bg-domain hover:bg-domain text-white h-8 text-xs"
-                >
-                  <Trash2 className="w-3 h-3 mr-1" /> Clear Save
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setClearConfirmOpen(false)}
-                  className="border-muted-label text-subtle h-8 text-xs"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          {/* Reset game */}
-          <Dialog open={resetConfirmOpen} onOpenChange={(open) => {
-            setResetConfirmOpen(open);
-            if (!open) setResetDoubleConfirm(false);
-          }}>
-            <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-10 text-xs border-danger/50 text-danger hover:bg-danger/30 hover:border-danger justify-start"
-              >
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Reset Game
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-card border-danger/40/30 text-subtle max-w-sm p-4">
-              <DialogHeader>
-                <DialogTitle className="text-danger text-sm">
-                  {resetDoubleConfirm ? <><GameIcon icon="gi:hazard-sign" size={16} className="inline" /> FINAL CONFIRMATION</> : 'Reset Game?'}
-                </DialogTitle>
-                <DialogDescription className="text-subtle text-xs">
-                  {resetDoubleConfirm
-                    ? 'ALL progress will be permanently lost. There is no way to recover your factory. Are you absolutely sure?'
-                    : 'This will reset all game progress and start from the beginning. This action cannot be undone!'}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="flex gap-2 mt-2">
-                <Button
-                  onClick={handleResetGame}
-                  className={`flex-1 h-8 text-xs ${
-                    resetDoubleConfirm
-                      ? 'bg-danger hover:bg-danger text-white'
-                      : 'bg-danger/50 hover:bg-danger text-danger'
-                  }`}
-                >
-                  <RotateCcw className="w-3 h-3 mr-1" />
-                  {resetDoubleConfirm ? 'YES, DELETE EVERYTHING' : 'Reset Game'}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => { setResetConfirmOpen(false); setResetDoubleConfirm(false); }}
-                  className="border-muted-label text-subtle h-8 text-xs"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </SettingsSection>
-
       {/* ====== SUPPORT THE DEVELOPER ====== */}
       <SettingsSection
         title="Support the Developer"
@@ -933,22 +691,13 @@ export function SettingsPanel() {
             <p className="text-sm font-mono text-subtle">{playTimeDisplay}</p>
           </div>
 
-          {/* Save file size */}
-          <div className="bg-background rounded-lg p-3">
-            <div className="flex items-center gap-2 mb-1">
-              <HardDrive className="w-3 h-3 text-muted-label" />
-              <span className="text-[10px] text-muted-label">Save Size</span>
-            </div>
-            <p className="text-sm font-mono text-subtle">{saveSizeEstimate}</p>
-          </div>
-
           {/* Total ticks */}
           <div className="bg-background rounded-lg p-3">
             <div className="flex items-center gap-2 mb-1">
               <Volume1 className="w-3 h-3 text-muted-label" />
               <span className="text-[10px] text-muted-label">Game Ticks</span>
             </div>
-            <p className="text-sm font-mono text-subtle">{formatNumber(store.gameTick)}</p>
+            <p className="text-sm font-mono text-subtle">{formatNumber(gameTick)}</p>
           </div>
         </div>
 

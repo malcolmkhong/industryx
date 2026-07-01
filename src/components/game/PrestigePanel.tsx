@@ -11,7 +11,7 @@ import {
   ArrowUpRight, Zap, TrendingUp, FlaskConical, Package,
   Database, Shield, Factory, AlertTriangle, ChevronRight
 } from 'lucide-react';
-import { GameIcon } from './shared/GameIcon';
+import { GameIcon } from '@/components/icons';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
   DialogDescription, DialogFooter, DialogClose

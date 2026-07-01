@@ -7,7 +7,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { RESOURCE_META } from '@/lib/game/configCache';
 import { ResourceType } from '@/lib/game/types';
 import { BarChart3, TrendingUp, TrendingDown, Minus, Zap, DollarSign, Activity } from 'lucide-react';
-import { GameIcon } from '@/components/game/shared/GameIcon';
+import { GameIcon } from '@/components/icons';
 
 type TimeRange = 50 | 100 | 200;
 

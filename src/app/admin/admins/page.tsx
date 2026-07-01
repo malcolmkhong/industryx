@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { Plus, X, Copy, Trash2, Check, Users, ShieldCheck, Shield } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -52,48 +53,6 @@ function getSourceBadgeClasses(source: string): string {
     default:
       return "bg-background/20/15 text-muted-label border-muted-label/10/20";
   }
-}
-
-// ─── Inline SVG helpers (used in core content) ────────────────────────────
-
-function IconPlus() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 12h14" /><path d="M12 5v14" />
-    </svg>
-  );
-}
-
-function IconX() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 6 6 18" /><path d="m6 6 12 12" />
-    </svg>
-  );
-}
-
-function IconCopy() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-    </svg>
-  );
-}
-
-function IconTrash() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-    </svg>
-  );
-}
-
-function IconCheck() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
-  );
 }
 
 // ─── Component ────────────────────────────────────────────────────────────
@@ -266,7 +225,7 @@ export default function AdminManagementPage() {
           aria-label="Open add admin dialog"
           className="inline-flex items-center gap-2 px-4 py-2 bg-warning hover:bg-warning text-black font-medium text-sm rounded-lg transition-colors shrink-0"
         >
-          <IconPlus aria-hidden="true" />
+          <Plus aria-hidden="true" size={16} />
           Add Admin
         </button>
       </div>
@@ -287,7 +246,7 @@ export default function AdminManagementPage() {
           aria-live="polite"
           className="mb-4 flex items-center gap-2 px-4 py-3 rounded-lg bg-success/15 text-success border border-success/20 text-sm font-medium"
         >
-          <IconCheck />
+          <Check size={14} />
           {successMsg}
         </div>
       )}
@@ -297,9 +256,7 @@ export default function AdminManagementPage() {
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-warning">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
+              <Users size={18} className="text-warning" />
             </div>
             <div>
               <p className="text-muted-label text-xs">Total Admins</p>
@@ -311,9 +268,7 @@ export default function AdminManagementPage() {
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-success">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-              </svg>
+              <Shield size={18} className="text-success" />
             </div>
             <div>
               <p className="text-muted-label text-xs">Active Sessions</p>
@@ -325,9 +280,7 @@ export default function AdminManagementPage() {
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-lg bg-domain/10 flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-domain">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" />
-              </svg>
+              <ShieldCheck size={18} className="text-domain" />
             </div>
             <div>
               <p className="text-muted-label text-xs">Super Admins</p>
@@ -348,9 +301,7 @@ export default function AdminManagementPage() {
         ) : admins.length === 0 ? (
           <div className="p-12 text-center">
             <div className="text-3xl mb-3">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted-label/80 mx-auto">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
+              <Users size={48} strokeWidth={1.5} className="text-muted-label/80 mx-auto" />
             </div>
             <p className="text-muted-label text-sm mb-2">No admin users found</p>
             <p className="text-muted-label/80 text-xs">Add an admin user to get started.</p>
@@ -360,7 +311,7 @@ export default function AdminManagementPage() {
               aria-label="Open add admin dialog"
               className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-warning/10 text-warning text-sm rounded-lg hover:bg-warning/20 transition-colors border border-warning/20"
             >
-              <IconPlus aria-hidden="true" />
+              <Plus aria-hidden="true" size={16} />
               Add Admin
             </button>
           </div>
@@ -423,9 +374,9 @@ export default function AdminManagementPage() {
                               title="Copy full ID"
                             >
                               {copiedId === admin.userId ? (
-                                <span className="text-success" aria-label="Copied"><IconCheck /></span>
+                                <span className="text-success" aria-label="Copied"><Check size={14} /></span>
                               ) : (
-                                <IconCopy aria-hidden="true" />
+                                <Copy aria-hidden="true" size={14} />
                               )}
                             </button>
                           </div>
@@ -455,7 +406,7 @@ export default function AdminManagementPage() {
                               aria-label={`Remove admin ${admin.email ?? admin.userId}`}
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-danger hover:text-danger hover:bg-danger/10 transition-colors border border-danger/20"
                             >
-                              <IconTrash aria-hidden="true" />
+                              <Trash2 aria-hidden="true" size={14} />
                               Remove
                             </button>
                           ) : isMe ? (
@@ -511,9 +462,9 @@ export default function AdminManagementPage() {
                             aria-label={`Copy full user ID for ${admin.email ?? "this admin"}`}
                           >
                             {copiedId === admin.userId ? (
-                              <span className="text-success" aria-label="Copied"><IconCheck /></span>
+                              <span className="text-success" aria-label="Copied"><Check size={14} /></span>
                             ) : (
-                              <IconCopy aria-hidden="true" />
+                              <Copy aria-hidden="true" size={14} />
                             )}
                           </button>
                         </div>
@@ -534,7 +485,7 @@ export default function AdminManagementPage() {
                             aria-label={`Remove admin ${admin.email ?? admin.userId}`}
                             className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-danger hover:text-danger hover:bg-danger/10 transition-colors border border-danger/20"
                           >
-                            <IconTrash aria-hidden="true" />
+                            <Trash2 aria-hidden="true" size={14} />
                             Remove
                           </button>
                         )}
@@ -571,7 +522,7 @@ export default function AdminManagementPage() {
                 aria-label="Close add admin dialog"
                 className="text-muted-label hover:text-white transition-colors p-1"
               >
-                <IconX />
+                <X size={16} />
               </button>
             </div>
 
@@ -679,7 +630,7 @@ export default function AdminManagementPage() {
                   </>
                 ) : (
                   <>
-                    <IconPlus />
+                    <Plus size={16} />
                     Add Admin
                   </>
                 )}
@@ -701,9 +652,7 @@ export default function AdminManagementPage() {
           <div className="bg-background/80 border border-muted-label/40 rounded-xl w-full max-w-sm shadow-2xl">
             <div className="p-6 text-center">
               <div className="w-12 h-12 rounded-full bg-danger/10 flex items-center justify-center mx-auto mb-4" aria-hidden="true">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger">
-                  <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                </svg>
+                <Trash2 size={24} className="text-danger" />
               </div>
               <h3 id="remove-admin-title" className="text-white font-semibold text-lg mb-2">Remove Admin</h3>
               <p id="remove-admin-desc" className="text-muted-label text-sm mb-1">
@@ -733,7 +682,7 @@ export default function AdminManagementPage() {
                   </>
                 ) : (
                   <>
-                    <IconTrash />
+                    <Trash2 size={14} />
                     Remove
                   </>
                 )}

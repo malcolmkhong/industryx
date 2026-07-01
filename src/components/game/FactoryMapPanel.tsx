@@ -20,7 +20,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
-import { GameIcon } from '@/components/game/shared/GameIcon';
+import { GameIcon } from '@/components/icons';
 
 // --- Constants ---
 const GRID_COLS = 16;

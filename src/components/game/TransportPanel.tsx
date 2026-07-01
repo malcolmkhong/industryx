@@ -18,7 +18,7 @@ import { TransportType, ResourceType, BuildingInstance } from '@/lib/game/types'
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GameIcon } from '@/components/game/shared/GameIcon';
+import { GameIcon } from '@/components/icons';
 import { formatRemaining } from '@/lib/utils/time';
 
 // --- Tier Color Map ---

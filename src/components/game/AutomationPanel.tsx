@@ -10,7 +10,7 @@ import {
   RefreshCw, Scale, Wrench, TrendingUp, Building, Package
 } from 'lucide-react';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
-import { GameIcon } from '@/components/game/shared/GameIcon';
+import { GameIcon } from '@/components/icons';
 
 const AUTO_ICONS: Record<string, React.ReactNode> = {
   autoRouting: <RefreshCw className="w-5 h-5" />,

@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Bell, Check, CheckCheck, Trash2, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GameIcon } from '@/components/game/shared/GameIcon';
+import { GameIcon } from '@/components/icons';
 
 type NotificationFilter = 'all' | 'success' | 'warning' | 'error' | 'info';
 

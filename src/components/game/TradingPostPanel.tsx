@@ -6,7 +6,7 @@ import { useGameStore, formatNumber } from "@/lib/game/store";
 import { ResourceType } from "@/lib/game/types";
 import { TRADE_COMMISSION_RATE } from "@/lib/game/tradeConstants";
 import { INITIAL_MARKET, RESOURCE_META, TRADABLE_RESOURCE_IDS } from "@/lib/game/configCache";
-import { GameIcon } from "@/components/game/shared/GameIcon";
+import { GameIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {

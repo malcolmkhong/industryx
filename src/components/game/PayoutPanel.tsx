@@ -17,7 +17,7 @@ import {
   Sun, Wind, Coins, Info, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
-import { GameIcon } from '@/components/game/shared/GameIcon';
+import { GameIcon } from '@/components/icons';
 import { formatRemaining, formatDuration } from '@/lib/utils/time';
 
 export function PayoutPanel() {

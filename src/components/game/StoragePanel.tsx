@@ -15,7 +15,7 @@ import {
   Gauge, Warehouse, CircleDot,
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { GameIcon } from '@/components/game/shared/GameIcon';
+import { GameIcon } from '@/components/icons';
 
 // ─── Tier Config ──────────────────────────────────────────────────────────────
 const TIER_CONFIG: Record<number, { label: string; color: string; bg: string; border: string }> = {
@@ -685,9 +685,9 @@ export function StoragePanel() {
   // ─── Overview View ────────────────────────────────────────────────────────
   const renderOverviewView = () => (
     <div className="space-y-3">
-      {([0, 1, 2, 3, 4, 5] as const).map(tier => {
+      {(Object.keys(TIER_CONFIG) as unknown as number[]).map(tier => {
         const config = TIER_CONFIG[tier];
-        const resources = groupedResources[tier];
+        const resources = groupedResources[tier] ?? [];
         const activeInTier = resources.filter(r => {
           const amount = store.resources[r] ?? 0;
           const prodRate = store.productionSnapshot.production[r] ?? 0;

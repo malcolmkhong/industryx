@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { AlertTriangle, Building2, Lock, Clock } from "lucide-react";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -13,9 +14,7 @@ export default function LoginPage() {
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
         <div className="bg-background/80/80 backdrop-blur-xl border border-muted-label/40 rounded-2xl p-8 shadow-2xl max-w-md w-full text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 mb-6 rounded-2xl bg-danger/10">
-            <svg className="w-8 h-8 text-danger" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
+            <AlertTriangle className="w-8 h-8 text-danger" />
           </div>
           <h2 className="text-xl font-semibold text-white mb-2">Service Unavailable</h2>
           <p className="text-muted-label text-sm">Authentication service is not configured. Please contact your system administrator.</p>
@@ -75,21 +74,7 @@ export default function LoginPage() {
         {/* Logo / Branding */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-20 h-20 mb-6 rounded-2xl bg-linear-to-br from-warning/60 to-domain/80 shadow-lg shadow-warning/20">
-            <svg
-              width="40"
-              height="40"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="white"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M2 20h20" />
-              <path d="M5 20V8l7-5 7 5v12" />
-              <path d="M9 20v-6h6v6" />
-              <path d="M9 12h6" />
-            </svg>
+            <Building2 size={40} color="white" strokeWidth={2} />
           </div>
           <h1 className="text-3xl font-bold text-white tracking-tight">
             IndustriaX
@@ -112,19 +97,7 @@ export default function LoginPage() {
           {error && (
             <div className="mb-6 p-4 bg-danger/10 border border-danger/30 rounded-xl">
               <div className="flex items-start gap-3">
-                <svg
-                  className="w-5 h-5 text-danger mt-0.5 shrink-0"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
-                  />
-                </svg>
+                <AlertTriangle className="w-5 h-5 text-danger mt-0.5 shrink-0" />
                 <div>
                   <p className="text-danger text-sm font-medium">
                     Access Denied
@@ -203,19 +176,7 @@ export default function LoginPage() {
           {/* Security Notice */}
           <div className="mt-8 pt-6 border-t border-muted-label/40">
             <div className="flex items-start gap-3">
-              <svg
-                className="w-4 h-4 text-warning mt-0.5 shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                />
-              </svg>
+              <Lock className="w-4 h-4 text-warning mt-0.5 shrink-0" />
               <div>
                 <p className="text-subtle text-xs font-medium">
                   Authorized personnel only
@@ -229,19 +190,7 @@ export default function LoginPage() {
             </div>
 
             <div className="flex items-start gap-3 mt-4">
-              <svg
-                className="w-4 h-4 text-muted-label mt-0.5 shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
+              <Clock className="w-4 h-4 text-muted-label mt-0.5 shrink-0" />
               <div>
                 <p className="text-muted-label text-xs font-medium">
                   Session timeout

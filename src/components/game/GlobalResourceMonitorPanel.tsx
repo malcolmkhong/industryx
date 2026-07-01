@@ -15,7 +15,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { BUILDING_DEFS, RESOURCE_META } from '@/lib/game/configCache';
 import { ResourceType, GameTab } from '@/lib/game/types';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
-import { GameIcon } from '@/components/game/shared/GameIcon';
+import { GameIcon } from '@/components/icons';
 import ResourceFlowDiagram from './ResourceFlowDiagram';
 
 // ─── Tier Badge Colors ────────────────────────────────────────────────────────

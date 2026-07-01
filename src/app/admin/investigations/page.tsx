@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { ClipboardList, Check, ChevronLeft, ChevronRight, RotateCw, Eye, X, AlertCircle, AlertTriangle, ShieldCheck, Shield } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -43,64 +44,6 @@ const DETECTION_TYPE_OPTIONS = [
   "impossible_progression",
   "other",
 ];
-
-// ─── Inline SVG helpers (used in core content) ────────────────────────────
-
-function IconClipboardList() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect width="8" height="4" x="8" y="2" rx="1" ry="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><path d="M12 11h4" /><path d="M12 16h4" /><path d="M8 11h.01" /><path d="M8 16h.01" />
-    </svg>
-  );
-}
-
-function IconCheck() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
-  );
-}
-
-function IconChevronLeft() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m15 18-6-6 6-6" />
-    </svg>
-  );
-}
-
-function IconChevronRight() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m9 18 6-6-6-6" />
-    </svg>
-  );
-}
-
-function IconRefresh() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M8 16H3v5" />
-    </svg>
-  );
-}
-
-function IconEye() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
-function IconX() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 6 6 18" /><path d="m6 6 12 12" />
-    </svg>
-  );
-}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -267,7 +210,7 @@ export default function InvestigationsPage() {
       )}
       {successMsg && (
         <div className="mb-4 flex items-center gap-2 px-4 py-3 rounded-lg bg-success/15 text-success border border-success/20 text-sm font-medium">
-          <IconCheck />
+          <Check size={14} />
           {successMsg}
         </div>
       )}
@@ -331,7 +274,7 @@ export default function InvestigationsPage() {
             onClick={() => fetchInvestigations()}
             className="inline-flex items-center gap-2 px-4 py-2 bg-warning/10 text-warning text-sm rounded-lg hover:bg-warning/20 transition-colors border border-warning/20 shrink-0"
           >
-            <IconRefresh />
+            <RotateCw size={16} />
             Refresh
           </button>
         </div>
@@ -342,9 +285,7 @@ export default function InvestigationsPage() {
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-danger/10 flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger">
-                <circle cx="12" cy="12" r="10" /><path d="M12 8v4" /><path d="M12 16h.01" />
-              </svg>
+              <AlertCircle size={18} className="text-danger" />
             </div>
             <div>
               <p className="text-muted-label text-xs">Open Count</p>
@@ -356,9 +297,7 @@ export default function InvestigationsPage() {
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-domain/10 flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-domain">
-                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" />
-              </svg>
+              <AlertTriangle size={18} className="text-domain" />
             </div>
             <div>
               <p className="text-muted-label text-xs">Critical</p>
@@ -370,9 +309,7 @@ export default function InvestigationsPage() {
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-success">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><path d="m9 11 3 3L22 4" />
-              </svg>
+              <ShieldCheck size={18} className="text-success" />
             </div>
             <div>
               <p className="text-muted-label text-xs">Resolved Today</p>
@@ -384,7 +321,7 @@ export default function InvestigationsPage() {
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
-              <IconClipboardList />
+              <ClipboardList size={18} />
             </div>
             <div>
               <p className="text-muted-label text-xs">Total</p>
@@ -404,9 +341,7 @@ export default function InvestigationsPage() {
           </div>
         ) : investigations.length === 0 ? (
           <div className="p-12 text-center">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted-label/80 mx-auto">
-              <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
-            </svg>
+            <Shield size={48} strokeWidth={1.5} className="text-muted-label/80 mx-auto" />
             <p className="text-muted-label text-sm mb-2 mt-3">No investigations found</p>
             <p className="text-muted-label/80 text-xs">Adjust filters or wait for new detections.</p>
           </div>
@@ -511,7 +446,7 @@ export default function InvestigationsPage() {
                                 {actionLoading ? (
                                   <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
                                 ) : (
-                                  <IconCheck />
+                                  <Check size={14} />
                                 )}
                                 {actionType === "resolve" ? "Confirm" : "Confirm"}
                               </button>
@@ -523,7 +458,7 @@ export default function InvestigationsPage() {
                               onClick={() => setViewTarget(inv)}
                               className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-muted-label hover:text-warning hover:bg-warning/10 transition-colors border border-muted-label/30 hover:border-warning/20"
                             >
-                              <IconEye />
+                              <Eye size={14} />
                               View
                             </button>
                             {(inv.status === "open" || inv.status === "investigating") && (
@@ -532,14 +467,14 @@ export default function InvestigationsPage() {
                                   onClick={() => { setActionTarget(inv.id); setActionType("resolve"); setActionNote(""); }}
                                   className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-success hover:bg-success/10 transition-colors border border-success/20"
                                 >
-                                  <IconCheck />
+                                  <Check size={14} />
                                   Resolve
                                 </button>
                                 <button
                                   onClick={() => { setActionTarget(inv.id); setActionType("dismiss"); setActionNote(""); }}
                                   className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-muted-label hover:bg-background/20/10 transition-colors border border-muted-label/20"
                                 >
-                                  <IconX />
+                                  <X size={14} />
                                   Dismiss
                                 </button>
                               </>
@@ -619,7 +554,7 @@ export default function InvestigationsPage() {
                           {actionLoading ? (
                             <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
                           ) : (
-                            <IconCheck />
+                            <Check size={14} />
                           )}
                           Confirm
                         </button>
@@ -631,7 +566,7 @@ export default function InvestigationsPage() {
                         onClick={() => setViewTarget(inv)}
                         className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-muted-label hover:text-warning hover:bg-warning/10 transition-colors border border-muted-label/30"
                       >
-                        <IconEye />
+                        <Eye size={14} />
                         View
                       </button>
                       {(inv.status === "open" || inv.status === "investigating") && (
@@ -640,14 +575,14 @@ export default function InvestigationsPage() {
                             onClick={() => { setActionTarget(inv.id); setActionType("resolve"); setActionNote(""); }}
                             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-success hover:bg-success/10 transition-colors border border-success/20"
                           >
-                            <IconCheck />
+                            <Check size={14} />
                             Resolve
                           </button>
                           <button
                             onClick={() => { setActionTarget(inv.id); setActionType("dismiss"); setActionNote(""); }}
                             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-muted-label hover:bg-background/20/10 transition-colors border border-muted-label/20"
                           >
-                            <IconX />
+                            <X size={14} />
                             Dismiss
                           </button>
                         </>
@@ -670,7 +605,7 @@ export default function InvestigationsPage() {
                     disabled={pagination.page <= 1}
                     className="inline-flex items-center gap-1 px-3 py-1.5 text-xs text-muted-label hover:text-white bg-background/60/50 hover:bg-background/60 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed border border-muted-label/30"
                   >
-                    <IconChevronLeft />
+                    <ChevronLeft size={16} />
                     Prev
                   </button>
                   <span className="text-muted-label text-xs">
@@ -682,7 +617,7 @@ export default function InvestigationsPage() {
                     className="inline-flex items-center gap-1 px-3 py-1.5 text-xs text-muted-label hover:text-white bg-background/60/50 hover:bg-background/60 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed border border-muted-label/30"
                   >
                     Next
-                    <IconChevronRight />
+                    <ChevronRight size={16} />
                   </button>
                 </div>
               </div>
@@ -708,9 +643,7 @@ export default function InvestigationsPage() {
                 aria-label="Close details"
                 className="text-muted-label hover:text-white transition-colors p-1"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M18 6 6 18" /><path d="m6 6 12 12" />
-                </svg>
+                <X size={16} aria-hidden="true" />
               </button>
             </div>
             <div className="p-5 space-y-4">

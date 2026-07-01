@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useGameStore, formatNumber } from '@/lib/game/store';
 import { WEATHER_DEFS, RESEARCH_TREE } from '@/lib/game/configCache';
-import { GameIcon } from '@/components/game/shared/GameIcon';
+import { GameIcon, BrandLogo } from '@/components/icons';
 import { OnlineCount } from '@/components/game/OnlineCount';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useGameConfig } from '@/components/providers/GameConfigProvider';
@@ -31,16 +31,13 @@ import {
 import type { GameTab } from '@/lib/game/types';
 
 interface DesktopHeaderProps {
-  onExport: () => void;
-  onImport: () => void;
-  onReset: () => void;
   onTabChange: (tab: GameTab) => void;
   onManageAccount?: () => void;
 }
 
 const SPEED_OPTIONS = [1, 2, 5, 10] as const;
 
-export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onManageAccount }: DesktopHeaderProps) {
+export function DesktopHeader({ onTabChange, onManageAccount }: DesktopHeaderProps) {
   const gameTick = useGameStore(s => s.gameTick);
   const gameSpeed = useGameStore(s => s.gameSpeed);
   const paused = useGameStore(s => s.paused);
@@ -126,9 +123,7 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
           <HoverCard openDelay={300} closeDelay={100}>
             <HoverCardTrigger asChild>
               <div className="flex items-center gap-2.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-lg" tabIndex={0}>
-                <div className="w-10 h-10 rounded-lg bg-linear-to-br from-brand to-success/80 flex items-center justify-center text-base font-bold shadow-[0_0_12px_rgba(0,255,242,0.2)]">
-                  IX
-                </div>
+                <BrandLogo size="md" />
                 <div>
                   <h1 className="text-sm font-bold text-brand neon-glow-cyan tracking-wider">INDUSTRIAX</h1>
                   <p className="text-[10px] text-subtle -mt-0.5">Factory Dominion</p>
@@ -554,18 +549,8 @@ export function DesktopHeader({ onExport, onImport, onReset, onTabChange, onMana
             <DropdownMenuContent align="end" className="w-48 bg-card border-brand/30">
               <DropdownMenuLabel className="text-xs">Tools</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={onExport} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand">
-                <Download className="w-3 h-3 mr-2" aria-hidden="true" /> Export Save
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={onImport} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand">
-                <Upload className="w-3 h-3 mr-2" aria-hidden="true" /> Import Save
-              </DropdownMenuItem>
               <DropdownMenuItem onSelect={reloadConfig} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand">
                 <RefreshCw className="w-3 h-3 mr-2" aria-hidden="true" /> Reload Config
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={onReset} className="text-xs cursor-pointer text-danger focus:text-danger focus-visible:ring-2 focus-visible:ring-danger">
-                <RotateCcw className="w-3 h-3 mr-2" aria-hidden="true" /> Reset Game
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

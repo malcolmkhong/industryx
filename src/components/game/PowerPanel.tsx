@@ -17,7 +17,7 @@ import { PowerPlantType, BuildingInstance } from '@/lib/game/types';
 import { getPowerPlantTypes } from '@/lib/game/buildingDiscovery';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
-import { GameIcon } from '@/components/game/shared/GameIcon';
+import { GameIcon } from '@/components/icons';
 import { formatRemaining, formatDuration } from '@/lib/utils/time';
 
 // Dynamic power plant types from BUILDING_DEFS (includes Supabase buildings)

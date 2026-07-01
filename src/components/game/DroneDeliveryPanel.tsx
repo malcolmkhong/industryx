@@ -17,7 +17,7 @@ import {
   Clock, DollarSign, FlaskConical, ChevronDown, ChevronUp,
   Send, ShoppingBag,
 } from 'lucide-react';
-import { GameIcon } from '@/components/game/shared/GameIcon';
+import { GameIcon } from '@/components/icons';
 import { formatRemaining, formatDuration } from '@/lib/utils/time';
 
 // --- Drone Status Badge ---

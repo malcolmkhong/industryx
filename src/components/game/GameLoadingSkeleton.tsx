@@ -1,4 +1,4 @@
-import { GameIcon } from '@/components/game/shared/GameIcon';
+import { GameIcon } from '@/components/icons';
 
 interface GameLoadingSkeletonProps {
   headerHeight: number;

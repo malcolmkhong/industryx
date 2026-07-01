@@ -17,7 +17,7 @@ import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { LoadingSpinner } from '@/components/game/shared/LoadingSpinner';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
 import { GameCard } from '@/components/game/shared/GameCard';
-import { GameIcon } from '@/components/game/shared/GameIcon';
+import { GameIcon } from '@/components/icons';
 
 const TIER_COLORS = ['#a0a0a0', '#22d3ee', '#f97316', '#a855f7'];
 

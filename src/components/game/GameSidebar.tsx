@@ -282,17 +282,16 @@ export function GameSidebar() {
 
   useEffect(() => {
     const check = async () => {
-      const supabase = (await import("@/lib/supabase/client")).createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase
-          .from("admin_users")
-          .select("user_id")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        setIsAdmin(!!data);
+      try {
+        const res = await fetch('/api/auth/me');
+        if (!res.ok) {
+          setIsAdmin(false);
+          return;
+        }
+        const data = await res.json();
+        setIsAdmin(!!data?.user?.isAdmin);
+      } catch {
+        setIsAdmin(false);
       }
     };
     check();

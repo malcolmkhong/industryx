@@ -2,7 +2,7 @@ import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
 import {
   Bell, Check, Cloud, CloudOff, Download, Loader2, LogIn, LogOut,
-  Newspaper, Pause, Play, RefreshCw, RotateCcw, Upload, User, Wifi, WifiOff,
+  Newspaper, Pause, Play, RefreshCw, User, Wifi, WifiOff,
   Wrench, TrendingUp, TrendingDown,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useGameStore, formatNumber } from '@/lib/game/store';
 import { WEATHER_DEFS } from '@/lib/game/configCache';
-import { GameIcon } from '@/components/game/shared/GameIcon';
+import { GameIcon, BrandLogo } from '@/components/icons';
 import { OnlineCount } from '@/components/game/OnlineCount';
 import { useTickFormat } from '@/lib/hooks/useTickFormat';
 import { formatByMode, formatRemaining } from '@/lib/utils/time';
@@ -29,16 +29,13 @@ import { useMoneyGlowEffect } from '@/lib/hooks/page/useMoneyGlowEffect';
 import type { GameTab } from '@/lib/game/types';
 
 interface MobileHeaderProps {
-  onExport: () => void;
-  onImport: () => void;
-  onReset: () => void;
   onTabChange: (tab: GameTab) => void;
   onManageAccount?: () => void;
 }
 
 const SPEED_OPTIONS = [1, 2, 5, 10] as const;
 
-export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManageAccount }: MobileHeaderProps) {
+export function MobileHeader({ onTabChange, onManageAccount }: MobileHeaderProps) {
   const gameTick = useGameStore(s => s.gameTick);
   const [tickFormat] = useTickFormat();
   const gameSpeed = useGameStore(s => s.gameSpeed);
@@ -124,9 +121,7 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
         <HoverCard openDelay={300} closeDelay={100}>
           <HoverCardTrigger asChild>
             <div className="flex items-center gap-1.5 cursor-pointer shrink-0" tabIndex={0}>
-              <div className="w-6 h-6 rounded-md bg-linear-to-br from-brand to-success/80 flex items-center justify-center text-[9px] font-bold shrink-0 shadow-[0_0_6px_rgba(0,255,242,0.2)]">
-                IX
-              </div>
+              <BrandLogo size="sm" />
               <h1 className="text-[11px] font-bold text-brand neon-glow-cyan tracking-wider">INDUSTRIAX</h1>
             </div>
           </HoverCardTrigger>
@@ -663,12 +658,6 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
               <DropdownMenuItem onSelect={handleCloudLoad} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand" disabled={cloudStatus === 'loading'}>
                 <Download className="w-3 h-3 mr-2" /> Load from Cloud
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={onExport} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand">
-                <Download className="w-3 h-3 mr-2" /> Export Save
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={onImport} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand">
-                <Upload className="w-3 h-3 mr-2" /> Import Save
-              </DropdownMenuItem>
               <DropdownMenuItem onSelect={reloadConfig} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand">
                 <RefreshCw className="w-3 h-3 mr-2" /> Reload Config
               </DropdownMenuItem>
@@ -703,18 +692,8 @@ export function MobileHeader({ onExport, onImport, onReset, onTabChange, onManag
           <DropdownMenuContent align="end" className="w-44 bg-card border-brand/30">
             <DropdownMenuLabel className="text-xs">Tools</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={onExport} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand">
-              <Download className="w-3 h-3 mr-2" aria-hidden="true" /> Export Save
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={onImport} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand">
-              <Upload className="w-3 h-3 mr-2" aria-hidden="true" /> Import Save
-            </DropdownMenuItem>
             <DropdownMenuItem onSelect={reloadConfig} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand">
               <RefreshCw className="w-3 h-3 mr-2" aria-hidden="true" /> Reload Config
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={onReset} className="text-xs cursor-pointer text-danger focus:text-danger focus-visible:ring-2 focus-visible:ring-danger">
-              <RotateCcw className="w-3 h-3 mr-2" aria-hidden="true" /> Reset Game
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

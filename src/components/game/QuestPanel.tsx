@@ -8,7 +8,7 @@ import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { Pin, PinOff, Clock, Lock, Filter, ChevronDown, ChevronRight, Sparkles, ScrollText } from 'lucide-react';
 import { GameCard } from '@/components/game/shared/GameCard';
 import { Quest, QuestType } from '@/lib/game/types';
-import { GameIcon } from '@/components/game/shared/GameIcon';
+import { GameIcon } from '@/components/icons';
 import { formatRemaining } from '@/lib/utils/time';
 
 const TIER_COLORS = ['#a0a0a0', '#22d3ee', '#f97316', '#a855f7', '#00ffcc'];

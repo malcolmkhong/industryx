@@ -11,7 +11,7 @@ import {
   AlertTriangle, Clock, Zap, TrendingUp, TrendingDown,
   Factory, FlaskConical, Truck, Shield, Activity, Globe, ArrowUp, ArrowDown, Minus
 } from 'lucide-react';
-import { GameIcon } from '@/components/game/shared/GameIcon';
+import { GameIcon } from '@/components/icons';
 
 const DIRECTION_COLORS: Record<string, string> = {
   up: 'border-success/80/50 bg-success/20/10',

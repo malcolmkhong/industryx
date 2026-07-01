@@ -18,7 +18,7 @@ import { getExtractorTypes, getBasicExtractors, getAdvancedExtractors, getSpecia
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
 import { getTierColorClasses, type TierColor } from '@/components/game/shared/tierColors';
-import { GameIcon } from '@/components/game/shared/GameIcon';
+import { GameIcon } from '@/components/icons';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 

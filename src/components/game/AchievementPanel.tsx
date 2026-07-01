@@ -6,7 +6,7 @@ import { BUILDING_DEFS } from '@/lib/game/configCache';
 import type { GameStore } from '@/lib/game/store-types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { GameIcon } from '@/components/game/shared/GameIcon';
+import { GameIcon } from '@/components/icons';
 import {
   Trophy, Lock, Check, Zap,
   Rocket, Users, Target, Award,

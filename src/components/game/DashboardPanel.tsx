@@ -4,9 +4,9 @@ import { useMemo, useState, useRef, useEffect } from 'react';
 import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/store';
 import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE, RANK_THRESHOLDS, WEATHER_DEFS } from '@/lib/game/configCache';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
+import { TierCard } from '@/components/game/shared/TierCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { useTickFormat } from '@/lib/hooks/useTickFormat';
 import { formatByMode, formatRemaining, formatDuration, formatTicks } from '@/lib/utils/time';
 import {
@@ -20,7 +20,7 @@ import {
 import { BuildingType, ResourceType, WeatherType } from '@/lib/game/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ProductionChainPanel } from '@/components/game/ProductionChainPanel';
-import { GameIcon } from '@/components/game/shared/GameIcon';
+import { GameIcon } from '@/components/icons';
 
 export function DashboardPanel() {
   // H1 FIX: Use specific selectors instead of full-store subscription.
@@ -165,11 +165,11 @@ export function DashboardPanel() {
 
   // Empire tier info
   const empireTier = useMemo(() => {
-    if (empireScore >= 50000) return { name: 'Diamond', color: '#b9f2ff', bgColor: 'bg-brand/20', borderColor: 'border-brand', textColor: 'text-brand/40', icon: <Gem className="w-4 h-4" />, nextThreshold: null, progress: 1 };
-    if (empireScore >= 10000) return { name: 'Platinum', color: '#e5e4e2', bgColor: 'bg-200-gray', borderColor: 'border-muted-label/30', textColor: 'text-subtle', icon: <Crown className="w-4 h-4" />, nextThreshold: 50000, progress: (empireScore - 10000) / 40000 };
-    if (empireScore >= 2000) return { name: 'Gold', color: '#ffd700', bgColor: 'bg-warning', borderColor: 'border-warning', textColor: 'text-warning', icon: <Trophy className="w-4 h-4" />, nextThreshold: 10000, progress: (empireScore - 2000) / 8000 };
-    if (empireScore >= 500) return { name: 'Silver', color: '#c0c0c0', bgColor: 'bg-muted-label/40', borderColor: 'border-muted-label', textColor: 'text-subtle', icon: <Star className="w-4 h-4" />, nextThreshold: 2000, progress: (empireScore - 500) / 1500 };
-    return { name: 'Bronze', color: '#cd7f32', bgColor: 'bg-warning/70', borderColor: 'border-warning/60', textColor: 'text-warning', icon: <Shield className="w-4 h-4" />, nextThreshold: 500, progress: empireScore / 500 };
+    if (empireScore >= 50000) return { name: 'Diamond', color: '#b9f2ff', lucideIcon: <Gem className="w-4 h-4" />, nextThreshold: null, nextTierName: null, progress: 1 };
+    if (empireScore >= 10000) return { name: 'Platinum', color: '#e5e4e2', lucideIcon: <Crown className="w-4 h-4" />, nextThreshold: 50000, nextTierName: 'Diamond', progress: (empireScore - 10000) / 40000 };
+    if (empireScore >= 2000) return { name: 'Gold', color: '#ffd700', lucideIcon: <Trophy className="w-4 h-4" />, nextThreshold: 10000, nextTierName: 'Platinum', progress: (empireScore - 2000) / 8000 };
+    if (empireScore >= 500) return { name: 'Silver', color: '#c0c0c0', lucideIcon: <Star className="w-4 h-4" />, nextThreshold: 2000, nextTierName: 'Gold', progress: (empireScore - 500) / 1500 };
+    return { name: 'Bronze', color: '#cd7f32', lucideIcon: <Shield className="w-4 h-4" />, nextThreshold: 500, nextTierName: 'Silver', progress: empireScore / 500 };
   }, [empireScore]);
 
   // Economy summary values
@@ -242,70 +242,18 @@ export function DashboardPanel() {
       >
         <div className="absolute inset-0 opacity-[0.03]" style={{ background: `radial-gradient(ellipse at 30% 50%, ${empireTier.color}, transparent 70%)` }} />
         <div className="relative z-10 flex items-center gap-4">
-          {/* Tier icon */}
-          <div
-            className="w-16 h-16 rounded-xl flex items-center justify-center border"
-            style={{
-              borderColor: `${empireTier.color}44`,
-              backgroundColor: `${empireTier.color}15`,
-              boxShadow: `0 0 24px ${empireTier.color}20`,
-            }}
-          >
-            <div className="flex flex-col items-center">
-              <div style={{ color: empireTier.color }}>{empireTier.icon}</div>
-              <span className="text-[11px] font-bold mt-0.5" style={{ color: empireTier.color }}>{empireTier.name}</span>
-            </div>
-          </div>
-          {/* Score info */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="text-sm font-semibold text-subtle">Empire Score</h3>
-              <Badge
-                variant="outline"
-                className="text-[9px] font-bold"
-                style={{
-                  borderColor: `${empireTier.color}55`,
-                  color: empireTier.color,
-                  backgroundColor: `${empireTier.color}15`,
-                }}
-              >
-                {empireTier.name}
-              </Badge>
-            </div>
-            <div className="flex items-baseline gap-2 mb-2">
-              <span className="text-2xl font-bold font-mono" style={{ color: empireTier.color }}>
-                {formatNumber(empireScore)}
-              </span>
-              <span className="text-[10px] text-muted-label">points</span>
-            </div>
-            {/* Progress bar to next tier */}
-            {empireTier.nextThreshold !== null ? (
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] text-muted-label">Next: {empireTier.name === 'Bronze' ? 'Silver' : empireTier.name === 'Silver' ? 'Gold' : empireTier.name === 'Gold' ? 'Platinum' : 'Diamond'}</span>
-                  <span className="text-[10px] font-mono" style={{ color: empireTier.color }}>
-                    {formatNumber(empireTier.nextThreshold - empireScore)} pts to go
-                  </span>
-                </div>
-                <div className="h-2 bg-muted-label rounded-full overflow-hidden">
-                  <motion.div
-                    className="h-full rounded-full"
-                    style={{
-                      backgroundColor: empireTier.color,
-                      boxShadow: `0 0 8px ${empireTier.color}66`,
-                    }}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${Math.min(100, empireTier.progress * 100)}%` }}
-                    transition={{ duration: 1, ease: 'easeOut' }}
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold" style={{ color: empireTier.color }}>MAX TIER ACHIEVED</span>
-                <Sparkles className="w-3.5 h-3.5" style={{ color: empireTier.color }} />
-              </div>
-            )}
+            <TierCard
+              label="Empire Score"
+              name={empireTier.name}
+              score={empireScore}
+              color={empireTier.color}
+              lucideIcon={empireTier.lucideIcon}
+              nextLabel={empireTier.nextTierName ?? undefined}
+              nextScore={empireTier.nextThreshold ?? undefined}
+              progress={empireTier.progress}
+              isMax={empireTier.nextThreshold === null}
+            />
           </div>
           {/* Score breakdown mini-stats */}
           <div className="hidden md:flex flex-col gap-1 text-[10px]">
@@ -1178,6 +1126,10 @@ function RankBar() {
   const setActiveTab = useGameStore((s) => s.setActiveTab);
   const rank = getCurrentRank();
 
+  const nextRank = rank.nextRankScore !== null
+    ? RANK_THRESHOLDS.find((r) => r.minScore === rank.nextRankScore)
+    : null;
+
   return (
     <div
       className="game-card rounded-xl bg-card p-4 border border-border relative overflow-hidden"
@@ -1190,61 +1142,19 @@ function RankBar() {
       />
 
       <div className="relative z-10 flex items-center gap-4">
-        {/* Rank emoji */}
-        <div
-          className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl border"
-          style={{
-            borderColor: `${rank.color}44`,
-            backgroundColor: `${rank.color}15`,
-            boxShadow: `0 0 20px ${rank.color}20`,
-          }}
-        >
-          <GameIcon icon={rank.emoji} size={24} />
-        </div>
-
-        {/* Rank info */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-base font-bold tracking-wide" style={{ color: rank.color }}>
-              {rank.name}
-            </h3>
-            <span className="text-[10px] text-muted-label font-mono">
-              Score: {formatNumber(rank.score)}
-            </span>
-          </div>
-
-          {/* Progress bar to next rank */}
-          {rank.nextRankScore !== null ? (
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] text-muted-label">
-                  Next: <GameIcon icon={RANK_THRESHOLDS.find(r => r.minScore === rank.nextRankScore)?.icon} size={14} className="inline-flex" /> {RANK_THRESHOLDS.find(r => r.minScore === rank.nextRankScore)?.name}
-                </span>
-                <span className="text-[10px] font-mono" style={{ color: rank.color }}>
-                  {formatNumber(rank.nextRankScore - rank.score)} pts to go
-                </span>
-              </div>
-              <div className="h-2 bg-muted-label rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-700"
-                  style={{
-                    width: `${rank.progress * 100}%`,
-                    backgroundColor: rank.color,
-                    boxShadow: `0 0 8px ${rank.color}66`,
-                  }}
-                >
-                  <div className="absolute inset-0 bg-linear-to-b from-white/15 to-transparent" />
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold" style={{ color: rank.color }}>
-                MAX RANK ACHIEVED
-              </span>
-              <Sparkles className="w-3.5 h-3.5" style={{ color: rank.color }} />
-            </div>
-          )}
+          <TierCard
+            label="Rank"
+            name={rank.name}
+            score={rank.score}
+            color={rank.color}
+            gameIcon={rank.icon}
+            nextLabel={nextRank?.name}
+            nextScore={rank.nextRankScore ?? undefined}
+            progress={rank.progress}
+            isMax={rank.nextRankScore === null}
+            iconBoxSize="sm"
+          />
         </div>
 
         {/* Quick storage upgrade button */}

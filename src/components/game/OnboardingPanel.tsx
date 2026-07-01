@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { GameIcon } from '@/components/game/shared/GameIcon';
+import { GameIcon } from '@/components/icons';
 import { useGameStore, formatNumber } from '@/lib/game/store';
 import type { GameStore } from '@/lib/game/store-types';
 import { useShallow } from 'zustand/react/shallow';

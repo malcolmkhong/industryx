@@ -19,7 +19,7 @@ import { getFactoryTypesByTier } from '@/lib/game/buildingDiscovery';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
 import { getTierColorClasses, type TierColor } from '@/components/game/shared/tierColors';
-import { GameIcon } from '@/components/game/shared/GameIcon';
+import { GameIcon } from '@/components/icons';
 
 // Factory types dynamically derived from BUILDING_DEFS (includes Supabase buildings)
 const factoryTiers = getFactoryTypesByTier();

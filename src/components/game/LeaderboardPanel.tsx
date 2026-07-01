@@ -5,7 +5,7 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { formatNumber } from '@/lib/game/store';
 import { RANK_THRESHOLDS } from '@/lib/game/configCache';
 import { Trophy, ChevronDown, ChevronUp, Building2, FlaskConical, ScrollText, Coins, Clock, RotateCcw, Loader2, RefreshCw, Crown, Medal, Award, Globe, LogIn, WifiOff } from 'lucide-react';
-import { GameIcon } from '@/components/game/shared/GameIcon';
+import { GameIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatDuration } from '@/lib/utils/time';

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Gift, Flame, Lock, Check, Sparkles, Trophy, Calendar, TrendingUp } from 'lucide-react';
 import { useReducedMotion } from '@/components/game/shared/useReducedMotion';
-import { GameIcon } from '@/components/game/shared/GameIcon';
+import { GameIcon } from '@/components/icons';
 
 export default function DailyRewardsPanel() {
   const store = useGameStore(useShallow((s) => ({ claimDailyReward: s.claimDailyReward, loginStreak: s.loginStreak })));

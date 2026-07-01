@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { Lock, Ban, User, LogIn, ArrowLeft, Info } from "lucide-react";
 
 export default function ForbiddenPage() {
   const [email, setEmail] = useState<string | null>(null);
@@ -40,19 +41,7 @@ export default function ForbiddenPage() {
         {/* Logo / Branding */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-20 h-20 mb-6 rounded-2xl bg-linear-to-br from-danger to-danger/80 shadow-lg shadow-danger/20">
-            <svg
-              width="40"
-              height="40"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="white"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            </svg>
+            <Lock size={40} color="white" strokeWidth={2} />
           </div>
           <h1 className="text-3xl font-bold text-white tracking-tight">
             Access Denied
@@ -66,19 +55,7 @@ export default function ForbiddenPage() {
         <div className="bg-background/80/80 backdrop-blur-xl border border-muted-label/40 rounded-2xl p-8 shadow-2xl">
           <div className="text-center mb-6">
             <div className="inline-flex items-center justify-center w-12 h-12 mb-4 rounded-xl bg-danger/10">
-              <svg
-                className="w-6 h-6 text-danger"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-                />
-              </svg>
+              <Ban className="w-6 h-6 text-danger" />
             </div>
             <h2 className="text-xl font-semibold text-white">Restricted Area</h2>
             <p className="text-muted-label text-sm mt-2">
@@ -92,19 +69,7 @@ export default function ForbiddenPage() {
           {email && (
             <div className="mb-6 p-4 bg-background/60/50 border border-muted-label/30 rounded-xl">
               <div className="flex items-center gap-3">
-                <svg
-                  className="w-4 h-4 text-muted-label shrink-0"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                  />
-                </svg>
+                <User className="w-4 h-4 text-muted-label shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="text-muted-label text-xs">Signed in as</p>
                   <p className="text-subtle text-sm font-medium truncate">
@@ -126,19 +91,7 @@ export default function ForbiddenPage() {
               {loading ? (
                 <div className="w-5 h-5 border-2 border-muted-label/10 border-t-white rounded-full animate-spin" />
               ) : (
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                  />
-                </svg>
+                <LogIn className="w-5 h-5" />
               )}
               <span>{loading ? "Signing out..." : "Sign out & try again"}</span>
             </button>
@@ -147,19 +100,7 @@ export default function ForbiddenPage() {
               href="/"
               className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-transparent hover:bg-background/60/50 text-muted-label hover:text-subtle font-medium rounded-xl transition-all duration-200"
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                />
-              </svg>
+              <ArrowLeft className="w-4 h-4" />
               <span>Back to game</span>
             </a>
           </div>
@@ -167,19 +108,7 @@ export default function ForbiddenPage() {
           {/* Info notice */}
           <div className="mt-8 pt-6 border-t border-muted-label/40">
             <div className="flex items-start gap-3">
-              <svg
-                className="w-4 h-4 text-muted-label mt-0.5 shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
+              <Info className="w-4 h-4 text-muted-label mt-0.5 shrink-0" />
               <div>
                 <p className="text-subtle text-xs font-medium">
                   Why am I seeing this?

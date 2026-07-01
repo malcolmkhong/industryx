@@ -11,13 +11,13 @@ import {
   TrendingUp, TrendingDown, Minus, ShoppingCart, DollarSign,
   ArrowUpRight, ArrowDownRight, BarChart3, Wallet, Activity,
   Zap, Flame, Package, RefreshCw, Link2, Layers, Newspaper, AlertTriangle,
-  Cpu, Sparkles
+  Cpu, Sparkles, Factory
 } from 'lucide-react';
 import { MarketPriceChart } from '@/components/game/MarketPriceChart';
 import { ResourceType } from '@/lib/game/types';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
-import { GameIcon } from '@/components/game/shared/GameIcon';
+import { GameIcon } from '@/components/icons';
 import {
   RESOURCE_SECTOR, RESOURCE_ELASTICITY, PRICE_CORRELATIONS,
   getSectorInfo, getSeverityStyle, getCategoryIcon, MarketSector,
@@ -116,17 +116,19 @@ function SupplyDemandBar({ demand, supply }: { demand: number; supply: number })
 
 // --- Market Cycle Indicator ---
 function MarketCycleIndicator({ phase, progress, multiplier }: { phase: string; progress: number; multiplier: number }) {
-  const phaseConfig: Record<string, { color: string; label: string; icon: string }> = {
-    expansion: { color: 'text-success', label: 'Expansion', icon: '📈' },
-    peak: { color: 'text-warning', label: 'Peak', icon: '⚡' },
-    recession: { color: 'text-danger', label: 'Recession', icon: '📉' },
-    recovery: { color: 'text-brand', label: 'Recovery', icon: '🔄' },
+  type PhaseConfig = { color: string; label: string; Icon: typeof TrendingUp };
+  const phaseConfig: Record<string, PhaseConfig> = {
+    expansion: { color: 'text-success', label: 'Expansion', Icon: TrendingUp },
+    peak: { color: 'text-warning', label: 'Peak', Icon: Zap },
+    recession: { color: 'text-danger', label: 'Recession', Icon: TrendingDown },
+    recovery: { color: 'text-brand', label: 'Recovery', Icon: RefreshCw },
   };
   const config = phaseConfig[phase] ?? phaseConfig.expansion;
+  const Icon = config.Icon;
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs">{config.icon}</span>
+      <Icon size={12} aria-hidden="true" />
       <div className="flex-1">
         <div className="flex items-center justify-between">
           <span className={`text-[10px] font-bold ${config.color}`}>{config.label}</span>
@@ -559,7 +561,7 @@ export function MarketPanel() {
                       { label: 'Demand', value: `${m.demand.toFixed(2)}x`, color: 'text-domain' },
                       { label: 'Supply', value: `${m.supply.toFixed(2)}x`, color: 'text-brand' },
                       { label: 'Elasticity', value: `${(elasticity * 100).toFixed(0)}%`, color: elasticity > 0.5 ? 'text-danger' : 'text-subtle' },
-                      { label: 'Volatility', value: activeInjection ? `⚡ ${activeInjection.source} (${activeInjection.intensity.toFixed(2)})` : 'None', color: activeInjection ? 'text-warning' : 'text-muted-label' },
+                      { label: 'Volatility', value: activeInjection ? `${activeInjection.source} (${activeInjection.intensity.toFixed(2)})` : 'None', color: activeInjection ? 'text-warning' : 'text-muted-label' },
                       { label: 'Your Production', value: prod > 0 ? `${prod.toFixed(1)}/s` : '—', color: prod > 0 ? 'text-success' : 'text-muted-label' },
                       { label: 'Your Consumption', value: cons > 0 ? `${cons.toFixed(1)}/s` : '—', color: cons > 0 ? 'text-domain' : 'text-muted-label' },
                       { label: 'Auto-Sell', value: isAutoSell ? 'Enabled' : 'Disabled', color: isAutoSell ? 'text-success' : 'text-muted-label' },
@@ -594,7 +596,7 @@ export function MarketPanel() {
                                 : 'bg-warning/30 text-warning border-warning/30'
                           }`}>
                             <AlertTriangle className="w-2.5 h-2.5" />
-                            {activeInjection.source === 'macro' ? 'MACRO' : activeInjection.source === 'chain' ? 'CHAIN' : '⚡'}
+                            {activeInjection.source === 'macro' ? 'MACRO' : activeInjection.source === 'chain' ? 'CHAIN' : <Zap className="inline w-2.5 h-2.5" aria-hidden="true" />}
                           </span>
                         )}
                         {priceRatio > 1.5 && (
@@ -1124,7 +1126,7 @@ export function MarketPanel() {
                         <div className={`text-[10px] font-bold ${style.color} mb-0.5`}>{narrative.title}</div>
                         <p className="text-[9px] text-subtle leading-relaxed">{narrative.description}</p>
                         <div className="flex items-center gap-1 mt-1 flex-wrap">
-                          <span className="text-[11px] text-brand">🏭 {narrative.playerAction}</span>
+                          <Factory className="inline w-3 h-3 text-brand" aria-hidden="true" /> {narrative.playerAction}
                           <span className="text-[11px] text-muted-label">→</span>
                           <span className="text-[11px] text-warning">{narrative.marketEffect}</span>
                         </div>

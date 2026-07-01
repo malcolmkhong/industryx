@@ -4,6 +4,7 @@
 import { useEffect, useState, useCallback, use } from "react";
 import { UserAvatar } from "@/components/admin/UserAvatar";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { ArrowLeft, ChevronDown, ChevronUp, Lock, Unlock, Database, Ban, ShieldCheck } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -67,56 +68,6 @@ interface AuthUserEnriched {
   last_sign_in_at?: string;
   email_confirmed_at?: string;
   banned_until?: string | null;
-}
-
-// ─── Inline SVG helpers (used in core content) ────────────────────────────
-
-function IconArrowLeft() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m12 19-7-7 7-7" /><path d="M19 12H5" />
-    </svg>
-  );
-}
-
-function IconChevronDown() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m6 9 6 6 6-6" />
-    </svg>
-  );
-}
-
-function IconChevronUp() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m18 15-6-6-6 6" />
-    </svg>
-  );
-}
-
-function IconLock() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </svg>
-  );
-}
-
-function IconUnlock() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" />
-    </svg>
-  );
-}
-
-function IconDatabase() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5V19A9 3 0 0 0 21 19V5" /><path d="M3 12A9 3 0 0 0 21 12" />
-    </svg>
-  );
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -344,12 +295,10 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-4">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted-label/80">
-            <circle cx="12" cy="12" r="10" /><path d="m15 9-6 6" /><path d="m9 9 6 6" />
-          </svg>
+          <Ban size={48} strokeWidth={1.5} className="text-muted-label/80" />
           <p className="text-muted-label text-sm">Player not found</p>
           <a href="/admin/players" className="inline-flex items-center gap-2 px-4 py-2 bg-warning/60/10 text-warning text-sm rounded-lg hover:bg-warning/60/20 transition-colors border border-warning/60/20">
-            <IconArrowLeft />
+            <ArrowLeft size={16} aria-hidden="true" />
             Back to Players
           </a>
         </div>
@@ -385,7 +334,7 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
           href="/admin/players"
           className="inline-flex items-center gap-2 text-muted-label hover:text-warning text-sm transition-colors mb-4"
         >
-          <IconArrowLeft />
+          <ArrowLeft size={16} aria-hidden="true" />
           Back to Players
         </a>
 
@@ -418,7 +367,7 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
                       </h2>
                       {isLocked ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border bg-danger/15 text-danger border-danger/20">
-                          <IconLock />
+                          <Lock size={14} />
                           Locked
                         </span>
                       ) : (
@@ -483,7 +432,7 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
                       onClick={() => setConfirmModal({ action: "unlock" })}
                       className="inline-flex items-center gap-2 px-4 py-2 bg-success/10 text-success text-sm rounded-lg hover:bg-success/20 transition-colors border border-success/20 font-medium"
                     >
-                      <IconUnlock />
+                      <Unlock size={14} />
                       Unlock Account
                     </button>
                   ) : (
@@ -491,7 +440,7 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
                       onClick={() => setConfirmModal({ action: "lock" })}
                       className="inline-flex items-center gap-2 px-4 py-2 bg-danger/10 text-danger text-sm rounded-lg hover:bg-danger/20 transition-colors border border-danger/20 font-medium"
                     >
-                      <IconLock />
+                      <Lock size={14} />
                       Lock Account
                     </button>
                   )}
@@ -545,11 +494,11 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
                   className="w-full flex items-center justify-between px-5 py-3 border-b border-muted-label/40 hover:bg-background/60/30 transition-colors"
                 >
                   <div className="flex items-center gap-2">
-                    <IconDatabase />
+                    <Database size={18} />
                     <span className="text-white text-sm font-medium">Game State (JSONB)</span>
                     <span className="text-muted-label text-[10px]">{jsonLines.length} lines</span>
                   </div>
-                  {jsonExpanded ? <IconChevronUp /> : <IconChevronDown />}
+                  {jsonExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </button>
                 <div className="p-4 overflow-x-auto max-h-96 overflow-y-auto">
                   <pre className="text-muted-label text-xs font-mono leading-relaxed">
@@ -700,9 +649,7 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
               </div>
               {!player.investigations || player.investigations.length === 0 ? (
                 <div className="p-8 text-center">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted-label/80 mx-auto mb-2">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                  </svg>
+                  <ShieldCheck size={32} strokeWidth={1.5} className="text-muted-label/80 mx-auto mb-2" />
                   <p className="text-muted-label text-sm">No investigations</p>
                   <p className="text-muted-label/80 text-xs">This player has a clean record</p>
                 </div>
@@ -790,13 +737,9 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
                 confirmModal.action === "lock" ? "bg-danger/10" : "bg-success/10"
               }`}>
                 {confirmModal.action === "lock" ? (
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger">
-                    <rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                  </svg>
+                  <Lock size={24} className="text-danger" />
                 ) : (
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-success">
-                    <rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" />
-                  </svg>
+                  <Unlock size={24} className="text-success" />
                 )}
               </div>
               <h3 className="text-white font-semibold text-lg mb-2">
@@ -851,7 +794,7 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
                   </>
                 ) : (
                   <>
-                    {confirmModal.action === "lock" ? <IconLock /> : <IconUnlock />}
+                    {confirmModal.action === "lock" ? <Lock size={14} /> : <Unlock size={14} />}
                     {confirmModal.action === "lock" ? "Lock Account" : "Unlock Account"}
                   </>
                 )}

@@ -15,7 +15,7 @@ import {
 import { LoadingSpinner } from '@/components/game/shared/LoadingSpinner';
 import { ResearchCategory } from '@/lib/game/types';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
-import { GameIcon } from '@/components/game/shared/GameIcon';
+import { GameIcon } from '@/components/icons';
 
 export function ResearchPanel() {
   const store = useGameStore(useShallow((s) => ({ activeResearch: s.activeResearch, completedResearch: s.completedResearch, researchPoints: s.researchPoints, researchProgress: s.researchProgress, startResearch: s.startResearch })));

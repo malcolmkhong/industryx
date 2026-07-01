@@ -22,16 +22,8 @@ import { useMergeFlow } from '@/lib/hooks/useMergeFlow';
 import { useServerMarket } from '@/lib/hooks/useServerMarket';
 
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { TooltipProvider } from '@/components/ui/tooltip';
+  TooltipProvider,
+} from '@/components/ui/tooltip';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { GameLoadingSkeleton } from '@/components/game/GameLoadingSkeleton';
 
@@ -47,9 +39,7 @@ import GameToast from '@/components/game/GameToast';
 import { CloudSyncBlockBanner } from '@/components/game/CloudSyncBlockBanner';
 import { LoginFloatingPanel } from '@/components/game/LoginFloatingPanel';
 import { AccountSettingsModal } from '@/components/game/AccountSettingsModal';
-import { OfflineEarningsDialog } from '@/components/game/dialogs/OfflineEarningsDialog';
-import { ExportDialog } from '@/components/game/dialogs/ExportDialog';
-import { ImportDialog } from '@/components/game/dialogs/ImportDialog';
+import { OfflineEarningsDialog } from '@/components/game/OfflineEarningsDialog';
 
 interface GameShellProps {
   children: React.ReactNode;
@@ -70,10 +60,6 @@ export function GameShell({ children }: GameShellProps) {
   const effectiveSpeed = gameSpeed * (1 + prestigeSpeedBonus);
   const paused = useGameStore(s => s.paused);
 
-  const exportSave = useGameStore(s => s.exportSave);
-  const importSave = useGameStore(s => s.importSave);
-  const resetGame = useGameStore(s => s.resetGame);
-
   const headerRef = useRef<HTMLElement>(null);
 
   // Effects → custom hooks
@@ -93,15 +79,6 @@ export function GameShell({ children }: GameShellProps) {
   const { signInWithGoogle } = useAuth();
   const { blockedState } = useCloudSync();
 
-  // Save system state
-  const [exportDialogOpen, setExportDialogOpen] = useState(false);
-  const [importDialogOpen, setImportDialogOpen] = useState(false);
-  const [exportString, setExportString] = useState('');
-  const [importString, setImportString] = useState('');
-  const [importError, setImportError] = useState('');
-  const [copiedToClipboard, setCopiedToClipboard] = useState(false);
-  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
-
   // Login prompt + merge flow
   const { isOpen: loginPromptOpen, reason: loginPromptReason, closePrompt } = useLoginPrompt();
 
@@ -113,53 +90,6 @@ export function GameShell({ children }: GameShellProps) {
     setAccountSettingsOpen(false);
     await signOut();
   }, [signOut]);
-
-  const handleExport = useCallback(() => {
-    const saveStr = exportSave();
-    setExportString(saveStr);
-    setExportDialogOpen(true);
-    setCopiedToClipboard(false);
-  }, [exportSave]);
-
-  const handleCopyToClipboard = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(exportString);
-      setCopiedToClipboard(true);
-      setTimeout(() => setCopiedToClipboard(false), 2000);
-    } catch {
-      setCopiedToClipboard(false);
-    }
-  }, [exportString]);
-
-  const handleImport = useCallback(() => {
-    setImportString('');
-    setImportError('');
-    setImportDialogOpen(true);
-  }, []);
-
-  const handleImportConfirm = useCallback(() => {
-    if (!importString.trim()) {
-      setImportError('Please paste a save string.');
-      return;
-    }
-    const success = importSave(importString.trim());
-    if (success) {
-      setImportDialogOpen(false);
-      setImportString('');
-      setImportError('');
-    } else {
-      setImportError('Invalid save data. Please check your save string and try again.');
-    }
-  }, [importSave, importString]);
-
-  const handleReset = useCallback(() => {
-    setResetConfirmOpen(true);
-  }, []);
-
-  const confirmReset = useCallback(() => {
-    resetGame();
-    setResetConfirmOpen(false);
-  }, [resetGame]);
 
   const handleCollectOfflineEarnings = useCallback(() => {
     if (offlineData) {
@@ -193,16 +123,10 @@ export function GameShell({ children }: GameShellProps) {
             aria-label="Game header"
           >
             <DesktopHeader
-              onExport={handleExport}
-              onImport={handleImport}
-              onReset={handleReset}
               onTabChange={handleTabChangeForHeader}
               onManageAccount={() => setAccountSettingsOpen(true)}
             />
             <MobileHeader
-              onExport={handleExport}
-              onImport={handleImport}
-              onReset={handleReset}
               onTabChange={handleTabChangeForHeader}
               onManageAccount={() => setAccountSettingsOpen(true)}
             />
@@ -225,22 +149,6 @@ export function GameShell({ children }: GameShellProps) {
           <KeyboardShortcutsHelp />
         </div>
 
-        <ExportDialog
-          open={exportDialogOpen}
-          onOpenChange={setExportDialogOpen}
-          exportString={exportString}
-          onCopy={handleCopyToClipboard}
-          copiedToClipboard={copiedToClipboard}
-        />
-        <ImportDialog
-          open={importDialogOpen}
-          onOpenChange={setImportDialogOpen}
-          importString={importString}
-          setImportString={setImportString}
-          importError={importError}
-          setImportError={setImportError}
-          onImport={handleImportConfirm}
-        />
         <GameToast />
         <LoginFloatingPanel
           open={loginPromptOpen || mergeState.isOpen}
@@ -268,26 +176,6 @@ export function GameShell({ children }: GameShellProps) {
           offlineData={offlineData}
           onCollect={handleCollectOfflineEarnings}
         />
-        <AlertDialog open={resetConfirmOpen} onOpenChange={setResetConfirmOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Reset game progress?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will permanently erase all your factories, resources, research, and prestige.
-                This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={confirmReset}
-                className="bg-danger text-white hover:bg-danger/90 focus-visible:ring-danger"
-              >
-                Yes, reset everything
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </TooltipProvider>
     </ErrorBoundary>
   );

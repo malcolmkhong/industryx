@@ -13,7 +13,7 @@ import {
 import { WorkerType } from '@/lib/game/types';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { LoadingSpinner } from '@/components/game/shared/LoadingSpinner';
-import { GameIcon } from '@/components/game/shared/GameIcon';
+import { GameIcon } from '@/components/icons';
 
 // Radar chart helper: compute polygon points for a 3-axis spider chart
 function RadarChart({ values, labels, colors, size = 160 }: {

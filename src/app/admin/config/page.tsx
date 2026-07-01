@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { Database, Search, Plus, Pencil, Trash2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Check, Menu } from "lucide-react";
 import { TABLE_CONFIGS, getTableConfig, type TableConfig, type ColumnConfig } from "@/lib/config/tables";
 
 // ─── Types ────────────────────────────────────────────────────────────────
@@ -31,112 +32,6 @@ interface SortConfig {
 }
 
 type ModalMode = "create" | "edit" | null;
-
-// ─── Inline SVG helpers (used in core content) ────────────────────────────
-
-function IconDatabase() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5V19A9 3 0 0 0 21 19V5" /><path d="M3 12A9 3 0 0 0 21 12" />
-    </svg>
-  );
-}
-
-function IconSearch() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
-    </svg>
-  );
-}
-
-function IconPlus() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 12h14" /><path d="M12 5v14" />
-    </svg>
-  );
-}
-
-function IconEdit() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-    </svg>
-  );
-}
-
-function IconTrash() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-    </svg>
-  );
-}
-
-function IconChevronUp() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m18 15-6-6-6 6" />
-    </svg>
-  );
-}
-
-function IconChevronDown() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m6 9 6 6 6-6" />
-    </svg>
-  );
-}
-
-function IconChevronLeft() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m15 18-6-6 6-6" />
-    </svg>
-  );
-}
-
-function IconChevronRight() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m9 18 6-6-6-6" />
-    </svg>
-  );
-}
-
-function IconX() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 6 6 18" /><path d="m6 6 12 12" />
-    </svg>
-  );
-}
-
-function IconCheck() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
-  );
-}
-
-function IconExpand() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m6 9 6 6 6-6" />
-    </svg>
-  );
-}
-
-function IconCollapse() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m18 15-6-6-6 6" />
-    </svg>
-  );
-}
 
 // ─── Helper: format cell value ────────────────────────────────────────────
 
@@ -497,7 +392,7 @@ export default function ConfigTablesPage() {
           )}
           {successMsg && (
             <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-success/15 text-success border border-success/20 text-sm font-medium mt-1">
-              <IconCheck />
+              <Check size={14} />
               {successMsg}
             </div>
           )}
@@ -530,9 +425,7 @@ export default function ConfigTablesPage() {
           onClick={() => setSidebarOpen(!sidebarOpen)}
           aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="4" x2="20" y1="12" y2="12" /><line x1="4" x2="20" y1="6" y2="6" /><line x1="4" x2="20" y1="18" y2="18" />
-          </svg>
+          <Menu size={20} />
         </button>
 
         {/* Table list by category */}
@@ -616,7 +509,7 @@ export default function ConfigTablesPage() {
                 onClick={openCreateModal}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-warning hover:bg-warning text-black font-medium text-sm rounded-lg transition-colors shrink-0"
               >
-                <IconPlus />
+                <Plus size={16} />
                 Add Row
               </button>
             </div>
@@ -625,7 +518,7 @@ export default function ConfigTablesPage() {
             <div className="relative mb-4">
               <label htmlFor="config-search" className="sr-only">Search rows</label>
               <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-label" aria-hidden="true">
-                <IconSearch />
+                <Search size={16} />
               </div>
               <input
                 id="config-search"
@@ -645,7 +538,7 @@ export default function ConfigTablesPage() {
                   onClick={() => { setSearchQuery(""); setSearchDebounced(""); }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-label hover:text-subtle"
                 >
-                  <IconX aria-hidden="true" />
+                  <X size={16} aria-hidden="true" />
                 </button>
               )}
             </div>
@@ -669,7 +562,7 @@ export default function ConfigTablesPage() {
                       onClick={openCreateModal}
                       className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-warning/10 text-warning text-sm rounded-lg hover:bg-warning/20 transition-colors border border-warning/20"
                     >
-                      <IconPlus />
+                      <Plus size={16} />
                       Create first row
                     </button>
                   )}
@@ -703,7 +596,7 @@ export default function ConfigTablesPage() {
                                 </span>
                                 {col.sortable && sortConfig.column === col.key && (
                                   <span className="text-warning">
-                                    {sortConfig.order === "asc" ? <IconChevronUp /> : <IconChevronDown />}
+                                    {sortConfig.order === "asc" ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                                   </span>
                                 )}
                                 {col.required && (
@@ -728,14 +621,14 @@ export default function ConfigTablesPage() {
                                   className="p-1.5 rounded text-muted-label hover:text-warning hover:bg-warning/10 transition-colors"
                                   title="Edit row"
                                 >
-                                  <IconEdit />
+                                  <Pencil size={14} />
                                 </button>
                                 <button
                                   onClick={() => setDeleteTarget(row)}
                                   className="p-1.5 rounded text-muted-label hover:text-danger hover:bg-danger/10 transition-colors"
                                   title="Delete row"
                                 >
-                                  <IconTrash />
+                                  <Trash2 size={14} />
                                 </button>
                               </div>
                             </td>
@@ -819,7 +712,7 @@ export default function ConfigTablesPage() {
                         disabled={pagination.page <= 1}
                         className="p-1.5 rounded text-muted-label hover:text-white hover:bg-background/60 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                       >
-                        <IconChevronLeft />
+                        <ChevronLeft size={16} />
                       </button>
                       {generatePageNumbers(pagination.page, pagination.totalPages).map((p, i) =>
                         p === "..." ? (
@@ -843,7 +736,7 @@ export default function ConfigTablesPage() {
                         disabled={pagination.page >= pagination.totalPages}
                         className="p-1.5 rounded text-muted-label hover:text-white hover:bg-background/60 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                       >
-                        <IconChevronRight />
+                        <ChevronRight size={16} />
                       </button>
                     </div>
                   </div>
@@ -877,7 +770,7 @@ export default function ConfigTablesPage() {
                 aria-label="Close dialog"
                 className="p-1.5 rounded text-muted-label hover:text-white hover:bg-background/60 transition-colors"
               >
-                <IconX aria-hidden="true" />
+                <X size={16} aria-hidden="true" />
               </button>
             </div>
 
@@ -1023,7 +916,7 @@ export default function ConfigTablesPage() {
           <div className="relative w-full max-w-md mx-4 bg-background/80 border border-muted-label/40 rounded-xl shadow-2xl p-6">
             <div className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-full bg-danger/10 flex items-center justify-center shrink-0" aria-hidden="true">
-                <IconTrash />
+                <Trash2 size={14} />
               </div>
               <div>
                 <h3 id="config-delete-title" className="text-white font-semibold mb-1">Delete Row</h3>
@@ -1094,7 +987,7 @@ function JsonCell({
           onClick={onToggle}
           className="flex items-center gap-1 text-[10px] text-warning/70 hover:text-warning mt-0.5"
         >
-          {expanded ? <IconCollapse /> : <IconExpand />}
+          {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           {expanded ? "Collapse" : "Expand"}
         </button>
       )}

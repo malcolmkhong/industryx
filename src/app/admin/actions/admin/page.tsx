@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { ScrollText, Check, Copy, ChevronLeft, ChevronRight, Search, RotateCcw, Gavel, Shield, Lock, Unlock, X, RotateCw, XCircle, Pencil, type LucideIcon } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -34,64 +35,6 @@ const ADMIN_ACTION_TYPE_OPTIONS = [
   "edit_state",
 ];
 
-// ─── Inline SVG helpers (used in core content) ────────────────────────────
-
-function IconScrollText() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M8 21h12a2 2 0 0 0 2-2v-2H10v2a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v3h4" /><path d="M19 3H9v7h14V5a2 2 0 0 0-2-2Z" />
-    </svg>
-  );
-}
-
-function IconCheck() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
-  );
-}
-
-function IconChevronLeft() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m15 18-6-6 6-6" />
-    </svg>
-  );
-}
-
-function IconChevronRight() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m9 18 6-6-6-6" />
-    </svg>
-  );
-}
-
-function IconRotateCcw() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" />
-    </svg>
-  );
-}
-
-function IconGavel() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m14.5 12.5 2-2" /><path d="m14 5-8.5 8.5-1.5 5 5-1.5L17.5 3.5a2.12 2.12 0 0 1 3 3Z" /><path d="M2 19h20" /><path d="m17 15 4 4" />
-    </svg>
-  );
-}
-
-function IconShield() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
-    </svg>
-  );
-}
-
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
 function truncateUid(uid: string | null, max = 8): string {
@@ -123,15 +66,15 @@ function getActionTypeBadge(type: string): string {
   }
 }
 
-function getActionIcon(type: string): string {
+function getActionIcon(type: string): LucideIcon {
   switch (type) {
-    case "lock_account": return "🔒";
-    case "unlock_account": return "🔓";
-    case "reset_state": return "🔄";
-    case "resolve_investigation": return "✅";
-    case "dismiss_investigation": return "❌";
-    case "edit_state": return "✏️";
-    default: return "📋";
+    case "lock_account": return Lock;
+    case "unlock_account": return Unlock;
+    case "reset_state": return RotateCw;
+    case "resolve_investigation": return Check;
+    case "dismiss_investigation": return XCircle;
+    case "edit_state": return Pencil;
+    default: return ScrollText;
   }
 }
 
@@ -229,7 +172,7 @@ export default function AdminAuditPage() {
           href="/admin/audit"
           className="inline-flex items-center gap-2 px-4 py-2 bg-background/60 text-muted-label text-sm rounded-lg hover:bg-background/40 hover:text-white transition-colors border border-muted-label/30 shrink-0"
         >
-          <IconScrollText />
+          <ScrollText size={18} />
           View Player Actions
         </a>
       </div>
@@ -278,7 +221,7 @@ export default function AdminAuditPage() {
               type="button"
               onClick={() => fetchAdminActions()}
               className="inline-flex items-center gap-2 px-4 py-2 bg-warning hover:bg-warning text-black font-medium text-sm rounded-lg transition-colors">
-              <IconRotateCcw aria-hidden="true" />
+              <RotateCcw size={16} aria-hidden="true" />
               Refresh
             </button>
             <button
@@ -296,7 +239,7 @@ export default function AdminAuditPage() {
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
-              <IconGavel />
+              <Gavel size={18} />
             </div>
             <div>
               <p className="text-muted-label text-xs">Total Admin Actions</p>
@@ -307,9 +250,7 @@ export default function AdminAuditPage() {
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-danger/10 flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger">
-                <rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
-              </svg>
+              <Lock size={18} className="text-danger" />
             </div>
             <div>
               <p className="text-muted-label text-xs">Locks</p>
@@ -320,9 +261,7 @@ export default function AdminAuditPage() {
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-success">
-                <rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" />
-              </svg>
+              <Unlock size={18} className="text-success" />
             </div>
             <div>
               <p className="text-muted-label text-xs">Unlocks</p>
@@ -333,7 +272,7 @@ export default function AdminAuditPage() {
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
-              <IconShield />
+              <Shield size={18} />
             </div>
             <div>
               <p className="text-muted-label text-xs">Investigations</p>
@@ -353,9 +292,7 @@ export default function AdminAuditPage() {
           </div>
         ) : adminActions.length === 0 ? (
           <div className="p-12 text-center">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted-label/80 mx-auto">
-              <path d="m14.5 12.5 2-2" /><path d="m14 5-8.5 8.5-1.5 5 5-1.5L17.5 3.5a2.12 2.12 0 0 1 3 3Z" /><path d="M2 19h20" />
-            </svg>
+            <Gavel size={48} strokeWidth={1.5} className="text-muted-label/80 mx-auto" />
             <p className="text-muted-label text-sm mb-2 mt-3">No admin actions found</p>
             <p className="text-muted-label/80 text-xs">Admin operations will appear here when performed.</p>
           </div>
@@ -392,7 +329,7 @@ export default function AdminAuditPage() {
                       </td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border ${getActionTypeBadge(action.action_type)}`}>
-                          <span className="text-[10px]">{getActionIcon(action.action_type)}</span>
+                          {(() => { const Icon = getActionIcon(action.action_type); return <Icon size={11} />; })()}
                           {formatActionType(action.action_type)}
                         </span>
                       </td>
@@ -441,7 +378,7 @@ export default function AdminAuditPage() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${getActionTypeBadge(action.action_type)}`}>
-                          <span className="text-[9px]">{getActionIcon(action.action_type)}</span>
+                          {(() => { const Icon = getActionIcon(action.action_type); return <Icon size={10} />; })()}
                           {formatActionType(action.action_type)}
                         </span>
                       </div>
@@ -482,7 +419,7 @@ export default function AdminAuditPage() {
                     disabled={pagination.page <= 1}
                     className="inline-flex items-center gap-1 px-3 py-1.5 text-xs text-muted-label hover:text-white bg-background/60/50 hover:bg-background/60 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed border border-muted-label/30"
                   >
-                    <IconChevronLeft />
+                    <ChevronLeft size={16} />
                     Prev
                   </button>
                   <span className="text-muted-label text-xs">
@@ -494,7 +431,7 @@ export default function AdminAuditPage() {
                     className="inline-flex items-center gap-1 px-3 py-1.5 text-xs text-muted-label hover:text-white bg-background/60/50 hover:bg-background/60 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed border border-muted-label/30"
                   >
                     Next
-                    <IconChevronRight />
+                    <ChevronRight size={16} />
                   </button>
                 </div>
               </div>
@@ -521,15 +458,13 @@ export default function AdminAuditPage() {
                 aria-label="Close details"
                 className="text-muted-label hover:text-white transition-colors p-1"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                  <path d="M18 6 6 18" /><path d="m6 6 12 12" />
-                </svg>
+                <X size={16} aria-hidden="true" />
               </button>
             </div>
             <div className="p-5 space-y-4">
               <div className="flex items-center gap-3">
                 <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border ${getActionTypeBadge(detailAction.action_type)}`}>
-                  <span className="text-[11px]">{getActionIcon(detailAction.action_type)}</span>
+                  {(() => { const Icon = getActionIcon(detailAction.action_type); return <Icon size={12} />; })()}
                   {formatActionType(detailAction.action_type)}
                 </span>
                 <span className="text-muted-label text-xs">

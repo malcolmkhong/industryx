@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { Search, Copy, Check, ChevronLeft, ChevronRight, Flag, Users, Clock, Lock, Shield } from "lucide-react";
 import { UserAvatar } from "@/components/admin/UserAvatar";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 
@@ -38,56 +39,6 @@ interface PaginationInfo {
   limit: number;
   total: number;
   totalPages: number;
-}
-
-// ─── Inline SVG helpers (used in core content) ────────────────────────────
-
-function IconSearch() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
-    </svg>
-  );
-}
-
-function IconCopy() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-    </svg>
-  );
-}
-
-function IconCheck() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
-  );
-}
-
-function IconChevronLeft() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m15 18-6-6 6-6" />
-    </svg>
-  );
-}
-
-function IconChevronRight() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m9 18 6-6-6-6" />
-    </svg>
-  );
-}
-
-function IconFlag() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" x2="4" y1="22" y2="15" />
-    </svg>
-  );
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -275,7 +226,7 @@ export default function PlayersListPage() {
               Search players by email, user ID, or display name
             </label>
             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-label" aria-hidden="true">
-              <IconSearch />
+              <Search size={16} />
             </div>
             <input
               id="players-search"
@@ -321,9 +272,7 @@ export default function PlayersListPage() {
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-4 sm:p-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center" aria-hidden="true">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-warning">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
+              <Users size={18} className="text-warning" />
             </div>
             <div>
               <p className="text-muted-label text-[10px] sm:text-xs">Total Players</p>
@@ -339,9 +288,7 @@ export default function PlayersListPage() {
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-4 sm:p-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center" aria-hidden="true">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-success">
-                <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
-              </svg>
+              <Clock size={18} className="text-success" />
             </div>
             <div>
               <p className="text-muted-label text-[10px] sm:text-xs">Online</p>
@@ -357,9 +304,7 @@ export default function PlayersListPage() {
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-4 sm:p-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-danger/10 flex items-center justify-center" aria-hidden="true">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger">
-                <rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
-              </svg>
+              <Lock size={18} className="text-danger" />
             </div>
             <div>
               <p className="text-muted-label text-[10px] sm:text-xs">Locked</p>
@@ -375,9 +320,7 @@ export default function PlayersListPage() {
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-4 sm:p-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-domain/10 flex items-center justify-center" aria-hidden="true">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-domain">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-              </svg>
+              <Shield size={18} className="text-domain" />
             </div>
             <div>
               <p className="text-muted-label text-[10px] sm:text-xs">Investigations</p>
@@ -402,9 +345,7 @@ export default function PlayersListPage() {
         ) : players.length === 0 ? (
           <div className="p-12 text-center">
             <div className="text-3xl mb-3" aria-hidden="true">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted-label/80 mx-auto">
-                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
-              </svg>
+              <Search size={48} strokeWidth={1.5} className="text-muted-label/80 mx-auto" />
             </div>
             <p className="text-muted-label text-sm mb-2">No players found</p>
             <p className="text-muted-label/80 text-xs">
@@ -490,9 +431,9 @@ export default function PlayersListPage() {
                             title="Copy full ID"
                           >
                             {copiedId === player.user_id ? (
-                              <span className="text-success" aria-label="Copied"><IconCheck /></span>
+                              <span className="text-success" aria-label="Copied"><Check size={14} /></span>
                             ) : (
-                              <IconCopy aria-hidden="true" />
+                              <Copy size={14} aria-hidden="true" />
                             )}
                           </button>
                         </div>
@@ -515,7 +456,7 @@ export default function PlayersListPage() {
                       <td className="px-4 py-3 text-center">
                         {player.cheat_flag_count > 0 ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-domain/15 text-domain border border-domain/20">
-                            <IconFlag />
+                            <Flag size={14} />
                             {player.cheat_flag_count}
                           </span>
                         ) : (
@@ -604,9 +545,9 @@ export default function PlayersListPage() {
                           aria-label={`Copy full user ID for ${player.email ?? player.user_id}`}
                         >
                           {copiedId === player.user_id ? (
-                            <span className="text-success" aria-label="Copied"><IconCheck /></span>
+                            <span className="text-success" aria-label="Copied"><Check size={14} /></span>
                           ) : (
-                            <IconCopy aria-hidden="true" />
+                            <Copy size={14} aria-hidden="true" />
                           )}
                         </button>
                       </div>
@@ -622,7 +563,7 @@ export default function PlayersListPage() {
                         </span>
                         {player.cheat_flag_count > 0 && (
                           <span className="inline-flex items-center gap-1 text-domain text-[10px]">
-                            <IconFlag /> {player.cheat_flag_count}
+                            <Flag size={14} /> {player.cheat_flag_count}
                           </span>
                         )}
                       </div>
@@ -646,7 +587,7 @@ export default function PlayersListPage() {
                     aria-label="Previous page"
                     className="p-1.5 rounded-lg text-muted-label hover:text-white hover:bg-background/60 disabled:text-muted-label/30 disabled:cursor-not-allowed transition-colors"
                   >
-                    <IconChevronLeft aria-hidden="true" />
+                    <ChevronLeft size={16} aria-hidden="true" />
                   </button>
                   {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
                     let pageNum: number;
@@ -683,7 +624,7 @@ export default function PlayersListPage() {
                     aria-label="Next page"
                     className="p-1.5 rounded-lg text-muted-label hover:text-white hover:bg-background/60 disabled:text-muted-label/30 disabled:cursor-not-allowed transition-colors"
                   >
-                    <IconChevronRight aria-hidden="true" />
+                    <ChevronRight size={16} aria-hidden="true" />
                   </button>
                 </div>
               </div>

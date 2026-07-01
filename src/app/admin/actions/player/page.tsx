@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { ScrollText, Check, Copy, ChevronLeft, ChevronRight, Search, RotateCcw, XCircle, AlertTriangle, TrendingUp, FileSearch, Ban } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -51,64 +52,6 @@ const ACTION_TYPE_OPTIONS = [
 ];
 
 const VALID_OPTIONS = ["all", "true", "false"];
-
-// ─── Inline SVG helpers (used in core content) ────────────────────────────
-
-function IconScrollText() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M8 21h12a2 2 0 0 0 2-2v-2H10v2a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v3h4" /><path d="M19 3H9v7h14V5a2 2 0 0 0-2-2Z" />
-    </svg>
-  );
-}
-
-function IconCheck() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
-  );
-}
-
-function IconCopy() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-    </svg>
-  );
-}
-
-function IconChevronLeft() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m15 18-6-6 6-6" />
-    </svg>
-  );
-}
-
-function IconChevronRight() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m9 18 6-6-6-6" />
-    </svg>
-  );
-}
-
-function IconSearch() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
-    </svg>
-  );
-}
-
-function IconRotateCcw() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" />
-    </svg>
-  );
-}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -344,14 +287,14 @@ export default function AuditPage() {
               onClick={() => fetchActions()}
               className="inline-flex items-center gap-2 px-4 py-2 bg-warning hover:bg-warning text-black font-medium text-sm rounded-lg transition-colors"
             >
-              <IconSearch />
+              <Search size={16} aria-hidden="true" />
               Search
             </button>
             <button
               onClick={resetFilters}
               className="inline-flex items-center gap-2 px-4 py-2 bg-background/60 text-muted-label text-sm rounded-lg hover:bg-background/40 hover:text-white transition-colors border border-muted-label/30"
             >
-              <IconRotateCcw />
+              <RotateCcw size={16} aria-hidden="true" />
               Reset
             </button>
           </div>
@@ -363,7 +306,7 @@ export default function AuditPage() {
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
-              <IconScrollText />
+              <ScrollText size={18} className="text-brand" />
             </div>
             <div>
               <p className="text-muted-label text-xs">Total Actions</p>
@@ -375,9 +318,7 @@ export default function AuditPage() {
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-danger/10 flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger">
-                <circle cx="12" cy="12" r="10" /><path d="m15 9-6 6" /><path d="m9 9 6 6" />
-              </svg>
+              <Ban size={18} className="text-danger" />
             </div>
             <div>
               <p className="text-muted-label text-xs">Invalid</p>
@@ -389,9 +330,7 @@ export default function AuditPage() {
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-domain/10 flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-domain">
-                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" />
-              </svg>
+              <AlertTriangle size={18} className="text-domain" />
             </div>
             <div>
               <p className="text-muted-label text-xs">High Risk</p>
@@ -403,9 +342,7 @@ export default function AuditPage() {
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand">
-                <path d="M3 3v18h18" /><path d="m19 9-5 5-4-4-3 3" />
-              </svg>
+              <TrendingUp size={18} className="text-brand" />
             </div>
             <div>
               <p className="text-muted-label text-xs">Most Common</p>
@@ -427,9 +364,7 @@ export default function AuditPage() {
           </div>
         ) : actions.length === 0 ? (
           <div className="p-12 text-center">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted-label/80 mx-auto">
-              <path d="M8 21h12a2 2 0 0 0 2-2v-2H10v2a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v3h4" /><path d="M19 3H9v7h14V5a2 2 0 0 0-2-2Z" />
-            </svg>
+            <FileSearch size={48} strokeWidth={1.5} className="text-muted-label/80 mx-auto" />
             <p className="text-muted-label text-sm mb-2 mt-3">No actions found</p>
             <p className="text-muted-label/80 text-xs">Adjust your filters and try again.</p>
           </div>
@@ -474,9 +409,9 @@ export default function AuditPage() {
                             title="Copy full ID"
                           >
                             {copiedId === action.user_id ? (
-                              <span className="text-success" aria-label="Copied"><IconCheck /></span>
+                              <span className="text-success" aria-label="Copied"><Check size={14} /></span>
                             ) : (
-                              <IconCopy aria-hidden="true" />
+                              <Copy aria-hidden="true" size={14} />
                             )}
                           </button>
                         </div>
@@ -535,9 +470,9 @@ export default function AuditPage() {
                           className="text-muted-label/80 hover:text-subtle transition-colors p-0.5 shrink-0"
                         >
                           {copiedId === action.user_id ? (
-                            <span className="text-success"><IconCheck /></span>
+                            <span className="text-success"><Check size={14} /></span>
                           ) : (
-                            <IconCopy />
+                            <Copy size={14} />
                           )}
                         </button>
                       </div>
@@ -573,7 +508,7 @@ export default function AuditPage() {
                     disabled={pagination.page <= 1}
                     className="inline-flex items-center gap-1 px-3 py-1.5 text-xs text-muted-label hover:text-white bg-background/60/50 hover:bg-background/60 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed border border-muted-label/30"
                   >
-                    <IconChevronLeft />
+                    <ChevronLeft size={16} aria-hidden="true" />
                     Prev
                   </button>
                   <span className="text-muted-label text-xs">
@@ -585,7 +520,7 @@ export default function AuditPage() {
                     className="inline-flex items-center gap-1 px-3 py-1.5 text-xs text-muted-label hover:text-white bg-background/60/50 hover:bg-background/60 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed border border-muted-label/30"
                   >
                     Next
-                    <IconChevronRight />
+                    <ChevronRight size={16} aria-hidden="true" />
                   </button>
                 </div>
               </div>

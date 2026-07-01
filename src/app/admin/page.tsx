@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAdminPresence } from "@/lib/hooks/useAdminPresence";
+import { RefreshCw, User, Clock, Shield, Activity, AlertTriangle, Lock } from "lucide-react";
 
 export default function BackendDashboard() {
   const [statsLoading, setStatsLoading] = useState(true);
@@ -84,9 +85,7 @@ export default function BackendDashboard() {
               className="text-muted-label hover:text-warning transition-colors p-1.5 rounded-md hover:bg-background/60"
               title="Refresh data"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={statsLoading ? "animate-spin" : ""}>
-                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" /><path d="M16 16h5v5" />
-              </svg>
+              <RefreshCw size={16} className={statsLoading ? "animate-spin" : ""} />
             </button>
           </div>
         </div>
@@ -98,9 +97,7 @@ export default function BackendDashboard() {
         <Link href="/admin/players" className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5 block hover:border-muted-label/30 transition-colors">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-success">
-                <circle cx="12" cy="8" r="5" /><path d="M20 21a8 8 0 0 0-16 0" />
-              </svg>
+              <User size={18} className="text-success" />
             </div>
             <div>
               <p className="text-muted-label text-xs">Total Players</p>
@@ -119,9 +116,7 @@ export default function BackendDashboard() {
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand">
-                <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
-              </svg>
+              <Clock size={18} className="text-brand" />
             </div>
             <div>
               <p className="text-muted-label text-xs">Online Now</p>
@@ -155,9 +150,7 @@ export default function BackendDashboard() {
         <Link href="/admin/investigations" className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5 block hover:border-muted-label/30 transition-colors">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-warning">
-                <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
-              </svg>
+              <Shield size={18} className="text-warning" />
             </div>
             <div>
               <p className="text-muted-label text-xs">Open Investigations</p>
@@ -176,9 +169,7 @@ export default function BackendDashboard() {
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-lg bg-danger/10 flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-danger">
-                <rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
-              </svg>
+              <Lock size={18} className="text-danger" />
             </div>
             <div>
               <p className="text-muted-label text-xs">Locked Accounts</p>
@@ -197,9 +188,7 @@ export default function BackendDashboard() {
         <Link href="/admin/audit" className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5 block hover:border-muted-label/30 transition-colors">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-lg bg-research/10 flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-research">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-              </svg>
+              <Activity size={18} className="text-research" />
             </div>
             <div>
               <p className="text-muted-label text-xs">Actions Today</p>
@@ -218,9 +207,7 @@ export default function BackendDashboard() {
         <Link href="/admin/audit" className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5 block hover:border-muted-label/30 transition-colors">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-9 h-9 rounded-lg bg-domain/10 flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-domain">
-                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /><path d="M12 9v4" /><path d="M12 17h.01" />
-              </svg>
+              <AlertTriangle size={18} className="text-domain" />
             </div>
             <div>
               <p className="text-muted-label text-xs">Invalid Actions</p>

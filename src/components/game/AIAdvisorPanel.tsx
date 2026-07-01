@@ -10,7 +10,7 @@ import { Brain, Zap, AlertTriangle, Lightbulb, TrendingUp, X, ChevronRight, Fact
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { GameIcon } from '@/components/game/shared/GameIcon';
+import { GameIcon } from '@/components/icons';
 
 // --- Types ---
 type Priority = 'critical' | 'important' | 'suggested' | 'optional';
