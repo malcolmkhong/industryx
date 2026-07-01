@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { isAdminUserDb } from "@/lib/auth/admin";
 
 export async function GET() {
   try {
@@ -16,13 +17,8 @@ export async function GET() {
       );
     }
 
-    // Check admin status
-    const adminUids = (process.env.ADMIN_UIDS || "")
-      .split(",")
-      .map((uid) => uid.trim())
-      .filter(Boolean);
-
-    const isAdmin = adminUids.includes(user.id);
+    // Admin status via authoritative admin_users table (cached, env fallback).
+    const isAdmin = await isAdminUserDb(user.id);
 
     return NextResponse.json({
       user: {

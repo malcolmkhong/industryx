@@ -46,6 +46,31 @@ export function clearAdminCache(): void {
 }
 
 /**
+ * Check whether the currently authenticated user (per request cookies) is an
+ * admin. Returns false if not authenticated or not an admin.
+ *
+ * Single source of truth for "is the current user an admin" — uses the
+ * authoritative admin_users table via the cache, with ADMIN_UIDS env as
+ * bootstrap fallback. Client components should call this through the
+ * /api/auth/me endpoint (which uses this helper internally) rather than
+ * importing server-only Supabase client directly.
+ */
+export async function isCurrentUserAdmin(): Promise<boolean> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+    if (error || !user) return false;
+    return _isAdminUserIdInDb(user.id);
+  } catch (err) {
+    console.warn('[Auth] isCurrentUserAdmin check failed:', err);
+    return false;
+  }
+}
+
+/**
  * Verify that the current request is from an authenticated admin user.
  * Returns the admin user info on success, or a NextResponse error on failure.
  */
