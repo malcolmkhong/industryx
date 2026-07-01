@@ -53,25 +53,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-console.log(
-  '[InitializeGuest] Authorization:',
-  request.headers.get('authorization')
-);
+    const accessToken =
+      request.headers.get('authorization')?.replace('Bearer ', '') ?? '';
 
-const accessToken =
-  request.headers.get('authorization')?.replace('Bearer ', '') ?? '';
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(accessToken);
 
-const {
-  data: { user },
-  error: authError,
-} = await supabase.auth.getUser(accessToken);
-
-console.log('[InitializeGuest] Auth result:', {
-  hasUser: !!user,
-  authError: authError?.message,
-});
-
-if (authError || !user) {
+    if (authError || !user) {
   return NextResponse.json(
     { error: 'Unauthorized' },
     { status: 401 }

@@ -25,6 +25,7 @@ import {
   insertGuestIdentity,
   hasIdentityForUserAndDevice,
   hasAnyIdentityForUser,
+  findIdentityByFingerprint,
 } from '@/lib/db/guestIdentities';
 import { createHash } from 'crypto';
 
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Service not configured' }, { status: 503 });
     }
 
-    let userId: string;
+    let userId: string | undefined;
 
     if (existingUserId) {
       // Recovery path: reuse the existing user instead of creating a new one
@@ -76,20 +77,36 @@ export async function POST(request: NextRequest) {
       }
       userId = existingUserId;
     } else {
-      // New guest: create anonymous user via Supabase Admin API
-      // This bypasses the browser → Supabase Auth round-trip (~800ms saved)
-      const anonEmail = `${crypto.randomUUID()}@guest.industryx.game`;
-      const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-        email: anonEmail,
-        email_confirm: true,
-        user_metadata: { device_id: deviceId, is_anonymous: true },
-      });
-
-      if (createError || !newUser?.user) {
-        console.error('[quickstart] Failed to create anon user:', createError);
-        return NextResponse.json({ error: 'account_creation_failed' }, { status: 500 });
+      // No explicit existingUserId: check fingerprint first.
+      // Handles the case where localStorage was wiped (new deviceId) but
+      // fingerprint survived — fingerprint is more stable than deviceId.
+      const fingerprintHash = fingerprint
+        ? createHash('sha256').update(fingerprint).digest('hex')
+        : null;
+      if (fingerprintHash) {
+        const fingerprintIdentity = await findIdentityByFingerprint(fingerprintHash);
+        if (fingerprintIdentity) {
+          // Fingerprint matched an active identity — reuse that user.
+          // Game state will be detected as existing below (idempotent).
+          userId = fingerprintIdentity.user_id;
+        }
       }
-      userId = newUser.user.id;
+
+      // Still no userId: create a new anonymous user.
+      if (!userId) {
+        const anonEmail = `${crypto.randomUUID()}@guest.industryx.game`;
+        const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+          email: anonEmail,
+          email_confirm: true,
+          user_metadata: { device_id: deviceId, is_anonymous: true },
+        });
+
+        if (createError || !newUser?.user) {
+          console.error('[quickstart] Failed to create anon user:', createError);
+          return NextResponse.json({ error: 'account_creation_failed' }, { status: 500 });
+        }
+        userId = newUser.user.id;
+      }
     }
 
     // Check if already initialized (idempotent)
