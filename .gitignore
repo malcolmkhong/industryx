@@ -138,10 +138,14 @@ docs/
 skills/
 skills-lock.json
 
+script/
+
 # Local-only planning scratch + scratch tests
 planning/archive/
 planning/new/
 tests/staging/
+
+story-body.txt
 
 # Asset artifacts not for source control
 public/ChatGPT Image*.png
@@ -154,3 +158,12 @@ tools/
 
 # Codex history (contains codebase-memory-mcp tool data)
 .history/
+
+# MCP tool config
+.mcp.json
+
+# Playwright test output
+test-results/
+
+# Playwright config
+playwright.config.ts
