@@ -1,11 +1,19 @@
 'use client';
-
 import { useRouter } from 'next/navigation';
-import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 
 import { initServerValidation, disableServerValidation } from '@/lib/game/serverActions';
 import type { User, Session } from '@supabase/supabase-js';
 import { getFingerprint } from '@/lib/auth/fingerprint';
+import {
+  DEVICE_ID_STORAGE_KEY,
+} from '@/lib/auth/orchestrator/storage';
+import { AuthOrchestrator } from '@/lib/auth/orchestrator';
+import { CloudSyncService, CloudSyncServiceProvider } from '@/lib/hooks/cloudSync';
+import { MergeFlowService, MergeFlowServiceProvider } from '@/lib/hooks/useMergeFlow';
+import { LoginPromptService, LoginPromptServiceProvider } from '@/lib/hooks/useLoginPrompt';
+import { useGameStore, applyServerState } from '@/lib/game/store';
+import { extractGameState } from '@/lib/hooks/cloudSync/serializeGameState';
 
 // Check if Supabase is configured
 const isSupabaseConfigured = !!(
@@ -19,7 +27,6 @@ interface AuthState {
   loading: boolean;
   isGuest: boolean;
   deviceId: string | null;
-  signInAnonymously: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signInWithGithub: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -31,13 +38,12 @@ const AuthContext = createContext<AuthState>({
   loading: false,
   isGuest: false,
   deviceId: null,
-  signInAnonymously: async () => {},
   signInWithGoogle: async () => {},
   signInWithGithub: async () => {},
   signOut: async () => {},
 });
 
-const DEVICE_ID_KEY = 'factory-dominion-device-id';
+const DEVICE_ID_KEY = DEVICE_ID_STORAGE_KEY;
 
 function getOrCreateDeviceId(): string {
   if (typeof window === 'undefined') return '';
@@ -59,214 +65,239 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [deviceId, setDeviceId] = useState<string | null>(null);
-  const signingInRef = useRef(false);
+  const [orchestrator] = useState<AuthOrchestrator>(() => new AuthOrchestrator());
+  const [cloudSync] = useState<CloudSyncService>(() => new CloudSyncService());
+  const [mergeFlow] = useState<MergeFlowService>(() => new MergeFlowService());
+  const [loginPrompt] = useState<LoginPromptService>(() => new LoginPromptService());
 
-  // Phase 1.2: Auto-create anonymous identity on first pageload (zero clicks)
+  // Phase 3: mount delegates full startup pipeline to orchestrator
   useEffect(() => {
-    if (!isSupabaseConfigured) {
-      setLoading(false);
-      return;
-    }
+    let cancelled = false;
 
-    const devId = getOrCreateDeviceId();
-    setDeviceId(devId);
-
-    let mounted = true;
-
-    const initAuth = async () => {
+    const init = async () => {
       const { createBrowserClient } = await import('@supabase/ssr');
       const supabase = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       );
 
-      let session: Session | null = null;
-      try {
-        const result = await supabase.auth.getSession();
-        session = result.data.session;
-      } catch (err) {
-        console.warn('[Auth] getSession failed (Supabase unreachable?):', err);
-      }
-
-      if (mounted) {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-
-        if (session?.user?.id) {
-          initServerValidation(session.user.id);
-        }
-      }
-
-      // Phase 1.2 + AUDIT_FIXES_2026_06_18.md P0-#2:
-      // If no session, try device-based recovery. Supabase can't createSession
-      // for an existing anon user, so the recovery flow is:
-      //   1. recover-by-device → tells us "yes, a guest for this device exists"
-      //   2. signInAnonymously() → creates a fresh auth.users row
-      //   3. claim-guest → re-assigns the old guest's server data to the new user
-      //   4. onAuthStateChange (subscribed below) picks up the new session and
-      //      updates context state.
-      if (mounted && !session) {
-        let shouldClaim = false;
-        try {
-          // Phase 1: include fingerprint for correlation (never used for
-          // recovery denial — the server never reads fingerprint for blocking).
-          const fingerprintHash = await getFingerprint();
-          const recoverRes = await fetch('/api/auth/recover-by-device', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ deviceId: devId, fingerprintHash }),
-          });
-          if (recoverRes.ok) {
-            const data = (await recoverRes.json()) as {
+      orchestrator.attach({
+        isSupabaseConfigured,
+        getDeviceId: getOrCreateDeviceId,
+        getSession: async () => {
+          try {
+            const result = await supabase.auth.getSession();
+            return result.data.session;
+          } catch {
+            return null;
+          }
+        },
+        signInWithOAuth: async (provider: 'google' | 'github', redirectTo: string) => {
+          try {
+            const { error } = await supabase.auth.signInWithOAuth({
+              provider,
+              options: { redirectTo },
+            });
+            return { error: error?.message ?? null };
+          } catch (err) {
+            return { error: err instanceof Error ? err.message : 'unknown' };
+          }
+        },
+        registerDevice: async (deviceId, fingerprint, fingerprintHash) => {
+          try {
+            const res = await fetch('/api/auth/register-device', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ deviceId, fingerprint, fingerprintHash }),
+            });
+            if (!res.ok) {
+              return { ok: false, alreadyExists: false };
+            }
+            const data = (await res.json()) as {
+              registered?: boolean;
+              alreadyExists?: boolean;
+              reason?: string;
+            };
+            return {
+              ok: !!data.registered,
+              alreadyExists: !!data.alreadyExists,
+              reason: data.reason,
+            };
+          } catch {
+            return { ok: false, alreadyExists: false };
+          }
+        },
+        recoverByDevice: async (deviceId: string, fingerprintHash: string | null) => {
+          try {
+            const res = await fetch('/api/auth/recover-by-device', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ deviceId, fingerprintHash }),
+            });
+            if (!res.ok) return { recovered: false, userId: null };
+            const data = (await res.json()) as {
               recovered?: boolean;
               recoveredAs?: string;
               userId?: string;
             };
-            if (data.recoveredAs === 'recovered' || data.recovered === true) {
-              shouldClaim = true;
-            }
+            return {
+              recovered: data.recoveredAs === 'recovered' || data.recovered === true,
+              userId: data.userId ?? null,
+            };
+          } catch {
+            return { recovered: false, userId: null };
           }
-        } catch (err) {
-          console.warn('[Auth] Device recovery failed:', err);
-        }
-
-        // Inline anon sign-in (was previously delegated to a never-assigned
-        // signInAnonymouslyRef.fn, leaving the fallback dead).
-        try {
-          const { data, error } = await supabase.auth.signInAnonymously({
-            options: { data: { device_id: devId } },
-          });
-          if (error) {
-            console.warn('[Auth] Anonymous sign-in failed:', error.message);
-          } else if (data.user && shouldClaim) {
-            // Attach the device's prior data to the new anon user.
-            try {
-              const claimRes = await fetch('/api/auth/claim-guest', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ newUserId: data.user.id, deviceId: devId }),
-              });
-              if (claimRes.ok) {
-                console.log('[Auth] Guest data claimed for new anon user');
-              } else {
-                console.warn('[Auth] claim-guest non-ok:', claimRes.status);
+        },
+        claimGuest: async (newUserId: string, deviceId: string) => {
+          try {
+            const res = await fetch('/api/auth/claim-guest', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ newUserId, deviceId }),
+            });
+            return { ok: res.ok, error: res.ok ? null : `status ${res.status}` };
+          } catch (err) {
+            return { ok: false, error: err instanceof Error ? err.message : 'unknown' };
+          }
+        },
+        /** Combined: creates anon user + initializes game state in one server call. */
+        quickstart: async (deviceId: string, fingerprintHash: string | null, existingUserId?: string | null) => {
+          try {
+            const res = await fetch('/api/auth/quickstart', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ deviceId, fingerprint: fingerprintHash, existingUserId }),
+            });
+            if (res.status === 503) {
+              const body = await res.json().catch(() => ({}));
+              if (body?.error === 'capacity_full') {
+                return { userId: null, error: 'capacity_full' };
               }
-            } catch (err) {
-              console.warn('[Auth] claim-guest failed:', err);
             }
+            const data = (await res.json()) as { userId?: string; error?: string };
+            if (data.error && data.error !== 'state_exists') {
+              return { userId: null, error: data.error };
+            }
+            return { userId: data.userId ?? null, error: null };
+          } catch (err) {
+            return { userId: null, error: err instanceof Error ? err.message : 'unknown' };
           }
-        } catch (err) {
-          console.warn('[Auth] Anonymous sign-in threw:', err);
-        }
+        },
+        onAuthStateChange: (handler) => {
+          const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+            handler(session);
+          });
+          return () => data.subscription.unsubscribe();
+        },
+        signOutSupabase: async () => {
+          const { error } = await supabase.auth.signOut();
+          return { error: error?.message ?? null };
+        },
+        disableServerValidation,
+        initServerValidation,
+        onReady: (userId: string) => {
+          cloudSync.setUserId(userId);
+          cloudSync.startAutoSave(
+            () => useGameStore.getState().gameTick,
+            () => extractGameState(),
+          );
+          void cloudSync.load().then((r) => {
+            if (r.success && r.data && r.conflict === 'cloud') {
+              try {
+                applyServerState(r.data);
+              } catch (err) {
+                console.warn('[AuthProvider] Failed to apply server state:', err);
+              }
+            }
+          });
+        },
+        onIdentityChanged: (userId: string) => {
+          cloudSync.setUserId(userId);
+          cloudSync.startAutoSave(
+            () => useGameStore.getState().gameTick,
+            () => extractGameState(),
+          );
+        },
+        onSignedOut: () => {
+          cloudSync.stopAutoSave();
+          cloudSync.setUserId(null);
+        },
+        runMergeCheck: async (userId: string, deviceId: string) => {
+          mergeFlow.setContext(userId, deviceId);
+          await mergeFlow.startMergeCheck();
+        },
+        resetMerge: () => {
+          mergeFlow.reset();
+        },
+        startLoginPrompts: (requestLogin) => {
+          loginPrompt.start(requestLogin);
+        },
+        stopLoginPrompts: () => {
+          loginPrompt.stop();
+          loginPrompt.reset();
+        },
+      });
+
+      // Subscribe to orchestrator state so AuthContext (legacy shape) mirrors it
+      const unsubState = orchestrator.subscribe((s) => {
+        if (cancelled) return;
+        setDeviceId(s.deviceId);
+      });
+
+      let fingerprintHash: string | null = null;
+      try {
+        fingerprintHash = await getFingerprint();
+      } catch {
+        fingerprintHash = null;
       }
 
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        (_event, session) => {
-          if (!mounted) return;
-          setSession(session);
-          setUser(session?.user ?? null);
+      const cleanupStartup = await orchestrator.startup(fingerprintHash);
+
+      // Mirror the orchestrator's applied session to legacy AuthContext state
+      // on every AUTH_STATE_CHANGED event.
+      const unsubEvents = orchestrator.onEvent((event) => {
+        if (cancelled) return;
+        if (event.type === 'AUTH_STATE_CHANGED') {
+          setSession(event.session);
+          setUser(event.session?.user ?? null);
           setLoading(false);
-
-          if (session?.user?.id) {
-            initServerValidation(session.user.id);
-          } else {
-            disableServerValidation();
-          }
         }
-      );
+        if (event.type === 'WAITLIST_REQUIRED') {
+          router.push('/waitlist');
+        }
+      });
 
+      // Cleanup on unmount
       return () => {
-        mounted = false;
-        subscription.unsubscribe();
+        cancelled = true;
+        unsubState();
+        unsubEvents();
+        cleanupStartup();
       };
     };
 
-    const cleanup = initAuth();
+    const cleanupPromise = init();
     return () => {
-      mounted = false;
-      cleanup.then(fn => fn?.());
+      cancelled = true;
+      cleanupPromise.then((fn) => fn?.());
     };
-  }, []);
-
-  const signInAnonymously = useCallback(async () => {
-    if (!isSupabaseConfigured) return;
-    const devId = deviceId || getOrCreateDeviceId();
-    if (!deviceId) setDeviceId(devId);
-
-    const { createBrowserClient } = await import('@supabase/ssr');
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-    const { data, error } = await supabase.auth.signInAnonymously({
-      options: { data: { device_id: devId } },
-    });
-    if (error) {
-      console.error('Anonymous sign-in error:', error.message);
-      throw error;
-    }
-    if (data.user) {
-  try {
-    // Phase 1: include fingerprint for correlation (never used for
-    // guest creation denial).
-    const fingerprintHash = await getFingerprint();
-    const res = await fetch('/api/auth/initialize-guest', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ deviceId: devId, fingerprintHash }),
-    });
-
-    console.log(
-      '[Auth] initialize-guest response:',
-      res.status,
-      await res.clone().text()
-    );
-
-    if (res.status === 503) {
-      const body = await res.json().catch(() => ({}));
-
-      if (body?.error === 'capacity_full') {
-        router.push('/waitlist');
-        return;
-      }
-    }
-  } catch (err) {
-    console.warn('[Auth] initialize-guest failed (non-fatal):', err);
-  }
-}
-  }, [deviceId, router]);
+  }, [orchestrator]);
 
   /**
    * Provider-agnostic OAuth sign-in.
    * Used by signInWithGoogle and signInWithGithub.
-   * Keeping a single source of truth for the redirect target and
-   * signingInRef guard logic.
+   * Keeping a single source of truth for the redirect target.
    */
   const signInWithOAuthProvider = useCallback(
     async (provider: 'google' | 'github') => {
-      if (!isSupabaseConfigured || signingInRef.current) return;
-      signingInRef.current = true;
-      try {
-        const { createBrowserClient } = await import('@supabase/ssr');
-        const supabase = createBrowserClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        );
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider,
-          options: {
-            redirectTo: `${window.location.origin}/api/auth/callback`,
-          },
-        });
-        if (error) throw new Error(error.message);
-      } finally {
-        setTimeout(() => { signingInRef.current = false; }, 1000);
+      if (!isSupabaseConfigured) return;
+      const redirectTo = `${window.location.origin}/api/auth/callback`;
+      const error = await orchestrator.signInWithOAuth(provider, redirectTo);
+      if (error) {
+        throw new Error(error);
       }
     },
-    []
+    [orchestrator]
   );
 
   const signInWithGoogle = useCallback(
@@ -280,40 +311,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
-    disableServerValidation();
-    if (!isSupabaseConfigured) {
+    try {
+      await orchestrator.signOut();
+    } catch (err) {
+      console.error('[AuthProvider] signOut failed:', err);
+    } finally {
+      // Always clear local mirror state, even if orchestrator throws.
       setUser(null);
       setSession(null);
-      return;
     }
-    const { createBrowserClient } = await import('@supabase/ssr');
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Sign-out error:', error.message);
-    }
-    setUser(null);
-    setSession(null);
-  }, []);
+  }, [orchestrator]);
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        session,
-        loading,
-        isGuest: user?.is_anonymous ?? false,
-        deviceId,
-        signInAnonymously,
-        signInWithGoogle,
-        signInWithGithub,
-        signOut,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+    <LoginPromptServiceProvider value={{ service: loginPrompt }}>
+      <MergeFlowServiceProvider value={{ service: mergeFlow }}>
+        <CloudSyncServiceProvider value={{ service: cloudSync }}>
+          <AuthContext.Provider
+            value={{
+              user,
+              session,
+              loading,
+              isGuest: user?.is_anonymous ?? false,
+              deviceId,
+              signInWithGoogle,
+              signInWithGithub,
+              signOut,
+            }}
+          >
+            {children}
+          </AuthContext.Provider>
+        </CloudSyncServiceProvider>
+      </MergeFlowServiceProvider>
+    </LoginPromptServiceProvider>
   );
 }
