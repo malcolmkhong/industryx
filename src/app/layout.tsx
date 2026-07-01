@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Suspense } from "react";
 
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { GameConfigProvider } from "@/components/providers/GameConfigProvider";
@@ -47,14 +48,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://wkkzqtseqwcyyyezroqq.supabase.co" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://vercel.com" crossOrigin="anonymous" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        <AuthProvider>
-          <GameConfigProvider>
-            {children}
-          </GameConfigProvider>
-        </AuthProvider>
+        <Suspense fallback={null}>
+          <AuthProvider>
+            <GameConfigProvider>
+              {children}
+            </GameConfigProvider>
+          </AuthProvider>
+        </Suspense>
         <DeferredAnalytics />
       </body>
     </html>
