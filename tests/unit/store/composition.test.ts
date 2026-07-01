@@ -112,7 +112,6 @@ describe('Module: store/composition', () => {
       'activateAutomation',
       'doPrestige', 'purchasePrestigeBonus',
       'addNotification', 'markNotificationRead', 'markAllNotificationsRead', 'clearNotifications',
-      'exportSave', 'importSave', 'resetGame',
       'divergesFromExpected',
       'getNewsLLMState', 'refreshNewsFromLLM',
       'collectPayout', 'toggleAutoCollect',
@@ -125,7 +124,7 @@ describe('Module: store/composition', () => {
       'startMegaProject', 'contributeToMegaProject',
       'saveBlueprint', 'loadBlueprint', 'deleteBlueprint', 'renameBlueprint', 'exportBlueprint', 'importBlueprint',
     ];
-    expect(actions.length).toBe(56);
+    expect(actions.length).toBe(53);
     for (const a of actions) {
       expect(typeof (getStore() as unknown as Record<string, unknown>)[a]).toBe('function');
     }

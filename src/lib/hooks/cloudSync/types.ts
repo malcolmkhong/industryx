@@ -21,18 +21,6 @@ export interface CloudBlockState {
   detectedAt: number;
 }
 
-export interface MigrationResult {
-  migrated: boolean;
-  action: 'accept' | 'accept_with_flag' | 'reject' | 'reset' | 'use_cloud';
-  reason?: string;
-  violations?: string[];
-  riskLevel?: string;
-  checks?: Array<{ name: string; passed: boolean; detail: string }>;
-  resetState?: { money: number; totalMoneyEarned: number; gameTick: number; gameSpeed: number };
-  stateHash?: string;
-  message?: string;
-}
-
 export interface CloudSyncState {
   saveToCloud: () => Promise<{ success: boolean; error?: string }>;
   loadFromCloud: () => Promise<{
@@ -58,12 +46,23 @@ export interface CloudSyncState {
   serverStateVersion: number | null;
   isServerAuthoritative: boolean;
   blockedState: CloudBlockState | null;
-  migrationResult: MigrationResult | null;
-  isMigrating: boolean;
 }
 
 // ── Server authority tracking ──────────────────────────
 export interface ServerAuthority {
+  serverStateHash: string | null;
+  serverStateVersion: number | null;
+  isServerAuthoritative: boolean;
+}
+
+// Service-level state shape (data only — hook adds functions in CloudSyncState).
+// Kept separate so the service's getState() returns a stable data snapshot,
+// while the hook's CloudSyncState augments it with bound actions.
+export interface CloudSyncServiceState {
+  blockedState: CloudBlockState | null;
+  isSyncing: boolean;
+  lastSyncAt: number | null;
+  lastAutoSaveAt: number | null;
   serverStateHash: string | null;
   serverStateVersion: number | null;
   isServerAuthoritative: boolean;

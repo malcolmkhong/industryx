@@ -137,8 +137,8 @@ export function createBlueprintActions(set: SetFn, get: GetFn) {
       }
     },
 
-    // M8 FIX: Blueprint import validation (mirrors C3 importSave pattern)
-    // Reject oversize, type-confusion, and out-of-range count attacks
+    // M8 FIX: Blueprint import validation — reject oversize, type-confusion,
+    // and out-of-range count attacks
     importBlueprint: (code: string) => {
       const BLUEPRINT_MAX_BUILDINGS = 500;
       const BLUEPRINT_MAX_TRANSPORT = 200;

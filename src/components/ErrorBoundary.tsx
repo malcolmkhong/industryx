@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { XCircle } from 'lucide-react';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -32,12 +33,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   handleClearSave = () => {
     if (typeof window !== 'undefined') {
-      try {
-        localStorage.removeItem('factory-dominion-save');
-        window.location.reload();
-      } catch {
-        window.location.reload();
-      }
+      window.location.reload();
     }
   };
 
@@ -51,16 +47,12 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
         <div className="min-h-screen bg-background text-subtle flex items-center justify-center p-4">
           <div className="max-w-md w-full text-center space-y-4">
             <div className="w-16 h-16 mx-auto rounded-xl bg-danger/30 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-danger">
-                <circle cx="12" cy="12" r="10"></circle>
-                <path d="m15 9-6 6"></path>
-                <path d="m9 9 6 6"></path>
-              </svg>
+              <XCircle width={32} height={32} className="text-danger" />
             </div>
             <h2 className="text-xl font-bold text-danger">Something went wrong</h2>
             <p className="text-sm text-subtle">
-              The game encountered an error while loading your save data.
-              This can happen if your save data is corrupted or incompatible.
+              The game encountered an error. Server-side save data is preserved
+              across reloads — your progress is safe.
             </p>
             {this.state.error && (
               <details className="text-left text-xs text-muted-label bg-muted-label/50 rounded-lg p-3 border border-muted-label">
@@ -79,7 +71,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
                 onClick={this.handleClearSave}
                 className="w-full px-4 py-2 rounded-lg bg-danger/30 hover:bg-danger/50 border border-danger/50 text-danger text-sm font-medium transition-colors"
               >
-                Reset Save &amp; Reload
+                Reload
               </button>
             </div>
           </div>

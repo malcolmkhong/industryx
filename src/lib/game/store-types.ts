@@ -67,12 +67,6 @@ export interface GameActions {
   markAllNotificationsRead: () => void;
   clearNotifications: () => void;
 
-  // Celebrations (removed)
-
-  // Save/Export/Import
-  exportSave: () => string;
-  importSave: (saveString: string) => boolean;
-
   // MegaProjects
   startMegaProject: (type: MegaProjectType) => void;
   contributeToMegaProject: (type: MegaProjectType) => void;
@@ -93,7 +87,7 @@ export interface GameActions {
   collectOfflineProgress: (offlineData: { resources: Record<ResourceType, number>; money: number; ticksElapsed: number }) => void;
 
   // Rank
-  getCurrentRank: () => { name: string; emoji: string; color: string; score: number; nextRankScore: number | null; progress: number };
+  getCurrentRank: () => { name: string; icon: string; color: string; score: number; nextRankScore: number | null; progress: number };
 
   // Game Tier
   getPlayerGameTier: () => number;
@@ -124,9 +118,6 @@ export interface GameActions {
   sendDrone: (missionId: string, droneId: string) => Promise<void>;
   upgradeDrone: (droneId: string, type: 'speed' | 'capacity' | 'fuelEfficiency') => void;
   generateDroneMissions: () => DroneMission[];
-
-  // Reset
-  resetGame: () => void;
 
   // LLM News State
   getNewsLLMState: () => LLMEngineState;

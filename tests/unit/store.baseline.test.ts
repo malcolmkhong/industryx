@@ -406,41 +406,6 @@ describe('Module: services/offlineService', () => {
 });
 
 // ═════════════════════════════════════════════════════════════════════
-// TARGET: services/saveService
-// ═════════════════════════════════════════════════════════════════════
-
-describe('Module: services/saveService', () => {
-  beforeEach(resetStore);
-  it('exportSave returns base64 string', () => {
-    const s = getStore().exportSave();
-    expect(typeof s).toBe('string'); expect(s.length).toBeGreaterThan(0);
-    expect(() => atob(s)).not.toThrow();
-  });
-  it('importSave restores state', () => {
-    const save = getStore().exportSave();
-    useGameStore.setState({ money: 999 });
-    const ok = getStore().importSave(save);
-    expect(ok).toBe(true); expect(getStore().money).toBe(1000);
-  });
-  it('importSave rejects invalid', () => { expect(getStore().importSave('bad')).toBe(false); });
-  it('importSave rejects money > 1e12', () => {
-    expect(getStore().importSave(btoa(encodeURIComponent(JSON.stringify({ money: 1e13, gamegameTick: 0, resources: {}, buildings: [], _version: 20 }))))).toBe(false);
-  });
-  it('importSave rejects negative money', () => {
-    expect(getStore().importSave(btoa(encodeURIComponent(JSON.stringify({ money: -1, gamegameTick: 0, resources: {}, buildings: [], _version: 20 }))))).toBe(false);
-  });
-  it('importSave rejects >500 buildings', () => {
-    const b = Array(501).fill(null).map((_, i) => ({ id: `b${i}`, type: 'ironMine', level: 1, active: true, efficiency: 1, placedAt: 0 }));
-    expect(getStore().importSave(btoa(encodeURIComponent(JSON.stringify({ money: 1000, gamegameTick: 0, resources: { iron: 0 }, buildings: b, _version: 20 }))))).toBe(false);
-  });
-  it('resetGame clears to defaults', () => {
-    getStore().togglePause(); getStore().resetGame();
-    expect(getStore().paused).toBe(false); expect(getStore().money).toBe(1000);
-    expect(getStore().buildings).toEqual([]);
-  });
-});
-
-// ═════════════════════════════════════════════════════════════════════
 // TARGET: services/newsService
 // ═════════════════════════════════════════════════════════════════════
 
@@ -731,32 +696,8 @@ describe('Module: services/questService', () => {
 describe('Module: store/composition', () => {
   beforeEach(resetStore);
   it('all action keys present', () => {
-    const actions = ['gameTickAction','setGameSpeed','togglePause','setActiveTab','buildBuilding','upgradeBuilding','toggleBuilding','selectBuilding','buildTransportLine','upgradeTransportLine','toggleTransportLine','startResearch','hireWorker','assignWorker','levelUpWorker','sellResource','buyResource','toggleAutoSell','acceptContract','fulfillContract','activateAutomation','doPrestige','purchasePrestigeBonus','addNotification','markNotificationRead','markAllNotificationsRead','clearNotifications','exportSave','importSave','resetGame','divergesFromExpected','getNewsLLMState','refreshNewsFromLLM','collectPayout','toggleAutoCollect','buyDrone','sendDrone','upgradeDrone','generateDroneMissions','addLeaderboardEntry','checkDailyLogin','claimDailyReward','claimQuestReward','updateQuestProgress','setTrackedQuest','upgradeStorage','getCurrentRank','getPlayerGameTier','startMegaProject','contributeToMegaProject','saveBlueprint','loadBlueprint','deleteBlueprint','renameBlueprint','exportBlueprint','importBlueprint'];
-    for (const a of actions) expect(typeof (getStore() as any)[a]).toBe('function');
-  });
-  it('all state fields present', () => {
-    const fields = ['money','totalMoneyEarned','gameTick','gameSpeed','paused','resources','resourceCapacity','buildings','transportLines','powerGrid','researchPoints','completedResearch','activeResearch','researchProgress','workers','market','sectorTrends','marketNews','marketNarratives','serverMarket','contracts','completedContracts','automationUnlocks','prestigeState','activeEvents','eventLog','stats','megaProjects','productionHistory','blueprints','autoSellResources','storageUpgradeLevels','lastOnlineTimestamp','leaderboardEntries','loginStreak','weather','quests','payoutConfig','pendingPayout','payoutHistory','trackedQuest','drones','activeTab','selectedBuilding','notifications','productionSnapshot'];
-    for (const f of fields) expect(getStore()).toHaveProperty(f);
+    const actions = ['gameTickAction','setGameSpeed','togglePause','setActiveTab','buildBuilding','upgradeBuilding','toggleBuilding','selectBuilding','buildTransportLine','upgradeTransportLine','toggleTransportLine','startResearch','hireWorker','assignWorker','levelUpWorker','sellResource','buyResource','toggleAutoSell','acceptContract','fulfillContract','activateAutomation','doPrestige','purchasePrestigeBonus','addNotification','markNotificationRead','markAllNotificationsRead','clearNotifications','divergesFromExpected','getNewsLLMState','refreshNewsFromLLM','collectPayout','toggleAutoCollect','buyDrone','sendDrone','upgradeDrone','generateDroneMissions','addLeaderboardEntry','checkDailyLogin','claimDailyReward','claimQuestReward','updateQuestProgress','setTrackedQuest','upgradeStorage','getCurrentRank','getPlayerGameTier','startMegaProject','contributeToMegaProject','saveBlueprint','loadBlueprint','deleteBlueprint','renameBlueprint','exportBlueprint','importBlueprint'];
+    for (const a of actions) expect(typeof (getStore() as unknown as Record<string, unknown>)[a]).toBe('function');
+    expect(actions.length).toBe(53);
   });
 });
-
-// ═════════════════════════════════════════════════════════════════════
-// TARGET: store/persistence
-// ═════════════════════════════════════════════════════════════════════
-
-describe('Module: store/persistence', () => {
-  beforeEach(resetStore);
-  it('partialize includes persisted fields', () => {
-    const decoded = JSON.parse(decodeURIComponent(atob(getStore().exportSave())));
-    const keys = ['money','totalMoneyEarned','gameTick','resources','resourceCapacity','buildings','transportLines','researchPoints','completedResearch','workers','contracts','completedContracts','automationUnlocks','prestigeState','stats','megaProjects','productionHistory','blueprints','autoSellResources','storageUpgradeLevels','lastOnlineTimestamp','leaderboardEntries','loginStreak','weather','quests','payoutConfig','pendingPayout','payoutHistory','trackedQuest','drones','_version'];
-    for (const k of keys) expect(decoded).toHaveProperty(k);
-  });
-  it('notifications NOT persisted', () => {
-    getStore().addNotification('info', 'test');
-    expect(JSON.parse(decodeURIComponent(atob(getStore().exportSave()))).notifications).toBeUndefined();
-  });
-});
-
-
-
-

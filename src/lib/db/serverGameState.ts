@@ -29,6 +29,7 @@
 
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import type { Database } from '@/lib/db/types';
+import { generateChecksum } from '@/lib/auth/gameStateValidator';
 
 // Type aliases sourced from the generated Supabase types.
 // These are the single source of truth for row shapes.
@@ -443,17 +444,46 @@ export const INITIAL_GUEST_STATE_VALUES = {
 } as const;
 
 /**
+ * Canonical initial-game-state shape consumed by `generateChecksum` to
+ * produce the initial `state_hash`. Mirrors the shape used by
+ * migrate-guest when seeding a brand-new account. Field names match
+ * the client-side store (camelCase) — `generateChecksum` reads these
+ * directly, not the snake_case column names.
+ */
+const INITIAL_GUEST_GAME_STATE = {
+  money: INITIAL_GUEST_STATE_VALUES.money,
+  totalMoneyEarned: INITIAL_GUEST_STATE_VALUES.total_money_earned,
+  gameTick: INITIAL_GUEST_STATE_VALUES.game_tick,
+  gameSpeed: INITIAL_GUEST_STATE_VALUES.game_speed,
+  buildings: INITIAL_GUEST_STATE_VALUES.buildings,
+  resources: INITIAL_GUEST_STATE_VALUES.resources,
+  completedResearch: INITIAL_GUEST_STATE_VALUES.completed_research,
+  researchPoints: INITIAL_GUEST_STATE_VALUES.research_points,
+} as const;
+
+/**
  * Insert the initial game state for a brand-new guest user.
  * Caller must verify no prior state exists (see hasServerGameState).
+ *
+ * `state_hash` is NOT NULL on the schema — every new row must carry a
+ * valid HMAC. Computed here from the canonical initial game-state
+ * shape so the first server-validated save matches what the client
+ * will see.
  */
 export async function initializeGuestGameState(
   userId: string,
 ): Promise<ServerGameStateRow | null> {
   const supabase = createServiceRoleClient();
   if (!supabase) return null;
+  const stateHash = generateChecksum(INITIAL_GUEST_GAME_STATE as unknown as Record<string, unknown>);
   const { data, error } = await supabase
     .from('server_game_state')
-    .insert({ user_id: userId, ...INITIAL_GUEST_STATE_VALUES })
+    .insert({
+      user_id: userId,
+      ...INITIAL_GUEST_STATE_VALUES,
+      state_hash: stateHash,
+      state_version: 1,
+    })
     .select()
     .single();
   if (error) {

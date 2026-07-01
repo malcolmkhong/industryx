@@ -1,174 +1,91 @@
 'use client';
 
-import { useCallback, useEffect, useRef } from 'react';
+/**
+ * Cloud sync hook — Phase 5 passive facade.
+ *
+ * Exposes the same CloudSyncState shape as before, but no longer makes auth
+ * decisions. The orchestrator owns load/save timing. This hook only:
+ *   - subscribes to the CloudSyncService for state changes
+ *   - exposes service methods to React consumers
+ *
+ * Behavior change:
+ *   - isNew branch removed (per Q5). Server is always authoritative.
+ *   - migrate-guest path removed entirely (per Q5).
+ *   - auto-save driven by orchestrator, not this hook.
+ */
+
+import { useEffect, useMemo, useState, useSyncExternalStore, useContext, createContext } from 'react';
+
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useGameStore } from '@/lib/game/store';
-import { useBlockedState } from './useBlockedState';
-import { useServerAuthority } from './useServerAuthority';
-import { useCloudPersistence } from './useCloudPersistence';
-import { useCloudSave } from './useCloudSave';
-import { useCloudLoad } from './useCloudLoad';
-import { useConflictResolution } from './useConflictResolution';
-import { AUTO_SAVE_INTERVAL } from './types';
-import type { CloudSyncState, ServerAuthority } from './types';
+import { extractGameState } from './serializeGameState';
+import { applyServerState } from '@/lib/game/store';
+import { CloudSyncService } from './CloudSyncService';
+import type { CloudSyncState, SyncResult, LoadResult } from './types';
 
-/**
- * Cloud sync hook with guest-to-auth migration support.
- *
- * Facade that composes focused sub-hooks into the unified CloudSyncState.
- *
- * Flow:
- * 1. Guest plays locally (localStorage) — no server involvement
- * 2. Guest signs in with Google → first-time migration
- * 3. Migration endpoint validates guest save data against game rules
- * 4. If valid → guest data becomes initial cloud state
- * 5. After migration → cloud is ALWAYS authoritative
- * 6. Conflict resolution: cloud always wins (after first migration)
- */
+const CloudSyncCtx = createContext<{ service: CloudSyncService } | null>(null);
+
+export const CloudSyncServiceProvider = CloudSyncCtx.Provider;
+export { CloudSyncService };
+
 export function useCloudSync(): CloudSyncState {
+  const ctx = useContext(CloudSyncCtx);
+  if (!ctx) {
+    throw new Error('useCloudSync must be used within CloudSyncServiceProvider');
+  }
+  const { service } = ctx;
   const { user } = useAuth();
+  const userId = user?.id ?? null;
 
-  // ── State hooks ───────────────────────────────────────────────────
-  const { blockedState, setBlockedState } = useBlockedState();
-  const {
-    serverStateHash,
-    serverStateVersion,
-    isServerAuthoritative,
-    setServerStateHash,
-    setServerStateVersion,
-    setIsServerAuthoritative,
-  } = useServerAuthority();
-
-  // ── Persistence (state + migration only — save/load are dedicated) ─
-  const {
-    isSyncing,
-    isSyncingState,
-    setIsSyncingState,
-    isMigrating,
-    lastSyncAt,
-    lastAutoSaveAt,
-    lastSavedGameTick,
-    setLastAutoSaveAtState,
-    lastSyncAtState,
-    setLastSyncAtState,
-    lastAutoSaveAtState,
-    migrationResult,
-    migrateGuestToCloud,
-  } = useCloudPersistence({
-    user,
-    serverStateHash,
-    serverStateVersion,
-    isServerAuthoritative,
-    setBlockedState,
-    setServerStateHash,
-    setServerStateVersion,
-    setIsServerAuthoritative,
-  });
-
-  // ── Compose ServerAuthority for dedicated hooks ───────────────────
-  const serverAuthority: ServerAuthority = {
-    serverStateHash,
-    serverStateVersion,
-    isServerAuthoritative,
-  };
-
-  const setServerAuthority = useCallback((auth: ServerAuthority) => {
-    setServerStateHash(auth.serverStateHash);
-    setServerStateVersion(auth.serverStateVersion);
-    setIsServerAuthoritative(auth.isServerAuthoritative);
-  }, [setServerStateHash, setServerStateVersion, setIsServerAuthoritative]);
-
-  // ── Dedicated save / load hooks (source of truth) ─────────────────
-  const { saveToCloud } = useCloudSave({
-    userId: user?.id ?? null,
-    isSyncingRef: isSyncing,
-    setIsSyncingState,
-    serverAuthority,
-    setServerAuthority,
-    setBlockedState,
-  });
-
-  const { loadFromCloud } = useCloudLoad({
-    userId: user?.id ?? null,
-    serverAuthority,
-    setServerAuthority,
-    setBlockedState,
-  });
-
-  // ── Conflict resolution ──────────────────────────────────────────
-  const { pendingConflict, resolveConflict } = useConflictResolution(saveToCloud);
-
-  // ── Auto-load / migrate on first login ───────────────────────────
-  const initialLoadDone = useRef(false);
   useEffect(() => {
-    if (!user || initialLoadDone.current) return;
-    initialLoadDone.current = true;
+    service.setUserId(userId);
+  }, [service, userId]);
 
-    (async () => {
-      const loadResult = await loadFromCloud();
+  const snapshot = useSyncExternalStore(
+    (cb) => service.subscribe(cb),
+    () => service.getState(),
+    () => service.getState(),
+  );
 
-      if (loadResult.isNew) {
-        // First-time login — migrate guest save to cloud
-        await migrateGuestToCloud();
-        // Result is handled inside migrateGuestToCloud (sets state, blockedState, etc.)
-      } else if (loadResult.success && loadResult.data && loadResult.conflict === 'cloud') {
-        // Returning user — apply authoritative cloud state locally
+  // Pending conflict stays null until Phase 6 (merge flow owns this).
+  const [pendingConflict] = useState<CloudSyncState['pendingConflict']>(null);
+  const resolveConflict = async (): Promise<SyncResult> => ({ success: true });
+
+  const saveToCloud = useMemo(
+    () => () =>
+      service.save(
+        () => useGameStore.getState().gameTick,
+        () => extractGameState(),
+      ),
+    [service],
+  );
+
+  const loadFromCloud = useMemo(
+    () => async (): Promise<LoadResult> => {
+      const r = await service.load();
+      if (r.success && r.data && r.conflict === 'cloud') {
         try {
-          useGameStore.getState().importSave(JSON.stringify(loadResult.data));
+          applyServerState(r.data);
         } catch {
-          // If import fails, local state stays
+          // local state stays untouched on apply failure
         }
       }
-    })();
-  }, [user, loadFromCloud, migrateGuestToCloud]);
-
-  // ── Reset load gate on sign-out ───────────────────────────────────
-  useEffect(() => {
-    if (!user) initialLoadDone.current = false;
-  }, [user]);
-
-  // ── Auto-save every 2 minutes ────────────────────────────────────
-  useEffect(() => {
-    if (!user) return;
-
-    const interval = setInterval(async () => {
-      if (isSyncing.current || isMigrating) return;
-
-      const currentGameTick = useGameStore.getState().gameTick;
-
-      if (
-        lastSavedGameTick.current !== null &&
-        lastSavedGameTick.current === currentGameTick
-      ) {
-        return; // No state change since last save
-      }
-
-      const result = await saveToCloud();
-      if (result.success) {
-        lastSyncAt.current = Date.now();
-        lastSavedGameTick.current = currentGameTick;
-        lastAutoSaveAt.current = Date.now();
-        setLastSyncAtState(lastSyncAt.current);
-        setLastAutoSaveAtState(lastAutoSaveAt.current);
-      }
-    }, AUTO_SAVE_INTERVAL);
-
-    return () => clearInterval(interval);
-  }, [user, saveToCloud, isMigrating]);
+      return r;
+    },
+    [service],
+  );
 
   return {
     saveToCloud,
     loadFromCloud,
-    lastSyncAt: lastSyncAtState,
-    lastAutoSaveAt: lastAutoSaveAtState,
-    isSyncing: isSyncingState,
+    lastSyncAt: snapshot.lastSyncAt,
+    lastAutoSaveAt: snapshot.lastAutoSaveAt,
+    isSyncing: snapshot.isSyncing,
     resolveConflict,
     pendingConflict,
-    serverStateHash,
-    serverStateVersion,
-    isServerAuthoritative,
-    blockedState,
-    migrationResult,
-    isMigrating,
-  };
+    serverStateHash: snapshot.serverStateHash,
+    serverStateVersion: snapshot.serverStateVersion,
+    isServerAuthoritative: snapshot.isServerAuthoritative,
+    blockedState: snapshot.blockedState,
+  } satisfies CloudSyncState;
 }

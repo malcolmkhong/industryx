@@ -34,7 +34,7 @@ export function createRankActions(set: SetFn, get: GetFn) {
 
       return {
         name: currentRank.name,
-        emoji: currentRank.icon,
+        icon: currentRank.icon,
         color: currentRank.color,
         score,
         nextRankScore: nextRank ? nextRank.minScore : null,

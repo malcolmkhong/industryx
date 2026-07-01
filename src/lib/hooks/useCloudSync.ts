@@ -3,7 +3,7 @@
  *
  * All consumers import from `@/lib/hooks/useCloudSync` — this barrel
  * preserves that contract. The actual implementation lives in
- * `src/lib/hooks/cloudSync/` (9 files).
+ * `src/lib/hooks/cloudSync/`.
  */
 export { useCloudSync } from './cloudSync/index';
-export type { CloudSyncState, CloudBlockState, MigrationResult } from './cloudSync/types';
+export type { CloudSyncState, CloudBlockState } from './cloudSync/types';
