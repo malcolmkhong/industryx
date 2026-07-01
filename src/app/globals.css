@@ -99,6 +99,12 @@
   --color-sky: #38bdf8;            /* replaces text-brand/80 (industrial/variant) */
   --color-indigo: #818cf8;         /* replaces text-research (industrial/variant) */
   --color-lime: #a3e635;           /* replaces text-success (success-adjacent) */
+  /* Tier colors — used by Empire Score + Rank thresholds */
+  --color-tier-bronze: #cd7f32;
+  --color-tier-silver: #c0c0c0;
+  --color-tier-gold: #ffd700;
+  --color-tier-platinum: #e5e4e2;
+  --color-tier-diamond: #b9f2ff;
 }
 
 :root {

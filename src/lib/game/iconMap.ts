@@ -308,7 +308,6 @@ export const UI_ICON_MAP: Record<string, string> = {
   build: 'gi:hammer-drop',
   sell: 'gi:sell-card',
   buy: 'gi:buy-card',
-  upgrade: 'mdi:arrow-up',
   demolish: 'gi:demolish',
   repair: 'gi:wrench',
   produce: 'gi:factory',
@@ -328,7 +327,7 @@ export const UI_ICON_MAP: Record<string, string> = {
   research: 'gi:magnifying-glass',
   worker: 'gi:overhead',
   market: 'gi:trade',
-  contract: 'mdi:clipboard-text-outline',
+  contract: 'gi:scroll-unfurled',
   quest: 'gi:scroll-unfurled',
   megaProject: 'gi:castle',
   event: 'gi:lightning-storm',
@@ -348,8 +347,6 @@ export const UI_ICON_MAP: Record<string, string> = {
   help: 'gi:help',
   info: 'gi:info',
   close: 'gi:cross-mark',
-  back: 'mdi:arrow-left',
-  forward: 'mdi:arrow-right',
   menu: 'gi:hamburger-menu',
 
   // Game UI
@@ -429,7 +426,6 @@ export const UI_ICON_MAP: Record<string, string> = {
 
   // Misc
   package: 'gi:cardboard-box',
-  link: 'mdi:link-variant',
   clock: 'gi:clockwork',
   star: 'gi:sparkles',
   diamond: 'gi:diamond-hard',
