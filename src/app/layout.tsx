@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
-import { SpeedInsights } from "@vercel/speed-insights/next"
-import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { GameConfigProvider } from "@/components/providers/GameConfigProvider";
+import DeferredAnalytics from "@/components/DeferredAnalytics";
 
 import "./globals.css";
 
@@ -56,8 +55,7 @@ export default function RootLayout({
             {children}
           </GameConfigProvider>
         </AuthProvider>
-        <Analytics />
-        <SpeedInsights />
+        <DeferredAnalytics />
       </body>
     </html>
   );
