@@ -40,6 +40,10 @@ export const metadata: Metadata = {
     description: "Build your industrial empire from scratch",
     type: "website",
   },
+  // Add canonical URL for SEO
+  alternates: {
+    canonical: '/',
+  },
 };
 
 export default function RootLayout({
@@ -50,6 +54,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="canonical" href="https://industryx.vercel.app/" />
         <link rel="preconnect" href="https://wkkzqtseqwcyyyezroqq.supabase.co" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://vercel.com" crossOrigin="anonymous" />
       </head>

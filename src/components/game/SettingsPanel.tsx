@@ -655,6 +655,7 @@ export function SettingsPanel() {
               href={BUYMEACOFFEE_URL}
               target="_blank"
               rel="noopener noreferrer"
+              className="block"
             >
               <img
                 src="/bmc_qr.png"

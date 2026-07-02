@@ -383,6 +383,8 @@ export function GameSidebar() {
         <div className="shrink-0 border-t border-brand/20 px-2 pt-2">
           <a
             href="/admin"
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium
               text-warning hover:text-warning/80 hover:bg-warning/60/10 border border-transparent
               hover:border-warning/60/20 transition-colors"
