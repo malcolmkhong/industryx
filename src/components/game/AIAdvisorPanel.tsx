@@ -493,7 +493,7 @@ export default function AIAdvisorPanel() {
       recs.push({
         id: `no-power-${recId++}`,
         priority: 'critical',
-        icon: 'gi:lightning-storm',
+        icon: 'game-icons:lightning-storm',
         title: 'No Power Plants!',
         description: 'You have buildings but no power plants! Buildings without power run at only 10% efficiency. Build a Coal Generator now.',
         actionTab: 'power',
@@ -527,7 +527,7 @@ export default function AIAdvisorPanel() {
       recs.push({
         id: `power-critical-${recId++}`,
         priority: 'critical',
-        icon: 'gi:lightning-storm',
+        icon: 'game-icons:lightning-storm',
         title: 'Power Grid Critical!',
         description: `Factories running at ${pct}% efficiency! Build another ${cheapestType ? BUILDING_DEFS[cheapestType]?.name : 'power plant'} immediately to restore power.`,
         actionTab: 'power',
@@ -561,7 +561,7 @@ export default function AIAdvisorPanel() {
       recs.push({
         id: `power-warning-${recId++}`,
         priority: 'important',
-        icon: 'gi:lightning-frequency',
+        icon: 'game-icons:lightning-frequency',
         title: `Power Grid at ${pct}%`,
         description: `Power consumption is ${pct}% of production — build another ${cheapestType ? BUILDING_DEFS[cheapestType]?.name : 'power plant'} before expanding further.`,
         actionTab: 'power',
@@ -605,7 +605,7 @@ export default function AIAdvisorPanel() {
           recs.push({
             id: `bottleneck-${res}-${recId++}`,
             priority: 'important',
-            icon: 'gi:wrench',
+            icon: 'game-icons:wrench',
             title: `Build a ${consumerDef?.name ?? 'Processor'}`,
             description: `You're producing ${meta.name} but have no ${outputName}. Build a ${consumerDef?.name} to process your ${meta.name} into ${outputName}.`,
             actionTab: consumerDef?.category === 'extractor' ? 'resources' : 'factories',
@@ -651,7 +651,7 @@ export default function AIAdvisorPanel() {
             recs.push({
               id: `prod-gap-${building.type}-${inputRes}-${recId++}`,
               priority: 'important',
-              icon: 'gi:hazard-sign',
+              icon: 'game-icons:hazard-sign',
               title: `Your ${def.name} is Waiting for ${inputMeta?.name ?? inputRes}`,
               description: `Build a ${producerName} to supply ${inputMeta?.name ?? inputRes} — your ${def.name} can't run without it.`,
               actionTab: BUILDING_DEFS[producerType]?.category === 'extractor' ? 'resources' : 'factories',
@@ -683,7 +683,7 @@ export default function AIAdvisorPanel() {
         recs.push({
           id: `storage-full-${res}-${recId++}`,
           priority: 'important',
-          icon: 'gi:cardboard-box',
+          icon: 'game-icons:cardboard-box',
           title: `${meta?.name ?? res} at ${Math.round(fillRatio * 100)}% Capacity`,
           description: `${meta?.name ?? res} storage is almost full (${formatNumber(stock)}/${formatNumber(capacity)}). Sell some or upgrade storage to avoid wasted production.`,
           actionTab: 'market',
@@ -723,7 +723,7 @@ export default function AIAdvisorPanel() {
       recs.push({
         id: `idle-${building.id}-${recId++}`,
         priority: 'important',
-        icon: 'gi:sleepy',
+        icon: 'game-icons:sleepy',
         title: `Your ${def.name} is Idle`,
         description: `${def.name} is built but inactive — ${reason}.`,
         actionTab: def.category === 'power' ? 'power' : def.category === 'extractor' ? 'resources' : 'factories',
@@ -776,7 +776,7 @@ export default function AIAdvisorPanel() {
           recs.push({
             id: `chain-complete-${chain.name}-${recId++}`,
             priority: 'suggested',
-            icon: 'gi:linked-rings',
+            icon: 'game-icons:linked-rings',
             title: `Complete the ${chain.name} Chain`,
             description: `Build a ${nextProducerName} to produce ${missingMeta?.name ?? missingResource}. You already have the prerequisites!`,
             actionTab: BUILDING_DEFS[nextProducer]?.category === 'extractor' ? 'resources' : 'factories',
@@ -813,7 +813,7 @@ export default function AIAdvisorPanel() {
         recs.push({
           id: `deficit-${res}-${recId++}`,
           priority: 'important',
-          icon: 'gi:hazard-sign',
+          icon: 'game-icons:hazard-sign',
           title: `${meta?.name ?? res} Deficit`,
           description: `Consuming ${consumption.toFixed(1)}/s but only producing ${production.toFixed(1)}/s.${producerName ? ` Build more ${producerName}s.` : ''}`,
           actionTab: producerType && BUILDING_DEFS[producerType]?.category === 'extractor' ? 'resources' : 'factories',
@@ -850,7 +850,7 @@ export default function AIAdvisorPanel() {
           recs.push({
             id: `idle-${res}-${recId++}`,
             priority: 'suggested',
-            icon: 'gi:light-bulb',
+            icon: 'game-icons:light-bulb',
             title: `${meta?.name ?? res} Stockpiled`,
             description: `You have ${formatNumber(stock)} ${meta?.name ?? res} stockpiled (${(fillRatio * 100).toFixed(0)}% full).${consumerName ? ` Build a ${consumerName} to process it.` : ' Consider selling on the market.'}`,
             actionTab: consumerType ? 'factories' : 'market',
@@ -885,7 +885,7 @@ export default function AIAdvisorPanel() {
         recs.push({
           id: `research-${recId++}`,
           priority: 'suggested',
-          icon: 'gi:chemical-drop',
+          icon: 'game-icons:chemical-drop',
           title: 'Research Available',
           description: `You have ${availableResearch.length} unlocked research available. Start researching ${bestResearch.name} for its benefits.`,
           actionTab: 'research',
@@ -904,7 +904,7 @@ export default function AIAdvisorPanel() {
       recs.push({
         id: `research-start-${recId++}`,
         priority: 'suggested',
-        icon: 'gi:chemical-drop',
+        icon: 'game-icons:chemical-drop',
         title: 'Start Researching',
         description: `You have ${formatNumber(researchPoints)} RP but no active research. Research unlocks powerful bonuses and new buildings.`,
         actionTab: 'research',
@@ -929,7 +929,7 @@ export default function AIAdvisorPanel() {
           recs.push({
             id: `market-sell-${m.resource}-${recId++}`,
             priority: 'optional',
-            icon: 'gi:profit',
+            icon: 'game-icons:profit',
             title: `${meta?.name ?? m.resource} Price Surge`,
             description: `${meta?.name ?? m.resource} prices are ${pricePercent}% above base! You have ${formatNumber(held)} units. Consider selling now.`,
             actionTab: 'market',
@@ -944,7 +944,7 @@ export default function AIAdvisorPanel() {
           recs.push({
             id: `market-opportunity-${m.resource}-${recId++}`,
             priority: 'optional',
-            icon: 'gi:profit',
+            icon: 'game-icons:profit',
             title: `${meta?.name ?? m.resource} Price High`,
             description: `${meta?.name ?? m.resource} prices are ${pricePercent}% above base. If you can produce it, now is a good time to sell.`,
             actionTab: 'market',
@@ -1177,7 +1177,7 @@ export default function AIAdvisorPanel() {
         {visibleRecommendations.length === 0 ? (
           <Card className="bg-background border border-brand/20">
             <CardContent className="p-6 text-center">
-              <div className="text-3xl mb-2"><GameIcon icon="gi:check-mark" size={28} /></div>
+              <div className="text-3xl mb-2"><GameIcon icon="game-icons:check-mark" size={28} /></div>
               <p className="text-sm text-subtle font-medium">All systems operational!</p>
               <p className="text-xs text-muted-label mt-1">No urgent recommendations at this time. Keep expanding your factory!</p>
             </CardContent>

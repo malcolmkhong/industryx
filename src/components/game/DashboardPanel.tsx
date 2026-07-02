@@ -216,7 +216,7 @@ export function DashboardPanel() {
           className="w-full bg-linear-to-r from-900-pink/25 via-research/20/20 to-premium/30/25 border border-premium/30 rounded-xl p-3 flex items-center justify-between group hover:border-400-pink/50 cursor-pointer"
         >
           <div className="flex items-center gap-3">
-            <GameIcon icon="gi:present" size={24} className="animate-bounce" />
+            <GameIcon icon="game-icons:present" size={24} className="animate-bounce" />
             <div className="text-left">
               <p className="text-sm font-bold text-premium group-hover:text-premium/40 transition-colors">Daily Reward Available!</p>
               <p className="text-[10px] text-subtle">Click to claim your daily login bonus</p>
@@ -316,9 +316,9 @@ export function DashboardPanel() {
               </div>
             </div>
             <div className="flex items-center gap-2 mt-1.5 text-[9px]">
-              {trackedQuestData.reward.money > 0 && <span className="text-success"><GameIcon icon="gi:money-stack" size={14} className="inline" /> ${formatNumber(trackedQuestData.reward.money)}</span>}
-              {trackedQuestData.reward.researchPoints && trackedQuestData.reward.researchPoints > 0 && <span className="text-research"><GameIcon icon="gi:magnifying-glass" size={14} className="inline" /> {trackedQuestData.reward.researchPoints}RP</span>}
-              {trackedQuestData.reward.corporationPoints && trackedQuestData.reward.corporationPoints > 0 && <span className="text-premium"><GameIcon icon="gi:briefcase" size={14} className="inline" /> {trackedQuestData.reward.corporationPoints}CP</span>}
+              {trackedQuestData.reward.money > 0 && <span className="text-success"><GameIcon icon="game-icons:money-stack" size={14} className="inline" /> ${formatNumber(trackedQuestData.reward.money)}</span>}
+              {trackedQuestData.reward.researchPoints && trackedQuestData.reward.researchPoints > 0 && <span className="text-research"><GameIcon icon="game-icons:magnifying-glass" size={14} className="inline" /> {trackedQuestData.reward.researchPoints}RP</span>}
+              {trackedQuestData.reward.corporationPoints && trackedQuestData.reward.corporationPoints > 0 && <span className="text-premium"><GameIcon icon="game-icons:briefcase" size={14} className="inline" /> {trackedQuestData.reward.corporationPoints}CP</span>}
             </div>
           </motion.div>
         );
@@ -349,16 +349,16 @@ export function DashboardPanel() {
           </div>
           {/* Decorative background elements */}
           <div className="absolute inset-0 opacity-5">
-            <div className="absolute top-4 left-8"><GameIcon icon="gi:mining" size={48} /></div>
-            <div className="absolute bottom-4 right-8"><GameIcon icon="gi:factory" size={48} /></div>
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"><GameIcon icon="gi:castle" size={64} /></div>
+            <div className="absolute top-4 left-8"><GameIcon icon="game-icons:mining" size={48} /></div>
+            <div className="absolute bottom-4 right-8"><GameIcon icon="game-icons:factory" size={48} /></div>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"><GameIcon icon="game-icons:castle" size={64} /></div>
           </div>
           <div className="relative z-10">
             <motion.div
               animate={{ scale: [1, 1.05, 1] }}
               transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
             >
-              <div className="mb-4"><GameIcon icon="gi:castle" size={48} /></div>
+              <div className="mb-4"><GameIcon icon="game-icons:castle" size={48} /></div>
             </motion.div>
             <h3 className="text-xl font-bold text-brand neon-glow-cyan mb-2">Build Your First Factory!</h3>
             <p className="text-sm text-subtle mb-6 max-w-md mx-auto">
@@ -529,7 +529,7 @@ export function DashboardPanel() {
             {/* No Power Grid State */}
             {powerGrid.totalProduction === 0 && powerGrid.totalConsumption === 0 ? (
               <div className="text-center py-4">
-                <div className="mb-2"><GameIcon icon="gi:lightning-frequency" size={28} /></div>
+                <div className="mb-2"><GameIcon icon="game-icons:lightning-frequency" size={28} /></div>
                 <p className="text-sm text-subtle font-medium mb-1">NO POWER GRID</p>
                 <p className="text-xs text-muted-label mb-3">Build a Coal Generator or Solar Panel to start generating power</p>
                 <Button

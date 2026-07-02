@@ -601,7 +601,7 @@ export function WorkerPanel() {
 
             {productivityComparison.unassignedCount > 0 && (
               <div className="mt-2 text-[9px] text-warning/80 bg-warning/10 rounded px-2 py-1 border border-warning/20">
-                <GameIcon icon="gi:hazard-sign" size={14} className="inline" /> {productivityComparison.unassignedCount} worker{productivityComparison.unassignedCount > 1 ? 's' : ''} not assigned — assign them to boost production!
+                <GameIcon icon="game-icons:hazard-sign" size={14} className="inline" /> {productivityComparison.unassignedCount} worker{productivityComparison.unassignedCount > 1 ? 's' : ''} not assigned — assign them to boost production!
               </div>
             )}
           </div>

@@ -165,7 +165,7 @@ function SectorOverview({ sectorTrends, market }: { sectorTrends: Partial<Record
             'border-muted-label bg-card'
           }`}>
             <div className="flex items-center justify-between mb-0.5">
-              <GameIcon icon={info.icon as `gi:${string}` | `lucide:${string}`} size={12} className={info.color} />
+              <GameIcon icon={info.icon as `game-icons:${string}` | `lucide:${string}`} size={12} className={info.color} />
               {trend === 'up' && <span className="text-[11px] text-success">▲</span>}
               {trend === 'down' && <span className="text-[11px] text-danger">▼</span>}
               {trend === 'stable' && <span className="text-[11px] text-muted-label">─</span>}
@@ -514,7 +514,7 @@ export function MarketPanel() {
                         : 'bg-card text-muted-label border border-muted-label hover:text-subtle'
                     }`}
                   >
-                    <GameIcon icon={info.icon as `gi:${string}` | `lucide:${string}`} size={10} />
+                    <GameIcon icon={info.icon as `game-icons:${string}` | `lucide:${string}`} size={10} />
                     {info.name.split(' ')[0]}
                     {trend === 'up' && <span className="text-success">▲</span>}
                     {trend === 'down' && <span className="text-danger">▼</span>}
@@ -600,13 +600,13 @@ export function MarketPanel() {
                           </span>
                         )}
                         {priceRatio > 1.5 && (
-                          <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-domain/30 text-domain border border-domain/30 font-bold inline-flex items-center gap-0.5"><GameIcon icon="gi:flame" size={10} /> HOT</span>
+                          <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-domain/30 text-domain border border-domain/30 font-bold inline-flex items-center gap-0.5"><GameIcon icon="game-icons:flame" size={10} /> HOT</span>
                         )}
                         {priceRatio < 0.5 && (
-                          <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-brand/30 text-brand border border-brand/30 font-bold inline-flex items-center gap-0.5"><GameIcon icon="gi:falling" size={10} /> LOW</span>
+                          <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-brand/30 text-brand border border-brand/30 font-bold inline-flex items-center gap-0.5"><GameIcon icon="game-icons:falling" size={10} /> LOW</span>
                         )}
-                        {m.trend === 'up' && <span className="text-xs trend-arrow-bounce inline-flex items-center" style={{ filter: 'drop-shadow(0 0 3px rgba(74,222,128,0.5))' }}><GameIcon icon="gi:fast-arrow" size={12} className="text-success -rotate-90" /></span>}
-                        {m.trend === 'down' && <span className="text-xs trend-arrow-bounce inline-flex items-center" style={{ filter: 'drop-shadow(0 0 3px rgba(248,113,113,0.5))' }}><GameIcon icon="gi:fast-arrow" size={12} className="text-danger rotate-90" /></span>}
+                        {m.trend === 'up' && <span className="text-xs trend-arrow-bounce inline-flex items-center" style={{ filter: 'drop-shadow(0 0 3px rgba(74,222,128,0.5))' }}><GameIcon icon="game-icons:fast-arrow" size={12} className="text-success -rotate-90" /></span>}
+                        {m.trend === 'down' && <span className="text-xs trend-arrow-bounce inline-flex items-center" style={{ filter: 'drop-shadow(0 0 3px rgba(248,113,113,0.5))' }}><GameIcon icon="game-icons:fast-arrow" size={12} className="text-danger rotate-90" /></span>}
                         {isAutoSell && (
                           <span className="text-[11px] px-1 py-0.5 rounded bg-success/30 text-success border border-success/30">AUTO</span>
                         )}
@@ -691,7 +691,7 @@ export function MarketPanel() {
                       }`}
                       title="Auto-sell when storage > 80%"
                     >
-                      {store.autoSellResources.includes(selected.resource) ? <><GameIcon icon="gi:spinning-wheel" size={14} className="inline" /> AUTO</> : 'AUTO'}
+                      {store.autoSellResources.includes(selected.resource) ? <><GameIcon icon="game-icons:spinning-wheel" size={14} className="inline" /> AUTO</> : 'AUTO'}
                     </button>
                   </div>
 

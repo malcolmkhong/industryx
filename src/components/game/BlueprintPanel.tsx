@@ -111,7 +111,7 @@ export function BlueprintPanel() {
           needed,
           costPerBuilding,
           totalCost: costPerBuilding * needed,
-          icon: def?.icon ?? 'gi:help',
+          icon: def?.icon ?? 'game-icons:help',
           name: def?.name ?? b.type,
         };
       })

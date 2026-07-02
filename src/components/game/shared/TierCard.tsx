@@ -35,7 +35,7 @@ interface TierCardProps {
   nextScore?: number;
   /** Lucide icon component */
   lucideIcon?: React.ReactNode;
-  /** GameIcon icon string (gi:...) */
+  /** GameIcon icon string (game-icons:...) */
   gameIcon?: string;
   progress?: number;
   isMax?: boolean;

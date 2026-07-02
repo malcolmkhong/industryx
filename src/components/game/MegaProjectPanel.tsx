@@ -409,7 +409,7 @@ export function MegaProjectPanel() {
                             return (
                               <div key={i} className="flex items-center justify-between text-[11px]">
                                 <div className="flex items-center gap-1.5">
-                                  {meta ? <GameIcon icon={meta.icon} size={16} /> : <GameIcon icon="gi:money-stack" size={16} />}
+                                  {meta ? <GameIcon icon={meta.icon} size={16} /> : <GameIcon icon="game-icons:money-stack" size={16} />}
                                   <span className="text-subtle">{meta?.name ?? 'Money'}</span>
                                 </div>
                                 <div className="flex items-center gap-1">
@@ -433,7 +433,7 @@ export function MegaProjectPanel() {
 
                         {/* Time estimate */}
                         <div className="mt-2 text-[10px] text-muted-label">
-                          <GameIcon icon="gi:clockwork" size={12} className="inline" /> Est. {formatDuration(currentStage.timeRequired)} ({(currentStage.timeRequired / 60).toFixed(0)} min at 1x)
+                          <GameIcon icon="game-icons:clockwork" size={12} className="inline" /> Est. {formatDuration(currentStage.timeRequired)} ({(currentStage.timeRequired / 60).toFixed(0)} min at 1x)
                           {!resourcesMet && <span className="text-warning ml-2">(paused until resources available)</span>}
                         </div>
                       </div>

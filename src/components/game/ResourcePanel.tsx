@@ -32,18 +32,18 @@ const RAW_RESOURCES: ResourceType[] = ['iron', 'copper', 'coal', 'oil', 'sand', 
 
 // Tab config for the tier selector
 const TAB_CONFIG = {
-  basic: { label: 'Basic Mining', shortLabel: 'Basic', color: 'amber' as const, icon: 'gi:mining' },
-  advanced: { label: 'Advanced Mining', shortLabel: 'Advanced', color: 'orange' as const, icon: 'gi:peaks' },
-  specialized: { label: 'Specialized', shortLabel: 'Special', color: 'purple' as const, icon: 'gi:gem-chain' },
+  basic: { label: 'Basic Mining', shortLabel: 'Basic', color: 'amber' as const, icon: 'game-icons:mining' },
+  advanced: { label: 'Advanced Mining', shortLabel: 'Advanced', color: 'orange' as const, icon: 'game-icons:peaks' },
+  specialized: { label: 'Specialized', shortLabel: 'Special', color: 'purple' as const, icon: 'game-icons:gem-chain' },
 };
 
 type TabKey = 'basic' | 'advanced' | 'specialized';
 
 // Extraction pipeline tiers for SVG flow diagram
 const EXTRACTION_TIERS = [
-  { key: 'basic', label: 'Basic Mining', icon: 'gi:mining', color: '#f59e0b' },
-  { key: 'advanced', label: 'Advanced Mining', icon: 'gi:peaks', color: '#f97316' },
-  { key: 'specialized', label: 'Specialized', icon: 'gi:gem-chain', color: '#a855f7' },
+  { key: 'basic', label: 'Basic Mining', icon: 'game-icons:mining', color: '#f59e0b' },
+  { key: 'advanced', label: 'Advanced Mining', icon: 'game-icons:peaks', color: '#f97316' },
+  { key: 'specialized', label: 'Specialized', icon: 'game-icons:gem-chain', color: '#a855f7' },
 ] as const;
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -564,7 +564,7 @@ export function ResourcePanel() {
                   }`}
                 >
                   <div className={`w-6 h-6 rounded-md flex items-center justify-center ${isActive ? colors.bg : 'bg-muted-label/50'}`}>
-                    <GameIcon icon={config.icon} size={16} />
+                    <GameIcon icon={config.icon} size={16} color={isActive ? config.color : '#9ca3af'} />
                   </div>
                   <span className="hidden sm:inline">{config.label}</span>
                   <span className="sm:hidden">{config.shortLabel}</span>
@@ -638,7 +638,7 @@ export function ResourcePanel() {
                         )}
                         {/* Header: emoji + name */}
                         <div className="flex items-start gap-2 mb-1.5">
-                          <GameIcon icon={def.icon} size={20} />
+                          <GameIcon icon={def.icon} size={20} color="#9ca3af" />
                           <div className="flex-1 min-w-0">
                             <p className="text-[11px] text-subtle font-medium leading-tight truncate">{def.name}</p>
                           </div>
@@ -649,7 +649,7 @@ export function ResourcePanel() {
                           <div className="flex items-center gap-0.5 flex-wrap">
                             {def.outputs?.map((out, i) => (
                               <span key={i} className="text-[11px] text-success/80 bg-success/20 rounded px-1 py-px">
-                                <GameIcon icon={RESOURCE_META[out.resource].icon} size={10} className="inline-flex" />{(out.amount * def.baseProductionRate).toFixed(1)}/s
+                                <GameIcon icon={RESOURCE_META[out.resource].icon} size={10} color="#9ca3af" className="inline-flex" />{(out.amount * def.baseProductionRate).toFixed(1)}/s
                               </span>
                             ))}
                           </div>
@@ -986,7 +986,7 @@ export function ResourcePanel() {
             </div>
             {resourceFlow.length === 0 ? (
               <div className="game-card-empty rounded-xl p-6 text-center">
-                <div className="mb-2"><GameIcon icon="gi:chart" size={28} /></div>
+                <div className="mb-2"><GameIcon icon="game-icons:chart" size={28} /></div>
                 <h3 className="text-sm font-bold text-success mb-1">No Resource Flow Yet</h3>
                 <p className="text-xs text-subtle">Build extractors to generate resources and see the flow visualization</p>
               </div>
@@ -1025,7 +1025,7 @@ export function ResourcePanel() {
                             )}
                             {!isAlmostFull && isNearing && (
                               <span className="inline-flex items-center gap-0.5 text-[11px] text-warning">
-                                <GameIcon icon="gi:hazard-sign" size={14} className="inline" /> <span className="text-warning">Nearing capacity</span>
+                                <GameIcon icon="game-icons:hazard-sign" size={14} className="inline" /> <span className="text-warning">Nearing capacity</span>
                               </span>
                             )}
                           </span>

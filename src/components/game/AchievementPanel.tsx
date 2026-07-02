@@ -35,7 +35,7 @@ const ACHIEVEMENTS: Achievement[] = [
     id: 'first-light',
     name: 'First Light',
     description: 'Build your first power plant',
-    icon: 'gi:light-bulb',
+    icon: 'game-icons:light-bulb',
     category: 'Production',
     condition: (s) => s.buildings.some(b => BUILDING_DEFS[b.type]?.category === 'power'),
     progress: (s) => s.buildings.some(b => BUILDING_DEFS[b.type]?.category === 'power') ? 1 : 0,
@@ -47,7 +47,7 @@ const ACHIEVEMENTS: Achievement[] = [
     id: 'iron-will',
     name: 'Iron Will',
     description: 'Produce a total of 100 iron',
-    icon: 'gi:mining',
+    icon: 'game-icons:mining',
     category: 'Production',
     condition: (s) => s.stats.totalResourcesProduced.iron >= 100,
     progress: (s) => Math.min(1, s.stats.totalResourcesProduced.iron / 100),
@@ -59,7 +59,7 @@ const ACHIEVEMENTS: Achievement[] = [
     id: 'industrialist',
     name: 'Industrialist',
     description: 'Build 10 buildings total',
-    icon: 'gi:factory',
+    icon: 'game-icons:factory',
     category: 'Production',
     condition: (s) => s.buildings.length >= 10,
     progress: (s) => Math.min(1, s.buildings.length / 10),
@@ -71,7 +71,7 @@ const ACHIEVEMENTS: Achievement[] = [
     id: 'power-hungry',
     name: 'Power Hungry',
     description: 'Generate 500MW of power',
-    icon: 'gi:lightning-frequency',
+    icon: 'game-icons:lightning-frequency',
     category: 'Production',
     condition: (s) => s.powerGrid.totalProduction >= 500,
     progress: (s) => Math.min(1, s.powerGrid.totalProduction / 500),
@@ -83,7 +83,7 @@ const ACHIEVEMENTS: Achievement[] = [
     id: 'factory-floor',
     name: 'Factory Floor',
     description: 'Have 5 active factory buildings',
-    icon: 'gi:wrench',
+    icon: 'game-icons:wrench',
     category: 'Production',
     condition: (s) => s.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory' && b.active).length >= 5,
     progress: (s) => Math.min(1, s.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory' && b.active).length / 5),
@@ -95,7 +95,7 @@ const ACHIEVEMENTS: Achievement[] = [
     id: 'chain-reaction',
     name: 'Chain Reaction',
     description: 'Complete a full production chain: have an extractor, a factory, and a power plant all active',
-    icon: 'gi:linked-rings',
+    icon: 'game-icons:linked-rings',
     category: 'Production',
     condition: (s) => {
       const hasExtractor = s.buildings.some(b => BUILDING_DEFS[b.type]?.category === 'extractor' && b.active);
@@ -124,7 +124,7 @@ const ACHIEVEMENTS: Achievement[] = [
     id: 'market-mogul',
     name: 'Market Mogul',
     description: 'Earn $10,000 from total sales',
-    icon: 'gi:money-stack',
+    icon: 'game-icons:money-stack',
     category: 'Economy',
     condition: (s) => s.totalMoneyEarned >= 10000,
     progress: (s) => Math.min(1, s.totalMoneyEarned / 10000),
@@ -136,7 +136,7 @@ const ACHIEVEMENTS: Achievement[] = [
     id: 'first-sale',
     name: 'First Sale',
     description: 'Sell any resource on the market',
-    icon: 'gi:cash',
+    icon: 'game-icons:cash',
     category: 'Economy',
     condition: (s) => Object.values(s.stats.totalResourcesSold).some(v => v > 0),
     progress: (s) => Object.values(s.stats.totalResourcesSold).some(v => v > 0) ? 1 : 0,
@@ -148,7 +148,7 @@ const ACHIEVEMENTS: Achievement[] = [
     id: 'resource-baron',
     name: 'Resource Baron',
     description: 'Have $50,000 cash on hand',
-    icon: 'gi:bank',
+    icon: 'game-icons:bank',
     category: 'Economy',
     condition: (s) => s.money >= 50000,
     progress: (s) => Math.min(1, s.money / 50000),
@@ -162,7 +162,7 @@ const ACHIEVEMENTS: Achievement[] = [
     id: 'research-pioneer',
     name: 'Research Pioneer',
     description: 'Complete 3 researches',
-    icon: 'gi:chemical-drop',
+    icon: 'game-icons:chemical-drop',
     category: 'Research',
     condition: (s) => s.completedResearch.length >= 3,
     progress: (s) => Math.min(1, s.completedResearch.length / 3),
@@ -174,7 +174,7 @@ const ACHIEVEMENTS: Achievement[] = [
     id: 'knowledge-seeker',
     name: 'Knowledge Seeker',
     description: 'Complete your first research',
-    icon: 'gi:open-book',
+    icon: 'game-icons:open-book',
     category: 'Research',
     condition: (s) => s.completedResearch.length >= 1,
     progress: (s) => Math.min(1, s.completedResearch.length / 1),
@@ -186,7 +186,7 @@ const ACHIEVEMENTS: Achievement[] = [
     id: 'tech-master',
     name: 'Tech Master',
     description: 'Complete 10 researches',
-    icon: 'gi:chemical-drop',
+    icon: 'game-icons:chemical-drop',
     category: 'Research',
     condition: (s) => s.completedResearch.length >= 10,
     progress: (s) => Math.min(1, s.completedResearch.length / 10),
@@ -200,7 +200,7 @@ const ACHIEVEMENTS: Achievement[] = [
     id: 'global-expansion',
     name: 'Global Expansion',
     description: 'Prestige for the first time',
-    icon: 'gi:planet-core',
+    icon: 'game-icons:planet-core',
     category: 'Expansion',
     condition: (s) => s.prestigeState.totalPrestiges >= 1,
     progress: (s) => Math.min(1, s.prestigeState.totalPrestiges / 1),
@@ -212,7 +212,7 @@ const ACHIEVEMENTS: Achievement[] = [
     id: 'contractor',
     name: 'Contractor',
     description: 'Complete 5 contracts',
-    icon: 'gi:scroll-unfurled',
+    icon: 'game-icons:scroll-unfurled',
     category: 'Expansion',
     condition: (s) => s.stats.contractsCompleted >= 5,
     progress: (s) => Math.min(1, s.stats.contractsCompleted / 5),
@@ -224,7 +224,7 @@ const ACHIEVEMENTS: Achievement[] = [
     id: 'multi-national',
     name: 'Multi-National',
     description: 'Prestige 3 times',
-    icon: 'gi:world',
+    icon: 'game-icons:world',
     category: 'Expansion',
     condition: (s) => s.prestigeState.totalPrestiges >= 3,
     progress: (s) => Math.min(1, s.prestigeState.totalPrestiges / 3),
@@ -238,7 +238,7 @@ const ACHIEVEMENTS: Achievement[] = [
     id: 'automation-age',
     name: 'Automation Age',
     description: 'Activate your first automation',
-    icon: 'gi:robot-golem',
+    icon: 'game-icons:robot-golem',
     category: 'Special',
     condition: (s) => s.automationUnlocks.some(a => a.active),
     progress: (s) => s.automationUnlocks.some(a => a.active) ? 1 : 0,
@@ -250,7 +250,7 @@ const ACHIEVEMENTS: Achievement[] = [
     id: 'speed-demon',
     name: 'Speed Demon',
     description: 'Reach 10x game speed',
-    icon: 'gi:race-car',
+    icon: 'game-icons:race-car',
     category: 'Special',
     condition: (s) => s.gameSpeed >= 10,
     progress: (s) => Math.min(1, s.gameSpeed / 10),
@@ -262,7 +262,7 @@ const ACHIEVEMENTS: Achievement[] = [
     id: 'efficiency-expert',
     name: 'Efficiency Expert',
     description: 'Reach 95% power grid efficiency',
-    icon: 'gi:crosshair',
+    icon: 'game-icons:crosshair',
     category: 'Special',
     condition: (s) => s.powerGrid.efficiency >= 0.95,
     progress: (s) => Math.min(1, s.powerGrid.efficiency / 0.95),
@@ -274,7 +274,7 @@ const ACHIEVEMENTS: Achievement[] = [
     id: 'worker-bee',
     name: 'Worker Bee',
     description: 'Hire 5 workers',
-    icon: 'gi:overhead',
+    icon: 'game-icons:overhead',
     category: 'Special',
     condition: (s) => s.workers.length >= 5,
     progress: (s) => Math.min(1, s.workers.length / 5),
@@ -286,7 +286,7 @@ const ACHIEVEMENTS: Achievement[] = [
     id: 'peak-performance',
     name: 'Peak Performance',
     description: 'Reach 100% peak efficiency',
-    icon: 'gi:podium-winner',
+    icon: 'game-icons:podium-winner',
     category: 'Special',
     condition: (s) => s.stats.peakEfficiency >= 1.0,
     progress: (s) => Math.min(1, s.stats.peakEfficiency / 1.0),
@@ -298,7 +298,7 @@ const ACHIEVEMENTS: Achievement[] = [
     id: 'marathon-runner',
     name: 'Marathon Runner',
     description: 'Play for 10,000 ticks',
-    icon: 'gi:stopwatch',
+    icon: 'game-icons:stopwatch',
     category: 'Special',
     condition: (s) => s.gameTick >= 10000,
     progress: (s) => Math.min(1, s.gameTick / 10000),
@@ -310,7 +310,7 @@ const ACHIEVEMENTS: Achievement[] = [
     id: 'nuclear-age',
     name: 'Nuclear Age',
     description: 'Build a Nuclear Reactor',
-    icon: 'gi:radioactive',
+    icon: 'game-icons:radioactive',
     category: 'Special',
     condition: (s) => s.buildings.some(b => b.type === 'nuclearReactor'),
     progress: (s) => s.buildings.some(b => b.type === 'nuclearReactor') ? 1 : 0,
@@ -322,31 +322,31 @@ const ACHIEVEMENTS: Achievement[] = [
 
 const CATEGORY_META: Record<AchievementCategory, { icon: string; color: string; borderColor: string; bgColor: string }> = {
   Production: {
-    icon: 'gi:factory',
+    icon: 'game-icons:factory',
     color: 'text-brand',
     borderColor: 'border-brand/30',
     bgColor: 'bg-brand/10',
   },
   Economy: {
-    icon: 'gi:money-stack',
+    icon: 'game-icons:money-stack',
     color: 'text-success',
     borderColor: 'border-success/30',
     bgColor: 'bg-success/10',
   },
   Research: {
-    icon: 'gi:chemical-drop',
+    icon: 'game-icons:chemical-drop',
     color: 'text-research',
     borderColor: 'border-research/30',
     bgColor: 'bg-research/10',
   },
   Expansion: {
-    icon: 'gi:planet-core',
+    icon: 'game-icons:planet-core',
     color: 'text-premium',
     borderColor: 'border-premium/20/30',
     bgColor: 'bg-premium/20/10',
   },
   Special: {
-    icon: 'gi:star-formation',
+    icon: 'game-icons:star-formation',
     color: 'text-warning',
     borderColor: 'border-warning/30',
     bgColor: 'bg-warning/10',
@@ -461,7 +461,7 @@ const MemoizedAchievementCard = React.memo(function MemoizedAchievementCard({
             <div className="bg-background rounded-lg p-3">
               <div className="text-[10px] text-muted-label mb-0.5">Reward</div>
               <div className={`text-xs font-medium ${achievement.unlocked ? 'text-success' : meta.color}`}>
-                <GameIcon icon="gi:present" size={14} className="inline" /> {achievement.reward}
+                <GameIcon icon="game-icons:present" size={14} className="inline" /> {achievement.reward}
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -669,7 +669,7 @@ export function AchievementPanel() {
               }`}
               onClick={() => setSelectedCategory(cat)}
             >
-              {cat === 'All' ? <GameIcon icon="lucide:trophy" size={14} className="inline-flex" /> : <GameIcon icon={meta!.icon} size={14} className="inline-flex" />} {cat} ({stats.unlocked}/{stats.total})
+              {cat === 'All' ? <GameIcon icon="game-icons:trophy" size={14} className="inline-flex" /> : <GameIcon icon={meta!.icon} size={14} className="inline-flex" />} {cat} ({stats.unlocked}/{stats.total})
             </Button>
           );
         })}

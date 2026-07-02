@@ -115,7 +115,7 @@ export function ResearchPanel() {
         {store.completedResearch.length >= RESEARCH_TREE.length && (
           <div className="col-span-full flex flex-col items-center justify-center py-8 text-muted-label">
             <FlaskConical className="w-8 h-8 mb-2 opacity-50" />
-            <p className="text-sm">All research completed! <GameIcon icon="gi:sparkles" size={16} className="inline" /></p>
+            <p className="text-sm">All research completed! <GameIcon icon="game-icons:sparkles" size={16} className="inline" /></p>
           </div>
         )}
         {categories.map(cat => {
@@ -181,7 +181,7 @@ export function ResearchPanel() {
                         <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg ${
                           isCompleted ? 'bg-success/30' : isActive ? 'bg-research/30' : 'bg-muted-label/50'
                         }`}>
-                          {isCompleted ? <GameIcon icon="lucide:check-circle" size={16} /> : isUnlocked ? <GameIcon icon={node.icon} size={16} /> : <Lock className="w-4 h-4 text-muted-label" />}
+                          {isCompleted ? <GameIcon icon="game-icons:check-mark" size={16} /> : isUnlocked ? <GameIcon icon={node.icon} size={16} /> : <Lock className="w-4 h-4 text-muted-label" />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
@@ -220,7 +220,7 @@ export function ResearchPanel() {
                                 <Badge key={pre} variant="outline" className={`text-[11px] px-1 py-0 ${
                                   preDone ? 'border-success text-success' : 'border-danger text-danger'
                                 }`}>
-                                  {preDone ? 'lucide:check' : 'lucide:x'} {preNode?.name ?? pre}
+                                  {preDone ? <GameIcon icon="game-icons:check-mark" size={12} className="inline-flex" /> : <GameIcon icon="game-icons:x" size={12} className="inline-flex" />} {preNode?.name ?? pre}
                                 </Badge>
                               );
                             })}
@@ -234,14 +234,14 @@ export function ResearchPanel() {
                           <div className="flex flex-wrap gap-1">
                             {node.effects.map((effect, i) => (
                               <Badge key={i} variant="outline" className="text-[11px] px-1 py-0 border-brand text-brand">
-                                {effect.type === 'productionSpeed' ? <><GameIcon icon="gi:lightning-frequency" size={14} className="inline" /> Speed</> :
-                                 effect.type === 'unlockBuilding' ? <><GameIcon icon="gi:castle" size={14} className="inline" /> Unlock</> :
-                                 effect.type === 'transportSpeed' ? <><GameIcon icon="gi:truck" size={14} className="inline" /> Transport</> :
-                                 effect.type === 'powerEfficiency' ? <><GameIcon icon="gi:battery-75" size={14} className="inline" /> Power</> :
-                                 effect.type === 'marketBonus' ? <><GameIcon icon="gi:profit" size={14} className="inline" /> Market</> :
-                                 effect.type === 'workerEfficiency' ? <><GameIcon icon="gi:overhead" size={14} className="inline" /> Workers</> :
-                                 effect.type === 'unlockTransport' ? <><GameIcon icon="gi:steam-locomotive" size={14} className="inline" /> Unlock</> :
-                                 effect.type === 'storageBonus' ? <><GameIcon icon="gi:cardboard-box" size={14} className="inline" /> Storage</> : <><GameIcon icon="gi:sparkles" size={14} className="inline" /> Bonus</>}
+                                {effect.type === 'productionSpeed' ? <><GameIcon icon="game-icons:lightning-frequency" size={14} className="inline" /> Speed</> :
+                                 effect.type === 'unlockBuilding' ? <><GameIcon icon="game-icons:castle" size={14} className="inline" /> Unlock</> :
+                                 effect.type === 'transportSpeed' ? <><GameIcon icon="game-icons:truck" size={14} className="inline" /> Transport</> :
+                                 effect.type === 'powerEfficiency' ? <><GameIcon icon="game-icons:battery-75" size={14} className="inline" /> Power</> :
+                                 effect.type === 'marketBonus' ? <><GameIcon icon="game-icons:profit" size={14} className="inline" /> Market</> :
+                                 effect.type === 'workerEfficiency' ? <><GameIcon icon="game-icons:overhead" size={14} className="inline" /> Workers</> :
+                                 effect.type === 'unlockTransport' ? <><GameIcon icon="game-icons:steam-locomotive" size={14} className="inline" /> Unlock</> :
+                                 effect.type === 'storageBonus' ? <><GameIcon icon="game-icons:cardboard-box" size={14} className="inline" /> Storage</> : <><GameIcon icon="game-icons:sparkles" size={14} className="inline" /> Bonus</>}
                                 {' '}+{(effect.value * 100).toFixed(0)}%
                               </Badge>
                             ))}

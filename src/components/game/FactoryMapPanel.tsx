@@ -62,31 +62,31 @@ function getEffColor(eff: number): string {
 // --- Building Palette for Build Mode ---
 const BUILD_CATEGORIES = [
   {
-    label: <><GameIcon icon="gi:mining" size={14} className="inline" /> Extraction</>,
+    label: <><GameIcon icon="game-icons:mining" size={14} className="inline" /> Extraction</>,
     types: ['ironMine', 'copperMine', 'coalMine', 'oilPump', 'waterExtractor', 'sandMine', 'lithiumMine', 'clayPit', 'limestoneQuarry', 'gravelPit', 'bauxiteMine', 'wolframiteMine', 'silverMine', 'goldMine', 'rareEarthExtractor'] as BuildingType[],
   },
   {
-    label: <><GameIcon icon="gi:flame" size={14} className="inline" /> T1 Factory</>,
+    label: <><GameIcon icon="game-icons:flame" size={14} className="inline" /> T1 Factory</>,
     types: ['smelter', 'wireMill', 'chemicalPlant', 'glassFurnace', 'steelForge', 'carbonProcessor', 'brickFactory', 'concreteFactory', 'fertilizerFactory', 'oilRefinery'] as BuildingType[],
   },
   {
-    label: <><GameIcon icon="gi:big-gear" size={14} className="inline" /> T2 Factory</>,
+    label: <><GameIcon icon="game-icons:big-gear" size={14} className="inline" /> T2 Factory</>,
     types: ['gearFactory', 'circuitFactory', 'engineFactory', 'batteryFactory', 'siliconRefinery', 'aluminiumFactory', 'insecticideFactory', 'copperRefinery', 'titaniumRefinery', 'coolantPlant', 'opticsLab', 'solarCellFactory', 'displayFactory', 'hydrogenPlant', 'reinforcedConcretePlant', 'powerCellPlant', 'silverRefinery', 'goldRefinery'] as BuildingType[],
   },
   {
-    label: <><GameIcon icon="gi:brain" size={14} className="inline" /> T3 Factory</>,
+    label: <><GameIcon icon="game-icons:brain" size={14} className="inline" /> T3 Factory</>,
     types: ['aiLab', 'roboticsBay', 'quantumLab', 'quantumAssembler', 'alloyForge', 'nanoLab', 'electronicsFactory', 'medicalTechLab', 'jewelleryForge', 'tungstenSmelter', 'armsFactory', 'droneShipyard', 'detectorFactory', 'neuralLab', 'opticalComputingLab', 'carbonCompositePlant', 'structuralFrameFactory', 'fusionReactor', 'solarPanelFactory', 'creditMint'] as BuildingType[],
   },
   {
-    label: <><GameIcon icon="gi:vortex" size={14} className="inline" /> T4 Factory</>,
+    label: <><GameIcon icon="game-icons:vortex" size={14} className="inline" /> T4 Factory</>,
     types: ['singularityForge', 'darkMatterLab', 'warpDriveFactory', 'antimatterReactor', 'chronoLab', 'plasmaForge', 'megaStructureFactory', 'voidCrystallizer', 'quantumResonanceLab', 'arcologyBuilder', 'habitatModuleFactory', 'dysonCollector', 'luxuryGoodsFactory', 'tradeHub', 'teleporterGate', 'quantumTeleporter', 'dimensionalGateway', 'timeDistorter', 'galacticForge'] as BuildingType[],
   },
   {
-    label: <><GameIcon icon="gi:galactic-carrier" size={14} className="inline" /> T5 Transcendent</>,
+    label: <><GameIcon icon="game-icons:galactic-carrier" size={14} className="inline" /> T5 Transcendent</>,
     types: ['omniscienceArray', 'worldEngine', 'planetaryShield', 'starReactor', 'voidEngine', 'quantumExchange', 'megaCorpHQ', 'dimensionalNexus', 'galacticArmada'] as BuildingType[],
   },
   {
-    label: <><GameIcon icon="gi:lightning-frequency" size={14} className="inline" /> Power</>,
+    label: <><GameIcon icon="game-icons:lightning-frequency" size={14} className="inline" /> Power</>,
     types: ['coalGenerator', 'solarFarm', 'windTurbine', 'nuclearReactor', 'antimatterPowerPlant'] as BuildingType[],
   },
 ];
@@ -1290,7 +1290,7 @@ export default function FactoryMapPanel() {
                                   )}
                                   {!unlocked && (
                                     <div className="absolute inset-0 flex items-center justify-center bg-muted-label/60 rounded-lg">
-                                      <span className="text-[11px] text-danger"><GameIcon icon="gi:padlock" size={8} /></span>
+                                      <span className="text-[11px] text-danger"><GameIcon icon="game-icons:padlock" size={8} /></span>
                                     </div>
                                   )}
                                 </button>
@@ -1319,7 +1319,7 @@ export default function FactoryMapPanel() {
                                   )}
                                   {!unlocked && (
                                     <div className="text-[9px] text-danger">
-                                      <GameIcon icon="gi:padlock" size={12} className="inline" /> Requires: {def.unlockRequirement?.research ?? 'Unknown'}
+                                      <GameIcon icon="game-icons:padlock" size={12} className="inline" /> Requires: {def.unlockRequirement?.research ?? 'Unknown'}
                                     </div>
                                   )}
                                 </div>
@@ -1343,7 +1343,7 @@ export default function FactoryMapPanel() {
         <div className="flex-1 game-card rounded-xl bg-background border border-border overflow-hidden relative" style={{ minHeight: 400 }}>
           {/* Landscape hint for small screens */}
           <div className="sm:hidden flex items-center gap-1.5 px-3 py-1.5 bg-brand/20 border-b border-brand/30 text-[10px] text-brand">
-            <GameIcon icon="gi:smartphone" size={14} />
+            <GameIcon icon="game-icons:smartphone" size={14} />
             <span>Use landscape for best experience. Pinch or scroll to zoom.</span>
           </div>
           {/* Scrollable map wrapper for mobile */}
@@ -1612,7 +1612,7 @@ export default function FactoryMapPanel() {
                   <Clock className="w-2 h-2" /> Tick Rate
                 </div>
                 <div className={`text-[10px] font-bold font-mono ${paused ? 'text-danger' : 'text-brand'}`}>
-                  {paused ? <GameIcon icon="gi:pause-button" size={14} className="inline" /> : `${gameSpeed}x`}
+                  {paused ? <GameIcon icon="game-icons:pause-button" size={14} className="inline" /> : `${gameSpeed}x`}
                 </div>
               </div>
               <div className="bg-background rounded-lg p-1.5 text-center">

@@ -190,7 +190,7 @@ export function PrestigePanel() {
           <div className="game-card rounded-xl bg-card p-6 border border-premium/20/30">
             <div className="text-center mb-6">
               <div className="w-20 h-20 rounded-2xl bg-premium/20/20 flex items-center justify-center mx-auto mb-3 neon-pulse">
-                <GameIcon icon="gi:planet-core" size={48} />
+                <GameIcon icon="game-icons:planet-core" size={48} />
               </div>
               <h3 className="text-lg font-bold text-premium neon-glow-cyan">Global Expansion</h3>
               <p className="text-xs text-subtle mt-1 max-w-md mx-auto">
@@ -202,7 +202,7 @@ export function PrestigePanel() {
             {/* What you keep */}
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div className="bg-success/10 rounded-lg p-3 border border-success/30">
-                <div className="text-[10px] text-success font-medium mb-1"><GameIcon icon="gi:check-mark" size={12} className="inline" /> You Keep</div>
+                <div className="text-[10px] text-success font-medium mb-1"><GameIcon icon="game-icons:check-mark" size={12} className="inline" /> You Keep</div>
                 <ul className="text-[11px] text-subtle space-y-0.5">
                   <li>• Completed research</li>
                   <li>• Corporation Points</li>
@@ -211,7 +211,7 @@ export function PrestigePanel() {
                 </ul>
               </div>
               <div className="bg-danger/10 rounded-lg p-3 border border-danger/40/30">
-                <div className="text-[10px] text-danger font-medium mb-1"><GameIcon icon="gi:cross-mark" size={12} className="inline" /> You Lose</div>
+                <div className="text-[10px] text-danger font-medium mb-1"><GameIcon icon="game-icons:cross-mark" size={12} className="inline" /> You Lose</div>
                 <ul className="text-[11px] text-subtle space-y-0.5">
                   <li>• All buildings</li>
                   <li>• All resources</li>
@@ -297,7 +297,7 @@ export function PrestigePanel() {
                         )}
                         {bonus.purchased && (
                           <div className="mt-2 text-center text-[10px] text-premium/60">
-                            <GameIcon icon="gi:check-mark" size={12} className="inline" /> Active
+                            <GameIcon icon="game-icons:check-mark" size={12} className="inline" /> Active
                           </div>
                         )}
                       </div>
@@ -407,7 +407,7 @@ export function PrestigePanel() {
           <DialogHeader>
             <DialogTitle className="text-premium flex items-center gap-2">
               <Globe className="w-5 h-5" />
-              {confirmStep === 0 ? 'Confirm Global Expansion' : <><GameIcon icon="gi:hazard-sign" size={14} className="inline" /> Double Confirm</>}
+              {confirmStep === 0 ? 'Confirm Global Expansion' : <><GameIcon icon="game-icons:hazard-sign" size={14} className="inline" /> Double Confirm</>}
             </DialogTitle>
             <DialogDescription className="text-subtle">
               {confirmStep === 0
@@ -425,7 +425,7 @@ export function PrestigePanel() {
 
             {/* What you keep */}
             <div className="bg-success/10 rounded-lg p-3 border border-success/30">
-              <div className="text-[10px] text-success font-medium mb-1"><GameIcon icon="gi:check-mark" size={12} className="inline" /> You will keep</div>
+              <div className="text-[10px] text-success font-medium mb-1"><GameIcon icon="game-icons:check-mark" size={12} className="inline" /> You will keep</div>
               <ul className="text-[11px] text-subtle space-y-0.5">
                 <li>• Completed research ({store.completedResearch.length} nodes)</li>
                 <li>• Corporation Points ({store.prestigeState.corporationPoints} + {pointsEarned} new)</li>
@@ -436,7 +436,7 @@ export function PrestigePanel() {
 
             {/* What you lose */}
             <div className="bg-danger/10 rounded-lg p-3 border border-danger/40/30">
-              <div className="text-[10px] text-danger font-medium mb-1"><GameIcon icon="gi:cross-mark" size={12} className="inline" /> You will lose</div>
+              <div className="text-[10px] text-danger font-medium mb-1"><GameIcon icon="game-icons:cross-mark" size={12} className="inline" /> You will lose</div>
               <ul className="text-[11px] text-subtle space-y-0.5">
                 <li>• All {store.buildings.length} buildings</li>
                 <li>• All resources</li>
@@ -448,7 +448,7 @@ export function PrestigePanel() {
             {/* Permanent bonuses that will apply */}
             {purchasedBonuses > 0 && (
               <div className="bg-premium/20/10 rounded-lg p-3 border border-premium/20/30">
-                <div className="text-[10px] text-premium font-medium mb-1"><GameIcon icon="gi:sparkles" size={12} className="inline" /> Permanent bonuses will apply</div>
+                <div className="text-[10px] text-premium font-medium mb-1"><GameIcon icon="game-icons:sparkles" size={12} className="inline" /> Permanent bonuses will apply</div>
                 <div className="space-y-0.5">
                   {store.prestigeState.bonuses.filter(b => b.purchased).map(bonus => (
                     <div key={bonus.id} className="text-[11px] text-subtle">

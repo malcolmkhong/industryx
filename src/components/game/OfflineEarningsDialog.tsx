@@ -47,7 +47,7 @@ export function OfflineEarningsDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <GameIcon icon="gi:offline" className="size-5 text-brand" />
+            <GameIcon icon="game-icons:offline" className="size-5 text-brand" />
             Welcome Back!
           </DialogTitle>
           <DialogDescription>

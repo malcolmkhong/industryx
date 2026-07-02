@@ -17,7 +17,7 @@ export interface TierColorClasses {
   tabHover: string;
 }
 
-const TIER_COLOR_MAP: Record<TierColor, TierColorClasses> = {
+export const TIER_COLOR_MAP: Record<TierColor, TierColorClasses> = {
   cyan: {
     text: 'text-brand',
     border: 'border-brand/30',
@@ -102,12 +102,12 @@ export function getTierColorClasses(color: TierColor): TierColorClasses {
   return TIER_COLOR_MAP[color];
 }
 
-// Tier info constants used across panels
-export const TIER_INFO = {
-  0: { name: 'Startup', color: '#a0a0a0', emoji: '🏗️' },
-  1: { name: 'Basic Processing', color: '#22d3ee', emoji: '🔧' },
-  2: { name: 'Advanced Mfg.', color: '#f97316', emoji: '⚙️' },
-  3: { name: 'High-Tech', color: '#a855f7', emoji: '🧠' },
-  4: { name: 'Singularity', color: '#00ffcc', emoji: '🌌' },
-  5: { name: 'Transcendent', color: '#ff1744', emoji: '🔮' },
-} as const;
+// Maps tier number to TierColor key
+export const TIER_NUMBER_COLOR_MAP: Record<number, TierColor> = {
+  0: 'cyan',
+  1: 'cyan',
+  2: 'orange',
+  3: 'purple',
+  4: 'emerald',
+  5: 'red',
+};

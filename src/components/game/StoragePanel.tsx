@@ -314,7 +314,7 @@ export function StoragePanel() {
             </div>
             {etaLabel && (
               <div className={`mt-1.5 text-[10px] font-mono text-center ${netRate > 0 ? 'text-brand' : 'text-domain'}`}>
-                <GameIcon icon="gi:clockwork" size={12} className="inline" /> {etaLabel}
+                <GameIcon icon="game-icons:clockwork" size={12} className="inline" /> {etaLabel}
               </div>
             )}
           </div>
@@ -672,7 +672,7 @@ export function StoragePanel() {
               </div>
               {!allActive && bottleneck && (
                 <div className="mt-1.5 text-[10px] text-danger/70">
-                  <GameIcon icon="gi:hazard-sign" size={12} className="inline" /> Blocked at {RESOURCE_META[bottleneck as ResourceType]?.name ?? bottleneck} — no production
+                  <GameIcon icon="game-icons:hazard-sign" size={12} className="inline" /> Blocked at {RESOURCE_META[bottleneck as ResourceType]?.name ?? bottleneck} — no production
                 </div>
               )}
             </div>

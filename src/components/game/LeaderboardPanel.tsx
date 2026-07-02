@@ -251,7 +251,7 @@ export default function LeaderboardPanel() {
       {/* Leaderboard Table */}
       {entries.length === 0 ? (
         <div className="rounded-lg border border-brand/20 bg-card p-8 text-center">
-          <div className="mb-3"><GameIcon icon="gi:trophy" size={28} /></div>
+          <div className="mb-3"><GameIcon icon="game-icons:trophy" size={28} /></div>
           <div className="text-sm text-subtle font-medium">No entries yet</div>
           <div className="text-xs text-muted-label mt-1">
             Be the first to prestige and claim the #1 spot!

@@ -30,11 +30,11 @@ const TIER_4_FACTORIES = factoryTiers[4] as FactoryType[];
 const TIER_5_FACTORIES = factoryTiers[5] as FactoryType[];
 
 const TIER_CONFIG = {
-  1: { label: 'T1 — Processing', shortLabel: 'T1', color: 'cyan', icon: 'gi:flame-tunnel', borderColor: 'border-brand/40', hex: '#22d3ee' },
-  2: { label: 'T2 — Manufacturing', shortLabel: 'T2', color: 'orange', icon: 'gi:big-gear', borderColor: 'border-domain/40', hex: '#f97316' },
-  3: { label: 'T3 — High-Tech', shortLabel: 'T3', color: 'purple', icon: 'gi:brain', borderColor: 'border-research/40', hex: '#a855f7' },
-  4: { label: 'T4 — Singularity', shortLabel: 'T4', color: 'emerald', icon: 'gi:sparkles', borderColor: 'border-success/40', hex: '#00ffcc' },
-  5: { label: 'T5 — Transcendent', shortLabel: 'T5', color: 'red', icon: 'gi:spaceship', borderColor: 'border-danger/40', hex: '#ff1744' },
+  1: { label: 'T1 — Processing', shortLabel: 'T1', color: 'cyan', icon: 'game-icons:flame-tunnel', borderColor: 'border-brand/40', hex: '#22d3ee' },
+  2: { label: 'T2 — Manufacturing', shortLabel: 'T2', color: 'orange', icon: 'game-icons:big-gear', borderColor: 'border-domain/40', hex: '#f97316' },
+  3: { label: 'T3 — High-Tech', shortLabel: 'T3', color: 'purple', icon: 'game-icons:brain', borderColor: 'border-research/40', hex: '#a855f7' },
+  4: { label: 'T4 — Singularity', shortLabel: 'T4', color: 'emerald', icon: 'game-icons:sparkles', borderColor: 'border-success/40', hex: '#00ffcc' },
+  5: { label: 'T5 — Transcendent', shortLabel: 'T5', color: 'red', icon: 'game-icons:spaceship', borderColor: 'border-danger/40', hex: '#ff1744' },
 };
 
 
@@ -910,7 +910,7 @@ export function FactoryPanel() {
                 {currentTierBuildings.length === 0 && (
                   <div className="game-card-empty rounded-xl p-6 text-center">
                     <div className="text-4xl mb-3">
-                      {selectedTier === 1 ? <GameIcon icon="gi:anvil-impact" size={14} className="inline-flex" /> : selectedTier === 2 ? <GameIcon icon="gi:big-gear" size={14} className="inline-flex" /> : selectedTier === 3 ? <GameIcon icon="gi:sparkles" size={14} className="inline-flex" /> : selectedTier === 4 ? <GameIcon icon="gi:vortex" size={14} className="inline-flex" /> : <GameIcon icon="gi:spaceship" size={14} className="inline-flex" />}
+                      {selectedTier === 1 ? <GameIcon icon="game-icons:anvil-impact" size={14} className="inline-flex" /> : selectedTier === 2 ? <GameIcon icon="game-icons:big-gear" size={14} className="inline-flex" /> : selectedTier === 3 ? <GameIcon icon="game-icons:sparkles" size={14} className="inline-flex" /> : selectedTier === 4 ? <GameIcon icon="game-icons:vortex" size={14} className="inline-flex" /> : <GameIcon icon="game-icons:spaceship" size={14} className="inline-flex" />}
                     </div>
                     <h3 className="text-base font-bold text-brand mb-2">No {currentTierConfig.label} Factories</h3>
                     <p className="text-sm text-subtle mb-1">Build your first factory to start processing materials</p>

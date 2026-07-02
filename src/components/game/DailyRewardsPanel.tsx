@@ -18,13 +18,13 @@ export default function DailyRewardsPanel() {
   const multiplier = getStreakMultiplier(loginStreak.currentStreak);
 
   const getRewardIcon = (type: string, isJackpot: boolean) => {
-    if (isJackpot) return <GameIcon icon="gi:slot-machine" size={24} />;
+    if (isJackpot) return <GameIcon icon="game-icons:slot-machine" size={24} />;
     switch (type) {
-      case 'money': return <GameIcon icon="gi:money-stack" size={24} />;
-      case 'researchPoints': return <GameIcon icon="gi:erlenmeyer" size={24} />;
-      case 'resources': return <GameIcon icon="gi:cardboard-box" size={24} />;
-      case 'corporationPoints': return <GameIcon icon="gi:trophy" size={24} />;
-      default: return <GameIcon icon="gi:present" size={24} />;
+      case 'money': return <GameIcon icon="game-icons:money-stack" size={24} />;
+      case 'researchPoints': return <GameIcon icon="game-icons:erlenmeyer" size={24} />;
+      case 'resources': return <GameIcon icon="game-icons:cardboard-box" size={24} />;
+      case 'corporationPoints': return <GameIcon icon="game-icons:trophy" size={24} />;
+      default: return <GameIcon icon="game-icons:present" size={24} />;
     }
   };
 
@@ -73,7 +73,7 @@ export default function DailyRewardsPanel() {
       <div className="bg-card border border-premium/30/30 rounded-xl p-4 flex flex-col sm:flex-row items-center gap-4">
         <div className="flex items-center gap-3">
           <div className={`text-3xl ${getStreakColor()} transition-colors`}>
-            <GameIcon icon="gi:flame" size={28} className="inline" />
+            <GameIcon icon="game-icons:flame" size={28} className="inline" />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -93,7 +93,7 @@ export default function DailyRewardsPanel() {
         <div className="flex items-center gap-4 sm:ml-auto">
           <div className="text-center px-3">
             <div className="text-xs text-muted-label">Longest</div>
-            <div className="text-sm font-bold text-warning">{loginStreak.longestStreak} <GameIcon icon="gi:flame" size={14} className="inline" /></div>
+            <div className="text-sm font-bold text-warning">{loginStreak.longestStreak} <GameIcon icon="game-icons:flame" size={14} className="inline" /></div>
           </div>
           <div className="w-px h-8 bg-muted-label" />
           <div className="text-center px-3">
@@ -208,7 +208,7 @@ export default function DailyRewardsPanel() {
               {isJackpot && (
                 <div className="text-center mb-2">
                   <span className="text-[9px] font-bold text-warning tracking-wider bg-warning/30 px-2 py-0.5 rounded">
-                    <GameIcon icon="gi:sparkles" size={16} className="inline" /> JACKPOT <GameIcon icon="gi:sparkles" size={16} className="inline" />
+                    <GameIcon icon="game-icons:sparkles" size={16} className="inline" /> JACKPOT <GameIcon icon="game-icons:sparkles" size={16} className="inline" />
                   </span>
                 </div>
               )}
@@ -285,7 +285,7 @@ export default function DailyRewardsPanel() {
       {/* Come Back Message */}
       <div className="bg-card border border-brand/20 rounded-xl p-4 text-center">
         <p className="text-sm text-subtle">
-          <GameIcon icon="gi:present" size={14} className="inline" /> Come back tomorrow for <span className="text-premium font-medium">Day {nextDayOfWeek}</span> reward!
+          <GameIcon icon="game-icons:present" size={14} className="inline" /> Come back tomorrow for <span className="text-premium font-medium">Day {nextDayOfWeek}</span> reward!
         </p>
         <p className="text-xs text-muted-label mt-1">
           {nextRewardDesc}

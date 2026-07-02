@@ -793,7 +793,7 @@ export default function GlobalResourceMonitorPanel() {
                 <div className="px-3 py-1.5 border-b border-muted-label/50 bg-danger/10">
                   <div className="flex items-center gap-1.5 text-[10px] text-danger">
                     <AlertTriangle className="w-3 h-3" />
-                    <GameIcon icon="gi:hazard-sign" size={12} className="inline" /> Bottleneck: Demand exceeds supply
+                    <GameIcon icon="game-icons:hazard-sign" size={12} className="inline" /> Bottleneck: Demand exceeds supply
                   </div>
                 </div>
               )}

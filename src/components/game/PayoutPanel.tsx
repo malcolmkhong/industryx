@@ -104,16 +104,16 @@ export function PayoutPanel() {
   const tips = useMemo<ReactNode[]>(() => {
     const result: ReactNode[] = [];
     if (buildings.length === 0) {
-      result.push(<><GameIcon icon="gi:castle" size={14} className="inline" /> Build your first building to start receiving payouts!</>);
+      result.push(<><GameIcon icon="game-icons:castle" size={14} className="inline" /> Build your first building to start receiving payouts!</>);
     } else {
-      if (factories.length === 0) result.push(<><GameIcon icon="gi:factory" size={14} className="inline" /> Build factories to increase your payout — they earn $50/cycle per building!</>);
-      if (extractors.length === 0) result.push(<><GameIcon icon="gi:mining" size={14} className="inline" /> Build extractors to earn $20/cycle per building from raw material production!</>);
-      if (avgEfficiency < 0.8) result.push(<><GameIcon icon="gi:lightning-frequency" size={14} className="inline" /> Improve power efficiency to boost payouts — build more power plants!</>);
-      if (payoutConfig.autoCollect) result.push(<><GameIcon icon="gi:spinning-wheel" size={14} className="inline" /> Auto-collect is ON — payouts go directly to your balance.</>);
+      if (factories.length === 0) result.push(<><GameIcon icon="game-icons:factory" size={14} className="inline" /> Build factories to increase your payout — they earn $50/cycle per building!</>);
+      if (extractors.length === 0) result.push(<><GameIcon icon="game-icons:mining" size={14} className="inline" /> Build extractors to earn $20/cycle per building from raw material production!</>);
+      if (avgEfficiency < 0.8) result.push(<><GameIcon icon="game-icons:lightning-frequency" size={14} className="inline" /> Improve power efficiency to boost payouts — build more power plants!</>);
+      if (payoutConfig.autoCollect) result.push(<><GameIcon icon="game-icons:spinning-wheel" size={14} className="inline" /> Auto-collect is ON — payouts go directly to your balance.</>);
       else result.push(<>👆 Click "Collect" to claim your pending payout, or enable auto-collect.</>);
-      if (factories.length > extractors.length * 2) result.push(<><GameIcon icon="gi:scales" size={14} className="inline" /> Consider building more extractors to supply your factories.</>);
-      if (gameSpeed === 1) result.push(<><GameIcon icon="gi:fast-forward-button" size={14} className="inline" /> Increase game speed to receive payouts more frequently!</>);
-      if (estimatedPayout < 10) result.push(<><GameIcon icon="gi:profit" size={14} className="inline" /> Build more buildings or upgrade existing ones to increase payout amounts.</>);
+      if (factories.length > extractors.length * 2) result.push(<><GameIcon icon="game-icons:scales" size={14} className="inline" /> Consider building more extractors to supply your factories.</>);
+      if (gameSpeed === 1) result.push(<><GameIcon icon="game-icons:fast-forward-button" size={14} className="inline" /> Increase game speed to receive payouts more frequently!</>);
+      if (estimatedPayout < 10) result.push(<><GameIcon icon="game-icons:profit" size={14} className="inline" /> Build more buildings or upgrade existing ones to increase payout amounts.</>);
     }
     return result;
   }, [buildings.length, factories.length, extractors.length, avgEfficiency, payoutConfig.autoCollect, gameSpeed, estimatedPayout]);
@@ -421,7 +421,7 @@ export function PayoutPanel() {
       <Card className="bg-card border-brand/30">
         <CardContent className="p-4">
           <p className="text-[10px] text-muted-label leading-relaxed">
-            <GameIcon icon="gi:light-bulb" size={14} className="inline" /> <span className="text-muted-label">How Payouts Work:</span> Every {formatDuration(payoutConfig.basePayoutInterval)}, 
+            <GameIcon icon="game-icons:light-bulb" size={14} className="inline" /> <span className="text-muted-label">How Payouts Work:</span> Every {formatDuration(payoutConfig.basePayoutInterval)}, 
             your factory generates a payout based on active buildings. Extractors earn ${extractorRate}/cycle, 
             Factories earn ${factoryRate}/cycle, and Power Plants earn ${powerRate}/cycle per building (scaled by level and efficiency). 
             The total is modified by game speed, average building efficiency, prestige bonuses, and active events.

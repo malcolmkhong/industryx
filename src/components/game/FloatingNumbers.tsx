@@ -57,7 +57,7 @@ export default function FloatingNumbers() {
         const meta = RESOURCE_META[key];
         newEntries.push({
           id: `fn-${idCounter.current++}`,
-          icon: meta?.icon ?? 'gi:cardboard-box',
+          icon: meta?.icon ?? 'game-icons:cardboard-box',
           amount: diff,
           xOffset: X_OFFSETS[offsetIdx % X_OFFSETS.length],
         });
@@ -70,7 +70,7 @@ export default function FloatingNumbers() {
     if (moneyDiff >= 1) {
       newEntries.push({
         id: `fn-money-${idCounter.current++}`,
-        icon: 'gi:money-stack',
+        icon: 'game-icons:money-stack',
         amount: moneyDiff,
         xOffset: X_OFFSETS[offsetIdx % X_OFFSETS.length],
       });

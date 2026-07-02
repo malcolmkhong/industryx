@@ -160,7 +160,7 @@ export function AutomationPanel() {
 
               {isActive && (
                 <div className="text-center text-xs text-brand/60">
-                  <GameIcon icon="gi:sparkles" size={14} className="inline" /> Running automatically
+                  <GameIcon icon="game-icons:sparkles" size={14} className="inline" /> Running automatically
                 </div>
               )}
             </div>

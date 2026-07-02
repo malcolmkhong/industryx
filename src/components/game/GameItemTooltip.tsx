@@ -51,7 +51,7 @@ export function GameItemTooltip({
         {/* Header */}
         <div className="bg-linear-to-r from-brand/30 to-success/30/20 px-3 py-2 border-b border-brand/30">
           <div className="flex items-center gap-2">
-            {icon ? <GameIcon icon={icon} size={20} /> : emoji ? <span className="text-lg">{emoji}</span> : null}
+            {icon ? <GameIcon icon={icon} size={20} color="#9ca3af" /> : emoji ? <span className="text-lg">{emoji}</span> : null}
             <div>
               <p className="text-sm font-bold text-brand">{name}</p>
               <div className="flex items-center gap-2 mt-0.5">

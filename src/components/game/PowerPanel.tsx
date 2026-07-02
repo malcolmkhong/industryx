@@ -17,7 +17,7 @@ import { PowerPlantType, BuildingInstance } from '@/lib/game/types';
 import { getPowerPlantTypes } from '@/lib/game/buildingDiscovery';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
-import { GameIcon } from '@/components/icons';
+import { GameIcon, TIER_INFO } from '@/components/icons';
 import { formatRemaining, formatDuration } from '@/lib/utils/time';
 
 // Dynamic power plant types from BUILDING_DEFS (includes Supabase buildings)
@@ -25,25 +25,25 @@ const POWER_PLANT_TYPES = getPowerPlantTypes() as PowerPlantType[];
 
 // Power plant metadata with fallback for dynamically added plants
 const POWER_PLANT_META: Record<string, { color: string; label: string; glowClass: string; icon: string }> = {
-  coalGenerator: { color: '#ff6600', label: 'Coal', glowClass: 'text-domain', icon: 'gi:fire' },
-  solarFarm: { color: '#ffff00', label: 'Solar', glowClass: 'text-warning', icon: 'gi:sun' },
-  windTurbine: { color: '#00ccff', label: 'Wind', glowClass: 'text-brand', icon: 'gi:air-zigzag' },
-  nuclearReactor: { color: '#00ff66', label: 'Nuclear', glowClass: 'text-success', icon: 'gi:nuclear' },
-  antimatterPowerPlant: { color: '#ff00ff', label: 'Antimatter', glowClass: 'text-premium', icon: 'gi:lightning-frequency' },
+  coalGenerator: { color: '#ff6600', label: 'Coal', glowClass: 'text-domain', icon: 'game-icons:fire' },
+  solarFarm: { color: '#ffff00', label: 'Solar', glowClass: 'text-warning', icon: 'game-icons:sun' },
+  windTurbine: { color: '#00ccff', label: 'Wind', glowClass: 'text-brand', icon: 'game-icons:air-zigzag' },
+  nuclearReactor: { color: '#00ff66', label: 'Nuclear', glowClass: 'text-success', icon: 'game-icons:nuclear' },
+  antimatterPowerPlant: { color: '#ff00ff', label: 'Antimatter', glowClass: 'text-premium', icon: 'game-icons:lightning-frequency' },
 };
 
 // Fallback meta for power plants not in the static map
 function getPowerPlantMeta(type: string) {
   if (POWER_PLANT_META[type]) return POWER_PLANT_META[type];
-  // Generate fallback from building definition
+  // Generate fallback from building definition + TIER_INFO
   const def = BUILDING_DEFS[type];
-  const tierColors = ['#22d3ee', '#f97316', '#a855f7', '#00ffcc'];
-  const color = tierColors[Math.min(def?.tier ?? 0, tierColors.length - 1)];
+  const tier = Math.min(def?.tier ?? 0, 5);
+  const tierInfo = TIER_INFO[tier];
   return {
-    color,
+    color: tierInfo?.color ?? '#22d3ee',
     label: def?.name ?? type,
     glowClass: 'text-brand' as const,
-    icon: def?.icon ?? 'gi:lightning-frequency',
+    icon: def?.icon ?? 'game-icons:lightning-frequency',
   };
 }
 
@@ -210,12 +210,12 @@ export function PowerPanel() {
   // Efficiency tip
   const efficiencyTip = useMemo(() => {
     if (powerStatus === 'overloaded' || powerStatus === 'deficit') {
-      return { icon: 'lucide:alert-triangle', text: 'Build more power plants or deactivate some buildings!', color: 'text-danger', bg: 'bg-danger/20 border-danger/40' };
+      return { icon: 'game-icons:warning', text: 'Build more power plants or deactivate some buildings!', color: 'text-danger', bg: 'bg-danger/20 border-danger/40' };
     }
     if (powerStatus === 'balanced') {
-      return { icon: 'lucide:lightbulb', text: 'Consider adding surplus capacity for expansion', color: 'text-warning', bg: 'bg-warning/20 border-warning/80/40' };
+      return { icon: 'game-icons:lightbulb', text: 'Consider adding surplus capacity for expansion', color: 'text-warning', bg: 'bg-warning/20 border-warning/80/40' };
     }
-    return { icon: 'lucide:check-circle', text: 'Great! You have room to expand production', color: 'text-success', bg: 'bg-success/20 border-success/40' };
+    return { icon: 'game-icons:check-mark', text: 'Great! You have room to expand production', color: 'text-success', bg: 'bg-success/20 border-success/40' };
   }, [powerStatus]);
 
   // Power production history from productionHistory
@@ -576,7 +576,7 @@ export function PowerPanel() {
             <div className="flex flex-col items-center justify-center gap-1">
               <div className="text-[9px] text-muted-label mb-1 font-bold uppercase tracking-wider">Consumers</div>
               <div className="flex items-center gap-1">
-                <span className="text-xs"><GameIcon icon="gi:castle" size={14} className="inline" /></span>
+                <span className="text-xs"><GameIcon icon="game-icons:castle" size={14} className="inline" /></span>
                 <span className="text-[9px] font-mono text-domain">{formatNumber(totalRealConsumption)} MW</span>
               </div>
               <div className="text-[9px] text-muted-label">{buildings.filter(b => BUILDING_DEFS[b.type]?.category !== 'power' && b.active).length} buildings</div>

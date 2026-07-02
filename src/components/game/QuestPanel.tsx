@@ -32,11 +32,11 @@ const QUEST_TYPE_CONFIG: Record<string, { label: string; color: string; bg: stri
 };
 
 const CATEGORY_CONFIG: Record<string, { icon: string; label: string; color: string; bg: string; border: string }> = {
-  tutorial: { icon: 'gi:book-cover', label: 'Tutorial', color: 'text-brand', bg: 'bg-brand/20', border: 'border-brand/40' },
-  daily: { icon: 'gi:calendar', label: 'Daily', color: 'text-warning', bg: 'bg-warning/20', border: 'border-warning/80/40' },
-  weekly: { icon: 'gi:calendar', label: 'Weekly', color: 'text-brand', bg: 'bg-brand/20', border: 'border-brand/40' },
-  challenge: { icon: 'gi:medal', label: 'Challenge', color: 'text-danger', bg: 'bg-danger/20', border: 'border-danger/40/40' },
-  milestone: { icon: 'gi:crown', label: 'Milestone', color: 'text-warning', bg: 'bg-warning/20', border: 'border-warning/80/40' },
+  tutorial: { icon: 'game-icons:book-cover', label: 'Tutorial', color: 'text-brand', bg: 'bg-brand/20', border: 'border-brand/40' },
+  daily: { icon: 'game-icons:calendar', label: 'Daily', color: 'text-warning', bg: 'bg-warning/20', border: 'border-warning/80/40' },
+  weekly: { icon: 'game-icons:calendar', label: 'Weekly', color: 'text-brand', bg: 'bg-brand/20', border: 'border-brand/40' },
+  challenge: { icon: 'game-icons:medal', label: 'Challenge', color: 'text-danger', bg: 'bg-danger/20', border: 'border-danger/40/40' },
+  milestone: { icon: 'game-icons:crown', label: 'Milestone', color: 'text-warning', bg: 'bg-warning/20', border: 'border-warning/80/40' },
 };
 
 type FilterType = 'all' | 'active' | 'completed' | QuestType;
@@ -451,7 +451,7 @@ export function QuestPanel() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-xl font-bold text-brand flex items-center gap-2 neon-glow-cyan">
-          <GameIcon icon="gi:scroll-unfurled" size={20} className="inline" /> Quest Board
+          <GameIcon icon="game-icons:scroll-unfurled" size={20} className="inline" /> Quest Board
         </h2>
         <div className="flex items-center gap-2 text-[10px]">
           <span className="text-subtle">{claimedCount}/{totalCount} Completed</span>
@@ -522,7 +522,7 @@ export function QuestPanel() {
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {/* Available reward */}
         <div className="rounded-xl p-3 text-center border border-success/30 bg-success/10">
-          <div className="text-xl mb-1"><GameIcon icon="gi:present" size={20} /></div>
+          <div className="text-xl mb-1"><GameIcon icon="game-icons:present" size={20} /></div>
           <div className="text-lg font-bold text-success">${formatNumber(availableReward)}</div>
           <div className="text-[10px] text-muted-label">Available</div>
         </div>

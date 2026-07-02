@@ -194,7 +194,7 @@ export default function DroneDeliveryPanel() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <GameIcon icon="gi:helicopter" size={20} className="inline-flex" />
+          <GameIcon icon="game-icons:helicopter" size={20} className="inline-flex" />
           <h2 className="text-xl font-bold text-brand neon-glow-cyan">Drone Delivery Network</h2>
           <Badge variant="outline" className="text-[10px] border-brand/30 text-brand bg-brand/20">
             {idleDrones.length} idle / {fleet.length} total
@@ -252,7 +252,7 @@ export default function DroneDeliveryPanel() {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <GameIcon icon="gi:helicopter" size={14} className="inline-flex" />
+                    <GameIcon icon="game-icons:helicopter" size={14} className="inline-flex" />
                     <span className="text-xs font-medium text-subtle">Drone #{idx + 1}</span>
                     <DroneStatusBadge status={drone.status} />
                   </div>

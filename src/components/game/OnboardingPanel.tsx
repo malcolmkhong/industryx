@@ -31,7 +31,7 @@ const TUTORIAL_STEPS: TutorialStep[] = [
     description: 'Every factory needs power. Start by building a Coal Generator to supply electricity.',
     detailedExplanation:
       'Power is the lifeblood of your factory. Without it, no buildings can operate. The Coal Generator burns coal to produce 20 MW of electricity. It is cheap to build and reliable, making it the perfect starting power plant. You start with $1,000 — enough to build one right away!',
-    iconId: 'gi:factory',
+    iconId: 'game-icons:factory',
     tip: 'Always ensure your power production exceeds consumption. Buildings consume power each tick, and running a deficit drastically reduces efficiency.',
     checkCompleted: (store) => store.buildings.some(b => b.type === 'coalGenerator' || b.type === 'solarFarm' || b.type === 'windTurbine'),
   },
@@ -41,7 +41,7 @@ const TUTORIAL_STEPS: TutorialStep[] = [
     description: 'Extract raw resources from the earth. Mining Drills produce iron, copper, and coal.',
     detailedExplanation:
       'Mining Drills are your primary resource extractors. Each one produces iron, copper, and coal every tick. Iron is needed for iron plates and steel, copper for wire and circuits, and coal to fuel your generators. Build at least 2-3 drills to ensure a steady resource flow.',
-    iconId: 'gi:mining',
+    iconId: 'game-icons:mining',
     tip: 'Build multiple Mining Drills early. They produce a mix of resources, so having several ensures you never run short on raw materials.',
     checkCompleted: (store) => store.buildings.some(b => b.type === 'ironMine'),
   },
@@ -51,7 +51,7 @@ const TUTORIAL_STEPS: TutorialStep[] = [
     description: 'Resources are produced every tick. Watch your stockpiles grow as buildings work.',
     detailedExplanation:
       'Each tick, your active buildings produce resources automatically. The production rate depends on building level, efficiency, and power supply. You can view all your resources in the Resources tab. Each resource has a storage capacity — if you hit the cap, excess production is wasted!',
-    iconId: 'gi:chart',
+    iconId: 'game-icons:chart',
     tip: 'Keep an eye on storage capacity. When resources near capacity, it is time to process them in factories or sell them on the market.',
     checkCompleted: (store) => {
       const rawTotal = store.resources.iron + store.resources.copper + store.resources.coal;
@@ -64,7 +64,7 @@ const TUTORIAL_STEPS: TutorialStep[] = [
     description: 'Process raw iron into iron plates. Smelters are your first step in the production chain.',
     detailedExplanation:
       'Raw resources alone are not enough — you need to process them! The Smelter takes iron ore and converts it into iron plates, which are used to craft gears, and eventually engines. This is the start of your production chain: iron → iron plate → gear → engine. Each tier of processing adds value.',
-    iconId: 'gi:fire',
+    iconId: 'game-icons:fire',
     tip: 'Smelters need power and iron to operate. Make sure your Mining Drills are producing enough iron before building too many Smelters.',
     checkCompleted: (store) => store.buildings.some(b => b.type === 'smelter'),
   },
@@ -74,7 +74,7 @@ const TUTORIAL_STEPS: TutorialStep[] = [
     description: 'Convert resources into cash by selling on the market. Prices fluctuate over time!',
     detailedExplanation:
       'The Market is your primary source of income. Each resource has a market price that fluctuates based on supply and demand. Sell when prices are high for maximum profit! You can also buy resources you need. Market prices update every tick, so timing your trades can be very lucrative.',
-    iconId: 'gi:money-stack',
+    iconId: 'game-icons:money-stack',
     tip: 'Watch price trends — sell when the trend is "up" and buy when it is "down". Processed resources (iron plates, circuits) sell for much more than raw materials.',
     checkCompleted: (store) => store.totalMoneyEarned > 1000,
   },
@@ -84,7 +84,7 @@ const TUTORIAL_STEPS: TutorialStep[] = [
     description: 'Unlock new technologies and buildings. Research is key to long-term progression.',
     detailedExplanation:
       'Research Points (RP) accumulate over time and can be spent on the Research tab to unlock new buildings, bonuses, and abilities. Start with "Basic Automation" for +15% extractor speed, or "Basic Machining" to unlock the Gear Factory. Each research has prerequisites, forming a tech tree.',
-    iconId: 'gi:erlenmeyer',
+    iconId: 'game-icons:erlenmeyer',
     tip: 'Prioritize research that unlocks new buildings — they open up entire new production chains. "Basic Automation" and "Basic Machining" are great starting points.',
     checkCompleted: (store) => store.completedResearch.length > 0 || store.activeResearch !== null,
   },
@@ -101,43 +101,43 @@ const STRATEGY_HINTS = [
   {
     title: 'Balance Power & Production',
     text: 'Always keep power production above consumption. A power deficit drops efficiency to near-zero, crippling your entire factory.',
-    icon: 'lucide:zap',
+    icon: 'game-icons:lightning-frequency',
     category: 'gettingStarted' as const,
   },
   {
     title: 'Diversify Early',
     text: 'Do not rely on just one resource. Build a mix of extractors and factories to create a balanced production pipeline.',
-    icon: 'lucide:refresh-cw',
+    icon: 'game-icons:refresh',
     category: 'production' as const,
   },
   {
     title: 'Upgrade Before Expanding',
     text: 'Upgrading existing buildings is often more cost-effective than building new ones. A level 3 building produces 3x as much as level 1.',
-    icon: 'lucide:arrow-up',
+    icon: 'game-icons:arrow-up',
     category: 'production' as const,
   },
   {
     title: 'Watch the Market',
     text: 'Prices fluctuate every tick. Sell when prices peak and buy when they dip. The market trend indicator helps time your trades.',
-    icon: 'lucide:trending-up',
+    icon: 'game-icons:trending-up',
     category: 'economy' as const,
   },
   {
     title: 'Workers Boost Efficiency',
     text: 'Hiring Engineers and assigning them to buildings can significantly boost production speed. Each worker adds a percentage bonus.',
-    icon: 'lucide:hard-hat',
+    icon: 'game-icons:construction-helmet',
     category: 'advanced' as const,
   },
   {
     title: 'Complete Contracts',
     text: 'Contracts offer big payouts for delivering resources. They have time limits though, so only accept what you can fulfill.',
-    icon: 'lucide:clipboard-list',
+    icon: 'game-icons:scroll-unfurled',
     category: 'economy' as const,
   },
   {
     title: 'Plan for Prestige',
     text: 'When you have enough buildings and research, consider Global Expansion (Prestige). You lose current progress but gain permanent Corporation Points for powerful bonuses.',
-    icon: 'lucide:globe',
+    icon: 'game-icons:planet',
     category: 'advanced' as const,
   },
 ];
@@ -197,7 +197,7 @@ export function OnboardingPanel() {
       <div className="space-y-4">
         <div className="game-card rounded-xl bg-card p-6 border border-border text-center">
           <div className="w-16 h-16 rounded-xl bg-brand/20 flex items-center justify-center mx-auto mb-3">
-            {allCompleted ? <GameIcon icon="lucide:graduation-cap" size={32} /> : <GameIcon icon="lucide:clipboard-list" size={32} />}
+            {allCompleted ? <GameIcon icon="game-icons:id-card" size={32} /> : <GameIcon icon="game-icons:scroll-unfurled" size={32} />}
           </div>
           <h3 className="text-lg font-bold text-brand neon-glow-cyan">
             {allCompleted ? 'Tutorial Complete!' : 'Tutorial Skipped'}
@@ -326,7 +326,7 @@ export function OnboardingPanel() {
         {allCompleted && (
           <div className="mt-2 text-center">
             <span className="text-xs text-success font-medium inline-flex items-center gap-1">
-              <GameIcon icon="gi:party-popper" size={16} className="inline" /> All steps completed! Great job, Commander!
+              <GameIcon icon="game-icons:party-popper" size={16} className="inline" /> All steps completed! Great job, Commander!
             </span>
           </div>
         )}
@@ -499,25 +499,25 @@ export function OnboardingPanel() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="bg-background rounded-lg p-3">
-            <div className="text-xs text-brand font-medium mb-1 flex items-center gap-1"><GameIcon icon="lucide:zap" size={12} className="inline-flex" /> Power System</div>
+            <div className="text-xs text-brand font-medium mb-1 flex items-center gap-1"><GameIcon icon="game-icons:lightning-frequency" size={12} className="inline-flex" /> Power System</div>
             <p className="text-[10px] text-muted-label">
               Power plants generate MW. Buildings consume MW. If consumption exceeds production, all buildings lose efficiency.
             </p>
           </div>
           <div className="bg-background rounded-lg p-3">
-            <div className="text-xs text-warning font-medium mb-1 flex items-center gap-1"><GameIcon icon="lucide:factory" size={12} className="inline-flex" /> Production Chains</div>
+            <div className="text-xs text-warning font-medium mb-1 flex items-center gap-1"><GameIcon icon="game-icons:refinery" size={12} className="inline-flex" /> Production Chains</div>
             <p className="text-[10px] text-muted-label">
               Raw resources → Tier 1 (Plates/Wire) → Tier 2 (Circuits/Engines) → Tier 3 (AI Chips/Robotics). Higher tiers = more value.
             </p>
           </div>
           <div className="bg-background rounded-lg p-3">
-            <div className="text-xs text-success font-medium mb-1 flex items-center gap-1"><GameIcon icon="lucide:coins" size={12} className="inline-flex" /> Economy</div>
+            <div className="text-xs text-success font-medium mb-1 flex items-center gap-1"><GameIcon icon="game-icons:money-stack" size={12} className="inline-flex" /> Economy</div>
             <p className="text-[10px] text-muted-label">
               Sell resources on the Market for cash. Complete Contracts for big payouts. Use money to build and upgrade your factory.
             </p>
           </div>
           <div className="bg-background rounded-lg p-3">
-            <div className="text-xs text-research font-medium mb-1 flex items-center gap-1"><GameIcon icon="lucide:flask-conical" size={12} className="inline-flex" /> Research</div>
+            <div className="text-xs text-research font-medium mb-1 flex items-center gap-1"><GameIcon icon="game-icons:erlenmeyer" size={12} className="inline-flex" /> Research</div>
             <p className="text-[10px] text-muted-label">
               Spend Research Points to unlock new buildings, speed boosts, and abilities. Research persists through Prestige resets.
             </p>

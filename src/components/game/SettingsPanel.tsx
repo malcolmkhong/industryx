@@ -317,9 +317,9 @@ export function SettingsPanel() {
           <div className="grid grid-cols-2 gap-2">
             {([
               { key: 'success' as const, label: 'Success', color: 'text-success', icon: 'lucide:check-circle' },
-              { key: 'warning' as const, label: 'Warning', color: 'text-warning', icon: 'gi:hazard-sign' },
-              { key: 'error' as const, label: 'Error', color: 'text-danger', icon: 'gi:cross-mark' },
-              { key: 'info' as const, label: 'Info', color: 'text-brand', icon: 'gi:info' },
+              { key: 'warning' as const, label: 'Warning', color: 'text-warning', icon: 'game-icons:hazard-sign' },
+              { key: 'error' as const, label: 'Error', color: 'text-danger', icon: 'game-icons:cross-mark' },
+              { key: 'info' as const, label: 'Info', color: 'text-brand', icon: 'game-icons:info' },
             ]).map(({ key, label, color, icon }) => (
               <div key={key} className="flex items-center justify-between bg-background rounded-lg px-3 py-2">
                 <span className={`text-xs ${color} inline-flex items-center gap-1`}><GameIcon icon={icon} size={14} className="inline" /> {label}</span>
