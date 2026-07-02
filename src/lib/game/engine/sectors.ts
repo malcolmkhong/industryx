@@ -123,13 +123,13 @@ export const RESOURCE_ELASTICITY: Record<ResourceType, number> = {
 
 export function getSectorInfo(sector: MarketSector): { name: string; color: string; icon: string } {
   switch (sector) {
-    case 'raw_minerals':    return { name: 'Raw Minerals', color: 'text-warning', icon: 'gi:ore' };
-    case 'raw_organic':     return { name: 'Organic & Rare', color: 'text-success', icon: 'gi:oil-rig' };
-    case 'basic_materials': return { name: 'Basic Materials', color: 'text-brand/80', icon: 'gi:metal-bar' };
-    case 'components':      return { name: 'Components', color: 'text-research', icon: 'gi:circuitry' };
-    case 'advanced':        return { name: 'Advanced Goods', color: 'text-danger', icon: 'gi:gear-hammer' };
-    case 'high_tech':       return { name: 'High Tech', color: 'text-premium', icon: 'gi:processor' };
-    case 'endgame':         return { name: 'Endgame', color: 'text-research', icon: 'gi:atomic-slashes' };
-    case 'agriculture':     return { name: 'Agriculture', color: 'text-success', icon: 'gi:fertilizer-bag' };
+    case 'raw_minerals':    return { name: 'Raw Minerals', color: 'text-warning', icon: 'game-icons:ore' };
+    case 'raw_organic':     return { name: 'Organic & Rare', color: 'text-success', icon: 'game-icons:oil-rig' };
+    case 'basic_materials': return { name: 'Basic Materials', color: 'text-brand/80', icon: 'game-icons:metal-bar' };
+    case 'components':      return { name: 'Components', color: 'text-research', icon: 'game-icons:circuitry' };
+    case 'advanced':        return { name: 'Advanced Goods', color: 'text-danger', icon: 'game-icons:gear-hammer' };
+    case 'high_tech':       return { name: 'High Tech', color: 'text-premium', icon: 'game-icons:processor' };
+    case 'endgame':         return { name: 'Endgame', color: 'text-research', icon: 'game-icons:atomic-slashes' };
+    case 'agriculture':     return { name: 'Agriculture', color: 'text-success', icon: 'game-icons:fertilizer-bag' };
   }
 }

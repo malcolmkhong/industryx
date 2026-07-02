@@ -1,7 +1,7 @@
 'use client';
 
+import { addAPIProvider, Icon } from '@iconify/react';
 import { memo } from 'react';
-import { Icon } from '@iconify/react';
 import {
   RESOURCE_ICON_MAP,
   BUILDING_ICON_MAP,
@@ -11,10 +11,20 @@ import {
   WORKER_ICON_MAP,
   RESEARCH_ICON_MAP,
   MEGA_PROJECT_ICON_MAP,
-} from '@/lib/game/iconMap';
+} from '@/lib/game/icons';
+
+/**
+ * Register the `game-icons` provider explicitly so @iconify/react resolves
+ * game-icons:XXX against the Iconify CDN without needing to look up the
+ * collection prefix.
+ * Safe to call multiple times — addAPIProvider is idempotent.
+ */
+addAPIProvider('game-icons', {
+  resources: ['https://api.iconify.design'],
+});
 
 export interface GameIconProps {
-  /** Direct Iconify icon ID like 'gi:mining' or 'lucide:hammer' */
+  /** Direct Iconify icon ID like 'game-icons:mining' or custom:icon-name */
   icon?: string;
   /** Resource type key — auto-resolves to mapped icon */
   resource?: string;
@@ -47,7 +57,7 @@ export interface GameIconProps {
 }
 
 /** Fallback icon used when no valid icon can be resolved */
-const FALLBACK_ICON = 'gi:help';
+const FALLBACK_ICON = 'game-icons:help';
 
 /**
  * Validates that a value looks like a valid Iconify icon ID (prefix:name format).
@@ -100,7 +110,7 @@ function resolveIconId(props: GameIconProps): string {
  * using the @iconify/react library and the central icon mapping.
  *
  * @example
- * <GameIcon icon="gi:mining" size={24} />
+ * <GameIcon icon="game-icons:mining" size={24} />
  * <GameIcon resource="iron" size={16} color="#a0a0a0" />
  * <GameIcon building="smelter" />
  * <GameIcon ui="build" />
@@ -134,10 +144,9 @@ function GameIconImpl({
     ui,
   });
 
-  // Default to currentColor so icons inherit parent text color and remain visible on dark backgrounds.
-  // If an explicit color is passed, it takes precedence. Otherwise currentColor ensures
-  // the icon always matches the surrounding text and is never invisible.
-  const resolvedColor = color ?? 'currentColor';
+  // Default to #9ca3af so icons are visible on dark backgrounds.
+  // Pass an explicit color prop to override.
+  const resolvedColor = color ?? '#9ca3af';
 
   return (
     <Icon
@@ -158,4 +167,3 @@ function GameIconImpl({
 // Without memo, any prop change in a parent re-renders every icon.
 export const GameIcon = memo(GameIconImpl);
 GameIcon.displayName = 'GameIcon';
-

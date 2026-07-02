@@ -24,7 +24,6 @@ import {
   AUTOMATION_UNLOCKS as _DEFAULT_AUTOMATION_UNLOCKS,
   PRESTIGE_BONUSES as _DEFAULT_PRESTIGE_BONUSES,
   EVENT_TEMPLATES as _DEFAULT_EVENT_TEMPLATES,
-  TIER_INFO as _DEFAULT_TIER_INFO,
   CONTRACT_TEMPLATES as _DEFAULT_CONTRACT_TEMPLATES,
   RANK_THRESHOLDS as _DEFAULT_RANK_THRESHOLDS,
   PRODUCTION_CHAINS as _DEFAULT_PRODUCTION_CHAINS,
@@ -35,6 +34,7 @@ import {
   QUEST_DEFS as _DEFAULT_QUEST_DEFS,
   getStreakMultiplier as _DEFAULT_getStreakMultiplier,
 } from './data';
+import { TIER_INFO as _DEFAULT_TIER_INFO } from './icons/tiers';
 import { TRADABLE_RESOURCES as _FALLBACK_TRADABLE_RESOURCES } from './tradeConstants';
 import { GameConfig } from './config';
 import {
@@ -67,7 +67,7 @@ export let INITIAL_MARKET: MarketPrice[] = _DEFAULT_INITIAL_MARKET;
 export let AUTOMATION_UNLOCKS: AutomationUnlock[] = _DEFAULT_AUTOMATION_UNLOCKS;
 export let PRESTIGE_BONUSES: PrestigeBonus[] = _DEFAULT_PRESTIGE_BONUSES;
 export let EVENT_TEMPLATES: typeof _DEFAULT_EVENT_TEMPLATES = _DEFAULT_EVENT_TEMPLATES;
-export let TIER_INFO: Record<number, { name: string; icon: string; color: string; bgColor: string; borderColor: string; description: string }> = _DEFAULT_TIER_INFO;
+export let TIER_INFO: typeof _DEFAULT_TIER_INFO = _DEFAULT_TIER_INFO;
 export let CONTRACT_TEMPLATES: typeof _DEFAULT_CONTRACT_TEMPLATES = _DEFAULT_CONTRACT_TEMPLATES;
 export let RANK_THRESHOLDS: typeof _DEFAULT_RANK_THRESHOLDS = _DEFAULT_RANK_THRESHOLDS;
 export let PRODUCTION_CHAINS: typeof _DEFAULT_PRODUCTION_CHAINS = _DEFAULT_PRODUCTION_CHAINS;
@@ -243,7 +243,7 @@ export function updateFromSupabase(config: GameConfig): void {
     RANK_THRESHOLDS = config.rankThresholds.map(r => ({
       name: r.name,
       minScore: r.scoreRequired,
-      icon: 'gi:medal',
+      icon: 'game-icons:medal',
       color: '#a0a0a0',
     }));
   }
