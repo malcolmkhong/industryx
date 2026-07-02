@@ -66,48 +66,8 @@ const nextConfig: NextConfig = {
     contentDispositionType: 'attachment',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
-  // Optimize webpack for production
-  webpack: (config, { isServer }) => {
-    if (!isServer) {
-      // Don't bundle 'fs' module on client
-      config.resolve.fallback = {
-        ...(config.resolve.fallback || {}),
-        fs: false,
-      };
-    }
-
-    // Optimize chunks
-    config.optimization.splitChunks = {
-      ...config.optimization.splitChunks,
-      cacheGroups: {
-        ...config.optimization.splitChunks?.cacheGroups,
-        framework: {
-          name: 'framework',
-          chunks: 'all',
-          test: (module) => {
-            return [
-              '/react/',
-              '/react-dom/',
-              '/next/',
-            ].some((match) => {
-              return (
-                typeof module.identity === 'string' &&
-                module.identity.includes(match)
-              );
-            });
-          },
-        },
-        vendors: {
-          name: 'vendors',
-          test: /[\\/]node_modules[\\/]/,
-          chunks: 'all',
-          priority: 20,
-        },
-      },
-    };
-
-    return config;
-  },
+  // Add empty turbopack config to avoid warning
+  turbopack: {},
 };
 
 export default nextConfig;
