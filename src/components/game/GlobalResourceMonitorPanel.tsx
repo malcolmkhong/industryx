@@ -671,7 +671,6 @@ export default function GlobalResourceMonitorPanel() {
               return (
                 <div
                   key={row.resource}
-                  role="row"
                   className={`grid grid-cols-[2.5rem_1fr_3rem_5rem_4rem_4rem_4rem_4.5rem_1.5rem] sm:grid-cols-[2.5rem_1fr_3.5rem_6rem_5rem_5rem_5rem_5.5rem_1.5rem] items-center gap-1 px-3 py-1.5 border-b border-muted-label/50 transition-colors hover:bg-brand/10 cursor-default ${
                     isCriticalBg ? 'bg-danger/10' : ''
                   }`}
