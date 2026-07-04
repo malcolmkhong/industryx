@@ -9,12 +9,21 @@
 //     merge check, but link-identity is idempotent server-side.
 //   - Per Q3: merge UI auto-opens on conflict (handled by service).
 
-'use client';
+"use client";
 
-import { useContext, createContext, useEffect, useSyncExternalStore } from 'react';
+import {
+  useContext,
+  createContext,
+  useEffect,
+  useSyncExternalStore,
+} from "react";
 
-import { useAuth } from '@/components/providers/AuthProvider';
-import { MergeFlowService, type MergeState, type MergePreference } from './merge/MergeFlowService';
+import { useAuth } from "@/components/providers/AuthProvider";
+import {
+  MergeFlowService,
+  type MergeState,
+  type MergePreference,
+} from "./merge/MergeFlowService";
 
 const MergeCtx = createContext<{ service: MergeFlowService } | null>(null);
 
@@ -23,7 +32,9 @@ export const MergeFlowServiceProvider = MergeCtx.Provider;
 export function useMergeFlow() {
   const ctx = useContext(MergeCtx);
   if (!ctx) {
-    throw new Error('useMergeFlow must be used within MergeFlowServiceProvider');
+    throw new Error(
+      "useMergeFlow must be used within MergeFlowServiceProvider",
+    );
   }
   const { service } = ctx;
   const { user, deviceId } = useAuth();
@@ -42,12 +53,12 @@ export function useMergeFlow() {
   return {
     state,
     triggerMergeCheck: () => service.startMergeCheck(),
-    confirmMerge: (preference: MergePreference) => service.confirmMerge(preference),
+    confirmMerge: () => service.confirmMerge(),
     cancelMerge: () => service.cancelMerge(),
     closeMerge: () => service.closeMerge(),
     retryMerge: () => service.retryMerge(),
   };
 }
 
-export type { MergeState, MergePreference } from './merge/MergeFlowService';
-export { MergeFlowService } from './merge/MergeFlowService';
+export type { MergeState, MergePreference } from "./merge/MergeFlowService";
+export { MergeFlowService } from "./merge/MergeFlowService";

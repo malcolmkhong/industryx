@@ -5,6 +5,10 @@
  * after onAuthenticated. Per Q3: merge UI auto-opens on conflict. Per Decision 13:
  * guest identity is permanently locked to one account.
  *
+ * Phase 2 (post multi-account lockdown):
+ *   Auth always wins. The `preference` parameter is gone. The merge UI
+ *   shows a single confirmation (no keep_guest / keep_google choice).
+ *
  * Replaces the buggy useMergeFlow triggeredRef pattern (which silently skipped
  * re-merges for the same user.id after sign-out).
  *
@@ -12,18 +16,19 @@
  * confirmMerge(). The useMergeFlow hook facade reads state for LoginFloatingPanel.
  */
 
-import { getFingerprint } from '@/lib/auth/fingerprint';
+import { getFingerprint } from "@/lib/auth/fingerprint";
 
-const GUEST_UID_COOKIE = 'factory-dominion-guest-uid';
-const IDEMPOTENCY_PREFIX = 'merge-';
+const GUEST_UID_COOKIE = "factory-dominion-guest-uid";
+const IDEMPOTENCY_PREFIX = "merge-";
 
-export type MergePreference = 'keep_guest' | 'keep_google';
+/**
+ * Kept for type export only. Auth always wins; there is no user choice.
+ * See `confirmMerge()` (now no-arg) and /api/auth/confirm-link.
+ */
+export type MergePreference = "auth_wins";
 
 export type MergeReason =
-  | 'merge_conflict'
-  | 'merge_confirm_keep_guest'
-  | 'merge_confirm_keep_google'
-  | 'merge_success';
+  "merge_conflict" | "merge_confirm" | "merge_success" | "merge_failure";
 
 export interface MergePreview {
   guest: {
@@ -47,10 +52,10 @@ export interface MergePreview {
 }
 
 export type MergeOutcome =
-  | { kind: 'no_guest_to_link' }
-  | { kind: 'linked' }
+  | { kind: "no_guest_to_link" }
+  | { kind: "linked" }
   | {
-      kind: 'conflict';
+      kind: "conflict";
       operationId: string;
       preview: MergePreview;
       riskScore: number;
@@ -65,7 +70,7 @@ export interface MergeState {
   riskScore: number;
   isConfirming: boolean;
   isCancelling: boolean;
-  result: 'idle' | 'success' | 'failure';
+  result: "idle" | "success" | "failure";
   receiptId: string | null;
   survivingUserId: string | null;
   error: string | null;
@@ -73,13 +78,13 @@ export interface MergeState {
 
 const INITIAL: MergeState = {
   isOpen: false,
-  reason: 'merge_conflict',
+  reason: "merge_conflict",
   operationId: null,
   preview: null,
   riskScore: 0,
   isConfirming: false,
   isCancelling: false,
-  result: 'idle',
+  result: "idle",
   receiptId: null,
   survivingUserId: null,
   error: null,
@@ -92,7 +97,7 @@ function generateIdempotencyKey(): string {
 }
 
 function deleteCookie(name: string): void {
-  if (typeof document === 'undefined') return;
+  if (typeof document === "undefined") return;
   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
 }
 
@@ -123,7 +128,7 @@ export class MergeFlowService {
       try {
         l(this.state);
       } catch (err) {
-        console.warn('[MergeFlowService] listener threw:', err);
+        console.warn("[MergeFlowService] listener threw:", err);
       }
     }
   }
@@ -139,7 +144,7 @@ export class MergeFlowService {
    */
   async startMergeCheck(): Promise<MergeOutcome> {
     if (!this.userId || !this.deviceId) {
-      return { kind: 'no_guest_to_link' };
+      return { kind: "no_guest_to_link" };
     }
 
     try {
@@ -152,10 +157,11 @@ export class MergeFlowService {
 
     try {
       const fingerprintHash = await getFingerprint();
-      const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : null;
-      const res = await fetch('/api/auth/link-identity', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const userAgent =
+        typeof navigator !== "undefined" ? navigator.userAgent : null;
+      const res = await fetch("/api/auth/link-identity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           idempotencyKey,
           deviceId: this.deviceId,
@@ -166,13 +172,13 @@ export class MergeFlowService {
 
       const data = await res.json();
 
-      if (data.linked && data.reason === 'no_guest_to_link') {
-        return { kind: 'no_guest_to_link' };
+      if (data.linked && data.reason === "no_guest_to_link") {
+        return { kind: "no_guest_to_link" };
       }
 
       if (data.conflict) {
         const conflict: MergeOutcome = {
-          kind: 'conflict',
+          kind: "conflict",
           operationId: data.operationId,
           preview: data.preview,
           riskScore: data.riskScore ?? 0,
@@ -181,13 +187,13 @@ export class MergeFlowService {
         // Per Q3: auto-open merge UI immediately.
         this.setState({
           isOpen: true,
-          reason: 'merge_conflict',
+          reason: "merge_conflict",
           operationId: conflict.operationId,
           preview: conflict.preview,
           riskScore: conflict.riskScore,
           isConfirming: false,
           isCancelling: false,
-          result: 'idle',
+          result: "idle",
           receiptId: null,
           survivingUserId: null,
           error: null,
@@ -195,36 +201,38 @@ export class MergeFlowService {
         return conflict;
       }
 
-      return { kind: 'linked' };
+      return { kind: "linked" };
     } catch (err) {
-      console.warn('[MergeFlowService] startMergeCheck failed:', err);
-      return { kind: 'no_guest_to_link' };
+      console.warn("[MergeFlowService] startMergeCheck failed:", err);
+      return { kind: "no_guest_to_link" };
     }
   }
 
-  async confirmMerge(preference: MergePreference): Promise<void> {
+  /**
+   * Confirm the merge. Auth always wins — no preference parameter.
+   * The auth user's data IS the surviving state; the guest's data is
+   * reassigned to them (server_game_state, player_actions, etc.).
+   */
+  async confirmMerge(): Promise<void> {
     if (!this.state.operationId) return;
 
     this.setState({
       isConfirming: true,
-      reason:
-        preference === 'keep_guest'
-          ? 'merge_confirm_keep_guest'
-          : 'merge_confirm_keep_google',
+      reason: "merge_confirm",
       error: null,
     });
 
-    const idempotencyKey = `${this.state.operationId}-${preference}`;
+    const idempotencyKey = `${this.state.operationId}-auth_wins`;
 
     try {
       const fingerprintHash = await getFingerprint();
-      const res = await fetch('/api/auth/confirm-link', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/auth/confirm-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           operationId: this.state.operationId,
           idempotencyKey,
-          preference,
+          // preference intentionally omitted — auth always wins
           fingerprintHash,
         }),
       });
@@ -234,8 +242,8 @@ export class MergeFlowService {
       if (!res.ok) {
         this.setState({
           isConfirming: false,
-          result: 'failure',
-          error: data.error ?? 'Merge failed',
+          result: "failure",
+          error: data.error ?? "Merge failed",
         });
         return;
       }
@@ -249,16 +257,16 @@ export class MergeFlowService {
       this.setState({
         isConfirming: false,
         isOpen: true,
-        reason: 'merge_success',
-        result: 'success',
+        reason: "merge_success",
+        result: "success",
         receiptId: data.receiptId,
         survivingUserId: data.survivingUserId,
       });
     } catch (err) {
       this.setState({
         isConfirming: false,
-        result: 'failure',
-        error: err instanceof Error ? err.message : 'Network error',
+        result: "failure",
+        error: err instanceof Error ? err.message : "Network error",
       });
     }
   }
@@ -273,9 +281,9 @@ export class MergeFlowService {
 
   retryMerge(): void {
     this.setState({
-      result: 'idle',
+      result: "idle",
       error: null,
-      reason: 'merge_conflict',
+      reason: "merge_conflict",
     });
   }
 

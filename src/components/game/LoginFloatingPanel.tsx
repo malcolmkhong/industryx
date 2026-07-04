@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/components/providers/AuthProvider';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { Button } from "@/components/ui/button";
 import {
   Cloud,
   Trophy,
@@ -16,28 +16,27 @@ import {
   AlertCircle,
   TrendingUp,
   Check,
-} from 'lucide-react';
+} from "lucide-react";
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
 export type LoginPromptReason =
-  | 'cloud_save'       // Guest clicked "Save to Cloud"
-  | 'cloud_load'       // Guest clicked "Load from Cloud"
-  | 'leaderboard'      // Guest opened Leaderboard tab
-  | 'trading_post'     // Guest opened Trading Post tab
-  | 'mega_project'     // Guest opened Mega Projects tab
-  | 'stock_market'     // Guest opened Stock Market tab
-  | 'progress_milestone' // After 5000 ticks — significant progress at risk
-  | 'prestige_available' // Prestige became available — secure your data
-  | 'playtime_reminder'  // After 1 hour — one-time gentle nudge
-  | 'manual'           // User clicked Sign In / Bind Account button
-  | 'merge_conflict'   // Phase 1.5: guest linked to Google with progress on both sides
-  | 'merge_confirm_keep_guest'   // Phase 1.5: confirmation step before Keep Guest
-  | 'merge_confirm_keep_google'  // Phase 1.5: confirmation step before Keep Google
-  | 'merge_success'    // Phase 1.5: merge completed, show receipt
-  | 'merge_failure';   // Phase 1.5: merge failed, show retry
+  | "cloud_save" // Guest clicked "Save to Cloud"
+  | "cloud_load" // Guest clicked "Load from Cloud"
+  | "leaderboard" // Guest opened Leaderboard tab
+  | "trading_post" // Guest opened Trading Post tab
+  | "mega_project" // Guest opened Mega Projects tab
+  | "stock_market" // Guest opened Stock Market tab
+  | "progress_milestone" // After 5000 ticks — significant progress at risk
+  | "prestige_available" // Prestige became available — secure your data
+  | "playtime_reminder" // After 1 hour — one-time gentle nudge
+  | "manual" // User clicked Sign In / Bind Account button
+  | "merge_conflict" // Phase 1.5: guest linked to auth with progress on both sides
+  | "merge_confirm" // Phase 2: confirm auth-wins merge (single confirmation)
+  | "merge_success" // Phase 1.5: merge completed, show receipt
+  | "merge_failure"; // Phase 1.5: merge failed, show retry
 
-export type PromptMode = 'hard_gate' | 'soft_prompt' | 'merge';
+export type PromptMode = "hard_gate" | "soft_prompt" | "merge";
 
 export interface MergePreview {
   guest: {
@@ -76,13 +75,13 @@ interface LoginFloatingPanelProps {
   /** Phase 1.5.3: Is merge currently executing */
   isMergeConfirming?: boolean;
   /** Phase 1.5.3: Merge result state */
-  mergeResult?: 'idle' | 'success' | 'failure';
+  mergeResult?: "idle" | "success" | "failure";
   /** Phase 1.5.3: Merge receipt id (on success) */
   mergeReceiptId?: string | null;
   /** Phase 1.5.3: Merge error message (on failure) */
   mergeError?: string | null;
-  /** Phase 1.5.3: Confirm merge with preference */
-  onMergeConfirm?: (preference: 'keep_guest' | 'keep_google') => void;
+  /** Phase 2: Confirm merge — auth always wins, no preference */
+  onMergeConfirm?: () => void;
   /** Phase 1.5.3: Cancel merge */
   onMergeCancel?: () => void;
   /** Phase 1.5.3: Close merge result dialog */
@@ -105,170 +104,175 @@ interface ReasonConfig {
 
 const REASON_CONFIGS: Record<LoginPromptReason, ReasonConfig> = {
   cloud_save: {
-    mode: 'hard_gate',
-    title: 'Cloud Save Requires Account',
-    description: 'To save your progress to the cloud, you need to sign in. This protects your empire from browser data loss.',
+    mode: "hard_gate",
+    title: "Cloud Save Requires Account",
+    description:
+      "To save your progress to the cloud, you need to sign in. This protects your empire from browser data loss.",
     icon: <Cloud className="w-5 h-5 text-brand" />,
     benefits: [
-      'Save progress across devices',
-      'Automatic cloud backup',
-      'Never lose your factory',
+      "Save progress across devices",
+      "Automatic cloud backup",
+      "Never lose your factory",
     ],
-    urgencyText: 'Your progress is only stored locally right now',
+    urgencyText: "Your progress is only stored locally right now",
     dismissible: true, // Allow dismiss but show warning
   },
   cloud_load: {
-    mode: 'hard_gate',
-    title: 'Cloud Load Requires Account',
-    description: 'Loading from the cloud requires authentication to verify your save data.',
+    mode: "hard_gate",
+    title: "Cloud Load Requires Account",
+    description:
+      "Loading from the cloud requires authentication to verify your save data.",
     icon: <Cloud className="w-5 h-5 text-brand" />,
     benefits: [
-      'Load progress from any device',
-      'Restore after browser clear',
-      'Continue on mobile/desktop',
+      "Load progress from any device",
+      "Restore after browser clear",
+      "Continue on mobile/desktop",
     ],
-    urgencyText: 'Sign in to access your cloud saves',
+    urgencyText: "Sign in to access your cloud saves",
     dismissible: true,
   },
   leaderboard: {
-    mode: 'hard_gate',
-    title: 'Leaderboard Requires Account',
-    description: 'To compete on the leaderboard and show off your industrial empire, you need an account.',
+    mode: "hard_gate",
+    title: "Leaderboard Requires Account",
+    description:
+      "To compete on the leaderboard and show off your industrial empire, you need an account.",
     icon: <Trophy className="w-5 h-5 text-warning" />,
     benefits: [
-      'Compete for top rankings',
-      'Show off your empire stats',
-      'Track your global position',
+      "Compete for top rankings",
+      "Show off your empire stats",
+      "Track your global position",
     ],
-    urgencyText: 'See how you rank against other players',
+    urgencyText: "See how you rank against other players",
     dismissible: true,
   },
   trading_post: {
-    mode: 'hard_gate',
-    title: 'Trading Post Requires Account',
-    description: 'Player-to-player trading requires authentication to prevent fraud and protect both parties.',
+    mode: "hard_gate",
+    title: "Trading Post Requires Account",
+    description:
+      "Player-to-player trading requires authentication to prevent fraud and protect both parties.",
     icon: <ArrowRightLeft className="w-5 h-5 text-success" />,
     benefits: [
-      'Trade resources with other players',
-      'Get better deals than the market',
-      'Build your trading reputation',
+      "Trade resources with other players",
+      "Get better deals than the market",
+      "Build your trading reputation",
     ],
-    urgencyText: 'Join the trading community',
+    urgencyText: "Join the trading community",
     dismissible: true,
   },
   mega_project: {
-    mode: 'hard_gate',
-    title: 'Mega Projects Require Account',
-    description: 'Global mega projects are collaborative efforts. Sign in to contribute and earn exclusive rewards.',
+    mode: "hard_gate",
+    title: "Mega Projects Require Account",
+    description:
+      "Global mega projects are collaborative efforts. Sign in to contribute and earn exclusive rewards.",
     icon: <Building2 className="w-5 h-5 text-research" />,
     benefits: [
-      'Contribute to global projects',
-      'Earn exclusive mega project rewards',
-      'Leave your mark on the world',
+      "Contribute to global projects",
+      "Earn exclusive mega project rewards",
+      "Leave your mark on the world",
     ],
-    urgencyText: 'Help build something massive',
+    urgencyText: "Help build something massive",
     dismissible: true,
   },
   progress_milestone: {
-    mode: 'soft_prompt',
-    title: 'Protect Your Progress!',
-    description: 'You\'ve been building for a while. Don\'t risk losing everything to a browser clear or accident!',
+    mode: "soft_prompt",
+    title: "Protect Your Progress!",
+    description:
+      "You've been building for a while. Don't risk losing everything to a browser clear or accident!",
     icon: <Shield className="w-5 h-5 text-success" />,
     benefits: [
-      'Cloud backup — never lose progress',
-      'Play on any device',
-      'Unlock leaderboard & trading',
+      "Cloud backup — never lose progress",
+      "Play on any device",
+      "Unlock leaderboard & trading",
     ],
-    urgencyText: 'Your empire is worth protecting',
+    urgencyText: "Your empire is worth protecting",
     dismissible: true,
   },
   prestige_available: {
-    mode: 'soft_prompt',
-    title: 'Prestige Wants Protection!',
-    description: 'Prestige is a major milestone! Sign in to secure your Corporation Points and ensure they\'re never lost.',
+    mode: "soft_prompt",
+    title: "Prestige Wants Protection!",
+    description:
+      "Prestige is a major milestone! Sign in to secure your Corporation Points and ensure they're never lost.",
     icon: <Sparkles className="w-5 h-5 text-premium" />,
     benefits: [
-      'Secure your Corporation Points',
-      'Keep prestige bonuses safe',
-      'Cloud backup for peace of mind',
+      "Secure your Corporation Points",
+      "Keep prestige bonuses safe",
+      "Cloud backup for peace of mind",
     ],
-    urgencyText: 'Don\'t risk losing prestige progress!',
+    urgencyText: "Don't risk losing prestige progress!",
     dismissible: true,
   },
   playtime_reminder: {
-    mode: 'soft_prompt',
-    title: 'Quick Sign-In Suggestion',
-    description: 'You\'ve been playing for a while! Signing in takes seconds and keeps your factory safe forever.',
+    mode: "soft_prompt",
+    title: "Quick Sign-In Suggestion",
+    description:
+      "You've been playing for a while! Signing in takes seconds and keeps your factory safe forever.",
     icon: <Shield className="w-5 h-5 text-brand" />,
     benefits: [
-      'One-click Google sign-in',
-      'Your progress stays safe',
-      'Play on any device later',
+      "One-click Google sign-in",
+      "Your progress stays safe",
+      "Play on any device later",
     ],
     dismissible: true,
   },
   manual: {
-    mode: 'soft_prompt',
-    title: 'Sign In to IndustriaX',
-    description: 'Sign in with your Google account to unlock cloud features and protect your industrial empire.',
+    mode: "soft_prompt",
+    title: "Sign In to IndustriaX",
+    description:
+      "Sign in with your Google account to unlock cloud features and protect your industrial empire.",
     icon: <Cloud className="w-5 h-5 text-brand" />,
     benefits: [
-      'Cloud save & load',
-      'Leaderboard rankings',
-      'Player trading',
-      'Cross-device play',
+      "Cloud save & load",
+      "Leaderboard rankings",
+      "Player trading",
+      "Cross-device play",
     ],
     dismissible: true,
   },
   stock_market: {
-    mode: 'hard_gate',
-    title: 'Stock Market Requires Account',
-    description: 'Trading on the stock market requires a Google account to prevent fraud and protect your investments.',
+    mode: "hard_gate",
+    title: "Stock Market Requires Account",
+    description:
+      "Trading on the stock market requires a Google account to prevent fraud and protect your investments.",
     icon: <TrendingUp className="w-5 h-5 text-success" />,
     benefits: [
-      'Trade resources for profit',
-      'Build your trading portfolio',
-      'Compete with other players',
+      "Trade resources for profit",
+      "Build your trading portfolio",
+      "Compete with other players",
     ],
-    urgencyText: 'Bind Account to access the stock market',
+    urgencyText: "Bind Account to access the stock market",
     dismissible: true,
   },
   merge_conflict: {
-    mode: 'merge',
-    title: 'Account Conflict Detected',
-    description: 'Choose which profile to keep. Only one profile will remain active.',
+    mode: "merge",
+    title: "Account Conflict Detected",
+    description:
+      "This guest profile has saved progress. Your auth account will be the surviving identity — guest progress (buildings, resources, research, audit history) will be merged in.",
     icon: <ArrowRightLeft className="w-5 h-5 text-warning" />,
     benefits: [],
     dismissible: false,
   },
-  merge_confirm_keep_guest: {
-    mode: 'merge',
-    title: 'Keep Guest Profile?',
-    description: 'Your guest profile will become the surviving account. The Google account access will be attached to it.',
-    icon: <Shield className="w-5 h-5 text-success" />,
-    benefits: [],
-    dismissible: true,
-  },
-  merge_confirm_keep_google: {
-    mode: 'merge',
-    title: 'Keep Google Profile?',
-    description: 'Your Google profile will become the surviving account. The guest profile will be archived.',
+  merge_confirm: {
+    mode: "merge",
+    title: "Confirm Profile Merge",
+    description:
+      "Your Google/GitHub account will become the active identity. Guest progress will be transferred in (auth always wins).",
     icon: <Cloud className="w-5 h-5 text-brand" />,
     benefits: [],
     dismissible: true,
   },
   merge_success: {
-    mode: 'merge',
-    title: 'Profile Resolution Complete',
-    description: 'Your accounts have been merged successfully.',
+    mode: "merge",
+    title: "Profile Resolution Complete",
+    description:
+      "Your accounts have been merged successfully. Guest progress is now under your auth account.",
     icon: <Check className="w-5 h-5 text-success" />,
     benefits: [],
     dismissible: false,
   },
   merge_failure: {
-    mode: 'merge',
-    title: 'Conflict Resolution Failed',
-    description: 'Nothing was changed. Please retry.',
+    mode: "merge",
+    title: "Conflict Resolution Failed",
+    description: "Nothing was changed. Please retry.",
     icon: <AlertTriangle className="w-5 h-5 text-danger" />,
     benefits: [],
     dismissible: true,
@@ -299,25 +303,38 @@ function getSignInErrorMessage(err: unknown): string {
     return "We couldn't sign you in. Please try again.";
   }
   const msg = err.message.toLowerCase();
-  if (msg.includes('network') || msg.includes('fetch') || msg.includes('timeout') || msg.includes('failed to')) {
-    return 'Connection lost. Please check your network and try again.';
+  if (
+    msg.includes("network") ||
+    msg.includes("fetch") ||
+    msg.includes("timeout") ||
+    msg.includes("failed to")
+  ) {
+    return "Connection lost. Please check your network and try again.";
   }
-  if (msg.includes('provider') && msg.includes('not enabled')) {
-    return 'Google sign-in is currently unavailable. Please try again later.';
+  if (msg.includes("provider") && msg.includes("not enabled")) {
+    return "Google sign-in is currently unavailable. Please try again later.";
   }
-  if (msg.includes('redirect') || msg.includes('uri') || msg.includes('mismatch')) {
-    return 'Sign-in is misconfigured. Please refresh the page or contact support.';
+  if (
+    msg.includes("redirect") ||
+    msg.includes("uri") ||
+    msg.includes("mismatch")
+  ) {
+    return "Sign-in is misconfigured. Please refresh the page or contact support.";
   }
-  if (msg.includes('popup') || msg.includes('blocked')) {
-    return 'Your browser blocked the sign-in window. Please allow popups for this site and try again.';
+  if (msg.includes("popup") || msg.includes("blocked")) {
+    return "Your browser blocked the sign-in window. Please allow popups for this site and try again.";
   }
-  if (msg.includes('cancelled') || msg.includes('canceled') || msg.includes('closed')) {
-    return 'Sign-in was cancelled. You can try again anytime.';
+  if (
+    msg.includes("cancelled") ||
+    msg.includes("canceled") ||
+    msg.includes("closed")
+  ) {
+    return "Sign-in was cancelled. You can try again anytime.";
   }
-  if (msg.includes('access_denied') || msg.includes('denied')) {
-    return 'Access was denied. You can try again or sign in with a different account.';
+  if (msg.includes("access_denied") || msg.includes("denied")) {
+    return "Access was denied. You can try again or sign in with a different account.";
   }
-  return 'We couldn’t sign you in. Please try again.';
+  return "We couldn’t sign you in. Please try again.";
 }
 
 export function LoginFloatingPanel({
@@ -336,15 +353,21 @@ export function LoginFloatingPanel({
   onMergeClose,
   onMergeRetry,
 }: LoginFloatingPanelProps) {
-  const { signInWithGoogle, signInWithGithub, loading: authLoading } = useAuth();
+  const {
+    signInWithGoogle,
+    signInWithGithub,
+    loading: authLoading,
+  } = useAuth();
   const [isSigningIn, setIsSigningIn] = useState(false);
-  const [signInProvider, setSignInProvider] = useState<'google' | 'github' | null>(null);
+  const [signInProvider, setSignInProvider] = useState<
+    "google" | "github" | null
+  >(null);
   const [signInError, setSignInError] = useState<string | null>(null);
   const [showDismissWarning, setShowDismissWarning] = useState(false);
   const [animateIn, setAnimateIn] = useState(false);
 
   const config = REASON_CONFIGS[reason];
-  const isHardGate = config.mode === 'hard_gate';
+  const isHardGate = config.mode === "hard_gate";
 
   useEffect(() => {
     if (open) {
@@ -364,7 +387,7 @@ export function LoginFloatingPanel({
    * @param provider which OAuth provider to use
    */
   const handleSignIn = useCallback(
-    async (provider: 'google' | 'github' = 'google') => {
+    async (provider: "google" | "github" = "google") => {
       setIsSigningIn(true);
       setSignInProvider(provider);
       setSignInError(null);
@@ -373,11 +396,13 @@ export function LoginFloatingPanel({
       const timeoutId = window.setTimeout(() => {
         setIsSigningIn(false);
         setSignInProvider(null);
-        setSignInError('Sign-in is taking longer than expected. Please check your browser and try again.');
+        setSignInError(
+          "Sign-in is taking longer than expected. Please check your browser and try again.",
+        );
       }, 15000);
 
       try {
-        if (provider === 'github') {
+        if (provider === "github") {
           await signInWithGithub();
         } else {
           await signInWithGoogle();
@@ -390,12 +415,12 @@ export function LoginFloatingPanel({
         setSignInError(getSignInErrorMessage(err));
       }
     },
-    [signInWithGoogle, signInWithGithub, onSignInStart]
+    [signInWithGoogle, signInWithGithub, onSignInStart],
   );
 
   const handleRetry = useCallback(() => {
     setSignInError(null);
-    handleSignIn(signInProvider ?? 'google');
+    handleSignIn(signInProvider ?? "google");
   }, [handleSignIn, signInProvider]);
 
   const handleDismiss = useCallback(() => {
@@ -410,13 +435,16 @@ export function LoginFloatingPanel({
     if (!isHardGate) onClose();
   }, [isHardGate, onClose]);
 
-  const handleBackdropKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (isHardGate) return;
-    if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      onClose();
-    }
-  }, [isHardGate, onClose]);
+  const handleBackdropKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (isHardGate) return;
+      if (e.key === "Escape" || e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onClose();
+      }
+    },
+    [isHardGate, onClose],
+  );
 
   if (!open) return null;
 
@@ -424,7 +452,7 @@ export function LoginFloatingPanel({
     <>
       <div
         className={`fixed inset-0 z-100 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
-          animateIn ? 'opacity-100' : 'opacity-0'
+          animateIn ? "opacity-100" : "opacity-0"
         }`}
         onClick={handleBackdropClick}
         onKeyDown={handleBackdropKeyDown}
@@ -438,8 +466,8 @@ export function LoginFloatingPanel({
       <div
         className={`fixed z-101 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-md transition-all duration-300 ${
           animateIn
-            ? 'opacity-100 scale-100 translate-y-0'
-            : 'opacity-0 scale-95 -translate-y-4'
+            ? "opacity-100 scale-100 translate-y-0"
+            : "opacity-0 scale-95 -translate-y-4"
         }`}
       >
         <div className="relative bg-[#0d1220] border border-brand/40 rounded-2xl shadow-2xl shadow-brand/20 overflow-hidden">
@@ -466,58 +494,88 @@ export function LoginFloatingPanel({
                 {config.icon}
               </div>
               <div>
-                <h2 className="text-lg font-bold text-subtle pr-8">{config.title}</h2>
-                <p className="text-sm text-subtle mt-1 leading-relaxed">{config.description}</p>
+                <h2 className="text-lg font-bold text-subtle pr-8">
+                  {config.title}
+                </h2>
+                <p className="text-sm text-subtle mt-1 leading-relaxed">
+                  {config.description}
+                </p>
               </div>
             </div>
 
             {/* Urgency text */}
             {config.urgencyText && (
-              <div className={`text-xs px-3 py-2 rounded-lg mb-4 flex items-center gap-2 ${
-                isHardGate
-                  ? 'bg-warning/20 text-warning border border-warning/80/30'
-                  : 'bg-brand/20 text-brand border border-brand/30'
-              }`}>
+              <div
+                className={`text-xs px-3 py-2 rounded-lg mb-4 flex items-center gap-2 ${
+                  isHardGate
+                    ? "bg-warning/20 text-warning border border-warning/80/30"
+                    : "bg-brand/20 text-brand border border-brand/30"
+                }`}
+              >
                 <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                 {config.urgencyText}
               </div>
             )}
 
-            {/* Phase 1.5.3: Merge conflict dialog (side-by-side comparison) */}
-            {reason === 'merge_conflict' && mergePreview && (
+            {/* Phase 2: Merge conflict dialog — single confirm. Auth always wins. */}
+            {reason === "merge_conflict" && mergePreview && (
               <div className="mb-4">
                 <div className="grid grid-cols-2 gap-2 mb-4">
                   <div className="p-3 rounded-lg bg-warning/20 border border-warning/80/30">
-                    <div className="text-[10px] uppercase tracking-wider text-warning font-bold mb-2">Guest Profile</div>
-                    <StatRow label="UUID" value={mergePreview.guest.user_id.slice(0, 8) + '...'} />
-                    <StatRow label="Total Money" value={`$${formatNum(mergePreview.guest.total_money_earned)}`} />
-                    <StatRow label="Total Ticks" value={formatNum(mergePreview.guest.game_tick)} />
-                    <StatRow label="Buildings" value={formatNum(mergePreview.guest.buildings_count)} />
+                    <div className="text-[10px] uppercase tracking-wider text-warning font-bold mb-2">
+                      Guest Profile
+                    </div>
+                    <StatRow
+                      label="UUID"
+                      value={mergePreview.guest.user_id.slice(0, 8) + "..."}
+                    />
+                    <StatRow
+                      label="Total Money"
+                      value={`$${formatNum(mergePreview.guest.total_money_earned)}`}
+                    />
+                    <StatRow
+                      label="Total Ticks"
+                      value={formatNum(mergePreview.guest.game_tick)}
+                    />
+                    <StatRow
+                      label="Buildings"
+                      value={formatNum(mergePreview.guest.buildings_count)}
+                    />
                   </div>
                   <div className="p-3 rounded-lg bg-brand/20 border border-brand/30">
-                    <div className="text-[10px] uppercase tracking-wider text-brand font-bold mb-2">Google Profile</div>
-                    <StatRow label="UUID" value={mergePreview.google.user_id.slice(0, 8) + '...'} />
-                    <StatRow label="Total Money" value={`$${formatNum(mergePreview.google.total_money_earned)}`} />
-                    <StatRow label="Total Ticks" value={formatNum(mergePreview.google.game_tick)} />
-                    <StatRow label="Buildings" value={formatNum(mergePreview.google.buildings_count)} />
+                    <div className="text-[10px] uppercase tracking-wider text-brand font-bold mb-2">
+                      Auth Profile
+                    </div>
+                    <StatRow
+                      label="UUID"
+                      value={mergePreview.google.user_id.slice(0, 8) + "..."}
+                    />
+                    <StatRow
+                      label="Total Money"
+                      value={`$${formatNum(mergePreview.google.total_money_earned)}`}
+                    />
+                    <StatRow
+                      label="Total Ticks"
+                      value={formatNum(mergePreview.google.game_tick)}
+                    />
+                    <StatRow
+                      label="Buildings"
+                      value={formatNum(mergePreview.google.buildings_count)}
+                    />
                   </div>
                 </div>
+                <p className="text-[11px] text-muted-label text-center mb-3">
+                  Auth account will win. Guest progress (buildings, resources,
+                  history) will be merged in.
+                </p>
                 <div className="space-y-2">
                   <button
                     type="button"
-                    onClick={() => onMergeConfirm?.('keep_guest')}
-                    disabled={isMergeConfirming}
-                    className="w-full h-11 text-sm font-semibold bg-success/20 hover:bg-success/30 text-success border border-success/30 rounded-lg disabled:opacity-50"
-                  >
-                    Keep Guest Profile
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onMergeConfirm?.('keep_google')}
+                    onClick={() => onMergeConfirm?.()}
                     disabled={isMergeConfirming}
                     className="w-full h-11 text-sm font-semibold bg-brand/20 hover:bg-brand/30 text-brand border border-brand/30 rounded-lg disabled:opacity-50"
                   >
-                    Keep Google Profile
+                    Merge Guest Progress Into Auth Account
                   </button>
                   <button
                     type="button"
@@ -532,11 +590,15 @@ export function LoginFloatingPanel({
             )}
 
             {/* Phase 1.5.3: Merge success screen */}
-            {reason === 'merge_success' && mergeResult === 'success' && (
+            {reason === "merge_success" && mergeResult === "success" && (
               <div className="mb-4 p-4 rounded-lg bg-success/20 border border-success/30 text-center">
-                <p className="text-sm text-success font-medium mb-2">Profile Resolution Complete</p>
+                <p className="text-sm text-success font-medium mb-2">
+                  Profile Resolution Complete
+                </p>
                 {mergeReceiptId && (
-                  <p className="text-[10px] text-muted-label font-mono">Receipt: {mergeReceiptId.slice(0, 13)}</p>
+                  <p className="text-[10px] text-muted-label font-mono">
+                    Receipt: {mergeReceiptId.slice(0, 13)}
+                  </p>
                 )}
                 <button
                   type="button"
@@ -549,12 +611,18 @@ export function LoginFloatingPanel({
             )}
 
             {/* Phase 1.5.3: Merge failure screen */}
-            {reason === 'merge_failure' && mergeResult === 'failure' && (
+            {reason === "merge_failure" && mergeResult === "failure" && (
               <div className="mb-4 p-4 rounded-lg bg-danger/20 border border-danger/30 text-center">
-                <p className="text-sm text-danger font-medium mb-2">Conflict Resolution Failed</p>
-                <p className="text-[10px] text-muted-label mb-3">Nothing was changed. Please retry.</p>
+                <p className="text-sm text-danger font-medium mb-2">
+                  Conflict Resolution Failed
+                </p>
+                <p className="text-[10px] text-muted-label mb-3">
+                  Nothing was changed. Please retry.
+                </p>
                 {mergeError && (
-                  <p className="text-[10px] text-danger font-mono mb-3">{mergeError}</p>
+                  <p className="text-[10px] text-danger font-mono mb-3">
+                    {mergeError}
+                  </p>
                 )}
                 <div className="space-y-2">
                   <button
@@ -578,10 +646,26 @@ export function LoginFloatingPanel({
             {/* Benefits */}
             <div className="space-y-2 mb-5">
               {config.benefits.map((benefit) => (
-                <div key={benefit} className="flex items-center gap-2.5 text-sm text-subtle">
-                  <div className="w-5 h-5 rounded-full bg-success/30 flex items-center justify-center shrink-0 border border-success/30" aria-hidden="true">
-                    <svg className="w-3 h-3 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                <div
+                  key={benefit}
+                  className="flex items-center gap-2.5 text-sm text-subtle"
+                >
+                  <div
+                    className="w-5 h-5 rounded-full bg-success/30 flex items-center justify-center shrink-0 border border-success/30"
+                    aria-hidden="true"
+                  >
+                    <svg
+                      className="w-3 h-3 text-success"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={3}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M5 13l4 4L19 7"
+                      />
                     </svg>
                   </div>
                   {benefit}
@@ -597,10 +681,17 @@ export function LoginFloatingPanel({
                 className="mb-4 p-3 rounded-lg bg-danger/20 border border-danger/30"
               >
                 <div className="flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-danger shrink-0 mt-0.5" aria-hidden="true" />
+                  <AlertCircle
+                    className="w-4 h-4 text-danger shrink-0 mt-0.5"
+                    aria-hidden="true"
+                  />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-danger font-medium">We couldn’t sign you in</p>
-                    <p className="text-xs text-danger/80 mt-1 wrap-break-word">{signInError}</p>
+                    <p className="text-sm text-danger font-medium">
+                      We couldn’t sign you in
+                    </p>
+                    <p className="text-xs text-danger/80 mt-1 wrap-break-word">
+                      {signInError}
+                    </p>
                     <button
                       type="button"
                       onClick={handleRetry}
@@ -617,7 +708,9 @@ export function LoginFloatingPanel({
             {showDismissWarning && (
               <div className="mb-4 p-3 rounded-lg bg-danger/20 border border-danger/30">
                 <p className="text-xs text-danger font-medium">
-                  Your progress is only stored locally. If you clear your browser data or switch devices, your factory will be lost forever.
+                  Your progress is only stored locally. If you clear your
+                  browser data or switch devices, your factory will be lost
+                  forever.
                 </p>
               </div>
             )}
@@ -625,11 +718,11 @@ export function LoginFloatingPanel({
             {/* Sign In Buttons — provider-agnostic stack */}
             <div className="space-y-2">
               <Button
-                onClick={() => handleSignIn('google')}
+                onClick={() => handleSignIn("google")}
                 disabled={isSigningIn || authLoading}
                 className="w-full h-12 text-sm font-semibold bg-linear-to-r from-brand/70 to-success/80 hover:from-brand hover:to-success/70 text-white rounded-xl shadow-lg shadow-brand/30 transition-all duration-200 hover:shadow-brand/80/40"
               >
-                {isSigningIn && signInProvider === 'google' ? (
+                {isSigningIn && signInProvider === "google" ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     Signing in with Google...
@@ -660,19 +753,24 @@ export function LoginFloatingPanel({
               </Button>
 
               <Button
-                onClick={() => handleSignIn('github')}
+                onClick={() => handleSignIn("github")}
                 disabled={isSigningIn || authLoading}
                 variant="outline"
                 className="w-full h-12 text-sm font-semibold bg-[#24292e] hover:bg-[#1b1f23] text-white border-[#24292e] hover:border-[#1b1f23] rounded-xl shadow-lg transition-all duration-200"
               >
-                {isSigningIn && signInProvider === 'github' ? (
+                {isSigningIn && signInProvider === "github" ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     Signing in with GitHub...
                   </>
                 ) : (
                   <>
-                    <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <svg
+                      className="w-4 h-4 mr-2"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      aria-hidden="true"
+                    >
                       <path
                         fillRule="evenodd"
                         clipRule="evenodd"
@@ -692,7 +790,9 @@ export function LoginFloatingPanel({
                 onClick={handleDismiss}
                 className="w-full mt-3 text-xs text-muted-label hover:text-subtle transition-colors py-1 focus-visible:ring-2 focus-visible:ring-brand rounded"
               >
-                {showDismissWarning ? 'Continue without saving to cloud' : 'Continue as guest'}
+                {showDismissWarning
+                  ? "Continue without saving to cloud"
+                  : "Continue as guest"}
               </button>
             )}
 

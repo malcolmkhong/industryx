@@ -17,15 +17,23 @@
  * of truth; receipt + audit log can be back-filled). Centralizing the
  * write pattern preserves that behavior exactly.
  */
-import { createServiceRoleClient } from '@/lib/supabase/server';
-import type { Database } from '@/lib/db/types';
+import { createServiceRoleClient } from "@/lib/supabase/server";
+import type { Database } from "@/lib/db/types";
 
-type MergeReceiptRow = Database['public']['Tables']['merge_receipts']['Row'];
-type MergeAuditLogRow = Database['public']['Tables']['merge_audit_log']['Row'];
-type ServerGameStateRow = Database['public']['Tables']['server_game_state']['Row'];
-type ProfileRow = Database['public']['Tables']['profiles']['Row'];
+type MergeReceiptRow = Database["public"]["Tables"]["merge_receipts"]["Row"];
+type MergeAuditLogRow = Database["public"]["Tables"]["merge_audit_log"]["Row"];
+type ServerGameStateRow =
+  Database["public"]["Tables"]["server_game_state"]["Row"];
+type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 
-export type MergeDecisionType = 'keep_guest' | 'keep_google';
+/**
+ * Merge decision types. Phase 2 (post multi-account lockdown):
+ *   'auth_wins' — OAuth identity is authoritative; guest data MOVES to auth.
+ *                 This is the ONLY decision used in production.
+ *   'keep_guest' / 'keep_google' retained as type values for audit log
+ *                 historical compatibility. New code MUST only write 'auth_wins'.
+ */
+export type MergeDecisionType = "auth_wins" | "keep_guest" | "keep_google";
 
 interface MergeReceipt {
   id: string;
@@ -73,36 +81,40 @@ export async function loadFullGameStateForMerge(
   const supabase = await createServiceRoleClient();
   if (!supabase) return null;
   const { data, error } = await supabase
-    .from('server_game_state')
-    .select('*')
-    .eq('user_id', userId)
+    .from("server_game_state")
+    .select("*")
+    .eq("user_id", userId)
     .maybeSingle();
   if (error) {
-    console.error('[merge] loadFullGameState failed:', error.message);
+    console.error("[merge] loadFullGameState failed:", error.message);
     return null;
   }
   return (data ?? null) as ServerGameStateRow | null;
 }
 
 /**
- * Persist the winning state's columns onto the surviving user's row, then
- * stamp `last_saved_at` + `last_tick_at`. Used when preference = 'keep_guest':
- * the guest's data is "kept" by writing it onto itself (refreshes timestamps
- * and forces a row-level update so the state_version increments if there
- * were concurrent writes).
+ * Move the guest's server_game_state row onto the auth user's row.
  *
- * Returns true on success. Returns false if the state row was missing —
- * callers may choose to continue (fresh users have no state) or 500.
+ * Phase 2 (auth_wins_only): this is the ONLY outcome of confirm-link.
+ * The guest's data overwrites whatever the auth user had (or seeds
+ * the row if none existed). The guest's row in server_game_state is
+ * then deleted by the per-user reassign step (reassignUserData).
+ *
+ * Concurrency: optimistic-locking via state_version. If the auth user
+ * had no row yet, this is a no-op UPDATE that affects 0 rows — caller
+ * should then either INSERT a fresh row or skip. For the current
+ * quickstart-driven flow, every user has a server_game_state row at
+ * signup, so seed-on-miss is rare in practice.
  */
-export async function persistGuestStateOnSurvivingUser(
-  guestUserId: string,
+export async function moveGuestDataOntoAuthUser(
+  authUserId: string,
   guestState: ServerGameStateRow,
 ): Promise<boolean> {
   const supabase = await createServiceRoleClient();
   if (!supabase) return false;
   const now = new Date().toISOString();
   const { error } = await supabase
-    .from('server_game_state')
+    .from("server_game_state")
     .update({
       money: guestState.money,
       total_money_earned: guestState.total_money_earned,
@@ -120,75 +132,42 @@ export async function persistGuestStateOnSurvivingUser(
       last_saved_at: now,
       last_tick_at: now,
     })
-    .eq('user_id', guestUserId);
+    .eq("user_id", authUserId);
   if (error) {
-    console.error('[merge] persistGuestStateOnSurvivingUser failed:', error.message);
+    console.error("[merge] moveGuestDataOntoAuthUser failed:", error.message);
     return false;
   }
   return true;
 }
 
 /**
- * Touch last_saved_at + last_tick_at on the surviving (google) user when
- * preference = 'keep_google'. No other column is overwritten — google's
- * existing state remains authoritative.
+ * Archive the guest's profile row after the auth-wins merge.
+ * - Sets `is_guest = false` (no longer a guest — the data moved).
+ * - Records the auth user as `linked_account_id` + `linked_at`.
+ * - Does NOT delete: the row remains as an audit shell (the auth
+ *   user is now the "real" profile).
+ *
+ * Note: this leaves two profile rows in the system (guest shell +
+ * auth real). The guest one becomes inert. The auth one already
+ * exists from the handle_new_user trigger. Both reach is_guest=false
+ * which is intentional.
  */
-export async function touchGameStateForSurvivingGoogleUser(
-  googleUserId: string,
-): Promise<boolean> {
-  const supabase = await createServiceRoleClient();
-  if (!supabase) return false;
-  const now = new Date().toISOString();
-  const { error } = await supabase
-    .from('server_game_state')
-    .update({ last_saved_at: now, last_tick_at: now })
-    .eq('user_id', googleUserId);
-  if (error) {
-    console.error('[merge] touchGameStateForSurvivingGoogleUser failed:', error.message);
-    return false;
-  }
-  return true;
-}
-
-/**
- * Flip the guest profile to is_guest=false + record linked_account_id +
- * linked_at. Used by keep_guest branch.
- */
-export async function linkGuestProfileToGoogle(
+export async function archiveGuestProfile(
   guestUserId: string,
-  googleUserId: string,
+  authUserId: string,
 ): Promise<boolean> {
   const supabase = await createServiceRoleClient();
   if (!supabase) return false;
   const { error } = await supabase
-    .from('profiles')
+    .from("profiles")
     .update({
       is_guest: false,
-      linked_account_id: googleUserId,
+      linked_account_id: authUserId,
       linked_at: new Date().toISOString(),
     } satisfies Partial<ProfileRow>)
-    .eq('id', guestUserId);
+    .eq("id", guestUserId);
   if (error) {
-    console.error('[merge] linkGuestProfileToGoogle failed:', error.message);
-    return false;
-  }
-  return true;
-}
-
-/**
- * Flip the guest profile to is_guest=false (no linked_account_id link).
- * Used by keep_google branch — the guest profile is preserved as a stub
- * but no longer "guest-only".
- */
-export async function clearGuestFlagOnProfile(guestUserId: string): Promise<boolean> {
-  const supabase = await createServiceRoleClient();
-  if (!supabase) return false;
-  const { error } = await supabase
-    .from('profiles')
-    .update({ is_guest: false } satisfies Partial<ProfileRow>)
-    .eq('id', guestUserId);
-  if (error) {
-    console.error('[merge] clearGuestFlagOnProfile failed:', error.message);
+    console.error("[merge] archiveGuestProfile failed:", error.message);
     return false;
   }
   return true;
@@ -206,15 +185,15 @@ export async function supersedeGuestIdentities(
   const supabase = await createServiceRoleClient();
   if (!supabase) return false;
   const { error } = await supabase
-    .from('guest_identities')
+    .from("guest_identities")
     .update({
       superseded_by: googleUserId,
       superseded_at: new Date().toISOString(),
       is_primary: false,
     })
-    .eq('user_id', guestUserId);
+    .eq("user_id", guestUserId);
   if (error) {
-    console.error('[merge] supersedeGuestIdentities failed:', error.message);
+    console.error("[merge] supersedeGuestIdentities failed:", error.message);
     return false;
   }
   return true;
@@ -226,7 +205,12 @@ export async function supersedeGuestIdentities(
 export async function insertMergeReceipt(
   values: Pick<
     MergeReceiptRow,
-    'operation_id' | 'kept_user_id' | 'archived_user_id' | 'decision_type' | 'risk_score' | 'expires_at'
+    | "operation_id"
+    | "kept_user_id"
+    | "archived_user_id"
+    | "decision_type"
+    | "risk_score"
+    | "expires_at"
   > & {
     guest_state_snapshot?: unknown;
     google_state_snapshot?: unknown;
@@ -235,16 +219,16 @@ export async function insertMergeReceipt(
   const supabase = await createServiceRoleClient();
   if (!supabase) return null;
   const { data, error } = await supabase
-    .from('merge_receipts')
+    .from("merge_receipts")
     .insert({
       ...values,
       guest_state_snapshot: (values.guest_state_snapshot ?? null) as never,
       google_state_snapshot: (values.google_state_snapshot ?? null) as never,
     })
-    .select('id')
+    .select("id")
     .single();
   if (error) {
-    console.error('[merge] insertMergeReceipt failed:', error.message);
+    console.error("[merge] insertMergeReceipt failed:", error.message);
     return null;
   }
   return (data?.id ?? null) as string | null;
@@ -260,20 +244,18 @@ export async function insertMergeAuditLog(
 ): Promise<boolean> {
   const supabase = await createServiceRoleClient();
   if (!supabase) return false;
-  const { error } = await supabase
-    .from('merge_audit_log')
-    .insert({
-      ...values,
-      guest_state_before: (values.guest_state_before ?? null) as never,
-      google_state_before: (values.google_state_before ?? null) as never,
-      guest_state_after: (values.guest_state_after ?? null) as never,
-      google_state_after: (values.google_state_after ?? null) as never,
-      merge_result: values.merge_result as never,
-      preview_version: (values.preview_version ?? null) as never,
-      risk_flags: (values.risk_flags ?? []) as never,
-    } satisfies Partial<MergeAuditLogRow>);
+  const { error } = await supabase.from("merge_audit_log").insert({
+    ...values,
+    guest_state_before: (values.guest_state_before ?? null) as never,
+    google_state_before: (values.google_state_before ?? null) as never,
+    guest_state_after: (values.guest_state_after ?? null) as never,
+    google_state_after: (values.google_state_after ?? null) as never,
+    merge_result: values.merge_result as never,
+    preview_version: (values.preview_version ?? null) as never,
+    risk_flags: (values.risk_flags ?? []) as never,
+  } satisfies Partial<MergeAuditLogRow>);
   if (error) {
-    console.error('[merge] insertMergeAuditLog failed:', error.message);
+    console.error("[merge] insertMergeAuditLog failed:", error.message);
     return false;
   }
   return true;
