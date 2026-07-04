@@ -1,19 +1,35 @@
-'use client';
-import { useRouter } from 'next/navigation';
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+"use client";
+import { useRouter } from "next/navigation";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from "react";
 
-import { initServerValidation, disableServerValidation } from '@/lib/game/serverActions';
-import type { User, Session } from '@supabase/supabase-js';
-import { getFingerprint } from '@/lib/auth/fingerprint';
 import {
-  DEVICE_ID_STORAGE_KEY,
-} from '@/lib/auth/orchestrator/storage';
-import { AuthOrchestrator } from '@/lib/auth/orchestrator';
-import { CloudSyncService, CloudSyncServiceProvider } from '@/lib/hooks/cloudSync';
-import { MergeFlowService, MergeFlowServiceProvider } from '@/lib/hooks/useMergeFlow';
-import { LoginPromptService, LoginPromptServiceProvider } from '@/lib/hooks/useLoginPrompt';
-import { useGameStore, applyServerState } from '@/lib/game/store';
-import { extractGameState } from '@/lib/hooks/cloudSync/serializeGameState';
+  initServerValidation,
+  disableServerValidation,
+} from "@/lib/game/serverActions";
+import type { User, Session } from "@supabase/supabase-js";
+import { getFingerprint } from "@/lib/auth/fingerprint";
+import { DEVICE_ID_STORAGE_KEY } from "@/lib/auth/orchestrator/storage";
+import { AuthOrchestrator } from "@/lib/auth/orchestrator";
+import {
+  CloudSyncService,
+  CloudSyncServiceProvider,
+} from "@/lib/hooks/cloudSync";
+import {
+  MergeFlowService,
+  MergeFlowServiceProvider,
+} from "@/lib/hooks/useMergeFlow";
+import {
+  LoginPromptService,
+  LoginPromptServiceProvider,
+} from "@/lib/hooks/useLoginPrompt";
+import { useGameStore, applyServerState } from "@/lib/game/store";
+import { extractGameState } from "@/lib/hooks/cloudSync/serializeGameState";
 
 // Check if Supabase is configured
 const isSupabaseConfigured = !!(
@@ -46,7 +62,7 @@ const AuthContext = createContext<AuthState>({
 const DEVICE_ID_KEY = DEVICE_ID_STORAGE_KEY;
 
 function getOrCreateDeviceId(): string {
-  if (typeof window === 'undefined') return '';
+  if (typeof window === "undefined") return "";
   let id = localStorage.getItem(DEVICE_ID_KEY);
   if (!id) {
     id = crypto.randomUUID();
@@ -65,25 +81,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [deviceId, setDeviceId] = useState<string | null>(null);
-  const [orchestrator] = useState<AuthOrchestrator>(() => new AuthOrchestrator());
+  const [orchestrator] = useState<AuthOrchestrator>(
+    () => new AuthOrchestrator(),
+  );
   const [cloudSync] = useState<CloudSyncService>(() => new CloudSyncService());
   const [mergeFlow] = useState<MergeFlowService>(() => new MergeFlowService());
-  const [loginPrompt] = useState<LoginPromptService>(() => new LoginPromptService());
+  const [loginPrompt] = useState<LoginPromptService>(
+    () => new LoginPromptService(),
+  );
 
   // Phase 3: mount delegates full startup pipeline to orchestrator
   useEffect(() => {
     let cancelled = false;
 
     const init = async () => {
-      const { createBrowserClient } = await import('@supabase/ssr');
+      const { createBrowserClient } = await import("@supabase/ssr");
       const supabase = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       );
 
       orchestrator.attach({
         isSupabaseConfigured,
         getDeviceId: getOrCreateDeviceId,
+        getFingerprint: async (): Promise<string | null> => {
+          try {
+            const fp = await getFingerprint();
+            return fp && fp !== "unknown" ? fp : null;
+          } catch {
+            return null;
+          }
+        },
         getSession: async () => {
           try {
             const result = await supabase.auth.getSession();
@@ -92,7 +120,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return null;
           }
         },
-        signInWithOAuth: async (provider: 'google' | 'github', redirectTo: string) => {
+        signInWithOAuth: async (
+          provider: "google" | "github",
+          redirectTo: string,
+        ) => {
           try {
             const { error } = await supabase.auth.signInWithOAuth({
               provider,
@@ -100,14 +131,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             });
             return { error: error?.message ?? null };
           } catch (err) {
-            return { error: err instanceof Error ? err.message : 'unknown' };
+            return { error: err instanceof Error ? err.message : "unknown" };
           }
         },
         registerDevice: async (deviceId, fingerprint, fingerprintHash) => {
           try {
-            const res = await fetch('/api/auth/register-device', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+            const res = await fetch("/api/auth/register-device", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ deviceId, fingerprint, fingerprintHash }),
             });
             if (!res.ok) {
@@ -127,66 +158,74 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return { ok: false, alreadyExists: false };
           }
         },
-        recoverByDevice: async (deviceId: string, fingerprintHash: string | null) => {
-          try {
-            const res = await fetch('/api/auth/recover-by-device', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ deviceId, fingerprintHash }),
-            });
-            if (!res.ok) return { recovered: false, userId: null };
-            const data = (await res.json()) as {
-              recovered?: boolean;
-              recoveredAs?: string;
-              userId?: string;
-            };
+        /** SINGLE entry point for anon startup. Server consolidates
+         *  deviceId lookup, fingerprint fallback, user creation, identity
+         *  registration, and game state init. */
+        quickstart: async (
+          deviceId: string,
+          fingerprintHash: string | null,
+        ) => {
+          if (!fingerprintHash || fingerprintHash === "unknown") {
+            // Fingerprint is required by the new quickstart route.
             return {
-              recovered: data.recoveredAs === 'recovered' || data.recovered === true,
-              userId: data.userId ?? null,
+              userId: null,
+              source: null,
+              isNewUser: null,
+              error: "fingerprint_required",
             };
-          } catch {
-            return { recovered: false, userId: null };
           }
-        },
-        claimGuest: async (newUserId: string, deviceId: string) => {
           try {
-            const res = await fetch('/api/auth/claim-guest', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ newUserId, deviceId }),
-            });
-            return { ok: res.ok, error: res.ok ? null : `status ${res.status}` };
-          } catch (err) {
-            return { ok: false, error: err instanceof Error ? err.message : 'unknown' };
-          }
-        },
-        /** Combined: creates anon user + initializes game state in one server call. */
-        quickstart: async (deviceId: string, fingerprintHash: string | null, existingUserId?: string | null) => {
-          try {
-            const res = await fetch('/api/auth/quickstart', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ deviceId, fingerprint: fingerprintHash, existingUserId }),
+            const res = await fetch("/api/auth/quickstart", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ deviceId, fingerprint: fingerprintHash }),
             });
             if (res.status === 503) {
               const body = await res.json().catch(() => ({}));
-              if (body?.error === 'capacity_full') {
-                return { userId: null, error: 'capacity_full' };
+              if (body?.error === "capacity_full") {
+                return {
+                  userId: null,
+                  source: null,
+                  isNewUser: null,
+                  error: "capacity_full",
+                };
               }
             }
-            const data = (await res.json()) as { userId?: string; error?: string };
-            if (data.error && data.error !== 'state_exists') {
-              return { userId: null, error: data.error };
+            const data = (await res.json()) as {
+              userId?: string;
+              source?: "deviceId" | "fingerprint" | "fresh";
+              isNewUser?: boolean;
+              error?: string;
+            };
+            if (data.error) {
+              return {
+                userId: null,
+                source: data.source ?? null,
+                isNewUser: data.isNewUser ?? null,
+                error: data.error,
+              };
             }
-            return { userId: data.userId ?? null, error: null };
+            return {
+              userId: data.userId ?? null,
+              source: data.source ?? null,
+              isNewUser: data.isNewUser ?? null,
+              error: null,
+            };
           } catch (err) {
-            return { userId: null, error: err instanceof Error ? err.message : 'unknown' };
+            return {
+              userId: null,
+              source: null,
+              isNewUser: null,
+              error: err instanceof Error ? err.message : "unknown",
+            };
           }
         },
         onAuthStateChange: (handler) => {
-          const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-            handler(session);
-          });
+          const { data } = supabase.auth.onAuthStateChange(
+            (_event, session) => {
+              handler(session);
+            },
+          );
           return () => data.subscription.unsubscribe();
         },
         signOutSupabase: async () => {
@@ -202,11 +241,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             () => extractGameState(),
           );
           void cloudSync.load().then((r) => {
-            if (r.success && r.data && r.conflict === 'cloud') {
+            if (r.success && r.data && r.conflict === "cloud") {
               try {
                 applyServerState(r.data);
               } catch (err) {
-                console.warn('[AuthProvider] Failed to apply server state:', err);
+                console.warn(
+                  "[AuthProvider] Failed to apply server state:",
+                  err,
+                );
               }
             }
           });
@@ -244,26 +286,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setDeviceId(s.deviceId);
       });
 
-      let fingerprintHash: string | null = null;
-      try {
-        fingerprintHash = await getFingerprint();
-      } catch {
-        fingerprintHash = null;
-      }
-
-      const cleanupStartup = await orchestrator.startup(fingerprintHash);
+      // Fingerprint is computed lazily inside the orchestrator ONLY when no
+      // session exists. Returning 'unknown' short-circuits quickstart.
+      const cleanupStartup = await orchestrator.startup();
 
       // Mirror the orchestrator's applied session to legacy AuthContext state
       // on every AUTH_STATE_CHANGED event.
       const unsubEvents = orchestrator.onEvent((event) => {
         if (cancelled) return;
-        if (event.type === 'AUTH_STATE_CHANGED') {
+        if (event.type === "AUTH_STATE_CHANGED") {
           setSession(event.session);
           setUser(event.session?.user ?? null);
           setLoading(false);
         }
-        if (event.type === 'WAITLIST_REQUIRED') {
-          router.push('/waitlist');
+        if (event.type === "WAITLIST_REQUIRED") {
+          router.push("/waitlist");
         }
       });
 
@@ -289,7 +326,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * Keeping a single source of truth for the redirect target.
    */
   const signInWithOAuthProvider = useCallback(
-    async (provider: 'google' | 'github') => {
+    async (provider: "google" | "github") => {
       if (!isSupabaseConfigured) return;
       const redirectTo = `${window.location.origin}/api/auth/callback`;
       const error = await orchestrator.signInWithOAuth(provider, redirectTo);
@@ -297,24 +334,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(error);
       }
     },
-    [orchestrator]
+    [orchestrator],
   );
 
   const signInWithGoogle = useCallback(
-    () => signInWithOAuthProvider('google'),
-    [signInWithOAuthProvider]
+    () => signInWithOAuthProvider("google"),
+    [signInWithOAuthProvider],
   );
 
   const signInWithGithub = useCallback(
-    () => signInWithOAuthProvider('github'),
-    [signInWithOAuthProvider]
+    () => signInWithOAuthProvider("github"),
+    [signInWithOAuthProvider],
   );
 
   const signOut = useCallback(async () => {
     try {
       await orchestrator.signOut();
     } catch (err) {
-      console.error('[AuthProvider] signOut failed:', err);
+      console.error("[AuthProvider] signOut failed:", err);
     } finally {
       // Always clear local mirror state, even if orchestrator throws.
       setUser(null);

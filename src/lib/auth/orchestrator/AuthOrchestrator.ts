@@ -20,7 +20,7 @@ import type {
   OrchestratorState,
   Session,
   StateListener,
-} from './types';
+} from "./types";
 
 export class AuthOrchestrator {
   private state: OrchestratorState;
@@ -31,8 +31,8 @@ export class AuthOrchestrator {
 
   constructor(initial: Partial<OrchestratorState> = {}) {
     this.state = {
-      status: 'idle',
-      identity: 'unauthenticated',
+      status: "idle",
+      identity: "unauthenticated",
       userId: null,
       deviceId: null,
       isGuest: false,
@@ -68,7 +68,7 @@ export class AuthOrchestrator {
       try {
         l(event);
       } catch (err) {
-        console.warn('[AuthOrchestrator] event listener threw:', err);
+        console.warn("[AuthOrchestrator] event listener threw:", err);
       }
     }
   }
@@ -79,7 +79,7 @@ export class AuthOrchestrator {
       try {
         l(this.state);
       } catch (err) {
-        console.warn('[AuthOrchestrator] state listener threw:', err);
+        console.warn("[AuthOrchestrator] state listener threw:", err);
       }
     }
   }
@@ -97,22 +97,22 @@ export class AuthOrchestrator {
    * by the auth state change listener after the callback returns.
    */
   async signInWithOAuth(
-    provider: 'google' | 'github',
+    provider: "google" | "github",
     redirectTo: string,
   ): Promise<string | null> {
     const deps = this.deps;
-    if (!deps || !deps.isSupabaseConfigured) return 'not_configured';
-    if (this.state.status === 'initializing') return 'initializing';
+    if (!deps || !deps.isSupabaseConfigured) return "not_configured";
+    if (this.state.status === "initializing") return "initializing";
 
-    this.dispatch({ type: 'OAUTH_CALLBACK', provider });
+    this.dispatch({ type: "OAUTH_CALLBACK", provider });
 
     const { error } = await deps.signInWithOAuth(provider, redirectTo);
     if (error) {
-      this.dispatch({ type: 'OAUTH_FAILURE', provider, error });
+      this.dispatch({ type: "OAUTH_FAILURE", provider, error });
       return error;
     }
 
-    this.dispatch({ type: 'OAUTH_SUCCESS', provider });
+    this.dispatch({ type: "OAUTH_SUCCESS", provider });
     return null;
   }
 
@@ -129,23 +129,26 @@ export class AuthOrchestrator {
     try {
       const result = await deps.registerDevice(deviceId, null, fingerprintHash);
       if (!result.ok) {
-        console.warn('[AuthOrchestrator] register-device non-ok:', result.reason);
+        console.warn(
+          "[AuthOrchestrator] register-device non-ok:",
+          result.reason,
+        );
       }
     } catch (err) {
-      console.warn('[AuthOrchestrator] register-device threw:', err);
+      console.warn("[AuthOrchestrator] register-device threw:", err);
     }
   }
 
   async signOut(): Promise<void> {
-    this.dispatch({ type: 'SIGN_OUT' });
-    this.setState({ status: 'signing_out' });
+    this.dispatch({ type: "SIGN_OUT" });
+    this.setState({ status: "signing_out" });
 
     const deps = this.deps;
     if (!deps) {
-      console.warn('[AuthOrchestrator] signOut called before attach()');
+      console.warn("[AuthOrchestrator] signOut called before attach()");
       this.setState({
-        status: 'idle',
-        identity: 'unauthenticated',
+        status: "idle",
+        identity: "unauthenticated",
         userId: null,
         isGuest: false,
       });
@@ -158,13 +161,13 @@ export class AuthOrchestrator {
     // Apply null session FIRST — clears state.userId via setState (sole owner).
     // Sets status to 'idle'; we override to 'signing_out' immediately after.
     this.applySession(null);
-    this.setState({ status: 'signing_out' });
+    this.setState({ status: "signing_out" });
 
     // Run cleanup via shared method (idempotent via priorUserId snapshot).
     this.handleSignedOut(priorUserId);
 
     if (!deps.isSupabaseConfigured) {
-      this.setState({ status: 'idle' });
+      this.setState({ status: "idle" });
       return;
     }
 
@@ -177,15 +180,15 @@ export class AuthOrchestrator {
     try {
       const { error } = await deps.signOutSupabase();
       if (error) {
-        console.error('[AuthOrchestrator] Sign-out error:', error);
+        console.error("[AuthOrchestrator] Sign-out error:", error);
         signOutError = error;
       }
     } catch (err) {
-      console.error('[AuthOrchestrator] signOutSupabase threw:', err);
-      signOutError = err instanceof Error ? err.message : 'unknown';
+      console.error("[AuthOrchestrator] signOutSupabase threw:", err);
+      signOutError = err instanceof Error ? err.message : "unknown";
     }
 
-    this.setState({ status: 'idle' });
+    this.setState({ status: "idle" });
     // Return ignored by callers today, but kept for future telemetry.
     void signOutError;
   }
@@ -209,17 +212,25 @@ export class AuthOrchestrator {
     const deps = this.deps;
     if (!deps) return;
     if (priorUserId === null) return; // no prior session to clean
-    try { deps.disableServerValidation(); } catch (err) {
-      console.warn('[AuthOrchestrator] disableServerValidation threw:', err);
+    try {
+      deps.disableServerValidation();
+    } catch (err) {
+      console.warn("[AuthOrchestrator] disableServerValidation threw:", err);
     }
-    try { deps.stopLoginPrompts(); } catch (err) {
-      console.warn('[AuthOrchestrator] stopLoginPrompts threw:', err);
+    try {
+      deps.stopLoginPrompts();
+    } catch (err) {
+      console.warn("[AuthOrchestrator] stopLoginPrompts threw:", err);
     }
-    try { deps.resetMerge(); } catch (err) {
-      console.warn('[AuthOrchestrator] resetMerge threw:', err);
+    try {
+      deps.resetMerge();
+    } catch (err) {
+      console.warn("[AuthOrchestrator] resetMerge threw:", err);
     }
-    try { deps.onSignedOut(); } catch (err) {
-      console.warn('[AuthOrchestrator] onSignedOut threw:', err);
+    try {
+      deps.onSignedOut();
+    } catch (err) {
+      console.warn("[AuthOrchestrator] onSignedOut threw:", err);
     }
   }
 
@@ -230,37 +241,42 @@ export class AuthOrchestrator {
   applySession(session: Session | null): { loading: boolean } {
     const identity: IdentityKind = session?.user
       ? session.user.is_anonymous
-        ? 'anonymous'
-        : 'authenticated'
-      : 'unauthenticated';
-    const wasLoading = this.state.status === 'initializing';
+        ? "anonymous"
+        : "authenticated"
+      : "unauthenticated";
+    const wasLoading = this.state.status === "initializing";
     this.setState({
-      status: session ? 'ready' : 'idle',
+      status: session ? "ready" : "idle",
       identity,
       userId: session?.user?.id ?? null,
       isGuest: session?.user?.is_anonymous ?? false,
     });
-    this.dispatch({ type: 'AUTH_STATE_CHANGED', session });
+    this.dispatch({ type: "AUTH_STATE_CHANGED", session });
     return { loading: wasLoading };
   }
 
   /**
    * Startup pipeline — replaces the inline AuthProvider mount flow.
    * Returns a cleanup function that unsubscribes from auth changes.
+   *
+   * Phase 2 (post refactor):
+   *  - NO fingerprint compute if session exists (skip cost entirely).
+   *  - NO separate recover / claim calls.
+   *  - Single /api/auth/quickstart round-trip for anon startup.
    */
-  async startup(fingerprintHash: string | null = null): Promise<() => void> {
-    this.dispatch({ type: 'STARTUP' });
-    this.setState({ status: 'initializing' });
+  async startup(): Promise<() => void> {
+    this.dispatch({ type: "STARTUP" });
+    this.setState({ status: "initializing" });
 
     const deps = this.deps;
     if (!deps) {
-      console.warn('[AuthOrchestrator] startup called before attach()');
-      this.setState({ status: 'idle' });
+      console.warn("[AuthOrchestrator] startup called before attach()");
+      this.setState({ status: "idle" });
       return () => {};
     }
 
     if (!deps.isSupabaseConfigured) {
-      this.setState({ status: 'idle' });
+      this.setState({ status: "idle" });
       return () => {};
     }
 
@@ -271,7 +287,7 @@ export class AuthOrchestrator {
     try {
       session = await deps.getSession();
     } catch (err) {
-      console.warn('[Auth] getSession failed (Supabase unreachable?):', err);
+      console.warn("[Auth] getSession failed (Supabase unreachable?):", err);
     }
 
     this.applySession(session);
@@ -279,57 +295,59 @@ export class AuthOrchestrator {
     if (session?.user?.id) {
       deps.initServerValidation(session.user.id);
       // Per Decision 12: on READY state (anon or auth), trigger load.
-      // Both paths reach server_game_state because initialize-guest already
-      // created the row for anon.
+      // Both paths reach server_game_state because quickstart already
+      // created the row for anon (Phase 2).
       deps.onReady(session.user.id);
       if (session.user.is_anonymous) {
         deps.startLoginPrompts((reason, tab) =>
-          this.dispatch({ type: 'BIND_REQUEST', reason, ...(tab ? { pendingTab: tab } : {}) }),
+          this.dispatch({
+            type: "BIND_REQUEST",
+            reason,
+            ...(tab ? { pendingTab: tab } : {}),
+          }),
         );
       }
-    }
-
-    // No session → quickstart (creates anon user + initializes game state in one call)
-    if (!session) {
-      let shouldClaim = false;
-      let recoveredUserId: string | null = null;
-
+      // Skip fingerprint + quickstart entirely; session already valid.
+    } else {
+      // No session: compute fingerprint lazily, then single quickstart.
+      let fingerprint: string | null = null;
       try {
-        const result = await deps.recoverByDevice(deviceId, fingerprintHash);
-        if (result.recovered) {
-          shouldClaim = true;
-          recoveredUserId = result.userId;
-          this.dispatch({ type: 'RECOVERED', userId: result.userId ?? '' });
-        } else {
-          this.dispatch({ type: 'NO_RECOVERY' });
-        }
+        fingerprint = await deps.getFingerprint();
       } catch (err) {
-        console.warn('[Auth] Device recovery failed:', err);
-        this.dispatch({ type: 'NO_RECOVERY' });
+        console.warn("[Auth] getFingerprint failed:", err);
       }
-
-      try {
-        const result = await deps.quickstart(deviceId, fingerprintHash, recoveredUserId);
-        if (result.error === 'capacity_full') {
-          this.dispatch({ type: 'WAITLIST_REQUIRED' });
-        } else if (result.error) {
-          console.warn('[Auth] quickstart failed:', result.error);
-        } else if (result.userId) {
-          if (shouldClaim && recoveredUserId) {
-            try {
-              const claim = await deps.claimGuest(recoveredUserId, deviceId);
-              if (!claim.ok) {
-                console.warn('[Auth] claim-guest failed:', claim.error);
-              }
-            } catch (err) {
-              console.warn('[Auth] claim-guest threw:', err);
+      if (fingerprint && fingerprint !== "unknown") {
+        try {
+          const result = await deps.quickstart(deviceId, fingerprint);
+          if (result.error === "capacity_full") {
+            this.dispatch({ type: "WAITLIST_REQUIRED" });
+          } else if (result.error) {
+            console.warn("[Auth] quickstart failed:", result.error);
+          } else if (result.userId) {
+            if (
+              result.source === "deviceId" ||
+              result.source === "fingerprint"
+            ) {
+              this.dispatch({
+                type: "RECOVERED",
+                userId: result.userId,
+                source: result.source,
+              });
+            } else {
+              this.dispatch({ type: "NO_RECOVERY" });
             }
+            // Note: we cannot establish a Supabase Auth session for the
+            // server-created/identified anon user without a second round-trip
+            // (signInAnonymously). The game continues to operate on
+            // localStorage-backed Zustand state; cloud sync attempts will
+            // fall back to local until the user upgrades via OAuth.
           }
+        } catch (err) {
+          console.warn("[Auth] quickstart threw:", err);
         }
-      } catch (err) {
-        console.warn('[Auth] quickstart threw:', err);
+      } else {
+        console.warn("[Auth] Skipping quickstart: fingerprint unavailable");
       }
-
     }
 
     // Subscribe to auth state changes
@@ -348,31 +366,37 @@ export class AuthOrchestrator {
       // Each dep callback wrapped so a buggy provider cannot break the rest of
       // the dispatch (existing gates, listeners).
       if (prevUserId === null && currentUserId !== null) {
-        try { deps.onReady(currentUserId); } catch (err) {
-          console.warn('[AuthOrchestrator] onReady threw:', err);
+        try {
+          deps.onReady(currentUserId);
+        } catch (err) {
+          console.warn("[AuthOrchestrator] onReady threw:", err);
         }
       } else if (
         prevUserId !== null &&
         currentUserId !== null &&
         prevUserId !== currentUserId
       ) {
-        try { deps.onIdentityChanged(currentUserId); } catch (err) {
-          console.warn('[AuthOrchestrator] onIdentityChanged threw:', err);
+        try {
+          deps.onIdentityChanged(currentUserId);
+        } catch (err) {
+          console.warn("[AuthOrchestrator] onIdentityChanged threw:", err);
         }
       } else if (prevUserId !== null && currentUserId === null) {
         this.handleSignedOut(prevUserId);
       }
 
       // Existing transition gates (preserve verbatim — use pre-apply snapshot).
-      const wasAnon = prevIdentity === 'anonymous';
+      const wasAnon = prevIdentity === "anonymous";
       const isNowAuth = !!s?.user && !s.user.is_anonymous;
-      const wasAuth = prevUserId !== null && prevIdentity === 'authenticated';
+      const wasAuth = prevUserId !== null && prevIdentity === "authenticated";
 
       // Server validation is managed by handleSignedOut() on sign-out.
       // For non-sign-out transitions, init/refresh per-user validation.
       if (s?.user?.id) {
-        try { deps.initServerValidation(s.user.id); } catch (err) {
-          console.warn('[AuthOrchestrator] initServerValidation threw:', err);
+        try {
+          deps.initServerValidation(s.user.id);
+        } catch (err) {
+          console.warn("[AuthOrchestrator] initServerValidation threw:", err);
         }
       }
       // (Sign-out case: state already cleared by applySession; handleSignedOut
@@ -386,13 +410,15 @@ export class AuthOrchestrator {
       // Auth transitions
       if (isNowAuth && !wasAuth && s?.user?.id) {
         // onAuthenticated removed — replaced by onIdentityChanged lifecycle dispatch above.
-        try { deps.stopLoginPrompts(); } catch (err) {
-          console.warn('[AuthOrchestrator] stopLoginPrompts threw:', err);
+        try {
+          deps.stopLoginPrompts();
+        } catch (err) {
+          console.warn("[AuthOrchestrator] stopLoginPrompts threw:", err);
         }
         // Phase 6: merge check fires on every anon→auth transition.
         // Per Q3: auto-open panel on conflict. No more triggeredRef bug —
         // same-account re-login only fires this if there was a state reset.
-        void deps.runMergeCheck(s.user.id, this.state.deviceId ?? '');
+        void deps.runMergeCheck(s.user.id, this.state.deviceId ?? "");
       }
     });
 

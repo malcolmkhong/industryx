@@ -9,11 +9,14 @@
  * This page is build-time included only when PLAYWRIGHT=1, never linked from
  * production routes.
  */
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { AuthOrchestrator } from '@/lib/auth/orchestrator';
-import type { AuthOrchestratorDeps, Session } from '@/lib/auth/orchestrator/types';
+import { useEffect, useState } from "react";
+import { AuthOrchestrator } from "@/lib/auth/orchestrator";
+import type {
+  AuthOrchestratorDeps,
+  Session,
+} from "@/lib/auth/orchestrator/types";
 
 // ─── Fake Supabase (in-memory) ──────────────────────────────────────────
 
@@ -56,7 +59,13 @@ declare global {
   }
 }
 
-function buildHarness(): { orch: AuthOrchestrator; api: Window['__authApi']; testHooks: Window['__authTestHooks']; handlers: Set<Handler>; supabase: { signOutShouldThrow: boolean; identityChangeShouldThrow: boolean } } {
+function buildHarness(): {
+  orch: AuthOrchestrator;
+  api: Window["__authApi"];
+  testHooks: Window["__authTestHooks"];
+  handlers: Set<Handler>;
+  supabase: { signOutShouldThrow: boolean; identityChangeShouldThrow: boolean };
+} {
   const handlers = new Set<Handler>();
   const events: LogEntry[] = [];
   const calls: Record<string, number> = {
@@ -83,15 +92,19 @@ function buildHarness(): { orch: AuthOrchestrator; api: Window['__authApi']; tes
 
   const deps: AuthOrchestratorDeps = {
     isSupabaseConfigured: true,
-    getDeviceId: () => 'device-e2e',
+    getDeviceId: () => "device-e2e",
     getSession: async () => {
       void calls.signOutSupabase; // touch the stat so lint stops barking
       return supabase.currentSession;
     },
     signInWithOAuth: async () => ({ error: null }),
-    recoverByDevice: async () => ({ recovered: false, userId: null }),
-    claimGuest: async () => ({ ok: true, error: null }),
-    quickstart: async () => ({ userId: 'anon-fresh', error: null }),
+    getFingerprint: async () => "test-fingerprint-abc",
+    quickstart: async () => ({
+      userId: "anon-fresh",
+      source: "fresh" as const,
+      isNewUser: true,
+      error: null,
+    }),
     registerDevice: async () => ({ ok: true, alreadyExists: false }),
     onAuthStateChange: (h: Handler) => {
       handlers.add(h);
@@ -103,83 +116,95 @@ function buildHarness(): { orch: AuthOrchestrator; api: Window['__authApi']; tes
         // Fire SIGNED_OUT before throwing
         supabase.currentSession = null;
         handlers.forEach((h) => h(null));
-        throw new Error('network_unreachable');
+        throw new Error("network_unreachable");
       }
       supabase.currentSession = null;
       handlers.forEach((h) => h(null));
       return { error: null };
     },
-    disableServerValidation: () => log('disableServerValidation'),
-    initServerValidation: (uid: string) => log('initServerValidation', uid),
+    disableServerValidation: () => log("disableServerValidation"),
+    initServerValidation: (uid: string) => log("initServerValidation", uid),
     onReady: (uid: string) => {
       calls.onReady++;
-      log('onReady', uid);
+      log("onReady", uid);
       calls.cloudLoad++;
-      log('cloudLoad');
+      log("cloudLoad");
     },
     onIdentityChanged: (uid: string) => {
       if (supabase.identityChangeShouldThrow) {
         supabase.identityChangeShouldThrow = false;
-        throw new Error('provider_bug');
+        throw new Error("provider_bug");
       }
       calls.onIdentityChanged++;
-      log('onIdentityChanged', uid);
+      log("onIdentityChanged", uid);
       // Restart auto-save timer (matches AuthProvider behavior)
       if (cloudSaveTimer) clearInterval(cloudSaveTimer);
-      cloudSaveTimer = setInterval(() => log('autoSaveTick'), 2000);
+      cloudSaveTimer = setInterval(() => log("autoSaveTick"), 2000);
       calls.startAutoSave++;
-      log('startAutoSave');
+      log("startAutoSave");
     },
     onSignedOut: () => {
       calls.onSignedOut++;
-      log('onSignedOut');
+      log("onSignedOut");
       if (cloudSaveTimer) {
         clearInterval(cloudSaveTimer);
         cloudSaveTimer = null;
       }
       calls.stopAutoSave++;
-      log('stopAutoSave');
+      log("stopAutoSave");
     },
-    runMergeCheck: async () => log('runMergeCheck'),
-    resetMerge: () => log('resetMerge'),
-    startLoginPrompts: () => log('startLoginPrompts'),
-    stopLoginPrompts: () => log('stopLoginPrompts'),
+    runMergeCheck: async () => log("runMergeCheck"),
+    resetMerge: () => log("resetMerge"),
+    startLoginPrompts: () => log("startLoginPrompts"),
+    stopLoginPrompts: () => log("stopLoginPrompts"),
   };
 
   const orch = new AuthOrchestrator();
   orch.attach(deps);
 
   const api: AuthApi = {
-    get userId() { return orch.getState().userId; },
-    get identity() { return orch.getState().identity; },
-    get status() { return orch.getState().status; },
-    get events() { return events; },
-    get calls() { return calls; },
+    get userId() {
+      return orch.getState().userId;
+    },
+    get identity() {
+      return orch.getState().identity;
+    },
+    get status() {
+      return orch.getState().status;
+    },
+    get events() {
+      return events;
+    },
+    get calls() {
+      return calls;
+    },
     emitFreshAnon: async () => {
-      log('test:emitFreshAnon');
-      const session = makeSession({ userId: 'anon-test', isAnonymous: true });
+      log("test:emitFreshAnon");
+      const session = makeSession({ userId: "anon-test", isAnonymous: true });
       supabase.currentSession = session;
       handlers.forEach((h) => h(session));
     },
     emitOAuth: (userId: string) => {
-      log('test:emitOAuth', userId);
+      log("test:emitOAuth", userId);
       const session = makeSession({ userId });
       supabase.currentSession = session;
       handlers.forEach((h) => h(session));
     },
     emitSignOut: () => {
-      log('test:emitSignOut');
+      log("test:emitSignOut");
       supabase.currentSession = null;
       handlers.forEach((h) => h(null));
     },
     emitTokenRefresh: () => {
-      log('test:emitTokenRefresh');
-      const session = makeSession({ userId: orch.getState().userId ?? 'auth-1' });
+      log("test:emitTokenRefresh");
+      const session = makeSession({
+        userId: orch.getState().userId ?? "auth-1",
+      });
       supabase.currentSession = session;
       handlers.forEach((h) => h(session));
     },
     signOut: async () => {
-      log('test:signOut');
+      log("test:signOut");
       await orch.signOut();
     },
     reset: () => {
@@ -188,14 +213,14 @@ function buildHarness(): { orch: AuthOrchestrator; api: Window['__authApi']; tes
     },
   };
 
-  const testHooks: Window['__authTestHooks'] = {
+  const testHooks: Window["__authTestHooks"] = {
     throwNextIdentityChange: () => {
       supabase.identityChangeShouldThrow = true;
-      log('test:throwNextIdentityChange armed');
+      log("test:throwNextIdentityChange armed");
     },
     failNextSupabaseSignOut: () => {
       supabase.signOutShouldThrow = true;
-      log('test:failNextSupabaseSignOut armed');
+      log("test:failNextSupabaseSignOut armed");
     },
   };
 
@@ -209,16 +234,16 @@ function makeSession(opts: { userId: string; isAnonymous?: boolean }): Session {
     is_anonymous: opts.isAnonymous ?? false,
     app_metadata: {},
     user_metadata: {},
-    aud: 'authenticated',
+    aud: "authenticated",
     created_at: new Date().toISOString(),
-    role: opts.isAnonymous ? 'anon' : 'authenticated',
+    role: opts.isAnonymous ? "anon" : "authenticated",
   };
   return {
-    access_token: 'tok',
-    refresh_token: 'ref',
+    access_token: "tok",
+    refresh_token: "ref",
     expires_in: 3600,
     expires_at: Math.floor(Date.now() / 1000) + 3600,
-    token_type: 'bearer',
+    token_type: "bearer",
     user,
   } as unknown as Session;
 }
@@ -233,14 +258,14 @@ export default function AuthHarnessPage() {
   }, []);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     const harness = buildHarness();
     window.__authApi = harness.api;
     window.__authTestHooks = harness.testHooks;
 
     // Auto-bootstrap: start with auth session to verify onReady path
     (async () => {
-      const session = makeSession({ userId: 'auth-startup' });
+      const session = makeSession({ userId: "auth-startup" });
       // Manually set the supabase state via the internal harness closure.
       // Workaround: re-use the getSession() return shape via setting
       // currentSession is not exposed. We start with no session to test
@@ -248,7 +273,7 @@ export default function AuthHarnessPage() {
       await harness.orch.startup();
       // After startup, the orchestrator called signInAnonymously which set
       // supabase.currentSession + emitted SIGNED_IN → handler fired onReady.
-      harness.api.emitOAuth('auth-google'); // upgrade to auth
+      harness.api.emitOAuth("auth-google"); // upgrade to auth
     })();
 
     return () => {
@@ -256,24 +281,32 @@ export default function AuthHarnessPage() {
     };
   }, []);
 
-  const api = typeof window !== 'undefined' ? window.__authApi : undefined;
+  const api = typeof window !== "undefined" ? window.__authApi : undefined;
   if (!api) {
     return <div data-testid="harness-not-ready">Loading…</div>;
   }
 
   return (
-    <div data-testid="auth-harness" data-user-id={api.userId ?? ''} data-identity={api.identity} data-status={api.status}>
+    <div
+      data-testid="auth-harness"
+      data-user-id={api.userId ?? ""}
+      data-identity={api.identity}
+      data-status={api.status}
+    >
       <h1 data-testid="title">Auth Harness</h1>
       <div data-testid="state">
-        userId={api.userId ?? 'null'} | identity={api.identity} | status={api.status}
+        userId={api.userId ?? "null"} | identity={api.identity} | status=
+        {api.status}
       </div>
       <div data-testid="calls">
-        onReady={api.calls.onReady} | onIdentityChanged={api.calls.onIdentityChanged} | onSignedOut={api.calls.onSignedOut}
+        onReady={api.calls.onReady} | onIdentityChanged=
+        {api.calls.onIdentityChanged} | onSignedOut={api.calls.onSignedOut}
       </div>
       <ul data-testid="events">
         {api.events.slice(-20).map((e, i) => (
           <li key={i} data-event={e.event}>
-            {e.event}{e.detail ? `: ${e.detail}` : ''}
+            {e.event}
+            {e.detail ? `: ${e.detail}` : ""}
           </li>
         ))}
       </ul>
