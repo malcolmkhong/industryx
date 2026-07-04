@@ -12,7 +12,9 @@ import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
 import { logActionAsync } from "@/lib/auth/gameStateValidator";
 import {
   loadServerGameStateForAction,
-  saveServerGameStateOptimistic,  isServerGameStateAvailable,} from "@/lib/db/serverGameState";
+  saveServerGameStateOptimistic,
+  isServerGameStateAvailable,
+} from "@/lib/db/serverGameState";
 import {
   SupabaseBuilding,
   SupabaseRecipe,
@@ -64,9 +66,7 @@ const CONFIG_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 function parseCostMap(
   costMap:
-    | Record<string, number>
-    | Array<{ resource: string; amount: number }>
-    | null,
+    Record<string, number> | Array<{ resource: string; amount: number }> | null,
 ): ResourceAmount[] {
   if (!costMap) return [{ resource: "money", amount: 100 }];
   // Handle array format from Supabase: [{resource: 'money', amount: 500}]
@@ -330,6 +330,33 @@ function handleTransportAction(
   );
 }
 
+function handleSetGameSpeed(
+  payload: Record<string, unknown>,
+  serverState: { state_version: number },
+  userId: string,
+): ActionResponse {
+  const speed = payload.speed as number;
+  const ALLOWED_SPEEDS = [1, 2, 5, 10];
+
+  if (typeof speed !== "number" || !ALLOWED_SPEEDS.includes(speed)) {
+    return {
+      valid: false,
+      error: `Invalid game speed: ${speed}. Allowed: ${ALLOWED_SPEEDS.join(", ")}`,
+    };
+  }
+
+  // Persist game_speed to server_game_state
+  const currentVersion = Number(serverState.state_version) || 0;
+  saveServerGameStateOptimistic(userId, currentVersion, {
+    game_speed: speed,
+    state_version: currentVersion + 1,
+  }).catch((err) => {
+    console.error("[ActionAPI] Failed to persist game_speed:", err);
+  });
+
+  return { valid: true };
+}
+
 // ─── Main POST Handler ──────────────────────────────────────────────────
 
 export async function POST(request: Request) {
@@ -385,7 +412,6 @@ export async function POST(request: Request) {
   }
 
   // Validate action type
-  // H4 FIX: Removed dead action types that had no handlers.
   const validActions = [
     "build",
     "sell",
@@ -393,6 +419,7 @@ export async function POST(request: Request) {
     "research",
     "upgrade",
     "transport",
+    "set_game_speed",
   ];
   if (!action || !validActions.includes(action)) {
     return NextResponse.json(
@@ -502,6 +529,9 @@ export async function POST(request: Request) {
     case "transport":
       result = handleTransportAction(payload, gameState, config);
       break;
+    case "set_game_speed":
+      result = handleSetGameSpeed(payload, serverState, auth.userId);
+      break;
     default:
       result = { valid: false, error: `Unhandled action: ${action}` };
   }
@@ -547,20 +577,16 @@ export async function POST(request: Request) {
   if (requestId !== undefined && requestId !== null) {
     const updatedHistory = [...actionHistory, requestId].slice(-100);
     const currentVersion = serverState.state_version ?? 0;
-    void saveServerGameStateOptimistic(
-      auth.userId,
-      currentVersion,
-      {
-        full_state: {
-          ...(serverState.full_state as Record<string, unknown>),
-          _action_history: updatedHistory,
-        } as never,
-        state_version: currentVersion + 1,
-      }
-    ).then((updated) => {
+    void saveServerGameStateOptimistic(auth.userId, currentVersion, {
+      full_state: {
+        ...(serverState.full_state as Record<string, unknown>),
+        _action_history: updatedHistory,
+      } as never,
+      state_version: currentVersion + 1,
+    }).then((updated) => {
       if (!updated) {
         console.warn(
-          "[ActionAPI] Failed to persist action_history (CAS mismatch or DB error)"
+          "[ActionAPI] Failed to persist action_history (CAS mismatch or DB error)",
         );
       }
     });
