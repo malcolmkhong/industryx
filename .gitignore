@@ -199,3 +199,9 @@ scripts/test-setGameSpeed-*
 
 # Stale per-session planning audits (kept locally only, not pushed)
 planning/AUTH_REFACTOR_AUDIT.md
+
+# All scripts/ are local-dev only. The scripts documented in commit
+# messages serve as audit trail of what was tested, but the actual
+# one-off .cjs/.mjs/.ts files are not for source control.
+# Use tests/ + tests/integration/ for production test code.
+scripts/
