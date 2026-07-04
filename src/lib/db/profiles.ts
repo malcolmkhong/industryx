@@ -10,11 +10,11 @@
  *   - Throw for unexpected database errors (PostgrestError).
  *   - Caller handles auth + rate limit + response shaping.
  */
-import { createServiceRoleClient } from '@/lib/supabase/server';
-import type { Database } from '@/lib/db/types';
+import { createServiceRoleClient } from "@/lib/supabase/server";
+import type { Database } from "@/lib/db/types";
 
-type ProfileRow = Database['public']['Tables']['profiles']['Row'];
-type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
+type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
+type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
 
 export interface PublicProfile {
   id: string;
@@ -38,13 +38,15 @@ export async function updateProfileDisplayName(
   const supabase = await createServiceRoleClient();
   if (!supabase) return null;
   const { data, error } = await supabase
-    .from('profiles')
+    .from("profiles")
     .update({ display_name: displayName } satisfies ProfileUpdate)
-    .eq('id', userId)
-    .select('id, display_name, is_guest, last_active, linked_account_id, linked_at, updated_at')
+    .eq("id", userId)
+    .select(
+      "id, display_name, is_guest, last_active, linked_account_id, linked_at, updated_at",
+    )
     .maybeSingle();
   if (error) {
-    console.error('[profiles] updateDisplayName failed:', error.message);
+    console.error("[profiles] updateDisplayName failed:", error.message);
     return null;
   }
   return (data ?? null) as PublicProfile | null;
@@ -53,16 +55,20 @@ export async function updateProfileDisplayName(
 /**
  * Get a profile by id.
  */
-export async function getProfileById(userId: string): Promise<PublicProfile | null> {
+export async function getProfileById(
+  userId: string,
+): Promise<PublicProfile | null> {
   const supabase = await createServiceRoleClient();
   if (!supabase) return null;
   const { data, error } = await supabase
-    .from('profiles')
-    .select('id, display_name, is_guest, last_active, linked_account_id, linked_at, updated_at')
-    .eq('id', userId)
+    .from("profiles")
+    .select(
+      "id, display_name, is_guest, last_active, linked_account_id, linked_at, updated_at",
+    )
+    .eq("id", userId)
     .maybeSingle();
   if (error) {
-    console.error('[profiles] getProfileById failed:', error.message);
+    console.error("[profiles] getProfileById failed:", error.message);
     return null;
   }
   return (data ?? null) as PublicProfile | null;
@@ -73,17 +79,21 @@ export async function getProfileById(userId: string): Promise<PublicProfile | nu
  */
 export async function upsertProfile(
   userId: string,
-  values: Partial<Pick<ProfileRow, 'display_name' | 'device_fingerprint' | 'is_guest'>>,
+  values: Partial<
+    Pick<ProfileRow, "display_name" | "device_fingerprint" | "is_guest">
+  >,
 ): Promise<PublicProfile | null> {
   const supabase = await createServiceRoleClient();
   if (!supabase) return null;
   const { data, error } = await supabase
-    .from('profiles')
+    .from("profiles")
     .upsert({ id: userId, ...values } satisfies Partial<ProfileRow>)
-    .select('id, display_name, is_guest, last_active, linked_account_id, linked_at, updated_at')
+    .select(
+      "id, display_name, is_guest, last_active, linked_account_id, linked_at, updated_at",
+    )
     .maybeSingle();
   if (error) {
-    console.error('[profiles] upsertProfile failed:', error.message);
+    console.error("[profiles] upsertProfile failed:", error.message);
     return null;
   }
   return (data ?? null) as PublicProfile | null;
@@ -99,11 +109,39 @@ export async function markProfileAsGuest(userId: string): Promise<boolean> {
   const supabase = await createServiceRoleClient();
   if (!supabase) return false;
   const { error } = await supabase
-    .from('profiles')
+    .from("profiles")
     .update({ is_guest: true } satisfies ProfileUpdate)
-    .eq('id', userId);
+    .eq("id", userId);
   if (error) {
-    console.error('[profiles] markProfileAsGuest failed:', error.message);
+    console.error("[profiles] markProfileAsGuest failed:", error.message);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Set profiles.device_fingerprint for the current device session.
+ * Called by /api/auth/register-device after a successful OAuth login,
+ * keeping the user's "current device" pointer on the canonical row.
+ *
+ * Only writes when given a non-empty fingerprint. Empty / null / undefined
+ * is a no-op (we never overwrite a real fingerprint with an empty one).
+ *
+ * Returns true on success, false on error or no-op.
+ */
+export async function setProfileFingerprint(
+  userId: string,
+  fingerprint: string | null | undefined,
+): Promise<boolean> {
+  if (!fingerprint) return false;
+  const supabase = await createServiceRoleClient();
+  if (!supabase) return false;
+  const { error } = await supabase
+    .from("profiles")
+    .update({ device_fingerprint: fingerprint } satisfies ProfileUpdate)
+    .eq("id", userId);
+  if (error) {
+    console.error("[profiles] setProfileFingerprint failed:", error.message);
     return false;
   }
   return true;
@@ -120,13 +158,16 @@ export async function getProfileDisplayAndGuestFlag(
   const supabase = await createServiceRoleClient();
   if (!supabase) return null;
   const { data, error } = await supabase
-    .from('profiles')
-    .select('display_name, is_guest')
-    .eq('id', userId)
+    .from("profiles")
+    .select("display_name, is_guest")
+    .eq("id", userId)
     .maybeSingle();
   if (error) {
-    console.error('[profiles] getDisplayAndGuestFlag failed:', error.message);
+    console.error("[profiles] getDisplayAndGuestFlag failed:", error.message);
     return null;
   }
-  return (data ?? null) as { display_name: string | null; is_guest: boolean } | null;
+  return (data ?? null) as {
+    display_name: string | null;
+    is_guest: boolean;
+  } | null;
 }

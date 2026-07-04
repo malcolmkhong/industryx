@@ -10,23 +10,28 @@
 //
 // Auth: requires an authenticated, non-anonymous session.
 // - Google or GitHub OAuth both produce email-based identity.
-// - Anonymous sessions do NOT reach this endpoint; signInAnonymously + initialize-guest
+// - Anonymous sessions do NOT reach this endpoint; signInAnonymously + quickstart
 //   remains the guest-creation path.
+//
+// Phase 5 (migration 055): also writes the fingerprint to profiles
+//   so the user's "current device" is recorded on the canonical profile
+//   row, not just the historical guest_identities table.
 
-import { createHash } from 'crypto';
-import { NextRequest, NextResponse } from 'next/server';
+import { createHash } from "crypto";
+import { NextRequest, NextResponse } from "next/server";
 
-import { createServiceRoleClient } from '@/lib/supabase/server';
-import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
-import { verifyAuth } from '@/lib/auth/verifyAuth';
-import { logRequestIp } from '@/app/api/auth/request-ip-log-helper';
+import { createServiceRoleClient } from "@/lib/supabase/server";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
+import { verifyAuth } from "@/lib/auth/verifyAuth";
+import { logRequestIp } from "@/app/api/auth/request-ip-log-helper";
 import {
   hasIdentityForUserAndDevice,
   hasAnyIdentityForUser,
   insertGuestIdentity,
   setIdentityFingerprintIfMissing,
   touchIdentityLastUsed,
-} from '@/lib/db/guestIdentities';
+} from "@/lib/db/guestIdentities";
+import { setProfileFingerprint } from "@/lib/db/profiles";
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,8 +44,8 @@ export async function POST(request: NextRequest) {
 
     if (!deviceId) {
       return NextResponse.json(
-        { error: 'deviceId is required' },
-        { status: 400 }
+        { error: "deviceId is required" },
+        { status: 400 },
       );
     }
 
@@ -49,27 +54,39 @@ export async function POST(request: NextRequest) {
 
     if (auth.email === undefined) {
       return NextResponse.json(
-        { error: 'Email-based authentication required' },
-        { status: 403 }
+        { error: "Email-based authentication required" },
+        { status: 403 },
       );
     }
 
     const supabase = createServiceRoleClient();
     if (!supabase) {
       return NextResponse.json(
-        { error: 'Service not configured' },
-        { status: 503 }
+        { error: "Service not configured" },
+        { status: 503 },
       );
     }
 
     const rateLimitResponse = await checkRateLimit(
       auth.userId,
       RATE_LIMITS.action,
-      '/api/auth/register-device'
+      "/api/auth/register-device",
     );
     if (rateLimitResponse) return rateLimitResponse;
 
-    logRequestIp(request, '/api/auth/register-device', auth.userId);
+    logRequestIp(request, "/api/auth/register-device", auth.userId);
+
+    // Phase 5 (migration 055): sync the current device fingerprint to the
+    // user's profile row so it stays authoritative. Only writes when a
+    // fingerprint is supplied (avoid clobbering an existing fingerprint with
+    // null on re-logins without fingerprint). Best-effort: profile is auxiliary
+    // metadata, locking happens via guest_identities unique index.
+    if (fingerprintHash) {
+      await setProfileFingerprint(auth.userId, fingerprintHash);
+    } else if (fingerprint) {
+      const computed = createHash("sha256").update(fingerprint).digest("hex");
+      await setProfileFingerprint(auth.userId, computed);
+    }
 
     // Idempotent identity insert:
     // - If a (user, device) identity already exists, just touch it.
@@ -96,21 +113,21 @@ export async function POST(request: NextRequest) {
       const computedHash =
         fingerprintHash ??
         (fingerprint
-          ? createHash('sha256').update(fingerprint).digest('hex')
+          ? createHash("sha256").update(fingerprint).digest("hex")
           : null);
 
       const inserted = await insertGuestIdentity({
         user_id: auth.userId,
         device_id: deviceId,
-        fingerprint: fingerprint ?? '',
+        fingerprint: fingerprint ?? "",
         ...(computedHash ? { fingerprint_hash: computedHash } : {}),
         is_primary: true,
       });
 
       if (!inserted) {
         return NextResponse.json(
-          { error: 'identity_insert_failed' },
-          { status: 500 }
+          { error: "identity_insert_failed" },
+          { status: 500 },
         );
       }
 
@@ -124,13 +141,13 @@ export async function POST(request: NextRequest) {
     // does not move it — that's link-identity's job.
     return NextResponse.json({
       registered: false,
-      reason: 'identity_on_other_device',
+      reason: "identity_on_other_device",
     });
   } catch (error) {
-    console.error('[RegisterDevice] Unexpected error:', error);
+    console.error("[RegisterDevice] Unexpected error:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: "Internal server error" },
+      { status: 500 },
     );
   }
 }

@@ -19,10 +19,10 @@
  *   - Throw for unexpected database errors (PostgrestError).
  *   - Caller handles auth + rate limit + response shaping.
  */
-import { createServiceRoleClient } from '@/lib/supabase/server';
-import type { Database } from '@/lib/db/types';
+import { createServiceRoleClient } from "@/lib/supabase/server";
+import type { Database } from "@/lib/db/types";
 
-type GuestIdentityRow = Database['public']['Tables']['guest_identities']['Row'];
+type GuestIdentityRow = Database["public"]["Tables"]["guest_identities"]["Row"];
 
 export interface GuestIdentity {
   id?: string;
@@ -40,17 +40,17 @@ export interface GuestIdentity {
 
 export type GuestIdentityInsert = Pick<
   GuestIdentityRow,
-  'user_id' | 'fingerprint'
+  "user_id" | "fingerprint"
 > &
   Partial<
     Pick<
       GuestIdentityRow,
-      'device_id' | 'fingerprint_hash' | 'is_primary' | 'claimed_at'
+      "device_id" | "fingerprint_hash" | "is_primary" | "claimed_at"
     >
   >;
 
 /**
- * Find the active (non-superseded) identity for a raw fingerprint value.
+ * Find the active identity for a raw fingerprint value.
  * Used by /api/auth/quickstart to detect returning users whose deviceId
  * was lost but whose fingerprint survived (localStorage wiped).
  *
@@ -67,18 +67,43 @@ export async function findIdentityByFingerprint(
   const supabase = await createServiceRoleClient();
   if (!supabase) return null;
   const { data, error } = await supabase
-    .from('guest_identities')
+    .from("guest_identities")
     .select(
-      'id, user_id, device_id, fingerprint, fingerprint_hash, is_primary, claimed_at, superseded_at, superseded_by, last_used_at, created_at',
+      "id, user_id, device_id, fingerprint, fingerprint_hash, is_primary, claimed_at, superseded_at, superseded_by, last_used_at, created_at",
     )
-    .eq('fingerprint', fingerprint)
-    .is('superseded_by', null)
+    .eq("fingerprint", fingerprint)
+    .is("superseded_by", null)
     .maybeSingle();
   if (error) {
-    console.error('[guestIdentities] findIdentityByFingerprint failed:', error.message);
+    console.error(
+      "[guestIdentities] findIdentityByFingerprint failed:",
+      error.message,
+    );
     return null;
   }
   return (data ?? null) as GuestIdentity | null;
+}
+
+/**
+ * Convenience wrapper for /api/auth/quickstart: returns just the user_id
+ * (or null) for the active identity matched by fingerprint.
+ */
+export async function findUserByFingerprint(
+  fingerprint: string,
+): Promise<{ user_id: string } | null> {
+  const id = await findIdentityByFingerprint(fingerprint);
+  return id?.user_id ? { user_id: id.user_id } : null;
+}
+
+/**
+ * Convenience wrapper for /api/auth/quickstart: returns just the user_id
+ * (or null) for the active primary identity matched by device_id.
+ */
+export async function findUserByDeviceId(
+  deviceId: string,
+): Promise<{ user_id: string } | null> {
+  const id = await findPrimaryIdentityByDevice(deviceId);
+  return id?.user_id ? { user_id: id.user_id } : null;
 }
 
 /**
@@ -91,15 +116,18 @@ export async function findPrimaryIdentityByDevice(
   const supabase = await createServiceRoleClient();
   if (!supabase) return null;
   const { data, error } = await supabase
-    .from('guest_identities')
+    .from("guest_identities")
     .select(
-      'id, user_id, device_id, fingerprint, fingerprint_hash, is_primary, claimed_at, superseded_at, superseded_by, last_used_at, created_at',
+      "id, user_id, device_id, fingerprint, fingerprint_hash, is_primary, claimed_at, superseded_at, superseded_by, last_used_at, created_at",
     )
-    .eq('device_id', deviceId)
-    .eq('is_primary', true)
+    .eq("device_id", deviceId)
+    .eq("is_primary", true)
     .maybeSingle();
   if (error) {
-    console.error('[guestIdentities] findPrimaryIdentityByDevice failed:', error.message);
+    console.error(
+      "[guestIdentities] findPrimaryIdentityByDevice failed:",
+      error.message,
+    );
     return null;
   }
   return (data ?? null) as GuestIdentity | null;
@@ -115,14 +143,17 @@ export async function findIdentitiesByUserId(
   const supabase = await createServiceRoleClient();
   if (!supabase) return [];
   const { data, error } = await supabase
-    .from('guest_identities')
+    .from("guest_identities")
     .select(
-      'id, user_id, device_id, fingerprint, fingerprint_hash, is_primary, claimed_at, superseded_at, superseded_by, last_used_at, created_at',
+      "id, user_id, device_id, fingerprint, fingerprint_hash, is_primary, claimed_at, superseded_at, superseded_by, last_used_at, created_at",
     )
-    .eq('user_id', userId)
-    .order('created_at', { ascending: true });
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true });
   if (error) {
-    console.error('[guestIdentities] findIdentitiesByUserId failed:', error.message);
+    console.error(
+      "[guestIdentities] findIdentitiesByUserId failed:",
+      error.message,
+    );
     return [];
   }
   return (data ?? []) as GuestIdentity[];
@@ -140,14 +171,17 @@ export async function insertGuestIdentity(
   const supabase = await createServiceRoleClient();
   if (!supabase) return null;
   const { data, error } = await supabase
-    .from('guest_identities')
+    .from("guest_identities")
     .insert(values)
     .select(
-      'id, user_id, device_id, fingerprint, fingerprint_hash, is_primary, claimed_at, superseded_at, superseded_by, last_used_at, created_at',
+      "id, user_id, device_id, fingerprint, fingerprint_hash, is_primary, claimed_at, superseded_at, superseded_by, last_used_at, created_at",
     )
     .single();
   if (error) {
-    console.error('[guestIdentities] insertGuestIdentity failed:', error.message);
+    console.error(
+      "[guestIdentities] insertGuestIdentity failed:",
+      error.message,
+    );
     return null;
   }
   return data as GuestIdentity;
@@ -164,15 +198,18 @@ export async function markIdentitySuperseded(
   const supabase = await createServiceRoleClient();
   if (!supabase) return false;
   const { error } = await supabase
-    .from('guest_identities')
+    .from("guest_identities")
     .update({
       superseded_at: new Date().toISOString(),
       superseded_by: supersededByUserId,
       is_primary: false,
     })
-    .eq('id', identityId);
+    .eq("id", identityId);
   if (error) {
-    console.error('[guestIdentities] markIdentitySuperseded failed:', error.message);
+    console.error(
+      "[guestIdentities] markIdentitySuperseded failed:",
+      error.message,
+    );
     return false;
   }
   return true;
@@ -189,12 +226,15 @@ export async function touchIdentityLastUsed(
   const supabase = await createServiceRoleClient();
   if (!supabase) return false;
   const { error } = await supabase
-    .from('guest_identities')
+    .from("guest_identities")
     .update({ last_used_at: new Date().toISOString() })
-    .eq('user_id', userId)
-    .eq('device_id', deviceId);
+    .eq("user_id", userId)
+    .eq("device_id", deviceId);
   if (error) {
-    console.error('[guestIdentities] touchIdentityLastUsed failed:', error.message);
+    console.error(
+      "[guestIdentities] touchIdentityLastUsed failed:",
+      error.message,
+    );
     return false;
   }
   return true;
@@ -216,13 +256,16 @@ export async function setIdentityFingerprintIfMissing(
   // a subquery-like check. Simpler: try the update; if it errors on row
   // count, fall through.
   const { error } = await supabase
-    .from('guest_identities')
+    .from("guest_identities")
     .update({ fingerprint_hash: fingerprintHash })
-    .eq('user_id', userId)
-    .eq('device_id', deviceId)
-    .is('fingerprint_hash', null);
+    .eq("user_id", userId)
+    .eq("device_id", deviceId)
+    .is("fingerprint_hash", null);
   if (error) {
-    console.error('[guestIdentities] setIdentityFingerprintIfMissing failed:', error.message);
+    console.error(
+      "[guestIdentities] setIdentityFingerprintIfMissing failed:",
+      error.message,
+    );
     return false;
   }
   return true;
@@ -239,13 +282,16 @@ export async function hasIdentityForUserAndDevice(
   const supabase = await createServiceRoleClient();
   if (!supabase) return false;
   const { data, error } = await supabase
-    .from('guest_identities')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('device_id', deviceId)
+    .from("guest_identities")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("device_id", deviceId)
     .maybeSingle();
   if (error) {
-    console.error('[guestIdentities] hasIdentityForUserAndDevice failed:', error.message);
+    console.error(
+      "[guestIdentities] hasIdentityForUserAndDevice failed:",
+      error.message,
+    );
     return false;
   }
   return data !== null;
@@ -260,12 +306,15 @@ export async function hasAnyIdentityForUser(userId: string): Promise<boolean> {
   const supabase = await createServiceRoleClient();
   if (!supabase) return false;
   const { data, error } = await supabase
-    .from('guest_identities')
-    .select('id')
-    .eq('user_id', userId)
+    .from("guest_identities")
+    .select("id")
+    .eq("user_id", userId)
     .maybeSingle();
   if (error) {
-    console.error('[guestIdentities] hasAnyIdentityForUser failed:', error.message);
+    console.error(
+      "[guestIdentities] hasAnyIdentityForUser failed:",
+      error.message,
+    );
     return false;
   }
   return data !== null;
@@ -274,16 +323,21 @@ export async function hasAnyIdentityForUser(userId: string): Promise<boolean> {
 /**
  * Delete all identities for a user. Used by destructive ops (account reset).
  */
-export async function deleteIdentitiesByUserId(userId: string): Promise<number> {
+export async function deleteIdentitiesByUserId(
+  userId: string,
+): Promise<number> {
   const supabase = await createServiceRoleClient();
   if (!supabase) return 0;
   const { data, error } = await supabase
-    .from('guest_identities')
+    .from("guest_identities")
     .delete()
-    .eq('user_id', userId)
-    .select('id');
+    .eq("user_id", userId)
+    .select("id");
   if (error) {
-    console.error('[guestIdentities] deleteIdentitiesByUserId failed:', error.message);
+    console.error(
+      "[guestIdentities] deleteIdentitiesByUserId failed:",
+      error.message,
+    );
     return 0;
   }
   return (data ?? []).length;
@@ -294,13 +348,13 @@ export async function deleteIdentitiesByUserId(userId: string): Promise<number> 
  * Each update is independent — a failure in one table does not block others.
  */
 export const REASSIGNABLE_TABLES = [
-  'server_game_state',
-  'player_progress',
-  'player_actions',
-  'player_sessions',
-  'market_player_pressure',
-  'leaderboard_entries',
-  'support_tickets',
+  "server_game_state",
+  "player_progress",
+  "player_actions",
+  "player_sessions",
+  "market_player_pressure",
+  "leaderboard_entries",
+  "support_tickets",
 ] as const;
 
 export interface ReassignResult {
@@ -328,7 +382,7 @@ export async function reassignUserData(
       table,
       ok: false,
       rows: 0,
-      error: 'Supabase service-role client not configured',
+      error: "Supabase service-role client not configured",
     }));
   }
   const results: ReassignResult[] = [];
@@ -336,8 +390,8 @@ export async function reassignUserData(
     const { data, error } = await supabase
       .from(table)
       .update({ user_id: newUserId })
-      .eq('user_id', oldUserId)
-      .select('user_id');
+      .eq("user_id", oldUserId)
+      .select("user_id");
     results.push({
       table,
       ok: !error,
