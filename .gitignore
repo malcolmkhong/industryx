@@ -197,8 +197,11 @@ test-screenshot*.png
 scripts/browser-*.js
 scripts/test-setGameSpeed-*
 
-# Stale per-session planning audits (kept locally only, not pushed)
-planning/AUTH_REFACTOR_AUDIT.md
+# All planning/ docs are local-only. Per-user decision 2026-07-05: keep
+# the project's audit history on disk but never push to source control.
+# Use AGENTS.md for canonical rules; per-phase audit context lives in
+# commit messages instead.
+planning/
 
 # All scripts/ are local-dev only. The scripts documented in commit
 # messages serve as audit trail of what was tested, but the actual
