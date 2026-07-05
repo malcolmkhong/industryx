@@ -143,7 +143,7 @@ script/
 # Local-only planning scratch + scratch tests
 planning/archive/
 planning/new/
-tests/staging/
+tests/
 
 story-body.txt
 

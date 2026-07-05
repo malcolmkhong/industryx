@@ -27,6 +27,7 @@ import { logRequestIp } from "@/app/api/auth/request-ip-log-helper";
 import {
   hasIdentityForUserAndDevice,
   hasAnyIdentityForUser,
+  findIdentityByFingerprint,
   insertGuestIdentity,
   setIdentityFingerprintIfMissing,
   touchIdentityLastUsed,
@@ -110,6 +111,24 @@ export async function POST(request: NextRequest) {
     }
 
     if (!(await hasAnyIdentityForUser(auth.userId))) {
+      // Pre-check: if the fingerprint is already claimed by another user
+      // (the typical post-OAuth bind case), the partial unique index
+      // (migration 054) will reject our insert. Skip the insert and let
+      // confirm-link do the formal supersede via merge_receipts.
+      if (fingerprint || fingerprintHash) {
+        const claimedBy = await findIdentityByFingerprint(fingerprint ?? "");
+        if (claimedBy && claimedBy.user_id !== auth.userId) {
+          console.log(
+            `[RegisterDevice] Fingerprint already claimed by ${claimedBy.user_id}; deferring to confirm-link for ${auth.userId}`,
+          );
+          return NextResponse.json({
+            registered: true,
+            alreadyExists: false,
+            reason: "fingerprint_claimed_by_other_user",
+          });
+        }
+      }
+
       const computedHash =
         fingerprintHash ??
         (fingerprint

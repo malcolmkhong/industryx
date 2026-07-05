@@ -164,6 +164,12 @@ export async function findIdentitiesByUserId(
  * `fingerprint` is required (NOT NULL on table). Callers that have a
  * device-side fingerprint pass it raw; `fingerprint_hash` is the optional
  * SHA-256 hex digest computed by the caller.
+ *
+ * Returns null on any database error. Callers handle the null path —
+ * callers that hit the migration 054 partial unique index MUST pre-check
+ * via findIdentityByFingerprint() to determine whether the conflict is
+ * "expected" (fingerprint claimed by another user, defer to confirm-link)
+ * or "unexpected" (real DB error).
  */
 export async function insertGuestIdentity(
   values: GuestIdentityInsert,

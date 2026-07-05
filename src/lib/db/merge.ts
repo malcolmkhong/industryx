@@ -228,7 +228,16 @@ export async function insertMergeReceipt(
     .select("id")
     .single();
   if (error) {
-    console.error("[merge] insertMergeReceipt failed:", error.message);
+    console.error(
+      "[merge] insertMergeReceipt failed:",
+      error.message,
+      "code:",
+      error.code,
+      "details:",
+      error.details,
+      "hint:",
+      error.hint,
+    );
     return null;
   }
   return (data?.id ?? null) as string | null;
