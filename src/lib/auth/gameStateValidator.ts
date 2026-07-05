@@ -73,7 +73,7 @@ const GAME_LIMITS = {
  * Generate an HMAC-SHA256 checksum of the game state.
  * Used for tamper detection on cloud saves.
  */
-function generateChecksum(gameState: Record<string, unknown>): string {
+export function generateChecksum(gameState: Record<string, unknown>): string {
   if (!HMAC_SECRET) {
     throw new Error(
       "[SECURITY] Cannot generate checksum: CHECKSUM_SECRET is not set. Refusing to generate forgeable checksum.",
@@ -88,7 +88,7 @@ function generateChecksum(gameState: Record<string, unknown>): string {
 /**
  * Verify a game state's checksum matches its claimed hash.
  */
-function verifyChecksum(
+export function verifyChecksum(
   gameState: Record<string, unknown>,
   claimedHash: string,
 ): boolean {
@@ -402,6 +402,51 @@ export async function validateImportSaveOnServer(
     };
   }
   return { valid: true };
+}
+
+// ─── Server State Fetching ─────────────────────────────────────────────
+
+/**
+ * Fetch the previous server-side game state for delta validation.
+ * Returns the full_state from server_game_state if it exists,
+ * otherwise falls back to player_progress.game_state.
+ */
+export async function fetchPreviousServerState(
+  userId: string,
+): Promise<Record<string, unknown> | null> {
+  try {
+    const supabase = createServiceRoleClient();
+    if (!supabase) {
+      throw new Error("Supabase service role not configured");
+    }
+
+    // Try server_game_state first (authoritative)
+    const { data: sgs } = await supabase
+      .from("server_game_state")
+      .select("full_state, money, game_tick, game_speed")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (sgs?.full_state) {
+      return sgs.full_state as Record<string, unknown>;
+    }
+
+    // Fallback to player_progress (backwards compat — only game_state remains)
+    const { data: pp } = await supabase
+      .from("player_progress")
+      .select("game_state")
+      .eq("user_id", userId)
+      .single();
+
+    if (pp?.game_state) {
+      return pp.game_state as Record<string, unknown>;
+    }
+
+    return null;
+  } catch (err) {
+    console.error("[Validator] Failed to fetch previous server state:", err);
+    return null;
+  }
 }
 
 // ─── Account Lock Check ────────────────────────────────────────────────
