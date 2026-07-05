@@ -176,7 +176,7 @@ BEGIN
 
   RETURN QUERY SELECT p_tick, v_events_count, v_prices_count, v_history_count;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql;
 
 GRANT EXECUTE ON FUNCTION apply_market_tick(BIGINT, JSONB, JSONB, NUMERIC, JSONB) TO service_role;
 
