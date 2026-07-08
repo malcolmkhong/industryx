@@ -163,7 +163,7 @@ tools/
 # Claude Code working directory
 .claude/
 
-# Codex history (contains codebase-memory-mcp tool data)
+# Codex history
 .history/
 
 # MCP tool config

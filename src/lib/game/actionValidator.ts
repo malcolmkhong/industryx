@@ -33,7 +33,8 @@ export type ValidatedActionType =
   | "upgrade_storage"
   | "collect_payout"
   | "fulfill_contract"
-  | "claim_daily_reward";
+  | "claim_daily_reward"
+  | "upgrade_transport_line";
 
 export interface ValidatedActionResult {
   approved: boolean;

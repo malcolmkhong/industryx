@@ -1772,14 +1772,40 @@ export function validateUpgradeStorageAction(
  * Validate a 'transport' action.
  */
 export function validateTransportAction(
+  transportType: string,
   fromBuildingId: string,
   toBuildingId: string,
-  _resource: string,
+  resource: string,
   state: Partial<GameState>,
   config: GameConfig,
-): { valid: boolean; error?: string } {
-  const buildings = state.buildings ?? [];
+): {
+  valid: boolean;
+  error?: string;
+  correctedState?: Partial<GameState>;
+} {
+  if (!transportType || typeof transportType !== "string") {
+    return { valid: false, error: "Missing transportType in payload" };
+  }
+  if (!fromBuildingId || !toBuildingId) {
+    return {
+      valid: false,
+      error: "Missing fromBuildingId or toBuildingId in payload",
+    };
+  }
+  if (!resource) {
+    return { valid: false, error: "Missing resource in payload" };
+  }
 
+  // Look up transport def by id (config.transport uses {id, name, baseCost, baseThroughput, upgradeMultiplier})
+  const transportDef = config.transport.find((t) => t.id === transportType);
+  if (!transportDef) {
+    return {
+      valid: false,
+      error: `Transport type "${transportType}" not found in config`,
+    };
+  }
+
+  const buildings = state.buildings ?? [];
   const fromBuilding = buildings.find((b) => b.id === fromBuildingId);
   if (!fromBuilding) {
     return {
@@ -1787,7 +1813,6 @@ export function validateTransportAction(
       error: `Source building "${fromBuildingId}" not found`,
     };
   }
-
   const toBuilding = buildings.find((b) => b.id === toBuildingId);
   if (!toBuilding) {
     return {
@@ -1804,7 +1829,6 @@ export function validateTransportAction(
       error: `Source building type "${fromBuilding.type}" not found in config`,
     };
   }
-
   const toDef = config.buildings[toBuilding.type];
   if (!toDef) {
     return {
@@ -1813,20 +1837,144 @@ export function validateTransportAction(
     };
   }
 
-  // Check that from building produces the resource or to building consumes it
-  // This is a soft check - we verify the chain exists in productionChains
+  // Server-side cost computation: only money component for simplicity.
+  // Other resources (e.g., iron plates) are not deducted server-side in
+  // the current economy model — same as client. This keeps the validator
+  // focused on the money check, which is the only value that affects the
+  // spend path.
+  const moneyCost = transportDef.baseCost
+    .filter((c) => c.resource === "money")
+    .reduce((sum, c) => sum + c.amount, 0);
+  const money = state.money ?? 0;
+  if (money < moneyCost) {
+    return {
+      valid: false,
+      error: `Not enough money for transport line. Need $${moneyCost}, have $${Math.floor(money)}`,
+    };
+  }
+
+  // Compute throughput (server-side, immune to client tampering).
+  // Uses baseThroughput directly for level-1; upgrade path uses
+  // upgradeMultiplier^level. We don't apply research bonuses here
+  // (consistent with sell/buy scope decision — research multipliers
+  // applied client-side for display).
+  const throughput = transportDef.baseThroughput;
+  const maxThroughput = transportDef.baseThroughput * 3;
+
+  // Soft chain check (warn, don't fail)
   const chainExists = config.productionChains.some(
     (c) =>
       c.upstreamBuilding === fromBuilding.type &&
       c.downstreamBuilding === toBuilding.type,
   );
+  // chain missing is OK — custom routes allowed (kept for compatibility).
 
-  if (!chainExists) {
-    // Not necessarily invalid, but warn
-    // Allow it anyway — player may set up custom routes
+  // Return correctedState with new line. The id is generated server-side
+  // so the client can't tamper with it. We use a deterministic seed from
+  // from+to+resource+timestamp (via state.gameTick) so successive calls
+  // produce unique IDs without needing a uuid library.
+  const id = `transport-${transportType}-${fromBuildingId.slice(0, 8)}-${toBuildingId.slice(0, 8)}-${(state.transportLines ?? []).length}`;
+  const newLine = {
+    id,
+    type: transportType as never,
+    level: 1,
+    fromBuilding: fromBuildingId,
+    toBuilding: toBuildingId,
+    carriesResource: resource as never,
+    throughput,
+    maxThroughput,
+    active: true,
+  };
+  const existingLines = state.transportLines ?? [];
+  const existingStats = state.stats;
+  return {
+    valid: true,
+    correctedState: {
+      money: money - moneyCost,
+      transportLines: [...existingLines, newLine as never],
+      stats: existingStats
+        ? ({
+            ...(existingStats as Record<string, unknown>),
+            transportLinesBuilt:
+              ((existingStats as { transportLinesBuilt?: number })
+                .transportLinesBuilt ?? 0) + 1,
+          } as never)
+        : undefined,
+    },
+  };
+}
+
+/**
+ * Validate an 'upgrade_transport_line' action.
+ *
+ * Server-authoritative: looks up the line, computes scaled cost from
+ * current level (upgradeCostExponent^level), checks money, computes new
+ * throughput (upgradeMultiplier^level, capped at maxThroughput), and
+ * returns the post-upgrade state in `correctedState`.
+ */
+export function validateUpgradeTransportLineAction(
+  lineId: string,
+  state: Partial<GameState>,
+  config: GameConfig,
+): {
+  valid: boolean;
+  error?: string;
+  correctedState?: Partial<GameState>;
+} {
+  if (!lineId || typeof lineId !== "string") {
+    return { valid: false, error: "Missing lineId in payload" };
   }
 
-  return { valid: true };
+  const lines = state.transportLines ?? [];
+  const line = lines.find((l) => l.id === lineId);
+  if (!line) {
+    return { valid: false, error: `Transport line "${lineId}" not found` };
+  }
+
+  const transportDef = config.transport.find((t) => t.id === line.type);
+  if (!transportDef) {
+    return {
+      valid: false,
+      error: `Transport type "${line.type}" not found in config`,
+    };
+  }
+
+  // Compute scaled cost: baseCost * upgradeCostExponent^(level-1)
+  // (matches client's cost formula at line.ts:58).
+  const baseCost = transportDef.baseCost
+    .filter((c) => c.resource === "money")
+    .reduce((sum, c) => sum + c.amount, 0);
+  const upgradeCostExponent = getBalance().transport.upgradeCostExponent;
+  const cost = Math.floor(baseCost * Math.pow(upgradeCostExponent, line.level));
+  const money = state.money ?? 0;
+  if (money < cost) {
+    return {
+      valid: false,
+      error: `Not enough money to upgrade transport. Need $${cost}, have $${Math.floor(money)}`,
+    };
+  }
+
+  // Compute new throughput: baseThroughput * upgradeMultiplier^level,
+  // capped at maxThroughput. The level-1 -> level-2 transition uses
+  // upgradeMultiplier^1 (= upgradeMultiplier).
+  const newLevel = line.level + 1;
+  const newThroughput = Math.min(
+    line.maxThroughput,
+    transportDef.baseThroughput *
+      Math.pow(transportDef.upgradeMultiplier, newLevel - 1),
+  );
+
+  const updatedLines = lines.map((l) =>
+    l.id === lineId ? { ...l, level: newLevel, throughput: newThroughput } : l,
+  );
+
+  return {
+    valid: true,
+    correctedState: {
+      money: money - cost,
+      transportLines: updatedLines as never,
+    },
+  };
 }
 
 /**

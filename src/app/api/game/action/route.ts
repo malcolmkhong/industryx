@@ -36,6 +36,7 @@ import {
   validateResearchAction,
   validateUpgradeAction,
   validateTransportAction,
+  validateUpgradeTransportLineAction,
   validateToggleBuildingAction,
   validateUpgradeStorageAction,
   validateHireWorkerAction,
@@ -319,10 +320,14 @@ function handleTransportAction(
   gameState: Partial<GameState>,
   config: GameConfig,
 ): ActionResponse {
+  const transportType = payload.transportType as string;
   const fromBuildingId = payload.fromBuildingId as string;
   const toBuildingId = payload.toBuildingId as string;
   const resource = payload.resource as string;
 
+  if (!transportType) {
+    return { valid: false, error: "Missing transportType in payload" };
+  }
   if (!fromBuildingId || !toBuildingId) {
     return {
       valid: false,
@@ -334,12 +339,25 @@ function handleTransportAction(
   }
 
   return validateTransportAction(
+    transportType,
     fromBuildingId,
     toBuildingId,
     resource,
     gameState,
     config,
   );
+}
+
+function handleUpgradeTransportLineAction(
+  payload: Record<string, unknown>,
+  gameState: Partial<GameState>,
+  config: GameConfig,
+): ActionResponse {
+  const lineId = payload.lineId as string;
+  if (!lineId) {
+    return { valid: false, error: "Missing lineId in payload" };
+  }
+  return validateUpgradeTransportLineAction(lineId, gameState, config);
 }
 
 function handleStartDroneMissionAction(
@@ -602,6 +620,7 @@ export async function POST(request: Request) {
     "fulfill_contract",
     "start_drone_mission",
     "collect_drone",
+    "upgrade_transport_line",
   ];
   if (!action || !validActions.includes(action)) {
     return NextResponse.json(
@@ -799,6 +818,9 @@ export async function POST(request: Request) {
       break;
     case "collect_drone":
       result = handleCollectDroneAction(payload, gameState);
+      break;
+    case "upgrade_transport_line":
+      result = handleUpgradeTransportLineAction(payload, gameState, config);
       break;
     default:
       result = { valid: false, error: `Unhandled action: ${action}` };
