@@ -116,6 +116,8 @@ export async function submitActionToServer(
               resourceCapacity?: Record<string, number>;
               storageUpgradeLevels?: Record<string, number>;
               workers?: unknown[];
+              totalMoneyEarned?: number;
+              pendingPayout?: number;
             }
           | undefined,
       };

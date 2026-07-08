@@ -1118,6 +1118,43 @@ export function validateAssignWorkerAction(
 }
 
 /**
+ * Validate a 'collect_payout' action.
+ *
+ * Server-authoritative: reads `state.pendingPayout` (computed by the
+ * server-side game tick via `runServerTicks`), validates it's positive,
+ * and returns the post-collection money + totalMoneyEarned + pendingPayout=0.
+ *
+ * Income path: totalMoneyEarned increases by the payout amount. This is
+ * important for the validate-ticks cron's
+ * `money <= totalMoneyEarned * 1.5` ratio check.
+ */
+export function validateCollectPayoutAction(state: Partial<GameState>): {
+  valid: boolean;
+  error?: string;
+  correctedState?: Partial<GameState>;
+} {
+  const pendingPayout = state.pendingPayout ?? 0;
+  if (!Number.isFinite(pendingPayout) || pendingPayout <= 0) {
+    return {
+      valid: false,
+      error: "No pending payout to collect",
+    };
+  }
+
+  const money = state.money ?? 0;
+  const totalMoneyEarned = state.totalMoneyEarned ?? 0;
+
+  return {
+    valid: true,
+    correctedState: {
+      money: money + pendingPayout,
+      totalMoneyEarned: totalMoneyEarned + pendingPayout,
+      pendingPayout: 0,
+    },
+  };
+}
+
+/**
  * Validate an 'upgrade_storage' action.
  *
  * Server-authoritative: computes the log-dampened exponential cost

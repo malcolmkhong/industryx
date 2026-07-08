@@ -133,7 +133,7 @@ describe("validateHireWorkerAction (server-authoritative)", () => {
   it("appends to existing workers array (not overwrites)", () => {
     const existingWorker: Worker = {
       id: "wrk_existing",
-      type: "technician",
+      type: "technician" as Worker["type"],
       level: 1,
       experience: 0,
       assignedTo: null,

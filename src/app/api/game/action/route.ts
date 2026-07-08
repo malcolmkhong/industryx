@@ -40,6 +40,7 @@ import {
   validateUpgradeStorageAction,
   validateHireWorkerAction,
   validateAssignWorkerAction,
+  validateCollectPayoutAction,
 } from "@/lib/game/serverEngine";
 import { applyElapsedTicks } from "@/lib/auth/applyElapsedTicks";
 import type { ServerGameStateForAction } from "@/lib/db/serverGameState";
@@ -399,6 +400,14 @@ function handleAssignWorkerAction(
   return validateAssignWorkerAction(workerId, normalizedBuildingId, gameState);
 }
 
+function handleCollectPayoutAction(
+  gameState: Partial<GameState>,
+): ActionResponse {
+  // collect_payout has no payload; the server reads state.pendingPayout
+  // (which was computed by applyElapsedTicks -> runServerTicks).
+  return validateCollectPayoutAction(gameState);
+}
+
 function handleSetGameSpeed(
   payload: Record<string, unknown>,
   serverState: { state_version: number },
@@ -493,6 +502,7 @@ export async function POST(request: Request) {
     "upgrade_storage",
     "hire_worker",
     "assign_worker",
+    "collect_payout",
   ];
   if (!action || !validActions.includes(action)) {
     return NextResponse.json(
@@ -673,6 +683,9 @@ export async function POST(request: Request) {
     case "assign_worker":
       result = handleAssignWorkerAction(payload, gameState);
       break;
+    case "collect_payout":
+      result = handleCollectPayoutAction(gameState);
+      break;
     default:
       result = { valid: false, error: `Unhandled action: ${action}` };
   }
@@ -779,8 +792,7 @@ export async function POST(request: Request) {
       | "sell_market"
       | "toggle_building"
       | "upgrade_storage"
-      | "hire_worker"
-      | "assign_worker"
+      | "collect_payout"
       | "set_game_speed"
       | "bulk_build"
       | "bulk_sell",

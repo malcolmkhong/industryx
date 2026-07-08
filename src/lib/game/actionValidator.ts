@@ -30,7 +30,8 @@ export type ValidatedActionType =
   | "start_drone_mission"
   | "collect_drone"
   | "claim_quest"
-  | "upgrade_storage";
+  | "upgrade_storage"
+  | "collect_payout";
 
 export interface ValidatedActionResult {
   approved: boolean;
@@ -50,6 +51,8 @@ export interface ValidatedActionResult {
     resourceCapacity?: Record<string, number>;
     storageUpgradeLevels?: Record<string, number>;
     workers?: unknown[];
+    totalMoneyEarned?: number;
+    pendingPayout?: number;
   };
 }
 
