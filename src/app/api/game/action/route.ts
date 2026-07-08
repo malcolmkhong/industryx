@@ -47,6 +47,7 @@ import {
   validateFulfillContractAction,
   validateStartDroneMissionAction,
   validateCollectDroneAction,
+  validatePrestigeAction,
 } from "@/lib/game/serverEngine";
 import { applyElapsedTicks } from "@/lib/auth/applyElapsedTicks";
 import type { ServerGameStateForAction } from "@/lib/db/serverGameState";
@@ -360,6 +361,15 @@ function handleUpgradeTransportLineAction(
   return validateUpgradeTransportLineAction(lineId, gameState, config);
 }
 
+function handlePrestigeAction(
+  _payload: Record<string, unknown>,
+  gameState: Partial<GameState>,
+): ActionResponse {
+  // do_prestige has no payload. Server validates minimum buildings, computes
+  // CP earned, returns corrected prestigeState.
+  return validatePrestigeAction(gameState);
+}
+
 function handleStartDroneMissionAction(
   payload: Record<string, unknown>,
   gameState: Partial<GameState>,
@@ -621,6 +631,7 @@ export async function POST(request: Request) {
     "start_drone_mission",
     "collect_drone",
     "upgrade_transport_line",
+    "do_prestige",
   ];
   if (!action || !validActions.includes(action)) {
     return NextResponse.json(
@@ -821,6 +832,9 @@ export async function POST(request: Request) {
       break;
     case "upgrade_transport_line":
       result = handleUpgradeTransportLineAction(payload, gameState, config);
+      break;
+    case "do_prestige":
+      result = handlePrestigeAction(payload, gameState);
       break;
     default:
       result = { valid: false, error: `Unhandled action: ${action}` };

@@ -1905,6 +1905,84 @@ export function validateTransportAction(
 }
 
 /**
+ * Validate a 'do_prestige' action.
+ *
+ * Server-authoritative: validates minimum building count, computes
+ * Corporation Points (CP) earned using the server-side formula, and
+ * returns the post-prestige state in `correctedState` so the client can
+ * apply exactly what the server computed. CP and totalPrestiges are the
+ * anti-cheat-sensitive fields — they MUST come from the server.
+ *
+ * CP formula (server-side):
+ *   pointsEarned = floor(buildings.length * cpPerBuilding
+ *                         + completedResearch.length * 2
+ *                         + stats.contractsCompleted)
+ *
+ * The client is responsible for applying the state RESET (clearing
+ * buildings, resources, money, etc.) — that reset is deterministic from
+ * `createInitialState()`. Only the prestigeState increment is
+ * authoritative.
+ *
+ * Minimum 5 buildings required (matches client gate).
+ */
+export function validatePrestigeAction(state: Partial<GameState>): {
+  valid: boolean;
+  error?: string;
+  correctedState?: Partial<GameState>;
+} {
+  const buildings = state.buildings ?? [];
+  if (buildings.length < 5) {
+    return {
+      valid: false,
+      error: `Need at least 5 buildings to prestige. Have ${buildings.length}.`,
+    };
+  }
+
+  const completedResearch = state.completedResearch ?? [];
+  const contractsCompleted =
+    (state.stats as { contractsCompleted?: number } | undefined)
+      ?.contractsCompleted ?? 0;
+
+  // Server-side CP formula — same as client (intentionally), but immune
+  // to client tampering via this server-only computation.
+  const cpPerBuilding = getBalance().prestige.cpPerBuilding;
+  const pointsEarned = Math.floor(
+    buildings.length * cpPerBuilding +
+      completedResearch.length * 2 +
+      contractsCompleted,
+  );
+
+  if (!Number.isFinite(pointsEarned) || pointsEarned < 0) {
+    return {
+      valid: false,
+      error: `Computed corporation points is invalid (${pointsEarned})`,
+    };
+  }
+
+  const existingPrestige = state.prestigeState ?? {
+    corporationPoints: 0,
+    totalPrestiges: 0,
+    megaFactoryUnlocked: false,
+    bonuses: [],
+  };
+
+  return {
+    valid: true,
+    correctedState: {
+      prestigeState: {
+        ...existingPrestige,
+        corporationPoints:
+          (existingPrestige.corporationPoints ?? 0) + pointsEarned,
+        totalPrestiges: (existingPrestige.totalPrestiges ?? 0) + 1,
+      },
+      // Note: client applies the full state reset locally via
+      // createInitialState(). We only return the prestige fields
+      // because they're the anti-cheat-sensitive ones.
+    },
+  };
+}
+
+/**
  * Validate an 'upgrade_transport_line' action.
  *
  * Server-authoritative: looks up the line, computes scaled cost from

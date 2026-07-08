@@ -17,5 +17,10 @@
     },
   "git.decorations.enabled": true,
   "explorer.decorations.badges": true,
-  "explorer.decorations.colors": true
+"explorer.decorations.colors": true,
+"chat.mcp.serverSampling": {
+    "industryx/.vscode/mcp.json: @supabase/mcp-server-supabase": {
+        "allowedModels": []
+    }
+}
 }
