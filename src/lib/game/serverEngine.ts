@@ -1238,6 +1238,124 @@ export function validateClaimQuestAction(
 }
 
 /**
+ * Validate a 'claim_daily_reward' action.
+ *
+ * Server-authoritative: looks up the daily reward in state.loginStreak.weeklyRewards,
+ * verifies it's unclaimed, applies the reward (money / researchPoints / resources /
+ * corporationPoints), and marks it as claimed.
+ *
+ * Income path: totalMoneyEarned increases by the money amount (for money-type rewards).
+ * Day 7 corporationPoints reward also grants a $2000 bonus — applied here.
+ */
+export function validateClaimDailyRewardAction(
+  day: number,
+  state: Partial<GameState>,
+): {
+  valid: boolean;
+  error?: string;
+  correctedState?: Partial<GameState>;
+} {
+  if (!Number.isInteger(day) || day < 1 || day > 7) {
+    return { valid: false, error: "Day must be an integer between 1 and 7" };
+  }
+
+  const weeklyRewards = state.loginStreak?.weeklyRewards ?? [];
+  const rewardIdx = weeklyRewards.findIndex((r) => r.day === day);
+  if (rewardIdx < 0) {
+    return {
+      valid: false,
+      error: `No daily reward configured for day ${day}`,
+    };
+  }
+  const reward = weeklyRewards[rewardIdx];
+  if (reward.claimed) {
+    return {
+      valid: false,
+      error: `Daily reward for day ${day} already claimed`,
+    };
+  }
+  if (typeof reward.amount !== "number" || reward.amount < 0) {
+    return {
+      valid: false,
+      error: `Invalid reward amount for day ${day}`,
+    };
+  }
+
+  const money = state.money ?? 0;
+  const totalMoneyEarned = state.totalMoneyEarned ?? 0;
+  const researchPoints = state.researchPoints ?? 0;
+  const corpPoints = state.prestigeState?.corporationPoints ?? 0;
+  const resources = state.resources ?? {};
+
+  // Mark the reward as claimed; preserve other fields.
+  const updatedWeeklyRewards = weeklyRewards.map((r, i) =>
+    i === rewardIdx ? { ...r, claimed: true } : r,
+  );
+
+  // Build the correctedState by applying the reward based on its type.
+  // The shape returned is the deltas only; the client merges into local state.
+  const nextLoginStreak = {
+    ...(state.loginStreak ?? {
+      currentStreak: 0,
+      longestStreak: 0,
+      lastLoginDate: "",
+      totalLogins: 0,
+    }),
+    weeklyRewards: updatedWeeklyRewards,
+  };
+
+  const corrected: Record<string, unknown> = {
+    loginStreak: nextLoginStreak,
+  };
+
+  switch (reward.type) {
+    case "money":
+      corrected.money = money + reward.amount;
+      corrected.totalMoneyEarned = totalMoneyEarned + reward.amount;
+      break;
+    case "researchPoints":
+      corrected.researchPoints = researchPoints + reward.amount;
+      break;
+    case "resources": {
+      if (!reward.resource) {
+        return {
+          valid: false,
+          error: `Resources reward for day ${day} missing resource field`,
+        };
+      }
+      const newResources = { ...resources };
+      newResources[reward.resource] =
+        (newResources[reward.resource] ?? 0) + reward.amount;
+      corrected.resources = newResources;
+      break;
+    }
+    case "corporationPoints":
+      corrected.prestigeState = {
+        totalPrestiges: state.prestigeState?.totalPrestiges ?? 0,
+        megaFactoryUnlocked: state.prestigeState?.megaFactoryUnlocked ?? false,
+        bonuses: state.prestigeState?.bonuses ?? [],
+        corporationPoints: corpPoints + reward.amount,
+      };
+      // Day 7 grants $2000 bonus on top of corpPoints
+      if (day === 7) {
+        corrected.money = money + 2000;
+        corrected.totalMoneyEarned = totalMoneyEarned + 2000;
+      }
+      break;
+    default:
+      return {
+        valid: false,
+        error: `Unknown reward type "${reward.type}" for day ${day}`,
+      };
+  }
+
+  return {
+    valid: true,
+    correctedState: corrected as Partial<GameState>,
+  };
+}
+
+/**
  * Validate an 'upgrade_storage' action.
  *
  * Server-authoritative: computes the log-dampened exponential cost

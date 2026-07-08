@@ -42,6 +42,7 @@ import {
   validateAssignWorkerAction,
   validateCollectPayoutAction,
   validateClaimQuestAction,
+  validateClaimDailyRewardAction,
 } from "@/lib/game/serverEngine";
 import { applyElapsedTicks } from "@/lib/auth/applyElapsedTicks";
 import type { ServerGameStateForAction } from "@/lib/db/serverGameState";
@@ -420,6 +421,17 @@ function handleClaimQuestAction(
   return validateClaimQuestAction(questId, gameState);
 }
 
+function handleClaimDailyRewardAction(
+  payload: Record<string, unknown>,
+  gameState: Partial<GameState>,
+): ActionResponse {
+  const day = payload.day as number;
+  if (typeof day !== "number") {
+    return { valid: false, error: "Missing 'day' number in payload" };
+  }
+  return validateClaimDailyRewardAction(day, gameState);
+}
+
 function handleSetGameSpeed(
   payload: Record<string, unknown>,
   serverState: { state_version: number },
@@ -516,6 +528,7 @@ export async function POST(request: Request) {
     "assign_worker",
     "collect_payout",
     "claim_quest",
+    "claim_daily_reward",
   ];
   if (!action || !validActions.includes(action)) {
     return NextResponse.json(
@@ -702,6 +715,9 @@ export async function POST(request: Request) {
     case "claim_quest":
       result = handleClaimQuestAction(payload, gameState);
       break;
+    case "claim_daily_reward":
+      result = handleClaimDailyRewardAction(payload, gameState);
+      break;
     default:
       result = { valid: false, error: `Unhandled action: ${action}` };
   }
@@ -810,6 +826,7 @@ export async function POST(request: Request) {
       | "upgrade_storage"
       | "collect_payout"
       | "claim_quest"
+      | "claim_daily_reward"
       | "set_game_speed"
       | "bulk_build"
       | "bulk_sell",

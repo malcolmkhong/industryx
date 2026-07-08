@@ -126,6 +126,7 @@ export async function submitActionToServer(
               >;
               contracts?: unknown[];
               lastDailyClaim?: number;
+              loginStreak?: unknown;
             }
           | undefined,
       };

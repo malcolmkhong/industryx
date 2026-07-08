@@ -60,6 +60,7 @@ export interface ValidatedActionResult {
     prestigeState?: { corporationPoints?: number } & Record<string, unknown>;
     contracts?: unknown[];
     lastDailyClaim?: number;
+    loginStreak?: unknown;
   };
 }
 

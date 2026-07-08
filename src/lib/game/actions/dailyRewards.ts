@@ -1,28 +1,33 @@
 // ============================================
 // Daily Rewards Actions Factory
 // ============================================
-import type { GameState, ResourceType } from '../types';
-import { WEEKLY_DAILY_REWARDS, getStreakMultiplier } from '../configCache';
-import { getCapacity } from '../utils/costCalculator';
-import { soundEngine } from '../soundEngine';
+import type { GameState, ResourceType } from "../types";
+import { WEEKLY_DAILY_REWARDS, getStreakMultiplier } from "../configCache";
+import { getCapacity } from "../utils/costCalculator";
+import { soundEngine } from "../soundEngine";
+import { generateId } from "../utils/generateId";
 
-type SetFn = (partial: Record<string, unknown> | ((state: any) => Record<string, unknown>)) => void;
+type SetFn = (
+  partial: Record<string, unknown> | ((state: any) => Record<string, unknown>),
+) => void;
 type GetFn = () => any;
 
 export function createDailyRewardActions(set: SetFn, get: GetFn) {
   return {
     checkDailyLogin: () => {
       const state = get();
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toISOString().split("T")[0];
       const loginStreak = { ...state.loginStreak };
 
       if (loginStreak.lastLoginDate === today) return;
 
-      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+      const yesterday = new Date(Date.now() - 86400000)
+        .toISOString()
+        .split("T")[0];
 
       if (loginStreak.lastLoginDate === yesterday) {
         loginStreak.currentStreak++;
-      } else if (loginStreak.lastLoginDate === '') {
+      } else if (loginStreak.lastLoginDate === "") {
         loginStreak.currentStreak = 1;
       } else {
         loginStreak.currentStreak = 1;
@@ -37,7 +42,8 @@ export function createDailyRewardActions(set: SetFn, get: GetFn) {
 
       const dayOfWeek = ((loginStreak.currentStreak - 1) % 7) + 1;
 
-      const needsNewRewards = loginStreak.weeklyRewards.length === 0 ||
+      const needsNewRewards =
+        loginStreak.weeklyRewards.length === 0 ||
         loginStreak.weeklyRewards.every((r: any) => r.claimed);
 
       if (needsNewRewards) {
@@ -49,7 +55,9 @@ export function createDailyRewardActions(set: SetFn, get: GetFn) {
         }));
       }
 
-      const todayReward = loginStreak.weeklyRewards.find((r: any) => r.day === dayOfWeek && !r.claimed);
+      const todayReward = loginStreak.weeklyRewards.find(
+        (r: any) => r.day === dayOfWeek && !r.claimed,
+      );
       if (!todayReward) {
         const multiplier = getStreakMultiplier(loginStreak.currentStreak);
         loginStreak.weeklyRewards = WEEKLY_DAILY_REWARDS.map((r: any) => ({
@@ -62,48 +70,65 @@ export function createDailyRewardActions(set: SetFn, get: GetFn) {
       set({ loginStreak });
     },
 
-    claimDailyReward: (day: number) => {
+    claimDailyReward: async (day: number) => {
       const state = get();
-      const loginStreak = { ...state.loginStreak, weeklyRewards: [...state.loginStreak.weeklyRewards] };
-      const rewardIndex = loginStreak.weeklyRewards.findIndex((r: any) => r.day === day && !r.claimed);
+      const rewardIndex = state.loginStreak.weeklyRewards.findIndex(
+        (r: any) => r.day === day && !r.claimed,
+      );
       if (rewardIndex === -1) return;
 
-      const reward = loginStreak.weeklyRewards[rewardIndex];
-      loginStreak.weeklyRewards[rewardIndex] = { ...reward, claimed: true };
-
-      const updates: Record<string, unknown> = { loginStreak };
-
-      switch (reward.type) {
-        case 'money':
-          updates.money = state.money + reward.amount;
-          updates.totalMoneyEarned = state.totalMoneyEarned + reward.amount;
-          break;
-        case 'researchPoints':
-          updates.researchPoints = state.researchPoints + reward.amount;
-          break;
-        case 'resources':
-          if (reward.resource) {
-            const res = reward.resource as ResourceType;
-            const newResources = { ...state.resources };
-            newResources[res] = Math.min(getCapacity(state, res), newResources[res] + reward.amount);
-            updates.resources = newResources;
-          }
-          break;
-        case 'corporationPoints':
-          updates.prestigeState = {
-            ...state.prestigeState,
-            corporationPoints: state.prestigeState.corporationPoints + reward.amount,
-          };
-          if (day === 7) {
-            updates.money = (updates.money as number ?? state.money) + 2000;
-            updates.totalMoneyEarned = (updates.totalMoneyEarned as number ?? state.totalMoneyEarned) + 2000;
-          }
-          break;
+      // Phase 6: server-authoritative daily reward. Server validates
+      // the day exists, verifies unclaimed, applies the reward (which
+      // may be money/RP/resources/corpPoints), and marks it claimed.
+      const validation = await import("../actionValidator").then((m) =>
+        m.validateActionWithServer("claim_daily_reward", { day }, generateId()),
+      );
+      if (!validation.approved) {
+        soundEngine.play("error", "building");
+        get().addNotification(
+          "error",
+          validation.error ?? "Daily reward claim rejected by server",
+        );
+        return;
       }
 
-      set(updates);
-      soundEngine.play('moneyEarned', 'building');
-      get().addNotification('success', `Claimed daily reward: Day ${day}!`);
+      // Apply server-authoritative state.
+      const corrected = validation.correctedState;
+      const updates: Record<string, unknown> = {};
+
+      if (corrected?.loginStreak) {
+        updates.loginStreak = corrected.loginStreak;
+      }
+      if (corrected?.money !== undefined) {
+        updates.money = corrected.money;
+      }
+      if (corrected?.totalMoneyEarned !== undefined) {
+        updates.totalMoneyEarned = corrected.totalMoneyEarned;
+      }
+      if (corrected?.researchPoints !== undefined) {
+        updates.researchPoints = corrected.researchPoints;
+      }
+      if (corrected?.resources) {
+        // Cap at storage capacity
+        const newResources = { ...state.resources };
+        for (const [res, amt] of Object.entries(
+          corrected.resources as Record<string, number>,
+        )) {
+          newResources[res as ResourceType] = Math.min(
+            getCapacity(state, res as ResourceType),
+            (newResources[res as ResourceType] ?? 0) +
+              (amt - (state.resources[res as ResourceType] ?? 0)),
+          );
+        }
+        updates.resources = newResources;
+      }
+      if (corrected?.prestigeState) {
+        updates.prestigeState = corrected.prestigeState;
+      }
+
+      set(updates as never);
+      soundEngine.play("moneyEarned", "building");
+      get().addNotification("success", `Claimed daily reward: Day ${day}!`);
     },
   };
 }
