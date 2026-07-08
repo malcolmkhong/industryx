@@ -127,6 +127,8 @@ export async function submitActionToServer(
               contracts?: unknown[];
               lastDailyClaim?: number;
               loginStreak?: unknown;
+              completedContracts?: number;
+              stats?: { contractsCompleted?: number } & Record<string, unknown>;
             }
           | undefined,
       };

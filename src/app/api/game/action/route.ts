@@ -43,6 +43,7 @@ import {
   validateCollectPayoutAction,
   validateClaimQuestAction,
   validateClaimDailyRewardAction,
+  validateFulfillContractAction,
 } from "@/lib/game/serverEngine";
 import { applyElapsedTicks } from "@/lib/auth/applyElapsedTicks";
 import type { ServerGameStateForAction } from "@/lib/db/serverGameState";
@@ -432,6 +433,17 @@ function handleClaimDailyRewardAction(
   return validateClaimDailyRewardAction(day, gameState);
 }
 
+function handleFulfillContractAction(
+  payload: Record<string, unknown>,
+  gameState: Partial<GameState>,
+): ActionResponse {
+  const contractId = payload.contractId as string;
+  if (!contractId) {
+    return { valid: false, error: "Missing contractId in payload" };
+  }
+  return validateFulfillContractAction(contractId, gameState);
+}
+
 function handleSetGameSpeed(
   payload: Record<string, unknown>,
   serverState: { state_version: number },
@@ -529,6 +541,7 @@ export async function POST(request: Request) {
     "collect_payout",
     "claim_quest",
     "claim_daily_reward",
+    "fulfill_contract",
   ];
   if (!action || !validActions.includes(action)) {
     return NextResponse.json(
@@ -718,6 +731,9 @@ export async function POST(request: Request) {
     case "claim_daily_reward":
       result = handleClaimDailyRewardAction(payload, gameState);
       break;
+    case "fulfill_contract":
+      result = handleFulfillContractAction(payload, gameState);
+      break;
     default:
       result = { valid: false, error: `Unhandled action: ${action}` };
   }
@@ -827,6 +843,7 @@ export async function POST(request: Request) {
       | "collect_payout"
       | "claim_quest"
       | "claim_daily_reward"
+      | "fulfill_contract"
       | "set_game_speed"
       | "bulk_build"
       | "bulk_sell",

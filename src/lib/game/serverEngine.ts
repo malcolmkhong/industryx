@@ -1356,6 +1356,153 @@ export function validateClaimDailyRewardAction(
 }
 
 /**
+ * Validate a 'fulfill_contract' action.
+ *
+ * Server-authoritative: looks up the contract in state.contracts, verifies
+ * it's not already completed/failed, checks resource affordability, deducts
+ * required resources (non-money), grants rewards (money + RP + corpPoints),
+ * and marks the contract as completed.
+ *
+ * Income path: totalMoneyEarned increases by the money reward. Also
+ * increments completedContracts counter and stats.contractsCompleted.
+ *
+ * Note: `acceptContract` is intentionally not server-authoritative in this
+ * phase — it's an additive UI operation (no economy change), and the
+ * 5-active-contract cap is enforced client-side.
+ */
+export function validateFulfillContractAction(
+  contractId: string,
+  state: Partial<GameState>,
+): {
+  valid: boolean;
+  error?: string;
+  correctedState?: Partial<GameState>;
+} {
+  if (!contractId || typeof contractId !== "string") {
+    return { valid: false, error: "Missing contractId in payload" };
+  }
+
+  const contracts = state.contracts ?? [];
+  const contractIdx = contracts.findIndex((c) => c.id === contractId);
+  if (contractIdx < 0) {
+    return {
+      valid: false,
+      error: `Contract "${contractId}" not found`,
+    };
+  }
+  const contract = contracts[contractIdx];
+
+  if (contract.completed) {
+    return {
+      valid: false,
+      error: `Contract "${contractId}" already completed`,
+    };
+  }
+  if (contract.failed) {
+    return {
+      valid: false,
+      error: `Contract "${contractId}" already failed`,
+    };
+  }
+
+  // Resource affordability check (server-authoritative). Required resources
+  // can be 'money' (which is implicitly paid) or other resources (which must
+  // be in the player's inventory).
+  const resources = state.resources ?? {};
+  const money = state.money ?? 0;
+  for (const required of contract.requiredResources) {
+    if (required.resource === "money") {
+      if (money < required.amount) {
+        return {
+          valid: false,
+          error: `Not enough money to fulfill contract "${contractId}". Need $${required.amount}, have $${Math.floor(money)}`,
+        };
+      }
+    } else {
+      const available = resources[required.resource] ?? 0;
+      if (available < required.amount) {
+        return {
+          valid: false,
+          error: `Not enough ${required.resource} to fulfill contract "${contractId}". Need ${required.amount}, have ${Math.floor(available)}`,
+        };
+      }
+    }
+  }
+
+  // Reward reads from the stored contract (server-trusted), not from client payload.
+  const reward = contract.reward;
+  if (!reward || typeof reward.money !== "number" || reward.money < 0) {
+    return {
+      valid: false,
+      error: `Contract "${contractId}" has invalid reward configuration`,
+    };
+  }
+
+  const totalMoneyEarned = state.totalMoneyEarned ?? 0;
+  const researchPoints = state.researchPoints ?? 0;
+  const corpPoints = state.prestigeState?.corporationPoints ?? 0;
+  const completedContracts = state.completedContracts ?? 0;
+  const contractsCompletedStat = state.stats?.contractsCompleted ?? 0;
+
+  // Deduct required resources (non-money stays in state; money is also
+  // deducted from the same pool). We deduct money from state.money AND add
+  // the reward, so net is `money + reward.money - moneyRequiredForContract`.
+  // For simplicity and consistency: treat money-required as part of resources.
+  const newResources: Record<string, number> = { ...resources };
+  let moneyDelta = 0; // net change
+  for (const required of contract.requiredResources) {
+    if (required.resource === "money") {
+      moneyDelta -= required.amount;
+    } else {
+      const current = newResources[required.resource] ?? 0;
+      newResources[required.resource] = current - required.amount;
+    }
+  }
+  moneyDelta += reward.money;
+
+  // Mark the contract as completed.
+  const completedContract = {
+    ...contract,
+    completed: true,
+    progress: 1,
+  };
+  const nextContracts = contracts.map((c, i) =>
+    i === contractIdx ? completedContract : c,
+  );
+
+  return {
+    valid: true,
+    correctedState: {
+      money: money + moneyDelta,
+      totalMoneyEarned: totalMoneyEarned + reward.money,
+      researchPoints: researchPoints + (reward.researchPoints ?? 0),
+      resources: newResources,
+      contracts: nextContracts,
+      completedContracts: completedContracts + 1,
+      stats: {
+        ...(state.stats ?? {
+          totalResourcesProduced: {} as Record<string, number>,
+          totalResourcesSold: {} as Record<string, number>,
+          peakEfficiency: 0,
+          factoriesBuilt: 0,
+          transportLinesBuilt: 0,
+          researchCompleted: 0,
+          contractsCompleted: 0,
+          playTime: 0,
+        }),
+        contractsCompleted: contractsCompletedStat + 1,
+      },
+      prestigeState: {
+        totalPrestiges: state.prestigeState?.totalPrestiges ?? 0,
+        megaFactoryUnlocked: state.prestigeState?.megaFactoryUnlocked ?? false,
+        bonuses: state.prestigeState?.bonuses ?? [],
+        corporationPoints: corpPoints + (reward.corporationPoints ?? 0),
+      },
+    },
+  };
+}
+
+/**
  * Validate an 'upgrade_storage' action.
  *
  * Server-authoritative: computes the log-dampened exponential cost

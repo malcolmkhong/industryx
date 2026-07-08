@@ -61,6 +61,8 @@ export interface ValidatedActionResult {
     contracts?: unknown[];
     lastDailyClaim?: number;
     loginStreak?: unknown;
+    completedContracts?: number;
+    stats?: { contractsCompleted?: number } & Record<string, unknown>;
   };
 }
 
