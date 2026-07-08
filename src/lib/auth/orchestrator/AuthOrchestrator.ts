@@ -5,9 +5,10 @@
  * startup() pipeline. Orchestrator owns:
  *   1. device-id read
  *   2. session check
- *   3. recover-by-device + claim-guest (if no session)
- *   4. quickstart (anon user + game state in one server call)
- *   5. onAuthStateChange subscription (state stays in sync)
+ *   3. quickstart POST — one server round-trip covers deviceId lookup,
+ *      fingerprint fallback, anon-user creation, identity registration,
+ *      and server_game_state bootstrap
+ *   4. onAuthStateChange subscription (state stays in sync)
  *
  * Behavior change: none visible. Code path: now one place.
  */
@@ -36,6 +37,8 @@ export class AuthOrchestrator {
       userId: null,
       deviceId: null,
       isGuest: false,
+      limitedMode: false,
+      limitedReason: null,
       ...initial,
     };
   }
@@ -151,6 +154,8 @@ export class AuthOrchestrator {
         identity: "unauthenticated",
         userId: null,
         isGuest: false,
+        limitedMode: false,
+        limitedReason: null,
       });
       return;
     }
@@ -250,6 +255,10 @@ export class AuthOrchestrator {
       identity,
       userId: session?.user?.id ?? null,
       isGuest: session?.user?.is_anonymous ?? false,
+      // OAuth / session-based path always clears limitedMode — a real
+      // session removes any need for fingerprint-based recovery.
+      limitedMode: false,
+      limitedReason: null,
     });
     this.dispatch({ type: "AUTH_STATE_CHANGED", session });
     return { loading: wasLoading };
@@ -310,6 +319,10 @@ export class AuthOrchestrator {
       // Skip fingerprint + quickstart entirely; session already valid.
     } else {
       // No session: compute fingerprint lazily, then single quickstart.
+      // getFingerprint() returns either a real visitorId, the
+      // __fingerprint_unavailable__ sentinel, or "unknown" (SSR only).
+      // Both sentinel and "unknown" are sent to the server; the route
+      // accepts the sentinel and falls through to deviceId-only dedupe.
       let fingerprint: string | null = null;
       try {
         fingerprint = await deps.getFingerprint();
@@ -333,8 +346,20 @@ export class AuthOrchestrator {
                 userId: result.userId,
                 source: result.source,
               });
+              // Step 1 / Step 2 recovery with a real fingerprint → not
+              // limited mode. (Even with a sentinel fingerprint, Step 1
+              // deviceId match is full recovery — modal NOT shown.)
             } else {
               this.dispatch({ type: "NO_RECOVERY" });
+            }
+            // The server tells us whether the account is operating in
+            // limited mode (sentinel + new user). If so, surface the
+            // degraded state to the UI so the modal can show.
+            if (result.limited) {
+              this.setState({
+                limitedMode: true,
+                limitedReason: "fingerprint_unavailable",
+              });
             }
             // Note: we cannot establish a Supabase Auth session for the
             // server-created/identified anon user without a second round-trip

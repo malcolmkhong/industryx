@@ -12,7 +12,11 @@
 // - After migration: cloud is authoritative, delta checks active
 // ============================================
 
-import { BUILDING_DEFS, RESEARCH_TREE } from '@/lib/game/data';
+// P2 refactor: Read BUILDING_DEFS / RESEARCH_TREE from configCache (Supabase-backed
+// live bindings) instead of data.ts defaults. Module-level maps below are now lazily
+// initialized after ensureConfigLoaded() so they reflect the actual server config.
+import { BUILDING_DEFS, RESEARCH_TREE, configVersion } from '@/lib/game/configCache';
+import { ensureConfigLoaded } from '@/lib/game/configLoader.server';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -107,8 +111,8 @@ const MAX_TOTAL_EFFICIENCY_MULTIPLIER = 15;
 const GENEROSITY_MULTIPLIER = 1.5;
 
 // ─── Research Prerequisite Map ──────────────────────────────────────────
-// Built at module load time for O(1) lookups
-
+// LAZY init (P2): built on first use after ensureConfigLoaded() runs.
+// We key on configVersion so any Supabase config reload invalidates the cache.
 interface ResearchInfo {
   cost: number;
   timeRequired: number;
@@ -118,30 +122,40 @@ interface ResearchInfo {
 
 const RESEARCH_MAP = new Map<string, ResearchInfo>();
 const BUILDING_UNLOCK_MAP = new Map<string, string>(); // buildingType → researchId
+let RESOURCE_MAP_VERSION = -1; // sentinel: rebuild on first call
 
-// Build the maps from the game data
-for (const node of RESEARCH_TREE) {
-  RESEARCH_MAP.set(node.id, {
-    cost: node.cost,
-    timeRequired: node.timeRequired,
-    prerequisites: node.prerequisites,
-    unlocksBuildings: node.effects
-      .filter(e => e.type === 'unlockBuilding')
-      .map(e => e.target!),
-  });
+function buildLookupMaps(): void {
+  RESEARCH_MAP.clear();
+  BUILDING_UNLOCK_MAP.clear();
 
-  // Map each building unlock to its research requirement
-  for (const eff of node.effects) {
-    if (eff.type === 'unlockBuilding' && eff.target) {
-      BUILDING_UNLOCK_MAP.set(eff.target, node.id);
+  // RESEARCH_TREE is bound via configCache; safe to read post-ensureConfigLoaded.
+  for (const node of RESEARCH_TREE) {
+    RESEARCH_MAP.set(node.id, {
+      cost: node.cost,
+      timeRequired: node.timeRequired,
+      prerequisites: node.prerequisites,
+      unlocksBuildings: node.effects
+        .filter((e) => e.type === 'unlockBuilding')
+        .map((e) => e.target!),
+    });
+    for (const eff of node.effects) {
+      if (eff.type === 'unlockBuilding' && eff.target) {
+        BUILDING_UNLOCK_MAP.set(eff.target, node.id);
+      }
+    }
+  }
+  for (const [type, def] of Object.entries(BUILDING_DEFS)) {
+    if (def.unlockRequirement?.research && !BUILDING_UNLOCK_MAP.has(type)) {
+      BUILDING_UNLOCK_MAP.set(type, def.unlockRequirement.research);
     }
   }
 }
 
-// Also check BUILDING_DEFS for unlockRequirement fields
-for (const [type, def] of Object.entries(BUILDING_DEFS)) {
-  if (def.unlockRequirement?.research && !BUILDING_UNLOCK_MAP.has(type)) {
-    BUILDING_UNLOCK_MAP.set(type, def.unlockRequirement.research);
+/** Internal: ensure maps are built against current configCache state. */
+function ensureLookupMapsReady(version: number): void {
+  if (version !== RESOURCE_MAP_VERSION) {
+    buildLookupMaps();
+    RESOURCE_MAP_VERSION = version;
   }
 }
 
@@ -263,11 +277,31 @@ function calculateMinResearchTicks(completedResearch: string[]): number {
  * @param gameState - The full game state from localStorage
  * @returns Detailed validation result with recommended action
  */
-export function validateGuestMigration(
+export async function validateGuestMigration(
   gameState: Record<string, unknown>,
-): MigrationValidationResult {
+): Promise<MigrationValidationResult> {
   const violations: string[] = [];
   const checks: MigrationCheckResult[] = [];
+
+  // ── Ensure Supabase config is loaded (fail-closed) ──
+  const configLoad = await ensureConfigLoaded();
+  if (!configLoad.ok) {
+    violations.push(
+      `[validateGuestMigration] Config unavailable — refusing to validate. ` +
+        `Reason: ${configLoad.error ?? 'unknown'}. ` +
+        `Cost/rate bounds cannot run against stale defaults.`,
+    );
+    return {
+      isValid: false,
+      riskLevel: 'critical',
+      violations,
+      checks: [],
+      action: 'reject',
+      summary: 'Server config unavailable — guest migration blocked',
+    };
+  }
+  // Rebuild lookup maps if Supabase config has been refreshed since last call.
+  ensureLookupMapsReady(configSourceVersion());
   // Use a mutable type that TypeScript can't narrow — risk level is updated as checks run
   let overallRisk: 'none' | 'low' | 'medium' | 'high' | 'critical' = 'none' as 'none' | 'low' | 'medium' | 'high' | 'critical';
 
@@ -653,4 +687,16 @@ function formatNum(n: number): string {
   if (n >= 1e6) return `${(n / 1e6).toFixed(2)}M`;
   if (n >= 1e3) return `${(n / 1e3).toFixed(1)}K`;
   return n.toFixed(0);
+}
+
+
+/**
+ * Read the live configVersion exposed by configCache (incremented on every
+ * Supabase update). We avoid adding a direct dependency on the `let` binding
+ * here for compatibility — lookup via a tiny read.
+ */
+function configSourceVersion(): number {
+  // configVersion is a let-bound export from configCache; ESM live binding
+  // gives us the latest value on every read.
+  return configVersion;
 }

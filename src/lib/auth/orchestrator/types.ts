@@ -19,12 +19,27 @@ export type IdentityKind =
 export type OrchestratorStatus =
   "idle" | "initializing" | "recovering" | "ready" | "signing_out" | "blocked";
 
+/**
+ * Why the user is in `limitedMode`. Future-ready: 'oauth_required',
+ * 'maintenance', 'guest_only', 'network' all fit here.
+ */
+export type LimitedReason =
+  | "fingerprint_unavailable"
+  | "oauth_required"
+  | "maintenance"
+  | "guest_only"
+  | "network";
+
 export interface OrchestratorState {
   status: OrchestratorStatus;
   identity: IdentityKind;
   userId: string | null;
   deviceId: string | null;
   isGuest: boolean;
+  /** True when the user can play but some feature is degraded. */
+  limitedMode: boolean;
+  /** Why limitedMode is set; null when not in limited mode. */
+  limitedReason: LimitedReason | null;
 }
 
 export type AuthEvent =
@@ -68,6 +83,10 @@ export interface AuthOrchestratorDeps {
     userId: string | null;
     source?: "deviceId" | "fingerprint" | "fresh" | null;
     isNewUser?: boolean | null;
+    /** True when quickstart was forced to use the unavailable-fingerprint
+     *  sentinel AND Step 1 (deviceId) did NOT match. UI shows the
+     *  limited-mode modal. Step 1 match + sentinel = full recovery, no modal. */
+    limited?: boolean | null;
     error: string | null;
   }>;
   signInWithOAuth: (

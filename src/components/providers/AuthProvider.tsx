@@ -13,9 +13,13 @@ import {
   disableServerValidation,
 } from "@/lib/game/serverActions";
 import type { User, Session } from "@supabase/supabase-js";
-import { getFingerprint } from "@/lib/auth/fingerprint";
+import { getFingerprint, getFingerprintResult } from "@/lib/auth/fingerprint";
 import { DEVICE_ID_STORAGE_KEY } from "@/lib/auth/orchestrator/storage";
 import { AuthOrchestrator } from "@/lib/auth/orchestrator";
+import {
+  registerOrchestrator,
+  unregisterOrchestrator,
+} from "@/lib/auth/orchestrator/registry";
 import {
   CloudSyncService,
   CloudSyncServiceProvider,
@@ -84,6 +88,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [orchestrator] = useState<AuthOrchestrator>(
     () => new AuthOrchestrator(),
   );
+
+  // Register the orchestrator with the module-level registry so non-React
+  // code (game store, action handlers) can read limitedMode via
+  // getOrchestratorStateSnapshot(). Unregister on unmount.
+  useEffect(() => {
+    registerOrchestrator(orchestrator);
+    return () => unregisterOrchestrator(orchestrator);
+  }, [orchestrator]);
   const [cloudSync] = useState<CloudSyncService>(() => new CloudSyncService());
   const [mergeFlow] = useState<MergeFlowService>(() => new MergeFlowService());
   const [loginPrompt] = useState<LoginPromptService>(
@@ -106,8 +118,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         getDeviceId: getOrCreateDeviceId,
         getFingerprint: async (): Promise<string | null> => {
           try {
+            // getFingerprint() returns either a real visitorId or the
+            // __fingerprint_unavailable__ sentinel. The literal "unknown"
+            // is reserved for SSR (no window) and is mapped to null so
+            // the orchestrator treats it as "skip quickstart" (the legacy
+            // short-circuit behavior).
             const fp = await getFingerprint();
-            return fp && fp !== "unknown" ? fp : null;
+            if (!fp || fp === "unknown") return null;
+            return fp;
           } catch {
             return null;
           }
@@ -160,24 +178,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
         /** SINGLE entry point for anon startup. Server consolidates
          *  deviceId lookup, fingerprint fallback, user creation, identity
-         *  registration, and game state init. */
+         *  registration, and game state init.
+         *  The new contract accepts the __fingerprint_unavailable__
+         *  sentinel; the server falls through to deviceId-only dedupe
+         *  and reports `limited: true` in the response. */
         quickstart: async (
           deviceId: string,
           fingerprintHash: string | null,
         ) => {
           if (!fingerprintHash || fingerprintHash === "unknown") {
-            // Fingerprint is required by the new quickstart route.
+            // Only SSR ("unknown") short-circuits. The unavailable
+            // sentinel is a real value and is forwarded to the server.
             return {
               userId: null,
               source: null,
               isNewUser: null,
+              limited: null,
               error: "fingerprint_required",
             };
           }
           try {
+            // Telemetry headers: send the failure reason + platform
+            // (if the client knows) so the server can log them.
+            const fpResult = await getFingerprintResult().catch(() => null);
+            const reason =
+              fpResult?.status === "unavailable" ? fpResult.reason : "unknown";
+            const platform =
+              typeof navigator !== "undefined"
+                ? ((
+                    navigator as Navigator & {
+                      userAgentData?: { platform?: string };
+                    }
+                  ).userAgentData?.platform ??
+                  navigator.platform ??
+                  null)
+                : null;
+
             const res = await fetch("/api/auth/quickstart", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: {
+                "Content-Type": "application/json",
+                "x-fp-reason": reason,
+                ...(platform ? { "x-fp-platform": platform } : {}),
+              },
               body: JSON.stringify({ deviceId, fingerprint: fingerprintHash }),
             });
             if (res.status === 503) {
@@ -187,6 +230,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   userId: null,
                   source: null,
                   isNewUser: null,
+                  limited: null,
                   error: "capacity_full",
                 };
               }
@@ -195,6 +239,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               userId?: string;
               source?: "deviceId" | "fingerprint" | "fresh";
               isNewUser?: boolean;
+              limited?: boolean;
               error?: string;
             };
             if (data.error) {
@@ -202,6 +247,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 userId: null,
                 source: data.source ?? null,
                 isNewUser: data.isNewUser ?? null,
+                limited: data.limited ?? null,
                 error: data.error,
               };
             }
@@ -209,6 +255,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               userId: data.userId ?? null,
               source: data.source ?? null,
               isNewUser: data.isNewUser ?? null,
+              limited: data.limited ?? null,
               error: null,
             };
           } catch (err) {
@@ -216,6 +263,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               userId: null,
               source: null,
               isNewUser: null,
+              limited: null,
               error: err instanceof Error ? err.message : "unknown",
             };
           }
