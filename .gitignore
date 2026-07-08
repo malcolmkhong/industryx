@@ -131,8 +131,11 @@ bun.lock
 Caddyfile
 worklog.md
 
-# Documentation
-docs/
+# Documentation (planning scratch, ad-hoc notes — NOT for source control)
+# NOTE: docs/REFACTOR_*.md and docs/ECONOMY_AUDIT.md are canonical planning
+# docs and ARE tracked. Only ignore ad-hoc scratch docs by folder.
+docs/archive/
+docs/scratch/
 
 # AI tooling (machine-local, never push)
 .agents/
