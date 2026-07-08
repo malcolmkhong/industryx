@@ -12,6 +12,7 @@ import { useGameStore } from "../store";
 import { generateId } from "../utils/generateId";
 import { formatNumber } from "../utils/formatNumber";
 import { soundEngine } from "../soundEngine";
+import { friendlyActionError } from "../utils/friendlyErrors";
 
 // Phase 3 F5: dedupe so a single trade doesn't trigger multiple "you moved the
 // market" notifications when the polling eventually catches up.
@@ -108,10 +109,11 @@ export function createMarketActions(set: SetFn, get: GetFn) {
       );
       if (!validation.approved) {
         soundEngine.play("error", "ui");
-        get().addNotification(
-          "error",
-          validation.error ?? "Sell rejected by server",
-        );
+        // Log server-side technical error for debugging
+        // eslint-disable-next-line no-console
+        console.error(`[sellResource] server rejected: ${validation.error}`);
+        // Show user-friendly message (no internal leak)
+        get().addNotification("error", friendlyActionError(validation.error));
         return;
       }
 
@@ -181,19 +183,8 @@ export function createMarketActions(set: SetFn, get: GetFn) {
       const globalPrice = getGlobalPrice(state, resource);
       if (globalPrice <= 0) return;
 
-      const cost = globalPrice * amount * getBalance().market.buyPriceMarkup;
-      if (state.money < cost) {
-        soundEngine.play("error", "ui");
-        get().addNotification("error", "Not enough money!");
-        return;
-      }
-
-      const newAmount = state.resources[resource] + amount;
-      if (newAmount > getCapacity(state, resource)) {
-        soundEngine.play("error", "ui");
-        get().addNotification("warning", "Storage full!");
-        return;
-      }
+      const localCost =
+        globalPrice * amount * getBalance().market.buyPriceMarkup;
 
       // Report trade to global market pressure pool
       fetch("/api/market/action", {
@@ -204,28 +195,45 @@ export function createMarketActions(set: SetFn, get: GetFn) {
         console.warn("[Market] buyResource pressure report failed:", err),
       );
 
+      // Phase 6: server-authoritative buy. Server reads price from
+      // state.market, computes cost with markup, validates affordability
+      // AND storage capacity, and returns authoritative post-buy state.
       const validation = await import("../actionValidator").then((m) =>
         m.validateActionWithServer("buy", { resource, amount }, generateId()),
       );
       if (!validation.approved) {
         soundEngine.play("error", "ui");
-        get().addNotification(
-          "error",
-          validation.error ?? "Buy rejected by server",
-        );
+        // Log server-side technical error for debugging
+        // eslint-disable-next-line no-console
+        console.error(`[buyResource] server rejected: ${validation.error}`);
+        // Show user-friendly message (no internal leak)
+        get().addNotification("error", friendlyActionError(validation.error));
         return;
       }
 
+      // Apply server-authoritative state. Defensive fallback to local
+      // computation if server omits correctedState.
+      const corrected = validation.correctedState;
+      const serverMoney = corrected?.money ?? state.money - localCost;
+      const serverResources = (corrected?.resources as Record<
+        string,
+        number
+      >) ?? {
+        ...state.resources,
+        [resource]: (state.resources[resource] ?? 0) + amount,
+      };
+
       set({
-        resources: { ...state.resources, [resource]: newAmount },
-        money: state.money - cost,
+        resources: serverResources,
+        money: serverMoney,
       });
+      const effectiveCost = state.money - serverMoney;
       get().addNotification(
         "info",
-        `Bought ${formatNumber(amount)} ${RESOURCE_META[resource].name} for $${formatNumber(cost)}`,
+        `Bought ${formatNumber(amount)} ${RESOURCE_META[resource].name} for $${formatNumber(effectiveCost)}`,
       );
       // Phase 3 F5: schedule delayed price-impact check.
-      const buyPrice = cost / amount;
+      const buyPrice = effectiveCost / amount;
       await notifyTradeImpactIfMoved(resource, buyPrice);
     },
 

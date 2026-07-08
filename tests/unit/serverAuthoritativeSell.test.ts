@@ -34,7 +34,6 @@ function makeState(overrides?: {
   resources?: Record<string, number>;
   market?: MarketPrice[];
   completedResearch?: string[];
-  megaProjects?: unknown[];
 }): Partial<GameState> {
   return {
     money: overrides?.money ?? 10_000,
@@ -50,7 +49,6 @@ function makeState(overrides?: {
       makeMarket({ resource: "iron" as never, currentPrice: 100 }),
     ],
     completedResearch: overrides?.completedResearch ?? [],
-    megaProjects: overrides?.megaProjects ?? ([] as never),
     prestigeState: {
       corporationPoints: 0,
       totalPrestiges: 0,

@@ -821,12 +821,34 @@ export function validateSellAction(
 
 /**
  * Validate a 'buy' action.
+ *
+ * Server-authoritative: looks up the resource in state.market, computes
+ * the total cost (with buyPriceMarkup), validates money affordability
+ * AND storage capacity, and returns the post-buy state.
+ *
+ * Spend path: money decreases; totalMoneyEarned unchanged (buy is not income).
  */
 export function validateBuyAction(
   resource: string,
   amount: number,
   state: Partial<GameState>,
-): { valid: boolean; error?: string } {
+): {
+  valid: boolean;
+  error?: string;
+  correctedState?: Partial<GameState>;
+} {
+  // Input validation
+  if (!resource || typeof resource !== "string") {
+    return { valid: false, error: "Missing resource in payload" };
+  }
+  if (!Number.isFinite(amount) || amount <= 0 || !Number.isInteger(amount)) {
+    return {
+      valid: false,
+      error: `Invalid amount: ${amount}. Must be a positive integer.`,
+    };
+  }
+
+  // Market lookup
   const market = state.market ?? [];
   const marketEntry = market.find((m) => m.resource === resource);
   if (!marketEntry) {
@@ -835,8 +857,30 @@ export function validateBuyAction(
       error: `No market found for resource "${resource}"`,
     };
   }
+  if (
+    !Number.isFinite(marketEntry.currentPrice) ||
+    marketEntry.currentPrice <= 0
+  ) {
+    return {
+      valid: false,
+      error: `Market price for ${resource} is invalid (${marketEntry.currentPrice})`,
+    };
+  }
 
-  const totalCost = marketEntry.currentPrice * amount;
+  // Compute cost with markup (server-side, immune to client tampering).
+  // NOTE: Same scope decision as sellResource — we don't apply the modifier
+  // engine's research bonuses. Using only buyPriceMarkup (1.1x by default).
+  const markup = getBalance().market.buyPriceMarkup;
+  const totalCost = marketEntry.currentPrice * amount * markup;
+
+  if (!Number.isFinite(totalCost) || totalCost < 0) {
+    return {
+      valid: false,
+      error: `Computed buy cost is non-finite (price=${marketEntry.currentPrice}, markup=${markup})`,
+    };
+  }
+
+  // Money affordability check
   const money = state.money ?? 0;
   if (money < totalCost) {
     return {
@@ -845,7 +889,30 @@ export function validateBuyAction(
     };
   }
 
-  return { valid: true };
+  // Storage capacity check (capped at current capacity)
+  const resources = state.resources ?? {};
+  const currentAmount = resources[resource as ResourceType] ?? 0;
+  const capacity =
+    state.resourceCapacity?.[resource as ResourceType] ?? Infinity;
+  const proposedAmount = currentAmount + amount;
+  if (proposedAmount > capacity) {
+    return {
+      valid: false,
+      error: `Storage full. Have ${Math.floor(currentAmount)}, capacity ${Math.floor(capacity)}, trying to add ${amount}`,
+    };
+  }
+
+  const newResources: Record<string, number> = { ...resources };
+  newResources[resource as ResourceType] = proposedAmount;
+
+  return {
+    valid: true,
+    correctedState: {
+      money: money - totalCost,
+      resources: newResources,
+      // totalMoneyEarned unchanged (buy is a spend path).
+    },
+  };
 }
 
 /**
