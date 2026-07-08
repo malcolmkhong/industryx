@@ -36,6 +36,7 @@ import {
   validateResearchAction,
   validateUpgradeAction,
   validateTransportAction,
+  validateToggleBuildingAction,
 } from "@/lib/game/serverEngine";
 import { applyElapsedTicks } from "@/lib/auth/applyElapsedTicks";
 import type { ServerGameStateForAction } from "@/lib/db/serverGameState";
@@ -332,6 +333,26 @@ function handleTransportAction(
   );
 }
 
+function handleToggleBuildingAction(
+  payload: Record<string, unknown>,
+  gameState: Partial<GameState>,
+): ActionResponse {
+  const buildingId = payload.buildingId as string;
+  const enabled = payload.enabled as boolean;
+
+  if (!buildingId) {
+    return { valid: false, error: "Missing buildingId in payload" };
+  }
+  if (typeof enabled !== "boolean") {
+    return {
+      valid: false,
+      error: "Missing 'enabled' boolean in payload",
+    };
+  }
+
+  return validateToggleBuildingAction(buildingId, enabled, gameState);
+}
+
 function handleSetGameSpeed(
   payload: Record<string, unknown>,
   serverState: { state_version: number },
@@ -422,6 +443,7 @@ export async function POST(request: Request) {
     "upgrade",
     "transport",
     "set_game_speed",
+    "toggle_building",
   ];
   if (!action || !validActions.includes(action)) {
     return NextResponse.json(
@@ -589,6 +611,9 @@ export async function POST(request: Request) {
       break;
     case "set_game_speed":
       result = handleSetGameSpeed(payload, serverState, auth.userId);
+      break;
+    case "toggle_building":
+      result = handleToggleBuildingAction(payload, gameState);
       break;
     default:
       result = { valid: false, error: `Unhandled action: ${action}` };

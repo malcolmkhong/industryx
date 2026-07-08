@@ -180,10 +180,10 @@ export function createBuildingActions(set: SetFn, get: GetFn) {
       if (!building) return;
       const def = BUILDING_DEFS[building.type];
       const newActive = !building.active;
-      const newBuildings = state.buildings.map((b) =>
-        b.id === id ? { ...b, active: newActive } : b,
-      );
 
+      // Phase 6: server-authoritative toggle. Server validates, persists,
+      // and returns the post-toggle buildings array. Client applies that
+      // verbatim and recomputes the power grid for UI freshness.
       const validation = await import("../actionValidator").then((m) =>
         m.validateActionWithServer(
           "toggle_building",
@@ -200,9 +200,17 @@ export function createBuildingActions(set: SetFn, get: GetFn) {
         return;
       }
 
-      // Recalculate power grid immediately so UI updates without waiting for next tick
-      // Uses productionCalculator's computePowerGrid for consistency with gameTick
-      const tempState = { ...state, buildings: newBuildings };
+      // Apply server-returned authoritative state. The server has already
+      // persisted the toggle, so we use its result rather than computing
+      // locally. Fall back to the previous value if the server omitted the
+      // field (defensive — server should always return it for toggle_building).
+      const serverBuildings = (validation.correctedState?.buildings ??
+        state.buildings) as typeof state.buildings;
+
+      // Recalculate power grid immediately so UI updates without waiting for
+      // next tick. Uses productionCalculator's computePowerGrid for
+      // consistency with gameTick.
+      const tempState = { ...state, buildings: serverBuildings };
       const cache = buildMultipliers(tempState);
       const tempResources = { ...state.resources };
       const powerResult = computePowerGrid(
@@ -221,13 +229,13 @@ export function createBuildingActions(set: SetFn, get: GetFn) {
       }
 
       set({
-        buildings: newBuildings,
+        buildings: serverBuildings,
         powerGrid: {
           totalProduction: powerResult.totalProduction,
           totalConsumption: powerResult.totalConsumption,
           efficiency: powerResult.efficiency,
           overload: powerResult.overload,
-          plants: newBuildings.filter(
+          plants: serverBuildings.filter(
             (b) => BUILDING_DEFS[b.type]?.category === "power" && b.active,
           ),
         },
