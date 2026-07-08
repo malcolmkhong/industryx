@@ -1,14 +1,17 @@
-import type { ResourceType } from '../types';
-import { RESOURCE_META } from '../configCache';
-import { getGlobalPrice } from '../utils/gameMath';
-import { computeSellMultiplier, buildMultipliers } from '../productionCalculator';
-import { getBalance } from '../balanceConfig';
-import { getCapacity } from '../utils/costCalculator';
-import { useGameStore } from '../store';
+import type { ResourceType } from "../types";
+import { RESOURCE_META } from "../configCache";
+import { getGlobalPrice } from "../utils/gameMath";
+import {
+  computeSellMultiplier,
+  buildMultipliers,
+} from "../productionCalculator";
+import { getBalance } from "../balanceConfig";
+import { getCapacity } from "../utils/costCalculator";
+import { useGameStore } from "../store";
 
-import { generateId } from '../utils/generateId';
-import { formatNumber } from '../utils/formatNumber';
-import { soundEngine } from '../soundEngine';
+import { generateId } from "../utils/generateId";
+import { formatNumber } from "../utils/formatNumber";
+import { soundEngine } from "../soundEngine";
 
 // Phase 3 F5: dedupe so a single trade doesn't trigger multiple "you moved the
 // market" notifications when the polling eventually catches up.
@@ -38,23 +41,28 @@ export async function notifyTradeImpactIfMoved(
 
   setTimeout(async () => {
     try {
-      const res = await fetch('/api/market/state', { cache: 'no-store' });
+      const res = await fetch("/api/market/state", { cache: "no-store" });
       if (!res.ok) return;
       const data = await res.json();
       const prices = Array.isArray(data?.prices) ? data.prices : [];
-      const found = prices.find((p: { resource?: string }) => p?.resource === resource);
+      const found = prices.find(
+        (p: { resource?: string }) => p?.resource === resource,
+      );
       const newPrice = Number(found?.currentPrice);
-      if (!Number.isFinite(newPrice) || newPrice <= 0 || priceBefore <= 0) return;
+      if (!Number.isFinite(newPrice) || newPrice <= 0 || priceBefore <= 0)
+        return;
       const changePct = (newPrice - priceBefore) / priceBefore;
       if (Math.abs(changePct) >= 0.05) {
-        const direction = changePct > 0 ? 'up' : 'down';
-        const arrow = changePct > 0 ? '▲' : '▼';
+        const direction = changePct > 0 ? "up" : "down";
+        const arrow = changePct > 0 ? "▲" : "▼";
         const pctStr = (Math.abs(changePct) * 100).toFixed(1);
         const resourceName = RESOURCE_META[resource]?.name ?? resource;
-        useGameStore.getState().addNotification(
-          'info',
-          `${arrow} ${resourceName} ${direction === 'up' ? 'spiked' : 'dropped'} ${pctStr}% — your trade moved the market`,
-        );
+        useGameStore
+          .getState()
+          .addNotification(
+            "info",
+            `${arrow} ${resourceName} ${direction === "up" ? "spiked" : "dropped"} ${pctStr}% — your trade moved the market`,
+          );
       }
     } catch {
       // Silent: the player didn't see a market move; nothing to report.
@@ -62,8 +70,9 @@ export async function notifyTradeImpactIfMoved(
   }, delayMs);
 }
 
-
-type SetFn = (partial: Record<string, unknown> | ((state: any) => Record<string, unknown>)) => void;
+type SetFn = (
+  partial: Record<string, unknown> | ((state: any) => Record<string, unknown>),
+) => void;
 type GetFn = () => any;
 
 export function createMarketActions(set: SetFn, get: GetFn) {
@@ -71,43 +80,100 @@ export function createMarketActions(set: SetFn, get: GetFn) {
     sellResource: async (resource: ResourceType, amount: number) => {
       const state = get();
       if (state.resources[resource] < amount) {
-        soundEngine.play('error', 'ui');
-        get().addNotification('error', 'Not enough resources!');
+        soundEngine.play("error", "ui");
+        get().addNotification("error", "Not enough resources!");
         return;
       }
 
-      const globalPrice = getGlobalPrice(state, resource);
-      if (globalPrice <= 0) return;
+      // Capture the local price pre-call so notifyTradeImpactIfMoved can
+      // compare later. Use the server-authoritative market price computed
+      // below if validation succeeds.
+      const localPrice = getGlobalPrice(state, resource);
 
-      const sellPrice = globalPrice * amount * computeSellMultiplier(state, buildMultipliers(state));
+      // Report trade to global market pressure pool (best-effort, fire-and-forget)
+      fetch("/api/market/action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resource, type: "sell", amount }),
+      }).catch((err) =>
+        console.warn("[Market] sellResource pressure report failed:", err),
+      );
 
-      // Report trade to global market pressure pool
-      fetch('/api/market/action', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resource, type: 'sell', amount }),
-      }).catch(err => console.warn('[Market] sellResource pressure report failed:', err));
-
-      const validation = await import('../actionValidator').then(m =>
-        m.validateActionWithServer('sell', { resource, amount }, generateId())
+      // Phase 6: server-authoritative sell. Server reads price from
+      // state.market (immune to client tampering), computes revenue with
+      // server-side sellMultiplier, validates resource affordability,
+      // and returns authoritative post-sell state.
+      const validation = await import("../actionValidator").then((m) =>
+        m.validateActionWithServer("sell", { resource, amount }, generateId()),
       );
       if (!validation.approved) {
-        soundEngine.play('error', 'ui');
-        get().addNotification('error', validation.error ?? 'Sell rejected by server');
+        soundEngine.play("error", "ui");
+        get().addNotification(
+          "error",
+          validation.error ?? "Sell rejected by server",
+        );
         return;
       }
 
+      // Apply server-authoritative state. Defensive fallback to local
+      // computation if server omits correctedState.
+      const corrected = validation.correctedState;
+      const fallbackSellPrice =
+        localPrice > 0
+          ? localPrice *
+            amount *
+            computeSellMultiplier(state, buildMultipliers(state))
+          : 0;
+
+      const serverMoney = corrected?.money ?? state.money + fallbackSellPrice;
+      const serverTotalEarned =
+        corrected?.totalMoneyEarned ??
+        state.totalMoneyEarned + fallbackSellPrice;
+      const serverResources = (corrected?.resources as Record<
+        string,
+        number
+      >) ?? {
+        ...state.resources,
+        [resource]: state.resources[resource] - amount,
+      };
+      const serverSoldStats = (
+        corrected?.stats as { totalResourcesSold?: Record<string, number> }
+      )?.totalResourcesSold ?? {
+        ...(state.stats?.totalResourcesSold ?? {}),
+        [resource]: (state.stats?.totalResourcesSold?.[resource] ?? 0) + amount,
+      };
+
       set({
-        resources: { ...state.resources, [resource]: state.resources[resource] - amount },
-        money: state.money + sellPrice,
-        totalMoneyEarned: state.totalMoneyEarned + sellPrice,
-        stats: { ...state.stats, totalResourcesSold: { ...state.stats.totalResourcesSold, [resource]: state.stats.totalResourcesSold[resource] + amount } },
+        resources: serverResources,
+        money: serverMoney,
+        totalMoneyEarned: serverTotalEarned,
+        stats: {
+          ...(state.stats ?? {
+            totalResourcesProduced: {} as Record<string, number>,
+            totalResourcesSold: {} as Record<string, number>,
+            peakEfficiency: 0,
+            factoriesBuilt: 0,
+            transportLinesBuilt: 0,
+            researchCompleted: 0,
+            contractsCompleted: 0,
+            playTime: 0,
+          }),
+          totalResourcesSold: serverSoldStats,
+        },
       });
-      soundEngine.play('moneyEarned', 'production');
-      get().addNotification('success', `Sold ${formatNumber(amount)} ${RESOURCE_META[resource].name} for $${formatNumber(sellPrice)}`);
-      get().updateQuestProgress('sell', 1);
+      soundEngine.play("moneyEarned", "production");
+      // Effective price per unit (for the notification + impact-check)
+      const effectivePrice =
+        serverMoney - state.money > 0 && amount > 0
+          ? (serverMoney - state.money) / amount
+          : fallbackSellPrice / Math.max(1, amount);
+      get().addNotification(
+        "success",
+        `Sold ${formatNumber(amount)} ${RESOURCE_META[resource].name} for $${formatNumber(serverMoney - state.money)}`,
+      );
+      get().updateQuestProgress("sell", 1);
       // Phase 3 F5: schedule delayed price-impact check.
-      await notifyTradeImpactIfMoved(resource, sellPrice / amount);
+      await notifyTradeImpactIfMoved(resource, effectivePrice);
     },
 
     buyResource: async (resource: ResourceType, amount: number) => {
@@ -117,31 +183,36 @@ export function createMarketActions(set: SetFn, get: GetFn) {
 
       const cost = globalPrice * amount * getBalance().market.buyPriceMarkup;
       if (state.money < cost) {
-        soundEngine.play('error', 'ui');
-        get().addNotification('error', 'Not enough money!');
+        soundEngine.play("error", "ui");
+        get().addNotification("error", "Not enough money!");
         return;
       }
 
       const newAmount = state.resources[resource] + amount;
       if (newAmount > getCapacity(state, resource)) {
-        soundEngine.play('error', 'ui');
-        get().addNotification('warning', 'Storage full!');
+        soundEngine.play("error", "ui");
+        get().addNotification("warning", "Storage full!");
         return;
       }
 
       // Report trade to global market pressure pool
-      fetch('/api/market/action', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resource, type: 'buy', amount }),
-      }).catch(err => console.warn('[Market] buyResource pressure report failed:', err));
+      fetch("/api/market/action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resource, type: "buy", amount }),
+      }).catch((err) =>
+        console.warn("[Market] buyResource pressure report failed:", err),
+      );
 
-      const validation = await import('../actionValidator').then(m =>
-        m.validateActionWithServer('buy', { resource, amount }, generateId())
+      const validation = await import("../actionValidator").then((m) =>
+        m.validateActionWithServer("buy", { resource, amount }, generateId()),
       );
       if (!validation.approved) {
-        soundEngine.play('error', 'ui');
-        get().addNotification('error', validation.error ?? 'Buy rejected by server');
+        soundEngine.play("error", "ui");
+        get().addNotification(
+          "error",
+          validation.error ?? "Buy rejected by server",
+        );
         return;
       }
 
@@ -149,7 +220,10 @@ export function createMarketActions(set: SetFn, get: GetFn) {
         resources: { ...state.resources, [resource]: newAmount },
         money: state.money - cost,
       });
-      get().addNotification('info', `Bought ${formatNumber(amount)} ${RESOURCE_META[resource].name} for $${formatNumber(cost)}`);
+      get().addNotification(
+        "info",
+        `Bought ${formatNumber(amount)} ${RESOURCE_META[resource].name} for $${formatNumber(cost)}`,
+      );
       // Phase 3 F5: schedule delayed price-impact check.
       const buyPrice = cost / amount;
       await notifyTradeImpactIfMoved(resource, buyPrice);
@@ -159,7 +233,7 @@ export function createMarketActions(set: SetFn, get: GetFn) {
       const state = get();
       const current = state.autoSellResources;
       if (current.includes(resource)) {
-        set({ autoSellResources: current.filter(r => r !== resource) });
+        set({ autoSellResources: current.filter((r) => r !== resource) });
       } else {
         set({ autoSellResources: [...current, resource] });
       }

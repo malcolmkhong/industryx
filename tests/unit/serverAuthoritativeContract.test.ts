@@ -33,9 +33,7 @@ function makeContract(overrides?: Partial<Contract>): Contract {
     name: "Iron Delivery",
     description: "Deliver 100 iron.",
     type: "delivery",
-    requiredResources: [
-      { resource: "iron", amount: 100 },
-    ],
+    requiredResources: [{ resource: "iron", amount: 100 }],
     timeLimit: 1000,
     timeRemaining: 500,
     reward: makeReward({ money: 1500 }),
@@ -55,17 +53,32 @@ function makeState(overrides?: {
   resources?: Record<string, number>;
   contracts?: Contract[];
   completedContracts?: number;
-  stats?: { contractsCompleted: number };
+  stats?: Partial<NonNullable<GameState["stats"]>>;
 }): Partial<GameState> {
+  const defaultStats: NonNullable<GameState["stats"]> = {
+    totalResourcesProduced: {} as Record<string, number>,
+    totalResourcesSold: {} as Record<string, number>,
+    peakEfficiency: 0,
+    factoriesBuilt: 0,
+    transportLinesBuilt: 0,
+    researchCompleted: 0,
+    contractsCompleted: 0,
+    playTime: 0,
+  };
   return {
     money: overrides?.money ?? 5000,
     totalMoneyEarned: overrides?.totalMoneyEarned ?? 5000,
     gameTick: 100,
     researchPoints: overrides?.researchPoints ?? 0,
-    resources: (overrides?.resources ?? { iron: 200, copper: 100 }) as Record<string, number>,
+    resources: (overrides?.resources ?? { iron: 200, copper: 100 }) as Record<
+      string,
+      number
+    >,
     contracts: overrides?.contracts ?? [makeContract()],
     completedContracts: overrides?.completedContracts ?? 0,
-    stats: overrides?.stats ?? { contractsCompleted: 0 } as never,
+    stats: { ...defaultStats, ...overrides?.stats } as NonNullable<
+      GameState["stats"]
+    >,
     prestigeState: {
       corporationPoints: 0,
       totalPrestiges: 0,
@@ -83,7 +96,10 @@ describe("validateFulfillContractAction (server-authoritative)", () => {
     expect(result.valid).toBe(true);
     expect(result.correctedState).toBeDefined();
     // Resources deducted
-    const resources = result.correctedState?.resources as Record<string, number>;
+    const resources = result.correctedState?.resources as Record<
+      string,
+      number
+    >;
     expect(resources.iron).toBe(100); // 200 - 100
     // Money + reward
     expect(result.correctedState?.money).toBe(5000 + 1500);
@@ -108,7 +124,9 @@ describe("validateFulfillContractAction (server-authoritative)", () => {
     const result = validateFulfillContractAction("c1", state);
 
     expect(result.correctedState?.completedContracts).toBe(6);
-    const stats = result.correctedState?.stats as { contractsCompleted: number };
+    const stats = result.correctedState?.stats as {
+      contractsCompleted: number;
+    };
     expect(stats.contractsCompleted).toBe(6);
   });
 
@@ -272,7 +290,10 @@ describe("validateFulfillContractAction (server-authoritative)", () => {
     const result = validateFulfillContractAction("c1", state);
 
     expect(result.valid).toBe(true);
-    const resources = result.correctedState?.resources as Record<string, number>;
+    const resources = result.correctedState?.resources as Record<
+      string,
+      number
+    >;
     expect(resources.iron).toBe(0);
     expect(resources.copper).toBe(0);
     expect(result.correctedState?.money).toBe(5000 + 2000);

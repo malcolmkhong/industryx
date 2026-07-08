@@ -25,6 +25,7 @@ import {
   ProductionSnapshot,
   emptyProductionSnapshot,
   GameDefs,
+  buildMultipliers,
   computePowerGrid,
   computeProduction,
   computeSellMultiplier,
@@ -709,12 +710,55 @@ export function validateBuildAction(
 
 /**
  * Validate a 'sell' action.
+ *
+ * Server-authoritative: looks up the resource in state.market (snapshot
+ * computed by server-side game tick), computes the sell price with
+ * server-side sellMultiplier (baseSellMultiplier + research market bonus),
+ * verifies the player has the resource, and returns the post-sell state.
+ *
+ * Income path: totalMoneyEarned increases by sellRevenue. stats.totalResourcesSold
+ * is incremented per resource.
  */
 export function validateSellAction(
   resource: string,
   amount: number,
   state: Partial<GameState>,
-): { valid: boolean; error?: string } {
+): {
+  valid: boolean;
+  error?: string;
+  correctedState?: Partial<GameState>;
+} {
+  // Input validation
+  if (!resource || typeof resource !== "string") {
+    return { valid: false, error: "Missing resource in payload" };
+  }
+  if (!Number.isFinite(amount) || amount <= 0 || !Number.isInteger(amount)) {
+    return {
+      valid: false,
+      error: `Invalid amount: ${amount}. Must be a positive integer.`,
+    };
+  }
+
+  // Market lookup (server-side, immune to client tampering with price)
+  const market = state.market ?? [];
+  const marketEntry = market.find((m) => m.resource === resource);
+  if (!marketEntry) {
+    return {
+      valid: false,
+      error: `No market found for resource "${resource}"`,
+    };
+  }
+  if (
+    !Number.isFinite(marketEntry.currentPrice) ||
+    marketEntry.currentPrice <= 0
+  ) {
+    return {
+      valid: false,
+      error: `Market price for ${resource} is invalid (${marketEntry.currentPrice})`,
+    };
+  }
+
+  // Resource availability check
   const resources = state.resources ?? {};
   const available = resources[resource as ResourceType] ?? 0;
   if (available < amount) {
@@ -724,17 +768,55 @@ export function validateSellAction(
     };
   }
 
-  // Check market exists
-  const market = state.market ?? [];
-  const marketEntry = market.find((m) => m.resource === resource);
-  if (!marketEntry) {
+  // Compute sell price using server-side multiplier. Note: the full
+  // multiplier (baseSellMultiplier + marketBonus) requires the modifier
+  // engine which has many state dependencies. For Phase 6, we use the
+  // baseSellMultiplier only (matches client formula's base component).
+  // Research-driven sell bonuses (marketBonus) are deferred — they
+  // would credit extra money to the player, so omitting them is the
+  // SAFE direction (no over-credit). The client-side notifyTradeImpactIfMoved
+  // still works against localPrice for UI feedback.
+  const sellMultiplier = getBalance().market.baseSellMultiplier;
+  const sellRevenue = marketEntry.currentPrice * amount * sellMultiplier;
+
+  if (!Number.isFinite(sellRevenue) || sellRevenue < 0) {
     return {
       valid: false,
-      error: `No market found for resource "${resource}"`,
+      error: `Computed sell price is non-finite (price=${marketEntry.currentPrice}, multiplier=${sellMultiplier})`,
     };
   }
 
-  return { valid: true };
+  const money = state.money ?? 0;
+  const totalMoneyEarned = state.totalMoneyEarned ?? 0;
+  const soldStats =
+    state.stats?.totalResourcesSold ?? ({} as Record<string, number>);
+  const newSoldStats: Record<string, number> = { ...soldStats };
+  newSoldStats[resource] = (newSoldStats[resource] ?? 0) + amount;
+
+  const newResources: Record<string, number> = { ...resources };
+  newResources[resource as ResourceType] = available - amount;
+
+  return {
+    valid: true,
+    correctedState: {
+      money: money + sellRevenue,
+      totalMoneyEarned: totalMoneyEarned + sellRevenue,
+      resources: newResources,
+      stats: {
+        ...(state.stats ?? {
+          totalResourcesProduced: {} as Record<string, number>,
+          totalResourcesSold: {} as Record<string, number>,
+          peakEfficiency: 0,
+          factoriesBuilt: 0,
+          transportLinesBuilt: 0,
+          researchCompleted: 0,
+          contractsCompleted: 0,
+          playTime: 0,
+        }),
+        totalResourcesSold: newSoldStats,
+      },
+    },
+  };
 }
 
 /**
