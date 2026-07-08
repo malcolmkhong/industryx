@@ -41,6 +41,7 @@ import {
   validateHireWorkerAction,
   validateAssignWorkerAction,
   validateCollectPayoutAction,
+  validateClaimQuestAction,
 } from "@/lib/game/serverEngine";
 import { applyElapsedTicks } from "@/lib/auth/applyElapsedTicks";
 import type { ServerGameStateForAction } from "@/lib/db/serverGameState";
@@ -408,6 +409,17 @@ function handleCollectPayoutAction(
   return validateCollectPayoutAction(gameState);
 }
 
+function handleClaimQuestAction(
+  payload: Record<string, unknown>,
+  gameState: Partial<GameState>,
+): ActionResponse {
+  const questId = payload.questId as string;
+  if (!questId) {
+    return { valid: false, error: "Missing questId in payload" };
+  }
+  return validateClaimQuestAction(questId, gameState);
+}
+
 function handleSetGameSpeed(
   payload: Record<string, unknown>,
   serverState: { state_version: number },
@@ -503,6 +515,7 @@ export async function POST(request: Request) {
     "hire_worker",
     "assign_worker",
     "collect_payout",
+    "claim_quest",
   ];
   if (!action || !validActions.includes(action)) {
     return NextResponse.json(
@@ -686,6 +699,9 @@ export async function POST(request: Request) {
     case "collect_payout":
       result = handleCollectPayoutAction(gameState);
       break;
+    case "claim_quest":
+      result = handleClaimQuestAction(payload, gameState);
+      break;
     default:
       result = { valid: false, error: `Unhandled action: ${action}` };
   }
@@ -793,6 +809,7 @@ export async function POST(request: Request) {
       | "toggle_building"
       | "upgrade_storage"
       | "collect_payout"
+      | "claim_quest"
       | "set_game_speed"
       | "bulk_build"
       | "bulk_sell",

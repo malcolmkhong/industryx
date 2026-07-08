@@ -1155,6 +1155,89 @@ export function validateCollectPayoutAction(state: Partial<GameState>): {
 }
 
 /**
+ * Validate a 'claim_quest' action.
+ *
+ * Server-authoritative: looks up the quest in state.quests, verifies it's
+ * completed and unclaimed, applies the reward (money + researchPoints +
+ * corporationPoints), and marks the quest as claimed.
+ *
+ * Income path: totalMoneyEarned increases by the money reward. This
+ * maintains the validate-ticks cron ratio check.
+ *
+ * Quest reward shape: `{ money, researchPoints?, corporationPoints? }`.
+ * The server reads the reward from the stored quest state (not from
+ * client payload) to prevent reward manipulation.
+ */
+export function validateClaimQuestAction(
+  questId: string,
+  state: Partial<GameState>,
+): {
+  valid: boolean;
+  error?: string;
+  correctedState?: Partial<GameState>;
+} {
+  if (!questId || typeof questId !== "string") {
+    return { valid: false, error: "Missing questId in payload" };
+  }
+
+  const quests = state.quests ?? [];
+  const questIdx = quests.findIndex((q) => q.id === questId);
+  if (questIdx < 0) {
+    return {
+      valid: false,
+      error: `Quest "${questId}" not found`,
+    };
+  }
+  const quest = quests[questIdx];
+
+  if (!quest.completed) {
+    return {
+      valid: false,
+      error: `Quest "${questId}" is not yet completed`,
+    };
+  }
+  if (quest.claimed) {
+    return {
+      valid: false,
+      error: `Quest "${questId}" reward already claimed`,
+    };
+  }
+
+  const reward = quest.reward;
+  if (!reward || typeof reward.money !== "number" || reward.money < 0) {
+    return {
+      valid: false,
+      error: `Quest "${questId}" has invalid reward configuration`,
+    };
+  }
+
+  const money = state.money ?? 0;
+  const totalMoneyEarned = state.totalMoneyEarned ?? 0;
+  const researchPoints = state.researchPoints ?? 0;
+  const corpPoints = state.prestigeState?.corporationPoints ?? 0;
+
+  // Update quest: mark as claimed (preserve all other fields).
+  const updatedQuest = { ...quest, claimed: true };
+  const nextQuests = quests.map((q, i) => (i === questIdx ? updatedQuest : q));
+
+  return {
+    valid: true,
+    correctedState: {
+      money: money + reward.money,
+      totalMoneyEarned: totalMoneyEarned + reward.money,
+      researchPoints: researchPoints + (reward.researchPoints ?? 0),
+      quests: nextQuests,
+      prestigeState: {
+        totalPrestiges: state.prestigeState?.totalPrestiges ?? 0,
+        megaFactoryUnlocked: state.prestigeState?.megaFactoryUnlocked ?? false,
+        bonuses: state.prestigeState?.bonuses ?? [],
+        corporationPoints: corpPoints + (reward.corporationPoints ?? 0),
+      },
+    },
+  };
+}
+
+/**
  * Validate an 'upgrade_storage' action.
  *
  * Server-authoritative: computes the log-dampened exponential cost

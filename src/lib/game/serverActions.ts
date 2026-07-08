@@ -118,6 +118,14 @@ export async function submitActionToServer(
               workers?: unknown[];
               totalMoneyEarned?: number;
               pendingPayout?: number;
+              researchPoints?: number;
+              quests?: unknown[];
+              prestigeState?: { corporationPoints?: number } & Record<
+                string,
+                unknown
+              >;
+              contracts?: unknown[];
+              lastDailyClaim?: number;
             }
           | undefined,
       };

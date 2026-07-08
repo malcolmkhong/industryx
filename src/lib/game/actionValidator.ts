@@ -31,7 +31,9 @@ export type ValidatedActionType =
   | "collect_drone"
   | "claim_quest"
   | "upgrade_storage"
-  | "collect_payout";
+  | "collect_payout"
+  | "fulfill_contract"
+  | "claim_daily_reward";
 
 export interface ValidatedActionResult {
   approved: boolean;
@@ -53,6 +55,11 @@ export interface ValidatedActionResult {
     workers?: unknown[];
     totalMoneyEarned?: number;
     pendingPayout?: number;
+    researchPoints?: number;
+    quests?: unknown[];
+    prestigeState?: { corporationPoints?: number } & Record<string, unknown>;
+    contracts?: unknown[];
+    lastDailyClaim?: number;
   };
 }
 
