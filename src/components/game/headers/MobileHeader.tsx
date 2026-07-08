@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Bell, Check, Cloud, CloudOff, Download, Loader2, LogIn, LogOut,
   Newspaper, Pause, Play, RefreshCw, User, Wifi, WifiOff,
@@ -61,7 +61,7 @@ export function MobileHeader({ onTabChange, onManageAccount }: MobileHeaderProps
   const { moneyGlow } = useMoneyGlowEffect();
   const { user, isGuest, signOut, loading: authLoading } = useAuth();
   const { isUsingSupabase, reload: reloadConfig } = useGameConfig();
-  const { saveToCloud, loadFromCloud } = useCloudSync();
+  const { saveToCloud, loadFromCloud, isSyncing } = useCloudSync();
   const { promptLogin } = useLoginPrompt();
 
   const [cloudStatus, setCloudStatus] = useState<'idle' | 'saving' | 'loading' | 'success' | 'error'>('idle');
@@ -96,7 +96,15 @@ export function MobileHeader({ onTabChange, onManageAccount }: MobileHeaderProps
     return () => clearInterval(t);
   }, [topHeadlines.length]);
 
+  // Phase 5.5: debounce + reactive isSyncing guard. See DesktopHeader for
+  // full rationale. Same pattern in both headers.
+  const lastSaveClickRef = useRef(0);
+  const SAVE_DEBOUNCE_MS = 2000;
   const handleCloudSave = async () => {
+    if (isSyncing) return;
+    const now = Date.now();
+    if (now - lastSaveClickRef.current < SAVE_DEBOUNCE_MS) return;
+    lastSaveClickRef.current = now;
     setCloudStatus('saving');
     const result = await saveToCloud();
     setCloudStatus(result.success ? 'success' : 'error');
@@ -522,7 +530,7 @@ export function MobileHeader({ onTabChange, onManageAccount }: MobileHeaderProps
                   className="h-9 w-9 min-h-9 min-w-9 p-0 flex items-center justify-center rounded-lg text-subtle hover:text-brand hover:bg-white/[0.04] transition-colors focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background relative"
                   onClick={handleCloudSave}
                   aria-label="Save to Cloud"
-                  disabled={cloudStatus === 'saving'}
+                  disabled={cloudStatus === 'saving' || isSyncing}
                 >
                   {cloudStatus === 'saving' ? (
                     <Loader2 className="w-4 h-4 text-brand animate-spin" aria-hidden="true" />
@@ -652,7 +660,7 @@ export function MobileHeader({ onTabChange, onManageAccount }: MobileHeaderProps
                   <User className="w-3 h-3 mr-2" /> Manage Account
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem onSelect={handleCloudSave} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand" disabled={cloudStatus === 'saving'}>
+              <DropdownMenuItem onSelect={handleCloudSave} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand" disabled={cloudStatus === 'saving' || isSyncing}>
                 <Cloud className="w-3 h-3 mr-2" /> Save to Cloud
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={handleCloudLoad} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand" disabled={cloudStatus === 'loading'}>

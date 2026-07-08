@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { useGameStore, formatNumber, isResearchUnlocked } from '@/lib/game/store';
 import { useShallow } from 'zustand/react/shallow';
 import { RESEARCH_TREE, RESOURCE_META } from '@/lib/game/configCache';
+import { useConfigVersion } from '@/components/providers/GameConfigProvider';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -18,6 +19,7 @@ import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { GameIcon } from '@/components/icons';
 
 export function ResearchPanel() {
+  useConfigVersion();
   const store = useGameStore(useShallow((s) => ({ activeResearch: s.activeResearch, completedResearch: s.completedResearch, researchPoints: s.researchPoints, researchProgress: s.researchProgress, startResearch: s.startResearch })));
   const [startingResearch, setStartingResearch] = useState<string | null>(null);
 

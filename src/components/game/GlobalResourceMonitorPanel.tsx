@@ -1,35 +1,78 @@
 // Global Resource Monitor Panel — Real-time resource intelligence & navigation control
-'use client';
+"use client";
 
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { AnimatePresence, motion } from 'framer-motion';
 import {
-  Activity, Search, AlertTriangle, TrendingUp, TrendingDown,
-  Zap, Link2, Navigation, ChevronUp, ChevronDown, Filter,
-  ArrowUpDown, Package, BarChart3, Database, AlertCircle,
-  Wallet, FlaskConical, Building2, GitBranch,
-} from 'lucide-react';
-import { useGameStore, formatNumber, hasUnlimitedStorage } from '@/lib/game/store';
-import { useShallow } from 'zustand/react/shallow';
-import { BUILDING_DEFS, RESOURCE_META } from '@/lib/game/configCache';
-import { ResourceType, GameTab } from '@/lib/game/types';
-import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
-import { GameIcon } from '@/components/icons';
-import ResourceFlowDiagram from './ResourceFlowDiagram';
+  useState,
+  useMemo,
+  useCallback,
+  useRef,
+  useEffect,
+  useDeferredValue,
+} from "react";
+import { createPortal } from "react-dom";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  Activity,
+  Search,
+  AlertTriangle,
+  TrendingUp,
+  TrendingDown,
+  Zap,
+  Link2,
+  Navigation,
+  ChevronUp,
+  ChevronDown,
+  Filter,
+  Package,
+  BarChart3,
+  Database,
+  AlertCircle,
+  Wallet,
+  FlaskConical,
+  Building2,
+  GitBranch,
+  X,
+  Minus,
+} from "lucide-react";
+import {
+  useGameStore,
+  formatNumber,
+  hasUnlimitedStorage,
+} from "@/lib/game/store";
+import { useShallow } from "zustand/react/shallow";
+import { BUILDING_DEFS, RESOURCE_META } from "@/lib/game/configCache";
+import { useConfigVersion } from "@/components/providers/GameConfigProvider";
+import { ResourceType, GameTab } from "@/lib/game/types";
+import { PanelStatCard } from "@/components/game/shared/PanelStatCard";
+import { GameIcon } from "@/components/icons";
+import { TIER_INFO } from "@/lib/game/tiers";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import ResourceFlowDiagram from "./ResourceFlowDiagram";
 
 // ─── Tier Badge Colors ────────────────────────────────────────────────────────
-const TIER_COLORS: Record<number, { bg: string; text: string; border: string }> = {
-  0: { bg: 'bg-warning/30', text: 'text-warning', border: 'border-warning' },
-  1: { bg: 'bg-brand/30', text: 'text-brand', border: 'border-brand' },
-  2: { bg: 'bg-domain/30', text: 'text-domain', border: 'border-domain' },
-  3: { bg: 'bg-research/30', text: 'text-research', border: 'border-research' },
-  4: { bg: 'bg-success/30', text: 'text-success', border: 'border-success' },
-  5: { bg: 'bg-danger/30', text: 'text-danger', border: 'border-danger' },
-};
+// Tier colors derived from central TIER_INFO module.
+// bg/text/border fields sourced from tailwindColor key.
+const TIER_COLORS: Record<
+  number,
+  { bg: string; text: string; border: string }
+> = Object.fromEntries(
+  TIER_INFO.map((info, tier) => [
+    tier,
+    {
+      bg: `${info.tailwindColor === "gray" ? "bg-warning" : info.tailwindBg.replace("/20", "/30")}`,
+      text:
+        info.tailwindColor === "gray"
+          ? "text-warning"
+          : `text-${info.tailwindColor}`,
+      border: `border-${info.tailwindColor}`,
+    },
+  ]),
+) as Record<number, { bg: string; text: string; border: string }>;
 
 // ─── Resource Status ──────────────────────────────────────────────────────────
-type ResourceStatus = 'critical' | 'declining' | 'stable' | 'idle';
+type ResourceStatus = "critical" | "declining" | "stable" | "idle";
 
 interface ResourceRowData {
   resource: ResourceType;
@@ -47,8 +90,15 @@ interface ResourceRowData {
 }
 
 // ─── Sort Type ────────────────────────────────────────────────────────────────
-type SortKey = 'name' | 'tier' | 'amount' | 'productionRate' | 'consumptionRate' | 'netRate' | 'status';
-type SortDir = 'asc' | 'desc';
+type SortKey =
+  | "name"
+  | "tier"
+  | "amount"
+  | "productionRate"
+  | "consumptionRate"
+  | "netRate"
+  | "status";
+type SortDir = "asc" | "desc";
 
 const STATUS_ORDER: Record<ResourceStatus, number> = {
   critical: 0,
@@ -57,11 +107,14 @@ const STATUS_ORDER: Record<ResourceStatus, number> = {
   idle: 3,
 };
 
-const STATUS_LABELS: Record<ResourceStatus, { label: string; color: string; bg: string }> = {
-  critical: { label: 'Critical', color: 'text-danger', bg: 'bg-danger/30' },
-  declining: { label: 'Declining', color: 'text-domain', bg: 'bg-domain/30' },
-  stable: { label: 'Stable', color: 'text-success', bg: 'bg-success/30' },
-  idle: { label: 'Idle', color: 'text-muted-label', bg: 'bg-muted-label/50' },
+const STATUS_LABELS: Record<
+  ResourceStatus,
+  { label: string; color: string; bg: string }
+> = {
+  critical: { label: "Critical", color: "text-danger", bg: "bg-danger/30" },
+  declining: { label: "Declining", color: "text-domain", bg: "bg-domain/30" },
+  stable: { label: "Stable", color: "text-success", bg: "bg-success/30" },
+  idle: { label: "Idle", color: "text-muted-label", bg: "bg-muted-label/50" },
 };
 
 // ─── Producers/Consumers lookup (precomputed) ─────────────────────────────────
@@ -73,7 +126,7 @@ function buildDependencyMaps() {
     // Buildings that produce this resource
     if (bDef.outputs) {
       for (const out of bDef.outputs) {
-        if (out.resource === 'money') continue;
+        if (out.resource === "money") continue;
         const res = out.resource as string;
         if (!producers[res]) producers[res] = [];
         producers[res].push({ type: bType, name: bDef.name });
@@ -82,7 +135,7 @@ function buildDependencyMaps() {
     // Buildings that consume this resource
     if (bDef.inputs) {
       for (const inp of bDef.inputs) {
-        if (inp.resource === 'money') continue;
+        if (inp.resource === "money") continue;
         const res = inp.resource as string;
         if (!consumers[res]) consumers[res] = [];
         consumers[res].push({ type: bType, name: bDef.name });
@@ -93,7 +146,8 @@ function buildDependencyMaps() {
   return { producers, consumers };
 }
 
-const { producers: PRODUCER_MAP, consumers: CONSUMER_MAP } = buildDependencyMaps();
+const { producers: PRODUCER_MAP, consumers: CONSUMER_MAP } =
+  buildDependencyMaps();
 
 // ─── Custom Hook: useResourceHover ────────────────────────────────────────────
 interface HoverState {
@@ -107,7 +161,11 @@ function useResourceHover(
   showDelay = 200,
   hideDelay = 300,
 ) {
-  const [hover, setHover] = useState<HoverState>({ resource: null, overlayLeft: 0, overlayTop: 0 });
+  const [hover, setHover] = useState<HoverState>({
+    resource: null,
+    overlayLeft: 0,
+    overlayTop: 0,
+  });
   const showTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -118,30 +176,33 @@ function useResourceHover(
     }
   }, []);
 
-  const onEnter = useCallback((resource: ResourceType, e: React.MouseEvent) => {
-    if (hideTimer.current) {
-      clearTimeout(hideTimer.current);
-      hideTimer.current = null;
-    }
-    const rowRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const containerRect = getContainerRect();
-    const overlayWidth = 288; // w-72
-    const overlayHeight = 350;
+  const onEnter = useCallback(
+    (resource: ResourceType, e: React.MouseEvent) => {
+      if (hideTimer.current) {
+        clearTimeout(hideTimer.current);
+        hideTimer.current = null;
+      }
+      const rowRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      const containerRect = getContainerRect();
+      const overlayWidth = 288; // w-72
+      const overlayHeight = 350;
 
-    // Center horizontally on the resource table container
-    let left = containerRect
-      ? containerRect.left + containerRect.width / 2 - overlayWidth / 2
-      : rowRect.right + 12;
-    left = Math.max(8, Math.min(left, window.innerWidth - overlayWidth - 8));
+      // Center horizontally on the resource table container
+      let left = containerRect
+        ? containerRect.left + containerRect.width / 2 - overlayWidth / 2
+        : rowRect.right + 12;
+      left = Math.max(8, Math.min(left, window.innerWidth - overlayWidth - 8));
 
-    // Align vertically with the hovered row
-    let top = rowRect.top;
-    top = Math.max(8, Math.min(top, window.innerHeight - overlayHeight - 8));
+      // Align vertically with the hovered row
+      let top = rowRect.top;
+      top = Math.max(8, Math.min(top, window.innerHeight - overlayHeight - 8));
 
-    showTimer.current = setTimeout(() => {
-      setHover({ resource, overlayLeft: left, overlayTop: top });
-    }, showDelay);
-  }, [showDelay, getContainerRect]);
+      showTimer.current = setTimeout(() => {
+        setHover({ resource, overlayLeft: left, overlayTop: top });
+      }, showDelay);
+    },
+    [showDelay, getContainerRect],
+  );
 
   const onLeave = useCallback(() => {
     if (showTimer.current) {
@@ -159,11 +220,11 @@ function useResourceHover(
 // ─── Custom Hook: useResourceHighlight ────────────────────────────────────────
 function useResourceHighlight() {
   const highlightAndNavigate = useCallback((tab: GameTab) => {
-    const mainEl = document.querySelector('main');
+    const mainEl = document.querySelector("main");
     if (mainEl) {
-      mainEl.classList.add('resource-focus-highlight');
+      mainEl.classList.add("resource-focus-highlight");
       setTimeout(() => {
-        mainEl.classList.remove('resource-focus-highlight');
+        mainEl.classList.remove("resource-focus-highlight");
       }, 3000);
     }
   }, []);
@@ -174,30 +235,67 @@ function useResourceHighlight() {
 // ─── Determine navigation target for a resource ──────────────────────────────
 function getNavTargetForResource(resource: ResourceType): GameTab {
   const meta = RESOURCE_META[resource];
-  if (!meta) return 'resources';
+  if (!meta) return "resources";
 
   // T0 raw → resources (Extraction tab)
-  if (meta.tier === 0) return 'resources';
+  if (meta.tier === 0) return "resources";
   // T1-T4 → factories
-  return 'factories';
+  return "factories";
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function GlobalResourceMonitorPanel() {
-  const store = useGameStore(useShallow((s) => ({ buildings: s.buildings, megaProjects: s.megaProjects, money: s.money, prestigeState: s.prestigeState, productionSnapshot: s.productionSnapshot, researchPoints: s.researchPoints, resourceCapacity: s.resourceCapacity, resources: s.resources, setActiveTab: s.setActiveTab, upgradeBuilding: s.upgradeBuilding })));
+  useConfigVersion();
+  const store = useGameStore(
+    useShallow((s) => ({
+      buildings: s.buildings,
+      megaProjects: s.megaProjects,
+      money: s.money,
+      prestigeState: s.prestigeState,
+      productionSnapshot: s.productionSnapshot,
+      researchPoints: s.researchPoints,
+      resourceCapacity: s.resourceCapacity,
+      resources: s.resources,
+      setActiveTab: s.setActiveTab,
+      upgradeBuilding: s.upgradeBuilding,
+    })),
+  );
 
   // Filters & sorting state
-  const [tierFilter, setTierFilter] = useState<number | 'all'>('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [tierFilter, setTierFilter] = useState<number | "all">("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const deferredSearch = useDeferredValue(searchQuery);
   const [criticalOnly, setCriticalOnly] = useState(false);
-  const [sortKey, setSortKey] = useState<SortKey>('status');
-  const [sortDir, setSortDir] = useState<SortDir>('asc');
-  const [toast, setToast] = useState<{ message: string; id: number } | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>("status");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [toast, setToast] = useState<{ message: string; id: number } | null>(
+    null,
+  );
+
+  // Reset all filters (search + tier + critical + sort back to status)
+  const hasActiveFilter =
+    searchQuery.trim() !== "" ||
+    tierFilter !== "all" ||
+    criticalOnly ||
+    sortKey !== "status" ||
+    sortDir !== "asc";
+
+  const resetFilters = useCallback(() => {
+    setSearchQuery("");
+    setTierFilter("all");
+    setCriticalOnly(false);
+    setSortKey("status");
+    setSortDir("asc");
+  }, []);
 
   // Hover state
   const tableContainerRef = useRef<HTMLDivElement>(null);
-  const getContainerRect = useCallback(() => tableContainerRef.current?.getBoundingClientRect(), []);
-  const { hover, onEnter, onLeave, cancelHide } = useResourceHover(getContainerRect);
+  const getContainerRect = useCallback(
+    () => tableContainerRef.current?.getBoundingClientRect(),
+    [],
+  );
+  const { hover, onEnter, onLeave, cancelHide } =
+    useResourceHover(getContainerRect);
   const { highlightAndNavigate } = useResourceHighlight();
 
   // Toast auto-dismiss
@@ -213,189 +311,250 @@ export default function GlobalResourceMonitorPanel() {
   const allResources = useMemo<ResourceRowData[]>(() => {
     const unlimited = hasUnlimitedStorage(store.megaProjects);
     return (Object.keys(RESOURCE_META) as ResourceType[])
-      .filter(res => RESOURCE_META[res] != null)  // guard against null/undefined meta
+      .filter((res) => RESOURCE_META[res] != null) // guard against null/undefined meta
       .map((res) => {
-      const meta = RESOURCE_META[res];
-      const amount = store.resources[res] ?? 0;
-      const capacity = unlimited ? Infinity : (store.resourceCapacity[res] ?? 50);
-      const prodRate = store.productionSnapshot.production[res] ?? 0;
-      const consRate = store.productionSnapshot.consumption[res] ?? 0;
-      const netRate = prodRate - consRate;
-      const fillPct = capacity === Infinity ? 0 : (amount / capacity) * 100;
+        const meta = RESOURCE_META[res];
+        const amount = store.resources[res] ?? 0;
+        const capacity = unlimited
+          ? Infinity
+          : (store.resourceCapacity[res] ?? 50);
+        const prodRate = store.productionSnapshot.production[res] ?? 0;
+        const consRate = store.productionSnapshot.consumption[res] ?? 0;
+        const netRate = prodRate - consRate;
+        const fillPct = capacity === Infinity ? 0 : (amount / capacity) * 100;
 
-      // Status determination
-      const lowStock = capacity !== Infinity && amount < capacity * 0.2;
-      const isBottleneck = consRate > prodRate && prodRate > 0;
+        // Status determination
+        const lowStock = capacity !== Infinity && amount < capacity * 0.2;
+        const isBottleneck = consRate > prodRate && prodRate > 0;
 
-      let status: ResourceStatus;
-      if (netRate < 0 && lowStock) {
-        status = 'critical';
-      } else if (netRate < 0) {
-        status = 'declining';
-      } else if (prodRate > 0 || consRate > 0) {
-        status = 'stable';
-      } else {
-        status = 'idle';
-      }
+        let status: ResourceStatus;
+        if (netRate < 0 && lowStock) {
+          status = "critical";
+        } else if (netRate < 0) {
+          status = "declining";
+        } else if (prodRate > 0 || consRate > 0) {
+          status = "stable";
+        } else {
+          status = "idle";
+        }
 
-      return {
-        resource: res,
-        name: meta.name,
-        icon: meta.icon,
-        tier: meta.tier,
-        amount,
-        capacity,
-        productionRate: prodRate,
-        consumptionRate: consRate,
-        netRate,
-        status,
-        isBottleneck,
-        fillPct,
-      };
-    });
-  }, [store.resources, store.resourceCapacity, store.productionSnapshot.production, store.productionSnapshot.consumption, store.megaProjects]);
+        return {
+          resource: res,
+          name: meta.name,
+          icon: meta.icon,
+          tier: meta.tier,
+          amount,
+          capacity,
+          productionRate: prodRate,
+          consumptionRate: consRate,
+          netRate,
+          status,
+          isBottleneck,
+          fillPct,
+        };
+      });
+  }, [
+    store.resources,
+    store.resourceCapacity,
+    store.productionSnapshot.production,
+    store.productionSnapshot.consumption,
+    store.megaProjects,
+  ]);
 
   // ─── Filter & sort ──────────────────────────────────────────────────────
   const filteredResources = useMemo(() => {
     let rows = allResources;
 
     // Tier filter
-    if (tierFilter !== 'all') {
-      rows = rows.filter(r => r.tier === tierFilter);
+    if (tierFilter !== "all") {
+      rows = rows.filter((r) => r.tier === tierFilter);
     }
 
     // Critical only
     if (criticalOnly) {
-      rows = rows.filter(r => r.status === 'critical' || r.status === 'declining');
+      rows = rows.filter(
+        (r) => r.status === "critical" || r.status === "declining",
+      );
     }
 
-    // Search
-    if (searchQuery.trim()) {
-      const q = searchQuery.trim().toLowerCase();
-      rows = rows.filter(r => r.name.toLowerCase().includes(q) || r.resource.toLowerCase().includes(q));
+    // Search (uses deferred value to avoid blocking render on each keystroke)
+    if (deferredSearch.trim()) {
+      const q = deferredSearch.trim().toLowerCase();
+      rows = rows.filter(
+        (r) =>
+          r.name.toLowerCase().includes(q) ||
+          r.resource.toLowerCase().includes(q),
+      );
     }
 
     // Sort
     rows = [...rows].sort((a, b) => {
       let cmp = 0;
       switch (sortKey) {
-        case 'name':
+        case "name":
           cmp = a.name.localeCompare(b.name);
           break;
-        case 'tier':
+        case "tier":
           cmp = a.tier - b.tier;
           break;
-        case 'amount':
+        case "amount":
           cmp = a.amount - b.amount;
           break;
-        case 'productionRate':
+        case "productionRate":
           cmp = a.productionRate - b.productionRate;
           break;
-        case 'consumptionRate':
+        case "consumptionRate":
           cmp = a.consumptionRate - b.consumptionRate;
           break;
-        case 'netRate':
+        case "netRate":
           cmp = a.netRate - b.netRate;
           break;
-        case 'status':
+        case "status":
           cmp = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
           break;
       }
-      return sortDir === 'asc' ? cmp : -cmp;
+      return sortDir === "asc" ? cmp : -cmp;
     });
 
     return rows;
-  }, [allResources, tierFilter, searchQuery, criticalOnly, sortKey, sortDir]);
+  }, [
+    allResources,
+    tierFilter,
+    deferredSearch,
+    criticalOnly,
+    sortKey,
+    sortDir,
+  ]);
 
   // ─── Overview stats ─────────────────────────────────────────────────────
-  const totalNonZero = useMemo(() => allResources.filter(r => r.amount > 0).length, [allResources]);
-  const netProduction = useMemo(() => allResources.filter(r => r.netRate > 0).reduce((s, r) => s + r.netRate, 0), [allResources]);
-  const criticalCount = useMemo(() => allResources.filter(r => r.status === 'critical').length, [allResources]);
+  const totalNonZero = useMemo(
+    () => allResources.filter((r) => r.amount > 0).length,
+    [allResources],
+  );
+  const netProduction = useMemo(
+    () =>
+      allResources
+        .filter((r) => r.netRate > 0)
+        .reduce((s, r) => s + r.netRate, 0),
+    [allResources],
+  );
+  const criticalCount = useMemo(
+    () => allResources.filter((r) => r.status === "critical").length,
+    [allResources],
+  );
   const avgUtilization = useMemo(() => {
-    const withCap = allResources.filter(r => r.capacity !== Infinity);
+    const withCap = allResources.filter((r) => r.capacity !== Infinity);
     if (withCap.length === 0) return 100;
     return withCap.reduce((s, r) => s + r.fillPct, 0) / withCap.length;
   }, [allResources]);
 
   const mostConstrained = useMemo(() => {
-    const withConsumption = allResources.filter(r => r.consumptionRate > 0);
+    const withConsumption = allResources.filter((r) => r.consumptionRate > 0);
     if (withConsumption.length === 0) return null;
-    return withConsumption.reduce((worst, r) => r.netRate < worst.netRate ? r : worst);
+    return withConsumption.reduce((worst, r) =>
+      r.netRate < worst.netRate ? r : worst,
+    );
   }, [allResources]);
 
   // ─── Summary totals ─────────────────────────────────────────────────────
-  const totalProduction = useMemo(() => allResources.reduce((s, r) => s + r.productionRate, 0), [allResources]);
-  const totalConsumption = useMemo(() => allResources.reduce((s, r) => s + r.consumptionRate, 0), [allResources]);
+  const totalProduction = useMemo(
+    () => allResources.reduce((s, r) => s + r.productionRate, 0),
+    [allResources],
+  );
+  const totalConsumption = useMemo(
+    () => allResources.reduce((s, r) => s + r.consumptionRate, 0),
+    [allResources],
+  );
   const totalNet = totalProduction - totalConsumption;
 
   // ─── Sort handler ───────────────────────────────────────────────────────
   const handleSort = useCallback((key: SortKey) => {
-    setSortKey(prev => {
+    setSortKey((prev) => {
       if (prev === key) {
-        setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+        setSortDir((d) => (d === "asc" ? "desc" : "asc"));
         return prev;
       }
-      setSortDir('asc');
+      setSortDir("asc");
       return key;
     });
   }, []);
 
   // ─── Quick upgrade ──────────────────────────────────────────────────────
-  const handleQuickUpgrade = useCallback((resource: ResourceType) => {
-    const row = allResources.find(r => r.resource === resource);
-    if (!row || (row.status !== 'critical' && row.status !== 'declining' && row.netRate >= 0)) return;
+  const handleQuickUpgrade = useCallback(
+    (resource: ResourceType) => {
+      const row = allResources.find((r) => r.resource === resource);
+      if (
+        !row ||
+        (row.status !== "critical" &&
+          row.status !== "declining" &&
+          row.netRate >= 0)
+      )
+        return;
 
-    // Find buildings that produce this resource
-    const producerTypes = PRODUCER_MAP[resource] ?? [];
-    if (producerTypes.length === 0) return;
+      // Find buildings that produce this resource
+      const producerTypes = PRODUCER_MAP[resource] ?? [];
+      if (producerTypes.length === 0) return;
 
-    // Find the lowest-level one from placed buildings
-    let bestBuilding: { id: string; name: string; level: number } | null = null;
-    for (const pt of producerTypes) {
-      const matching = store.buildings.filter(b => b.type === pt.type);
-      for (const b of matching) {
-        if (!bestBuilding || b.level < bestBuilding.level) {
-          const def = BUILDING_DEFS[b.type];
-          bestBuilding = { id: b.id, name: def?.name ?? pt.name, level: b.level };
+      // Find the lowest-level one from placed buildings
+      let bestBuilding: { id: string; name: string; level: number } | null =
+        null;
+      for (const pt of producerTypes) {
+        const matching = store.buildings.filter((b) => b.type === pt.type);
+        for (const b of matching) {
+          if (!bestBuilding || b.level < bestBuilding.level) {
+            const def = BUILDING_DEFS[b.type];
+            bestBuilding = {
+              id: b.id,
+              name: def?.name ?? pt.name,
+              level: b.level,
+            };
+          }
         }
       }
-    }
 
-    if (bestBuilding) {
-      store.upgradeBuilding(bestBuilding.id);
-      toastIdRef.current += 1;
-      setToast({ message: `Upgraded ${bestBuilding.name} to Lv.${bestBuilding.level + 1}`, id: toastIdRef.current });
-    }
-  }, [store, allResources]);
+      if (bestBuilding) {
+        store.upgradeBuilding(bestBuilding.id);
+        toastIdRef.current += 1;
+        setToast({
+          message: `Upgraded ${bestBuilding.name} to Lv.${bestBuilding.level + 1}`,
+          id: toastIdRef.current,
+        });
+      }
+    },
+    [store, allResources],
+  );
 
   // ─── Quick navigate ─────────────────────────────────────────────────────
-  const handleNavigate = useCallback((resource: ResourceType) => {
-    const targetTab = getNavTargetForResource(resource);
-    store.setActiveTab(targetTab);
-    highlightAndNavigate(targetTab);
-  }, [store, highlightAndNavigate]);
+  const handleNavigate = useCallback(
+    (resource: ResourceType) => {
+      const targetTab = getNavTargetForResource(resource);
+      store.setActiveTab(targetTab);
+      highlightAndNavigate(targetTab);
+    },
+    [store, highlightAndNavigate],
+  );
 
   // ─── View chain (navigate to dashboard) ─────────────────────────────────
   const handleViewChain = useCallback(() => {
-    store.setActiveTab('dashboard');
-    highlightAndNavigate('dashboard');
+    store.setActiveTab("dashboard");
+    highlightAndNavigate("dashboard");
   }, [store, highlightAndNavigate]);
 
   // ─── Hovered resource data ──────────────────────────────────────────────
   const hoveredRow = useMemo(() => {
     if (!hover.resource) return null;
-    return allResources.find(r => r.resource === hover.resource) ?? null;
+    return allResources.find((r) => r.resource === hover.resource) ?? null;
   }, [hover.resource, allResources]);
 
   // ─── Tier filter tabs ───────────────────────────────────────────────────
-  const tierTabs: { value: number | 'all'; label: string }[] = [
-    { value: 'all', label: 'All' },
-    { value: 0, label: 'T0' },
-    { value: 1, label: 'T1' },
-    { value: 2, label: 'T2' },
-    { value: 3, label: 'T3' },
-    { value: 4, label: 'T4' },
-    { value: 5, label: 'T5' },
+  const tierTabs: { value: number | "all"; label: string }[] = [
+    { value: "all", label: "All" },
+    { value: 0, label: "T0" },
+    { value: 1, label: "T1" },
+    { value: 2, label: "T2" },
+    { value: 3, label: "T3" },
+    { value: 4, label: "T4" },
+    { value: 5, label: "T5" },
   ];
 
   return (
@@ -407,7 +566,9 @@ export default function GlobalResourceMonitorPanel() {
             <Activity className="w-5 h-5" />
             Global Resource Monitor
           </h2>
-          <p className="text-xs text-muted-label mt-0.5">Real-time resource intelligence & navigation control</p>
+          <p className="text-xs text-muted-label mt-0.5">
+            Real-time resource intelligence & navigation control
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-[10px] px-2 py-0.5 rounded-full bg-brand/30 border border-brand/40 text-brand">
@@ -436,30 +597,48 @@ export default function GlobalResourceMonitorPanel() {
           value={formatNumber(netProduction)}
           subtext="positive net rate"
           color="green"
-          trend={netProduction > 0 ? 'up' : netProduction < 0 ? 'down' : undefined}
+          trend={
+            netProduction > 0 ? "up" : netProduction < 0 ? "down" : undefined
+          }
         />
         <PanelStatCard
           icon={<AlertTriangle className="w-4 h-4" />}
           label="Critical Alerts"
           value={String(criticalCount)}
-          subtext={criticalCount > 0 ? 'needs attention' : 'all clear'}
-          color={criticalCount > 0 ? 'red' : 'green'}
-          trend={criticalCount > 0 ? 'down' : undefined}
+          subtext={criticalCount > 0 ? "needs attention" : "all clear"}
+          color={criticalCount > 0 ? "red" : "green"}
+          trend={criticalCount > 0 ? "down" : undefined}
         />
         <PanelStatCard
           icon={<Package className="w-4 h-4" />}
           label="Storage Util."
           value={`${avgUtilization.toFixed(1)}%`}
           subtext="avg fill across all"
-          color={avgUtilization > 90 ? 'red' : avgUtilization > 70 ? 'orange' : 'sky'}
+          color={
+            avgUtilization > 90 ? "red" : avgUtilization > 70 ? "orange" : "sky"
+          }
         />
         <PanelStatCard
           icon={<GitBranch className="w-4 h-4" />}
           label="Most Constrained"
-          value={mostConstrained ? mostConstrained.name : <span className="text-muted-label text-xs">—</span>}
-          subtext={mostConstrained ? `${mostConstrained.netRate > 0 ? '+' : ''}${formatNumber(mostConstrained.netRate)}/s net` : 'no active consumers'}
-          color={mostConstrained && mostConstrained.netRate < 0 ? 'orange' : 'teal'}
-          trend={mostConstrained && mostConstrained.netRate < 0 ? 'down' : undefined}
+          value={
+            mostConstrained ? (
+              mostConstrained.name
+            ) : (
+              <span className="text-muted-label text-xs">—</span>
+            )
+          }
+          subtext={
+            mostConstrained
+              ? `${mostConstrained.netRate > 0 ? "+" : ""}${formatNumber(mostConstrained.netRate)}/s net`
+              : "no active consumers"
+          }
+          color={
+            mostConstrained && mostConstrained.netRate < 0 ? "orange" : "teal"
+          }
+          trend={
+            mostConstrained && mostConstrained.netRate < 0 ? "down" : undefined
+          }
         />
       </div>
 
@@ -468,20 +647,31 @@ export default function GlobalResourceMonitorPanel() {
         <div className="flex items-center gap-1.5 text-xs">
           <TrendingUp className="w-3.5 h-3.5 text-success" />
           <span className="text-subtle">Total Prod:</span>
-          <span className="text-success font-mono font-bold">{formatNumber(totalProduction)}/s</span>
+          <span className="text-success font-mono font-bold">
+            {formatNumber(totalProduction)}/s
+          </span>
         </div>
         <div className="w-px h-4 bg-muted-label" />
         <div className="flex items-center gap-1.5 text-xs">
           <TrendingDown className="w-3.5 h-3.5 text-danger" />
           <span className="text-subtle">Total Cons:</span>
-          <span className="text-danger font-mono font-bold">{formatNumber(totalConsumption)}/s</span>
+          <span className="text-danger font-mono font-bold">
+            {formatNumber(totalConsumption)}/s
+          </span>
         </div>
         <div className="w-px h-4 bg-muted-label" />
         <div className="flex items-center gap-1.5 text-xs">
           <BarChart3 className="w-3.5 h-3.5 text-brand" />
           <span className="text-subtle">Net:</span>
-          <span className={`font-mono font-bold ${totalNet >= 0 ? 'text-success' : 'text-danger'}`}>
-            {totalNet >= 0 ? '▲' : '▼'} {formatNumber(Math.abs(totalNet))}/s
+          <span
+            className={`inline-flex items-center gap-0.5 font-mono font-bold ${totalNet >= 0 ? "text-success" : "text-danger"}`}
+          >
+            {totalNet >= 0 ? (
+              <TrendingUp className="w-3 h-3" />
+            ) : (
+              <TrendingDown className="w-3 h-3" />
+            )}
+            {formatNumber(Math.abs(totalNet))}/s
           </span>
         </div>
       </div>
@@ -504,30 +694,30 @@ export default function GlobalResourceMonitorPanel() {
           const currencyRows = [
             {
               icon: <Wallet className="w-3.5 h-3.5 text-warning" />,
-              name: 'Money',
+              name: "Money",
               balance: store.money,
               income: snapshot.moneyIncomeRate,
               expense: snapshot.moneyExpenseRate,
               net: snapshot.moneyIncomeRate - snapshot.moneyExpenseRate,
-              balanceColor: 'text-warning',
+              balanceColor: "text-warning",
             },
             {
               icon: <FlaskConical className="w-3.5 h-3.5 text-brand" />,
-              name: 'Research Points',
+              name: "Research Points",
               balance: store.researchPoints,
               income: snapshot.rpIncomeRate,
               expense: snapshot.rpExpenseRate,
               net: snapshot.rpIncomeRate - snapshot.rpExpenseRate,
-              balanceColor: 'text-brand',
+              balanceColor: "text-brand",
             },
             {
               icon: <Building2 className="w-3.5 h-3.5 text-research" />,
-              name: 'Corp Points',
+              name: "Corp Points",
               balance: store.prestigeState.corporationPoints,
               income: snapshot.cpIncomeRate,
               expense: snapshot.cpExpenseRate,
               net: snapshot.cpIncomeRate - snapshot.cpExpenseRate,
-              balanceColor: 'text-research',
+              balanceColor: "text-research",
             },
           ];
 
@@ -540,29 +730,51 @@ export default function GlobalResourceMonitorPanel() {
               <div className="flex items-center justify-center">{row.icon}</div>
 
               {/* Name */}
-              <div className="text-xs text-subtle font-medium truncate">{row.name}</div>
+              <div className="text-xs text-subtle font-medium truncate">
+                {row.name}
+              </div>
 
               {/* Balance */}
-              <div className={`text-[11px] font-mono font-bold ${row.balanceColor}`}>
-                {row.name === 'Money' ? `$${formatNumber(row.balance)}` : formatNumber(row.balance)}
+              <div
+                className={`text-[11px] font-mono font-bold ${row.balanceColor}`}
+              >
+                {row.name === "Money"
+                  ? `$${formatNumber(row.balance)}`
+                  : formatNumber(row.balance)}
               </div>
 
               {/* Income */}
-              <div className={`text-[10px] font-mono ${row.income > 0 ? 'text-success' : 'text-muted-label'}`}>
-                {row.income > 0 ? `+${formatNumber(row.income)}` : '0'}
+              <div
+                className={`text-[10px] font-mono ${row.income > 0 ? "text-success" : "text-muted-label"}`}
+              >
+                {row.income > 0 ? `+${formatNumber(row.income)}` : "0"}
               </div>
 
               {/* Expense */}
-              <div className={`text-[10px] font-mono ${row.expense > 0 ? 'text-danger' : 'text-muted-label'}`}>
-                {row.expense > 0 ? `-${formatNumber(row.expense)}` : '0'}
+              <div
+                className={`text-[10px] font-mono ${row.expense > 0 ? "text-danger" : "text-muted-label"}`}
+              >
+                {row.expense > 0 ? `-${formatNumber(row.expense)}` : "0"}
               </div>
 
               {/* Net */}
-              <div className={`text-[10px] font-mono font-bold ${
-                row.net > 0 ? 'text-success' : row.net < 0 ? 'text-danger' : 'text-muted-label'
-              }`}>
-                {row.net > 0 ? '▲' : row.net < 0 ? '▼' : '—'}
-                {row.net !== 0 ? formatNumber(Math.abs(row.net)) : ''}
+              <div
+                className={`inline-flex items-center gap-0.5 text-[10px] font-mono font-bold ${
+                  row.net > 0
+                    ? "text-success"
+                    : row.net < 0
+                      ? "text-danger"
+                      : "text-muted-label"
+                }`}
+              >
+                {row.net > 0 ? (
+                  <TrendingUp className="w-2.5 h-2.5" />
+                ) : row.net < 0 ? (
+                  <TrendingDown className="w-2.5 h-2.5" />
+                ) : (
+                  <Minus className="w-2.5 h-2.5" />
+                )}
+                {row.net !== 0 ? formatNumber(Math.abs(row.net)) : ""}
               </div>
             </div>
           ));
@@ -580,11 +792,11 @@ export default function GlobalResourceMonitorPanel() {
             placeholder="Search resources..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-8 pl-8 pr-8 bg-background border border-muted-label/30 rounded-lg text-xs text-subtle placeholder:text-muted-label focus:outline-none focus:border-brand/50 focus:ring-1 focus:ring-success/70/20 transition-colors"
+            className="w-full h-8 pl-8 pr-8 bg-background border border-muted-label/30 rounded-lg text-xs text-subtle placeholder:text-muted-label focus:outline-none focus:border-brand/50 focus:ring-1 focus:ring-success/20 transition-colors"
           />
           {searchQuery && (
             <button
-              onClick={() => setSearchQuery('')}
+              onClick={() => setSearchQuery("")}
               className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-label hover:text-subtle text-xs"
               aria-label="Clear search"
             >
@@ -595,62 +807,167 @@ export default function GlobalResourceMonitorPanel() {
 
         {/* Tier filter tabs */}
         <div className="flex items-center gap-1 flex-wrap">
-          {tierTabs.map(tab => (
-            <button
+          {tierTabs.map((tab) => (
+            <Button
               key={String(tab.value)}
               onClick={() => setTierFilter(tab.value)}
-              className={`text-[10px] px-2.5 py-1 rounded-md border ${
+              size="sm"
+              variant="outline"
+              className={`h-7 px-2.5 text-[10px] rounded-md ${
                 tierFilter === tab.value
-                  ? 'bg-brand/30 border-brand/50 text-brand'
-                  : 'bg-transparent border-muted-label/30 text-muted-label hover:text-subtle hover:border-muted-label'
+                  ? "border-brand/50 text-brand bg-brand/20 hover:bg-brand/30"
+                  : "border-muted-label/30 text-muted-label bg-transparent hover:text-subtle"
               }`}
               aria-pressed={tierFilter === tab.value}
             >
               {tab.label}
-            </button>
+            </Button>
           ))}
         </div>
 
-        {/* Critical Only toggle */}
-        <button
-          onClick={() => setCriticalOnly(v => !v)}
-          className={`flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-md border ${
+        {/* Critical Only toggle — shows live count */}
+        <Button
+          onClick={() => setCriticalOnly((v) => !v)}
+          size="sm"
+          variant="outline"
+          className={`h-7 px-2.5 text-[10px] gap-1 rounded-md ${
             criticalOnly
-              ? 'bg-danger/30 border-danger/50 text-danger'
-              : 'bg-transparent border-muted-label/30 text-muted-label hover:text-subtle hover:border-muted-label'
+              ? "border-danger/50 text-danger bg-danger/10 hover:bg-danger/20"
+              : "border-muted-label/30 text-muted-label bg-transparent hover:text-subtle"
           }`}
           aria-pressed={criticalOnly}
         >
           <AlertCircle className="w-3 h-3" />
-          Critical Only
-        </button>
+          Critical Only{criticalCount > 0 ? ` (${criticalCount})` : ""}
+        </Button>
+
+        {/* Reset filters — only visible when filters active */}
+        {hasActiveFilter && (
+          <Button
+            onClick={resetFilters}
+            size="sm"
+            variant="outline"
+            aria-label="Reset all filters"
+            className="h-7 px-2 text-[10px] gap-1 rounded-md border-warning/40 text-warning bg-warning/10 hover:bg-warning/20"
+          >
+            <X className="w-3 h-3" />
+            Reset
+          </Button>
+        )}
       </div>
 
       {/* ─── RESOURCE INTELLIGENCE TABLE ─────────────────────────────────── */}
-      <div ref={tableContainerRef} className="bg-industrial-card rounded-xl border border-muted-label/30 overflow-hidden">
+      <div
+        ref={tableContainerRef}
+        className="bg-industrial-card rounded-xl border border-muted-label/30 overflow-hidden"
+      >
         {/* Table header */}
         <div className="grid grid-cols-[2.5rem_1fr_3rem_5rem_4rem_4rem_4rem_4.5rem_1.5rem] sm:grid-cols-[2.5rem_1fr_3.5rem_6rem_5rem_5rem_5rem_5.5rem_1.5rem] items-center gap-1 px-3 py-2 bg-[#0d1220] border-b border-muted-label/30 text-[10px] text-muted-label uppercase tracking-wider select-none">
           <div />
-          <button onClick={() => handleSort('name')} className="flex items-center gap-1 hover:text-subtle transition-colors text-left" aria-label="Sort by name">
-            Resource {sortKey === 'name' && (sortDir === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+          <button
+            onClick={() => handleSort("name")}
+            className={`flex items-center gap-1 hover:text-subtle transition-colors text-left ${
+              sortKey === "name" ? "text-brand font-semibold" : ""
+            }`}
+            aria-label="Sort by name"
+          >
+            Resource{" "}
+            {sortKey === "name" &&
+              (sortDir === "asc" ? (
+                <ChevronUp className="w-3 h-3" />
+              ) : (
+                <ChevronDown className="w-3 h-3" />
+              ))}
           </button>
-          <button onClick={() => handleSort('tier')} className="flex items-center gap-1 hover:text-subtle transition-colors" aria-label="Sort by tier">
-            Tier {sortKey === 'tier' && (sortDir === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+          <button
+            onClick={() => handleSort("tier")}
+            className={`flex items-center gap-1 hover:text-subtle transition-colors ${
+              sortKey === "tier" ? "text-brand font-semibold" : ""
+            }`}
+            aria-label="Sort by tier"
+          >
+            Tier{" "}
+            {sortKey === "tier" &&
+              (sortDir === "asc" ? (
+                <ChevronUp className="w-3 h-3" />
+              ) : (
+                <ChevronDown className="w-3 h-3" />
+              ))}
           </button>
-          <button onClick={() => handleSort('amount')} className="flex items-center gap-1 hover:text-subtle transition-colors" aria-label="Sort by amount">
-            Amount {sortKey === 'amount' && (sortDir === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+          <button
+            onClick={() => handleSort("amount")}
+            className={`flex items-center gap-1 hover:text-subtle transition-colors ${
+              sortKey === "amount" ? "text-brand font-semibold" : ""
+            }`}
+            aria-label="Sort by amount"
+          >
+            Amount{" "}
+            {sortKey === "amount" &&
+              (sortDir === "asc" ? (
+                <ChevronUp className="w-3 h-3" />
+              ) : (
+                <ChevronDown className="w-3 h-3" />
+              ))}
           </button>
-          <button onClick={() => handleSort('productionRate')} className="flex items-center gap-1 hover:text-subtle transition-colors" aria-label="Sort by production rate">
-            Prod {sortKey === 'productionRate' && (sortDir === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+          <button
+            onClick={() => handleSort("productionRate")}
+            className={`flex items-center gap-1 hover:text-subtle transition-colors ${
+              sortKey === "productionRate" ? "text-brand font-semibold" : ""
+            }`}
+            aria-label="Sort by production rate"
+          >
+            Prod{" "}
+            {sortKey === "productionRate" &&
+              (sortDir === "asc" ? (
+                <ChevronUp className="w-3 h-3" />
+              ) : (
+                <ChevronDown className="w-3 h-3" />
+              ))}
           </button>
-          <button onClick={() => handleSort('consumptionRate')} className="flex items-center gap-1 hover:text-subtle transition-colors" aria-label="Sort by consumption rate">
-            Cons {sortKey === 'consumptionRate' && (sortDir === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+          <button
+            onClick={() => handleSort("consumptionRate")}
+            className={`flex items-center gap-1 hover:text-subtle transition-colors ${
+              sortKey === "consumptionRate" ? "text-brand font-semibold" : ""
+            }`}
+            aria-label="Sort by consumption rate"
+          >
+            Cons{" "}
+            {sortKey === "consumptionRate" &&
+              (sortDir === "asc" ? (
+                <ChevronUp className="w-3 h-3" />
+              ) : (
+                <ChevronDown className="w-3 h-3" />
+              ))}
           </button>
-          <button onClick={() => handleSort('netRate')} className="flex items-center gap-1 hover:text-subtle transition-colors" aria-label="Sort by net rate">
-            Net {sortKey === 'netRate' && (sortDir === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+          <button
+            onClick={() => handleSort("netRate")}
+            className={`flex items-center gap-1 hover:text-subtle transition-colors ${
+              sortKey === "netRate" ? "text-brand font-semibold" : ""
+            }`}
+            aria-label="Sort by net rate"
+          >
+            Net{" "}
+            {sortKey === "netRate" &&
+              (sortDir === "asc" ? (
+                <ChevronUp className="w-3 h-3" />
+              ) : (
+                <ChevronDown className="w-3 h-3" />
+              ))}
           </button>
-          <button onClick={() => handleSort('status')} className="flex items-center gap-1 hover:text-subtle transition-colors" aria-label="Sort by status">
-            Status {sortKey === 'status' && (sortDir === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
+          <button
+            onClick={() => handleSort("status")}
+            className={`flex items-center gap-1 hover:text-subtle transition-colors ${
+              sortKey === "status" ? "text-brand font-semibold" : ""
+            }`}
+            aria-label="Sort by status"
+          >
+            Status{" "}
+            {sortKey === "status" &&
+              (sortDir === "asc" ? (
+                <ChevronUp className="w-3 h-3" />
+              ) : (
+                <ChevronDown className="w-3 h-3" />
+              ))}
           </button>
           <div />
         </div>
@@ -666,76 +983,139 @@ export default function GlobalResourceMonitorPanel() {
             filteredResources.map((row) => {
               const tc = TIER_COLORS[row.tier] ?? TIER_COLORS[0];
               const st = STATUS_LABELS[row.status];
-              const isCriticalBg = row.status === 'critical';
+              const isCriticalBg = row.status === "critical";
 
               return (
                 <div
                   key={row.resource}
-                  className={`grid grid-cols-[2.5rem_1fr_3rem_5rem_4rem_4rem_4rem_4.5rem_1.5rem] sm:grid-cols-[2.5rem_1fr_3.5rem_6rem_5rem_5rem_5rem_5.5rem_1.5rem] items-center gap-1 px-3 py-1.5 border-b border-muted-label/50 transition-colors hover:bg-brand/10 cursor-default ${
-                    isCriticalBg ? 'bg-danger/10' : ''
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Show details for ${row.name}`}
+                  className={`grid grid-cols-[2.5rem_1fr_3rem_5rem_4rem_4rem_4rem_4.5rem_1.5rem] sm:grid-cols-[2.5rem_1fr_3.5rem_6rem_5rem_5rem_5rem_5.5rem_1.5rem] items-center gap-1 px-3 py-1.5 border-b border-muted-label/50 transition-colors hover:bg-brand/10 focus:bg-brand/10 focus:outline-none focus-visible:ring-1 focus-visible:ring-brand/60 cursor-default ${
+                    isCriticalBg ? "bg-danger/10" : ""
                   }`}
                   onMouseEnter={(e) => onEnter(row.resource, e)}
                   onMouseLeave={onLeave}
+                  onFocus={(e) =>
+                    onEnter(row.resource, e as unknown as React.MouseEvent)
+                  }
+                  onBlur={onLeave}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onEnter(
+                        row.resource,
+                        e.currentTarget as unknown as HTMLElement as unknown as React.MouseEvent,
+                      );
+                    } else if (e.key === "Escape") {
+                      onLeave();
+                    }
+                  }}
                 >
                   {/* Emoji */}
-                  <div className="text-sm"><GameIcon icon={row.icon} size={14} className="inline-flex" /></div>
+                  <div className="text-sm">
+                    <GameIcon
+                      icon={row.icon}
+                      size={14}
+                      className="inline-flex"
+                    />
+                  </div>
 
                   {/* Name */}
-                  <div className="text-xs text-subtle truncate font-medium">{row.name}</div>
+                  <div className="text-xs text-subtle truncate font-medium">
+                    {row.name}
+                  </div>
 
                   {/* Tier badge */}
                   <div>
-                    <span className={`text-[9px] px-1.5 py-0.5 rounded border ${tc.bg} ${tc.text} ${tc.border}`}>
+                    <Badge
+                      variant="outline"
+                      className={`text-[9px] ${tc.bg} ${tc.text} ${tc.border}`}
+                    >
                       T{row.tier}
-                    </span>
+                    </Badge>
                   </div>
 
                   {/* Amount / Capacity with mini progress */}
                   <div className="flex flex-col gap-0.5">
                     <span className="text-[10px] font-mono text-subtle">
-                      {formatNumber(row.amount)}{row.capacity !== Infinity ? `/${formatNumber(row.capacity)}` : '/∞'}
+                      {formatNumber(row.amount)}
+                      {row.capacity !== Infinity
+                        ? `/${formatNumber(row.capacity)}`
+                        : "/∞"}
                     </span>
                     {row.capacity !== Infinity && (
-                      <div className="w-full h-1 bg-muted-label rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-300 ${
-                            row.fillPct >= 95 ? 'bg-danger' : row.fillPct >= 70 ? 'bg-warning' : 'bg-brand'
-                          }`}
-                          style={{ width: `${Math.min(100, row.fillPct)}%` }}
-                        />
-                      </div>
+                      <Progress
+                        value={Math.min(100, row.fillPct)}
+                        aria-label={`${row.name} storage fill`}
+                        className={`h-1 bg-muted-label transition-all duration-300 ${
+                          row.fillPct >= 95
+                            ? "[&>div]:bg-danger"
+                            : row.fillPct >= 70
+                              ? "[&>div]:bg-warning"
+                              : "[&>div]:bg-brand"
+                        }`}
+                      />
                     )}
                   </div>
 
                   {/* Production rate */}
-                  <div className={`text-[10px] font-mono ${row.productionRate > 0 ? 'text-success' : 'text-muted-label'}`}>
-                    {row.productionRate > 0 ? `+${formatNumber(row.productionRate)}` : '0'}
+                  <div
+                    className={`text-[10px] font-mono ${row.productionRate > 0 ? "text-success" : "text-muted-label"}`}
+                  >
+                    {row.productionRate > 0
+                      ? `+${formatNumber(row.productionRate)}`
+                      : "0"}
                   </div>
 
                   {/* Consumption rate */}
-                  <div className={`text-[10px] font-mono ${row.consumptionRate > 0 ? 'text-danger' : 'text-muted-label'}`}>
-                    {row.consumptionRate > 0 ? `-${formatNumber(row.consumptionRate)}` : '0'}
+                  <div
+                    className={`text-[10px] font-mono ${row.consumptionRate > 0 ? "text-danger" : "text-muted-label"}`}
+                  >
+                    {row.consumptionRate > 0
+                      ? `-${formatNumber(row.consumptionRate)}`
+                      : "0"}
                   </div>
 
                   {/* Net rate */}
-                  <div className={`text-[10px] font-mono font-bold ${
-                    row.netRate > 0 ? 'text-success' : row.netRate < 0 ? 'text-danger' : 'text-muted-label'
-                  }`}>
-                    {row.netRate > 0 ? '▲' : row.netRate < 0 ? '▼' : '—'}
-                    {row.netRate !== 0 ? formatNumber(Math.abs(row.netRate)) : ''}
+                  <div
+                    className={`inline-flex items-center gap-0.5 text-[10px] font-mono font-bold ${
+                      row.netRate > 0
+                        ? "text-success"
+                        : row.netRate < 0
+                          ? "text-danger"
+                          : "text-muted-label"
+                    }`}
+                  >
+                    {row.netRate > 0 ? (
+                      <TrendingUp className="w-2.5 h-2.5" />
+                    ) : row.netRate < 0 ? (
+                      <TrendingDown className="w-2.5 h-2.5" />
+                    ) : (
+                      <Minus className="w-2.5 h-2.5" />
+                    )}
+                    {row.netRate !== 0
+                      ? formatNumber(Math.abs(row.netRate))
+                      : ""}
                   </div>
 
                   {/* Status */}
                   <div>
-                    <span className={`text-[9px] px-1.5 py-0.5 rounded ${st.bg} ${st.color}`}>
+                    <Badge
+                      variant="outline"
+                      className={`text-[9px] ${st.bg} ${st.color} border-transparent`}
+                    >
                       {st.label}
-                    </span>
+                    </Badge>
                   </div>
 
                   {/* Bottleneck dot */}
                   <div className="flex items-center justify-center">
                     {row.isBottleneck && (
-                      <span className="w-2 h-2 rounded-full bg-danger shadow-[0_0_4px_rgba(239,68,68,0.6)]" title="Bottleneck: demand exceeds supply" />
+                      <span
+                        className="w-2 h-2 rounded-full bg-danger shadow-[0_0_4px_rgba(239,68,68,0.6)]"
+                        title="Bottleneck: demand exceeds supply"
+                      />
                     )}
                   </div>
                 </div>
@@ -749,154 +1129,204 @@ export default function GlobalResourceMonitorPanel() {
       <ResourceFlowDiagram />
 
       {/* ─── HOVER INTELLIGENCE OVERLAY (portal to body to avoid transform offset) ── */}
-      {hoveredRow && typeof document !== 'undefined' && createPortal(
-        <div
-          className="fixed z-100 pointer-events-none"
-          style={{ left: hover.overlayLeft, top: hover.overlayTop }}
-        >
-          <AnimatePresence>
-            <motion.div
-              className="pointer-events-auto w-72 bg-industrial-card/95 border border-brand/40 rounded-xl backdrop-blur-sm shadow-xl shadow-black/40 overflow-hidden"
-              onMouseEnter={cancelHide}
-              onMouseLeave={onLeave}
-            >
-              {/* Header */}
-              <div className="flex items-center gap-2 px-3 py-2 border-b border-muted-label/30 bg-[#0d1220]">
-                <GameIcon icon={hoveredRow.icon} size={16} />
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-bold text-subtle truncate">{hoveredRow.name}</div>
-                  <div className="text-[10px] text-muted-label">
-                    <span className={`${(TIER_COLORS[hoveredRow.tier] ?? TIER_COLORS[0]).text}`}>T{hoveredRow.tier}</span>
-                    {' · '}
-                    {formatNumber(hoveredRow.amount)}{hoveredRow.capacity !== Infinity ? `/${formatNumber(hoveredRow.capacity)}` : '/∞'}
+      {hoveredRow &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="fixed z-100 pointer-events-none"
+            style={{ left: hover.overlayLeft, top: hover.overlayTop }}
+          >
+            <AnimatePresence>
+              <motion.div
+                role="dialog"
+                aria-label="Resource details"
+                tabIndex={-1}
+                className="pointer-events-auto w-72 bg-industrial-card/95 border border-brand/40 rounded-xl backdrop-blur-sm shadow-xl shadow-black/40 overflow-hidden"
+                onMouseEnter={cancelHide}
+                onMouseLeave={onLeave}
+                onBlur={onLeave}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") onLeave();
+                }}
+              >
+                {/* Header */}
+                <div className="flex items-center gap-2 px-3 py-2 border-b border-muted-label/30 bg-[#0d1220]">
+                  <GameIcon icon={hoveredRow.icon} size={16} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-bold text-subtle truncate">
+                      {hoveredRow.name}
+                    </div>
+                    <div className="text-[10px] text-muted-label">
+                      <span
+                        className={`${(TIER_COLORS[hoveredRow.tier] ?? TIER_COLORS[0]).text}`}
+                      >
+                        T{hoveredRow.tier}
+                      </span>
+                      {" · "}
+                      {formatNumber(hoveredRow.amount)}
+                      {hoveredRow.capacity !== Infinity
+                        ? `/${formatNumber(hoveredRow.capacity)}`
+                        : "/∞"}
+                    </div>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className={`text-[9px] ${STATUS_LABELS[hoveredRow.status].bg} ${STATUS_LABELS[hoveredRow.status].color} border-transparent`}
+                  >
+                    {STATUS_LABELS[hoveredRow.status].label}
+                  </Badge>
+                </div>
+
+                {/* Net change */}
+                <div className="px-3 py-1.5 border-b border-muted-label/50">
+                  <div className="flex items-center gap-2 text-[10px]">
+                    <span className="text-subtle">Net Change:</span>
+                    <span
+                      className={`inline-flex items-center gap-0.5 font-mono font-bold ${hoveredRow.netRate > 0 ? "text-success" : hoveredRow.netRate < 0 ? "text-danger" : "text-muted-label"}`}
+                    >
+                      {hoveredRow.netRate > 0 ? (
+                        <TrendingUp className="w-3 h-3" />
+                      ) : hoveredRow.netRate < 0 ? (
+                        <TrendingDown className="w-3 h-3" />
+                      ) : (
+                        <Minus className="w-3 h-3" />
+                      )}
+                      {hoveredRow.netRate !== 0
+                        ? ` ${formatNumber(Math.abs(hoveredRow.netRate))}/s`
+                        : " 0/s"}
+                    </span>
                   </div>
                 </div>
-                <span className={`text-[9px] px-1.5 py-0.5 rounded ${STATUS_LABELS[hoveredRow.status].bg} ${STATUS_LABELS[hoveredRow.status].color}`}>
-                  {STATUS_LABELS[hoveredRow.status].label}
-                </span>
-              </div>
 
-              {/* Net change */}
-              <div className="px-3 py-1.5 border-b border-muted-label/50">
-                <div className="flex items-center gap-2 text-[10px]">
-                  <span className="text-subtle">Net Change:</span>
-                  <span className={`font-mono font-bold ${hoveredRow.netRate > 0 ? 'text-success' : hoveredRow.netRate < 0 ? 'text-danger' : 'text-muted-label'}`}>
-                    {hoveredRow.netRate > 0 ? '▲' : hoveredRow.netRate < 0 ? '▼' : '—'}
-                    {hoveredRow.netRate !== 0 ? ` ${formatNumber(Math.abs(hoveredRow.netRate))}/s` : ' 0/s'}
-                  </span>
-                </div>
-              </div>
+                {/* Bottleneck flag */}
+                {hoveredRow.isBottleneck && (
+                  <div className="px-3 py-1.5 border-b border-muted-label/50 bg-danger/10">
+                    <div className="flex items-center gap-1.5 text-[10px] text-danger">
+                      <AlertTriangle className="w-3 h-3" />
+                      <GameIcon
+                        icon="game-icons:hazard-sign"
+                        size={12}
+                        className="inline"
+                      />{" "}
+                      Bottleneck: Demand exceeds supply
+                    </div>
+                  </div>
+                )}
 
-              {/* Bottleneck flag */}
-              {hoveredRow.isBottleneck && (
-                <div className="px-3 py-1.5 border-b border-muted-label/50 bg-danger/10">
-                  <div className="flex items-center gap-1.5 text-[10px] text-danger">
-                    <AlertTriangle className="w-3 h-3" />
-                    <GameIcon icon="game-icons:hazard-sign" size={12} className="inline" /> Bottleneck: Demand exceeds supply
+                {/* Dependency preview */}
+                <div className="px-3 py-2 space-y-1.5 border-b border-muted-label/50">
+                  {/* Producers */}
+                  <div className="text-[10px]">
+                    <span className="text-muted-label">Producers: </span>
+                    {(() => {
+                      const prods = PRODUCER_MAP[hoveredRow.resource] ?? [];
+                      if (prods.length === 0)
+                        return <span className="text-muted-label">None</span>;
+                      const withCounts = prods.map((p) => {
+                        const count = store.buildings.filter(
+                          (b) => b.type === p.type,
+                        ).length;
+                        return { name: p.name, count };
+                      });
+                      return (
+                        <span className="text-success">
+                          {withCounts.map((p, i) => (
+                            <span key={i}>
+                              {i > 0 && ", "}
+                              {p.name}
+                              {p.count > 0 ? ` ×${p.count}` : ""}
+                            </span>
+                          ))}
+                        </span>
+                      );
+                    })()}
+                  </div>
+                  {/* Consumers */}
+                  <div className="text-[10px]">
+                    <span className="text-muted-label">Consumers: </span>
+                    {(() => {
+                      const cons = CONSUMER_MAP[hoveredRow.resource] ?? [];
+                      if (cons.length === 0)
+                        return <span className="text-muted-label">None</span>;
+                      const withCounts = cons
+                        .map((c) => {
+                          const count = store.buildings.filter(
+                            (b) => b.type === c.type,
+                          ).length;
+                          return { name: c.name, count };
+                        })
+                        .filter((c) => c.count > 0);
+                      if (withCounts.length === 0)
+                        return (
+                          <span className="text-muted-label">None active</span>
+                        );
+                      return (
+                        <span className="text-danger">
+                          {withCounts.map((c, i) => (
+                            <span key={i}>
+                              {i > 0 && ", "}
+                              {c.name} ×{c.count}
+                            </span>
+                          ))}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </div>
-              )}
 
-              {/* Dependency preview */}
-              <div className="px-3 py-2 space-y-1.5 border-b border-muted-label/50">
-                {/* Producers */}
-                <div className="text-[10px]">
-                  <span className="text-muted-label">Producers: </span>
-                  {(() => {
-                    const prods = PRODUCER_MAP[hoveredRow.resource] ?? [];
-                    if (prods.length === 0) return <span className="text-muted-label">None</span>;
-                    const withCounts = prods.map(p => {
-                      const count = store.buildings.filter(b => b.type === p.type).length;
-                      return { name: p.name, count };
-                    });
-                    return (
-                      <span className="text-success">
-                        {withCounts.map((p, i) => (
-                          <span key={i}>
-                            {i > 0 && ', '}
-                            {p.name}{p.count > 0 ? ` ×${p.count}` : ''}
-                          </span>
-                        ))}
-                      </span>
-                    );
-                  })()}
-                </div>
-                {/* Consumers */}
-                <div className="text-[10px]">
-                  <span className="text-muted-label">Consumers: </span>
-                  {(() => {
-                    const cons = CONSUMER_MAP[hoveredRow.resource] ?? [];
-                    if (cons.length === 0) return <span className="text-muted-label">None</span>;
-                    const withCounts = cons.map(c => {
-                      const count = store.buildings.filter(b => b.type === c.type).length;
-                      return { name: c.name, count };
-                    }).filter(c => c.count > 0);
-                    if (withCounts.length === 0) return <span className="text-muted-label">None active</span>;
-                    return (
-                      <span className="text-danger">
-                        {withCounts.map((c, i) => (
-                          <span key={i}>
-                            {i > 0 && ', '}
-                            {c.name} ×{c.count}
-                          </span>
-                        ))}
-                      </span>
-                    );
-                  })()}
-                </div>
-              </div>
+                {/* Quick actions */}
+                <div className="flex items-center gap-1.5 px-3 py-2">
+                  {/* Quick Upgrade - only for critical/declining/negative net */}
+                  {(hoveredRow.status === "critical" ||
+                    hoveredRow.status === "declining" ||
+                    hoveredRow.netRate < 0) && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleQuickUpgrade(hoveredRow.resource);
+                      }}
+                      className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-warning/30 border border-warning/40 text-warning hover:bg-warning/50 transition-colors"
+                      aria-label="Quick upgrade producer"
+                      title="Upgrade lowest-level producer"
+                    >
+                      <Zap className="w-3 h-3" />
+                      Upgrade
+                    </button>
+                  )}
 
-              {/* Quick actions */}
-              <div className="flex items-center gap-1.5 px-3 py-2">
-                {/* Quick Upgrade - only for critical/declining/negative net */}
-                {(hoveredRow.status === 'critical' || hoveredRow.status === 'declining' || hoveredRow.netRate < 0) && (
+                  {/* View Chain */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleQuickUpgrade(hoveredRow.resource);
+                      handleViewChain();
                     }}
-                    className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-warning/30 border border-warning/40 text-warning hover:bg-warning/50 transition-colors"
-                    aria-label="Quick upgrade producer"
-                    title="Upgrade lowest-level producer"
+                    className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-brand/30 border border-brand/40 text-brand hover:bg-brand/50 transition-colors"
+                    aria-label="View production chain"
+                    title="Navigate to production chain view"
                   >
-                    <Zap className="w-3 h-3" />
-                    Upgrade
+                    <Link2 className="w-3 h-3" />
+                    Chain
                   </button>
-                )}
 
-                {/* View Chain */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleViewChain();
-                  }}
-                  className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-brand/30 border border-brand/40 text-brand hover:bg-brand/50 transition-colors"
-                  aria-label="View production chain"
-                  title="Navigate to production chain view"
-                >
-                  <Link2 className="w-3 h-3" />
-                  Chain
-                </button>
-
-                {/* Navigate */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleNavigate(hoveredRow.resource);
-                  }}
-                  className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-brand/30 border border-brand/40 text-brand hover:bg-brand/50 transition-colors"
-                  aria-label="Navigate to resource tab"
-                  title="Navigate to relevant tab"
-                >
-                  <Navigation className="w-3 h-3" />
-                  Navigate
-                </button>
-              </div>
-            </motion.div>
-          </AnimatePresence>
-        </div>,
-        document.body
-      )}
+                  {/* Navigate */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleNavigate(hoveredRow.resource);
+                    }}
+                    className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-md bg-brand/30 border border-brand/40 text-brand hover:bg-brand/50 transition-colors"
+                    aria-label="Navigate to resource tab"
+                    title="Navigate to relevant tab"
+                  >
+                    <Navigation className="w-3 h-3" />
+                    Navigate
+                  </button>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>,
+          document.body,
+        )}
 
       {/* ─── TOAST NOTIFICATION ───────────────────────────────────────────── */}
       <AnimatePresence>

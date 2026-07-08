@@ -1,10 +1,10 @@
 'use client';
 
+import { RESOURCE_META } from '@/lib/game/uiCatalog';
 import { useState, useMemo, useCallback } from 'react';
 import { LoadingSpinner } from '@/components/game/shared/LoadingSpinner';
 import { useGameStore, formatNumber } from '@/lib/game/store';
 import { useShallow } from 'zustand/react/shallow';
-import { RESOURCE_META } from '@/lib/game/configCache';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {

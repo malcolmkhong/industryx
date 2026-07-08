@@ -3,19 +3,14 @@
 import React, { useState, useMemo } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
 import { useShallow } from 'zustand/react/shallow';
-import { WEATHER_DEFS, TIER_INFO } from '@/lib/game/configCache';
+import { WEATHER_DEFS } from '@/lib/game/configCache';
+import { ALL_TIERS, getTierColor, getTierInfo } from '@/lib/game/tiers';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { Pin, PinOff, Clock, Lock, Filter, ChevronDown, ChevronRight, Sparkles, ScrollText } from 'lucide-react';
 import { GameCard } from '@/components/game/shared/GameCard';
 import { Quest, QuestType } from '@/lib/game/types';
 import { GameIcon } from '@/components/icons';
 import { formatRemaining } from '@/lib/utils/time';
-
-const TIER_COLORS = ['#a0a0a0', '#22d3ee', '#f97316', '#a855f7', '#00ffcc'];
-
-function getTierColor(tier: number): string {
-  return TIER_COLORS[tier] ?? '#a0a0a0';
-}
 
 const QUEST_TYPE_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
   build: { label: 'BUILD', color: 'text-warning', bg: 'bg-warning/20', border: 'border-warning/80/40' },
@@ -64,7 +59,7 @@ const MemoizedQuestItem = React.memo(function MemoizedQuestItem({
     : 0;
   const tier = quest.gameTier ?? 0;
   const tierColor = getTierColor(tier);
-  const tierInfo = TIER_INFO[tier];
+  const tierInfo = getTierInfo(tier);
   const typeConfig = QUEST_TYPE_CONFIG[quest.type] ?? QUEST_TYPE_CONFIG.build;
   const catConfig = CATEGORY_CONFIG[quest.category] ?? CATEGORY_CONFIG.challenge;
 
@@ -226,7 +221,9 @@ export function QuestPanel() {
   const [showFilters, setShowFilters] = useState(false);
 
   // Group quests by gameTier
-  const questsByTier: Record<number, Quest[]> = { 0: [], 1: [], 2: [], 3: [], 4: [] };
+  const questsByTier: Record<number, Quest[]> = Object.fromEntries(
+    ALL_TIERS.map(t => [t, [] as Quest[]])
+  ) as Record<number, Quest[]>;
   quests.forEach(q => {
     const tier = q.gameTier ?? 0;
     if (!questsByTier[tier]) questsByTier[tier] = [];
@@ -245,7 +242,7 @@ export function QuestPanel() {
   // Filtered quests
   const filteredQuestsByTier = useMemo(() => {
     const result: Record<number, Quest[]> = {};
-    for (const tier of [0, 1, 2, 3, 4]) {
+    for (const tier of ALL_TIERS) {
       const tierQuests = questsByTier[tier] ?? [];
       result[tier] = tierQuests.filter(q => {
         if (filterType === 'all') return true;
@@ -265,7 +262,7 @@ export function QuestPanel() {
     const isTracked = store.trackedQuest === quest.id;
     const tier = quest.gameTier ?? 0;
     const tierColor = getTierColor(tier);
-    const tierInfo = TIER_INFO[tier];
+    const tierInfo = getTierInfo(tier);
     const typeConfig = QUEST_TYPE_CONFIG[quest.type] ?? QUEST_TYPE_CONFIG.build;
     const catConfig = CATEGORY_CONFIG[quest.category] ?? CATEGORY_CONFIG.challenge;
 
@@ -486,12 +483,12 @@ export function QuestPanel() {
       <GameCard>
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-semibold" style={{ color: getTierColor(playerTier) }}>
-            Current Tier: <GameIcon icon={TIER_INFO[playerTier]?.icon} size={14} className="inline-flex" /> {TIER_INFO[playerTier]?.name}
+            Current Tier: <GameIcon icon={getTierInfo(playerTier)?.icon} size={14} className="inline-flex" /> {getTierInfo(playerTier)?.name}
           </span>
           <span className="text-[10px] text-muted-label">Quests unlock as you advance</span>
         </div>
         <div className="flex gap-1 h-3">
-          {[0, 1, 2, 3, 4].map(tier => {
+          {ALL_TIERS.map(tier => {
             const isUnlocked = tier <= playerTier;
             const isCurrent = tier === playerTier;
             const tierQuests = questsByTier[tier] ?? [];
@@ -510,9 +507,9 @@ export function QuestPanel() {
           })}
         </div>
         <div className="flex justify-between mt-1.5 text-[9px] text-muted-label">
-          {[0, 1, 2, 3, 4].map(tier => (
+          {ALL_TIERS.map(tier => (
             <span key={tier} style={{ color: tier <= playerTier ? getTierColor(tier) : undefined }}>
-              <GameIcon icon={TIER_INFO[tier]?.icon} size={14} className="inline-flex" /> {TIER_INFO[tier]?.name}
+              <GameIcon icon={getTierInfo(tier)?.icon} size={14} className="inline-flex" /> {getTierInfo(tier)?.name}
             </span>
           ))}
         </div>
@@ -526,10 +523,10 @@ export function QuestPanel() {
           <div className="text-lg font-bold text-success">${formatNumber(availableReward)}</div>
           <div className="text-[10px] text-muted-label">Available</div>
         </div>
-        {[0, 1, 2, 3, 4].map(tier => {
+        {ALL_TIERS.map(tier => {
           const tierQuests = questsByTier[tier] ?? [];
           const completed = tierQuests.filter(q => q.completed).length;
-          const info = TIER_INFO[tier];
+          const info = getTierInfo(tier);
           const isUnlocked = tier <= playerTier;
           return (
             <div key={tier} className={`rounded-xl p-3 text-center border ${
@@ -677,11 +674,11 @@ export function QuestPanel() {
       })()}
 
       {/* Quest sections by Tier */}
-      {[0, 1, 2, 3, 4].map(tier => {
+      {ALL_TIERS.map(tier => {
         const tierQuests = filteredQuestsByTier[tier];
         if (!tierQuests || tierQuests.length === 0) return null;
         const isUnlocked = tier <= playerTier;
-        const info = TIER_INFO[tier];
+        const info = getTierInfo(tier);
         const completed = tierQuests.filter(q => q.completed).length;
         return (
           <div key={tier} className="space-y-3">

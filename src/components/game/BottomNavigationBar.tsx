@@ -170,8 +170,9 @@ export function BottomNavigationBar({
 
   // URL is the source of truth; the optional prop still wins if a caller passes it
   // (keeps backwards compatibility for any other mounts).
-  const activeTab: GameTab = activeTabProp
-    ?? (pathname.startsWith("/game/")
+  const activeTab: GameTab =
+    activeTabProp ??
+    (pathname.startsWith("/game/")
       ? (pathname.slice(6).split("/")[0] as GameTab)
       : "dashboard");
 
@@ -266,45 +267,47 @@ export function BottomNavigationBar({
 
             {/* Sub-tab grid — 3 columns with better spacing */}
             <div className="grid grid-cols-3 gap-1 p-2">
-              {expandedGroup.tabs.map((tab, i) => {
-                const TabIcon = tab.icon;
-                const isActive = activeTab === tab.id;
+              <AnimatePresence>
+                {expandedGroup.tabs.map((tab, i) => {
+                  const TabIcon = tab.icon;
+                  const isActive = activeTab === tab.id;
 
-                return (
-                  <motion.div
-                    key={tab.id}
-                    custom={i}
-                    variants={tabItemVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
-                  >
-                    <Link
-                      href={`/game/${tab.id}`}
-                      prefetch
-                      onClick={(e) => {
-                        setExpandedGroupId(null);
-                        if (!handleTabChange(tab.id)) {
-                          e.preventDefault();
-                        }
-                      }}
-                      aria-current={isActive ? "page" : undefined}
-                      className={`
-                        flex items-center gap-2 px-2.5 py-2.5 rounded-lg text-[11px] font-medium
-                        min-h-11 transition-colors duration-150
-                        ${
-                          isActive
-                            ? `${tab.color} bg-white/8 border border-brand/20 shadow-[0_0_12px_rgba(0,255,242,0.1)]`
-                            : "text-subtle active:bg-white/8 border border-transparent"
-                        }
-                      `}
+                  return (
+                    <motion.div
+                      key={tab.id}
+                      custom={i}
+                      variants={tabItemVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
                     >
-                      <TabIcon className="w-4 h-4 shrink-0" />
-                      <span className="truncate">{tab.label}</span>
-                    </Link>
-                  </motion.div>
-                );
-              })}
+                      <Link
+                        href={`/game/${tab.id}`}
+                        prefetch
+                        onClick={(e) => {
+                          setExpandedGroupId(null);
+                          if (!handleTabChange(tab.id)) {
+                            e.preventDefault();
+                          }
+                        }}
+                        aria-current={isActive ? "page" : undefined}
+                        className={`
+                                      flex items-center gap-2 px-2.5 py-2.5 rounded-lg text-[11px] font-medium
+                                      min-h-11 transition-colors duration-150
+                                      ${
+                                        isActive
+                                          ? `${tab.color} bg-white/8 border border-brand/20 shadow-[0_0_12px_rgba(0,255,242,0.1)]`
+                                          : "text-subtle active:bg-white/8 border border-transparent"
+                                      }
+                                    `}
+                      >
+                        <TabIcon className="w-4 h-4 shrink-0" />
+                        <span className="truncate">{tab.label}</span>
+                      </Link>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
             </div>
 
             {/* Subtle glow border at bottom of panel */}
@@ -323,10 +326,10 @@ export function BottomNavigationBar({
 
         <div
           className={`
-            flex items-center
-            ${isCompact ? "gap-0 px-0.5" : "gap-0 px-0.5"}
-            justify-around
-          `}
+                    flex items-center
+                    ${isCompact ? "gap-0.5 px-1" : "gap-0 px-0.5"}
+                    justify-around
+                  `}
           style={{ paddingTop: "6px", paddingBottom: "6px" }}
         >
           {/* Navigation group buttons */}
@@ -373,15 +376,35 @@ export function BottomNavigationBar({
                   </span>
                 )}
 
-                {/* Active indicator dot */}
-                {(hasActiveTab || isActiveGroup) && !isExpanded && (
-                  <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-brand shadow-[0_0_6px_rgba(0,255,242,0.6)]" />
-                )}
+                {/* Active indicator dot — animates in/out when active tab changes */}
+                <AnimatePresence>
+                  {(hasActiveTab || isActiveGroup) && !isExpanded && (
+                    <motion.span
+                      key="active-dot"
+                      initial={{ opacity: 0, scale: 0.5 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.5 }}
+                      transition={{ duration: 0.15, ease: "easeOut" }}
+                      className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-brand shadow-[0_0_6px_rgba(0,255,242,0.6)]"
+                    />
+                  )}
+                </AnimatePresence>
 
-                {/* Expanded chevron indicator */}
-                {isExpanded && (
-                  <ChevronUp className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-2.5 h-2.5 text-brand" />
-                )}
+                {/* Expanded chevron indicator — animates in/out when group toggles */}
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.span
+                      key="expand-chevron"
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.18, ease: "easeOut" }}
+                      className="absolute -top-0.5 left-1/2 -translate-x-1/2"
+                    >
+                      <ChevronUp className="w-2.5 h-2.5 text-brand" />
+                    </motion.span>
+                  )}
+                </AnimatePresence>
               </button>
             );
           })}
@@ -403,7 +426,9 @@ export function BottomNavigationBar({
             {isCompact ? (
               <>
                 <ChevronDown className="w-4 h-4" />
-                <span className="text-[11px] font-medium opacity-60">Quick</span>
+                <span className="text-[11px] font-medium opacity-60">
+                  Quick
+                </span>
               </>
             ) : (
               <ChevronUp className="w-4.5 h-4.5" />

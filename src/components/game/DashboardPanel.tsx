@@ -3,6 +3,7 @@
 import { useMemo, useState, useRef, useEffect } from 'react';
 import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/store';
 import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE, RANK_THRESHOLDS, WEATHER_DEFS } from '@/lib/game/configCache';
+import { useConfigVersion } from '@/components/providers/GameConfigProvider';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
 import { TierCard } from '@/components/game/shared/TierCard';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,7 @@ import { ProductionChainPanel } from '@/components/game/ProductionChainPanel';
 import { GameIcon } from '@/components/icons';
 
 export function DashboardPanel() {
+  useConfigVersion();
   // H1 FIX: Use specific selectors instead of full-store subscription.
   // Each useGameStore((s) => s.X) creates a subscription that only re-renders
   // when that specific slice changes. This eliminates the "10-100 rerenders/sec"

@@ -3,7 +3,8 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
 import { useShallow } from 'zustand/react/shallow';
-import { BUILDING_DEFS, RESOURCE_META, PRODUCTION_CHAINS } from '@/lib/game/configCache';
+import { BUILDING_DEFS, PRODUCTION_CHAINS } from '@/lib/game/configCache';
+import { RESOURCE_META } from '@/lib/game/uiCatalog';
 import { ResourceType } from '@/lib/game/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

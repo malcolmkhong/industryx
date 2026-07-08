@@ -20,6 +20,7 @@ import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
 import { getTierColorClasses, type TierColor } from '@/components/game/shared/tierColors';
 import { GameIcon } from '@/components/icons';
+import { TIER_INFO, ALL_TIERS } from '@/lib/game/tiers';
 
 // Factory types dynamically derived from BUILDING_DEFS (includes Supabase buildings)
 const factoryTiers = getFactoryTypesByTier();
@@ -29,13 +30,25 @@ const TIER_3_FACTORIES = factoryTiers[3] as FactoryType[];
 const TIER_4_FACTORIES = factoryTiers[4] as FactoryType[];
 const TIER_5_FACTORIES = factoryTiers[5] as FactoryType[];
 
-const TIER_CONFIG = {
-  1: { label: 'T1 — Processing', shortLabel: 'T1', color: 'cyan', icon: 'game-icons:flame-tunnel', borderColor: 'border-brand/40', hex: '#22d3ee' },
-  2: { label: 'T2 — Manufacturing', shortLabel: 'T2', color: 'orange', icon: 'game-icons:big-gear', borderColor: 'border-domain/40', hex: '#f97316' },
-  3: { label: 'T3 — High-Tech', shortLabel: 'T3', color: 'purple', icon: 'game-icons:brain', borderColor: 'border-research/40', hex: '#a855f7' },
-  4: { label: 'T4 — Singularity', shortLabel: 'T4', color: 'emerald', icon: 'game-icons:sparkles', borderColor: 'border-success/40', hex: '#00ffcc' },
-  5: { label: 'T5 — Transcendent', shortLabel: 'T5', color: 'red', icon: 'game-icons:spaceship', borderColor: 'border-danger/40', hex: '#ff1744' },
-};
+// Factory-tier config: derived from central TIER_INFO.
+// Factories only exist for tiers 1-5 (extractors are tier 0).
+// All values sourced from @/lib/game/tiers — do NOT hardcode here.
+const FACTORY_TIER_KEYS = [1, 2, 3, 4, 5] as const;
+const TIER_CONFIG: Record<number, { label: string; shortLabel: string; color: string; icon: string; borderColor: string; hex: string }> =
+  Object.fromEntries(
+    FACTORY_TIER_KEYS.map(tier => {
+      const info = TIER_INFO[tier];
+      const shortLabel = `T${tier}`;
+      return [tier, {
+        label: `${shortLabel} — ${info.name}`,
+        shortLabel,
+        color: info.tailwindColor,
+        icon: info.icon,
+        borderColor: info.tailwindBorder,
+        hex: info.color,
+      }];
+    })
+  ) as Record<number, { label: string; shortLabel: string; color: string; icon: string; borderColor: string; hex: string }>;
 
 
 
@@ -549,7 +562,7 @@ export function FactoryPanel() {
         <div className="lg:col-span-2 space-y-3">
           {/* TIER TAB SELECTOR */}
           <div className="flex items-center gap-1 p-1 bg-card rounded-xl border border-border">
-            {([1, 2, 3, 4, 5] as const).map(tier => {
+            {FACTORY_TIER_KEYS.map(tier => {
               const config = TIER_CONFIG[tier];
               const colors = getTierColorClasses(config.color as TierColor);
               const tierBuildings = factoriesByTier[tier];

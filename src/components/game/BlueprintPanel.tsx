@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
 import { useShallow } from 'zustand/react/shallow';
 import { BUILDING_DEFS, TRANSPORT_DEFS, PRODUCTION_CHAINS, RESOURCE_META } from '@/lib/game/configCache';
+import { useConfigVersion } from '@/components/providers/GameConfigProvider';
 import { BuildingType, TransportType } from '@/lib/game/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +30,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export function BlueprintPanel() {
+  useConfigVersion();
   const store = useGameStore(useShallow((s) => ({ addNotification: s.addNotification, blueprints: s.blueprints, buildings: s.buildings, deleteBlueprint: s.deleteBlueprint, exportBlueprint: s.exportBlueprint, importBlueprint: s.importBlueprint, loadBlueprint: s.loadBlueprint, money: s.money, powerGrid: s.powerGrid, renameBlueprint: s.renameBlueprint, saveBlueprint: s.saveBlueprint, transportLines: s.transportLines, workers: s.workers })));
   const [blueprintName, setBlueprintName] = useState('');
   const [expandedBlueprint, setExpandedBlueprint] = useState<string | null>(null);

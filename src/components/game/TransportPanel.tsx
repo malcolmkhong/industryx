@@ -19,16 +19,25 @@ import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GameIcon } from '@/components/icons';
+import { TIER_INFO } from '@/lib/game/tiers';
 import { formatRemaining } from '@/lib/utils/time';
 
-// --- Tier Color Map ---
-const TIER_COLORS: Record<number, { fill: string; stroke: string; text: string; bg: string; label: string }> = {
-  0: { fill: '#374151', stroke: '#a0a0a0', text: 'text-subtle', bg: 'bg-muted-label/20', label: 'Raw' },
-  1: { fill: '#164e63', stroke: '#22d3ee', text: 'text-brand', bg: 'bg-brand/20', label: 'T1' },
-  2: { fill: '#431407', stroke: '#f97316', text: 'text-domain', bg: 'bg-domain/20', label: 'T2' },
-  3: { fill: '#3b0764', stroke: '#a855f7', text: 'text-research', bg: 'bg-research/20', label: 'T3' },
-  4: { fill: '#022c22', stroke: '#00ffcc', text: 'text-success', bg: 'bg-success/20', label: 'T4' },
+// --- Tier Color Map (ERD visualization) ---
+// Derived from central TIER_INFO. Extra `fill` field for SVG nodes.
+// Tiers 0-5 supported; tier 0 = extractors (Raw), tiers 1-5 = factories.
+const TIER_FILL_DARK: Record<number, string> = {
+  0: '#374151', 1: '#164e63', 2: '#431407', 3: '#3b0764', 4: '#022c22', 5: '#450a0a',
 };
+const TIER_COLORS: Record<number, { fill: string; stroke: string; text: string; bg: string; label: string }> =
+  Object.fromEntries(
+    TIER_INFO.map((info, tier) => [tier, {
+      fill: TIER_FILL_DARK[tier] ?? '#1e293b',
+      stroke: info.color,
+      text: tier === 0 ? 'text-subtle' : `text-${info.tailwindColor}`,
+      bg: tier === 0 ? 'bg-muted-label/20' : info.tailwindBg,
+      label: tier === 0 ? 'Raw' : `T${tier}`,
+    }])
+  ) as Record<number, { fill: string; stroke: string; text: string; bg: string; label: string }>;
 
 // --- ERD Data Types ---
 interface ERDNode {

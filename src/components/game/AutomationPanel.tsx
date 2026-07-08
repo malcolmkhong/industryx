@@ -3,6 +3,7 @@
 import { useGameStore, formatNumber } from '@/lib/game/store';
 import { useShallow } from 'zustand/react/shallow';
 import { AUTOMATION_UNLOCKS, RESEARCH_TREE } from '@/lib/game/configCache';
+import { useConfigVersion } from '@/components/providers/GameConfigProvider';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -23,6 +24,7 @@ const AUTO_ICONS: Record<string, React.ReactNode> = {
 };
 
 export function AutomationPanel() {
+  useConfigVersion();
   const store = useGameStore(useShallow((s) => ({ activateAutomation: s.activateAutomation, automationUnlocks: s.automationUnlocks, completedResearch: s.completedResearch, prestigeState: s.prestigeState })));
 
   const activeCount = store.automationUnlocks.filter(a => a.active).length;

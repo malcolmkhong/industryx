@@ -4,7 +4,9 @@ import { Suspense } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 import { AuthProvider } from "@/components/providers/AuthProvider";
+import { AuthOrchestratorProvider } from "@/lib/auth/orchestrator";
 import { GameConfigProvider } from "@/components/providers/GameConfigProvider";
+import { FingerprintUnavailableModal } from "@/components/auth/FingerprintUnavailableModal";
 import DeferredAnalytics from "@/components/DeferredAnalytics";
 
 import "./globals.css";
@@ -21,8 +23,17 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "IndustriaX — Factory Dominion: Automated Empire",
-  description: "Build your industrial empire from scratch. Mine resources, build factories, research technologies, and dominate the galaxy.",
-  keywords: ["IndustriaX", "Factory Dominion", "idle game", "incremental game", "factory game", "automation", "simulation"],
+  description:
+    "Build your industrial empire from scratch. Mine resources, build factories, research technologies, and dominate the galaxy.",
+  keywords: [
+    "IndustriaX",
+    "Factory Dominion",
+    "idle game",
+    "incremental game",
+    "factory game",
+    "automation",
+    "simulation",
+  ],
   authors: [{ name: "IndustriaX" }],
   icons: {
     icon: [
@@ -32,7 +43,11 @@ export const metadata: Metadata = {
       { url: "/brand/favicon-32x32.png", sizes: "32x32", type: "image/png" },
     ],
     apple: [
-      { url: "/brand/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+      {
+        url: "/brand/apple-touch-icon.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
     ],
   },
   openGraph: {
@@ -42,7 +57,7 @@ export const metadata: Metadata = {
   },
   // Add canonical URL for SEO
   alternates: {
-    canonical: '/',
+    canonical: "/",
   },
 };
 
@@ -55,19 +70,28 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="canonical" href="https://industryx.vercel.app/" />
-        <link rel="preconnect" href="https://wkkzqtseqwcyyyezroqq.supabase.co" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://vercel.com" crossOrigin="anonymous" />
+        <link
+          rel="preconnect"
+          href="https://wkkzqtseqwcyyyezroqq.supabase.co"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preconnect"
+          href="https://vercel.com"
+          crossOrigin="anonymous"
+        />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
         <Suspense fallback={null}>
           <TooltipProvider>
-          <AuthProvider>
-            <GameConfigProvider>
-              {children}
-            </GameConfigProvider>
-          </AuthProvider>
+            <AuthOrchestratorProvider>
+              <AuthProvider>
+                <GameConfigProvider>{children}</GameConfigProvider>
+                <FingerprintUnavailableModal />
+              </AuthProvider>
+            </AuthOrchestratorProvider>
           </TooltipProvider>
         </Suspense>
         <DeferredAnalytics />

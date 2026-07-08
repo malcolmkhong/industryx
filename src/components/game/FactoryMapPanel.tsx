@@ -2,7 +2,8 @@
 
 import { useMemo, useState, useCallback, useRef, useEffect, memo } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
-import { BUILDING_DEFS, RESOURCE_META } from '@/lib/game/configCache';
+import { BUILDING_DEFS } from '@/lib/game/configCache';
+import { RESOURCE_META } from '@/lib/game/uiCatalog';
 import { BuildingInstance, BuildingType } from '@/lib/game/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -79,7 +80,16 @@ const BUILD_CATEGORIES = [
   },
   {
     label: <><GameIcon icon="game-icons:vortex" size={14} className="inline" /> T4 Factory</>,
-    types: ['singularityForge', 'darkMatterLab', 'warpDriveFactory', 'antimatterReactor', 'chronoLab', 'plasmaForge', 'megaStructureFactory', 'voidCrystallizer', 'quantumResonanceLab', 'arcologyBuilder', 'habitatModuleFactory', 'dysonCollector', 'luxuryGoodsFactory', 'tradeHub', 'teleporterGate', 'quantumTeleporter', 'dimensionalGateway', 'timeDistorter', 'galacticForge'] as BuildingType[],
+    types: [
+      'singularityForge', 'darkMatterLab', 'warpDriveFactory', 'antimatterReactor',
+      'chronoLab', 'plasmaForge', 'megaStructureFactory', 'voidCrystallizer',
+      'quantumResonanceLab', 'arcologyBuilder', 'habitatModuleFactory',
+      'dysonCollector', 'luxuryGoodsFactory', 'tradeHub', 'teleporterGate',
+      'quantumTeleporter', 'dimensionalGateway', 'timeDistorter', 'galacticForge',
+      // Tier-4 specialist producers for tier-5 resources (Phase B of TIER5_WIRING_PLAN)
+      'arcologyModuleAssembler', 'stellarForgeModule', 'voidEnergyCollector',
+      'tradeContractBroker', 'marketDominanceCenter',
+    ] as BuildingType[],
   },
   {
     label: <><GameIcon icon="game-icons:galactic-carrier" size={14} className="inline" /> T5 Transcendent</>,

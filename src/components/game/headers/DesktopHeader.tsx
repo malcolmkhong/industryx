@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Bell, Check, Cloud, CloudOff, Download, Loader2, LogIn, LogOut,
   Newspaper, Pause, Play, RefreshCw, RotateCcw, Settings, Upload, User, Wifi, WifiOff,
@@ -63,7 +63,7 @@ export function DesktopHeader({ onTabChange, onManageAccount }: DesktopHeaderPro
   const { moneyGlow } = useMoneyGlowEffect();
   const { user, isGuest, signOut, loading: authLoading } = useAuth();
   const { isUsingSupabase, reload: reloadConfig } = useGameConfig();
-  const { saveToCloud, loadFromCloud } = useCloudSync();
+  const { saveToCloud, loadFromCloud, isSyncing } = useCloudSync();
   const { promptLogin } = useLoginPrompt();
   const [tickFormat] = useTickFormat();
 
@@ -101,7 +101,17 @@ export function DesktopHeader({ onTabChange, onManageAccount }: DesktopHeaderPro
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Commander';
   const userAvatar = user?.user_metadata?.avatar_url;
 
+  // Phase 5.5: debounce + reactive isSyncing guard. Layer 1 (time lock)
+  // throttles accidental double-clicks; layer 2 (isSyncing) blocks clicks
+  // during in-flight auto-save or unload flush. The service-level
+  // isSyncing flag is the final word — this is purely UX polish.
+  const lastSaveClickRef = useRef(0);
+  const SAVE_DEBOUNCE_MS = 2000;
   const handleCloudSave = async () => {
+    if (isSyncing) return;
+    const now = Date.now();
+    if (now - lastSaveClickRef.current < SAVE_DEBOUNCE_MS) return;
+    lastSaveClickRef.current = now;
     setCloudStatus('saving');
     const result = await saveToCloud();
     setCloudStatus(result.success ? 'success' : 'error');
@@ -594,7 +604,7 @@ export function DesktopHeader({ onTabChange, onManageAccount }: DesktopHeaderPro
           {user ? (
             <HoverCard openDelay={200} closeDelay={100}>
               <HoverCardTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background" aria-label="Save to Cloud" onClick={handleCloudSave} disabled={cloudStatus === 'saving'}>
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background" aria-label="Save to Cloud" onClick={handleCloudSave} disabled={cloudStatus === 'saving' || isSyncing}>
                   {cloudStatus === 'saving' ? <Loader2 className="w-3.5 h-3.5 text-brand animate-spin" aria-hidden="true" />
                   : cloudStatus === 'success' ? <Cloud className="w-3.5 h-3.5 text-success" aria-hidden="true" />
                   : cloudStatus === 'error' ? <CloudOff className="w-3.5 h-3.5 text-danger" aria-hidden="true" />
@@ -716,7 +726,7 @@ export function DesktopHeader({ onTabChange, onManageAccount }: DesktopHeaderPro
                 <DropdownMenuItem onSelect={onManageAccount} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand">
                   <User className="w-3 h-3 mr-2" /> Manage Account
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={handleCloudSave} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand" disabled={cloudStatus === 'saving'}>
+                <DropdownMenuItem onSelect={handleCloudSave} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand" disabled={cloudStatus === 'saving' || isSyncing}>
                   <Cloud className="w-3 h-3 mr-2" /> Save to Cloud
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={handleCloudLoad} className="text-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-brand">

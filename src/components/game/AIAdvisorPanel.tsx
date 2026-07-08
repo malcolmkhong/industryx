@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/store';
 import { useShallow } from 'zustand/react/shallow';
 import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE, PRODUCTION_CHAINS } from '@/lib/game/configCache';
+import { useConfigVersion } from '@/components/providers/GameConfigProvider';
 import { ResourceType, BuildingType, GameTab } from '@/lib/game/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Brain, Zap, AlertTriangle, Lightbulb, TrendingUp, X, ChevronRight, Factory, Activity, Shield, FlaskConical, Package, ArrowUp, DollarSign, Link2, Power } from 'lucide-react';
@@ -368,6 +369,7 @@ function ChainStatusDot({ status }: { status: ChainStatus }) {
 
 // --- Main Component ---
 export default function AIAdvisorPanel() {
+  useConfigVersion();
   // Use targeted selectors to avoid re-rendering on every tick
   const {
     powerGrid, buildings, productionSnapshot, resources, resourceCapacity,

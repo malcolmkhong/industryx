@@ -4,7 +4,9 @@ import React, { useMemo, useState } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
 import type { GameStore } from '@/lib/game/store-types';
 import { useShallow } from 'zustand/react/shallow';
-import { RESOURCE_META, CONTRACT_TEMPLATES, TIER_INFO } from '@/lib/game/configCache';
+import { CONTRACT_TEMPLATES } from '@/lib/game/configCache';
+import { ALL_TIERS, getTierColor, getTierInfo } from '@/lib/game/tiers';
+import { RESOURCE_META } from '@/lib/game/uiCatalog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatRemaining, formatDuration } from '@/lib/utils/time';
@@ -19,15 +21,8 @@ import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
 import { GameCard } from '@/components/game/shared/GameCard';
 import { GameIcon } from '@/components/icons';
 
-const TIER_COLORS = ['#a0a0a0', '#22d3ee', '#f97316', '#a855f7'];
-
-function getTierColor(tier: number): string {
-  return TIER_COLORS[tier] ?? '#a0a0a0';
-}
-
 function getTierBorderColor(tier: number): string {
-  const info = TIER_INFO[tier];
-  return info?.borderColor ?? 'rgba(160,160,160,0.3)';
+  return getTierInfo(tier)?.borderColor ?? 'rgba(160,160,160,0.3)';
 }
 
 function ContractCard({ contract, store, fulfillingId, onFulfill }: { contract: Contract; store: GameStore; fulfillingId: string | null; onFulfill: (id: string) => void }) {
@@ -36,7 +31,7 @@ function ContractCard({ contract, store, fulfillingId, onFulfill }: { contract: 
   const isUrgent = timePct < 25;
   const tier = contract.gameTier ?? 0;
   const tierColor = getTierColor(tier);
-  const tierInfo = TIER_INFO[tier];
+  const tierInfo = getTierInfo(tier);
 
   return (
     <GameItemTooltip
@@ -201,7 +196,9 @@ export function ContractPanel() {
 
   // Group active contracts by tier
   const contractsByTier = useMemo(() => {
-    const groups: Record<number, Contract[]> = { 0: [], 1: [], 2: [], 3: [] };
+    const groups: Record<number, Contract[]> = Object.fromEntries(
+      ALL_TIERS.map(t => [t, [] as Contract[]])
+    ) as Record<number, Contract[]>;
     const filtered = selectedTierFilter !== null
       ? activeContracts.filter(c => (c.gameTier ?? 0) === selectedTierFilter)
       : activeContracts;
@@ -215,7 +212,9 @@ export function ContractPanel() {
 
   // Count available contract templates per tier
   const templateCountByTier = useMemo(() => {
-    const counts: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0 };
+    const counts: Record<number, number> = Object.fromEntries(
+      ALL_TIERS.map(t => [t, 0])
+    ) as Record<number, number>;
     CONTRACT_TEMPLATES.forEach(t => {
       const tier = t.gameTier ?? 0;
       counts[tier] = (counts[tier] || 0) + 1;
@@ -248,13 +247,13 @@ export function ContractPanel() {
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold" style={{ color: getTierColor(playerTier) }}>
-              <GameIcon icon={TIER_INFO[playerTier]?.icon} size={14} className="inline-flex" /> Tier {playerTier}: {TIER_INFO[playerTier]?.name}
+              <GameIcon icon={getTierInfo(playerTier)?.icon} size={14} className="inline-flex" /> Tier {playerTier}: {getTierInfo(playerTier)?.name}
             </span>
           </div>
           <span className="text-[10px] text-muted-label">Contracts unlock as you advance</span>
         </div>
         <div className="flex gap-1 h-3">
-          {[0, 1, 2, 3].map(tier => {
+          {ALL_TIERS.map(tier => {
             const isUnlocked = tier <= playerTier;
             const isCurrent = tier === playerTier;
             return (
@@ -271,9 +270,9 @@ export function ContractPanel() {
           })}
         </div>
         <div className="flex justify-between mt-1.5 text-[9px] text-muted-label">
-          {[0, 1, 2, 3].map(tier => (
+          {ALL_TIERS.map(tier => (
             <span key={tier} style={{ color: tier <= playerTier ? getTierColor(tier) : undefined }}>
-              {TIER_INFO[tier]?.name}
+              {getTierInfo(tier)?.name}
             </span>
           ))}
         </div>
@@ -329,7 +328,7 @@ export function ContractPanel() {
         >
           All Tiers
         </button>
-        {[0, 1, 2, 3].map(tier => {
+        {ALL_TIERS.map(tier => {
           const isUnlocked = tier <= playerTier;
           const isActive = selectedTierFilter === tier;
           const count = contractsByTier[tier]?.length ?? 0;
@@ -347,14 +346,14 @@ export function ContractPanel() {
                     : 'bg-muted-label/30 text-subtle border border-muted-label hover:bg-muted-label/50'
               }`}
               style={isActive && isUnlocked ? {
-                backgroundColor: TIER_INFO[tier]?.bgColor,
+                backgroundColor: getTierInfo(tier)?.bgColor,
                 color: getTierColor(tier),
-                borderColor: TIER_INFO[tier]?.borderColor,
+                borderColor: getTierInfo(tier)?.borderColor,
               } : undefined}
             >
               {isUnlocked ? (
                 <>
-                  <GameIcon icon={TIER_INFO[tier]?.icon} size={12} className="inline-flex" /> T{tier}
+                  <GameIcon icon={getTierInfo(tier)?.icon} size={12} className="inline-flex" /> T{tier}
                   {count > 0 && <span className="bg-muted-label rounded-full w-3.5 h-3.5 flex items-center justify-center text-[11px]">{count}</span>}
                 </>
               ) : (
@@ -377,9 +376,9 @@ export function ContractPanel() {
             </GameCard>
           ) : (
             // Group by tier
-            [0, 1, 2, 3].filter(tier => (contractsByTier[tier]?.length ?? 0) > 0).map(tier => {
+            ALL_TIERS.filter(tier => (contractsByTier[tier]?.length ?? 0) > 0).map(tier => {
               const tierContracts = contractsByTier[tier];
-              const info = TIER_INFO[tier];
+              const info = getTierInfo(tier);
               return (
                 <div key={tier} className="space-y-2">
                   <div className="flex items-center gap-2 px-1">
@@ -388,7 +387,7 @@ export function ContractPanel() {
                       <GameIcon icon={info?.icon} size={12} className="inline-flex" /> Tier {tier}: {info?.name}
                     </span>
                     <span className="text-[10px] text-muted-label">({tierContracts.length} contract{tierContracts.length !== 1 ? 's' : ''})</span>
-                    <div className="flex-1 h-px" style={{ backgroundColor: TIER_INFO[tier]?.borderColor }} />
+                    <div className="flex-1 h-px" style={{ backgroundColor: getTierInfo(tier)?.borderColor }} />
                   </div>
                   <div className="space-y-3">
                     {tierContracts.map(contract => (
@@ -462,9 +461,9 @@ export function ContractPanel() {
               <h3 className="text-sm font-semibold text-danger">Contract Pool</h3>
             </div>
             <div className="space-y-2">
-              {[0, 1, 2, 3].map(tier => {
+              {ALL_TIERS.map(tier => {
                 const isUnlocked = tier <= playerTier;
-                const info = TIER_INFO[tier];
+                const info = getTierInfo(tier);
                 const templateCount = templateCountByTier[tier] ?? 0;
                 return (
                   <div key={tier} className={`flex items-center gap-2 p-2 rounded-lg text-xs ${

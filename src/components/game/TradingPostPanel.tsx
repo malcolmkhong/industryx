@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGameStore, formatNumber } from "@/lib/game/store";
 import { ResourceType } from "@/lib/game/types";
-import { TRADE_COMMISSION_RATE } from "@/lib/game/tradeConstants";
+import { getGlobalPrice } from "@/lib/game/utils/gameMath";
+import { notifyTradeImpactIfMoved } from "@/lib/game/actions/market";
+import { getBalance } from "@/lib/game/balanceConfig";
 import { INITIAL_MARKET, RESOURCE_META, TRADABLE_RESOURCE_IDS } from "@/lib/game/configCache";
 import { GameIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -30,24 +32,18 @@ import { MarketPriceChart } from "./MarketPriceChart";
 import { formatRemaining } from "@/lib/utils/time";
 
 // ─── Server-enforced cooldown (mirrors src/app/api/game/trade/route.ts) ─────
-const TRADE_COOLDOWN_SECONDS = 300;
+// Phase 3 Step 2: read from balanceConfig (server-authoritative via Supabase).
+// TradingPost is a client component but render must match server math.
+const TRADE_COOLDOWN_SECONDS = getBalance().trade.cooldownSeconds;
+const TRADE_COMMISSION_RATE = getBalance().trade.commissionRate;
 
-// Quick trade presets
+// Quick trade preset interface (U6: now data-driven, not hardcoded)
 interface QuickTradePreset {
   give: ResourceType;
   giveAmount: number;
   receive: ResourceType;
   label: string;
 }
-
-const QUICK_TRADE_PRESETS: QuickTradePreset[] = [
-  { give: "iron", giveAmount: 100, receive: "copper", label: "Iron → Copper" },
-  { give: "coal", giveAmount: 50, receive: "oil", label: "Coal → Oil" },
-  { give: "sand", giveAmount: 100, receive: "iron", label: "Sand → Iron" },
-  { give: "copper", giveAmount: 50, receive: "iron", label: "Copper → Iron" },
-  { give: "iron", giveAmount: 50, receive: "coal", label: "Iron → Coal" },
-  { give: "oil", giveAmount: 20, receive: "lithium", label: "Oil → Lithium" },
-];
 
 // Trade history entry — synced from server
 interface TradeHistoryEntry {
@@ -234,6 +230,9 @@ async function fetchTradeHistory(limit = 20): Promise<TradeHistoryEntry[]> {
     }));
   } catch {
     return [];
+  } finally {
+    // U5: signal caller that fetch is done regardless of outcome
+    // (caller decides whether to flip isLoadingHistory).
   }
 }
 
@@ -262,6 +261,14 @@ export function TradingPostPanel() {
   const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
   const [cooldownTick, setCooldownTick] = useState(0); // forces re-render every second
   const [lastTradeAt, setLastTradeAt] = useState<number | null>(null); // restored from server
+  // U1: most recent server-returned pricing breakdown (live vs base, slippage).
+  // Used to render a "you're trading at live X (vs base Y, slippage Z%)" hint.
+  const [lastPricing, setLastPricing] = useState<TradePricing | null>(null);
+  // U2: pre-trade price snapshot, fed into notifyTradeImpactIfMoved after success.
+  const pendingPriceCheckRef = useRef<{
+    resource: ResourceType;
+    priceBefore: number;
+  } | null>(null);
 
   // Game store selectors (C5 FIX: proper selectors, not entire store)
   const resources = useGameStore((s) => s.resources);
@@ -277,11 +284,16 @@ export function TradingPostPanel() {
     let mounted = true;
     (async () => {
       setIsLoadingHistory(true);
-      const serverTrades = await fetchTradeHistory(20);
-      if (mounted && serverTrades.length > 0) {
-        setTradeHistory(serverTrades);
+      try {
+        const serverTrades = await fetchTradeHistory(20);
+        if (mounted && serverTrades.length > 0) {
+          setTradeHistory(serverTrades);
+        }
+      } finally {
+        // U5: always reset, even on failure (was: only on success → spinner
+        // stayed forever if backend silent-failed).
+        if (mounted) setIsLoadingHistory(false);
       }
-      setIsLoadingHistory(false);
     })();
     return () => {
       mounted = false;
@@ -292,6 +304,8 @@ export function TradingPostPanel() {
   useEffect(() => {
     if (cooldownUntil === null) return;
     if (Date.now() >= cooldownUntil) {
+      // U11: clear state first, return early so we don't allocate an interval
+      // for an already-expired cooldown.
       setCooldownUntil(null);
       return;
     }
@@ -301,7 +315,10 @@ export function TradingPostPanel() {
         setCooldownUntil(null);
       }
     }, 1000);
-    return () => clearInterval(id);
+    return () => {
+      // U11: ensure interval cleared even on unmount-mid-tick
+      clearInterval(id);
+    };
   }, [cooldownUntil]);
 
   // ─── Cooldown remaining (recomputes when tick or cooldownUntil changes) ───
@@ -358,6 +375,9 @@ export function TradingPostPanel() {
   ]);
 
   // ─── Storage suggestions ────────────────────────────────────────────────────
+  // C4: storage-full threshold now reads from balanceConfig.autoSell.thresholdRatio
+  // (was hardcoded 0.8). Same SSOT as the auto-sell system.
+  const storageFullThreshold = getBalance().autoSell.thresholdRatio;
   const suggestions = useMemo(() => {
     const result: {
       resource: ResourceType;
@@ -369,7 +389,7 @@ export function TradingPostPanel() {
       const capacity = resourceCapacity[res] ?? Infinity;
       if (capacity === Infinity || capacity === 0) continue;
       const percent = current / capacity;
-      if (percent > 0.8) {
+      if (percent > storageFullThreshold) {
         let bestTarget: ResourceType | null = null;
         let lowestPercent = 1;
         for (const candidate of TRADABLE_RESOURCE_IDS) {
@@ -396,12 +416,24 @@ export function TradingPostPanel() {
   }, [resources, resourceCapacity]);
 
   // ─── Execute trade (C5 FIX: now goes through server validation) ──────────
+  // U10: deps now include liveMarket so `calculateReceiveAmount` uses fresh
+  // server prices (was: stale closure when market changed after mount).
   const executeTrade = useCallback(
     async (gRes: ResourceType, gAmt: number, rRes: ResourceType) => {
       const rAmt = calculateReceiveAmount(gRes, gAmt, rRes, liveMarket);
       if (rAmt <= 0) return;
 
       const state = useGameStore.getState();
+
+      // U2: capture pre-trade price for post-trade impact notification.
+      // getGlobalPrice returns current display price (live if available, else base).
+      const priceBeforeForImpact = getGlobalPrice(state, gRes);
+      if (priceBeforeForImpact > 0) {
+        pendingPriceCheckRef.current = {
+          resource: gRes,
+          priceBefore: priceBeforeForImpact,
+        };
+      }
 
       // Pre-flight client-side check
       if ((state.resources[gRes] ?? 0) < gAmt) {
@@ -450,6 +482,17 @@ export function TradingPostPanel() {
           `Traded ${formatNumber(gAmt)} ${RESOURCE_META[gRes]?.name ?? gRes} for ${finalReceiveAmount.toFixed(1)} ${RESOURCE_META[rRes]?.name ?? rRes}`,
         );
 
+        // U1: store server-returned pricing breakdown for display
+        if (serverResult.pricing) {
+          setLastPricing(serverResult.pricing);
+        }
+        // U2: notify if the trade measurably moved the market (5s delayed check).
+        if (pendingPriceCheckRef.current) {
+          const { resource, priceBefore } = pendingPriceCheckRef.current;
+          pendingPriceCheckRef.current = null;
+          notifyTradeImpactIfMoved(resource, priceBefore);
+        }
+
         const entry: TradeHistoryEntry = {
           id: crypto.randomUUID(),
           giveResource: gRes,
@@ -465,6 +508,13 @@ export function TradingPostPanel() {
         const tradeTs = Date.now();
         setLastTradeAt(tradeTs);
         setCooldownUntil(tradeTs + TRADE_COOLDOWN_SECONDS * 1000);
+
+        // U7: re-fetch trade history from server so multi-tab/multi-device
+        // history stays in sync. (Mount-only fetch was stale.)
+        (async () => {
+          const fresh = await fetchTradeHistory(20);
+          if (fresh.length > 0) setTradeHistory(fresh);
+        })();
       } catch (err) {
         console.error("[Trade] Unexpected error:", err);
         setTradeError("Unexpected error during trade");
@@ -476,7 +526,7 @@ export function TradingPostPanel() {
         setIsTrading(false);
       }
     },
-    [],
+    [liveMarket], // U10: dep so function rebuilds when market updates
   );
 
   const handleExecuteTrade = useCallback(() => {
@@ -508,14 +558,77 @@ export function TradingPostPanel() {
     [executeTrade, isInCooldown, cooldownSecondsRemaining],
   );
 
-  // Quick trade: calculate receive amounts
-  // Gap 2: depends on liveMarket so presets update when the server price moves.
+  // U6: dynamic quick-trade presets (was: 6 hardcoded entries).
+  //
+  // Algorithm:
+  //   1. Top 3 from `suggestions` (storage-full → low-storage) — gives 1 specific target.
+  //   2. Fill up to 3 more from generic pairs: highest-stock give → lowest-stock receive.
+  //   3. Each preset amount = min(stock, 10% of capacity) so player can always execute.
+  //   4. Skips pairs where giveResource === receiveResource.
+  //
+  // Re-runs when resources / capacity / suggestions change. receiveAmount reflects
+  // current live prices (depends on liveMarket).
   const quickTradeAmounts = useMemo(() => {
-    return QUICK_TRADE_PRESETS.map((p) => ({
+    const presets: QuickTradePreset[] = [];
+    const seen = new Set<string>();
+
+    const addPreset = (
+      give: ResourceType,
+      amount: number,
+      receive: ResourceType,
+    ) => {
+      if (give === receive) return;
+      const key = `${give}->${receive}`;
+      if (seen.has(key)) return;
+      // ensure player can afford this much
+      const cap = resourceCapacity[give] ?? Infinity;
+      const stock = resources[give] ?? 0;
+      const afford = Math.max(1, Math.min(amount, Math.floor(stock * 0.1), Math.floor(cap * 0.1)));
+      if (afford < 1) return;
+      seen.add(key);
+      presets.push({
+        give,
+        giveAmount: afford,
+        receive,
+        label: `${RESOURCE_META[give]?.name ?? give} → ${RESOURCE_META[receive]?.name ?? receive}`,
+      });
+    };
+
+    // 1) From suggestions: 1:1 storage-full → low-storage
+    for (const s of suggestions.slice(0, 3)) {
+      addPreset(s.resource, Math.ceil((resources[s.resource] ?? 0) * 0.1), s.suggestTradeFor);
+    }
+
+    // 2) Fill from generic state: top stock give → bottom stock receive (excluding chain)
+    const stocks = TRADABLE_RESOURCE_IDS.map((res: string) => ({
+      res: res as ResourceType,
+      stock: resources[res] ?? 0,
+    }));
+    const rich = [...stocks].filter((s) => s.stock > 100).sort((a, b) => b.stock - a.stock);
+    const poor = [...stocks].filter((s) => s.stock > 0).sort((a, b) => a.stock - b.stock);
+
+    for (const g of rich) {
+      if (presets.length >= 6) break;
+      for (const r of poor) {
+        if (g.res === r.res) continue;
+        addPreset(g.res, g.stock, r.res);
+        if (presets.length >= 6) break;
+      }
+    }
+
+    // 3) Last-resort fallback: first few TRADABLE pairs (offline / no resources).
+    //    Uses minimum 1 unit amounts so they at least render.
+    if (presets.length === 0) {
+      for (let i = 0; i < TRADABLE_RESOURCE_IDS.length - 1 && presets.length < 3; i++) {
+        addPreset(TRADABLE_RESOURCE_IDS[i] as ResourceType, 1, TRADABLE_RESOURCE_IDS[i + 1] as ResourceType);
+      }
+    }
+
+    return presets.slice(0, 6).map((p) => ({
       ...p,
       receiveAmount: calculateReceiveAmount(p.give, p.giveAmount, p.receive, liveMarket),
     }));
-  }, [liveMarket]);
+  }, [liveMarket, resources, resourceCapacity, suggestions]);
 
   // ─── Set amount to max available ────────────────────────────────────────────
   const setMaxGive = useCallback(() => {
@@ -542,9 +655,9 @@ export function TradingPostPanel() {
           </h2>
           <Badge
             variant="outline"
-            className="text-[10px] border-research/30 text-research bg-research/20/20"
+            className="text-[10px] border-research/30 text-research bg-research/20"
           >
-            15% commission
+            {Math.round(getBalance().trade.commissionRate * 100)}% commission
           </Badge>
           <Badge
             variant="outline"
@@ -576,7 +689,7 @@ export function TradingPostPanel() {
               }}
             >
               <SelectTrigger className="w-full bg-background border-brand/30 text-sm">
-                <SelectValue />
+                <SelectValue placeholder="Give resource" />
               </SelectTrigger>
               <SelectContent className="bg-[#0d1220] border-brand/30 max-h-60">
                 {TRADABLE_RESOURCE_IDS.map((res) => (
@@ -640,7 +753,7 @@ export function TradingPostPanel() {
               whileTap={{ scale: 0.9 }}
               transition={{ duration: 0.3 }}
               onClick={swapResources}
-              className="w-10 h-10 rounded-full border border-research/30 bg-research/20/20 flex items-center justify-center text-research hover:bg-research/20/40 hover:border-research/50 transition-colors"
+              className="w-10 h-10 rounded-full border border-research/30 bg-research/20 flex items-center justify-center text-research hover:bg-research/40 hover:border-research/50 transition-colors"
               aria-label="Swap give and receive resources"
             >
               <ArrowRightLeft className="w-4 h-4" />
@@ -662,7 +775,7 @@ export function TradingPostPanel() {
               }}
             >
               <SelectTrigger className="w-full bg-background border-brand/30 text-sm">
-                <SelectValue />
+                <SelectValue placeholder="Receive resource" />
               </SelectTrigger>
               <SelectContent className="bg-[#0d1220] border-brand/30 max-h-60">
                 {TRADABLE_RESOURCE_IDS.map((res) => (
@@ -716,7 +829,7 @@ export function TradingPostPanel() {
                 <div className="w-12 h-1 bg-muted-label rounded-full overflow-hidden ml-1">
                   <div
                     className={`h-full rounded-full transition-all ${
-                      receiveResourceCurrent / receiveCapacity > 0.8
+                      receiveResourceCurrent / receiveCapacity > storageFullThreshold
                         ? "bg-danger"
                         : receiveResourceCurrent / receiveCapacity > 0.5
                           ? "bg-warning"
@@ -763,6 +876,26 @@ export function TradingPostPanel() {
             />
           </div>
 
+          {/* U1: server-returned pricing breakdown after the most recent trade */}
+          {lastPricing && (
+            <div className="text-[10px] text-subtle bg-background/40 border border-brand/10 rounded-lg px-3 py-2 font-mono">
+              <span className="text-muted-label">Last trade: </span>
+              <span>
+                {Math.round(lastPricing.giveBasePrice * 100) / 100} base
+              </span>
+              <span className="text-muted-label"> → </span>
+              <span className={lastPricing.usedLivePrice ? "text-warning" : "text-subtle"}>
+                {Math.round(lastPricing.giveLivePrice * 100) / 100} live
+              </span>
+              <span className="text-muted-label">
+                {" "}(slippage {(lastPricing.slippage.give * 100).toFixed(2)}%)
+              </span>
+              {lastPricing.usedLivePrice && (
+                <span className="ml-2 text-[9px] text-warning">▲ live price used</span>
+              )}
+            </div>
+          )}
+
           {/* Trade error display */}
           {tradeError && (
             <div className="flex items-center gap-2 text-[10px] text-danger bg-danger/10 border border-danger/20 rounded-lg px-3 py-2">
@@ -781,14 +914,18 @@ export function TradingPostPanel() {
             </div>
           )}
 
-          {/* Capacity overflow warning */}
+          {/* Capacity overflow notice (U3) — trade will still succeed with capped amount */}
           {receiveCapacity !== Infinity &&
             receiveResourceCurrent + receiveAmount > receiveCapacity &&
             receiveAmount > 0 && (
               <div className="flex items-center gap-2 text-[10px] text-warning bg-warning/10 border border-warning/20 rounded-lg px-3 py-2">
-                <AlertTriangle className="w-3 h-3 shrink-0" />
+                <AlertTriangle className="w-3 h-3 text-warning shrink-0" />
                 {RESOURCE_META[receiveResource]?.name ?? receiveResource}{" "}
-                storage would overflow. Receive amount will be capped.
+                storage nearly full — receive will be capped at{" "}
+                <span className="font-mono text-warning">
+                  {Math.max(0, receiveCapacity - receiveResourceCurrent).toFixed(1)}
+                </span>{" "}
+                to fit.
               </div>
             )}
 
@@ -856,7 +993,7 @@ export function TradingPostPanel() {
         <MarketPriceChart
           resourceId={giveResource}
           hours={24}
-          width={7600}
+          width={1200} /* U12: was 7600, too wide for typical containers */
           height={120}
           className="w-full"
         />
@@ -963,7 +1100,7 @@ export function TradingPostPanel() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-6 text-[10px] px-2 border-research/30 text-research hover:bg-research/20/20 shrink-0"
+                    className="h-6 text-[10px] px-2 border-research/30 text-research hover:bg-research/20 shrink-0"
                     onClick={() => {
                       setGiveResource(s.resource);
                       setReceiveResource(s.suggestTradeFor);
@@ -1005,7 +1142,8 @@ export function TradingPostPanel() {
         ) : (
           <div className="space-y-1 max-h-64 overflow-y-auto game-scrollbar">
             {tradeHistory.map((entry) => {
-              const ticksAgo = gameTick - entry.tick;
+              // U4: client tick may lag server on cloud sync — guard negative
+              const ticksAgo = Math.max(0, gameTick - entry.tick);
               return (
                 <motion.div
                   key={entry.id}
@@ -1056,7 +1194,7 @@ export function TradingPostPanel() {
                   <span className="ml-auto text-[10px] text-muted-label shrink-0">
                     {entry.createdAt
                       ? timeAgo(entry.createdAt)
-                      : ticksAgo === 0
+                      : ticksAgo <= 0
                         ? "just now"
                         : `${formatRemaining(ticksAgo)} ago`}
                   </span>
