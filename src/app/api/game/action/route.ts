@@ -37,6 +37,7 @@ import {
   validateUpgradeAction,
   validateTransportAction,
   validateToggleBuildingAction,
+  validateUpgradeStorageAction,
 } from "@/lib/game/serverEngine";
 import { applyElapsedTicks } from "@/lib/auth/applyElapsedTicks";
 import type { ServerGameStateForAction } from "@/lib/db/serverGameState";
@@ -353,6 +354,23 @@ function handleToggleBuildingAction(
   return validateToggleBuildingAction(buildingId, enabled, gameState);
 }
 
+function handleUpgradeStorageAction(
+  payload: Record<string, unknown>,
+  gameState: Partial<GameState>,
+): ActionResponse {
+  const resource = payload.resource as string;
+  const levels = payload.levels as number;
+
+  if (!resource) {
+    return { valid: false, error: "Missing resource in payload" };
+  }
+  if (typeof levels !== "number") {
+    return { valid: false, error: "Missing 'levels' number in payload" };
+  }
+
+  return validateUpgradeStorageAction(resource, levels, gameState);
+}
+
 function handleSetGameSpeed(
   payload: Record<string, unknown>,
   serverState: { state_version: number },
@@ -444,6 +462,7 @@ export async function POST(request: Request) {
     "transport",
     "set_game_speed",
     "toggle_building",
+    "upgrade_storage",
   ];
   if (!action || !validActions.includes(action)) {
     return NextResponse.json(
@@ -615,6 +634,9 @@ export async function POST(request: Request) {
     case "toggle_building":
       result = handleToggleBuildingAction(payload, gameState);
       break;
+    case "upgrade_storage":
+      result = handleUpgradeStorageAction(payload, gameState);
+      break;
     default:
       result = { valid: false, error: `Unhandled action: ${action}` };
   }
@@ -720,6 +742,7 @@ export async function POST(request: Request) {
       | "buy_market"
       | "sell_market"
       | "toggle_building"
+      | "upgrade_storage"
       | "set_game_speed"
       | "bulk_build"
       | "bulk_sell",

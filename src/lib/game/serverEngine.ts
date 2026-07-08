@@ -31,6 +31,7 @@ import {
   computeEndgameIncome,
 } from "./productionCalculator";
 import { GameConfig } from "./config";
+import { getBalance } from "./balanceConfig";
 import {
   ModifierRegistry,
   ModifierEngine,
@@ -979,6 +980,89 @@ export function validateToggleBuildingAction(
     i === idx ? { ...b, active: enabled } : b,
   );
   return { valid: true, correctedState: { buildings: nextBuildings } };
+}
+
+/**
+ * Validate an 'upgrade_storage' action.
+ *
+ * Server-authoritative: computes the log-dampened exponential cost
+ * (matches the formula in the client actions/storage.ts upgradeStorage
+ * implementation: 100 * exponent^N * dampener^N for each level), checks
+ * affordability, and returns the post-upgrade resourceCapacity and
+ * storageUpgradeLevels. Money is deducted; totalMoneyEarned is unchanged
+ * (storage is a spend path, not income).
+ */
+export function validateUpgradeStorageAction(
+  resource: string,
+  levels: number,
+  state: Partial<GameState>,
+): {
+  valid: boolean;
+  error?: string;
+  correctedState?: Partial<GameState>;
+} {
+  // Input validation
+  if (!resource || typeof resource !== "string") {
+    return { valid: false, error: "Missing resource in payload" };
+  }
+  if (!Number.isFinite(levels) || levels <= 0 || !Number.isInteger(levels)) {
+    return {
+      valid: false,
+      error: `Invalid levels: ${levels}. Must be a positive integer.`,
+    };
+  }
+  // Phase 2.5: cap bulk upgrades at 100 to prevent runaway server work
+  const MAX_STORAGE_UPGRADE = 100;
+  if (levels > MAX_STORAGE_UPGRADE) {
+    return {
+      valid: false,
+      error: `Cannot upgrade more than ${MAX_STORAGE_UPGRADE} levels at once`,
+    };
+  }
+
+  // Cost formula: matches the client upgradeStorage formula. Kept in sync
+  // via getBalance() so any future tuning propagates to both sides.
+  const bal = getBalance().storage;
+  const currentLevel =
+    state.storageUpgradeLevels?.[resource as ResourceType] ?? 0;
+
+  let totalCost = 0;
+  for (let i = 0; i < levels; i++) {
+    const n = currentLevel + i;
+    const exponential = Math.pow(bal.upgradeCostExponent, n);
+    const dampening = Math.pow(bal.logCostMultiplier, n);
+    totalCost += Math.floor(100 * exponential * dampening);
+  }
+
+  const money = state.money ?? 0;
+  if (money < totalCost) {
+    return {
+      valid: false,
+      error: `Not enough money for storage upgrade. Need $${totalCost}, have $${Math.floor(money)}`,
+    };
+  }
+
+  // Capacity gain: base capacity * upgradeCapacityRatio * levels
+  const baseCapacity = state.resourceCapacity?.[resource as ResourceType] ?? 0;
+  const addedCapacity = baseCapacity * bal.upgradeCapacityRatio * levels;
+  const nextCapacity = {
+    ...(state.resourceCapacity ?? ({} as Record<ResourceType, number>)),
+    [resource]: baseCapacity + addedCapacity,
+  };
+  const nextLevels = {
+    ...(state.storageUpgradeLevels ?? ({} as Record<ResourceType, number>)),
+    [resource]: currentLevel + levels,
+  };
+
+  return {
+    valid: true,
+    correctedState: {
+      money: money - totalCost,
+      resourceCapacity: nextCapacity,
+      storageUpgradeLevels: nextLevels,
+      // totalMoneyEarned unchanged (storage is a spend path).
+    },
+  };
 }
 
 /**

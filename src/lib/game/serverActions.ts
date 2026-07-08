@@ -113,6 +113,8 @@ export async function submitActionToServer(
               money?: number;
               buildings?: unknown[];
               resources?: Record<string, number>;
+              resourceCapacity?: Record<string, number>;
+              storageUpgradeLevels?: Record<string, number>;
             }
           | undefined,
       };

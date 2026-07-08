@@ -3,10 +3,9 @@
 // ============================================
 import type { ResourceType } from "../types";
 import { RESOURCE_META } from "../configCache";
-import { getBalance } from "../balanceConfig";
-import { initialCapacity } from "../constants/initialState";
 import { formatNumber } from "../utils/formatNumber";
 import { soundEngine } from "../soundEngine";
+import { generateId } from "../utils/generateId";
 
 type SetFn = (
   partial: Record<string, unknown> | ((state: any) => Record<string, unknown>),
@@ -15,46 +14,44 @@ type GetFn = () => any;
 
 export function createStorageActions(set: SetFn, get: GetFn) {
   return {
-    upgradeStorage: (resource: ResourceType, levels: number) => {
+    upgradeStorage: async (resource: ResourceType, levels: number) => {
       const state = get();
       const currentLevel = state.storageUpgradeLevels[resource] ?? 0;
-      // Phase 3 C1: log-dampening formula. Effective cost = 100 * exponent^N * dampener^N
-      // where dampener = logCostMultiplier (default 0.9). This caps runaway growth
-      // at high levels while preserving early-game progression feel.
-      const bal = getBalance().storage;
-      let totalCost = 0;
-      for (let i = 0; i < levels; i++) {
-        const n = currentLevel + i;
-        const exponential = Math.pow(bal.upgradeCostExponent, n);
-        const dampening = Math.pow(bal.logCostMultiplier, n);
-        totalCost += Math.floor(100 * exponential * dampening);
-      }
 
-      if (state.money < totalCost) {
+      // Phase 6: server-authoritative storage upgrade. Server computes the
+      // log-dampened cost, applies the upgrade, and returns the new capacity
+      // and level. Client applies the server's authoritative state verbatim.
+      const validation = await import("../actionValidator").then((m) =>
+        m.validateActionWithServer(
+          "upgrade_storage",
+          { resource, levels },
+          generateId(),
+        ),
+      );
+      if (!validation.approved) {
         soundEngine.play("error", "ui");
         get().addNotification(
           "error",
-          `Not enough money! Need $${formatNumber(totalCost)} to upgrade storage`,
+          validation.error ?? "Storage upgrade rejected by server",
         );
         return;
       }
 
-      const baseCapacity = initialCapacity[resource];
+      // Apply server-authoritative state. Defensive fallback to local
+      // computation if the server omitted correctedState.
+      const serverCapacity =
+        validation.correctedState?.resourceCapacity ?? state.resourceCapacity;
+      const serverLevels =
+        validation.correctedState?.storageUpgradeLevels ??
+        state.storageUpgradeLevels;
+      const serverMoney = validation.correctedState?.money ?? state.money;
       const addedCapacity =
-        baseCapacity * getBalance().storage.upgradeCapacityRatio * levels;
-      const newCapacity = {
-        ...state.resourceCapacity,
-        [resource]: state.resourceCapacity[resource] + addedCapacity,
-      };
-      const newUpgradeLevels = {
-        ...state.storageUpgradeLevels,
-        [resource]: currentLevel + levels,
-      };
+        serverCapacity[resource] - (state.resourceCapacity[resource] ?? 0);
 
       set({
-        money: state.money - totalCost,
-        resourceCapacity: newCapacity,
-        storageUpgradeLevels: newUpgradeLevels,
+        money: serverMoney,
+        resourceCapacity: serverCapacity,
+        storageUpgradeLevels: serverLevels,
       });
       soundEngine.play("buildingPlaced", "building");
       get().addNotification(
