@@ -45,10 +45,16 @@ describe("validateUpgradeStorageAction (server-authoritative)", () => {
     // Level 0->1: cost = floor(100 * 1.5^0 * 0.9^0) = 100
     expect(result.correctedState?.money).toBe(10_000 - 100);
     // Level +1
-    const levels = result.correctedState?.storageUpgradeLevels as Record<string, number>;
+    const levels = result.correctedState?.storageUpgradeLevels as Record<
+      string,
+      number
+    >;
     expect(levels.iron).toBe(1);
     // Capacity: 100 base * 0.5 ratio * 1 level = +50
-    const capacity = result.correctedState?.resourceCapacity as Record<string, number>;
+    const capacity = result.correctedState?.resourceCapacity as Record<
+      string,
+      number
+    >;
     expect(capacity.iron).toBe(150);
   });
 
@@ -64,7 +70,10 @@ describe("validateUpgradeStorageAction (server-authoritative)", () => {
       expectedCost += Math.floor(100 * Math.pow(1.5, n) * Math.pow(0.9, n));
     }
     expect(result.correctedState?.money).toBe(1_000_000 - expectedCost);
-    const levels = result.correctedState?.storageUpgradeLevels as Record<string, number>;
+    const levels = result.correctedState?.storageUpgradeLevels as Record<
+      string,
+      number
+    >;
     expect(levels.iron).toBe(5);
   });
 
@@ -76,7 +85,10 @@ describe("validateUpgradeStorageAction (server-authoritative)", () => {
     const result = validateUpgradeStorageAction("iron", 3, state);
 
     expect(result.valid).toBe(true);
-    const levels = result.correctedState?.storageUpgradeLevels as Record<string, number>;
+    const levels = result.correctedState?.storageUpgradeLevels as Record<
+      string,
+      number
+    >;
     expect(levels.iron).toBe(13); // 10 + 3
   });
 
@@ -121,24 +133,42 @@ describe("validateUpgradeStorageAction (server-authoritative)", () => {
   });
 
   it("does NOT increment totalMoneyEarned (storage is spend path)", () => {
-    const state = makeState({ money: 10_000, totalMoneyEarned: 50_000 });
+    const state = makeState({ money: 10_000 });
     const result = validateUpgradeStorageAction("iron", 1, state);
 
     expect(result.valid).toBe(true);
-    expect(result.correctedState?.totalMoneyEarned).toBeUndefined();
+    // Verify correctedState shape: no totalMoneyEarned field (server omits it for spend paths)
+    expect(
+      Object.prototype.hasOwnProperty.call(
+        result.correctedState ?? {},
+        "totalMoneyEarned",
+      ),
+    ).toBe(false);
   });
 
   it("preserves other resources' capacity and levels", () => {
     const state = makeState({
       money: 100_000,
-      resourceCapacity: { iron: 100, copper: 200 } as Record<ResourceType, number>,
-      storageUpgradeLevels: { iron: 0, copper: 5 } as Record<ResourceType, number>,
+      resourceCapacity: { iron: 100, copper: 200 } as Record<
+        ResourceType,
+        number
+      >,
+      storageUpgradeLevels: { iron: 0, copper: 5 } as Record<
+        ResourceType,
+        number
+      >,
     });
     const result = validateUpgradeStorageAction("iron", 2, state);
 
     expect(result.valid).toBe(true);
-    const capacity = result.correctedState?.resourceCapacity as Record<string, number>;
-    const levels = result.correctedState?.storageUpgradeLevels as Record<string, number>;
+    const capacity = result.correctedState?.resourceCapacity as Record<
+      string,
+      number
+    >;
+    const levels = result.correctedState?.storageUpgradeLevels as Record<
+      string,
+      number
+    >;
     // iron updated
     expect(capacity.iron).toBe(100 + 100 * 0.5 * 2); // base + ratio*levels
     expect(levels.iron).toBe(2);
@@ -161,8 +191,12 @@ describe("validateUpgradeStorageAction (server-authoritative)", () => {
 
     expect(resultIron.valid).toBe(true);
     expect(resultRare.valid).toBe(true);
-    const ironCap = (resultIron.correctedState?.resourceCapacity as Record<string, number>).iron;
-    const rareCap = (resultRare.correctedState?.resourceCapacity as Record<string, number>).rareEarth;
+    const ironCap = (
+      resultIron.correctedState?.resourceCapacity as Record<string, number>
+    ).iron;
+    const rareCap = (
+      resultRare.correctedState?.resourceCapacity as Record<string, number>
+    ).rareEarth;
     // iron base 100 * 0.5 = +50; rareEarth base 20 * 0.5 = +10
     expect(ironCap - 100).toBe(50);
     expect(rareCap - 20).toBe(10);

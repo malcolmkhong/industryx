@@ -38,6 +38,8 @@ import {
   validateTransportAction,
   validateToggleBuildingAction,
   validateUpgradeStorageAction,
+  validateHireWorkerAction,
+  validateAssignWorkerAction,
 } from "@/lib/game/serverEngine";
 import { applyElapsedTicks } from "@/lib/auth/applyElapsedTicks";
 import type { ServerGameStateForAction } from "@/lib/db/serverGameState";
@@ -371,6 +373,32 @@ function handleUpgradeStorageAction(
   return validateUpgradeStorageAction(resource, levels, gameState);
 }
 
+function handleHireWorkerAction(
+  payload: Record<string, unknown>,
+  gameState: Partial<GameState>,
+  config: GameConfig,
+): ActionResponse {
+  const workerType = payload.workerType as string;
+  if (!workerType) {
+    return { valid: false, error: "Missing workerType in payload" };
+  }
+  return validateHireWorkerAction(workerType, gameState, config);
+}
+
+function handleAssignWorkerAction(
+  payload: Record<string, unknown>,
+  gameState: Partial<GameState>,
+): ActionResponse {
+  const workerId = payload.workerId as string;
+  const buildingId = payload.buildingId as string | null | undefined;
+  if (!workerId) {
+    return { valid: false, error: "Missing workerId in payload" };
+  }
+  // Normalize undefined -> null (matches the type: buildingId is string | null)
+  const normalizedBuildingId = buildingId === undefined ? null : buildingId;
+  return validateAssignWorkerAction(workerId, normalizedBuildingId, gameState);
+}
+
 function handleSetGameSpeed(
   payload: Record<string, unknown>,
   serverState: { state_version: number },
@@ -463,6 +491,8 @@ export async function POST(request: Request) {
     "set_game_speed",
     "toggle_building",
     "upgrade_storage",
+    "hire_worker",
+    "assign_worker",
   ];
   if (!action || !validActions.includes(action)) {
     return NextResponse.json(
@@ -637,6 +667,12 @@ export async function POST(request: Request) {
     case "upgrade_storage":
       result = handleUpgradeStorageAction(payload, gameState);
       break;
+    case "hire_worker":
+      result = handleHireWorkerAction(payload, gameState, config);
+      break;
+    case "assign_worker":
+      result = handleAssignWorkerAction(payload, gameState);
+      break;
     default:
       result = { valid: false, error: `Unhandled action: ${action}` };
   }
@@ -743,6 +779,8 @@ export async function POST(request: Request) {
       | "sell_market"
       | "toggle_building"
       | "upgrade_storage"
+      | "hire_worker"
+      | "assign_worker"
       | "set_game_speed"
       | "bulk_build"
       | "bulk_sell",

@@ -49,6 +49,7 @@ export interface ValidatedActionResult {
     resources?: Record<string, number>;
     resourceCapacity?: Record<string, number>;
     storageUpgradeLevels?: Record<string, number>;
+    workers?: unknown[];
   };
 }
 

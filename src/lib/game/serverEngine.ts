@@ -11,6 +11,7 @@ import {
   ResourceType,
   Worker,
   WorkerDefinition,
+  WorkerType,
   WeatherType,
   ResourceAmount,
   CostResourceType,
@@ -980,6 +981,140 @@ export function validateToggleBuildingAction(
     i === idx ? { ...b, active: enabled } : b,
   );
   return { valid: true, correctedState: { buildings: nextBuildings } };
+}
+
+/**
+ * Validate a 'hire_worker' action.
+ *
+ * Server-authoritative: looks up the worker type in config, checks
+ * affordability against the server-side `baseHireCost` (immune to
+ * client-side tampering), generates the worker ID, and returns the
+ * updated `workers` array + deducted money in correctedState.
+ *
+ * `totalMoneyEarned` is unchanged: hiring is a spend path.
+ */
+export function validateHireWorkerAction(
+  workerType: string,
+  state: Partial<GameState>,
+  config: GameConfig,
+): {
+  valid: boolean;
+  error?: string;
+  correctedState?: Partial<GameState>;
+} {
+  if (!workerType || typeof workerType !== "string") {
+    return { valid: false, error: "Missing workerType in payload" };
+  }
+  const workerDef = config.workers.find((w) => w.id === workerType);
+  if (!workerDef) {
+    return {
+      valid: false,
+      error: `Unknown worker type "${workerType}"`,
+    };
+  }
+  if (
+    typeof workerDef.baseHireCost !== "number" ||
+    workerDef.baseHireCost < 0
+  ) {
+    return {
+      valid: false,
+      error: `Worker "${workerType}" has invalid baseHireCost in config`,
+    };
+  }
+
+  const money = state.money ?? 0;
+  if (money < workerDef.baseHireCost) {
+    return {
+      valid: false,
+      error: `Not enough money to hire ${workerDef.name}. Need $${workerDef.baseHireCost}, have $${Math.floor(money)}`,
+    };
+  }
+
+  // Generate server-side worker ID (use crypto.randomUUID when available).
+  const workerId =
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `wrk_${Date.now()}_${Math.floor(Math.random() * 1e6)}`;
+
+  const newWorker: Worker = {
+    id: workerId,
+    type: workerType as WorkerType,
+    level: 1,
+    experience: 0,
+    assignedTo: null,
+    efficiency: 1,
+    speed: 1,
+    maintenance: 0,
+  };
+
+  const nextWorkers = [...(state.workers ?? []), newWorker];
+
+  return {
+    valid: true,
+    correctedState: {
+      money: money - workerDef.baseHireCost,
+      workers: nextWorkers,
+      // totalMoneyEarned unchanged (hiring is a spend path).
+    },
+  };
+}
+
+/**
+ * Validate an 'assign_worker' action.
+ *
+ * Server-authoritative: looks up the worker, validates the buildingId (if
+ * non-null) exists in the player's buildings, and returns the updated
+ * `workers` array in correctedState. No money change.
+ */
+export function validateAssignWorkerAction(
+  workerId: string,
+  buildingId: string | null,
+  state: Partial<GameState>,
+): {
+  valid: boolean;
+  error?: string;
+  correctedState?: Partial<GameState>;
+} {
+  if (!workerId || typeof workerId !== "string") {
+    return { valid: false, error: "Missing workerId in payload" };
+  }
+  if (buildingId !== null && typeof buildingId !== "string") {
+    return {
+      valid: false,
+      error: "buildingId must be a string or null",
+    };
+  }
+
+  const workers = state.workers ?? [];
+  const idx = workers.findIndex((w) => w.id === workerId);
+  if (idx < 0) {
+    return {
+      valid: false,
+      error: `Worker "${workerId}" not found`,
+    };
+  }
+
+  // If assigning to a building, verify it exists in the player's buildings.
+  if (buildingId !== null) {
+    const buildings = state.buildings ?? [];
+    if (!buildings.find((b) => b.id === buildingId)) {
+      return {
+        valid: false,
+        error: `Building "${buildingId}" not found`,
+      };
+    }
+  }
+
+  const worker = workers[idx];
+  // No-op if the assignment target is the same as current.
+  if (worker.assignedTo === buildingId) {
+    return { valid: true, correctedState: { workers } };
+  }
+
+  const nextWorkers = workers.map((w, i) =>
+    i === idx ? { ...w, assignedTo: buildingId } : w,
+  );
+  return { valid: true, correctedState: { workers: nextWorkers } };
 }
 
 /**

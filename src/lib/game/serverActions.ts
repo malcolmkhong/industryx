@@ -115,6 +115,7 @@ export async function submitActionToServer(
               resources?: Record<string, number>;
               resourceCapacity?: Record<string, number>;
               storageUpgradeLevels?: Record<string, number>;
+              workers?: unknown[];
             }
           | undefined,
       };
