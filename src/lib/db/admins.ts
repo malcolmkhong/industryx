@@ -6,9 +6,13 @@
  * import query functions from here instead of touching the table directly.
  *
  * Iteration 2 of the Database Centralization migration (2026-06-20).
- * Migrated routes: /api/admins, /api/admins/[id], /api/admin/admins,
- *   /api/admin/admins/[id], /api/admin/admins/[id]/role,
- *   /api/auth/* (via auth.ts cache), and src/lib/auth/admin-helpers.ts.
+ * Migrated routes: /api/admin/admins, /api/admin/admins/[id],
+ *   /api/admin/admins/[id]/role, /api/auth/* (via auth.ts cache),
+ *   and src/lib/auth/admin-helpers.ts.
+ *
+ * Note: The legacy `/api/admins` and `/api/admins/[id]` (without the
+ * `admin/` prefix) were deleted in Phase 5.4 as dead code (no consumers
+ * — the `/api/admin/admins/*` paths are the canonical ones).
  *
  * Caching: The 60s in-memory cache for admin user IDs is preserved exactly
  * as it was in src/lib/auth/admin.ts. The cache now lives here, and
@@ -24,27 +28,25 @@
  *   - src/lib/db/adminActions.ts              (NEW, sibling)
  *   - src/lib/auth/admin.ts                   (cache moved here, re-exports)
  *   - src/lib/auth/admin-helpers.ts           (uses db/admins + db/adminActions)
- *   - src/app/api/admins/route.ts             (3 call sites)
- *   - src/app/api/admins/[id]/route.ts        (2 call sites)
  *   - src/app/api/admin/admins/route.ts       (3 call sites)
  *   - src/app/api/admin/admins/[id]/route.ts  (2 call sites)
  *   - src/app/api/admin/admins/[id]/role/route.ts (4 call sites)
  */
 
-import { createClient } from '@/lib/supabase/server';
-import type { Database } from '@/lib/db/types';
+import { createClient } from "@/lib/supabase/server";
+import type { Database } from "@/lib/db/types";
 
 // Type aliases from the generated Supabase types.
-type AdminUserRow = Database['public']['Tables']['admin_users']['Row'];
-type AdminUserInsert = Database['public']['Tables']['admin_users']['Insert'];
-type AdminUserUpdate = Database['public']['Tables']['admin_users']['Update'];
+type AdminUserRow = Database["public"]["Tables"]["admin_users"]["Row"];
+type AdminUserInsert = Database["public"]["Tables"]["admin_users"]["Insert"];
+type AdminUserUpdate = Database["public"]["Tables"]["admin_users"]["Update"];
 
 /**
  * Narrow shape for list endpoint — only the fields returned by GET.
  */
 export type AdminUserListItem = Pick<
   AdminUserRow,
-  'id' | 'user_id' | 'email' | 'role' | 'added_by' | 'created_at'
+  "id" | "user_id" | "email" | "role" | "added_by" | "created_at"
 >;
 
 /**
@@ -52,7 +54,7 @@ export type AdminUserListItem = Pick<
  */
 export type AdminUserForRoleUpdate = Pick<
   AdminUserRow,
-  'id' | 'user_id' | 'role'
+  "id" | "user_id" | "role"
 >;
 
 // ─────────────────────────────────────────────────────────────────
@@ -95,17 +97,23 @@ export async function getAdminUserIdsFromDb(): Promise<Set<string>> {
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from('admin_users')
-      .select('user_id');
+      .from("admin_users")
+      .select("user_id");
     if (error) {
-      console.warn('[Auth] admin_users query failed, falling back to ADMIN_UIDS env var:', error.message);
+      console.warn(
+        "[Auth] admin_users query failed, falling back to ADMIN_UIDS env var:",
+        error.message,
+      );
       return new Set(getAdminUidsFromEnv());
     }
     adminCache = new Set((data ?? []).map((r) => r.user_id));
     cacheLoadedAt = Date.now();
     return adminCache;
   } catch (err) {
-    console.warn('[Auth] admin_users query threw, falling back to ADMIN_UIDS env var:', err);
+    console.warn(
+      "[Auth] admin_users query threw, falling back to ADMIN_UIDS env var:",
+      err,
+    );
     return new Set(getAdminUidsFromEnv());
   }
 }
@@ -149,7 +157,8 @@ export function isAdminsAvailable(): boolean {
   // hitting the table.
   return !!(
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    (process.env.SUPABASE_SERVICE_ROLE_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
   );
 }
 
@@ -160,12 +169,12 @@ export function isAdminsAvailable(): boolean {
 export async function listAdmins(): Promise<AdminUserListItem[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from('admin_users')
-    .select('id, user_id, email, role, added_by, created_at')
-    .order('created_at', { ascending: true });
+    .from("admin_users")
+    .select("id, user_id, email, role, added_by, created_at")
+    .order("created_at", { ascending: true });
 
   if (error) {
-    console.error('[Admins] Error fetching admin_users:', error.message);
+    console.error("[Admins] Error fetching admin_users:", error.message);
     throw error;
   }
   return (data ?? []) as AdminUserListItem[];
@@ -176,17 +185,17 @@ export async function listAdmins(): Promise<AdminUserListItem[]> {
  * Returns null if the user has no admin record.
  */
 export async function getAdminRoleByUserId(
-  userId: string
+  userId: string,
 ): Promise<string | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from('admin_users')
-    .select('role')
-    .eq('user_id', userId)
+    .from("admin_users")
+    .select("role")
+    .eq("user_id", userId)
     .maybeSingle();
 
   if (error) {
-    console.error('[Admins] Error fetching admin role:', error.message);
+    console.error("[Admins] Error fetching admin role:", error.message);
     return null;
   }
   return (data?.role as string | undefined) ?? null;
@@ -197,17 +206,17 @@ export async function getAdminRoleByUserId(
  * Returns null if not found.
  */
 export async function getAdminById(
-  adminRecordId: string
+  adminRecordId: string,
 ): Promise<AdminUserForRoleUpdate | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from('admin_users')
-    .select('id, user_id, role')
-    .eq('id', adminRecordId)
+    .from("admin_users")
+    .select("id, user_id, role")
+    .eq("id", adminRecordId)
     .maybeSingle();
 
   if (error) {
-    console.error('[Admins] Error fetching admin by id:', error.message);
+    console.error("[Admins] Error fetching admin by id:", error.message);
     return null;
   }
   return (data ?? null) as AdminUserForRoleUpdate | null;
@@ -218,17 +227,17 @@ export async function getAdminById(
  * Returns the id if found, null otherwise.
  */
 export async function findAdminIdByUserId(
-  userId: string
+  userId: string,
 ): Promise<string | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from('admin_users')
-    .select('id')
-    .eq('user_id', userId)
+    .from("admin_users")
+    .select("id")
+    .eq("user_id", userId)
     .maybeSingle();
 
   if (error) {
-    console.error('[Admins] Error checking existing admin:', error.message);
+    console.error("[Admins] Error checking existing admin:", error.message);
     return null;
   }
   return (data?.id as string | undefined) ?? null;
@@ -241,12 +250,12 @@ export async function findAdminIdByUserId(
 export async function countAdminsByRole(role: string): Promise<number> {
   const supabase = await createClient();
   const { count, error } = await supabase
-    .from('admin_users')
-    .select('id', { count: 'exact', head: true })
-    .eq('role', role);
+    .from("admin_users")
+    .select("id", { count: "exact", head: true })
+    .eq("role", role);
 
   if (error) {
-    console.error('[Admins] Error counting admins by role:', error.message);
+    console.error("[Admins] Error counting admins by role:", error.message);
     return 0;
   }
   return count ?? 0;
@@ -256,17 +265,17 @@ export async function countAdminsByRole(role: string): Promise<number> {
  * Insert a new admin user. Returns the inserted row, or null on error.
  */
 export async function insertAdmin(
-  values: AdminUserInsert
+  values: AdminUserInsert,
 ): Promise<AdminUserRow | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from('admin_users')
+    .from("admin_users")
     .insert(values)
     .select()
     .single();
 
   if (error) {
-    console.error('[Admins] Error inserting admin:', error.message);
+    console.error("[Admins] Error inserting admin:", error.message);
     return null;
   }
   return data as AdminUserRow;
@@ -275,17 +284,15 @@ export async function insertAdmin(
 /**
  * Delete an admin by primary key. Returns true on success, false on error.
  */
-export async function deleteAdminById(
-  adminRecordId: string
-): Promise<boolean> {
+export async function deleteAdminById(adminRecordId: string): Promise<boolean> {
   const supabase = await createClient();
   const { error } = await supabase
-    .from('admin_users')
+    .from("admin_users")
     .delete()
-    .eq('id', adminRecordId);
+    .eq("id", adminRecordId);
 
   if (error) {
-    console.error('[Admins] Error deleting admin:', error.message);
+    console.error("[Admins] Error deleting admin:", error.message);
     return false;
   }
   return true;
@@ -296,16 +303,16 @@ export async function deleteAdminById(
  */
 export async function updateAdminRole(
   adminRecordId: string,
-  role: string
+  role: string,
 ): Promise<boolean> {
   const supabase = await createClient();
   const { error } = await supabase
-    .from('admin_users')
+    .from("admin_users")
     .update({ role })
-    .eq('id', adminRecordId);
+    .eq("id", adminRecordId);
 
   if (error) {
-    console.error('[Admins] Error updating admin role:', error.message);
+    console.error("[Admins] Error updating admin role:", error.message);
     return false;
   }
   return true;
@@ -318,7 +325,7 @@ export async function countAdmins(): Promise<number> {
   const supabase = await createClient();
   if (!supabase) return 0;
   const { count } = await supabase
-    .from('admin_users')
-    .select('user_id', { count: 'exact', head: true });
+    .from("admin_users")
+    .select("user_id", { count: "exact", head: true });
   return count ?? 0;
 }

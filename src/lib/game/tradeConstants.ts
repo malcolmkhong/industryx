@@ -5,7 +5,9 @@
 
 import type { ResourceType } from './types';
 
-export const TRADE_COMMISSION_RATE = 0.15;
+// TRADE_COMMISSION_RATE was removed (Phase 3 Step 1+2). Authoritative
+// commission now lives in balanceConfig.ts → game_config_balance.trade.commissionRate.
+// Importing clients should use `getBalance().trade.commissionRate` instead.
 
 export const TRADABLE_RESOURCES: readonly ResourceType[] = [
   'iron', 'copper', 'coal', 'oil', 'sand', 'lithium', 'water',

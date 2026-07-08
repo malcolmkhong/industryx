@@ -82,10 +82,6 @@ export interface GameActions {
   // Storage
   upgradeStorage: (resource: ResourceType, levels: number) => void;
 
-  // Offline
-  calculateOfflineProgress: () => { resources: Record<ResourceType, number>; money: number; ticksElapsed: number } | null;
-  collectOfflineProgress: (offlineData: { resources: Record<ResourceType, number>; money: number; ticksElapsed: number }) => void;
-
   // Rank
   getCurrentRank: () => { name: string; icon: string; color: string; score: number; nextRankScore: number | null; progress: number };
 

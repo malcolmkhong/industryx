@@ -14,10 +14,8 @@ import {
   GameState,
   BuildingInstance,
   BuildingDefinition,
-  ResourceType,
   Worker,
   WorkerDefinition,
-  WeatherType,
 } from './types';
 import {
   BUILDING_DEFS,
@@ -26,7 +24,6 @@ import {
   RESEARCH_TREE,
 } from './configCache';
 import {
-  ModifierRegistry,
   ModifierEngine,
   buildModifierRegistry,
 } from './modifierEngine';
@@ -632,7 +629,12 @@ export function computeEndgameIncome(
   let researchPerTick = 0;
   let corpPerTick = 0;
 
-  const endgameTypes = ['dysonCollector', 'quantumTeleporter', 'dimensionalGateway', 'timeDistorter', 'galacticForge'];
+  const endgameTypes = [
+    'dysonCollector', 'quantumTeleporter', 'dimensionalGateway', 'timeDistorter', 'galacticForge',
+    // Tier-5 endgame (added Phase B of TIER5_WIRING_PLAN)
+    'omniscienceArray', 'worldEngine', 'planetaryShield', 'starReactor', 'voidEngine',
+    'quantumExchange', 'megaCorpHQ', 'dimensionalNexus', 'galacticArmada',
+  ];
   const endgameBuildings = state.buildings.filter(b => b.active && endgameTypes.includes(b.type));
 
   for (const b of endgameBuildings) {
@@ -662,6 +664,40 @@ export function computeEndgameIncome(
         moneyPerTick += Math.floor(100000 * rate);
         researchPerTick += Math.floor(50 * rate);
         corpPerTick += Math.floor(5 * rate);
+        break;
+      // Tier-5 endgame rates (Phase B of TIER5_WIRING_PLAN)
+      // Calibrated to ~300 tick payback at full efficiency for industry-standard ROI
+      case 'omniscienceArray':
+        researchPerTick += Math.floor(50 * rate);
+        break;
+      case 'worldEngine':
+        moneyPerTick += Math.floor(8000 * rate);
+        researchPerTick += Math.floor(5 * rate);
+        break;
+      case 'planetaryShield':
+        moneyPerTick += Math.floor(5000 * rate);
+        break;
+      case 'starReactor':
+        moneyPerTick += Math.floor(10000 * rate);
+        break;
+      case 'voidEngine':
+        researchPerTick += Math.floor(30 * rate);
+        break;
+      case 'quantumExchange':
+        moneyPerTick += Math.floor(8000 * rate);
+        corpPerTick += Math.floor(1 * rate);
+        break;
+      case 'megaCorpHQ':
+        moneyPerTick += Math.floor(15000 * rate);
+        corpPerTick += Math.floor(2 * rate);
+        break;
+      case 'dimensionalNexus':
+        researchPerTick += Math.floor(20 * rate);
+        corpPerTick += Math.floor(1 * rate);
+        break;
+      case 'galacticArmada':
+        moneyPerTick += Math.floor(5000 * rate);
+        corpPerTick += Math.floor(3 * rate);
         break;
     }
   }

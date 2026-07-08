@@ -101,9 +101,10 @@ export async function upsertProfile(
 
 /**
  * Mark a profile as a guest (is_guest = true).
- * Used by claim-guest after a new anon user takes over an old device.
- * Best-effort: failure is logged but not propagated (the route tolerates
- * a stale is_guest flag — recover-by-device is the source of truth).
+ * Used by /api/auth/quickstart after a device fingerprint resolves
+ * to an existing anon user. Best-effort: failure is logged but not
+ * propagated (quickstart tolerates a stale is_guest flag; the next
+ * /api/game/state call will re-derive from profiles.is_anonymous).
  */
 export async function markProfileAsGuest(userId: string): Promise<boolean> {
   const supabase = await createServiceRoleClient();

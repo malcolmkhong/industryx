@@ -32,7 +32,6 @@ import { createLeaderboardActions } from "./actions/leaderboard";
 import { createDailyRewardActions } from "./actions/dailyRewards";
 import { createQuestActions } from "./actions/quests";
 import { createStorageActions } from "./actions/storage";
-import { createOfflineActions } from "./actions/offline";
 import { createRankActions } from "./actions/rank";
 import { createNewsActions } from "./actions/news";
 import { createGameTickActions } from "./actions/gameTick";
@@ -104,7 +103,6 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   ...createDailyRewardActions(set, get),
   ...createQuestActions(set, get),
   ...createStorageActions(set, get),
-  ...createOfflineActions(set, get),
   ...createRankActions(set, get),
   ...createNewsActions(set, get),
   ...createGameTickActions(set, get),

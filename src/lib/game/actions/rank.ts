@@ -1,9 +1,12 @@
 // ============================================
 // Rank Actions Factory
 // ============================================
-import { BUILDING_DEFS, RANK_THRESHOLDS } from '../configCache';
+import { BUILDING_DEFS, RANK_THRESHOLDS } from "../configCache";
+import { MAX_TIER } from "../tiers";
 
-type SetFn = (partial: Record<string, unknown> | ((state: any) => Record<string, unknown>)) => void;
+type SetFn = (
+  partial: Record<string, unknown> | ((state: any) => Record<string, unknown>),
+) => void;
 type GetFn = () => any;
 
 export function createRankActions(set: SetFn, get: GetFn) {
@@ -12,10 +15,10 @@ export function createRankActions(set: SetFn, get: GetFn) {
       const state = get();
       const score = Math.floor(
         state.totalMoneyEarned +
-        state.buildings.length * 100 +
-        state.completedResearch.length * 200 +
-        state.stats.contractsCompleted * 50 +
-        state.prestigeState.totalPrestiges * 500
+          state.buildings.length * 100 +
+          state.completedResearch.length * 200 +
+          state.stats.contractsCompleted * 50 +
+          state.prestigeState.totalPrestiges * 500,
       );
 
       let currentRank = RANK_THRESHOLDS[0];
@@ -29,7 +32,8 @@ export function createRankActions(set: SetFn, get: GetFn) {
       }
 
       const progress = nextRank
-        ? (score - currentRank.minScore) / (nextRank.minScore - currentRank.minScore)
+        ? (score - currentRank.minScore) /
+          (nextRank.minScore - currentRank.minScore)
         : 1;
 
       return {
@@ -45,9 +49,12 @@ export function createRankActions(set: SetFn, get: GetFn) {
     getPlayerGameTier: () => {
       const state = get();
       if (state.buildings.length === 0) return 0;
-      const highestBuildingTier = Math.max(0, ...state.buildings.map((b: any) => BUILDING_DEFS[b.type]?.tier ?? 0));
+      const highestBuildingTier = Math.max(
+        0,
+        ...state.buildings.map((b: any) => BUILDING_DEFS[b.type]?.tier ?? 0),
+      );
       const researchTier = Math.floor(state.completedResearch.length / 3);
-      return Math.min(4, Math.max(highestBuildingTier, researchTier));
+      return Math.min(MAX_TIER, Math.max(highestBuildingTier, researchTier));
     },
   };
 }

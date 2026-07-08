@@ -2,8 +2,10 @@
  * guestIdentities — Centralized access to the `guest_identities` table.
  *
  * Iteration 9 of the Database Centralization migration.
- * Migrated: /api/auth/recover-by-device, /api/auth/initialize-guest,
- * /api/auth/claim-guest. (link-identity + confirm-link use this module
+ * Note: /api/auth/recover-by-device and /api/auth/initialize-guest
+ * were never deployed as standalone routes — both are subsumed by
+ * /api/auth/quickstart which calls helpers in this module directly.
+ * (link-identity + confirm-link use this module
  * for read paths; their write paths live in db/merge.ts.)
  *
  * Table purpose: device_id <-> user_id mapping for guest recovery.
