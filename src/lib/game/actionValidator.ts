@@ -56,6 +56,8 @@ export interface ValidatedActionResult {
     totalMoneyEarned?: number;
     pendingPayout?: number;
     researchPoints?: number;
+    activeResearch?: string | null;
+    researchProgress?: number;
     quests?: unknown[];
     prestigeState?: { corporationPoints?: number } & Record<string, unknown>;
     contracts?: unknown[];

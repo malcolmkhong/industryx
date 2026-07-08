@@ -917,12 +917,31 @@ export function validateBuyAction(
 
 /**
  * Validate a 'research' action.
+ *
+ * Server-authoritative: returns the post-start state in `correctedState`
+ * so the client can apply exactly what the server computes (RP deduction,
+ * active research set, progress reset to 0). The previous design only
+ * checked affordability but left state mutation to the client — the
+ * server is now the only place that decides RP cost and active research
+ * target.
+ *
+ * Spend path: researchPoints decreases by researchDef.cost; progress is
+ * advanced by the tick loop (out of scope here).
  */
 export function validateResearchAction(
   researchId: string,
   state: Partial<GameState>,
   config: GameConfig,
-): { valid: boolean; error?: string } {
+): {
+  valid: boolean;
+  error?: string;
+  correctedState?: Partial<GameState>;
+} {
+  // Input validation
+  if (!researchId || typeof researchId !== "string") {
+    return { valid: false, error: "Missing researchId in payload" };
+  }
+
   const researchDef = config.research.find((r) => r.id === researchId);
   if (!researchDef) {
     return {
@@ -950,24 +969,39 @@ export function validateResearchAction(
     };
   }
 
-  // Check if already researching
-  if (state.activeResearch === researchId) {
+  // Check if already researching (only one research at a time)
+  if (state.activeResearch) {
     return {
       valid: false,
-      error: `Research "${researchId}" is already in progress`,
+      error: `Research already in progress ("${state.activeResearch}"). Finish or cancel it first.`,
     };
   }
 
-  // Check cost
+  // Check RP cost (server-side, immune to client tampering)
+  const cost = researchDef.cost;
+  if (!Number.isFinite(cost) || cost < 0) {
+    return {
+      valid: false,
+      error: `Research "${researchId}" has invalid cost (${cost})`,
+    };
+  }
   const researchPoints = state.researchPoints ?? 0;
-  if (researchPoints < researchDef.cost) {
+  if (researchPoints < cost) {
     return {
       valid: false,
       error: `Not enough research points. Need ${researchDef.cost}, have ${Math.floor(researchPoints)}`,
     };
   }
 
-  return { valid: true };
+  return {
+    valid: true,
+    correctedState: {
+      researchPoints: researchPoints - cost,
+      activeResearch: researchId,
+      researchProgress: 0,
+      // completedResearch unchanged (research only completes via tick loop)
+    },
+  };
 }
 
 /**
