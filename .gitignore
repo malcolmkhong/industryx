@@ -48,6 +48,14 @@ supabase/.branches
 supabase/.temp
 supabase/.cache
 supabase/.DS_Store
+
+# DB dump files (one-off snapshots, not source of truth)
+defs_*.json
+
+# Test backup files (local-only)
+*.bak
+*.bak2
+*.bak3
 !supabase/migrations/
 .omo/
 *.dev.log
@@ -140,10 +148,9 @@ skills-lock.json
 
 script/
 
-# Local-only planning scratch + scratch tests
+# Local-only planning scratch
 planning/archive/
 planning/new/
-tests/
 
 story-body.txt
 

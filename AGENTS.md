@@ -4,9 +4,9 @@ applyTo: "**"
 
 # AGENTS.md — IndustriaX AI Agent Operating Constitution
 
-> **Last Updated:** 2026-06-19
-> **Status:** Living document. Read this, `.rules`, `BUGS.md`, and `planning/PROJECT_STATUS_SOURCE_OF_TRUTH.md` before any work.
-> **File rename note:** Project uses `.rules` (file, not directory) as the canonical RULES location — Zed-recognized. References to "RULES.md" mean `.rules`. Renamed from `AGENT.md` to `AGENTS.md` on 2026-06-19 — see *Optimization Notes* at bottom.
+> **Last Updated:** 2026-07-07
+> **Status:** Living document. Read this, `.rules`, and `BUGS.md` before any work.
+> **File rename note:** Project uses `.rules` (file, not directory) as the canonical RULES location — Zed-recognized. References to "RULES.md" mean `.rules`. Renamed from `AGENT.md` to `AGENTS.md` on 2026-06-19 (legacy `AGENT.md` already removed).
 
 ---
 
@@ -53,10 +53,7 @@ Reference only — read on demand, do not inline:
 | 1 | `AGENTS.md` (this file) | Operating philosophy, workflows, decision framework, communication style | Always |
 | 2 | `.rules` | Hard rules (FORBIDDEN/ALLOWED), 25-issue registry, security checklist | Always |
 | 3 | `BUGS.md` | Open / investigating / resolved bugs with evidence | Before any feature or bugfix |
-| 4 | `planning/PROJECT_STATUS_SOURCE_OF_TRUTH.md` | Current project state, file metrics, verified issue statuses | When state is unclear |
-| 5 | `planning/CLAIM_VERIFICATION_MATRIX.md` | Maps doc claims to code evidence | When claims contradict code |
-| 6 | `planning/LOST_CONTEXT_REGISTER.md` | Missing / deleted / contradicted items | When something is "lost" |
-| 7 | `planning/DOCUMENT_INVENTORY.md` | Classification of all planning/ docs | When assessing doc reliability |
+| 4 | `docs/ECONOMY_AUDIT.md` | Economy + game-config audit log + critical focus section + phase status | When balance/config/UI status unclear |
 
 **Bug documentation is mandatory.** Every discovered bug, defect, security concern, or unexpected behavior MUST be recorded in `BUGS.md` using the standard structure (see *Bug Documentation* section). Do not silently ignore issues.
 
@@ -72,10 +69,10 @@ Only permanently remove the entry if validation confirms the bug is fully resolv
 
 ### Architecture-First
 Every feature starts with a design question. Understand how it interacts with:
-- The Zustand game store (`src/lib/game/store.ts`, **3,637 lines**) and its decomposed selectors at `src/lib/game/selectors/`
-- The Supabase database (project ref `wkkzqtseqwcyyyezroqq`, **17 migrations** under `supabase/migrations/`) and its RLS policies
-- The server-side validation pipeline (`/api/game/action` + `src/lib/auth/gameStateValidator.ts`, 448 lines)
-- The admin moderation system (**19 admin pages**, ~25 admin API routes under `/api/admin/`)
+- The Zustand game store (`src/lib/game/store.ts`, **148 lines** after decomposition into 21 action files under `src/lib/game/actions/`) and its selectors at `src/lib/game/selectors/`
+- The Supabase database (project ref `wkkzqtseqwcyyyezroqq`, **81 SQL migrations** under `supabase/migrations/`) and its RLS policies
+- The server-side validation pipeline (`/api/game/action` + `src/lib/auth/gameStateValidator.ts`, 661 lines) and `src/lib/auth/gameStateValidator.ts`
+- The admin moderation system (**19 admin pages**, 26 admin API routes under `/api/admin/`)
 - The Cloudflare Worker `newsgenerator.malcolmkhong.workers.dev` for AI news
 - The Caddy reverse proxy and the dev origins configured in `next.config.ts`
 
@@ -285,20 +282,27 @@ Avoid:
 * God hooks
 
 ### Database-First
-Every mutation must have a database table/column, be auditable, respect RLS, and survive a client crash. The Trading Post is the canonical lesson — it was rebuilt server-authoritatively at `/api/game/trade` (Phase 1C) and **must not regress to client-only**.
+Every mutation must have a database table/column, be auditable, respect RLS, and survive a client crash. The Trading Post is the canonical lesson — it was rebuilt server-authoritatively at `/api/game/trade` and **must not regress to client-only**. As of 2026-07-07: Trade Post (P2H) is fully server-authoritative (auth + lock + rate + guest gate + cooldown + tradable set + live prices + slippage + storage cap + optimistic lock + audit + market pressure loop + fail-closed NaN guard).
 
 ### Security-First
-The project has had 25 audited issues (see `.rules` Appendix A). **As of the 2026-06-12 audit, 21 of 25 are FIXED** (per `PROJECT_STATUS_SOURCE_OF_TRUTH.md`). The 4 still OPEN are:
+The project has had 25 audited issues (see `.rules` Appendix A). **As of 2026-07-07, additional work is done beyond the original audit:**
+- **Phase 3 Market Audit (F1–F5)** — auto-sell pressure reporting, warn catches, market constants → balanceConfig SSOT, circuit-breaker deadlock escape, trade-impact notification
+- **Trade Post SSOT Step 1+2** — TRADE_COMMISSION_RATE / TRADE_COOLDOWN_SECONDS / SLIPPAGE_* / MAX_SLIPPAGE all moved to `balanceConfig.trade.*` (server + client both read from getBalance)
+- **Phase 5 Tier-5 Full Wiring** — tier-5 buildings wired to game config, 9 endgame switch cases in production calculator, recipes 300-313, mega-project consumers extended
+- **Phase 5.5 Tier Centralization** — `src/lib/game/tiers.ts` SSOT, architecture test enforces (replaces 6 duplicated tier systems)
+- **Phase 6 UI Panel Audit** — all 23 panels audited for tier-5 + mega-project wiring
+- **Server fail-closed guard** — `/api/game/trade` rejects trade if any pricing-derived value is non-finite (NaN/Infinity) → 503
+
+Open issues from original audit:
 - **H6** — 5-second debounced persist loses data on mobile force-kills
 - **L1** — `Math.random()` still used for IDs in `store.ts` and `TradingPostPanel.tsx`
 - **L2** — `KEY_TAB_MAP` covers only 10 of 25+ tabs in `GameSidebar.tsx`
-- **L4** — `quickTradeAmounts` in `TradingPostPanel.tsx` does not refresh from Supabase market
 - **L5** — `handleReset` in `page.tsx` uses blocking `confirm()`
 
-**Fail-closed principle:** Database or server errors MUST block access, not allow it. Enforced in `gameStateValidator.ts` for `isAccountLocked`, `generateChecksum`, and `verifyChecksum`. **20 components still call `useGameStore()` without a selector** (see BUG-009), which causes re-renders on every tick — same family of bug as the original H1, which was fixed for `DashboardPanel` only.
+**Fail-closed principle:** Database or server errors MUST block access, not allow it. Enforced in `gameStateValidator.ts` for `isAccountLocked`, `generateChecksum`, and `verifyChecksum`. `isAccountLocked` returns `{ locked: true }` on Supabase error (not the buggy `{ locked: false }` fail-open). After Phase 5.5, the architecture test in `tests/unit/tiers.test.ts` enforces no hardcoded tier arrays. Trade Post panel now uses 4 specific selectors (no full-store subscribe).
 
 ### Performance-First
-Game loop runs 1–10 Hz on the client. Every re-render, API call, and DB query must be justified. `store.ts` is already 3,637 lines; do not add bloat without a decomposition plan.
+Game loop runs 1–10 Hz on the client. Every re-render, API call, and DB query must be justified. After Phase 5.5 decomposition, `store.ts` is now 148 lines (barrel), with 21 action files in `src/lib/game/actions/`. Total game state code is ~3,500 lines spread across feature folders — much more readable. Server config cache uses 60s polling + `instrumentation.ts` pre-warm at boot to avoid cold-start latency.
 
 ### Production-First
 Code that works on `localhost` is not done. It must work behind the Caddy reverse proxy, against the Supabase production instance, with real player data, under rate limiting, with proper error handling, and without hardcoded secrets.
@@ -380,16 +384,16 @@ Before writing ANY code, you MUST:
 
 1. **Read the relevant existing code** — Understand how the current system works
 2. **Check `.rules` and `BUGS.md`** — Ensure your plan doesn't violate any rule or duplicate an open investigation
-3. **Check `planning/PROJECT_STATUS_SOURCE_OF_TRUTH.md`** — Confirm your assumptions are current
-4. **Identify database impact** — Does this need schema changes? (Migrations go in `supabase/migrations/`)
+3. **Check `docs/ECONOMY_AUDIT.md`** (Critical Focus section at top) — Confirm your assumptions about phase status, balance config, and architecture SSOT are current
+4. **Identify database impact** — Does this need schema changes? (Migrations go in `supabase/migrations/` with sequential numeric prefix)
 5. **Identify security impact** — Server-side validation? Auth checks? Rate limiting?
 6. **Identify API impact** — New endpoint or modification to existing?
 7. **Plan the implementation** — Write down the steps before executing
 
 ### Specifically, you must answer:
-- Which Zustand store slices are affected? (`src/lib/game/store.ts` — 3,637 lines, 42 actions)
-- Which API routes are affected? (50+ routes under `/api/`)
-- Which database tables are affected? (Check the migration history in `supabase/migrations/`)
+- Which Zustand store slices are affected? (`src/lib/game/store.ts` — 148 lines barrel, actions live in `src/lib/game/actions/*.ts`)
+- Which API routes are affected? (64 routes under `/api/`, including 26 admin)
+- Which database tables are affected? (Check the migration history in `supabase/migrations/` — 81 SQL files)
 - Does this need a new Supabase migration?
 - Does this need server-side validation in `/api/game/action`, `/api/game/trade`, or another route?
 - Does this need admin audit logging? (`admin_actions` table)
@@ -404,7 +408,7 @@ Before writing ANY code, you MUST:
 
 After writing ANY code, you MUST:
 
-1. **Lint check** — Run `npm run lint` (the script in `package.json` is `eslint .`, **not** `bun run lint`)
+1. **Lint check** — Run `npm run lint` (or `bun run lint`; the script in `package.json` is `eslint . --cache`)
 2. **Dev server test** — Verify the page loads at `http://localhost:3000/`
 3. **Console check** — No JavaScript errors in the browser console
 4. **Feature test** — Verify the feature actually works in the browser
@@ -419,21 +423,22 @@ After writing ANY code, you MUST:
 ## Feature Development Workflow
 
 ```
-1. Read AGENTS.md, .rules, BUGS.md, PROJECT_STATUS_SOURCE_OF_TRUTH.md
+1. Read AGENTS.md, .rules, BUGS.md, docs/ECONOMY_AUDIT.md
 2. Search BUGS.md for related issues; avoid duplicate investigations
 3. Design the feature:
    a. Data model (which tables, which columns)
    b. API layer (which endpoints, what validation)
    c. State layer (which store slices, what actions, what selectors)
    d. UI layer (which panels, which components)
-4. Create Supabase migration (if needed) — under supabase/migrations/
-5. Implement server-side API with auth + validation + rate limiting
+4. Create Supabase migration (if needed) — under supabase/migrations/ with timestamp prefix
+5. Implement server-side API with auth + validation + rate limiting + audit log
 6. Implement store actions with proper persistence
-7. Implement UI components with PROPER Zustand selectors
+7. Implement UI components with PROPER Zustand selectors (NEVER `useGameStore()` without selector)
 8. Add to navigation (GameSidebar + page.tsx + types.ts)
 9. Add admin audit logging (if applicable)
 10. Run full validation process
 11. Update BUGS.md if any defects are discovered
+12. Update docs/ECONOMY_AUDIT.md if phase status changes (with Critical Focus)
 ```
 
 **NEVER** skip step 5. Every game-affecting mutation MUST go through a server-side API with validation.
@@ -516,57 +521,75 @@ These are absolutely forbidden without explicit user approval:
 
 ## Architecture Quick Reference
 
-### Directory layout (verified 2026-06-17)
+### Directory layout (verified 2026-07-07)
 
 ```
 src/
 ├── app/
-│   ├── page.tsx                            # Main game page (~400 lines, post Phase 04.3)
+│   ├── page.tsx                            # Main game page
 │   ├── admin/                              # 19 admin pages
-│   └── api/                                # 50+ API routes
-│       ├── auth/                           # callback, confirm-link, initialize-guest, link-identity, me, migrate-guest, recover-by-device, update-profile
-│       ├── game/                           # action, compute, definitions, heartbeat, market-history, offline, state, trade, trades
+│   └── api/                                # 64 API routes total (38 game + 26 admin)
+│       ├── auth/                           # callback, confirm-link, link-identity, me, migrate-guest, quickstart, register-device, update-profile
+│       ├── game/                           # action, compute, daily-reward, definitions, heartbeat, market-history, offline, state, trade, trades
 │       ├── admin/                          # actions, admin-actions, admins, audit, economy, investigations, jobs, market, permissions, players, stats, support, system-status
-│       ├── market/                         # action, state
+│       ├── market/                         # action, state, tick, aggregate-supply
 │       ├── leaderboard/                    # submit, list
 │       ├── config/                         # [table], [table]/[id]
 │       ├── cron/                           # validate-ticks
 │       └── health/                         # liveness
 ├── components/
-│   ├── game/                               # 43+ game panels
+│   ├── game/                               # 55 game panels + shared/
 │   ├── admin/                              # 13 admin components
+│   ├── auth/                               # FingerprintUnavailableModal, etc.
 │   ├── providers/                          # AuthProvider, GameConfigProvider
 │   └── ui/                                 # shadcn/ui — do not modify directly
 ├── lib/
-│   ├── game/                               # store.ts (3,637 lines), serverEngine, types, config, etc.
-│   ├── auth/                               # gameStateValidator, rateLimiter, admin, csrf
+│   ├── game/                               # store.ts (148 lines barrel), 21 action files in actions/, balanceConfig, configCache, configLoader.server, tiers, types, uiCatalog, etc.
+│   ├── auth/                               # gameStateValidator (661 lines), rateLimiter, admin, csrf, jwksCache, jwtVerify, orchestrator
 │   ├── hooks/
-│   │   ├── cloudSync/                      # Decomposed (10 files: index, types, useBlockedState, useCloudLoad, useCloudPersistence, useCloudSave, useConflictResolution, useServerAuthority, serializeGameState, mapHttpErrorToBlock)
-│   │   ├── page/                           # useTabChange, useGameTickLoop, useKeyboardShortcuts, etc. (14 files)
-│   │   ├── presence/                       # BasePresenceManager, VisitorPresenceManager, AdminPresenceManager (3 files)
+│   │   ├── cloudSync/                      # Decomposed (10 files)
+│   │   ├── page/                           # useTabChange, useGameTickLoop, useKeyboardShortcuts, useSessionHeartbeat (14 files)
+│   │   ├── presence/                       # 3 managers
 │   │   ├── useAdminPresence.ts
-│   │   ├── useCloudSync.ts                 # Barrel re-export to ./cloudSync
-│   │   ├── useLoginPrompt.ts               # Recently refactored to use a shared Zustand store (b87d93d)
+│   │   ├── useCloudSync.ts                 # Barrel re-export
+│   │   ├── useLoginPrompt.ts
 │   │   ├── useMergeFlow.ts
 │   │   ├── useOnlinePresence.ts
 │   │   └── useServerMarket.ts
+│   ├── db/                                 # market, trades, serverGameState, fingerprint-events, serverConfigFetcher, cheatInvestigations
 │   └── admin/                              # fetchWrapper, navTree
-└── proxy.ts                           # Auth proxy
+└── proxy.ts                                # Auth proxy
 
 supabase/
-└── migrations/                             # 17 SQL migrations (root is gitignored; this folder is whitelisted)
+└── migrations/                             # 81 SQL migrations (root is gitignored; this folder is whitelisted)
 
-planning/                                   # Project history, audits, plans (see DOCUMENT_INVENTORY.md for classification)
-tests/integration/                          # 3 test files, NO runner configured (see Test Infrastructure Notes)
+tests/
+├── api/                                    # 32 game API tests (vitest)
+├── unit/                                   # jwtVerify, gameTick, balanceConfig, tiers (33 tests)
+├── integration/                            # Legacy node:test runner (tsx --test)
+├── security/                               # Security tests
+├── components/                             # Component tests
+├── db/                                     # DB integration tests
+├── workflow/                               # E2E workflow tests
+└── performance/                            # Performance benchmarks
+
+docs/
+├── ECONOMY_AUDIT.md                        # Balance/UI/architecture audit log + Critical Focus
+├── TIER5_AUDIT.md
+├── TIER5_BALANCE_AUDIT.md
+├── TIER5_WIRING_PLAN.md
+└── TIER5_WIRING_DONE.md
+
+.agents/skills/                             # 8 caveman skills (auto-discovered)
 .omo/                                       # Internal note system (gitignored, empty)
-skills/                                     # (gitignored, empty)
-.agents/skills/                             # 7 caveman skills (auto-discovered by Copilot)
 
-.rules                                       # Canonical RULES file (Zed-recognized)
-AGENTS.md                                    # This file (canonical, merged 2026-06-19)
-AGENT.md                                     # Legacy. Kept for safe no-delete migration. Remove manually after verify.
-BUGS.md                                      # Project bug memory
+.rules                                      # Canonical RULES file (Zed-recognized)
+AGENTS.md                                   # This file (canonical)
+BUGS.md                                     # Project bug memory
+instrumentation.ts                          # Next.js boot hook for config pre-warm
 ```
+
+**Test runner (verified 2026-07-07):** Vitest is now configured. Run `npm run test:vitest` for unit + API tests, `npm run test:all` for everything (vitest + node:test integration). Current: 65/65 vitest passing.
 
 ### External services
 
@@ -577,7 +600,7 @@ BUGS.md                                      # Project bug memory
 
 ### Key abstractions
 
-- **`useGameStore`** — Single Zustand store, 3,637 lines, 42 actions. Always use selectors. Decomposed selectors live in `src/lib/game/selectors/`.
+- **`useGameStore`** — Single Zustand store. After Phase 5.5 decomposition, the barrel is 148 lines; actual logic lives in 21 action files under `src/lib/game/actions/`. Always use selectors. Selectors live in `src/lib/game/selectors/`.
 - **`gameStateValidator`** — Server-side anti-cheat. HMAC-signed checksums via `CHECKSUM_SECRET` env (no fallback — throws if missing). Fail-closed.
 - **`useCloudSync`** — Decomposed into `src/lib/hooks/cloudSync/` (10 files). Uses `serverStateHash` for conflict detection.
 - **`useLoginPrompt`** — Recently refactored to use a shared Zustand store (commit `b87d93d`) instead of per-component `useState`, so the gate in `useTabChange` and the panel in `page.tsx` share one source of truth.
@@ -590,11 +613,21 @@ BUGS.md                                      # Project bug memory
 
 ## Test Infrastructure Notes
 
-- The project has `tests/integration/*.test.ts` (3 files) using Node's built-in `node:test` runner.
-- **No test runner is configured in `package.json`.** The test files cannot be run with `npm test` or `bun test`. The `scripts.test` key does not exist.
-- `jsdom` and `@testing-library/*` are in devDependencies (added 2026-06-17) but unused (no Vitest/Jest config).
-- `tests/integration/supabase-connectivity.test.ts` contains a hardcoded production Supabase anon key (BUG-011).
-- **Decision needed:** Either configure a test runner (recommended: Vitest, which natively supports `node:test`-style imports) or gitignore `tests/` and remove the test scaffolding.
+- **Vitest is the primary test runner** (configured in `package.json` scripts). Run `npm run test:vitest` (or `bun run test:vitest`) for unit + API tests.
+- Coverage (as of 2026-07-07): 65/65 vitest tests passing across 14 files. Tests include:
+  - 32 game API tests (`tests/api/game/`)
+  - 7 JWT verify tests (`tests/unit/jwtVerify.test.ts`)
+  - 3 input-floor tests (`tests/unit/gameTick.inputFloor.test.ts`)
+  - 17 balance config validator tests (`tests/unit/balanceConfig.validation.test.ts`)
+  - 6 tier centralization architecture tests (`tests/unit/tiers.test.ts`)
+- **Architecture test:** `tests/unit/tiers.test.ts` scans all panels for hardcoded tier arrays (e.g., `[0, 1, 2, 3]`). Must never have `0,1,2,3` literals — only `[...ALL_TIERS]` from `src/lib/game/tiers.ts`.
+- **Legacy node:test runner** still configured via `tsx --test` for `tests/integration/*.test.ts` and `tests/security/*.test.ts`. These predate Vitest adoption; can be migrated or deprecated.
+- `tests/integration/supabase-connectivity.test.ts` historically had a hardcoded production Supabase anon key (BUG-011) — verify before running integration suite.
+- `package.json` scripts:
+  - `test:vitest` — Vitest suite
+  - `test:all` — Both Vitest and node:test
+  - `test:unit`, `test:components`, `test:db`, `test:workflow`, `test:performance` — Vitest subsets
+  - `typecheck` — `tsc --noEmit`
 
 ---
 
@@ -626,17 +659,10 @@ Agent requirements:
 
 ---
 
-## Optimization Notes (2026-06-19 merge)
+## Optimization Notes
 
-What changed when AGENT.md → AGENTS.md:
-
-- **Single canonical file** — eliminates drift between duplicate rules. No more "edit one, forget the other".
-- **Frontmatter added** — `applyTo: "**"` activates across all paths for Copilot/opencode.
-- **Communication style integrated** — caveman rules now live in this file (previously only in the separate stub). One place to tune tone.
-- **Skills index embedded** — the skill table previously lived in the separate stub. Now here, so the AI sees the full available toolkit on first read.
-- **Section ordering optimized for AI attention** — Identity → Style → Docs → Philosophy → Decisions → Workflows → Forbidden → Architecture → Tests → Bugs. Constraints and style first, reference material last.
-- **Directory layout updated** — added `.agents/skills/` line to reflect caveman skill installation.
-- **Legacy `AGENT.md` preserved** — kept on disk for safe no-delete migration. Manual cleanup: `Remove-Item AGENT.md -Force` after verify.
+- **2026-06-19 merge** — `AGENT.md` → `AGENTS.md` rename. Legacy file already removed. Single canonical file (no drift).
+- **2026-07-07 update** — removed references to `planning/PROJECT_STATUS_SOURCE_OF_TRUTH.md` and 3 other non-existent planning docs. Replaced with `docs/ECONOMY_AUDIT.md` as the single SSOT for project status (Critical Focus section at top). Updated file counts, added Phase 3/5/5.5/6 work, fixed test infrastructure notes (Vitest now primary), removed `AGENT.md` legacy entry, added `instrumentation.ts`, `docs/` folder, and `tiers.ts` SSOT info.
 
 ---
 
@@ -651,5 +677,5 @@ What changed when AGENT.md → AGENTS.md:
 **Summary of authority:**
 - `.rules` — what is **FORBIDDEN** and what was audited
 - `BUGS.md` — what is **BROKEN** or under investigation
-- `planning/PROJECT_STATUS_SOURCE_OF_TRUTH.md` — what **EXISTS** in the codebase today
+- `docs/ECONOMY_AUDIT.md` — what **EXISTS** in the codebase today (phase status, balance config, architecture SSOT)
 - `AGENTS.md` (this file) — **HOW TO WORK** in this project, plus communication style

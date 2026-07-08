@@ -15,9 +15,8 @@ export interface RequestIpLogEntry {
 }
 
 const ENDPOINTS_TO_LOG = new Set<string>([
-  '/api/auth/initialize-guest',
-  '/api/auth/recover-by-device',
-  '/api/auth/claim-guest',
+  '/api/auth/link-identity',
+  '/api/auth/confirm-link',
   '/api/auth/link-identity',
   '/api/auth/confirm-link',
 ]);

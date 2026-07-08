@@ -1,7 +1,19 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Search, Copy, Check, ChevronLeft, ChevronRight, Flag, Users, Clock, Lock, Shield } from "lucide-react";
+import {
+  Search,
+  Copy,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Flag,
+  Users,
+  Clock,
+  Lock,
+  Shield,
+  Unlock,
+} from "lucide-react";
 import { UserAvatar } from "@/components/admin/UserAvatar";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 
@@ -71,7 +83,9 @@ function providerLabel(provider: string): string {
     twitter: "Twitter / X",
     discord: "Discord",
   };
-  return known[provider] ?? provider.charAt(0).toUpperCase() + provider.slice(1);
+  return (
+    known[provider] ?? provider.charAt(0).toUpperCase() + provider.slice(1)
+  );
 }
 
 /**
@@ -85,10 +99,14 @@ function formatRelative(iso: string | null): string {
   const diffMs = Date.now() - then;
   if (diffMs < 60_000) return "just now";
   const fmt = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
-  if (diffMs < 3_600_000) return fmt.format(-Math.round(diffMs / 60_000), "minute");
-  if (diffMs < 86_400_000) return fmt.format(-Math.round(diffMs / 3_600_000), "hour");
-  if (diffMs < 30 * 86_400_000) return fmt.format(-Math.round(diffMs / 86_400_000), "day");
-  if (diffMs < 365 * 86_400_000) return fmt.format(-Math.round(diffMs / (30 * 86_400_000)), "month");
+  if (diffMs < 3_600_000)
+    return fmt.format(-Math.round(diffMs / 60_000), "minute");
+  if (diffMs < 86_400_000)
+    return fmt.format(-Math.round(diffMs / 3_600_000), "hour");
+  if (diffMs < 30 * 86_400_000)
+    return fmt.format(-Math.round(diffMs / 86_400_000), "day");
+  if (diffMs < 365 * 86_400_000)
+    return fmt.format(-Math.round(diffMs / (30 * 86_400_000)), "month");
   return fmt.format(-Math.round(diffMs / (365 * 86_400_000)), "year");
 }
 
@@ -105,10 +123,22 @@ export default function PlayersListPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState<PaginationInfo>({ page: 1, limit: 50, total: 0, totalPages: 0 });
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    page: 1,
+    limit: 50,
+    total: 0,
+    totalPages: 0,
+  });
 
   // Copy feedback
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Bulk selection & action (Phase 5.4: wire /api/admin/players/bulk to UI)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkActionPending, setBulkActionPending] = useState<
+    "lock" | "unlock" | null
+  >(null);
+  const [bulkActionResult, setBulkActionResult] = useState<string | null>(null);
 
   // Error display
   const [error, setError] = useState<string | null>(null);
@@ -117,6 +147,74 @@ export default function PlayersListPage() {
     setError(msg);
     setTimeout(() => setError(null), 4000);
   }, []);
+
+  // ─── Bulk lock/unlock (Phase 5.4) ─────────────────────────────
+  const handleBulkAction = useCallback(
+    async (action: "lock" | "unlock") => {
+      if (selectedIds.size === 0 || bulkActionPending) return;
+      const ids = Array.from(selectedIds);
+      if (ids.length > 100) {
+        showError("Maximum 100 players per bulk action");
+        return;
+      }
+      setBulkActionPending(action);
+      try {
+        const res = await fetch("/api/admin/players/bulk", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userIds: ids, action }),
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          showError(errData.error ?? `Bulk ${action} failed (${res.status})`);
+          return;
+        }
+        const data = await res.json();
+        setBulkActionResult(
+          `${action === "lock" ? "Locked" : "Unlocked"} ${data.successCount}/${data.total} (${data.failCount} failed)`,
+        );
+        setTimeout(() => setBulkActionResult(null), 4000);
+        // Refresh list so lock badges update — use a fresh fetch with current state
+        const refreshParams = new URLSearchParams();
+        if (activeSearch) refreshParams.set("search", activeSearch);
+        refreshParams.set("page", String(page));
+        try {
+          const refreshRes = await fetch(
+            `/api/admin/players?${refreshParams.toString()}`,
+          );
+          if (refreshRes.ok) {
+            const data = await refreshRes.json();
+            setPlayers(data.data);
+            setPagination(data.pagination);
+          }
+        } catch {
+          // best-effort refresh
+        }
+        setSelectedIds(new Set());
+      } catch (err) {
+        showError(err instanceof Error ? err.message : `Bulk ${action} failed`);
+      } finally {
+        setBulkActionPending(null);
+      }
+    },
+    [selectedIds, bulkActionPending, showError, activeSearch, page],
+  );
+
+  const toggleSelected = useCallback((userId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIds((prev) => {
+      if (prev.size === players.length) return new Set();
+      return new Set(players.map((p) => p.user_id));
+    });
+  }, [players]);
 
   // ─── Fetch stats ────────────────────────────────────────────────────────
 
@@ -139,25 +237,35 @@ export default function PlayersListPage() {
 
   // ─── Fetch players ──────────────────────────────────────────────────────
 
-  const fetchPlayers = useCallback(async (searchStr: string, pageNum: number) => {
-    try {
-      setDataLoading(true);
-      const params = new URLSearchParams({ page: String(pageNum), limit: "50" });
-      if (searchStr) params.set("search", searchStr);
-      const res = await fetch(`/api/admin/players?${params.toString()}`);
-      if (!res.ok) {
-        const errData = await res.json().catch(() => null);
-        throw new Error(errData?.message || "Failed to fetch players");
+  const fetchPlayers = useCallback(
+    async (searchStr: string, pageNum: number) => {
+      try {
+        setDataLoading(true);
+        const params = new URLSearchParams({
+          page: String(pageNum),
+          limit: "50",
+        });
+        if (searchStr) params.set("search", searchStr);
+        const res = await fetch(`/api/admin/players?${params.toString()}`);
+        if (!res.ok) {
+          const errData = await res.json().catch(() => null);
+          throw new Error(errData?.message || "Failed to fetch players");
+        }
+        const data = await res.json();
+        setPlayers(data.data || []);
+        setPagination(
+          data.pagination || { page: 1, limit: 50, total: 0, totalPages: 0 },
+        );
+      } catch (err) {
+        showError(
+          err instanceof Error ? err.message : "Failed to load players",
+        );
+      } finally {
+        setDataLoading(false);
       }
-      const data = await res.json();
-      setPlayers(data.data || []);
-      setPagination(data.pagination || { page: 1, limit: 50, total: 0, totalPages: 0 });
-    } catch (err) {
-      showError(err instanceof Error ? err.message : "Failed to load players");
-    } finally {
-      setDataLoading(false);
-    }
-  }, [showError]);
+    },
+    [showError],
+  );
 
   useEffect(() => {
     fetchStats();
@@ -225,7 +333,10 @@ export default function PlayersListPage() {
             <label htmlFor="players-search" className="sr-only">
               Search players by email, user ID, or display name
             </label>
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-label" aria-hidden="true">
+            <div
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-label"
+              aria-hidden="true"
+            >
               <Search size={16} />
             </div>
             <input
@@ -262,7 +373,8 @@ export default function PlayersListPage() {
         </div>
         {activeSearch && (
           <p className="text-muted-label text-xs mt-2">
-            Showing results for: <span className="text-warning">&quot;{activeSearch}&quot;</span>
+            Showing results for:{" "}
+            <span className="text-warning">&quot;{activeSearch}&quot;</span>
           </p>
         )}
       </div>
@@ -271,15 +383,22 @@ export default function PlayersListPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-4 sm:p-5">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center" aria-hidden="true">
+            <div
+              className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center"
+              aria-hidden="true"
+            >
               <Users size={18} className="text-warning" />
             </div>
             <div>
-              <p className="text-muted-label text-[10px] sm:text-xs">Total Players</p>
+              <p className="text-muted-label text-[10px] sm:text-xs">
+                Total Players
+              </p>
               {statsLoading ? (
                 <div className="h-6 w-12 bg-background/60 rounded animate-pulse mt-1" />
               ) : (
-                <p className="text-white text-lg sm:text-2xl font-bold">{stats?.total_players ?? 0}</p>
+                <p className="text-white text-lg sm:text-2xl font-bold">
+                  {stats?.total_players ?? 0}
+                </p>
               )}
             </div>
           </div>
@@ -287,7 +406,10 @@ export default function PlayersListPage() {
 
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-4 sm:p-5">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center" aria-hidden="true">
+            <div
+              className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center"
+              aria-hidden="true"
+            >
               <Clock size={18} className="text-success" />
             </div>
             <div>
@@ -295,7 +417,9 @@ export default function PlayersListPage() {
               {statsLoading ? (
                 <div className="h-6 w-12 bg-background/60 rounded animate-pulse mt-1" />
               ) : (
-                <p className="text-white text-lg sm:text-2xl font-bold">{stats?.online_players ?? 0}</p>
+                <p className="text-white text-lg sm:text-2xl font-bold">
+                  {stats?.online_players ?? 0}
+                </p>
               )}
             </div>
           </div>
@@ -303,7 +427,10 @@ export default function PlayersListPage() {
 
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-4 sm:p-5">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-danger/10 flex items-center justify-center" aria-hidden="true">
+            <div
+              className="w-9 h-9 rounded-lg bg-danger/10 flex items-center justify-center"
+              aria-hidden="true"
+            >
               <Lock size={18} className="text-danger" />
             </div>
             <div>
@@ -311,7 +438,9 @@ export default function PlayersListPage() {
               {statsLoading ? (
                 <div className="h-6 w-12 bg-background/60 rounded animate-pulse mt-1" />
               ) : (
-                <p className="text-white text-lg sm:text-2xl font-bold">{stats?.locked_accounts ?? 0}</p>
+                <p className="text-white text-lg sm:text-2xl font-bold">
+                  {stats?.locked_accounts ?? 0}
+                </p>
               )}
             </div>
           </div>
@@ -319,15 +448,22 @@ export default function PlayersListPage() {
 
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-4 sm:p-5">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-domain/10 flex items-center justify-center" aria-hidden="true">
+            <div
+              className="w-9 h-9 rounded-lg bg-domain/10 flex items-center justify-center"
+              aria-hidden="true"
+            >
               <Shield size={18} className="text-domain" />
             </div>
             <div>
-              <p className="text-muted-label text-[10px] sm:text-xs">Investigations</p>
+              <p className="text-muted-label text-[10px] sm:text-xs">
+                Investigations
+              </p>
               {statsLoading ? (
                 <div className="h-6 w-12 bg-background/60 rounded animate-pulse mt-1" />
               ) : (
-                <p className="text-white text-lg sm:text-2xl font-bold">{stats?.open_investigations ?? 0}</p>
+                <p className="text-white text-lg sm:text-2xl font-bold">
+                  {stats?.open_investigations ?? 0}
+                </p>
               )}
             </div>
           </div>
@@ -339,17 +475,26 @@ export default function PlayersListPage() {
         {dataLoading ? (
           <div className="p-8 space-y-3">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="h-14 bg-background/60/50 rounded animate-pulse" />
+              <div
+                key={i}
+                className="h-14 bg-background/60/50 rounded animate-pulse"
+              />
             ))}
           </div>
         ) : players.length === 0 ? (
           <div className="p-12 text-center">
             <div className="text-3xl mb-3" aria-hidden="true">
-              <Search size={48} strokeWidth={1.5} className="text-muted-label/80 mx-auto" />
+              <Search
+                size={48}
+                strokeWidth={1.5}
+                className="text-muted-label/80 mx-auto"
+              />
             </div>
             <p className="text-muted-label text-sm mb-2">No players found</p>
             <p className="text-muted-label/80 text-xs">
-              {activeSearch ? "Try a different search term" : "No players have registered yet"}
+              {activeSearch
+                ? "Try a different search term"
+                : "No players have registered yet"}
             </p>
             {activeSearch && (
               <button
@@ -363,33 +508,164 @@ export default function PlayersListPage() {
           </div>
         ) : (
           <>
+            {/* Bulk action bar (Phase 5.4) */}
+            {selectedIds.size > 0 && (
+              <div className="px-4 py-2 bg-brand/10 border-b border-brand/30 flex items-center justify-between">
+                <div className="text-xs text-brand font-medium">
+                  {selectedIds.size} player{selectedIds.size === 1 ? "" : "s"}{" "}
+                  selected
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedIds(new Set())}
+                    disabled={bulkActionPending !== null}
+                    className="text-xs text-muted-label hover:text-white px-2 py-1 transition-colors disabled:opacity-50"
+                  >
+                    Clear
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleBulkAction("unlock")}
+                    disabled={bulkActionPending !== null}
+                    className="inline-flex items-center gap-1 text-xs px-3 py-1 bg-success/15 text-success border border-success/30 rounded hover:bg-success/25 transition-colors disabled:opacity-50"
+                  >
+                    <Unlock size={12} />
+                    {bulkActionPending === "unlock" ? "Unlocking…" : "Unlock"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleBulkAction("lock")}
+                    disabled={bulkActionPending !== null}
+                    className="inline-flex items-center gap-1 text-xs px-3 py-1 bg-danger/15 text-danger border border-danger/30 rounded hover:bg-danger/25 transition-colors disabled:opacity-50"
+                  >
+                    <Lock size={12} />
+                    {bulkActionPending === "lock" ? "Locking…" : "Lock"}
+                  </button>
+                </div>
+              </div>
+            )}
+            {bulkActionResult && (
+              <div className="px-4 py-2 bg-success/10 text-success text-xs border-b border-success/30">
+                {bulkActionResult}
+              </div>
+            )}
             {/* Desktop table */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-muted-label/40">
-                    <th scope="col" className="px-4 py-3 text-left text-xs text-muted-label font-medium">Player</th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs text-muted-label font-medium">User ID</th>
-                    <th scope="col" className="px-4 py-3 text-right text-xs text-muted-label font-medium">Money</th>
-                    <th scope="col" className="px-4 py-3 text-right text-xs text-muted-label font-medium">Tick</th>
-                    <th scope="col" className="px-4 py-3 text-right text-xs text-muted-label font-medium">Buildings</th>
-                    <th scope="col" className="px-4 py-3 text-center text-xs text-muted-label font-medium">Flags</th>
-                    <th scope="col" className="px-4 py-3 text-center text-xs text-muted-label font-medium">Status</th>
-                    <th scope="col" className="px-4 py-3 text-right text-xs text-muted-label font-medium">Last Sign-In</th>
-                    <th scope="col" className="px-4 py-3 text-right text-xs text-muted-label font-medium">Last Saved</th>
+                    <th scope="col" className="px-4 py-3 w-10">
+                      <input
+                        type="checkbox"
+                        checked={
+                          players.length > 0 &&
+                          selectedIds.size === players.length
+                        }
+                        ref={(el) => {
+                          if (el)
+                            el.indeterminate =
+                              selectedIds.size > 0 &&
+                              selectedIds.size < players.length;
+                        }}
+                        onChange={toggleSelectAll}
+                        aria-label="Select all players on this page"
+                        className="w-4 h-4 rounded border-muted-label/40 bg-background accent-brand cursor-pointer"
+                      />
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-left text-xs text-muted-label font-medium"
+                    >
+                      Player
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-left text-xs text-muted-label font-medium"
+                    >
+                      User ID
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-right text-xs text-muted-label font-medium"
+                    >
+                      Money
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-right text-xs text-muted-label font-medium"
+                    >
+                      Tick
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-right text-xs text-muted-label font-medium"
+                    >
+                      Buildings
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-center text-xs text-muted-label font-medium"
+                    >
+                      Flags
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-center text-xs text-muted-label font-medium"
+                    >
+                      Status
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-right text-xs text-muted-label font-medium"
+                    >
+                      Last Sign-In
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 py-3 text-right text-xs text-muted-label font-medium"
+                    >
+                      Last Saved
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {players.map((player) => (
                     <tr
                       key={player.user_id}
-                      className="border-b border-muted-label/40/50 hover:bg-background/60/30 transition-colors cursor-pointer"
-                      onClick={() => { window.location.href = `/admin/players/${player.user_id}`; }}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.location.href = `/admin/players/${player.user_id}`; } }}
+                      className={`border-b border-muted-label/40/50 transition-colors cursor-pointer ${
+                        selectedIds.has(player.user_id)
+                          ? "bg-brand/10 hover:bg-brand/15"
+                          : "hover:bg-background/60/30"
+                      }`}
+                      onClick={() => {
+                        window.location.href = `/admin/players/${player.user_id}`;
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          window.location.href = `/admin/players/${player.user_id}`;
+                        }
+                      }}
                       tabIndex={0}
                       role="link"
                       aria-label={`View details for ${player.email ?? player.user_id}`}
                     >
+                      <td
+                        className="px-4 py-3 w-10"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSelected(player.user_id);
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(player.user_id)}
+                          onChange={() => toggleSelected(player.user_id)}
+                          aria-label={`Select ${player.email ?? player.user_id}`}
+                          className="w-4 h-4 rounded border-muted-label/40 bg-background accent-brand cursor-pointer"
+                        />
+                      </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <UserAvatar
@@ -401,13 +677,19 @@ export default function PlayersListPage() {
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5 min-w-0">
                               <span className="text-white text-sm truncate max-w-50">
-                                {player.email || player.display_name || (player.is_anonymous ? "Guest" : "Unknown")}
+                                {player.email ||
+                                  player.display_name ||
+                                  (player.is_anonymous ? "Guest" : "Unknown")}
                               </span>
                               {player.is_anonymous && (
-                                <StatusBadge variant="neutral">Guest</StatusBadge>
+                                <StatusBadge variant="neutral">
+                                  Guest
+                                </StatusBadge>
                               )}
                               {player.provider && !player.is_anonymous && (
-                                <StatusBadge variant="info">{providerLabel(player.provider)}</StatusBadge>
+                                <StatusBadge variant="info">
+                                  {providerLabel(player.provider)}
+                                </StatusBadge>
                               )}
                             </div>
                             {player.display_name && player.email && (
@@ -425,13 +707,21 @@ export default function PlayersListPage() {
                           </code>
                           <button
                             type="button"
-                            onClick={(e) => { e.stopPropagation(); copyToClipboard(player.user_id); }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              copyToClipboard(player.user_id);
+                            }}
                             className="text-muted-label/80 hover:text-subtle transition-colors p-0.5 rounded"
                             aria-label={`Copy full user ID for ${player.email ?? player.user_id}`}
                             title="Copy full ID"
                           >
                             {copiedId === player.user_id ? (
-                              <span className="text-success" aria-label="Copied"><Check size={14} /></span>
+                              <span
+                                className="text-success"
+                                aria-label="Copied"
+                              >
+                                <Check size={14} />
+                              </span>
                             ) : (
                               <Copy size={14} aria-hidden="true" />
                             )}
@@ -485,7 +775,9 @@ export default function PlayersListPage() {
                       <td className="px-4 py-3 text-right">
                         <span className="text-muted-label text-xs">
                           {player.last_saved_at
-                            ? new Date(player.last_saved_at).toLocaleDateString()
+                            ? new Date(
+                                player.last_saved_at,
+                              ).toLocaleDateString()
                             : "—"}
                         </span>
                       </td>
@@ -501,8 +793,15 @@ export default function PlayersListPage() {
                 <div
                   key={player.user_id}
                   className="p-4 cursor-pointer hover:bg-background/60/30 transition-colors"
-                  onClick={() => { window.location.href = `/admin/players/${player.user_id}`; }}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.location.href = `/admin/players/${player.user_id}`; } }}
+                  onClick={() => {
+                    window.location.href = `/admin/players/${player.user_id}`;
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      window.location.href = `/admin/players/${player.user_id}`;
+                    }
+                  }}
                   tabIndex={0}
                   role="link"
                   aria-label={`View details for ${player.email ?? player.user_id}`}
@@ -517,12 +816,16 @@ export default function PlayersListPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-white text-sm font-medium truncate">
-                          {player.email || player.display_name || (player.is_anonymous ? "Guest" : "Unknown")}
+                          {player.email ||
+                            player.display_name ||
+                            (player.is_anonymous ? "Guest" : "Unknown")}
                         </span>
                         {player.is_anonymous ? (
                           <StatusBadge variant="neutral">Guest</StatusBadge>
                         ) : player.provider ? (
-                          <StatusBadge variant="info">{providerLabel(player.provider)}</StatusBadge>
+                          <StatusBadge variant="info">
+                            {providerLabel(player.provider)}
+                          </StatusBadge>
                         ) : null}
                         {player.is_locked ? (
                           <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium border bg-danger/15 text-danger border-danger/20">
@@ -540,12 +843,17 @@ export default function PlayersListPage() {
                         </code>
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); copyToClipboard(player.user_id); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            copyToClipboard(player.user_id);
+                          }}
                           className="text-muted-label/80 hover:text-subtle transition-colors p-0.5"
                           aria-label={`Copy full user ID for ${player.email ?? player.user_id}`}
                         >
                           {copiedId === player.user_id ? (
-                            <span className="text-success" aria-label="Copied"><Check size={14} /></span>
+                            <span className="text-success" aria-label="Copied">
+                              <Check size={14} />
+                            </span>
                           ) : (
                             <Copy size={14} aria-hidden="true" />
                           )}
@@ -577,7 +885,8 @@ export default function PlayersListPage() {
             {pagination.totalPages > 1 && (
               <div className="flex items-center justify-between px-4 py-3 border-t border-muted-label/40">
                 <p className="text-muted-label text-xs">
-                  {pagination.total} player{pagination.total !== 1 ? "s" : ""} &middot; Page {pagination.page} of {pagination.totalPages}
+                  {pagination.total} player{pagination.total !== 1 ? "s" : ""}{" "}
+                  &middot; Page {pagination.page} of {pagination.totalPages}
                 </p>
                 <div className="flex items-center gap-1">
                   <button
@@ -589,37 +898,44 @@ export default function PlayersListPage() {
                   >
                     <ChevronLeft size={16} aria-hidden="true" />
                   </button>
-                  {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                    let pageNum: number;
-                    if (pagination.totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (pagination.page <= 3) {
-                      pageNum = i + 1;
-                    } else if (pagination.page >= pagination.totalPages - 2) {
-                      pageNum = pagination.totalPages - 4 + i;
-                    } else {
-                      pageNum = pagination.page - 2 + i;
-                    }
-                    return (
-                      <button
-                        key={pageNum}
-                        type="button"
-                        onClick={() => setPage(pageNum)}
-                        aria-label={`Go to page ${pageNum}`}
-                        aria-current={pageNum === pagination.page ? "page" : undefined}
-                        className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors ${
-                          pageNum === pagination.page
-                            ? "bg-warning/20 text-warning border border-warning/30"
-                            : "text-muted-label hover:text-white hover:bg-background/60"
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
+                  {Array.from(
+                    { length: Math.min(5, pagination.totalPages) },
+                    (_, i) => {
+                      let pageNum: number;
+                      if (pagination.totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (pagination.page <= 3) {
+                        pageNum = i + 1;
+                      } else if (pagination.page >= pagination.totalPages - 2) {
+                        pageNum = pagination.totalPages - 4 + i;
+                      } else {
+                        pageNum = pagination.page - 2 + i;
+                      }
+                      return (
+                        <button
+                          key={pageNum}
+                          type="button"
+                          onClick={() => setPage(pageNum)}
+                          aria-label={`Go to page ${pageNum}`}
+                          aria-current={
+                            pageNum === pagination.page ? "page" : undefined
+                          }
+                          className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors ${
+                            pageNum === pagination.page
+                              ? "bg-warning/20 text-warning border border-warning/30"
+                              : "text-muted-label hover:text-white hover:bg-background/60"
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    },
+                  )}
                   <button
                     type="button"
-                    onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
+                    onClick={() =>
+                      setPage((p) => Math.min(pagination.totalPages, p + 1))
+                    }
                     disabled={pagination.page >= pagination.totalPages}
                     aria-label="Next page"
                     className="p-1.5 rounded-lg text-muted-label hover:text-white hover:bg-background/60 disabled:text-muted-label/30 disabled:cursor-not-allowed transition-colors"

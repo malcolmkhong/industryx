@@ -6,12 +6,14 @@ import { isAccountLocked, logActionAsync } from '@/lib/auth/gameStateValidator';
 import { isAdminUserId } from '@/lib/auth/admin';
 import { getUserGuestStatus } from '@/lib/auth/guestCheck';
 import { ResourceType } from '@/lib/game/types';
-import { TRADE_COMMISSION_RATE, TRADABLE_RESOURCES_SET as FALLBACK_TRADABLE_SET } from '@/lib/game/tradeConstants';
+import { TRADABLE_RESOURCES_SET as FALLBACK_TRADABLE_SET } from '@/lib/game/tradeConstants';
 import {
   loadServerGameStateForTrade,
   saveServerGameStateOptimistic,
 } from '@/lib/db/serverGameState';
 import { recordTrade } from '@/lib/db/trades';
+import { getBalance } from '@/lib/game/balanceConfig';
+import { ensureConfigLoaded } from '@/lib/game/configLoader.server';
 
 interface TradeRequest {
   giveResource?: ResourceType;
@@ -63,6 +65,10 @@ export async function POST(request: Request) {
   const rateLimitResponse = await checkRateLimit(auth.userId, RATE_LIMITS.action, '/api/game/trade');
   if (rateLimitResponse) return rateLimitResponse;
 
+  // Phase 3 Step 1: pull latest balance overrides so trade.* values are
+  // current. Best-effort — on failure getBalance() returns validated defaults.
+  await ensureConfigLoaded().catch(() => {/* defaults via validators */});
+
   const lockStatus = await isAccountLocked(auth.userId);
   if (lockStatus.locked && !isAdminUserId(auth.userId)) {
     return NextResponse.json(
@@ -110,12 +116,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'No authoritative server state found' }, { status: 404 });
   }
 
-  const TRADE_COOLDOWN_SECONDS = 300;
+  const tradeCooldownSeconds = getBalance().trade.cooldownSeconds;
   const lastTradeAt = serverState.last_trade_at
     ? new Date(serverState.last_trade_at).getTime()
     : null;
   if (lastTradeAt !== null) {
-    const cooldownEndsAt = lastTradeAt + TRADE_COOLDOWN_SECONDS * 1000;
+    const cooldownEndsAt = lastTradeAt + tradeCooldownSeconds * 1000;
     const now = Date.now();
     if (now < cooldownEndsAt) {
       const retryAfter = Math.max(1, Math.ceil((cooldownEndsAt - now) / 1000));
@@ -124,7 +130,7 @@ export async function POST(request: Request) {
           error: 'Trade cooldown active — wait before trading again',
           code: 'TRADE_COOLDOWN',
           retryAfter,
-          cooldownSeconds: TRADE_COOLDOWN_SECONDS,
+          cooldownSeconds: tradeCooldownSeconds,
         },
         { status: 429, headers: { 'Retry-After': String(retryAfter) } },
       );
@@ -190,21 +196,21 @@ export async function POST(request: Request) {
   // At giveAmount=1000, elasticity=0.5: ~0.05% slippage (negligible at normal volumes)
   // At giveAmount=1_000_000, elasticity=0.5: ~50% slippage (capped below)
   const giveValue = giveAmount * givePrice;
-  const SLIPPAGE_COEFFICIENT = 0.001;
-  const MAX_SLIPPAGE = 0.25; // hard cap 25%
+  const slippageCoefficient = getBalance().trade.slippageCoefficient;
+  const maxSlippage = getBalance().trade.maxSlippage;
   const giveSlippage = Math.min(
-    MAX_SLIPPAGE,
-    Math.sqrt(giveValue / 1000) * giveElasticity * SLIPPAGE_COEFFICIENT,
+    maxSlippage,
+    Math.sqrt(giveValue / 1000) * giveElasticity * slippageCoefficient,
   );
   const receiveSlippage = Math.min(
-    MAX_SLIPPAGE,
-    Math.sqrt(giveValue / 1000) * receiveElasticity * SLIPPAGE_COEFFICIENT,
+    maxSlippage,
+    Math.sqrt(giveValue / 1000) * receiveElasticity * slippageCoefficient,
   );
   // Apply slippage: trade fills at a slightly worse price
   const effectiveGivePrice = givePrice * (1 - giveSlippage);
   const effectiveReceivePrice = receivePrice * (1 + receiveSlippage);
 
-  const receiveAmount = (giveAmount * effectiveGivePrice * (1 - TRADE_COMMISSION_RATE)) / effectiveReceivePrice;
+  const receiveAmount = (giveAmount * effectiveGivePrice * (1 - getBalance().trade.commissionRate)) / effectiveReceivePrice;
   const currentReceive = resources[receiveResource] ?? 0;
   const receiveCap = resourceCapacity[receiveResource] ?? Number.POSITIVE_INFINITY;
   const finalReceiveAmount = Math.max(0, Math.min(receiveAmount, receiveCap - currentReceive));
@@ -250,7 +256,7 @@ export async function POST(request: Request) {
     giveAmount: giveAmount,
     receiveResource: receiveResource,
     receiveAmount: finalReceiveAmount,
-    commissionRate: TRADE_COMMISSION_RATE,
+    commissionRate: getBalance().trade.commissionRate,
     gameTick: Number(updatedState.game_tick) || 0,
     serverStateVersion: nextStateVersion,
   });
@@ -290,6 +296,42 @@ export async function POST(request: Request) {
     console.warn('[Trade] Failed to record market pressure:', pressureErr);
   }
 
+  // ─── Phase 3 U1: fail-closed guard on all pricing values. ─────────────
+  // Reject the entire trade if any pricing-derived number is non-finite
+  // (NaN / Infinity / null-as-number from a dirty Supabase row).
+  // Project rule C2: refuse to send garbage to client. Better to 503 the
+  // trade than display NaN in the TradingPostPanel U1 post-trade row.
+  const pricingFields = {
+    giveBasePrice,
+    receiveBasePrice,
+    givePrice,
+    receivePrice,
+    effectiveGivePrice,
+    effectiveReceivePrice,
+    giveSlippage,
+    receiveSlippage,
+    finalReceiveAmount,
+  };
+  for (const [name, value] of Object.entries(pricingFields)) {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      console.error('[Trade] Pricing contains non-finite value — rejecting trade', {
+        userId: auth.userId,
+        field: name,
+        value,
+        giveResource,
+        receiveResource,
+        giveAmount,
+      });
+      return NextResponse.json(
+        {
+          error: 'Pricing data unavailable — please retry',
+          code: 'PRICING_INVALID',
+        },
+        { status: 503 },
+      );
+    }
+  }
+
   logActionAsync({
     userId: auth.userId,
     actionType: 'trade',
@@ -298,7 +340,7 @@ export async function POST(request: Request) {
       giveAmount,
       receiveResource,
       receiveAmount: finalReceiveAmount,
-      commissionRate: TRADE_COMMISSION_RATE,
+      commissionRate: getBalance().trade.commissionRate,
       source: 'server_authoritative_trade',
       livePriceUsed: true,
       slippage: { give: giveSlippage, receive: receiveSlippage },

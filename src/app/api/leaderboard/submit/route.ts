@@ -151,7 +151,7 @@ export async function POST(request: Request) {
     }
 
     // ── Validate game state integrity ──
-    const validation = validateGameState(gameState, undefined, { skipDeltaChecks: true });
+    const validation = await validateGameState(gameState, undefined, { skipDeltaChecks: true });
     if (validation.riskLevel === 'critical') {
       console.warn(`[Leaderboard] Critical validation failure for user ${userId}:`, validation.violations);
 

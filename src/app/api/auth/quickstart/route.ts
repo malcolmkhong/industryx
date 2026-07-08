@@ -13,9 +13,12 @@
  *
  *   source lets the client log / telemetry decide how the user was resolved.
  *
- * Removed endpoints (now subsumed):
- *   - /api/auth/recover-by-device (its logic is in step 1+2)
- *   - /api/auth/claim-guest (its logic is in the identity upsert path)
+ * Removed endpoints (now subsumed into this single round-trip):
+ *   - /api/auth/recover-by-device
+ *   - /api/auth/claim-guest
+ *
+ * Both flows were never deployed as standalone routes — their work is
+ * what step 1+2 (device lookup) and the identity upsert below accomplish.
  *
  * Session establishment (Supabase Auth):
  *   This route does NOT create a Supabase session. The browser has no session
@@ -31,6 +34,7 @@ import { createServiceRoleClient } from "@/lib/supabase/server";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
 import { getCapacityStatus } from "@/lib/capacity";
 import { logRequestIp } from "@/app/api/auth/request-ip-log-helper";
+import { logFingerprintEvent } from "@/lib/db/fingerprint-events";
 import {
   isServerGameStateAvailable,
   hasServerGameState,
@@ -46,7 +50,28 @@ import {
   touchIdentityLastUsed,
 } from "@/lib/db/guestIdentities";
 
+/**
+ * Sentinel sent by the client when the browser could not produce a fingerprint.
+ * Distinct from the legacy literal "unknown" (still rejected with 400) — this
+ * value tells the route "I know fingerprint is missing, fall through to
+ * deviceId-only dedupe and mark the profile as fingerprint_status='unavailable'".
+ */
+const FINGERPRINT_UNAVAILABLE_SENTINEL = "__fingerprint_unavailable__";
+
 type Source = "deviceId" | "fingerprint" | "fresh";
+
+/**
+ * Test/development deviceId prefixes. When matched, the account is flagged
+ * `is_test=true` on profiles and gets cleaned up after 1 day instead of 30.
+ * Centralized here so the cleanup policy (migration 062) and detection stay
+ * in sync.
+ */
+const TEST_DEVICE_PREFIX_RE =
+  /^(it-|fp-test-|recover-test-|revisit-|quickstart-fp-|pw-test-)/i;
+
+function looksLikeTestDevice(deviceId: string): boolean {
+  return TEST_DEVICE_PREFIX_RE.test(deviceId);
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -62,12 +87,17 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+    // Accept either a real fingerprint, the unavailable sentinel, or any
+    // non-"unknown" value. The legacy literal "unknown" (SSR-only) is
+    // still rejected to keep the contract clear.
     if (!fingerprint || fingerprint === "unknown") {
       return NextResponse.json(
         { error: 'fingerprint is required and must not be "unknown"' },
         { status: 400 },
       );
     }
+    const fingerprintUnavailable =
+      fingerprint === FINGERPRINT_UNAVAILABLE_SENTINEL;
 
     logRequestIp(request, "/api/auth/quickstart", null);
 
@@ -103,12 +133,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const fingerprintHash = createHash("sha256")
-      .update(fingerprint)
-      .digest("hex");
+    const fingerprintHash = fingerprintUnavailable
+      ? null
+      : createHash("sha256").update(fingerprint).digest("hex");
 
     // ────────────────────────────────────────────────────────────────
-    // STEP 1: primary match by deviceId
+    // STEP 1: primary match by deviceId (works with or without fingerprint)
     // ────────────────────────────────────────────────────────────────
     let userId: string | null = null;
     let source: Source = "fresh";
@@ -121,10 +151,10 @@ export async function POST(request: NextRequest) {
 
     // ────────────────────────────────────────────────────────────────
     // STEP 2: secondary match by fingerprint (only if deviceId didn't match)
-    //   The unique partial index on guest_identities(fingerprint) WHERE
-    //   superseded_by IS NULL ensures we find at most one active user.
+    //   Skipped when the client sent the unavailable sentinel — there is
+    //   no real fingerprint to match against.
     // ────────────────────────────────────────────────────────────────
-    if (!userId) {
+    if (!userId && !fingerprintUnavailable) {
       const fpMatch = await findUserByFingerprint(fingerprint);
       if (fpMatch?.user_id) {
         userId = fpMatch.user_id;
@@ -145,9 +175,12 @@ export async function POST(request: NextRequest) {
           // user_metadata is consumed by handle_new_user() trigger (migration 055):
           //   - device_id: passed through for any downstream reads
           //   - fingerprint: written into profiles.device_fingerprint
+          //     (skipped when sentinel — no real fingerprint to store)
           user_metadata: {
             device_id: deviceId,
-            fingerprint,
+            ...(fingerprintUnavailable
+              ? { fingerprint_unavailable: true }
+              : { fingerprint }),
             is_anonymous: true,
           },
         });
@@ -181,6 +214,65 @@ export async function POST(request: NextRequest) {
     }
 
     // ────────────────────────────────────────────────────────────────
+    // STEP 4b: mark test/development accounts.
+    //   Idempotent: setting is_test=true on an already-true profile is a no-op.
+    //   Future cleanup (migration 062) deletes test accounts after 1 day.
+    // ────────────────────────────────────────────────────────────────
+    if (looksLikeTestDevice(deviceId)) {
+      await supabase
+        .from("profiles")
+        .update({ is_test: true })
+        .eq("id", userId);
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // STEP 4c: bump profiles.last_active for the cleanup policy.
+    //   (Tier 1 fix 4: the column exists but was never written.)
+    //   Best-effort: failure does not block the request.
+    // ────────────────────────────────────────────────────────────────
+    await supabase
+      .from("profiles")
+      .update({ last_active: new Date().toISOString() })
+      .eq("id", userId);
+
+    // ────────────────────────────────────────────────────────────────
+    // STEP 4d: mark fingerprint_status when sentinel was sent.
+    //   Idempotent: same status for an already-marked profile.
+    //   This is the only signal the server has that the user lacks a
+    //   real fingerprint — the modal's "why" depends on it.
+    // ────────────────────────────────────────────────────────────────
+    if (fingerprintUnavailable) {
+      await supabase
+        .from("profiles")
+        .update({ fingerprint_status: "unavailable" })
+        .eq("id", userId);
+    } else if (isNewUser) {
+      await supabase
+        .from("profiles")
+        .update({ fingerprint_status: "available" })
+        .eq("id", userId);
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // STEP 4e: log the fingerprint outcome to the analytics event log.
+    //   Failure does not block the request.
+    // ────────────────────────────────────────────────────────────────
+    await logFingerprintEvent(supabase, {
+      user_id: userId,
+      status: fingerprintUnavailable ? "unavailable" : "available",
+      reason:
+        (request.headers.get("x-fp-reason") as
+          | "blocked"
+          | "timeout"
+          | "network"
+          | "unsupported"
+          | "unknown"
+          | null) ?? "unknown",
+      user_agent: request.headers.get("user-agent") ?? null,
+      platform: (request.headers.get("x-fp-platform") as string | null) ?? null,
+    });
+
+    // ────────────────────────────────────────────────────────────────
     // STEP 5: register / update guest_identity (the (user_id, device_id) pair)
     //
     //   Decision: only register an active identity when this user_id has
@@ -201,7 +293,14 @@ export async function POST(request: NextRequest) {
     if (hasThisDeviceIdentity) {
       await touchIdentityLastUsed(userId, deviceId);
       // Persist fingerprint hash if we now know it (first-sight for this device).
-      await setIdentityFingerprintIfMissing(userId, deviceId, fingerprintHash);
+      // Skipped when the client sent the unavailable sentinel — no real hash.
+      if (fingerprintHash) {
+        await setIdentityFingerprintIfMissing(
+          userId,
+          deviceId,
+          fingerprintHash,
+        );
+      }
     } else {
       // User has no identity on THIS device. Consider registering.
       const userHasAnyIdentity = await hasAnyIdentityForUser(userId);
@@ -211,7 +310,7 @@ export async function POST(request: NextRequest) {
           user_id: userId,
           device_id: deviceId,
           fingerprint,
-          fingerprint_hash: fingerprintHash,
+          ...(fingerprintHash ? { fingerprint_hash: fingerprintHash } : {}),
           is_primary: true,
         });
         if (!inserted) {
@@ -227,10 +326,23 @@ export async function POST(request: NextRequest) {
       // works because their fingerprint matches the existing identity.
     }
 
+    // ────────────────────────────────────────────────────────────────
+    // STEP 5b: always touch guest_identities.last_used_at.
+    //   (Tier 1 fix 6: previously only touched when the (user, device)
+    //   pair already had a row — new users + fingerprint-matched users
+    //   on a different device skipped this. Now always called; updates
+    //   0 rows when no identity exists for this (user, device), which
+    //   is harmless.)
+    // ────────────────────────────────────────────────────────────────
+    await touchIdentityLastUsed(userId, deviceId);
+
     return NextResponse.json({
       userId,
       source,
       isNewUser,
+      // Limited mode = sentinel AND no Step 1 deviceId match.
+      // Step 1 match with sentinel = full recovery, NOT limited.
+      limited: fingerprintUnavailable && source === "fresh",
     });
   } catch (error) {
     console.error("[quickstart] Unexpected error:", error);

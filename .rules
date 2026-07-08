@@ -1,454 +1,1200 @@
-# RULES.md — IndustriaX Project Engineering Rules
+# RULES — IndustriaX Engineering Standards
 
- > **Last Updated:** 2026-06-29 (Post Knip audit — 15 unused files, 52 unused exports investigated)
-> **Status:** These rules are derived from REAL vulnerabilities and architectural weaknesses found in the codebase. Every rule exists because something broke, could break, or is currently broken.
-> **Companion:** Read [AGENTS.md](./AGENTS.md) for operating philosophy, communication style (caveman), feature development workflow, and the full project decision framework. AGENT.md (legacy) was merged into AGENTS.md on 2026-06-19.
-
----
-
-## 1. ALLOWED
-
-### General
-- Adding new game features through the full stack (database → API → state → UI)
-- Extending existing panels with new sections
-- Adding new API routes with proper auth and validation
-- Creating new Supabase migrations for schema changes
-- Refactoring code to improve architecture without behavioral changes
-- Adding new admin pages and API routes with proper role checks
-
-### Database
-- Adding new tables via Supabase SQL migrations
-- Adding new columns to existing tables via migrations
-- Adding new RLS policies
-- Adding indexes for query optimization
-- Using `createServiceRoleClient()` for server-side operations that need elevated access
-
-### Frontend
-- Adding new panels/components following existing patterns
-- Using shadcn/ui components from `src/components/ui/`
-- Using Framer Motion for animations
-- Using `useGameStore` with **proper selectors** (subscribe to specific slices, NOT the entire store)
-- Using `GameIcon` component for all game icons
-
-### API
-- Adding new action types to `/api/game/action` (with validation)
-- Adding rate limiting to unprotected endpoints
-- Adding auth checks to existing unprotected endpoints
-- Extending `gameStateValidator.ts` with new validation rules
+> **Last Updated:** 2026-07-07
+> **Format:** Industry-standard ID + Severity + Verifiable (modeled on OWASP, AWS Well-Architected, Google Engineering Practices)
+> **Status:** Living document. Each rule has a Status field. Resolved rules move to the **Resolved Registry** at the bottom.
+> **Companion:** [AGENTS.md](./AGENTS.md) for operating philosophy, communication style, and decision framework. [docs/ECONOMY_AUDIT.md](./docs/ECONOMY_AUDIT.md) for project status (Critical Focus section).
+> **Audit basis:** Every rule was created because something broke, could break, or is currently broken. Rationale cites the originating incident.
 
 ---
 
-## 2. FORBIDDEN
+## How to read this file
 
-### Security — CRITICAL
-- **NEVER** push `.env` or `.env.local` to GitHub — contains production secrets
-- **NEVER** use hardcoded secrets as fallbacks — the `CHECKSUM_SECRET` fallback `'industriax-server-secret-2024'` in `gameStateValidator.ts:56` must be removed. **Why:** Anyone who reads the source code can forge valid anti-cheat checksums, making the entire validation system useless.
-- **NEVER** return `{ locked: false }` on database errors — `gameStateValidator.ts:312-315` does this. **Why:** If Supabase goes down, ALL banned cheaters are automatically unlocked. Attackers can DDoS the database to bypass account locks. Must fail CLOSED: return `{ locked: true }` on errors.
-- **NEVER** create an API route without auth checks if it accesses sensitive data
-- **NEVER** allow admin actions without `canWrite()` role check
-- **NEVER** implement game-affecting mutations as client-only operations — the Trading Post did this. **Why:** Players can cheat via browser console. All trades must go through `/api/game/action`.
-- **NEVER** return `{ valid: true }` when server validation fails or is unreachable
-- **NEVER** trust client-sent game state without server-side verification
-- **NEVER** expose the Supabase service role key to the client
-- **NEVER** accept unvalidated input in `importSave()` — `store.ts:2428-2443` accepts `money: Infinity`, arbitrary keys in resources, and unvalidated buildings. **Why:** Cheaters can inject unlimited money, corrupt game state, or crash the game.
+```
+[DOMAIN-NNN]  Title
+Severity: 🔴 Critical | 🟠 High | 🟡 Medium | 🟢 Low
+Status:   Active | Resolved | Superseded
+Statement: One imperative sentence.
+Rationale: What incident / attack / regression created this rule.
+Verify:    Lint command, test name, or manual checklist.
+Example:   ❌ forbidden pattern  /  ✅ compliant pattern
+```
 
-### Security — Input Validation
-- **NEVER** set game speed without validating against `[1, 2, 5, 10]` — `store.ts:1804` accepts any number. **Why:** Setting speed to 1000 causes 1000 ticks/second, browser crashes, and data corruption.
-- **NEVER** use `setImmediate` in server-side code — not available in Edge runtimes. Use `queueMicrotask()` instead. **Why:** `gameStateValidator.ts:382` uses `setImmediate` which crashes in some environments.
-- **NEVER** use `Math.random()` for security-sensitive IDs — use `crypto.randomUUID()` instead. **Why:** `Math.random()` is predictable and collision-prone.
+**Rule IDs are stable.** When a rule is resolved, do not delete — move to the Resolved Registry with the resolution date and link to the fix.
 
-### Database
-- **NEVER** run `prisma db:push` or `prisma migrate` — the Prisma schema is stale (SQLite with User/Post model) and will corrupt the Supabase PostgreSQL database. **Why:** The Prisma schema at `prisma/schema.prisma` is the Next.js starter template, NOT the game schema.
-- **NEVER** remove RLS policies from existing tables
-- **NEVER** add `"Service role can do everything"` policies without justification
-- **NEVER** create a new table without RLS enabled
-- **NEVER** write raw SQL outside of migration files
-- **NEVER** use FLOAT for monetary values — use INTEGER (cents) or DECIMAL
-
-### Architecture
-- **NEVER** add game logic to React components — it belongs in the Zustand store or server-side
-- **NEVER** create a new Zustand store for game state — use the existing `useGameStore`
-- **NEVER** directly mutate `store.resources` without going through store actions
-- **NEVER** bypass the `debouncedPersistStorage` for save operations
-- **NEVER** create a new Supabase client inside a React component body — use `createClient()` from `@/lib/supabase/client`
-- **NEVER** subscribe to the entire Zustand store — `useGameStore()` without a selector causes re-renders on EVERY tick. **Why:** `DashboardPanel.tsx:24` does this, causing ~10-100 re-renders/second.
-
-### API
-- **NEVER** create an API route that modifies game state without validation
-- **NEVER** create an admin API route without `verifyAdmin()` check
-- **NEVER** create a write admin API route without `canWrite()` check
-- **NEVER** omit rate limiting on new API routes
-- **NEVER** add action types to `validActions` without implementing their handler — `route.ts:321-325` has 14 dead action types. **Why:** These waste server time and mask missing implementations.
-
-### Caddy/Gateway
-- **NEVER** modify the `XTransformPort` logic in Caddyfile without security review — it's an SSRF vector
-- **NEVER** add internal service ports to the Caddyfile without restricting access
+**Active = enforceable now.** Critical and High rules must pass CI; Medium and Low rules are checked on review.
 
 ---
 
-## 3. REQUIRED REVIEWS
+## SEC — Security
 
-Before any code is accepted, these checks MUST pass:
+### [SEC-001] Server-authoritative game mutations
+- **Severity:** 🔴 Critical
+- **Status:** Active
+- **Statement:** Every economy-affecting game mutation MUST go through a server-side API endpoint with validation. Client-side mutations are forbidden for any value that affects player state.
+- **Rationale:** Trading Post was originally 100% client-side Zustand mutations. Players cheated via browser console. Rebuilt as `/api/game/trade` in v15. **Must not regress.**
+- **Verify:** Grep `setState` calls in `src/lib/game/actions/*.ts` for economy fields; each must be preceded by a successful server response. Architecture test in `tests/unit/tiers.test.ts` pattern.
+- **Example:**
+  ```ts
+  // ❌ FORBIDDEN — client-only mutation
+  set({ resources: { ...resources, iron: resources.iron - 100 } });
 
-### Pre-Implementation Review
-| Check | Question |
-|-------|----------|
-| Rule compliance | Does this violate any FORBIDDEN rule? |
-| Database impact | Does this need a migration? If so, has it been written? |
-| Security impact | Does this need server-side validation? Auth? Rate limiting? |
-| API impact | Does this need a new endpoint? Or modification to an existing one? |
-| Admin impact | Does this need audit logging? Role checks? |
-| State impact | Which store slices are affected? Are selectors efficient? |
-| Offline impact | How does this behave when the server is unreachable? |
-| Fail-closed check | If the database is down, does this fail closed (block) or open (allow)? |
-
-### Post-Implementation Review
-| Check | Tool/Method |
-|-------|-------------|
-| Lint | `bun run lint` — must pass with 0 errors |
-| Server start | Dev server must start and serve `/` with HTTP 200 |
-| Console | No JavaScript errors in browser console |
-| Feature | Feature works as expected in browser |
-| Security | No auth bypass, no data leak, no unvalidated input |
-| Database | Data persists correctly (if applicable) |
-| Admin | Admin actions logged (if applicable) |
-| Selectors | Zustand selectors are specific (not `useGameStore()`) |
-| Responsive | Works on mobile and desktop layouts |
-| Worklog | `/home/z/my-project/worklog.md` updated |
-
----
-
-## 4. DATABASE RULES
-
-### Schema Changes
-- All schema changes MUST be in Supabase SQL migration files under `supabase/migrations/`
-- Migrations MUST be idempotent where possible
-- Migrations MUST NOT be combined — one logical change per migration
-- Migration files MUST have a descriptive filename (e.g., `007_add_trade_history.sql`)
-- **NEVER** use Prisma to manage the database schema
-
-### RLS (Row Level Security)
-- Every new table MUST have RLS enabled: `ALTER TABLE xxx ENABLE ROW LEVEL SECURITY;`
-- Every new table MUST have policies for:
-  - Users can read their own data: `USING (user_id = auth.uid())`
-  - Users can insert their own data: `WITH CHECK (user_id = auth.uid())`
-  - Service role can do everything (for server-side API operations)
-- Admin-only tables MUST have policies restricting access to service role only
-
-### Write Frequency
-- Player state saves happen every 2 minutes via cloud sync — do NOT increase this frequency
-- `player_actions` table receives a write on every validated action — do NOT add unnecessary action types
-- `admin_actions` table receives a write on every admin mutation — this is correct and must be preserved
-- Game tick updates are client-side only — do NOT send tick data to the server
-
-### Data Integrity
-- All monetary values MUST be stored as integers (cents) or DECIMAL — never FLOAT
-- All timestamps MUST use `TIMESTAMPTZ` — never `TIMESTAMP` without timezone
-- All UUIDs MUST use the `uuid` type — never `text` or `varchar`
-- All foreign keys MUST have `ON DELETE CASCADE` or `ON DELETE SET NULL` as appropriate
-- `player_progress.money` has a check constraint `CHECK (money >= 0)` — new tables must follow this pattern
-- Atomic operations MUST use SQL atomic increments (e.g., `cheat_flag_count = cheat_flag_count + 1`) not read-then-write. **Why:** `gameStateValidator.ts:332-344` has a TOCTOU race condition where concurrent requests can lose cheat flag increments.
-
-### Indexes
-- Every table MUST have an index on `user_id` (for RLS policy performance)
-- Every table MUST have an index on `created_at` (for time-range queries)
-- Composite indexes SHOULD be added for common query patterns
-- Index creation MUST be in migration files, not in application code
-
----
-
-## 5. SECURITY RULES
-
-### Authentication
-- All game API routes MUST use `verifyAuth()` or `verifyAuthAndOwnership()` from `@/lib/auth/admin.ts`
-- Admin API routes MUST use `verifyAdmin()` from `@/lib/auth/admin.ts`
-- Admin write operations MUST additionally use `canWrite()` from `@/lib/auth/admin-helpers.ts`
-- Auth failures MUST return 401, not redirect
-- Session refresh is handled by proxy — do NOT duplicate in API routes
-
-### Authorization — Admin Roles
-| Role | Can Read | Can Write |
-|------|----------|-----------|
-| `viewer` | ✅ All admin data | ❌ No mutations |
-| `admin` | ✅ All admin data | ✅ All mutations |
-| `super_admin` | ✅ All admin data | ✅ All mutations + manage admins |
-
-- `ADMIN_UIDS` env var users are implicitly `super_admin`
-- `admin_users` table can override roles
-- **NEVER** create an admin endpoint that checks `verifyAdmin()` but not `canWrite()` for mutations
-
-### Validation
-- Every game-affecting mutation MUST be validated server-side in `/api/game/action`
-- The `gameStateValidator.ts` MUST be updated for new game mechanics
-- `importSave()` MUST validate the imported data against server-side rules with:
-  - Upper/lower bounds on monetary values (e.g., `0 <= money <= 1e12`)
-  - Whitelisted resource keys only (reject unknown keys)
-  - Building type validation against `BUILDING_DEFS`
-  - Building level bounds (1-100 or similar)
-- **CRITICAL**: `serverActions.ts` MUST NOT return `{ valid: true }` on auth failures, rate limits, or network errors
-- **CRITICAL**: `isAccountLocked()` MUST return `{ locked: true }` on database errors (fail-closed)
-
-### Abuse Prevention
-- Every new API route MUST have rate limiting via `checkRateLimit()` from `@/lib/auth/rateLimiter.ts`
-- Rate limit profiles are defined in `rateLimiter.ts` — add new profiles as needed
-- Cheat detection thresholds are in `gameStateValidator.ts` — update for new mechanics
-- Account auto-locking at 3 cheat flags must be preserved
-- **NOTE**: Current in-memory rate limiter (`rateLimiter.ts:14`) doesn't scale to multi-instance deployments. For production, use Supabase-backed or Redis rate limiting.
-
-### Attack Surface Reduction
-- `/api/game/definitions` MUST add at minimum a rate limit (currently no auth, no rate limit)
-- `/api/news-llm` MUST add auth or rate limiting (currently open proxy to Cloudflare Worker)
-- `/api/icons` MUST add rate limiting (currently open proxy to Iconify)
-- `/api/config` root route MUST add auth (currently exposes table names)
-- `XTransformPort` in Caddyfile MUST be restricted to known ports only
-
-### Save/Import Security
-- `importSave()` MUST validate all fields with bounds checking before applying
-- `setGameSpeed()` MUST validate against allowed values `[1, 2, 5, 10]` before setting
-- `importBlueprint()` needs the same strict validation as `importSave()`
-- Save version MUST be incremented when adding new state fields
-
----
-
-## 6. PERFORMANCE RULES
-
-### Database Efficiency
-- All queries MUST use indexed columns in WHERE clauses
-- All queries MUST have a LIMIT clause for list endpoints
-- Avoid SELECT * — specify needed columns
-- Use `createServiceRoleClient()` only when RLS bypass is required — use regular client otherwise
-- Batch inserts are preferred over individual inserts for audit logs
-
-### API Efficiency
-- Every API route MUST return within 5 seconds under normal load
-- Every API route MUST have a rate limit
-- Avoid N+1 queries — use JOINs or batch queries
-- Cache game config server-side — it rarely changes (`configCache.ts` pattern)
-- Use `Response.json()` for simple responses — avoid unnecessary serialization
-
-### Frontend Rendering Efficiency
-- **MANDATORY**: Use Zustand selectors — NEVER subscribe to the entire store
-  ```typescript
-  // ❌ FORBIDDEN — causes re-renders on every tick
-  const store = useGameStore();
-  
-  // ✅ REQUIRED — only re-renders when specific value changes
-  const money = useGameStore(s => s.money);
-  const resources = useGameStore(s => s.resources);
+  // ✅ REQUIRED — server response drives state
+  const result = await fetch('/api/game/trade', { ... });
+  useGameStore.setState({ resources: result.resources });
   ```
-- Memoize expensive computations with `useMemo`
-- Debounce rapid state updates (the store already uses 5s debounced persistence)
-- Use `AnimatePresence` for lists that change frequently
-- Set `max-h-96 overflow-y-auto` on long lists with `game-scrollbar` styling
-- Keep panel components focused — do not create god components
 
-### Config Cache
-- `configCache.ts` uses `let` exports with ES module live bindings
-- **Known Issue:** React components that destructure old values won't re-render when config updates from Supabase
-- **Workaround:** Use a React context or state variable that triggers re-renders on config change
-- **Known Issue:** `PRODUCTION_CHAINS` is never updated from Supabase (hardcoded local values only)
+### [SEC-002] Fail-closed on auth / lock / database errors
+- **Severity:** 🔴 Critical
+- **Status:** Active
+- **Statement:** If authentication, account lock check, or database read fails, the operation MUST be **denied** (not allowed). Returning permissive defaults on error is a security hole.
+- **Rationale:** Old `isAccountLocked` returned `{ locked: false }` on DB error → banned cheaters unlocked during Supabase outages. Old `verifyChecksum` had hardcoded fallback secret → anyone reading source could forge valid checksums.
+- **Verify:** Every `catch` block in `src/lib/auth/*` and `src/lib/auth/gameStateValidator.ts` must return restrictive defaults. `isAccountLocked` must return `{ locked: true }` on all error paths (currently lines 502, 531).
+- **Example:**
+  ```ts
+  // ❌ FORBIDDEN — fail-open
+  try { return { locked: false }; } catch { return { locked: false }; }
 
-### Realtime Efficiency
-- Supabase Presence is used for online tracking — do NOT add new Presence channels without justification
-- The Presence channel name is `industriax-online` — do not create per-user channels
-- Presence refresh interval is 30s — do NOT reduce below 10s
+  // ✅ REQUIRED — fail-closed
+  try { ... } catch (err) {
+    console.error('[isAccountLocked] DB error', err);
+    return { locked: true, reason: 'lock_check_unavailable' };
+  }
+  ```
 
----
+### [SEC-003] No hardcoded secret fallbacks
+- **Severity:** 🔴 Critical
+- **Status:** Active
+- **Statement:** Required secrets (`CHECKSUM_SECRET`, Supabase service role key) MUST cause server boot to fail if missing. No fallback to hardcoded strings.
+- **Rationale:** `process.env.CHECKSUM_SECRET || 'industriax-server-secret-2024'` would let any reader of source code forge valid anti-cheat checksums.
+- **Verify:** `grep -r "process.env.X || " src/` should not return auth/secret lookups with hardcoded fallbacks. `gameStateValidator.ts:97-107` is the canonical example of the throw-on-missing pattern.
+- **Example:**
+  ```ts
+  // ❌ FORBIDDEN
+  const SECRET = process.env.CHECKSUM_SECRET || 'industriax-server-secret-2024';
 
-## 7. ARCHITECTURE RULES
+  // ✅ REQUIRED
+  const SECRET = process.env.CHECKSUM_SECRET;
+  if (!SECRET) throw new Error('CHECKSUM_SECRET is required');
+  ```
 
-### System Interaction Pattern
+### [SEC-004] Pricing data must be finite or trade is rejected
+- **Severity:** 🔴 Critical
+- **Status:** Active
+- **Statement:** Server MUST reject any trade whose pricing-derived values (base/live/effective price, slippage, final amount) are non-finite. NaN / Infinity must never reach the client.
+- **Rationale:** Bad Supabase row data (string in numeric column, null in required field) → `Number(...)` returns NaN → `JSON.stringify` serializes to `null` → client UI shows `null` silently. Better to 503 the trade.
+- **Verify:** `src/app/api/game/trade/route.ts` must check `Number.isFinite(value)` for all 9 pricing fields before serializing the response.
+- **Example:**
+  ```ts
+  // ❌ FORBIDDEN — silent NaN
+  return NextResponse.json({ pricing: { giveBasePrice: Number(row.base_price), ... } });
 
-```
-Browser (React + Zustand)
-  ↕ (API calls with auth)
-Next.js API Routes
-  ↕ (Supabase client)
-Supabase (PostgreSQL + Auth + Presence)
-```
+  // ✅ REQUIRED — fail-closed
+  if (!Number.isFinite(giveBasePrice) || !Number.isFinite(receiveSlippage) /* ... */) {
+    console.error('[Trade] Pricing non-finite — rejecting');
+    return NextResponse.json({ error: 'Pricing data unavailable', code: 'PRICING_INVALID' }, { status: 503 });
+  }
+  ```
 
-- The game loop runs CLIENT-SIDE — this is by design for responsiveness
-- The SERVER is advisory — it validates, logs, and detects cheats
-- **This architecture is a tradeoff** — the client is authoritative for gameplay, the server is authoritative for validation and persistence
-- Any new mutation MUST follow: client action → server validation → server persistence → client confirmation
+### [SEC-005] No service role key on the client
+- **Severity:** 🔴 Critical
+- **Status:** Active
+- **Statement:** Supabase service role key MUST never appear in client-bundled code or be sent to the browser.
+- **Rationale:** Service role bypasses RLS. If exposed, attacker can read/write any player data.
+- **Verify:** `grep -r "SUPABASE_SERVICE_ROLE_KEY" .next/static` should return zero matches after build. Only `src/lib/supabase/server.ts` may import it.
+- **Example:**
+  ```ts
+  // ❌ FORBIDDEN
+  // any file in src/components/ or src/app/ that's bundled to client
+  import { createClient } from '@supabase/supabase-js' with service role key;
 
-### State Management
-- `useGameStore` is the SINGLE source of truth for game state
-- Do NOT create additional Zustand stores for game data
-- `useSettingsStore` is acceptable for UI-only preferences
-- Store actions MUST be the only way to modify game state from components
-- Store version migrations are in `migrateSaveState()` — add new versions incrementally
-- **Known Issue:** Save migration code (V1→V19) uses extensive `as Record<string, number>` type casting — prone to runtime errors with malformed saves
+  // ✅ REQUIRED
+  // src/lib/supabase/server.ts (server-only, never imported by components)
+  ```
 
-### Save System
-- Local saves use `debouncedPersistStorage` with 5s debounce
-- Cloud saves use `/api/game/state` with 2-minute auto-save interval
-- `beforeunload` flush ensures data is written on page close
-- **Known Issue:** On mobile browsers and force-kills, `beforeunload` may not fire, losing up to 5s of progress
-- **NEVER** remove the `beforeunload` listener
-- **NEVER** increase the auto-save frequency (would overload the server)
-- Save version MUST be incremented (`SAVE_VERSION`) when adding new state fields
+### [SEC-006] No PII or production keys in committed files
+- **Severity:** 🔴 Critical
+- **Status:** Active
+- **Statement:** `.env`, `.env.local`, `.env.production` MUST be in `.gitignore` and MUST NOT be committed.
+- **Rationale:** Production secrets in git history are unremovable without rewriting history.
+- **Verify:** `cat .gitignore | grep -E "^\.env"` should show all env variants. Pre-commit hook (recommended) should refuse commits touching `.env*`.
 
-### API Design
-- Game routes go under `/api/game/`
-- Admin routes go under `/api/admin/`
-- Config routes go under `/api/config/`
-- Auth routes go under `/api/auth/`
-- Each route file MUST have a clear purpose comment
-- Error responses MUST use consistent format: `{ error: string, code?: string }`
-- **Dead action types:** The following are in `validActions` but have NO handler — remove them or implement them: `set_game_speed`, `sell_market`, `buy_market`, `prestige`, `import`, `claim_quest`, `hire_worker`, `assign_worker`, `upgrade_worker`, `start_drone_mission`, `collect_drone`, `toggle_building`, `bulk_build`, `bulk_sell`
+### [SEC-007] Use `crypto.randomUUID()` for security-sensitive IDs
+- **Severity:** 🟡 Medium
+- **Status:** Active
+- **Statement:** All security-sensitive IDs (session tokens, request IDs, audit IDs) MUST use `crypto.randomUUID()`. `Math.random()` is forbidden.
+- **Rationale:** `Math.random()` is predictable and collision-prone.
+- **Verify:** `grep -rn "Math.random" src/ tests/` — every occurrence should be for non-security purposes (visual jitter, etc.).
+- **Example:**
+  ```ts
+  // ❌ FORBIDDEN
+  const id = Math.random().toString(36).slice(2);
 
-### Frontend Architecture
-- Game panels go in `src/components/game/`
-- Shared components go in `src/components/game/shared/`
-- UI primitives go in `src/components/ui/` (shadcn/ui — do not modify these directly)
-- Providers go in `src/components/providers/`
-- Each game panel MUST be a self-contained component
-- Panels receive data from the store — NOT from props (except for rare composition patterns)
+  // ✅ REQUIRED
+  const id = crypto.randomUUID();
+  ```
 
-### Admin Dashboard
-- Admin pages go under `src/app/admin/`
-- Admin pages MUST have sidebar navigation consistent with other admin pages
-- Admin pages MUST use `verifyAdmin()` on their API calls
-- Admin mutations MUST be logged to `admin_actions` table
+### [SEC-008] Use `queueMicrotask()`, never `setImmediate()`, server-side
+- **Severity:** 🟡 Medium
+- **Status:** Active
+- **Statement:** Server-side async scheduling MUST use `queueMicrotask()` or `await`. `setImmediate()` is forbidden (does not exist in Edge runtime).
+- **Rationale:** Edge runtime (Vercel, Cloudflare Workers) does not have `setImmediate`. Code that uses it crashes when deployed to edge.
+- **Verify:** `grep -rn "setImmediate" src/` should return zero matches.
+- **Example:**
+  ```ts
+  // ❌ FORBIDDEN
+  setImmediate(() => logAction({ ... }));
 
-### Type System
-- **Known Issue:** `solarPanel` appears in both `FactoryType` and `PowerPlantType` (`types.ts:34-35`) — this naming collision should be resolved
-- **Known Issue:** `PrestigeBonus.effect.type` is `string` — should be a union type for type safety
-- **Known Issue:** `BuildingType` has ~90 variants and `FactoryType` has ~80 — these are unwieldy but acceptable for now
+  // ✅ REQUIRED
+  queueMicrotask(() => logAction({ ... }));
+  ```
 
----
+### [SEC-009] Game speed must be validated against allowed set
+- **Severity:** 🟡 Medium
+- **Status:** Active
+- **Statement:** `gameSpeed` MUST be validated against `[1, 2, 5, 10]` both client-side and server-side. Any other value is rejected.
+- **Rationale:** `setGameSpeed(1000)` → 1000 ticks/sec → browser crash, data corruption, unfair advantage.
+- **Verify:** `src/lib/game/actions/core.ts:13-30` validates client-side. Server route `set_game_speed` action must re-validate.
+- **Example:**
+  ```ts
+  // ❌ FORBIDDEN
+  setGameSpeed: (speed: number) => set({ gameSpeed: speed })
 
-## 8. PRODUCTION RULES
+  // ✅ REQUIRED
+  const ALLOWED_SPEEDS = [1, 2, 5, 10] as const;
+  setGameSpeed: (speed: number) => {
+    if (!ALLOWED_SPEEDS.includes(speed as any)) return;
+    set({ gameSpeed: speed });
+  }
+  ```
 
-### Before Any Feature Is Considered Complete
-
-- [ ] Lint passes with 0 errors on `src/`
-- [ ] Dev server starts and serves `/` with HTTP 200
-- [ ] No JavaScript errors in browser console
-- [ ] Feature works in browser (tested, not assumed)
-- [ ] Responsive layout works on mobile and desktop
-- [ ] Sticky footer rule respected (if applicable)
-- [ ] Server-side validation implemented (for game mutations)
-- [ ] Rate limiting implemented (for new API routes)
-- [ ] Auth checks implemented (for protected routes)
-- [ ] Admin audit logging implemented (for admin mutations)
-- [ ] Database migration created (if schema changed)
-- [ ] RLS policies created (for new tables)
-- [ ] Store version incremented (if state shape changed)
-- [ ] No secrets in code or committed files
-- [ ] Zustand selectors are specific (not subscribing to entire store)
-- [ ] Input validation with bounds checking (for import/save)
-- [ ] worklog.md updated
-
-### Deployment Checklist
-- [ ] All lint checks pass
-- [ ] Dev server starts without errors
-- [ ] Critical pages load (game `/` and admin `/admin/`)
-- [ ] No new console errors
-- [ ] `.env` is NOT being pushed
-- [ ] Migration files are included in the commit
-- [ ] `worklog.md` is updated
-- [ ] `CHECKSUM_SECRET` is set in production environment
-
----
-
-## APPENDIX A: Complete Issue Registry (25 Issues Found in Deep Audit)
-
-### 🔴 CRITICAL (5)
-
-| ID | Issue | File | Lines | What Happens If Unfixed |
-|----|-------|------|-------|------------------------|
-| C1 | Hardcoded HMAC fallback secret | `gameStateValidator.ts` | 56 | Anyone who reads source code can forge valid anti-cheat checksums. Entire validation system is bypassed. |
-| C2 | `isAccountLocked` returns `false` on DB errors | `gameStateValidator.ts` | 298-316 | During database outages, banned cheaters are treated as unlocked. Attackers can DDoS DB to bypass locks. |
-| C3 | Unvalidated save import (no bounds) | `store.ts` | 2412-2455 | Players can import saves with `money: Infinity`, arbitrary resource keys, or corrupted buildings. Game state becomes invalid. |
-| C4 | `setGameSpeed` accepts any number | `store.ts` | 1804 | Speed 1000 = 1000 ticks/sec → browser crash, data corruption, massive unfair advantage. |
-| C5 | Trading Post bypasses server validation | `TradingPostPanel.tsx` | all | Players can cheat via browser console. No database persistence. Trade history lost on refresh. |
-
-### 🟠 HIGH (6)
-
-| ID | Issue | File | Lines | What Happens If Unfixed |
-|----|-------|------|-------|------------------------|
-| H1 | DashboardPanel subscribes to entire store | `DashboardPanel.tsx` | 24 | Re-renders on EVERY tick (10-100/sec). Mobile users experience severe lag. |
-| H2 | In-memory rate limiter doesn't scale | `rateLimiter.ts` | 14 | Multiple server instances = per-instance limits = easily bypassed. |
-| H3 | TOCTOU race in cheat flagging | `gameStateValidator.ts` | 322-372 | Concurrent cheat flags get lost. Cheaters exceed 3-flag lock threshold before being caught. |
-| H4 | 14 dead action types in validActions | `route.ts` | 321-325 | Wastes server time, confuses error handling, masks missing implementations. |
-| H5 | `solarPanel` in both FactoryType and PowerPlantType | `types.ts` | 34-35 | Building misclassification bugs. Which category is it really? |
-| H6 | Debounced persist loses up to 5s of data | `store.ts` | 894-967 | Mobile crashes or force-kills lose recent gameplay progress. |
-
-### 🟡 MEDIUM (8)
-
-| ID | Issue | File | Lines | What Happens If Unfixed |
-|----|-------|------|-------|------------------------|
-| M1 | Config updates don't trigger re-renders | `configCache.ts` | 60-78 | UI shows stale building/resource data until user navigates away. |
-| M2 | `setImmediate` in logActionAsync | `gameStateValidator.ts` | 382 | Crashes in Edge runtime environments. Silent audit log failure. |
-| M3 | Hardcoded income rates in tooltip | `page.tsx` | 463-467 | Shows wrong income estimates (extractorRate=20, factoryRate=50 don't match real values). |
-| M4 | Inaccurate rpPerTick calculation | `DashboardPanel.tsx` | 99-101 | Can be 2-5x off from actual rate. Misleading for players. |
-| M5 | Meaningless storageUtilization | `DashboardPanel.tsx` | 155-161 | Mixing iron (100 cap) with nanoMaterial (3 cap) produces nonsense percentage. |
-| M6 | Stale Prisma schema | `schema.prisma` | 1-32 | Contains User/Post models from starter, NOT the game tables. Misleading. |
-| M7 | Admin auth via env var allowlist | `proxy.ts` | 64-69 | Adding/removing admins requires redeployment. Should use DB table. |
-| M8 | Weak blueprint import validation | `store.ts` | 3274-3277 | Same issue as C3 but for blueprints — arbitrary data injection. |
-
-### 🟢 LOW (6)
-
-| ID | Issue | File | Lines | What Happens If Unfixed |
-|----|-------|------|-------|------------------------|
-| L1 | `Math.random()` for IDs | `store.ts`, `TradingPostPanel.tsx` | 48, 174 | Predictable, collision-prone. Low risk for single-player but not future-proof. |
-| L2 | `KEY_TAB_MAP` incomplete | `GameSidebar.tsx` | 124-135 | Only 10 keyboard shortcuts for 25+ tabs. |
-| L3 | `topResources` shows only raw materials | `DashboardPanel.tsx` | 43 | Advanced players don't see their most valuable resources. |
-| L4 | `quickTradeAmounts` never updates | `TradingPostPanel.tsx` | 200-205 | Market price changes from Supabase not reflected in quick trade. |
-| L5 | `handleReset` uses `confirm()` | `page.tsx` | 412 | Blocking dialog, poor mobile UX, can't be styled. |
-| L6 | `prisma` in dependencies, not devDependencies | `package.json` | 57 | Increases production bundle size unnecessarily. |
+### [SEC-010] Caddyfile `XTransformPort` must be security-reviewed before changes
+- **Severity:** 🟠 High
+- **Status:** Active
+- **Statement:** Any change to the Caddyfile `XTransformPort` directive requires security review. It is an SSRF vector.
+- **Rationale:** Unrestricted port forwarding enables attackers to reach internal services (Supabase, admin APIs, metadata endpoints).
+- **Verify:** `grep "XTransformPort" Caddyfile` should match a known-good allowlist. PRs touching this directive require admin review.
 
 ---
 
-## APPENDIX B: Why Each Major Rule Exists
+## AUT — Authentication & Authorization
 
-| Rule | Origin — What Code Influenced This Rule |
-|------|----------------------------------------|
-| "Never use hardcoded secret fallbacks" | `gameStateValidator.ts:56` — `process.env.CHECKSUM_SECRET \|\| 'industriax-server-secret-2024'` means if the env var isn't set, anyone who reads the source can forge checksums. |
-| "Fail-closed on database errors" | `gameStateValidator.ts:312-315` — `catch { return { locked: false } }` means banned players are unlocked when the DB is down. |
-| "Validate all imported save data with bounds" | `store.ts:2428-2443` — `importSave()` only checks `typeof data.money === 'number'` — accepts `Infinity`, negative values, and arbitrary keys. |
-| "Validate game speed against allowed values" | `store.ts:1804` — `setGameSpeed: (speed: number) => set({ gameSpeed: speed })` accepts any number. |
-| "Never create client-only game mutations" | `TradingPostPanel.tsx` — the entire Trading Post modifies client Zustand state directly, with zero server validation, zero database persistence, and trade history stored in React local state (lost on refresh). |
-| "Use Zustand selectors, not entire store" | `DashboardPanel.tsx:24` — `useGameStore()` subscribes to 100+ fields, causing re-renders on every tick (~10-100/sec). |
-| "Use SQL atomic increments, not read-then-write" | `gameStateValidator.ts:332-344` — reads `cheat_flag_count`, then writes `count + 1`. Under concurrent requests, the count can be lost. |
-| "Never add dead action types" | `route.ts:321-325` — 14 action types are listed as valid but have no handler, always returning "Unhandled action". |
-| "Never use Prisma for schema management" | `prisma/schema.prisma` — contains SQLite User/Post models from the Next.js starter. Running `prisma db:push` would create wrong tables in Supabase PostgreSQL. |
-| "Admin mutations need canWrite()" | `/api/admins` POST route calls `verifyAdmin()` but never checks `canWrite()`, allowing viewer-role admins to escalate to super_admin. |
-| "All new tables need RLS" | The existing tables all have RLS enabled and policies defined. This is defense-in-depth that must be maintained. |
-| "Increment SAVE_VERSION on state changes" | Past migrations V1→V19 show that adding state fields without version increments causes player data loss. |
-| "5s debounce on persistence" | Writing to localStorage on every tick (up to 10/sec) would block the main thread and cause frame drops. |
-| "2-minute cloud save interval" | More frequent saves would overload the `/api/game/state` endpoint. Less frequent risks more data loss. |
-| "Never modify shadcn/ui components directly" | These are managed by the shadcn CLI. Direct modifications will be overwritten on update. |
-| "Never use setImmediate server-side" | `gameStateValidator.ts:382` uses `setImmediate` which doesn't exist in Edge runtimes, causing silent audit log failures. |
+### [AUT-001] All API routes use `verifyAuth()` or `verifyAdmin()`
+- **Severity:** 🔴 Critical
+- **Status:** Active
+- **Statement:** Every API route that accesses player data MUST call `verifyAuth()` (or `verifyAdmin()` for admin routes) as the first line of the handler.
+- **Rationale:** Unauthenticated routes leak data and allow unauthenticated mutations.
+- **Verify:** `grep -L "verifyAuth\|verifyAdmin" src/app/api/**/route.ts` should return empty.
+- **Example:**
+  ```ts
+  // ❌ FORBIDDEN
+  export async function POST(request: Request) {
+    const body = await request.json();
+    // ... mutates state without auth check
+  }
+
+  // ✅ REQUIRED
+  export async function POST(request: Request) {
+    const auth = await verifyAuth();
+    if (!auth.success) return auth.response;
+    // ...
+  }
+  ```
+
+### [AUT-002] Admin write operations require both `verifyAdmin()` and `canWrite()`
+- **Severity:** 🔴 Critical
+- **Status:** Active
+- **Statement:** Admin endpoints that mutate state MUST call BOTH `verifyAdmin()` and `canWrite()`. `verifyAdmin()` alone is insufficient.
+- **Rationale:** The legacy `/api/admins` POST route only called `verifyAdmin()`, allowing viewer-role admins to escalate to super_admin.
+- **Verify:** Every `src/app/api/admin/**/route.ts` POST/PUT/DELETE handler must contain `canWrite`.
+- **Example:**
+  ```ts
+  // ❌ FORBIDDEN — verifyAdmin alone
+  if (!verifyAdmin()) return ...;
+
+  // ✅ REQUIRED
+  const admin = await verifyAdmin();
+  if (!admin.success) return admin.response;
+  if (!canWrite(admin.role)) return forbidden();
+  ```
+
+### [AUT-003] Three-tier admin role model
+- **Severity:** 🟠 High
+- **Status:** Active
+- **Statement:** Admin roles MUST be one of `viewer`, `admin`, `super_admin`. No custom role names.
+- **Rationale:** Custom roles bypass the `canWrite()` contract.
+- **Verify:** `admin_users.role` is constrained by a CHECK or enum in the DB.
+- **Roles:**
+  - `viewer` — read-only
+  - `admin` — read + write all admin data
+  - `super_admin` — admin role management + all admin capabilities
+
+### [AUT-004] Guest accounts gated from premium features
+- **Severity:** 🟠 High
+- **Status:** Active
+- **Statement:** Guest accounts MUST be blocked from `/api/game/trade`, market place, leaderboard, and mega-projects. They MUST be prompted to link an account to access these.
+- **Rationale:** Guest mode is for trial / casual play. Economy-affecting features require real identity to prevent ban evasion.
+- **Verify:** `getUserGuestStatus()` check in premium routes. `LoginFloatingPanel` shows for guests in `useTabChange`.
 
 ---
 
-## APPENDIX C: What Needs Immediate Attention
+## API — API Contract & Rate Limiting
 
-### Fix NOW (Before Any New Features)
+### [API-001] Every API route has rate limiting
+- **Severity:** 🔴 Critical
+- **Status:** Active
+- **Statement:** Every API route that performs mutations or expensive reads MUST use `checkRateLimit()`. Public read endpoints (definitions, market state) MUST have a low rate limit.
+- **Rationale:** Unrate-limited endpoints enable brute-force attacks, scraping, and DoS.
+- **Verify:** `grep -L "checkRateLimit" src/app/api/**/route.ts` should be empty.
+- **Example:**
+  ```ts
+  // ✅ REQUIRED
+  const rateLimitResponse = await checkRateLimit(auth.userId, RATE_LIMITS.action, '/api/game/trade');
+  if (rateLimitResponse) return rateLimitResponse;
+  ```
 
-1. **Remove hardcoded HMAC fallback** — `gameStateValidator.ts:56` — Remove `'industriax-server-secret-2024'`. If `CHECKSUM_SECRET` is not set, throw an error.
-2. **Fix isAccountLocked fail-open** — `gameStateValidator.ts:312-315` — Return `{ locked: true }` on DB errors.
-3. **Add bounds validation to importSave** — `store.ts:2428-2443` — Clamp money to `0 <= x <= 1e12`, whitelist resource keys, validate building types.
-4. **Add speed validation to setGameSpeed** — `store.ts:1804` — Only allow `[1, 2, 5, 10]`.
-5. **Fix Trading Post server integration** — Route all trades through `/api/game/action` with `action: 'trade'` validation. Add trade history to database.
+### [API-002] Rate limit profile per route purpose
+- **Severity:** 🟠 High
+- **Status:** Active
+- **Statement:** Each API route MUST use an appropriate rate limit profile from `RATE_LIMITS` in `src/lib/auth/rateLimiter.ts`. Anti-abuse for critical endpoints, generous for read endpoints.
+- **Rationale:** One-size-fits-all rate limiting either blocks legitimate users or fails to stop abuse.
+- **Verify:** `RATE_LIMITS` enum in `rateLimiter.ts` defines named profiles (action, read, auth, market). Every route uses a named profile.
 
-### Fix SOON (Before Launch)
+### [API-003] Server returns fail-closed on rate limit failure
+- **Severity:** 🟠 High
+- **Status:** Active
+- **Statement:** If the rate limiter errors, the request MUST be **denied** with 429, not allowed.
+- **Rationale:** Same fail-closed principle as [SEC-002]. Rate limiter downtime shouldn't open a hole.
 
-6. **Fix DashboardPanel selectors** — Replace `useGameStore()` with specific selectors.
-7. **Fix TOCTOU race in cheat flagging** — Use SQL atomic increment.
-8. **Remove dead action types from validActions** — Or implement their handlers.
-9. **Add rate limiting to unprotected API routes** — `/api/game/definitions`, `/api/news-llm`, `/api/icons`, `/api/config`.
-10. **Fix rpPerTick and income calculations** — Use real game logic instead of hardcoded estimates.
+### [API-004] API routes return consistent error format
+- **Severity:** 🟢 Low
+- **Status:** Active
+- **Statement:** Error responses MUST use `{ error: string, code?: string }`. Success responses include relevant data.
+- **Rationale:** Predictable shape makes client error handling and admin debugging consistent.
+- **Verify:** `grep -E "NextResponse.json.+\berror\b" src/app/api/**/route.ts` should match `error` field consistently.
 
-### Plan to Address (Technical Debt)
+### [API-005] Routes grouped by domain
+- **Severity:** 🟢 Low
+- **Status:** Active
+- **Statement:** Game routes go under `/api/game/`, admin under `/api/admin/`, config under `/api/config/`, auth under `/api/auth/`, market under `/api/market/`, leaderboard under `/api/leaderboard/`, cron under `/api/cron/`, health under `/api/health/`.
+- **Rationale:** Domain grouping makes the 64-route surface scannable.
 
-11. **Resolve solarPanel naming collision** — Rename one instance.
-12. **Fix storageUtilization calculation** — Weight by resource tier.
-13. **Clean up Prisma schema** — Remove or update to match Supabase tables.
-14. **Add admin roles database table** — Replace env var allowlist.
-15. **Scale rate limiter** — Move from in-memory to Supabase-backed or Redis.
-16. **Fix config cache re-render issue** — Add React context trigger.
-17. **Reduce debounce risk** — Add periodic full saves between debounced writes.
+### [API-006] `validActions` and `actionType` union must stay in sync
+- **Severity:** 🟡 Medium
+- **Status:** Active
+- **Statement:** Adding a new action type requires updating BOTH the `validActions` array AND the handler switch. Dead entries are forbidden.
+- **Rationale:** Dead entries in `validActions` waste server time and mask missing implementations. Reject via validation rather than silently hit `default: 'Unhandled action'`.
+- **Verify:** Current `validActions` in `src/app/api/game/action/route.ts:413-423` has 7 actions: `build`, `sell`, `buy`, `research`, `upgrade`, `transport`, `set_game_speed`. Any new action must be added in lockstep.
+
+---
+
+## DB — Database & Data Integrity
+
+### [DB-001] All schema changes via Supabase SQL migrations
+- **Severity:** 🔴 Critical
+- **Status:** Active
+- **Statement:** Schema changes MUST be in `supabase/migrations/<timestamp>_<seq>_<description>.sql`. Application code MUST NOT issue DDL.
+- **Rationale:** Migrations are the source of truth and roll-forward mechanism. Schema in code is invisible to ops.
+- **Verify:** Every table present in production has a migration file. `ls supabase/migrations/ | wc -l` is the migration count (currently 81).
+
+### [DB-002] Every new table has RLS enabled
+- **Severity:** 🔴 Critical
+- **Status:** Active
+- **Statement:** Every new table MUST include `ALTER TABLE xxx ENABLE ROW LEVEL SECURITY;` plus policies for read/write. Service-role bypass policies are required for server-side operations.
+- **Rationale:** Defense-in-depth. Even if app code has a bug, RLS prevents data leaks.
+- **Verify:** `grep -L "ENABLE ROW LEVEL SECURITY" supabase/migrations/*.sql` for any new tables created.
+
+### [DB-003] Standard RLS policy set
+- **Severity:** 🔴 Critical
+- **Status:** Active
+- **Statement:** New user-data tables MUST have:
+  - `SELECT` policy: `USING (user_id = auth.uid())`
+  - `INSERT` policy: `WITH CHECK (user_id = auth.uid())`
+  - `UPDATE` policy: `USING (user_id = auth.uid())` and `WITH CHECK (user_id = auth.uid())`
+  - `DELETE` policy (if applicable): `USING (user_id = auth.uid())`
+  - Service-role bypass: `TO service_role USING (true) WITH CHECK (true)`
+- **Rationale:** Consistent policy structure makes audit easier.
+
+### [DB-004] Use `TIMESTAMPTZ` for all timestamps
+- **Severity:** 🟢 Low
+- **Status:** Active
+- **Statement:** All timestamp columns MUST use `TIMESTAMPTZ`. `TIMESTAMP` (without timezone) is forbidden.
+- **Rationale:** Server and client timezones differ. `TIMESTAMPTZ` normalizes to UTC.
+- **Verify:** `grep -E "TIMESTAMP[^Z]" supabase/migrations/*.sql` should return zero.
+
+### [DB-005] Use INTEGER (cents) or DECIMAL for money
+- **Severity:** 🟡 Medium
+- **Status:** Active
+- **Statement:** Monetary values MUST use `INTEGER` (cents) or `DECIMAL`. `FLOAT` / `REAL` / `DOUBLE PRECISION` is forbidden for money.
+- **Rationale:** Floating-point arithmetic causes rounding errors that compound over time.
+- **Verify:** `grep -E "money.*FLOAT|money.*REAL" supabase/` should return zero.
+
+### [DB-006] CHECK constraints on bounded numeric fields
+- **Severity:** 🟡 Medium
+- **Status:** Active
+- **Statement:** Fields with natural bounds (money >= 0, level 1-100, cheat flag count 0-3) MUST have `CHECK` constraints in the DB as the last line of defense.
+- **Rationale:** App-level validation can be bypassed. DB constraints cannot.
+- **Verify:** `player_progress.money` has `CHECK (money >= 0)`. New bounded fields should follow the same pattern.
+- **Example:**
+  ```sql
+  CREATE TABLE game_state (
+    money BIGINT NOT NULL CHECK (money >= 0),
+    level INTEGER NOT NULL CHECK (level BETWEEN 1 AND 100)
+  );
+  ```
+
+### [DB-007] SQL atomic increments for read-modify-write
+- **Severity:** 🟡 Medium
+- **Status:** Active
+- **Statement:** Concurrent counter mutations (cheat flags, balances, vote counts) MUST use SQL atomic operations (`UPDATE ... SET col = col + 1` or RPCs), not read-then-write.
+- **Rationale:** Read-then-write has a TOCTOU race that loses increments under concurrent requests.
+- **Verify:** `increment_cheat_flag` RPC in `src/lib/db/cheatInvestigations.ts:300-319` is the canonical pattern.
+- **Example:**
+  ```sql
+  -- ❌ FORBIDDEN — read then write
+  SELECT cheat_flag_count INTO x FROM profiles WHERE ...;
+  UPDATE profiles SET cheat_flag_count = x + 1 WHERE ...;
+
+  -- ✅ REQUIRED — atomic in single statement
+  UPDATE profiles SET cheat_flag_count = cheat_flag_count + 1 WHERE id = ...;
+  ```
+
+### [DB-008] Indexes on `user_id` and `created_at`
+- **Severity:** 🟡 Medium
+- **Status:** Active
+- **Statement:** Every table MUST have indexes on `user_id` (for RLS performance) and `created_at` (for time-range queries). Composite indexes SHOULD be added for common query patterns.
+- **Rationale:** Without indexes, RLS-scoped queries do full table scans, killing performance at scale.
+
+### [DB-009] Idempotent migrations where possible
+- **Severity:** 🟢 Low
+- **Status:** Active
+- **Statement:** Migrations SHOULD use `CREATE TABLE IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS`, etc., where the SQL dialect supports it.
+- **Rationale:** Idempotent migrations can be safely re-run during recovery or partial failures.
+
+### [DB-010] One logical change per migration file
+- **Severity:** 🟢 Low
+- **Status:** Active
+- **Statement:** Each migration file MUST contain a single logical change. Do not combine unrelated changes.
+- **Rationale:** Easier to review, easier to revert if needed.
+- **Verify:** Filename format `<timestamp>_<seq>_<description>.sql` (e.g., `20260707120000_068_tier5_full_wiring.sql`).
+
+### [DB-011] No raw SQL outside migration files
+- **Severity:** 🟡 Medium
+- **Status:** Active
+- **Statement:** Application code MUST NOT execute raw DDL. Schema lives in migrations only.
+- **Rationale:** Untracked schema is invisible to ops and breaks rollbacks.
+
+### [DB-012] Prisma is forbidden
+- **Severity:** 🔴 Critical
+- **Status:** Active
+- **Statement:** Prisma MUST NOT be used. The Prisma directory was removed; do not reintroduce.
+- **Rationale:** The original `prisma/schema.prisma` was the Next.js starter's SQLite User/Post model — running `prisma db:push` would have created wrong tables in Supabase PostgreSQL.
+
+---
+
+## STO — State Management (Zustand)
+
+### [STO-001] Use specific Zustand selectors
+- **Severity:** 🟠 High
+- **Status:** Active
+- **Statement:** Components MUST subscribe via `useGameStore((s) => s.specificField)`. `useGameStore()` without a selector is forbidden.
+- **Rationale:** Full-store subscription causes re-renders on every tick (~10-100/sec). Mobile users experience severe lag.
+- **Verify:** `grep -rn "useGameStore()" src/components/` should return zero matches. `grep -rn "useGameStore()" src/lib/hooks/` is allowed only if followed by a selector.
+- **Example:**
+  ```ts
+  // ❌ FORBIDDEN
+  const store = useGameStore();
+  const money = store.money;
+
+  // ✅ REQUIRED
+  const money = useGameStore((s) => s.money);
+  const resources = useGameStore((s) => s.resources);
+  ```
+
+### [STO-002] Single source of truth for game state
+- **Severity:** 🟠 High
+- **Status:** Active
+- **Statement:** `useGameStore` is the ONLY Zustand store for game data. New game-state stores are forbidden.
+- **Rationale:** Multiple stores fragment state, require cross-store coordination, and break server-cloud sync.
+- **Verify:** `grep -rn "create<" src/lib/game/` — only `useGameStore` should be a game-state store. `useSettingsStore` is allowed for UI preferences.
+
+### [STO-003] Store actions are the only mutation path
+- **Severity:** 🟠 High
+- **Status:** Active
+- **Statement:** Components MUST NOT call `useGameStore.setState()` directly for game data. They MUST invoke a store action.
+- **Rationale:** Direct setState bypasses validation, audit logging, and side effects (debounced persist, market pressure).
+- **Verify:** `grep -rn "useGameStore.setState" src/components/` should return zero matches for game fields. Only server responses may call setState (to apply authoritative state).
+
+### [STO-004] Save version incremented on state shape change
+- **Severity:** 🟡 Medium
+- **Status:** Active
+- **Statement:** When adding new state fields, `SAVE_VERSION` MUST be incremented and a migration entry added to `migrateSaveState()`.
+- **Rationale:** Past migrations V1→V19 show that adding state fields without version increments causes player data loss.
+
+### [STO-005] Debounced persistence (5s) and cloud sync (2 min)
+- **Severity:** 🟡 Medium
+- **Status:** Active
+- **Statement:** Local persistence uses 5s debounce. Cloud save to `/api/game/state` runs every 2 minutes. Do NOT increase frequency.
+- **Rationale:** More frequent saves overload the server. Less frequent risks more data loss.
+- **Verify:** `debouncedPersistStorage` debounce window is 5000ms. `CloudSyncService.startAutoSave` interval is 60000ms.
+
+### [STO-006] `beforeunload` flush listener MUST stay
+- **Severity:** 🟡 Medium
+- **Status:** Active
+- **Statement:** The `beforeunload` event listener that flushes pending writes MUST NOT be removed.
+- **Rationale:** Page close is the most common data-loss moment. **Known limitation:** on mobile force-kill, `beforeunload` may not fire. This is acceptable; periodic saves (every 2 min) limit the loss window.
+
+### [STO-007] Single state version source
+- **Severity:** 🟡 Medium
+- **Status:** Active
+- **Statement:** The store version is incremented on every successful server-side write. Client increments MUST be optimistic and verified by the server response.
+- **Rationale:** Optimistic locking on `state_version` field prevents concurrent write conflicts (e.g., two parallel trades overwriting each other).
+
+---
+
+## UI — UI / Frontend
+
+### [UI-001] Game panels go in `src/components/game/`
+- **Severity:** 🟢 Low
+- **Status:** Active
+- **Statement:** Game panels MUST live in `src/components/game/`. Shared subcomponents in `src/components/game/shared/`. UI primitives in `src/components/ui/` (shadcn).
+- **Rationale:** Predictable structure makes component discovery and architecture tests work.
+- **Verify:** Currently 55 game panels in `src/components/game/`.
+
+### [UI-002] Never modify shadcn/ui primitives directly
+- **Severity:** 🟠 High
+- **Status:** Active
+- **Statement:** Components in `src/components/ui/` are managed by the shadcn CLI. Direct modifications will be overwritten on update.
+- **Rationale:** shadcn-ui rewrites files on CLI re-runs. Changes should be in custom wrappers, not primitives.
+- **Verify:** `git log --follow src/components/ui/button.tsx` should show no manual edits.
+
+### [UI-003] Use shadcn primitives + `cn()` for class composition
+- **Severity:** 🟢 Low
+- **Status:** Active
+- **Statement:** Custom components MUST use shadcn primitives (`Button`, `Input`, `Select`, etc.) and the `cn()` utility for conditional classes.
+- **Rationale:** Consistency and Tailwind class deduplication.
+
+### [UI-004] `GameIcon` for all game icons
+- **Severity:** 🟢 Low
+- **Status:** Active
+- **Statement:** Game icons MUST go through `<GameIcon icon={...} />`. Raw emoji or Lucide inline icons in game panels are forbidden.
+- **Rationale:** Centralized icon registry with tier/category theming.
+
+### [UI-005] Tier centralization SSOT
+- **Severity:** 🟠 High
+- **Status:** Active
+- **Statement:** Tier metadata (colors, info) MUST come from `src/lib/game/tiers.ts` (`TIER_INFO`, `MAX_TIER`, `ALL_TIERS`). Hardcoded tier arrays like `[0, 1, 2, 3]` are forbidden.
+- **Rationale:** Pre-Phase-5.5, 6 panel files had duplicated tier systems. Architecture test enforces the SSOT.
+- **Verify:** `tests/unit/tiers.test.ts` scans all panels for hardcoded tier arrays. Must always pass.
+- **Example:**
+  ```ts
+  // ❌ FORBIDDEN
+  const TIER_COLORS = ['#a0a0a0', '#22d3ee', '#fbbf24'];
+
+  // ✅ REQUIRED
+  import { TIER_INFO, getTierColor } from '@/lib/game/tiers';
+  const color = getTierColor(2);
+  ```
+
+### [UI-006] Responsive breakpoints
+- **Severity:** 🟢 Low
+- **Status:** Active
+- **Statement:** Game panels MUST be responsive: `sm:`, `md:`, `lg:` breakpoints. Mobile-first approach for trade post, market, dashboard.
+- **Rationale:** 60%+ of players use mobile.
+- **Verify:** Manual mobile test (DevTools responsive mode) for every new panel.
+
+### [UI-007] AnimatePresence for dynamic lists
+- **Severity:** 🟢 Low
+- **Status:** Active
+- **Statement:** Lists that change frequently (notifications, history) MUST use Framer Motion's `AnimatePresence` for entry/exit animations.
+- **Rationale:** Smooth visual transitions for list mutations.
+
+### [UI-008] Long lists must scroll, not overflow
+- **Severity:** 🟢 Low
+- **Status:** Active
+- **Statement:** Lists longer than 6 items MUST have `max-h-64 overflow-y-auto game-scrollbar`.
+- **Rationale:** Prevents layout shift and frame drops on long content.
+
+---
+
+## PER — Performance
+
+### [PER-001] All queries use indexed columns in WHERE
+- **Severity:** 🟠 High
+- **Status:** Active
+- **Statement:** Database queries MUST use indexed columns in `WHERE` clauses. RLS policies implicitly filter by `user_id`, which is indexed.
+- **Rationale:** Unindexed queries do full table scans. At 10K+ players, this kills performance.
+- **Verify:** `EXPLAIN ANALYZE` for any new query path.
+
+### [PER-002] All list endpoints have LIMIT
+- **Severity:** 🟠 High
+- **Status:** Active
+- **Statement:** List-returning endpoints MUST cap results with `LIMIT`. Default 50, max 200.
+- **Rationale:** Unbounded list responses can be megabytes. DoS surface.
+
+### [PER-003] Avoid `SELECT *`, specify columns
+- **Severity:** 🟡 Medium
+- **Status:** Active
+- **Statement:** Queries MUST specify columns: `select('id, name, created_at')`. `select('*')` is forbidden.
+- **Rationale:** Avoids over-fetching. Makes the data shape explicit.
+
+### [PER-004] N+1 queries are forbidden
+- **Severity:** 🟠 High
+- **Status:** Active
+- **Statement:** API routes MUST NOT issue N+1 queries. Use JOINs, batch selects, or RPCs.
+- **Rationale:** 100 players × 5 building types = 500 round-trips. O(n²) latency.
+
+### [PER-005] Cache game config server-side
+- **Severity:** 🟠 High
+- **Status:** Active
+- **Statement:** Game config (buildings, resources, market) is cached in memory via `configCache` + `balanceConfig` + `configLoader.server`. Reload on changes via 60s poller + `instrumentation.ts` pre-warm at boot.
+- **Rationale:** Config rarely changes. Re-fetching on every request adds 50-300ms latency.
+- **Verify:** `src/lib/game/configLoader.server.ts` (60s poller) + `instrumentation.ts` (pre-warm).
+
+### [PER-006] Use `createServiceRoleClient()` only when RLS bypass is required
+- **Severity:** 🟡 Medium
+- **Status:** Active
+- **Statement:** Server-side code MUST use the regular client unless it specifically needs to bypass RLS (admin operations, cross-user data).
+- **Rationale:** Service role bypasses all RLS — even your own policies. Audit cost.
+
+### [PER-007] Presence channel refresh >= 10s
+- **Severity:** 🟡 Medium
+- **Status:** Active
+- **Statement:** Supabase Presence refresh interval MUST be 10s or higher. Currently 30s.
+- **Rationale:** Faster refresh overloads the realtime channel. 30s is sufficient for "is player online" UX.
+
+### [PER-008] No background polling loops
+- **Severity:** 🟡 Medium
+- **Status:** Active
+- **Statement:** Components MUST NOT start their own `setInterval` polling loops. Use the existing hooks (`useServerMarket`, `useOnlinePresence`) which centralize polling.
+- **Rationale:** 50 components each with their own poll = 50 concurrent requests to Supabase. Single shared hook = 1 request.
+
+### [PER-009] Server-authoritative state minimization
+- **Severity:** 🟠 High
+- **Status:** Active
+- **Statement:** Client-server state synchronization MUST minimize payload. Only sync the fields that changed.
+- **Rationale:** Trade post returns the full `updatedState.resources` rather than a diff. For 14 resources this is small; for a real game with 80+ it matters.
+
+### [PER-010] API responses < 200ms p95
+- **Severity:** 🟠 High
+- **Status:** Active
+- **Statement:** API routes MUST return within 200ms at p95. Routes that violate this need caching or refactor.
+- **Rationale:** User-perceived latency. 200ms is the perception threshold.
+
+---
+
+## ARC — Architecture
+
+### [ARC-001] Client authoritative for gameplay, server authoritative for validation
+- **Severity:** 🟠 High
+- **Status:** Active
+- **Statement:** The game loop runs client-side for responsiveness. The server validates, persists, and detects cheats. **This is a documented tradeoff** — server-side state and client-side state may briefly diverge.
+- **Rationale:** Server-authoritative tick loops add 50-200ms latency per tick, making the game feel sluggish. Idle games accept eventual consistency.
+- **Verify:** `instrumentation.ts` log "Game config pre-warmed successfully" at boot. Cloud sync runs every 2 min.
+
+### [ARC-002] Game config is server-controlled, not bundled
+- **Severity:** 🟠 High
+- **Status:** Active
+- **Statement:** All game-tuning values (buildings, recipes, balance constants, prices) MUST come from Supabase at runtime. Hardcoded client-side values for these are forbidden.
+- **Rationale:** Operators need to tune the game without redeploying. Client-bundled values can't be changed without a release.
+- **Verify:** `data.ts` is empty/removed. `configCache.ts` and `balanceConfig.ts` are the SSOTs. `tiers.ts` defines tier constants.
+- **Example:**
+  ```ts
+  // ❌ FORBIDDEN — bundled game data
+  const BUILDING_DEFS = { ironMine: { baseCost: [{ resource: 'money', amount: 400 }] } };
+
+  // ✅ REQUIRED — fetched from Supabase
+  const config = await ensureConfigLoaded();
+  const def = config.buildings.ironMine;
+  ```
+
+### [ARC-003] Server config cache with TTL
+- **Severity:** 🟠 High
+- **Status:** Active
+- **Statement:** Game config MUST be cached in `configCache` and refreshed via TTL (60s for balance) or explicit invalidation. Components MUST read from the cache, not re-fetch.
+- **Rationale:** 50 components each fetching config = 50 requests per config change. Centralized cache = 1.
+
+### [ARC-004] `configCache` SSOT pattern
+- **Severity:** 🟠 High
+- **Status:** Active
+- **Statement:** `src/lib/game/configCache.ts` and `src/lib/game/balanceConfig.ts` are the SSOTs for game config. `src/lib/game/tiers.ts` is the SSOT for tier metadata. `src/lib/game/configLoader.server.ts` is the SSOT for server config loading.
+- **Rationale:** Multiple SSOTs, each for a different concern. The "Code Reference" appendix lists them.
+
+### [ARC-005] Feature-based modular architecture
+- **Severity:** 🟢 Low
+- **Status:** Active
+- **Statement:** Code is organized by business domain, not by file type. Each feature owns its components, store, types, services, data, hooks.
+- **Rationale:** Easier to navigate, easier to decompose.
+- **Verify:** 21 action files in `src/lib/game/actions/` are feature-grouped (buildings, contracts, drones, market, etc.).
+
+### [ARC-006] File size limits
+- **Severity:** 🟢 Low
+- **Status:** Active
+- **Statement:** Ideal: 300-500 LOC. Acceptable: 800-1200. Hard limit: 2000. Files exceeding limits MUST be decomposed.
+- **Rationale:** Past `store.ts` was 3,637 lines; after Phase 5.5, it's 148 lines (barrel) with 21 action files.
+
+### [ARC-007] Decompose legacy monolithic files
+- **Severity:** 🟡 Medium
+- **Status:** Active
+- **Statement:** Files that grew >1000 LOC MUST be decomposed into feature-specific files. Decomposition pattern: barrel `index.ts` + feature files.
+- **Rationale:** Single-file god classes are unmaintainable.
+
+### [ARC-008] Game-action handler array stays in sync
+- **Severity:** 🟡 Medium
+- **Status:** Active
+- **Statement:** `validActions` array and `actionType` union must be updated together. The handler switch in `/api/game/action` must implement every name in `validActions`.
+- **Rationale:** Dead entries waste server time and mask missing implementations.
+
+### [ARC-009] No game logic in React components
+- **Severity:** 🟠 High
+- **Status:** Active
+- **Statement:** Business logic (calculations, mutations, side effects) MUST live in the Zustand store or server-side. React components are for rendering and user input only.
+- **Rationale:** Logic in components is hard to test, hard to share, and runs on every render.
+- **Verify:** Components should not import calculation utilities. They invoke store actions.
+
+### [ARC-010] `tiers.ts` is the tier metadata SSOT
+- **Severity:** 🟠 High
+- **Status:** Active
+- **Statement:** All tier metadata (TIER_INFO, MAX_TIER, ALL_TIERS, getTierColor, getTierInfo, isValidTier) lives in `src/lib/game/tiers.ts`. `src/lib/game/icons/tiers.ts` is a backward-compat redirect.
+- **Rationale:** Pre-Phase-5.5 had 6 duplicated tier systems. Architecture test enforces.
+- **Verify:** `tests/unit/tiers.test.ts` scans all panels for hardcoded tier arrays. Must pass.
+
+---
+
+## PRF — Production / Deployment
+
+### [PRF-001] No secrets in code or committed files
+- **Severity:** 🔴 Critical
+- **Status:** Active
+- **Statement:** Production secrets MUST NOT appear in code, comments, or committed files. `.env*` files are gitignored.
+- **Rationale:** See [SEC-006].
+
+### [PRF-002] Lint passes on `src/`
+- **Severity:** 🟠 High
+- **Status:** Active
+- **Statement:** `npm run lint` (or `bun run lint`) MUST pass with 0 errors before any commit.
+- **Verify:** `npm run lint` exits 0.
+
+### [PRF-003] TypeScript clean
+- **Severity:** 🟠 High
+- **Status:** Active
+- **Statement:** `bunx tsc --noEmit` MUST pass with 0 errors.
+- **Verify:** `bunx tsc --noEmit` exits 0.
+
+### [PRF-004] All vitest tests pass
+- **Severity:** 🟠 High
+- **Status:** Active
+- **Statement:** `npm run test:vitest` MUST pass. Currently 65/65 tests across 14 files.
+- **Rationale:** Test suite includes API tests, JWT verification, balance config validators, tier centralization architecture tests, and game tick input-floor tests.
+- **Verify:** `bunx vitest run` returns 65 passed.
+
+### [PRF-005] Architecture tests enforced
+- **Severity:** 🟡 Medium
+- **Status:** Active
+- **Statement:** The architecture test in `tests/unit/tiers.test.ts` MUST pass. It scans all panels for hardcoded tier arrays and fails the build if any are found.
+- **Rationale:** Catches SSOT violations automatically.
+
+### [PRF-006] No regression to client-only mutations
+- **Severity:** 🔴 Critical
+- **Status:** Active
+- **Statement:** Trading Post, market, contracts, prestige, drones, workers, automation, and all economy-affecting features MUST go through server-side APIs. Client-only mutations are forbidden.
+- **Rationale:** Client-only mutations allow cheating via browser console. C5 was a critical security incident.
+
+### [PRF-007] Pre-deploy smoke test on critical pages
+- **Severity:** 🟠 High
+- **Status:** Active
+- **Statement:** Before any production deploy, manually load `/`, `/game/dashboard`, `/game/tradePost`, `/game/market`, `/admin/` and verify they render without console errors.
+- **Rationale:** Catches SSR errors, hydration mismatches, and missing dependencies that lint/tests don't.
+
+### [PRF-008] Migration files included in commit
+- **Severity:** 🟠 High
+- **Status:** Active
+- **Statement:** Any new `supabase/migrations/*.sql` file MUST be in the same commit that depends on it. Migrations MUST be applied to production before the corresponding code deploy.
+- **Rationale:** Migrations out of sync with code = broken app.
+
+### [PRF-009] `CHECKSUM_SECRET` set in production
+- **Severity:** 🔴 Critical
+- **Status:** Active
+- **Statement:** Production environment MUST have `CHECKSUM_SECRET` set. Server fails to boot if missing (see [SEC-003]).
+- **Verify:** Vercel env var present. Boot log shows "Game config pre-warmed successfully".
+
+### [PRF-010] Update `docs/ECONOMY_AUDIT.md` on phase completion
+- **Severity:** 🟡 Medium
+- **Status:** Active
+- **Statement:** When a phase (tier wiring, balance config migration, market audit) is complete, update `docs/ECONOMY_AUDIT.md` with the new status. The "Critical Focus" section at the top must always be current.
+- **Rationale:** Single source of truth for project state.
+
+---
+
+## Code Reference (project SSOTs)
+
+| Concern | File | Lines |
+|---------|------|-------|
+| Tier metadata | `src/lib/game/tiers.ts` | 150 |
+| Balance config | `src/lib/game/balanceConfig.ts` | 580+ |
+| Game config cache | `src/lib/game/configCache.ts` | 200+ |
+| Server config loader | `src/lib/game/configLoader.server.ts` | 360+ |
+| Server-side validator | `src/lib/auth/gameStateValidator.ts` | 661 |
+| Game state store (barrel) | `src/lib/game/store.ts` | 148 |
+| Game actions (21 files) | `src/lib/game/actions/*.ts` | ~3,500 total |
+| Trade route | `src/app/api/game/trade/route.ts` | 333 |
+| Market tick route | `src/app/api/market/tick/route.ts` | 290+ |
+| Auth orchestrator | `src/lib/auth/orchestrator/` | new (2026) |
+| Architecture test | `tests/unit/tiers.test.ts` | 149 |
+| Pre-warm hook | `instrumentation.ts` | 60 |
+| Project status | `docs/ECONOMY_AUDIT.md` | 680+ |
+
+---
+
+## Test Inventory (verified 2026-07-07)
+
+| Suite | File(s) | Tests | Status |
+|-------|---------|-------|--------|
+| Game API | `tests/api/game/*.test.ts` (7 files) | 32 | ✅ |
+| JWT verify | `tests/unit/jwtVerify.test.ts` | 7 | ✅ |
+| Game tick input floor | `tests/unit/gameTick.inputFloor.test.ts` | 3 | ✅ |
+| Balance config validation | `tests/unit/balanceConfig.validation.test.ts` | 17 | ✅ |
+| Tier centralization | `tests/unit/tiers.test.ts` | 6 | ✅ |
+| **Total vitest** | | **65** | **✅** |
+| Legacy node:test | `tests/integration/*.test.ts` | (legacy) | ⚠️ configured |
+| Legacy node:test | `tests/security/*.test.ts` | (legacy) | ⚠️ configured |
+
+**Run:** `npm run test:vitest` (or `bun run test:vitest`). Vitest is the primary runner; legacy node:test remains for backward compatibility.
+
+---
+
+## Resolved Registry
+
+> Issues from the original 25-issue deep audit that have been fixed. Kept for context.
+
+| ID | Title | Resolution |
+|----|-------|------------|
+| C1 | Hardcoded HMAC fallback secret | [SEC-003] — `gameStateValidator.ts:97-107` throws FATAL if `CHECKSUM_SECRET` missing. DONE 2026-06-29. |
+| C2 | `isAccountLocked` returns `false` on DB errors | [SEC-002] — both error paths in `isAccountLocked` return `{ locked: true }`. DONE. |
+| C3 | Unvalidated save import (no bounds) | `importSave()` removed entirely. `validateGameState()` + DB CHECK constraints enforce bounds. DONE. |
+| C4 | `setGameSpeed` accepts any number | [SEC-009] — `setGameSpeed` validates against `[1, 2, 5, 10]`. DONE. |
+| C5 | Trading Post bypasses server validation | [PRF-006], [SEC-001] — all trades go through `/api/game/trade` with full validation. DONE 2026-07-07 (Phase 3). |
+| H1 | DashboardPanel subscribes to entire store | [STO-001] — `useGameStore((s) => s.X)` pattern enforced. DONE. |
+| H2 | In-memory rate limiter doesn't scale | [API-001], [API-002] — Supabase-backed rate limiter in place. PARTIAL (single-instance still OK; multi-instance needs Redis). |
+| H3 | TOCTOU race in cheat flagging | [DB-007] — `increment_cheat_flag` RPC atomic. DONE. |
+| H4 | 14 dead action types in `validActions` | [API-006] — reduced to 7 implemented actions; legacy names rejected. DONE. |
+| H5 | `solarPanel` in both FactoryType and PowerPlantType | Not blocking; documented as type-system blemish. |
+| H6 | Debounced persist loses up to 5s of data | [STO-006] — `beforeunload` flush + 2-min cloud sync. Known limitation on mobile force-kill. |
+| M1 | Config updates don't trigger re-renders | [ARC-003], [ARC-005] — `instrumentation.ts` pre-warm + 60s balance poller. DONE. |
+| M2 | `setImmediate` in `logActionAsync` | [SEC-008] — replaced with `queueMicrotask`. DONE. |
+| M3 | Hardcoded income rates in tooltip | Verified — production calculator now feeds tooltip data. DONE. |
+| M4 | Inaccurate `rpPerTick` calculation | Verified — uses real game logic from `balanceConfig.rp`. DONE. |
+| M5 | Meaningless `storageUtilization` | Verified — uses real capacity from store. DONE. |
+| M6 | Stale Prisma schema | [DB-012] — Prisma directory removed. DONE. |
+| M7 | Admin auth via env var allowlist | [AUT-002] — DB-backed admin_users table is the source of truth. `ADMIN_UIDS` env var still exists for emergency super_admin seeding. PARTIAL. |
+| M8 | Weak blueprint import validation | Server-authoritative refactor in v15 covers all paths. DONE. |
+| L1 | `Math.random()` for IDs | [SEC-007] — `crypto.randomUUID()` for sensitive IDs. PARTIAL (some non-security uses remain). |
+| L2 | `KEY_TAB_MAP` incomplete | Cosmetic. Not blocking. |
+| L3 | `topResources` shows only raw materials | Verified — uses dynamic resource ranking. DONE. |
+| L4 | `quickTradeAmounts` never updates | [ARC-002] — live prices from `useServerMarket` hook. DONE. |
+| L5 | `handleReset` uses `confirm()` | Cosmetic. Not blocking. |
+| L6 | `prisma` in dependencies, not devDependencies | [DB-012] — Prisma removed entirely. DONE. |
+
+**Status summary:** 17 of 25 fully resolved. 8 partial/cosmetic (H2, H5, H6 known limitation, M7 partial, L1 partial, L2, L5).
+
+**Post-audit work added (2026-07):**
+- **Phase 3 Market Audit (F1-F5)** — auto-sell pressure reporting, warn catches, market constants → balanceConfig SSOT, circuit-breaker deadlock escape, trade-impact notification
+- **Trade Post SSOT Step 1+2** — TRADE_COMMISSION_RATE / TRADE_COOLDOWN_SECONDS / SLIPPAGE_* / MAX_SLIPPAGE moved to `balanceConfig.trade.*` (server + client both read from getBalance)
+- **Phase 5 Tier-5 Full Wiring** — tier-5 buildings, recipes 300-313, mega-project consumers, 9 endgame switch cases
+- **Phase 5.5 Tier Centralization** — `tiers.ts` SSOT, architecture test enforces
+- **Phase 6 UI Panel Audit** — all 23 panels audited
+- **Server fail-closed guard** — `/api/game/trade` rejects non-finite pricing → 503
+
+---
+
+## Industry Standards Applicability
+
+> **Context:** IndustriaX is a browser-based idle game (Next.js 16 + Supabase + Zustand), single-player-per-account with shared global market simulation. No PII commerce, no enterprise customers yet, no SLA contracts. Standards below are tagged:
+> - **Apply** — already enforced via rules above or actively used
+> - **Partial** — partially in place; gap documented
+> - **Future** — relevant but not yet implemented (planning post-launch)
+> - **N/A** — not applicable to this product/scale
+
+### A11y / Accessibility
+
+### [STD-A11y-001] WCAG 2.1 AA compliance
+- **Applicability:** Apply
+- **Statement:** All UI components MUST meet WCAG 2.1 Level AA at minimum.
+- **Rationale:** Browser app, public users, includes color-blind players. Accessibility is not optional.
+- **Verify:** `<input>` elements have associated `<label>`, buttons have `aria-label` for icon-only, contrast ratio ≥ 4.5:1 for normal text. Use axe DevTools in browser.
+
+### [STD-A11y-002] Keyboard navigation
+- **Applicability:** Apply
+- **Statement:** All game actions MUST be reachable via keyboard.
+- **Rationale:** Many game panels are dense; keyboard shortcuts are essential for power users.
+- **Verify:** Existing `useKeyboardShortcuts` hook in `src/lib/hooks/page/`. Document all shortcuts in `/guide` page.
+
+### UX / UI / DX
+
+### [STD-UX-001] Mobile-first responsive design
+- **Applicability:** Apply
+- **Statement:** All game panels MUST be designed mobile-first with `sm:`, `md:`, `lg:` breakpoints.
+- **Rationale:** 80%+ of players use mobile. [UI-006].
+- **Verify:** Manual test in DevTools responsive mode for every new panel.
+
+### [STD-UX-002] Design system via shadcn/ui
+- **Applicability:** Apply
+- **Statement:** All UI components MUST use shadcn/ui primitives (`Button`, `Card`, `Select`, etc.) — no custom HTML button/card implementations.
+- **Rationale:** [UI-002] + [UI-003]. Consistency, accessibility baked in.
+- **Verify:** `src/components/ui/` only modified by shadcn CLI, not by hand.
+
+### [STD-UX-003] Atomic component decomposition
+- **Applicability:** Partial
+- **Statement:** Game panels SHOULD be decomposed into atoms (icon, badge), molecules (resource row), organisms (panel).
+- **Rationale:** Atomic Design — currently 55 panels, some are monolithic. Decompose opportunistically.
+- **Verify:** No hard rule; opportunistic during refactors.
+
+### [STD-UX-004] Dark mode support
+- **Applicability:** Apply
+- **Statement:** The game MUST support dark mode (current default).
+- **Rationale:** shadcn/ui ships dark mode variants; theme is consistent.
+- **Verify:** `dark:` classes used in panels. Light theme not required.
+
+### [STD-UX-005] No emoji in production UI
+- **Applicability:** Apply
+- **Statement:** Game icons MUST go through `<GameIcon />`. Emoji in production UI is forbidden.
+- **Rationale:** [UI-004]. Emoji renders inconsistently across platforms.
+- **Verify:** `grep -r "[ð-÷]" src/components/` should not find emoji literals.
+
+### [STD-UX-006] Developer experience — fast feedback loops
+- **Applicability:** Apply
+- **Statement:** TypeScript + Vitest + ESLint + Biome MUST run in <30s on dev machine.
+- **Rationale:** DX — slow tools kill productivity.
+- **Verify:** `npm run test:vitest` < 30s, `npm run lint` < 15s, `bunx tsc --noEmit` < 30s.
+
+### [STD-API-001] REST-style HTTP API
+- **Applicability:** Apply
+- **Statement:** All endpoints MUST follow REST conventions (resource-oriented paths, proper HTTP verbs).
+- **Rationale:** REST is the standard for our 64 endpoints; no need for GraphQL.
+- **Verify:** See [API-005] — routes grouped by domain under `/api/<domain>/`.
+
+### [STD-API-002] OpenAPI specification (future)
+- **Applicability:** Future
+- **Statement:** All endpoints SHOULD have an OpenAPI 3.1 spec for client SDK generation.
+- **Rationale:** Would help external integrators (mods, analytics dashboards). Not yet a need.
+- **Verify:** Generate from Zod schemas + route handlers (e.g., `zod-to-openapi`). Defer until external API consumers exist.
+
+### [STD-API-003] API-first design
+- **Applicability:** Apply
+- **Statement:** Backend API contract MUST be designed BEFORE frontend implementation.
+- **Rationale:** Server-authoritative architecture ([SEC-001]) requires API to be the source of truth.
+- **Verify:** Feature dev workflow in AGENTS.md — design API layer (step 5b) before store actions (step 6) and UI (step 7).
+
+### [STD-API-004] Webhooks (future)
+- **Applicability:** Future
+- **Statement:** Outbound webhooks SHOULD be supported for player events (trade completion, contract fulfillment).
+- **Rationale:** Would enable third-party integrations (Discord bots, analytics).
+- **Verify:** No current use case. Defer until needed.
+
+### [STD-AUTH-001] OAuth 2.0 / OIDC via Supabase Auth
+- **Applicability:** Apply
+- **Statement:** Authentication MUST go through Supabase Auth (which uses OAuth 2.0 / OIDC under the hood).
+- **Rationale:** Supabase Auth is the standard for this stack. We don't run our own auth.
+- **Verify:** No custom auth code outside `src/lib/auth/orchestrator/` + Supabase client.
+
+### [STD-AUTH-002] JWT for session tokens
+- **Applicability:** Apply
+- **Statement:** Session tokens MUST be JWT (issued by Supabase).
+- **Rationale:** Standard. Trust boundary is JWT verification on each server-side handler.
+- **Verify:** `verifyAuth()` decodes JWT and fetches user. See [AUT-001].
+
+### [STD-AUTH-003] RBAC for admin operations
+- **Applicability:** Apply
+- **Statement:** Admin authorization MUST use Role-Based Access Control (viewer / admin / super_admin).
+- **Rationale:** [AUT-002], [AUT-003]. Standard 3-tier model.
+- **Verify:** `canWrite()` checks role before mutation.
+
+### [STD-AUTH-004] ABAC (future)
+- **Applicability:** Future
+- **Statement:** Attribute-based access control MAY be added for fine-grained rules (e.g., admin can only manage players in their region).
+- **Rationale:** Not needed at current scale.
+- **Verify:** N/A until multi-tenant or region-based access becomes a requirement.
+
+### [STD-AUTH-005] SSO / MFA / 2FA (future)
+- **Applicability:** Future
+- **Statement:** SSO and MFA MAY be supported via Supabase Auth's enterprise features.
+- **Rationale:** Single-player game, no enterprise customers yet. Supabase Auth supports it natively if/when needed.
+- **Verify:** N/A until enterprise sales require it.
+
+### [STD-SEC-001] OWASP Top 10 mitigation
+- **Applicability:** Apply
+- **Statement:** Project MUST mitigate OWASP Top 10 (2021): broken access control, crypto failures, injection, insecure design, misconfiguration, vulnerable components, auth failures, data integrity, logging failures, SSRF.
+- **Rationale:** All SEC-* rules in this document are derived from OWASP. See SEC-001 to SEC-010.
+- **Verify:** Each SEC-* rule maps to one or more OWASP categories.
+
+### [STD-SEC-002] CSP via Vercel headers
+- **Applicability:** Apply
+- **Statement:** Production MUST set a Content-Security-Policy header (allowlist scripts/styles).
+- **Rationale:** Defense-in-depth against XSS.
+- **Verify:** `next.config.ts` or `vercel.json` sets CSP header. Test via browser DevTools → Response Headers.
+
+### [STD-SEC-003] CSRF protection
+- **Applicability:** Apply
+- **Statement:** All state-changing endpoints MUST be protected against CSRF (SameSite cookies + Origin check).
+- **Rationale:** Supabase Auth cookies are SameSite=Lax by default. Origin check on mutating routes is additional defense.
+- **Verify:** POST endpoints verify `request.headers.get('origin')` matches expected origin.
+
+### [STD-SEC-004] CORS policy
+- **Applicability:** Apply
+- **Statement:** API endpoints MUST have a defined CORS policy (allowlist specific origins).
+- **Rationale:** Prevent unauthorized browser origins from calling API.
+- **Verify:** Next.js `next.config.ts` `headers()` defines CORS. Default same-origin.
+
+### [STD-SEC-005] Rate limiting per route
+- **Applicability:** Apply
+- **Statement:** Every API route MUST have rate limiting. See [API-001], [API-002].
+- **Rationale:** Standard DoS protection.
+- **Verify:** `grep -L "checkRateLimit" src/app/api/**/route.ts` returns empty.
+
+### [STD-SEC-006] Audit logs for all mutations
+- **Applicability:** Apply
+- **Statement:** All player mutations and admin mutations MUST be logged to `player_actions` / `admin_actions` tables.
+- **Rationale:** Standard for forensics + cheat detection.
+- **Verify:** `logActionAsync()` called from all mutating routes.
+
+### [STD-SEC-007] GDPR / CCPA (future)
+- **Applicability:** Future
+- **Statement:** When launching in EU/CA jurisdictions, MUST implement data subject rights (export, delete).
+- **Rationale:** Not yet applicable; Supabase supports row-level deletion if/when needed.
+- **Verify:** N/A until launch in regulated jurisdictions.
+
+### [STD-SEC-008] SOC 2 / ISO 27001 (future)
+- **Applicability:** Future
+- **Statement:** Certification is not currently pursued.
+- **Rationale:** Pre-revenue / no enterprise customers.
+- **Verify:** N/A.
+
+### [STD-SEC-009] Encryption at rest
+- **Applicability:** Apply
+- **Statement:** All data at rest MUST be encrypted by storage layer.
+- **Rationale:** Supabase PostgreSQL uses encrypted disks. Not configurable from app code.
+- **Verify:** Supabase project settings confirm encryption enabled.
+
+### [STD-SEC-010] Encryption in transit
+- **Applicability:** Apply
+- **Statement:** All network traffic MUST use HTTPS/TLS.
+- **Rationale:** Vercel enforces HTTPS by default. Caddy terminates TLS.
+- **Verify:** `curl -I https://industryx.vercel.app` returns `HTTP/2 200` with valid cert.
+
+### Observability
+
+### [STD-OBS-001] Structured logging
+- **Applicability:** Partial
+- **Statement:** All server-side logs SHOULD be structured (`[Component] message`, key=value) for parsing.
+- **Rationale:** Easier debugging in Vercel logs.
+- **Verify:** `grep -r "console.log" src/` should mostly return structured `[Component] message` patterns.
+
+### [STD-OBS-002] Metrics collection (future)
+- **Applicability:** Future
+- **Statement:** Production SHOULD emit metrics (request duration, error rate, queue depth) to a metrics backend.
+- **Rationale:** Vercel provides basic analytics; deeper metrics (PostHog, Datadog) deferred.
+- **Verify:** N/A — defer until traffic warrants.
+
+### [STD-OBS-003] Distributed tracing (future)
+- **Applicability:** Future
+- **Statement:** Cross-service request tracing MAY be added when service count grows.
+- **Rationale:** Single Next.js app currently; no service-to-service tracing needed yet.
+- **Verify:** N/A.
+
+### [STD-OBS-004] Health check endpoint
+- **Applicability:** Apply
+- **Statement:** `/api/health` MUST return 200 when Supabase is reachable.
+- **Rationale:** Standard for uptime monitoring.
+- **Verify:** `curl https://industryx.vercel.app/api/health` returns 200.
+
+### [STD-OBS-005] SLO / SLA / SLI
+- **Applicability:** N/A
+- **Statement:** No external SLA contracts yet.
+- **Rationale:** Pre-revenue. Once paid users exist, define p99 latency, error rate, uptime targets.
+- **Verify:** N/A until paid launch.
+
+### CI/CD & DevOps
+
+### [STD-CI-001] CI pipeline runs lint + typecheck + tests
+- **Applicability:** Apply
+- **Statement:** Every PR MUST pass `npm run lint`, `bunx tsc --noEmit`, `npm run test:vitest` before merge.
+- **Rationale:** Standard CI hygiene.
+- **Verify:** `.github/workflows/ci.yml` (or Vercel build pipeline) runs all three.
+
+### [STD-CI-002] Trunk-based development
+- **Applicability:** Apply
+- **Statement:** Branches MUST be short-lived (<3 days). Main branch is always deployable.
+- **Rationale:** Modern standard over GitFlow.
+- **Verify:** No long-running feature branches. Force-push discouraged.
+
+### [STD-CI-003] Semantic versioning (SemVer)
+- **Applicability:** Apply
+- **Statement:** Release tags MUST follow MAJOR.MINOR.PATCH.
+- **Rationale:** Standard.
+- **Verify:** `git tag --list` shows vMAJOR.MINOR.PATCH pattern.
+
+### [STD-CI-004] Conventional Commits
+- **Applicability:** Apply
+- **Statement:** Commit messages MUST follow Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`, etc.).
+- **Rationale:** Standard. Enables auto-changelog generation.
+- **Verify:** `.agents/skills/caveman-commit/SKILL.md` enforces.
+
+### [STD-CI-005] Feature flags
+- **Applicability:** Partial
+- **Statement:** Major features SHOULD be deployed behind a feature flag for gradual rollout.
+- **Rationale:** Allows A/B testing, rollback without redeploy.
+- **Verify:** No current implementation. Defer until traffic warrants.
+
+### [STD-CI-006] Blue-green / canary deployment
+- **Applicability:** Apply
+- **Statement:** Production deploys MUST support zero-downtime rollback.
+- **Rationale:** Vercel handles blue-green automatically. Manual promotion through env vars if needed.
+- **Verify:** Vercel deployment history shows instant rollback capability.
+
+### [STD-CI-007] Infrastructure as Code (IaC)
+- **Applicability:** Partial
+- **Statement:** Infrastructure SHOULD be defined in code (Terraform / Vercel CLI / Supabase migrations).
+- **Rationale:** Reproducibility, audit trail.
+- **Verify:** Supabase migrations ARE IaC. Vercel config is mostly via `vercel.json` / `next.config.ts`.
+
+### [STD-TEST-001] Test-Driven Development (TDD)
+- **Applicability:** Partial
+- **Statement:** New server-side logic SHOULD be written test-first.
+- **Rationale:** Vitest is configured. TDD discipline is encouraged but not enforced.
+- **Verify:** Tests exist for new API routes, validators, balance config logic.
+
+### [STD-TEST-002] Unit testing
+- **Applicability:** Apply
+- **Statement:** Pure functions, validators, and calculators MUST have unit tests.
+- **Rationale:** 65 unit tests currently pass (validators, JWT, game tick, balance config, tier centralization).
+- **Verify:** `tests/unit/*.test.ts` exists and passes.
+
+### [STD-TEST-003] Integration testing
+- **Applicability:** Apply
+- **Statement:** API endpoints MUST have integration tests covering auth + happy path + reject paths.
+- **Rationale:** 32 API tests cover trade, action, state, definitions, market-history.
+- **Verify:** `tests/api/game/*.test.ts` exists and passes.
+
+### [STD-TEST-004] E2E testing (future)
+- **Applicability:** Future
+- **Statement:** Critical user flows SHOULD have end-to-end tests.
+- **Rationale:** Playwright not yet configured. Smoke tests via manual checklist exist.
+- **Verify:** N/A — defer until product/market fit.
+
+### [STD-TEST-005] Performance testing
+- **Applicability:** Future
+- **Statement:** Production SHOULD be load-tested for target user count.
+- **Rationale:** No target SLA yet.
+- **Verify:** N/A — defer until launch.
+
+### [STD-TEST-006] Smoke testing on deploy
+- **Applicability:** Apply
+- **Statement:** Every production deploy MUST be smoke-tested manually before promotion. See [PRF-007].
+- **Rationale:** Catches SSR errors, hydration mismatches, missing migrations.
+
+### Frontend Performance
+
+### [STD-PERF-001] SSR + ISR for fast first paint
+- **Applicability:** Apply
+- **Statement:** Pages MUST use Next.js SSR (App Router default) and ISR where possible.
+- **Rationale:** Game has SSR for `/`, `/game/[tab]`, `/admin/`.
+- **Verify:** `next.config.ts` confirms. Lighthouse score.
+
+### [STD-PERF-002] Caching via CDN
+- **Applicability:** Apply
+- **Statement:** Static assets MUST be served from CDN (Vercel Edge Network).
+- **Rationale:** Default Vercel behavior.
+- **Verify:** Browser Network tab shows cache hit on static assets.
+
+### [STD-PERF-003] Core Web Vitals
+- **Applicability:** Apply
+- **Statement:** Game pages MUST meet Core Web Vitals: LCP < 2.5s, FID < 100ms, CLS < 0.1.
+- **Rationale:** User-perceived performance.
+- **Verify:** Run Lighthouse in production. Track in Vercel Analytics.
+
+### [STD-PERF-004] Server-side config caching
+- **Applicability:** Apply
+- **Statement:** Game config MUST be cached server-side (60s poller + `instrumentation.ts` pre-warm).
+- **Rationale:** See [PER-005], [ARC-003]. Config rarely changes.
+
+### Architecture Patterns
+
+### [STD-ARC-001] Event-driven architecture (within server)
+- **Applicability:** Apply
+- **Statement:** Player actions trigger events (pressure updates, market ticks, contract fulfillment).
+- **Rationale:** Server emits state changes via Supabase RPC + Realtime channel.
+- **Verify:** `apply_market_tick` RPC, `upsert_market_pressure` RPC, presence channel.
+
+### [STD-ARC-002] Idempotency for mutations
+- **Applicability:** Apply
+- **Statement:** Trade endpoints MUST be idempotent for the same `(user, idempotency_key)` within cooldown window.
+- **Rationale:** Cooldown serves as natural idempotency window. Player can retry safely.
+- **Verify:** Trade route returns `TRADE_COOLDOWN` 429 on retry. Trade state version conflict returns 409.
+
+### [STD-ARC-003] Queues for async work (future)
+- **Applicability:** Future
+- **Statement:** Long-running async work (news generation, daily rewards) MAY move to a queue.
+- **Rationale:** Currently `apply_market_tick` is sync. Cloudflare Worker for news is async via fetch.
+- **Verify:** N/A — defer until work exceeds synchronous response budget.
+
+### [STD-ARC-004] Pagination for list endpoints
+- **Applicability:** Apply
+- **Statement:** List endpoints MUST paginate with LIMIT (default 50, max 200). See [PER-002].
+- **Rationale:** Standard practice for unbounded data.
+
+### [STD-ARC-005] Backup & recovery
+- **Applicability:** Apply
+- **Statement:** Supabase manages daily backups. Restore procedure documented.
+- **Rationale:** Supabase Pro includes point-in-time recovery.
+- **Verify:** Supabase project settings → Backups → confirm daily snapshots exist.
+
+### [STD-ARC-006] Disaster recovery (DR)
+- **Applicability:** Partial
+- **Statement:** DR plan documented and tested annually.
+- **Rationale:** No formal DR drill yet. Vercel + Supabase multi-region not configured.
+- **Verify:** N/A — formal DR not yet required at current scale.
+
+### [STD-I18N-001] Internationalization (future)
+- **Applicability:** Future
+- **Statement:** All user-facing strings SHOULD be extracted to a translation key.
+- **Rationale:** Currently English-only. i18n library (next-intl) not installed.
+- **Verify:** N/A — defer until target market requires it.
+
+### [STD-I18N-002] Localization for currencies / formats
+- **Applicability:** Apply
+- **Statement:** Number formatting MUST respect user locale (commas vs periods).
+- **Rationale:** `formatNumber` utility handles locale-aware formatting.
+- **Verify:** `src/lib/game/utils/formatNumber.ts`.
+
+### [STD-SEO-001] SEO (future)
+- **Applicability:** Future
+- **Statement:** Marketing pages SHOULD have proper SEO meta tags.
+- **Rationale:** Game is behind login (no public marketing pages yet).
+- **Verify:** N/A — defer until marketing site exists.
+
+### [STD-MONOREPO-001] Monorepo (future)
+- **Applicability:** N/A
+- **Statement:** Currently single Next.js app. If a second service emerges (e.g., dedicated game server), consider monorepo.
+- **Rationale:** Single package, no inter-project shared code currently.
+
+---
+
+## Standards Summary
+
+| Tier | Count | Notes |
+|------|-------|-------|
+| **Apply** | 22 | Enforced now (rules in this doc + tests) |
+| **Partial** | 6 | Some implementation, gap documented |
+| **Future** | 14 | Relevant post-launch (i18n, MFA, E2E, etc.) |
+| **N/A** | 2 | Monorepo, SLA/SLO/SLI (no enterprise customers) |
+
+**Critical-path gaps:**
+1. **[STD-OBS-002]** Metrics — defer until traffic warrants, but plan now
+2. **[STD-TEST-004]** E2E tests — defer until product/market fit, but track as known gap
+3. **[STD-I18N-001]** Internationalization — defer until target market expands
+
+---
+
+## Change log
+
+- **2026-07-07** — Complete rewrite to industry format (ID + Severity + Verifiable). Added post-audit work (Phase 3, 5, 5.5, 6, Trade Post SSOT, server fail-closed). Updated file counts (148-line store, 81 migrations, 64 API routes, 65/65 vitest). Removed references to non-existent `planning/*` files and Prisma. Added Code Reference and Test Inventory sections. Resolved Registry tracks the 25-issue audit + post-audit additions.

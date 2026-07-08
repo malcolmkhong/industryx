@@ -81,10 +81,10 @@ export async function POST(request: NextRequest) {
     }
 
     // ── Run the guest migration validator ──
-    const migrationResult = validateGuestMigration(gameState);
+    const migrationResult = await validateGuestMigration(gameState);
 
     // ── Also run the standard game state validator (static bounds) ──
-    const standardValidation = validateGameState(gameState, undefined, {
+    const standardValidation = await validateGameState(gameState, undefined, {
       skipDeltaChecks: true, // No previous state for delta checks
       allowHighRisk: false,
     });

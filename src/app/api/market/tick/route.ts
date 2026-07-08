@@ -20,15 +20,11 @@ import {
   getAllSupplyDemand,
   updateMarketNews,
 } from '@/lib/db/market';
+import { getBalance } from '@/lib/game/balanceConfig';
+import { ensureConfigLoaded } from '@/lib/game/configLoader.server';
 
-const PRESSURE_FACTOR = 0.0005;
-const VOLATILITY_DECAY = 0.95;
-const MIN_PRICE = 1;
-const MAX_PRICE = 1_000_000;
-const EVENT_THRESHOLD = 0.04;
-const SPIKE_CAP = 0.40;
-const BREAKER_COOLDOWN = 5;
-const SUPPLY_DEMAND_SCALE = 0.1;
+// Phase 3 F3: market simulation constants moved to balanceConfig.ts (single source of truth).
+// Defaults match prior behavior. Operators can tune via Supabase overrides.
 const NEWS_WORKER_URL =
   process.env.MARKET_NEWS_WORKER_URL || 'https://newsgenerator.malcolmkhong.workers.dev';
 
@@ -36,6 +32,10 @@ interface BreakerState {
   cooldown: number;
   spikes: number;
   soldOut: boolean;
+  // Phase 3 F4: consecutive soldOut-only ticks (no sell pressure). When this
+  // exceeds the configured escape threshold, the breaker auto-clears to
+  // prevent permanent deadlock when a resource's supply disappears.
+  soldOutTicks: number;
 }
 
 function clamp(v: number, min: number, max: number) {
@@ -67,26 +67,26 @@ function marketTick(
 
   for (const entry of prices) {
     const p = pressure[entry.resource] || { buyVol: 0, sellVol: 0 };
-    const br = breakers[entry.resource] || { cooldown: 0, spikes: 0, soldOut: false };
+    const br = breakers[entry.resource] || { cooldown: 0, spikes: 0, soldOut: false, soldOutTicks: 0 };
     let netPressure = p.buyVol - p.sellVol;
     const oldPrice = entry.currentPrice;
 
     const isSoldOut = (p.sellVol === 0 && p.buyVol > 0 && netPressure > 0);
-    if (isSoldOut) { br.soldOut = true; br.cooldown = BREAKER_COOLDOWN; netPressure = 0; }
+    if (isSoldOut) { br.soldOut = true; br.cooldown = getBalance().market.breakerCooldown; netPressure = 0; }
     if (br.cooldown > 0 && br.soldOut) { netPressure = 0; br.cooldown--; }
     else if (br.cooldown > 0) { netPressure = Math.min(0, netPressure); br.cooldown--; }
 
-    const shift = Math.sign(netPressure) * Math.sqrt(Math.abs(netPressure)) * PRESSURE_FACTOR * (1 + (volatility || 0) * 5);
-    let newPrice = clamp(oldPrice + oldPrice * shift, MIN_PRICE, MAX_PRICE);
+    const shift = Math.sign(netPressure) * Math.sqrt(Math.abs(netPressure)) * getBalance().market.pressureFactor * (1 + (volatility || 0) * 5);
+    let newPrice = clamp(oldPrice + oldPrice * shift, getBalance().market.minPrice, getBalance().market.maxPrice);
     const changePct = oldPrice > 0 ? (newPrice - oldPrice) / oldPrice : 0;
 
-    if (Math.abs(changePct) > SPIKE_CAP) {
+    if (Math.abs(changePct) > getBalance().market.spikeCap) {
       const sign = changePct > 0 ? 1 : -1;
-      newPrice = oldPrice * (1 + sign * SPIKE_CAP);
-      br.spikes++; br.cooldown = BREAKER_COOLDOWN;
+      newPrice = oldPrice * (1 + sign * getBalance().market.spikeCap);
+      br.spikes++; br.cooldown = getBalance().market.breakerCooldown;
       events.push({
         type: 'price_move', resource: entry.resource,
-        delta: `${sign > 0 ? '+' : ''}${(SPIKE_CAP * 100).toFixed(1)}%`,
+        delta: `${sign > 0 ? '+' : ''}${(getBalance().market.spikeCap * 100).toFixed(1)}%`,
         severity: 'high',
         context: {
           cause: `CIRCUIT BREAKER: ${(Math.abs(changePct) * 100).toFixed(0)}% spike capped at 40%${br.soldOut ? ' — SOLD OUT' : ''}`,
@@ -95,7 +95,7 @@ function marketTick(
           buyVolume: p.buyVol, sellVolume: p.sellVol,
         },
       });
-    } else if (Math.abs(changePct) >= EVENT_THRESHOLD) {
+    } else if (Math.abs(changePct) >= getBalance().market.eventThreshold) {
       events.push({
         type: 'price_move', resource: entry.resource,
         delta: `${changePct > 0 ? '+' : ''}${(Math.abs(changePct) * 100).toFixed(1)}%`,
@@ -109,8 +109,37 @@ function marketTick(
       });
     }
 
-    if (br.soldOut && p.sellVol > 0) { br.soldOut = false; br.cooldown = 0; }
+    if (br.soldOut && p.sellVol > 0) { br.soldOut = false; br.cooldown = 0; br.soldOutTicks = 0; }
     if (br.cooldown <= 0 && !br.soldOut) { br.spikes = 0; }
+
+    // Phase 3 F4: Track consecutive soldOut-only ticks. If supply never
+    // recovers within soldOutEscapeTicks, force-clear the breaker so the
+    // price can mean-revert toward basePrice.
+    if (br.soldOut) {
+      br.soldOutTicks++;
+      const escapeAt = getBalance().market.soldOutEscapeTicks;
+      if (br.soldOutTicks >= escapeAt) {
+        // Force recovery: clear breaker state and emit a one-time informational event.
+        const wasEscaped = true;
+        events.push({
+          type: 'breaker_escape',
+          resource: entry.resource,
+          delta: '0%',
+          severity: 'medium',
+          context: {
+            cause: `CIRCUIT BREAKER ESCAPE: ${br.soldOutTicks} consecutive soldOut ticks — forcing recovery to basePrice`,
+            trend: 'neutral',
+            oldPrice: Math.round(oldPrice * 100) / 100,
+            newPrice: Math.round(entry.basePrice * 100) / 100,
+            buyVolume: p.buyVol,
+            sellVolume: p.sellVol,
+          },
+        });
+        if (wasEscaped) { br.soldOut = false; br.cooldown = 0; br.spikes = 0; br.soldOutTicks = 0; newPrice = entry.basePrice; }
+      }
+    } else {
+      br.soldOutTicks = 0;
+    }
 
     newPrices.push({
       resource: entry.resource, currentPrice: Math.round(newPrice * 100) / 100,
@@ -121,11 +150,15 @@ function marketTick(
     newBreakers[entry.resource] = br;
   }
 
-  const newVolatility = clamp((volatility || 0) * VOLATILITY_DECAY + events.length * 0.02, 0, 1);
+  const newVolatility = clamp((volatility || 0) * getBalance().market.volatilityDecay + events.length * 0.02, 0, 1);
   return { prices: newPrices, events, volatility: newVolatility, breakers: newBreakers };
 }
 
 export async function POST() {
+  // Phase 3 F3: pull balance overrides (or fall back to defaults) before touch DB.
+  // ensureConfigLoaded is best-effort — on failure, getBalance() returns validated defaults.
+  await ensureConfigLoaded().catch(() => {/* swallow; defaults handled by validators */});
+
   const supabase = createServiceRoleClient();
   if (!supabase) {
     return NextResponse.json({ error: 'Database unavailable' }, { status: 503 });
@@ -156,8 +189,8 @@ export async function POST() {
       }
       const production = Number(row.production) || 0;
       const consumption = Number(row.consumption) || 0;
-      pressure[row.resource].sellVol += production * SUPPLY_DEMAND_SCALE;
-      pressure[row.resource].buyVol += consumption * SUPPLY_DEMAND_SCALE;
+      pressure[row.resource].sellVol += production * getBalance().market.supplyDemandScale;
+      pressure[row.resource].buyVol += consumption * getBalance().market.supplyDemandScale;
     }
 
     // 4. Get or initialize prices
