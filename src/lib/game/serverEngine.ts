@@ -821,20 +821,33 @@ export function validateResearchAction(
 
 /**
  * Validate an 'upgrade' action.
+ *
+ * Server-authoritative: returns the post-upgrade state in `correctedState`
+ * so the client can apply exactly what the server computes (scaled cost,
+ * mega-project bonus, level +1, efficiency gain, money/resources deducted).
+ * The previous design only checked affordability but left state mutation
+ * to the client — if the cost formula or mega-bonus differed between the
+ * two sides, the client's local money deduction diverged from the server's
+ * persisted value.
  */
 export function validateUpgradeAction(
   buildingId: string,
   state: Partial<GameState>,
   config: GameConfig,
-): { valid: boolean; error?: string } {
+): {
+  valid: boolean;
+  error?: string;
+  correctedState?: Partial<GameState>;
+} {
   const buildings = state.buildings ?? [];
-  const building = buildings.find((b) => b.id === buildingId);
-  if (!building) {
+  const buildingIdx = buildings.findIndex((b) => b.id === buildingId);
+  if (buildingIdx < 0) {
     return {
       valid: false,
       error: `Building instance "${buildingId}" not found`,
     };
   }
+  const building = buildings[buildingIdx];
 
   const buildingDef = config.buildings[building.type];
   if (!buildingDef) {
@@ -844,15 +857,35 @@ export function validateUpgradeAction(
     };
   }
 
-  // Calculate upgrade cost (base cost * costMultiplier^currentLevel)
-  const upgradeCost = buildingDef.baseCost.map((cost) => ({
-    resource: cost.resource,
-    amount: Math.ceil(
-      cost.amount * Math.pow(buildingDef.costMultiplier, building.level),
-    ),
-  }));
+  // Compute authoritative scaled cost. Scaled by `building.level` (not
+  // currentCount like build), and includes mega-project cost reduction.
+  const megaBuildingCostReduction =
+    state.megaProjects?.find(
+      (p) => p.completed && p.bonus?.type === "buildingCostReduction",
+    )?.bonus?.value ?? 0;
 
-  // Check affordability
+  const upgradeCost = buildingDef.baseCost.map((c) => {
+    if (c.resource === "money") {
+      const scaled = Math.floor(
+        c.amount * Math.pow(buildingDef.costMultiplier, building.level),
+      );
+      return {
+        resource: c.resource,
+        amount: Math.max(
+          1,
+          Math.floor(scaled * (1 - megaBuildingCostReduction)),
+        ),
+      };
+    }
+    return {
+      resource: c.resource,
+      amount: Math.ceil(
+        c.amount * Math.pow(buildingDef.costMultiplier, building.level),
+      ),
+    };
+  });
+
+  // Check affordability (use SCALED cost, not base)
   const money = state.money ?? 0;
   const resources = state.resources ?? {};
   for (const cost of upgradeCost) {
@@ -874,7 +907,35 @@ export function validateUpgradeAction(
     }
   }
 
-  return { valid: true };
+  // Authoritative post-upgrade state.
+  const upgradedBuilding = {
+    ...building,
+    level: building.level + 1,
+    efficiency: Math.min(2, building.efficiency + 0.1), // +0.1 per upgrade, capped at 2.0
+  };
+  const nextBuildings = buildings.map((b, i) =>
+    i === buildingIdx ? upgradedBuilding : b,
+  );
+
+  const nextMoney =
+    money - (upgradeCost.find((c) => c.resource === "money")?.amount ?? 0);
+  const nextResources: Record<string, number> = { ...resources };
+  for (const c of upgradeCost) {
+    if (c.resource !== "money") {
+      const current = nextResources[c.resource as ResourceType] ?? 0;
+      nextResources[c.resource as ResourceType] = current - c.amount;
+    }
+  }
+
+  return {
+    valid: true,
+    correctedState: {
+      buildings: nextBuildings,
+      money: nextMoney,
+      resources: nextResources,
+      // totalMoneyEarned unchanged: upgrades are expenses, not earnings.
+    },
+  };
 }
 
 /**

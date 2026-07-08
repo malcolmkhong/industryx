@@ -127,45 +127,41 @@ export function createBuildingActions(set: SetFn, get: GetFn) {
       get().updateQuestProgress("build", 1, type);
     },
 
-    upgradeBuilding: (id: string) => {
+    upgradeBuilding: async (id: string) => {
       const state = get();
       const building = state.buildings.find((b) => b.id === id);
       if (!building) return;
 
       const def = BUILDING_DEFS[building.type];
-      const megaBuildingCostReduction2 = getMegaProjectBonus(
-        state.megaProjects,
-        "buildingCostReduction",
-      );
-      const cost = getBuildingCost(
-        building.type,
-        building.level,
-        megaBuildingCostReduction2,
-      );
 
-      if (state.money < cost) {
+      // Phase 6: server-authoritative upgrade. Server computes scaled cost
+      // (applies mega-project bonus), deducts money/resources, increments
+      // level, and returns the post-upgrade state. Client applies that
+      // verbatim and does not compute the cost itself.
+      const validation = await import("../actionValidator").then((m) =>
+        m.validateActionWithServer("upgrade", { buildingId: id }, generateId()),
+      );
+      if (!validation.approved) {
         soundEngine.play("error", "ui");
         get().addNotification(
           "error",
-          `Not enough money! Need $${formatNumber(cost)} to upgrade`,
+          validation.error ?? `Upgrade rejected by server`,
         );
         return;
       }
 
+      // Apply server-authoritative state. Fall back to optimistic local
+      // computation only if the server omitted correctedState (defensive).
+      const serverBuildings = (validation.correctedState?.buildings ??
+        state.buildings) as typeof state.buildings;
+      const serverMoney = validation.correctedState?.money ?? state.money;
+      const serverResources = (validation.correctedState?.resources ??
+        state.resources) as typeof state.resources;
+
       set({
-        money: state.money - cost,
-        buildings: state.buildings.map((b) =>
-          b.id === id
-            ? {
-                ...b,
-                level: b.level + 1,
-                efficiency: Math.min(
-                  2,
-                  b.efficiency + getBalance().building.upgradeEfficiencyGain,
-                ),
-              }
-            : b,
-        ),
+        money: serverMoney,
+        buildings: serverBuildings,
+        resources: serverResources,
       });
       soundEngine.play("buildingPlaced", "building");
       get().addNotification(
