@@ -5,7 +5,19 @@ import { generateId } from "../utils/generateId";
 import { formatNumber } from "../utils/formatNumber";
 import { getBalance } from "../balanceConfig";
 import { generateDroneMissionsFromState } from "../utils/saveMigration";
-import { friendlyActionError } from "../utils/friendlyErrors";
+
+// Inline: translate server technical error → user-friendly text.
+function friendlyDroneError(serverError: string | undefined): string {
+  const e = serverError ?? "";
+  if (e.includes("not found in fleet"))
+    return "Drone not found. Please refresh.";
+  if (e.includes("not idle")) return "Drone is busy with another mission.";
+  if (e.includes("Invalid missionId format"))
+    return "That mission is not available.";
+  if (e.includes("Not enough money for drone fuel"))
+    return "Not enough money for drone fuel.";
+  return e || "Drone mission could not be started. Please try again.";
+}
 
 type SetFn = (
   partial: Record<string, unknown> | ((state: any) => Record<string, unknown>),
@@ -82,7 +94,7 @@ export function createDroneActions(set: SetFn, get: GetFn) {
         soundEngine.play("error", "building");
         // eslint-disable-next-line no-console
         console.error(`[sendDrone] server rejected: ${validation.error}`);
-        get().addNotification("error", friendlyActionError(validation.error));
+        get().addNotification("error", friendlyDroneError(validation.error));
         return;
       }
 

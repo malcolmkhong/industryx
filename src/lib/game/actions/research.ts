@@ -4,7 +4,20 @@ import { generateId } from "../utils/generateId";
 import { formatNumber } from "../utils/formatNumber";
 import { isResearchUnlocked } from "../utils/costCalculator";
 import { soundEngine } from "../soundEngine";
-import { friendlyActionError } from "../utils/friendlyErrors";
+
+// Inline: translate server technical error → user-friendly text.
+function friendlyResearchError(serverError: string | undefined): string {
+  const e = serverError ?? "";
+  if (e.includes("not found in game config"))
+    return "That research is not available yet.";
+  if (e.includes("Prerequisite research") && e.includes("not completed"))
+    return "Prerequisite research not completed.";
+  if (e.includes("already completed")) return "Already researched.";
+  if (e.includes("already in progress")) return "Research already in progress.";
+  if (e.includes("Not enough research points"))
+    return "Not enough research points.";
+  return e || "Research could not be started. Please try again.";
+}
 
 type SetFn = (
   partial: Record<string, unknown> | ((state: any) => Record<string, unknown>),
@@ -32,7 +45,7 @@ export function createResearchActions(set: SetFn, get: GetFn) {
         // Log technical error for debugging; show friendly message to user
         // eslint-disable-next-line no-console
         console.error(`[startResearch] server rejected: ${validation.error}`);
-        get().addNotification("error", friendlyActionError(validation.error));
+        get().addNotification("error", friendlyResearchError(validation.error));
         return;
       }
 

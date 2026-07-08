@@ -4,7 +4,14 @@ import { soundEngine } from "../soundEngine";
 import { createInitialState } from "../constants/initialState";
 import { generateId } from "../utils/generateId";
 import { formatNumber } from "../utils/formatNumber";
-import { friendlyActionError } from "../utils/friendlyErrors";
+
+// Inline: translate server technical error → user-friendly text.
+function friendlyPrestigeError(serverError: string | undefined): string {
+  const e = serverError ?? "";
+  if (e.includes("at least 5 buildings"))
+    return "Need at least 5 buildings to Global Expand!";
+  return e || "Prestige could not be performed. Please try again.";
+}
 
 type SetFn = (
   partial: Record<string, unknown> | ((state: any) => Record<string, unknown>),
@@ -36,7 +43,7 @@ export function createPrestigeActions(set: SetFn, get: GetFn) {
         soundEngine.play("error", "ui");
         // eslint-disable-next-line no-console
         console.error(`[doPrestige] server rejected: ${validation.error}`);
-        get().addNotification("error", friendlyActionError(validation.error));
+        get().addNotification("error", friendlyPrestigeError(validation.error));
         return;
       }
 

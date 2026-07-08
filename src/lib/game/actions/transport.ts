@@ -5,7 +5,24 @@ import { formatNumber } from "../utils/formatNumber";
 import { getBalance } from "../balanceConfig";
 import { soundEngine } from "../soundEngine";
 import { buildMultipliers } from "../productionCalculator";
-import { friendlyActionError } from "../utils/friendlyErrors";
+
+// Inline: translate server technical error → user-friendly text.
+function friendlyTransportError(serverError: string | undefined): string {
+  const e = serverError ?? "";
+  if (e.includes("Transport type") && e.includes("not found in config"))
+    return "That transport type is not available.";
+  if (e.includes("Source building") && e.includes("not found"))
+    return "Source building no longer exists.";
+  if (e.includes("Destination building") && e.includes("not found"))
+    return "Destination building no longer exists.";
+  if (e.includes("Transport line") && e.includes("not found"))
+    return "Transport line no longer exists.";
+  if (e.includes("Not enough money for transport"))
+    return "Not enough money to build transport.";
+  if (e.includes("Not enough money to upgrade"))
+    return "Not enough money to upgrade transport.";
+  return e || "Transport action could not be completed. Please try again.";
+}
 
 type SetFn = (
   partial: Record<string, unknown> | ((state: any) => Record<string, unknown>),
@@ -50,7 +67,7 @@ export function createTransportActions(set: SetFn, get: GetFn) {
         console.error(
           `[buildTransportLine] server rejected: ${validation.error}`,
         );
-        get().addNotification("error", friendlyActionError(validation.error));
+        get().addNotification("error", friendlyTransportError(validation.error));
         return;
       }
 
@@ -138,7 +155,7 @@ export function createTransportActions(set: SetFn, get: GetFn) {
         console.error(
           `[upgradeTransportLine] server rejected: ${validation.error}`,
         );
-        get().addNotification("error", friendlyActionError(validation.error));
+        get().addNotification("error", friendlyTransportError(validation.error));
         return;
       }
 
