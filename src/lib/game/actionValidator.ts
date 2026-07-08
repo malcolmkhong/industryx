@@ -58,6 +58,12 @@ export interface ValidatedActionResult {
     researchPoints?: number;
     activeResearch?: string | null;
     researchProgress?: number;
+    drones?: {
+      fleet?: unknown[];
+      completedMissions?: number;
+      totalEarned?: number;
+    };
+    transportLines?: unknown[];
     quests?: unknown[];
     prestigeState?: { corporationPoints?: number } & Record<string, unknown>;
     contracts?: unknown[];

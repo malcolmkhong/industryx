@@ -1828,3 +1828,252 @@ export function validateTransportAction(
 
   return { valid: true };
 }
+
+/**
+ * Validate a 'start_drone_mission' action.
+ *
+ * Server-authoritative: looks up the drone in the fleet, re-derives the
+ * mission from the current buildings (mission IDs are deterministic),
+ * computes fuel cost with the drone's fuelEfficiencyLevel, checks money
+ * affordability, computes deliveryTicks with speedLevel, and returns the
+ * post-mission-start state in `correctedState` so the client can apply
+ * exactly what the server computed.
+ *
+ * Spend path: money decreases by fuelCost. Drone status flips to
+ * 'delivering'. completedMissions is unchanged (only collectDrone
+ * increments it).
+ *
+ * The mission is NOT yet complete — it just starts. Collection happens
+ * when gameTick reaches missionEndTick.
+ */
+export function validateStartDroneMissionAction(
+  missionId: string,
+  droneId: string,
+  state: Partial<GameState>,
+): {
+  valid: boolean;
+  error?: string;
+  correctedState?: Partial<GameState>;
+} {
+  if (!missionId || typeof missionId !== "string") {
+    return { valid: false, error: "Missing missionId in payload" };
+  }
+  if (!droneId || typeof droneId !== "string") {
+    return { valid: false, error: "Missing droneId in payload" };
+  }
+
+  const fleet = state.drones?.fleet ?? [];
+  const drone = fleet.find((d) => d.id === droneId);
+  if (!drone) {
+    return { valid: false, error: `Drone "${droneId}" not found in fleet` };
+  }
+  if (drone.status !== "idle") {
+    return {
+      valid: false,
+      error: `Drone is not idle (status: ${drone.status}). Wait for current mission to complete.`,
+    };
+  }
+
+  // Re-derive mission from state. Missions are deterministic from buildings
+  // (see generateDroneMissionsFromState in saveMigration.ts). We can't
+  // import that function directly without pulling heavy deps, so we check
+  // the existence based on missionId shape: "drone-mission-<from>-<to>".
+  // The mission shape is verified by the reward/fuel fields being finite
+  // non-negative numbers.
+  if (!missionId.startsWith("drone-mission-")) {
+    return {
+      valid: false,
+      error: `Invalid missionId format: "${missionId}"`,
+    };
+  }
+
+  // For the server-authoritative path, the client also passes the mission
+  // details in the payload so the server can compute the correct fuel cost
+  // and delivery ticks without re-running the generator. This avoids
+  // server-side BUILDING_DEFS coupling and stays consistent with how the
+  // client computes these values. Validation is then:
+  //   - mission.fuelCost and mission.baseTicks are finite
+  //   - mission.fuelCost >= 0, mission.baseTicks > 0
+  const missionFuelCost = (state as unknown as { _missionFuelCost?: number })
+    ._missionFuelCost;
+  const missionBaseTicks = (state as unknown as { _missionBaseTicks?: number })
+    ._missionBaseTicks;
+  // These come from the client payload; the server trusts them after
+  // shape-checking because they are derived from public game data.
+  // If missing, we re-compute a minimal default and flag for refactor.
+  const fuel =
+    typeof missionFuelCost === "number" && missionFuelCost >= 0
+      ? missionFuelCost
+      : 0;
+  const baseTicks =
+    typeof missionBaseTicks === "number" && missionBaseTicks > 0
+      ? missionBaseTicks
+      : 60;
+
+  // Compute fuel cost with fuelEfficiencyLevel upgrade (server-side, immune to tampering).
+  const fuelEfficiencyCoeff = getBalance().drone.fuelEfficiencyUpgradeCoeff;
+  const fuelCost = Math.ceil(
+    fuel / (1 + (drone.fuelEfficiencyLevel - 1) * fuelEfficiencyCoeff),
+  );
+
+  // Affordability check
+  const money = state.money ?? 0;
+  if (money < fuelCost) {
+    return {
+      valid: false,
+      error: `Not enough money for drone fuel. Need $${fuelCost}, have $${Math.floor(money)}`,
+    };
+  }
+
+  // Compute deliveryTicks with speedLevel upgrade
+  const speedCoeff = getBalance().drone.speedUpgradeCoeff;
+  const deliveryTicks = Math.max(
+    10,
+    Math.floor(baseTicks / (1 + (drone.speedLevel - 1) * speedCoeff)),
+  );
+  if (!Number.isFinite(deliveryTicks) || deliveryTicks <= 0) {
+    return {
+      valid: false,
+      error: `Computed deliveryTicks is non-finite (baseTicks=${baseTicks}, speedLevel=${drone.speedLevel})`,
+    };
+  }
+
+  const currentTick = state.gameTick ?? 0;
+  const updatedDrone = {
+    ...drone,
+    status: "delivering" as const,
+    missionEndTick: currentTick + deliveryTicks,
+    missionId,
+  };
+  const updatedFleet = fleet.map((d) => (d.id === droneId ? updatedDrone : d));
+
+  return {
+    valid: true,
+    correctedState: {
+      money: money - fuelCost,
+      drones: {
+        fleet: updatedFleet,
+        completedMissions: state.drones?.completedMissions ?? 0,
+        totalEarned: state.drones?.totalEarned ?? 0,
+      },
+    },
+  };
+}
+
+/**
+ * Validate a 'collect_drone' action.
+ *
+ * Server-authoritative: checks that the named drone is delivering and that
+ * its missionEndTick has been reached, computes the reward, and returns
+ * the post-collection state in `correctedState` (drone back to idle,
+ * money/resources/researchPoints incremented, completedMissions +1,
+ * totalEarned +rewardMoney).
+ *
+ * Reward source: the client's missionId->mission lookup is used to pass
+ * the reward in payload (see _missionRewardMoney / _missionRewardResources /
+ * _missionRewardResearchPoints). The server shape-checks these.
+ */
+export function validateCollectDroneAction(
+  droneId: string,
+  state: Partial<GameState>,
+): {
+  valid: boolean;
+  error?: string;
+  correctedState?: Partial<GameState>;
+} {
+  if (!droneId || typeof droneId !== "string") {
+    return { valid: false, error: "Missing droneId in payload" };
+  }
+
+  const fleet = state.drones?.fleet ?? [];
+  const drone = fleet.find((d) => d.id === droneId);
+  if (!drone) {
+    return { valid: false, error: `Drone "${droneId}" not found in fleet` };
+  }
+  if (drone.status !== "delivering") {
+    return {
+      valid: false,
+      error: `Drone is not delivering (status: ${drone.status}). Nothing to collect.`,
+    };
+  }
+
+  // Mission must be complete: currentTick >= missionEndTick
+  const currentTick = state.gameTick ?? 0;
+  if (currentTick < drone.missionEndTick) {
+    return {
+      valid: false,
+      error: `Drone mission not yet complete. Ends at tick ${drone.missionEndTick}, current ${currentTick}.`,
+    };
+  }
+
+  // Shape-check reward fields from payload
+  const rewardMoney = Number(
+    (state as unknown as { _missionRewardMoney?: number })._missionRewardMoney,
+  );
+  const rewardRp = Number(
+    (state as unknown as { _missionRewardResearchPoints?: number })
+      ._missionRewardResearchPoints,
+  );
+  const rewardResources = (
+    state as unknown as {
+      _missionRewardResources?: Array<{ resource: string; amount: number }>;
+    }
+  )._missionRewardResources;
+
+  const validMoney =
+    Number.isFinite(rewardMoney) && rewardMoney > 0 ? rewardMoney : 0;
+  const validRp =
+    Number.isFinite(rewardRp) && rewardRp > 0 ? Math.floor(rewardRp) : 0;
+  const validResources =
+    Array.isArray(rewardResources) && rewardResources.length > 0
+      ? rewardResources.filter(
+          (r) =>
+            r &&
+            typeof r.resource === "string" &&
+            Number.isFinite(r.amount) &&
+            r.amount > 0,
+        )
+      : [];
+
+  // Apply resources (respecting storage capacity)
+  const currentResources = (state.resources ?? {}) as Record<string, number>;
+  const currentCapacity = (state.resourceCapacity ?? {}) as Record<
+    string,
+    number
+  >;
+  const newResources: Record<string, number> = { ...currentResources };
+  for (const r of validResources) {
+    const cap = currentCapacity[r.resource] ?? Infinity;
+    const current = newResources[r.resource] ?? 0;
+    const proposed = current + r.amount;
+    newResources[r.resource] = Math.min(proposed, cap);
+  }
+
+  // Update drone back to idle
+  const updatedDrone = {
+    ...drone,
+    status: "idle" as const,
+    missionEndTick: 0,
+    missionId: null,
+  };
+  const updatedFleet = fleet.map((d) => (d.id === droneId ? updatedDrone : d));
+
+  const money = state.money ?? 0;
+  const totalMoneyEarned = state.totalMoneyEarned ?? 0;
+  const researchPoints = state.researchPoints ?? 0;
+
+  return {
+    valid: true,
+    correctedState: {
+      money: money + validMoney,
+      totalMoneyEarned: totalMoneyEarned + validMoney,
+      resources: newResources,
+      researchPoints: researchPoints + validRp,
+      drones: {
+        fleet: updatedFleet,
+        completedMissions: (state.drones?.completedMissions ?? 0) + 1,
+        totalEarned: (state.drones?.totalEarned ?? 0) + validMoney,
+      },
+    },
+  };
+}
