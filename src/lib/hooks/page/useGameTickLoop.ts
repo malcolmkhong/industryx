@@ -1,39 +1,46 @@
-import { useEffect, useRef } from "react";
-import { useGameStore } from "@/lib/game/store";
+// ============================================
+// useGameTickLoop.ts (Phase 7: UI-only tick)
+//
+// Previous behavior: called `gameTickAction()` on a 1-second interval to
+// advance client-side game state (production, payouts, etc). Phase 7 made
+// the server the source of truth for tick progression (see
+// src/lib/auth/applyElapsedTicks.ts), so client-side mutation is no longer
+// needed.
+//
+// Current behavior: this hook triggers a UI re-render every second so that
+// countdown bars, ticker numbers, and other animation-only displays stay
+// smooth. It does NOT touch game state.
+//
+// The `gameTickAction()` function still exists in src/lib/game/actions/gameTick.ts
+// and remains exported via the store for any future use (e.g., explicit
+// "simulate offline progress" UI button). It is no longer wired to any
+// auto-tick caller.
+// ============================================
 
-// Drives the main game tick loop. Calls gameTickAction() on an interval whose
-// frequency matches the current effective game speed (1000 / speed ms, floor 50ms).
-// Pauses when `paused` is true OR when the document is hidden (saves battery/CPU
-// on backgrounded tabs). gameTick is intentionally NOT in the dep array
-// to avoid re-creating the interval on every tick (use getState() for stable refs).
-export function useGameTickLoop(effectiveSpeed: number, paused: boolean): void {
-  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const hiddenRef = useRef<boolean>(false);
+import { useEffect, useState } from "react";
 
-  // Track document visibility — sets a ref so the main effect can read it
-  // without needing visibility in its dependency array.
+export function useGameTickLoop(
+  effectiveSpeed: number,
+  paused: boolean,
+): number {
+  // Local display tick — incremented every second for UI animation only.
+  const [displayTick, setDisplayTick] = useState(0);
+
   useEffect(() => {
-    const update = () => {
-      hiddenRef.current = typeof document !== "undefined" && document.hidden;
-    };
-    update();
-    document.addEventListener("visibilitychange", update);
-    return () => document.removeEventListener("visibilitychange", update);
-  }, []);
+    // When paused, no need to refresh UI on tick. Returns displayTick=0
+    // until unpaused. The interval is 1000ms regardless of effectiveSpeed
+    // since this hook no longer drives game state — only animation.
+    if (paused) return;
+    if (typeof document !== "undefined" && document.hidden) return;
 
-  useEffect(() => {
-    const interval = Math.max(50, 1000 / effectiveSpeed);
-    if (tickRef.current) clearInterval(tickRef.current);
-    // Don't tick if paused or if the tab is backgrounded.
-    if (paused || hiddenRef.current) return;
-    tickRef.current = setInterval(() => {
-      // Belt-and-suspenders: re-check hidden at fire time, in case visibility
-      // changed between effect setup and interval tick.
-      if (hiddenRef.current) return;
-      useGameStore.getState().gameTickAction();
-    }, interval);
-    return () => {
-      if (tickRef.current) clearInterval(tickRef.current);
-    };
+    const id = setInterval(
+      () => {
+        setDisplayTick((prev) => prev + 1);
+      },
+      Math.max(50, 1000 / effectiveSpeed),
+    );
+    return () => clearInterval(id);
   }, [effectiveSpeed, paused]);
+
+  return displayTick;
 }

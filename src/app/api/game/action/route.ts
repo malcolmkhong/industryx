@@ -37,6 +37,8 @@ import {
   validateUpgradeAction,
   validateTransportAction,
 } from "@/lib/game/serverEngine";
+import { applyElapsedTicks } from "@/lib/auth/applyElapsedTicks";
+import type { ServerGameStateForAction } from "@/lib/db/serverGameState";
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -481,16 +483,72 @@ export async function POST(request: Request) {
     );
   }
 
+  // Phase 7: Tick injection. Advance resources/money/buildings by the
+  // elapsed wall-clock time since the last server-side tick. This makes
+  // per-second-tick authority server-driven without a per-second server
+  // loop. Fail-closed: any DB/config error returns 503; do not silently
+  // proceed with stale state.
+  let activeServerState: ServerGameStateForAction = serverState;
+  try {
+    const elapsed = await applyElapsedTicks(
+      (serverState.full_state as unknown as GameState) ?? ({} as GameState),
+      serverState.last_tick_at ?? null,
+      Number(serverState.game_speed) || 1,
+    );
+    // If elapsed > 0, persist the post-tick state immediately so subsequent
+    // validators see fresh resources/money. Done BEFORE the action dispatch
+    // so cost checks run against post-tick values.
+    if (elapsed.elapsedTicks > 0) {
+      const persisted = await saveServerGameStateOptimistic(
+        auth.userId,
+        serverState.state_version ?? 0,
+        {
+          full_state: elapsed.state as never,
+          money: Number(elapsed.state.money) || 0,
+          total_money_earned: Number(elapsed.state.totalMoneyEarned) || 0,
+          buildings_count: Array.isArray(elapsed.state.buildings)
+            ? elapsed.state.buildings.length
+            : 0,
+          state_version: (serverState.state_version ?? 0) + 1,
+        },
+      ).catch((err) => {
+        console.error("[ActionAPI] Failed to persist elapsed-tick state:", err);
+        return null;
+      });
+      if (!persisted) {
+        return NextResponse.json(
+          {
+            valid: false,
+            error: "Server failed to apply elapsed ticks — retry",
+            code: "ELAPSED_TICK_PERSIST_FAILED",
+          } satisfies ActionResponse,
+          { status: 503 },
+        );
+      }
+      activeServerState = persisted as ServerGameStateForAction;
+    }
+  } catch (err) {
+    console.error("[ActionAPI] applyElapsedTicks failed:", err);
+    return NextResponse.json(
+      {
+        valid: false,
+        error: "Server tick computation unavailable — retry",
+        code: "ELAPSED_TICK_FAILED",
+      } satisfies ActionResponse,
+      { status: 503 },
+    );
+  }
+
   // Use server state for validation (cast to Partial<GameState> for validator compat)
-  const gameState = (serverState.full_state ?? {}) as Partial<GameState>;
-  const serverGameTick = Number(serverState.game_tick) || 0;
-  const serverMoney = Number(serverState.money) || 0;
+  const gameState = (activeServerState.full_state ?? {}) as Partial<GameState>;
+  const serverGameTick = Number(activeServerState.game_tick) || 0;
+  const serverMoney = Number(activeServerState.money) || 0;
 
   // Phase 4.3: Replay detection via requestId nonce.
   const actionHistory: string[] = Array.isArray(
-    (serverState.full_state as Record<string, unknown>)?._action_history,
+    (activeServerState.full_state as Record<string, unknown>)?._action_history,
   )
-    ? ((serverState.full_state as Record<string, unknown>)
+    ? ((activeServerState.full_state as Record<string, unknown>)
         ._action_history as string[])
     : [];
 
@@ -536,8 +594,84 @@ export async function POST(request: Request) {
       result = { valid: false, error: `Unhandled action: ${action}` };
   }
 
+  // Server-authoritative action application:
+  // If the validator returned a `correctedState`, merge it into the stored
+  // server state and persist immediately (atomic optimistic-locking write).
+  // This is what guarantees client + server agree on money, buildings, and
+  // resources after a build/upgrade/research/etc. action. The same persist
+  // also folds in the Phase 4.3 requestId history append to avoid a second
+  // version-conflict update.
+  let appliedCorrectedState: Partial<GameState> | undefined;
+  // Only persist via this block when:
+  //   - Server returned a `correctedState` (build/upgrade/etc. — server owns
+  //     the post-action state), OR
+  //   - requestId was provided (replay-protection append needs to land).
+  // `set_game_speed` already has its own persist in handleSetGameSpeed
+  // (we don't want to double-bump state_version).
+  const needPersist =
+    result.valid &&
+    Boolean(
+      result.correctedState || (requestId !== undefined && requestId !== null),
+    ) &&
+    action !== "set_game_speed";
+  if (needPersist) {
+    appliedCorrectedState = result.correctedState;
+    const historyAppend =
+      requestId !== undefined && requestId !== null
+        ? [...actionHistory, requestId].slice(-100)
+        : actionHistory;
+    const mergedFullState = {
+      ...(activeServerState.full_state as Record<string, unknown>),
+      ...(appliedCorrectedState ?? {}),
+      ...(historyAppend !== actionHistory
+        ? { _action_history: historyAppend }
+        : {}),
+    } as Record<string, unknown>;
+    const persistedBuildings = (
+      appliedCorrectedState as { buildings?: unknown }
+    )?.buildings;
+    const persistedBuildingsCount = Array.isArray(persistedBuildings)
+      ? persistedBuildings.length
+      : activeServerState.buildings_count;
+    const currentVersion = activeServerState.state_version ?? 0;
+    const nextVersion = currentVersion + 1;
+    const persisted = await saveServerGameStateOptimistic(
+      auth.userId,
+      currentVersion,
+      {
+        full_state: mergedFullState as never,
+        money:
+          typeof appliedCorrectedState?.money === "number"
+            ? appliedCorrectedState.money
+            : Number(activeServerState.money),
+        buildings_count: persistedBuildingsCount,
+        state_version: nextVersion,
+      },
+    ).catch((err) => {
+      console.error("[ActionAPI] Failed to persist correctedState:", err);
+      return null;
+    });
+    if (!persisted) {
+      // Persist failed (CAS mismatch or DB error). Refuse to apply the action
+      // so the client doesn't commit to divergent state.
+      return NextResponse.json(
+        {
+          valid: false,
+          error: "Server failed to apply action — retry",
+          code: "PERSIST_FAILED",
+        } satisfies ActionResponse,
+        { status: 503 },
+      );
+    }
+  }
+
   // ✅ Audit log the action (single write to player_actions only).
-  // Use SERVER tick/money, not client-sent, so the audit log is trustworthy.
+  // Use post-action SERVER values (moneyAfter reflects the correctedState if
+  // applied) so the audit log is trustworthy and replayable.
+  const postActionMoney =
+    typeof appliedCorrectedState?.money === "number"
+      ? appliedCorrectedState.money
+      : serverMoney;
   logActionAsync({
     userId: auth.userId,
     actionType: action as
@@ -564,33 +698,16 @@ export async function POST(request: Request) {
       | "set_game_speed"
       | "bulk_build"
       | "bulk_sell",
-    payload,
+    payload: {
+      ...payload,
+      ...(appliedCorrectedState ? { applied: true } : {}),
+    },
     gameTick: serverGameTick,
-    moneyAfter: serverMoney,
+    moneyAfter: postActionMoney,
     isValid: result.valid,
     validationRisk: result.valid ? "none" : "high",
     rejectionReason: result.valid ? undefined : result.error,
   });
-
-  // Phase 4.3: Append requestId to history (FIFO, capped at 100)
-  // and persist back to server_game_state with optimistic locking.
-  if (requestId !== undefined && requestId !== null) {
-    const updatedHistory = [...actionHistory, requestId].slice(-100);
-    const currentVersion = serverState.state_version ?? 0;
-    void saveServerGameStateOptimistic(auth.userId, currentVersion, {
-      full_state: {
-        ...(serverState.full_state as Record<string, unknown>),
-        _action_history: updatedHistory,
-      } as never,
-      state_version: currentVersion + 1,
-    }).then((updated) => {
-      if (!updated) {
-        console.warn(
-          "[ActionAPI] Failed to persist action_history (CAS mismatch or DB error)",
-        );
-      }
-    });
-  }
 
   // NOTE: Trade actions are handled by /api/game/trade.
 

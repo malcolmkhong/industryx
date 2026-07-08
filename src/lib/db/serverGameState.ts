@@ -27,15 +27,18 @@
  *   - src/app/api/auth/link-identity/route.ts  (2 call sites)
  */
 
-import { createServiceRoleClient } from '@/lib/supabase/server';
-import type { Database } from '@/lib/db/types';
-import { generateChecksum } from '@/lib/auth/gameStateValidator';
+import { createServiceRoleClient } from "@/lib/supabase/server";
+import type { Database } from "@/lib/db/types";
+import { generateChecksum } from "@/lib/auth/gameStateValidator";
 
 // Type aliases sourced from the generated Supabase types.
 // These are the single source of truth for row shapes.
-type ServerGameStateRow = Database['public']['Tables']['server_game_state']['Row'];
-type ServerGameStateInsert = Database['public']['Tables']['server_game_state']['Insert'];
-type ServerGameStateUpdate = Database['public']['Tables']['server_game_state']['Update'];
+type ServerGameStateRow =
+  Database["public"]["Tables"]["server_game_state"]["Row"];
+type ServerGameStateInsert =
+  Database["public"]["Tables"]["server_game_state"]["Insert"];
+type ServerGameStateUpdate =
+  Database["public"]["Tables"]["server_game_state"]["Update"];
 
 /**
  * Narrow shape returned by `loadServerGameStateLite` — only the columns
@@ -44,22 +47,22 @@ type ServerGameStateUpdate = Database['public']['Tables']['server_game_state']['
  */
 export type ServerGameStateLite = Pick<
   ServerGameStateRow,
-  | 'full_state'
-  | 'money'
-  | 'total_money_earned'
-  | 'research_points'
-  | 'buildings'
-  | 'buildings_count'
-  | 'completed_research'
-  | 'resources'
-  | 'workers'
-  | 'game_tick'
-  | 'game_speed'
-  | 'state_hash'
-  | 'state_version'
-  | 'last_tick_at'
-  | 'last_saved_at'
-  | 'cheat_flag_count'
+  | "full_state"
+  | "money"
+  | "total_money_earned"
+  | "research_points"
+  | "buildings"
+  | "buildings_count"
+  | "completed_research"
+  | "resources"
+  | "workers"
+  | "game_tick"
+  | "game_speed"
+  | "state_hash"
+  | "state_version"
+  | "last_tick_at"
+  | "last_saved_at"
+  | "cheat_flag_count"
 >;
 
 /**
@@ -67,26 +70,26 @@ export type ServerGameStateLite = Pick<
  */
 export type ServerGameStateForOfflineCheck = Pick<
   ServerGameStateRow,
-  'full_state' | 'last_saved_at' | 'game_tick' | 'game_speed'
+  "full_state" | "last_saved_at" | "game_tick" | "game_speed"
 >;
 
 /**
  * Load only the columns needed for offline tick calculation.
  */
 export async function loadServerGameStateLiteForOffline(
-  userId: string
+  userId: string,
 ): Promise<ServerGameStateForOfflineCheck | null> {
   const supabase = createServiceRoleClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
-    .from('server_game_state')
-    .select('full_state, last_saved_at, game_tick, game_speed')
-    .eq('user_id', userId)
+    .from("server_game_state")
+    .select("full_state, last_saved_at, game_tick, game_speed")
+    .eq("user_id", userId)
     .single();
 
   if (error) {
-    if (error.code === 'PGRST116') return null;
+    if (error.code === "PGRST116") return null;
     throw error;
   }
   return data as ServerGameStateForOfflineCheck;
@@ -97,14 +100,14 @@ export async function loadServerGameStateLiteForOffline(
  */
 export type ServerGameStateForTick = Pick<
   ServerGameStateRow,
-  | 'full_state'
-  | 'game_tick'
-  | 'game_speed'
-  | 'state_version'
-  | 'last_tick_at'
-  | 'money'
-  | 'is_locked'
-  | 'lock_reason'
+  | "full_state"
+  | "game_tick"
+  | "game_speed"
+  | "state_version"
+  | "last_tick_at"
+  | "money"
+  | "is_locked"
+  | "lock_reason"
 >;
 
 /**
@@ -112,15 +115,34 @@ export type ServerGameStateForTick = Pick<
  */
 export type ServerGameStateForTrade = Pick<
   ServerGameStateRow,
-  'resources' | 'full_state' | 'game_tick' | 'state_version' | 'last_trade_at'
+  "resources" | "full_state" | "game_tick" | "state_version" | "last_trade_at"
 >;
 
 /**
- * Narrow shape for the action validation path.
+ * Narrow shape for the action validation path. Includes the fields needed
+ * by Phase 7's on-demand tick injection (last_tick_at, game_speed,
+ * buildings_count) and by Phase 1+2's persistence (buildings_count).
  */
 export type ServerGameStateForAction = Pick<
   ServerGameStateRow,
-  'full_state' | 'money' | 'game_tick' | 'state_version'
+  | "full_state"
+  | "money"
+  | "total_money_earned"
+  | "game_tick"
+  | "game_speed"
+  | "state_version"
+  | "state_hash"
+  | "last_tick_at"
+  | "last_saved_at"
+  | "buildings"
+  | "buildings_count"
+  | "resources"
+  | "research_points"
+  | "completed_research"
+  | "workers"
+  | "is_locked"
+  | "lock_reason"
+  | "cheat_flag_count"
 >;
 
 /**
@@ -128,15 +150,24 @@ export type ServerGameStateForAction = Pick<
  */
 export type ServerGameStateForPreview = Pick<
   ServerGameStateRow,
-  'money' | 'total_money_earned' | 'buildings_count' | 'game_tick' | 'is_locked'
+  "money" | "total_money_earned" | "buildings_count" | "game_tick" | "is_locked"
 >;
 
 /**
- * Narrow shape for the validate-ticks cron (active players query).
+ * Narrow shape for the validate-ticks cron spot-check (active players query).
+ *
+ * Phase 5.4 anti-cheat: deliberately excludes `full_state` to minimize Supabase
+ * egress. Most cron runs do a cheap scan; only when a player looks suspicious
+ * does the cron fetch `full_state` via loadFullStateForUser() for a deep check.
  */
 export type ServerGameStateForCron = Pick<
   ServerGameStateRow,
-  'user_id' | 'full_state' | 'game_tick' | 'game_speed' | 'last_tick_at' | 'money'
+  | "user_id"
+  | "game_tick"
+  | "game_speed"
+  | "last_tick_at"
+  | "money"
+  | "total_money_earned"
 >;
 
 /**
@@ -152,21 +183,21 @@ export function isServerGameStateAvailable(): boolean {
  * Returns null if not found OR if the table is unavailable.
  */
 export async function loadServerGameStateLite(
-  userId: string
+  userId: string,
 ): Promise<ServerGameStateLite | null> {
   const supabase = createServiceRoleClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
-    .from('server_game_state')
+    .from("server_game_state")
     .select(
-      'full_state, money, total_money_earned, research_points, buildings, buildings_count, completed_research, resources, workers, game_tick, game_speed, state_hash, state_version, last_tick_at, last_saved_at, cheat_flag_count'
+      "full_state, money, total_money_earned, research_points, buildings, buildings_count, completed_research, resources, workers, game_tick, game_speed, state_hash, state_version, last_tick_at, last_saved_at, cheat_flag_count",
     )
-    .eq('user_id', userId)
+    .eq("user_id", userId)
     .single();
 
   if (error) {
-    if (error.code === 'PGRST116') return null;
+    if (error.code === "PGRST116") return null;
     throw error;
   }
   return data as ServerGameStateLite;
@@ -176,21 +207,21 @@ export async function loadServerGameStateLite(
  * Load only the fields needed for offline tick computation.
  */
 export async function loadServerGameStateForTick(
-  userId: string
+  userId: string,
 ): Promise<ServerGameStateForTick | null> {
   const supabase = createServiceRoleClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
-    .from('server_game_state')
+    .from("server_game_state")
     .select(
-      'full_state, game_tick, game_speed, state_version, last_tick_at, money, is_locked, lock_reason'
+      "full_state, game_tick, game_speed, state_version, last_tick_at, money, is_locked, lock_reason",
     )
-    .eq('user_id', userId)
+    .eq("user_id", userId)
     .single();
 
   if (error) {
-    if (error.code === 'PGRST116') return null;
+    if (error.code === "PGRST116") return null;
     throw error;
   }
   return data as ServerGameStateForTick;
@@ -200,41 +231,47 @@ export async function loadServerGameStateForTick(
  * Load the fields needed for leaderboard submission: total_money_earned, game_tick, is_locked, lock_reason, and money.
  */
 export async function loadServerGameStateForLeaderboard(
-  userId: string
-): Promise<Pick<ServerGameStateRow, 'total_money_earned' | 'game_tick' | 'is_locked' | 'lock_reason' | 'money'> | null> {
+  userId: string,
+): Promise<Pick<
+  ServerGameStateRow,
+  "total_money_earned" | "game_tick" | "is_locked" | "lock_reason" | "money"
+> | null> {
   const supabase = createServiceRoleClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
-    .from('server_game_state')
-    .select('total_money_earned, game_tick, is_locked, lock_reason, money')
-    .eq('user_id', userId)
+    .from("server_game_state")
+    .select("total_money_earned, game_tick, is_locked, lock_reason, money")
+    .eq("user_id", userId)
     .single();
 
   if (error) {
-    if (error.code === 'PGRST116') return null;
+    if (error.code === "PGRST116") return null;
     throw error;
   }
-  return data as Pick<ServerGameStateRow, 'total_money_earned' | 'game_tick' | 'is_locked' | 'lock_reason' | 'money'>;
+  return data as Pick<
+    ServerGameStateRow,
+    "total_money_earned" | "game_tick" | "is_locked" | "lock_reason" | "money"
+  >;
 }
 
 /**
  * Load only the fields needed for trade (resources + cooldown + version).
  */
 export async function loadServerGameStateForTrade(
-  userId: string
+  userId: string,
 ): Promise<ServerGameStateForTrade | null> {
   const supabase = createServiceRoleClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
-    .from('server_game_state')
-    .select('resources, full_state, game_tick, state_version, last_trade_at')
-    .eq('user_id', userId)
+    .from("server_game_state")
+    .select("resources, full_state, game_tick, state_version, last_trade_at")
+    .eq("user_id", userId)
     .single();
 
   if (error) {
-    if (error.code === 'PGRST116') return null;
+    if (error.code === "PGRST116") return null;
     throw error;
   }
   return data as ServerGameStateForTrade;
@@ -244,37 +281,42 @@ export async function loadServerGameStateForTrade(
  * Load only the fields needed for action validation.
  */
 export async function loadServerGameStateForAction(
-  userId: string
+  userId: string,
 ): Promise<ServerGameStateForAction | null> {
   const supabase = createServiceRoleClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
-    .from('server_game_state')
-    .select('full_state, money, game_tick, state_version')
-    .eq('user_id', userId)
+    .from("server_game_state")
+    .select(
+      "full_state, money, total_money_earned, game_tick, game_speed, " +
+        "state_version, state_hash, last_tick_at, last_saved_at, " +
+        "buildings, buildings_count, resources, research_points, " +
+        "completed_research, workers, is_locked, lock_reason, cheat_flag_count",
+    )
+    .eq("user_id", userId)
     .single();
 
   if (error) {
-    if (error.code === 'PGRST116') return null;
+    if (error.code === "PGRST116") return null;
     throw error;
   }
-  return data as ServerGameStateForAction;
+  return data as unknown as ServerGameStateForAction;
 }
 
 /**
  * Load only the fields needed for link-identity preview.
  */
 export async function loadServerGameStateForPreview(
-  userId: string
+  userId: string,
 ): Promise<ServerGameStateForPreview | null> {
   const supabase = createServiceRoleClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
-    .from('server_game_state')
-    .select('money, total_money_earned, buildings_count, game_tick, is_locked')
-    .eq('user_id', userId)
+    .from("server_game_state")
+    .select("money, total_money_earned, buildings_count, game_tick, is_locked")
+    .eq("user_id", userId)
     .maybeSingle();
 
   if (error) throw error;
@@ -290,9 +332,9 @@ export async function loadLockState(userId: string): Promise<boolean> {
   if (!supabase) return false;
 
   const { data, error } = await supabase
-    .from('server_game_state')
-    .select('is_locked')
-    .eq('user_id', userId)
+    .from("server_game_state")
+    .select("is_locked")
+    .eq("user_id", userId)
     .maybeSingle();
 
   if (error) return false;
@@ -304,19 +346,45 @@ export async function loadLockState(userId: string): Promise<boolean> {
  * `last_tick_at > cutoffISO`. Returns an array (not a single row).
  */
 export async function loadActivePlayersSince(
-  cutoffISO: string
+  cutoffISO: string,
 ): Promise<ServerGameStateForCron[]> {
   const supabase = createServiceRoleClient();
   if (!supabase) return [];
 
   const { data, error } = await supabase
-    .from('server_game_state')
-    .select('user_id, full_state, game_tick, game_speed, last_tick_at, money')
-    .gt('last_tick_at', cutoffISO)
+    .from("server_game_state")
+    .select(
+      "user_id, game_tick, game_speed, last_tick_at, money, total_money_earned",
+    )
+    .gt("last_tick_at", cutoffISO)
     .returns<ServerGameStateForCron[]>();
 
   if (error) throw error;
   return data ?? [];
+}
+
+/**
+ * Lazy-load the full state of a single user for deep anti-cheat check.
+ *
+ * Phase 5.4: Only called when the cheap spot-check flags a player as
+ * suspicious. This avoids transferring the (potentially large) `full_state`
+ * JSON blob for the ~99% of players who are clean.
+ */
+export async function loadFullStateForUser(
+  userId: string,
+): Promise<{ full_state: unknown; game_tick: number; money: number } | null> {
+  const supabase = createServiceRoleClient();
+  if (!supabase) return null;
+
+  const { data, error } = await supabase
+    .from("server_game_state")
+    .select("full_state, game_tick, money")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+  return data as { full_state: unknown; game_tick: number; money: number };
 }
 
 /**
@@ -326,29 +394,29 @@ export async function loadActivePlayersSince(
  */
 export type ServerGameStateForDeltaCheck = Pick<
   ServerGameStateRow,
-  | 'full_state'
-  | 'state_hash'
-  | 'game_tick'
-  | 'cheat_flag_count'
-  | 'state_version'
-  | 'resources'
-  | 'money'
-  | 'research_points'
-  | 'buildings'
+  | "full_state"
+  | "state_hash"
+  | "game_tick"
+  | "cheat_flag_count"
+  | "state_version"
+  | "resources"
+  | "money"
+  | "research_points"
+  | "buildings"
 >;
 
 export async function loadServerGameStateForDeltaCheck(
-  userId: string
+  userId: string,
 ): Promise<ServerGameStateForDeltaCheck | null> {
   const supabase = createServiceRoleClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
-    .from('server_game_state')
+    .from("server_game_state")
     .select(
-      'full_state, state_hash, game_tick, cheat_flag_count, state_version, resources, money, research_points, buildings'
+      "full_state, state_hash, game_tick, cheat_flag_count, state_version, resources, money, research_points, buildings",
     )
-    .eq('user_id', userId)
+    .eq("user_id", userId)
     .maybeSingle();
 
   if (error) throw error;
@@ -364,16 +432,16 @@ export async function loadServerGameStateForDeltaCheck(
  */
 async function saveServerGameState(
   userId: string,
-  patch: ServerGameStateUpdate
+  patch: ServerGameStateUpdate,
 ): Promise<ServerGameStateRow | null> {
   const supabase = createServiceRoleClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
-    .from('server_game_state')
+    .from("server_game_state")
     .update(patch)
-    .eq('user_id', userId)
-    .select('*')
+    .eq("user_id", userId)
+    .select("*")
     .single();
 
   if (error) return null;
@@ -385,19 +453,19 @@ async function saveServerGameState(
  * prior row may exist. Inserts on `user_id` conflict.
  */
 export async function upsertServerGameState(
-  values: ServerGameStateInsert
+  values: ServerGameStateInsert,
 ): Promise<ServerGameStateRow | null> {
   const supabase = createServiceRoleClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
-    .from('server_game_state')
-    .upsert(values, { onConflict: 'user_id' })
+    .from("server_game_state")
+    .upsert(values, { onConflict: "user_id" })
     .select()
     .single();
 
   if (error) {
-    console.error('[serverGameState] upsert error:', error);
+    console.error("[serverGameState] upsert error:", error);
     return null;
   }
   return data as ServerGameStateRow;
@@ -413,12 +481,15 @@ export async function hasServerGameState(userId: string): Promise<boolean> {
   const supabase = createServiceRoleClient();
   if (!supabase) return false;
   const { data, error } = await supabase
-    .from('server_game_state')
-    .select('user_id')
-    .eq('user_id', userId)
+    .from("server_game_state")
+    .select("user_id")
+    .eq("user_id", userId)
     .maybeSingle();
   if (error) {
-    console.error('[serverGameState] hasServerGameState failed:', error.message);
+    console.error(
+      "[serverGameState] hasServerGameState failed:",
+      error.message,
+    );
     return false;
   }
   return data !== null;
@@ -430,7 +501,12 @@ export async function hasServerGameState(userId: string): Promise<boolean> {
  */
 export const INITIAL_GUEST_STATE_VALUES = {
   money: 1000,
-  total_money_earned: 1000,
+  // Seed money is NOT earned — `total_money_earned` only counts actual income
+  // (sales, payouts, contract rewards, daily rewards). Starting at 0 prevents
+  // the asymmetry between client `createInitialState()` (totalMoneyEarned: 0)
+  // and server seed that previously caused "money > totalMoneyEarned"
+  // false-positives on first save.
+  total_money_earned: 0,
   research_points: 0,
   buildings: [],
   buildings_count: 0,
@@ -475,9 +551,11 @@ export async function initializeGuestGameState(
 ): Promise<ServerGameStateRow | null> {
   const supabase = createServiceRoleClient();
   if (!supabase) return null;
-  const stateHash = generateChecksum(INITIAL_GUEST_GAME_STATE as unknown as Record<string, unknown>);
+  const stateHash = generateChecksum(
+    INITIAL_GUEST_GAME_STATE as unknown as Record<string, unknown>,
+  );
   const { data, error } = await supabase
-    .from('server_game_state')
+    .from("server_game_state")
     .insert({
       user_id: userId,
       ...INITIAL_GUEST_STATE_VALUES,
@@ -487,7 +565,10 @@ export async function initializeGuestGameState(
     .select()
     .single();
   if (error) {
-    console.error('[serverGameState] initializeGuestGameState failed:', error.message);
+    console.error(
+      "[serverGameState] initializeGuestGameState failed:",
+      error.message,
+    );
     return null;
   }
   return data as ServerGameStateRow;
@@ -502,12 +583,12 @@ export async function getGameTick(userId: string): Promise<number | null> {
   const supabase = createServiceRoleClient();
   if (!supabase) return null;
   const { data, error } = await supabase
-    .from('server_game_state')
-    .select('game_tick')
-    .eq('user_id', userId)
+    .from("server_game_state")
+    .select("game_tick")
+    .eq("user_id", userId)
     .maybeSingle();
   if (error) {
-    console.error('[serverGameState] getGameTick failed:', error.message);
+    console.error("[serverGameState] getGameTick failed:", error.message);
     return null;
   }
   return data?.game_tick ?? null;
@@ -527,11 +608,11 @@ export async function pageServerGameStateFullState(
   const supabase = createServiceRoleClient();
   if (!supabase) return null;
   const { data, error } = await supabase
-    .from('server_game_state')
-    .select('full_state')
+    .from("server_game_state")
+    .select("full_state")
     .range(offset, offset + pageSize - 1);
   if (error) {
-    console.error('[serverGameState] pageFullState failed:', error.message);
+    console.error("[serverGameState] pageFullState failed:", error.message);
     return null;
   }
   return {
@@ -546,20 +627,18 @@ export async function pageServerGameStateFullState(
  */
 export async function syncPlayerProgressGameState(
   userId: string,
-  gameState: unknown
+  gameState: unknown,
 ): Promise<void> {
   const supabase = createServiceRoleClient();
   if (!supabase) return;
 
-  await supabase
-    .from('player_progress')
-    .upsert(
-      {
-        user_id: userId,
-        game_state: gameState as never,
-      },
-      { onConflict: 'user_id' }
-    );
+  await supabase.from("player_progress").upsert(
+    {
+      user_id: userId,
+      game_state: gameState as never,
+    },
+    { onConflict: "user_id" },
+  );
 }
 
 /**
@@ -571,15 +650,15 @@ export async function syncPlayerProgressGameState(
  * module in Iteration 9.
  */
 export async function loadPlayerProgressGameState(
-  userId: string
+  userId: string,
 ): Promise<Record<string, unknown> | null> {
   const supabase = createServiceRoleClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
-    .from('player_progress')
-    .select('game_state')
-    .eq('user_id', userId)
+    .from("player_progress")
+    .select("game_state")
+    .eq("user_id", userId)
     .single();
 
   if (error || !data?.game_state) return null;
@@ -599,17 +678,17 @@ export async function loadPlayerProgressGameState(
 export async function saveServerGameStateOptimistic(
   userId: string,
   expectedStateVersion: number,
-  patch: ServerGameStateUpdate
+  patch: ServerGameStateUpdate,
 ): Promise<ServerGameStateRow | null> {
   const supabase = createServiceRoleClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
-    .from('server_game_state')
+    .from("server_game_state")
     .update(patch)
-    .eq('user_id', userId)
-    .eq('state_version', expectedStateVersion)
-    .select('*')
+    .eq("user_id", userId)
+    .eq("state_version", expectedStateVersion)
+    .select("*")
     .single();
 
   if (error || !data) return null;
@@ -622,19 +701,19 @@ export async function saveServerGameStateOptimistic(
  */
 async function lockServerGameState(
   userId: string,
-  reason: string
+  reason: string,
 ): Promise<boolean> {
   const supabase = createServiceRoleClient();
   if (!supabase) return false;
 
   const { error } = await supabase
-    .from('server_game_state')
+    .from("server_game_state")
     .update({
       is_locked: true,
       lock_reason: reason,
       updated_at: new Date().toISOString(),
     })
-    .eq('user_id', userId);
+    .eq("user_id", userId);
 
   return !error;
 }
@@ -647,13 +726,13 @@ async function unlockServerGameState(userId: string): Promise<boolean> {
   if (!supabase) return false;
 
   const { error } = await supabase
-    .from('server_game_state')
+    .from("server_game_state")
     .update({
       is_locked: false,
       lock_reason: null,
       updated_at: new Date().toISOString(),
     })
-    .eq('user_id', userId);
+    .eq("user_id", userId);
 
   return !error;
 }
@@ -662,7 +741,7 @@ async function unlockServerGameState(userId: string): Promise<boolean> {
 // ============================================
 
 const ADMIN_PLAYER_COLUMNS =
-  'user_id, money, total_money_earned, research_points, game_tick, game_speed, buildings_count, cheat_flag_count, is_locked, lock_reason, last_saved_at, created_at';
+  "user_id, money, total_money_earned, research_points, game_tick, game_speed, buildings_count, cheat_flag_count, is_locked, lock_reason, last_saved_at, created_at";
 
 export interface AdminPlayerRow {
   user_id: string;
@@ -705,15 +784,15 @@ export async function listPlayersForAdmin(
   const to = from + limit - 1;
 
   let query = supabase
-    .from('server_game_state')
-    .select(ADMIN_PLAYER_COLUMNS, { count: 'exact' })
+    .from("server_game_state")
+    .select(ADMIN_PLAYER_COLUMNS, { count: "exact" })
     .range(from, to)
-    .order('created_at', { ascending: false });
+    .order("created_at", { ascending: false });
 
   if (filters.userIdFilter && filters.userIdFilter.length > 0) {
-    query = query.in('user_id', filters.userIdFilter);
+    query = query.in("user_id", filters.userIdFilter);
   } else if (filters.excludeUuid) {
-    query = query.eq('user_id', filters.excludeUuid);
+    query = query.eq("user_id", filters.excludeUuid);
   }
 
   const { data, count, error } = await query;
@@ -731,9 +810,9 @@ export async function loadPlayersByIds(
   const supabase = createServiceRoleClient();
   if (!supabase) return [];
   const { data } = await supabase
-    .from('server_game_state')
+    .from("server_game_state")
     .select(ADMIN_PLAYER_COLUMNS)
-    .in('user_id', userIds);
+    .in("user_id", userIds);
   return (data ?? []) as AdminPlayerRow[];
 }
 
@@ -752,12 +831,15 @@ export async function sumMoneyAcrossAllPlayers(): Promise<{
   const supabase = createServiceRoleClient();
   if (!supabase) return { totalMoney: 0, totalEarned: 0, playerCount: 0 };
   const { data } = await supabase
-    .from('server_game_state')
-    .select('money, total_money_earned');
+    .from("server_game_state")
+    .select("money, total_money_earned");
   const rows = data ?? [];
   return {
     totalMoney: rows.reduce((s, r) => s + (Number(r.money) || 0), 0),
-    totalEarned: rows.reduce((s, r) => s + (Number(r.total_money_earned) || 0), 0),
+    totalEarned: rows.reduce(
+      (s, r) => s + (Number(r.total_money_earned) || 0),
+      0,
+    ),
     playerCount: rows.length,
   };
 }
@@ -766,9 +848,9 @@ export async function topEarners(limit: number): Promise<AdminPlayerRow[]> {
   const supabase = createServiceRoleClient();
   if (!supabase) return [];
   const { data } = await supabase
-    .from('server_game_state')
+    .from("server_game_state")
     .select(ADMIN_PLAYER_COLUMNS)
-    .order('total_money_earned', { ascending: false })
+    .order("total_money_earned", { ascending: false })
     .limit(limit);
   return (data ?? []) as AdminPlayerRow[];
 }
@@ -777,8 +859,8 @@ export async function countPlayersTotal(): Promise<number> {
   const supabase = createServiceRoleClient();
   if (!supabase) return 0;
   const { count } = await supabase
-    .from('server_game_state')
-    .select('user_id', { count: 'exact', head: true });
+    .from("server_game_state")
+    .select("user_id", { count: "exact", head: true });
   return count ?? 0;
 }
 
@@ -786,19 +868,21 @@ export async function countLockedPlayers(): Promise<number> {
   const supabase = createServiceRoleClient();
   if (!supabase) return 0;
   const { count } = await supabase
-    .from('server_game_state')
-    .select('user_id', { count: 'exact', head: true })
-    .eq('is_locked', true);
+    .from("server_game_state")
+    .select("user_id", { count: "exact", head: true })
+    .eq("is_locked", true);
   return count ?? 0;
 }
 
-export async function countActivePlayersSince(sinceISO: string): Promise<number> {
+export async function countActivePlayersSince(
+  sinceISO: string,
+): Promise<number> {
   const supabase = createServiceRoleClient();
   if (!supabase) return 0;
   const { count } = await supabase
-    .from('server_game_state')
-    .select('user_id', { count: 'exact', head: true })
-    .gte('last_saved_at', sinceISO);
+    .from("server_game_state")
+    .select("user_id", { count: "exact", head: true })
+    .gte("last_saved_at", sinceISO);
   return count ?? 0;
 }
 // ============================================
@@ -818,13 +902,13 @@ export async function setPlayerLockStateBulk(
   let failCount = 0;
   for (const userId of userIds) {
     const { error } = await supabase
-      .from('server_game_state')
+      .from("server_game_state")
       .update({
         is_locked: isLocked,
         lock_reason: isLocked ? lockReason : null,
         updated_at: new Date().toISOString(),
       })
-      .eq('user_id', userId);
+      .eq("user_id", userId);
     if (!error) successCount++;
     else failCount++;
   }

@@ -99,7 +99,23 @@ export async function submitActionToServer(
     const data = await res.json();
 
     if (data.valid) {
-      return { valid: true, correctedState: data.correctedState };
+      // Server may return a server-authoritative post-action `correctedState`.
+      // Surface it to callers so they can apply exactly what the server
+      // persisted, instead of computing cost/deductions locally.
+      const serverCorrected =
+        typeof data.correctedState === "object" && data.correctedState !== null
+          ? (data.correctedState as Record<string, unknown>)
+          : undefined;
+      return {
+        valid: true,
+        correctedState: serverCorrected as
+          | {
+              money?: number;
+              buildings?: unknown[];
+              resources?: Record<string, number>;
+            }
+          | undefined,
+      };
     }
 
     // Action rejected by server
@@ -209,7 +225,10 @@ export async function validateImportSave(
     });
 
     if (res.status === 400) {
-      const data = (await res.json()) as { error?: string; violations?: string[] };
+      const data = (await res.json()) as {
+        error?: string;
+        violations?: string[];
+      };
       return {
         valid: false,
         error: data.error || "Import validation failed",

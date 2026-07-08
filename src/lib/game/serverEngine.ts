@@ -14,7 +14,7 @@ import {
   WeatherType,
   ResourceAmount,
   CostResourceType,
-} from './types';
+} from "./types";
 import {
   MultiplierCache,
   BuildResult,
@@ -29,13 +29,13 @@ import {
   computeSellMultiplier,
   computePayout,
   computeEndgameIncome,
-} from './productionCalculator';
-import { GameConfig } from './config';
+} from "./productionCalculator";
+import { GameConfig } from "./config";
 import {
   ModifierRegistry,
   ModifierEngine,
   buildModifierRegistry,
-} from './modifierEngine';
+} from "./modifierEngine";
 
 // ─── Server-Side Config Accessors ────────────────────────────────────────
 
@@ -55,7 +55,7 @@ function getBuildingDef(
  * Since the config stores workers as an array, we build a lookup map.
  */
 function buildWorkerDefsMap(
-  workers: GameConfig['workers'],
+  workers: GameConfig["workers"],
 ): Record<string, WorkerDefinition> {
   const result: Record<string, WorkerDefinition> = {};
   for (const w of workers) {
@@ -65,7 +65,7 @@ function buildWorkerDefsMap(
       maintenance: number;
     };
     result[w.id] = {
-      type: w.id as Worker['type'],
+      type: w.id as Worker["type"],
       name: w.name,
       description: w.description,
       baseHireCost: w.baseHireCost,
@@ -91,19 +91,26 @@ export function buildMultipliersServer(
   // ── Build modifier registry from Supabase config ──────────────────────
   // Transform config.research effects (Record<string,unknown>[]) to the
   // format expected by buildModifierRegistry (Array<{type,target?,value}>)
-  const researchTree = config.research.map(r => ({
+  const researchTree = config.research.map((r) => ({
     id: r.id,
-    effects: (r.effects ?? []) as Array<{ type: string; target?: string; value: number }>,
+    effects: (r.effects ?? []) as Array<{
+      type: string;
+      target?: string;
+      value: number;
+    }>,
   }));
 
   // config.weather is a superset of what buildModifierRegistry expects —
   // it has extra name/icon/description fields. Build a compatible weather
   // defs record with only the multiplier fields.
-  const weatherDefs: Record<string, {
-    productionMultiplier: number;
-    solarMultiplier: number;
-    windMultiplier: number;
-  }> = {};
+  const weatherDefs: Record<
+    string,
+    {
+      productionMultiplier: number;
+      solarMultiplier: number;
+      windMultiplier: number;
+    }
+  > = {};
   for (const [key, w] of Object.entries(config.weather)) {
     weatherDefs[key] = {
       productionMultiplier: w.productionMultiplier,
@@ -123,7 +130,7 @@ export function buildMultipliersServer(
 
   for (const event of state.activeEvents) {
     for (const effect of event.effects) {
-      if (effect.type === 'productionMultiplier') {
+      if (effect.type === "productionMultiplier") {
         if (effect.target) {
           const existing = eventProductionTargeted.get(effect.target) ?? 1;
           eventProductionTargeted.set(effect.target, existing * effect.value);
@@ -131,56 +138,77 @@ export function buildMultipliersServer(
           eventProductionGlobal *= effect.value;
         }
       }
-      if (effect.type === 'researchSpeed') eventResearch *= effect.value;
-      if (effect.type === 'powerMultiplier') eventPowerConsumption *= effect.value;
+      if (effect.type === "researchSpeed") eventResearch *= effect.value;
+      if (effect.type === "powerMultiplier")
+        eventPowerConsumption *= effect.value;
     }
   }
 
   // ── Weather multipliers from modifier engine ──────────────────────────
-  const weatherProduction = modifierEngine.resolve('weather.production', 1);
-  const weatherSolar = modifierEngine.resolve('weather.solar', 1);
-  const weatherWind = modifierEngine.resolve('weather.wind', 1);
+  const weatherProduction = modifierEngine.resolve("weather.production", 1);
+  const weatherSolar = modifierEngine.resolve("weather.solar", 1);
+  const weatherWind = modifierEngine.resolve("weather.wind", 1);
 
   // ── Category bonuses from modifier engine ─────────────────────────────
   // extractorBonus = research (basicAutomation, advancedDrilling) + mega (extractionMultiplier)
-  const extractorBonus = modifierEngine.resolve('production.extractor', 1) - 1;
-  const factoryBonus = modifierEngine.resolve('production.factory', 1) - 1;
-  const t1FactoryBonus = modifierEngine.resolve('production.factory.t1', 1) - 1;
-  const t2FactoryBonus = modifierEngine.resolve('production.factory.t2', 1) - 1;
-  const t3FactoryBonus = modifierEngine.resolve('production.factory.t3', 1) - 1;
+  const extractorBonus = modifierEngine.resolve("production.extractor", 1) - 1;
+  const factoryBonus = modifierEngine.resolve("production.factory", 1) - 1;
+  const t1FactoryBonus = modifierEngine.resolve("production.factory.t1", 1) - 1;
+  const t2FactoryBonus = modifierEngine.resolve("production.factory.t2", 1) - 1;
+  const t3FactoryBonus = modifierEngine.resolve("production.factory.t3", 1) - 1;
 
   // ── Prestige + mega bonuses from modifier engine ──────────────────────
-  const productionBonus = modifierEngine.resolve('production.payout', 1) - 1;
-  const powerBonus = modifierEngine.resolve('power.production', 1) - 1;
-  const researchBonus = modifierEngine.resolve('research.speed', 1) - 1;
-  const workerEfficiencyTotal = modifierEngine.resolve('worker.efficiency', 1) - 1;
-  const marketBonus = modifierEngine.resolve('market.sellPrice', 1) - 1;
+  const productionBonus = modifierEngine.resolve("production.payout", 1) - 1;
+  const powerBonus = modifierEngine.resolve("power.production", 1) - 1;
+  const researchBonus = modifierEngine.resolve("research.speed", 1) - 1;
+  const workerEfficiencyTotal =
+    modifierEngine.resolve("worker.efficiency", 1) - 1;
+  const marketBonus = modifierEngine.resolve("market.sellPrice", 1) - 1;
 
   // ── Source-specific breakdowns (needed by cache consumers) ────────────
   // extractionBonus = mega-only portion of production.extractor (kept for endgame)
-  const megaExtractionMods = registry.getModifiers('production.extractor')
-    .filter(m => m.source === 'megaProject');
-  const extractionBonus = megaExtractionMods.reduce((sum, m) => sum + (m.value - 1), 0);
+  const megaExtractionMods = registry
+    .getModifiers("production.extractor")
+    .filter((m) => m.source === "megaProject");
+  const extractionBonus = megaExtractionMods.reduce(
+    (sum, m) => sum + (m.value - 1),
+    0,
+  );
 
   // transportMegaBonus = mega-only portion of transport.throughput
-  const megaTransportMods = registry.getModifiers('transport.throughput')
-    .filter(m => m.source === 'megaProject');
-  const transportMegaBonus = megaTransportMods.reduce((sum, m) => sum + (m.value - 1), 0);
+  const megaTransportMods = registry
+    .getModifiers("transport.throughput")
+    .filter((m) => m.source === "megaProject");
+  const transportMegaBonus = megaTransportMods.reduce(
+    (sum, m) => sum + (m.value - 1),
+    0,
+  );
 
   // ── Transport efficiency ──────────────────────────────────────────────
-  const transportMultiplier = modifierEngine.resolveMultiplier('transport.throughput');
+  const transportMultiplier = modifierEngine.resolveMultiplier(
+    "transport.throughput",
+  );
   const transportThroughputBonus = transportMultiplier - 1;
-  const transportEfficiency = state.transportLines.length > 0
-    ? (state.transportLines.filter(t => t.active).length / Math.max(1, state.transportLines.length)) * transportMultiplier
-    : 1;
-  const transportProductionBonus = 1 + 0.25 * Math.max(0, transportEfficiency - 1);
+  const transportEfficiency =
+    state.transportLines.length > 0
+      ? (state.transportLines.filter((t) => t.active).length /
+          Math.max(1, state.transportLines.length)) *
+        transportMultiplier
+      : 1;
+  const transportProductionBonus =
+    1 + 0.25 * Math.max(0, transportEfficiency - 1);
 
   // ── Research flags via modifier engine ────────────────────────────────
-  const hasMarketAnalysis = modifierEngine.hasModifier('market.sellPrice', 'research');
-  const hasEnergyEfficiency = registry.getModifiers('power.consumption')
-    .some(m => m.source === 'research' && m.sourceId === 'energyEfficiency');
-  const hasPowerOptimization = registry.getModifiers('power.consumption')
-    .some(m => m.source === 'research' && m.sourceId === 'powerOptimization');
+  const hasMarketAnalysis = modifierEngine.hasModifier(
+    "market.sellPrice",
+    "research",
+  );
+  const hasEnergyEfficiency = registry
+    .getModifiers("power.consumption")
+    .some((m) => m.source === "research" && m.sourceId === "energyEfficiency");
+  const hasPowerOptimization = registry
+    .getModifiers("power.consumption")
+    .some((m) => m.source === "research" && m.sourceId === "powerOptimization");
 
   // ── Workers lookup ────────────────────────────────────────────────────
   const workersByBuilding = new Map<string, Worker[]>();
@@ -196,8 +224,12 @@ export function buildMultipliersServer(
   // Replaces hardcoded specificBuildingBonuses map
   const specificBuildingBonuses = new Map<string, number>();
   for (const mod of registry.getAll()) {
-    if (mod.target.startsWith('production.building.') && mod.operation === 'multiply') {
-      const buildingType = mod.subTarget ?? mod.target.replace('production.building.', '');
+    if (
+      mod.target.startsWith("production.building.") &&
+      mod.operation === "multiply"
+    ) {
+      const buildingType =
+        mod.subTarget ?? mod.target.replace("production.building.", "");
       const existing = specificBuildingBonuses.get(buildingType) ?? 0;
       specificBuildingBonuses.set(buildingType, existing + (mod.value - 1));
     }
@@ -205,7 +237,10 @@ export function buildMultipliersServer(
 
   return {
     modifierEngine,
-    gameDefs: { buildings: config.buildings, workers: workerDefsMap } as GameDefs,
+    gameDefs: {
+      buildings: config.buildings,
+      workers: workerDefsMap,
+    } as GameDefs,
     eventProductionGlobal,
     eventProductionTargeted,
     eventPowerConsumption,
@@ -226,19 +261,20 @@ export function buildMultipliersServer(
     researchBonus,
     extractionBonus,
     workerEfficiencyTotal,
-    workerEfficiencyResearchBonus: registry.getModifiers('worker.efficiency')
-      .filter(m => m.source === 'research')
+    workerEfficiencyResearchBonus: registry
+      .getModifiers("worker.efficiency")
+      .filter((m) => m.source === "research")
       .reduce((sum, m) => sum + (m.value - 1), 0),
     transportMegaBonus,
     marketBonus,
-    storageCapacityBonus: modifierEngine.resolve('storage.capacity', 1) - 1,
+    storageCapacityBonus: modifierEngine.resolve("storage.capacity", 1) - 1,
     transportThroughputBonus,
     hasMarketAnalysis,
     hasEnergyEfficiency,
     hasPowerOptimization,
     workersByBuilding,
     megaFactoryUnlocked: state.prestigeState.megaFactoryUnlocked,
-    _source: 'modifierEngine' as const,
+    _source: "modifierEngine" as const,
   };
 }
 
@@ -252,7 +288,10 @@ export function computePowerGridServer(
   buildings: Record<string, BuildingDefinition>,
   workerDefs: Record<string, WorkerDefinition>,
 ): PowerResult {
-  return computePowerGrid(state, cache, resources, currentTick, { buildings, workers: workerDefs });
+  return computePowerGrid(state, cache, resources, currentTick, {
+    buildings,
+    workers: workerDefs,
+  });
 }
 
 // ─── Production (Server Version — delegates to shared productionCalculator) ──
@@ -264,7 +303,10 @@ export function computeProductionServer(
   buildings: Record<string, BuildingDefinition>,
   workerDefs: Record<string, WorkerDefinition>,
 ): BuildResult {
-  return computeProduction(building, cache, availableResources, { buildings, workers: workerDefs });
+  return computeProduction(building, cache, availableResources, {
+    buildings,
+    workers: workerDefs,
+  });
 }
 
 // ─── Sell Multiplier (Server Version — delegates to shared productionCalculator) ──
@@ -313,7 +355,12 @@ export function buildProductionSnapshotServer(
   // Compute power grid first (sets powerEfficiency in cache)
   const resourcesCopy = { ...state.resources };
   const powerResult = computePowerGridServer(
-    state, cache, resourcesCopy, state.gameTick, buildings, workerDefs,
+    state,
+    cache,
+    resourcesCopy,
+    state.gameTick,
+    buildings,
+    workerDefs,
   );
 
   // Update cache with actual power efficiency
@@ -327,7 +374,11 @@ export function buildProductionSnapshotServer(
   // Compute per-building production
   for (const building of state.buildings) {
     const result = computeProductionServer(
-      building, cache, resourcesCopy, buildings, workerDefs,
+      building,
+      cache,
+      resourcesCopy,
+      buildings,
+      workerDefs,
     );
 
     snapshot.buildings[building.id] = {
@@ -338,13 +389,16 @@ export function buildProductionSnapshotServer(
 
     // Aggregate resource totals
     for (const output of result.outputs) {
-      snapshot.production[output.resource] = (snapshot.production[output.resource] ?? 0) + output.amount;
+      snapshot.production[output.resource] =
+        (snapshot.production[output.resource] ?? 0) + output.amount;
     }
     for (const input of result.inputs) {
-      snapshot.consumption[input.resource] = (snapshot.consumption[input.resource] ?? 0) + input.amount;
+      snapshot.consumption[input.resource] =
+        (snapshot.consumption[input.resource] ?? 0) + input.amount;
     }
     for (const input of result.actualInputs) {
-      snapshot.actualConsumption[input.resource] = (snapshot.actualConsumption[input.resource] ?? 0) + input.amount;
+      snapshot.actualConsumption[input.resource] =
+        (snapshot.actualConsumption[input.resource] ?? 0) + input.amount;
     }
   }
 
@@ -404,7 +458,12 @@ export function runServerTicks(
     // Compute power grid
     const resourcesCopy = { ...state.resources };
     const powerResult = computePowerGridServer(
-      state, cache, resourcesCopy, state.gameTick, buildings, workerDefs,
+      state,
+      cache,
+      resourcesCopy,
+      state.gameTick,
+      buildings,
+      workerDefs,
     );
 
     cache.powerEfficiency = powerResult.efficiency;
@@ -415,9 +474,9 @@ export function runServerTicks(
       totalConsumption: powerResult.totalConsumption,
       efficiency: powerResult.efficiency,
       overload: powerResult.overload,
-      plants: state.buildings.filter(b => {
+      plants: state.buildings.filter((b) => {
         const def = getBuildingDef(b.type, buildings);
-        return def?.category === 'power';
+        return def?.category === "power";
       }),
     };
 
@@ -434,7 +493,11 @@ export function runServerTicks(
     // Compute per-building production
     for (const building of state.buildings) {
       const result = computeProductionServer(
-        building, cache, state.resources, buildings, workerDefs,
+        building,
+        cache,
+        state.resources,
+        buildings,
+        workerDefs,
       );
 
       if (!result.canProduce) continue;
@@ -448,11 +511,14 @@ export function runServerTicks(
 
       // Produce outputs
       for (const output of result.outputs) {
-        if (output.resource === 'money') {
+        if (output.resource === "money") {
           state.money += output.amount;
           state.totalMoneyEarned += output.amount;
-        } else if (state.resources[output.resource as ResourceType] !== undefined) {
-          const capacity = state.resourceCapacity[output.resource as ResourceType] ?? Infinity;
+        } else if (
+          state.resources[output.resource as ResourceType] !== undefined
+        ) {
+          const capacity =
+            state.resourceCapacity[output.resource as ResourceType] ?? Infinity;
           state.resources[output.resource as ResourceType] = Math.min(
             capacity,
             state.resources[output.resource as ResourceType] + output.amount,
@@ -472,8 +538,16 @@ export function runServerTicks(
     state.weather.remaining -= 1;
     if (state.weather.remaining <= 0) {
       state.weather.remaining = 100 + Math.floor(Math.random() * 200);
-      const weatherTypes: WeatherType[] = ['clear', 'rainy', 'stormy', 'sunny', 'foggy', 'snowy'];
-      state.weather.current = weatherTypes[Math.floor(Math.random() * weatherTypes.length)];
+      const weatherTypes: WeatherType[] = [
+        "clear",
+        "rainy",
+        "stormy",
+        "sunny",
+        "foggy",
+        "snowy",
+      ];
+      state.weather.current =
+        weatherTypes[Math.floor(Math.random() * weatherTypes.length)];
       state.weather.intensity = 0.3 + Math.random() * 0.7;
     }
   }
@@ -488,22 +562,39 @@ export function runServerTicks(
 
 /**
  * Validate a 'build' action.
+ *
+ * Server-authoritative: this returns the **authoritative post-action state**
+ * in `correctedState` so the client can apply exactly what the server computes
+ * (cost, deduction, new building). The previous design only checked affordability
+ * but left cost calculation to the client — if client and server disagreed on
+ * cost (e.g., race condition, scaled cost formula mismatch), the client's local
+ * money deduction would diverge from the server's persisted value.
  */
 export function validateBuildAction(
   buildingType: string,
   state: Partial<GameState>,
   config: GameConfig,
-): { valid: boolean; error?: string; correctedState?: Partial<GameState> } {
+): {
+  valid: boolean;
+  error?: string;
+  correctedState?: Partial<GameState>;
+} {
   const buildingDef = config.buildings[buildingType];
   if (!buildingDef) {
-    return { valid: false, error: `Building type "${buildingType}" not found in game config` };
+    return {
+      valid: false,
+      error: `Building type "${buildingType}" not found in game config`,
+    };
   }
 
   // Check research unlock
   if (buildingDef.unlockRequirement?.research) {
     const completedResearch = state.completedResearch ?? [];
     if (!completedResearch.includes(buildingDef.unlockRequirement.research)) {
-      return { valid: false, error: `Research "${buildingDef.unlockRequirement.research}" required to build ${buildingDef.name}` };
+      return {
+        valid: false,
+        error: `Research "${buildingDef.unlockRequirement.research}" required to build ${buildingDef.name}`,
+      };
     }
   }
 
@@ -511,27 +602,107 @@ export function validateBuildAction(
   if (buildingDef.unlockRequirement?.prestige) {
     const totalPrestiges = state.prestigeState?.totalPrestiges ?? 0;
     if (totalPrestiges < buildingDef.unlockRequirement.prestige) {
-      return { valid: false, error: `Prestige level ${buildingDef.unlockRequirement.prestige} required to build ${buildingDef.name}` };
+      return {
+        valid: false,
+        error: `Prestige level ${buildingDef.unlockRequirement.prestige} required to build ${buildingDef.name}`,
+      };
     }
   }
 
-  // Check if can afford
+  // Compute authoritative scaled cost (base * costMultiplier ^ currentCount).
+  // The mega-project cost reduction is also applied server-side so the
+  // server-returned state is fully consistent.
+  const existingBuildings = (state.buildings ?? []).filter(
+    (b) => b.type === buildingType,
+  );
+  const currentCount = existingBuildings.length;
+
+  const megaBuildingCostReduction =
+    state.megaProjects?.find(
+      (p) => p.completed && p.bonus?.type === "buildingCostReduction",
+    )?.bonus?.value ?? 0;
+
+  const scaledCosts = buildingDef.baseCost.map((c) => {
+    if (c.resource === "money") {
+      const scaled = Math.floor(
+        c.amount * Math.pow(buildingDef.costMultiplier, currentCount),
+      );
+      return {
+        resource: c.resource,
+        amount: Math.max(
+          1,
+          Math.floor(scaled * (1 - megaBuildingCostReduction)),
+        ),
+      };
+    }
+    return {
+      resource: c.resource,
+      amount: Math.ceil(
+        c.amount * Math.pow(buildingDef.costMultiplier, currentCount),
+      ),
+    };
+  });
+
+  // Affordability check uses the scaled cost (not base cost).
   const money = state.money ?? 0;
   const resources = state.resources ?? {};
-  for (const cost of buildingDef.baseCost) {
-    if (cost.resource === 'money') {
+  for (const cost of scaledCosts) {
+    if (cost.resource === "money") {
       if (money < cost.amount) {
-        return { valid: false, error: `Not enough money. Need $${cost.amount}, have $${Math.floor(money)}` };
+        return {
+          valid: false,
+          error: `Not enough money. Need $${cost.amount}, have $${Math.floor(money)}`,
+        };
       }
     } else {
       const available = resources[cost.resource as ResourceType] ?? 0;
       if (available < cost.amount) {
-        return { valid: false, error: `Not enough ${cost.resource}. Need ${cost.amount}, have ${Math.floor(available)}` };
+        return {
+          valid: false,
+          error: `Not enough ${cost.resource}. Need ${cost.amount}, have ${Math.floor(available)}`,
+        };
       }
     }
   }
 
-  return { valid: true };
+  // Authoritative post-action state. Caller (route handler) is responsible for
+  // persisting this to server_game_state and returning `correctedState` to the
+  // client.
+  const newBuilding = {
+    id:
+      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `bld_${Date.now()}_${Math.floor(Math.random() * 1e6)}`,
+    type: buildingType,
+    level: 1,
+    active: true,
+    efficiency: 1,
+    placedAt: Number(state.gameTick) || 0,
+  } as const;
+
+  const nextBuildings = [...(state.buildings ?? []), newBuilding];
+
+  // Deduct the scaled costs from money/resources.
+  const nextMoney =
+    money - (scaledCosts.find((c) => c.resource === "money")?.amount ?? 0);
+  const nextResources = { ...(resources ?? {}) };
+  for (const c of scaledCosts) {
+    if (c.resource !== "money") {
+      const current = nextResources[c.resource as ResourceType] ?? 0;
+      nextResources[c.resource as ResourceType] = current - c.amount;
+    }
+  }
+
+  return {
+    valid: true,
+    correctedState: {
+      buildings: nextBuildings as unknown as BuildingInstance[],
+      money: nextMoney,
+      resources: nextResources as unknown as Record<ResourceType, number>,
+      // totalMoneyEarned is NOT changed by a build action — building costs are
+      // expenses, not earnings.
+    },
+  };
 }
 
 /**
@@ -545,14 +716,20 @@ export function validateSellAction(
   const resources = state.resources ?? {};
   const available = resources[resource as ResourceType] ?? 0;
   if (available < amount) {
-    return { valid: false, error: `Not enough ${resource} to sell. Have ${Math.floor(available)}, want to sell ${amount}` };
+    return {
+      valid: false,
+      error: `Not enough ${resource} to sell. Have ${Math.floor(available)}, want to sell ${amount}`,
+    };
   }
 
   // Check market exists
   const market = state.market ?? [];
-  const marketEntry = market.find(m => m.resource === resource);
+  const marketEntry = market.find((m) => m.resource === resource);
   if (!marketEntry) {
-    return { valid: false, error: `No market found for resource "${resource}"` };
+    return {
+      valid: false,
+      error: `No market found for resource "${resource}"`,
+    };
   }
 
   return { valid: true };
@@ -567,15 +744,21 @@ export function validateBuyAction(
   state: Partial<GameState>,
 ): { valid: boolean; error?: string } {
   const market = state.market ?? [];
-  const marketEntry = market.find(m => m.resource === resource);
+  const marketEntry = market.find((m) => m.resource === resource);
   if (!marketEntry) {
-    return { valid: false, error: `No market found for resource "${resource}"` };
+    return {
+      valid: false,
+      error: `No market found for resource "${resource}"`,
+    };
   }
 
   const totalCost = marketEntry.currentPrice * amount;
   const money = state.money ?? 0;
   if (money < totalCost) {
-    return { valid: false, error: `Not enough money. Need $${Math.floor(totalCost)}, have $${Math.floor(money)}` };
+    return {
+      valid: false,
+      error: `Not enough money. Need $${Math.floor(totalCost)}, have $${Math.floor(money)}`,
+    };
   }
 
   return { valid: true };
@@ -589,33 +772,48 @@ export function validateResearchAction(
   state: Partial<GameState>,
   config: GameConfig,
 ): { valid: boolean; error?: string } {
-  const researchDef = config.research.find(r => r.id === researchId);
+  const researchDef = config.research.find((r) => r.id === researchId);
   if (!researchDef) {
-    return { valid: false, error: `Research "${researchId}" not found in game config` };
+    return {
+      valid: false,
+      error: `Research "${researchId}" not found in game config`,
+    };
   }
 
   // Check prerequisites
   const completedResearch = state.completedResearch ?? [];
   for (const prereq of researchDef.prerequisites) {
     if (!completedResearch.includes(prereq)) {
-      return { valid: false, error: `Prerequisite research "${prereq}" not completed` };
+      return {
+        valid: false,
+        error: `Prerequisite research "${prereq}" not completed`,
+      };
     }
   }
 
   // Check if already completed
   if (completedResearch.includes(researchId)) {
-    return { valid: false, error: `Research "${researchId}" already completed` };
+    return {
+      valid: false,
+      error: `Research "${researchId}" already completed`,
+    };
   }
 
   // Check if already researching
   if (state.activeResearch === researchId) {
-    return { valid: false, error: `Research "${researchId}" is already in progress` };
+    return {
+      valid: false,
+      error: `Research "${researchId}" is already in progress`,
+    };
   }
 
   // Check cost
   const researchPoints = state.researchPoints ?? 0;
   if (researchPoints < researchDef.cost) {
-    return { valid: false, error: `Not enough research points. Need ${researchDef.cost}, have ${Math.floor(researchPoints)}` };
+    return {
+      valid: false,
+      error: `Not enough research points. Need ${researchDef.cost}, have ${Math.floor(researchPoints)}`,
+    };
   }
 
   return { valid: true };
@@ -630,34 +828,48 @@ export function validateUpgradeAction(
   config: GameConfig,
 ): { valid: boolean; error?: string } {
   const buildings = state.buildings ?? [];
-  const building = buildings.find(b => b.id === buildingId);
+  const building = buildings.find((b) => b.id === buildingId);
   if (!building) {
-    return { valid: false, error: `Building instance "${buildingId}" not found` };
+    return {
+      valid: false,
+      error: `Building instance "${buildingId}" not found`,
+    };
   }
 
   const buildingDef = config.buildings[building.type];
   if (!buildingDef) {
-    return { valid: false, error: `Building type "${building.type}" not found in game config` };
+    return {
+      valid: false,
+      error: `Building type "${building.type}" not found in game config`,
+    };
   }
 
   // Calculate upgrade cost (base cost * costMultiplier^currentLevel)
-  const upgradeCost = buildingDef.baseCost.map(cost => ({
+  const upgradeCost = buildingDef.baseCost.map((cost) => ({
     resource: cost.resource,
-    amount: Math.ceil(cost.amount * Math.pow(buildingDef.costMultiplier, building.level)),
+    amount: Math.ceil(
+      cost.amount * Math.pow(buildingDef.costMultiplier, building.level),
+    ),
   }));
 
   // Check affordability
   const money = state.money ?? 0;
   const resources = state.resources ?? {};
   for (const cost of upgradeCost) {
-    if (cost.resource === 'money') {
+    if (cost.resource === "money") {
       if (money < cost.amount) {
-        return { valid: false, error: `Not enough money for upgrade. Need $${cost.amount}, have $${Math.floor(money)}` };
+        return {
+          valid: false,
+          error: `Not enough money for upgrade. Need $${cost.amount}, have $${Math.floor(money)}`,
+        };
       }
     } else {
       const available = resources[cost.resource as ResourceType] ?? 0;
       if (available < cost.amount) {
-        return { valid: false, error: `Not enough ${cost.resource} for upgrade. Need ${cost.amount}, have ${Math.floor(available)}` };
+        return {
+          valid: false,
+          error: `Not enough ${cost.resource} for upgrade. Need ${cost.amount}, have ${Math.floor(available)}`,
+        };
       }
     }
   }
@@ -677,31 +889,45 @@ export function validateTransportAction(
 ): { valid: boolean; error?: string } {
   const buildings = state.buildings ?? [];
 
-  const fromBuilding = buildings.find(b => b.id === fromBuildingId);
+  const fromBuilding = buildings.find((b) => b.id === fromBuildingId);
   if (!fromBuilding) {
-    return { valid: false, error: `Source building "${fromBuildingId}" not found` };
+    return {
+      valid: false,
+      error: `Source building "${fromBuildingId}" not found`,
+    };
   }
 
-  const toBuilding = buildings.find(b => b.id === toBuildingId);
+  const toBuilding = buildings.find((b) => b.id === toBuildingId);
   if (!toBuilding) {
-    return { valid: false, error: `Destination building "${toBuildingId}" not found` };
+    return {
+      valid: false,
+      error: `Destination building "${toBuildingId}" not found`,
+    };
   }
 
   // Verify buildings exist in config
   const fromDef = config.buildings[fromBuilding.type];
   if (!fromDef) {
-    return { valid: false, error: `Source building type "${fromBuilding.type}" not found in config` };
+    return {
+      valid: false,
+      error: `Source building type "${fromBuilding.type}" not found in config`,
+    };
   }
 
   const toDef = config.buildings[toBuilding.type];
   if (!toDef) {
-    return { valid: false, error: `Destination building type "${toBuilding.type}" not found in config` };
+    return {
+      valid: false,
+      error: `Destination building type "${toBuilding.type}" not found in config`,
+    };
   }
 
   // Check that from building produces the resource or to building consumes it
   // This is a soft check - we verify the chain exists in productionChains
   const chainExists = config.productionChains.some(
-    c => c.upstreamBuilding === fromBuilding.type && c.downstreamBuilding === toBuilding.type,
+    (c) =>
+      c.upstreamBuilding === fromBuilding.type &&
+      c.downstreamBuilding === toBuilding.type,
   );
 
   if (!chainExists) {

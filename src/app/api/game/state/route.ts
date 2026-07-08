@@ -211,7 +211,7 @@ export async function POST(request: Request) {
   const previousState = currentServerState?.full_state as Record<string, unknown> | null;
 
   // Validate the incoming state
-  const validation = validateGameState(gameState, previousState || undefined);
+  const validation = await validateGameState(gameState, previousState || undefined);
 
   if (validation.riskLevel === 'critical' || validation.riskLevel === 'high') {
     // Admin bypass: skip cheat flagging and allow save even with violations

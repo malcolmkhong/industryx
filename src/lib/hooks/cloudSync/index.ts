@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * Cloud sync hook — Phase 5 passive facade.
@@ -14,14 +14,21 @@
  *   - auto-save driven by orchestrator, not this hook.
  */
 
-import { useEffect, useMemo, useState, useSyncExternalStore, useContext, createContext } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  useContext,
+  createContext,
+} from "react";
 
-import { useAuth } from '@/components/providers/AuthProvider';
-import { useGameStore } from '@/lib/game/store';
-import { extractGameState } from './serializeGameState';
-import { applyServerState } from '@/lib/game/store';
-import { CloudSyncService } from './CloudSyncService';
-import type { CloudSyncState, SyncResult, LoadResult } from './types';
+import { useAuth } from "@/components/providers/AuthProvider";
+import { useGameStore } from "@/lib/game/store";
+import { extractGameState } from "./serializeGameState";
+import { applyServerState } from "@/lib/game/store";
+import { CloudSyncService } from "./CloudSyncService";
+import type { CloudSyncState, SyncResult, LoadResult } from "./types";
 
 const CloudSyncCtx = createContext<{ service: CloudSyncService } | null>(null);
 
@@ -31,7 +38,9 @@ export { CloudSyncService };
 export function useCloudSync(): CloudSyncState {
   const ctx = useContext(CloudSyncCtx);
   if (!ctx) {
-    throw new Error('useCloudSync must be used within CloudSyncServiceProvider');
+    throw new Error(
+      "useCloudSync must be used within CloudSyncServiceProvider",
+    );
   }
   const { service } = ctx;
   const { user } = useAuth();
@@ -48,7 +57,7 @@ export function useCloudSync(): CloudSyncState {
   );
 
   // Pending conflict stays null until Phase 6 (merge flow owns this).
-  const [pendingConflict] = useState<CloudSyncState['pendingConflict']>(null);
+  const [pendingConflict] = useState<CloudSyncState["pendingConflict"]>(null);
   const resolveConflict = async (): Promise<SyncResult> => ({ success: true });
 
   const saveToCloud = useMemo(
@@ -60,10 +69,22 @@ export function useCloudSync(): CloudSyncState {
     [service],
   );
 
+  // Phase 5.5: best-effort save on tab close / visibility change.
+  // Reuses the service-level isSyncing guard — concurrent triggers
+  // (auto-save + manual + unload) cannot collide.
+  const flushSaveOnUnload = useMemo(
+    () => () =>
+      service.flushSaveOnUnload(
+        () => useGameStore.getState().gameTick,
+        () => extractGameState(),
+      ),
+    [service],
+  );
+
   const loadFromCloud = useMemo(
     () => async (): Promise<LoadResult> => {
       const r = await service.load();
-      if (r.success && r.data && r.conflict === 'cloud') {
+      if (r.success && r.data && r.conflict === "cloud") {
         try {
           applyServerState(r.data);
         } catch {
@@ -77,6 +98,7 @@ export function useCloudSync(): CloudSyncState {
 
   return {
     saveToCloud,
+    flushSaveOnUnload,
     loadFromCloud,
     lastSyncAt: snapshot.lastSyncAt,
     lastAutoSaveAt: snapshot.lastAutoSaveAt,

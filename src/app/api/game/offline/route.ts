@@ -375,20 +375,26 @@ export async function POST(request: Request) {
 
   const lastTickAt = new Date(serverState.last_tick_at).getTime();
   const now = Date.now();
-  const elapsedSeconds = Math.floor((now - lastTickAt) / 1000);
+  const elapsedMs = Math.max(0, now - lastTickAt);
+  const elapsedSeconds = Math.floor(elapsedMs / 1000);
+
+  // 1-minute floor (per spec): only trigger offline rewards when the user has
+  // been away for at least 60 seconds. Sub-minute absences return the current
+  // state untouched and, importantly, do NOT update last_tick_at — so a
+  // second call within the same window still sees the full absence duration.
+  const MIN_OFFLINE_MS = 60_000;
 
   // game_speed is ticks per real-world second (e.g., 1x = 1 tick/s, 2x = 2 tick/s)
   const gameSpeed = Number(serverState.game_speed) || 1;
-  const rawTicks = Math.floor(elapsedSeconds * gameSpeed);
+  const rawTicks = Math.floor((elapsedMs / 1000) * gameSpeed);
   const elapsedTicks = Math.min(rawTicks, MAX_OFFLINE_TICKS);
 
-  // If no ticks elapsed, return current state as-is (no work to do)
-  if (elapsedTicks <= 0) {
+  if (elapsedMs < MIN_OFFLINE_MS || elapsedTicks <= 0) {
     return NextResponse.json({
       newState: serverState.full_state,
       productionSnapshot: null,
       ticksApplied: 0,
-      elapsedSeconds: 0,
+      elapsedSeconds,
     });
   }
 

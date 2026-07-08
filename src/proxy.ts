@@ -130,6 +130,10 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // API routes handle their own auth via verifyAuth() in each handler.
+    // Running middleware here was costing 100ms-8s on every API call
+    // (a redundant supabase.auth.getUser() round-trip per request).
+    // Admin page routes still need the proxy for session-checked redirects.
+    '/((?!_next/static|_next/image|favicon.ico|api/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

@@ -11,8 +11,16 @@ import {
   enrichLatestInvestigation,
   incrementCheatFlag,
 } from "@/lib/db/cheatInvestigations";
-import { BUILDING_DEFS } from "@/lib/game/data";
+// P2 refactor: Read BUILDING_DEFS from configCache (Supabase-backed live bindings)
+// rather than hardcoded data.ts defaults. Imports previously from `@/lib/game/data`.
+import { BUILDING_DEFS } from "@/lib/game/configCache";
 import type { WorkerType } from "@/lib/game/types";
+import {
+  GAME_LIMITS,
+  VALID_RESOURCE_KEYS,
+  VALID_WORKER_KEYS,
+} from "@/lib/game/balanceConfig";
+import { ensureConfigLoaded } from "@/lib/game/configLoader.server";
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -35,6 +43,14 @@ interface AuditLogEntry {
   rejectionReason?: string;
 }
 
+// GAME_LIMITS and the resource/worker allowlists live in balanceConfig.ts
+// (single tuning surface). Re-exported here so existing imports keep working.
+export {
+  GAME_LIMITS,
+  VALID_RESOURCE_KEYS,
+  VALID_WORKER_KEYS,
+} from "@/lib/game/balanceConfig";
+
 // ─── HMAC Checksum ─────────────────────────────────────────────────────
 
 // Phase 5.3: Fail-fast if CHECKSUM_SECRET is missing.
@@ -48,27 +64,6 @@ if (!HMAC_SECRET) {
   );
 }
 
-const GAME_LIMITS = {
-  /** Maximum money a player can have (sane upper bound) */
-  MAX_MONEY: 1e12, // 1 trillion — realistic 24h max for 500 lvl-100 buildings producing best resource
-  /** Maximum total buildings */
-  MAX_BUILDINGS: 500,
-  /** Maximum building level */
-  MAX_BUILDING_LEVEL: 100,
-  /** Maximum game tick per real-world second at 10x speed */
-  MAX_TICK_RATE_PER_SECOND: 50,
-  /** Maximum resources of any single type */
-  MAX_RESOURCE_AMOUNT: 1e9, // 1 billion — realistic 24h max for any single resource type
-  /** Maximum research points */
-  MAX_RESEARCH_POINTS: 1e9,
-  /** Maximum prestige points */
-  MAX_PRESTIGE_POINTS: 1000,
-  /** Allowed game speeds */
-  ALLOWED_GAME_SPEEDS: [1, 2, 5, 10] as const,
-  /** Maximum cheat flags before auto-lock */
-  MAX_CHEAT_FLAGS: 3,
-} as const;
-
 /**
  * Generate an HMAC-SHA256 checksum of the game state.
  * Used for tamper detection on cloud saves.
@@ -80,9 +75,7 @@ export function generateChecksum(gameState: Record<string, unknown>): string {
     );
   }
   const normalized = JSON.stringify(gameState, Object.keys(gameState).sort());
-  return createHmac("sha256", HMAC_SECRET)
-    .update(normalized)
-    .digest("hex");
+  return createHmac("sha256", HMAC_SECRET).update(normalized).digest("hex");
 }
 
 /**
@@ -113,18 +106,39 @@ export function verifyChecksum(
 /**
  * Validate a complete game state against bounds, deltas, and anti-cheat rules.
  *
+ * P2 refactor: now async — must await ensureConfigLoaded() so the BUILDING_DEFS
+ * whitelist reflects Supabase game definitions, not stale data.ts defaults.
+ * If config cannot be loaded, returns a CRITICAL violation (fail-closed).
+ *
  * @param gameState     The incoming state from the client
  * @param previousState The last known server state (optional, enables delta checks)
  * @param options.allowHighRisk When true, high-risk violations are accepted
  *                             (used for tests or admin overrides)
  */
-export function validateGameState(
+export async function validateGameState(
   gameState: Record<string, unknown>,
   previousState?: Record<string, unknown>,
   options?: { skipDeltaChecks?: boolean; allowHighRisk?: boolean },
-): GameStateValidation {
+): Promise<GameStateValidation> {
   const violations: string[] = [];
   let riskLevel: GameStateValidation["riskLevel"] = "none";
+
+  // ── Ensure Supabase config is loaded (fail-closed) ──
+  const configLoad = await ensureConfigLoaded();
+  if (!configLoad.ok) {
+    violations.push(
+      `[validateGameState] Config unavailable — refusing to validate. ` +
+        `Reason: ${configLoad.error ?? "unknown"}. ` +
+        `Whitelist cannot run against stale defaults.`,
+    );
+    riskLevel = "critical";
+    return {
+      isValid: false,
+      violations,
+      riskLevel,
+      checksum: "",
+    };
+  }
 
   // ── Check money ──
   const money = Number(gameState.money) || 0;
@@ -133,7 +147,9 @@ export function validateGameState(
     riskLevel = "critical";
   }
   if (money > GAME_LIMITS.MAX_MONEY) {
-    violations.push(`Money exceeds maximum: ${money} > ${GAME_LIMITS.MAX_MONEY}`);
+    violations.push(
+      `Money exceeds maximum: ${money} > ${GAME_LIMITS.MAX_MONEY}`,
+    );
     riskLevel = "critical";
   }
 
@@ -238,10 +254,23 @@ export function validateGameState(
     const prevTick = Number(previousState.gameTick) || 0;
     const currTick = Number(gameState.gameTick) || 0;
 
-    // Game tick should only go forward
+    // Game tick should only go forward.
+    // Tiered severity: small drift (< TICK_BACKWARDS_TOLERANCE) is most often a
+    // legitimate stale-cache save retry or 409 retry after offline-tick advance.
+    // We surface it as 'low' so a single stale-save event doesn't cascade into
+    // auto-lock. Genuine rollback attacks (drift >= tolerance) still escalate to
+    // 'critical' and accumulate cheat flags.
+    const TICK_BACKWARDS_TOLERANCE = 100;
     if (currTick < prevTick) {
-      violations.push(`Game tick went backwards: ${currTick} < ${prevTick}`);
-      riskLevel = "critical";
+      const drift = prevTick - currTick;
+      violations.push(
+        `Game tick went backwards: ${currTick} < ${prevTick} (drift=${drift})`,
+      );
+      if (drift >= TICK_BACKWARDS_TOLERANCE) {
+        riskLevel = "critical";
+      } else if (riskLevel === "none" || riskLevel === "low") {
+        riskLevel = "low";
+      }
     }
 
     // Check for impossibly fast tick progression
@@ -391,7 +420,7 @@ export async function validateImportSaveOnServer(
   saveData: Record<string, unknown>,
 ): Promise<{ valid: boolean; violations?: string[]; error?: string }> {
   // Apply the same bounds checks as a live save
-  const validation = validateGameState(saveData, undefined, {
+  const validation = await validateGameState(saveData, undefined, {
     skipDeltaChecks: true,
   });
   if (validation.riskLevel === "critical" || validation.riskLevel === "high") {
@@ -621,9 +650,6 @@ export function logActionAsync(entry: AuditLogEntry): void {
   });
 }
 
-// Export limits for use in other modules
-export { GAME_LIMITS };
-
 // ============================================
 // Whitelist sets for game state key validation.
 // Built once at module load from the static type unions in
@@ -633,7 +659,8 @@ export { GAME_LIMITS };
 // / worker IDs that bypass balance checks.
 //
 // Source of truth: src/lib/game/types.ts (ResourceType, BuildingType,
-// WorkerType unions) and src/lib/game/data.ts (BUILDING_DEFS, WORKER_DEFS).
+// WorkerType unions) and Supabase game_config_buildings / game_config_workers
+// (loaded via configLoader.server.ts → configCache BUILDING_DEFS / WORKER_DEFS).
 // ============================================
 
 /**
@@ -641,102 +668,7 @@ export { GAME_LIMITS };
  * union plus the cost-pseudo-resources (`money`, `researchPoints`,
  * `corporationPoints`) that may also appear in resource maps.
  */
-const VALID_RESOURCE_KEYS: ReadonlySet<string> = new Set<string>([
-  // Raw + tiered (ResourceType union — keys from types.ts)
-  "iron",
-  "copper",
-  "coal",
-  "oil",
-  "sand",
-  "lithium",
-  "water",
-  "rareEarth",
-  "clay",
-  "limestone",
-  "gravel",
-  "bauxite",
-  "wolframite",
-  "silver",
-  "gold",
-  "ironPlate",
-  "copperWire",
-  "plastic",
-  "glass",
-  "carbon",
-  "bricks",
-  "concrete",
-  "fertilizer",
-  "steel",
-  "fossilFuel",
-  "circuit",
-  "engine",
-  "battery",
-  "gear",
-  "silicon",
-  "aluminium",
-  "insecticide",
-  "copperIngot",
-  "titanium",
-  "coolant",
-  "fiberOptics",
-  "solarCell",
-  "powerCell",
-  "reinforcedConcrete",
-  "refinedSilver",
-  "refinedGold",
-  "aiChip",
-  "robotics",
-  "quantumPart",
-  "advancedAlloy",
-  "nanoMaterial",
-  "electronics",
-  "medicalTech",
-  "jewellery",
-  "tungsten",
-  "weapons",
-  "scanDrone",
-  "artifactDetector",
-  "neuralNetwork",
-  "carbonComposite",
-  "structuralFrame",
-  "fusionCell",
-  "solarPanel",
-  "creditChip",
-  "singularityCore",
-  "darkMatterCell",
-  "warpDrive",
-  "antimatter",
-  "chronoPart",
-  "plasmaCore",
-  "megaStructure",
-  "voidCrystal",
-  "arcologyModule",
-  "habitatModule",
-  "stellarEnergy",
-  "luxuryGoods",
-  "tradeContract",
-  "teleporterNode",
-  "researchMatrix",
-  "worldCore",
-  "shieldMatrix",
-  "stellarForge",
-  "voidEnergy",
-  "marketDominance",
-  "corpCapital",
-  "dimensionalGate",
-  "armadaFleet",
-  // Cost-pseudo-resources (allowed in resource maps for pricing UX)
-  "money",
-  "researchPoints",
-  "corporationPoints",
-]);
 
 /**
  * Allowlist of valid worker keys. Derived from the `WorkerType` union.
  */
-const VALID_WORKER_KEYS: ReadonlySet<string> = new Set<WorkerType>([
-  "engineer",
-  "mechanic",
-  "transportManager",
-  "aiSupervisor",
-]);

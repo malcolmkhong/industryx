@@ -5,10 +5,10 @@
 // (server_game_state is the source of truth for ticks)
 // ============================================
 
-import { NextResponse } from 'next/server';
-import { createServiceRoleClient } from '@/lib/supabase/server';
-import { verifyAuth } from '@/lib/auth/verifyAuth';
-import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
+import { NextResponse } from "next/server";
+import { createServiceRoleClient } from "@/lib/supabase/server";
+import { verifyAuth } from "@/lib/auth/verifyAuth";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
 
 interface HeartbeatRequest {
   gameTick: number;
@@ -25,14 +25,18 @@ export async function POST(request: Request) {
   if (!auth.success) return auth.response;
 
   // ✅ Rate limit (heartbeats can be frequent — 60/min)
-  const rateLimitResponse = await checkRateLimit(auth.userId, RATE_LIMITS.general, '/api/game/heartbeat');
+  const rateLimitResponse = await checkRateLimit(
+    auth.userId,
+    RATE_LIMITS.general,
+    "/api/game/heartbeat",
+  );
   if (rateLimitResponse) return rateLimitResponse;
 
   let body: HeartbeatRequest;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
   const { gameTick, money, paused, gameSpeed } = body;
@@ -41,38 +45,50 @@ export async function POST(request: Request) {
   const supabase = createServiceRoleClient();
   if (!supabase) {
     return NextResponse.json(
-      { error: 'Service temporarily unavailable — database not configured' },
-      { status: 503 }
+      { error: "Service temporarily unavailable — database not configured" },
+      { status: 503 },
     );
   }
 
   // Upsert session (lean: no session_token, no client_ip, no user_agent)
-  const { error: sessionError } = await supabase
-    .from('player_sessions')
-    .upsert({
+  const { error: sessionError } = await supabase.from("player_sessions").upsert(
+    {
       user_id: auth.userId,
       is_online: true,
       last_heartbeat_at: now,
       disconnected_at: null,
-    }, { onConflict: 'user_id' });
+    },
+    { onConflict: "user_id" },
+  );
 
   if (sessionError) {
-    console.warn('[Heartbeat] Session upsert failed:', sessionError.message);
+    console.warn("[Heartbeat] Session upsert failed:", sessionError.message);
   }
 
   // Update server_game_state tick tracking (source of truth)
   // Only update last_tick_at — game_tick/money are updated on full saves
   const { error: sgsError } = await supabase
-    .from('server_game_state')
+    .from("server_game_state")
     .update({
       last_tick_at: now,
     })
-    .eq('user_id', auth.userId);
+    .eq("user_id", auth.userId);
 
   if (sgsError) {
     // Don't fail the heartbeat — server_game_state might not exist yet for new users
-    console.warn('[Heartbeat] server_game_state update failed:', sgsError.message);
+    console.warn(
+      "[Heartbeat] server_game_state update failed:",
+      sgsError.message,
+    );
   }
+
+  // Bump profiles.last_active so cleanup_orphan_anon_users can tell
+  // active players from abandoned ones. Best-effort: failure does not
+  // break the heartbeat. (Tier 1 fix 4.)
+  await supabase
+    .from("profiles")
+    .update({ last_active: now })
+    .eq("id", auth.userId);
 
   // Return server time for client sync
   return NextResponse.json({
@@ -93,20 +109,20 @@ export async function DELETE(request: Request) {
   const supabase = createServiceRoleClient();
   if (!supabase) {
     return NextResponse.json(
-      { error: 'Service temporarily unavailable — database not configured' },
-      { status: 503 }
+      { error: "Service temporarily unavailable — database not configured" },
+      { status: 503 },
     );
   }
 
   // Mark session as offline
   await supabase
-    .from('player_sessions')
+    .from("player_sessions")
     .update({
       is_online: false,
       disconnected_at: new Date().toISOString(),
     })
-    .eq('user_id', auth.userId)
-    .eq('is_online', true);
+    .eq("user_id", auth.userId)
+    .eq("is_online", true);
 
   return NextResponse.json({ ok: true, disconnected: true });
 }

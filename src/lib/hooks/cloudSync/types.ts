@@ -23,6 +23,9 @@ export interface CloudBlockState {
 
 export interface CloudSyncState {
   saveToCloud: () => Promise<{ success: boolean; error?: string }>;
+  // Phase 5.5: best-effort save on tab close / visibility change.
+  // Sync return; the underlying fetch is fire-and-forget.
+  flushSaveOnUnload: () => void;
   loadFromCloud: () => Promise<{
     success: boolean;
     data?: unknown;
@@ -90,5 +93,7 @@ export interface ConflictInfo {
   cloudMoney: number;
 }
 
-// Auto-save interval in milliseconds (2 minutes, reduces Supabase load)
-export const AUTO_SAVE_INTERVAL = 120_000;
+// Auto-save interval in milliseconds (1 minute, Phase 5.5 — halved from 120s).
+// Source of truth lives in CloudSyncService.AUTO_SAVE_INTERVAL; this export
+// is kept for external consumers that import the constant.
+export const AUTO_SAVE_INTERVAL = 60_000;
