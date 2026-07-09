@@ -13,7 +13,7 @@
  *  the maximum possible money is $X." If the client claims more than X, cheating.
  */
 
-import type { GameState } from "./types";
+import type { ServerGameData } from "./types";
 import type { GameConfig } from "./config";
 import { computeProduction, computePayout, computeEndgameIncome } from './productionCalculator';
 import { buildMultipliersServer } from './serverEngine';
@@ -35,7 +35,7 @@ import { buildMultipliersServer } from './serverEngine';
  * @returns The theoretical maximum money the player could have legitimately earned
  */
 export function computeMaxPossibleMoney(
-  gameState: GameState,
+  gameState: ServerGameData,
   elapsedTicks: number,
   config: GameConfig,
 ): number {

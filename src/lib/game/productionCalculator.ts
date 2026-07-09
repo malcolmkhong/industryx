@@ -11,7 +11,7 @@
 // 5. ONE function per system: production, power, sell, payout.
 
 import type {
-  GameState,
+  ServerGameData,
   BuildingInstance,
   BuildingDefinition,
   Worker,
@@ -210,7 +210,7 @@ export function emptyProductionSnapshot(): ProductionSnapshot {
 
 // ─── Cache Builder ───────────────────────────────────────────────────
 
-export function buildMultipliers(state: GameState): MultiplierCache {
+export function buildMultipliers(state: ServerGameData): MultiplierCache {
   // ─── Build Modifier Registry ───────────────────────────────────────
   // The modifier engine is now the PRIMARY source of all bonus calculations.
   // No more hardcoded researchSet.has() checks — everything flows through
@@ -388,7 +388,7 @@ export function buildMultipliers(state: GameState): MultiplierCache {
 // ─── Power Grid ──────────────────────────────────────────────────────
 
 export function computePowerGrid(
-  state: GameState,
+  state: ServerGameData,
   cache: MultiplierCache,
   resources: Record<string, number>,
   currentTick: number,
@@ -672,7 +672,7 @@ export function computeProduction(
 // ─── Sell Multiplier ─────────────────────────────────────────────────
 
 export function computeSellMultiplier(
-  _state: GameState,
+  _state: ServerGameData,
   cache: MultiplierCache,
 ): number {
   return getBalance().market.baseSellMultiplier + cache.marketBonus;
@@ -681,7 +681,7 @@ export function computeSellMultiplier(
 // ─── Payout ──────────────────────────────────────────────────────────
 
 export function computePayout(
-  state: GameState,
+  state: ServerGameData,
   cache: MultiplierCache,
   defs?: GameDefs,
 ): PayoutResult {
@@ -741,7 +741,7 @@ export function computePayout(
 // ─── Endgame Passive Income ──────────────────────────────────────────
 
 export function computeEndgameIncome(
-  state: GameState,
+  state: ServerGameData,
   cache: MultiplierCache,
 ): EndgameResult {
   let moneyPerTick = 0;

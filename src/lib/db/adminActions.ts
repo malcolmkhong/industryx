@@ -21,6 +21,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import type { Database } from '@/lib/db/types';
+import { asFullState } from '@/lib/db/serverGameStatePayload';
 
 // Type aliases from the generated Supabase types.
 type AdminActionInsert = Database['public']['Tables']['admin_actions']['Insert'];
@@ -52,11 +53,11 @@ export async function logAdminAction(params: LogAdminActionParams): Promise<void
   try {
     const supabase = await createClient();
     const { error } = await supabase.from('admin_actions').insert({
-      admin_user_id: params.adminId,
-      target_user_id: params.targetUserId ?? null,
-      action_type: params.actionType,
-      details: (params.details ?? {}) as never,
-    } satisfies AdminActionInsert);
+          admin_user_id: params.adminId,
+          target_user_id: params.targetUserId ?? null,
+          action_type: params.actionType,
+          details: asFullState(params.details ?? {}),
+        } satisfies AdminActionInsert);
 
     if (error) {
       console.error('[AdminActions] Failed to log admin action:', error.message);

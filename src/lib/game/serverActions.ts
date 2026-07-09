@@ -45,6 +45,8 @@ export function isServerValidationActive(): boolean {
  *
  * For non-logged-in users, always returns { valid: true } (local-only play).
  */
+import type { ServerGameData } from "@/lib/game/types";
+
 export async function submitActionToServer(
   actionType: string,
   payload: Record<string, unknown>,
@@ -52,7 +54,7 @@ export async function submitActionToServer(
 ): Promise<{
   valid: boolean;
   error?: string;
-  correctedState?: Record<string, unknown>;
+  correctedState?: Partial<ServerGameData>;
 }> {
   if (!serverValidationEnabled || !userId) {
     // Not logged in — all actions are local-only
@@ -106,31 +108,11 @@ export async function submitActionToServer(
         typeof data.correctedState === "object" && data.correctedState !== null
           ? (data.correctedState as Record<string, unknown>)
           : undefined;
+      // Phase 13: correctedState is strictly Partial<ServerGameData>.
+      // The server returns server-authoritative data only — no UI fields.
       return {
         valid: true,
-        correctedState: serverCorrected as
-          | {
-              money?: number;
-              buildings?: unknown[];
-              resources?: Record<string, number>;
-              resourceCapacity?: Record<string, number>;
-              storageUpgradeLevels?: Record<string, number>;
-              workers?: unknown[];
-              totalMoneyEarned?: number;
-              pendingPayout?: number;
-              researchPoints?: number;
-              quests?: unknown[];
-              prestigeState?: { corporationPoints?: number } & Record<
-                string,
-                unknown
-              >;
-              contracts?: unknown[];
-              lastDailyClaim?: number;
-              loginStreak?: unknown;
-              completedContracts?: number;
-              stats?: { contractsCompleted?: number } & Record<string, unknown>;
-            }
-          | undefined,
+        correctedState: serverCorrected as Partial<ServerGameData> | undefined,
       };
     }
 

@@ -24,14 +24,15 @@ import { createServiceRoleClient } from "@/lib/supabase/server";
 import { fetchGameConfigFromSupabase } from "@/lib/db/serverConfigFetcher";
 import { runServerTicks } from "@/lib/game/serverEngine";
 import { GAME_LIMITS } from "@/lib/game/balanceConfig";
-import type { GameState } from "@/lib/game/types";
+import type { ServerGameData } from "@/lib/game/types";
 
 interface ApplyElapsedResult {
   /**
    * Updated state after applying elapsed ticks. Caller should use this in
    * place of `state.full_state` for any subsequent read or action.
+   * Phase 13: returns pure ServerGameData (no UI flags).
    */
-  state: GameState;
+  state: ServerGameData;
   /**
    * Number of ticks actually applied (may be 0 if no time elapsed or
    * upstream call capped). For audit logging.
@@ -49,12 +50,15 @@ interface ApplyElapsedResult {
  * now, then apply those ticks via `runServerTicks()`. Returns the
  * post-tick state.
  *
+ * Phase 13: input/output is pure ServerGameData. No UI fields are
+ * tracked or propagated here. UI stays on the client.
+ *
  * Fail-closed: any DB or config error throws. The caller MUST surface
  * that as an error response (5xx); do not silently proceed with stale
  * state.
  */
 export async function applyElapsedTicks(
-  currentState: GameState,
+  currentState: ServerGameData,
   lastTickAt: string | null,
   gameSpeed: number,
 ): Promise<ApplyElapsedResult> {

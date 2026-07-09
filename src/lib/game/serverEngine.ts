@@ -5,10 +5,12 @@
 // ============================================
 
 import type {
-  GameState,
+  ServerGameData,
   BuildingInstance,
   BuildingDefinition,
   ResourceType,
+  TransportLine,
+  TransportType,
   Worker,
   WorkerDefinition,
   WorkerType,
@@ -16,29 +18,26 @@ import type {
 } from "./types";
 import {
   emptyProductionSnapshot,
-  buildMultipliers,
   computePowerGrid,
   computeProduction,
   computeSellMultiplier,
   computePayout,
   computeEndgameIncome,
-} from "./productionCalculator";
-import type {
-  MultiplierCache,
-  BuildResult,
-  PowerResult,
-  PayoutResult,
-  EndgameResult,
-  ProductionSnapshot,
-  GameDefs,
+  type MultiplierCache,
+  type BuildResult,
+  type PowerResult,
+  type PayoutResult,
+  type EndgameResult,
+  type ProductionSnapshot,
+  type GameDefs,
 } from "./productionCalculator";
 import type { GameConfig } from "./config";
 import { getBalance } from "./balanceConfig";
 import {
-  ModifierRegistry,
   ModifierEngine,
   buildModifierRegistry,
 } from "./modifierEngine";
+import { fetchCanonicalInitialState } from "@/lib/db/initialState.server";
 
 // ─── Server-Side Config Accessors ────────────────────────────────────────
 
@@ -86,7 +85,7 @@ function buildWorkerDefsMap(
 // ─── Multiplier Cache Builder (Server Version) ───────────────────────────
 
 export function buildMultipliersServer(
-  state: GameState,
+  state: ServerGameData,
   config: GameConfig,
 ): MultiplierCache {
   const workerDefsMap = buildWorkerDefsMap(config.workers);
@@ -284,7 +283,7 @@ export function buildMultipliersServer(
 // ─── Power Grid (Server Version — delegates to shared productionCalculator) ──
 
 export function computePowerGridServer(
-  state: GameState,
+  state: ServerGameData,
   cache: MultiplierCache,
   resources: Record<string, number>,
   currentTick: number,
@@ -315,7 +314,7 @@ export function computeProductionServer(
 // ─── Sell Multiplier (Server Version — delegates to shared productionCalculator) ──
 
 export function computeSellMultiplierServer(
-  _state: GameState,
+  _state: ServerGameData,
   cache: MultiplierCache,
 ): number {
   return computeSellMultiplier(_state, cache);
@@ -324,7 +323,7 @@ export function computeSellMultiplierServer(
 // ─── Payout (Server Version — delegates to shared productionCalculator) ──
 
 export function computePayoutServer(
-  state: GameState,
+  state: ServerGameData,
   cache: MultiplierCache,
   buildings: Record<string, BuildingDefinition>,
 ): PayoutResult {
@@ -336,7 +335,7 @@ export function computePayoutServer(
 // ─── Endgame Passive Income (Server Version — delegates to shared productionCalculator) ──
 
 export function computeEndgameIncomeServer(
-  state: GameState,
+  state: ServerGameData,
   cache: MultiplierCache,
 ): EndgameResult {
   return computeEndgameIncome(state, cache);
@@ -345,7 +344,7 @@ export function computeEndgameIncomeServer(
 // ─── Full Snapshot Builder (Server Version) ──────────────────────────────
 
 export function buildProductionSnapshotServer(
-  state: GameState,
+  state: ServerGameData,
   config: GameConfig,
 ): ProductionSnapshot {
   const snapshot = emptyProductionSnapshot();
@@ -430,7 +429,7 @@ export function buildProductionSnapshotServer(
 // ─── Game Tick Runner (Server Version) ──────────────────────────────────
 
 export interface TickResult {
-  newState: GameState;
+  newState: ServerGameData;
   productionSnapshot: ProductionSnapshot;
 }
 
@@ -444,7 +443,7 @@ export interface TickResult {
  * For full simulation, the client should run the complete game loop.
  */
 export function runServerTicks(
-  initialState: GameState,
+  initialState: ServerGameData,
   ticks: number,
   config: GameConfig,
 ): TickResult {
@@ -575,12 +574,12 @@ export function runServerTicks(
  */
 export function validateBuildAction(
   buildingType: string,
-  state: Partial<GameState>,
+  state: Partial<ServerGameData>,
   config: GameConfig,
 ): {
   valid: boolean;
   error?: string;
-  correctedState?: Partial<GameState>;
+  correctedState?: Partial<ServerGameData>;
 } {
   const buildingDef = config.buildings[buildingType];
   if (!buildingDef) {
@@ -722,11 +721,11 @@ export function validateBuildAction(
 export function validateSellAction(
   resource: string,
   amount: number,
-  state: Partial<GameState>,
+  state: Partial<ServerGameData>,
 ): {
   valid: boolean;
   error?: string;
-  correctedState?: Partial<GameState>;
+  correctedState?: Partial<ServerGameData>;
 } {
   // Input validation
   if (!resource || typeof resource !== "string") {
@@ -831,11 +830,11 @@ export function validateSellAction(
 export function validateBuyAction(
   resource: string,
   amount: number,
-  state: Partial<GameState>,
+  state: Partial<ServerGameData>,
 ): {
   valid: boolean;
   error?: string;
-  correctedState?: Partial<GameState>;
+  correctedState?: Partial<ServerGameData>;
 } {
   // Input validation
   if (!resource || typeof resource !== "string") {
@@ -930,12 +929,12 @@ export function validateBuyAction(
  */
 export function validateResearchAction(
   researchId: string,
-  state: Partial<GameState>,
+  state: Partial<ServerGameData>,
   config: GameConfig,
 ): {
   valid: boolean;
   error?: string;
-  correctedState?: Partial<GameState>;
+  correctedState?: Partial<ServerGameData>;
 } {
   // Input validation
   if (!researchId || typeof researchId !== "string") {
@@ -1017,12 +1016,12 @@ export function validateResearchAction(
  */
 export function validateUpgradeAction(
   buildingId: string,
-  state: Partial<GameState>,
+  state: Partial<ServerGameData>,
   config: GameConfig,
 ): {
   valid: boolean;
   error?: string;
-  correctedState?: Partial<GameState>;
+  correctedState?: Partial<ServerGameData>;
 } {
   const buildings = state.buildings ?? [];
   const buildingIdx = buildings.findIndex((b) => b.id === buildingId);
@@ -1134,11 +1133,11 @@ export function validateUpgradeAction(
 export function validateToggleBuildingAction(
   buildingId: string,
   enabled: boolean,
-  state: Partial<GameState>,
+  state: Partial<ServerGameData>,
 ): {
   valid: boolean;
   error?: string;
-  correctedState?: Partial<GameState>;
+  correctedState?: Partial<ServerGameData>;
 } {
   const buildings = state.buildings ?? [];
   const idx = buildings.findIndex((b) => b.id === buildingId);
@@ -1178,12 +1177,12 @@ export function validateToggleBuildingAction(
  */
 export function validateHireWorkerAction(
   workerType: string,
-  state: Partial<GameState>,
+  state: Partial<ServerGameData>,
   config: GameConfig,
 ): {
   valid: boolean;
   error?: string;
-  correctedState?: Partial<GameState>;
+  correctedState?: Partial<ServerGameData>;
 } {
   if (!workerType || typeof workerType !== "string") {
     return { valid: false, error: "Missing workerType in payload" };
@@ -1252,11 +1251,11 @@ export function validateHireWorkerAction(
 export function validateAssignWorkerAction(
   workerId: string,
   buildingId: string | null,
-  state: Partial<GameState>,
+  state: Partial<ServerGameData>,
 ): {
   valid: boolean;
   error?: string;
-  correctedState?: Partial<GameState>;
+  correctedState?: Partial<ServerGameData>;
 } {
   if (!workerId || typeof workerId !== "string") {
     return { valid: false, error: "Missing workerId in payload" };
@@ -1311,10 +1310,10 @@ export function validateAssignWorkerAction(
  * important for the validate-ticks cron's
  * `money <= totalMoneyEarned * 1.5` ratio check.
  */
-export function validateCollectPayoutAction(state: Partial<GameState>): {
+export function validateCollectPayoutAction(state: Partial<ServerGameData>): {
   valid: boolean;
   error?: string;
-  correctedState?: Partial<GameState>;
+  correctedState?: Partial<ServerGameData>;
 } {
   const pendingPayout = state.pendingPayout ?? 0;
   if (!Number.isFinite(pendingPayout) || pendingPayout <= 0) {
@@ -1353,11 +1352,11 @@ export function validateCollectPayoutAction(state: Partial<GameState>): {
  */
 export function validateClaimQuestAction(
   questId: string,
-  state: Partial<GameState>,
+  state: Partial<ServerGameData>,
 ): {
   valid: boolean;
   error?: string;
-  correctedState?: Partial<GameState>;
+  correctedState?: Partial<ServerGameData>;
 } {
   if (!questId || typeof questId !== "string") {
     return { valid: false, error: "Missing questId in payload" };
@@ -1432,11 +1431,11 @@ export function validateClaimQuestAction(
  */
 export function validateClaimDailyRewardAction(
   day: number,
-  state: Partial<GameState>,
+  state: Partial<ServerGameData>,
 ): {
   valid: boolean;
   error?: string;
-  correctedState?: Partial<GameState>;
+  correctedState?: Partial<ServerGameData>;
 } {
   if (!Number.isInteger(day) || day < 1 || day > 7) {
     return { valid: false, error: "Day must be an integer between 1 and 7" };
@@ -1534,7 +1533,7 @@ export function validateClaimDailyRewardAction(
 
   return {
     valid: true,
-    correctedState: corrected as Partial<GameState>,
+    correctedState: corrected as Partial<ServerGameData>,
   };
 }
 
@@ -1555,11 +1554,11 @@ export function validateClaimDailyRewardAction(
  */
 export function validateFulfillContractAction(
   contractId: string,
-  state: Partial<GameState>,
+  state: Partial<ServerGameData>,
 ): {
   valid: boolean;
   error?: string;
-  correctedState?: Partial<GameState>;
+  correctedState?: Partial<ServerGameData>;
 } {
   if (!contractId || typeof contractId !== "string") {
     return { valid: false, error: "Missing contractId in payload" };
@@ -1698,11 +1697,11 @@ export function validateFulfillContractAction(
 export function validateUpgradeStorageAction(
   resource: string,
   levels: number,
-  state: Partial<GameState>,
+  state: Partial<ServerGameData>,
 ): {
   valid: boolean;
   error?: string;
-  correctedState?: Partial<GameState>;
+  correctedState?: Partial<ServerGameData>;
 } {
   // Input validation
   if (!resource || typeof resource !== "string") {
@@ -1776,12 +1775,12 @@ export function validateTransportAction(
   fromBuildingId: string,
   toBuildingId: string,
   resource: string,
-  state: Partial<GameState>,
+  state: Partial<ServerGameData>,
   config: GameConfig,
 ): {
   valid: boolean;
   error?: string;
-  correctedState?: Partial<GameState>;
+  correctedState?: Partial<ServerGameData>;
 } {
   if (!transportType || typeof transportType !== "string") {
     return { valid: false, error: "Missing transportType in payload" };
@@ -1861,75 +1860,73 @@ export function validateTransportAction(
   const throughput = transportDef.baseThroughput;
   const maxThroughput = transportDef.baseThroughput * 3;
 
-  // Soft chain check (warn, don't fail)
-  const chainExists = config.productionChains.some(
-    (c) =>
-      c.upstreamBuilding === fromBuilding.type &&
-      c.downstreamBuilding === toBuilding.type,
-  );
-  // chain missing is OK — custom routes allowed (kept for compatibility).
+  // Note: production chain validation intentionally skipped — custom routes
+  // are allowed (no `chainExists` check here). Tracked as a future feature.
 
   // Return correctedState with new line. The id is generated server-side
   // so the client can't tamper with it. We use a deterministic seed from
   // from+to+resource+timestamp (via state.gameTick) so successive calls
   // produce unique IDs without needing a uuid library.
   const id = `transport-${transportType}-${fromBuildingId.slice(0, 8)}-${toBuildingId.slice(0, 8)}-${(state.transportLines ?? []).length}`;
-  const newLine = {
-    id,
-    type: transportType as never,
-    level: 1,
-    fromBuilding: fromBuildingId,
-    toBuilding: toBuildingId,
-    carriesResource: resource as never,
-    throughput,
-    maxThroughput,
-    active: true,
-  };
-  const existingLines = state.transportLines ?? [];
-  const existingStats = state.stats;
-  return {
-    valid: true,
-    correctedState: {
-      money: money - moneyCost,
-      transportLines: [...existingLines, newLine as never],
-      stats: existingStats
-        ? ({
-            ...(existingStats as Record<string, unknown>),
-            transportLinesBuilt:
-              ((existingStats as { transportLinesBuilt?: number })
-                .transportLinesBuilt ?? 0) + 1,
-          } as never)
-        : undefined,
-    },
-  };
-}
+  const newLine: TransportLine = {
+      id,
+      type: transportType as TransportType,
+      level: 1,
+      fromBuilding: fromBuildingId,
+      toBuilding: toBuildingId,
+      carriesResource: resource as ResourceType,
+      throughput,
+      maxThroughput,
+      active: true,
+    };
+    const existingLines = state.transportLines ?? [];
+    const existingStats = state.stats;
+    return {
+      valid: true,
+      correctedState: {
+        money: money - moneyCost,
+        transportLines: [...existingLines, newLine],
+        stats: existingStats
+          ? {
+              ...existingStats,
+              transportLinesBuilt:
+                (existingStats.transportLinesBuilt ?? 0) + 1,
+            }
+          : undefined,
+      },
+    };
+  }
 
 /**
  * Validate a 'do_prestige' action.
  *
  * Server-authoritative: validates minimum building count, computes
  * Corporation Points (CP) earned using the server-side formula, and
- * returns the post-prestige state in `correctedState` so the client can
- * apply exactly what the server computed. CP and totalPrestiges are the
- * anti-cheat-sensitive fields — they MUST come from the server.
+ * returns the FULL post-prestige state in `correctedState` so the client
+ * can apply exactly what the server computed. CP / totalPrestiges are
+ * the anti-cheat-sensitive fields; the rest of the reset shape is the
+ * canonical initial state served by `fetchCanonicalInitialState()`.
  *
  * CP formula (server-side):
  *   pointsEarned = floor(buildings.length * cpPerBuilding
  *                         + completedResearch.length * 2
  *                         + stats.contractsCompleted)
  *
- * The client is responsible for applying the state RESET (clearing
- * buildings, resources, money, etc.) — that reset is deterministic from
- * `createInitialState()`. Only the prestigeState increment is
- * authoritative.
+ * Phase 12 anti-pattern fix: previously the function only returned the
+ * prestige increments and a code comment asked the client to apply
+ * `createInitialState()` locally. That drifted any time the canonical
+ * shape changed without updating the client. Now the server returns the
+ * full reset shape and the client just `set(validation.correctedState)`.
  *
  * Minimum 5 buildings required (matches client gate).
  */
-export function validatePrestigeAction(state: Partial<GameState>): {
+export async function validatePrestigeAction(
+  state: Partial<ServerGameData>,
+): Promise<{
   valid: boolean;
   error?: string;
-  correctedState?: Partial<GameState>;
-} {
+  correctedState?: Partial<ServerGameData>;
+}> {
   const buildings = state.buildings ?? [];
   if (buildings.length < 5) {
     return {
@@ -1966,18 +1963,41 @@ export function validatePrestigeAction(state: Partial<GameState>): {
     bonuses: [],
   };
 
+  // Fetch the canonical reset shape server-side. Fail-closed: if the
+  // helper throws (DB unreachable, missing seed row), surface a 503 via
+  // the route layer — never let the client substitute its own local copy.
+  let canonical: ServerGameData;
+  try {
+    canonical = await fetchCanonicalInitialState();
+  } catch (err) {
+    return {
+      valid: false,
+      error: `Cannot build canonical reset state: ${
+        err instanceof Error ? err.message : "unknown"
+      }`,
+    };
+  }
+
   return {
     valid: true,
+    // Full reset shape merged with prestige counters. Client applies
+    // this verbatim via `set(validation.correctedState)` — no local
+    // reset logic.
     correctedState: {
+      ...canonical,
       prestigeState: {
         ...existingPrestige,
         corporationPoints:
           (existingPrestige.corporationPoints ?? 0) + pointsEarned,
         totalPrestiges: (existingPrestige.totalPrestiges ?? 0) + 1,
       },
-      // Note: client applies the full state reset locally via
-      // createInitialState(). We only return the prestige fields
-      // because they're the anti-cheat-sensitive ones.
+      // Preserve session marker — the route layer refreshes this from
+      // server time after persist, but it must not be clobbered to the
+      // canonical default here.
+      lastOnlineTimestamp:
+        typeof state.lastOnlineTimestamp === "number"
+          ? state.lastOnlineTimestamp
+          : canonical.lastOnlineTimestamp,
     },
   };
 }
@@ -1992,12 +2012,12 @@ export function validatePrestigeAction(state: Partial<GameState>): {
  */
 export function validateUpgradeTransportLineAction(
   lineId: string,
-  state: Partial<GameState>,
+  state: Partial<ServerGameData>,
   config: GameConfig,
 ): {
   valid: boolean;
   error?: string;
-  correctedState?: Partial<GameState>;
+  correctedState?: Partial<ServerGameData>;
 } {
   if (!lineId || typeof lineId !== "string") {
     return { valid: false, error: "Missing lineId in payload" };
@@ -2042,18 +2062,20 @@ export function validateUpgradeTransportLineAction(
       Math.pow(transportDef.upgradeMultiplier, newLevel - 1),
   );
 
-  const updatedLines = lines.map((l) =>
-    l.id === lineId ? { ...l, level: newLevel, throughput: newThroughput } : l,
-  );
+  const updatedLines: TransportLine[] = lines.map((l) =>
+      l.id === lineId
+        ? { ...l, level: newLevel, throughput: newThroughput }
+        : l,
+    );
 
-  return {
-    valid: true,
-    correctedState: {
-      money: money - cost,
-      transportLines: updatedLines as never,
-    },
-  };
-}
+    return {
+      valid: true,
+      correctedState: {
+        money: money - cost,
+        transportLines: updatedLines,
+      },
+    };
+  }
 
 /**
  * Validate a 'start_drone_mission' action.
@@ -2075,11 +2097,11 @@ export function validateUpgradeTransportLineAction(
 export function validateStartDroneMissionAction(
   missionId: string,
   droneId: string,
-  state: Partial<GameState>,
+  state: Partial<ServerGameData>,
 ): {
   valid: boolean;
   error?: string;
-  correctedState?: Partial<GameState>;
+  correctedState?: Partial<ServerGameData>;
 } {
   if (!missionId || typeof missionId !== "string") {
     return { valid: false, error: "Missing missionId in payload" };
@@ -2201,11 +2223,11 @@ export function validateStartDroneMissionAction(
  */
 export function validateCollectDroneAction(
   droneId: string,
-  state: Partial<GameState>,
+  state: Partial<ServerGameData>,
 ): {
   valid: boolean;
   error?: string;
-  correctedState?: Partial<GameState>;
+  correctedState?: Partial<ServerGameData>;
 } {
   if (!droneId || typeof droneId !== "string") {
     return { valid: false, error: "Missing droneId in payload" };

@@ -727,8 +727,29 @@ export interface PayoutRecord {
   efficiency: number;
 }
 
-// --- Game State ---
-export interface GameState {
+// --- Game State (split: server data vs UI session) ---
+//
+// Phase 13 (Option C, 2026-07-10) — separate server-authoritative data
+// from client-only UI flags. Before this split, GameState was one giant
+// interface that mixed economic data with UI concerns (activeTab,
+// notifications, hydrated, ...). That forced the server to return UI
+// flags (current `hydrated: false` workaround), and made it impossible
+// for TypeScript to enforce the boundary.
+//
+// Layers (use them directly; GameState is a composite alias):
+//   • ServerGameData  — what server owns. NEVER include UI concerns.
+//   • UISessionState  — client-only presentation. NEVER persisted to DB.
+//   • GameState       — alias for ServerGameData & UISessionState. Existing
+//                       code that worked on GameState keeps working.
+//   • ServerStateCorruptFields  — explicit opt-in for fields that the
+//                       store may hydrate from server data but which are
+//                       considered "corrupt" for the SERVER side.
+
+/**
+ * Pure server-authoritative data. The server builds, validates, persists
+ * and returns ONLY this shape. NEVER has UI concerns.
+ */
+export interface ServerGameData {
   // Core
   money: number;
   totalMoneyEarned: number;
@@ -856,16 +877,35 @@ export interface GameState {
     completedMissions: number;
     totalEarned: number;
   };
+}
 
-  // UI State
+/**
+ * Client-only UI/session state. NEVER persisted to DB. NEVER returned
+ * by any server endpoint. The store manages this locally; hydration
+ * merges it with incoming server data.
+ */
+export interface UISessionState {
+  /**
+   * True after the store has been hydrated with server data. UI
+   * gates render behind this. Pure presentation flag.
+   */
+  hydrated: boolean;
+
+  /** Currently visible game tab. */
   activeTab: GameTab;
+
+  /** Currently selected building in the map. */
   selectedBuilding: string | null;
+
+  /** Pending toast/notification list. */
   notifications: GameNotification[];
 
-  // Production snapshot — single source of truth for all economy data
-  // UI reads from this ONLY — never recalculates production/consumption inline
+  /** Cached production snapshot. UI reads ONLY from this. */
   productionSnapshot: ProductionSnapshot;
 }
+
+/** Back-compat alias. Prefer `ServerGameData & UISessionState` for new code. */
+export type GameState = ServerGameData & UISessionState;
 
 export type GameTab =
   | "dashboard"

@@ -8,6 +8,7 @@
 
 "use client";
 
+import type { ServerGameData } from "@/lib/game/types";
 import { gateIfLimited } from "@/lib/auth/limitedMode";
 import { submitActionToServer } from "./serverActions";
 
@@ -40,39 +41,18 @@ export interface ValidatedActionResult {
   approved: boolean;
   error?: string;
   /**
-   * When the server is authoritative on the action result (currently `build`,
-   * and expanding), it returns the authoritative post-action state to apply
-   * on the client. Callers SHOULD use these fields to update local state
-   * rather than computing cost/deductions locally — this prevents client/server
-   * divergence when the cost formula, mega-project bonuses, or scaled-cost
-   * exponent differs between the two sides.
+   * When the server is authoritative on the action result, it returns
+   * the authoritative post-action state to apply on the client. Callers
+   * SHOULD use these fields to update local state rather than computing
+   * cost/deductions locally — this prevents client/server divergence
+   * when the cost formula, mega-project bonuses, or scaled-cost exponent
+   * differs between the two sides.
+   *
+   * Phase 13 (2026-07-10, Option C): this is now a precise
+   * Partial<ServerGameData>. UI fields (hydrated, activeTab, etc.)
+   * NEVER appear here — server-authoritative data only.
    */
-  correctedState?: {
-    money?: number;
-    buildings?: unknown[];
-    resources?: Record<string, number>;
-    resourceCapacity?: Record<string, number>;
-    storageUpgradeLevels?: Record<string, number>;
-    workers?: unknown[];
-    totalMoneyEarned?: number;
-    pendingPayout?: number;
-    researchPoints?: number;
-    activeResearch?: string | null;
-    researchProgress?: number;
-    drones?: {
-      fleet?: unknown[];
-      completedMissions?: number;
-      totalEarned?: number;
-    };
-    transportLines?: unknown[];
-    quests?: unknown[];
-    prestigeState?: { corporationPoints?: number } & Record<string, unknown>;
-    contracts?: unknown[];
-    lastDailyClaim?: number;
-    loginStreak?: unknown;
-    completedContracts?: number;
-    stats?: { contractsCompleted?: number } & Record<string, unknown>;
-  };
+  correctedState?: Partial<ServerGameData>;
 }
 
 /**
@@ -118,9 +98,10 @@ export async function validateActionWithServer(
   // Surface the server-authoritative correctedState (if any) to callers.
   // Only present for actions where the server computes the authoritative
   // outcome (e.g., build, upgrade). Other actions just get { approved: true }.
+  // Phase 13: correctedState is now strictly Partial<ServerGameData>;
+  // serverActions.ts is responsible for typing the API response correctly.
   return {
     approved: true,
-    correctedState: validation.correctedState as
-      ValidatedActionResult["correctedState"] | undefined,
+    correctedState: validation.correctedState,
   };
 }

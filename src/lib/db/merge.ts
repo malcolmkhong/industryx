@@ -19,6 +19,7 @@
  */
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/db/types";
+import { asFullState } from "@/lib/db/serverGameStatePayload";
 
 type MergeReceiptRow = Database["public"]["Tables"]["merge_receipts"]["Row"];
 type MergeAuditLogRow = Database["public"]["Tables"]["merge_audit_log"]["Row"];
@@ -119,14 +120,14 @@ export async function moveGuestDataOntoAuthUser(
       money: guestState.money,
       total_money_earned: guestState.total_money_earned,
       research_points: guestState.research_points,
-      buildings: guestState.buildings as never,
+      buildings: asFullState(guestState.buildings),
       buildings_count: guestState.buildings_count,
-      completed_research: guestState.completed_research,
-      resources: guestState.resources as never,
-      workers: guestState.workers as never,
+      completed_research: asFullState(guestState.completed_research),
+      resources: asFullState(guestState.resources),
+      workers: asFullState(guestState.workers),
       game_tick: guestState.game_tick,
       game_speed: guestState.game_speed,
-      full_state: guestState.full_state as never,
+      full_state: asFullState(guestState.full_state),
       state_hash: guestState.state_hash,
       state_version: guestState.state_version,
       last_saved_at: now,
@@ -222,8 +223,8 @@ export async function insertMergeReceipt(
     .from("merge_receipts")
     .insert({
       ...values,
-      guest_state_snapshot: (values.guest_state_snapshot ?? null) as never,
-      google_state_snapshot: (values.google_state_snapshot ?? null) as never,
+      guest_state_snapshot: asFullState(values.guest_state_snapshot ?? null),
+      google_state_snapshot: asFullState(values.google_state_snapshot ?? null),
     })
     .select("id")
     .single();
@@ -255,13 +256,13 @@ export async function insertMergeAuditLog(
   if (!supabase) return false;
   const { error } = await supabase.from("merge_audit_log").insert({
     ...values,
-    guest_state_before: (values.guest_state_before ?? null) as never,
-    google_state_before: (values.google_state_before ?? null) as never,
-    guest_state_after: (values.guest_state_after ?? null) as never,
-    google_state_after: (values.google_state_after ?? null) as never,
-    merge_result: values.merge_result as never,
-    preview_version: (values.preview_version ?? null) as never,
-    risk_flags: (values.risk_flags ?? []) as never,
+    guest_state_before: asFullState(values.guest_state_before ?? null),
+    google_state_before: asFullState(values.google_state_before ?? null),
+    guest_state_after: asFullState(values.guest_state_after ?? null),
+    google_state_after: asFullState(values.google_state_after ?? null),
+    merge_result: asFullState(values.merge_result),
+    preview_version: asFullState(values.preview_version ?? null),
+    risk_flags: asFullState(values.risk_flags ?? []),
   } satisfies Partial<MergeAuditLogRow>);
   if (error) {
     console.error("[merge] insertMergeAuditLog failed:", error.message);
