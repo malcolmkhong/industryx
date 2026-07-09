@@ -111,14 +111,15 @@ describe("UI safety: store shape stability (Phase 6 fields)", () => {
 
   it("GameState still has fields Phase 6 actions touch", async () => {
     const types = await import("@/lib/game/types");
+    type GameStateT = import("@/lib/game/types").GameState;
     // GameState is an interface — not present at runtime. The point of
     // this test is that the object literal TYPE-CHECKS at compile time:
     // if any field is renamed/removed, tsc fails the build.
     // Runtime check just confirms the module imports.
-    const sample: Partial<types.GameState> = {
+    const sample: Partial<GameStateT> = {
       money: 0,
       totalMoneyEarned: 0,
-      resources: {},
+      resources: {} as GameStateT["resources"],
       researchPoints: 0,
       activeResearch: null,
       researchProgress: 0,
@@ -152,7 +153,8 @@ describe("UI safety: store shape stability (Phase 6 fields)", () => {
 
   it("correctedState shape in actionValidator still exposes Phase 6 fields", async () => {
     const validator = await import("@/lib/game/actionValidator");
-    const sample: validator.ValidatedActionResult = {
+    type Result = import("@/lib/game/actionValidator").ValidatedActionResult;
+    const sample: Result = {
       approved: true,
       correctedState: {
         money: 0,

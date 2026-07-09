@@ -3,11 +3,7 @@ import { WORKER_DEFS } from "../configCache";
 import { generateId } from "../utils/generateId";
 import { formatNumber } from "../utils/formatNumber";
 import { soundEngine } from "../soundEngine";
-
-type SetFn = (
-  partial: Record<string, unknown> | ((state: any) => Record<string, unknown>),
-) => void;
-type GetFn = () => any;
+import type { SetFn, GetFn } from "./_actionTypes";
 
 export function createWorkerActions(set: SetFn, get: GetFn) {
   return {

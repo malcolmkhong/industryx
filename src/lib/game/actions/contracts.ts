@@ -2,11 +2,7 @@ import type { Contract, ResourceType } from "../types";
 import { generateId } from "../utils/generateId";
 import { formatNumber } from "../utils/formatNumber";
 import { soundEngine } from "../soundEngine";
-
-type SetFn = (
-  partial: Record<string, unknown> | ((state: any) => Record<string, unknown>),
-) => void;
-type GetFn = () => any;
+import type { SetFn, GetFn } from "./_actionTypes";
 
 export function createContractActions(set: SetFn, get: GetFn) {
   return {
@@ -92,13 +88,13 @@ export function createContractActions(set: SetFn, get: GetFn) {
             (corrected?.stats as { contractsCompleted?: number } | undefined)
               ?.contractsCompleted ?? state.stats.contractsCompleted + 1,
         },
-        prestigeState:
-          (corrected?.prestigeState as typeof state.prestigeState) ?? {
-            ...state.prestigeState,
-            corporationPoints:
-              state.prestigeState.corporationPoints +
-              (contract.reward.corporationPoints ?? 0),
-          },
+        prestigeState: (corrected?.prestigeState as
+          typeof state.prestigeState | undefined) ?? {
+          ...state.prestigeState,
+          corporationPoints:
+            state.prestigeState.corporationPoints +
+            (contract.reward.corporationPoints ?? 0),
+        },
       });
       soundEngine.play("contractCompleted", "events");
       get().addNotification(

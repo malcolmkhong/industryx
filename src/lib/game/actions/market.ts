@@ -12,6 +12,7 @@ import { useGameStore } from "../store";
 import { generateId } from "../utils/generateId";
 import { formatNumber } from "../utils/formatNumber";
 import { soundEngine } from "../soundEngine";
+import type { SetFn, GetFn } from "./_actionTypes";
 
 // Inline: translate server technical error → user-friendly text.
 // The raw error is still logged to console for debugging; this only
@@ -89,11 +90,6 @@ export async function notifyTradeImpactIfMoved(
     }
   }, delayMs);
 }
-
-type SetFn = (
-  partial: Record<string, unknown> | ((state: any) => Record<string, unknown>),
-) => void;
-type GetFn = () => any;
 
 export function createMarketActions(set: SetFn, get: GetFn) {
   return {

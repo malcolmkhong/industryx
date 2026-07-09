@@ -71,11 +71,7 @@ import { formatNumber } from "../utils/formatNumber";
 import { getGlobalPrice } from "../utils/gameMath";
 import { getCapacity } from "../utils/costCalculator";
 import { generateDroneMissionsFromState } from "../utils/saveMigration";
-
-type SetFn = (
-  partial: Record<string, unknown> | ((state: any) => Record<string, unknown>),
-) => void;
-type GetFn = () => any;
+import type { SetFn, GetFn } from "./_actionTypes";
 
 export function createGameTickActions(set: SetFn, get: GetFn) {
   return {

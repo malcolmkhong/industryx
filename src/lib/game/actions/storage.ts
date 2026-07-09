@@ -6,11 +6,7 @@ import { RESOURCE_META } from "../configCache";
 import { formatNumber } from "../utils/formatNumber";
 import { soundEngine } from "../soundEngine";
 import { generateId } from "../utils/generateId";
-
-type SetFn = (
-  partial: Record<string, unknown> | ((state: any) => Record<string, unknown>),
-) => void;
-type GetFn = () => any;
+import type { SetFn, GetFn } from "./_actionTypes";
 
 export function createStorageActions(set: SetFn, get: GetFn) {
   return {

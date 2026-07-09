@@ -5,6 +5,7 @@ import { generateId } from "../utils/generateId";
 import { formatNumber } from "../utils/formatNumber";
 import { getBalance } from "../balanceConfig";
 import { generateDroneMissionsFromState } from "../utils/saveMigration";
+import type { SetFn, GetFn } from "./_actionTypes";
 
 // Inline: translate server technical error → user-friendly text.
 function friendlyDroneError(serverError: string | undefined): string {
@@ -18,11 +19,6 @@ function friendlyDroneError(serverError: string | undefined): string {
     return "Not enough money for drone fuel.";
   return e || "Drone mission could not be started. Please try again.";
 }
-
-type SetFn = (
-  partial: Record<string, unknown> | ((state: any) => Record<string, unknown>),
-) => void;
-type GetFn = () => any;
 
 export function createDroneActions(set: SetFn, get: GetFn) {
   return {

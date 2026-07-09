@@ -1,8 +1,6 @@
 import type { GameNotification } from '../types';
 import { generateId } from '../utils/generateId';
-
-type SetFn = (partial: Record<string, unknown> | ((state: any) => Record<string, unknown>)) => void;
-type GetFn = () => any;
+import type { SetFn, GetFn } from "./_actionTypes";
 
 export function createNotificationActions(set: SetFn, get: GetFn) {
   return {

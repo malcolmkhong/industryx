@@ -4,9 +4,7 @@ import { generateId } from '../utils/generateId';
 import { formatNumber } from '../utils/formatNumber';
 import { getBuildingCost, isBuildingUnlocked } from '../utils/costCalculator';
 import { getMegaProjectBonus } from '../utils/gameMath';
-
-type SetFn = (partial: Record<string, unknown> | ((state: any) => Record<string, unknown>)) => void;
-type GetFn = () => any;
+import type { SetFn, GetFn } from "./_actionTypes";
 
 export function createBlueprintActions(set: SetFn, get: GetFn) {
   return {

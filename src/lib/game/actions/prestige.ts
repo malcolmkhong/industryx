@@ -4,6 +4,7 @@ import { soundEngine } from "../soundEngine";
 import { createInitialState } from "../constants/initialState";
 import { generateId } from "../utils/generateId";
 import { formatNumber } from "../utils/formatNumber";
+import type { SetFn, GetFn } from "./_actionTypes";
 
 // Inline: translate server technical error → user-friendly text.
 function friendlyPrestigeError(serverError: string | undefined): string {
@@ -12,11 +13,6 @@ function friendlyPrestigeError(serverError: string | undefined): string {
     return "Need at least 5 buildings to Global Expand!";
   return e || "Prestige could not be performed. Please try again.";
 }
-
-type SetFn = (
-  partial: Record<string, unknown> | ((state: any) => Record<string, unknown>),
-) => void;
-type GetFn = () => any;
 
 export function createPrestigeActions(set: SetFn, get: GetFn) {
   return {

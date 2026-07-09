@@ -1,9 +1,7 @@
 import type { GameNotification } from '../types';
 import { RESEARCH_TREE } from '../configCache';
 import { soundEngine } from '../soundEngine';
-
-type SetFn = (partial: Record<string, unknown> | ((state: any) => Record<string, unknown>)) => void;
-type GetFn = () => any;
+import type { SetFn, GetFn } from "./_actionTypes";
 
 export function createAutomationActions(set: SetFn, get: GetFn) {
   return {

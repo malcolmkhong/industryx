@@ -7,11 +7,7 @@ import { getMegaProjectBonus } from "../utils/gameMath";
 import { getBalance } from "../balanceConfig";
 import { soundEngine } from "../soundEngine";
 import { buildMultipliers, computePowerGrid } from "../productionCalculator";
-
-type SetFn = (
-  partial: Record<string, unknown> | ((state: any) => Record<string, unknown>),
-) => void;
-type GetFn = () => any;
+import type { SetFn, GetFn } from "./_actionTypes";
 
 export function createBuildingActions(set: SetFn, get: GetFn) {
   return {

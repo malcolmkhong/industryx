@@ -5,6 +5,7 @@ import { formatNumber } from "../utils/formatNumber";
 import { getBalance } from "../balanceConfig";
 import { soundEngine } from "../soundEngine";
 import { buildMultipliers } from "../productionCalculator";
+import type { SetFn, GetFn } from "./_actionTypes";
 
 // Inline: translate server technical error → user-friendly text.
 function friendlyTransportError(serverError: string | undefined): string {
@@ -23,11 +24,6 @@ function friendlyTransportError(serverError: string | undefined): string {
     return "Not enough money to upgrade transport.";
   return e || "Transport action could not be completed. Please try again.";
 }
-
-type SetFn = (
-  partial: Record<string, unknown> | ((state: any) => Record<string, unknown>),
-) => void;
-type GetFn = () => any;
 
 export function createTransportActions(set: SetFn, get: GetFn) {
   return {

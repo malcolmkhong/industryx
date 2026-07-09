@@ -6,11 +6,7 @@ import { WEEKLY_DAILY_REWARDS, getStreakMultiplier } from "../configCache";
 import { getCapacity } from "../utils/costCalculator";
 import { soundEngine } from "../soundEngine";
 import { generateId } from "../utils/generateId";
-
-type SetFn = (
-  partial: Record<string, unknown> | ((state: any) => Record<string, unknown>),
-) => void;
-type GetFn = () => any;
+import type { SetFn, GetFn } from "./_actionTypes";
 
 export function createDailyRewardActions(set: SetFn, get: GetFn) {
   return {

@@ -3,11 +3,7 @@
 // ============================================
 import { generateId } from "../utils/generateId";
 import { soundEngine } from "../soundEngine";
-
-type SetFn = (
-  partial: Record<string, unknown> | ((state: any) => Record<string, unknown>),
-) => void;
-type GetFn = () => any;
+import type { SetFn, GetFn } from "./_actionTypes";
 
 export function createQuestActions(set: SetFn, get: GetFn) {
   return {

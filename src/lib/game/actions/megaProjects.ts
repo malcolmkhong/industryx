@@ -1,7 +1,5 @@
 import type { MegaProjectType, ResourceType, GameNotification } from '../types';
-
-type SetFn = (partial: Record<string, unknown> | ((state: any) => Record<string, unknown>)) => void;
-type GetFn = () => any;
+import type { SetFn, GetFn } from "./_actionTypes";
 
 export function createMegaProjectActions(set: SetFn, get: GetFn) {
   return {

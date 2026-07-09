@@ -3,11 +3,7 @@
 // ============================================
 import { BUILDING_DEFS, RANK_THRESHOLDS } from "../configCache";
 import { MAX_TIER } from "../tiers";
-
-type SetFn = (
-  partial: Record<string, unknown> | ((state: any) => Record<string, unknown>),
-) => void;
-type GetFn = () => any;
+import type { SetFn, GetFn } from "./_actionTypes";
 
 export function createRankActions(set: SetFn, get: GetFn) {
   return {
