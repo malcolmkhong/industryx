@@ -366,6 +366,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       cancelled = true;
       cleanupPromise.then((fn) => fn?.());
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- orchestrator is the only React dep; cloudSync/loginPrompt/mergeFlow/router are module-level singletons (stable refs)
   }, [orchestrator]);
 
   /**

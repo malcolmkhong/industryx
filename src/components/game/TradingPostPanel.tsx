@@ -7,7 +7,11 @@ import { ResourceType } from "@/lib/game/types";
 import { getGlobalPrice } from "@/lib/game/utils/gameMath";
 import { notifyTradeImpactIfMoved } from "@/lib/game/actions/market";
 import { getBalance } from "@/lib/game/balanceConfig";
-import { INITIAL_MARKET, RESOURCE_META, TRADABLE_RESOURCE_IDS } from "@/lib/game/configCache";
+import {
+  INITIAL_MARKET,
+  RESOURCE_META,
+  TRADABLE_RESOURCE_IDS,
+} from "@/lib/game/configCache";
 import { GameIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -65,7 +69,11 @@ interface TradeHistoryEntry {
 // (e.g., SSR, first render before polling completes).
 function getBasePrice(
   resource: ResourceType,
-  liveMarket: { resource: ResourceType; currentPrice: number; basePrice: number }[],
+  liveMarket: {
+    resource: ResourceType;
+    currentPrice: number;
+    basePrice: number;
+  }[],
 ): number {
   const live = liveMarket.find((m) => m.resource === resource);
   if (live && Number.isFinite(live.currentPrice) && live.currentPrice > 0) {
@@ -80,7 +88,11 @@ function calculateReceiveAmount(
   giveResource: ResourceType,
   giveAmount: number,
   receiveResource: ResourceType,
-  liveMarket: { resource: ResourceType; currentPrice: number; basePrice: number }[],
+  liveMarket: {
+    resource: ResourceType;
+    currentPrice: number;
+    basePrice: number;
+  }[],
 ): number {
   const givePrice = getBasePrice(giveResource, liveMarket);
   const receivePrice = getBasePrice(receiveResource, liveMarket);
@@ -92,7 +104,11 @@ function calculateReceiveAmount(
 function formatExchangeRate(
   giveResource: ResourceType,
   receiveResource: ResourceType,
-  liveMarket: { resource: ResourceType; currentPrice: number; basePrice: number }[],
+  liveMarket: {
+    resource: ResourceType;
+    currentPrice: number;
+    basePrice: number;
+  }[],
 ): string {
   const givePrice = getBasePrice(giveResource, liveMarket);
   const receivePrice = getBasePrice(receiveResource, liveMarket);
@@ -112,13 +128,23 @@ function PriceChangeBadge({
   liveMarket,
 }: {
   resource: ResourceType;
-  liveMarket: { resource: ResourceType; currentPrice: number; basePrice: number }[];
+  liveMarket: {
+    resource: ResourceType;
+    currentPrice: number;
+    basePrice: number;
+  }[];
 }) {
   const live = liveMarket.find((m) => m.resource === resource);
-  if (!live || !Number.isFinite(live.currentPrice) || !Number.isFinite(live.basePrice) || live.basePrice <= 0) {
+  if (
+    !live ||
+    !Number.isFinite(live.currentPrice) ||
+    !Number.isFinite(live.basePrice) ||
+    live.basePrice <= 0
+  ) {
     return null;
   }
-  const changePct = ((live.currentPrice - live.basePrice) / live.basePrice) * 100;
+  const changePct =
+    ((live.currentPrice - live.basePrice) / live.basePrice) * 100;
   if (Math.abs(changePct) < 0.05) return null; // < 0.05% — don't show
   const isUp = changePct > 0;
   return (
@@ -341,7 +367,13 @@ export function TradingPostPanel() {
 
   // ─── Computed values ────────────────────────────────────────────────────────
   const receiveAmount = useMemo(
-    () => calculateReceiveAmount(giveResource, giveAmount, receiveResource, liveMarket),
+    () =>
+      calculateReceiveAmount(
+        giveResource,
+        giveAmount,
+        receiveResource,
+        liveMarket,
+      ),
     [giveResource, giveAmount, receiveResource, liveMarket],
   );
 
@@ -413,7 +445,7 @@ export function TradingPostPanel() {
       }
     }
     return result.slice(0, 3);
-  }, [resources, resourceCapacity]);
+  }, [resources, resourceCapacity, storageFullThreshold]);
 
   // ─── Execute trade (C5 FIX: now goes through server validation) ──────────
   // U10: deps now include liveMarket so `calculateReceiveAmount` uses fresh
@@ -583,7 +615,10 @@ export function TradingPostPanel() {
       // ensure player can afford this much
       const cap = resourceCapacity[give] ?? Infinity;
       const stock = resources[give] ?? 0;
-      const afford = Math.max(1, Math.min(amount, Math.floor(stock * 0.1), Math.floor(cap * 0.1)));
+      const afford = Math.max(
+        1,
+        Math.min(amount, Math.floor(stock * 0.1), Math.floor(cap * 0.1)),
+      );
       if (afford < 1) return;
       seen.add(key);
       presets.push({
@@ -596,7 +631,11 @@ export function TradingPostPanel() {
 
     // 1) From suggestions: 1:1 storage-full → low-storage
     for (const s of suggestions.slice(0, 3)) {
-      addPreset(s.resource, Math.ceil((resources[s.resource] ?? 0) * 0.1), s.suggestTradeFor);
+      addPreset(
+        s.resource,
+        Math.ceil((resources[s.resource] ?? 0) * 0.1),
+        s.suggestTradeFor,
+      );
     }
 
     // 2) Fill from generic state: top stock give → bottom stock receive (excluding chain)
@@ -604,8 +643,12 @@ export function TradingPostPanel() {
       res: res as ResourceType,
       stock: resources[res] ?? 0,
     }));
-    const rich = [...stocks].filter((s) => s.stock > 100).sort((a, b) => b.stock - a.stock);
-    const poor = [...stocks].filter((s) => s.stock > 0).sort((a, b) => a.stock - b.stock);
+    const rich = [...stocks]
+      .filter((s) => s.stock > 100)
+      .sort((a, b) => b.stock - a.stock);
+    const poor = [...stocks]
+      .filter((s) => s.stock > 0)
+      .sort((a, b) => a.stock - b.stock);
 
     for (const g of rich) {
       if (presets.length >= 6) break;
@@ -619,14 +662,27 @@ export function TradingPostPanel() {
     // 3) Last-resort fallback: first few TRADABLE pairs (offline / no resources).
     //    Uses minimum 1 unit amounts so they at least render.
     if (presets.length === 0) {
-      for (let i = 0; i < TRADABLE_RESOURCE_IDS.length - 1 && presets.length < 3; i++) {
-        addPreset(TRADABLE_RESOURCE_IDS[i] as ResourceType, 1, TRADABLE_RESOURCE_IDS[i + 1] as ResourceType);
+      for (
+        let i = 0;
+        i < TRADABLE_RESOURCE_IDS.length - 1 && presets.length < 3;
+        i++
+      ) {
+        addPreset(
+          TRADABLE_RESOURCE_IDS[i] as ResourceType,
+          1,
+          TRADABLE_RESOURCE_IDS[i + 1] as ResourceType,
+        );
       }
     }
 
     return presets.slice(0, 6).map((p) => ({
       ...p,
-      receiveAmount: calculateReceiveAmount(p.give, p.giveAmount, p.receive, liveMarket),
+      receiveAmount: calculateReceiveAmount(
+        p.give,
+        p.giveAmount,
+        p.receive,
+        liveMarket,
+      ),
     }));
   }, [liveMarket, resources, resourceCapacity, suggestions]);
 
@@ -794,7 +850,9 @@ export function TradingPostPanel() {
             </Select>
 
             <div className="space-y-1">
-              <div className="text-[10px] text-muted-label">You will receive</div>
+              <div className="text-[10px] text-muted-label">
+                You will receive
+              </div>
               <div className="bg-background border border-brand/30 rounded-md px-3 py-2 text-sm font-mono text-research">
                 {giveResource !== receiveResource
                   ? receiveAmount > 0
@@ -829,7 +887,8 @@ export function TradingPostPanel() {
                 <div className="w-12 h-1 bg-muted-label rounded-full overflow-hidden ml-1">
                   <div
                     className={`h-full rounded-full transition-all ${
-                      receiveResourceCurrent / receiveCapacity > storageFullThreshold
+                      receiveResourceCurrent / receiveCapacity >
+                      storageFullThreshold
                         ? "bg-danger"
                         : receiveResourceCurrent / receiveCapacity > 0.5
                           ? "bg-warning"
@@ -866,10 +925,7 @@ export function TradingPostPanel() {
               <Info className="w-3 h-3" />
               Server-validated
             </span>
-            <PriceChangeBadge
-              resource={giveResource}
-              liveMarket={liveMarket}
-            />
+            <PriceChangeBadge resource={giveResource} liveMarket={liveMarket} />
             <PriceChangeBadge
               resource={receiveResource}
               liveMarket={liveMarket}
@@ -884,14 +940,21 @@ export function TradingPostPanel() {
                 {Math.round(lastPricing.giveBasePrice * 100) / 100} base
               </span>
               <span className="text-muted-label"> → </span>
-              <span className={lastPricing.usedLivePrice ? "text-warning" : "text-subtle"}>
+              <span
+                className={
+                  lastPricing.usedLivePrice ? "text-warning" : "text-subtle"
+                }
+              >
                 {Math.round(lastPricing.giveLivePrice * 100) / 100} live
               </span>
               <span className="text-muted-label">
-                {" "}(slippage {(lastPricing.slippage.give * 100).toFixed(2)}%)
+                {" "}
+                (slippage {(lastPricing.slippage.give * 100).toFixed(2)}%)
               </span>
               {lastPricing.usedLivePrice && (
-                <span className="ml-2 text-[9px] text-warning">▲ live price used</span>
+                <span className="ml-2 text-[9px] text-warning">
+                  ▲ live price used
+                </span>
               )}
             </div>
           )}
@@ -923,7 +986,10 @@ export function TradingPostPanel() {
                 {RESOURCE_META[receiveResource]?.name ?? receiveResource}{" "}
                 storage nearly full — receive will be capped at{" "}
                 <span className="font-mono text-warning">
-                  {Math.max(0, receiveCapacity - receiveResourceCurrent).toFixed(1)}
+                  {Math.max(
+                    0,
+                    receiveCapacity - receiveResourceCurrent,
+                  ).toFixed(1)}
                 </span>{" "}
                 to fit.
               </div>
@@ -938,7 +1004,8 @@ export function TradingPostPanel() {
                   className="block h-full bg-brand transition-all duration-1000 ease-linear"
                   style={{
                     width: `${
-                      (cooldownMsRemaining / (TRADE_COOLDOWN_SECONDS * 1000)) * 100
+                      (cooldownMsRemaining / (TRADE_COOLDOWN_SECONDS * 1000)) *
+                      100
                     }%`,
                   }}
                 />
@@ -984,7 +1051,8 @@ export function TradingPostPanel() {
           </h3>
           <div className="flex items-center gap-2 text-[10px] text-muted-label">
             <span className="font-mono">
-              {formatExchangeRate(giveResource, receiveResource, liveMarket)} per unit
+              {formatExchangeRate(giveResource, receiveResource, liveMarket)}{" "}
+              per unit
             </span>
             <span className="text-dim">|</span>
             <span>showing 24h</span>
@@ -1217,8 +1285,8 @@ export function TradingPostPanel() {
               {(TRADE_COMMISSION_RATE * 100).toFixed(0)}% commission.
             </p>
             <p>
-              <span className="text-success font-semibold">Security:</span>{" "}
-              All trades are executed server-side against authoritative state to
+              <span className="text-success font-semibold">Security:</span> All
+              trades are executed server-side against authoritative state to
               prevent client-side tampering. Trades are persisted to your
               history and survive page refreshes.
             </p>
@@ -1234,4 +1302,3 @@ export function TradingPostPanel() {
     </div>
   );
 }
-

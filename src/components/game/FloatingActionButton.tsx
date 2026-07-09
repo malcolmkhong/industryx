@@ -1,12 +1,20 @@
-'use client';
+"use client";
 
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
-import { Plus, X } from 'lucide-react';
-import { ICON_MAP } from '@/components/game/BottomNavigationBar';
-import { useSettingsStore, type QuickAccessShortcut } from '@/lib/game/settingsStore';
-import { GameTab } from '@/lib/game/types';
-import { useReducedMotion } from '@/components/game/shared/useReducedMotion';
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import {
+  motion,
+  AnimatePresence,
+  useMotionValue,
+  animate,
+} from "framer-motion";
+import { Plus, X } from "lucide-react";
+import { ICON_MAP } from "@/components/game/BottomNavigationBar";
+import {
+  useSettingsStore,
+  type QuickAccessShortcut,
+} from "@/lib/game/settingsStore";
+import { GameTab } from "@/lib/game/types";
+import { useReducedMotion } from "@/components/game/shared/useReducedMotion";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -87,7 +95,7 @@ function ShortcutButton({
         transition: reducedMotion
           ? { duration: 0.01 }
           : {
-              type: 'spring',
+              type: "spring",
               stiffness: 350,
               damping: 25,
               delay: index * 0.04,
@@ -100,7 +108,7 @@ function ShortcutButton({
         y: 0,
         transition: reducedMotion
           ? { duration: 0.01 }
-          : { duration: 0.15, ease: 'easeIn' as const },
+          : { duration: 0.15, ease: "easeIn" as const },
       }}
       whileTap={{ scale: 0.9 }}
       onClick={(e) => {
@@ -135,7 +143,7 @@ function ShortcutButton({
           bg-[#0d1220]/95 border border-brand/30 rounded px-1.5 py-0.5
           pointer-events-none opacity-0 group-hover:opacity-100
           transition-opacity duration-150 z-10
-          ${isBottom ? 'bottom-full mb-2' : 'top-full mt-2'}
+          ${isBottom ? "bottom-full mb-2" : "top-full mt-2"}
         `}
       >
         {shortcut.label}
@@ -150,12 +158,16 @@ interface FloatingActionButtonProps {
   onTabChange: (tab: GameTab) => void;
 }
 
-export function FloatingActionButton({ onTabChange }: FloatingActionButtonProps) {
+export function FloatingActionButton({
+  onTabChange,
+}: FloatingActionButtonProps) {
   const fabEnabled = useSettingsStore((s) => s.fabEnabled);
   const fabPosition = useSettingsStore((s) => s.fabPosition);
   const setFABPosition = useSettingsStore((s) => s.setFABPosition);
   const quickAccessShortcuts = useSettingsStore((s) => s.quickAccessShortcuts);
-  const maxQuickAccessShortcuts = useSettingsStore((s) => s.maxQuickAccessShortcuts);
+  const maxQuickAccessShortcuts = useSettingsStore(
+    (s) => s.maxQuickAccessShortcuts,
+  );
   const reducedMotion = useReducedMotion();
 
   const [isExpanded, setIsExpanded] = useState(false);
@@ -184,7 +196,16 @@ export function FloatingActionButton({ onTabChange }: FloatingActionButtonProps)
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const safeTop = HEADER_HEIGHT + MIN_MARGIN;
-    const safeBottom = BOTTOM_NAV_HEIGHT + FAB_SIZE + MIN_MARGIN + parseInt(getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-bottom)') || '0', 10);
+    const safeBottom =
+      BOTTOM_NAV_HEIGHT +
+      FAB_SIZE +
+      MIN_MARGIN +
+      parseInt(
+        getComputedStyle(document.documentElement).getPropertyValue(
+          "env(safe-area-inset-bottom)",
+        ) || "0",
+        10,
+      );
     return {
       x: Math.max(MIN_MARGIN, Math.min(vw - FAB_SIZE - MIN_MARGIN, x)),
       y: Math.max(safeTop, Math.min(vh - safeBottom, y)),
@@ -229,24 +250,22 @@ export function FloatingActionButton({ onTabChange }: FloatingActionButtonProps)
     posRef.current = clamped;
     motionX.set(clamped.x);
     motionY.set(clamped.y);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional one-shot FAB position init on mount
   }, []);
 
   // ── Unified pointer event handlers ──
 
-  const handlePointerDown = useCallback(
-    (clientX: number, clientY: number) => {
-      isDraggingRef.current = true;
-      hasMovedRef.current = false;
-      dragStartRef.current = { x: clientX, y: clientY };
+  const handlePointerDown = useCallback((clientX: number, clientY: number) => {
+    isDraggingRef.current = true;
+    hasMovedRef.current = false;
+    dragStartRef.current = { x: clientX, y: clientY };
 
-      // Close menu if expanded when starting a new drag
-      setIsExpanded((prev) => {
-        if (prev) return false;
-        return prev;
-      });
-    },
-    [],
-  );
+    // Close menu if expanded when starting a new drag
+    setIsExpanded((prev) => {
+      if (prev) return false;
+      return prev;
+    });
+  }, []);
 
   const handlePointerMove = useCallback(
     (clientX: number, clientY: number) => {
@@ -290,8 +309,16 @@ export function FloatingActionButton({ onTabChange }: FloatingActionButtonProps)
 
       // Animate to the snapped position with a spring
       if (!reducedMotion) {
-        animate(motionX, clamped.x, { type: 'spring', stiffness: 300, damping: 30 });
-        animate(motionY, clamped.y, { type: 'spring', stiffness: 300, damping: 30 });
+        animate(motionX, clamped.x, {
+          type: "spring",
+          stiffness: 300,
+          damping: 30,
+        });
+        animate(motionY, clamped.y, {
+          type: "spring",
+          stiffness: 300,
+          damping: 30,
+        });
       } else {
         motionX.set(clamped.x);
         motionY.set(clamped.y);
@@ -310,7 +337,14 @@ export function FloatingActionButton({ onTabChange }: FloatingActionButtonProps)
         setIsExpanded((prev) => !prev);
       }
     }
-  }, [clampPosition, motionX, motionY, reducedMotion, savePosition, snapToEdge]);
+  }, [
+    clampPosition,
+    motionX,
+    motionY,
+    reducedMotion,
+    savePosition,
+    snapToEdge,
+  ]);
 
   // ── Touch event wiring ──
 
@@ -352,12 +386,12 @@ export function FloatingActionButton({ onTabChange }: FloatingActionButtonProps)
       };
       const onMouseUp = () => {
         handlePointerUp();
-        window.removeEventListener('mousemove', onMouseMove);
-        window.removeEventListener('mouseup', onMouseUp);
+        window.removeEventListener("mousemove", onMouseMove);
+        window.removeEventListener("mouseup", onMouseUp);
       };
 
-      window.addEventListener('mousemove', onMouseMove);
-      window.addEventListener('mouseup', onMouseUp);
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
     },
     [handlePointerDown, handlePointerMove, handlePointerUp],
   );
@@ -378,14 +412,14 @@ export function FloatingActionButton({ onTabChange }: FloatingActionButtonProps)
 
     // Small delay to prevent the opening tap from immediately closing
     const timer = setTimeout(() => {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('touchstart', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("touchstart", handleClickOutside);
     }, 50);
 
     return () => {
       clearTimeout(timer);
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
     };
   }, [isExpanded]);
 
@@ -430,10 +464,10 @@ export function FloatingActionButton({ onTabChange }: FloatingActionButtonProps)
           style={{
             x: motionX,
             y: motionY,
-            position: 'absolute',
+            position: "absolute",
             left: 0,
             top: 0,
-            pointerEvents: 'auto',
+            pointerEvents: "auto",
           }}
         >
           {/* Shortcuts radial menu */}
@@ -445,7 +479,7 @@ export function FloatingActionButton({ onTabChange }: FloatingActionButtonProps)
                 style={{
                   width: FAB_SIZE,
                   height: FAB_SIZE,
-                  pointerEvents: 'auto',
+                  pointerEvents: "auto",
                 }}
               >
                 {visibleShortcuts.map((shortcut, i) => (
@@ -477,7 +511,7 @@ export function FloatingActionButton({ onTabChange }: FloatingActionButtonProps)
             transition={
               reducedMotion
                 ? { duration: 0.01 }
-                : { type: 'spring', stiffness: 400, damping: 25 }
+                : { type: "spring", stiffness: 400, damping: 25 }
             }
             className={`
               relative flex items-center justify-center
@@ -497,11 +531,11 @@ export function FloatingActionButton({ onTabChange }: FloatingActionButtonProps)
             aria-expanded={isExpanded}
             tabIndex={0}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
+              if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
                 setIsExpanded((prev) => !prev);
               }
-              if (e.key === 'Escape' && isExpanded) {
+              if (e.key === "Escape" && isExpanded) {
                 setIsExpanded(false);
               }
             }}
@@ -512,12 +546,12 @@ export function FloatingActionButton({ onTabChange }: FloatingActionButtonProps)
                 className="absolute inset-0 rounded-full pointer-events-none"
                 animate={
                   reducedMotion
-                    ? { boxShadow: '0 0 20px rgba(0,255,242,0.3)' }
+                    ? { boxShadow: "0 0 20px rgba(0,255,242,0.3)" }
                     : {
                         boxShadow: [
-                          '0 0 20px rgba(0,255,242,0.3)',
-                          '0 0 35px rgba(0,255,242,0.5)',
-                          '0 0 20px rgba(0,255,242,0.3)',
+                          "0 0 20px rgba(0,255,242,0.3)",
+                          "0 0 35px rgba(0,255,242,0.5)",
+                          "0 0 20px rgba(0,255,242,0.3)",
                         ],
                       }
                 }
@@ -527,7 +561,7 @@ export function FloatingActionButton({ onTabChange }: FloatingActionButtonProps)
                     : {
                         duration: 2.5,
                         repeat: Infinity,
-                        ease: 'easeInOut',
+                        ease: "easeInOut",
                       }
                 }
               />
@@ -544,7 +578,7 @@ export function FloatingActionButton({ onTabChange }: FloatingActionButtonProps)
                   transition={
                     reducedMotion
                       ? { duration: 0.01 }
-                      : { type: 'spring', stiffness: 400, damping: 25 }
+                      : { type: "spring", stiffness: 400, damping: 25 }
                   }
                   className="relative z-10"
                 >
@@ -559,7 +593,7 @@ export function FloatingActionButton({ onTabChange }: FloatingActionButtonProps)
                   transition={
                     reducedMotion
                       ? { duration: 0.01 }
-                      : { type: 'spring', stiffness: 400, damping: 25 }
+                      : { type: "spring", stiffness: 400, damping: 25 }
                   }
                   className="relative z-10"
                 >

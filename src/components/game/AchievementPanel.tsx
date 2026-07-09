@@ -1,20 +1,33 @@
-'use client';
+"use client";
 
-import React, { useMemo, useState } from 'react';
-import { useGameStore, formatNumber } from '@/lib/game/store';
-import { BUILDING_DEFS } from '@/lib/game/configCache';
-import type { GameStore } from '@/lib/game/store-types';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { GameIcon } from '@/components/icons';
+import React, { useMemo, useState } from "react";
+import { useGameStore, formatNumber } from "@/lib/game/store";
+import { BUILDING_DEFS } from "@/lib/game/configCache";
+import type { GameStore } from "@/lib/game/store-types";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { GameIcon } from "@/components/icons";
 import {
-  Trophy, Lock, Check, Zap,
-  Rocket, Users, Target, Award,
-  Flame, Shield, Cog, TrendingUp, Star,
-  ChevronRight, ChevronDown, Search
-} from 'lucide-react';
+  Trophy,
+  Lock,
+  Check,
+  Zap,
+  Rocket,
+  Users,
+  Target,
+  Award,
+  Flame,
+  Shield,
+  Cog,
+  TrendingUp,
+  Star,
+  ChevronRight,
+  ChevronDown,
+  Search,
+} from "lucide-react";
 
-type AchievementCategory = 'Production' | 'Economy' | 'Research' | 'Expansion' | 'Special';
+type AchievementCategory =
+  "Production" | "Economy" | "Research" | "Expansion" | "Special";
 
 interface Achievement {
   id: string;
@@ -32,335 +45,402 @@ interface Achievement {
 const ACHIEVEMENTS: Achievement[] = [
   // === PRODUCTION ===
   {
-    id: 'first-light',
-    name: 'First Light',
-    description: 'Build your first power plant',
-    icon: 'game-icons:light-bulb',
-    category: 'Production',
-    condition: (s) => s.buildings.some(b => BUILDING_DEFS[b.type]?.category === 'power'),
-    progress: (s) => s.buildings.some(b => BUILDING_DEFS[b.type]?.category === 'power') ? 1 : 0,
-    progressText: (s) => s.buildings.some(b => BUILDING_DEFS[b.type]?.category === 'power') ? '1/1' : '0/1',
-    reward: 'Basic power knowledge',
+    id: "first-light",
+    name: "First Light",
+    description: "Build your first power plant",
+    icon: "game-icons:light-bulb",
+    category: "Production",
+    condition: (s) =>
+      s.buildings.some((b) => BUILDING_DEFS[b.type]?.category === "power"),
+    progress: (s) =>
+      s.buildings.some((b) => BUILDING_DEFS[b.type]?.category === "power")
+        ? 1
+        : 0,
+    progressText: (s) =>
+      s.buildings.some((b) => BUILDING_DEFS[b.type]?.category === "power")
+        ? "1/1"
+        : "0/1",
+    reward: "Basic power knowledge",
     tier: 1,
   },
   {
-    id: 'iron-will',
-    name: 'Iron Will',
-    description: 'Produce a total of 100 iron',
-    icon: 'game-icons:mining',
-    category: 'Production',
+    id: "iron-will",
+    name: "Iron Will",
+    description: "Produce a total of 100 iron",
+    icon: "game-icons:mining",
+    category: "Production",
     condition: (s) => s.stats.totalResourcesProduced.iron >= 100,
     progress: (s) => Math.min(1, s.stats.totalResourcesProduced.iron / 100),
-    progressText: (s) => `${Math.floor(s.stats.totalResourcesProduced.iron)}/100`,
-    reward: 'Iron production milestone',
+    progressText: (s) =>
+      `${Math.floor(s.stats.totalResourcesProduced.iron)}/100`,
+    reward: "Iron production milestone",
     tier: 1,
   },
   {
-    id: 'industrialist',
-    name: 'Industrialist',
-    description: 'Build 10 buildings total',
-    icon: 'game-icons:factory',
-    category: 'Production',
+    id: "industrialist",
+    name: "Industrialist",
+    description: "Build 10 buildings total",
+    icon: "game-icons:factory",
+    category: "Production",
     condition: (s) => s.buildings.length >= 10,
     progress: (s) => Math.min(1, s.buildings.length / 10),
     progressText: (s) => `${s.buildings.length}/10`,
-    reward: 'Industrial expansion recognized',
+    reward: "Industrial expansion recognized",
     tier: 2,
   },
   {
-    id: 'power-hungry',
-    name: 'Power Hungry',
-    description: 'Generate 500MW of power',
-    icon: 'game-icons:lightning-frequency',
-    category: 'Production',
+    id: "power-hungry",
+    name: "Power Hungry",
+    description: "Generate 500MW of power",
+    icon: "game-icons:lightning-frequency",
+    category: "Production",
     condition: (s) => s.powerGrid.totalProduction >= 500,
     progress: (s) => Math.min(1, s.powerGrid.totalProduction / 500),
     progressText: (s) => `${Math.floor(s.powerGrid.totalProduction)}/500 MW`,
-    reward: 'Energy dominance achieved',
+    reward: "Energy dominance achieved",
     tier: 2,
   },
   {
-    id: 'factory-floor',
-    name: 'Factory Floor',
-    description: 'Have 5 active factory buildings',
-    icon: 'game-icons:wrench',
-    category: 'Production',
-    condition: (s) => s.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory' && b.active).length >= 5,
-    progress: (s) => Math.min(1, s.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory' && b.active).length / 5),
-    progressText: (s) => `${s.buildings.filter(b => BUILDING_DEFS[b.type]?.category === 'factory' && b.active).length}/5`,
-    reward: 'Manufacturing mastery',
+    id: "factory-floor",
+    name: "Factory Floor",
+    description: "Have 5 active factory buildings",
+    icon: "game-icons:wrench",
+    category: "Production",
+    condition: (s) =>
+      s.buildings.filter(
+        (b) => BUILDING_DEFS[b.type]?.category === "factory" && b.active,
+      ).length >= 5,
+    progress: (s) =>
+      Math.min(
+        1,
+        s.buildings.filter(
+          (b) => BUILDING_DEFS[b.type]?.category === "factory" && b.active,
+        ).length / 5,
+      ),
+    progressText: (s) =>
+      `${s.buildings.filter((b) => BUILDING_DEFS[b.type]?.category === "factory" && b.active).length}/5`,
+    reward: "Manufacturing mastery",
     tier: 2,
   },
   {
-    id: 'chain-reaction',
-    name: 'Chain Reaction',
-    description: 'Complete a full production chain: have an extractor, a factory, and a power plant all active',
-    icon: 'game-icons:linked-rings',
-    category: 'Production',
+    id: "chain-reaction",
+    name: "Chain Reaction",
+    description:
+      "Complete a full production chain: have an extractor, a factory, and a power plant all active",
+    icon: "game-icons:linked-rings",
+    category: "Production",
     condition: (s) => {
-      const hasExtractor = s.buildings.some(b => BUILDING_DEFS[b.type]?.category === 'extractor' && b.active);
-      const hasFactory = s.buildings.some(b => BUILDING_DEFS[b.type]?.category === 'factory' && b.active);
-      const hasPower = s.buildings.some(b => BUILDING_DEFS[b.type]?.category === 'power' && b.active);
+      const hasExtractor = s.buildings.some(
+        (b) => BUILDING_DEFS[b.type]?.category === "extractor" && b.active,
+      );
+      const hasFactory = s.buildings.some(
+        (b) => BUILDING_DEFS[b.type]?.category === "factory" && b.active,
+      );
+      const hasPower = s.buildings.some(
+        (b) => BUILDING_DEFS[b.type]?.category === "power" && b.active,
+      );
       return hasExtractor && hasFactory && hasPower;
     },
     progress: (s) => {
-      const hasExtractor = s.buildings.some(b => BUILDING_DEFS[b.type]?.category === 'extractor' && b.active);
-      const hasFactory = s.buildings.some(b => BUILDING_DEFS[b.type]?.category === 'factory' && b.active);
-      const hasPower = s.buildings.some(b => BUILDING_DEFS[b.type]?.category === 'power' && b.active);
+      const hasExtractor = s.buildings.some(
+        (b) => BUILDING_DEFS[b.type]?.category === "extractor" && b.active,
+      );
+      const hasFactory = s.buildings.some(
+        (b) => BUILDING_DEFS[b.type]?.category === "factory" && b.active,
+      );
+      const hasPower = s.buildings.some(
+        (b) => BUILDING_DEFS[b.type]?.category === "power" && b.active,
+      );
       return [hasExtractor, hasFactory, hasPower].filter(Boolean).length / 3;
     },
     progressText: (s) => {
-      const hasExtractor = s.buildings.some(b => BUILDING_DEFS[b.type]?.category === 'extractor' && b.active);
-      const hasFactory = s.buildings.some(b => BUILDING_DEFS[b.type]?.category === 'factory' && b.active);
-      const hasPower = s.buildings.some(b => BUILDING_DEFS[b.type]?.category === 'power' && b.active);
+      const hasExtractor = s.buildings.some(
+        (b) => BUILDING_DEFS[b.type]?.category === "extractor" && b.active,
+      );
+      const hasFactory = s.buildings.some(
+        (b) => BUILDING_DEFS[b.type]?.category === "factory" && b.active,
+      );
+      const hasPower = s.buildings.some(
+        (b) => BUILDING_DEFS[b.type]?.category === "power" && b.active,
+      );
       return `${[hasExtractor, hasFactory, hasPower].filter(Boolean).length}/3 types`;
     },
-    reward: 'Production chain unlocked',
+    reward: "Production chain unlocked",
     tier: 1,
   },
 
   // === ECONOMY ===
   {
-    id: 'market-mogul',
-    name: 'Market Mogul',
-    description: 'Earn $10,000 from total sales',
-    icon: 'game-icons:money-stack',
-    category: 'Economy',
+    id: "market-mogul",
+    name: "Market Mogul",
+    description: "Earn $10,000 from total sales",
+    icon: "game-icons:money-stack",
+    category: "Economy",
     condition: (s) => s.totalMoneyEarned >= 10000,
     progress: (s) => Math.min(1, s.totalMoneyEarned / 10000),
     progressText: (s) => `$${formatNumber(s.totalMoneyEarned)}/$10,000`,
-    reward: 'Financial success',
+    reward: "Financial success",
     tier: 2,
   },
   {
-    id: 'first-sale',
-    name: 'First Sale',
-    description: 'Sell any resource on the market',
-    icon: 'game-icons:cash',
-    category: 'Economy',
-    condition: (s) => Object.values(s.stats.totalResourcesSold).some(v => v > 0),
-    progress: (s) => Object.values(s.stats.totalResourcesSold).some(v => v > 0) ? 1 : 0,
-    progressText: (s) => Object.values(s.stats.totalResourcesSold).some(v => v > 0) ? 'Sold!' : 'Not yet',
-    reward: 'Market access unlocked',
+    id: "first-sale",
+    name: "First Sale",
+    description: "Sell any resource on the market",
+    icon: "game-icons:cash",
+    category: "Economy",
+    condition: (s) =>
+      Object.values(s.stats.totalResourcesSold).some((v) => v > 0),
+    progress: (s) =>
+      Object.values(s.stats.totalResourcesSold).some((v) => v > 0) ? 1 : 0,
+    progressText: (s) =>
+      Object.values(s.stats.totalResourcesSold).some((v) => v > 0)
+        ? "Sold!"
+        : "Not yet",
+    reward: "Market access unlocked",
     tier: 1,
   },
   {
-    id: 'resource-baron',
-    name: 'Resource Baron',
-    description: 'Have $50,000 cash on hand',
-    icon: 'game-icons:bank',
-    category: 'Economy',
+    id: "resource-baron",
+    name: "Resource Baron",
+    description: "Have $50,000 cash on hand",
+    icon: "game-icons:bank",
+    category: "Economy",
     condition: (s) => s.money >= 50000,
     progress: (s) => Math.min(1, s.money / 50000),
     progressText: (s) => `$${formatNumber(s.money)}/$50,000`,
-    reward: 'Wealth accumulation milestone',
+    reward: "Wealth accumulation milestone",
     tier: 2,
   },
 
   // === RESEARCH ===
   {
-    id: 'research-pioneer',
-    name: 'Research Pioneer',
-    description: 'Complete 3 researches',
-    icon: 'game-icons:chemical-drop',
-    category: 'Research',
+    id: "research-pioneer",
+    name: "Research Pioneer",
+    description: "Complete 3 researches",
+    icon: "game-icons:chemical-drop",
+    category: "Research",
     condition: (s) => s.completedResearch.length >= 3,
     progress: (s) => Math.min(1, s.completedResearch.length / 3),
     progressText: (s) => `${s.completedResearch.length}/3`,
-    reward: 'Scientific breakthrough',
+    reward: "Scientific breakthrough",
     tier: 2,
   },
   {
-    id: 'knowledge-seeker',
-    name: 'Knowledge Seeker',
-    description: 'Complete your first research',
-    icon: 'game-icons:open-book',
-    category: 'Research',
+    id: "knowledge-seeker",
+    name: "Knowledge Seeker",
+    description: "Complete your first research",
+    icon: "game-icons:open-book",
+    category: "Research",
     condition: (s) => s.completedResearch.length >= 1,
     progress: (s) => Math.min(1, s.completedResearch.length / 1),
     progressText: (s) => `${s.completedResearch.length}/1`,
-    reward: 'First steps in technology',
+    reward: "First steps in technology",
     tier: 1,
   },
   {
-    id: 'tech-master',
-    name: 'Tech Master',
-    description: 'Complete 10 researches',
-    icon: 'game-icons:chemical-drop',
-    category: 'Research',
+    id: "tech-master",
+    name: "Tech Master",
+    description: "Complete 10 researches",
+    icon: "game-icons:chemical-drop",
+    category: "Research",
     condition: (s) => s.completedResearch.length >= 10,
     progress: (s) => Math.min(1, s.completedResearch.length / 10),
     progressText: (s) => `${s.completedResearch.length}/10`,
-    reward: 'Technological supremacy',
+    reward: "Technological supremacy",
     tier: 3,
   },
 
   // === EXPANSION ===
   {
-    id: 'global-expansion',
-    name: 'Global Expansion',
-    description: 'Prestige for the first time',
-    icon: 'game-icons:planet-core',
-    category: 'Expansion',
+    id: "global-expansion",
+    name: "Global Expansion",
+    description: "Prestige for the first time",
+    icon: "game-icons:planet-core",
+    category: "Expansion",
     condition: (s) => s.prestigeState.totalPrestiges >= 1,
     progress: (s) => Math.min(1, s.prestigeState.totalPrestiges / 1),
     progressText: (s) => `${s.prestigeState.totalPrestiges}/1`,
-    reward: 'Corporation Points and permanent bonuses',
+    reward: "Corporation Points and permanent bonuses",
     tier: 3,
   },
   {
-    id: 'contractor',
-    name: 'Contractor',
-    description: 'Complete 5 contracts',
-    icon: 'game-icons:scroll-unfurled',
-    category: 'Expansion',
+    id: "contractor",
+    name: "Contractor",
+    description: "Complete 5 contracts",
+    icon: "game-icons:scroll-unfurled",
+    category: "Expansion",
     condition: (s) => s.stats.contractsCompleted >= 5,
     progress: (s) => Math.min(1, s.stats.contractsCompleted / 5),
     progressText: (s) => `${s.stats.contractsCompleted}/5`,
-    reward: 'Contracting reputation',
+    reward: "Contracting reputation",
     tier: 2,
   },
   {
-    id: 'multi-national',
-    name: 'Multi-National',
-    description: 'Prestige 3 times',
-    icon: 'game-icons:world',
-    category: 'Expansion',
+    id: "multi-national",
+    name: "Multi-National",
+    description: "Prestige 3 times",
+    icon: "game-icons:world",
+    category: "Expansion",
     condition: (s) => s.prestigeState.totalPrestiges >= 3,
     progress: (s) => Math.min(1, s.prestigeState.totalPrestiges / 3),
     progressText: (s) => `${s.prestigeState.totalPrestiges}/3`,
-    reward: 'Global corporation status',
+    reward: "Global corporation status",
     tier: 3,
   },
 
   // === SPECIAL ===
   {
-    id: 'automation-age',
-    name: 'Automation Age',
-    description: 'Activate your first automation',
-    icon: 'game-icons:robot-golem',
-    category: 'Special',
-    condition: (s) => s.automationUnlocks.some(a => a.active),
-    progress: (s) => s.automationUnlocks.some(a => a.active) ? 1 : 0,
-    progressText: (s) => s.automationUnlocks.some(a => a.active) ? 'Active!' : '0/1',
-    reward: 'Automation mastery begins',
+    id: "automation-age",
+    name: "Automation Age",
+    description: "Activate your first automation",
+    icon: "game-icons:robot-golem",
+    category: "Special",
+    condition: (s) => s.automationUnlocks.some((a) => a.active),
+    progress: (s) => (s.automationUnlocks.some((a) => a.active) ? 1 : 0),
+    progressText: (s) =>
+      s.automationUnlocks.some((a) => a.active) ? "Active!" : "0/1",
+    reward: "Automation mastery begins",
     tier: 2,
   },
   {
-    id: 'speed-demon',
-    name: 'Speed Demon',
-    description: 'Reach 10x game speed',
-    icon: 'game-icons:race-car',
-    category: 'Special',
+    id: "speed-demon",
+    name: "Speed Demon",
+    description: "Reach 10x game speed",
+    icon: "game-icons:race-car",
+    category: "Special",
     condition: (s) => s.gameSpeed >= 10,
     progress: (s) => Math.min(1, s.gameSpeed / 10),
     progressText: (s) => `${s.gameSpeed}x/10x`,
-    reward: 'Time manipulation achieved',
+    reward: "Time manipulation achieved",
     tier: 2,
   },
   {
-    id: 'efficiency-expert',
-    name: 'Efficiency Expert',
-    description: 'Reach 95% power grid efficiency',
-    icon: 'game-icons:crosshair',
-    category: 'Special',
+    id: "efficiency-expert",
+    name: "Efficiency Expert",
+    description: "Reach 95% power grid efficiency",
+    icon: "game-icons:crosshair",
+    category: "Special",
     condition: (s) => s.powerGrid.efficiency >= 0.95,
     progress: (s) => Math.min(1, s.powerGrid.efficiency / 0.95),
     progressText: (s) => `${(s.powerGrid.efficiency * 100).toFixed(1)}%/95%`,
-    reward: 'Peak performance recognition',
+    reward: "Peak performance recognition",
     tier: 2,
   },
   {
-    id: 'worker-bee',
-    name: 'Worker Bee',
-    description: 'Hire 5 workers',
-    icon: 'game-icons:overhead',
-    category: 'Special',
+    id: "worker-bee",
+    name: "Worker Bee",
+    description: "Hire 5 workers",
+    icon: "game-icons:overhead",
+    category: "Special",
     condition: (s) => s.workers.length >= 5,
     progress: (s) => Math.min(1, s.workers.length / 5),
     progressText: (s) => `${s.workers.length}/5`,
-    reward: 'Workforce milestone',
+    reward: "Workforce milestone",
     tier: 2,
   },
   {
-    id: 'peak-performance',
-    name: 'Peak Performance',
-    description: 'Reach 100% peak efficiency',
-    icon: 'game-icons:podium-winner',
-    category: 'Special',
+    id: "peak-performance",
+    name: "Peak Performance",
+    description: "Reach 100% peak efficiency",
+    icon: "game-icons:podium-winner",
+    category: "Special",
     condition: (s) => s.stats.peakEfficiency >= 1.0,
     progress: (s) => Math.min(1, s.stats.peakEfficiency / 1.0),
     progressText: (s) => `${(s.stats.peakEfficiency * 100).toFixed(1)}%/100%`,
-    reward: 'Optimization excellence',
+    reward: "Optimization excellence",
     tier: 3,
   },
   {
-    id: 'marathon-runner',
-    name: 'Marathon Runner',
-    description: 'Play for 10,000 ticks',
-    icon: 'game-icons:stopwatch',
-    category: 'Special',
+    id: "marathon-runner",
+    name: "Marathon Runner",
+    description: "Play for 10,000 ticks",
+    icon: "game-icons:stopwatch",
+    category: "Special",
     condition: (s) => s.gameTick >= 10000,
     progress: (s) => Math.min(1, s.gameTick / 10000),
     progressText: (s) => `${formatNumber(s.gameTick)}/10,000`,
-    reward: 'Dedication badge',
+    reward: "Dedication badge",
     tier: 2,
   },
   {
-    id: 'nuclear-age',
-    name: 'Nuclear Age',
-    description: 'Build a Nuclear Reactor',
-    icon: 'game-icons:radioactive',
-    category: 'Special',
-    condition: (s) => s.buildings.some(b => b.type === 'nuclearReactor'),
-    progress: (s) => s.buildings.some(b => b.type === 'nuclearReactor') ? 1 : 0,
-    progressText: (s) => s.buildings.some(b => b.type === 'nuclearReactor') ? 'Built!' : '0/1',
-    reward: 'Nuclear power achievement',
+    id: "nuclear-age",
+    name: "Nuclear Age",
+    description: "Build a Nuclear Reactor",
+    icon: "game-icons:radioactive",
+    category: "Special",
+    condition: (s) => s.buildings.some((b) => b.type === "nuclearReactor"),
+    progress: (s) =>
+      s.buildings.some((b) => b.type === "nuclearReactor") ? 1 : 0,
+    progressText: (s) =>
+      s.buildings.some((b) => b.type === "nuclearReactor") ? "Built!" : "0/1",
+    reward: "Nuclear power achievement",
     tier: 3,
   },
 ];
 
-const CATEGORY_META: Record<AchievementCategory, { icon: string; color: string; borderColor: string; bgColor: string }> = {
+const CATEGORY_META: Record<
+  AchievementCategory,
+  { icon: string; color: string; borderColor: string; bgColor: string }
+> = {
   Production: {
-    icon: 'game-icons:factory',
-    color: 'text-brand',
-    borderColor: 'border-brand/30',
-    bgColor: 'bg-brand/10',
+    icon: "game-icons:factory",
+    color: "text-brand",
+    borderColor: "border-brand/30",
+    bgColor: "bg-brand/10",
   },
   Economy: {
-    icon: 'game-icons:money-stack',
-    color: 'text-success',
-    borderColor: 'border-success/30',
-    bgColor: 'bg-success/10',
+    icon: "game-icons:money-stack",
+    color: "text-success",
+    borderColor: "border-success/30",
+    bgColor: "bg-success/10",
   },
   Research: {
-    icon: 'game-icons:chemical-drop',
-    color: 'text-research',
-    borderColor: 'border-research/30',
-    bgColor: 'bg-research/10',
+    icon: "game-icons:chemical-drop",
+    color: "text-research",
+    borderColor: "border-research/30",
+    bgColor: "bg-research/10",
   },
   Expansion: {
-    icon: 'game-icons:planet-core',
-    color: 'text-premium',
-    borderColor: 'border-premium/20/30',
-    bgColor: 'bg-premium/20/10',
+    icon: "game-icons:planet-core",
+    color: "text-premium",
+    borderColor: "border-premium/20/30",
+    bgColor: "bg-premium/20/10",
   },
   Special: {
-    icon: 'game-icons:star-formation',
-    color: 'text-warning',
-    borderColor: 'border-warning/30',
-    bgColor: 'bg-warning/10',
+    icon: "game-icons:star-formation",
+    color: "text-warning",
+    borderColor: "border-warning/30",
+    bgColor: "bg-warning/10",
   },
 };
 
 const TIER_COLORS = {
-  1: { label: 'Bronze', color: 'text-domain', bg: 'bg-domain/20', border: 'border-domain/30' },
-  2: { label: 'Silver', color: 'text-subtle', bg: 'bg-muted-label/30', border: 'border-muted-label/30' },
-  3: { label: 'Gold', color: 'text-warning', bg: 'bg-warning/20', border: 'border-warning/80/30' },
+  1: {
+    label: "Bronze",
+    color: "text-domain",
+    bg: "bg-domain/20",
+    border: "border-domain/30",
+  },
+  2: {
+    label: "Silver",
+    color: "text-subtle",
+    bg: "bg-muted-label/30",
+    border: "border-muted-label/30",
+  },
+  3: {
+    label: "Gold",
+    color: "text-warning",
+    bg: "bg-warning/20",
+    border: "border-warning/80/30",
+  },
 };
 
 interface AchievementCardProps {
-  achievement: Achievement & { unlocked: boolean; progressValue: number; progressLabel: string };
+  achievement: Achievement & {
+    unlocked: boolean;
+    progressValue: number;
+    progressLabel: string;
+  };
   isExpanded: boolean;
   onToggleExpand: (id: string) => void;
 }
@@ -378,7 +458,7 @@ const MemoizedAchievementCard = React.memo(function MemoizedAchievementCard({
       className={`game-card rounded-xl border ${
         achievement.unlocked
           ? `bg-card ${meta.borderColor}`
-          : 'bg-card border-border opacity-70'
+          : "bg-card border-border opacity-70"
       }`}
     >
       <button
@@ -392,16 +472,20 @@ const MemoizedAchievementCard = React.memo(function MemoizedAchievementCard({
             className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl shrink-0 ${
               achievement.unlocked
                 ? `${meta.bgColor}`
-                : 'bg-muted-label/30 grayscale'
+                : "bg-muted-label/30 grayscale"
             }`}
           >
-            {achievement.unlocked ? <GameIcon icon={achievement.icon} size={20} /> : <Lock className="w-5 h-5 text-muted-label" />}
+            {achievement.unlocked ? (
+              <GameIcon icon={achievement.icon} size={20} />
+            ) : (
+              <Lock className="w-5 h-5 text-muted-label" />
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 mb-0.5">
               <span
                 className={`text-xs font-semibold ${
-                  achievement.unlocked ? meta.color : 'text-muted-label'
+                  achievement.unlocked ? meta.color : "text-muted-label"
                 }`}
               >
                 {achievement.name}
@@ -420,18 +504,22 @@ const MemoizedAchievementCard = React.memo(function MemoizedAchievementCard({
               <div className="mt-1.5">
                 <div className="flex items-center justify-between mb-0.5">
                   <span className="text-[9px] text-muted-label">Progress</span>
-                  <span className="text-[9px] text-muted-label font-mono">{achievement.progressLabel}</span>
+                  <span className="text-[9px] text-muted-label font-mono">
+                    {achievement.progressLabel}
+                  </span>
                 </div>
                 <div className="h-1.5 bg-muted-label rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
                       achievement.progressValue >= 0.75
-                        ? 'bg-linear-to-r from-success/80 to-success/50'
+                        ? "bg-linear-to-r from-success/80 to-success/50"
                         : achievement.progressValue >= 0.4
-                          ? 'bg-linear-to-r from-warning/70 to-warning/50'
-                          : 'bg-linear-to-r from-muted-label/30 to-muted-label/30'
+                          ? "bg-linear-to-r from-warning/70 to-warning/50"
+                          : "bg-linear-to-r from-muted-label/30 to-muted-label/30"
                     }`}
-                    style={{ width: `${Math.min(100, achievement.progressValue * 100)}%` }}
+                    style={{
+                      width: `${Math.min(100, achievement.progressValue * 100)}%`,
+                    }}
                   />
                 </div>
               </div>
@@ -439,75 +527,110 @@ const MemoizedAchievementCard = React.memo(function MemoizedAchievementCard({
             {achievement.unlocked && (
               <div className="flex items-center gap-1 mt-1">
                 <Check className="w-3 h-3 text-success" />
-                <span className="text-[9px] text-success font-medium">Unlocked</span>
+                <span className="text-[9px] text-success font-medium">
+                  Unlocked
+                </span>
               </div>
             )}
           </div>
           <div className="shrink-0">
             <ChevronRight
               className={`w-3.5 h-3.5 text-muted-label ${
-                isExpanded ? 'rotate-90' : ''
+                isExpanded ? "rotate-90" : ""
               }`}
             />
           </div>
         </div>
       </button>
       {isExpanded && (
-        <div
-          className="overflow-hidden"
-        >
-        <div className="px-3 pb-3 pt-0 border-t border-border/50 mt-0">
-          <div className="pt-2.5 space-y-2">
-            <div className="bg-background rounded-lg p-3">
-              <div className="text-[10px] text-muted-label mb-0.5">Reward</div>
-              <div className={`text-xs font-medium ${achievement.unlocked ? 'text-success' : meta.color}`}>
-                <GameIcon icon="game-icons:present" size={14} className="inline" /> {achievement.reward}
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5">
-                <GameIcon icon={meta.icon} size={14} className="inline-flex" />
-                <span className={`text-[10px] ${meta.color}`}>{achievement.category}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Award className={`w-3 h-3 ${tierMeta.color}`} />
-                <span className={`text-[10px] ${tierMeta.color}`}>{tierMeta.label} Tier</span>
-              </div>
-            </div>
-            {!achievement.unlocked && (
+        <div className="overflow-hidden">
+          <div className="px-3 pb-3 pt-0 border-t border-border/50 mt-0">
+            <div className="pt-2.5 space-y-2">
               <div className="bg-background rounded-lg p-3">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] text-muted-label">Current Progress</span>
-                  <span className="text-xs font-mono text-brand">{achievement.progressLabel}</span>
+                <div className="text-[10px] text-muted-label mb-0.5">
+                  Reward
                 </div>
-                <div className="h-2 bg-muted-label rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-linear-to-r from-brand/70 to-brand/50 rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min(100, achievement.progressValue * 100)}%` }}
+                <div
+                  className={`text-xs font-medium ${achievement.unlocked ? "text-success" : meta.color}`}
+                >
+                  <GameIcon
+                    icon="game-icons:present"
+                    size={14}
+                    className="inline"
+                  />{" "}
+                  {achievement.reward}
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <GameIcon
+                    icon={meta.icon}
+                    size={14}
+                    className="inline-flex"
                   />
+                  <span className={`text-[10px] ${meta.color}`}>
+                    {achievement.category}
+                  </span>
                 </div>
-                <div className="text-right mt-0.5">
-                  <span className="text-[9px] text-muted-label font-mono">
-                    {(achievement.progressValue * 100).toFixed(1)}%
+                <div className="flex items-center gap-1">
+                  <Award className={`w-3 h-3 ${tierMeta.color}`} />
+                  <span className={`text-[10px] ${tierMeta.color}`}>
+                    {tierMeta.label} Tier
                   </span>
                 </div>
               </div>
-            )}
+              {!achievement.unlocked && (
+                <div className="bg-background rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] text-muted-label">
+                      Current Progress
+                    </span>
+                    <span className="text-xs font-mono text-brand">
+                      {achievement.progressLabel}
+                    </span>
+                  </div>
+                  <div className="h-2 bg-muted-label rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-linear-to-r from-brand/70 to-brand/50 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${Math.min(100, achievement.progressValue * 100)}%`,
+                      }}
+                    />
+                  </div>
+                  <div className="text-right mt-0.5">
+                    <span className="text-[9px] text-muted-label font-mono">
+                      {(achievement.progressValue * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
         </div>
       )}
     </div>
   );
 });
 
+// Module-level constant: achievement category names. Static.
+const ACHIEVEMENT_CATEGORIES = [
+  "All",
+  "Production",
+  "Economy",
+  "Research",
+  "Expansion",
+  "Special",
+] as const;
+
 export function AchievementPanel() {
   const store = useGameStore();
-  const [selectedCategory, setSelectedCategory] = useState<AchievementCategory | 'All'>('All');
+  const [selectedCategory, setSelectedCategory] = useState<
+    AchievementCategory | "All"
+  >("All");
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const achievementStates = useMemo(() => {
-    return ACHIEVEMENTS.map(a => ({
+    return ACHIEVEMENTS.map((a) => ({
       ...a,
       unlocked: a.condition(store),
       progressValue: a.progress(store),
@@ -515,41 +638,51 @@ export function AchievementPanel() {
     }));
   }, [store]);
 
-  const unlockedCount = achievementStates.filter(a => a.unlocked).length;
+  const unlockedCount = achievementStates.filter((a) => a.unlocked).length;
   const totalAchievements = achievementStates.length;
 
   // Category stats
-  const categories = ['All', 'Production', 'Economy', 'Research', 'Expansion', 'Special'] as const;
   const categoryStats = useMemo(() => {
     const stats: Record<string, { total: number; unlocked: number }> = {};
-    categories.forEach(cat => {
-      if (cat === 'All') {
-        stats['All'] = { total: totalAchievements, unlocked: unlockedCount };
+    ACHIEVEMENT_CATEGORIES.forEach((cat) => {
+      if (cat === "All") {
+        stats["All"] = { total: totalAchievements, unlocked: unlockedCount };
       } else {
-        const filtered = achievementStates.filter(a => a.category === cat);
-        stats[cat] = { total: filtered.length, unlocked: filtered.filter(a => a.unlocked).length };
+        const filtered = achievementStates.filter((a) => a.category === cat);
+        stats[cat] = {
+          total: filtered.length,
+          unlocked: filtered.filter((a) => a.unlocked).length,
+        };
       }
     });
     return stats;
   }, [achievementStates, unlockedCount, totalAchievements]);
 
-  const filteredAchievements = selectedCategory === 'All'
-    ? achievementStates
-    : achievementStates.filter(a => a.category === selectedCategory);
+  const filteredAchievements =
+    selectedCategory === "All"
+      ? achievementStates
+      : achievementStates.filter((a) => a.category === selectedCategory);
 
   // Recent unlocks (for highlighting)
-  const recentUnlocks = achievementStates.filter(a => a.unlocked).slice(-3);
+  const recentUnlocks = achievementStates.filter((a) => a.unlocked).slice(-3);
 
   return (
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-warning neon-glow-cyan tracking-wide">Achievements</h2>
-          <p className="text-xs text-muted-label mt-0.5">Track your milestones and accomplishments</p>
+          <h2 className="text-xl font-bold text-warning neon-glow-cyan tracking-wide">
+            Achievements
+          </h2>
+          <p className="text-xs text-muted-label mt-0.5">
+            Track your milestones and accomplishments
+          </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="border-warning/50 text-warning bg-warning/20 text-xs">
+          <Badge
+            variant="outline"
+            className="border-warning/50 text-warning bg-warning/20 text-xs"
+          >
             <Trophy className="w-3 h-3 mr-1" />
             {unlockedCount}/{totalAchievements}
           </Badge>
@@ -563,20 +696,31 @@ export function AchievementPanel() {
             <div className="w-7 h-7 rounded-lg bg-warning/20 flex items-center justify-center">
               <Trophy className="w-4 h-4 text-warning" />
             </div>
-            <span className="text-[10px] text-muted-label uppercase tracking-wider">Unlocked</span>
+            <span className="text-[10px] text-muted-label uppercase tracking-wider">
+              Unlocked
+            </span>
           </div>
-          <div className="text-lg font-bold font-mono text-warning">{unlockedCount}</div>
-          <div className="text-[10px] text-muted-label">of {totalAchievements} achievements</div>
+          <div className="text-lg font-bold font-mono text-warning">
+            {unlockedCount}
+          </div>
+          <div className="text-[10px] text-muted-label">
+            of {totalAchievements} achievements
+          </div>
         </div>
         <div className="game-card rounded-xl bg-card p-3 border border-border">
           <div className="flex items-center gap-2 mb-1.5">
             <div className="w-7 h-7 rounded-lg bg-brand/20 flex items-center justify-center">
               <Target className="w-4 h-4 text-brand" />
             </div>
-            <span className="text-[10px] text-muted-label uppercase tracking-wider">Completion</span>
+            <span className="text-[10px] text-muted-label uppercase tracking-wider">
+              Completion
+            </span>
           </div>
           <div className="text-lg font-bold font-mono text-brand">
-            {totalAchievements > 0 ? ((unlockedCount / totalAchievements) * 100).toFixed(0) : 0}%
+            {totalAchievements > 0
+              ? ((unlockedCount / totalAchievements) * 100).toFixed(0)
+              : 0}
+            %
           </div>
           <div className="text-[10px] text-muted-label">overall progress</div>
         </div>
@@ -585,19 +729,25 @@ export function AchievementPanel() {
             <div className="w-7 h-7 rounded-lg bg-success/20 flex items-center justify-center">
               <Star className="w-4 h-4 text-success" />
             </div>
-            <span className="text-[10px] text-muted-label uppercase tracking-wider">Gold Tier</span>
+            <span className="text-[10px] text-muted-label uppercase tracking-wider">
+              Gold Tier
+            </span>
           </div>
           <div className="text-lg font-bold font-mono text-success">
-            {achievementStates.filter(a => a.unlocked && a.tier === 3).length}
+            {achievementStates.filter((a) => a.unlocked && a.tier === 3).length}
           </div>
-          <div className="text-[10px] text-muted-label">hardest achievements</div>
+          <div className="text-[10px] text-muted-label">
+            hardest achievements
+          </div>
         </div>
         <div className="game-card rounded-xl bg-card p-3 border border-border">
           <div className="flex items-center gap-2 mb-1.5">
             <div className="w-7 h-7 rounded-lg bg-research/20 flex items-center justify-center">
               <Award className="w-4 h-4 text-research" />
             </div>
-            <span className="text-[10px] text-muted-label uppercase tracking-wider">Categories</span>
+            <span className="text-[10px] text-muted-label uppercase tracking-wider">
+              Categories
+            </span>
           </div>
           <div className="text-lg font-bold font-mono text-research">5</div>
           <div className="text-[10px] text-muted-label">achievement types</div>
@@ -609,39 +759,60 @@ export function AchievementPanel() {
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <Trophy className="w-4 h-4 text-warning" />
-            <span className="text-sm font-semibold text-warning">Overall Progress</span>
+            <span className="text-sm font-semibold text-warning">
+              Overall Progress
+            </span>
           </div>
-          <span className="text-xs text-subtle font-mono">{unlockedCount}/{totalAchievements}</span>
+          <span className="text-xs text-subtle font-mono">
+            {unlockedCount}/{totalAchievements}
+          </span>
         </div>
         <div className="h-3 bg-muted-label rounded-full overflow-hidden relative">
           <div
             className="h-full bg-linear-to-r from-warning/70 to-warning/50 rounded-full transition-all duration-700"
-            style={{ width: `${(unlockedCount / Math.max(1, totalAchievements)) * 100}%` }}
+            style={{
+              width: `${(unlockedCount / Math.max(1, totalAchievements)) * 100}%`,
+            }}
           >
             <div className="absolute inset-0 bg-linear-to-b from-white/10 to-transparent" />
           </div>
         </div>
         {/* Per-category mini bars */}
         <div className="grid grid-cols-5 gap-2 mt-3">
-          {(['Production', 'Economy', 'Research', 'Expansion', 'Special'] as AchievementCategory[]).map(cat => {
+          {(
+            [
+              "Production",
+              "Economy",
+              "Research",
+              "Expansion",
+              "Special",
+            ] as AchievementCategory[]
+          ).map((cat) => {
             const meta = CATEGORY_META[cat];
             const stats = categoryStats[cat];
-            const pct = stats.total > 0 ? (stats.unlocked / stats.total) * 100 : 0;
+            const pct =
+              stats.total > 0 ? (stats.unlocked / stats.total) * 100 : 0;
             return (
               <div key={cat} className="text-center">
                 <div className="h-1.5 bg-muted-label rounded-full overflow-hidden mb-1">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
-                      cat === 'Production' ? 'bg-brand' :
-                      cat === 'Economy' ? 'bg-success' :
-                      cat === 'Research' ? 'bg-research' :
-                      cat === 'Expansion' ? 'bg-premium/60' :
-                      'bg-warning'
+                      cat === "Production"
+                        ? "bg-brand"
+                        : cat === "Economy"
+                          ? "bg-success"
+                          : cat === "Research"
+                            ? "bg-research"
+                            : cat === "Expansion"
+                              ? "bg-premium/60"
+                              : "bg-warning"
                     }`}
                     style={{ width: `${pct}%` }}
                   />
                 </div>
-                <div className="text-[9px] text-muted-label">{stats.unlocked}/{stats.total}</div>
+                <div className="text-[9px] text-muted-label">
+                  {stats.unlocked}/{stats.total}
+                </div>
               </div>
             );
           })}
@@ -650,9 +821,9 @@ export function AchievementPanel() {
 
       {/* Category Filter */}
       <div className="flex flex-wrap gap-2">
-        {categories.map(cat => {
+        {ACHIEVEMENT_CATEGORIES.map((cat) => {
           const stats = categoryStats[cat];
-          const meta = cat !== 'All' ? CATEGORY_META[cat] : null;
+          const meta = cat !== "All" ? CATEGORY_META[cat] : null;
           const isActive = selectedCategory === cat;
 
           return (
@@ -662,14 +833,23 @@ export function AchievementPanel() {
               size="sm"
               className={`h-7 text-[10px] ${
                 isActive
-                  ? cat === 'All'
-                    ? 'border-warning/50 text-warning bg-warning/20'
+                  ? cat === "All"
+                    ? "border-warning/50 text-warning bg-warning/20"
                     : `${meta!.borderColor} ${meta!.color} ${meta!.bgColor}`
-                  : 'border-muted-label text-muted-label hover:text-subtle'
+                  : "border-muted-label text-muted-label hover:text-subtle"
               }`}
               onClick={() => setSelectedCategory(cat)}
             >
-              {cat === 'All' ? <GameIcon icon="game-icons:trophy" size={14} className="inline-flex" /> : <GameIcon icon={meta!.icon} size={14} className="inline-flex" />} {cat} ({stats.unlocked}/{stats.total})
+              {cat === "All" ? (
+                <GameIcon
+                  icon="game-icons:trophy"
+                  size={14}
+                  className="inline-flex"
+                />
+              ) : (
+                <GameIcon icon={meta!.icon} size={14} className="inline-flex" />
+              )}{" "}
+              {cat} ({stats.unlocked}/{stats.total})
             </Button>
           );
         })}
@@ -683,12 +863,14 @@ export function AchievementPanel() {
             <p className="text-sm">Start building to unlock achievements!</p>
           </div>
         )}
-        {filteredAchievements.map(achievement => (
+        {filteredAchievements.map((achievement) => (
           <MemoizedAchievementCard
             key={achievement.id}
             achievement={achievement}
             isExpanded={expandedId === achievement.id}
-            onToggleExpand={(id) => setExpandedId(prev => prev === id ? null : id)}
+            onToggleExpand={(id) =>
+              setExpandedId((prev) => (prev === id ? null : id))
+            }
           />
         ))}
       </div>
@@ -698,22 +880,34 @@ export function AchievementPanel() {
         <div className="game-card rounded-xl bg-card p-4 border border-border">
           <div className="flex items-center gap-2 mb-2">
             <Lock className="w-4 h-4 text-muted-label" />
-            <h3 className="text-sm font-semibold text-subtle">Still to Unlock</h3>
+            <h3 className="text-sm font-semibold text-subtle">
+              Still to Unlock
+            </h3>
           </div>
           <div className="flex flex-wrap gap-2">
-            {achievementStates.filter(a => !a.unlocked).map(a => {
-              const meta = CATEGORY_META[a.category];
-              return (
-                <div
-                  key={a.id}
-                  className="flex items-center gap-1.5 bg-background rounded-lg px-2.5 py-1.5"
-                >
-                  <GameIcon icon={a.icon} size={12} className="inline-flex grayscale opacity-50" />
-                  <span className="text-[10px] text-muted-label">{a.name}</span>
-                  <span className={`text-[9px] ${meta.color}`}>({a.progressLabel})</span>
-                </div>
-              );
-            })}
+            {achievementStates
+              .filter((a) => !a.unlocked)
+              .map((a) => {
+                const meta = CATEGORY_META[a.category];
+                return (
+                  <div
+                    key={a.id}
+                    className="flex items-center gap-1.5 bg-background rounded-lg px-2.5 py-1.5"
+                  >
+                    <GameIcon
+                      icon={a.icon}
+                      size={12}
+                      className="inline-flex grayscale opacity-50"
+                    />
+                    <span className="text-[10px] text-muted-label">
+                      {a.name}
+                    </span>
+                    <span className={`text-[9px] ${meta.color}`}>
+                      ({a.progressLabel})
+                    </span>
+                  </div>
+                );
+              })}
           </div>
         </div>
       )}

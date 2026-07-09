@@ -6,72 +6,128 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
-  rules: {
-    // TypeScript rules
-    "@typescript-eslint/no-explicit-any": "off",
-    "@typescript-eslint/no-unused-vars": "off",
-    "@typescript-eslint/no-non-null-assertion": "off",
-    "@typescript-eslint/ban-ts-comment": "off",
-    "@typescript-eslint/prefer-as-const": "off",
-    "@typescript-eslint/no-unused-disable-directive": "off",
-    
-    // React rules
-    "react-hooks/exhaustive-deps": "off",
-    "react-hooks/purity": "off",
-    "react/no-unescaped-entities": "off",
-    "react/display-name": "off",
-    "react/prop-types": "off",
-    "react-compiler/react-compiler": "off",
-    
-    // Next.js rules
-    "@next/next/no-img-element": "off",
-    "@next/next/no-html-link-for-pages": "off",
+const eslintConfig = [
+  ...nextCoreWebVitals,
+  ...nextTypescript,
+  {
+    rules: {
+      // ─── TypeScript rules (strict, ON) ─────────────────────────────────
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+      "@typescript-eslint/no-non-null-assertion": "error",
+      "@typescript-eslint/ban-ts-comment": [
+        "error",
+        {
+          "ts-ignore": true,
+          "ts-expect-error": "allow-with-description",
+          "ts-nocheck": true,
+          "ts-check": false,
+        },
+      ],
+      "@typescript-eslint/prefer-as-const": "error",
 
-    // Accessibility (Phase 4.2) — icon-only buttons must have accessible names
-    "jsx-a11y/control-has-associated-label": "warn",  // Phase 4.2: BUG-018 mostly resolved (game panels fixed); admin pages deferred to follow-up
-    "jsx-a11y/anchor-has-content": "error",
-    "jsx-a11y/click-events-have-key-events": "warn",
-    "jsx-a11y/no-static-element-interactions": "warn",
-    
-    // General JavaScript rules
-    "prefer-const": "off",
-    "no-unused-vars": "off",
-    "no-console": "off",
-    "no-debugger": "off",
-    "no-empty": "off",
-    "no-irregular-whitespace": "off",
-    "no-case-declarations": "off",
-    "no-fallthrough": "off",
-    "no-mixed-spaces-and-tabs": "off",
-    "no-redeclare": "off",
-    "no-undef": "off",
-    "no-unreachable": "off",
-    "no-useless-escape": "off",
+      // Type safety (added — previously off entirely)
+      // Note: type-aware rules (no-unsafe-*) require parserOptions.project
+      // which is a heavier config — disabled here. Re-enable when adding
+      // typed linting setup.
+      "@typescript-eslint/no-unsafe-assignment": "off",
+      "@typescript-eslint/no-unsafe-member-access": "off",
+      "@typescript-eslint/no-unsafe-call": "off",
+      "@typescript-eslint/no-unsafe-return": "off",
+      "@typescript-eslint/explicit-function-return-type": "off",
+      "@typescript-eslint/explicit-module-boundary-types": "off",
+      "@typescript-eslint/consistent-type-imports": [
+        "warn",
+        { prefer: "type-imports", fixStyle: "inline-type-imports" },
+      ],
+
+      // ─── React rules (strict, ON) ──────────────────────────────────────
+      "react-hooks/exhaustive-deps": "warn",
+      "react-hooks/purity": "warn",
+      "react/no-unescaped-entities": "error",
+      "react/display-name": "warn",
+      "react/prop-types": "off",
+      "react/jsx-key": "error",
+      "react/no-array-index-key": "warn",
+      "react/self-closing-comp": "warn",
+
+      // ─── Next.js rules (strict, ON) ────────────────────────────────────
+      "@next/next/no-img-element": "warn",
+      "@next/next/no-html-link-for-pages": "error",
+
+      // ─── Accessibility ─────────────────────────────────────────────────
+      "jsx-a11y/control-has-associated-label": "warn",
+      "jsx-a11y/anchor-has-content": "error",
+      "jsx-a11y/click-events-have-key-events": "warn",
+      "jsx-a11y/no-static-element-interactions": "warn",
+      "jsx-a11y/alt-text": "warn",
+      "jsx-a11y/aria-props": "warn",
+      "jsx-a11y/role-has-required-aria-props": "warn",
+
+      // ─── General JavaScript rules (strict, ON) ─────────────────────────
+      "prefer-const": "error",
+      "no-unused-vars": "off",
+      "no-console": ["warn", { allow: ["warn", "error"] }],
+      "no-debugger": "error",
+      "no-empty": ["error", { allowEmptyCatch: false }],
+      "no-irregular-whitespace": "error",
+      "no-case-declarations": "error",
+      "no-fallthrough": "error",
+      "no-mixed-spaces-and-tabs": "error",
+      "no-redeclare": "error",
+      "no-undef": "off",
+      "no-unreachable": "error",
+      "no-useless-escape": "warn",
+
+      // Added general rules
+      "no-var": "error",
+      eqeqeq: ["error", "always", { null: "ignore" }],
+      "prefer-arrow-callback": "warn",
+      "object-shorthand": ["warn", "always"],
+      "no-else-return": "warn",
+      "no-lonely-if": "warn",
+      "no-unneeded-ternary": "warn",
+      "no-nested-ternary": "warn",
+      yoda: "error",
+      "no-throw-literal": "error",
+      "no-return-await": "warn",
+      "no-async-promise-executor": "warn",
+      "require-await": "warn",
+      "no-await-in-loop": "warn",
+      "no-duplicate-imports": "error",
+    },
   },
-}, {
-  ignores: [
-    "node_modules/**",
-    ".next/**",
-    "out/**",
-    "html/**",
-    "build/**",
-    "next-env.d.ts",
-    "examples/**",
-    "skills/**",
-    ".history/**",
-    "tests/**",
-    "chroma/**",
-    "cloudflare/**",
-    "planning/**",
-    "scripts/**",
-    "public/**",
-    "dev-server.err",
-    "lint-output.txt",
-    "build-output.txt",
-    "convert_to_svg.py",
-    "convert_to_svg_color.py",
-  ]
-}];
+  {
+    ignores: [
+      "node_modules/**",
+      ".next/**",
+      "out/**",
+      "html/**",
+      "build/**",
+      "next-env.d.ts",
+      "examples/**",
+      "skills/**",
+      ".history/**",
+      "tests/**",
+      "chroma/**",
+      "cloudflare/**",
+      "planning/**",
+      "scripts/**",
+      "public/**",
+      "dev-server.err",
+      "lint-output.txt",
+      "build-output.txt",
+      "convert_to_svg.py",
+      "convert_to_svg_color.py",
+    ],
+  },
+];
 
 export default eslintConfig;

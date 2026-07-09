@@ -1,21 +1,29 @@
-'use client';
+"use client";
 
-import { useState, useCallback, useEffect } from 'react';
-import { useGameStore, formatNumber } from '@/lib/game/store';
-import { useSettingsStore, NumberFormat, AnimationSpeed, SpeedLimit, BottomNavMode, QuickAccessShortcut, DEFAULT_QUICK_ACCESS_SHORTCUTS } from '@/lib/game/settingsStore';
-import { soundEngine } from '@/lib/game/soundEngine';
-import { useTickFormat } from '@/lib/hooks/useTickFormat';
-import { formatDuration } from '@/lib/utils/time';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Slider } from '@/components/ui/slider';
+import { useState, useCallback, useEffect } from "react";
+import { useGameStore, formatNumber } from "@/lib/game/store";
+import {
+  useSettingsStore,
+  NumberFormat,
+  AnimationSpeed,
+  SpeedLimit,
+  BottomNavMode,
+  QuickAccessShortcut,
+  DEFAULT_QUICK_ACCESS_SHORTCUTS,
+} from "@/lib/game/settingsStore";
+import { soundEngine } from "@/lib/game/soundEngine";
+import { useTickFormat } from "@/lib/hooks/useTickFormat";
+import { formatDuration } from "@/lib/utils/time";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 import {
   Settings,
   Coffee,
@@ -45,10 +53,10 @@ import {
   EyeOff,
   LayoutGrid,
   List,
-} from 'lucide-react';
+} from "lucide-react";
 
-import { ICON_MAP } from '@/components/game/BottomNavigationBar';
-import { GameIcon } from '@/components/icons';
+import { ICON_MAP } from "@/components/game/BottomNavigationBar";
+import { GameIcon } from "@/components/icons";
 
 // Collapsible section component
 function SettingsSection({
@@ -81,15 +89,13 @@ function SettingsSection({
           <ChevronDown className="w-4 h-4 text-muted-label" />
         )}
       </button>
-        {open && (
-          <div
-            className="overflow-hidden"
-          >
-            <div className="px-4 pb-4 space-y-4 border-t border-muted-label/50 pt-3">
-              {children}
-            </div>
+      {open && (
+        <div className="overflow-hidden">
+          <div className="px-4 pb-4 space-y-4 border-t border-muted-label/50 pt-3">
+            {children}
           </div>
-        )}
+        </div>
+      )}
     </div>
   );
 }
@@ -124,7 +130,7 @@ function LabeledSlider({
   min,
   max,
   step = 1,
-  unit = '',
+  unit = "",
 }: {
   value: number;
   onValueChange: (v: number) => void;
@@ -144,7 +150,8 @@ function LabeledSlider({
         className="flex-1"
       />
       <span className="text-xs font-mono text-subtle w-10 text-right">
-        {value}{unit}
+        {value}
+        {unit}
       </span>
     </div>
   );
@@ -165,19 +172,25 @@ export function SettingsPanel() {
   }, [settings.masterVolume]);
 
   useEffect(() => {
-    soundEngine.setCategoryVolume('building', settings.soundCategories.building);
+    soundEngine.setCategoryVolume(
+      "building",
+      settings.soundCategories.building,
+    );
   }, [settings.soundCategories.building]);
 
   useEffect(() => {
-    soundEngine.setCategoryVolume('production', settings.soundCategories.production);
+    soundEngine.setCategoryVolume(
+      "production",
+      settings.soundCategories.production,
+    );
   }, [settings.soundCategories.production]);
 
   useEffect(() => {
-    soundEngine.setCategoryVolume('events', settings.soundCategories.events);
+    soundEngine.setCategoryVolume("events", settings.soundCategories.events);
   }, [settings.soundCategories.events]);
 
   useEffect(() => {
-    soundEngine.setCategoryVolume('ui', settings.soundCategories.ui);
+    soundEngine.setCategoryVolume("ui", settings.soundCategories.ui);
   }, [settings.soundCategories.ui]);
 
   useEffect(() => {
@@ -186,16 +199,17 @@ export function SettingsPanel() {
 
   // Detect prefers-reduced-motion
   useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     if (mq.matches && !settings.reducedMotion) {
       settings.setReducedMotion(true);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional one-shot check on mount; OS pref is read once
   }, []);
 
   // Preview sound
   const previewSound = useCallback((soundName: string, category: string) => {
     soundEngine.init();
-    soundEngine.play(soundName as 'buildingPlaced', category);
+    soundEngine.play(soundName as "buildingPlaced", category);
     setLastPreviewSound(soundName);
     setTimeout(() => setLastPreviewSound(null), 500);
   }, []);
@@ -204,10 +218,10 @@ export function SettingsPanel() {
   const playTimeDisplay = formatDuration(stats.playTime);
 
   // Game version
-  const gameVersion = '1.2.0';
+  const gameVersion = "1.2.0";
 
   // ── Buy Me a Coffee ──
-  const BUYMEACOFFEE_URL = 'https://buymeacoffee.com/malcolmkhod';
+  const BUYMEACOFFEE_URL = "https://buymeacoffee.com/malcolmkhod";
 
   return (
     <div className="space-y-4 max-w-2xl mx-auto">
@@ -217,7 +231,9 @@ export function SettingsPanel() {
           <Settings className="w-5 h-5" />
           Settings
         </h2>
-        <p className="text-xs text-muted-label mt-0.5">Configure your Factory Dominion experience</p>
+        <p className="text-xs text-muted-label mt-0.5">
+          Configure your Factory Dominion experience
+        </p>
       </div>
 
       {/* ====== GAME SETTINGS ====== */}
@@ -260,16 +276,26 @@ export function SettingsPanel() {
         >
           <Select
             value={String(settings.speedLimit)}
-            onValueChange={(v) => settings.setSpeedLimit(Number(v) as SpeedLimit)}
+            onValueChange={(v) =>
+              settings.setSpeedLimit(Number(v) as SpeedLimit)
+            }
           >
             <SelectTrigger className="w-32 h-8 text-xs bg-background border-muted-label">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-card border-muted-label">
-              <SelectItem value="1" className="text-xs">1x Only</SelectItem>
-              <SelectItem value="5" className="text-xs">Max 5x</SelectItem>
-              <SelectItem value="10" className="text-xs">Max 10x</SelectItem>
-              <SelectItem value="0" className="text-xs">Unlimited</SelectItem>
+              <SelectItem value="1" className="text-xs">
+                1x Only
+              </SelectItem>
+              <SelectItem value="5" className="text-xs">
+                Max 5x
+              </SelectItem>
+              <SelectItem value="10" className="text-xs">
+                Max 10x
+              </SelectItem>
+              <SelectItem value="0" className="text-xs">
+                Unlimited
+              </SelectItem>
             </SelectContent>
           </Select>
         </SettingRow>
@@ -287,9 +313,15 @@ export function SettingsPanel() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-card border-muted-label">
-              <SelectItem value="standard" className="text-xs">Standard (1.5K)</SelectItem>
-              <SelectItem value="scientific" className="text-xs">Scientific (1.5e3)</SelectItem>
-              <SelectItem value="compact" className="text-xs">Compact (1.5k)</SelectItem>
+              <SelectItem value="standard" className="text-xs">
+                Standard (1.5K)
+              </SelectItem>
+              <SelectItem value="scientific" className="text-xs">
+                Scientific (1.5e3)
+              </SelectItem>
+              <SelectItem value="compact" className="text-xs">
+                Compact (1.5k)
+              </SelectItem>
             </SelectContent>
           </Select>
         </SettingRow>
@@ -299,13 +331,20 @@ export function SettingsPanel() {
           label="Time Format"
           description="How durations are displayed across panels"
         >
-          <Select value={tickFormat} onValueChange={(v) => setTickFormat(v as 'human' | 'ticks')}>
+          <Select
+            value={tickFormat}
+            onValueChange={(v) => setTickFormat(v as "human" | "ticks")}
+          >
             <SelectTrigger className="w-32 h-8 text-xs bg-background border-muted-label">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-card border-muted-label">
-              <SelectItem value="human" className="text-xs">Human (1h 32m)</SelectItem>
-              <SelectItem value="ticks" className="text-xs">Ticks (5,520)</SelectItem>
+              <SelectItem value="human" className="text-xs">
+                Human (1h 32m)
+              </SelectItem>
+              <SelectItem value="ticks" className="text-xs">
+                Ticks (5,520)
+              </SelectItem>
             </SelectContent>
           </Select>
         </SettingRow>
@@ -313,19 +352,50 @@ export function SettingsPanel() {
         {/* Notification filters */}
         <div>
           <p className="text-xs text-subtle mb-2">Notification Filters</p>
-          <p className="text-[10px] text-muted-label mb-3">Toggle which notification types appear as toasts</p>
+          <p className="text-[10px] text-muted-label mb-3">
+            Toggle which notification types appear as toasts
+          </p>
           <div className="grid grid-cols-2 gap-2">
-            {([
-              { key: 'success' as const, label: 'Success', color: 'text-success', icon: 'lucide:check-circle' },
-              { key: 'warning' as const, label: 'Warning', color: 'text-warning', icon: 'game-icons:hazard-sign' },
-              { key: 'error' as const, label: 'Error', color: 'text-danger', icon: 'game-icons:cross-mark' },
-              { key: 'info' as const, label: 'Info', color: 'text-brand', icon: 'game-icons:info' },
-            ]).map(({ key, label, color, icon }) => (
-              <div key={key} className="flex items-center justify-between bg-background rounded-lg px-3 py-2">
-                <span className={`text-xs ${color} inline-flex items-center gap-1`}><GameIcon icon={icon} size={14} className="inline" /> {label}</span>
+            {[
+              {
+                key: "success" as const,
+                label: "Success",
+                color: "text-success",
+                icon: "lucide:check-circle",
+              },
+              {
+                key: "warning" as const,
+                label: "Warning",
+                color: "text-warning",
+                icon: "game-icons:hazard-sign",
+              },
+              {
+                key: "error" as const,
+                label: "Error",
+                color: "text-danger",
+                icon: "game-icons:cross-mark",
+              },
+              {
+                key: "info" as const,
+                label: "Info",
+                color: "text-brand",
+                icon: "game-icons:info",
+              },
+            ].map(({ key, label, color, icon }) => (
+              <div
+                key={key}
+                className="flex items-center justify-between bg-background rounded-lg px-3 py-2"
+              >
+                <span
+                  className={`text-xs ${color} inline-flex items-center gap-1`}
+                >
+                  <GameIcon icon={icon} size={14} className="inline" /> {label}
+                </span>
                 <Switch
                   checked={settings.notificationFilters[key]}
-                  onCheckedChange={(v) => settings.setNotificationFilter(key, v)}
+                  onCheckedChange={(v) =>
+                    settings.setNotificationFilter(key, v)
+                  }
                 />
               </div>
             ))}
@@ -350,7 +420,7 @@ export function SettingsPanel() {
                 settings.setSoundEnabled(v);
                 if (v) {
                   soundEngine.init();
-                  soundEngine.play('buttonClick', 'ui');
+                  soundEngine.play("buttonClick", "ui");
                 }
               }}
             />
@@ -363,10 +433,7 @@ export function SettingsPanel() {
         </SettingRow>
 
         {/* Master volume */}
-        <SettingRow
-          label="Master Volume"
-          description="Overall sound volume"
-        >
+        <SettingRow label="Master Volume" description="Overall sound volume">
           <LabeledSlider
             value={settings.masterVolume}
             onValueChange={settings.setMasterVolume}
@@ -381,13 +448,36 @@ export function SettingsPanel() {
         <div>
           <p className="text-xs text-subtle mb-2">Category Volumes</p>
           <div className="space-y-3">
-            {([
-              { key: 'building' as const, label: 'Building', icon: <Factory className="w-3 h-3" />, preview: 'buildingPlaced' },
-              { key: 'production' as const, label: 'Production', icon: <Cog className="w-3 h-3" />, preview: 'resourceProduced' },
-              { key: 'events' as const, label: 'Events', icon: <AlertTriangle className="w-3 h-3" />, preview: 'eventTriggered' },
-              { key: 'ui' as const, label: 'UI', icon: <MousePointerClick className="w-3 h-3" />, preview: 'buttonClick' },
-            ]).map(({ key, label, icon, preview }) => (
-              <div key={key} className="flex items-center justify-between bg-background rounded-lg px-3 py-2">
+            {[
+              {
+                key: "building" as const,
+                label: "Building",
+                icon: <Factory className="w-3 h-3" />,
+                preview: "buildingPlaced",
+              },
+              {
+                key: "production" as const,
+                label: "Production",
+                icon: <Cog className="w-3 h-3" />,
+                preview: "resourceProduced",
+              },
+              {
+                key: "events" as const,
+                label: "Events",
+                icon: <AlertTriangle className="w-3 h-3" />,
+                preview: "eventTriggered",
+              },
+              {
+                key: "ui" as const,
+                label: "UI",
+                icon: <MousePointerClick className="w-3 h-3" />,
+                preview: "buttonClick",
+              },
+            ].map(({ key, label, icon, preview }) => (
+              <div
+                key={key}
+                className="flex items-center justify-between bg-background rounded-lg px-3 py-2"
+              >
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-muted-label">{icon}</span>
                   <span className="text-xs text-subtle">{label}</span>
@@ -395,7 +485,9 @@ export function SettingsPanel() {
                 <div className="flex items-center gap-2">
                   <Slider
                     value={[settings.soundCategories[key]]}
-                    onValueChange={([v]) => settings.setSoundCategoryVolume(key, v)}
+                    onValueChange={([v]) =>
+                      settings.setSoundCategoryVolume(key, v)
+                    }
                     min={0}
                     max={100}
                     step={5}
@@ -407,7 +499,7 @@ export function SettingsPanel() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={`h-6 w-6 p-0 ${lastPreviewSound === preview ? 'text-research' : 'text-muted-label hover:text-research'}`}
+                    className={`h-6 w-6 p-0 ${lastPreviewSound === preview ? "text-research" : "text-muted-label hover:text-research"}`}
                     onClick={() => previewSound(preview, key)}
                     title={`Preview ${label} sound`}
                   >
@@ -492,15 +584,23 @@ export function SettingsPanel() {
         >
           <Select
             value={settings.animationSpeed}
-            onValueChange={(v) => settings.setAnimationSpeed(v as AnimationSpeed)}
+            onValueChange={(v) =>
+              settings.setAnimationSpeed(v as AnimationSpeed)
+            }
           >
             <SelectTrigger className="w-32 h-8 text-xs bg-background border-muted-label">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-card border-muted-label">
-              <SelectItem value="slow" className="text-xs">Slow</SelectItem>
-              <SelectItem value="normal" className="text-xs">Normal</SelectItem>
-              <SelectItem value="fast" className="text-xs">Fast</SelectItem>
+              <SelectItem value="slow" className="text-xs">
+                Slow
+              </SelectItem>
+              <SelectItem value="normal" className="text-xs">
+                Normal
+              </SelectItem>
+              <SelectItem value="fast" className="text-xs">
+                Fast
+              </SelectItem>
             </SelectContent>
           </Select>
         </SettingRow>
@@ -599,14 +699,24 @@ export function SettingsPanel() {
                   className="flex items-center gap-2 bg-background rounded-lg px-3 py-2 group"
                 >
                   <GripVertical className="w-3 h-3 text-muted-label cursor-grab" />
-                  {IconComponent && <IconComponent className={`w-3.5 h-3.5 ${shortcut.color}`} />}
-                  <span className="text-xs text-subtle flex-1">{shortcut.label}</span>
-                  <span className="text-[9px] text-muted-label font-mono">{shortcut.action}</span>
+                  {IconComponent && (
+                    <IconComponent
+                      className={`w-3.5 h-3.5 ${shortcut.color}`}
+                    />
+                  )}
+                  <span className="text-xs text-subtle flex-1">
+                    {shortcut.label}
+                  </span>
+                  <span className="text-[9px] text-muted-label font-mono">
+                    {shortcut.action}
+                  </span>
                   <Button
                     variant="ghost"
                     size="sm"
                     className="h-5 w-5 p-0 text-muted-label hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => settings.removeQuickAccessShortcut(shortcut.id)}
+                    onClick={() =>
+                      settings.removeQuickAccessShortcut(shortcut.id)
+                    }
                   >
                     <Trash2 className="w-3 h-3" />
                   </Button>
@@ -630,8 +740,9 @@ export function SettingsPanel() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs text-subtle leading-relaxed">
-                Factory Dominion is a free, open-source passion project built with love.
-                If you're enjoying the game, a small coffee helps keep the servers running and fuels new features!
+                Factory Dominion is a free, open-source passion project built
+                with love. If you're enjoying the game, a small coffee helps
+                keep the servers running and fuels new features!
               </p>
               <a
                 href={BUYMEACOFFEE_URL}
@@ -698,17 +809,21 @@ export function SettingsPanel() {
               <Volume1 className="w-3 h-3 text-muted-label" />
               <span className="text-[10px] text-muted-label">Game Ticks</span>
             </div>
-            <p className="text-sm font-mono text-subtle">{formatNumber(gameTick)}</p>
+            <p className="text-sm font-mono text-subtle">
+              {formatNumber(gameTick)}
+            </p>
           </div>
         </div>
 
         {/* Credits */}
         <div className="bg-background rounded-lg p-3 mt-1">
           <p className="text-xs text-subtle text-center">
-            <span className="text-brand font-bold">Factory Dominion</span>: Automated Empire
+            <span className="text-brand font-bold">Factory Dominion</span>:
+            Automated Empire
           </p>
           <p className="text-[10px] text-muted-label text-center mt-1">
-            An idle factory simulation game built with Next.js, TypeScript & Web Audio API
+            An idle factory simulation game built with Next.js, TypeScript & Web
+            Audio API
           </p>
           <p className="text-[10px] text-muted-label text-center mt-1">
             All sounds are synthesized in real-time — no audio files used
@@ -727,7 +842,9 @@ export function SettingsPanel() {
           <div className="bg-background rounded-lg p-3 border border-brand/20">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-brand font-mono">v1.2.0</span>
+                <span className="text-xs font-bold text-brand font-mono">
+                  v1.2.0
+                </span>
                 <span className="text-[9px] text-muted-label">Latest</span>
               </div>
               <span className="text-[9px] text-muted-label">Mar 2025</span>
@@ -739,7 +856,8 @@ export function SettingsPanel() {
               </li>
               <li className="text-[10px] text-subtle flex items-start gap-1.5">
                 <span className="text-success mt-0.5">•</span>
-                Endgame buildings converted to passive generators (money, RP, CP)
+                Endgame buildings converted to passive generators (money, RP,
+                CP)
               </li>
               <li className="text-[10px] text-subtle flex items-start gap-1.5">
                 <span className="text-warning mt-0.5">•</span>
@@ -751,7 +869,9 @@ export function SettingsPanel() {
           {/* v1.1.0 */}
           <div className="bg-background rounded-lg p-3 border border-muted-label/30">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-subtle font-mono">v1.1.0</span>
+              <span className="text-xs font-bold text-subtle font-mono">
+                v1.1.0
+              </span>
               <span className="text-[9px] text-muted-label">Feb 2025</span>
             </div>
             <ul className="space-y-1">
@@ -773,7 +893,9 @@ export function SettingsPanel() {
           {/* v1.0.0 */}
           <div className="bg-background rounded-lg p-3 border border-muted-label/30">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-subtle font-mono">v1.0.0</span>
+              <span className="text-xs font-bold text-subtle font-mono">
+                v1.0.0
+              </span>
               <span className="text-[9px] text-muted-label">Jan 2025</span>
             </div>
             <ul className="space-y-1">

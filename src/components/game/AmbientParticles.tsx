@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useMemo } from 'react';
-import { useReducedMotion } from '@/components/game/shared/useReducedMotion';
+import { useState, useEffect, useMemo } from "react";
+import { useReducedMotion } from "@/components/game/shared/useReducedMotion";
 
 interface Particle {
   id: number;
@@ -15,18 +15,19 @@ interface Particle {
 }
 
 const PARTICLE_COLORS = [
-  'rgba(0, 255, 242, 0.2)',   // cyan
-  'rgba(57, 255, 20, 0.15)',  // green
-  'rgba(191, 0, 255, 0.12)',  // purple
-  'rgba(0, 255, 242, 0.15)',  // cyan lighter
-  'rgba(57, 255, 20, 0.1)',   // green lighter
-  'rgba(191, 0, 255, 0.08)',  // purple lighter
+  "rgba(0, 255, 242, 0.2)", // cyan
+  "rgba(57, 255, 20, 0.15)", // green
+  "rgba(191, 0, 255, 0.12)", // purple
+  "rgba(0, 255, 242, 0.15)", // cyan lighter
+  "rgba(57, 255, 20, 0.1)", // green lighter
+  "rgba(191, 0, 255, 0.08)", // purple lighter
 ];
 
 export default function AmbientParticles() {
   const [mounted, setMounted] = useState(false);
   const reducedMotion = useReducedMotion();
 
+  /* eslint-disable react-hooks/purity -- particles are intentionally randomized on each mount */
   const particles = useMemo<Particle[]>(() => {
     const count = 18;
     return Array.from({ length: count }, (_, i) => ({
@@ -34,25 +35,35 @@ export default function AmbientParticles() {
       x: Math.random() * 100,
       y: Math.random() * 100,
       size: 2 + Math.random() * 2,
-      color: PARTICLE_COLORS[Math.floor(Math.random() * PARTICLE_COLORS.length)],
+      color:
+        PARTICLE_COLORS[Math.floor(Math.random() * PARTICLE_COLORS.length)],
       opacity: 0.1 + Math.random() * 0.2,
       duration: 5 + Math.random() * 10,
       delay: Math.random() * -15,
     }));
   }, []);
+  /* eslint-enable react-hooks/purity */
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   if (!mounted) {
-    return <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true" />;
+    return (
+      <div
+        className="absolute inset-0 overflow-hidden pointer-events-none"
+        aria-hidden="true"
+      />
+    );
   }
 
   if (reducedMotion) {
     return (
-      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-        {particles.map(p => (
+      <div
+        className="absolute inset-0 overflow-hidden pointer-events-none"
+        aria-hidden="true"
+      >
+        {particles.map((p) => (
           <div
             key={p.id}
             className="absolute rounded-full"
@@ -71,8 +82,11 @@ export default function AmbientParticles() {
   }
 
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-      {particles.map(p => (
+    <div
+      className="absolute inset-0 overflow-hidden pointer-events-none"
+      aria-hidden="true"
+    >
+      {particles.map((p) => (
         <div
           key={p.id}
           className="absolute rounded-full"
