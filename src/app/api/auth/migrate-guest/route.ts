@@ -164,11 +164,12 @@ export async function POST(request: NextRequest) {
         cheat_flag_count: 1, // Already flagged once
       });
 
-      // Also update player_progress for backwards compat
-      await upsertPlayerProgress(userId, {
-        display_name: safeDisplayName,
-        game_state: canonical as unknown as Record<string, unknown>,
-      });
+      // Also update player_progress for backwards compat.
+            // canonical is ServerGameData (no UI fields), safe to write directly.
+            await upsertPlayerProgress(userId, {
+              display_name: safeDisplayName,
+              game_state: canonical as unknown as Record<string, unknown>,
+            });
 
       return NextResponse.json({
         migrated: false,
@@ -252,11 +253,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Also save to player_progress for backwards compatibility
-    await upsertPlayerProgress(userId, {
-      display_name: safeDisplayName,
-      game_state: gameState,
-    });
+    // Also save to player_progress for backwards compatibility.
+        // Uses sanitizedFullState (UI fields stripped) so the legacy column
+        // matches server_game_state.full_state — defense-in-depth.
+        await upsertPlayerProgress(userId, {
+          display_name: safeDisplayName,
+          game_state: sanitizedFullState,
+        });
 
     return NextResponse.json({
       migrated: true,

@@ -310,8 +310,10 @@ export async function POST(request: Request) {
     );
   }
 
-  // Sync to player_progress for backwards compatibility (thin: user_id + game_state only)
-  await syncPlayerProgressGameState(userId, gameState);
+  // Sync to player_progress for backwards compatibility (thin: user_id + game_state only).
+    // Uses sanitizedFullState (UI fields stripped) so the legacy column matches the
+    // server_game_state.full_state column and stale clients cannot smuggle UI in either place.
+    await syncPlayerProgressGameState(userId, sanitizedFullState);
 
   // Audit log
   logActionAsync({
