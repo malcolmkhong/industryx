@@ -74,7 +74,7 @@ const eslintConfig = [
       // ─── General JavaScript rules (strict, ON) ─────────────────────────
       "prefer-const": "error",
       "no-unused-vars": "off",
-      "no-console": ["warn", { allow: ["warn", "error"] }],
+      "no-console": ["warn", { allow: ["warn", "error","info"] }],
       "no-debugger": "error",
       "no-empty": ["error", { allowEmptyCatch: false }],
       "no-irregular-whitespace": "error",

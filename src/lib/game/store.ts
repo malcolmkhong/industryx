@@ -5,7 +5,10 @@
 // ============================================
 //
 // Server-authoritative persistence (v15):
-//   - Store initializes from `createInitialState()` on mount
+//   - Store initializes from `createStubInitialState()` on mount
+//     (Phase 12 — placeholder shape only, hydrated=false)
+//   - `hydrateInitialStateFromServer()` fetches the canonical initial
+//     state from GET /api/game/initial-state (called from AuthProvider)
 //   - `applyServerState(data)` injects server-loaded game state from cloud load
 //   - No localStorage, no manual export/import, no client reset
 //   - Autosave fires every 2 minutes via CloudSyncService.startAutoSave
@@ -13,7 +16,11 @@
 //     productionSnapshot) is preserved across applyServerState calls
 
 import { create } from "zustand";
-import { createInitialState } from "./constants/initialState";
+import {
+  createStubInitialState,
+  mergeCanonicalWithUI,
+  hydrateInitialStateFromServer,
+} from "./store-bootstrap";
 import { createNotificationActions } from "./actions/notifications";
 import { createPayoutActions } from "./actions/payouts";
 import { createAutomationActions } from "./actions/automation";
@@ -84,7 +91,7 @@ const SERVER_FIELDS = [
 ] as const;
 
 export const useGameStore = create<GameStore>()((set, get) => ({
-  ...createInitialState(),
+  ...createStubInitialState(),
   ...createNotificationActions(set, get),
   ...createPayoutActions(set, get),
   ...createAutomationActions(set, get),
@@ -113,6 +120,8 @@ export const useGameStore = create<GameStore>()((set, get) => ({
  * load path in AuthProvider.onReady. Server is authoritative — no bounds
  * checks. Transient UI state (activeTab, notifications, selectedBuilding,
  * productionSnapshot, paused) is preserved from the previous client state.
+ *
+ * Phase 13: server returns ServerGameData. UI session preserved locally.
  */
 export function applyServerState(data: Record<string, unknown> | null | undefined): void {
   if (!data || typeof data !== "object") return;
@@ -126,11 +135,43 @@ export function applyServerState(data: Record<string, unknown> | null | undefine
 
   useGameStore.setState((prev) => ({
     ...next,
-    // Preserve transient UI state across server-state application.
+    // Cloud state is a full ServerGameData shape. Mark hydrated so gated
+    // UI can render. UI fields are preserved from prev — server has no
+    // say in activeTab / notifications / selectedBuilding.
+    hydrated: true,
     activeTab: prev.activeTab,
     selectedBuilding: prev.selectedBuilding,
     notifications: prev.notifications,
+    productionSnapshot: prev.productionSnapshot,
   }));
+}
+
+/**
+ * Fetch the canonical initial state from the server and apply it to the
+ * store. Called by AuthProvider.onReady BEFORE cloud load so that even
+ * cold-cache guests see a populated UI. Idempotent — safe to re-call.
+ *
+ * Phase 13: server returns ServerGameData; we merge with current
+ * UI session state. UI is NEVER overwritten from server data.
+ *
+ * On success, sets `hydrated: true` (also set by applyServerState).
+ * On failure, leaves the store in stub state and the caller is
+ * responsible for surfacing an error banner or retry.
+ */
+export async function hydrateInitialState(): Promise<boolean> {
+  if (useGameStore.getState().hydrated) return true;
+  const canonical = await hydrateInitialStateFromServer();
+  if (!canonical) return false;
+  useGameStore.setState((prev) =>
+    mergeCanonicalWithUI(canonical, {
+      activeTab: prev.activeTab,
+      selectedBuilding: prev.selectedBuilding,
+      notifications: prev.notifications,
+      productionSnapshot: prev.productionSnapshot,
+      hydrated: true,
+    }),
+  );
+  return true;
 }
 
 if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {

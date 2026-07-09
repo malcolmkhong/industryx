@@ -38,10 +38,11 @@ import type {
   ResourceAmount,
   ResourceType,
   CostResourceType,
-  GameState,
+  ServerGameData,
 } from "@/lib/game/types";
 import type { ProductionSnapshot } from "@/lib/game/productionCalculator";
 import { runServerTicks } from "@/lib/game/serverEngine";
+import { asFullState } from "@/lib/db/serverGameStatePayload";
 
 // Game tick interval: 1 tick per second at 1x speed
 const TICK_INTERVAL_MS = 1000;
@@ -262,7 +263,7 @@ async function loadFullConfig(): Promise<GameConfig | null> {
 // ─── POST Response Type ─────────────────────────────────────────────────
 
 interface OfflinePostResponse {
-  newState: GameState;
+  newState: ServerGameData;
   productionSnapshot: ProductionSnapshot;
   ticksApplied: number;
   elapsedSeconds: number;
@@ -464,8 +465,8 @@ export async function POST(request: Request) {
   // ─── Run Server Ticks ─────────────────────────────────────────────────
   // Use serverState.full_state as the authoritative base — never client-sent gameState
 
-  const baseGameState = serverState.full_state as unknown as GameState;
-  let result: { newState: GameState; productionSnapshot: ProductionSnapshot };
+  const baseGameState = serverState.full_state as unknown as ServerGameData;
+  let result: { newState: ServerGameData; productionSnapshot: ProductionSnapshot };
   try {
     result = runServerTicks(baseGameState, elapsedTicks, config);
   } catch (err) {
@@ -487,7 +488,7 @@ export async function POST(request: Request) {
     auth.userId,
     currentVersion, // optimistic lock
     {
-      full_state: result.newState as never,
+      full_state: asFullState(result.newState),
       game_tick: newGameTick,
       state_version: nextVersion,
       last_tick_at: new Date().toISOString(),

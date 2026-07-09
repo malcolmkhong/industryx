@@ -4,7 +4,7 @@ import { verifyAdmin, withSecurityHeaders } from "@/lib/auth/admin";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { computeMaxPossibleMoney } from "@/lib/game/serverTickValidator";
 import { listInvestigations, countResolvedSince } from "@/lib/db/cheatInvestigations";
-import type { GameState } from "@/lib/game/types";
+import type { ServerGameData } from "@/lib/game/types";
 import type {
   GameConfig,
   SupabaseBuilding,
@@ -480,7 +480,9 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const gameState = serverState.full_state as GameState;
+      // Phase 13: full_state is pure ServerGameData. UI flags NEVER appear
+      // here. Admin tooling uses only the data fields.
+      const gameState = serverState.full_state as ServerGameData;
       const currentMoney = gameState.money;
 
       // Compute theoretical max. Use game_tick as elapsed ticks since

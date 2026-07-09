@@ -278,37 +278,13 @@ describe('Module: utils/costCalculator', () => {
 });
 
 // ═════════════════════════════════════════════════════════════════════
-// TARGET: constants/  — Initial State & Balance
+// TARGET: constants/initialState — REMOVED (Phase 12, 2026-07-10).
+//
+// Initial state is now server-authoritative via
+// `fetchCanonicalInitialState()` (tests/unit/initialState.server.test.ts).
+// The store now starts from a minimal stub (`hydrated: false`) and is
+// hydrated by `hydrateInitialState()` from GET /api/game/initial-state.
 // ═════════════════════════════════════════════════════════════════════
-
-// This section maps to: constants/initialState.ts, constants/gameBalance.ts
-
-describe('Module: constants/initialState', () => {
-  beforeEach(resetStore);
-
-  it('money = 1000', () => { expect(getStore().money).toBe(1000); });
-  it('gameTick = 0', () => { expect(getStore().gameTick).toBe(0); });
-  it('gameSpeed = 1', () => { expect(getStore().gameSpeed).toBe(1); });
-  it('paused = false', () => { expect(getStore().paused).toBe(false); });
-  it('buildings = []', () => { expect(getStore().buildings).toEqual([]); });
-  it('transportLines = []', () => { expect(getStore().transportLines).toEqual([]); });
-  it('activeTab = "dashboard"', () => { expect(getStore().activeTab).toBe('dashboard'); });
-  it('notifications = []', () => { expect(getStore().notifications).toEqual([]); });
-  it('blueprints = []', () => { expect(getStore().blueprints).toEqual([]); });
-  it('quests = []', () => { expect(getStore().quests).toEqual([]); });
-  it('loginStreak defaults to zero', () => {
-    const ls = getStore().loginStreak;
-    expect(ls.currentStreak).toBe(0); expect(ls.longestStreak).toBe(0);
-    expect(ls.lastLoginDate).toBe(''); expect(ls.totalLogins).toBe(0);
-    expect(ls.weeklyRewards).toEqual([]);
-  });
-  it('all resource keys present', () => {
-    const keys = Object.keys(getStore().resources);
-    expect(keys.length).toBeGreaterThan(30);
-    expect(keys).toContain('iron'); expect(keys).toContain('copper');
-    expect(keys).toContain('researchMatrix');
-  });
-});
 
 // ═════════════════════════════════════════════════════════════════════
 // TARGET: services/notificationService

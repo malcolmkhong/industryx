@@ -34,7 +34,9 @@ import {
   upsertServerGameState,
   getGameTick,
 } from '@/lib/db/serverGameState';
+import { fetchCanonicalInitialState } from '@/lib/db/initialState.server';
 import { upsertPlayerProgress } from '@/lib/db/playerProgress';
+import { asFullState, stripUIFields } from '@/lib/db/serverGameStatePayload';
 
 export async function POST(request: NextRequest) {
   try {
@@ -129,30 +131,33 @@ export async function POST(request: NextRequest) {
         migrationResult.riskLevel === 'none' ? 'low' : migrationResult.riskLevel,
       );
 
-      // Create a fresh server state entry (marked as flagged)
-      const checksum = generateChecksum(gameState);
+      // Reset to server-authoritative canonical initial state (Phase 12).
+      // Previously seeded a partial full_state with total_money_earned=1000
+      // which violated the spend/income invariant.
+      let canonical;
+      try {
+        canonical = await fetchCanonicalInitialState();
+      } catch (err) {
+        console.error('[MigrateGuest] canonical initial state unavailable:', err);
+        return NextResponse.json(
+          { error: 'Initial state unavailable' },
+          { status: 503 },
+        );
+      }
+      const checksum = generateChecksum(canonical as unknown as Record<string, unknown>);
       await upsertServerGameState({
         user_id: userId,
-        money: 1000, // Reset to starting money
-        total_money_earned: 1000,
-        research_points: 0,
-        buildings: [],
+        money: canonical.money,
+        total_money_earned: 0,
+        research_points: canonical.researchPoints,
+        buildings: asFullState(canonical.buildings),
         buildings_count: 0,
-        completed_research: [],
-        resources: {},
-        workers: [],
-        game_tick: 0,
-        game_speed: 1,
-        full_state: {
-          money: 1000,
-          totalMoneyEarned: 1000,
-          gameTick: 0,
-          gameSpeed: 1,
-          buildings: [],
-          resources: {},
-          completedResearch: [],
-          researchPoints: 0,
-        },
+        completed_research: asFullState(canonical.completedResearch),
+        resources: asFullState(canonical.resources),
+        workers: asFullState(canonical.workers),
+        game_tick: canonical.gameTick,
+        game_speed: canonical.gameSpeed,
+        full_state: asFullState(canonical),
         state_hash: checksum,
         state_version: 1,
         is_locked: false,
@@ -162,16 +167,7 @@ export async function POST(request: NextRequest) {
       // Also update player_progress for backwards compat
       await upsertPlayerProgress(userId, {
         display_name: safeDisplayName,
-        game_state: {
-          money: 1000,
-          totalMoneyEarned: 1000,
-          gameTick: 0,
-          gameSpeed: 1,
-          buildings: [],
-          resources: {},
-          completedResearch: [],
-          researchPoints: 0,
-        },
+        game_state: canonical as unknown as Record<string, unknown>,
       });
 
       return NextResponse.json({
@@ -185,13 +181,8 @@ export async function POST(request: NextRequest) {
           passed: c.passed,
           detail: c.detail,
         })),
-        // Client should reset to starting state
-        resetState: {
-          money: 1000,
-          totalMoneyEarned: 1000,
-          gameTick: 0,
-          gameSpeed: 1,
-        },
+        // Client should reset to canonical starting state
+        resetState: canonical,
       }, { status: 200 }); // 200 because the request itself succeeded, even if migration was rejected
     }
 
@@ -218,28 +209,35 @@ export async function POST(request: NextRequest) {
     const workers = (gameState.workers as Array<Record<string, unknown>>) || [];
     const checksum = generateChecksum(gameState);
 
+    // Phase 13 (2026-07-10, Option C) — strip UI fields (hydrated,
+    // activeTab, selectedBuilding, notifications, productionSnapshot)
+    // before persisting via the shared helper.
+    const sanitizedFullState = stripUIFields(
+      gameState as Record<string, unknown>,
+    );
+
     const initialState = await upsertServerGameState({
       user_id: userId,
       money: Number(gameState.money) || 0,
       total_money_earned: Number(gameState.totalMoneyEarned) || 0,
       research_points: Number(gameState.researchPoints) || 0,
-      buildings: buildings.map(b => ({
+      buildings: asFullState(buildings.map(b => ({
         type: b.type,
         level: b.level,
         active: b.active,
         efficiency: b.efficiency,
-      })) as never,
+      }))),
       buildings_count: buildings.length,
-      completed_research: completedResearch,
-      resources: resources as never,
-      workers: workers.map(w => ({
+      completed_research: asFullState(completedResearch),
+      resources: asFullState(resources),
+      workers: asFullState(workers.map(w => ({
         type: w.type,
         level: w.level,
         assignedTo: w.assignedTo,
-      })) as never,
+      }))),
       game_tick: Number(gameState.gameTick) || 0,
       game_speed: Number(gameState.gameSpeed) || 1,
-      full_state: gameState as never,
+      full_state: asFullState(sanitizedFullState),
       state_hash: checksum,
       state_version: 1,
       is_locked: false,

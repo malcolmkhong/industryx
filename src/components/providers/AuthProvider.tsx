@@ -32,7 +32,7 @@ import {
   LoginPromptService,
   LoginPromptServiceProvider,
 } from "@/lib/hooks/useLoginPrompt";
-import { useGameStore, applyServerState } from "@/lib/game/store";
+import { useGameStore, applyServerState, hydrateInitialState } from "@/lib/game/store";
 import { extractGameState } from "@/lib/hooks/cloudSync/serializeGameState";
 
 // Check if Supabase is configured
@@ -288,6 +288,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             () => useGameStore.getState().gameTick,
             () => extractGameState(),
           );
+          // Phase 12: hydrate the store with the server-authoritative
+          // canonical initial state BEFORE attempting cloud load. This
+          // guarantees UI renders even if cloud row is missing / empty.
+          void hydrateInitialState();
           void cloudSync.load().then((r) => {
             if (r.success && r.data && r.conflict === "cloud") {
               try {

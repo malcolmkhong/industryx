@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { GameIcon } from '@/components/icons/GameIcon';
-import { initialResources } from '@/lib/game/constants/initialState';
+import { VALID_RESOURCE_KEYS } from '@/lib/game/balanceConfig';
 import type { ResourceType } from '@/lib/game/types';
 
 interface OfflineEarningsDialogProps {
@@ -39,8 +39,10 @@ export function OfflineEarningsDialog({
   const duration = formatDuration(ticksElapsed);
 
   // Show resources that have a meaningful gain (> 0.01)
+  // Phase 12: use the server-owned VALID_RESOURCE_KEYS set instead of the
+  // deleted initialResources client constant.
   const earnedResources = (Object.entries(resources) as [ResourceType, number][])
-    .filter(([key, val]) => key in initialResources && val > 0.01);
+    .filter(([key, val]) => VALID_RESOURCE_KEYS.has(key) && val > 0.01);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

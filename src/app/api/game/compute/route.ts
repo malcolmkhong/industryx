@@ -23,7 +23,7 @@ import type {
   ResourceAmount,
   ResourceType,
   CostResourceType,
-  GameState,
+  ServerGameData,
 } from "@/lib/game/types";
 import type { ProductionSnapshot } from "@/lib/game/productionCalculator";
 import { runServerTicks } from "@/lib/game/serverEngine";
@@ -32,12 +32,12 @@ import { runServerTicks } from "@/lib/game/serverEngine";
 
 interface ComputeRequest {
   userId: string;
-  gameState: GameState;
+  gameState: ServerGameData;
   ticks: number;
 }
 
 interface ComputeResponse {
-  newState: GameState;
+  newState: ServerGameData;
   productionSnapshot: ProductionSnapshot;
 }
 
@@ -343,7 +343,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const baseGameState = serverState.full_state as GameState;
+  const baseGameState = serverState.full_state as ServerGameData;
 
   try {
     // Run the server-side tick computation

@@ -14,6 +14,7 @@ import {
   loadServerGameStateForAction,
   saveServerGameStateOptimistic,
   isServerGameStateAvailable,
+  type ServerGameStateForAction,
 } from "@/lib/db/serverGameState";
 import type {
   SupabaseBuilding,
@@ -28,6 +29,7 @@ import type {
   ResourceType,
   CostResourceType,
   GameState,
+  ServerGameData,
 } from "@/lib/game/types";
 import {
   validateBuildAction,
@@ -50,9 +52,9 @@ import {
   validatePrestigeAction,
 } from "@/lib/game/serverEngine";
 import { applyElapsedTicks } from "@/lib/auth/applyElapsedTicks";
-import type { ServerGameStateForAction } from "@/lib/db/serverGameState";
+import { asFullState } from "@/lib/db/serverGameStatePayload";
 
-// ─── Types ──────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ActionRequest {
   userId?: string;
@@ -364,9 +366,11 @@ function handleUpgradeTransportLineAction(
 function handlePrestigeAction(
   _payload: Record<string, unknown>,
   gameState: Partial<GameState>,
-): ActionResponse {
+): Promise<ActionResponse> {
   // do_prestige has no payload. Server validates minimum buildings, computes
-  // CP earned, returns corrected prestigeState.
+  // CP earned, returns the FULL canonical reset state with prestige counters
+  // merged in. Returns a Promise because Phase 12 reads the canonical shape
+  // server-side via `fetchCanonicalInitialState()`.
   return validatePrestigeAction(gameState);
 }
 
@@ -701,7 +705,7 @@ export async function POST(request: Request) {
   let activeServerState: ServerGameStateForAction = serverState;
   try {
     const elapsed = await applyElapsedTicks(
-      (serverState.full_state as unknown as GameState) ?? ({} as GameState),
+      (serverState.full_state as unknown as ServerGameData) ?? ({} as ServerGameData),
       serverState.last_tick_at ?? null,
       Number(serverState.game_speed) || 1,
     );
@@ -713,7 +717,7 @@ export async function POST(request: Request) {
         auth.userId,
         serverState.state_version ?? 0,
         {
-          full_state: elapsed.state as never,
+          full_state: asFullState(elapsed.state),
           money: Number(elapsed.state.money) || 0,
           total_money_earned: Number(elapsed.state.totalMoneyEarned) || 0,
           buildings_count: Array.isArray(elapsed.state.buildings)
@@ -834,7 +838,7 @@ export async function POST(request: Request) {
       result = handleUpgradeTransportLineAction(payload, gameState, config);
       break;
     case "do_prestige":
-      result = handlePrestigeAction(payload, gameState);
+      result = await handlePrestigeAction(payload, gameState);
       break;
     default:
       result = { valid: false, error: `Unhandled action: ${action}` };
@@ -885,7 +889,7 @@ export async function POST(request: Request) {
       auth.userId,
       currentVersion,
       {
-        full_state: mergedFullState as never,
+        full_state: asFullState(mergedFullState),
         money:
           typeof appliedCorrectedState?.money === "number"
             ? appliedCorrectedState.money

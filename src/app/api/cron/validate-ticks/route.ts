@@ -14,7 +14,7 @@ import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { computeMaxPossibleMoney } from "@/lib/game/serverTickValidator";
 import type { GameConfig } from "@/lib/game/config";
-import type { GameState } from "@/lib/game/types";
+import type { ServerGameData } from "@/lib/game/types";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
 import { logActionAsync } from "@/lib/auth/gameStateValidator";
 import {
@@ -340,7 +340,8 @@ export async function POST(request: Request): Promise<NextResponse> {
         // Fetch full state ONLY for this one user to run deep validation
         const deep = await loadFullStateForUser(player.user_id);
         if (!deep) continue;
-        const state = deep.full_state as GameState;
+        // Phase 13: full_state is pure ServerGameData. UI flags NEVER appear.
+        const state = deep.full_state as ServerGameData;
         if (!state || typeof state.money !== "number") continue;
         const lastTickAt = new Date(player.last_tick_at).getTime();
         const elapsedSeconds = (Date.now() - lastTickAt) / 1000;

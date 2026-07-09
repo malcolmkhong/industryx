@@ -1,7 +1,5 @@
 import { RANK_THRESHOLDS } from "../configCache";
-import { getBalance } from "../balanceConfig";
 import { soundEngine } from "../soundEngine";
-import { createInitialState } from "../constants/initialState";
 import { generateId } from "../utils/generateId";
 import { formatNumber } from "../utils/formatNumber";
 import type { SetFn, GetFn } from "./_actionTypes";
@@ -26,63 +24,31 @@ export function createPrestigeActions(set: SetFn, get: GetFn) {
         return;
       }
 
-      // Phase 6: server-authoritative prestige. Server validates minimum
-      // buildings, computes Corporation Points (CP) earned, and returns
-      // the authoritative post-prestige state. The state RESET itself
-      // (clearing buildings, resources, money) is deterministic from
-      // createInitialState() and applied client-side; only the CP and
-      // totalPrestiges counters are server-authoritative (anti-cheat).
+      // Phase 12: server-authoritative prestige. Server validates minimum
+      // buildings, computes Corporation Points (CP) earned, AND returns the
+      // FULL canonical reset state (sourced from the same
+      // fetchCanonicalInitialState() helper that buildGuestGameState uses).
+      // Client just `set(validation.correctedState)` — no local
+      // createInitialState() spread (was the anti-pattern that drifted
+      // whenever the canonical shape changed).
       const validation = await import("../actionValidator").then((m) =>
         m.validateActionWithServer("do_prestige", {}, generateId()),
       );
       if (!validation.approved) {
         soundEngine.play("error", "ui");
-        // eslint-disable-next-line no-console
         console.error(`[doPrestige] server rejected: ${validation.error}`);
         get().addNotification("error", friendlyPrestigeError(validation.error));
         return;
       }
 
-      // Apply server-authoritative prestigeState. The CP earned is computed
-      // server-side (immune to tampering). Client computes local fallback
-      // for degraded responses.
       const corrected = validation.correctedState;
-      const serverPrestigeState = corrected?.prestigeState as
-        | {
-            corporationPoints?: number;
-            totalPrestiges?: number;
-            megaFactoryUnlocked?: boolean;
-            bonuses?: unknown[];
-          }
-        | undefined;
-      const localPointsEarned = Math.floor(
-        state.buildings.length * getBalance().prestige.cpPerBuilding +
-          state.completedResearch.length * 2 +
-          state.stats.contractsCompleted,
-      );
-      const finalPrestigeState = serverPrestigeState
-        ? {
-            corporationPoints:
-              serverPrestigeState.corporationPoints ??
-              state.prestigeState.corporationPoints + localPointsEarned,
-            totalPrestiges:
-              serverPrestigeState.totalPrestiges ??
-              state.prestigeState.totalPrestiges + 1,
-            megaFactoryUnlocked:
-              serverPrestigeState.megaFactoryUnlocked ??
-              state.prestigeState.megaFactoryUnlocked,
-            bonuses:
-              (serverPrestigeState.bonuses as never[]) ??
-              state.prestigeState.bonuses,
-          }
-        : {
-            // Local fallback (degraded server response)
-            corporationPoints:
-              state.prestigeState.corporationPoints + localPointsEarned,
-            totalPrestiges: state.prestigeState.totalPrestiges + 1,
-            megaFactoryUnlocked: state.prestigeState.megaFactoryUnlocked,
-            bonuses: state.prestigeState.bonuses,
-          };
+      // Type-narrow the prestigeState field so downstream `totalPrestiges`
+      // and friends resolve cleanly. Server-returned correctedState is
+      // Partial<ServerGameData>; the prestigeState subfield is the canonical
+      // PrestigeState shape.
+      const finalPrestigeState =
+        (corrected?.prestigeState as { totalPrestiges: number; corporationPoints: number; megaFactoryUnlocked: boolean; bonuses: unknown[] } | undefined) ??
+        state.prestigeState;
 
       // Calculate score for leaderboard entry (uses pre-prestige totals)
       const score = Math.floor(
@@ -124,10 +90,25 @@ export function createPrestigeActions(set: SetFn, get: GetFn) {
       ];
       const corporationName = `${prefixes[Math.floor(Math.random() * prefixes.length)]} ${suffixes[Math.floor(Math.random() * suffixes.length)]}`;
 
-      set({
-        ...createInitialState(),
-        prestigeState: finalPrestigeState,
-      });
+      // Apply server-returned canonical reset state verbatim. We do NOT
+      // spread `createInitialState()` client-side any more — the server
+      // owns the shape.
+      if (corrected) {
+        set(corrected as Parameters<typeof set>[0]);
+      } else {
+        // Defensive fallback — if the server response was missing
+        // correctedState for some reason, fail-closed by leaving state
+        // untouched and surfacing the error to the user rather than
+        // doing a partial local reset.
+        console.error(
+          "[doPrestige] server returned no correctedState; refusing local fallback (Phase 12 anti-cheat).",
+        );
+        get().addNotification(
+          "error",
+          "Prestige could not be confirmed by server. Please retry.",
+        );
+        return;
+      }
 
       soundEngine.play("levelUp", "events");
       get().updateQuestProgress("prestige", 1);

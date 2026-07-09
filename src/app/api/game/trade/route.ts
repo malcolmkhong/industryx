@@ -14,6 +14,7 @@ import {
 import { recordTrade } from '@/lib/db/trades';
 import { getBalance } from '@/lib/game/balanceConfig';
 import { ensureConfigLoaded } from '@/lib/game/configLoader.server';
+import { asFullState } from '@/lib/db/serverGameStatePayload';
 
 interface TradeRequest {
   giveResource?: ResourceType;
@@ -236,8 +237,8 @@ export async function POST(request: Request) {
     auth.userId,
     currentVersion,
     {
-      resources: newResources as never,
-      full_state: updatedFullState as never,
+      resources: asFullState(newResources),
+      full_state: asFullState(updatedFullState),
       state_version: nextStateVersion,
       last_trade_at: new Date().toISOString(),
     }

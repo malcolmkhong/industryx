@@ -23,6 +23,7 @@ import {
   syncPlayerProgressGameState,
   isServerGameStateAvailable,
 } from '@/lib/db/serverGameState';
+import { asFullState, stripUIFields } from '@/lib/db/serverGameStatePayload';
 
 // GET /api/game/state?userId=xxx - Load authoritative server game state
 export async function GET(request: Request) {
@@ -274,20 +275,28 @@ export async function POST(request: Request) {
   const buildingsCount = ((gameState as Record<string, unknown>).buildings as unknown[])?.length || 0;
   const currentVersion = (currentServerState?.state_version as number) || 0;
 
+  // Phase 13 (2026-07-10, Option C) — defense-in-depth filter via the
+  // shared helper. Strips client-side UI fields (hydrated, activeTab,
+  // selectedBuilding, notifications, productionSnapshot) so a stale
+  // client cannot smuggle UI into the full_state JSONB blob.
+  const sanitizedFullState = stripUIFields(
+    gameState as Record<string, unknown>,
+  );
+
   // Upsert to server_game_state (SOURCE OF TRUTH)
   const upsertData = await upsertServerGameState({
     user_id: userId,
     money: Number(gameState.money) || 0,
     total_money_earned: Number(gameState.totalMoneyEarned) || 0,
     research_points: Number(gameState.researchPoints) || 0,
-    buildings: gameState.buildings as never,
+    buildings: asFullState(gameState.buildings),
     buildings_count: buildingsCount,
-    completed_research: gameState.completedResearch as never,
-    resources: gameState.resources as never,
-    workers: gameState.workers as never,
+    completed_research: asFullState(gameState.completedResearch),
+    resources: asFullState(gameState.resources),
+    workers: asFullState(gameState.workers),
     game_tick: Number(gameState.gameTick) || 0,
     game_speed: Number(gameState.gameSpeed) || 1,
-    full_state: gameState as never,
+    full_state: asFullState(sanitizedFullState),
     state_hash: validation.checksum,
     state_version: currentVersion + 1,
     last_tick_at: serverTimestamp,

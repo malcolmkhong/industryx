@@ -1,7 +1,7 @@
 // ============================================
 // Daily Rewards Actions Factory
 // ============================================
-import type { GameState, ResourceType } from "../types";
+import type { ResourceType, ServerGameData } from "../types";
 import { WEEKLY_DAILY_REWARDS, getStreakMultiplier } from "../configCache";
 import { getCapacity } from "../utils/costCalculator";
 import { soundEngine } from "../soundEngine";
@@ -88,9 +88,12 @@ export function createDailyRewardActions(set: SetFn, get: GetFn) {
         return;
       }
 
-      // Apply server-authoritative state.
+      // Apply server-authoritative state. Phase 13: correctedState is
+      // Partial<ServerGameData>. Updates are spread into the store;
+      // UI fields are preserved (server has no claim to them).
       const corrected = validation.correctedState;
-      const updates: Record<string, unknown> = {};
+      // Local partial updates typed against the store's SetFn arg.
+      const updates: Partial<ServerGameData> = {};
 
       if (corrected?.loginStreak) {
         updates.loginStreak = corrected.loginStreak;
@@ -122,7 +125,10 @@ export function createDailyRewardActions(set: SetFn, get: GetFn) {
         updates.prestigeState = corrected.prestigeState;
       }
 
-      set(updates as never);
+      // Phase 13: updates is Partial<ServerGameData> passed to the
+      // store's set() function (typed as Partial<GameStore>). The
+      // assignment is safe — verified at compile time.
+      set(updates);
       soundEngine.play("moneyEarned", "building");
       get().addNotification("success", `Claimed daily reward: Day ${day}!`);
     },

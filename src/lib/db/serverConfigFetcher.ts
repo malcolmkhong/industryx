@@ -180,6 +180,7 @@ function transformResources(
       tier: r.tier ?? 0,
       color: r.color || "#a0a0a0",
       category: r.category || "misc",
+      baseCapacity: r.base_capacity ?? 100,
     };
   }
   return result;

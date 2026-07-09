@@ -37,6 +37,8 @@ export interface SupabaseResource {
   color: string;
   category: string;
   sort_order: number;
+  /** Default storage cap for a fresh player (Phase 12). Migration 069 seeds this. */
+  base_capacity?: number;
 }
 
 export interface SupabaseRecipe {
@@ -214,7 +216,7 @@ export interface SupabaseBalancingRule {
 
 export interface GameConfig {
   buildings: Record<string, BuildingDefinition>;
-  resources: Record<string, { name: string; icon: string; tier: number; color: string; category: string }>;
+  resources: Record<string, { name: string; icon: string; tier: number; color: string; category: string; baseCapacity: number }>;
   research: Array<{
     id: string;
     name: string;
@@ -424,6 +426,7 @@ function transformResources(resources: SupabaseResource[]): GameConfig['resource
       tier: r.tier,
       color: r.color,
       category: r.category,
+      baseCapacity: r.base_capacity ?? 100,
     };
   }
   return result;

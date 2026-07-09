@@ -24,7 +24,6 @@ import { emptyProductionSnapshot } from "../productionCalculator";
 import { getBalance } from "../balanceConfig";
 import { generateId } from "./generateId";
 import { SAVE_VERSION } from "../constants/saveVersion";
-import { initialResources } from "../constants/initialState";
 
 // --- Drone Mission Generator ---
 export function generateDroneMissionsFromState(
@@ -132,8 +131,16 @@ export function migrateSaveState(
   // V2 → V3: Add storageUpgradeLevels and lastOnlineTimestamp
   if (version < 3) {
     if (!state.storageUpgradeLevels) {
+      // Phase 12: derive key list from the player's current `resources`
+      // (which is non-empty by migration-time). Falls back to an empty
+      // object if the save predates `resources` (shouldn't happen for
+      // post-V2 saves, defensive only).
       const zeroUpgrades: Record<string, number> = {};
-      (Object.keys(initialResources) as ResourceType[]).forEach((r) => {
+      const sourceKeys =
+        state.resources && typeof state.resources === "object"
+          ? (Object.keys(state.resources) as ResourceType[])
+          : [];
+      sourceKeys.forEach((r) => {
         zeroUpgrades[r] = 0;
       });
       state.storageUpgradeLevels = zeroUpgrades;
