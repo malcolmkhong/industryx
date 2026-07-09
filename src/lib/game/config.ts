@@ -4,7 +4,7 @@
 // into the game's existing type format
 // ============================================
 
-import { BuildingDefinition, ResourceAmount, ResourceType } from './types';
+import type { BuildingDefinition, ResourceAmount, ResourceType } from "./types";
 
 // --- Supabase Row Types (raw DB shapes) ---
 

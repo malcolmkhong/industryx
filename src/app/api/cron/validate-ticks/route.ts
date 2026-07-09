@@ -13,8 +13,8 @@
 import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { computeMaxPossibleMoney } from "@/lib/game/serverTickValidator";
-import { GameConfig } from "@/lib/game/config";
-import { GameState } from "@/lib/game/types";
+import type { GameConfig } from "@/lib/game/config";
+import type { GameState } from "@/lib/game/types";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
 import { logActionAsync } from "@/lib/auth/gameStateValidator";
 import {

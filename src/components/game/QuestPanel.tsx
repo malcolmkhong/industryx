@@ -18,7 +18,7 @@ import {
   ScrollText,
 } from "lucide-react";
 import { GameCard } from "@/components/game/shared/GameCard";
-import { Quest, QuestType } from "@/lib/game/types";
+import type { Quest, QuestType } from "@/lib/game/types";
 import { GameIcon } from "@/components/icons";
 import { formatRemaining } from "@/lib/utils/time";
 

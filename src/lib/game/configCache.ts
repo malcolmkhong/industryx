@@ -25,8 +25,8 @@ import { TIER_INFO } from "./icons/tiers";
 
 // Re-export TIER_INFO as a const reference (it never mutates — UI-only).
 export { TIER_INFO };
-import { GameConfig } from "./config";
-import {
+import type { GameConfig } from "./config";
+import type {
   BuildingDefinition,
   TransportDefinition,
   WorkerDefinition,

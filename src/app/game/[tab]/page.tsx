@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
-import { GameTab } from '@/lib/game/types';
+import type { GameTab } from "@/lib/game/types";
 
 function DynamicPanelFallback() {
   if (typeof window === 'undefined') return null;

@@ -13,7 +13,7 @@ import {
   ArrowUpFromLine, Workflow, Gauge, X,
 } from 'lucide-react';
 import ResourceFlowDiagram from '@/components/game/ResourceFlowDiagram';
-import { ResourceType, ExtractorType } from '@/lib/game/types';
+import type { ResourceType, ExtractorType } from "@/lib/game/types";
 import { getExtractorTypes, getBasicExtractors, getAdvancedExtractors, getSpecializedExtractors } from '@/lib/game/buildingDiscovery';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';

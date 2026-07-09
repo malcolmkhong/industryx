@@ -14,7 +14,7 @@ import {
   Gauge, Box,
   Pickaxe, Sparkles, X, Search,
 } from 'lucide-react';
-import { FactoryType, ResourceType } from '@/lib/game/types';
+import type { FactoryType, ResourceType } from "@/lib/game/types";
 import { getFactoryTypesByTier } from '@/lib/game/buildingDiscovery';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';

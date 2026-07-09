@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { verifyAuth } from "@/lib/auth/verifyAuth";
 import { getTicket, addTicketMessage } from "@/lib/db/supportTickets";
 

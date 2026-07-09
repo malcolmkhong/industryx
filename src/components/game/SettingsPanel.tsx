@@ -2,14 +2,12 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useGameStore, formatNumber } from "@/lib/game/store";
-import {
-  useSettingsStore,
+import { useSettingsStore } from "@/lib/game/settingsStore";
+import type {
   NumberFormat,
   AnimationSpeed,
   SpeedLimit,
   BottomNavMode,
-  QuickAccessShortcut,
-  DEFAULT_QUICK_ACCESS_SHORTCUTS,
 } from "@/lib/game/settingsStore";
 import { soundEngine } from "@/lib/game/soundEngine";
 import { useTickFormat } from "@/lib/hooks/useTickFormat";
@@ -46,7 +44,6 @@ import {
   ChevronUp,
   Play,
   Navigation,
-  Move,
   GripVertical,
   Plus,
   Eye,

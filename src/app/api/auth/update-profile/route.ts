@@ -3,7 +3,8 @@
 //
 // Iteration 9: routed through db/profiles.ts.
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 import { verifyAuthAndOwnership } from '@/lib/auth/verifyAuth';
 import { updateProfileDisplayName } from '@/lib/db/profiles';

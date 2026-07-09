@@ -35,7 +35,7 @@ import { createStorageActions } from "./actions/storage";
 import { createRankActions } from "./actions/rank";
 import { createNewsActions } from "./actions/news";
 import { createGameTickActions } from "./actions/gameTick";
-import { GameStore } from "./store-types";
+import type { GameStore } from "./store-types";
 
 // Fields replaced verbatim from server response. Server already validated.
 const SERVER_FIELDS = [

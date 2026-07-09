@@ -10,7 +10,7 @@ import {
   Wrench, Bot, Shield, X, BarChart3,
   Zap, TrendingUp
 } from 'lucide-react';
-import { WorkerType } from '@/lib/game/types';
+import type { WorkerType } from "@/lib/game/types";
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { LoadingSpinner } from '@/components/game/shared/LoadingSpinner';
 import { GameIcon } from '@/components/icons';

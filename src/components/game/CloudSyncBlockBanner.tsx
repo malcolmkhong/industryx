@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { CloudBlockState } from '@/lib/hooks/useCloudSync';
+import type { CloudBlockState } from "@/lib/hooks/useCloudSync";
 import { ShieldAlert, MessageCircle, Lock, Ban, WifiOff, AlertTriangle } from 'lucide-react';
 
 interface CloudSyncBlockBannerProps {

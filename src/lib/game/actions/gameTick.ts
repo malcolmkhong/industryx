@@ -63,8 +63,8 @@ import {
   computePayout,
   computeEndgameIncome,
   emptyProductionSnapshot,
-  ProductionSnapshot,
 } from "../productionCalculator";
+import type { ProductionSnapshot } from "../productionCalculator";
 import { getBalance } from "../balanceConfig";
 import { generateId } from "../utils/generateId";
 import { formatNumber } from "../utils/formatNumber";

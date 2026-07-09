@@ -15,14 +15,14 @@ import {
   saveServerGameStateOptimistic,
   isServerGameStateAvailable,
 } from "@/lib/db/serverGameState";
-import {
+import type {
   SupabaseBuilding,
   SupabaseRecipe,
   SupabaseResearch,
   SupabaseProductionChain,
   GameConfig,
 } from "@/lib/game/config";
-import {
+import type {
   BuildingDefinition,
   ResourceAmount,
   ResourceType,

@@ -11,7 +11,7 @@
 // so we have ONE place that maintains the SQL surface area.
 
 import { NextResponse } from "next/server";
-import { GameConfig } from "@/lib/game/config";
+import type { GameConfig } from "@/lib/game/config";
 import { fetchGameConfigFromSupabase } from "@/lib/db/serverConfigFetcher";
 
 // ─── In-Memory Cache ────────────────────────────────────────────────────

@@ -22,7 +22,8 @@
 //     reassigned to auth user_id. Previously only server_game_state was touched.
 //   - keep_guest path removed entirely (linkGuestProfileToGoogle, persistGuestStateOnSurvivingUser).
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
 import { verifyAuth } from "@/lib/auth/verifyAuth";
 import {

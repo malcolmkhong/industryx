@@ -29,7 +29,7 @@ import {
   Users,
 } from "lucide-react";
 import { LoadingSpinner } from "@/components/game/shared/LoadingSpinner";
-import { ResearchCategory } from "@/lib/game/types";
+import type { ResearchCategory } from "@/lib/game/types";
 import { GameItemTooltip } from "@/components/game/GameItemTooltip";
 import { GameIcon } from "@/components/icons";
 

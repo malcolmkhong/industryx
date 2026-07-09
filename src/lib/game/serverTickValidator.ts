@@ -13,8 +13,8 @@
  *  the maximum possible money is $X." If the client claims more than X, cheating.
  */
 
-import { GameState } from './types';
-import { GameConfig } from './config';
+import type { GameState } from "./types";
+import type { GameConfig } from "./config";
 import { computeProduction, computePayout, computeEndgameIncome } from './productionCalculator';
 import { buildMultipliersServer } from './serverEngine';
 

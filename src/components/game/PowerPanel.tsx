@@ -13,7 +13,7 @@ import {
   Gauge, Plug, Fuel, Activity,
   CircleAlert, Minus, Lock, Lightbulb, TrendingUp, Clock
 } from 'lucide-react';
-import { PowerPlantType, BuildingInstance } from '@/lib/game/types';
+import type { PowerPlantType, BuildingInstance } from "@/lib/game/types";
 import { getPowerPlantTypes } from '@/lib/game/buildingDiscovery';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';

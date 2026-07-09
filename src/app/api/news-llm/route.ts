@@ -14,7 +14,8 @@
  * Output: { headlines: [{ title, description, affectedResources }], source: "llm" }
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 

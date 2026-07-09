@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { verifyAdmin, withSecurityHeaders } from "@/lib/auth/admin";
 import { getValidPermissions, getUserPermissions, grantPermission, revokePermission, type Permission } from "@/lib/auth/permissions";
 

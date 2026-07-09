@@ -19,10 +19,10 @@ import {
 } from "react";
 
 import { useAuth } from "@/components/providers/AuthProvider";
-import {
+import type {
   MergeFlowService,
-  type MergeState,
-  type MergePreference,
+  MergeState,
+  MergePreference,
 } from "./merge/MergeFlowService";
 
 const MergeCtx = createContext<{ service: MergeFlowService } | null>(null);

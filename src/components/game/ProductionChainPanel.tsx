@@ -24,7 +24,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { ResourceType } from "@/lib/game/types";
+import type { ResourceType } from "@/lib/game/types";
 import { GameIcon } from "@/components/icons";
 import { TIER_INFO } from "@/lib/game/tiers";
 

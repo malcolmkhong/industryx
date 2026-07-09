@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useGameStore } from "@/lib/game/store";
-import { GameTab } from "@/lib/game/types";
+import type { GameTab } from "@/lib/game/types";
 import { useNavigateToTab } from "@/lib/hooks/page/useNavigateToTab";
 import { useOfflineProgressCheck } from "@/lib/hooks/page/useOfflineProgressCheck";
 import { useSessionHeartbeat } from "@/lib/hooks/page/useSessionHeartbeat";

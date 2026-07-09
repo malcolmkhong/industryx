@@ -5,7 +5,7 @@ import { RESOURCE_META } from '@/lib/game/uiCatalog';
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
 import { useShallow } from 'zustand/react/shallow';
-import { ResourceType } from '@/lib/game/types';
+import type { ResourceType } from "@/lib/game/types";
 import { BarChart3, TrendingUp, TrendingDown, Minus, Zap, DollarSign, Activity } from 'lucide-react';
 import { GameIcon } from '@/components/icons';
 

@@ -14,7 +14,8 @@ import {
   ScrollText, Package, Clock, Check, X, AlertTriangle,
   Star, Trophy, Coins, FlaskConical, Globe, Lock, ChevronDown, ChevronRight
 } from 'lucide-react';
-import { ResourceType, Contract } from '@/lib/game/types';
+import { ResourceType } from "@/lib/game/types";
+import type { Contract } from "@/lib/game/types";
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { LoadingSpinner } from '@/components/game/shared/LoadingSpinner';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';

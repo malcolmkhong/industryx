@@ -11,19 +11,19 @@
 // and runs runServerTicks() server-side.
 // ============================================
 
-import { NextResponse } from 'next/server';
-import { createServiceRoleClient } from '@/lib/supabase/server';
-import { verifyAuth } from '@/lib/auth/verifyAuth';
-import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
-import { logActionAsync } from '@/lib/auth/gameStateValidator';
+import { NextResponse } from "next/server";
+import { createServiceRoleClient } from "@/lib/supabase/server";
+import { verifyAuth } from "@/lib/auth/verifyAuth";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
+import { logActionAsync } from "@/lib/auth/gameStateValidator";
 import {
   loadServerGameStateForTick,
   loadServerGameStateLiteForOffline,
   loadPlayerProgressGameState,
   saveServerGameStateOptimistic,
   isServerGameStateAvailable,
-} from '@/lib/db/serverGameState';
-import {
+} from "@/lib/db/serverGameState";
+import type {
   SupabaseBuilding,
   SupabaseRecipe,
   SupabaseResearch,
@@ -32,10 +32,16 @@ import {
   SupabaseWeather,
   SupabaseMarket,
   GameConfig,
-} from '@/lib/game/config';
-import { BuildingDefinition, ResourceAmount, ResourceType, CostResourceType, GameState } from '@/lib/game/types';
-import { ProductionSnapshot } from '@/lib/game/productionCalculator';
-import { runServerTicks } from '@/lib/game/serverEngine';
+} from "@/lib/game/config";
+import type {
+  BuildingDefinition,
+  ResourceAmount,
+  ResourceType,
+  CostResourceType,
+  GameState,
+} from "@/lib/game/types";
+import type { ProductionSnapshot } from "@/lib/game/productionCalculator";
+import { runServerTicks } from "@/lib/game/serverEngine";
 
 // Game tick interval: 1 tick per second at 1x speed
 const TICK_INTERVAL_MS = 1000;
@@ -51,10 +57,13 @@ const CONFIG_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 // ─── Helper: Parse cost JSON ────────────────────────────────────────────
 
-function parseCostMap(costMap: Record<string, number> | Array<{ resource: string; amount: number }> | null): ResourceAmount[] {
-  if (!costMap) return [{ resource: 'money', amount: 100 }];
+function parseCostMap(
+  costMap:
+    Record<string, number> | Array<{ resource: string; amount: number }> | null,
+): ResourceAmount[] {
+  if (!costMap) return [{ resource: "money", amount: 100 }];
   if (Array.isArray(costMap)) {
-    return costMap.map(item => ({
+    return costMap.map((item) => ({
       resource: item.resource as CostResourceType,
       amount: item.amount,
     }));
@@ -68,13 +77,13 @@ function parseCostMap(costMap: Record<string, number> | Array<{ resource: string
 // ─── Helper: Load Full Config from Supabase ─────────────────────────────
 
 async function loadFullConfig(): Promise<GameConfig | null> {
-  if (cachedConfig && (Date.now() - configFetchedAt) < CONFIG_CACHE_TTL_MS) {
+  if (cachedConfig && Date.now() - configFetchedAt < CONFIG_CACHE_TTL_MS) {
     return cachedConfig;
   }
 
   const supabase = createServiceRoleClient();
   if (!supabase) {
-    throw new Error('Supabase service role not configured');
+    throw new Error("Supabase service role not configured");
   }
 
   try {
@@ -87,21 +96,39 @@ async function loadFullConfig(): Promise<GameConfig | null> {
       weatherRes,
       marketRes,
     ] = await Promise.all([
-      supabase.from('game_config_buildings').select('*').order('sort_order', { ascending: true, nullsFirst: false }),
-      supabase.from('game_config_production_recipes').select('*'),
-      supabase.from('game_config_research').select('*').order('sort_order', { ascending: true, nullsFirst: false }),
-      supabase.from('game_config_production_chains').select('*'),
-      supabase.from('game_config_workers').select('*').order('sort_order', { ascending: true, nullsFirst: false }),
-      supabase.from('game_config_weather').select('*').order('sort_order', { ascending: true, nullsFirst: false }),
-      supabase.from('game_config_market').select('*').order('sort_order', { ascending: true, nullsFirst: false }),
+      supabase
+        .from("game_config_buildings")
+        .select("*")
+        .order("sort_order", { ascending: true, nullsFirst: false }),
+      supabase.from("game_config_production_recipes").select("*"),
+      supabase
+        .from("game_config_research")
+        .select("*")
+        .order("sort_order", { ascending: true, nullsFirst: false }),
+      supabase.from("game_config_production_chains").select("*"),
+      supabase
+        .from("game_config_workers")
+        .select("*")
+        .order("sort_order", { ascending: true, nullsFirst: false }),
+      supabase
+        .from("game_config_weather")
+        .select("*")
+        .order("sort_order", { ascending: true, nullsFirst: false }),
+      supabase
+        .from("game_config_market")
+        .select("*")
+        .order("sort_order", { ascending: true, nullsFirst: false }),
     ]);
 
     if (buildingsRes.error || !buildingsRes.data) {
-      console.error('[OfflineAPI] Failed to fetch buildings:', buildingsRes.error);
+      console.error(
+        "[OfflineAPI] Failed to fetch buildings:",
+        buildingsRes.error,
+      );
       return null;
     }
     if (recipesRes.error || !recipesRes.data) {
-      console.error('[OfflineAPI] Failed to fetch recipes:', recipesRes.error);
+      console.error("[OfflineAPI] Failed to fetch recipes:", recipesRes.error);
       return null;
     }
 
@@ -115,19 +142,25 @@ async function loadFullConfig(): Promise<GameConfig | null> {
 
     const buildingsMap: Record<string, BuildingDefinition> = {};
     for (const b of buildings) {
-      const buildingRecipes = recipes.filter(r => r.building_id === b.id);
+      const buildingRecipes = recipes.filter((r) => r.building_id === b.id);
       const inputs: ResourceAmount[] = buildingRecipes
-        .filter(r => r.is_input)
-        .map(r => ({ resource: r.resource_id as ResourceType, amount: r.amount }));
+        .filter((r) => r.is_input)
+        .map((r) => ({
+          resource: r.resource_id as ResourceType,
+          amount: r.amount,
+        }));
       const outputs: ResourceAmount[] = buildingRecipes
-        .filter(r => !r.is_input)
-        .map(r => ({ resource: r.resource_id as ResourceType, amount: r.amount }));
+        .filter((r) => !r.is_input)
+        .map((r) => ({
+          resource: r.resource_id as ResourceType,
+          amount: r.amount,
+        }));
 
       buildingsMap[b.id] = {
-        type: b.id as BuildingDefinition['type'],
+        type: b.id as BuildingDefinition["type"],
         name: b.name,
         description: b.description,
-        category: b.category as BuildingDefinition['category'],
+        category: b.category as BuildingDefinition["category"],
         tier: b.tier,
         baseCost: parseCostMap(b.base_cost),
         costMultiplier: b.cost_multiplier,
@@ -138,17 +171,19 @@ async function loadFullConfig(): Promise<GameConfig | null> {
         ...(outputs.length > 0 ? { outputs } : {}),
         ...(b.fuel ? { fuel: b.fuel as ResourceType } : {}),
         ...(b.fuel_rate ? { fuelRate: b.fuel_rate } : {}),
-        ...(b.unlock_research || b.unlock_prestige ? {
-          unlockRequirement: {
-            ...(b.unlock_research ? { research: b.unlock_research } : {}),
-            ...(b.unlock_prestige ? { prestige: b.unlock_prestige } : {}),
-          }
-        } : {}),
+        ...(b.unlock_research || b.unlock_prestige
+          ? {
+              unlockRequirement: {
+                ...(b.unlock_research ? { research: b.unlock_research } : {}),
+                ...(b.unlock_prestige ? { prestige: b.unlock_prestige } : {}),
+              },
+            }
+          : {}),
         icon: b.icon,
       };
     }
 
-    const weatherMap: GameConfig['weather'] = {};
+    const weatherMap: GameConfig["weather"] = {};
     for (const w of weather) {
       weatherMap[w.id] = {
         name: w.name,
@@ -163,7 +198,7 @@ async function loadFullConfig(): Promise<GameConfig | null> {
     const config: GameConfig = {
       buildings: buildingsMap,
       resources: {},
-      research: research.map(r => ({
+      research: research.map((r) => ({
         id: r.id,
         name: r.name,
         description: r.description,
@@ -175,7 +210,7 @@ async function loadFullConfig(): Promise<GameConfig | null> {
         effects: (r.effects as Record<string, unknown>[]) || [],
         icon: r.icon,
       })),
-      market: market.map(m => ({
+      market: market.map((m) => ({
         resource: m.resource_id,
         basePrice: m.base_price,
         demand: m.demand,
@@ -183,9 +218,11 @@ async function loadFullConfig(): Promise<GameConfig | null> {
         volatility: m.volatility,
         isTradable: m.is_tradable,
       })),
-      tradableResourceIds: market.filter(m => m.is_tradable).map(m => m.resource_id),
+      tradableResourceIds: market
+        .filter((m) => m.is_tradable)
+        .map((m) => m.resource_id),
       weather: weatherMap,
-      workers: workers.map(w => ({
+      workers: workers.map((w) => ({
         id: w.id,
         name: w.name,
         description: w.description,
@@ -203,21 +240,21 @@ async function loadFullConfig(): Promise<GameConfig | null> {
       seasonalEvents: [],
       megaProjects: [],
       gameConfig: {},
-      productionChains: chains.map(c => ({
+      productionChains: chains.map((c) => ({
         id: c.id,
         upstreamBuilding: c.upstream_building,
         downstreamBuilding: c.downstream_building,
         resourceId: c.resource_id,
       })),
       loadedAt: Date.now(),
-      source: 'supabase',
+      source: "supabase",
     };
 
     cachedConfig = config;
     configFetchedAt = Date.now();
     return config;
   } catch (err) {
-    console.error('[OfflineAPI] Failed to load config:', err);
+    console.error("[OfflineAPI] Failed to load config:", err);
     return null;
   }
 }
@@ -239,14 +276,18 @@ export async function GET(request: Request) {
   if (!auth.success) return auth.response;
 
   // ✅ Rate limit
-  const rateLimitResponse = await checkRateLimit(auth.userId, RATE_LIMITS.compute, '/api/game/offline');
+  const rateLimitResponse = await checkRateLimit(
+    auth.userId,
+    RATE_LIMITS.compute,
+    "/api/game/offline",
+  );
   if (rateLimitResponse) return rateLimitResponse;
 
   // If the DB is unavailable, surface 503 (matches previous behavior).
   if (!isServerGameStateAvailable()) {
     return NextResponse.json(
-      { error: 'Service temporarily unavailable — database not configured' },
-      { status: 503 }
+      { error: "Service temporarily unavailable — database not configured" },
+      { status: 503 },
     );
   }
 
@@ -261,7 +302,7 @@ export async function GET(request: Request) {
     if (!gameState) {
       return NextResponse.json({
         offlineTicks: 0,
-        message: 'No previous save found',
+        message: "No previous save found",
       });
     }
 
@@ -275,7 +316,7 @@ export async function GET(request: Request) {
       expectedTick: lastGameTick,
       serverGameTick: 0,
       maxOfflineTicks: MAX_OFFLINE_TICKS,
-      computeUrl: '/api/game/compute',
+      computeUrl: "/api/game/compute",
     });
   }
 
@@ -283,7 +324,7 @@ export async function GET(request: Request) {
   if (!gameState) {
     return NextResponse.json({
       offlineTicks: 0,
-      message: 'No game state found',
+      message: "No game state found",
     });
   }
 
@@ -312,7 +353,7 @@ export async function GET(request: Request) {
     serverGameTick: sgs.game_tick || 0,
     maxOfflineTicks: MAX_OFFLINE_TICKS,
     // Client should use /api/game/compute to actually run the ticks
-    computeUrl: '/api/game/compute',
+    computeUrl: "/api/game/compute",
   });
 }
 
@@ -324,7 +365,11 @@ export async function POST(request: Request) {
   if (!auth.success) return auth.response;
 
   // ✅ Rate limit — use compute profile (offline precompute)
-  const rateLimitResponse = await checkRateLimit(auth.userId, RATE_LIMITS.compute, '/api/game/offline');
+  const rateLimitResponse = await checkRateLimit(
+    auth.userId,
+    RATE_LIMITS.compute,
+    "/api/game/offline",
+  );
   if (rateLimitResponse) return rateLimitResponse;
 
   // Read request body (for audit; ticks/gameState are NOT trusted)
@@ -337,9 +382,14 @@ export async function POST(request: Request) {
 
   // ✅ Ownership check: userId in request must match authenticated user
   if (body.userId && body.userId !== auth.userId) {
-    console.warn(`[OfflineAPI] User ${auth.userId} attempted offline compute for ${body.userId}`);
+    console.warn(
+      `[OfflineAPI] User ${auth.userId} attempted offline compute for ${body.userId}`,
+    );
     return NextResponse.json(
-      { error: 'You can only compute offline progress for your own game', code: 'FORBIDDEN_OWNERSHIP' },
+      {
+        error: "You can only compute offline progress for your own game",
+        code: "FORBIDDEN_OWNERSHIP",
+      },
       { status: 403 },
     );
   }
@@ -348,7 +398,7 @@ export async function POST(request: Request) {
 
   if (!isServerGameStateAvailable()) {
     return NextResponse.json(
-      { error: 'Service temporarily unavailable — database not configured' },
+      { error: "Service temporarily unavailable — database not configured" },
       { status: 503 },
     );
   }
@@ -357,7 +407,7 @@ export async function POST(request: Request) {
 
   if (!serverState) {
     return NextResponse.json(
-      { error: 'No authoritative server state found', code: 'NO_SERVER_STATE' },
+      { error: "No authoritative server state found", code: "NO_SERVER_STATE" },
       { status: 404 },
     );
   }
@@ -365,7 +415,10 @@ export async function POST(request: Request) {
   // ✅ Account lock check
   if (serverState.is_locked) {
     return NextResponse.json(
-      { error: serverState.lock_reason || 'Account is locked', code: 'ACCOUNT_LOCKED' },
+      {
+        error: serverState.lock_reason || "Account is locked",
+        code: "ACCOUNT_LOCKED",
+      },
       { status: 403 },
     );
   }
@@ -403,7 +456,7 @@ export async function POST(request: Request) {
   const config = await loadFullConfig();
   if (!config) {
     return NextResponse.json(
-      { error: 'Game config unavailable — cannot compute ticks' },
+      { error: "Game config unavailable — cannot compute ticks" },
       { status: 503 },
     );
   }
@@ -416,9 +469,9 @@ export async function POST(request: Request) {
   try {
     result = runServerTicks(baseGameState, elapsedTicks, config);
   } catch (err) {
-    console.error('[OfflineAPI] runServerTicks failed:', err);
+    console.error("[OfflineAPI] runServerTicks failed:", err);
     return NextResponse.json(
-      { error: 'Tick computation failed — server engine error' },
+      { error: "Tick computation failed — server engine error" },
       { status: 500 },
     );
   }
@@ -439,12 +492,15 @@ export async function POST(request: Request) {
       state_version: nextVersion,
       last_tick_at: new Date().toISOString(),
       money: newMoney,
-    }
+    },
   );
 
   if (!updated) {
     return NextResponse.json(
-      { error: 'Concurrent state change — please retry', code: 'STATE_VERSION_CONFLICT' },
+      {
+        error: "Concurrent state change — please retry",
+        code: "STATE_VERSION_CONFLICT",
+      },
       { status: 409 },
     );
   }
@@ -453,8 +509,11 @@ export async function POST(request: Request) {
 
   logActionAsync({
     userId: auth.userId,
-    actionType: 'tick',
-    payload: { offlineTicksRequested: body.ticks ?? null, offlineTicksApplied: elapsedTicks },
+    actionType: "tick",
+    payload: {
+      offlineTicksRequested: body.ticks ?? null,
+      offlineTicksApplied: elapsedTicks,
+    },
     gameTick: newGameTick,
     moneyAfter: newMoney,
     isValid: true,

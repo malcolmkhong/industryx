@@ -5,7 +5,7 @@ import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 import { isAccountLocked, logActionAsync } from '@/lib/auth/gameStateValidator';
 import { isAdminUserId } from '@/lib/auth/admin';
 import { getUserGuestStatus } from '@/lib/auth/guestCheck';
-import { ResourceType } from '@/lib/game/types';
+import type { ResourceType } from "@/lib/game/types";
 import { TRADABLE_RESOURCES_SET as FALLBACK_TRADABLE_SET } from '@/lib/game/tradeConstants';
 import {
   loadServerGameStateForTrade,

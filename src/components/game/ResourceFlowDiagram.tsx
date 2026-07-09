@@ -5,7 +5,7 @@ import { useGameStore, formatNumber } from '@/lib/game/store';
 import { useShallow } from 'zustand/react/shallow';
 import { BUILDING_DEFS, PRODUCTION_CHAINS } from '@/lib/game/configCache';
 import { RESOURCE_META } from '@/lib/game/uiCatalog';
-import { ResourceType } from '@/lib/game/types';
+import type { ResourceType } from "@/lib/game/types";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

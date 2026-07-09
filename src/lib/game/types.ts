@@ -4,15 +4,113 @@
 // ============================================
 
 // --- Resources ---
-export type RawResource = 'iron' | 'copper' | 'coal' | 'oil' | 'sand' | 'lithium' | 'water' | 'rareEarth' | 'clay' | 'limestone' | 'gravel' | 'bauxite' | 'wolframite' | 'silver' | 'gold';
-export type Tier1Resource = 'ironPlate' | 'copperWire' | 'plastic' | 'glass' | 'carbon' | 'bricks' | 'concrete' | 'fertilizer' | 'steel' | 'fossilFuel';
-export type Tier2Resource = 'circuit' | 'engine' | 'battery' | 'gear' | 'silicon' | 'aluminium' | 'insecticide' | 'copperIngot' | 'titanium' | 'coolant' | 'fiberOptics' | 'solarCell' | 'powerCell' | 'reinforcedConcrete' | 'refinedSilver' | 'refinedGold';
-export type Tier3Resource = 'aiChip' | 'robotics' | 'quantumPart' | 'advancedAlloy' | 'nanoMaterial' | 'electronics' | 'medicalTech' | 'jewellery' | 'tungsten' | 'weapons' | 'scanDrone' | 'artifactDetector' | 'neuralNetwork' | 'carbonComposite' | 'structuralFrame' | 'fusionCell' | 'solarPanel' | 'creditChip';
-export type Tier4Resource = 'singularityCore' | 'darkMatterCell' | 'warpDrive' | 'antimatter' | 'chronoPart' | 'plasmaCore' | 'megaStructure' | 'voidCrystal' | 'arcologyModule' | 'habitatModule' | 'stellarEnergy' | 'luxuryGoods' | 'tradeContract' | 'teleporterNode';
-export type Tier5Resource = 'researchMatrix' | 'worldCore' | 'shieldMatrix' | 'stellarForge' | 'voidEnergy' | 'marketDominance' | 'corpCapital' | 'dimensionalGate' | 'armadaFleet';
-export type ResourceType = RawResource | Tier1Resource | Tier2Resource | Tier3Resource | Tier4Resource | Tier5Resource;
+// Type-only re-exports to break circular deps with marketSimulator and
+// productionCalculator. These are erased at runtime.
+import type {
+  MarketSector,
+  MarketNews,
+  MarketNarrative,
+} from "./marketSimulator";
+import type { ProductionSnapshot } from "./productionCalculator";
 
-export type CostResourceType = ResourceType | 'money' | 'researchPoints' | 'corporationPoints';
+export type RawResource =
+  | "iron"
+  | "copper"
+  | "coal"
+  | "oil"
+  | "sand"
+  | "lithium"
+  | "water"
+  | "rareEarth"
+  | "clay"
+  | "limestone"
+  | "gravel"
+  | "bauxite"
+  | "wolframite"
+  | "silver"
+  | "gold";
+export type Tier1Resource =
+  | "ironPlate"
+  | "copperWire"
+  | "plastic"
+  | "glass"
+  | "carbon"
+  | "bricks"
+  | "concrete"
+  | "fertilizer"
+  | "steel"
+  | "fossilFuel";
+export type Tier2Resource =
+  | "circuit"
+  | "engine"
+  | "battery"
+  | "gear"
+  | "silicon"
+  | "aluminium"
+  | "insecticide"
+  | "copperIngot"
+  | "titanium"
+  | "coolant"
+  | "fiberOptics"
+  | "solarCell"
+  | "powerCell"
+  | "reinforcedConcrete"
+  | "refinedSilver"
+  | "refinedGold";
+export type Tier3Resource =
+  | "aiChip"
+  | "robotics"
+  | "quantumPart"
+  | "advancedAlloy"
+  | "nanoMaterial"
+  | "electronics"
+  | "medicalTech"
+  | "jewellery"
+  | "tungsten"
+  | "weapons"
+  | "scanDrone"
+  | "artifactDetector"
+  | "neuralNetwork"
+  | "carbonComposite"
+  | "structuralFrame"
+  | "fusionCell"
+  | "solarPanel"
+  | "creditChip";
+export type Tier4Resource =
+  | "singularityCore"
+  | "darkMatterCell"
+  | "warpDrive"
+  | "antimatter"
+  | "chronoPart"
+  | "plasmaCore"
+  | "megaStructure"
+  | "voidCrystal"
+  | "arcologyModule"
+  | "habitatModule"
+  | "stellarEnergy"
+  | "luxuryGoods"
+  | "tradeContract"
+  | "teleporterNode";
+export type Tier5Resource =
+  | "researchMatrix"
+  | "worldCore"
+  | "shieldMatrix"
+  | "stellarForge"
+  | "voidEnergy"
+  | "marketDominance"
+  | "corpCapital"
+  | "dimensionalGate"
+  | "armadaFleet";
+export type ResourceType =
+  | RawResource
+  | Tier1Resource
+  | Tier2Resource
+  | Tier3Resource
+  | Tier4Resource
+  | Tier5Resource;
+
+export type CostResourceType =
+  ResourceType | "money" | "researchPoints" | "corporationPoints";
 
 export interface ResourceAmount {
   resource: CostResourceType;
@@ -20,20 +118,213 @@ export interface ResourceAmount {
 }
 
 // --- Buildings ---
-export type BuildingType = 
-  | 'ironMine' | 'oilPump' | 'waterExtractor' | 'sandMine' | 'clayPit' | 'limestoneQuarry' | 'gravelPit' | 'bauxiteMine' | 'wolframiteMine' | 'rareEarthExtractor' | 'copperMine' | 'coalMine' | 'lithiumMine' | 'silverMine' | 'goldMine'
-  | 'smelter' | 'wireMill' | 'chemicalPlant' | 'glassFurnace' | 'carbonProcessor' | 'brickFactory' | 'concreteFactory' | 'fertilizerFactory' | 'steelForge' | 'oilRefinery'
-  | 'gearFactory' | 'circuitFactory' | 'engineFactory' | 'batteryFactory' | 'siliconRefinery' | 'aluminiumFactory' | 'insecticideFactory' | 'copperRefinery' | 'titaniumRefinery' | 'coolantPlant' | 'opticsLab' | 'solarCellFactory' | 'displayFactory' | 'hydrogenPlant' | 'reinforcedConcretePlant' | 'powerCellPlant' | 'silverRefinery' | 'goldRefinery'
-  | 'aiLab' | 'roboticsBay' | 'quantumLab' | 'alloyForge' | 'nanoLab' | 'electronicsFactory' | 'medicalTechLab' | 'jewelleryForge' | 'tungstenSmelter' | 'armsFactory' | 'droneShipyard' | 'detectorFactory' | 'neuralLab' | 'quantumAssembler' | 'opticalComputingLab' | 'carbonCompositePlant' | 'structuralFrameFactory' | 'fusionReactor' | 'solarPanelFactory' | 'creditMint'
-  | 'singularityForge' | 'darkMatterLab' | 'warpDriveFactory' | 'antimatterReactor' | 'chronoLab' | 'plasmaForge' | 'megaStructureFactory' | 'voidCrystallizer' | 'quantumResonanceLab' | 'arcologyBuilder' | 'habitatModuleFactory' | 'luxuryGoodsFactory' | 'tradeHub' | 'teleporterGate'
-  | 'arcologyModuleAssembler' | 'stellarForgeModule' | 'voidEnergyCollector' | 'tradeContractBroker' | 'marketDominanceCenter'
-  | 'dysonCollector' | 'quantumTeleporter' | 'dimensionalGateway' | 'timeDistorter' | 'galacticForge'
-  | 'omniscienceArray' | 'worldEngine' | 'planetaryShield' | 'starReactor' | 'voidEngine' | 'quantumExchange' | 'megaCorpHQ' | 'dimensionalNexus' | 'galacticArmada'
-  | 'coalGenerator' | 'solarFarm' | 'windTurbine' | 'nuclearReactor' | 'antimatterPowerPlant';
+export type BuildingType =
+  | "ironMine"
+  | "oilPump"
+  | "waterExtractor"
+  | "sandMine"
+  | "clayPit"
+  | "limestoneQuarry"
+  | "gravelPit"
+  | "bauxiteMine"
+  | "wolframiteMine"
+  | "rareEarthExtractor"
+  | "copperMine"
+  | "coalMine"
+  | "lithiumMine"
+  | "silverMine"
+  | "goldMine"
+  | "smelter"
+  | "wireMill"
+  | "chemicalPlant"
+  | "glassFurnace"
+  | "carbonProcessor"
+  | "brickFactory"
+  | "concreteFactory"
+  | "fertilizerFactory"
+  | "steelForge"
+  | "oilRefinery"
+  | "gearFactory"
+  | "circuitFactory"
+  | "engineFactory"
+  | "batteryFactory"
+  | "siliconRefinery"
+  | "aluminiumFactory"
+  | "insecticideFactory"
+  | "copperRefinery"
+  | "titaniumRefinery"
+  | "coolantPlant"
+  | "opticsLab"
+  | "solarCellFactory"
+  | "displayFactory"
+  | "hydrogenPlant"
+  | "reinforcedConcretePlant"
+  | "powerCellPlant"
+  | "silverRefinery"
+  | "goldRefinery"
+  | "aiLab"
+  | "roboticsBay"
+  | "quantumLab"
+  | "alloyForge"
+  | "nanoLab"
+  | "electronicsFactory"
+  | "medicalTechLab"
+  | "jewelleryForge"
+  | "tungstenSmelter"
+  | "armsFactory"
+  | "droneShipyard"
+  | "detectorFactory"
+  | "neuralLab"
+  | "quantumAssembler"
+  | "opticalComputingLab"
+  | "carbonCompositePlant"
+  | "structuralFrameFactory"
+  | "fusionReactor"
+  | "solarPanelFactory"
+  | "creditMint"
+  | "singularityForge"
+  | "darkMatterLab"
+  | "warpDriveFactory"
+  | "antimatterReactor"
+  | "chronoLab"
+  | "plasmaForge"
+  | "megaStructureFactory"
+  | "voidCrystallizer"
+  | "quantumResonanceLab"
+  | "arcologyBuilder"
+  | "habitatModuleFactory"
+  | "luxuryGoodsFactory"
+  | "tradeHub"
+  | "teleporterGate"
+  | "arcologyModuleAssembler"
+  | "stellarForgeModule"
+  | "voidEnergyCollector"
+  | "tradeContractBroker"
+  | "marketDominanceCenter"
+  | "dysonCollector"
+  | "quantumTeleporter"
+  | "dimensionalGateway"
+  | "timeDistorter"
+  | "galacticForge"
+  | "omniscienceArray"
+  | "worldEngine"
+  | "planetaryShield"
+  | "starReactor"
+  | "voidEngine"
+  | "quantumExchange"
+  | "megaCorpHQ"
+  | "dimensionalNexus"
+  | "galacticArmada"
+  | "coalGenerator"
+  | "solarFarm"
+  | "windTurbine"
+  | "nuclearReactor"
+  | "antimatterPowerPlant";
 
-export type ExtractorType = 'ironMine' | 'oilPump' | 'waterExtractor' | 'sandMine' | 'clayPit' | 'limestoneQuarry' | 'gravelPit' | 'bauxiteMine' | 'wolframiteMine' | 'rareEarthExtractor' | 'copperMine' | 'coalMine' | 'lithiumMine' | 'silverMine' | 'goldMine';
-export type FactoryType = 'smelter' | 'wireMill' | 'chemicalPlant' | 'glassFurnace' | 'carbonProcessor' | 'brickFactory' | 'concreteFactory' | 'fertilizerFactory' | 'steelForge' | 'oilRefinery' | 'gearFactory' | 'circuitFactory' | 'engineFactory' | 'batteryFactory' | 'siliconRefinery' | 'aluminiumFactory' | 'insecticideFactory' | 'copperRefinery' | 'titaniumRefinery' | 'coolantPlant' | 'opticsLab' | 'solarCellFactory' | 'displayFactory' | 'hydrogenPlant' | 'reinforcedConcretePlant' | 'powerCellPlant' | 'silverRefinery' | 'goldRefinery' | 'aiLab' | 'roboticsBay' | 'quantumLab' | 'alloyForge' | 'nanoLab' | 'electronicsFactory' | 'medicalTechLab' | 'jewelleryForge' | 'tungstenSmelter' | 'armsFactory' | 'droneShipyard' | 'detectorFactory' | 'neuralLab' | 'quantumAssembler' | 'opticalComputingLab' | 'carbonCompositePlant' | 'structuralFrameFactory' | 'fusionReactor' | 'solarPanelFactory' | 'creditMint' | 'singularityForge' | 'darkMatterLab' | 'warpDriveFactory' | 'antimatterReactor' | 'chronoLab' | 'plasmaForge' | 'megaStructureFactory' | 'voidCrystallizer' | 'quantumResonanceLab' | 'arcologyBuilder' | 'habitatModuleFactory' | 'luxuryGoodsFactory' | 'tradeHub' | 'teleporterGate' | 'arcologyModuleAssembler' | 'stellarForgeModule' | 'voidEnergyCollector' | 'tradeContractBroker' | 'marketDominanceCenter' | 'dysonCollector' | 'quantumTeleporter' | 'dimensionalGateway' | 'timeDistorter' | 'galacticForge' | 'omniscienceArray' | 'worldEngine' | 'planetaryShield' | 'starReactor' | 'voidEngine' | 'quantumExchange' | 'megaCorpHQ' | 'dimensionalNexus' | 'galacticArmada';
-export type PowerPlantType = 'coalGenerator' | 'solarFarm' | 'windTurbine' | 'nuclearReactor' | 'antimatterPowerPlant';
+export type ExtractorType =
+  | "ironMine"
+  | "oilPump"
+  | "waterExtractor"
+  | "sandMine"
+  | "clayPit"
+  | "limestoneQuarry"
+  | "gravelPit"
+  | "bauxiteMine"
+  | "wolframiteMine"
+  | "rareEarthExtractor"
+  | "copperMine"
+  | "coalMine"
+  | "lithiumMine"
+  | "silverMine"
+  | "goldMine";
+export type FactoryType =
+  | "smelter"
+  | "wireMill"
+  | "chemicalPlant"
+  | "glassFurnace"
+  | "carbonProcessor"
+  | "brickFactory"
+  | "concreteFactory"
+  | "fertilizerFactory"
+  | "steelForge"
+  | "oilRefinery"
+  | "gearFactory"
+  | "circuitFactory"
+  | "engineFactory"
+  | "batteryFactory"
+  | "siliconRefinery"
+  | "aluminiumFactory"
+  | "insecticideFactory"
+  | "copperRefinery"
+  | "titaniumRefinery"
+  | "coolantPlant"
+  | "opticsLab"
+  | "solarCellFactory"
+  | "displayFactory"
+  | "hydrogenPlant"
+  | "reinforcedConcretePlant"
+  | "powerCellPlant"
+  | "silverRefinery"
+  | "goldRefinery"
+  | "aiLab"
+  | "roboticsBay"
+  | "quantumLab"
+  | "alloyForge"
+  | "nanoLab"
+  | "electronicsFactory"
+  | "medicalTechLab"
+  | "jewelleryForge"
+  | "tungstenSmelter"
+  | "armsFactory"
+  | "droneShipyard"
+  | "detectorFactory"
+  | "neuralLab"
+  | "quantumAssembler"
+  | "opticalComputingLab"
+  | "carbonCompositePlant"
+  | "structuralFrameFactory"
+  | "fusionReactor"
+  | "solarPanelFactory"
+  | "creditMint"
+  | "singularityForge"
+  | "darkMatterLab"
+  | "warpDriveFactory"
+  | "antimatterReactor"
+  | "chronoLab"
+  | "plasmaForge"
+  | "megaStructureFactory"
+  | "voidCrystallizer"
+  | "quantumResonanceLab"
+  | "arcologyBuilder"
+  | "habitatModuleFactory"
+  | "luxuryGoodsFactory"
+  | "tradeHub"
+  | "teleporterGate"
+  | "arcologyModuleAssembler"
+  | "stellarForgeModule"
+  | "voidEnergyCollector"
+  | "tradeContractBroker"
+  | "marketDominanceCenter"
+  | "dysonCollector"
+  | "quantumTeleporter"
+  | "dimensionalGateway"
+  | "timeDistorter"
+  | "galacticForge"
+  | "omniscienceArray"
+  | "worldEngine"
+  | "planetaryShield"
+  | "starReactor"
+  | "voidEngine"
+  | "quantumExchange"
+  | "megaCorpHQ"
+  | "dimensionalNexus"
+  | "galacticArmada";
+export type PowerPlantType =
+  | "coalGenerator"
+  | "solarFarm"
+  | "windTurbine"
+  | "nuclearReactor"
+  | "antimatterPowerPlant";
 
 export interface BuildingInstance {
   id: string;
@@ -51,7 +342,7 @@ export interface BuildingDefinition {
   type: BuildingType;
   name: string;
   description: string;
-  category: 'extractor' | 'factory' | 'power' | 'storage';
+  category: "extractor" | "factory" | "power" | "storage";
   tier: number;
   baseCost: ResourceAmount[];
   costMultiplier: number; // cost increases per level
@@ -67,7 +358,8 @@ export interface BuildingDefinition {
 }
 
 // --- Transport ---
-export type TransportType = 'conveyorBelt' | 'pipe' | 'truck' | 'cargoTrain' | 'drone' | 'cargoShip';
+export type TransportType =
+  "conveyorBelt" | "pipe" | "truck" | "cargoTrain" | "drone" | "cargoShip";
 
 export interface TransportLine {
   id: string;
@@ -92,7 +384,8 @@ export interface TransportDefinition {
 }
 
 // --- Research ---
-export type ResearchCategory = 'automation' | 'logistics' | 'energy' | 'ai' | 'robotics' | 'quantum';
+export type ResearchCategory =
+  "automation" | "logistics" | "energy" | "ai" | "robotics" | "quantum";
 
 export interface ResearchNode {
   id: string;
@@ -108,13 +401,23 @@ export interface ResearchNode {
 }
 
 export interface ResearchEffect {
-  type: 'productionSpeed' | 'transportSpeed' | 'powerEfficiency' | 'unlockBuilding' | 'unlockTransport' | 'unlockAutomation' | 'marketBonus' | 'workerEfficiency' | 'storageBonus';
+  type:
+    | "productionSpeed"
+    | "transportSpeed"
+    | "powerEfficiency"
+    | "unlockBuilding"
+    | "unlockTransport"
+    | "unlockAutomation"
+    | "marketBonus"
+    | "workerEfficiency"
+    | "storageBonus";
   target?: string; // building type, transport type, etc.
   value: number; // multiplier or flat bonus
 }
 
 // --- Workers ---
-export type WorkerType = 'engineer' | 'mechanic' | 'transportManager' | 'aiSupervisor';
+export type WorkerType =
+  "engineer" | "mechanic" | "transportManager" | "aiSupervisor";
 
 export interface Worker {
   id: string;
@@ -145,7 +448,7 @@ export interface Contract {
   id: string;
   name: string;
   description: string;
-  type: 'delivery' | 'supply' | 'construction' | 'military' | 'research';
+  type: "delivery" | "supply" | "construction" | "military" | "research";
   requiredResources: ResourceAmount[];
   timeLimit: number; // ticks
   timeRemaining: number;
@@ -174,7 +477,7 @@ export interface MarketPrice {
   priceHistory: number[];
   demand: number; // 0-2 multiplier
   supply: number; // 0-2 multiplier
-  trend: 'up' | 'down' | 'stable';
+  trend: "up" | "down" | "stable";
   volatility: number; // 0-1
 }
 
@@ -200,13 +503,25 @@ export interface GameEvent {
 }
 
 export interface EventEffect {
-  type: 'productionMultiplier' | 'powerMultiplier' | 'marketPriceMultiplier' | 'transportSpeed' | 'researchSpeed';
+  type:
+    | "productionMultiplier"
+    | "powerMultiplier"
+    | "marketPriceMultiplier"
+    | "transportSpeed"
+    | "researchSpeed";
   target?: string;
   value: number; // multiplier
 }
 
 // --- Automation ---
-export type AutomationType = 'autoRouting' | 'autoBalancing' | 'selfRepair' | 'autoTrading' | 'autoExpansion' | 'smartStorage' | 'aiOptimization';
+export type AutomationType =
+  | "autoRouting"
+  | "autoBalancing"
+  | "selfRepair"
+  | "autoTrading"
+  | "autoExpansion"
+  | "smartStorage"
+  | "aiOptimization";
 
 export interface AutomationUnlock {
   type: AutomationType;
@@ -239,9 +554,27 @@ export interface PrestigeBonus {
 }
 
 // --- MegaProjects ---
-export type MegaProjectType = 'spaceElevator' | 'dysonSphere' | 'quantumInternet' | 'fusionCity' | 'terraformingEngine' | 'galacticTradeHub' | 'deepCoreExtractor' | 'neuralCommandCenter' | 'nanoAssemblyMatrix';
+export type MegaProjectType =
+  | "spaceElevator"
+  | "dysonSphere"
+  | "quantumInternet"
+  | "fusionCity"
+  | "terraformingEngine"
+  | "galacticTradeHub"
+  | "deepCoreExtractor"
+  | "neuralCommandCenter"
+  | "nanoAssemblyMatrix";
 
-export type MegaProjectBonusType = 'transportMultiplier' | 'powerMultiplier' | 'researchMultiplier' | 'productionMultiplier' | 'unlimitedStorage' | 'marketMultiplier' | 'extractionMultiplier' | 'workerEfficiency' | 'buildingCostReduction';
+export type MegaProjectBonusType =
+  | "transportMultiplier"
+  | "powerMultiplier"
+  | "researchMultiplier"
+  | "productionMultiplier"
+  | "unlimitedStorage"
+  | "marketMultiplier"
+  | "extractionMultiplier"
+  | "workerEfficiency"
+  | "buildingCostReduction";
 
 export interface MegaProjectStage {
   name: string;
@@ -300,7 +633,8 @@ export interface LeaderboardEntry {
 }
 
 // --- Weather ---
-export type WeatherType = 'clear' | 'rainy' | 'stormy' | 'sunny' | 'foggy' | 'snowy';
+export type WeatherType =
+  "clear" | "rainy" | "stormy" | "sunny" | "foggy" | "snowy";
 
 export interface WeatherState {
   current: WeatherType;
@@ -319,7 +653,18 @@ export interface WeatherDefinition {
 }
 
 // --- Quests ---
-export type QuestType = 'build' | 'produce' | 'sell' | 'research' | 'earn' | 'reach' | 'contract' | 'transport' | 'worker' | 'prestige' | 'megaProject';
+export type QuestType =
+  | "build"
+  | "produce"
+  | "sell"
+  | "research"
+  | "earn"
+  | "reach"
+  | "contract"
+  | "transport"
+  | "worker"
+  | "prestige"
+  | "megaProject";
 
 export interface QuestStep {
   description: string;
@@ -333,10 +678,14 @@ export interface Quest {
   name: string;
   description: string;
   type: QuestType;
-  category: 'tutorial' | 'daily' | 'weekly' | 'challenge' | 'milestone';
+  category: "tutorial" | "daily" | "weekly" | "challenge" | "milestone";
   gameTier?: number; // 0-4, determines when quest becomes available
   steps: QuestStep[];
-  reward: { money: number; researchPoints?: number; corporationPoints?: number };
+  reward: {
+    money: number;
+    researchPoints?: number;
+    corporationPoints?: number;
+  };
   completed: boolean;
   claimed: boolean;
   expiresAt?: number; // tick for daily/weekly quests
@@ -349,7 +698,7 @@ export interface Quest {
 // --- Daily Rewards ---
 export interface DailyReward {
   day: number; // 1-7 (resets weekly)
-  type: 'money' | 'researchPoints' | 'resources' | 'corporationPoints';
+  type: "money" | "researchPoints" | "resources" | "corporationPoints";
   amount: number;
   resource?: ResourceType; // only for type='resources'
   claimed: boolean;
@@ -386,55 +735,65 @@ export interface GameState {
   gameTick: number;
   gameSpeed: number;
   paused: boolean;
-  
+
   // Resources
   resources: Record<ResourceType, number>;
   resourceCapacity: Record<ResourceType, number>;
-  
+
   // Buildings
   buildings: BuildingInstance[];
-  
+
   // Transport
   transportLines: TransportLine[];
-  
+
   // Power
   powerGrid: PowerGrid;
-  
+
   // Research
   researchPoints: number;
   completedResearch: string[];
   activeResearch: string | null;
   researchProgress: number;
-  
+
   // Workers
   workers: Worker[];
-  
+
   // Market
   market: MarketPrice[];
-  sectorTrends: Partial<Record<import('./marketSimulator').MarketSector, 'up' | 'down' | 'stable'>>;
-  marketNews: import('./marketSimulator').MarketNews[];
-  marketNarratives: import('./marketSimulator').MarketNarrative[];
+  sectorTrends: Partial<Record<MarketSector, "up" | "down" | "stable">>;
+  marketNews: MarketNews[];
+  marketNarratives: MarketNarrative[];
   serverMarket?: {
-    prices: Array<{ resource: string; currentPrice: number; basePrice: number; trend: string; volume: number }>;
-    news: Array<{ title: string; description: string; affectedResources: string[] }>;
+    prices: Array<{
+      resource: string;
+      currentPrice: number;
+      basePrice: number;
+      trend: string;
+      volume: number;
+    }>;
+    news: Array<{
+      title: string;
+      description: string;
+      affectedResources: string[];
+    }>;
     tick: number;
     volatility: number;
   };
-  
+
   // Contracts
   contracts: Contract[];
   completedContracts: number;
-  
+
   // Automation
   automationUnlocks: AutomationUnlock[];
-  
+
   // Prestige
   prestigeState: PrestigeState;
-  
+
   // Events
   activeEvents: GameEvent[];
   eventLog: GameEvent[];
-  
+
   // Stats
   stats: {
     totalResourcesProduced: Record<ResourceType, number>;
@@ -446,7 +805,7 @@ export interface GameState {
     contractsCompleted: number;
     playTime: number; // in ticks
   };
-  
+
   // MegaProjects
   megaProjects: MegaProject[];
 
@@ -505,15 +864,44 @@ export interface GameState {
 
   // Production snapshot — single source of truth for all economy data
   // UI reads from this ONLY — never recalculates production/consumption inline
-  productionSnapshot: import('./productionCalculator').ProductionSnapshot;
+  productionSnapshot: ProductionSnapshot;
 }
 
-export type GameTab = 'dashboard' | 'advisor' | 'factoryMap' | 'resourceMonitor' | 'resources' | 'factories' | 'storage' | 'transport' | 'power' | 'market' | 'research' | 'workers' | 'contracts' | 'quests' | 'automation' | 'prestige' | 'events' | 'megaprojects' | 'statistics' | 'blueprints' | 'guide' | 'achievements' | 'leaderboard' | 'dailyRewards' | 'payouts' | 'droneDelivery' | 'tradePost' | 'notifications' | 'settings';
+export type GameTab =
+  | "dashboard"
+  | "advisor"
+  | "factoryMap"
+  | "resourceMonitor"
+  | "resources"
+  | "factories"
+  | "storage"
+  | "transport"
+  | "power"
+  | "market"
+  | "research"
+  | "workers"
+  | "contracts"
+  | "quests"
+  | "automation"
+  | "prestige"
+  | "events"
+  | "megaprojects"
+  | "statistics"
+  | "blueprints"
+  | "guide"
+  | "achievements"
+  | "leaderboard"
+  | "dailyRewards"
+  | "payouts"
+  | "droneDelivery"
+  | "tradePost"
+  | "notifications"
+  | "settings";
 
 // --- Drone Delivery ---
 export interface Drone {
   id: string;
-  status: 'idle' | 'delivering';
+  status: "idle" | "delivering";
   missionEndTick: number;
   missionId: string | null;
   speedLevel: number;
@@ -525,14 +913,18 @@ export interface DroneMission {
   id: string;
   fromBuilding: string; // building type name
   toBuilding: string; // building type name
-  reward: { money: number; resources?: { resource: ResourceType; amount: number }[]; researchPoints?: number };
+  reward: {
+    money: number;
+    resources?: { resource: ResourceType; amount: number }[];
+    researchPoints?: number;
+  };
   fuelCost: number;
   baseTicks: number; // base duration in ticks
 }
 
 export interface GameNotification {
   id: string;
-  type: 'info' | 'success' | 'warning' | 'error';
+  type: "info" | "success" | "warning" | "error";
   message: string;
   gameTick: number;
   read: boolean;

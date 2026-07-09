@@ -1,6 +1,7 @@
-import { RESOURCE_SECTOR, MarketSector } from './marketSimulator';
+import { RESOURCE_SECTOR } from "./marketSimulator";
+import type { MarketSector } from "./marketSimulator";
 import { RESOURCE_META, PRODUCTION_CHAINS } from './configCache';
-import { ResourceType } from './types';
+import type { ResourceType } from "./types";
 
 export interface EventArchetype {
   id: string;

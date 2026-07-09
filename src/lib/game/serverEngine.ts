@@ -4,7 +4,7 @@
 // instead of hardcoded BUILDING_DEFS
 // ============================================
 
-import {
+import type {
   GameState,
   BuildingInstance,
   BuildingDefinition,
@@ -13,18 +13,9 @@ import {
   WorkerDefinition,
   WorkerType,
   WeatherType,
-  ResourceAmount,
-  CostResourceType,
 } from "./types";
 import {
-  MultiplierCache,
-  BuildResult,
-  PowerResult,
-  PayoutResult,
-  EndgameResult,
-  ProductionSnapshot,
   emptyProductionSnapshot,
-  GameDefs,
   buildMultipliers,
   computePowerGrid,
   computeProduction,
@@ -32,7 +23,16 @@ import {
   computePayout,
   computeEndgameIncome,
 } from "./productionCalculator";
-import { GameConfig } from "./config";
+import type {
+  MultiplierCache,
+  BuildResult,
+  PowerResult,
+  PayoutResult,
+  EndgameResult,
+  ProductionSnapshot,
+  GameDefs,
+} from "./productionCalculator";
+import type { GameConfig } from "./config";
 import { getBalance } from "./balanceConfig";
 import {
   ModifierRegistry,

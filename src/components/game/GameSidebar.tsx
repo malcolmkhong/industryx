@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSettingsStore } from "@/lib/game/settingsStore";
-import { GameTab } from "@/lib/game/types";
+import type { GameTab } from "@/lib/game/types";
 import { useTabChange } from "@/lib/hooks/page/useTabChange";
 import {
   Factory,
@@ -44,7 +44,7 @@ import {
   Brain,
   Shield,
 } from "lucide-react";
-import { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { SupportButton } from "./SupportButton";
 
 // ─── Navigation Tab Definition ─────────────────────────────────────────────────

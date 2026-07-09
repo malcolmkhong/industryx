@@ -18,7 +18,7 @@ import {
   Hammer, CheckCircle2, XCircle, Flame, CloudSun, Pin, X as XIcon,
   Gauge, Wallet, BarChart3, CircleDot, DollarSign, Gem, Crown, Star
 } from 'lucide-react';
-import { BuildingType, ResourceType, WeatherType } from '@/lib/game/types';
+import type { BuildingType, ResourceType, WeatherType } from "@/lib/game/types";
 import { motion, AnimatePresence } from 'framer-motion';
 import { ProductionChainPanel } from '@/components/game/ProductionChainPanel';
 import { GameIcon } from '@/components/icons';

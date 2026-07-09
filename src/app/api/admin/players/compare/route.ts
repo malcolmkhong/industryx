@@ -4,7 +4,8 @@
  * db/serverGameState.ts#loadPlayersByIds and db/playerProgress.ts.
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { verifyAdmin, withSecurityHeaders } from "@/lib/auth/admin";
 import { loadPlayersByIds } from "@/lib/db/serverGameState";
 import { listPlayerProgressByIds } from "@/lib/db/playerProgress";

@@ -24,7 +24,8 @@
 //     auth policy concerns, not CRUD patterns.
 // ============================================
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { validateGuestMigration } from '@/lib/auth/guestMigrationValidator';
 import { validateGameState, generateChecksum, flagCheatAttempt, logActionAsync } from '@/lib/auth/gameStateValidator';
 import { verifyAuthAndOwnership } from '@/lib/auth/verifyAuth';

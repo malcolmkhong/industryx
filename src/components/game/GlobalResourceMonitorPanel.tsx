@@ -42,7 +42,7 @@ import {
 import { useShallow } from "zustand/react/shallow";
 import { BUILDING_DEFS, RESOURCE_META } from "@/lib/game/configCache";
 import { useConfigVersion } from "@/components/providers/GameConfigProvider";
-import { ResourceType, GameTab } from "@/lib/game/types";
+import type { ResourceType, GameTab } from "@/lib/game/types";
 import { PanelStatCard } from "@/components/game/shared/PanelStatCard";
 import { GameIcon } from "@/components/icons";
 import { TIER_INFO } from "@/lib/game/tiers";

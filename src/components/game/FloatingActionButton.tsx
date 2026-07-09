@@ -13,7 +13,7 @@ import {
   useSettingsStore,
   type QuickAccessShortcut,
 } from "@/lib/game/settingsStore";
-import { GameTab } from "@/lib/game/types";
+import type { GameTab } from "@/lib/game/types";
 import { useReducedMotion } from "@/components/game/shared/useReducedMotion";
 
 // ─── Constants ────────────────────────────────────────────────────────────────

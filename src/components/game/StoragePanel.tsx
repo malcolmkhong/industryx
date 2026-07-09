@@ -13,7 +13,7 @@ import { BUILDING_DEFS, PRODUCTION_CHAINS } from "@/lib/game/configCache";
 import { RESOURCE_META } from "@/lib/game/uiCatalog";
 import { TIER_INFO, ALL_TIERS } from "@/lib/game/tiers";
 import { hasUnlimitedStorage } from "@/lib/game/store";
-import { ResourceType, BuildingType } from "@/lib/game/types";
+import type { ResourceType, BuildingType } from "@/lib/game/types";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Database,

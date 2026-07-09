@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGameStore, formatNumber } from "@/lib/game/store";
-import { ResourceType } from "@/lib/game/types";
+import type { ResourceType } from "@/lib/game/types";
 import { getGlobalPrice } from "@/lib/game/utils/gameMath";
 import { notifyTradeImpactIfMoved } from "@/lib/game/actions/market";
 import { getBalance } from "@/lib/game/balanceConfig";

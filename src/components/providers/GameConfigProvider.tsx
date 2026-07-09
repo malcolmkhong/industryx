@@ -1,7 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { fetchGameConfig, GameConfig } from '@/lib/game/config';
+import { fetchGameConfig } from "@/lib/game/config";
+import type { GameConfig } from "@/lib/game/config";
 import { updateFromSupabase, configSource, configVersion } from '@/lib/game/configCache';
 
 // Client-side config cache with 5-minute TTL

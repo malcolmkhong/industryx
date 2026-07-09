@@ -46,7 +46,7 @@ import {
   Maximize2,
   Move,
 } from "lucide-react";
-import {
+import type {
   TransportType,
   ResourceType,
   BuildingInstance,
