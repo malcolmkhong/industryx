@@ -20,6 +20,14 @@ export async function POST(request: Request) {
   const rateLimitResult = await checkRateLimit(auth.userId, RATE_LIMITS.action, '/api/game/daily-reward');
   if (rateLimitResult) return rateLimitResult;
 
+  // Audit context per RULES.md [SEC-013]. Captures traceable request metadata
+  // (idempotency key, user-agent) so duplicate claims can be reconciled in logs.
+  const requestId = request.headers.get('x-request-id') ?? crypto.randomUUID();
+  const userAgent = request.headers.get('user-agent') ?? 'unknown';
+  console.info(
+    `[DailyRewardAPI] user=${auth.userId} requestId=${requestId} ua=${userAgent.slice(0, 80)}`,
+  );
+
   // Determine UTC today
   const today = new Date().toISOString().split('T')[0];
 

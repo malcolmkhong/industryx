@@ -8,15 +8,16 @@ import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { verifyAuth } from "@/lib/auth/verifyAuth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
-import type {
-  SupabaseBuilding,
-  SupabaseRecipe,
-  SupabaseResearch,
-  SupabaseProductionChain,
-  SupabaseWorker,
-  SupabaseWeather,
-  SupabaseMarket,
-  GameConfig,
+import {
+  DEFAULT_BALANCE_SUBSET,
+  type SupabaseBuilding,
+  type SupabaseRecipe,
+  type SupabaseResearch,
+  type SupabaseProductionChain,
+  type SupabaseWorker,
+  type SupabaseWeather,
+  type SupabaseMarket,
+  type GameConfig,
 } from "@/lib/game/config";
 import type {
   BuildingDefinition,
@@ -238,6 +239,7 @@ async function loadFullConfig(): Promise<GameConfig | null> {
       seasonalEvents: [],
       megaProjects: [],
       gameConfig: {},
+      balance: DEFAULT_BALANCE_SUBSET,
       productionChains: chains.map((c) => ({
         id: c.id,
         upstreamBuilding: c.upstream_building,

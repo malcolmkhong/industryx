@@ -11,7 +11,7 @@
 // so we have ONE place that maintains the SQL surface area.
 
 import { NextResponse } from "next/server";
-import type { GameConfig } from "@/lib/game/config";
+import { DEFAULT_BALANCE_SUBSET, type GameConfig } from "@/lib/game/config";
 import { fetchGameConfigFromSupabase } from "@/lib/db/serverConfigFetcher";
 
 // ─── In-Memory Cache ────────────────────────────────────────────────────
@@ -69,6 +69,7 @@ export async function GET() {
           seasonalEvents: [],
           megaProjects: [],
           gameConfig: {},
+          balance: DEFAULT_BALANCE_SUBSET,
           tradableResourceIds: [],
           productionChains: [],
           idMigrationMap: result.idMigrationMap,

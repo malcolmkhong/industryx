@@ -1,7 +1,6 @@
 import type { BuildingType, TransportType, BuildingInstance, Blueprint } from '../types';
 import { BUILDING_DEFS } from '../configCache';
 import { generateId } from '../utils/generateId';
-import { formatNumber } from '../utils/formatNumber';
 import { getBuildingCost, isBuildingUnlocked } from '../utils/costCalculator';
 import { getMegaProjectBonus } from '../utils/gameMath';
 import type { SetFn, GetFn } from "./_actionTypes";

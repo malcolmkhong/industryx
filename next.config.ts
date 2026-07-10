@@ -38,12 +38,12 @@ const nextConfig: NextConfig = {
       },
       {
         // Cache headers for images
-        source: "/:path*\.(png|jpg|jpeg|gif|ico|svg|webp|avif)",
+        source: "/:path*.(png|jpg|jpeg|gif|ico|svg|webp|avif)",
         headers: [{ key: "Cache-Control", value: "public, max-age=86400" }],
       },
       {
         // Cache headers for fonts
-        source: "/:path*\.(woff|woff2|ttf|eot)",
+        source: "/:path*.(woff|woff2|ttf|eot)",
         headers: [
           {
             key: "Cache-Control",

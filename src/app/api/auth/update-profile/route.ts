@@ -3,14 +3,13 @@
 //
 // Iteration 9: routed through db/profiles.ts.
 
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 import { verifyAuthAndOwnership } from '@/lib/auth/verifyAuth';
 import { updateProfileDisplayName } from '@/lib/db/profiles';
 
 const MAX_DISPLAY_NAME_LENGTH = 32;
-const FORBIDDEN_CHARS_REGEX = /[<>{}\[\]\\\/|`$%^&*+=]/;
+const FORBIDDEN_CHARS_REGEX = /[<>{}[\]\\|`$%^&*+=]/;
 
 function sanitizeDisplayName(input: string): string {
   let clean = input;

@@ -195,7 +195,15 @@ export function emptyProductionSnapshot(): ProductionSnapshot {
     powerOverload: false,
     payoutPerCycle: 0,
     payoutBreakdown: { extractors: 0, factories: 0, power: 0 },
-    sellMultiplier: getBalance().market.baseSellMultiplier,
+    // sellMultiplier is overwritten by the calling tick (server:
+    // computeSellMultiplierServer; client: computeSellMultiplier) so the
+    // placeholder here is never user-visible. PURE stub: must NOT call
+    // getBalance() — it would crash module-eval under fail-closed
+    // semantics (see balanceConfig.BalanceNotLoadedError + RULES.md
+    // [SEC-002]). The refactor that introduced fail-closed (Phase 8)
+    // exposed a pre-existing module-init coupling that was masked by
+    // the old DEFAULT_BALANCE default.
+    sellMultiplier: 0,
     endgameMoney: 0,
     endgameResearch: 0,
     endgameCorp: 0,

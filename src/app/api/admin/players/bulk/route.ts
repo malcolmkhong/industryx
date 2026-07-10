@@ -4,8 +4,7 @@
  * db/serverGameState.ts#setPlayerLockStateBulk.
  */
 
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { verifyAdmin, withSecurityHeaders, clearAdminCache } from "@/lib/auth/admin";
 import { setPlayerLockStateBulk } from "@/lib/db/serverGameState";
 import { logAdminAction } from "@/lib/auth/admin-helpers";

@@ -1,6 +1,6 @@
 // Request IP Log Helper
 // Server-side helper: read x-real-ip header, hash it, write to request_ip_log
-// Phase 1 — Foundation (Storage + Audit)
+// Phase 1 - Foundation (Storage + Audit)
 //
 // This helper is for ANALYTICS ONLY. IP is NEVER used for bans or locks.
 // The IP is hashed before storage (SHA-256). The raw IP is never persisted.

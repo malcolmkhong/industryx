@@ -14,8 +14,7 @@
  * Output: { headlines: [{ title, description, affectedResources }], source: "llm" }
  */
 
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -101,6 +100,7 @@ export async function POST(request: NextRequest) {
         }
       );
     }
+    lastRequestTime = now;
 
     // Forward to Cloudflare Worker
     const workerResponse = await fetch(CLOUDFLARE_WORKER_URL, {

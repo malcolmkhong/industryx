@@ -1,14 +1,17 @@
 // ============================================
 // IndustriaX: Offline Progress API
-// GET endpoint that computes how many ticks
-// the player should have earned while offline
-// LEAN MVP — uses server_game_state (source of truth)
-// ============================================
-// Phase 2.5: POST handler — server-authoritative
-// offline tick computation with optimistic locking.
-// Client-sent `ticks` and `gameState` are IGNORED.
-// The server computes elapsed ticks from last_tick_at
-// and runs runServerTicks() server-side.
+// POST handler — server-authoritative offline tick
+// computation with optimistic locking. Client-sent
+// `ticks` and `gameState` are IGNORED. The server
+// computes elapsed ticks from last_tick_at and runs
+// runServerTicks() server-side.
+//
+// All gameplay-tuning constants (tick interval, max
+// offline ticks, min offline floor) are server-driven
+// via game_config_game. The route has NO code-level
+// fallback for these values; if the DB is missing or
+// returns invalid data, loadFullConfig() returns null
+// and the route responds 503 (per RULES.md [SEC-002]).
 // ============================================
 
 import { NextResponse } from "next/server";
@@ -18,20 +21,20 @@ import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
 import { logActionAsync } from "@/lib/auth/gameStateValidator";
 import {
   loadServerGameStateForTick,
-  loadServerGameStateLiteForOffline,
-  loadPlayerProgressGameState,
   saveServerGameStateOptimistic,
   isServerGameStateAvailable,
 } from "@/lib/db/serverGameState";
-import type {
-  SupabaseBuilding,
-  SupabaseRecipe,
-  SupabaseResearch,
-  SupabaseProductionChain,
-  SupabaseWorker,
-  SupabaseWeather,
-  SupabaseMarket,
-  GameConfig,
+import {
+  DEFAULT_BALANCE_SUBSET,
+  type SupabaseBuilding,
+  type SupabaseRecipe,
+  type SupabaseResearch,
+  type SupabaseProductionChain,
+  type SupabaseWorker,
+  type SupabaseWeather,
+  type SupabaseMarket,
+  type SupabaseGameConfig,
+  type GameConfig,
 } from "@/lib/game/config";
 import type {
   BuildingDefinition,
@@ -44,25 +47,32 @@ import type { ProductionSnapshot } from "@/lib/game/productionCalculator";
 import { runServerTicks } from "@/lib/game/serverEngine";
 import { asFullState } from "@/lib/db/serverGameStatePayload";
 
-// Game tick interval: 1 tick per second at 1x speed
-const TICK_INTERVAL_MS = 1000;
-
-// Maximum offline ticks to compute (cap at ~24 hours)
-const MAX_OFFLINE_TICKS = 86400;
-
 // ─── In-Memory Config Cache ─────────────────────────────────────────────
 
 let cachedConfig: GameConfig | null = null;
 let configFetchedAt = 0;
-const CONFIG_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+// Server-operational constant: how long to cache the in-process
+// config snapshot before re-querying Supabase. This is NOT a
+// gameplay tunable (per RULES.md [ARC-002] intent) — it controls
+// server load and DB pressure, not what the player experiences.
+const CONFIG_CACHE_TTL_MS = 5 * 60 * 1000;
 
 // ─── Helper: Parse cost JSON ────────────────────────────────────────────
+// Fail-closed per RULES.md [SEC-002]: if the DB row has a null/missing
+// cost, the caller must treat the building as malformed and abort the
+// entire config load (return null from loadFullConfig → 503). We do NOT
+// silently substitute a fake cost because that would mask DB integrity
+// bugs and could let a player build something for a non-existent price.
 
 function parseCostMap(
   costMap:
     Record<string, number> | Array<{ resource: string; amount: number }> | null,
 ): ResourceAmount[] {
-  if (!costMap) return [{ resource: "money", amount: 100 }];
+  if (!costMap) {
+    throw new Error(
+      "[OfflineAPI] building has null/missing base_cost — refusing to fabricate a cost",
+    );
+  }
   if (Array.isArray(costMap)) {
     return costMap.map((item) => ({
       resource: item.resource as CostResourceType,
@@ -75,7 +85,25 @@ function parseCostMap(
   }));
 }
 
-// ─── Helper: Load Full Config from Supabase ─────────────────────────────
+// ─── Helper: Type guard for ServerGameData ───────────────────────────
+// RULES.md [PRF-012] — narrow `unknown` (JSONB value) at the trust boundary
+// via a type predicate, rather than `as unknown as ServerGameData`. We only
+// check for the fields the engine actually reads top-level; nested shape is
+// validated by runServerTicks.
+
+function isServerGameData(value: unknown): value is ServerGameData {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+  const obj = value as Record<string, unknown>;
+  return (
+    typeof obj.money === "number" &&
+    typeof obj.gameTick === "number" &&
+    typeof obj.gameSpeed === "number"
+  );
+}
+
+// ─── Helper: Load Full Config from Supabase ──────────────────────────────
 
 async function loadFullConfig(): Promise<GameConfig | null> {
   if (cachedConfig && Date.now() - configFetchedAt < CONFIG_CACHE_TTL_MS) {
@@ -96,6 +124,7 @@ async function loadFullConfig(): Promise<GameConfig | null> {
       workersRes,
       weatherRes,
       marketRes,
+      gameConfigRes,
     ] = await Promise.all([
       supabase
         .from("game_config_buildings")
@@ -119,6 +148,7 @@ async function loadFullConfig(): Promise<GameConfig | null> {
         .from("game_config_market")
         .select("*")
         .order("sort_order", { ascending: true, nullsFirst: false }),
+      supabase.from("game_config_game").select("*").single(),
     ]);
 
     if (buildingsRes.error || !buildingsRes.data) {
@@ -132,6 +162,13 @@ async function loadFullConfig(): Promise<GameConfig | null> {
       console.error("[OfflineAPI] Failed to fetch recipes:", recipesRes.error);
       return null;
     }
+    if (gameConfigRes.error || !gameConfigRes.data) {
+      console.error(
+        "[OfflineAPI] Failed to fetch game_config_game:",
+        gameConfigRes.error,
+      );
+      return null;
+    }
 
     const buildings = buildingsRes.data as SupabaseBuilding[];
     const recipes = recipesRes.data as SupabaseRecipe[];
@@ -140,6 +177,48 @@ async function loadFullConfig(): Promise<GameConfig | null> {
     const workers = (workersRes.data as SupabaseWorker[]) ?? [];
     const weather = (weatherRes.data as SupabaseWeather[]) ?? [];
     const market = (marketRes.data as SupabaseMarket[]) ?? [];
+    const gameConfigRow = gameConfigRes.data as SupabaseGameConfig;
+
+    // ─── Validate offline-tick constants — fail-closed (RULES.md [SEC-002])
+    // DB has CHECK constraints as the last line of defense, but we also
+    // validate in code so a corrupt-but-not-rejected value (e.g. one that
+    // bypassed the CHECK via a direct edit) cannot reach the request path.
+    // After validation the values are typed `number` (not `unknown`),
+    // per RULES.md [PRF-012] — no `unknown` propagating past this boundary.
+    const tickIntervalMs = gameConfigRow.tick_interval_ms;
+    const maxOfflineTicks = gameConfigRow.max_offline_ticks;
+    const minOfflineMs = gameConfigRow.min_offline_ms;
+
+    if (
+      !Number.isInteger(tickIntervalMs) ||
+      tickIntervalMs < 1 ||
+      tickIntervalMs > 60_000
+    ) {
+      console.error(
+        "[OfflineAPI] tick_interval_ms invalid:",
+        tickIntervalMs,
+      );
+      return null;
+    }
+    if (
+      !Number.isInteger(maxOfflineTicks) ||
+      maxOfflineTicks < 1 ||
+      maxOfflineTicks > 604_800
+    ) {
+      console.error(
+        "[OfflineAPI] max_offline_ticks invalid:",
+        maxOfflineTicks,
+      );
+      return null;
+    }
+    if (
+      !Number.isInteger(minOfflineMs) ||
+      minOfflineMs < 0 ||
+      minOfflineMs > 3_600_000
+    ) {
+      console.error("[OfflineAPI] min_offline_ms invalid:", minOfflineMs);
+      return null;
+    }
 
     const buildingsMap: Record<string, BuildingDefinition> = {};
     for (const b of buildings) {
@@ -240,7 +319,12 @@ async function loadFullConfig(): Promise<GameConfig | null> {
       eventTemplates: [],
       seasonalEvents: [],
       megaProjects: [],
-      gameConfig: {},
+      gameConfig: {
+        tickIntervalMs,
+        maxOfflineTicks,
+        minOfflineMs,
+      },
+      balance: DEFAULT_BALANCE_SUBSET,
       productionChains: chains.map((c) => ({
         id: c.id,
         upstreamBuilding: c.upstream_building,
@@ -264,98 +348,14 @@ async function loadFullConfig(): Promise<GameConfig | null> {
 
 interface OfflinePostResponse {
   newState: ServerGameData;
-  productionSnapshot: ProductionSnapshot;
+  // null when elapsedTicks <= 0 (sub-floor absence or zero game_speed),
+  // meaning no engine pass ran. Per RULES.md [SEC-011] — a required
+  // (non-nullable) field must NOT receive `null`; use the type system to
+  // express "absent" rather than literal null. Clients read this field
+  // only when ticksApplied > 0.
+  productionSnapshot: ProductionSnapshot | null;
   ticksApplied: number;
   elapsedSeconds: number;
-}
-
-// ─── Main GET Handler ──────────────────────────────────────────────────
-
-export async function GET(request: Request) {
-  // ✅ Auth check
-  const auth = await verifyAuth();
-  if (!auth.success) return auth.response;
-
-  // ✅ Rate limit
-  const rateLimitResponse = await checkRateLimit(
-    auth.userId,
-    RATE_LIMITS.compute,
-    "/api/game/offline",
-  );
-  if (rateLimitResponse) return rateLimitResponse;
-
-  // If the DB is unavailable, surface 503 (matches previous behavior).
-  if (!isServerGameStateAvailable()) {
-    return NextResponse.json(
-      { error: "Service temporarily unavailable — database not configured" },
-      { status: 503 },
-    );
-  }
-
-  // Get player's last save from server_game_state (source of truth)
-  // Lightweight fetch — only the columns needed for offline-tick calculation
-  const sgs = await loadServerGameStateLiteForOffline(auth.userId);
-
-  if (!sgs) {
-    // Fallback to player_progress (backwards compat)
-    const gameState = await loadPlayerProgressGameState(auth.userId);
-
-    if (!gameState) {
-      return NextResponse.json({
-        offlineTicks: 0,
-        message: "No previous save found",
-      });
-    }
-
-    const gameSpeed = Number(gameState.gameSpeed) || 1;
-    const lastGameTick = Number(gameState.gameTick) || 0;
-
-    return NextResponse.json({
-      offlineTicks: 0,
-      lastSavedAt: null,
-      elapsedMs: 0,
-      expectedTick: lastGameTick,
-      serverGameTick: 0,
-      maxOfflineTicks: MAX_OFFLINE_TICKS,
-      computeUrl: "/api/game/compute",
-    });
-  }
-
-  const gameState = sgs.full_state as Record<string, unknown> | null;
-  if (!gameState) {
-    return NextResponse.json({
-      offlineTicks: 0,
-      message: "No game state found",
-    });
-  }
-
-  // Calculate time elapsed since last save
-  const lastSavedAt = new Date(sgs.last_saved_at).getTime();
-  const now = Date.now();
-  const elapsedMs = Math.max(0, now - lastSavedAt);
-
-  // Calculate offline ticks based on elapsed time
-  // Account for game speed from saved state
-  const gameSpeed = sgs.game_speed || Number(gameState.gameSpeed) || 1;
-  const offlineTicks = Math.min(
-    MAX_OFFLINE_TICKS,
-    Math.floor((elapsedMs / TICK_INTERVAL_MS) * gameSpeed),
-  );
-
-  // Current tick from save
-  const lastGameTick = sgs.game_tick || Number(gameState.gameTick) || 0;
-  const expectedTick = lastGameTick + offlineTicks;
-
-  return NextResponse.json({
-    offlineTicks,
-    lastSavedAt: sgs.last_saved_at,
-    elapsedMs,
-    expectedTick,
-    serverGameTick: sgs.game_tick || 0,
-    maxOfflineTicks: MAX_OFFLINE_TICKS,
-    // Client should use /api/game/compute to actually run the ticks
-    computeUrl: "/api/game/compute",
-  });
 }
 
 // ─── Main POST Handler (Phase 2.5: Server-Authoritative) ────────────────
@@ -373,8 +373,8 @@ export async function POST(request: Request) {
   );
   if (rateLimitResponse) return rateLimitResponse;
 
-  // Read request body (for audit; ticks/gameState are NOT trusted)
-  let body: { ticks?: number; gameState?: unknown; userId?: string } = {};
+  // Read request body (for audit; ticks is NOT trusted — only logged)
+  let body: { ticks?: number; userId?: string } = {};
   try {
     body = await request.json();
   } catch {
@@ -425,35 +425,11 @@ export async function POST(request: Request) {
   }
 
   // ─── Compute Elapsed Ticks (Server-Authoritative) ─────────────────────
-  // Use server's last_tick_at and game_speed — ignore any client-sent ticks
+  // Use server's last_tick_at and game_speed — ignore any client-sent ticks.
+  // tickIntervalMs / maxOfflineTicks / minOfflineMs come from game_config_game
+  // (validated in loadFullConfig). NO code-level fallbacks per RULES.md [SEC-002].
 
-  const lastTickAt = new Date(serverState.last_tick_at).getTime();
-  const now = Date.now();
-  const elapsedMs = Math.max(0, now - lastTickAt);
-  const elapsedSeconds = Math.floor(elapsedMs / 1000);
-
-  // 1-minute floor (per spec): only trigger offline rewards when the user has
-  // been away for at least 60 seconds. Sub-minute absences return the current
-  // state untouched and, importantly, do NOT update last_tick_at — so a
-  // second call within the same window still sees the full absence duration.
-  const MIN_OFFLINE_MS = 60_000;
-
-  // game_speed is ticks per real-world second (e.g., 1x = 1 tick/s, 2x = 2 tick/s)
-  const gameSpeed = Number(serverState.game_speed) || 1;
-  const rawTicks = Math.floor((elapsedMs / 1000) * gameSpeed);
-  const elapsedTicks = Math.min(rawTicks, MAX_OFFLINE_TICKS);
-
-  if (elapsedMs < MIN_OFFLINE_MS || elapsedTicks <= 0) {
-    return NextResponse.json({
-      newState: serverState.full_state,
-      productionSnapshot: null,
-      ticksApplied: 0,
-      elapsedSeconds,
-    });
-  }
-
-  // ─── Load Game Config ─────────────────────────────────────────────────
-
+  // Load game config first so we can use server-driven tick constants.
   const config = await loadFullConfig();
   if (!config) {
     return NextResponse.json(
@@ -462,10 +438,97 @@ export async function POST(request: Request) {
     );
   }
 
-  // ─── Run Server Ticks ─────────────────────────────────────────────────
+  // Coerce at the trust boundary (config.gameConfig is Record<string, unknown>
+  // upstream). loadFullConfig already validated these are finite positive
+  // integers; Number() here narrows to `number` with no `as` cast
+  // (RULES.md [PRF-012] — no `unknown` propagating past trust boundary).
+  const tickIntervalMs = Number(config.gameConfig.tickIntervalMs);
+  const maxOfflineTicks = Number(config.gameConfig.maxOfflineTicks);
+  const minOfflineMs = Number(config.gameConfig.minOfflineMs);
+
+  const timeClient = createServiceRoleClient();
+  if (!timeClient) {
+    return NextResponse.json(
+      { error: "Service temporarily unavailable — database not configured" },
+      { status: 503 },
+    );
+  }
+  const { data: serverNowData, error: serverNowError } =
+    await timeClient.rpc("now_iso");
+  if (serverNowError || !serverNowData) {
+    console.error(
+      "[OfflineAPI] Failed to read server time:",
+      serverNowError?.message ?? "no data",
+    );
+    return NextResponse.json(
+      { error: "Server time unavailable", code: "SERVER_TIME_UNAVAILABLE" },
+      { status: 503 },
+    );
+  }
+
+  const serverNow = String(serverNowData);
+  const lastTickAt = new Date(serverState.last_tick_at).getTime();
+  const nowMs = new Date(serverNow).getTime();
+  if (Number.isNaN(lastTickAt) || Number.isNaN(nowMs)) {
+    console.error("[OfflineAPI] Invalid tick timestamp", {
+      lastTickAt: serverState.last_tick_at,
+      serverNow,
+    });
+    return NextResponse.json(
+      { error: "Invalid tick timestamp", code: "INVALID_TICK_TIMESTAMP" },
+      { status: 503 },
+    );
+  }
+
+  const elapsedMs = Math.max(0, nowMs - lastTickAt);
+  const elapsedSeconds = Math.floor(elapsedMs / tickIntervalMs);
+
+  // Fail-closed on invalid game_speed (DB has CHECK 1|2|5|10 but if a
+  // corrupt row bypasses it, we refuse the request rather than silently
+  // substitute a default that masks the bug).
+  const gameSpeed = Number(serverState.game_speed);
+  if (!Number.isFinite(gameSpeed) || gameSpeed <= 0) {
+    console.error(
+      "[OfflineAPI] Invalid game_speed in server state:",
+      serverState.game_speed,
+    );
+    return NextResponse.json(
+      { error: "Invalid game speed in state", code: "INVALID_GAME_SPEED" },
+      { status: 503 },
+    );
+  }
+
+  const rawTicks = Math.floor((elapsedMs / tickIntervalMs) * gameSpeed);
+  const elapsedTicks = Math.min(rawTicks, maxOfflineTicks);
+
+  if (elapsedMs < minOfflineMs || elapsedTicks <= 0) {
+    return NextResponse.json({
+      newState: serverState.full_state,
+      productionSnapshot: null,
+      ticksApplied: 0,
+      elapsedSeconds,
+    });
+  }
+
+  // ─── Run Server Ticks ──────────────────────────────────────────────────
   // Use serverState.full_state as the authoritative base — never client-sent gameState
 
-  const baseGameState = serverState.full_state as unknown as ServerGameData;
+  // Validate at the trust boundary (RULES.md [PRF-012] — no `unknown`
+  // propagating). full_state is JSONB in Supabase (typed `Json`); a type
+  // predicate narrows it to ServerGameData with no `as` cast.
+  const fullState = serverState.full_state;
+  if (!isServerGameData(fullState)) {
+    console.error(
+      "[OfflineAPI] Corrupt full_state in server state:",
+      typeof fullState,
+    );
+    return NextResponse.json(
+      { error: "Corrupt game state", code: "INVALID_FULL_STATE" },
+      { status: 503 },
+    );
+  }
+  const baseGameState = fullState;
+
   let result: { newState: ServerGameData; productionSnapshot: ProductionSnapshot };
   try {
     result = runServerTicks(baseGameState, elapsedTicks, config);
@@ -478,11 +541,48 @@ export async function POST(request: Request) {
   }
 
   // ─── Persist to DB with Optimistic Locking ────────────────────────────
+  // Fail-closed per RULES.md [SEC-011]: validate required server data and
+  // refuse the request rather than silently substitute a default (e.g.
+  // `Number(...) || 0` or `... ?? 0`) that would mask data corruption.
 
-  const currentVersion = Number(serverState.state_version) || 0;
+  const currentVersion = Number(serverState.state_version);
+  if (!Number.isInteger(currentVersion) || currentVersion < 0) {
+    console.error(
+      "[OfflineAPI] Invalid state_version in server state:",
+      serverState.state_version,
+    );
+    return NextResponse.json(
+      { error: "Invalid state version", code: "INVALID_STATE_VERSION" },
+      { status: 503 },
+    );
+  }
+
+  const previousGameTick = Number(serverState.game_tick);
+  if (!Number.isInteger(previousGameTick) || previousGameTick < 0) {
+    console.error(
+      "[OfflineAPI] Invalid game_tick in server state:",
+      serverState.game_tick,
+    );
+    return NextResponse.json(
+      { error: "Invalid game tick", code: "INVALID_GAME_TICK" },
+      { status: 503 },
+    );
+  }
+
+  const newGameTick = previousGameTick + elapsedTicks;
+  const newMoney = Number(result.newState.money);
+  if (!Number.isFinite(newMoney) || newMoney < 0) {
+    console.error(
+      "[OfflineAPI] Engine returned invalid money:",
+      result.newState.money,
+    );
+    return NextResponse.json(
+      { error: "Engine produced invalid state", code: "INVALID_MONEY" },
+      { status: 500 },
+    );
+  }
+
   const nextVersion = currentVersion + 1;
-  const newGameTick = Number(serverState.game_tick) + elapsedTicks;
-  const newMoney = result.newState.money ?? 0;
 
   const updated = await saveServerGameStateOptimistic(
     auth.userId,
@@ -491,7 +591,8 @@ export async function POST(request: Request) {
       full_state: asFullState(result.newState),
       game_tick: newGameTick,
       state_version: nextVersion,
-      last_tick_at: new Date().toISOString(),
+      last_tick_at: serverNow,
+      last_saved_at: serverNow,
       money: newMoney,
     },
   );

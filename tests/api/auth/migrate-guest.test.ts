@@ -35,8 +35,11 @@ const validateGameStateFn = vi.fn();
 vi.mock('@/lib/auth/guestMigrationValidator', () => ({
   validateGuestMigration: (...args: unknown[]) => validateGuestMigration(...args),
 }));
+const extractValidatedSaveFieldsFn = vi.fn();
 vi.mock('@/lib/auth/gameStateValidator', () => ({
   validateGameState: (...args: unknown[]) => validateGameStateFn(...args),
+  extractValidatedSaveFields: (...args: unknown[]) =>
+    extractValidatedSaveFieldsFn(...args),
   generateChecksum: vi.fn(() => 'mock-checksum'),
   flagCheatAttempt: vi.fn(async () => undefined),
   logActionAsync: vi.fn(),
@@ -50,6 +53,19 @@ vi.mock('@/lib/db/serverGameState', () => ({
 }));
 vi.mock('@/lib/db/playerProgress', () => ({
   upsertPlayerProgress: vi.fn(async () => undefined),
+}));
+vi.mock('@/lib/db/initialState.server', () => ({
+  fetchCanonicalInitialState: vi.fn(async () => ({
+    money: 1000, // mirrors balanceConfig.offline.startingMoney default
+    totalMoneyEarned: 0,
+    researchPoints: 0,
+    buildings: [],
+    completedResearch: [],
+    resources: {},
+    workers: [],
+    gameTick: 0,
+    gameSpeed: 1,
+  })),
 }));
 
 import { POST } from '@/app/api/auth/migrate-guest/route';
@@ -113,6 +129,18 @@ function resetMocks(opts: {
   upsertServerGameStateMock.mockReset().mockResolvedValue(opts.upsertSuccess ?? true);
   validateGuestMigration.mockReset().mockImplementation(() => opts.migrationResult ?? ACCEPT_RESULT);
   validateGameStateFn.mockReset().mockReturnValue(STANDARD_VALIDATION);
+  extractValidatedSaveFieldsFn.mockReset().mockImplementation(
+    (gs: Record<string, unknown>) => ({
+      money: Number(gs.money) || 0,
+      totalMoneyEarned: Number(gs.totalMoneyEarned) || 0,
+      researchPoints: Number(gs.researchPoints) || 0,
+      gameTick: Number(gs.gameTick) || 0,
+      gameSpeed: Number(gs.gameSpeed) || 1,
+      buildingsCount: Array.isArray(gs.buildings)
+        ? (gs.buildings as unknown[]).length
+        : 0,
+    }),
+  );
 }
 
 // ─── tests ──────────────────────────────────────────────────────────────

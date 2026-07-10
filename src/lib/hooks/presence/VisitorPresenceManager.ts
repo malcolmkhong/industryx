@@ -8,7 +8,7 @@
 // ============================================
 
 import type { RealtimePresenceState } from '@supabase/supabase-js';
-import { BasePresenceManager, isSupabaseConfigured, type PresencePayload } from './BasePresenceManager';
+import { BasePresenceManager, type PresencePayload } from './BasePresenceManager';
 
 export interface VisitorPresenceState {
   onlineCount: number;

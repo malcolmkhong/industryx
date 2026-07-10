@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ChevronLeft, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { NavigationTreeGroup } from './NavigationTreeGroup';
@@ -23,6 +24,7 @@ export function AdminNavigationTree() {
     const stored = localStorage.getItem(STORAGE_KEY);
     return stored !== null ? stored === 'true' : false;
   });
+  const [userRole, setUserRole] = useState<string>('viewer');
 
   const toggleCollapsed = useCallback(() => {
     setCollapsed((prev) => {
@@ -32,9 +34,29 @@ export function AdminNavigationTree() {
     });
   }, []);
 
-  const activeGroupId = findActiveGroup(pathname);
+  // Fetch the current admin's role from /api/auth/me so the nav tree
+  // can hide entries the user doesn't have permission to see.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch('/api/auth/me', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled && data?.user?.role) {
+          setUserRole(data.user.role);
+        }
+      } catch {
+        // Network error: keep default 'viewer' (fail-closed per RULES.md [SEC-002])
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  const tree = ADMIN_NAV_TREE;
+  const activeGroupId = findActiveGroup(pathname);
+  const tree = filterNavTreeByRole(ADMIN_NAV_TREE, userRole);
 
   return (
     <aside
@@ -67,7 +89,12 @@ export function AdminNavigationTree() {
       <nav className="flex-1 overflow-y-auto overflow-x-hidden py-1">
         {tree.map((group: NavTreeGroup) => (
           <div key={group.id}>
-            {!collapsed && <NavigationTreeGroup label={group.label} />}
+            {!collapsed && (
+              <NavigationTreeGroup
+                label={group.label}
+                isActive={group.id === activeGroupId}
+              />
+            )}
             {group.pages.map((page) => (
               <NavigationTreeNode
                 key={page.id}
@@ -85,7 +112,7 @@ export function AdminNavigationTree() {
       </nav>
 
       <div className="border-t border-muted-label/40/60 p-2 shrink-0">
-        <a
+        <Link
           href="/"
           className={[
             'flex items-center gap-2.5 h-8 rounded-md transition-colors text-muted-label hover:text-subtle hover:bg-background/60/40',
@@ -96,7 +123,7 @@ export function AdminNavigationTree() {
           {!collapsed && (
             <span className="text-[13px] font-medium truncate">Back to Game</span>
           )}
-        </a>
+        </Link>
       </div>
     </aside>
   );

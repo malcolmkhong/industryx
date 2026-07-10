@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { ScrollText, Check, Copy, ChevronLeft, ChevronRight, Search, RotateCcw, Gavel, Shield, Lock, Unlock, X, RotateCw, XCircle, Pencil, type LucideIcon } from "lucide-react";
+import { ScrollText, Check, ChevronLeft, ChevronRight, RotateCcw, Gavel, Shield, Lock, Unlock, X, RotateCw, XCircle, Pencil, type LucideIcon } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 

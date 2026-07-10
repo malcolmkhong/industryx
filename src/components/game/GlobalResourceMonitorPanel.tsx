@@ -219,7 +219,7 @@ function useResourceHover(
 
 // ─── Custom Hook: useResourceHighlight ────────────────────────────────────────
 function useResourceHighlight() {
-  const highlightAndNavigate = useCallback((tab: GameTab) => {
+  const highlightAndNavigate = useCallback((_tab: GameTab) => {
     const mainEl = document.querySelector("main");
     if (mainEl) {
       mainEl.classList.add("resource-focus-highlight");

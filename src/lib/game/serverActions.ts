@@ -87,15 +87,20 @@ export async function submitActionToServer(
     });
 
     if (res.status === 401) {
-      // Session expired — disable validation, allow local play
+      // Session expired — fail closed. Do not allow local economy mutation
+      // when the authenticated server path cannot validate the action.
       serverValidationEnabled = false;
-      return { valid: true }; // Don't block gameplay on auth issues
+      return {
+        valid: false,
+        error: "Session expired — sign in again to continue gameplay actions",
+      };
     }
 
     if (res.status === 429) {
-      // Rate limited — allow the action but log warning
-      console.warn("[ServerAction] Rate limited, allowing action locally");
-      return { valid: true };
+      return {
+        valid: false,
+        error: "Server is busy — please retry in a moment",
+      };
     }
 
     const data = await res.json();

@@ -31,6 +31,7 @@ export async function GET() {
       },
     });
   } catch (err) {
+    console.error("[AuthAPI] GET /api/auth/me failed:", err);
     return NextResponse.json(
       { error: "Internal Server Error", message: "Failed to fetch user info" },
       { status: 500 }

@@ -92,8 +92,22 @@ export default function DailyRewardsPanel() {
         </div>
         <div className="flex items-center gap-4 sm:ml-auto">
           <div className="text-center px-3">
-            <div className="text-xs text-muted-label">Longest</div>
-            <div className="text-sm font-bold text-warning">{loginStreak.longestStreak} <GameIcon icon="game-icons:flame" size={14} className="inline" /></div>
+            <div className="text-xs text-muted-label flex items-center gap-1 justify-center">
+              <Trophy className="w-3 h-3 text-warning" aria-hidden="true" />
+              Longest
+            </div>
+            <div className="text-sm font-bold text-warning">
+              {loginStreak.longestStreak}
+              {loginStreak.longestStreak === loginStreak.currentStreak && loginStreak.currentStreak > 0 && (
+                <span
+                  className="ml-1 text-[9px] text-premium font-bold uppercase tracking-wider"
+                  data-testid="personal-best-badge"
+                  aria-label="Currently on personal best streak"
+                >
+                  Best!
+                </span>
+              )}
+            </div>
           </div>
           <div className="w-px h-8 bg-muted-label" />
           <div className="text-center px-3">

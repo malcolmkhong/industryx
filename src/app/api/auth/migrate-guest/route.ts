@@ -24,10 +24,15 @@
 //     auth policy concerns, not CRUD patterns.
 // ============================================
 
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { validateGuestMigration } from '@/lib/auth/guestMigrationValidator';
-import { validateGameState, generateChecksum, flagCheatAttempt, logActionAsync } from '@/lib/auth/gameStateValidator';
+import {
+  validateGameState,
+  generateChecksum,
+  flagCheatAttempt,
+  logActionAsync,
+  extractValidatedSaveFields,
+} from '@/lib/auth/gameStateValidator';
 import { verifyAuthAndOwnership } from '@/lib/auth/verifyAuth';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 import {
@@ -99,6 +104,22 @@ export async function POST(request: NextRequest) {
     ];
 
     // ── Log the migration attempt ──
+    // Audit log values use validated fields (no `|| 0`). logActionAsync
+    // strictly validates gameTick + moneyAfter (RULES.md [SEC-011]) and
+    // warns + skips the insert if values are non-finite. Nested payload
+    // fields are informational only (`Record<string, unknown>` payload)
+    // and are passed through as-is for forensic value.
+    let migrationFields;
+    try {
+      migrationFields = extractValidatedSaveFields(gameState);
+    } catch (err) {
+      console.error('[MigrateGuest] game state field validation failed:', err);
+      return NextResponse.json(
+        { error: 'Invalid game state fields', code: 'INVALID_SAVE_FIELDS' },
+        { status: 503 },
+      );
+    }
+
     logActionAsync({
       userId,
       actionType: 'save',
@@ -107,13 +128,15 @@ export async function POST(request: NextRequest) {
         riskLevel: migrationResult.riskLevel,
         action: migrationResult.action,
         violationCount: allViolations.length,
-        gameTick: Number(gameState.gameTick) || 0,
-        totalMoneyEarned: Number(gameState.totalMoneyEarned) || 0,
-        buildingCount: (gameState.buildings as unknown[])?.length || 0,
-        researchCount: (gameState.completedResearch as string[])?.length || 0,
+        gameTick: migrationFields.gameTick,
+        totalMoneyEarned: migrationFields.totalMoneyEarned,
+        buildingCount: migrationFields.buildingsCount,
+        researchCount: Array.isArray(gameState.completedResearch)
+          ? gameState.completedResearch.length
+          : 0,
       },
-      gameTick: Number(gameState.gameTick) || 0,
-      moneyAfter: Number(gameState.money) || 0,
+      gameTick: migrationFields.gameTick,
+      moneyAfter: migrationFields.money,
       isValid: migrationResult.isValid,
       validationRisk: migrationResult.riskLevel,
       rejectionReason: migrationResult.action === 'reject' ? migrationResult.summary : undefined,
@@ -217,18 +240,23 @@ export async function POST(request: NextRequest) {
       gameState as Record<string, unknown>,
     );
 
+    // Use the same validated save fields for the DB write (no `|| 0`
+    // silent fallbacks — if any required field is missing/invalid, the
+    // earlier `extractValidatedSaveFields` call above would have already
+    // thrown and we'd have returned 503. By the time we reach here,
+    // fields are guaranteed finite numbers per RULES.md [SEC-011].
     const initialState = await upsertServerGameState({
       user_id: userId,
-      money: Number(gameState.money) || 0,
-      total_money_earned: Number(gameState.totalMoneyEarned) || 0,
-      research_points: Number(gameState.researchPoints) || 0,
+      money: migrationFields.money,
+      total_money_earned: migrationFields.totalMoneyEarned,
+      research_points: migrationFields.researchPoints,
       buildings: asFullState(buildings.map(b => ({
         type: b.type,
         level: b.level,
         active: b.active,
         efficiency: b.efficiency,
       }))),
-      buildings_count: buildings.length,
+      buildings_count: migrationFields.buildingsCount,
       completed_research: asFullState(completedResearch),
       resources: asFullState(resources),
       workers: asFullState(workers.map(w => ({
@@ -236,8 +264,8 @@ export async function POST(request: NextRequest) {
         level: w.level,
         assignedTo: w.assignedTo,
       }))),
-      game_tick: Number(gameState.gameTick) || 0,
-      game_speed: Number(gameState.gameSpeed) || 1,
+      game_tick: migrationFields.gameTick,
+      game_speed: migrationFields.gameSpeed,
       full_state: asFullState(sanitizedFullState),
       state_hash: checksum,
       state_version: 1,

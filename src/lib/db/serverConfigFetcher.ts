@@ -15,28 +15,39 @@
 // ============================================
 
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import type {
-  SupabaseBuilding,
-  SupabaseResource,
-  SupabaseRecipe,
-  SupabaseProductionChain,
-  SupabaseResearch,
-  SupabaseMarket,
-  SupabaseWeather,
-  SupabaseWorker,
-  SupabaseTransport,
-  SupabaseAutomation,
-  SupabasePrestigeBonus,
-  SupabaseRankThreshold,
-  SupabaseQuestDefinition,
-  SupabaseDailyReward,
-  SupabaseEventTemplate,
-  SupabaseSeasonalEvent,
-  SupabaseMegaProject,
-  SupabaseGameConfig,
-  SupabaseBalancingRule,
-  GameConfig,
+import {
+  DEFAULT_BALANCE_SUBSET,
+  type SupabaseBuilding,
+  type SupabaseResource,
+  type SupabaseRecipe,
+  type SupabaseProductionChain,
+  type SupabaseResearch,
+  type SupabaseMarket,
+  type SupabaseWeather,
+  type SupabaseWorker,
+  type SupabaseTransport,
+  type SupabaseAutomation,
+  type SupabasePrestigeBonus,
+  type SupabaseRankThreshold,
+  type SupabaseQuestDefinition,
+  type SupabaseDailyReward,
+  type SupabaseEventTemplate,
+  type SupabaseSeasonalEvent,
+  type SupabaseMegaProject,
+  type SupabaseGameConfig,
+  type SupabaseBalancingRule,
+  type GameConfig,
 } from "@/lib/game/config";
+
+/** Shape of a row in the `game_config_balance` table.
+ *  Only the keys the client needs are mapped here. Server-side code
+ *  reads the complete balance via balanceConfig.ts (strict complete-set
+ *  contract enforced by loadCompleteBalanceFromSupabase()).
+ */
+interface SupabaseBalanceRow {
+  key: string;
+  value: Record<string, unknown>;
+}
 import type {
   BuildingDefinition,
   ResourceAmount,
@@ -229,6 +240,55 @@ function transformWeather(weather: SupabaseWeather[]): GameConfig["weather"] {
   return result;
 }
 
+// ─── Balance Transform (client-safe subset of game_config_balance) ───────
+//
+// Server code reads the COMPLETE balance via balanceConfig.ts (strict
+// complete-set contract). The client only needs a small subset for display:
+// trade commission, trade cooldown, worker level-up XP, auto-sell threshold.
+// We pick just those keys from the full balance row set.
+//
+// The full strict load is enforced server-side by
+// configLoader.server.ts → loadCompleteBalanceFromSupabase() and does NOT
+// depend on this transform. This transform is a relaxed read for the client
+// API only — missing keys fall back to the migration 072 seed defaults.
+
+function transformClientBalance(
+  rows: SupabaseBalanceRow[] | null,
+): GameConfig["balance"] {
+  const out: GameConfig["balance"] = { ...DEFAULT_BALANCE_SUBSET };
+  if (!rows) return out;
+  for (const row of rows) {
+    const v = row.value as Record<string, unknown>;
+    switch (row.key) {
+      case "trade": {
+        if (typeof v.commissionRate === "number" && Number.isFinite(v.commissionRate)) {
+          out.tradeCommissionRate = v.commissionRate;
+        }
+        if (typeof v.cooldownSeconds === "number" && Number.isFinite(v.cooldownSeconds)) {
+          out.tradeCooldownSeconds = v.cooldownSeconds;
+        }
+        break;
+      }
+      case "worker": {
+        if (typeof v.levelUpXpBase === "number" && Number.isFinite(v.levelUpXpBase)) {
+          out.workerLevelUpXpBase = v.levelUpXpBase;
+        }
+        break;
+      }
+      case "autoSell": {
+        if (typeof v.thresholdRatio === "number" && Number.isFinite(v.thresholdRatio)) {
+          out.autoSellThresholdRatio = v.thresholdRatio;
+        }
+        break;
+      }
+      default:
+        // Other balance keys are not exposed to the client.
+        break;
+    }
+  }
+  return out;
+}
+
 // ─── Public API ─────────────────────────────────────────────────────────
 
 export interface FetchConfigResult {
@@ -286,6 +346,7 @@ export async function fetchGameConfigFromSupabase(): Promise<FetchConfigResult> 
     megaRes,
     gameRes,
     rulesRes,
+    balanceRes,
   ] = await Promise.all([
     safeFetchTable<SupabaseBuilding>(supabase, "game_config_buildings"),
     safeFetchTable<SupabaseResource>(supabase, "game_config_resources"),
@@ -327,6 +388,9 @@ export async function fetchGameConfigFromSupabase(): Promise<FetchConfigResult> 
       supabase,
       "game_config_balancing_rules",
     ),
+    // game_config_balance: client-safe subset only. The full strict
+    // complete-set load is done by configLoader.server.ts.
+    safeFetchTable<SupabaseBalanceRow>(supabase, "game_config_balance", 100, false),
   ]);
 
   // Collect per-table errors
@@ -348,6 +412,7 @@ export async function fetchGameConfigFromSupabase(): Promise<FetchConfigResult> 
   if (seasonalRes.error) errors.push(`seasonal: ${seasonalRes.error}`);
   if (megaRes.error) errors.push(`mega: ${megaRes.error}`);
   if (gameRes.error) errors.push(`game: ${gameRes.error}`);
+  if (balanceRes.error) errors.push(`balance: ${balanceRes.error}`);
 
   // Critical check: buildings, resources, and recipes are required
   if (!buildingsRes.data || !resourcesRes.data || !recipesRes.data) {
@@ -459,6 +524,7 @@ export async function fetchGameConfigFromSupabase(): Promise<FetchConfigResult> 
       unlockRequirement: m.unlock_requirement,
     })),
     gameConfig: (gameRes.data?.[0] as Record<string, unknown>) ?? {},
+    balance: transformClientBalance(balanceRes.data),
     balancingRules: (rulesRes.data ?? []).map((r) => ({
       id: r.id,
       name: r.name,

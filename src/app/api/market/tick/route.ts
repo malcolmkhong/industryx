@@ -99,7 +99,7 @@ function marketTick(
       events.push({
         type: 'price_move', resource: entry.resource,
         delta: `${changePct > 0 ? '+' : ''}${(Math.abs(changePct) * 100).toFixed(1)}%`,
-        severity: Math.abs(changePct) > 0.10 ? 'high' : Math.abs(changePct) > 0.06 ? 'medium' : 'low',
+        severity: severityForChangePct(changePct),
         context: {
           cause: netPressure > 0 ? 'buy pressure exceeding supply' : 'sell pressure exceeding demand',
           trend: changePct > 0 ? 'up' : 'down',
@@ -144,7 +144,7 @@ function marketTick(
     newPrices.push({
       resource: entry.resource, currentPrice: Math.round(newPrice * 100) / 100,
       basePrice: entry.basePrice,
-      trend: changePct > 0.01 ? 'up' : changePct < -0.01 ? 'down' : 'stable',
+      trend: trendForChangePct(changePct),
       volume: p.buyVol + p.sellVol,
     });
     newBreakers[entry.resource] = br;
@@ -154,10 +154,83 @@ function marketTick(
   return { prices: newPrices, events, volatility: newVolatility, breakers: newBreakers };
 }
 
+/** Map a per-tick price change fraction to a severity label. Extracted
+ *  to keep marketTick() free of nested ternaries.
+ */
+function severityForChangePct(
+  changePct: number,
+): "low" | "medium" | "high" {
+  const abs = Math.abs(changePct);
+  if (abs > 0.10) return "high";
+  if (abs > 0.06) return "medium";
+  return "low";
+}
+
+/** Map a per-tick price change fraction to a trend label. Extracted
+ *  to keep marketTick() free of nested ternaries.
+ */
+function trendForChangePct(
+  changePct: number,
+): "up" | "down" | "stable" {
+  if (changePct > 0.01) return "up";
+  if (changePct < -0.01) return "down";
+  return "stable";
+}
+
+function categoryForEventType(eventType: unknown): 'price_move' | 'volatility' | 'trade' {
+  if (eventType === 'trade') return 'trade';
+  if (eventType === 'volatility') return 'volatility';
+  return 'price_move';
+}
+
+function newsFromEvent(
+  event: Record<string, unknown>,
+  text: { title?: unknown; description?: unknown; affectedResources?: unknown },
+  tick: number,
+  index: number,
+  textSource: 'llm' | 'fallback',
+): Record<string, unknown> {
+  const resource = typeof event.resource === 'string' ? event.resource : 'market';
+  const delta = typeof event.delta === 'string' ? event.delta : 'changed';
+  const severity =
+    event.severity === 'low' || event.severity === 'medium' || event.severity === 'high'
+      ? event.severity
+      : 'medium';
+  const affectedResources = Array.isArray(text.affectedResources)
+    ? text.affectedResources.filter((r): r is string => typeof r === 'string' && r.length > 0)
+    : [resource];
+
+  return {
+    id: `market-${tick}-${index}`,
+    title: typeof text.title === 'string' ? text.title : `${resource} Market Update`,
+    description:
+      typeof text.description === 'string'
+        ? text.description
+        : `${resource} moved ${delta}.`,
+    affectedResources,
+    impactSummary: `${resource} ${delta}`,
+    severity,
+    gameTick: tick,
+    category: categoryForEventType(event.type),
+    textSource,
+  };
+}
+
 export async function POST() {
-  // Phase 3 F3: pull balance overrides (or fall back to defaults) before touch DB.
-  // ensureConfigLoaded is best-effort — on failure, getBalance() returns validated defaults.
-  await ensureConfigLoaded().catch(() => {/* swallow; defaults handled by validators */});
+  // Phase 3 F3: pull balance overrides BEFORE touching DB. Fail-closed
+  // per RULES.md [SEC-002] / [ARC-011]: if Supabase is unreachable, refuse
+  // the request. do NOT swallow and fall back to code-level defaults.
+  const configLoad = await ensureConfigLoaded();
+  if (!configLoad.ok) {
+    console.error(
+      "[MarketTick] config load failed:",
+      configLoad.error ?? "unknown",
+    );
+    return NextResponse.json(
+      { error: 'Service temporarily unavailable', code: 'CONFIG_UNAVAILABLE' },
+      { status: 503 },
+    );
+  }
 
   const supabase = createServiceRoleClient();
   if (!supabase) {
@@ -252,6 +325,7 @@ export async function POST() {
     // 7. Generate AI news (informational, separate from market state)
     let news: Array<Record<string, unknown>> = [];
     if (result.events.length > 0) {
+      let textSource: 'llm' | 'fallback' = 'llm';
       try {
         const newsRes = await fetch(NEWS_WORKER_URL, {
           method: 'POST',
@@ -268,12 +342,17 @@ export async function POST() {
       }
 
       if (news.length === 0) {
+        textSource = 'fallback';
         news = result.events.slice(0, 5).map(e => ({
           title: `${e.resource} Market Update`,
           description: `${e.resource} moved ${e.delta} due to ${(e.context as Record<string, unknown>).cause}.`,
           affectedResources: [e.resource],
         }));
       }
+
+      news = result.events
+        .slice(0, news.length)
+        .map((event, index) => newsFromEvent(event, news[index] ?? {}, newTick, index, textSource));
     }
 
     // 8. Persist news (separate from market state — informational only, no RPC needed)

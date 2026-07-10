@@ -3,8 +3,7 @@
  * CSV export of admin_actions. Iteration 8: routed through db/adminActions.ts.
  */
 
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { verifyAdmin } from "@/lib/auth/admin";
 import { listAdminActionsForExport } from "@/lib/db/playerActions";
 

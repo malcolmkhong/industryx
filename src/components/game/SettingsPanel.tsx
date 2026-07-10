@@ -2,12 +2,12 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useGameStore, formatNumber } from "@/lib/game/store";
-import { useSettingsStore } from "@/lib/game/settingsStore";
-import type {
-  NumberFormat,
-  AnimationSpeed,
-  SpeedLimit,
-  BottomNavMode,
+import {
+  useSettingsStore,
+  type NumberFormat,
+  type AnimationSpeed,
+  type SpeedLimit,
+  type BottomNavMode,
 } from "@/lib/game/settingsStore";
 import { soundEngine } from "@/lib/game/soundEngine";
 import { useTickFormat } from "@/lib/hooks/useTickFormat";

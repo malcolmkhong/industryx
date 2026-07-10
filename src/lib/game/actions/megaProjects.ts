@@ -1,4 +1,4 @@
-import type { MegaProjectType, ResourceType, GameNotification } from '../types';
+import type { MegaProjectType, ResourceType } from '../types';
 import type { SetFn, GetFn } from "./_actionTypes";
 
 export function createMegaProjectActions(set: SetFn, get: GetFn) {

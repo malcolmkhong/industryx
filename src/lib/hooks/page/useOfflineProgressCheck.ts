@@ -11,8 +11,8 @@ export interface OfflineProgressData {
 
 // On mount (after auth + cloud hydration), checks whether the player
 // accumulated offline progress on the server. Server is authoritative:
-// runs the same `runServerTicks()` engine that the in-game tick loop
-// uses, persists the post-tick state, and returns the authoritative
+// runs the same `runServerTicks()` engine used by server elapsed-tick
+// settlement, persists the post-tick state, and returns the authoritative
 // delta. The hook opens the dialog with that delta — no client-side
 // calculation, no two-engine drift.
 //
@@ -36,15 +36,15 @@ export function useOfflineProgressCheck(): {
   const hasCheckedOffline = useRef(false);
 
   useEffect(() => {
-    if (hasCheckedOffline.current) return;
+    if (hasCheckedOffline.current) return undefined;
     // Only signed-out users skip entirely; both anon and OAuth users
     // have a Supabase session that the server route accepts.
-    if (!user) return;
+    if (!user) return undefined;
     // Wait for cloud hydration before triggering so the hook sees the
     // most recent saved state in the store (for computing the dialog
     // delta). `lastSyncAt` is bumped on both save AND successful load
     // (CloudSyncService.load path).
-    if (!lastSyncAt) return;
+    if (!lastSyncAt) return undefined;
 
     hasCheckedOffline.current = true;
     let aborted = false;

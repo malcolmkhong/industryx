@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
 import { WORKER_DEFS, BUILDING_DEFS } from '@/lib/game/configCache';
+import { useGameConfig } from '@/components/providers/GameConfigProvider';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -59,29 +60,41 @@ function RadarChart({ values, labels, colors, size = 160 }: {
     }).join(' ');
   });
 
+  // Scales for the 4 grid rings (25%, 50%, 75%, 100%). Used as stable keys
+  // (the data is positional; values are not unique identifiers).
+  const ringScales = [0.25, 0.5, 0.75, 1];
+
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="mx-auto">
       {/* Grid rings */}
-      {gridRings.map((ring, idx) => (
-        <polygon key={idx} points={ring} fill="none" stroke="#1e293b" strokeWidth="0.5" />
+      {gridRings.map((ring, scaleIdx) => (
+        <polygon key={`ring-${ringScales[scaleIdx]}`} points={ring} fill="none" stroke="#1e293b" strokeWidth="0.5" />
       ))}
       {/* Axis lines */}
-      {axisLines.map((line, i) => (
-        <line key={i} x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} stroke="#1e293b" strokeWidth="0.5" />
+      {axisLines.map((line) => (
+        <line
+          key={`axis-${line.x2.toFixed(0)}-${line.y2.toFixed(0)}`}
+          x1={line.x1}
+          y1={line.y1}
+          x2={line.x2}
+          y2={line.y2}
+          stroke="#1e293b"
+          strokeWidth="0.5"
+        />
       ))}
       {/* Data polygon fill */}
       <polygon points={points} fill="rgba(14, 165, 233, 0.15)" stroke="#0ea5e9" strokeWidth="1.5" />
       {/* Data points */}
       {values.map((v, i) => {
         const p = getPoint(i, v);
-        return <circle key={i} cx={p.x} cy={p.y} r="3" fill={colors[i]} />;
+        return <circle key={`point-v${v.toFixed(2)}`} cx={p.x} cy={p.y} r="3" fill={colors[i]} />;
       })}
       {/* Labels */}
       {labels.map((label, i) => {
         const pos = labelPositions[i];
         return (
           <text
-            key={i}
+            key={`label-${label}`}
             x={pos.x}
             y={pos.y}
             textAnchor="middle"
@@ -97,11 +110,18 @@ function RadarChart({ values, labels, colors, size = 160 }: {
 }
 
 export function WorkerPanel() {
+  // Client-safe worker level-up XP base from the GameConfigProvider
+  // (sourced from game_config_balance by the server). Server is authoritative;
+  // this is display-only UX (showing the threshold for the next level-up).
+  const { config } = useGameConfig();
+  const levelUpXpBase = config.balance.workerLevelUpXpBase;
+
   const buildings = useGameStore((s) => s.buildings);
   const workers = useGameStore((s) => s.workers);
   const money = useGameStore((s) => s.money);
   const assignWorker = useGameStore((s) => s.assignWorker);
   const hireWorker = useGameStore((s) => s.hireWorker);
+  const levelUpWorker = useGameStore((s) => s.levelUpWorker);
   const [selectedWorkerType, setSelectedWorkerType] = useState<WorkerType>('engineer');
   const [hiringType, setHiringType] = useState<WorkerType | null>(null);
 
@@ -403,8 +423,9 @@ export function WorkerPanel() {
                   const def = WORKER_DEFS[worker.type];
                   const assignedBuilding = worker.assignedTo ? buildings.find(b => b.id === worker.assignedTo) : null;
                   const assignedDef = assignedBuilding ? BUILDING_DEFS[assignedBuilding.type] : null;
-                  const xpNeeded = worker.level * 100;
+                  const xpNeeded = worker.level * levelUpXpBase;
                   const xpPercent = (worker.experience / xpNeeded) * 100;
+                  const canLevelUp = (worker.experience ?? 0) >= xpNeeded;
 
                   return (
                     <div key={worker.id} className="bg-background rounded-lg p-3 border border-muted-label">
@@ -454,7 +475,7 @@ export function WorkerPanel() {
                         </div>
                       </div>
 
-                      {/* Assign to building */}
+                      {/* Assign to building + Upgrade */}
                       <div className="flex items-center gap-2">
                         <select
                           aria-label="Select building for worker"
@@ -472,6 +493,20 @@ export function WorkerPanel() {
                             );
                           })}
                         </select>
+                        <Button
+                          size="sm"
+                          onClick={() => levelUpWorker(worker.id)}
+                          disabled={!canLevelUp}
+                          aria-label={`Level up ${def.name} to Lv.${worker.level + 1}`}
+                          className="text-[10px] px-2 py-1 bg-research/20 text-research border border-research/50 hover:bg-research/30 disabled:opacity-40 disabled:cursor-not-allowed"
+                          title={
+                            canLevelUp
+                              ? `Level up — costs ${xpNeeded} XP`
+                              : `Need ${xpNeeded} XP (${Math.floor(worker.experience ?? 0)}/${xpNeeded})`
+                          }
+                        >
+                          ▲ Lv.Up
+                        </Button>
                       </div>
                     </div>
                   );

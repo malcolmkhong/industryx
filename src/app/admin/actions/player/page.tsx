@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { ScrollText, Check, Copy, ChevronLeft, ChevronRight, Search, RotateCcw, XCircle, AlertTriangle, TrendingUp, FileSearch, Ban } from "lucide-react";
+import { ScrollText, Check, Copy, ChevronLeft, ChevronRight, Search, RotateCcw, AlertTriangle, TrendingUp, FileSearch, XCircle } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -51,7 +51,11 @@ const ACTION_TYPE_OPTIONS = [
   "other",
 ];
 
-const VALID_OPTIONS = ["all", "true", "false"];
+const VALID_OPTIONS = [
+  { value: "all", label: "All" },
+  { value: "true", label: "Valid Only" },
+  { value: "false", label: "Invalid Only" },
+] as const;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -255,9 +259,9 @@ export default function AuditPage() {
               className="w-full bg-background/60/80 border border-muted-label/30 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-warning/50 focus:ring-1 focus:ring-warning/60/20 transition-colors appearance-none"
               style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2'%3e%3cpath d='m6 9 6 6 6-6'/%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
             >
-              <option value="all">All</option>
-              <option value="true">Valid Only</option>
-              <option value="false">Invalid Only</option>
+              {VALID_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
             </select>
           </div>
           <div className="min-w-35">
@@ -318,7 +322,7 @@ export default function AuditPage() {
         <div className="bg-background/80/80 border border-muted-label/40 rounded-xl p-5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-danger/10 flex items-center justify-center">
-              <Ban size={18} className="text-danger" />
+              <XCircle size={18} className="text-danger" />
             </div>
             <div>
               <p className="text-muted-label text-xs">Invalid</p>
@@ -427,7 +431,8 @@ export default function AuditPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${getValidBadgeClasses(action.is_valid)}`}>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border ${getValidBadgeClasses(action.is_valid)}`}>
+                          {action.is_valid ? <Check size={10} aria-hidden="true" /> : <XCircle size={10} aria-hidden="true" />}
                           {action.is_valid ? "Valid" : "Invalid"}
                         </span>
                       </td>
@@ -457,7 +462,8 @@ export default function AuditPage() {
                         <span className="text-subtle text-xs font-medium">
                           {formatActionType(action.action_type)}
                         </span>
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getValidBadgeClasses(action.is_valid)}`}>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${getValidBadgeClasses(action.is_valid)}`}>
+                          {action.is_valid ? <Check size={10} aria-hidden="true" /> : <XCircle size={10} aria-hidden="true" />}
                           {action.is_valid ? "Valid" : "Invalid"}
                         </span>
                       </div>

@@ -20,7 +20,6 @@ import type { Database } from '@/lib/db/types';
 
 type ServerMarketStateRow = Database['public']['Tables']['server_market_state']['Row'];
 type MarketPlayerPressureRow = Database['public']['Tables']['market_player_pressure']['Row'];
-type MarketSupplyDemandRow = Database['public']['Tables']['market_supply_demand']['Row'];
 
 // ---------------------------------------------------------------------------
 // Loaders

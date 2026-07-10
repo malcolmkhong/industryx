@@ -1,21 +1,20 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { verifyAdmin, withSecurityHeaders } from "@/lib/auth/admin";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { computeMaxPossibleMoney } from "@/lib/game/serverTickValidator";
 import { listInvestigations, countResolvedSince } from "@/lib/db/cheatInvestigations";
-import type { ServerGameData } from "@/lib/game/types";
-import type {
-  GameConfig,
-  SupabaseBuilding,
-  SupabaseRecipe,
-  SupabaseResearch,
-  SupabaseProductionChain,
-  SupabaseWorker,
-  SupabaseWeather,
-  SupabaseMarket,
+import type { ServerGameData, BuildingDefinition, ResourceAmount, ResourceType, CostResourceType } from "@/lib/game/types";
+import {
+  DEFAULT_BALANCE_SUBSET,
+  type GameConfig,
+  type SupabaseBuilding,
+  type SupabaseRecipe,
+  type SupabaseResearch,
+  type SupabaseProductionChain,
+  type SupabaseWorker,
+  type SupabaseWeather,
+  type SupabaseMarket,
 } from "@/lib/game/config";
-import type { BuildingDefinition, ResourceAmount, ResourceType, CostResourceType } from "@/lib/game/types";
 
 // ─── Detection type human-readable labels ───────────────────────────────
 
@@ -233,6 +232,7 @@ async function loadFullConfig(): Promise<GameConfig | null> {
       seasonalEvents: [],
       megaProjects: [],
       gameConfig: {},
+      balance: DEFAULT_BALANCE_SUBSET,
       productionChains: chains.map((c) => ({
         id: c.id,
         upstreamBuilding: c.upstream_building,
@@ -312,7 +312,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Batch lookup user emails via Supabase Auth Admin API
-    let emailMap: Record<string, string> = {};
+    const emailMap: Record<string, string> = {};
     const userIds = [
       ...new Set(
         (investigations || [])
@@ -350,7 +350,7 @@ export async function GET(request: NextRequest) {
       ),
     ];
 
-    let resolvedByEmailMap: Record<string, string> = {};
+    const resolvedByEmailMap: Record<string, string> = {};
     if (resolvedByIds.length > 0) {
       try {
         const { data: adminUsers } = await supabase

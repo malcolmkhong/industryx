@@ -1,9 +1,8 @@
 // ============================================
 // Daily Rewards Actions Factory
 // ============================================
-import type { ResourceType, ServerGameData } from "../types";
+import type { ServerGameData } from "../types";
 import { WEEKLY_DAILY_REWARDS, getStreakMultiplier } from "../configCache";
-import { getCapacity } from "../utils/costCalculator";
 import { soundEngine } from "../soundEngine";
 import { generateId } from "../utils/generateId";
 import type { SetFn, GetFn } from "./_actionTypes";
@@ -40,11 +39,11 @@ export function createDailyRewardActions(set: SetFn, get: GetFn) {
 
       const needsNewRewards =
         loginStreak.weeklyRewards.length === 0 ||
-        loginStreak.weeklyRewards.every((r: any) => r.claimed);
+        loginStreak.weeklyRewards.every((r) => r.claimed);
 
       if (needsNewRewards) {
         const multiplier = getStreakMultiplier(loginStreak.currentStreak);
-        loginStreak.weeklyRewards = WEEKLY_DAILY_REWARDS.map((r: any) => ({
+        loginStreak.weeklyRewards = WEEKLY_DAILY_REWARDS.map((r) => ({
           ...r,
           amount: Math.floor(r.amount * multiplier),
           claimed: false,
@@ -52,11 +51,11 @@ export function createDailyRewardActions(set: SetFn, get: GetFn) {
       }
 
       const todayReward = loginStreak.weeklyRewards.find(
-        (r: any) => r.day === dayOfWeek && !r.claimed,
+        (r) => r.day === dayOfWeek && !r.claimed,
       );
       if (!todayReward) {
         const multiplier = getStreakMultiplier(loginStreak.currentStreak);
-        loginStreak.weeklyRewards = WEEKLY_DAILY_REWARDS.map((r: any) => ({
+        loginStreak.weeklyRewards = WEEKLY_DAILY_REWARDS.map((r) => ({
           ...r,
           amount: Math.floor(r.amount * multiplier),
           claimed: r.day < dayOfWeek,
@@ -69,7 +68,7 @@ export function createDailyRewardActions(set: SetFn, get: GetFn) {
     claimDailyReward: async (day: number) => {
       const state = get();
       const rewardIndex = state.loginStreak.weeklyRewards.findIndex(
-        (r: any) => r.day === day && !r.claimed,
+        (r) => r.day === day && !r.claimed,
       );
       if (rewardIndex === -1) return;
 
@@ -92,12 +91,19 @@ export function createDailyRewardActions(set: SetFn, get: GetFn) {
       // Partial<ServerGameData>. Updates are spread into the store;
       // UI fields are preserved (server has no claim to them).
       const corrected = validation.correctedState;
+      if (!corrected?.loginStreak) {
+        soundEngine.play("error", "building");
+        get().addNotification(
+          "error",
+          "Daily reward could not be confirmed by server. Please retry.",
+        );
+        return;
+      }
+
       // Local partial updates typed against the store's SetFn arg.
       const updates: Partial<ServerGameData> = {};
 
-      if (corrected?.loginStreak) {
-        updates.loginStreak = corrected.loginStreak;
-      }
+      updates.loginStreak = corrected.loginStreak;
       if (corrected?.money !== undefined) {
         updates.money = corrected.money;
       }
@@ -108,18 +114,7 @@ export function createDailyRewardActions(set: SetFn, get: GetFn) {
         updates.researchPoints = corrected.researchPoints;
       }
       if (corrected?.resources) {
-        // Cap at storage capacity
-        const newResources = { ...state.resources };
-        for (const [res, amt] of Object.entries(
-          corrected.resources as Record<string, number>,
-        )) {
-          newResources[res as ResourceType] = Math.min(
-            getCapacity(state, res as ResourceType),
-            (newResources[res as ResourceType] ?? 0) +
-              (amt - (state.resources[res as ResourceType] ?? 0)),
-          );
-        }
-        updates.resources = newResources;
+        updates.resources = corrected.resources;
       }
       if (corrected?.prestigeState) {
         updates.prestigeState = corrected.prestigeState;

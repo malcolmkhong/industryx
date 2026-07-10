@@ -2,8 +2,7 @@
 // Waitlist submission endpoint. Creates waitlist_entries + support_tickets
 // (reuses existing support system — admin sees it in /admin/support).
 
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { createServiceRoleClient } from '@/lib/supabase/server';
 
 export async function POST(request: NextRequest) {

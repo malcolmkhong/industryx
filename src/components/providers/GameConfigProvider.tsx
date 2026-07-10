@@ -1,9 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { fetchGameConfig } from "@/lib/game/config";
-import type { GameConfig } from "@/lib/game/config";
-import { updateFromSupabase, configSource, configVersion } from '@/lib/game/configCache';
+import { fetchGameConfig, DEFAULT_BALANCE_SUBSET, type GameConfig } from "@/lib/game/config";
+import { updateFromSupabase, configVersion } from '@/lib/game/configCache';
 
 // Client-side config cache with 5-minute TTL
 const CONFIG_CACHE_KEY = 'industriax_game_config';
@@ -62,6 +61,7 @@ function createFallbackConfig(): GameConfig {
     seasonalEvents: [],
     megaProjects: [],
     gameConfig: {},
+    balance: DEFAULT_BALANCE_SUBSET,
     balancingRules: [],
     productionChains: [],
     tradableResourceIds: [],
@@ -148,6 +148,7 @@ export function GameConfigProvider({ children }: { children: React.ReactNode }) 
         setVersion(v => v + 1);
         setCachedConfig(freshConfig);
       } else {
+        setError('Game configuration unavailable. Server gameplay actions are paused.');
         setConfig(createFallbackConfig());
       }
     } catch (err) {
@@ -183,6 +184,7 @@ export function GameConfigProvider({ children }: { children: React.ReactNode }) 
             seasonalEvents: defsData.seasonalEvents || [],
             megaProjects: defsData.megaProjects || [],
             gameConfig: defsData.gameConfig || {},
+            balance: defsData.balance || DEFAULT_BALANCE_SUBSET,
             balancingRules: defsData.balancingRules || [],
             productionChains: defsData.productionChains || [],
             tradableResourceIds: defsData.tradableResourceIds || [],
@@ -193,7 +195,12 @@ export function GameConfigProvider({ children }: { children: React.ReactNode }) 
         }
       }
 
-      // Fallback: try the old /api/config endpoint
+      if (defsRes.status === 503) {
+        return null;
+      }
+
+      // Legacy fallback: try the old /api/config endpoint when definitions
+      // is absent or non-critical. A 503 means server config is unavailable.
       const supabaseConfig = await fetchGameConfig();
       if (supabaseConfig) {
         return supabaseConfig;

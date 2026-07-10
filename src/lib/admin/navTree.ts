@@ -1,9 +1,11 @@
-import type { LucideIcon } from 'lucide-react';
 import {
   LayoutDashboard, Activity, Users, GitCompare, AlertTriangle,
   Flag, ScrollText, ShieldCheck, Cog, TrendingUp,
   BarChart3, Database, KeyRound, UserCog, Lock, LifeBuoy, Search,
+  type LucideIcon,
 } from 'lucide-react';
+
+export type AdminNavRole = "viewer" | "admin" | "super_admin";
 
 export interface NavTreePage {
   id: string;
@@ -13,6 +15,8 @@ export interface NavTreePage {
   phase?: 'P1' | 'P2' | 'P3';
   badge?: string | number;
   badgeColor?: string;
+  /** Minimum role required to see this nav entry. Defaults to "viewer". */
+  requiredRole?: AdminNavRole;
 }
 
 export interface NavTreeGroup {
@@ -68,33 +72,44 @@ export const ADMIN_NAV_TREE: NavTreeGroup[] = [
     id: 'configuration',
     label: 'Configuration',
     pages: [
-      { id: 'config-tables', label: 'Config Tables', href: '/admin/config', icon: Database },
-      { id: 'roles', label: 'Roles', href: '/admin/roles', icon: KeyRound, phase: 'P2' },
+      { id: 'config-tables', label: 'Config Tables', href: '/admin/config', icon: Database, requiredRole: 'admin' },
+      { id: 'roles', label: 'Roles', href: '/admin/roles', icon: KeyRound, phase: 'P2', requiredRole: 'admin' },
     ],
   },
   {
     id: 'admin',
     label: 'Admin',
     pages: [
-      { id: 'admin-users', label: 'Admin Users', href: '/admin/admins', icon: UserCog },
-      { id: 'permissions', label: 'Permissions', href: '/admin/permissions', icon: Lock, phase: 'P3' },
+      { id: 'admin-users', label: 'Admin Users', href: '/admin/admins', icon: UserCog, requiredRole: 'admin' },
+      { id: 'permissions', label: 'Permissions', href: '/admin/permissions', icon: Lock, phase: 'P3', requiredRole: 'super_admin' },
       { id: 'support', label: 'Support', href: '/admin/support', icon: LifeBuoy },
     ],
   },
 ];
 
+/**
+ * Filter the nav tree by admin role. Pages with `requiredRole` are hidden
+ * from users whose role rank is below the requirement. Role rank:
+ *   viewer (0) < admin (1) < super_admin (2)
+ * Pages without a `requiredRole` are visible to all roles.
+ */
+const ROLE_RANK: Record<AdminNavRole, number> = {
+  viewer: 0,
+  admin: 1,
+  super_admin: 2,
+};
+
 export function filterNavTreeByRole(
   tree: NavTreeGroup[],
   role: string,
 ): NavTreeGroup[] {
+  const userRank = ROLE_RANK[role as AdminNavRole] ?? 0;
   return tree
     .map((group) => ({
       ...group,
       pages: group.pages.filter((page) => {
-        if (role === 'viewer') {
-          return true;
-        }
-        return true;
+        const required = page.requiredRole ?? "viewer";
+        return userRank >= ROLE_RANK[required];
       }),
     }))
     .filter((group) => group.pages.length > 0);

@@ -420,18 +420,21 @@ const TIER_COLORS = {
     color: "text-domain",
     bg: "bg-domain/20",
     border: "border-domain/30",
+    Icon: Zap,
   },
   2: {
     label: "Silver",
     color: "text-subtle",
     bg: "bg-muted-label/30",
     border: "border-muted-label/30",
+    Icon: Shield,
   },
   3: {
     label: "Gold",
     color: "text-warning",
     bg: "bg-warning/20",
     border: "border-warning/80/30",
+    Icon: Flame,
   },
 };
 
@@ -445,6 +448,19 @@ interface AchievementCardProps {
   onToggleExpand: (id: string) => void;
 }
 
+/**
+ * Map a 0..1 progress value to a coloured gradient class.
+ * Extracted to keep the JSX free of nested ternaries (RULES.md eslint).
+ */
+function progressGradientClass(progress: number): string {
+  if (progress >= 0.75) return "bg-linear-to-r from-success/80 to-success/50";
+  if (progress >= 0.4) return "bg-linear-to-r from-warning/70 to-warning/50";
+  return "bg-linear-to-r from-muted-label/30 to-muted-label/30";
+}
+
+// Named function preserves the display name in React DevTools, which
+// arrow functions don't. (Suppressed: prefer-arrow-callback)
+// eslint-disable-next-line prefer-arrow-callback
 const MemoizedAchievementCard = React.memo(function MemoizedAchievementCard({
   achievement,
   isExpanded,
@@ -510,13 +526,7 @@ const MemoizedAchievementCard = React.memo(function MemoizedAchievementCard({
                 </div>
                 <div className="h-1.5 bg-muted-label rounded-full overflow-hidden">
                   <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      achievement.progressValue >= 0.75
-                        ? "bg-linear-to-r from-success/80 to-success/50"
-                        : achievement.progressValue >= 0.4
-                          ? "bg-linear-to-r from-warning/70 to-warning/50"
-                          : "bg-linear-to-r from-muted-label/30 to-muted-label/30"
-                    }`}
+                    className={`h-full rounded-full transition-all duration-500 ${progressGradientClass(achievement.progressValue)}`}
                     style={{
                       width: `${Math.min(100, achievement.progressValue * 100)}%`,
                     }}
@@ -573,7 +583,7 @@ const MemoizedAchievementCard = React.memo(function MemoizedAchievementCard({
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Award className={`w-3 h-3 ${tierMeta.color}`} />
+                  <tierMeta.Icon className={`w-3 h-3 ${tierMeta.color}`} aria-hidden="true" />
                   <span className={`text-[10px] ${tierMeta.color}`}>
                     {tierMeta.label} Tier
                   </span>
@@ -663,8 +673,16 @@ export function AchievementPanel() {
       ? achievementStates
       : achievementStates.filter((a) => a.category === selectedCategory);
 
-  // Recent unlocks (for highlighting)
+  // Recent unlocks (for the "Just unlocked" banner)
   const recentUnlocks = achievementStates.filter((a) => a.unlocked).slice(-3);
+
+  // Search filter (case-insensitive name match)
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchedAchievements = searchQuery.trim()
+    ? filteredAchievements.filter((a) =>
+        a.name.toLowerCase().includes(searchQuery.toLowerCase()),
+      )
+    : filteredAchievements;
 
   return (
     <div className="space-y-4">
@@ -752,6 +770,42 @@ export function AchievementPanel() {
           <div className="text-lg font-bold font-mono text-research">5</div>
           <div className="text-[10px] text-muted-label">achievement types</div>
         </div>
+        <div className="game-card rounded-xl bg-card p-3 border border-border">
+          <div className="flex items-center gap-2 mb-1.5">
+            <div className="w-7 h-7 rounded-lg bg-premium/20 flex items-center justify-center">
+              <Users className="w-4 h-4 text-premium" />
+            </div>
+            <span className="text-[10px] text-muted-label uppercase tracking-wider">
+              Total Buildings
+            </span>
+          </div>
+          <div className="text-lg font-bold font-mono text-premium">
+            {store.buildings.length}
+          </div>
+          <div className="text-[10px] text-muted-label">
+            constructed across the empire
+          </div>
+        </div>
+        <div className="game-card rounded-xl bg-card p-3 border border-border">
+          <div className="flex items-center gap-2 mb-1.5">
+            <div className="w-7 h-7 rounded-lg bg-domain/20 flex items-center justify-center">
+              <Cog className="w-4 h-4 text-domain" />
+            </div>
+            <span className="text-[10px] text-muted-label uppercase tracking-wider">
+              Active Tiers
+            </span>
+          </div>
+          <div className="text-lg font-bold font-mono text-domain">
+            {Array.from(
+              new Set(
+                store.buildings.map((b) => BUILDING_DEFS[b.type]?.tier ?? 0),
+              ),
+            ).filter((t) => t > 0).length}
+          </div>
+          <div className="text-[10px] text-muted-label">
+            unique tiers in use
+          </div>
+        </div>
       </div>
 
       {/* Overall Progress Bar */}
@@ -790,23 +844,24 @@ export function AchievementPanel() {
           ).map((cat) => {
             const meta = CATEGORY_META[cat];
             const stats = categoryStats[cat];
-            const pct =
-              stats.total > 0 ? (stats.unlocked / stats.total) * 100 : 0;
+            const pct = stats.total > 0 ? (stats.unlocked / stats.total) * 100 : 0;
+            // Per-category progress bar colour. Lifted to a lookup so the
+            // JSX isn't a 5-level nested ternary (RULES.md eslint no-nested-ternary).
+            const categoryBarColor: Record<AchievementCategory, string> = {
+              Production: "bg-brand",
+              Economy: "bg-success",
+              Research: "bg-research",
+              Expansion: "bg-premium/60",
+              Special: "bg-warning",
+            };
             return (
               <div key={cat} className="text-center">
+                <div className="flex items-center justify-center mb-1">
+                  <GameIcon icon={meta.icon} size={12} className="inline-flex" />
+                </div>
                 <div className="h-1.5 bg-muted-label rounded-full overflow-hidden mb-1">
                   <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      cat === "Production"
-                        ? "bg-brand"
-                        : cat === "Economy"
-                          ? "bg-success"
-                          : cat === "Research"
-                            ? "bg-research"
-                            : cat === "Expansion"
-                              ? "bg-premium/60"
-                              : "bg-warning"
-                    }`}
+                    className={`h-full rounded-full transition-all duration-500 ${categoryBarColor[cat]}`}
                     style={{ width: `${pct}%` }}
                   />
                 </div>
@@ -819,12 +874,70 @@ export function AchievementPanel() {
         </div>
       </div>
 
-      {/* Category Filter */}
-      <div className="flex flex-wrap gap-2">
+      {/* Next Milestone — suggest the closest category to complete */}
+      {(() => {
+        const nextCategory = (
+          ["Production", "Economy", "Research", "Expansion", "Special"] as AchievementCategory[]
+        )
+          .filter((cat) => categoryStats[cat].total > 0 && categoryStats[cat].unlocked < categoryStats[cat].total)
+          .map((cat) => {
+            const stats = categoryStats[cat];
+            const pct = (stats.unlocked / stats.total) * 100;
+            return { cat, pct, remaining: stats.total - stats.unlocked };
+          })
+          .sort((a, b) => b.pct - a.pct)[0];
+
+        if (!nextCategory) return null;
+        const meta = CATEGORY_META[nextCategory.cat];
+        return (
+          <div className="game-card rounded-xl bg-card p-3 border border-border">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <TrendingUp className="w-3.5 h-3.5 text-success shrink-0" aria-hidden="true" />
+                <span className="text-[10px] uppercase tracking-wider text-muted-label font-semibold shrink-0">
+                  Closest category
+                </span>
+                <span className={`text-[11px] font-medium ${meta.color} truncate`}>
+                  {nextCategory.cat}
+                </span>
+              </div>
+              <span className="text-[10px] text-muted-label shrink-0">
+                {nextCategory.pct.toFixed(0)}% ({nextCategory.remaining} left)
+              </span>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Category Filter + Search */}
+      <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+        <div className="relative flex-1 min-w-0">
+          <label htmlFor="achievement-search" className="sr-only">Search achievements</label>
+          <Search
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-label pointer-events-none"
+            aria-hidden="true"
+          />
+          <input
+            id="achievement-search"
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search achievements by name..."
+            aria-label="Search achievements by name"
+            className="w-full h-7 pl-8 pr-3 text-[11px] bg-card border border-border rounded-lg text-subtle placeholder-muted-label focus:outline-none focus:border-warning/50 transition-colors"
+          />
+        </div>
+        <div className="flex flex-wrap gap-2">
         {ACHIEVEMENT_CATEGORIES.map((cat) => {
           const stats = categoryStats[cat];
-          const meta = cat !== "All" ? CATEGORY_META[cat] : null;
+          const isAll = cat === "All";
+          const catMeta = isAll ? null : CATEGORY_META[cat];
           const isActive = selectedCategory === cat;
+          // Pre-compute active styles so we never have to assert meta is non-null.
+          const activeStyles = catMeta
+            ? `${catMeta.borderColor} ${catMeta.color} ${catMeta.bgColor}`
+            : "border-warning/50 text-warning bg-warning/20";
+          const iconName = isAll || !catMeta ? "game-icons:trophy" : catMeta.icon;
 
           return (
             <Button
@@ -833,37 +946,70 @@ export function AchievementPanel() {
               size="sm"
               className={`h-7 text-[10px] ${
                 isActive
-                  ? cat === "All"
-                    ? "border-warning/50 text-warning bg-warning/20"
-                    : `${meta!.borderColor} ${meta!.color} ${meta!.bgColor}`
+                  ? activeStyles
                   : "border-muted-label text-muted-label hover:text-subtle"
               }`}
               onClick={() => setSelectedCategory(cat)}
             >
-              {cat === "All" ? (
-                <GameIcon
-                  icon="game-icons:trophy"
-                  size={14}
-                  className="inline-flex"
-                />
-              ) : (
-                <GameIcon icon={meta!.icon} size={14} className="inline-flex" />
-              )}{" "}
+              <GameIcon icon={iconName} size={14} className="inline-flex" />{" "}
               {cat} ({stats.unlocked}/{stats.total})
             </Button>
           );
         })}
+        </div>
       </div>
+
+      {/* Recently Unlocked Banner */}
+      {recentUnlocks.length > 0 && unlockedCount > 0 && (
+        <div className="game-card rounded-xl bg-linear-to-r from-warning/10 to-success/5 p-3 border border-warning/30">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="flex items-center gap-2">
+              <Rocket className="w-3.5 h-3.5 text-warning" aria-hidden="true" />
+              <span className="text-[10px] uppercase tracking-wider text-warning font-semibold">
+                Recently Unlocked
+              </span>
+            </div>
+            {expandedId !== null && (
+              <button
+                type="button"
+                onClick={() => setExpandedId(null)}
+                className="inline-flex items-center gap-1 text-[10px] text-muted-label hover:text-subtle transition-colors"
+                aria-label="Collapse all expanded achievements"
+              >
+                <ChevronDown className="w-3 h-3" aria-hidden="true" />
+                Collapse all
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {recentUnlocks.map((a) => (
+              <div
+                key={a.id}
+                className="flex items-center gap-1.5 bg-background/60 rounded-lg px-2 py-1 text-[10px] text-subtle border border-warning/20"
+                data-testid="recent-unlock"
+                data-achievement-id={a.id}
+              >
+                <Check className="w-3 h-3 text-success" aria-hidden="true" />
+                <span>{a.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Achievement Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {filteredAchievements.length === 0 && (
+        {searchedAchievements.length === 0 && (
           <div className="col-span-full flex flex-col items-center justify-center py-8 text-muted-label">
             <Trophy className="w-8 h-8 mb-2 opacity-50" />
-            <p className="text-sm">Start building to unlock achievements!</p>
+            <p className="text-sm">
+              {searchQuery
+                ? `No achievements match "${searchQuery}".`
+                : 'Start building to unlock achievements!'}
+            </p>
           </div>
         )}
-        {filteredAchievements.map((achievement) => (
+        {searchedAchievements.map((achievement) => (
           <MemoizedAchievementCard
             key={achievement.id}
             achievement={achievement}
@@ -889,15 +1035,23 @@ export function AchievementPanel() {
               .filter((a) => !a.unlocked)
               .map((a) => {
                 const meta = CATEGORY_META[a.category];
+                const tier = TIER_COLORS[a.tier];
+                const TierIcon = tier.Icon;
                 return (
                   <div
                     key={a.id}
                     className="flex items-center gap-1.5 bg-background rounded-lg px-2.5 py-1.5"
+                    data-testid="locked-achievement"
+                    data-tier={a.tier}
                   >
                     <GameIcon
                       icon={a.icon}
                       size={12}
                       className="inline-flex grayscale opacity-50"
+                    />
+                    <TierIcon
+                      className={`w-2.5 h-2.5 ${tier.color}`}
+                      aria-hidden="true"
                     />
                     <span className="text-[10px] text-muted-label">
                       {a.name}

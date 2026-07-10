@@ -67,8 +67,20 @@ export async function POST(request: Request) {
   if (rateLimitResponse) return rateLimitResponse;
 
   // Phase 3 Step 1: pull latest balance overrides so trade.* values are
-  // current. Best-effort — on failure getBalance() returns validated defaults.
-  await ensureConfigLoaded().catch(() => {/* defaults via validators */});
+  // current. Fail-closed per RULES.md [SEC-002] / [ARC-011]: if Supabase is
+  // unreachable, refuse the request. do NOT swallow the error and fall
+  // back to code-level defaults (that's a security hole).
+  const configLoad = await ensureConfigLoaded();
+  if (!configLoad.ok) {
+    console.error(
+      "[TradeAPI] config load failed:",
+      configLoad.error ?? "unknown",
+    );
+    return NextResponse.json(
+      { error: "Service temporarily unavailable", code: "CONFIG_UNAVAILABLE" },
+      { status: 503 },
+    );
+  }
 
   const lockStatus = await isAccountLocked(auth.userId);
   if (lockStatus.locked && !isAdminUserId(auth.userId)) {
@@ -226,7 +238,19 @@ export async function POST(request: Request) {
     [receiveResource]: currentReceive + finalReceiveAmount,
   };
 
-  const currentVersion = Number(serverState.state_version) || 0;
+  // Fail-closed per RULES.md [SEC-011]: state_version must be a valid
+  // non-negative integer; refuse rather than silently default to 0.
+  const currentVersion = Number(serverState.state_version);
+  if (!Number.isInteger(currentVersion) || currentVersion < 0) {
+    console.error(
+      "[TradeAPI] Invalid state_version for trade persist:",
+      serverState.state_version,
+    );
+    return NextResponse.json(
+      { error: "Invalid server state version", code: "INVALID_STATE_VERSION" },
+      { status: 503 },
+    );
+  }
   const nextStateVersion = currentVersion + 1;
   const updatedFullState = {
     ...fullState,
@@ -251,31 +275,45 @@ export async function POST(request: Request) {
     );
   }
 
+  // Validate updatedState.game_tick at trust boundary (BIGINT column
+  // rejects NaN anyway, but warn+skip is cleaner than silent DB error).
+  const tradeGameTick = Number(updatedState.game_tick);
+  if (!Number.isInteger(tradeGameTick) || tradeGameTick < 0) {
+    console.error(
+      "[TradeAPI] Invalid game_tick in updated state:",
+      updatedState.game_tick,
+    );
+    return NextResponse.json(
+      { error: "Invalid game tick in state", code: "INVALID_GAME_TICK" },
+      { status: 503 },
+    );
+  }
+
   await recordTrade({
-    userId: auth.userId,
-    giveResource: giveResource,
-    giveAmount: giveAmount,
-    receiveResource: receiveResource,
-    receiveAmount: finalReceiveAmount,
-    commissionRate: getBalance().trade.commissionRate,
-    gameTick: Number(updatedState.game_tick) || 0,
-    serverStateVersion: nextStateVersion,
-  });
+      userId: auth.userId,
+      giveResource,
+      giveAmount,
+      receiveResource,
+      receiveAmount: finalReceiveAmount,
+      commissionRate: getBalance().trade.commissionRate,
+      gameTick: tradeGameTick,
+      serverStateVersion: nextStateVersion,
+    });
 
   // Record effective (live) prices in history — not just the static base_price.
   // This gives the price chart real data to plot.
   await supabase.from('game_config_market_history').insert([
-    {
-      resource_id: giveResource,
-      base_price: effectiveGivePrice,
-      game_tick: Number(updatedState.game_tick) || 0,
-    },
-    {
-      resource_id: receiveResource,
-      base_price: effectiveReceivePrice,
-      game_tick: Number(updatedState.game_tick) || 0,
-    },
-  ]);
+      {
+        resource_id: giveResource,
+        base_price: effectiveGivePrice,
+        game_tick: tradeGameTick,
+      },
+      {
+        resource_id: receiveResource,
+        base_price: effectiveReceivePrice,
+        game_tick: tradeGameTick,
+      },
+    ]);
 
   // Record player trade pressure so the market tick can move prices.
   // This is what closes the loop: trades affect prices, prices affect trades.
@@ -334,20 +372,25 @@ export async function POST(request: Request) {
   }
 
   logActionAsync({
-    userId: auth.userId,
-    actionType: 'trade',
-    payload: {
-      giveResource,
-      giveAmount,
-      receiveResource,
-      receiveAmount: finalReceiveAmount,
-      commissionRate: getBalance().trade.commissionRate,
-      source: 'server_authoritative_trade',
-      livePriceUsed: true,
-      slippage: { give: giveSlippage, receive: receiveSlippage },
-    },
-    gameTick: Number(updatedState.game_tick) || 0,
-    moneyAfter: Number((fullState.money as number) || 0),
+      userId: auth.userId,
+      actionType: 'trade',
+      payload: {
+        giveResource,
+        giveAmount,
+        receiveResource,
+        receiveAmount: finalReceiveAmount,
+        commissionRate: getBalance().trade.commissionRate,
+        source: 'server_authoritative_trade',
+        livePriceUsed: true,
+        slippage: { give: giveSlippage, receive: receiveSlippage },
+      },
+    // Validated above (tradeGameTick is guaranteed a finite non-negative
+    // integer). Per RULES.md [SEC-011] / logActionAsync strict validation,
+    // passing `Number(...)` directly is correct — no `|| 0` silent fallback.
+    gameTick: tradeGameTick,
+    // Pre-trade money from server state. If invalid, logActionAsync will
+    // warn + skip the audit row rather than silently writing 0.
+    moneyAfter: Number(fullState.money),
     isValid: true,
     validationRisk: 'none',
   });
@@ -363,14 +406,14 @@ export async function POST(request: Request) {
     serverValidated: true,
     // Live-price transparency for the client UI
     pricing: {
-      giveBasePrice: giveBasePrice,
-      receiveBasePrice: receiveBasePrice,
+      giveBasePrice,
+      receiveBasePrice,
       giveLivePrice: givePrice,
       receiveLivePrice: receivePrice,
-      giveEffectivePrice: effectiveGivePrice,
-      receiveEffectivePrice: effectiveReceivePrice,
-      slippage: { give: giveSlippage, receive: receiveSlippage },
-      usedLivePrice: livePriceMap.has(giveResource) || livePriceMap.has(receiveResource),
     },
+    giveEffectivePrice: effectiveGivePrice,
+    receiveEffectivePrice: effectiveReceivePrice,
+    slippage: { give: giveSlippage, receive: receiveSlippage },
+    usedLivePrice: livePriceMap.has(giveResource) || livePriceMap.has(receiveResource),
   });
 }

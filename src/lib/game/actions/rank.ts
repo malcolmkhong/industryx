@@ -3,6 +3,7 @@
 // ============================================
 import { BUILDING_DEFS, RANK_THRESHOLDS } from "../configCache";
 import { MAX_TIER } from "../tiers";
+import type { BuildingInstance } from "../types";
 import type { SetFn, GetFn } from "./_actionTypes";
 
 export function createRankActions(set: SetFn, get: GetFn) {
@@ -47,7 +48,9 @@ export function createRankActions(set: SetFn, get: GetFn) {
       if (state.buildings.length === 0) return 0;
       const highestBuildingTier = Math.max(
         0,
-        ...state.buildings.map((b: any) => BUILDING_DEFS[b.type]?.tier ?? 0),
+        ...state.buildings.map(
+          (b: BuildingInstance) => BUILDING_DEFS[b.type]?.tier ?? 0,
+        ),
       );
       const researchTier = Math.floor(state.completedResearch.length / 3);
       return Math.min(MAX_TIER, Math.max(highestBuildingTier, researchTier));

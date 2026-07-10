@@ -1,9 +1,7 @@
-import type { Drone, DroneMission, ResourceType } from "../types";
-import { BUILDING_DEFS } from "../configCache";
+import type { Drone } from "../types";
 import { soundEngine } from "../soundEngine";
 import { generateId } from "../utils/generateId";
 import { formatNumber } from "../utils/formatNumber";
-import { getBalance } from "../balanceConfig";
 import { generateDroneMissionsFromState } from "../utils/saveMigration";
 import type { SetFn, GetFn } from "./_actionTypes";
 
@@ -88,65 +86,32 @@ export function createDroneActions(set: SetFn, get: GetFn) {
       );
       if (!validation.approved) {
         soundEngine.play("error", "building");
-        // eslint-disable-next-line no-console
         console.error(`[sendDrone] server rejected: ${validation.error}`);
         get().addNotification("error", friendlyDroneError(validation.error));
         return;
       }
 
-      // Apply server-authoritative state. Defensive fallback to local
-      // computation if server omits correctedState.
       const corrected = validation.correctedState;
-      const serverFleet = (corrected?.drones as { fleet?: unknown })?.fleet as
-        Drone[] | undefined;
-      const serverMoney = corrected?.money ?? state.money;
-
-      if (serverFleet) {
-        set({
-          money: serverMoney,
-          drones: {
-            ...state.drones,
-            fleet: serverFleet,
-            completedMissions:
-              (corrected?.drones as { completedMissions?: number })
-                ?.completedMissions ?? state.drones.completedMissions,
-            totalEarned:
-              (corrected?.drones as { totalEarned?: number })?.totalEarned ??
-              state.drones.totalEarned,
-          },
-        });
-      } else {
-        // Fallback: apply local computation. Should not happen if server is
-        // responsive; kept for degraded-mode tolerance.
-        const fuelCost = Math.ceil(
-          mission.fuelCost /
-            (1 +
-              (drone.fuelEfficiencyLevel - 1) *
-                getBalance().drone.fuelEfficiencyUpgradeCoeff),
+      const serverDrones = corrected?.drones;
+      if (
+        typeof corrected?.money !== "number" ||
+        !serverDrones ||
+        !Array.isArray(serverDrones.fleet) ||
+        typeof serverDrones.completedMissions !== "number" ||
+        typeof serverDrones.totalEarned !== "number"
+      ) {
+        soundEngine.play("error", "building");
+        get().addNotification(
+          "error",
+          "Drone mission could not be confirmed by server. Please retry.",
         );
-        const deliveryTicks = Math.max(
-          10,
-          Math.floor(
-            mission.baseTicks /
-              (1 +
-                (drone.speedLevel - 1) * getBalance().drone.speedUpgradeCoeff),
-          ),
-        );
-        const updatedFleet = state.drones.fleet.map((d) =>
-          d.id === droneId
-            ? {
-                ...d,
-                status: "delivering" as const,
-                missionEndTick: state.gameTick + deliveryTicks,
-                missionId,
-              }
-            : d,
-        );
-        set({
-          money: state.money - fuelCost,
-          drones: { ...state.drones, fleet: updatedFleet },
-        });
+        return;
       }
+
+      set({
+        money: corrected.money,
+        drones: serverDrones,
+      });
       soundEngine.play("buttonClick", "building");
     },
 
@@ -158,12 +123,14 @@ export function createDroneActions(set: SetFn, get: GetFn) {
       const drone = state.drones.fleet.find((d) => d.id === droneId);
       if (!drone) return;
 
-      const levelKey =
-        type === "speed"
-          ? "speedLevel"
-          : type === "capacity"
-            ? "capacityLevel"
-            : "fuelEfficiencyLevel";
+      let levelKey: "speedLevel" | "capacityLevel" | "fuelEfficiencyLevel";
+      if (type === "speed") {
+        levelKey = "speedLevel";
+      } else if (type === "capacity") {
+        levelKey = "capacityLevel";
+      } else {
+        levelKey = "fuelEfficiencyLevel";
+      }
       const currentLevel = drone[levelKey];
       if (currentLevel >= 5) {
         get().addNotification(
@@ -173,8 +140,14 @@ export function createDroneActions(set: SetFn, get: GetFn) {
         return;
       }
 
-      const costMultiplier =
-        type === "speed" ? 500 : type === "capacity" ? 800 : 600;
+      let costMultiplier: number;
+      if (type === "speed") {
+        costMultiplier = 500;
+      } else if (type === "capacity") {
+        costMultiplier = 800;
+      } else {
+        costMultiplier = 600;
+      }
       const cost = costMultiplier * currentLevel;
       if (state.money < cost) {
         soundEngine.play("error", "building");

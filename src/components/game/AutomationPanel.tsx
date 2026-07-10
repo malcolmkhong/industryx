@@ -132,12 +132,12 @@ export function AutomationPanel() {
 
                 {/* Cost */}
                 <div className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg ${
-                  isActive ? 'bg-muted-label/30 text-muted-label' :
-                  canAfford ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'
-                }`}>
-                  <Zap className="w-3 h-3" />
-                  <span>Cost: {unlock.cost} Corporation Points</span>
-                </div>
+                    isActive ? 'bg-muted-label/30 text-muted-label' :
+                    canAfford ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'
+                  }`}>
+                    <Zap className="w-3 h-3" />
+                    <span>Cost: {formatNumber(unlock.cost)} Corporation Points</span>
+                  </div>
               </div>
 
               {/* Activate button */}
@@ -151,11 +151,11 @@ export function AutomationPanel() {
                   size="sm"
                 >
                   {canActivate ? (
-                    <><Zap className="w-3 h-3 mr-1" /> Activate ({unlock.cost} CP)</>
+                    <><Zap className="w-3 h-3 mr-1" /> Activate ({formatNumber(unlock.cost)} CP)</>
                   ) : !hasResearch ? (
-                    <><Lock className="w-3 h-3 mr-1" /> Research Required</>
+                    <><Lock className="w-3 h-3 mr-1" /> Research Required <ArrowRight className="w-3 h-3 ml-1" /></>
                   ) : (
-                    <><Lock className="w-3 h-3 mr-1" /> Need {unlock.cost} CP</>
+                    <><Lock className="w-3 h-3 mr-1" /> Need {formatNumber(unlock.cost)} CP</>
                   )}
                 </Button>
               )}
@@ -187,6 +187,57 @@ export function AutomationPanel() {
             <p>Earn CP by completing ★★★★+ contracts or by performing Global Expansion (prestige reset). Each automation unlock costs CP.</p>
           </div>
         </div>
+      </div>
+
+      {/* Automation Catalogue — SSOT of available unlocks from configCache.
+          Shows locked entries so the player can plan their research / CP
+          grind toward the next unlock. Reuses the same GameItemTooltip and
+          AUTO_ICONS map for visual consistency with the main cards. */}
+      <div className="game-card rounded-xl bg-card p-4 border border-border">
+        <div className="flex items-center gap-2 mb-3">
+          <Bot className="w-4 h-4 text-brand" />
+          <h3 className="text-sm font-semibold text-brand">Automation Catalogue</h3>
+          <span className="text-[10px] text-muted-label">
+            ({AUTOMATION_UNLOCKS.length} total)
+          </span>
+        </div>
+        <ul className="space-y-1">
+          {AUTOMATION_UNLOCKS.map((entry) => {
+            const isUnlocked = store.automationUnlocks.some((u) => u.type === entry.type);
+            const isActive = store.automationUnlocks.find((u) => u.type === entry.type)?.active ?? false;
+            return (
+              <li
+                key={entry.type}
+                className="flex items-center gap-2 text-xs px-2 py-1.5 rounded-lg hover:bg-background/60/30 transition-colors"
+                data-testid="automation-catalogue-entry"
+                data-type={entry.type}
+                data-unlocked={isUnlocked}
+              >
+                <span className="w-6 h-6 rounded flex items-center justify-center bg-background/60 shrink-0">
+                  {AUTO_ICONS[entry.type] ?? <Bot className="w-3.5 h-3.5" />}
+                </span>
+                <span className="flex-1 text-subtle">{entry.name}</span>
+                <span className="text-[10px] text-muted-label font-mono shrink-0">
+                  {formatNumber(entry.cost)} CP
+                </span>
+                {isActive ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] text-success shrink-0">
+                    <Check className="w-3 h-3" /> Active
+                  </span>
+                ) : isUnlocked ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] text-muted-label shrink-0">
+                    <Lock className="w-3 h-3" /> Inactive
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[10px] text-domain shrink-0">
+                    <Lock className="w-3 h-3" /> Locked
+                  </span>
+                )}
+                <ArrowRight className="w-3 h-3 text-muted-label/60 shrink-0" />
+              </li>
+            );
+          })}
+        </ul>
       </div>
     </div>
   );

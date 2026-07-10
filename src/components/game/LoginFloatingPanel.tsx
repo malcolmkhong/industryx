@@ -568,6 +568,11 @@ export function LoginFloatingPanel({
                   Auth account will win. Guest progress (buildings, resources,
                   history) will be merged in.
                 </p>
+                {mergeOperationId && (
+                  <p className="text-[10px] text-muted-label font-mono text-center mb-3">
+                    Operation: {mergeOperationId.slice(0, 13)}
+                  </p>
+                )}
                 <div className="space-y-2">
                   <button
                     type="button"

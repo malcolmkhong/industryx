@@ -3,7 +3,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useGameStore } from '@/lib/game/store';
 import { useShallow } from 'zustand/react/shallow';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Bell, Check, CheckCheck, Trash2, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';

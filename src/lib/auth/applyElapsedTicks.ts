@@ -23,7 +23,8 @@
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { fetchGameConfigFromSupabase } from "@/lib/db/serverConfigFetcher";
 import { runServerTicks } from "@/lib/game/serverEngine";
-import { GAME_LIMITS } from "@/lib/game/balanceConfig";
+import { getGameLimits } from "@/lib/game/balanceConfig";
+import { ensureConfigLoaded } from "@/lib/game/configLoader.server";
 import type { ServerGameData } from "@/lib/game/types";
 
 interface ApplyElapsedResult {
@@ -62,6 +63,18 @@ export async function applyElapsedTicks(
   lastTickAt: string | null,
   gameSpeed: number,
 ): Promise<ApplyElapsedResult> {
+  // Pre-condition: balance config must be loaded from DB before reading
+  // getGameLimits(). In practice the route handler already calls
+  // ensureConfigLoaded() before this function, but we call it again here
+  // for defense in depth (e.g., direct test invocations).
+  const balanceLoad = await ensureConfigLoaded();
+  if (!balanceLoad.ok) {
+    throw new Error(
+      `[applyElapsedTicks] Balance config unavailable: ${balanceLoad.error ?? "unknown"}. ` +
+        `Per RULES.md [SEC-002]: refuse to proceed.`,
+    );
+  }
+
   const configResult = await fetchGameConfigFromSupabase();
   if (!configResult.config) {
     throw new Error(
@@ -102,7 +115,7 @@ export async function applyElapsedTicks(
   const safeGameSpeed =
     Number.isFinite(gameSpeed) && gameSpeed > 0 ? gameSpeed : 1;
   const elapsedTicks = Math.min(
-    GAME_LIMITS.MAX_TICK_RATE_PER_SECOND,
+    getGameLimits().maxTickRatePerSecond,
     Math.floor(elapsedSeconds * safeGameSpeed),
   );
 

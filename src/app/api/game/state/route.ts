@@ -11,6 +11,7 @@ import { verifyAuthAndOwnership } from '@/lib/auth/verifyAuth';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 import {
   validateGameState,
+  extractValidatedSaveFields,
   logActionAsync,
   isAccountLocked,
   flagCheatAttempt,
@@ -66,13 +67,15 @@ export async function GET(request: Request) {
     return NextResponse.json({ data: null, isNew: true });
   }
 
-  // Audit log
+  // Audit log — values validated inside logActionAsync per [SEC-011].
+  // Pass raw `Number()` (no `|| 0`); if NaN/non-integer, logActionAsync
+  // warns and skips the insert instead of silently writing 0.
   logActionAsync({
     userId: auth.userId,
     actionType: 'load',
     payload: { source: 'server_game_state' },
-    gameTick: data.game_tick || 0,
-    moneyAfter: data.money || 0,
+    gameTick: Number(data.game_tick),
+    moneyAfter: Number(data.money),
     isValid: true,
     validationRisk: 'none',
   });
@@ -102,11 +105,16 @@ export async function GET(request: Request) {
 
 // POST /api/game/state - Sync game state to server (authoritative)
 export async function POST(request: Request) {
+  // Request body schema — the trusted server contract.
+  //
+  // IMPORTANT: the client may still send `clientChecksum` and
+  // `clientStateVersion` fields (CloudSyncService.ts is unchanged for now),
+  // but the server DOES NOT read them. They are intentionally absent from
+  // this type and ignored by the handler. Including them here would make
+  // them part of the server contract and re-introduce an attack surface.
   let body: {
     userId?: string;
     gameState?: Record<string, unknown>;
-    clientChecksum?: string;
-    clientStateVersion?: number;
     // Phase 1: optional fingerprint/device_id from client (correlation only)
     fingerprintHash?: string;
     deviceId?: string;
@@ -117,7 +125,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const { userId, gameState, clientChecksum, clientStateVersion } = body;
+  const { userId, gameState } = body;
 
   if (!userId || !gameState) {
     return NextResponse.json({ error: 'userId and gameState are required' }, { status: 400 });
@@ -161,54 +169,13 @@ export async function POST(request: Request) {
     serverTimestamp = new Date().toISOString();
   }
 
-  // Fetch current server state for delta validation + version conflict check
+  // Fetch current server state for delta validation.
+  // Version conflict detection is server-internal via the
+  // `saveServerGameStateOptimistic` optimistic lock below (RULES.md [SEC-001],
+  // [PRF-006]); the client-vs-server version comparison that used to live
+  // here was removed because it could not be trusted — client-supplied
+  // version numbers are not part of the server contract.
   const currentServerState = await loadServerGameStateForDeltaCheck(userId);
-
-  // 02.3: State version conflict detection — if client provides clientStateVersion
-  // and DB has a newer version, return 409 with current server state so client
-  // can merge instead of overwriting.
-  if (clientStateVersion !== undefined && currentServerState) {
-    const dbStateVersion = (currentServerState.state_version as number) ?? 0;
-    if (dbStateVersion > clientStateVersion) {
-      console.warn(
-        `[GameStateAPI] STATE_VERSION_CONFLICT for ${auth.userId}: client=${clientStateVersion}, server=${dbStateVersion}`,
-      );
-      logActionAsync({
-        userId: auth.userId,
-        actionType: 'save',
-        payload: {
-          source: 'server_game_state',
-          clientStateVersion,
-          serverStateVersion: dbStateVersion,
-          reason: 'state_version_conflict',
-        },
-        gameTick: Number(gameState.gameTick) || 0,
-        moneyAfter: Number(gameState.money) || 0,
-        isValid: true,
-        validationRisk: 'none',
-        rejectionReason: `State version conflict: client=${clientStateVersion}, server=${dbStateVersion}`,
-      });
-      return NextResponse.json(
-        {
-          error: 'Server state is newer than client. Reload to merge.',
-          code: 'STATE_VERSION_CONFLICT',
-          serverState: {
-            stateVersion: dbStateVersion,
-            stateHash: currentServerState.state_hash,
-            money: currentServerState.money,
-            researchPoints: currentServerState.research_points,
-            resources: currentServerState.resources,
-            buildings: currentServerState.buildings,
-            gameTick: currentServerState.game_tick,
-            fullState: currentServerState.full_state,
-          },
-          clientStateVersion,
-        },
-        { status: 409 },
-      );
-    }
-  }
-
   const previousState = currentServerState?.full_state as Record<string, unknown> | null;
 
   // Validate the incoming state
@@ -222,8 +189,8 @@ export async function POST(request: Request) {
         userId: auth.userId,
         actionType: 'save',
         payload: { source: 'server_game_state', violations: validation.violations, riskLevel: validation.riskLevel, adminBypass: true },
-        gameTick: Number(gameState.gameTick) || 0,
-        moneyAfter: Number(gameState.money) || 0,
+        gameTick: Number(gameState.gameTick),
+        moneyAfter: Number(gameState.money),
         checksum: validation.checksum,
         isValid: false,
         validationRisk: validation.riskLevel,
@@ -243,8 +210,8 @@ export async function POST(request: Request) {
         userId: auth.userId,
         actionType: 'save',
         payload: { source: 'server_game_state', violations: validation.violations, riskLevel: validation.riskLevel },
-        gameTick: Number(gameState.gameTick) || 0,
-        moneyAfter: Number(gameState.money) || 0,
+        gameTick: Number(gameState.gameTick),
+        moneyAfter: Number(gameState.money),
         checksum: validation.checksum,
         isValid: false,
         validationRisk: validation.riskLevel,
@@ -267,13 +234,57 @@ export async function POST(request: Request) {
   // removed because it incorrectly compared a previously-loaded server hash against
   // a newly modified game state. That comparison flagged every legitimate save
   // (state_N vs state_N+1) as state_tampering and auto-locked users after 3 saves.
-  // Cheat detection now relies solely on validateGameState()'s bounds + delta checks
-  // and the state_version conflict detection above. The clientChecksum request
-  // field, serverStateHash storage, and stateHash response values are preserved
-  // for backwards compatibility with the existing client contract.
+  // The previous clientStateVersion !== server_state_version block was removed
+  // for the same reason — the client's claimed version is not trustworthy input.
+  // Cheat detection now relies SOLELY on:
+  //   1. validateGameState() — bounds + delta checks (server-side)
+  //   2. saveServerGameStateOptimistic() — server-internal optimistic lock
+  //      on state_version (any client-sent version is ignored).
+  // The clientChecksum + clientStateVersion request fields, serverStateHash
+  // storage, and stateHash response values are KEPT ONLY at the wire/storage
+  // boundary for backwards compatibility with the existing client — they are
+  // NOT part of the trusted server contract and are explicitly absent from
+  // the request body TypeScript type above.
 
-  const buildingsCount = ((gameState as Record<string, unknown>).buildings as unknown[])?.length || 0;
-  const currentVersion = (currentServerState?.state_version as number) || 0;
+  // ─── Extract + validate DB-writeable numeric fields at trust boundary ────
+  // Per RULES.md [SEC-011]: do not silently substitute defaults (e.g.
+  // `|| 0`) for required fields. extractValidatedSaveFields() throws on
+  // missing/invalid values; we catch and return 503. Defends the DB write
+  // path even if validateGameState() somehow allowed corrupt data through.
+  // Also reads + validates state_version from the row (was previously
+  // `... || 0` which silently masked missing rows on first save).
+  let currentVersion: number;
+  try {
+    currentVersion = Number(currentServerState?.state_version);
+    if (!Number.isInteger(currentVersion) || currentVersion < 0) {
+      throw new Error(`state_version invalid: ${currentServerState?.state_version}`);
+    }
+  } catch (err) {
+    console.error('[GameStateAPI] state_version validation failed:', err);
+    return NextResponse.json(
+      { error: 'Invalid server state version', code: 'INVALID_STATE_VERSION' },
+      { status: 503 },
+    );
+  }
+
+  let saveFields;
+  try {
+    saveFields = extractValidatedSaveFields(gameState);
+  } catch (err) {
+    console.error('[GameStateAPI] game state field validation failed:', err);
+    return NextResponse.json(
+      { error: 'Invalid game state fields', code: 'INVALID_SAVE_FIELDS' },
+      { status: 503 },
+    );
+  }
+  const {
+    money,
+    totalMoneyEarned,
+    researchPoints,
+    buildingsCount,
+    gameTick,
+    gameSpeed,
+  } = saveFields;
 
   // Phase 13 (2026-07-10, Option C) — defense-in-depth filter via the
   // shared helper. Strips client-side UI fields (hydrated, activeTab,
@@ -283,23 +294,25 @@ export async function POST(request: Request) {
     gameState as Record<string, unknown>,
   );
 
-  // Upsert to server_game_state (SOURCE OF TRUTH)
+  // Upsert to server_game_state (SOURCE OF TRUTH) — uses validated values
+  // above, not the original client-supplied numbers (no `|| 0` fallbacks).
+  // Cloud save is not tick settlement. `last_tick_at` is owned by
+  // applyElapsedTicks/offline tick paths after runServerTicks succeeds.
   const upsertData = await upsertServerGameState({
     user_id: userId,
-    money: Number(gameState.money) || 0,
-    total_money_earned: Number(gameState.totalMoneyEarned) || 0,
-    research_points: Number(gameState.researchPoints) || 0,
+    money,
+    total_money_earned: totalMoneyEarned,
+    research_points: researchPoints,
     buildings: asFullState(gameState.buildings),
     buildings_count: buildingsCount,
     completed_research: asFullState(gameState.completedResearch),
     resources: asFullState(gameState.resources),
     workers: asFullState(gameState.workers),
-    game_tick: Number(gameState.gameTick) || 0,
-    game_speed: Number(gameState.gameSpeed) || 1,
+    game_tick: gameTick,
+    game_speed: gameSpeed,
     full_state: asFullState(sanitizedFullState),
     state_hash: validation.checksum,
     state_version: currentVersion + 1,
-    last_tick_at: serverTimestamp,
     last_saved_at: serverTimestamp,
   });
 
@@ -315,7 +328,9 @@ export async function POST(request: Request) {
     // server_game_state.full_state column and stale clients cannot smuggle UI in either place.
     await syncPlayerProgressGameState(userId, sanitizedFullState);
 
-  // Audit log
+  // Audit log — values validated inside logActionAsync per [SEC-011].
+  // Use the validated save fields (already fail-closed above) rather
+  // than the raw client-supplied values.
   logActionAsync({
     userId: auth.userId,
     actionType: 'save',
@@ -325,8 +340,8 @@ export async function POST(request: Request) {
       riskLevel: validation.riskLevel,
       stateVersion: currentVersion + 1,
     },
-    gameTick: Number(gameState.gameTick) || 0,
-    moneyAfter: Number(gameState.money) || 0,
+    gameTick,
+    moneyAfter: money,
     checksum: validation.checksum,
     isValid: validation.isValid,
     validationRisk: validation.riskLevel,

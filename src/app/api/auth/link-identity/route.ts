@@ -16,8 +16,7 @@
 //   - 4 inline .from() calls replaced.
 
 import { cookies } from 'next/headers';
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 import { loadServerGameStateForPreview } from '@/lib/db/serverGameState';

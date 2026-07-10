@@ -4,7 +4,6 @@ import React, { memo } from 'react';
 import { Sparkles } from 'lucide-react';
 import { GameIcon } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
 import { formatNumber } from '@/lib/game/store';
 import { ColoredProgressBar } from './ColoredProgressBar';
 

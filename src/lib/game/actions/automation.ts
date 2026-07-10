@@ -1,4 +1,3 @@
-import type { GameNotification } from '../types';
 import { RESEARCH_TREE } from '../configCache';
 import { soundEngine } from '../soundEngine';
 import type { SetFn, GetFn } from "./_actionTypes";

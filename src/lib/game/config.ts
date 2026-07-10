@@ -197,7 +197,12 @@ export interface SupabaseMegaProject {
 
 export interface SupabaseGameConfig {
   id: string;
-  [key: string]: unknown; // 40+ numeric config columns
+  // Offline-tick tuning (added 2026-07-09, see .rules [ARC-011]/[SEC-011]).
+  // DB CHECK constraints enforce ranges; routes re-validate and fail closed.
+  tick_interval_ms: number;
+  max_offline_ticks: number;
+  min_offline_ms: number;
+  [key: string]: unknown; // remaining numeric config columns
 }
 
 export interface SupabaseBalancingRule {
@@ -334,6 +339,23 @@ export interface GameConfig {
     unlockRequirement: Record<string, unknown>;
   }>;
   gameConfig: Record<string, unknown>;
+  /**
+   * Client-safe subset of the server-authoritative game_config_balance
+   * values. The server is the source of truth for actual gameplay
+   * enforcement (cooldowns, commissions, etc.); the client uses these
+   * for display-only UX (showing commission %, cooldown progress bars,
+   * level-up thresholds).
+   *
+   * Populated by fetchGameConfigFromSupabase() from the game_config_balance
+   * table. If the table is unreachable or the row is missing, sensible
+   * defaults are returned (matching the migration 072 seed values).
+   */
+  balance: {
+    tradeCommissionRate: number; // server-authoritative
+    tradeCooldownSeconds: number; // server-authoritative
+    workerLevelUpXpBase: number; // server-authoritative
+    autoSellThresholdRatio: number; // server-authoritative
+  };
   balancingRules?: Array<{
     id: string;
     name: string;
@@ -353,6 +375,24 @@ export interface GameConfig {
   loadedAt: number;
   source: 'supabase' | 'fallback';
 }
+
+/**
+ * Default values for the client-safe `GameConfig.balance` subset. Used by:
+ * - The /api/game/definitions 503 fallback
+ * - The /api/game/definitions success path when the game_config_balance
+ *   table is unreachable or missing the relevant row
+ * - The GameConfigProvider client-side fallback config
+ * - Route handlers that build a GameConfig literal for server-side
+ *   validation (game/compute, game/offline, admin/investigations)
+ *
+ * Values match the migration 072 seed for game_config_balance.
+ */
+export const DEFAULT_BALANCE_SUBSET: GameConfig["balance"] = {
+  tradeCommissionRate: 0.15,
+  tradeCooldownSeconds: 300,
+  workerLevelUpXpBase: 100,
+  autoSellThresholdRatio: 0.8,
+};
 
 // --- Data Transformers ---
 
@@ -641,6 +681,7 @@ export async function fetchGameConfig(): Promise<GameConfig | null> {
         unlockRequirement: m.unlock_requirement,
       })),
       gameConfig: game.data?.[0] || {},
+      balance: DEFAULT_BALANCE_SUBSET,
       balancingRules: (rules.data || []).map((r: SupabaseBalancingRule) => ({
         id: r.id,
         name: r.name,

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Shield, Plus, X } from 'lucide-react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { Shield, Plus, X, Link2 } from 'lucide-react';
 
 interface PermissionState {
   granted: string[];
@@ -9,18 +10,22 @@ interface PermissionState {
 }
 
 export default function PermissionsPage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [userId, setUserId] = useState('');
   const [perms, setPerms] = useState<PermissionState | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState('');
 
-  const fetchPermissions = useCallback(async () => {
-    if (!userId.trim()) return;
+  const fetchPermissions = useCallback(async (overrideUserId?: string) => {
+    const target = (overrideUserId ?? userId).trim();
+    if (!target) return;
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`/api/admin/permissions/${userId.trim()}`);
+      const res = await fetch(`/api/admin/permissions/${target}`);
       if (res.ok) {
         setPerms(await res.json());
       } else {
@@ -32,6 +37,41 @@ export default function PermissionsPage() {
       setLoading(false);
     }
   }, [userId]);
+
+  // ─── Sync userId ↔ URL query param ─────────────────────────────
+  // On mount: read ?userId=xxx and pre-fill the input + auto-load.
+  // On change: replace URL so the current view is shareable/bookmarkable.
+  useEffect(() => {
+    const initial = searchParams.get('userId');
+    if (initial) {
+      setUserId(initial);
+      // Auto-load using the URL value directly (avoids React state race)
+      void fetchPermissions(initial);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleUserIdChange = (next: string) => {
+    setUserId(next);
+    const params = new URLSearchParams(searchParams.toString());
+    if (next.trim()) {
+      params.set('userId', next.trim());
+    } else {
+      params.delete('userId');
+    }
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+
+  const copyShareLink = async () => {
+    if (!userId.trim()) return;
+    const url = `${window.location.origin}${pathname}?userId=${encodeURIComponent(userId.trim())}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setError('');
+    } catch {
+      setError('Failed to copy share link');
+    }
+  };
 
   const togglePermission = async (perm: string) => {
     if (!userId.trim() || saving) return;
@@ -70,18 +110,28 @@ export default function PermissionsPage() {
               id="admin-user-id"
               aria-label="Admin user ID"
               value={userId}
-              onChange={(e) => setUserId(e.target.value)}
+              onChange={(e) => handleUserIdChange(e.target.value)}
               placeholder="UUID of admin user..."
               className="w-full px-3 py-2 bg-background/60 border border-muted-label/30 rounded-lg text-xs text-white placeholder-muted-label font-mono focus:outline-none focus:border-warning/60/50"
             />
           </div>
           <button
             type="button"
-            onClick={fetchPermissions}
+            onClick={() => void fetchPermissions()}
             disabled={loading}
             className="px-4 py-2 bg-warning/70 hover:bg-warning/80 disabled:bg-background/40 text-white text-sm font-medium rounded-lg transition-colors"
           >
             {loading ? 'Loading...' : 'Load'}
+          </button>
+          <button
+            type="button"
+            onClick={copyShareLink}
+            disabled={!userId.trim()}
+            title="Copy shareable link to this admin user"
+            aria-label="Copy shareable link"
+            className="px-3 py-2 bg-background/60 hover:bg-background/40 disabled:opacity-40 text-muted-label hover:text-white text-sm font-medium rounded-lg border border-muted-label/30 transition-colors"
+          >
+            <Link2 className="w-4 h-4" />
           </button>
         </div>
         {error && <p className="text-xs text-danger mt-2">{error}</p>}

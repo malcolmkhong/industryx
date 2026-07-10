@@ -1,12 +1,6 @@
 import type { ResourceType } from "../types";
 import { RESOURCE_META } from "../configCache";
 import { getGlobalPrice } from "../utils/gameMath";
-import {
-  computeSellMultiplier,
-  buildMultipliers,
-} from "../productionCalculator";
-import { getBalance } from "../balanceConfig";
-import { getCapacity } from "../utils/costCalculator";
 import { useGameStore } from "../store";
 
 import { generateId } from "../utils/generateId";
@@ -50,7 +44,7 @@ const TRADE_IMPACT_NOTIFY_COOLDOWN_MS = 10_000;
  * Dedupe: 10s per-resource cooldown to avoid spamming notifications when
  * the polling hook catches up.
  */
-export async function notifyTradeImpactIfMoved(
+export function notifyTradeImpactIfMoved(
   resource: ResourceType,
   priceBefore: number,
   delayMs = 5000,
@@ -125,40 +119,40 @@ export function createMarketActions(set: SetFn, get: GetFn) {
       if (!validation.approved) {
         soundEngine.play("error", "ui");
         // Log server-side technical error for debugging
-        // eslint-disable-next-line no-console
         console.error(`[sellResource] server rejected: ${validation.error}`);
         // Show user-friendly message (no internal leak)
         get().addNotification("error", friendlyTradeError(validation.error));
         return;
       }
 
-      // Apply server-authoritative state. Defensive fallback to local
-      // computation if server omits correctedState.
       const corrected = validation.correctedState;
-      const fallbackSellPrice =
-        localPrice > 0
-          ? localPrice *
-            amount *
-            computeSellMultiplier(state, buildMultipliers(state))
-          : 0;
-
-      const serverMoney = corrected?.money ?? state.money + fallbackSellPrice;
-      const serverTotalEarned =
-        corrected?.totalMoneyEarned ??
-        state.totalMoneyEarned + fallbackSellPrice;
-      const serverResources = (corrected?.resources as Record<
-        string,
-        number
-      >) ?? {
-        ...state.resources,
-        [resource]: state.resources[resource] - amount,
-      };
+      if (
+        !corrected ||
+        typeof corrected.money !== "number" ||
+        typeof corrected.totalMoneyEarned !== "number" ||
+        !corrected.resources
+      ) {
+        soundEngine.play("error", "ui");
+        get().addNotification(
+          "error",
+          "Sell could not be confirmed by server. Please retry.",
+        );
+        return;
+      }
+      const serverMoney = corrected.money;
+      const serverTotalEarned = corrected.totalMoneyEarned;
+      const serverResources = corrected.resources as Record<string, number>;
       const serverSoldStats = (
-        corrected?.stats as { totalResourcesSold?: Record<string, number> }
-      )?.totalResourcesSold ?? {
-        ...(state.stats?.totalResourcesSold ?? {}),
-        [resource]: (state.stats?.totalResourcesSold?.[resource] ?? 0) + amount,
-      };
+        corrected.stats as { totalResourcesSold?: Record<string, number> } | undefined
+      )?.totalResourcesSold;
+      if (!serverSoldStats) {
+        soundEngine.play("error", "ui");
+        get().addNotification(
+          "error",
+          "Sell stats could not be confirmed by server. Please retry.",
+        );
+        return;
+      }
 
       set({
         resources: serverResources,
@@ -183,23 +177,20 @@ export function createMarketActions(set: SetFn, get: GetFn) {
       const effectivePrice =
         serverMoney - state.money > 0 && amount > 0
           ? (serverMoney - state.money) / amount
-          : fallbackSellPrice / Math.max(1, amount);
+          : localPrice;
       get().addNotification(
         "success",
         `Sold ${formatNumber(amount)} ${RESOURCE_META[resource].name} for $${formatNumber(serverMoney - state.money)}`,
       );
       get().updateQuestProgress("sell", 1);
       // Phase 3 F5: schedule delayed price-impact check.
-      await notifyTradeImpactIfMoved(resource, effectivePrice);
+      notifyTradeImpactIfMoved(resource, effectivePrice);
     },
 
     buyResource: async (resource: ResourceType, amount: number) => {
       const state = get();
       const globalPrice = getGlobalPrice(state, resource);
       if (globalPrice <= 0) return;
-
-      const localCost =
-        globalPrice * amount * getBalance().market.buyPriceMarkup;
 
       // Report trade to global market pressure pool
       fetch("/api/market/action", {
@@ -219,24 +210,27 @@ export function createMarketActions(set: SetFn, get: GetFn) {
       if (!validation.approved) {
         soundEngine.play("error", "ui");
         // Log server-side technical error for debugging
-        // eslint-disable-next-line no-console
         console.error(`[buyResource] server rejected: ${validation.error}`);
         // Show user-friendly message (no internal leak)
         get().addNotification("error", friendlyTradeError(validation.error));
         return;
       }
 
-      // Apply server-authoritative state. Defensive fallback to local
-      // computation if server omits correctedState.
       const corrected = validation.correctedState;
-      const serverMoney = corrected?.money ?? state.money - localCost;
-      const serverResources = (corrected?.resources as Record<
-        string,
-        number
-      >) ?? {
-        ...state.resources,
-        [resource]: (state.resources[resource] ?? 0) + amount,
-      };
+      if (
+        !corrected ||
+        typeof corrected.money !== "number" ||
+        !corrected.resources
+      ) {
+        soundEngine.play("error", "ui");
+        get().addNotification(
+          "error",
+          "Purchase could not be confirmed by server. Please retry.",
+        );
+        return;
+      }
+      const serverMoney = corrected.money;
+      const serverResources = corrected.resources as Record<string, number>;
 
       set({
         resources: serverResources,
@@ -249,7 +243,7 @@ export function createMarketActions(set: SetFn, get: GetFn) {
       );
       // Phase 3 F5: schedule delayed price-impact check.
       const buyPrice = effectiveCost / amount;
-      await notifyTradeImpactIfMoved(resource, buyPrice);
+      notifyTradeImpactIfMoved(resource, buyPrice);
     },
 
     toggleAutoSell: (resource: ResourceType) => {

@@ -572,44 +572,6 @@ describe('Module: services/antiCheatService', () => {
 });
 
 // ═════════════════════════════════════════════════════════════════════
-// TARGET: services/gameTick (Core Loop)
-// ═════════════════════════════════════════════════════════════════════
-
-describe('Module: services/gameTick', () => {
-  beforeEach(() => { resetStore(); vi.clearAllMocks(); });
-  it('does nothing when paused', () => {
-    useGameStore.setState({ paused: true }); const t = getStore().gameTick;
-    getStore().gameTickAction(); expect(getStore().gameTick).toBe(t);
-  });
-  it('increments gameTick', () => {
-    const t = getStore().gameTick; getStore().gameTickAction();
-    expect(getStore().gameTick).toBe(t + 1);
-  });
-  it('increments stats.playTime', () => {
-    const p = getStore().stats.playTime; getStore().gameTickAction();
-    expect(getStore().stats.playTime).toBe(p + 1);
-  });
-  it('keeps resources non-negative', () => {
-    useGameStore.setState({ resources: { ...getStore().resources, iron: 0 } });
-    getStore().gameTickAction(); expect(getStore().resources.iron).toBeGreaterThanOrEqual(0);
-  });
-  it('preserves productionSnapshot shape', () => {
-    getStore().gameTickAction();
-    const ps = getStore().productionSnapshot;
-    expect(ps).toBeDefined(); expect(typeof ps.powerProduction).toBe('number');
-  });
-  it('decrements contract timer', () => {
-    useGameStore.setState({ contracts: [{ id: 'c1', name: 'T', type: 'supply', description: '', requiredResources: [], timeLimit: 10, timeRemaining: 5, reward: { money: 100, researchPoints: 0, corporationPoints: 0 }, difficulty: 1, gameTier: 0, progress: 0, completed: false, failed: false, icon: '' }] });
-    getStore().gameTickAction(); expect(getStore().contracts[0].timeRemaining).toBe(4);
-  });
-  it('updates weather on expiry', () => {
-    useGameStore.setState({ weather: { current: 'clear', intensity: 0, remaining: 0, nextChange: 0 } as any });
-    getStore().gameTickAction();
-    expect(['clear', 'rainy', 'stormy', 'sunny', 'foggy', 'snowy']).toContain(getStore().weather.current);
-  });
-});
-
-// ═════════════════════════════════════════════════════════════════════
 // TARGET: services/coreService (setGameSpeed, togglePause, setActiveTab)
 // ═════════════════════════════════════════════════════════════════════
 
@@ -672,8 +634,8 @@ describe('Module: services/questService', () => {
 describe('Module: store/composition', () => {
   beforeEach(resetStore);
   it('all action keys present', () => {
-    const actions = ['gameTickAction','setGameSpeed','togglePause','setActiveTab','buildBuilding','upgradeBuilding','toggleBuilding','selectBuilding','buildTransportLine','upgradeTransportLine','toggleTransportLine','startResearch','hireWorker','assignWorker','levelUpWorker','sellResource','buyResource','toggleAutoSell','acceptContract','fulfillContract','activateAutomation','doPrestige','purchasePrestigeBonus','addNotification','markNotificationRead','markAllNotificationsRead','clearNotifications','divergesFromExpected','getNewsLLMState','refreshNewsFromLLM','collectPayout','toggleAutoCollect','buyDrone','sendDrone','upgradeDrone','generateDroneMissions','addLeaderboardEntry','checkDailyLogin','claimDailyReward','claimQuestReward','updateQuestProgress','setTrackedQuest','upgradeStorage','getCurrentRank','getPlayerGameTier','startMegaProject','contributeToMegaProject','saveBlueprint','loadBlueprint','deleteBlueprint','renameBlueprint','exportBlueprint','importBlueprint'];
+    const actions = ['setGameSpeed','togglePause','setActiveTab','buildBuilding','upgradeBuilding','toggleBuilding','selectBuilding','buildTransportLine','upgradeTransportLine','toggleTransportLine','startResearch','hireWorker','assignWorker','levelUpWorker','sellResource','buyResource','toggleAutoSell','acceptContract','fulfillContract','activateAutomation','doPrestige','purchasePrestigeBonus','addNotification','markNotificationRead','markAllNotificationsRead','clearNotifications','divergesFromExpected','getNewsLLMState','refreshNewsFromLLM','collectPayout','toggleAutoCollect','buyDrone','sendDrone','upgradeDrone','generateDroneMissions','addLeaderboardEntry','checkDailyLogin','claimDailyReward','claimQuestReward','updateQuestProgress','setTrackedQuest','upgradeStorage','getCurrentRank','getPlayerGameTier','startMegaProject','contributeToMegaProject','saveBlueprint','loadBlueprint','deleteBlueprint','renameBlueprint','exportBlueprint','importBlueprint'];
     for (const a of actions) expect(typeof (getStore() as unknown as Record<string, unknown>)[a]).toBe('function');
-    expect(actions.length).toBe(53);
+    expect(actions.length).toBe(52);
   });
 });

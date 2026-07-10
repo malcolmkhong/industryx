@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Database, Search, Plus, Pencil, Trash2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, Check, Menu } from "lucide-react";
-import { TABLE_CONFIGS, getTableConfig, type TableConfig, type ColumnConfig } from "@/lib/config/tables";
+import { getTableConfig, type TableConfig, type ColumnConfig } from "@/lib/config/tables";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -114,7 +114,7 @@ export default function ConfigTablesPage() {
           setSelectedTable(data.categories[0].tables[0].id);
         }
       } catch (err) {
-        showError("Failed to load table list");
+        showError(err instanceof Error ? err.message : "Failed to load table list");
       } finally {
         setTableListLoading(false);
       }
@@ -372,7 +372,7 @@ export default function ConfigTablesPage() {
 
   // ─── Get current table config ───────────────────────────────────────────
 
-  const currentTableConfig = selectedTable ? getTableConfig(selectedTable) : null;
+  const currentTableConfig: TableConfig | null = selectedTable ? getTableConfig(selectedTable) : null;
 
   const visibleColumns = currentTableConfig
     ? currentTableConfig.columns.filter((c) => !c.hidden)
@@ -487,7 +487,7 @@ export default function ConfigTablesPage() {
         {!selectedTable || !currentTableConfig ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
-              <div className="text-4xl mb-4">🗄️</div>
+              <Database size={48} strokeWidth={1.5} className="text-muted-label mx-auto mb-4" aria-hidden="true" />
               <h2 className="text-white text-lg font-medium mb-2">Select a table</h2>
               <p className="text-muted-label text-sm">Choose a config table from the sidebar to view and manage its data.</p>
             </div>
@@ -498,8 +498,11 @@ export default function ConfigTablesPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-lg">{currentTableConfig.icon}</span>
+                  <span className="text-lg" aria-hidden="true">{currentTableConfig.icon}</span>
                   <h2 className="text-white text-lg font-semibold">{currentTableConfig.displayName}</h2>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider bg-warning/10 text-warning border border-warning/20">
+                    {currentTableConfig.category}
+                  </span>
                 </div>
                 <p className="text-muted-label text-xs mt-1">
                   {currentTableConfig.id} · {pagination.total} row{pagination.total !== 1 ? "s" : ""}
@@ -975,6 +978,9 @@ function JsonCell({
 
   return (
     <div className="max-w-75">
+      <div className="text-[10px] font-mono text-muted-label/80 mb-0.5 truncate" title={colKey}>
+        {colKey}
+      </div>
       <div
         className={`text-[11px] font-mono text-muted-label bg-background/60/50 rounded px-2 py-1 ${
           expanded ? "max-h-64 overflow-y-auto" : "max-h-8 overflow-hidden"

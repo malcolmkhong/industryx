@@ -21,8 +21,6 @@ import {
 import { useAuth } from "@/components/providers/AuthProvider";
 import type {
   MergeFlowService,
-  MergeState,
-  MergePreference,
 } from "./merge/MergeFlowService";
 
 const MergeCtx = createContext<{ service: MergeFlowService } | null>(null);

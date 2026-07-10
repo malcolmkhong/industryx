@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useLoginPrompt } from '@/lib/hooks/useLoginPrompt';
+import { useCloudSync } from '@/lib/hooks/cloudSync';
 import { Button } from '@/components/ui/button';
-import { X, User, LogOut, Cloud, Save, Link2 } from 'lucide-react';
+import { X, User, LogOut, Cloud, RefreshCw, Check, Save, Link2, Github } from 'lucide-react';
 
 interface AccountSettingsModalProps {
   open: boolean;
@@ -15,6 +16,7 @@ interface AccountSettingsModalProps {
 export function AccountSettingsModal({ open, onClose, onSignOut }: AccountSettingsModalProps) {
   const { user, isGuest } = useAuth();
   const { promptLogin } = useLoginPrompt();
+  const cloudSync = useCloudSync();
   const [displayName, setDisplayName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,9 +66,63 @@ export function AccountSettingsModal({ open, onClose, onSignOut }: AccountSettin
     }
   };
 
-  const accountTypeBadge = isGuest
-    ? { label: 'Guest', className: 'bg-warning/30 text-warning border-warning/30' }
-    : { label: 'Google', className: 'bg-success/30 text-success border-success/30' };
+  // Derive the account provider from Supabase's app_metadata. Supported
+  // providers: 'google', 'github', 'email' (password / magic link), or
+  // 'guest' for anonymous users. Each renders with its own badge colour
+  // and an icon hint that matches the sign-in method.
+  const userAppMeta = (user as {
+    app_metadata?: { provider?: string; providers?: string[] };
+  } | null)?.app_metadata;
+
+  // `providers` lists every linked identity (Supabase supports linking
+  // multiple OAuth providers to one user). When missing, fall back to
+  // a single-element array of the primary provider.
+  const linkedProviders: string[] = (() => {
+    if (userAppMeta?.providers && userAppMeta.providers.length > 0) {
+      return userAppMeta.providers;
+    }
+    if (userAppMeta?.provider) return [userAppMeta.provider];
+    return isGuest ? ['anonymous'] : ['email'];
+  })();
+
+  const primaryProvider = userAppMeta?.provider ?? linkedProviders[0] ?? 'email';
+
+  const providerBadge = (provider: string) => {
+    switch (provider) {
+      case 'google':
+        return {
+          label: 'Google',
+          className: 'bg-success/30 text-success border-success/30',
+          Icon: Check,
+        };
+      case 'github':
+        return {
+          label: 'GitHub',
+          className: 'bg-subtle/30 text-subtle border-subtle/30',
+          Icon: Github,
+        };
+      case 'email':
+        return {
+          label: 'Email',
+          className: 'bg-brand/30 text-brand border-brand/30',
+          Icon: Check,
+        };
+      case 'anonymous':
+        return {
+          label: 'Guest',
+          className: 'bg-warning/30 text-warning border-warning/30',
+          Icon: User,
+        };
+      default:
+        return {
+          label: provider,
+          className: 'bg-muted-label/30 text-muted-label border-muted-label/30',
+          Icon: User,
+        };
+    }
+  };
+
+  const accountTypeBadge = providerBadge(primaryProvider);
 
   return (
     <div className="fixed inset-0 z-110 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Account settings">
@@ -90,7 +146,8 @@ export function AccountSettingsModal({ open, onClose, onSignOut }: AccountSettin
             <div>
               <h2 className="text-lg font-bold text-subtle">Account Settings</h2>
               <div className="flex items-center gap-2 mt-1">
-                <span className={`text-[10px] px-2 py-0.5 rounded-md border ${accountTypeBadge.className}`}>
+                <span className={`text-[10px] px-2 py-0.5 rounded-md border ${accountTypeBadge.className} flex items-center gap-1`}>
+                  <accountTypeBadge.Icon className="w-3 h-3" aria-hidden="true" />
                   {accountTypeBadge.label}
                 </span>
                 <span className="text-[10px] text-muted-label">
@@ -105,6 +162,78 @@ export function AccountSettingsModal({ open, onClose, onSignOut }: AccountSettin
               Playing as Guest. Your progress is tied to this device. Bind your account to protect it across devices.
             </div>
           )}
+
+          {/* ─── Linked Accounts ─────────────────────────────────────────────── */}
+          <div className="mb-4 p-3 rounded-lg bg-card border border-brand/20">
+            <p className="text-[10px] uppercase tracking-wider text-muted-label font-semibold mb-2">
+              Linked accounts
+            </p>
+            <div className="space-y-1.5">
+              {linkedProviders.length > 0 ? (
+                linkedProviders.map((p) => {
+                  const badge = providerBadge(p);
+                  const isPrimary = p === primaryProvider;
+                  return (
+                    <div
+                      key={p}
+                      className="flex items-center gap-2 text-xs"
+                    >
+                      <span className={`text-[10px] px-2 py-0.5 rounded-md border ${badge.className} flex items-center gap-1`}>
+                        <badge.Icon className="w-3 h-3" aria-hidden="true" />
+                        {badge.label}
+                      </span>
+                      {isPrimary && (
+                        <span className="text-[10px] text-muted-label">primary</span>
+                      )}
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-[10px] text-muted-label">No linked accounts</p>
+              )}
+            </div>
+          </div>
+
+          {/* ─── Cloud Sync Status ───────────────────────────────────────────── */}
+          <div className="mb-4 p-3 rounded-lg bg-card border border-brand/20">
+            <div className="flex items-center gap-2 mb-2">
+              {cloudSync.isSyncing ? (
+                <RefreshCw className="w-4 h-4 text-brand animate-spin" aria-hidden="true" />
+              ) : cloudSync.lastSyncAt ? (
+                <Check className="w-4 h-4 text-success" aria-hidden="true" />
+              ) : (
+                <Cloud className="w-4 h-4 text-muted-label" aria-hidden="true" />
+              )}
+              <span className="text-xs font-semibold text-subtle">
+                {cloudSync.isSyncing
+                  ? 'Syncing…'
+                  : cloudSync.lastSyncAt
+                    ? 'Cloud Synced'
+                    : 'Not yet synced'}
+              </span>
+            </div>
+            <div className="text-[10px] text-muted-label space-y-0.5">
+              {cloudSync.lastSyncAt && (
+                <p>
+                  Last sync:{' '}
+                  <span className="font-mono text-subtle">
+                    {new Date(cloudSync.lastSyncAt).toLocaleString()}
+                  </span>
+                </p>
+              )}
+              {cloudSync.lastAutoSaveAt && (
+                <p>
+                  Last auto-save:{' '}
+                  <span className="font-mono text-subtle">
+                    {new Date(cloudSync.lastAutoSaveAt).toLocaleString()}
+                  </span>
+                </p>
+              )}
+              {!cloudSync.lastSyncAt && (
+                <p>Your progress will sync to the cloud when you sign in and play.</p>
+              )}
+            </div>
+          </div>
 
           {isGuest && (
             <Button

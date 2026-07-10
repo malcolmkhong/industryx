@@ -17,7 +17,7 @@ export function ColoredProgressBar({
   color,
   showShimmer = false,
   className,
-  animate = false,
+  animate: _animate = false,
 }: ColoredProgressBarProps) {
   const normalizedValue = Math.min(100, Math.max(0, (value || 0) * 100));
 

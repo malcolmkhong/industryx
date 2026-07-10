@@ -58,24 +58,12 @@ export class LoginPromptService {
       if (!this.requestLogin) return;
       if (state.gameTick === prev.gameTick) return;
 
-      if (
-        !this.progressMilestoneTriggered &&
-        !this.isDismissed('progress_milestone') &&
-        state.gameTick >= PROGRESS_MILESTONE_TICKS
-      ) {
-        this.progressMilestoneTriggered = true;
-        setTimeout(() => this.requestLogin?.('progress_milestone'), 3000);
-      }
-
-      if (
-        !this.prestigeChecked &&
-        !this.isDismissed('prestige_available') &&
-        state.totalMoneyEarned >= PRESTIGE_THRESHOLD &&
-        state.gameTick > 0
-      ) {
-        this.prestigeChecked = true;
-        setTimeout(() => this.requestLogin?.('prestige_available'), 2000);
-      }
+      this.evaluateAutoTriggers({
+        gameTick: state.gameTick,
+        totalMoneyEarned: state.totalMoneyEarned,
+        isAnonymous: true,
+        now: Date.now(),
+      });
     });
 
     // Playtime reminder interval
@@ -127,12 +115,33 @@ export class LoginPromptService {
     }
   }
 
+  private evaluateAutoTriggers(input: AutoTriggerInput): void {
+    if (
+      !this.progressMilestoneTriggered &&
+      !this.isDismissed('progress_milestone') &&
+      input.gameTick >= PROGRESS_MILESTONE_TICKS
+    ) {
+      this.progressMilestoneTriggered = true;
+      setTimeout(() => this.requestLogin?.('progress_milestone'), 3000);
+    }
+
+    if (
+      !this.prestigeChecked &&
+      !this.isDismissed('prestige_available') &&
+      input.totalMoneyEarned >= PRESTIGE_THRESHOLD &&
+      input.gameTick > 0
+    ) {
+      this.prestigeChecked = true;
+      setTimeout(() => this.requestLogin?.('prestige_available'), 2000);
+    }
+  }
+
   /**
    * Mark a reason as dismissed. Persists to localStorage.
    */
   dismiss(reason: LoginPromptReason): void {
     if (typeof window === 'undefined') return;
-    let dismissals: DismissalRecord = {};
+    let dismissals: DismissalRecord;
     try {
       const raw = localStorage.getItem(DISMISSAL_KEY);
       dismissals = raw ? JSON.parse(raw) : {};

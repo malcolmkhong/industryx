@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { MessageCircle, X, Plus, Send, ChevronLeft } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 
 interface Ticket {
   id: string;
@@ -38,8 +37,6 @@ export function SupportButton() {
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const supabase = createClient();
-
   const fetchTickets = useCallback(async () => {
     setLoading(true);
     try {
@@ -66,7 +63,9 @@ export function SupportButton() {
         const data = await res.json();
         setMessages(data.data?.messages || []);
       }
-    } catch {}
+    } catch (error) {
+      console.warn('[SupportButton] Failed to load ticket messages', error);
+    }
   };
 
   const sendMessage = async () => {

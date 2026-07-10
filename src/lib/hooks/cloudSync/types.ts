@@ -17,7 +17,9 @@ export interface CloudBlockState {
     | 'SESSION_EXPIRED'
     | 'VALIDATION_FAILED'
     | 'NETWORK_ERROR'
-    | 'MIGRATION_REJECTED';
+    | 'MIGRATION_REJECTED'
+    | 'CONFIG_UNAVAILABLE'
+    | 'SERVER_UNAVAILABLE';
   detectedAt: number;
 }
 

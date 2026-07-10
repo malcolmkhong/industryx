@@ -17,8 +17,8 @@
  * What this test does NOT cover:
  *   - The actual signInAnonymously() browser round-trip (we have no session
  *     creation path on the server side, by design — Supabase doesn't expose
- *     admin.createSession for anon users).
- *   - Real-time game tick loops, autosave, beforeunload flush — those are
+ *   - Autosave and beforeunload flush. Game time is server-owned and covered by
+ *     applyElapsedTicks / runServerTicks tests.
  *     client-side Zustand concerns and unit-tested in tests/unit/store.baseline.test.ts.
  *
  * Live dependencies (must be up):

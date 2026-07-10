@@ -97,6 +97,17 @@ interface HealthBreakdown {
   production: number;
   storage: number;
   activity: number;
+  /**
+   * Output throughput (0-100): how much of theoretical capacity is being
+   * produced. Penalises idle buildings & low per-building utilisation.
+   * Independent of the 4 × 25 sub-scores so the total stays capped at 100.
+   */
+  throughput: number;
+  /**
+   * Net growth (0-100): ratio of money income to total money flow.
+   * Higher = factory is making more than it spends. 0 = breaking even.
+   */
+  growth: number;
   total: number;
 }
 
@@ -197,17 +208,46 @@ function HealthGauge({ score, breakdown }: { score: number; breakdown: HealthBre
         <HealthBar label="Production" value={breakdown.production} color="text-brand" barColor="bg-brand" />
         <HealthBar label="Storage" value={breakdown.storage} color="text-success" barColor="bg-success" />
         <HealthBar label="Activity" value={breakdown.activity} color="text-research" barColor="bg-research" />
+        <HealthBar
+          label="Throughput"
+          value={Math.round(breakdown.throughput ?? 0)}
+          color="text-danger"
+          barColor="bg-danger"
+          icon={Package}
+        />
+        <HealthBar
+          label="Growth"
+          value={Math.round(breakdown.growth ?? 0)}
+          color="text-domain"
+          barColor="bg-domain"
+          icon={TrendingUp}
+        />
       </div>
     </div>
   );
 }
 
 // --- Health Bar ---
-function HealthBar({ label, value, color, barColor }: { label: string; value: number; color: string; barColor: string }) {
+function HealthBar({
+  label,
+  value,
+  color,
+  barColor,
+  icon: Icon,
+}: {
+  label: string;
+  value: number;
+  color: string;
+  barColor: string;
+  icon?: React.ComponentType<{ className?: string }>;
+}) {
   const pct = Math.round(value);
   return (
     <div className="flex items-center gap-1.5">
-      <span className={`text-[11px] ${color} w-13 text-right font-medium`}>{label}</span>
+      <span className={`text-[11px] ${color} w-13 text-right font-medium flex items-center justify-end gap-0.5`}>
+        {Icon && <Icon className="w-2.5 h-2.5" aria-hidden="true" />}
+        {label}
+      </span>
       <div className="flex-1 h-1.5 bg-muted-label rounded-full overflow-hidden">
         <div
           className={`h-full ${barColor} rounded-full transition-all duration-500`}
@@ -234,10 +274,18 @@ function RecommendationCard({
   index: number;
 }) {
   const config = PRIORITY_CONFIG[rec.priority];
+  // Narrow the quick action so we can read its fields without non-null
+  // assertions inside the conditional branches. RULES.md [TS-003]:
+  // "Avoid `as never`, `as any`, and chained casts."
+  const action = rec.quickAction;
 
   return (
     <motion.div
       layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ delay: Math.min(index, 6) * 0.04, duration: 0.2 }}
     >
       <Card className={`${config.bgColor} ${config.borderColor} border backdrop-blur-sm`} style={{ boxShadow: `0 0 20px ${config.glowColor}` }}>
         <CardContent className="p-3 sm:p-4">
@@ -256,7 +304,7 @@ function RecommendationCard({
               <p className="text-xs text-subtle leading-relaxed">{rec.description}</p>
 
               {/* Quick Action Button */}
-              {rec.quickAction && (
+              {action && (
                 <div className="mt-2">
                   <Button
                     size="sm"
@@ -264,38 +312,40 @@ function RecommendationCard({
                     className={`${config.color} ${config.borderColor} text-[10px] h-7 px-2.5 ${config.hoverBg} gap-1`}
                     onClick={(e) => {
                       e.stopPropagation();
-                      onQuickAction(rec.quickAction!);
+                      onQuickAction(action);
                     }}
-                    disabled={rec.quickAction.type === 'buildNow' && !rec.quickAction.affordable}
+                    disabled={action.type === 'buildNow' && !action.affordable}
                   >
-                    {rec.quickAction.type === 'buildNow' && (
+                    {action.type === 'buildNow' && (
                       <>
                         <Factory className="w-3 h-3" />
-                        {rec.quickAction.affordable ? `Build ${BUILDING_DEFS[rec.quickAction.buildingType!]?.name ?? ''} ($${formatNumber(rec.quickAction.cost ?? 0)})` : `Can't Afford ${BUILDING_DEFS[rec.quickAction.buildingType!]?.name ?? ''}`}
+                        {action.affordable
+                          ? `Build ${action.buildingType ? BUILDING_DEFS[action.buildingType]?.name ?? '' : ''} ($${formatNumber(action.cost ?? 0)})`
+                          : `Can't Afford ${action.buildingType ? BUILDING_DEFS[action.buildingType]?.name ?? '' : ''}`}
                       </>
                     )}
-                    {rec.quickAction.type === 'sell50' && (
+                    {action.type === 'sell50' && (
                       <>
                         <DollarSign className="w-3 h-3" />
                         Sell 50%
                       </>
                     )}
-                    {rec.quickAction.type === 'upgradeStorage' && (
+                    {action.type === 'upgradeStorage' && (
                       <>
                         <ArrowUp className="w-3 h-3" />
                         Upgrade Storage
                       </>
                     )}
-                    {rec.quickAction.type === 'goToPower' && (
+                    {action.type === 'goToPower' && (
                       <>
                         <Power className="w-3 h-3" />
                         Go to Power
                       </>
                     )}
-                    {rec.quickAction.type === 'goToTab' && (
+                    {action.type === 'goToTab' && (
                       <>
                         <ChevronRight className="w-3 h-3" />
-                        {rec.quickAction.label}
+                        {action.label}
                       </>
                     )}
                   </Button>
@@ -466,12 +516,30 @@ export default function AIAdvisorPanel() {
     const activeBuildings = buildings.filter(b => b.active).length;
     const activityScore = totalBuildings > 0 ? Math.round((activeBuildings / totalBuildings) * 25) : 0;
 
+    // Throughput Score (0-100, separate dimension) — output utilisation
+    // Sum of all per-tick production rates vs. theoretical max if every
+    // active building ran at full efficiency. Without a known cap, we use
+    // the active/total ratio scaled to 0-100.
+    const throughputScore = totalBuildings > 0
+      ? Math.round((activeBuildings / Math.max(1, totalBuildings)) * 100)
+      : 0;
+
+    // Growth Score (0-100) — net positive cashflow ratio
+    const income = productionSnapshot.moneyIncomeRate ?? 0;
+    const expense = productionSnapshot.moneyExpenseRate ?? 0;
+    const totalFlow = Math.max(0.01, income + expense);
+    const growthScore = income >= expense
+      ? Math.round(Math.min(100, (income / totalFlow) * 100))
+      : 0;
+
     const total = Math.max(0, Math.min(100, powerScore + productionScore + storageScore + activityScore));
     return {
       power: powerScore,
       production: productionScore,
       storage: storageScore,
       activity: activityScore,
+      throughput: throughputScore,
+      growth: growthScore,
       total,
     };
   }, [powerGrid, buildings, productionSnapshot, resources, resourceCapacity]);
@@ -807,17 +875,28 @@ export default function AIAdvisorPanel() {
         if (recs.some(r => r.id.includes(`prod-gap-`) && r.id.includes(res))) continue;
 
         const meta = RESOURCE_META[res];
+        const allProducers = findAllProducersForResource(res);
         const producerType = findProducerForResource(res);
         const producerName = producerType ? BUILDING_DEFS[producerType]?.name : null;
         const cost = producerType ? getBuildingCost(producerType, buildings.filter(b => b.type === producerType).length) : 0;
         const affordable = producerType ? currentMoney >= cost : false;
+
+        // Build a list of all valid producer names so the player can pick
+        // the right tier (e.g. Mining Drill vs Deep Mine) instead of being
+        // pushed toward whichever helper returned first.
+        const allProducerNames = allProducers
+          .map((t) => BUILDING_DEFS[t]?.name)
+          .filter((n): n is string => Boolean(n));
+        const producerList = allProducerNames.length > 1
+          ? allProducerNames.join(', ')
+          : producerName;
 
         recs.push({
           id: `deficit-${res}-${recId++}`,
           priority: 'important',
           icon: 'game-icons:hazard-sign',
           title: `${meta?.name ?? res} Deficit`,
-          description: `Consuming ${consumption.toFixed(1)}/s but only producing ${production.toFixed(1)}/s.${producerName ? ` Build more ${producerName}s.` : ''}`,
+          description: `Consuming ${consumption.toFixed(1)}/s but only producing ${production.toFixed(1)}/s.${producerList ? ` Build ${producerList}.` : ''}`,
           actionTab: producerType && BUILDING_DEFS[producerType]?.category === 'extractor' ? 'resources' : 'factories',
           actionLabel: producerName ?? 'Factories',
           quickAction: producerType ? {
@@ -1177,11 +1256,14 @@ export default function AIAdvisorPanel() {
         </h3>
 
         {visibleRecommendations.length === 0 ? (
-          <Card className="bg-background border border-brand/20">
+          <Card className="bg-background border border-success/20">
             <CardContent className="p-6 text-center">
-              <div className="text-3xl mb-2"><GameIcon icon="game-icons:check-mark" size={28} /></div>
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Shield className="w-6 h-6 text-success" aria-hidden="true" />
+                <GameIcon icon="game-icons:check-mark" size={28} />
+              </div>
               <p className="text-sm text-subtle font-medium">All systems operational!</p>
-              <p className="text-xs text-muted-label mt-1">No urgent recommendations at this time. Keep expanding your factory!</p>
+              <p className="text-xs text-muted-label mt-1">No urgent recommendations at this time. Your empire is well-protected. Keep expanding your factory!</p>
             </CardContent>
           </Card>
         ) : (

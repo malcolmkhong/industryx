@@ -39,7 +39,6 @@ import type { Database } from "@/lib/db/types";
 // Type aliases from the generated Supabase types.
 type AdminUserRow = Database["public"]["Tables"]["admin_users"]["Row"];
 type AdminUserInsert = Database["public"]["Tables"]["admin_users"]["Insert"];
-type AdminUserUpdate = Database["public"]["Tables"]["admin_users"]["Update"];
 
 /**
  * Narrow shape for list endpoint — only the fields returned by GET.

@@ -1242,6 +1242,57 @@ export function validateHireWorkerAction(
 }
 
 /**
+ * Validate an 'upgrade_worker' action.
+ *
+ * Server-authoritative: looks up the worker by id, verifies XP meets the
+ * threshold (level * getBalance().worker.levelUpXpBase), and returns an
+ * updated worker with level +1 and experience reset (0). No money cost —
+ * leveling is purely XP-driven. efficiency / speed bonuses are scaled at
+ * apply-time by the server engine based on worker.level.
+ *
+ * Fails closed per RULES.md [SEC-011]: workerId must be present, worker
+ * must exist, and XP must be sufficient.
+ */
+export function validateUpgradeWorkerAction(
+  workerId: string,
+  state: Partial<ServerGameData>,
+): {
+  valid: boolean;
+  error?: string;
+  correctedState?: Partial<ServerGameData>;
+} {
+  if (!workerId || typeof workerId !== "string") {
+    return { valid: false, error: "Missing workerId in payload" };
+  }
+
+  const workers = state.workers ?? [];
+  const idx = workers.findIndex((w) => w.id === workerId);
+  if (idx < 0) {
+    return { valid: false, error: `Worker "${workerId}" not found` };
+  }
+
+  const worker = workers[idx];
+  // Server-driven XP threshold via balanceConfig (mirrors game_config_game).
+  const xpNeeded = worker.level * getBalance().worker.levelUpXpBase;
+  if (
+    typeof worker.experience !== "number" ||
+    !Number.isFinite(worker.experience) ||
+    worker.experience < xpNeeded
+  ) {
+    return {
+      valid: false,
+      error: `Worker needs ${xpNeeded} XP to level up (has ${worker.experience ?? 0})`,
+    };
+  }
+
+  const nextWorkers = workers.map((w, i) =>
+    i === idx ? { ...w, level: worker.level + 1, experience: 0 } : w,
+  );
+
+  return { valid: true, correctedState: { workers: nextWorkers } };
+}
+
+/**
  * Validate an 'assign_worker' action.
  *
  * Server-authoritative: looks up the worker, validates the buildingId (if

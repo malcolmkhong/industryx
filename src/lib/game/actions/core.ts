@@ -1,7 +1,7 @@
 // ============================================
 // Core Actions Factory
 // ============================================
-import type { GameTab } from '../types';
+import type { GameState, GameTab } from '../types';
 import { generateId } from '../utils/generateId';
 import type { SetFn, GetFn } from "./_actionTypes";
 
@@ -26,7 +26,7 @@ export function createCoreActions(set: SetFn, get: GetFn) {
 
       set({ gameSpeed: speed });
     },
-    togglePause: () => set((state: any) => ({ paused: !state.paused })),
+    togglePause: () => set((state: GameState) => ({ paused: !state.paused })),
     setActiveTab: (tab: GameTab) => set({ activeTab: tab }),
   };
 }

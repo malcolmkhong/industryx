@@ -3,7 +3,6 @@
 // ============================================
 import type { ResourceType } from "../types";
 import { RESOURCE_META } from "../configCache";
-import { formatNumber } from "../utils/formatNumber";
 import { soundEngine } from "../soundEngine";
 import { generateId } from "../utils/generateId";
 import type { SetFn, GetFn } from "./_actionTypes";
@@ -12,7 +11,6 @@ export function createStorageActions(set: SetFn, get: GetFn) {
   return {
     upgradeStorage: async (resource: ResourceType, levels: number) => {
       const state = get();
-      const currentLevel = state.storageUpgradeLevels[resource] ?? 0;
 
       // Phase 6: server-authoritative storage upgrade. Server computes the
       // log-dampened cost, applies the upgrade, and returns the new capacity
@@ -33,14 +31,22 @@ export function createStorageActions(set: SetFn, get: GetFn) {
         return;
       }
 
-      // Apply server-authoritative state. Defensive fallback to local
-      // computation if the server omitted correctedState.
-      const serverCapacity =
-        validation.correctedState?.resourceCapacity ?? state.resourceCapacity;
-      const serverLevels =
-        validation.correctedState?.storageUpgradeLevels ??
-        state.storageUpgradeLevels;
-      const serverMoney = validation.correctedState?.money ?? state.money;
+      const corrected = validation.correctedState;
+      if (
+        !corrected?.resourceCapacity ||
+        !corrected.storageUpgradeLevels ||
+        typeof corrected.money !== "number"
+      ) {
+        soundEngine.play("error", "ui");
+        get().addNotification(
+          "error",
+          "Storage upgrade could not be confirmed by server. Please retry.",
+        );
+        return;
+      }
+      const serverCapacity = corrected.resourceCapacity;
+      const serverLevels = corrected.storageUpgradeLevels;
+      const serverMoney = corrected.money;
       const addedCapacity =
         serverCapacity[resource] - (state.resourceCapacity[resource] ?? 0);
 

@@ -1,6 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/store';
+import type { EventEffect } from '@/lib/game/types';
 import { useShallow } from 'zustand/react/shallow';
 import { motion } from 'framer-motion';
 import { RESOURCE_META, EVENT_TEMPLATES } from '@/lib/game/configCache';
@@ -26,6 +28,44 @@ const DIRECTION_ICONS: Record<string, React.ReactNode> = {
   mixed: <Minus className="w-3 h-3 text-warning" />,
 };
 
+/**
+ * Map an event's affected subsystems to a small icon + color. Used by the
+ * Active Events cards to show at a glance which area of the factory the
+ * event touches (power, production, research, transport, market, etc.).
+ *
+ * The keys here correspond to the `EventEffect.type` union defined in
+ * `src/lib/game/types.ts` — NOT `GameEvent.type` (which is freeform text
+ * from the Supabase event_templates.type column and is not enumerated).
+ * We aggregate across all effects of an event, so a single event that
+ * affects multiple subsystems shows one badge per subsystem.
+ */
+const EFFECT_CATEGORY: Record<EventEffect['type'], { Icon: typeof Zap; className: string; label: string }> = {
+  productionMultiplier:   { Icon: Factory,        className: 'text-brand',    label: 'Production' },
+  powerMultiplier:       { Icon: Zap,            className: 'text-warning',  label: 'Power' },
+  marketPriceMultiplier: { Icon: Globe,          className: 'text-premium',  label: 'Market' },
+  transportSpeed:        { Icon: Truck,          className: 'text-domain',   label: 'Transport' },
+  researchSpeed:         { Icon: FlaskConical,   className: 'text-research', label: 'Research' },
+};
+
+/**
+ * Aggregate the unique categories affected by an event. Returns the
+ * categories in the same order as the EFFECT_CATEGORY map (a stable
+ * ordering makes the UI predictable). Events with no recognised effects
+ * return an empty array so the caller can hide the badge row.
+ */
+type EffectLike = { type: string };
+function eventCategories(effects: EffectLike[]): Array<{ Icon: typeof Zap; className: string; label: string; key: string }> {
+  const seen = new Set<string>();
+  const out: Array<{ Icon: typeof Zap; className: string; label: string; key: string }> = [];
+  for (const key of Object.keys(EFFECT_CATEGORY) as Array<EventEffect['type']>) {
+    if (effects.some((e) => e.type === key) && !seen.has(key)) {
+      seen.add(key);
+      out.push({ key, ...EFFECT_CATEGORY[key] });
+    }
+  }
+  return out;
+}
+
 function getEventDirection(effects: { type: string; value: number }[]): 'up' | 'down' | 'mixed' {
   const marketEffects = effects.filter(e => e.type === 'marketPriceMultiplier');
   if (marketEffects.length === 0) return 'mixed';
@@ -44,6 +84,7 @@ function getPercent(value: number): string {
 export function EventPanel() {
   useConfigVersion();
   const store = useGameStore(useShallow((s) => ({ activeEvents: s.activeEvents, eventLog: s.eventLog })));
+  const [showFullHistory, setShowFullHistory] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -84,7 +125,26 @@ export function EventPanel() {
                     <div className="flex items-center gap-3">
                       <div className="text-2xl">{event.icon}</div>
                       <div>
-                        <h4 className="text-sm font-bold text-subtle">{event.name}</h4>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="text-sm font-bold text-subtle">{event.name}</h4>
+                          {DIRECTION_ICONS[direction]}
+                          {eventCategories(event.effects as EffectLike[]).map((cat) => {
+                            const CatIcon = cat.Icon;
+                            return (
+                              <Badge
+                                key={cat.key}
+                                variant="outline"
+                                className={`text-[10px] ${cat.className} border-current/30 flex items-center gap-1`}
+                                data-testid="event-category-badge"
+                                data-category={cat.key}
+                                title={`Affects ${cat.label}`}
+                              >
+                                <CatIcon className="w-2.5 h-2.5" aria-hidden="true" />
+                                {cat.label}
+                              </Badge>
+                            );
+                          })}
+                        </div>
                         <p className="text-xs text-subtle mt-0.5">{event.description}</p>
                       </div>
                     </div>
@@ -105,6 +165,11 @@ export function EventPanel() {
                           {resourceName || effect.target || 'Market'}
                           {' '}
                           {getPercent(effect.value as number)}
+                          {typeof effect.value === 'number' && Math.abs(effect.value) >= 10 && (
+                            <span className="ml-1 text-[9px] text-muted-label font-mono">
+                              ({formatNumber(effect.value)}x)
+                            </span>
+                          )}
                         </Badge>
                       );
                     })}
@@ -139,12 +204,24 @@ export function EventPanel() {
 
       {store.eventLog.length > 0 && (
         <div className="game-card rounded-xl bg-card p-4 border border-border">
-          <div className="flex items-center gap-2 mb-3">
-            <Clock className="w-4 h-4 text-subtle" />
-            <h3 className="text-sm font-semibold text-subtle">Event History</h3>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-subtle" />
+              <h3 className="text-sm font-semibold text-subtle">Event History</h3>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowFullHistory((v) => !v)}
+              className="text-[10px] h-6 px-2 text-muted-label hover:text-subtle"
+              data-testid="toggle-full-history"
+            >
+              {showFullHistory ? 'Show recent (20)' : `Show all (${store.eventLog.length})`}
+            </Button>
           </div>
           <div className="space-y-1 max-h-60 overflow-y-auto game-scrollbar scroll-fade">
-            {store.eventLog.slice(-20).reverse().map((event, i) => (
+            {(showFullHistory ? store.eventLog.slice().reverse() : store.eventLog.slice(-20).reverse()).map((event, i) => (
               <div key={`${event.id}-${i}`} className="flex items-center gap-2 text-[11px] text-muted-label py-1 border-b border-muted-label/50">
                 <span className="text-sm">{event.icon}</span>
                 <span>{event.name}</span>
@@ -152,6 +229,65 @@ export function EventPanel() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Upcoming Event Catalogue — SSOT of all configured events from the
+          configCache. Lets the player plan around predictable patterns. */}
+      {EVENT_TEMPLATES.length > 0 && (
+        <div className="game-card rounded-xl bg-card p-4 border border-border">
+          <div className="flex items-center gap-2 mb-3">
+            <GameIcon icon="game-icons:scroll-quill" size={16} className="text-muted-label" />
+            <h3 className="text-sm font-semibold text-muted-label">Upcoming Event Catalogue</h3>
+            <Badge variant="outline" className="text-[9px] text-muted-label border-muted-label/40">
+              {EVENT_TEMPLATES.length} total
+            </Badge>
+          </div>
+          <ul className="space-y-1">
+            {EVENT_TEMPLATES.map((entry) => {
+              // EVENT_TEMPLATES effects are untyped (Record<string, unknown>[]).
+              // Try to aggregate typed categories; fall back to showing a
+              // generic "Event" badge when effects are unknown.
+              const categories = eventCategories(
+                (entry.effects ?? []) as EffectLike[],
+              );
+              return (
+                <li
+                  key={`${entry.type}-${entry.name}`}
+                  className="flex items-center gap-2 text-xs px-2 py-1.5 rounded-lg hover:bg-background/60/30 transition-colors"
+                  data-testid="event-catalogue-entry"
+                  data-type={entry.type}
+                >
+                  <span className="w-6 h-6 rounded flex items-center justify-center bg-background/60 shrink-0">
+                    <GameIcon icon={entry.icon || 'game-icons:scroll-quill'} size={14} />
+                  </span>
+                  <span className="flex-1 text-subtle">{entry.name}</span>
+                  {categories.length > 0 ? (
+                    <span className="flex flex-wrap gap-1 justify-end">
+                      {categories.map((cat) => {
+                        const CatIcon = cat.Icon;
+                        return (
+                          <span
+                            key={cat.key}
+                            className={`inline-flex items-center gap-1 text-[9px] uppercase tracking-wider ${cat.className}`}
+                            data-category={cat.key}
+                          >
+                            <CatIcon className="w-2.5 h-2.5" aria-hidden="true" />
+                            {cat.label}
+                          </span>
+                        );
+                      })}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[9px] uppercase tracking-wider text-muted-label">
+                      <Activity className="w-2.5 h-2.5" aria-hidden="true" />
+                      Event
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
     </div>

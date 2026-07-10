@@ -12,6 +12,12 @@
 //   • Client-side: GameConfigProvider fetches /api/game/definitions
 //     and calls updateFromSupabase() on mount.
 //
+// Balance config (game_config_balance) is loaded by
+// configLoader.server.ts → loadCompleteBalanceFromSupabase() and exposed
+// via @/lib/game/balanceConfig getBalance(). It is NOT populated via this
+// file — keeping balance loading separate ensures the strict complete-set
+// contract from ARC-002 is enforced in one place.
+//
 // All exports use `let` (not `const`) so ES module live bindings
 // propagate updates to all importers automatically.
 //
@@ -28,6 +34,7 @@ export { TIER_INFO };
 import type { GameConfig } from "./config";
 import type {
   BuildingDefinition,
+  BuildingType,
   TransportDefinition,
   WorkerDefinition,
   ResearchNode,
@@ -44,7 +51,6 @@ import type {
 } from "./types";
 import { migrateBuildingId } from "./idMigration";
 import { getStreakMultiplier } from "./utils/streakMultiplier";
-import { applyBalanceOverrides } from "./balanceConfig";
 
 // Re-export the pure-utility function so existing consumers don't have to
 // update their imports. Note: this is a const re-export, not a let-bound.
@@ -56,13 +62,25 @@ export { getStreakMultiplier };
 // by updateFromSupabase() before any game-logic consumer reads them.
 // ============================================
 
-export let BUILDING_DEFS: Record<string, BuildingDefinition> = {};
+export let BUILDING_DEFS: Record<BuildingType, BuildingDefinition> = {} as Record<BuildingType, BuildingDefinition>;
 export let RESOURCE_META: Record<
   ResourceType,
-  { name: string; icon: string; tier: number; color: string }
+  {
+    name: string;
+    icon: string;
+    tier: number;
+    color: string;
+    baseCapacity: number;
+  }
 > = {} as Record<
   ResourceType,
-  { name: string; icon: string; tier: number; color: string }
+  {
+    name: string;
+    icon: string;
+    tier: number;
+    color: string;
+    baseCapacity: number;
+  }
 >;
 export let RESEARCH_TREE: ResearchNode[] = [];
 export let TRANSPORT_DEFS: Record<string, TransportDefinition> = {};
@@ -153,11 +171,23 @@ export function updateFromSupabase(config: GameConfig): void {
     RESOURCE_META = Object.fromEntries(
       Object.entries(config.resources).map(([key, val]) => [
         key,
-        { name: val.name, icon: val.icon, tier: val.tier, color: val.color },
+        {
+          name: val.name,
+          icon: val.icon,
+          tier: val.tier,
+          color: val.color,
+          baseCapacity: val.baseCapacity,
+        },
       ]),
     ) as Record<
       ResourceType,
-      { name: string; icon: string; tier: number; color: string }
+      {
+        name: string;
+        icon: string;
+        tier: number;
+        color: string;
+        baseCapacity: number;
+      }
     >;
   }
 
@@ -367,17 +397,6 @@ export function updateFromSupabase(config: GameConfig): void {
     CONTRACT_TEMPLATES = deriveContractTemplates(BUILDING_DEFS);
   }
 
-  // --- Balance overrides ---
-  // Phase 5.3 fix: derive numeric balance overrides from Supabase's
-  // game_config_game row (gameConfig). Only fields with a known mapping
-  // are translated; everything else falls back to balanceConfig defaults.
-  if (config.gameConfig && Object.keys(config.gameConfig).length > 0) {
-    const balanceOverrides = deriveBalanceOverrides(
-      config.gameConfig as Record<string, unknown>,
-    );
-    applyBalanceOverrides(balanceOverrides);
-  }
-
   // --- Streak Multiplier ---
   // getStreakMultiplier is a const utility — not affected by Supabase.
 
@@ -396,22 +415,34 @@ export function updateFromSupabase(config: GameConfig): void {
 // ============================================
 
 export function migrateBuildingDefs(): void {
-  const migrated: Record<string, BuildingDefinition> = {};
+  const migrated: Partial<Record<BuildingType, BuildingDefinition>> = {};
   let migrationCount = 0;
 
   for (const [id, def] of Object.entries(BUILDING_DEFS)) {
     const newId = migrateBuildingId(id);
     if (newId !== id) {
-      migrated[newId] = { ...def, type: newId as BuildingDefinition["type"] };
+      migrated[newId as BuildingType] = { ...def, type: newId as BuildingDefinition["type"] };
       migrationCount++;
     } else {
-      migrated[id] = def;
+      migrated[id as BuildingType] = def;
     }
   }
 
   if (migrationCount > 0) {
-    BUILDING_DEFS = migrated;
+    // Partial is OK here — migrateBuildingDefs only fills in entries that
+    // changed ID; the rest still live in the prior reference. Cast back to
+    // the full record to preserve the type contract.
+    BUILDING_DEFS = mergedBuildingDefs(migrated);
   }
+}
+
+/** Merge a partial BUILDING_DEFS update into the full record. */
+function mergedBuildingDefs(
+  partial: Partial<Record<BuildingType, BuildingDefinition>>,
+): Record<BuildingType, BuildingDefinition> {
+  // Start with the current state, then overlay the partial entries.
+  // (Migration is additive — it never removes building types.)
+  return { ...BUILDING_DEFS, ...partial } as Record<BuildingType, BuildingDefinition>;
 }
 
 /**
@@ -579,104 +610,4 @@ function deriveContractTemplates(
   }
 
   return templates;
-}
-
-/**
- * Derive numeric balance overrides from Supabase's gameConfig row.
- *
- * Maps columns from game_config_game (the `gameConfig` field on the
- * GameConfig response) to the nested shape used by balanceConfig.ts.
- * Only known mappings are translated; everything else falls back to
- * the DEFAULT_BALANCE values.
- */
-function deriveBalanceOverrides(
-  gameConfig: Record<string, unknown>,
-): Record<string, unknown> {
-  const overrides: Record<string, unknown> = {};
-  const num = (key: string): number | undefined => {
-    const v = gameConfig[key];
-    return typeof v === "number" ? v : undefined;
-  };
-
-  // RP rates
-  if (num("passive_rp_per_tick") !== undefined) {
-    overrides.rp = {
-      ...((overrides.rp as object) ?? {}),
-      passiveBase: num("passive_rp_per_tick"),
-    };
-  }
-  if (num("rp_extractor_rate") !== undefined) {
-    overrides.rp = {
-      ...((overrides.rp as object) ?? {}),
-      extractorRate: num("rp_extractor_rate"),
-    };
-  }
-  if (num("rp_power_rate") !== undefined) {
-    overrides.rp = {
-      ...((overrides.rp as object) ?? {}),
-      powerRate: num("rp_power_rate"),
-    };
-  }
-  if (num("rp_factory_t1_rate") !== undefined) {
-    overrides.rp = {
-      ...((overrides.rp as object) ?? {}),
-      factoryT1Rate: num("rp_factory_t1_rate"),
-    };
-  }
-  if (num("rp_factory_t2_rate") !== undefined) {
-    overrides.rp = {
-      ...((overrides.rp as object) ?? {}),
-      factoryT2Rate: num("rp_factory_t2_rate"),
-    };
-  }
-  if (num("rp_factory_t3_rate") !== undefined) {
-    overrides.rp = {
-      ...((overrides.rp as object) ?? {}),
-      factoryT3Rate: num("rp_factory_t3_rate"),
-    };
-  }
-  if (num("rp_factory_t4_rate") !== undefined) {
-    overrides.rp = {
-      ...((overrides.rp as object) ?? {}),
-      factoryT4Rate: num("rp_factory_t4_rate"),
-    };
-  }
-  if (num("rp_factory_t5_rate") !== undefined) {
-    overrides.rp = {
-      ...((overrides.rp as object) ?? {}),
-      factoryT5Rate: num("rp_factory_t5_rate"),
-    };
-  }
-
-  // Worker
-  if (num("worker_xp_rate") !== undefined) {
-    overrides.worker = {
-      ...((overrides.worker as object) ?? {}),
-      xpPerTick: num("worker_xp_rate"),
-    };
-  }
-  if (num("worker_power_reduction_cap") !== undefined) {
-    overrides.worker = {
-      ...((overrides.worker as object) ?? {}),
-      maxPowerReductionPerBuilding: num("worker_power_reduction_cap"),
-    };
-  }
-
-  // Power
-  if (num("min_power_efficiency") !== undefined) {
-    overrides.power = {
-      ...((overrides.power as object) ?? {}),
-      minEfficiency: num("min_power_efficiency"),
-    };
-  }
-
-  // Auto-sell
-  if (num("auto_sell_multiplier") !== undefined) {
-    overrides.autoSell = {
-      ...((overrides.autoSell as object) ?? {}),
-      excessSellRatio: num("auto_sell_multiplier"),
-    };
-  }
-
-  return overrides;
 }

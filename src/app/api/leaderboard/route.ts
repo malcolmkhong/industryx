@@ -47,8 +47,10 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
-    const userId = searchParams.get('userId') || undefined;
+        // Fail-closed per [SEC-011]: parseInt of bad input returns NaN;
+        // Math.min(NaN, 100) === NaN. Use `|| 50` to clamp to a sane default.
+        const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10) || 50, 100);
+        const userId = searchParams.get('userId') || undefined;
 
     // Fetch top leaderboard entries
     const entries = await getLeaderboard(limit);
@@ -62,21 +64,24 @@ export async function GET(request: Request) {
     // Format entries for the frontend
     const formattedEntries: LeaderboardRow[] = (entries || []).map(
       (entry: Record<string, unknown>, index: number) => ({
-        id: entry.id as string,
-        user_id: entry.user_id as string,
-        corporation_name: (entry.corporation_name as string) || 'Unknown Corp',
-        score: Number(entry.score) || 0,
-        total_money_earned: Number(entry.total_money_earned) || 0,
-        buildings_built: Number(entry.buildings_built) || 0,
-        research_completed: Number(entry.research_completed) || 0,
-        contracts_completed: Number(entry.contracts_completed) || 0,
-        prestige_count: Number(entry.prestige_count) || 0,
-        play_time_ticks: Number(entry.play_time_ticks) || 0,
-        rank_name: (entry.rank_name as string) || null,
-        game_tick: Number(entry.game_tick) || 0,
-        created_at: entry.created_at as string,
-        rank: Number(entry.rank) || index + 1,
-      }),
+              id: entry.id as string,
+              user_id: entry.user_id as string,
+              corporation_name: (entry.corporation_name as string) || 'Unknown Corp',
+              score: Number(entry.score) || 0,
+              total_money_earned: Number(entry.total_money_earned) || 0,
+              buildings_built: Number(entry.buildings_built) || 0,
+              research_completed: Number(entry.research_completed) || 0,
+              contracts_completed: Number(entry.contracts_completed) || 0,
+              prestige_count: Number(entry.prestige_count) || 0,
+              play_time_ticks: Number(entry.play_time_ticks) || 0,
+              // RPC get_leaderboard returns rank_name as text (nullable).
+              rank_name: (entry.rank_name as string | null) ?? null,
+              game_tick: Number(entry.game_tick) || 0,
+              created_at: entry.created_at as string,
+              // RPC returns `rank` as a computed ROW_NUMBER. If RPC is bypassed and
+              // a plain table read is used (no rank column), fall back to index+1.
+              rank: Number(entry.rank) || index + 1,
+            }),
     );
 
     return NextResponse.json({

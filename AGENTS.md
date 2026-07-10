@@ -5,14 +5,16 @@ applyTo: "**"
 # AGENTS.md — IndustriaX AI Agent Operating Constitution
 
 > **Last Updated:** 2026-07-07
-> **Status:** Living document. Read this, `.rules`, and `BUGS.md` before any work.
+> **Status:** Living document. Read this, `.rules`. before any work.
 > **File rename note:** Project uses `.rules` (file, not directory) as the canonical RULES location — Zed-recognized. References to "RULES.md" mean `.rules`. Renamed from `AGENT.md` to `AGENTS.md` on 2026-06-19 (legacy `AGENT.md` already removed).
 
 ---
 
 ## Who You Are
 
-You are an AI development agent working on **IndustriaX** ("Factory Dominion: Automated Empire"), a browser-based industrial tycoon idle game built with **Next.js 16, React 19, Zustand 5, Supabase (PostgreSQL + Auth + Realtime)**, and a **Cloudflare Worker** for AI news generation.
+You are an AI development agent working on **IndustriaX** ("Factory Dominion: Automated Empire"), a browser-based, server-authoritative industrial tycoon / idle game.
+
+The app is built on **Next.js 16.1 + React 19 + TypeScript 5**, with **Zustand 5** for client game state, **Next.js API routes** for server-authoritative gameplay actions, **Supabase** for PostgreSQL, Auth, Realtime presence, RLS-backed persistence, and rate limiting, plus **Cloudflare Workers** for the 60-second global market tick and AI news generation. The UI stack uses **Tailwind CSS 4**, **shadcn/Radix UI primitives**, **lucide/Iconify icons**, **Framer Motion**, **Recharts**, and **Sonner**. Production runs on **Vercel**, with security headers and Supabase/Workers connectivity configured in `next.config.ts`; tests use **Vitest**, **tsx node:test**, and **Playwright**.
 
 You are not a code generator. You are a **senior engineer** responsible for the integrity, security, and quality of this project.
 
@@ -52,16 +54,6 @@ Reference only — read on demand, do not inline:
 |---|---|---|---|
 | 1 | `AGENTS.md` (this file) | Operating philosophy, workflows, decision framework, communication style | Always |
 | 2 | `.rules` | Hard rules (FORBIDDEN/ALLOWED), 25-issue registry, security checklist | Always |
-| 3 | `BUGS.md` | Open / investigating / resolved bugs with evidence | Before any feature or bugfix |
-| 4 | `docs/ECONOMY_AUDIT.md` | Economy + game-config audit log + critical focus section + phase status | When balance/config/UI status unclear |
-
-**Bug documentation is mandatory.** Every discovered bug, defect, security concern, or unexpected behavior MUST be recorded in `BUGS.md` using the standard structure (see *Bug Documentation* section). Do not silently ignore issues.
-
-Resolved bugs must be moved to the **Resolved** section and retained for **76 hours** after resolution.
-
-Before removing any resolved entry that has exceeded the 76-hour retention period, verify that the fix remains effective and that the issue cannot be reproduced through available validation methods (tests, linting, build verification, manual verification, monitoring data, or other relevant checks).
-
-Only permanently remove the entry if validation confirms the bug is fully resolved and no regression or related issue is detected. If validation is inconclusive or the issue reappears, keep the entry in `BUGS.md` and update its status accordingly.
 
 ---
 
@@ -185,34 +177,44 @@ game/
 
 ---
 
-### File Size Limits
+### File Size & Decomposition
 
-Existing large files may remain temporarily.
+Keep files small, focused, and feature-scoped.
 
-When modifying a file:
+#### Targets
 
-* > 1000 LOC: consider decomposition
-* > 2000 LOC: decompose during active development
-* > 3000 LOC: high-priority refactor target
+| Size | Standard |
+|---:|---|
+| 300–500 LOC | Ideal |
+| 500–800 LOC | Good |
+| 800–1200 LOC | Acceptable |
+| >1000 LOC | Review for decomposition |
+| >2000 LOC | Must decompose before adding major logic |
 
-Target:
+#### Rules
 
-* Ideal: 300-500 LOC
-* Good: 500-800 LOC
-* Acceptable: 800-1200 LOC
+- New files SHOULD stay under 800 LOC.
+- New files MUST NOT exceed 1200 LOC unless there is a documented reason.
+- Files over 1000 LOC SHOULD be decomposed when touched for meaningful changes.
+- Files over 2000 LOC MUST NOT receive new feature logic until a decomposition plan exists.
+- Do NOT create or expand monolithic `data.ts`, `store.ts`, `types.ts`, or `constants.ts` files.
+- Add new features inside the relevant feature/domain folder.
+- Prefer feature-based modules over generic catch-all files.
+- Legacy large files may remain temporarily, but active development must move them toward decomposition.
 
-Limits:
+#### Decomposition Standard
 
-* Soft Limit: 1000 LOC
-* Hard Limit: 2000 LOC
+When decomposing, split by domain or responsibility:
 
-Rules:
+- `index.ts` for exports only
+- `types.ts` for feature-local types only
+- `constants.ts` for feature-local constants only
+- `actions/` for mutations and commands
+- `services/` for server/client service logic
+- `components/` for UI components
+- `utils/` for pure helpers
 
-* Prefer decomposition over expansion.
-* Do not create new files exceeding 2000 LOC.
-* Do not create new monolithic `data.ts`, `store.ts`, `types.ts`, or `constants.ts` files.
-* New features should be added to existing feature folders whenever possible.
-* Large legacy files may remain temporarily but should be decomposed when actively modified.
+Do not split files only to reduce line count if it makes the architecture harder to understand.
 
 ---
 
@@ -383,12 +385,11 @@ $response = Invoke-RestMethod -Uri "https://api.minimax.io/v1/image_generation" 
 Before writing ANY code, you MUST:
 
 1. **Read the relevant existing code** — Understand how the current system works
-2. **Check `.rules` and `BUGS.md`** — Ensure your plan doesn't violate any rule or duplicate an open investigation
-3. **Check `docs/ECONOMY_AUDIT.md`** (Critical Focus section at top) — Confirm your assumptions about phase status, balance config, and architecture SSOT are current
+2. **Check `.rules`** — Ensure your plan doesn't violate any rule or duplicate an open investigation
 4. **Identify database impact** — Does this need schema changes? (Migrations go in `supabase/migrations/` with sequential numeric prefix)
 5. **Identify security impact** — Server-side validation? Auth checks? Rate limiting?
 6. **Identify API impact** — New endpoint or modification to existing?
-7. **Plan the implementation** — Write down the steps before executing
+7. **Plan the implementation** — Write down the steps before executing in keypoint only
 
 ### Specifically, you must answer:
 - Which Zustand store slices are affected? (`src/lib/game/store.ts` — 148 lines barrel, actions live in `src/lib/game/actions/*.ts`)
@@ -404,19 +405,28 @@ Before writing ANY code, you MUST:
 
 ---
 
-## Required Validation Process After Implementation
+## Required Validation Process
 
-After writing ANY code, you MUST:
+Do not run full validation after every small edit.
 
-1. **Lint check** — Run `npm run lint` (or `bun run lint`; the script in `package.json` is `eslint . --cache`)
-2. **Dev server test** — Verify the page loads at `http://localhost:3000/`
-3. **Console check** — No JavaScript errors in the browser console
-4. **Feature test** — Verify the feature actually works in the browser
-5. **Security check** — No auth bypass, no data leak, no unvalidated input
-6. **Database check** — Verify the data is persisted correctly (if applicable)
-7. **Admin check** — Verify admin actions are logged (if applicable)
-8. **Performance check** — No unnecessary re-renders (React DevTools Profiler)
-9. **Selector check** — Every `useGameStore` call MUST use a selector. Never `useGameStore()` (no args).
+Run full validation:
+
+- every 5 implementation changes
+- before commit / PR / merge / deploy
+- immediately after security, auth, database, admin, economy, or server-authoritative changes
+
+### Full Validation
+
+- Run lint: `npm run lint` or `bun run lint`
+- Run typecheck: `bunx tsc --noEmit`
+- Run tests: `npm run test:vitest` or targeted tests
+- Verify changed feature logic works
+- Verify no auth bypass, data leak, exposed secret, or unvalidated input
+- Verify database persistence when DB logic changed
+- Verify admin authorization and audit logs when admin logic changed
+- Verify no unnecessary re-renders when UI/state logic changed
+- Verify every `useGameStore` call uses a selector
+- **Selector check** — Every `useGameStore` call MUST use a selector. Never `useGameStore()` (no args).
 
 ---
 
@@ -424,7 +434,6 @@ After writing ANY code, you MUST:
 
 ```
 1. Read AGENTS.md, .rules, BUGS.md, docs/ECONOMY_AUDIT.md
-2. Search BUGS.md for related issues; avoid duplicate investigations
 3. Design the feature:
    a. Data model (which tables, which columns)
    b. API layer (which endpoints, what validation)
@@ -663,6 +672,7 @@ Agent requirements:
 
 - **2026-06-19 merge** — `AGENT.md` → `AGENTS.md` rename. Legacy file already removed. Single canonical file (no drift).
 - **2026-07-07 update** — removed references to `planning/PROJECT_STATUS_SOURCE_OF_TRUTH.md` and 3 other non-existent planning docs. Replaced with `docs/ECONOMY_AUDIT.md` as the single SSOT for project status (Critical Focus section at top). Updated file counts, added Phase 3/5/5.5/6 work, fixed test infrastructure notes (Vitest now primary), removed `AGENT.md` legacy entry, added `instrumentation.ts`, `docs/` folder, and `tiers.ts` SSOT info.
+- **2026-07-11 build speedup** — `next build` runs under Turbopack via `"build": "next build --turbopack"`. See [Performance Rules: PER-012–PER-014](.rules) for the build-tool choice, cache location, and the “don’t `rm -rf .next` mid-build” rule.
 
 ---
 

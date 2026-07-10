@@ -3,39 +3,48 @@
 // Loads GameConfig from Supabase into the in-process configCache
 // so that cron validators / API routes see the same data the client sees.
 //
-// Architecture (P1.2 of the data.ts → Supabase refactor):
+// Architecture:
 //
 //   ┌────────────────────────────┐
 //   │ Supabase (game_config_*)   │
+//   │  + game_config_balance     │
 //   └─────────────┬──────────────┘
 //                 │  fetchGameConfigFromSupabase()
+//                 │  + loadCompleteBalanceFromSupabase()
 //                 ▼
 //   ┌────────────────────────────┐
 //   │ configLoader.server.ts     │ ← THIS FILE
 //   │ ensureConfigLoaded()       │
+//   │   + loadCompleteBalance()  │
+//   │   + startBalancePoller()   │
 //   └─────────────┬──────────────┘
-//                 │  updateFromSupabase()
+//                 │  updateFromSupabase()        (configCache live bindings)
+//                 │  applyBalanceOverrides(complete)  (balanceConfig strict)
 //                 ▼
 //   ┌────────────────────────────┐
 //   │ configCache.ts (let-bound) │
 //   │   BUILDING_DEFS,           │
 //   │   RESEARCH_TREE, ...       │
+//   │ activeBalance (let-bound)  │
+//   │   getBalance() throws on   │
+//   │   incomplete / unloaded    │
 //   └─────────────┬──────────────┘
 //                 │  read by:
 //                 ▼
 //   ┌────────────────────────────────────────────┐
 //   │ - /api/cron/validate-ticks                 │
 //   │ - /lib/auth/gameStateValidator (whitelist) │
-//   │ - /lib/auth/guestMigrationValidator       │
+//   │ - /lib/auth/guestMigrationValidator        │
+//   │ - /api/game/trade                          │
+//   │ - /api/market/tick                         │
 //   └────────────────────────────────────────────┘
 //
 // Server-authoritative behavior:
 // - The first call from any consumer triggers a single fresh load.
 // - Concurrent callers share the same promise (no thundering herd).
 // - Subsequent calls within TTL return the cached promise immediately.
-// - If Supabase returns critical failure (buildings/resources/recipes),
-//   configSource stays 'local' and lastError is set so callers can
-//   fail-closed if they care.
+// - If Supabase returns critical failure (buildings/resources/recipes OR
+//   incomplete balance), `ok: false` is returned and routes must fail closed.
 // - NEVER throws: returns `{ ok, source, error }` and lets callers decide.
 // ============================================
 
@@ -45,7 +54,9 @@ import {
 } from "@/lib/game/configCache";
 import {
   applyBalanceOverrides,
-  validateBalanceOverrides,
+  validateCompleteBalance,
+  REQUIRED_BALANCE_KEYS,
+  type GameBalanceConfig,
 } from "@/lib/game/balanceConfig";
 import { fetchGameConfigFromSupabase } from "@/lib/db/serverConfigFetcher";
 import { createServiceRoleClient } from "@/lib/supabase/server";
@@ -93,14 +104,16 @@ let state: LoaderState = {
  * If `ok === false`, callers that depend on accurate game definitions
  * (cron anti-cheat, save validators) MUST refuse to proceed. Letting
  * them run against data.ts defaults during a Supabase outage would
- * silently weaken anti-cheat.
+ * silently weaken anti-cheat. This includes an incomplete balance — the
+ * `ok` flag is false unless the FULL set of `game_config_balance` rows
+ * passes both completeness and validator checks.
  */
-export async function ensureConfigLoaded(): Promise<LoadResult> {
+export function ensureConfigLoaded(): Promise<LoadResult> {
   const now = Date.now();
 
   // Cache hit — TTL not expired, previous attempt already known
   if (state.lastResult && now - state.loadedAt < CONFIG_LOADER_TTL_MS) {
-    return state.lastResult;
+    return Promise.resolve(state.lastResult);
   }
 
   // Cache hit — in-flight promise exists; share it
@@ -113,61 +126,75 @@ export async function ensureConfigLoaded(): Promise<LoadResult> {
     try {
       const result = await fetchGameConfigFromSupabase();
 
-      if (result.config) {
-        // Pipe into the existing configCache (live bindings propagate
-        // automatically to all consumers).
-        updateFromSupabase(result.config);
+      if (!result.config) {
+        // Critical Supabase failure — leave configCache on empty defaults.
+        // (post data.ts deletion, BUILDING_DEFS etc. start as empty objects.)
+        const partialErrors = result.partialErrors;
+        const error =
+          partialErrors[partialErrors.length - 1] ||
+          "Supabase returned no config (critical tables missing)";
+        console.error(
+          "[ConfigLoader] CRITICAL: Supabase config unavailable. " +
+            "configCache remains on data.ts defaults. Caller must fail closed.",
+          partialErrors,
+        );
 
-        // Apply any balancing-rule overrides from Supabase.
-        // NOTE: Today this is a no-op (empty override object keeps DEFAULT_BALANCE).
-        // Future versions can populate `balanceOverrides` from
-        // `result.config.balancingRules` once the multiplier → field mapping
-        // is designed (see RULES.md / TODOs). Wiring it here means the call
-        // site exists and any future change is one-line instead of touching
-        // every entry point.
-        const balanceOverrides: Record<string, unknown> = {};
-        applyBalanceOverrides(balanceOverrides);
-
-        const ok = true;
         const loadResult: LoadResult = {
-          ok,
-          source: "supabase",
-          partialErrors: result.partialErrors,
+          ok: false,
+          source: "local",
+          partialErrors,
+          error,
         };
         state.lastResult = loadResult;
         state.loadedAt = Date.now();
-
-        if (result.partialErrors.length > 0) {
-          console.warn(
-            "[ConfigLoader] Loaded from Supabase with partial errors:",
-            result.partialErrors,
-          );
-        } else {
-          console.info("[ConfigLoader] Config loaded from Supabase OK");
-        }
         return loadResult;
       }
 
-      // Critical Supabase failure — leave configCache on empty defaults.
-      // (post data.ts deletion, BUILDING_DEFS etc. start as empty objects.)
-      const partialErrors = result.partialErrors;
-      const error =
-        partialErrors[partialErrors.length - 1] ||
-        "Supabase returned no config (critical tables missing)";
-      console.error(
-        "[ConfigLoader] CRITICAL: Supabase config unavailable. " +
-          "configCache remains on data.ts defaults. Caller must fail closed.",
-        partialErrors,
-      );
+      // Main config tables loaded — pipe into configCache live bindings.
+      updateFromSupabase(result.config);
+
+      // Balance config is a separate concern: must be COMPLETE before any
+      // route that calls getBalance() is allowed to proceed. If the DB row
+      // set is missing keys/fields, we fail the whole load.
+      const balanceResult = await loadCompleteBalanceFromSupabase();
+      if (!balanceResult.ok) {
+        const partialErrors = [
+          ...result.partialErrors,
+          `balance: ${balanceResult.error ?? "load failed"}`,
+        ];
+        const loadResult: LoadResult = {
+          ok: false,
+          source: "local",
+          partialErrors,
+          error: balanceResult.error,
+        };
+        state.lastResult = loadResult;
+        state.lastResult.partialErrors = partialErrors;
+        state.loadedAt = Date.now();
+        console.error(
+          "[ConfigLoader] CRITICAL: game_config_balance incomplete or invalid. " +
+            "Caller must fail closed. Reason: " +
+            (balanceResult.error ?? "unknown"),
+        );
+        return loadResult;
+      }
 
       const loadResult: LoadResult = {
-        ok: false,
-        source: "local",
-        partialErrors,
-        error,
+        ok: true,
+        source: "supabase",
+        partialErrors: result.partialErrors,
       };
       state.lastResult = loadResult;
       state.loadedAt = Date.now();
+
+      if (result.partialErrors.length > 0) {
+        console.warn(
+          "[ConfigLoader] Loaded from Supabase with partial errors:",
+          result.partialErrors,
+        );
+      } else {
+        console.info("[ConfigLoader] Config loaded from Supabase OK");
+      }
       return loadResult;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -210,27 +237,12 @@ export function __resetConfigLoaderForTests(): void {
   state = { promise: null, loadedAt: 0, lastResult: null };
 }
 
-// ─── Balance Config Polling (Phase 2) ──────────────────────────────────
-// Hot-reloads balance config from Supabase every BALANCE_POLL_INTERVAL_MS.
-// Uses incremental fetch: only rows where updated_at > lastSeen[key] are
-// pulled. Failures keep the previous in-memory values (never throws).
-
-export const BALANCE_POLL_INTERVAL_MS = 60_000;
-
-interface BalancePollState {
-  /** Per-key last-seen timestamp (ms since epoch). */
-  lastSeen: Map<string, number>;
-  /** setInterval handle (null when not polling). */
-  timer: ReturnType<typeof setInterval> | null;
-  /** Whether the poller has done at least one full fetch. */
-  primed: boolean;
-}
-
-const balanceState: BalancePollState = {
-  lastSeen: new Map<string, number>(),
-  timer: null,
-  primed: false,
-};
+// ─── Balance Config Loading (strict, fail-closed) ────────────────────────
+// The complete `game_config_balance` row set is fetched, merged into a
+// single object, and validated against `GameBalanceConfig` keys. Any
+// missing top-level key or field is treated as a hard failure — the game
+// refuses to start until ops populates the DB. This is the post-ARC-002
+// contract: code never carries playable values.
 
 interface BalanceRow {
   key: string;
@@ -238,84 +250,134 @@ interface BalanceRow {
   updated_at: string;
 }
 
+export interface BalanceLoadResult {
+  ok: boolean;
+  /** Set when ok=false. */
+  error?: string;
+  /** Per-row validation errors (kept for logging). */
+  errors: string[];
+}
+
 /**
- * Fetch balance rows changed since lastSeen. Always returns a fresh result.
- * Fail-closed: DB failure → return null, caller keeps previous values.
+ * Fetch the full `game_config_balance` table and assemble a complete
+ * `GameBalanceConfig` payload. Strict: the payload must contain every
+ * top-level key and every required field within each key, AND every field
+ * must pass its `BALANCE_VALIDATORS` range/finiteness check.
+ *
+ * Returns `{ ok: false, error, errors }` on any failure. Does NOT
+ * partially apply — either the whole balance is valid, or nothing changes.
  */
-export async function loadBalanceFromSupabase(): Promise<BalanceRow[] | null> {
+export async function loadCompleteBalanceFromSupabase(): Promise<BalanceLoadResult> {
   const supabase = createServiceRoleClient();
   if (!supabase) {
-    console.warn("[BalanceLoader] No service-role client available");
-    return null;
+    return {
+      ok: false,
+      error: "no service-role client available",
+      errors: ["[BalanceLoader] No service-role client available"],
+    };
   }
+  let rows: BalanceRow[];
   try {
-    let query = supabase
+    const { data, error } = await supabase
       .from("game_config_balance")
       .select("key, value, updated_at");
-    if (balanceState.primed && balanceState.lastSeen.size > 0) {
-      // Fetch rows newer than the oldest lastSeen. Cheap because the
-      // lastSeen map has ~15 entries; the OR filter is fine for that.
-      const timestamps = Array.from(balanceState.lastSeen.values()).sort((a, b) => a - b);
-      const oldestTs = new Date(timestamps[0]).toISOString();
-      query = query.gt("updated_at", oldestTs);
-    }
-    const { data, error } = await query;
     if (error) {
-      console.warn("[BalanceLoader] Supabase fetch failed:", error.message);
-      return null;
+      return {
+        ok: false,
+        error: `Supabase fetch failed: ${error.message}`,
+        errors: [error.message],
+      };
     }
-    return (data ?? []) as BalanceRow[];
+    rows = (data ?? []) as BalanceRow[];
   } catch (err) {
-    console.warn(
-      "[BalanceLoader] Unexpected error:",
-      err instanceof Error ? err.message : String(err),
-    );
-    return null;
+    const message = err instanceof Error ? err.message : String(err);
+    return {
+      ok: false,
+      error: `Supabase fetch threw: ${message}`,
+      errors: [message],
+    };
   }
-}
 
-/**
- * Apply fetched rows to the in-process activeBalance. Each row is validated
- * before merge; invalid rows are logged and skipped (previous values kept).
- * Returns the count of rows successfully applied.
- */
-export function applyFetchedBalanceRows(rows: BalanceRow[]): number {
-  let applied = 0;
-  const overlay: Record<string, unknown> = {};
+  // Assemble the complete payload from row values.
+  const assembled: Record<string, unknown> = {};
   for (const row of rows) {
-    const ts = Date.parse(row.updated_at);
-    if (Number.isFinite(ts)) {
-      balanceState.lastSeen.set(row.key, ts);
-    }
-    // Build a single-row overlay and validate; if invalid, skip the row.
-    overlay[row.key] = row.value;
-    const result = validateBalanceOverrides({ [row.key]: row.value });
-    if (!result.valid) {
-      console.warn(
-        `[BalanceLoader] Skipping invalid row "${row.key}":`,
-        result.errors.join("; "),
-      );
-      delete overlay[row.key];
-      continue;
-    }
-    applied++;
+    assembled[row.key] = row.value;
   }
-  if (applied > 0) {
-    applyBalanceOverrides(overlay as Parameters<typeof applyBalanceOverrides>[0]);
-    balanceState.primed = true;
+
+  // 1. Completeness check — every required top-level key and field present.
+  const completeness = validateCompleteBalance(assembled);
+  if (!completeness.valid) {
+    const missing = completeness.errors
+      .filter((e) => e.startsWith("missing"))
+      .join("; ");
+    return {
+      ok: false,
+      error: `game_config_balance is incomplete — ${missing}. ` +
+        "Run migration 068 to seed the missing rows, or populate them via admin.",
+      errors: completeness.errors,
+    };
   }
-  return applied;
+
+  // 2. Cast to GameBalanceConfig (we've just verified completeness).
+  const complete = assembled as unknown as GameBalanceConfig;
+
+  // 3. applyBalanceOverrides re-validates ranges and writes the in-process
+  //    activeBalance atomically. Throws on any range/finiteness failure.
+  try {
+    applyBalanceOverrides(complete);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return {
+      ok: false,
+      error: `game_config_balance failed validation: ${message}`,
+      errors: [message],
+    };
+  }
+
+  return { ok: true, errors: [] };
 }
 
+/** Convenience: count of required top-level balance keys.
+ *  Re-exported so callers / tests can size the DB row set. */
+export function getRequiredBalanceKeyCount(): number {
+  return REQUIRED_BALANCE_KEYS.size;
+}
+
+// ─── Balance Config Polling (60s) ─────────────────────────────────────────
+// Hot-reloads the COMPLETE balance every BALANCE_POLL_INTERVAL_MS. Unlike
+// the old incremental approach, we always re-fetch the full set: a partial
+// set is a hard failure, so the new payload must be complete before it can
+// replace the in-process balance. Failures keep the previous values.
+
+export const BALANCE_POLL_INTERVAL_MS = 60_000;
+
+interface BalancePollState {
+  /** setInterval handle (null when not polling). */
+  timer: ReturnType<typeof setInterval> | null;
+  /** Whether the poller has done at least one full fetch. */
+  primed: boolean;
+}
+
+const balanceState: BalancePollState = {
+  timer: null,
+  primed: false,
+};
+
 /**
- * Manually trigger a fetch+apply cycle. Returns true on success (any rows
- * applied OR first-prime completed). Used by instrumentation at boot AND
- * by the polling timer.
+ * Manually trigger a fetch+apply cycle. Returns true on success (the
+ * complete balance loaded and was applied). Used by instrumentation at
+ * boot AND by the polling timer. On failure, the previous in-process
+ * balance is preserved.
  */
 export async function refreshBalanceFromSupabase(): Promise<boolean> {
-  const rows = await loadBalanceFromSupabase();
-  if (rows === null) return false;
-  applyFetchedBalanceRows(rows);
+  const result = await loadCompleteBalanceFromSupabase();
+  if (!result.ok) {
+    console.warn(
+      "[BalanceLoader] Refresh failed:",
+      result.error ?? "unknown",
+    );
+    return false;
+  }
   balanceState.primed = true;
   return true;
 }
@@ -353,6 +415,5 @@ export function stopBalancePoller(): void {
 /** Test-only: reset all balance poller state. */
 export function __resetBalancePollerForTests(): void {
   stopBalancePoller();
-  balanceState.lastSeen.clear();
   balanceState.primed = false;
 }

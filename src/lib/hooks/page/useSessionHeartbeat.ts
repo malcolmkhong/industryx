@@ -9,8 +9,8 @@
 // Three lifecycle signals feed the server:
 //   1. Every 30 s while the tab is visible and the user is authenticated,
 //      POST /api/game/heartbeat with the latest gameTick/money/paused/speed
-//      → upserts player_sessions.is_online=true and bumps
-//      server_game_state.last_tick_at. This is the live signal.
+//      → upserts player_sessions.is_online=true. It does not advance
+//      server_game_state.last_tick_at; tick settlement owns that cursor.
 //   2. On pagehide (tab close, navigation, refresh), best-effort
 //      DELETE /api/game/heartbeat via navigator.sendBeacon.
 //      sendBeacon is the standard, browser-supported way to fire
@@ -57,8 +57,8 @@ export function useSessionHeartbeat(): void {
     // Anonymous users (Supabase anon sign-in) DO have a row in
     // player_sessions — they accumulate real offline progress and need
     // accurate online/offline tracking just like any other user.
-    if (typeof window === "undefined") return;
-    if (!userId) return;
+    if (typeof window === "undefined") return undefined;
+    if (!userId) return undefined;
 
     let cancelled = false;
 

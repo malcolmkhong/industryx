@@ -5,8 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { GameTab } from "@/lib/game/types";
 import { NAV_GROUPS, getGroupForTab } from "@/components/game/GameSidebar";
-import { useSettingsStore } from "@/lib/game/settingsStore";
-import type { BottomNavMode } from "@/lib/game/settingsStore";
+import { useSettingsStore, type BottomNavMode } from "@/lib/game/settingsStore";
 import { useTabChange } from "@/lib/hooks/page/useTabChange";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -180,21 +179,10 @@ export function BottomNavigationBar({
   // Derive the active group from the active tab
   const activeGroup = getGroupForTab(activeTab);
 
-  // Sub-tab handler: defers to the passed-in callback for backwards compatibility,
-  // but with URL-based nav we already rely on <Link> in the JSX so this just
-  // collapses the slide-up panel.
-  const handleSubTabSelect = useCallback(
-    (tabId: GameTab) => {
-      onTabChange?.(tabId);
-      setExpandedGroupId(null);
-    },
-    [onTabChange],
-  );
-
   // Close panel on outside click — this is an event handler (not a direct
   // setState in the effect body), so it satisfies the react-hooks lint rule.
   useEffect(() => {
-    if (expandedGroupId === null) return;
+    if (expandedGroupId === null) return undefined;
 
     function handleClickOutside(e: MouseEvent | TouchEvent) {
       if (
@@ -289,6 +277,8 @@ export function BottomNavigationBar({
                           setExpandedGroupId(null);
                           if (!handleTabChange(tab.id)) {
                             e.preventDefault();
+                          } else {
+                            onTabChange?.(tab.id);
                           }
                         }}
                         aria-current={isActive ? "page" : undefined}

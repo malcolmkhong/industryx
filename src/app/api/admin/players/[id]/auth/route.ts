@@ -10,8 +10,7 @@
  *
  * RLS: service-role client; admin auth gate via verifyAdmin().
  */
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { verifyAdmin, withSecurityHeaders } from "@/lib/auth/admin";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
 import { getAuthUserById } from "@/lib/db/adminUsers";

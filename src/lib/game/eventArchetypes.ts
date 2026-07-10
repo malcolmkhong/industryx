@@ -1,5 +1,4 @@
-import { RESOURCE_SECTOR } from "./marketSimulator";
-import type { MarketSector } from "./marketSimulator";
+import { RESOURCE_SECTOR, type MarketSector } from "./marketSimulator";
 import { RESOURCE_META, PRODUCTION_CHAINS } from './configCache';
 import type { ResourceType } from "./types";
 
@@ -41,10 +40,6 @@ function randomBetween(min: number, max: number): number {
 
 const sectors: MarketSector[] = ['raw_minerals', 'raw_organic', 'basic_materials', 'components', 'advanced', 'high_tech', 'endgame', 'agriculture'];
 const tiers = [0, 1, 2, 3, 4, 5];
-
-const RESOURCE_IDS = Object.keys(RESOURCE_META).filter(
-  k => !['money', 'researchPoints', 'corporationPoints'].includes(k)
-) as ResourceType[];
 
 function getResourceName(r: ResourceType): string {
   return RESOURCE_META[r]?.name ?? r;
@@ -116,7 +111,11 @@ export const EVENT_ARCHETYPES: EventArchetype[] = [
       const i = Math.floor(Math.random() * PRODUCTION_CHAINS.length);
       return pickRandom(byChain(i, pool), 3);
     },
-    generateMultiplier: (_, i) => (i === 0 ? randomBetween(0.4, 0.7) : i === 1 ? randomBetween(1, 2) : randomBetween(2, 3)),
+    generateMultiplier: (_, i) => {
+      if (i === 0) return randomBetween(0.4, 0.7);
+      if (i === 1) return randomBetween(1, 2);
+      return randomBetween(2, 3);
+    },
   },
   {
     id: 'chain_boom', icon: '🏭', weight: 3, direction: 'up',

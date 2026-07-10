@@ -441,6 +441,9 @@ export const TABLE_CONFIGS: TableConfig[] = [
       col("persist_throttle_ms", "Persist Throttle", "integer", 140),
       col("forced_save_ms", "Forced Save", "integer", 120),
       col("max_save_size_bytes", "Max Save Size", "integer", 140),
+      col("tick_interval_ms", "Tick Interval (ms)", "integer", 160),
+      col("max_offline_ticks", "Max Offline Ticks", "integer", 170),
+      col("min_offline_ms", "Min Offline (ms)", "integer", 160),
       ts("created_at"),
       ts("updated_at"),
     ],
@@ -490,9 +493,12 @@ export const TABLE_CONFIGS: TableConfig[] = [
 
 const TABLE_MAP = new Map(TABLE_CONFIGS.map((t) => [t.id, t]));
 
-/** Get a table config by ID, or undefined if not found */
-export function getTableConfig(tableId: string): TableConfig | undefined {
-  return TABLE_MAP.get(tableId);
+/** Get a table config by ID, or null if not found.
+ *  Returns null (not undefined) so call sites can use a uniform `TableConfig | null`
+ *  type instead of `TableConfig | null | undefined`.
+ */
+export function getTableConfig(tableId: string): TableConfig | null {
+  return TABLE_MAP.get(tableId) ?? null;
 }
 
 /** Check if a table ID is in the allowed list */

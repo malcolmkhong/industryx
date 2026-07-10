@@ -5,7 +5,7 @@ import { useGameStore, formatNumber } from '@/lib/game/store';
 import { useShallow } from 'zustand/react/shallow';
 import { BUILDING_DEFS, TRANSPORT_DEFS, PRODUCTION_CHAINS, RESOURCE_META } from '@/lib/game/configCache';
 import { useConfigVersion } from '@/components/providers/GameConfigProvider';
-import { BuildingType, TransportType } from '@/lib/game/types';
+import type { TransportType } from '@/lib/game/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -146,6 +146,23 @@ export function BlueprintPanel() {
       count,
       percent: (count / total) * 100,
       color: CATEGORY_COLORS[cat] ?? 'bg-muted-label',
+    }));
+  };
+
+  // Transport distribution bar data — mirrors getDistribution() but for
+  // transport lines. Typed explicitly via TransportType so callers can rely
+  // on the union without re-narrowing.
+  const getTransportDistribution = (bpId: string): { type: TransportType; count: number; percent: number }[] => {
+    const bp = store.blueprints.find(b => b.id === bpId);
+    if (!bp) return [];
+
+    const total = bp.transportLines.reduce((s, t) => s + t.count, 0);
+    if (total === 0) return [];
+
+    return bp.transportLines.map((t) => ({
+      type: t.type,
+      count: t.count,
+      percent: (t.count / total) * 100,
     }));
   };
 
@@ -338,6 +355,7 @@ export function BlueprintPanel() {
                   const isExpanded = expandedBlueprint === bp.id;
                   const isRenaming = renamingId === bp.id;
                   const distribution = getDistribution(bp.id);
+                  const transportDistribution = getTransportDistribution(bp.id);
                   const totalBuildings = bp.buildings.reduce((s, b) => s + b.count, 0);
                   const totalTransport = bp.transportLines.reduce((s, t) => s + t.count, 0);
                   const comparison = isExpanded ? getComparison(bp.id) : null;
@@ -450,21 +468,58 @@ export function BlueprintPanel() {
                       {distribution.length > 0 && (
                         <div className="px-3 pb-1">
                           <div className="flex h-1.5 rounded-full overflow-hidden bg-muted-label">
-                            {distribution.map((d, i) => (
+                            {distribution.map((d) => (
                               <div
-                                key={i}
+                                key={d.category}
                                 className={`${d.color} transition-all duration-300`}
                                 style={{ width: `${d.percent}%` }}
+                                title={`${d.category}: ${d.count}`}
                               />
                             ))}
                           </div>
                           <div className="flex items-center gap-2 mt-1 flex-wrap">
-                            {distribution.map((d, i) => (
-                              <span key={i} className="text-[9px] text-muted-label flex items-center gap-0.5">
+                            {distribution.map((d) => (
+                              <span key={d.category} className="text-[9px] text-muted-label flex items-center gap-0.5">
                                 <span className={`w-1.5 h-1.5 rounded-full ${d.color}`} />
                                 {d.category} {d.count}
                               </span>
                             ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Transport distribution bar — shows how transport
+                          lines are split across the blueprint. Uses
+                          TransportType explicitly for type safety. */}
+                      {transportDistribution.length > 0 && (
+                        <div className="px-3 pb-2">
+                          <div className="flex items-center gap-1.5 text-[9px] text-muted-label uppercase tracking-wider mb-1">
+                            <ArrowRight className="w-2.5 h-2.5" aria-hidden="true" />
+                            Transport breakdown
+                          </div>
+                          <div className="flex h-1 rounded-full overflow-hidden bg-muted-label">
+                            {transportDistribution.map((t) => {
+                              const def = TRANSPORT_DEFS[t.type];
+                              return (
+                                <div
+                                  key={t.type}
+                                  className="bg-success/60 transition-all duration-300"
+                                  style={{ width: `${t.percent}%` }}
+                                  title={`${def?.name ?? t.type}: ${t.count}`}
+                                />
+                              );
+                            })}
+                          </div>
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            {transportDistribution.map((t) => {
+                              const def = TRANSPORT_DEFS[t.type];
+                              return (
+                                <span key={t.type} className="text-[9px] text-muted-label flex items-center gap-0.5">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-success/60" />
+                                  {def?.name ?? t.type} {t.count}
+                                </span>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
@@ -597,16 +652,16 @@ export function BlueprintPanel() {
               <h3 className="text-sm font-semibold text-brand">Production Chains</h3>
             </div>
             <div className="space-y-2 max-h-80 overflow-y-auto game-scrollbar">
-              {PRODUCTION_CHAINS.map((chain, i) => (
-                <div key={i} className="bg-background rounded-lg p-2">
+              {PRODUCTION_CHAINS.map((chain) => (
+                <div key={chain.name} className="bg-background rounded-lg p-2">
                   <div className="text-[10px] text-subtle font-medium mb-1">{chain.name}</div>
                   <div className="flex items-center gap-1 flex-wrap">
-                    {chain.steps.map((step, j) => (
-                      <div key={j} className="flex items-center gap-1">
+                    {chain.steps.map((step) => (
+                      <div key={step} className="flex items-center gap-1">
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted-label text-subtle">
                           <GameIcon icon={RESOURCE_META[step as keyof typeof RESOURCE_META]?.icon} size={12} className="inline-flex" /> {RESOURCE_META[step as keyof typeof RESOURCE_META]?.name}
                         </span>
-                        {j < chain.steps.length - 1 && (
+                        {chain.steps.indexOf(step) < chain.steps.length - 1 && (
                           <ArrowRight className="w-2.5 h-2.5 text-muted-label shrink-0" />
                         )}
                       </div>

@@ -45,8 +45,10 @@ export async function register(): Promise<void> {
   }
 
   // Phase 2: pre-warm balance config and start the 60s polling timer.
-  // Best-effort: failures only log; the in-process DEFAULT_BALANCE keeps
-  // the game running until the next successful fetch.
+  // Fail-closed: balance MUST be fully loaded from Supabase before any
+  // gameplay-affecting route runs. Per RULES.md [SEC-002] / [ARC-009],
+  // there is NO in-process default — the game refuses to start until
+  // ops populates the DB. Best-effort retry via the 60s poller.
   try {
     const { refreshBalanceFromSupabase, startBalancePoller } = await import(
       '@/lib/game/configLoader.server',
@@ -57,7 +59,8 @@ export async function register(): Promise<void> {
     } else {
       console.warn(
         '[instrumentation] Balance config pre-warm FAILED — ' +
-          'using in-process defaults. Server will retry via 60s poller.',
+          'getBalance() will throw BalanceNotLoadedError until DB is populated. ' +
+          'Server will retry via 60s poller.',
       );
     }
     startBalancePoller();

@@ -69,36 +69,6 @@ export type ServerGameStateLite = Pick<
 >;
 
 /**
- * Minimal shape used by `GET /api/game/offline` to compute offline ticks.
- */
-export type ServerGameStateForOfflineCheck = Pick<
-  ServerGameStateRow,
-  "full_state" | "last_saved_at" | "game_tick" | "game_speed"
->;
-
-/**
- * Load only the columns needed for offline tick calculation.
- */
-export async function loadServerGameStateLiteForOffline(
-  userId: string,
-): Promise<ServerGameStateForOfflineCheck | null> {
-  const supabase = createServiceRoleClient();
-  if (!supabase) return null;
-
-  const { data, error } = await supabase
-    .from("server_game_state")
-    .select("full_state, last_saved_at, game_tick, game_speed")
-    .eq("user_id", userId)
-    .single();
-
-  if (error) {
-    if (error.code === "PGRST116") return null;
-    throw error;
-  }
-  return data as ServerGameStateForOfflineCheck;
-}
-
-/**
  * Narrow shape for the offline tick flow (POST /api/game/offline).
  */
 export type ServerGameStateForTick = Pick<
@@ -427,31 +397,6 @@ export async function loadServerGameStateForDeltaCheck(
 }
 
 /**
- * Upsert a user's game state. Used by POST /api/game/state.
- * Returns the freshly-inserted/updated row, or null on conflict / failure.
- *
- * NOTE: This is a non-locking write. Callers that need optimistic
- * concurrency should use `saveServerGameStateOptimistic` instead.
- */
-async function saveServerGameState(
-  userId: string,
-  patch: ServerGameStateUpdate,
-): Promise<ServerGameStateRow | null> {
-  const supabase = createServiceRoleClient();
-  if (!supabase) return null;
-
-  const { data, error } = await supabase
-    .from("server_game_state")
-    .update(patch)
-    .eq("user_id", userId)
-    .select("*")
-    .single();
-
-  if (error) return null;
-  return data as ServerGameStateRow;
-}
-
-/**
  * Upsert a user's game state. Used by POST /api/game/state when no
  * prior row may exist. Inserts on `user_id` conflict.
  */
@@ -687,47 +632,6 @@ export async function saveServerGameStateOptimistic(
   return data as ServerGameStateRow;
 }
 
-/**
- * Lock a user's account with a given reason. Used by admin actions.
- * Returns true on success, false otherwise.
- */
-async function lockServerGameState(
-  userId: string,
-  reason: string,
-): Promise<boolean> {
-  const supabase = createServiceRoleClient();
-  if (!supabase) return false;
-
-  const { error } = await supabase
-    .from("server_game_state")
-    .update({
-      is_locked: true,
-      lock_reason: reason,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("user_id", userId);
-
-  return !error;
-}
-
-/**
- * Unlock a user's account. Returns true on success.
- */
-async function unlockServerGameState(userId: string): Promise<boolean> {
-  const supabase = createServiceRoleClient();
-  if (!supabase) return false;
-
-  const { error } = await supabase
-    .from("server_game_state")
-    .update({
-      is_locked: false,
-      lock_reason: null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("user_id", userId);
-
-  return !error;
-}
 // ============================================
 // Iteration 8 — admin player listing + aggregates
 // ============================================
@@ -810,11 +714,6 @@ export async function loadPlayersByIds(
 
 // Aggregate queries for admin dashboard (economy)
 
-interface MoneyAggregate {
-  money: number;
-  total_money_earned: number;
-}
-
 export async function sumMoneyAcrossAllPlayers(): Promise<{
   totalMoney: number;
   totalEarned: number;
@@ -890,19 +789,20 @@ export async function setPlayerLockStateBulk(
   const supabase = createServiceRoleClient();
   if (!supabase) return { successCount: 0, failCount: userIds.length };
 
-  let successCount = 0;
-  let failCount = 0;
-  for (const userId of userIds) {
-    const { error } = await supabase
-      .from("server_game_state")
-      .update({
-        is_locked: isLocked,
-        lock_reason: isLocked ? lockReason : null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", userId);
-    if (!error) successCount++;
-    else failCount++;
-  }
+  const results = await Promise.all(
+    userIds.map(async (userId) => {
+      const { error } = await supabase
+        .from("server_game_state")
+        .update({
+          is_locked: isLocked,
+          lock_reason: isLocked ? lockReason : null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", userId);
+      return !error;
+    }),
+  );
+  const successCount = results.filter(Boolean).length;
+  const failCount = results.length - successCount;
   return { successCount, failCount };
 }

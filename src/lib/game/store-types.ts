@@ -21,7 +21,6 @@ import type { LLMEngineState } from './newsLLM';
 // --- Store Actions ---
 export interface GameActions {
   // Core
-  gameTickAction: () => void;
   setGameSpeed: (speed: number) => Promise<void>;
   togglePause: () => void;
   setActiveTab: (tab: GameTab) => void;

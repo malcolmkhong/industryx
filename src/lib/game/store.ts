@@ -41,7 +41,6 @@ import { createQuestActions } from "./actions/quests";
 import { createStorageActions } from "./actions/storage";
 import { createRankActions } from "./actions/rank";
 import { createNewsActions } from "./actions/news";
-import { createGameTickActions } from "./actions/gameTick";
 import type { GameStore } from "./store-types";
 
 // Fields replaced verbatim from server response. Server already validated.
@@ -112,7 +111,6 @@ export const useGameStore = create<GameStore>()((set, get) => ({
   ...createStorageActions(set, get),
   ...createRankActions(set, get),
   ...createNewsActions(set, get),
-  ...createGameTickActions(set, get),
 }));
 
 /**

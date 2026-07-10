@@ -23,8 +23,6 @@
 //   - Handles 429 rate-limit with automatic retry
 // ============================================
 
-import { ResourceType } from './types';
-import { RESOURCE_META } from './configCache';
 import type { EventPacket } from './newsBuilder';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -263,7 +261,7 @@ async function callCloudflareWorker(
     }
 
     return null;
-  } catch (error) {
+  } catch {
     const elapsed = performance.now() - startTime;
     recordGenTime(elapsed);
     consecutiveFailures++;

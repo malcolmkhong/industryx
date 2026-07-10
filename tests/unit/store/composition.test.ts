@@ -100,9 +100,9 @@ function resetStore() { useGameStore.setState(useGameStore.getInitialState()); }
 describe('Module: store/composition', () => {
   beforeEach(() => { resetStore(); vi.clearAllMocks(); });
 
-  it('all 56 actions exist on the store', () => {
+  it('all server-authoritative store actions exist on the store', () => {
     const actions = [
-      'gameTickAction', 'setGameSpeed', 'togglePause', 'setActiveTab',
+      'setGameSpeed', 'togglePause', 'setActiveTab',
       'buildBuilding', 'upgradeBuilding', 'toggleBuilding', 'selectBuilding',
       'buildTransportLine', 'upgradeTransportLine', 'toggleTransportLine',
       'startResearch',
@@ -124,7 +124,7 @@ describe('Module: store/composition', () => {
       'startMegaProject', 'contributeToMegaProject',
       'saveBlueprint', 'loadBlueprint', 'deleteBlueprint', 'renameBlueprint', 'exportBlueprint', 'importBlueprint',
     ];
-    expect(actions.length).toBe(53);
+    expect(actions.length).toBe(52);
     for (const a of actions) {
       expect(typeof (getStore() as unknown as Record<string, unknown>)[a]).toBe('function');
     }

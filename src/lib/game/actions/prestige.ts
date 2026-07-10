@@ -42,13 +42,22 @@ export function createPrestigeActions(set: SetFn, get: GetFn) {
       }
 
       const corrected = validation.correctedState;
+      if (!corrected?.prestigeState) {
+        console.error(
+          "[doPrestige] server returned no prestigeState; refusing local reset.",
+        );
+        get().addNotification(
+          "error",
+          "Prestige could not be confirmed by server. Please retry.",
+        );
+        return;
+      }
       // Type-narrow the prestigeState field so downstream `totalPrestiges`
       // and friends resolve cleanly. Server-returned correctedState is
       // Partial<ServerGameData>; the prestigeState subfield is the canonical
       // PrestigeState shape.
       const finalPrestigeState =
-        (corrected?.prestigeState as { totalPrestiges: number; corporationPoints: number; megaFactoryUnlocked: boolean; bonuses: unknown[] } | undefined) ??
-        state.prestigeState;
+        corrected.prestigeState as { totalPrestiges: number; corporationPoints: number; megaFactoryUnlocked: boolean; bonuses: unknown[] };
 
       // Calculate score for leaderboard entry (uses pre-prestige totals)
       const score = Math.floor(
@@ -93,22 +102,7 @@ export function createPrestigeActions(set: SetFn, get: GetFn) {
       // Apply server-returned canonical reset state verbatim. We do NOT
       // spread `createInitialState()` client-side any more — the server
       // owns the shape.
-      if (corrected) {
-        set(corrected as Parameters<typeof set>[0]);
-      } else {
-        // Defensive fallback — if the server response was missing
-        // correctedState for some reason, fail-closed by leaving state
-        // untouched and surfacing the error to the user rather than
-        // doing a partial local reset.
-        console.error(
-          "[doPrestige] server returned no correctedState; refusing local fallback (Phase 12 anti-cheat).",
-        );
-        get().addNotification(
-          "error",
-          "Prestige could not be confirmed by server. Please retry.",
-        );
-        return;
-      }
+      set(corrected as Parameters<typeof set>[0]);
 
       soundEngine.play("levelUp", "events");
       get().updateQuestProgress("prestige", 1);

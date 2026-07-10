@@ -25,18 +25,25 @@ export function createPayoutActions(set: SetFn, get: GetFn) {
         return;
       }
 
-      // Apply server-authoritative state.
-      const serverMoney =
-        validation.correctedState?.money ?? state.money + state.pendingPayout;
-      const serverTotalEarned =
-        validation.correctedState?.totalMoneyEarned ??
-        state.totalMoneyEarned + state.pendingPayout;
-      const serverPendingPayout = validation.correctedState?.pendingPayout ?? 0;
+      const corrected = validation.correctedState;
+      if (
+        !corrected ||
+        typeof corrected.money !== "number" ||
+        typeof corrected.totalMoneyEarned !== "number" ||
+        typeof corrected.pendingPayout !== "number"
+      ) {
+        soundEngine.play("error", "ui");
+        get().addNotification(
+          "error",
+          "Payout could not be confirmed by server. Please retry.",
+        );
+        return;
+      }
 
       set({
-        money: serverMoney,
-        totalMoneyEarned: serverTotalEarned,
-        pendingPayout: serverPendingPayout,
+        money: corrected.money,
+        totalMoneyEarned: corrected.totalMoneyEarned,
+        pendingPayout: corrected.pendingPayout,
       });
       soundEngine.play("moneyEarned", "building");
       get().addNotification(

@@ -13,7 +13,7 @@
 import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { computeMaxPossibleMoney } from "@/lib/game/serverTickValidator";
-import type { GameConfig } from "@/lib/game/config";
+import { DEFAULT_BALANCE_SUBSET, type GameConfig } from "@/lib/game/config";
 import type { ServerGameData } from "@/lib/game/types";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
 import { logActionAsync } from "@/lib/auth/gameStateValidator";
@@ -47,15 +47,6 @@ export const dynamic = "force-dynamic";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
-interface ServerGameStateRow {
-  user_id: string;
-  full_state: unknown;
-  game_tick: number;
-  game_speed: number;
-  last_tick_at: string;
-  money: number;
-}
-
 // ─── Config Builder ───────────────────────────────────────────────────────
 
 /**
@@ -81,6 +72,7 @@ function buildConfigFromCache(): GameConfig {
           tier: val.tier,
           color: val.color,
           category: "raw",
+          baseCapacity: val.baseCapacity,
         },
       ]),
     ),
@@ -205,6 +197,7 @@ function buildConfigFromCache(): GameConfig {
       unlockRequirement: m.unlockRequirement as Record<string, unknown>,
     })),
     gameConfig: {},
+    balance: DEFAULT_BALANCE_SUBSET,
     productionChains: PRODUCTION_CHAINS.map((c) => ({
       id: (c as { id?: string }).id ?? "",
       upstreamBuilding: (c as { upstream?: string }).upstream ?? "",
@@ -317,63 +310,65 @@ export async function POST(request: Request): Promise<NextResponse> {
     // Sanity check: a player's money should be ≤ total_money_earned + a
     // generous "unspent income" margin based on elapsed ticks × max RP/income.
     // This catches 99% of cheats without needing the full game state.
-    for (const player of activePlayers) {
-      // Skip if money is not even a number
-      if (typeof player.money !== "number" || player.money < 0) {
-        // Defensive flag — negative money is always a bug or a cheat
-        flaggedCount++;
-        await flagSuspicious(
-          supabase,
-          player.user_id,
-          player.money,
-          player.game_tick,
-          "negative_money",
-        );
-        continue;
-      }
-
-      // Sanity: money > total_money_earned is impossible without selling.
-      // Selling only decreases money. So money > total_money_earned means
-      // either a bug or a cheat. Flag for deep check.
-      if (player.money > (player.total_money_earned ?? 0) * 1.5) {
-        flaggedCount++;
-        // Fetch full state ONLY for this one user to run deep validation
-        const deep = await loadFullStateForUser(player.user_id);
-        if (!deep) continue;
-        // Phase 13: full_state is pure ServerGameData. UI flags NEVER appear.
-        const state = deep.full_state as ServerGameData;
-        if (!state || typeof state.money !== "number") continue;
-        const lastTickAt = new Date(player.last_tick_at).getTime();
-        const elapsedSeconds = (Date.now() - lastTickAt) / 1000;
-        const gameSpeed = player.game_speed || 1;
-        const elapsedTicks = Math.floor(elapsedSeconds * gameSpeed);
-        if (elapsedTicks < 10) continue;
-        const maxPossible = computeMaxPossibleMoney(
-          state,
-          elapsedTicks,
-          config,
-        );
-        if (state.money > maxPossible) {
-          const ratio = state.money / Math.max(1, maxPossible);
-          const percentOver = Math.floor((ratio - 1) * 100);
-          const description =
-            `[gradual_money_inflation] Money ${state.money.toFixed(2)} exceeds ` +
-            `theoretical max ${maxPossible.toFixed(2)} by ${percentOver}% ` +
-            `over ${elapsedTicks} elapsed ticks.`;
+    const flagResults = await Promise.all(
+      activePlayers.map(async (player) => {
+        // Skip if money is not even a number
+        if (typeof player.money !== "number" || player.money < 0) {
+          // Defensive flag — negative money is always a bug or a cheat
           await flagSuspicious(
             supabase,
             player.user_id,
-            state.money,
-            deep.game_tick,
-            "money_manipulation",
-            description,
+            player.money,
+            player.game_tick,
+            "negative_money",
           );
+          return 1;
         }
-        continue;
-      }
 
-      // No flag — clean. No full_state fetch needed.
-    }
+        // Sanity: money > total_money_earned is impossible without selling.
+        // Selling only decreases money. So money > total_money_earned means
+        // either a bug or a cheat. Flag for deep check.
+        if (player.money > (player.total_money_earned ?? 0) * 1.5) {
+          // Fetch full state ONLY for this one user to run deep validation
+          const deep = await loadFullStateForUser(player.user_id);
+          if (!deep) return 1;
+          // Phase 13: full_state is pure ServerGameData. UI flags NEVER appear.
+          const state = deep.full_state as ServerGameData;
+          if (!state || typeof state.money !== "number") return 1;
+          const lastTickAt = new Date(player.last_tick_at).getTime();
+          const elapsedSeconds = (Date.now() - lastTickAt) / 1000;
+          const gameSpeed = player.game_speed || 1;
+          const elapsedTicks = Math.floor(elapsedSeconds * gameSpeed);
+          if (elapsedTicks < 10) return 1;
+          const maxPossible = computeMaxPossibleMoney(
+            state,
+            elapsedTicks,
+            config,
+          );
+          if (state.money > maxPossible) {
+            const ratio = state.money / Math.max(1, maxPossible);
+            const percentOver = Math.floor((ratio - 1) * 100);
+            const description =
+              `[gradual_money_inflation] Money ${state.money.toFixed(2)} exceeds ` +
+              `theoretical max ${maxPossible.toFixed(2)} by ${percentOver}% ` +
+              `over ${elapsedTicks} elapsed ticks.`;
+            await flagSuspicious(
+              supabase,
+              player.user_id,
+              state.money,
+              deep.game_tick,
+              "money_manipulation",
+              description,
+            );
+          }
+          return 1;
+        }
+
+        // No flag — clean. No full_state fetch needed.
+        return 0;
+      }),
+    );
+    flaggedCount = flagResults.reduce((sum, count) => sum + count, 0);
 
     return NextResponse.json({
       players_checked: playersChecked,
@@ -392,7 +387,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 /**
  * GET — Health check for monitoring systems.
  */
-export async function GET(): Promise<NextResponse> {
+export function GET(): NextResponse {
   return NextResponse.json({ status: "ok", endpoint: "validate-ticks" });
 }
 

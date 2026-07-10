@@ -2,7 +2,6 @@ import type { TransportType, TransportLine, ResourceType } from "../types";
 import { TRANSPORT_DEFS } from "../configCache";
 import { generateId } from "../utils/generateId";
 import { formatNumber } from "../utils/formatNumber";
-import { getBalance } from "../balanceConfig";
 import { soundEngine } from "../soundEngine";
 import { buildMultipliers } from "../productionCalculator";
 import type { SetFn, GetFn } from "./_actionTypes";
@@ -59,7 +58,6 @@ export function createTransportActions(set: SetFn, get: GetFn) {
       );
       if (!validation.approved) {
         soundEngine.play("error", "ui");
-        // eslint-disable-next-line no-console
         console.error(
           `[buildTransportLine] server rejected: ${validation.error}`,
         );
@@ -67,54 +65,43 @@ export function createTransportActions(set: SetFn, get: GetFn) {
         return;
       }
 
-      // Apply server-authoritative state. Fallback to local if server omits.
       const corrected = validation.correctedState;
-      const serverLines = corrected?.transportLines as unknown[] as
-        TransportLine[] | undefined;
-      const serverMoney = corrected?.money ?? state.money - localCost;
+      const serverLines = corrected?.transportLines as TransportLine[] | undefined;
+      if (!corrected || !serverLines || typeof corrected.money !== "number") {
+        soundEngine.play("error", "ui");
+        get().addNotification(
+          "error",
+          "Transport build could not be confirmed by server. Please retry.",
+        );
+        return;
+      }
+      const serverMoney = corrected.money;
       const cache = buildMultipliers(state);
       const transportBonus = cache.transportThroughputBonus;
 
-      if (serverLines && serverLines.length > 0) {
-        const newLine = serverLines[serverLines.length - 1];
-        // Re-apply transport bonus locally (server doesn't apply research
-        // multipliers in current scope decision). This keeps display parity.
-        const withBonus: TransportLine = {
-          ...newLine,
-          throughput: newLine.throughput * (1 + transportBonus),
-        };
-        set({
-          money: serverMoney,
-          transportLines: [...state.transportLines, withBonus],
-          stats: {
-            ...state.stats,
-            transportLinesBuilt:
-              (corrected?.stats as { transportLinesBuilt?: number })
-                ?.transportLinesBuilt ?? state.stats.transportLinesBuilt + 1,
-          },
-        });
-      } else {
-        // Local fallback (server returned no correctedState)
-        const line: TransportLine = {
-          id: generateId(),
-          type,
-          level: 1,
-          fromBuilding: from,
-          toBuilding: to,
-          carriesResource: resource,
-          throughput: def.baseThroughput * (1 + transportBonus),
-          maxThroughput: def.baseThroughput * 3,
-          active: true,
-        };
-        set({
-          money: state.money - localCost,
-          transportLines: [...state.transportLines, line],
-          stats: {
-            ...state.stats,
-            transportLinesBuilt: state.stats.transportLinesBuilt + 1,
-          },
-        });
+      const newLine = serverLines[serverLines.length - 1];
+      if (!newLine) {
+        soundEngine.play("error", "ui");
+        get().addNotification(
+          "error",
+          "Transport build could not be confirmed by server. Please retry.",
+        );
+        return;
       }
+      const withBonus: TransportLine = {
+        ...newLine,
+        throughput: newLine.throughput * (1 + transportBonus),
+      };
+      set({
+        money: serverMoney,
+        transportLines: [...state.transportLines, withBonus],
+        stats: {
+          ...state.stats,
+          transportLinesBuilt:
+            (corrected.stats as { transportLinesBuilt?: number } | undefined)
+              ?.transportLinesBuilt ?? state.stats.transportLinesBuilt,
+        },
+      });
       soundEngine.play("buildingPlaced", "building");
       get().addNotification(
         "success",
@@ -128,14 +115,6 @@ export function createTransportActions(set: SetFn, get: GetFn) {
       const line = state.transportLines.find((l) => l.id === id);
       if (!line) return;
 
-      const def = TRANSPORT_DEFS[line.type];
-      const localCost = Math.floor(
-        def.baseCost.reduce(
-          (sum, c) => sum + (c.resource === "money" ? c.amount : 0),
-          0,
-        ) * Math.pow(getBalance().transport.upgradeCostExponent, line.level),
-      );
-
       // Phase 6: server-authoritative upgrade. Server computes scaled cost
       // from current level and new throughput; returns authoritative
       // post-upgrade state.
@@ -147,7 +126,6 @@ export function createTransportActions(set: SetFn, get: GetFn) {
         ),
       );
       if (!validation.approved) {
-        // eslint-disable-next-line no-console
         console.error(
           `[upgradeTransportLine] server rejected: ${validation.error}`,
         );
@@ -156,45 +134,30 @@ export function createTransportActions(set: SetFn, get: GetFn) {
       }
 
       const corrected = validation.correctedState;
-      const serverLines = corrected?.transportLines as unknown[] as
-        TransportLine[] | undefined;
-      const serverMoney = corrected?.money ?? state.money - localCost;
+      const serverLines = corrected?.transportLines as TransportLine[] | undefined;
+      if (!corrected || !serverLines || typeof corrected.money !== "number") {
+        soundEngine.play("error", "ui");
+        get().addNotification(
+          "error",
+          "Transport upgrade could not be confirmed by server. Please retry.",
+        );
+        return;
+      }
+      const serverMoney = corrected.money;
       const cache = buildMultipliers(state);
       const transportBonus = cache.transportThroughputBonus;
 
-      if (serverLines) {
-        set({
-          money: serverMoney,
-          transportLines: state.transportLines.map((l) => {
-            const fromServer = serverLines.find((sl) => sl.id === l.id);
-            if (!fromServer) return l;
-            return {
-              ...fromServer,
-              // Re-apply research bonus locally for display
-              throughput: fromServer.throughput * (1 + transportBonus),
-            };
-          }),
-        });
-      } else {
-        // Local fallback
-        set({
-          money: state.money - localCost,
-          transportLines: state.transportLines.map((l) =>
-            l.id === id
-              ? {
-                  ...l,
-                  level: l.level + 1,
-                  throughput: Math.min(
-                    l.maxThroughput,
-                    def.baseThroughput *
-                      Math.pow(def.upgradeMultiplier, l.level) *
-                      (1 + transportBonus),
-                  ),
-                }
-              : l,
-          ),
-        });
-      }
+      set({
+        money: serverMoney,
+        transportLines: state.transportLines.map((l) => {
+          const fromServer = serverLines.find((sl) => sl.id === l.id);
+          if (!fromServer) return l;
+          return {
+            ...fromServer,
+            throughput: fromServer.throughput * (1 + transportBonus),
+          };
+        }),
+      });
     },
 
     toggleTransportLine: (id: string) => {

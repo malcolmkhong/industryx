@@ -169,11 +169,9 @@ export class CloudSyncService {
             this.serverStateVersion,
           isServerAuthoritative: true,
         });
-        // Mark the cloud load as a sync point. Previously load() did NOT
-        // bump lastSyncAt, which meant consumers (e.g. useOfflineProgressCheck)
-        // waited for the first auto-save (~30s later) before they could
-        // react. By then the server's last_tick_at had been bumped to "now"
-        // and the 60s offline-reward floor blocked any reward. Bump here.
+        // Mark the cloud load as a sync point. Consumers such as
+        // useOfflineProgressCheck wait for this before asking the server
+        // to settle elapsed ticks.
         this.lastSyncAt = Date.now();
         this.notify();
         return { success: true, data: cloudState, conflict: "cloud" };

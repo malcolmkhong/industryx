@@ -108,11 +108,14 @@ export default function SystemStatusPage() {
   return (
     <>
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-xl font-bold text-white">System Status</h2>
-          <p className="text-sm text-muted-label mt-1">
-            Infrastructure health and connectivity monitoring
-          </p>
+        <div className="flex items-center gap-3">
+          <Activity className="w-6 h-6 text-warning/70" aria-hidden="true" />
+          <div>
+            <h2 className="text-xl font-bold text-white">System Status</h2>
+            <p className="text-sm text-muted-label mt-1">
+              Infrastructure health and connectivity monitoring
+            </p>
+          </div>
         </div>
         <button
           type="button"

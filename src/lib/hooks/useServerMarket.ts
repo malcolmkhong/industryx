@@ -2,6 +2,27 @@
 
 import { useEffect, useRef } from 'react';
 import { useGameStore } from '@/lib/game/store';
+import type { MarketNews } from '@/lib/game/marketSimulator';
+import type { ResourceType } from '@/lib/game/types';
+
+type ServerNewsCategory =
+  | 'price_move'
+  | 'volatility'
+  | 'correlation'
+  | 'sector'
+  | 'trade';
+
+interface ServerMarketNewsItem {
+  id?: string;
+  title: string;
+  description: string;
+  affectedResources: string[];
+  impactSummary?: string;
+  severity?: 'low' | 'medium' | 'high';
+  category?: ServerNewsCategory;
+  textSource?: 'llm' | 'fallback';
+  gameTick?: number;
+}
 
 interface MarketState {
   tick: number;
@@ -12,15 +33,35 @@ interface MarketState {
     trend: 'up' | 'down' | 'stable';
     volume: number;
   }>;
-  news: Array<{
-    title: string;
-    description: string;
-    affectedResources: string[];
-  }>;
+  news: ServerMarketNewsItem[];
   volatility: number;
 }
 
 const POLL_INTERVAL = 10000; // 10 seconds
+
+export function normalizeServerMarketNews(
+  news: ServerMarketNewsItem[],
+  tick: number,
+): MarketNews[] {
+  return news.map((item, index) => {
+    const affectedResources = item.affectedResources.filter(
+      Boolean,
+    ) as ResourceType[];
+    const firstResource = affectedResources[0] ?? 'market';
+
+    return {
+      id: item.id ?? `server-market-${tick}-${index}`,
+      title: item.title,
+      description: item.description,
+      affectedResources,
+      impactSummary: item.impactSummary ?? `${firstResource} market update`,
+      severity: item.severity ?? 'medium',
+      gameTick: item.gameTick ?? tick,
+      category: item.category ?? 'price_move',
+      textSource: item.textSource ?? 'llm',
+    };
+  });
+}
 
 export function useServerMarket() {
   const lastTick = useRef(0);
@@ -41,9 +82,10 @@ export function useServerMarket() {
             tick: data.tick,
             volatility: data.volatility,
           },
+          marketNews: normalizeServerMarketNews(data.news, data.tick),
         });
       } catch {
-        // Network error — keep last known state
+        // Network error: keep last known server market snapshot.
       }
     }, POLL_INTERVAL);
 

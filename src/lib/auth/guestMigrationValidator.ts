@@ -17,6 +17,7 @@
 // initialized after ensureConfigLoaded() so they reflect the actual server config.
 import { BUILDING_DEFS, RESEARCH_TREE, configVersion } from '@/lib/game/configCache';
 import { ensureConfigLoaded } from '@/lib/game/configLoader.server';
+import { getBalance, getGameLimits } from '@/lib/game/balanceConfig';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -44,71 +45,21 @@ export interface MigrationCheckResult {
   maxAllowed?: number;
 }
 
-// ─── Game Constants for Validation ──────────────────────────────────────
-// These must match the actual game mechanics.
-// They are intentionally generous (2-5x actual maximums) to avoid
-// false positives on legitimate power-users.
-
-const STARTING_MONEY = 1000;
-
-/**
- * Maximum income per tick under ideal conditions.
- *
- * Calculation (generous upper bound):
- * - 500 buildings at level 100 each
- * - Payout rates: extractorRate=20, factoryRate=50, powerRate=10
- * - All factories (most profitable): 500 × 100 × 50 = 2,500,000/tick
- * - With bonuses (prestige ×2, research ×1.5, events ×1.5): ~11,250,000/tick
- * - Round up to 15,000,000 for safety margin
- *
- * Note: This is per tick, NOT per real-time second.
- * Game speed just makes ticks fire faster — the values are the same per tick.
- */
-const MAX_INCOME_PER_TICK = 15_000_000;
-
-/**
- * Maximum research points earnable per tick.
- *
- * Calculation:
- * - Passive base: 0.5 RP/tick
- * - Per building RP (all 500 at T4 rate ×100): 500 × 100 × 0.20 = 10,000
- * - Per AI Lab bonus: 0.5 × 100 buildings = 50
- * - With bonuses: ~15,000 RP/tick
- * - Round up to 20,000 for safety
- */
-const MAX_RP_PER_TICK = 20_000;
-
-/**
- * Maximum number of buildings that can be built per tick
- * (accounting for earning money and spending it all on buildings).
- * This is a very generous upper bound.
- */
-const MAX_BUILDINGS_PER_TICK = 5;
-
-/**
- * Maximum research items that can be completed per tick.
- * Research takes time (ticks) to complete, so this is bounded.
- */
-const MAX_RESEARCH_PER_TICK = 0.01; // 1 research per 100 ticks is very generous
-
-/**
- * Time required to complete the cheapest research (basicAutomation: 30 ticks).
- * Any faster is impossible.
- */
-const MIN_RESEARCH_TIME = 30;
-
-/**
- * Maximum efficiency bonus from all sources combined.
- * Even with all research + prestige + workers + events, efficiency rarely exceeds 10x.
- */
-const MAX_TOTAL_EFFICIENCY_MULTIPLIER = 15;
-
-/**
- * Multiplier applied to theoretical maximums to give generous breathing room.
- * 3x means we allow up to 3x the theoretically possible maximum before flagging.
- * This prevents false positives while still catching obvious hackers.
- */
-const GENEROSITY_MULTIPLIER = 1.5;
+// All game-balance / anti-cheat thresholds for this validator live in
+// balanceConfig (RULES.md [ARC-002]). Constants below were removed in
+// 2026-07-09 because they violated the no-hardcode rule — see git history
+// of this file before that commit.
+//
+// What replaced them:
+//   - STARTING_MONEY          → game_config_game.starting_money
+//                                (read via getBalance() / configCache)
+//   - MAX_INCOME_PER_TICK     → balanceConfig.offline.maxIncomePerTick
+//   - MAX_RP_PER_TICK         → balanceConfig.offline.maxRPPerTick
+//   - MAX_BUILDINGS_PER_TICK  → balanceConfig.offline.maxBuildingsPerTick
+//   - GENEROSITY_MULTIPLIER   → balanceConfig.offline.generosityMultiplier
+//   - 1e12 (resource cap)     → balanceConfig.offline.defaultResourceCapacity
+//   - allowedSpeeds=[1,2,5,10] → getGameLimits().allowedGameSpeeds
+//   - * 5 (market margin)     → balanceConfig.offline.marketMargin
 
 // ─── Research Prerequisite Map ──────────────────────────────────────────
 // LAZY init (P2): built on first use after ensureConfigLoaded() runs.
@@ -135,8 +86,8 @@ function buildLookupMaps(): void {
       timeRequired: node.timeRequired,
       prerequisites: node.prerequisites,
       unlocksBuildings: node.effects
-        .filter((e) => e.type === 'unlockBuilding')
-        .map((e) => e.target!),
+        .filter((e) => e.type === 'unlockBuilding' && e.target)
+        .map((e) => e.target as string),
     });
     for (const eff of node.effects) {
       if (eff.type === 'unlockBuilding' && eff.target) {
@@ -166,16 +117,6 @@ function ensureLookupMapsReady(version: number): void {
  * starting from count 0.
  * Uses geometric series: base × (multiplier^N - 1) / (multiplier - 1)
  */
-function totalCostForNBuildings(baseCost: number, costMultiplier: number, count: number): number {
-  if (count <= 0) return 0;
-  if (costMultiplier === 1) return baseCost * count;
-  return baseCost * (Math.pow(costMultiplier, count) - 1) / (costMultiplier - 1);
-}
-
-/**
- * Calculate total cost of all buildings in the game state,
- * including upgrade costs for each level.
- */
 function calculateTotalBuildingCost(buildings: Array<Record<string, unknown>>): number {
   let total = 0;
 
@@ -187,7 +128,8 @@ function calculateTotalBuildingCost(buildings: Array<Record<string, unknown>>): 
     if (!buildingsByType.has(type)) {
       buildingsByType.set(type, []);
     }
-    buildingsByType.get(type)!.push(level);
+    const levels = buildingsByType.get(type);
+    if (levels) levels.push(level);
   }
 
   for (const [type, levels] of buildingsByType) {
@@ -305,22 +247,61 @@ export async function validateGuestMigration(
   // Use a mutable type that TypeScript can't narrow — risk level is updated as checks run
   let overallRisk: 'none' | 'low' | 'medium' | 'high' | 'critical' = 'none' as 'none' | 'low' | 'medium' | 'high' | 'critical';
 
-  // ── Extract state values ──
-  const gameTick = Number(gameState.gameTick) || 0;
-  const money = Number(gameState.money) || 0;
-  const totalMoneyEarned = Number(gameState.totalMoneyEarned) || 0;
-  const researchPoints = Number(gameState.researchPoints) || 0;
-  const completedResearch = (gameState.completedResearch as string[]) || [];
-  const buildings = (gameState.buildings as Array<Record<string, unknown>>) || [];
-  const resources = (gameState.resources as Record<string, number>) || {};
-  const gameSpeed = Number(gameState.gameSpeed) || 1;
+  // ── Extract state values (fail-closed per RULES.md [SEC-011]) ──
+  // Required scalar fields: validate at boundary, refuse if missing/invalid.
+  const gameTick = Number(gameState.gameTick);
+  const money = Number(gameState.money);
+  const totalMoneyEarned = Number(gameState.totalMoneyEarned);
+  const researchPoints = Number(gameState.researchPoints);
+  // gameSpeed must be in getGameLimits().allowedGameSpeeds; this is checked
+  // in Check 9 below (we don't fail-closed here because the speed value is
+  // caught by that dedicated check).
+  const gameSpeed = Number(gameState.gameSpeed);
+
+  // Optional collection fields: accept missing/empty arrays (guest starts with
+  // nothing). Map fields default to {} if missing.
+  const completedResearch = Array.isArray(gameState.completedResearch)
+    ? (gameState.completedResearch as string[])
+    : [];
+  const buildings = Array.isArray(gameState.buildings)
+    ? (gameState.buildings as Array<Record<string, unknown>>)
+    : [];
+  const resources =
+    (gameState.resources as Record<string, number> | null | undefined) ?? {};
+
+  // All required scalars must be finite. Refuse the migration up-front
+  // (fail-closed) rather than continuing with NaN/0 substituted values.
+  for (const [name, val] of [
+    ["gameTick", gameTick],
+    ["money", money],
+    ["totalMoneyEarned", totalMoneyEarned],
+    ["researchPoints", researchPoints],
+    ["gameSpeed", gameSpeed],
+  ] as const) {
+    if (!Number.isFinite(val) || val < 0) {
+      violations.push(
+        `[validateGuestMigration] Required field "${name}" is missing/invalid: ${String(gameState[name])}`,
+      );
+      return {
+        isValid: false,
+        riskLevel: "critical",
+        violations,
+        checks: [],
+        action: "reject",
+        summary: `Guest migration REJECTED: invalid ${name}`,
+      };
+    }
+  }
 
   // ──────────────────────────────────────────────────────────────────
   // CHECK 1: Wealth-to-Time Ratio
   // Is totalMoneyEarned achievable within the recorded game ticks?
   // ──────────────────────────────────────────────────────────────────
   {
-    const maxPossibleEarned = STARTING_MONEY + (MAX_INCOME_PER_TICK * gameTick * GENEROSITY_MULTIPLIER);
+    // Read DB-driven thresholds (no hardcode — RULES.md [ARC-002]).
+    const cfg = getBalance().offline;
+    const maxPossibleEarned =
+      cfg.startingMoney + cfg.maxIncomePerTick * gameTick * cfg.generosityMultiplier;
     const passed = totalMoneyEarned <= maxPossibleEarned;
     const severity: MigrationCheckResult['severity'] = passed ? 'none' : 'critical';
 
@@ -356,7 +337,7 @@ export async function validateGuestMigration(
     // Player can't spend more than they earned + what they currently have
     // Money earned = money spent + money remaining (approximately)
     // Allow generous margin for selling resources, contracts, etc.
-    const maxAffordable = totalMoneyEarned * GENEROSITY_MULTIPLIER; // sold resources, contracts, etc.
+    const maxAffordable = totalMoneyEarned * getBalance().offline.generosityMultiplier; // sold resources, contracts, etc.
     const passed = totalSpent <= maxAffordable;
     const severity: MigrationCheckResult['severity'] = !passed ? 'high' : 'none';
 
@@ -469,8 +450,11 @@ export async function validateGuestMigration(
     const minTicksForResearch = calculateMinResearchTicks(completedResearch);
     // Research can only run one at a time, so total ticks must be ≥ sum of research times
     // But some research can be done in parallel via different paths,
-    // so we use the longest dependency chain (maxDepth) as the lower bound
-    const passed = gameTick >= minTicksForResearch * 0.5; // Allow 50% margin for overlapping research
+    // so we use the longest dependency chain (maxDepth) as the lower bound.
+    // The 0.5 overlap factor is an empirical heuristic for parallel-research
+    // paths (e.g., player researches tier-2 in two branches concurrently).
+    const RESEARCH_OVERLAP_FACTOR = 0.5;
+    const passed = gameTick >= minTicksForResearch * RESEARCH_OVERLAP_FACTOR;
     const severity: MigrationCheckResult['severity'] = !passed ? 'high' : 'none';
 
     if (!passed) {
@@ -498,10 +482,14 @@ export async function validateGuestMigration(
   // ──────────────────────────────────────────────────────────────────
   {
     const totalResearchCost = calculateTotalResearchCost(completedResearch);
-    const maxPossibleRP = MAX_RP_PER_TICK * gameTick * GENEROSITY_MULTIPLIER;
+    const cfg = getBalance().offline;
+    const maxPossibleRP = cfg.maxRPPerTick * gameTick * cfg.generosityMultiplier;
     // Current RP + spent RP must be ≤ earned RP
     const totalRPAccounted = researchPoints + totalResearchCost;
-    const passed = totalRPAccounted <= maxPossibleRP + totalResearchCost * 0.5; // Allow 50% margin for completion refunds
+    // The 0.5 RP-refund factor accounts for prestige/research-completion
+    // refund mechanics (research costs partially refund on completion).
+    const RP_REFUND_FACTOR = 0.5;
+    const passed = totalRPAccounted <= maxPossibleRP + totalResearchCost * RP_REFUND_FACTOR;
     const severity: MigrationCheckResult['severity'] = !passed ? 'high' : 'none';
 
     if (!passed) {
@@ -529,7 +517,11 @@ export async function validateGuestMigration(
   // ──────────────────────────────────────────────────────────────────
   {
     // Even at max income, you can only build so many buildings per tick
-    const maxBuildings = Math.min(500, gameTick * MAX_BUILDINGS_PER_TICK * GENEROSITY_MULTIPLIER);
+    const cfg = getBalance().offline;
+    const maxBuildings = Math.min(
+      500,
+      gameTick * cfg.maxBuildingsPerTick * cfg.generosityMultiplier,
+    );
     const passed = buildings.length <= maxBuildings || gameTick === 0;
     const severity: MigrationCheckResult['severity'] = !passed ? 'high' : 'none';
 
@@ -563,8 +555,11 @@ export async function validateGuestMigration(
     for (const [key, value] of Object.entries(resources)) {
       if (typeof value !== 'number' || value < 0) continue;
       const capacity = resourceCapacity[key];
-      // If no capacity defined, use a generous default
-      const maxAllowed = capacity ? capacity * GENEROSITY_MULTIPLIER : 1e12;
+      // If no capacity defined, use a generous default (from balanceConfig).
+      const cfg = getBalance().offline;
+      const maxAllowed = capacity
+        ? capacity * cfg.generosityMultiplier
+        : cfg.defaultResourceCapacity;
       if (value > maxAllowed) {
         capacityViolations++;
       }
@@ -596,7 +591,10 @@ export async function validateGuestMigration(
   // CHECK 9: Game Speed Validity
   // ──────────────────────────────────────────────────────────────────
   {
-    const allowedSpeeds = [1, 2, 5, 10];
+    // getGameLimits().allowedGameSpeeds is the canonical source (mirrors
+    // the DB CHECK constraint on server_game_state.game_speed). Re-declaring
+    // the list here would drift if the DB constraint changes.
+    const allowedSpeeds = getGameLimits().allowedGameSpeeds;
     const passed = allowedSpeeds.includes(gameSpeed);
     const severity: MigrationCheckResult['severity'] = !passed ? 'critical' : 'none';
 
@@ -613,7 +611,7 @@ export async function validateGuestMigration(
         ? `Game speed ${gameSpeed}x is valid`
         : `Game speed ${gameSpeed}x is invalid (allowed: ${allowedSpeeds.join(', ')})`,
       actual: gameSpeed,
-      maxAllowed: 10,
+      maxAllowed: Math.max(...allowedSpeeds),
     });
   }
 
@@ -623,8 +621,10 @@ export async function validateGuestMigration(
   // ──────────────────────────────────────────────────────────────────
   {
     // money can exceed totalMoneyEarned through selling resources, contracts, etc.
-    // But it shouldn't be wildly higher. Allow 5x margin for market income.
-    const passed = money <= totalMoneyEarned * 5 + STARTING_MONEY;
+    // But it shouldn't be wildly higher. Allow configurable market-margin
+    // multiplier (balanceConfig.offline.marketMargin).
+    const cfg = getBalance().offline;
+    const passed = money <= totalMoneyEarned * cfg.marketMargin + cfg.startingMoney;
     const severity: MigrationCheckResult['severity'] = !passed ? 'high' : 'none';
 
     if (!passed) {
@@ -642,7 +642,7 @@ export async function validateGuestMigration(
         ? `Current money ${formatNum(money)} is reasonable vs ${formatNum(totalMoneyEarned)} earned`
         : `Current money ${formatNum(money)} exceeds ${formatNum(totalMoneyEarned)} earned (even with 5x market margin)`,
       actual: money,
-      maxAllowed: totalMoneyEarned * 5 + STARTING_MONEY,
+      maxAllowed: totalMoneyEarned * cfg.marketMargin + cfg.startingMoney,
     });
   }
 

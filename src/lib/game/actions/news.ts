@@ -2,7 +2,15 @@
 // News & Anti-Cheat Actions Factory
 // ============================================
 import { getLLMState } from '../newsLLM';
+import type { MarketNews } from "../marketSimulator";
 import type { SetFn, GetFn } from "./_actionTypes";
+
+interface NewsLLMUpdate {
+  id: string;
+  title: string;
+  description: string;
+  textSource?: string;
+}
 
 export function createNewsActions(set: SetFn, get: GetFn) {
   return {
@@ -16,10 +24,10 @@ export function createNewsActions(set: SetFn, get: GetFn) {
 
     getNewsLLMState: () => getLLMState(),
 
-    refreshNewsFromLLM: (updates: Array<{ id: string; title: string; description: string; textSource?: string }>) => {
+    refreshNewsFromLLM: (updates: NewsLLMUpdate[]) => {
       const state = get();
-      const updatedNews = state.marketNews.map((n: any) => {
-        const update = updates.find((u: any) => u.id === n.id);
+      const updatedNews = state.marketNews.map((n: MarketNews) => {
+        const update = updates.find((u) => u.id === n.id);
         if (update) {
           return { ...n, title: update.title, description: update.description, textSource: 'llm' as const };
         }

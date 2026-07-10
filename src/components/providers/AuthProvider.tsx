@@ -108,10 +108,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const init = async () => {
       const { createBrowserClient } = await import("@supabase/ssr");
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      );
+      // Per RULES.md [SEC-002]: fail closed when config is missing. Returning
+      // early here leaves the orchestrator with no Supabase client, which the
+      // existing null-guard in orchestrator.attach() handles gracefully.
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      if (!supabaseUrl || !supabaseAnonKey) {
+        console.error(
+          "[AuthProvider] Missing NEXT_PUBLIC_SUPABASE_URL or " +
+            "NEXT_PUBLIC_SUPABASE_ANON_KEY — auth init skipped.",
+        );
+        return;
+      }
+      const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
 
       orchestrator.attach({
         isSupabaseConfigured,

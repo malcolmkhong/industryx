@@ -1,21 +1,14 @@
 // ============================================
 // IndustriaX: Game Heartbeat API
 // POST endpoint for session tracking
-// LEAN MVP — no PII, no player_progress update
-// (server_game_state is the source of truth for ticks)
+// LEAN MVP — no PII, no player_progress update.
+// Heartbeat tracks presence only. It must not advance server tick cursors.
 // ============================================
 
 import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { verifyAuth } from "@/lib/auth/verifyAuth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
-
-interface HeartbeatRequest {
-  gameTick: number;
-  money: number;
-  paused: boolean;
-  gameSpeed: number;
-}
 
 // ─── Main POST Handler ──────────────────────────────────────────────────
 
@@ -32,14 +25,12 @@ export async function POST(request: Request) {
   );
   if (rateLimitResponse) return rateLimitResponse;
 
-  let body: HeartbeatRequest;
   try {
-    body = await request.json();
+    await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { gameTick, money, paused, gameSpeed } = body;
   const now = new Date().toISOString();
 
   const supabase = createServiceRoleClient();
@@ -65,23 +56,6 @@ export async function POST(request: Request) {
     console.warn("[Heartbeat] Session upsert failed:", sessionError.message);
   }
 
-  // Update server_game_state tick tracking (source of truth)
-  // Only update last_tick_at — game_tick/money are updated on full saves
-  const { error: sgsError } = await supabase
-    .from("server_game_state")
-    .update({
-      last_tick_at: now,
-    })
-    .eq("user_id", auth.userId);
-
-  if (sgsError) {
-    // Don't fail the heartbeat — server_game_state might not exist yet for new users
-    console.warn(
-      "[Heartbeat] server_game_state update failed:",
-      sgsError.message,
-    );
-  }
-
   // Bump profiles.last_active so cleanup_orphan_anon_users can tell
   // active players from abandoned ones. Best-effort: failure does not
   // break the heartbeat. (Tier 1 fix 4.)
@@ -94,15 +68,12 @@ export async function POST(request: Request) {
   return NextResponse.json({
     ok: true,
     serverTime: now,
-    serverGameTick: gameTick || 0,
-    // Server can override client speed if needed
-    allowedSpeed: gameSpeed,
   });
 }
 
 // ─── DELETE Handler — Disconnect ────────────────────────────────────────
 
-export async function DELETE(request: Request) {
+export async function DELETE(_request: Request) {
   const auth = await verifyAuth();
   if (!auth.success) return auth.response;
 

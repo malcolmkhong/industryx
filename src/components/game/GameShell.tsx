@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useGameStore } from "@/lib/game/store";
 import type { GameTab } from "@/lib/game/types";
 import { useNavigateToTab } from "@/lib/hooks/page/useNavigateToTab";
 import { useOfflineProgressCheck } from "@/lib/hooks/page/useOfflineProgressCheck";
@@ -17,6 +16,7 @@ import { useHeaderHeightObserver } from "@/lib/hooks/page/useHeaderHeightObserve
 import { useHydrationGuard } from "@/lib/hooks/page/useHydrationGuard";
 import { useReducedMotion } from "@/lib/hooks/page/useReducedMotion";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useGameConfig } from "@/components/providers/GameConfigProvider";
 import { useCloudSync } from "@/lib/hooks/useCloudSync";
 import { useLoginPrompt } from "@/lib/hooks/useLoginPrompt";
 import { useMergeFlow } from "@/lib/hooks/useMergeFlow";
@@ -46,13 +46,11 @@ interface GameShellProps {
 
 // GameShell owns the entire chrome (header, sidebar, bottom nav, FAB, dialogs,
 // hooks, sync). It mounts once per `/game/...` session and never re-mounts on
-// tab change — keeping Zustand state, game tick loop, cloud sync, and all
+// tab change - keeping Zustand state, cloud sync, and all client lifecycle
 // timers alive across instant Next.js client-side route transitions.
 export function GameShell({ children }: GameShellProps) {
-  // Phase 7: server owns game time. Client only renders. Removed
-  // gameTick/effectiveSpeed/paused selectors — they only fed the now-removed
-  // useGameTickLoop call. The 1Hz UI animation is colocated with displays
-  // that need it (coin counters, countdown bars).
+  // Phase 7: server owns game time. Client only renders. UI animation is
+  // colocated with displays that need it (coin counters, countdown bars).
 
   const headerRef = useRef<HTMLElement>(null);
 
@@ -74,10 +72,30 @@ export function GameShell({ children }: GameShellProps) {
   useAutoOpenGuide();
 
   useServerMarket();
-  const { showSavedFlash } = useAutoSaveIndicator();
+  useAutoSaveIndicator();
   const navigateToTab = useNavigateToTab();
-  const { signInWithGoogle } = useAuth();
+  const { signInWithGoogle, signInWithGithub } = useAuth();
+  const [configBlockDetectedAt] = useState(() => Date.now());
+  const {
+    loading: configLoading,
+    error: configError,
+    isUsingSupabase,
+  } = useGameConfig();
   const { blockedState, flushSaveOnUnload } = useCloudSync();
+  const configBlockedState =
+    !configLoading && !isUsingSupabase
+      ? {
+          isBlocked: true,
+          code: "CONFIG_UNAVAILABLE" as const,
+          reason:
+            configError ??
+            "Game configuration is unavailable. Server gameplay actions are paused.",
+          detectedAt: configBlockDetectedAt,
+        }
+      : null;
+  const activeBlockedState = blockedState?.isBlocked
+    ? blockedState
+    : configBlockedState;
 
   // Phase 5.5: best-effort save on tab close / window unload.
   // Three events cover the matrix of browsers and close modes:
@@ -142,13 +160,14 @@ export function GameShell({ children }: GameShellProps) {
   return (
     <ErrorBoundary>
       <TooltipProvider>
-        {blockedState?.isBlocked && (
+        {activeBlockedState?.isBlocked && (
           <CloudSyncBlockBanner
-            blockedState={blockedState}
-            onSignInAgain={
-              blockedState.code === "SESSION_EXPIRED"
-                ? signInWithGoogle
-                : undefined
+            blockedState={activeBlockedState}
+            onSignInWithGoogle={
+              activeBlockedState.code === "SESSION_EXPIRED" ? signInWithGoogle : undefined
+            }
+            onSignInWithGithub={
+              activeBlockedState.code === "SESSION_EXPIRED" ? signInWithGithub : undefined
             }
           />
         )}

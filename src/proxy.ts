@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 // Capture the real client IP for analytics logging on auth routes.
-// Phase 1 — Foundation (Storage + Audit).
+// Phase 1 - Foundation (Storage + Audit).
 // IP is for ANALYTICS ONLY; never used for bans, locks, or recovery denial.
 const REAL_IP_HEADERS = ['cf-connecting-ip', 'x-real-ip', 'x-forwarded-for'] as const
 
@@ -19,7 +19,7 @@ function extractRealIp(headers: Headers): string {
 // Paths that should bypass auth checks entirely (let them handle their own auth)
 const AUTH_ROUTES = ['/admin/login', '/admin/auth/callback', '/api/auth/']
 
-// API routes handle their own auth — let them through
+// API routes handle their own auth - let them through
 const API_PREFIX = '/api/'
 
 export async function proxy(request: NextRequest) {
@@ -59,7 +59,7 @@ export async function proxy(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
+          cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           )
           supabaseResponse = NextResponse.next({
@@ -78,7 +78,7 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Admin route protection — only for /admin/* page routes (not API)
+  // Admin route protection - only for /admin/* page routes (not API)
   if (
     pathname.startsWith('/admin') &&
     !pathname.startsWith(API_PREFIX)
@@ -91,7 +91,7 @@ export async function proxy(request: NextRequest) {
       path: '/',
       maxAge: 60 * 60 * 24,
     });
-    // No valid session → redirect to admin login
+    // No valid session -> redirect to admin login
     if (!user) {
       const url = request.nextUrl.clone()
       url.pathname = '/admin/login'
@@ -107,7 +107,7 @@ export async function proxy(request: NextRequest) {
       return supabaseResponse
     }
 
-    let isDbAdmin = false
+    let isDbAdmin: boolean
     try {
       const { data } = await supabase.rpc('is_game_admin')
       isDbAdmin = data === true

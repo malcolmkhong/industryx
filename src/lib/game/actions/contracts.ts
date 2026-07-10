@@ -1,4 +1,4 @@
-import type { Contract, ResourceType } from "../types";
+import type { Contract } from "../types";
 import { generateId } from "../utils/generateId";
 import { formatNumber } from "../utils/formatNumber";
 import { soundEngine } from "../soundEngine";
@@ -44,57 +44,39 @@ export function createContractActions(set: SetFn, get: GetFn) {
       }
 
       const corrected = validation.correctedState;
-
-      // Apply server-authoritative state. Defensive fallback to local
-      // computation if server omits correctedState.
-      const fallbackMoney = (() => {
-        const newResources = { ...state.resources };
-        contract.requiredResources.forEach((r) => {
-          if (r.resource !== "money") {
-            newResources[r.resource as ResourceType] =
-              (newResources[r.resource as ResourceType] ?? 0) - r.amount;
-          }
-        });
-        const moneyDelta = contract.requiredResources
-          .filter((r) => r.resource === "money")
-          .reduce((sum, r) => sum + r.amount, 0);
-        return {
-          money: state.money + contract.reward.money - moneyDelta,
-          totalMoneyEarned: state.totalMoneyEarned + contract.reward.money,
-          resources: newResources,
-        };
-      })();
+      if (
+        !corrected ||
+        typeof corrected.money !== "number" ||
+        typeof corrected.totalMoneyEarned !== "number" ||
+        typeof corrected.researchPoints !== "number" ||
+        !corrected.resources ||
+        !corrected.contracts ||
+        typeof corrected.completedContracts !== "number" ||
+        !corrected.stats ||
+        !corrected.prestigeState
+      ) {
+        soundEngine.play("error", "ui");
+        get().addNotification(
+          "error",
+          "Contract could not be confirmed by server. Please retry.",
+        );
+        return;
+      }
 
       set({
-        money: corrected?.money ?? fallbackMoney.money,
-        totalMoneyEarned:
-          corrected?.totalMoneyEarned ?? fallbackMoney.totalMoneyEarned,
-        researchPoints:
-          corrected?.researchPoints ??
-          state.researchPoints + (contract.reward.researchPoints ?? 0),
-        resources:
-          (corrected?.resources as Record<string, number>) ??
-          fallbackMoney.resources,
-        contracts:
-          (corrected?.contracts as typeof state.contracts) ??
-          state.contracts.map((c) =>
-            c.id === id ? { ...c, completed: true, progress: 1 } : c,
-          ),
-        completedContracts:
-          corrected?.completedContracts ?? state.completedContracts + 1,
+        money: corrected.money,
+        totalMoneyEarned: corrected.totalMoneyEarned,
+        researchPoints: corrected.researchPoints,
+        resources: corrected.resources as Record<string, number>,
+        contracts: corrected.contracts as typeof state.contracts,
+        completedContracts: corrected.completedContracts,
         stats: {
           ...state.stats,
           contractsCompleted:
-            (corrected?.stats as { contractsCompleted?: number } | undefined)
-              ?.contractsCompleted ?? state.stats.contractsCompleted + 1,
+            (corrected.stats as { contractsCompleted?: number })
+              .contractsCompleted ?? state.stats.contractsCompleted,
         },
-        prestigeState: (corrected?.prestigeState as
-          typeof state.prestigeState | undefined) ?? {
-          ...state.prestigeState,
-          corporationPoints:
-            state.prestigeState.corporationPoints +
-            (contract.reward.corporationPoints ?? 0),
-        },
+        prestigeState: corrected.prestigeState as typeof state.prestigeState,
       });
       soundEngine.play("contractCompleted", "events");
       get().addNotification(

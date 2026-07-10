@@ -107,8 +107,17 @@ export async function POST(request: Request) {
 
   const { data: inserted, errorCode, errorMessage } = await createMarketConfigWithError(data);
   if (!inserted) {
+    const isDuplicate = errorCode === '23505';
     return withSecurityHeaders(
-      NextResponse.json({ error: errorMessage ?? 'Insert failed' }, { status: 500 }),
+      NextResponse.json(
+        {
+          error: isDuplicate
+            ? `Resource "${data.resource_id}" already exists`
+            : errorMessage ?? 'Insert failed',
+          code: errorCode ?? 'UNKNOWN',
+        },
+        { status: isDuplicate ? 409 : 500 },
+      ),
     );
   }
 

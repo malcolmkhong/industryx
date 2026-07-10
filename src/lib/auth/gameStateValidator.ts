@@ -14,11 +14,9 @@ import {
 // P2 refactor: Read BUILDING_DEFS from configCache (Supabase-backed live bindings)
 // rather than hardcoded data.ts defaults. Imports previously from `@/lib/game/data`.
 import { BUILDING_DEFS } from "@/lib/game/configCache";
-import type { WorkerType } from "@/lib/game/types";
 import {
-  GAME_LIMITS,
+  getGameLimits,
   VALID_RESOURCE_KEYS,
-  VALID_WORKER_KEYS,
 } from "@/lib/game/balanceConfig";
 import { ensureConfigLoaded } from "@/lib/game/configLoader.server";
 
@@ -43,13 +41,12 @@ interface AuditLogEntry {
   rejectionReason?: string;
 }
 
-// GAME_LIMITS and the resource/worker allowlists live in balanceConfig.ts
-// (single tuning surface). Re-exported here so existing imports keep working.
-export {
-  GAME_LIMITS,
-  VALID_RESOURCE_KEYS,
-  VALID_WORKER_KEYS,
-} from "@/lib/game/balanceConfig";
+// VALID_RESOURCE_KEYS lives in balanceConfig.ts (single tuning surface).
+// Re-exported here so existing imports keep working.
+//
+// NOTE: GAME_LIMITS was previously re-exported here. It has been removed
+// in favor of `getGameLimits()` from balanceConfig (DB-backed).
+export { VALID_RESOURCE_KEYS } from "@/lib/game/balanceConfig";
 
 // ─── HMAC Checksum ─────────────────────────────────────────────────────
 
@@ -142,13 +139,14 @@ export async function validateGameState(
 
   // ── Check money ──
   const money = Number(gameState.money) || 0;
+  const limits = getGameLimits(); // DB-backed anti-cheat ceilings
   if (money < 0) {
     violations.push(`Negative money: ${money}`);
     riskLevel = "critical";
   }
-  if (money > GAME_LIMITS.MAX_MONEY) {
+  if (money > limits.maxMoney) {
     violations.push(
-      `Money exceeds maximum: ${money} > ${GAME_LIMITS.MAX_MONEY}`,
+      `Money exceeds maximum: ${money} > ${limits.maxMoney}`,
     );
     riskLevel = "critical";
   }
@@ -169,9 +167,9 @@ export async function validateGameState(
   // ── Check buildings ──
   const buildings = gameState.buildings as unknown[];
   if (buildings) {
-    if (buildings.length > GAME_LIMITS.MAX_BUILDINGS) {
+    if (buildings.length > limits.maxBuildings) {
       violations.push(
-        `Too many buildings: ${buildings.length} > ${GAME_LIMITS.MAX_BUILDINGS}`,
+        `Too many buildings: ${buildings.length} > ${limits.maxBuildings}`,
       );
       riskLevel = "critical";
     }
@@ -179,9 +177,9 @@ export async function validateGameState(
     for (const b of buildings) {
       const building = b as Record<string, unknown>;
       const level = Number(building.level) || 1;
-      if (level > GAME_LIMITS.MAX_BUILDING_LEVEL) {
+      if (level > limits.maxBuildingLevel) {
         violations.push(
-          `Building ${building.type} has level ${level} > max ${GAME_LIMITS.MAX_BUILDING_LEVEL}`,
+          `Building ${building.type} has level ${level} > max ${limits.maxBuildingLevel}`,
         );
         riskLevel = "critical";
       }
@@ -208,7 +206,7 @@ export async function validateGameState(
     violations.push(`Negative research points: ${rp}`);
     riskLevel = "critical";
   }
-  if (rp > GAME_LIMITS.MAX_RESEARCH_POINTS) {
+  if (rp > limits.maxResearchPoints) {
     violations.push(`Research points exceeds maximum: ${rp}`);
     riskLevel = "critical";
   }
@@ -228,7 +226,7 @@ export async function validateGameState(
       }
       if (
         typeof value === "number" &&
-        value > GAME_LIMITS.MAX_RESOURCE_AMOUNT
+        value > limits.maxResourceAmount
       ) {
         violations.push(`Resource ${key} exceeds maximum: ${value}`);
         if (riskLevel === "none") riskLevel = "medium";
@@ -242,9 +240,9 @@ export async function validateGameState(
 
   // ── Validate game speed ──
   const gameSpeed = Number(gameState.gameSpeed) || 1;
-  if (!GAME_LIMITS.ALLOWED_GAME_SPEEDS.includes(gameSpeed as 1 | 2 | 5 | 10)) {
+  if (!limits.allowedGameSpeeds.includes(gameSpeed)) {
     violations.push(
-      `Invalid game speed: ${gameSpeed}. Allowed: ${GAME_LIMITS.ALLOWED_GAME_SPEEDS.join(", ")}`,
+      `Invalid game speed: ${gameSpeed}. Allowed: ${limits.allowedGameSpeeds.join(", ")}`,
     );
     riskLevel = "critical";
   }
@@ -281,9 +279,9 @@ export async function validateGameState(
       const tickDelta = currTick - prevTick;
       if (elapsedSeconds > 0) {
         const tickRate = tickDelta / elapsedSeconds;
-        if (tickRate > GAME_LIMITS.MAX_TICK_RATE_PER_SECOND) {
+        if (tickRate > limits.maxTickRatePerSecond) {
           violations.push(
-            `Tick rate too high: ${tickRate.toFixed(1)}/s (max: ${GAME_LIMITS.MAX_TICK_RATE_PER_SECOND}/s)`,
+            `Tick rate too high: ${tickRate.toFixed(1)}/s (max: ${limits.maxTickRatePerSecond}/s)`,
           );
           riskLevel = "critical";
         }
@@ -359,6 +357,90 @@ export async function validateGameState(
 }
 
 /**
+ * Extract and validate the DB-writeable numeric fields from a game state.
+ * Fails closed per RULES.md [SEC-011]: throws on missing/invalid fields
+ * rather than silently substituting defaults (e.g., `|| 0`) that would
+ * mask data corruption.
+ *
+ * Use this AFTER validateGameState() passes — it is defense-in-depth for
+ * the DB write path, not a substitute for validation.
+ *
+ * The DB columns have CHECK constraints (e.g., money >= 0, buildings_count
+ * 0..500, game_speed ∈ {1,2,5,10}). This function mirrors those bounds
+ * in code so a corrupt-but-not-rejected value cannot reach the write.
+ */
+export interface ValidatedSaveFields {
+  money: number;
+  totalMoneyEarned: number;
+  researchPoints: number;
+  buildingsCount: number;
+  gameTick: number;
+  gameSpeed: number;
+}
+
+export function extractValidatedSaveFields(
+  gameState: Record<string, unknown>,
+): ValidatedSaveFields {
+  const money = Number(gameState.money);
+  if (!Number.isFinite(money) || money < 0) {
+    throw new Error(
+      `[extractValidatedSaveFields] money invalid: ${String(gameState.money)}`,
+    );
+  }
+
+  const totalMoneyEarned = Number(gameState.totalMoneyEarned);
+  if (!Number.isFinite(totalMoneyEarned) || totalMoneyEarned < 0) {
+    throw new Error(
+      `[extractValidatedSaveFields] totalMoneyEarned invalid: ${String(gameState.totalMoneyEarned)}`,
+    );
+  }
+
+  const researchPoints = Number(gameState.researchPoints);
+  if (!Number.isFinite(researchPoints) || researchPoints < 0) {
+    throw new Error(
+      `[extractValidatedSaveFields] researchPoints invalid: ${String(gameState.researchPoints)}`,
+    );
+  }
+
+  const gameTick = Number(gameState.gameTick);
+  if (!Number.isInteger(gameTick) || gameTick < 0) {
+    throw new Error(
+      `[extractValidatedSaveFields] gameTick invalid: ${String(gameState.gameTick)}`,
+    );
+  }
+
+  const gameSpeed = Number(gameState.gameSpeed);
+  if (![1, 2, 5, 10].includes(gameSpeed)) {
+    throw new Error(
+      `[extractValidatedSaveFields] gameSpeed invalid: ${String(gameState.gameSpeed)}`,
+    );
+  }
+
+  // buildings must be an array per game state schema (may be empty for new users).
+  const buildings = (gameState as Record<string, unknown>).buildings;
+  if (!Array.isArray(buildings)) {
+    throw new Error(
+      `[extractValidatedSaveFields] buildings is not an array: ${String(buildings)}`,
+    );
+  }
+  const buildingsCount = buildings.length;
+  if (buildingsCount > 500) {
+    throw new Error(
+      `[extractValidatedSaveFields] buildingsCount exceeds DB CHECK (500): ${buildingsCount}`,
+    );
+  }
+
+  return {
+    money,
+    totalMoneyEarned,
+    researchPoints,
+    buildingsCount,
+    gameTick,
+    gameSpeed,
+  };
+}
+
+/**
  * Validate a single action payload (build, research, etc.) without full state.
  * Lighter than validateGameState — used for action validation.
  */
@@ -393,8 +475,27 @@ export function validateAction(
     }
     case "set_game_speed": {
       const speed = Number(payload.speed);
-      if (!GAME_LIMITS.ALLOWED_GAME_SPEEDS.includes(speed as 1 | 2 | 5 | 10)) {
+      if (!getGameLimits().allowedGameSpeeds.includes(speed)) {
         return { valid: false, error: `Invalid game speed: ${speed}` };
+      }
+      return { valid: true };
+    }
+    case "hire_worker":
+    case "assign_worker":
+    case "upgrade_worker": {
+      // Detailed validation lives in src/lib/game/serverEngine.ts
+      // (validateHireWorkerAction / validateAssignWorkerAction /
+      // validateUpgradeWorkerAction). Here we only ensure the payload is
+      // structurally shaped (string ids present). Money/effect bounds are
+      // server-side authoritative.
+      if (actionType === "hire_worker" && typeof payload.workerType !== "string") {
+        return { valid: false, error: "Missing workerType" };
+      }
+      if (
+        (actionType === "assign_worker" || actionType === "upgrade_worker") &&
+        typeof payload.workerId !== "string"
+      ) {
+        return { valid: false, error: "Missing workerId" };
       }
       return { valid: true };
     }
@@ -614,13 +715,40 @@ export async function flagCheatAttempt(
   }
 }
 
-// ─── Audit Logging ─────────────────────────────────────────────────────
+// ─── Audit Logging ──────────────────────────────────────────────
 
 /**
  * Log a player action to the audit table.
  * This runs asynchronously and does NOT block the response.
+ *
+ * Per RULES.md [SEC-011] / [ARC-011]: validate required entries at the
+ * trust boundary and fail closed if missing/invalid. Postgres BIGINT
+ * and NUMERIC columns reject NaN/Infinity anyway, but we want to log
+ * a warning rather than silently substitute `0` for `|| 0` style
+ * fallbacks at call sites that would mask corruption.
  */
 export function logActionAsync(entry: AuditLogEntry): void {
+  // Trust-boundary validation per RULES.md [SEC-011].
+  // player_actions.game_tick is BIGINT (rejects NaN/Infinity/non-integers);
+  // money_after is NUMERIC (rejects NaN/Infinity). We mirror the DB
+  // constraints in code so corrupt-but-not-rejected values cannot reach
+  // the insert path silently.
+  if (
+    !Number.isFinite(entry.gameTick) ||
+    !Number.isInteger(entry.gameTick)
+  ) {
+    console.warn(
+      `[AuditLog] Skipping action=${entry.actionType} for user=${entry.userId}: invalid gameTick=${entry.gameTick}`,
+    );
+    return;
+  }
+  if (!Number.isFinite(entry.moneyAfter)) {
+    console.warn(
+      `[AuditLog] Skipping action=${entry.actionType} for user=${entry.userId}: invalid moneyAfter=${entry.moneyAfter}`,
+    );
+    return;
+  }
+
   // Fire and forget — don't block the API response
   // M2 FIX: Use queueMicrotask instead of setImmediate (not available in Edge runtimes)
   queueMicrotask(async () => {

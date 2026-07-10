@@ -36,19 +36,6 @@ type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
  */
 export type MergeDecisionType = "auth_wins" | "keep_guest" | "keep_google";
 
-interface MergeReceipt {
-  id: string;
-  operation_id: string;
-  kept_user_id: string;
-  archived_user_id: string | null;
-  decision_type: string;
-  guest_state_snapshot: unknown;
-  google_state_snapshot: unknown;
-  risk_score: number | null;
-  created_at: string | null;
-  expires_at: string;
-}
-
 export interface MergeAuditEntry {
   merge_receipt_id: string;
   idempotency_key: string;
@@ -131,7 +118,7 @@ export async function moveGuestDataOntoAuthUser(
       state_hash: guestState.state_hash,
       state_version: guestState.state_version,
       last_saved_at: now,
-      last_tick_at: now,
+      last_tick_at: guestState.last_tick_at,
     })
     .eq("user_id", authUserId);
   if (error) {

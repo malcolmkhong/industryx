@@ -3,13 +3,14 @@
 // ============================================
 import { generateId } from "../utils/generateId";
 import { soundEngine } from "../soundEngine";
+import type { Quest, QuestStep } from "../types";
 import type { SetFn, GetFn } from "./_actionTypes";
 
 export function createQuestActions(set: SetFn, get: GetFn) {
   return {
     claimQuestReward: async (questId: string) => {
       const state = get();
-      const quest = state.quests.find((q: any) => q.id === questId);
+      const quest = state.quests.find((q) => q.id === questId);
       if (!quest || !quest.completed || quest.claimed) return;
 
       // Phase 6: server-authoritative quest claim. Server reads the reward
@@ -27,34 +28,29 @@ export function createQuestActions(set: SetFn, get: GetFn) {
         return;
       }
 
-      // Apply server-authoritative state. Defensive fallback to local
-      // computation if server omits correctedState.
-      const serverMoney =
-        validation.correctedState?.money ?? state.money + quest.reward.money;
-      const serverTotalEarned =
-        validation.correctedState?.totalMoneyEarned ??
-        state.totalMoneyEarned + quest.reward.money;
-      const serverResearchPoints =
-        validation.correctedState?.researchPoints ??
-        state.researchPoints + (quest.reward.researchPoints ?? 0);
-      const serverQuests = (validation.correctedState?.quests ??
-        state.quests.map((q: any) =>
-          q.id === questId ? { ...q, claimed: true } : q,
-        )) as typeof state.quests;
-      const serverCorpPoints =
-        (validation.correctedState?.prestigeState as any)?.corporationPoints ??
-        state.prestigeState.corporationPoints +
-          (quest.reward.corporationPoints ?? 0);
+      const corrected = validation.correctedState;
+      if (
+        !corrected ||
+        typeof corrected.money !== "number" ||
+        typeof corrected.totalMoneyEarned !== "number" ||
+        typeof corrected.researchPoints !== "number" ||
+        !corrected.quests ||
+        !corrected.prestigeState
+      ) {
+        soundEngine.play("error", "events");
+        get().addNotification(
+          "error",
+          "Quest reward could not be confirmed by server. Please retry.",
+        );
+        return;
+      }
 
       set({
-        money: serverMoney,
-        totalMoneyEarned: serverTotalEarned,
-        researchPoints: serverResearchPoints,
-        prestigeState: {
-          ...state.prestigeState,
-          corporationPoints: serverCorpPoints,
-        },
-        quests: serverQuests,
+        money: corrected.money,
+        totalMoneyEarned: corrected.totalMoneyEarned,
+        researchPoints: corrected.researchPoints,
+        prestigeState: corrected.prestigeState,
+        quests: corrected.quests as typeof state.quests,
       });
       soundEngine.play("moneyEarned", "events");
       get().addNotification("success", `Claimed quest reward: ${quest.name}!`);
@@ -65,9 +61,9 @@ export function createQuestActions(set: SetFn, get: GetFn) {
 
       if (type === "reach") {
         const efficiency = state.powerGrid.efficiency * 100;
-        const newQuests = state.quests.map((q: any) => {
+        const newQuests = state.quests.map((q: Quest) => {
           if (q.claimed || q.completed || q.type !== "reach") return q;
-          const newSteps = q.steps.map((s: any) => {
+          const newSteps = q.steps.map((s: QuestStep) => {
             if (s.completed) return s;
             if (s.description.toLowerCase().includes("efficiency")) {
               const newCurrent = Math.min(Math.round(efficiency), s.target);
@@ -84,7 +80,7 @@ export function createQuestActions(set: SetFn, get: GetFn) {
               completed: newCurrent >= s.target,
             };
           });
-          const allStepsComplete = newSteps.every((s: any) => s.completed);
+          const allStepsComplete = newSteps.every((s) => s.completed);
           return { ...q, steps: newSteps, completed: allStepsComplete };
         });
         set({ quests: newQuests });
@@ -92,9 +88,9 @@ export function createQuestActions(set: SetFn, get: GetFn) {
       }
 
       if (type === "earn") {
-        const newQuests = state.quests.map((q: any) => {
+        const newQuests = state.quests.map((q: Quest) => {
           if (q.claimed || q.completed || q.type !== "earn") return q;
-          const newSteps = q.steps.map((s: any) => {
+          const newSteps = q.steps.map((s: QuestStep) => {
             if (s.completed) return s;
             const newCurrent = Math.min(state.totalMoneyEarned, s.target);
             return {
@@ -103,7 +99,7 @@ export function createQuestActions(set: SetFn, get: GetFn) {
               completed: newCurrent >= s.target,
             };
           });
-          const allStepsComplete = newSteps.every((s: any) => s.completed);
+          const allStepsComplete = newSteps.every((s) => s.completed);
           return { ...q, steps: newSteps, completed: allStepsComplete };
         });
         set({ quests: newQuests });
@@ -111,16 +107,16 @@ export function createQuestActions(set: SetFn, get: GetFn) {
       }
 
       if (type === "produce" && targetId) {
-        const newQuests = state.quests.map((q: any) => {
+        const newQuests = state.quests.map((q: Quest) => {
           if (q.claimed || q.completed || q.type !== "produce") return q;
           if (q.targetResource && q.targetResource !== targetId) return q;
-          const newSteps = q.steps.map((s: any) => {
+          const newSteps = q.steps.map((s: QuestStep) => {
             if (s.completed) return s;
             const newCurrent = s.current + amount;
             const stepCompleted = newCurrent >= s.target;
             return { ...s, current: newCurrent, completed: stepCompleted };
           });
-          const allStepsComplete = newSteps.every((s: any) => s.completed);
+          const allStepsComplete = newSteps.every((s) => s.completed);
           return { ...q, steps: newSteps, completed: allStepsComplete };
         });
         set({ quests: newQuests });
@@ -128,32 +124,32 @@ export function createQuestActions(set: SetFn, get: GetFn) {
       }
 
       if (type === "build" && targetId) {
-        const newQuests = state.quests.map((q: any) => {
+        const newQuests = state.quests.map((q: Quest) => {
           if (q.claimed || q.completed || q.type !== "build") return q;
           if (q.targetBuilding && q.targetBuilding !== targetId) return q;
-          const newSteps = q.steps.map((s: any) => {
+          const newSteps = q.steps.map((s: QuestStep) => {
             if (s.completed) return s;
             const newCurrent = s.current + amount;
             const stepCompleted = newCurrent >= s.target;
             return { ...s, current: newCurrent, completed: stepCompleted };
           });
-          const allStepsComplete = newSteps.every((s: any) => s.completed);
+          const allStepsComplete = newSteps.every((s) => s.completed);
           return { ...q, steps: newSteps, completed: allStepsComplete };
         });
         set({ quests: newQuests });
         return;
       }
 
-      const newQuests = state.quests.map((q: any) => {
+      const newQuests = state.quests.map((q: Quest) => {
         if (q.claimed || q.completed) return q;
         if (q.type !== type) return q;
-        const newSteps = q.steps.map((s: any) => {
+        const newSteps = q.steps.map((s: QuestStep) => {
           if (s.completed) return s;
           const newCurrent = s.current + amount;
           const stepCompleted = newCurrent >= s.target;
           return { ...s, current: newCurrent, completed: stepCompleted };
         });
-        const allStepsComplete = newSteps.every((s: any) => s.completed);
+        const allStepsComplete = newSteps.every((s) => s.completed);
         return { ...q, steps: newSteps, completed: allStepsComplete };
       });
 

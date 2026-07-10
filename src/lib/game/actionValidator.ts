@@ -35,7 +35,8 @@ export type ValidatedActionType =
   | "collect_payout"
   | "fulfill_contract"
   | "claim_daily_reward"
-  | "upgrade_transport_line";
+  | "upgrade_transport_line"
+  | "upgrade_worker";
 
 export interface ValidatedActionResult {
   approved: boolean;
@@ -55,15 +56,41 @@ export interface ValidatedActionResult {
   correctedState?: Partial<ServerGameData>;
 }
 
+const ACTIONS_WITH_SERVER_STATE = new Set<ValidatedActionType>([
+  "build",
+  "sell",
+  "buy",
+  "research",
+  "upgrade",
+  "transport",
+  "toggle_building",
+  "hire_worker",
+  "assign_worker",
+  "do_prestige",
+  "buy_market",
+  "sell_market",
+  "bulk_build",
+  "bulk_sell",
+  "start_drone_mission",
+  "collect_drone",
+  "claim_quest",
+  "upgrade_storage",
+  "collect_payout",
+  "fulfill_contract",
+  "claim_daily_reward",
+  "upgrade_transport_line",
+  "upgrade_worker",
+]);
+
 /**
  * Phase 2.3: Validate an action with the server (BLOCKING).
  *
  * Returns { approved: true } if server approves (caller should apply the action).
  * Returns { approved: false, error } if server rejects (caller should NOT apply).
  *
- * If the server is unreachable, `submitActionToServer` returns { valid: true }
- * (degraded mode) so the local action still proceeds — this preserves offline
- * tolerance. The catch-up will happen on the next 120s cloud save.
+ * If the server is unreachable, `submitActionToServer` returns
+ * { valid: false }. Economy mutations fail closed; callers must show the
+ * server error and must not apply a local fallback mutation.
  *
  * @param actionType The type of action being validated
  * @param payload The action-specific payload
@@ -95,11 +122,19 @@ export async function validateActionWithServer(
     };
   }
 
-  // Surface the server-authoritative correctedState (if any) to callers.
-  // Only present for actions where the server computes the authoritative
-  // outcome (e.g., build, upgrade). Other actions just get { approved: true }.
-  // Phase 13: correctedState is now strictly Partial<ServerGameData>;
-  // serverActions.ts is responsible for typing the API response correctly.
+  if (
+    ACTIONS_WITH_SERVER_STATE.has(actionType) &&
+    validation.correctedState === undefined
+  ) {
+    return {
+      approved: false,
+      error: "Server did not return authoritative state. Please retry.",
+    };
+  }
+
+  // Surface the server-authoritative correctedState to callers. Economy and
+  // progression actions require it; `set_game_speed` is the only current
+  // exception because the server route persists the scalar directly.
   return {
     approved: true,
     correctedState: validation.correctedState,

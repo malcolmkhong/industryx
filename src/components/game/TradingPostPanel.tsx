@@ -6,7 +6,7 @@ import { useGameStore, formatNumber } from "@/lib/game/store";
 import type { ResourceType } from "@/lib/game/types";
 import { getGlobalPrice } from "@/lib/game/utils/gameMath";
 import { notifyTradeImpactIfMoved } from "@/lib/game/actions/market";
-import { getBalance } from "@/lib/game/balanceConfig";
+import { useGameConfig } from "@/components/providers/GameConfigProvider";
 import {
   INITIAL_MARKET,
   RESOURCE_META,
@@ -36,10 +36,13 @@ import { MarketPriceChart } from "./MarketPriceChart";
 import { formatRemaining } from "@/lib/utils/time";
 
 // ─── Server-enforced cooldown (mirrors src/app/api/game/trade/route.ts) ─────
-// Phase 3 Step 2: read from balanceConfig (server-authoritative via Supabase).
-// TradingPost is a client component but render must match server math.
-const TRADE_COOLDOWN_SECONDS = getBalance().trade.cooldownSeconds;
-const TRADE_COMMISSION_RATE = getBalance().trade.commissionRate;
+// Trade values are sourced from the client-safe balance subset exposed via
+// GameConfigProvider (populated from game_config_balance by the server).
+// Server is authoritative for actual enforcement; client values are
+// display-only UX (commission %, cooldown progress bar).
+//
+// IMPORTANT: do NOT call getBalance() from client code. balanceConfig is a
+// server module; the client receives these values via the definitions API.
 
 // Quick trade preset interface (U6: now data-driven, not hardcoded)
 interface QuickTradePreset {
@@ -83,6 +86,55 @@ function getBasePrice(
   return fallback?.basePrice ?? 1;
 }
 
+// ─── Helper: storage fill bar color ──────────────────────────────────────────
+// Extracted from the progress bar JSX to keep the markup free of nested
+// ternaries (linter rule). Color thresholds:
+//   red    — fill > storageFullThreshold (server-side auto-sell kicks in)
+//   yellow — fill > 50% (warning state)
+//   green  — otherwise
+function storageBarColor(
+  current: number,
+  capacity: number,
+  fullThreshold: number,
+): string {
+  const ratio = current / capacity;
+  if (ratio > fullThreshold) return "bg-danger";
+  if (ratio > 0.5) return "bg-warning";
+  return "bg-success";
+}
+
+// ─── Helper: Execute-Trade button label ─────────────────────────────────────
+// Extracted from the button JSX to keep the markup free of nested ternaries
+// (linter rule). Renders one of three states: validating / in-cooldown / ready.
+function executeTradeButtonContent(
+  isTrading: boolean,
+  isInCooldown: boolean,
+  cooldownDisplay: string,
+): React.ReactNode {
+  if (isTrading) {
+    return (
+      <>
+        <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+        Validating...
+      </>
+    );
+  }
+  if (isInCooldown) {
+    return (
+      <>
+        <Clock className="w-3.5 h-3.5 mr-1.5" />
+        Wait {cooldownDisplay}
+      </>
+    );
+  }
+  return (
+    <>
+      <Zap className="w-3.5 h-3.5 mr-1.5" />
+      Execute Trade
+    </>
+  );
+}
+
 // ─── Helper: calculate receive amount ─────────────────────────────────────────
 function calculateReceiveAmount(
   giveResource: ResourceType,
@@ -93,11 +145,12 @@ function calculateReceiveAmount(
     currentPrice: number;
     basePrice: number;
   }[],
+  commissionRate: number,
 ): number {
   const givePrice = getBasePrice(giveResource, liveMarket);
   const receivePrice = getBasePrice(receiveResource, liveMarket);
   if (receivePrice === 0) return 0;
-  return (giveAmount * givePrice * (1 - TRADE_COMMISSION_RATE)) / receivePrice;
+  return (giveAmount * givePrice * (1 - commissionRate)) / receivePrice;
 }
 
 // ─── Helper: format exchange rate ─────────────────────────────────────────────
@@ -109,11 +162,12 @@ function formatExchangeRate(
     currentPrice: number;
     basePrice: number;
   }[],
+  commissionRate: number,
 ): string {
   const givePrice = getBasePrice(giveResource, liveMarket);
   const receivePrice = getBasePrice(receiveResource, liveMarket);
   if (receivePrice === 0 || givePrice === 0) return "N/A";
-  const rate = (givePrice * (1 - TRADE_COMMISSION_RATE)) / receivePrice;
+  const rate = (givePrice * (1 - commissionRate)) / receivePrice;
   if (rate >= 1) return rate.toFixed(2);
   return rate.toFixed(3);
 }
@@ -175,6 +229,7 @@ async function executeTradeOnServer(
   giveResource: ResourceType,
   giveAmount: number,
   receiveResource: ResourceType,
+  fallbackCooldownSeconds: number,
 ): Promise<{
   valid: boolean;
   error?: string;
@@ -205,7 +260,7 @@ async function executeTradeOnServer(
           ? Number(
               (data as { retryAfter?: number }).retryAfter ??
                 retryAfterHeader ??
-                TRADE_COOLDOWN_SECONDS,
+                fallbackCooldownSeconds,
             )
           : undefined;
       return {
@@ -271,22 +326,55 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(seconds / 86400)}d ago`;
 }
 
+// ─── Helper: format trade-history timestamp ──────────────────────────────────
+// Prefer real createdAt (ISO timestamp) when present; fall back to
+// `ticksAgo` relative to the current game tick. Extracted to keep the
+// history row JSX free of nested ternaries.
+function formatTradeTimestamp(
+  entry: TradeHistoryEntry,
+  currentGameTick: number,
+): string {
+  if (entry.createdAt) return timeAgo(entry.createdAt);
+  const ticksAgo = Math.max(0, currentGameTick - entry.tick);
+  if (ticksAgo <= 0) return "just now";
+  return `${formatRemaining(ticksAgo)} ago`;
+}
+
+// ─── Helper: format the "you'll receive" preview cell ────────────────────────
+// Extracted from the exchange-interface JSX to keep the markup free of
+// nested ternaries (linter rule). Shows "—" when give === receive,
+// otherwise shows the calculated receive amount (or "0" if none).
+function formatReceiveAmountDisplay(
+  giveResource: ResourceType,
+  receiveResource: ResourceType,
+  receiveAmount: number,
+): string {
+  if (giveResource === receiveResource) return "—";
+  if (receiveAmount > 0) return receiveAmount.toFixed(2);
+  return "0";
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 export function TradingPostPanel() {
+  // Client-safe trade values from the GameConfigProvider (sourced from
+  // game_config_balance by the server's /api/game/definitions endpoint).
+  // Server is authoritative; these are display-only UX values.
+  const { config } = useGameConfig();
+  const tradeCommissionRate = config.balance.tradeCommissionRate;
+  const tradeCooldownSeconds = config.balance.tradeCooldownSeconds;
+
   // State for the exchange interface
   const [giveResource, setGiveResource] = useState<ResourceType>("iron");
   const [receiveResource, setReceiveResource] =
     useState<ResourceType>("copper");
   const [giveAmount, setGiveAmount] = useState<number>(100);
   const [tradeHistory, setTradeHistory] = useState<TradeHistoryEntry[]>([]);
-  const [lastTradeTick, setLastTradeTick] = useState<number>(0);
   const [isTrading, setIsTrading] = useState(false);
   const [tradeError, setTradeError] = useState<string | null>(null);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
-  // Mirrors server-enforced trade cooldown (TRADE_COOLDOWN_SECONDS)
+  // Mirrors server-enforced trade cooldown
   const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
-  const [cooldownTick, setCooldownTick] = useState(0); // forces re-render every second
-  const [lastTradeAt, setLastTradeAt] = useState<number | null>(null); // restored from server
+  const [cooldownTick, setCooldownTick] = useState<number>(0); // forces re-render every second
   // U1: most recent server-returned pricing breakdown (live vs base, slippage).
   // Used to render a "you're trading at live X (vs base Y, slippage Z%)" hint.
   const [lastPricing, setLastPricing] = useState<TradePricing | null>(null);
@@ -373,8 +461,9 @@ export function TradingPostPanel() {
         giveAmount,
         receiveResource,
         liveMarket,
+        tradeCommissionRate,
       ),
-    [giveResource, giveAmount, receiveResource, liveMarket],
+    [giveResource, giveAmount, receiveResource, liveMarket, tradeCommissionRate],
   );
 
   const giveResourceCurrent = resources[giveResource] ?? 0;
@@ -407,9 +496,10 @@ export function TradingPostPanel() {
   ]);
 
   // ─── Storage suggestions ────────────────────────────────────────────────────
-  // C4: storage-full threshold now reads from balanceConfig.autoSell.thresholdRatio
-  // (was hardcoded 0.8). Same SSOT as the auto-sell system.
-  const storageFullThreshold = getBalance().autoSell.thresholdRatio;
+  // C4: storage-full threshold from the client-safe balance subset
+  // (sourced from game_config_balance by the server). Same SSOT as the
+  // server-side auto-sell system.
+  const storageFullThreshold = config.balance.autoSellThresholdRatio;
   const suggestions = useMemo(() => {
     const result: {
       resource: ResourceType;
@@ -452,7 +542,7 @@ export function TradingPostPanel() {
   // server prices (was: stale closure when market changed after mount).
   const executeTrade = useCallback(
     async (gRes: ResourceType, gAmt: number, rRes: ResourceType) => {
-      const rAmt = calculateReceiveAmount(gRes, gAmt, rRes, liveMarket);
+      const rAmt = calculateReceiveAmount(gRes, gAmt, rRes, liveMarket, tradeCommissionRate);
       if (rAmt <= 0) return;
 
       const state = useGameStore.getState();
@@ -480,7 +570,7 @@ export function TradingPostPanel() {
       setTradeError(null);
 
       try {
-        const serverResult = await executeTradeOnServer(gRes, gAmt, rRes);
+        const serverResult = await executeTradeOnServer(gRes, gAmt, rRes, tradeCooldownSeconds);
 
         if (serverResult.code === "TRADE_COOLDOWN" && serverResult.retryAfter) {
           // Server enforced cooldown — start client countdown
@@ -535,11 +625,9 @@ export function TradingPostPanel() {
           serverValidated: serverResult.serverValidated,
         };
         setTradeHistory((prev) => [entry, ...prev].slice(0, 50));
-        setLastTradeTick(currentState.gameTick);
         // Start client cooldown (mirrors server enforcement)
         const tradeTs = Date.now();
-        setLastTradeAt(tradeTs);
-        setCooldownUntil(tradeTs + TRADE_COOLDOWN_SECONDS * 1000);
+        setCooldownUntil(tradeTs + tradeCooldownSeconds * 1000);
 
         // U7: re-fetch trade history from server so multi-tab/multi-device
         // history stays in sync. (Mount-only fetch was stale.)
@@ -558,7 +646,7 @@ export function TradingPostPanel() {
         setIsTrading(false);
       }
     },
-    [liveMarket], // U10: dep so function rebuilds when market updates
+    [liveMarket, tradeCommissionRate, tradeCooldownSeconds], // U10: dep so function rebuilds when market updates
   );
 
   const handleExecuteTrade = useCallback(() => {
@@ -682,9 +770,10 @@ export function TradingPostPanel() {
         p.giveAmount,
         p.receive,
         liveMarket,
+        tradeCommissionRate,
       ),
     }));
-  }, [liveMarket, resources, resourceCapacity, suggestions]);
+  }, [liveMarket, resources, resourceCapacity, suggestions, tradeCommissionRate]);
 
   // ─── Set amount to max available ────────────────────────────────────────────
   const setMaxGive = useCallback(() => {
@@ -713,7 +802,7 @@ export function TradingPostPanel() {
             variant="outline"
             className="text-[10px] border-research/30 text-research bg-research/20"
           >
-            {Math.round(getBalance().trade.commissionRate * 100)}% commission
+            {Math.round(tradeCommissionRate * 100)}% commission
           </Badge>
           <Badge
             variant="outline"
@@ -854,11 +943,7 @@ export function TradingPostPanel() {
                 You will receive
               </div>
               <div className="bg-background border border-brand/30 rounded-md px-3 py-2 text-sm font-mono text-research">
-                {giveResource !== receiveResource
-                  ? receiveAmount > 0
-                    ? receiveAmount.toFixed(2)
-                    : "0"
-                  : "—"}
+                {formatReceiveAmountDisplay(giveResource, receiveResource, receiveAmount)}
               </div>
             </div>
 
@@ -886,14 +971,11 @@ export function TradingPostPanel() {
               {receiveCapacity !== Infinity && (
                 <div className="w-12 h-1 bg-muted-label rounded-full overflow-hidden ml-1">
                   <div
-                    className={`h-full rounded-full transition-all ${
-                      receiveResourceCurrent / receiveCapacity >
-                      storageFullThreshold
-                        ? "bg-danger"
-                        : receiveResourceCurrent / receiveCapacity > 0.5
-                          ? "bg-warning"
-                          : "bg-success"
-                    }`}
+                    className={`h-full rounded-full transition-all ${storageBarColor(
+                      receiveResourceCurrent,
+                      receiveCapacity,
+                      storageFullThreshold,
+                    )}`}
                     style={{
                       width: `${Math.min(100, (receiveResourceCurrent / receiveCapacity) * 100)}%`,
                     }}
@@ -911,14 +993,14 @@ export function TradingPostPanel() {
               Rate:{" "}
               <span className="text-brand font-mono">
                 1 {RESOURCE_META[giveResource]?.name ?? giveResource} ={" "}
-                {formatExchangeRate(giveResource, receiveResource, liveMarket)}{" "}
+                {formatExchangeRate(giveResource, receiveResource, liveMarket, tradeCommissionRate)}{" "}
                 {RESOURCE_META[receiveResource]?.name ?? receiveResource}
               </span>
             </span>
             <span>
               Commission:{" "}
               <span className="text-research">
-                {(TRADE_COMMISSION_RATE * 100).toFixed(0)}%
+                {(tradeCommissionRate * 100).toFixed(0)}%
               </span>
             </span>
             <span className="flex items-center gap-1 text-success">
@@ -1004,7 +1086,7 @@ export function TradingPostPanel() {
                   className="block h-full bg-brand transition-all duration-1000 ease-linear"
                   style={{
                     width: `${
-                      (cooldownMsRemaining / (TRADE_COOLDOWN_SECONDS * 1000)) *
+                      (cooldownMsRemaining / (tradeCooldownSeconds * 1000)) *
                       100
                     }%`,
                   }}
@@ -1019,22 +1101,7 @@ export function TradingPostPanel() {
             className="w-full sm:w-auto bg-research/80 hover:bg-research text-white border-0 disabled:opacity-40"
             size="sm"
           >
-            {isTrading ? (
-              <>
-                <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                Validating...
-              </>
-            ) : isInCooldown ? (
-              <>
-                <Clock className="w-3.5 h-3.5 mr-1.5" />
-                Wait {cooldownDisplay}
-              </>
-            ) : (
-              <>
-                <Zap className="w-3.5 h-3.5 mr-1.5" />
-                Execute Trade
-              </>
-            )}
+            {executeTradeButtonContent(isTrading, isInCooldown, cooldownDisplay)}
           </Button>
         </div>
       </div>
@@ -1051,7 +1118,7 @@ export function TradingPostPanel() {
           </h3>
           <div className="flex items-center gap-2 text-[10px] text-muted-label">
             <span className="font-mono">
-              {formatExchangeRate(giveResource, receiveResource, liveMarket)}{" "}
+              {formatExchangeRate(giveResource, receiveResource, liveMarket, tradeCommissionRate)}{" "}
               per unit
             </span>
             <span className="text-dim">|</span>
@@ -1074,13 +1141,13 @@ export function TradingPostPanel() {
           Quick Trades
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-          {quickTradeAmounts.map((preset, idx) => {
+          {quickTradeAmounts.map((preset) => {
             const hasEnough =
               (resources[preset.give] ?? 0) >= preset.giveAmount;
             const canClick = hasEnough && !isTrading && !isInCooldown;
             return (
               <motion.button
-                key={idx}
+                key={`${preset.give}-${preset.receive}-${preset.giveAmount}`}
                 whileHover={{ scale: canClick ? 1.03 : 1 }}
                 whileTap={{ scale: canClick ? 0.97 : 1 }}
                 onClick={() => handleQuickTrade(preset)}
@@ -1210,8 +1277,8 @@ export function TradingPostPanel() {
         ) : (
           <div className="space-y-1 max-h-64 overflow-y-auto game-scrollbar">
             {tradeHistory.map((entry) => {
-              // U4: client tick may lag server on cloud sync — guard negative
-              const ticksAgo = Math.max(0, gameTick - entry.tick);
+              // U4: ticksAgo is computed inside formatTradeTimestamp so the
+              // client-tick-vs-server-tick race can't yield negative values.
               return (
                 <motion.div
                   key={entry.id}
@@ -1260,11 +1327,7 @@ export function TradingPostPanel() {
                     </span>
                   )}
                   <span className="ml-auto text-[10px] text-muted-label shrink-0">
-                    {entry.createdAt
-                      ? timeAgo(entry.createdAt)
-                      : ticksAgo <= 0
-                        ? "just now"
-                        : `${formatRemaining(ticksAgo)} ago`}
+                    {formatTradeTimestamp(entry, gameTick)}
                   </span>
                 </motion.div>
               );
@@ -1282,7 +1345,7 @@ export function TradingPostPanel() {
               <span className="text-subtle font-semibold">How it works:</span>{" "}
               The Trading Post lets you exchange resources directly without
               using money. Exchange rates are based on base market values with a{" "}
-              {(TRADE_COMMISSION_RATE * 100).toFixed(0)}% commission.
+              {(tradeCommissionRate * 100).toFixed(0)}% commission.
             </p>
             <p>
               <span className="text-success font-semibold">Security:</span> All

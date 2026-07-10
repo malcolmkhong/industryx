@@ -410,7 +410,9 @@ export type Database = {
           market_price_upper_bound: number
           market_trade_decay_rate: number
           max_concurrent_events: number
+          max_offline_ticks: number
           max_save_size_bytes: number
+          min_offline_ms: number
           min_power_efficiency: number
           passive_rp_per_tick: number
           persist_throttle_ms: number
@@ -423,6 +425,7 @@ export type Database = {
           save_version: number
           starting_money: number
           t5_drain_rate: number
+          tick_interval_ms: number
           updated_at: string
           worker_levelup_xp_base: number
           worker_power_reduction_cap: number

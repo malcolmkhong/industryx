@@ -113,7 +113,7 @@ export function migrateSaveState(
   fromVersion?: number,
 ): Record<string, unknown> {
   const version = (savedState._version as number) || fromVersion || 1;
-  let state = { ...savedState };
+  const state = { ...savedState };
 
   // V1 → V2: Add megaProjects field and productionHistory
   if (version < 2) {

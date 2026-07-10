@@ -154,18 +154,24 @@ describe("UI safety: store shape stability (Phase 6 fields)", () => {
   it("correctedState shape in actionValidator still exposes Phase 6 fields", async () => {
     const validator = await import("@/lib/game/actionValidator");
     type Result = import("@/lib/game/actionValidator").ValidatedActionResult;
+    type ServerGameDataT = import("@/lib/game/types").ServerGameData;
     const sample: Result = {
       approved: true,
       correctedState: {
         money: 0,
-        resources: {},
+        resources: {} as ServerGameDataT["resources"],
         totalMoneyEarned: 0,
         researchPoints: 0,
         activeResearch: null,
         researchProgress: 0,
         transportLines: [],
         drones: { fleet: [], completedMissions: 0, totalEarned: 0 },
-        prestigeState: { corporationPoints: 0 },
+        prestigeState: {
+          corporationPoints: 0,
+          totalPrestiges: 0,
+          megaFactoryUnlocked: false,
+          bonuses: [],
+        },
       },
     };
     expect(sample.correctedState?.money).toBe(0);

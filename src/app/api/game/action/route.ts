@@ -9,19 +9,23 @@ import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { verifyAuth } from "@/lib/auth/verifyAuth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
-import { logActionAsync } from "@/lib/auth/gameStateValidator";
+import {
+  logActionAsync,
+  extractValidatedSaveFields,
+} from "@/lib/auth/gameStateValidator";
 import {
   loadServerGameStateForAction,
   saveServerGameStateOptimistic,
   isServerGameStateAvailable,
   type ServerGameStateForAction,
 } from "@/lib/db/serverGameState";
-import type {
-  SupabaseBuilding,
-  SupabaseRecipe,
-  SupabaseResearch,
-  SupabaseProductionChain,
-  GameConfig,
+import {
+  DEFAULT_BALANCE_SUBSET,
+  type SupabaseBuilding,
+  type SupabaseRecipe,
+  type SupabaseResearch,
+  type SupabaseProductionChain,
+  type GameConfig,
 } from "@/lib/game/config";
 import type {
   BuildingDefinition,
@@ -43,6 +47,7 @@ import {
   validateUpgradeStorageAction,
   validateHireWorkerAction,
   validateAssignWorkerAction,
+  validateUpgradeWorkerAction,
   validateCollectPayoutAction,
   validateClaimQuestAction,
   validateClaimDailyRewardAction,
@@ -223,6 +228,7 @@ async function loadConfig(): Promise<GameConfig | null> {
       seasonalEvents: [],
       megaProjects: [],
       gameConfig: {},
+      balance: DEFAULT_BALANCE_SUBSET,
       tradableResourceIds: [],
       productionChains: chains.map((c) => ({
         id: c.id,
@@ -493,6 +499,17 @@ function handleAssignWorkerAction(
   return validateAssignWorkerAction(workerId, normalizedBuildingId, gameState);
 }
 
+function handleUpgradeWorkerAction(
+  payload: Record<string, unknown>,
+  gameState: Partial<GameState>,
+): ActionResponse {
+  const workerId = payload.workerId as string;
+  if (!workerId || typeof workerId !== "string") {
+    return { valid: false, error: "Missing or invalid workerId in payload" };
+  }
+  return validateUpgradeWorkerAction(workerId, gameState);
+}
+
 function handleCollectPayoutAction(
   gameState: Partial<GameState>,
 ): ActionResponse {
@@ -549,8 +566,20 @@ function handleSetGameSpeed(
     };
   }
 
-  // Persist game_speed to server_game_state
-  const currentVersion = Number(serverState.state_version) || 0;
+  // Persist game_speed to server_game_state.
+  // Fail-closed per RULES.md [SEC-011]: state_version must be a valid
+  // non-negative integer; refuse rather than silently default to 0.
+  const currentVersion = Number(serverState.state_version);
+  if (!Number.isInteger(currentVersion) || currentVersion < 0) {
+    console.error(
+      "[ActionAPI] Invalid state_version for set_game_speed:",
+      serverState.state_version,
+    );
+    return {
+      valid: false,
+      error: "Invalid server state version",
+    };
+  }
   saveServerGameStateOptimistic(userId, currentVersion, {
     game_speed: speed,
     state_version: currentVersion + 1,
@@ -704,26 +733,82 @@ export async function POST(request: Request) {
   // proceed with stale state.
   let activeServerState: ServerGameStateForAction = serverState;
   try {
+    // game_speed has DB CHECK (1|2|5|10) + DEFAULT 1, but we re-validate
+    // per RULES.md [SEC-011] and fail closed on bad values.
+    const rawGameSpeed = Number(serverState.game_speed);
+    const ALLOWED_SPEEDS = [1, 2, 5, 10] as const;
+    if (!ALLOWED_SPEEDS.includes(rawGameSpeed as 1 | 2 | 5 | 10)) {
+      console.error(
+        "[ActionAPI] Invalid game_speed in server state:",
+        serverState.game_speed,
+      );
+      return NextResponse.json(
+        {
+          valid: false,
+          error: "Invalid game speed in state",
+          code: "INVALID_GAME_SPEED",
+        } satisfies ActionResponse,
+        { status: 503 },
+      );
+    }
     const elapsed = await applyElapsedTicks(
       (serverState.full_state as unknown as ServerGameData) ?? ({} as ServerGameData),
       serverState.last_tick_at ?? null,
-      Number(serverState.game_speed) || 1,
+      rawGameSpeed,
     );
     // If elapsed > 0, persist the post-tick state immediately so subsequent
     // validators see fresh resources/money. Done BEFORE the action dispatch
     // so cost checks run against post-tick values.
     if (elapsed.elapsedTicks > 0) {
+      // Validate elapsed.state fields at trust boundary per [SEC-011].
+      // No `|| 0` silent fallbacks — corrupt post-tick state → 503.
+      let elapsedFields;
+      try {
+        elapsedFields = extractValidatedSaveFields(
+          elapsed.state as unknown as Record<string, unknown>,
+        );
+      } catch (err) {
+        console.error(
+          "[ActionAPI] elapsed.state field validation failed:",
+          err,
+        );
+        return NextResponse.json(
+          {
+            valid: false,
+            error: "Server tick state invalid — retry",
+            code: "ELAPSED_TICK_INVALID",
+          } satisfies ActionResponse,
+          { status: 503 },
+        );
+      }
+
+      const elapsedStateVersion = Number(serverState.state_version);
+      if (!Number.isInteger(elapsedStateVersion) || elapsedStateVersion < 0) {
+        console.error(
+          "[ActionAPI] Invalid state_version for elapsed-tick persist:",
+          serverState.state_version,
+        );
+        return NextResponse.json(
+          {
+            valid: false,
+            error: "Server tick state invalid — retry",
+            code: "INVALID_STATE_VERSION",
+          } satisfies ActionResponse,
+          { status: 503 },
+        );
+      }
+
       const persisted = await saveServerGameStateOptimistic(
         auth.userId,
-        serverState.state_version ?? 0,
+        elapsedStateVersion,
         {
           full_state: asFullState(elapsed.state),
-          money: Number(elapsed.state.money) || 0,
-          total_money_earned: Number(elapsed.state.totalMoneyEarned) || 0,
-          buildings_count: Array.isArray(elapsed.state.buildings)
-            ? elapsed.state.buildings.length
-            : 0,
-          state_version: (serverState.state_version ?? 0) + 1,
+          money: elapsedFields.money,
+          total_money_earned: elapsedFields.totalMoneyEarned,
+          buildings_count: elapsedFields.buildingsCount,
+          state_version: elapsedStateVersion + 1,
+          last_tick_at: elapsed.serverNow,
+          last_saved_at: elapsed.serverNow,
         },
       ).catch((err) => {
         console.error("[ActionAPI] Failed to persist elapsed-tick state:", err);
@@ -753,10 +838,13 @@ export async function POST(request: Request) {
     );
   }
 
-  // Use server state for validation (cast to Partial<GameState> for validator compat)
+  // Use server state for validation. RULES.md [SEC-011]: no `|| 0` silent
+  // fallbacks; if server tick/money are missing/invalid, we use NaN and
+  // let logActionAsync strict validation (added 2026-07-09) skip the
+  // audit log row rather than silently writing 0.
   const gameState = (activeServerState.full_state ?? {}) as Partial<GameState>;
-  const serverGameTick = Number(activeServerState.game_tick) || 0;
-  const serverMoney = Number(activeServerState.money) || 0;
+  const serverGameTick = Number(activeServerState.game_tick);
+  const serverMoney = Number(activeServerState.money);
 
   // Phase 4.3: Replay detection via requestId nonce.
   const actionHistory: string[] = Array.isArray(
@@ -815,6 +903,9 @@ export async function POST(request: Request) {
       break;
     case "assign_worker":
       result = handleAssignWorkerAction(payload, gameState);
+      break;
+    case "upgrade_worker":
+      result = handleUpgradeWorkerAction(payload, gameState);
       break;
     case "collect_payout":
       result = handleCollectPayoutAction(gameState);
@@ -883,7 +974,23 @@ export async function POST(request: Request) {
     const persistedBuildingsCount = Array.isArray(persistedBuildings)
       ? persistedBuildings.length
       : activeServerState.buildings_count;
-    const currentVersion = activeServerState.state_version ?? 0;
+    // Fail-closed per RULES.md [SEC-011]: state_version must be a valid
+    // non-negative integer; refuse rather than silently default to 0.
+    const currentVersion = Number(activeServerState.state_version);
+    if (!Number.isInteger(currentVersion) || currentVersion < 0) {
+      console.error(
+        "[ActionAPI] Invalid state_version for correctedState persist:",
+        activeServerState.state_version,
+      );
+      return NextResponse.json(
+        {
+          valid: false,
+          error: "Invalid server state version",
+          code: "INVALID_STATE_VERSION",
+        } satisfies ActionResponse,
+        { status: 503 },
+      );
+    }
     const nextVersion = currentVersion + 1;
     const persisted = await saveServerGameStateOptimistic(
       auth.userId,

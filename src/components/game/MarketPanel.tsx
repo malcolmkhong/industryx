@@ -41,8 +41,8 @@ import {
   getSectorInfo,
   getSeverityStyle,
   getCategoryIcon,
+  type MarketSector,
 } from "@/lib/game/marketSimulator";
-import type { MarketSector } from "@/lib/game/marketSimulator";
 
 // --- Bezier Sparkline Component ---
 function BezierSparkline({
@@ -171,23 +171,30 @@ function SupplyDemandBar({
 }
 
 // --- Market Cycle Indicator ---
+const MARKET_CYCLE_PHASES = [
+  "expansion",
+  "peak",
+  "recession",
+  "recovery",
+] as const;
+
 function MarketCycleIndicator({
   phase,
   progress,
   multiplier,
 }: {
-  phase: string;
+  phase: (typeof MARKET_CYCLE_PHASES)[number];
   progress: number;
   multiplier: number;
 }) {
   type PhaseConfig = { color: string; label: string; Icon: typeof TrendingUp };
-  const phaseConfig: Record<string, PhaseConfig> = {
+  const phaseConfig: Record<(typeof MARKET_CYCLE_PHASES)[number], PhaseConfig> = {
     expansion: { color: "text-success", label: "Expansion", Icon: TrendingUp },
     peak: { color: "text-warning", label: "Peak", Icon: Zap },
     recession: { color: "text-danger", label: "Recession", Icon: TrendingDown },
     recovery: { color: "text-brand", label: "Recovery", Icon: RefreshCw },
   };
-  const config = phaseConfig[phase] ?? phaseConfig.expansion;
+  const config = phaseConfig[phase];
   const Icon = config.Icon;
 
   return (
@@ -303,7 +310,6 @@ export function MarketPanel() {
     useShallow((s) => ({
       autoSellResources: s.autoSellResources,
       buyResource: s.buyResource,
-      getNewsLLMState: s.getNewsLLMState,
       market: s.market,
       marketNarratives: s.marketNarratives,
       marketNews: s.marketNews,
@@ -343,16 +349,10 @@ export function MarketPanel() {
     return allNews.filter((n) => n.category === newsFilter);
   }, [store.marketNews, newsFilter]);
 
-  const llmState = store.getNewsLLMState?.() ?? {
-    loadState: "idle",
-    model: null,
-    backend: null,
-    averageGenTimeMs: 0,
-    totalCalls: 0,
-    cacheHits: 0,
-    llmSuccesses: 0,
-    llmFailures: 0,
-  };
+  const hasAiNews = useMemo(
+    () => (store.marketNews ?? []).some((news) => news.textSource === "llm"),
+    [store.marketNews],
+  );
 
   const portfolioValue = useMemo(() => {
     return (Object.entries(store.resources) as [ResourceType, number][]).reduce(
@@ -487,6 +487,10 @@ export function MarketPanel() {
   }, []);
 
   const cycle = store.serverMarket?.tick ?? 0;
+  const cyclePhaseIndex = Math.floor(cycle / 60) % MARKET_CYCLE_PHASES.length;
+  const cyclePhase = MARKET_CYCLE_PHASES[cyclePhaseIndex] ?? "expansion";
+  const cycleProgress = (cycle % 60) / 60;
+  const cycleMultiplier = store.serverMarket?.volatility ?? 0;
 
   return (
     <div className="space-y-4">
@@ -582,8 +586,13 @@ export function MarketPanel() {
           <div className="text-[10px] text-muted-label mb-1.5 flex items-center gap-1">
             <RefreshCw className="w-3 h-3" /> Market Tick #{cycle}
           </div>
+          <MarketCycleIndicator
+            phase={cyclePhase}
+            progress={cycleProgress}
+            multiplier={cycleMultiplier}
+          />
           {store.serverMarket?.volatility != null && (
-            <div className="text-[10px] text-muted-label">
+            <div className="text-[10px] text-muted-label mt-1.5">
               Volatility: {(store.serverMarket.volatility * 100).toFixed(1)}%
             </div>
           )}
@@ -1346,7 +1355,9 @@ export function MarketPanel() {
                   <PanelStatCard
                     icon={<Package className="w-4 h-4" />}
                     label="You Hold"
-                    value={formatNumber(store.resources[selectedResource!])}
+                    value={formatNumber(
+                      selectedResource ? (store.resources[selectedResource] ?? 0) : 0,
+                    )}
                     subtext="Current inventory"
                     color="cyan"
                   />
@@ -1523,7 +1534,7 @@ export function MarketPanel() {
           {/* News Feed */}
           <div className="lg:col-span-2 space-y-3">
             <div className="game-card rounded-xl bg-card p-4 border border-warning/20">
-              {/* Header with LLM status */}
+              {/* Header with server news status */}
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Newspaper className="w-4 h-4 text-warning" />
@@ -1538,55 +1549,22 @@ export function MarketPanel() {
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">
-                  {llmState.loadState === "ready" ? (
+                  {hasAiNews ? (
                     <span className="flex items-center gap-1 text-[9px] text-success bg-success/20 border border-success/20 rounded-full px-2 py-0.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-success inline-block" />
                       <Sparkles className="w-3 h-3" />
-                      AI Enhanced
+                      Server AI
                     </span>
                   ) : (
                     <span className="flex items-center gap-1 text-[9px] text-muted-label bg-muted-label/30 border border-muted-label rounded-full px-2 py-0.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-muted-label inline-block" />
                       <Cpu className="w-3 h-3" />
-                      Template Mode
+                      Server News
                     </span>
                   )}
                 </div>
               </div>
 
-              {/* LLM stats bar (when active) */}
-              {llmState.loadState === "ready" &&
-                (llmState.totalCalls > 0 || llmState.cacheHits > 0) && (
-                  <div className="flex items-center gap-3 mb-3 text-[9px] text-muted-label">
-                    {llmState.model && (
-                      <span className="font-mono">{llmState.model}</span>
-                    )}
-                    {llmState.backend && (
-                      <span className="uppercase text-[11px] px-1.5 py-0.5 rounded bg-muted-label border border-muted-label">
-                        {llmState.backend}
-                      </span>
-                    )}
-                    {llmState.averageGenTimeMs > 0 && (
-                      <span>Avg {llmState.averageGenTimeMs.toFixed(0)}ms</span>
-                    )}
-                    {llmState.totalCalls > 0 && (
-                      <span>{llmState.totalCalls} calls</span>
-                    )}
-                    {llmState.llmSuccesses > 0 && (
-                      <span className="text-success">
-                        {llmState.llmSuccesses} ✓
-                      </span>
-                    )}
-                    {llmState.llmFailures > 0 && (
-                      <span className="text-danger">
-                        {llmState.llmFailures} ✗
-                      </span>
-                    )}
-                    {llmState.cacheHits > 0 && (
-                      <span>{llmState.cacheHits} cached</span>
-                    )}
-                  </div>
-                )}
 
               {/* Filter row */}
               <div className="flex items-center gap-1.5 flex-wrap mb-3">

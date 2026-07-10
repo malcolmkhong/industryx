@@ -4,7 +4,6 @@ import { generateId } from "../utils/generateId";
 import { formatNumber } from "../utils/formatNumber";
 import { getBuildingCost, isBuildingUnlocked } from "../utils/costCalculator";
 import { getMegaProjectBonus } from "../utils/gameMath";
-import { getBalance } from "../balanceConfig";
 import { soundEngine } from "../soundEngine";
 import { buildMultipliers, computePowerGrid } from "../productionCalculator";
 import type { SetFn, GetFn } from "./_actionTypes";
@@ -49,10 +48,8 @@ export function createBuildingActions(set: SetFn, get: GetFn) {
         return;
       }
 
-      // Phase 2.3: BLOCKING. See actionValidator.ts.
-      // Phase 1 Server-authoritative: when server returns `correctedState`,
-      // apply it verbatim (server already persisted it). Otherwise fall back
-      // to the local-cost computation (offline / degraded mode).
+      // Phase 2.3: BLOCKING. Server must return correctedState; no local
+      // fallback mutation is allowed when server authority is unavailable.
       const validation = await import("../actionValidator").then((m) =>
         m.validateActionWithServer(
           "build",
@@ -74,50 +71,32 @@ export function createBuildingActions(set: SetFn, get: GetFn) {
         soundEngine.play("levelUp", "events");
       }
 
-      // Server-authoritative path: apply exactly what server persisted.
-      // Note: even when the server doesn't return correctedState (e.g., when
-      // validation is bypassed by the offline-degraded fallback in
-      // submitActionToServer), we still use the locally-computed cost.
-      const serverBuildings = validation.correctedState?.buildings;
-      const serverMoney = validation.correctedState?.money;
-
-      if (Array.isArray(serverBuildings) && typeof serverMoney === "number") {
-        set({
-          money: serverMoney,
-          buildings: serverBuildings as unknown as BuildingInstance[],
-          stats: {
-            ...state.stats,
-            factoriesBuilt: state.stats.factoriesBuilt + 1,
-          },
-        });
-      } else {
-        // Offline / degraded fallback — apply the locally-computed mutation.
-        const building: BuildingInstance = {
-          id: generateId(),
-          type,
-          level: 1,
-          active: true,
-          efficiency: 1,
-          placedAt: state.gameTick,
-        };
-        set({
-          money: state.money - cost,
-          buildings: [...state.buildings, building],
-          stats: {
-            ...state.stats,
-            factoriesBuilt: state.stats.factoriesBuilt + 1,
-          },
-        });
+      const corrected = validation.correctedState;
+      const serverBuildings = corrected?.buildings;
+      const serverMoney = corrected?.money;
+      if (!Array.isArray(serverBuildings) || typeof serverMoney !== "number") {
+        soundEngine.play("error", "ui");
+        get().addNotification(
+          "error",
+          "Build could not be confirmed by server. Please retry.",
+        );
+        return;
       }
+
+      set({
+        money: serverMoney,
+        buildings: serverBuildings as BuildingInstance[],
+        stats: {
+          ...state.stats,
+          factoriesBuilt: state.stats.factoriesBuilt + 1,
+        },
+      });
 
       soundEngine.play("buildingPlaced", "building");
       get().addNotification(
         "success",
         `Built ${def.name} for $${formatNumber(
-          state.money -
-            (typeof serverMoney === "number"
-              ? serverMoney
-              : state.money - cost),
+          state.money - serverMoney,
         )}`,
       );
       get().updateQuestProgress("build", 1, type);
@@ -146,18 +125,24 @@ export function createBuildingActions(set: SetFn, get: GetFn) {
         return;
       }
 
-      // Apply server-authoritative state. Fall back to optimistic local
-      // computation only if the server omitted correctedState (defensive).
-      const serverBuildings = (validation.correctedState?.buildings ??
-        state.buildings) as typeof state.buildings;
-      const serverMoney = validation.correctedState?.money ?? state.money;
-      const serverResources = (validation.correctedState?.resources ??
-        state.resources) as typeof state.resources;
+      const corrected = validation.correctedState;
+      if (
+        !Array.isArray(corrected?.buildings) ||
+        typeof corrected.money !== "number" ||
+        !corrected.resources
+      ) {
+        soundEngine.play("error", "ui");
+        get().addNotification(
+          "error",
+          "Upgrade could not be confirmed by server. Please retry.",
+        );
+        return;
+      }
 
       set({
-        money: serverMoney,
-        buildings: serverBuildings,
-        resources: serverResources,
+        money: corrected.money,
+        buildings: corrected.buildings as typeof state.buildings,
+        resources: corrected.resources as typeof state.resources,
       });
       soundEngine.play("buildingPlaced", "building");
       get().addNotification(
@@ -192,17 +177,21 @@ export function createBuildingActions(set: SetFn, get: GetFn) {
         return;
       }
 
-      // Apply server-returned authoritative state. The server has already
-      // persisted the toggle, so we use its result rather than computing
-      // locally. Fall back to the previous value if the server omitted the
-      // field (defensive — server should always return it for toggle_building).
-      const serverBuildings = (validation.correctedState?.buildings ??
-        state.buildings) as typeof state.buildings;
+      const serverBuildings = validation.correctedState?.buildings;
+      if (!Array.isArray(serverBuildings)) {
+        soundEngine.play("error", "ui");
+        get().addNotification(
+          "error",
+          "Building toggle could not be confirmed by server. Please retry.",
+        );
+        return;
+      }
+      const authoritativeBuildings = serverBuildings as typeof state.buildings;
 
       // Recalculate power grid immediately so UI updates without waiting for
       // next tick. Uses productionCalculator's computePowerGrid for
       // consistency with gameTick.
-      const tempState = { ...state, buildings: serverBuildings };
+      const tempState = { ...state, buildings: authoritativeBuildings };
       const cache = buildMultipliers(tempState);
       const tempResources = { ...state.resources };
       const powerResult = computePowerGrid(
@@ -221,13 +210,13 @@ export function createBuildingActions(set: SetFn, get: GetFn) {
       }
 
       set({
-        buildings: serverBuildings,
+        buildings: authoritativeBuildings,
         powerGrid: {
           totalProduction: powerResult.totalProduction,
           totalConsumption: powerResult.totalConsumption,
           efficiency: powerResult.efficiency,
           overload: powerResult.overload,
-          plants: serverBuildings.filter(
+          plants: authoritativeBuildings.filter(
             (b) => BUILDING_DEFS[b.type]?.category === "power" && b.active,
           ),
         },
