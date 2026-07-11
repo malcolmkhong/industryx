@@ -25,8 +25,7 @@
 // return 401 immediately.
 // ============================================
 
-import { jwtVerify } from "jose";
-import type { JWK } from "jose";
+import { jwtVerify, type JWK } from "jose";
 
 import { getKeyByKid } from "./jwksCache";
 import type { NextRequest } from "next/server";

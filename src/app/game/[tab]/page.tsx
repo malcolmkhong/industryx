@@ -49,6 +49,7 @@ const DroneDeliveryPanel = dynamic(() => import('@/components/game/DroneDelivery
 const TradingPostPanel = dynamic(() => import('@/components/game/TradingPostPanel').then(m => ({ default: m.TradingPostPanel })), { loading: () => <DynamicPanelFallback /> });
 const StoragePanel = dynamic(() => import('@/components/game/StoragePanel').then(m => ({ default: m.StoragePanel })), { loading: () => <DynamicPanelFallback /> });
 const GlobalResourceMonitorPanel = dynamic(() => import('@/components/game/GlobalResourceMonitorPanel').then(m => m.default), { loading: () => <DynamicPanelFallback /> });
+const ProductionChainsPanel = dynamic(() => import('@/components/game/ProductionChainsPanel').then(m => ({ default: m.ProductionChainsPanel })), { loading: () => <DynamicPanelFallback /> });
 import { DashboardPanel } from '@/components/game/DashboardPanel';
 
 // Returns the panel component for a given GameTab. Pure mapping — keep in sync
@@ -61,6 +62,7 @@ function renderPanel(tab: GameTab) {
     case 'resourceMonitor': return <GlobalResourceMonitorPanel />;
     case 'resources': return <ResourcePanel />;
     case 'factories': return <FactoryPanel />;
+    case 'productionChains': return <ProductionChainsPanel />;
     case 'storage': return <StoragePanel />;
     case 'transport': return <TransportPanel />;
     case 'power': return <PowerPanel />;
@@ -90,7 +92,7 @@ function renderPanel(tab: GameTab) {
 
 const VALID_TABS = new Set<GameTab>([
   'dashboard', 'advisor', 'factoryMap', 'resourceMonitor', 'resources',
-  'factories', 'storage', 'transport', 'power', 'market', 'research',
+  'factories', 'productionChains', 'storage', 'transport', 'power', 'market', 'research',
   'workers', 'contracts', 'automation', 'prestige', 'events', 'megaprojects',
   'statistics', 'blueprints', 'guide', 'achievements', 'leaderboard',
   'dailyRewards', 'payouts', 'droneDelivery', 'tradePost', 'quests',

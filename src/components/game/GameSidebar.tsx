@@ -43,8 +43,9 @@ import {
   ArrowRightLeft,
   Brain,
   Shield,
+  GitBranch,
+  type LucideIcon,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { SupportButton } from "./SupportButton";
 
 // ─── Navigation Tab Definition ─────────────────────────────────────────────────
@@ -111,6 +112,12 @@ export const NAV_GROUPS: NavGroup[] = [
         color: "text-warning",
       },
       { id: "factories", label: "Factories", icon: Cog, color: "text-domain" },
+      {
+        id: "productionChains",
+        label: "Chains",
+        icon: GitBranch,
+        color: "text-success",
+      },
       {
         id: "storage",
         label: "Storage",

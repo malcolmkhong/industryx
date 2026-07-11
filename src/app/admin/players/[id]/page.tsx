@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, use } from "react";
+import Link from "next/link";
 import { UserAvatar } from "@/components/admin/UserAvatar";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { ArrowLeft, ChevronDown, ChevronUp, Lock, Unlock, Database, Ban, ShieldCheck } from "lucide-react";
@@ -297,10 +298,10 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
         <div className="flex flex-col items-center gap-4">
           <Ban size={48} strokeWidth={1.5} className="text-muted-label/80" />
           <p className="text-muted-label text-sm">Player not found</p>
-          <a href="/admin/players" className="inline-flex items-center gap-2 px-4 py-2 bg-warning/60/10 text-warning text-sm rounded-lg hover:bg-warning/60/20 transition-colors border border-warning/60/20">
+          <Link href="/admin/players" className="inline-flex items-center gap-2 px-4 py-2 bg-warning/60/10 text-warning text-sm rounded-lg hover:bg-warning/60/20 transition-colors border border-warning/60/20">
             <ArrowLeft size={16} aria-hidden="true" />
             Back to Players
-          </a>
+          </Link>
         </div>
       </div>
     );
@@ -330,13 +331,13 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
 
       <div className="max-w-5xl">
         {/* Back button */}
-        <a
+        <Link
           href="/admin/players"
           className="inline-flex items-center gap-2 text-muted-label hover:text-warning text-sm transition-colors mb-4"
         >
           <ArrowLeft size={16} aria-hidden="true" />
           Back to Players
-        </a>
+        </Link>
 
         {dataLoading ? (
           <div className="space-y-4">

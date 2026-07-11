@@ -643,6 +643,7 @@ export function FactoryPanel() {
                     const canAfford = money >= cost;
                     const unlocked = isBuildingUnlocked(type, completedResearch, prestigeState);
                     const chains = getFactoryChains(type);
+                    const requiredResearch = def.unlockRequirement?.research;
 
                     return (
                       <GameItemTooltip
@@ -660,7 +661,7 @@ export function FactoryPanel() {
                           { label: 'Cost Multiplier', value: `x${def.costMultiplier}` },
                         ]}
                         requirements={[
-                          ...(def.unlockRequirement?.research ? [{ label: 'Research', value: RESEARCH_TREE.find(r => r.id === def.unlockRequirement!.research)?.name ?? def.unlockRequirement.research, color: completedResearch.includes(def.unlockRequirement.research) ? 'text-success' : 'text-danger' }] : []),
+                          ...(requiredResearch ? [{ label: 'Research', value: RESEARCH_TREE.find(r => r.id === requiredResearch)?.name ?? requiredResearch, color: completedResearch.includes(requiredResearch) ? 'text-success' : 'text-danger' }] : []),
                         ]}
                         side="bottom"
                       >

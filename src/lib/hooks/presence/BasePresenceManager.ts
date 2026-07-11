@@ -20,7 +20,7 @@
 //   - SSR safety (typeof window guard)
 // ============================================
 
-import type { RealtimePresenceState, RealtimeChannel } from '@supabase/supabase-js';
+import type { RealtimePresenceState, RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
 
 export interface PresencePayload {
   visitor_id: string;
@@ -40,7 +40,7 @@ type Listener<S extends BasePresenceState> = (state: S) => void;
 
 export abstract class BasePresenceManager<S extends BasePresenceState> {
   protected channel: RealtimeChannel | null = null;
-  protected supabase: any | null = null;
+  protected supabase: SupabaseClient | null = null;
   protected listeners = new Set<Listener<S>>();
   protected refreshInterval: ReturnType<typeof setInterval> | null = null;
   protected refCount = 0;
@@ -107,9 +107,16 @@ export abstract class BasePresenceManager<S extends BasePresenceState> {
         this.notify();
         return;
       }
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      if (!supabaseUrl || !supabaseAnonKey) {
+        this.state.isConnected = false;
+        this.notify();
+        return;
+      }
       this.supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        supabaseUrl,
+        supabaseAnonKey
       );
       this.setupChannel(userRef);
     }).catch(() => {

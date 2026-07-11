@@ -12,8 +12,7 @@
  * fallback template system with anti-repetition.
  */
 
-import type { VolatilityInjection, MarketSector } from "./marketSimulator";
-import type { MarketNews } from "./marketSimulator";
+import type { VolatilityInjection, MarketSector, MarketNews } from "./marketSimulator";
 import type { ResourceType } from "./types";
 import { RESOURCE_META } from "./configCache";
 

@@ -87,11 +87,12 @@ export async function GET() {
 
   // 4. News generator worker
   const recentNews = await getLatestMarketNews();
-  const hasNews = recentNews?.news && Array.isArray(recentNews.news) && (recentNews.news as unknown[]).length > 0;
+  const newsItems = Array.isArray(recentNews?.news) ? recentNews.news as unknown[] : [];
+  const hasNews = newsItems.length > 0;
   services.push({
     name: 'AI News Generator',
     status: hasNews ? 'healthy' : 'degraded',
-    detail: hasNews ? `${(recentNews!.news as unknown[]).length} headlines generated` : 'No recent news',
+    detail: hasNews ? `${newsItems.length} headlines generated` : 'No recent news',
   });
   if (!hasNews) alerts.push('AI news generator: no headlines in latest tick');
 
@@ -105,8 +106,8 @@ export async function GET() {
     schedule: 'Every 5 minutes',
     lastRun: recentCheatFlags?.created_at ?? null,
     status: 'ok',
-    detail: lastFlagTime
-      ? `Investigation activity seen (last: ${Math.round(minutesSinceFlag!)} min ago)`
+    detail: minutesSinceFlag !== null
+      ? `Investigation activity seen (last: ${Math.round(minutesSinceFlag)} min ago)`
       : 'No recent investigation activity',
   });
 

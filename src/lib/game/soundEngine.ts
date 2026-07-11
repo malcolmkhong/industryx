@@ -213,15 +213,16 @@ class SoundEngine {
    * Research complete: Success fanfare (ascending tones)
    */
   private playResearchComplete(now: number, volume: number) {
-    if (!this.ctx) return;
+    const ctx = this.ctx;
+    if (!ctx) return;
 
     const notes = [523, 659, 784, 1047]; // C5, E5, G5, C6
     const noteDuration = 0.1;
     const totalDuration = notes.length * noteDuration + 0.05;
 
     notes.forEach((freq, i) => {
-      const osc = this.ctx!.createOscillator();
-      const gain = this.ctx!.createGain();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
 
       osc.type = 'sine';
       const start = now + i * noteDuration;
@@ -232,15 +233,15 @@ class SoundEngine {
       gain.gain.exponentialRampToValueAtTime(0.001, start + noteDuration);
 
       osc.connect(gain);
-      gain.connect(this.ctx!.destination);
+      gain.connect(ctx.destination);
 
       osc.start(start);
       osc.stop(start + noteDuration);
     });
 
     // Shimmer overlay
-    const shimmer = this.ctx.createOscillator();
-    const shimmerGain = this.ctx.createGain();
+    const shimmer = ctx.createOscillator();
+    const shimmerGain = ctx.createGain();
 
     shimmer.type = 'triangle';
     shimmer.frequency.setValueAtTime(2093, now + totalDuration - 0.1);
@@ -250,7 +251,7 @@ class SoundEngine {
     shimmerGain.gain.exponentialRampToValueAtTime(0.001, now + totalDuration + 0.1);
 
     shimmer.connect(shimmerGain);
-    shimmerGain.connect(this.ctx.destination);
+    shimmerGain.connect(ctx.destination);
 
     shimmer.start(now + totalDuration - 0.1);
     shimmer.stop(now + totalDuration + 0.1);
@@ -260,13 +261,14 @@ class SoundEngine {
    * Contract completed: Achievement sound (major chord)
    */
   private playContractCompleted(now: number, volume: number) {
-    if (!this.ctx) return;
+    const ctx = this.ctx;
+    if (!ctx) return;
 
     const chord = [523, 659, 784]; // C5, E5, G5 - major chord
 
     chord.forEach((freq) => {
-      const osc = this.ctx!.createOscillator();
-      const gain = this.ctx!.createGain();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
 
       osc.type = 'sine';
       osc.frequency.setValueAtTime(freq, now);
@@ -275,15 +277,15 @@ class SoundEngine {
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
 
       osc.connect(gain);
-      gain.connect(this.ctx!.destination);
+      gain.connect(ctx.destination);
 
       osc.start(now);
       osc.stop(now + 0.3);
     });
 
     // High bell note
-    const bell = this.ctx.createOscillator();
-    const bellGain = this.ctx.createGain();
+    const bell = ctx.createOscillator();
+    const bellGain = ctx.createGain();
 
     bell.type = 'sine';
     bell.frequency.setValueAtTime(1568, now + 0.05);
@@ -292,7 +294,7 @@ class SoundEngine {
     bellGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
 
     bell.connect(bellGain);
-    bellGain.connect(this.ctx.destination);
+    bellGain.connect(ctx.destination);
 
     bell.start(now + 0.05);
     bell.stop(now + 0.35);
@@ -355,14 +357,15 @@ class SoundEngine {
    * Level up: Celebration sound (ascending arpeggio)
    */
   private playLevelUp(now: number, volume: number) {
-    if (!this.ctx) return;
+    const ctx = this.ctx;
+    if (!ctx) return;
 
     const notes = [440, 554, 659, 880, 1109, 1319]; // A4 ascending arpeggio
     const noteDuration = 0.07;
 
     notes.forEach((freq, i) => {
-      const osc = this.ctx!.createOscillator();
-      const gain = this.ctx!.createGain();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
 
       osc.type = 'sine';
       const start = now + i * noteDuration;
@@ -373,7 +376,7 @@ class SoundEngine {
       gain.gain.exponentialRampToValueAtTime(0.001, start + noteDuration + 0.1);
 
       osc.connect(gain);
-      gain.connect(this.ctx!.destination);
+      gain.connect(ctx.destination);
 
       osc.start(start);
       osc.stop(start + noteDuration + 0.1);

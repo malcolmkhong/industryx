@@ -577,7 +577,7 @@ export function ResourcePanel() {
           </div>
 
           {/* EXTRACTOR BUILD CARDS for selected tab */}
-          <div key={selectedTab}>
+          <div id="build-extractors" key={selectedTab} className="scroll-mt-24">
               <div className="game-card rounded-xl bg-card p-4 border border-border">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
@@ -600,6 +600,7 @@ export function ResourcePanel() {
                     const cost = getBuildingCost(type, existingCount);
                     const canAfford = money >= cost;
                     const unlocked = isBuildingUnlocked(type, completedResearch, prestigeState);
+                    const requiredResearch = def.unlockRequirement?.research;
 
                     return (
                       <GameItemTooltip
@@ -617,7 +618,7 @@ export function ResourcePanel() {
                           { label: 'Cost Multiplier', value: `x${def.costMultiplier}` },
                         ]}
                         requirements={[
-                          ...(def.unlockRequirement?.research ? [{ label: 'Research', value: RESEARCH_TREE.find(r => r.id === def.unlockRequirement!.research)?.name ?? def.unlockRequirement.research, color: completedResearch.includes(def.unlockRequirement.research) ? 'text-success' : 'text-danger' }] : []),
+                          ...(requiredResearch ? [{ label: 'Research', value: RESEARCH_TREE.find(r => r.id === requiredResearch)?.name ?? requiredResearch, color: completedResearch.includes(requiredResearch) ? 'text-success' : 'text-danger' }] : []),
                           ...(def.unlockRequirement?.level ? [{ label: 'Level Required', value: `${def.unlockRequirement.level}`, color: 'text-warning' }] : []),
                         ]}
                         side="bottom"

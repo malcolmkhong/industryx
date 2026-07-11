@@ -19,6 +19,17 @@ export interface VisitorPresenceState {
 
 const VISITOR_KEY_STORAGE = 'industriax_visitor_id';
 
+interface VisitorUser {
+  email?: string | null;
+  user_metadata?: {
+    full_name?: string | null;
+  } | null;
+}
+
+function isVisitorUser(user: unknown): user is VisitorUser {
+  return typeof user === 'object' && user !== null;
+}
+
 function getOrCreateVisitorId(): string {
   if (typeof window === 'undefined') return '';
   let id = localStorage.getItem(VISITOR_KEY_STORAGE);
@@ -50,13 +61,14 @@ export class VisitorPresenceManager extends BasePresenceManager<VisitorPresenceS
     return this.visitorId;
   }
 
-  protected createPayload(user: any): PresencePayload {
+  protected createPayload(user: unknown): PresencePayload {
+    const visitorUser = isVisitorUser(user) ? user : null;
     return {
       visitor_id: this.getKey(),
       is_logged_in: !!user,
       display_name:
-        user?.user_metadata?.full_name ||
-        user?.email?.split('@')[0] ||
+        visitorUser?.user_metadata?.full_name ||
+        visitorUser?.email?.split('@')[0] ||
         'Anonymous',
       online_at: new Date().toISOString(),
     };

@@ -262,8 +262,11 @@ function assignPorts(
   };
 
   const markUsed = (nodeId: string, portId: string) => {
-    if (!usedPorts.has(nodeId)) usedPorts.set(nodeId, new Map());
-    const nodePorts = usedPorts.get(nodeId)!;
+    let nodePorts = usedPorts.get(nodeId);
+    if (!nodePorts) {
+      nodePorts = new Map();
+      usedPorts.set(nodeId, nodePorts);
+    }
     nodePorts.set(portId, (nodePorts.get(portId) ?? 0) + 1);
   };
 
@@ -462,8 +465,12 @@ function NetworkGraph({
     const positions = new Map<string, { x: number; y: number }>();
     const tierGroups = new Map<number, ERDNode[]>();
     nodes.forEach((n) => {
-      if (!tierGroups.has(n.tier)) tierGroups.set(n.tier, []);
-      tierGroups.get(n.tier)!.push(n);
+      const group = tierGroups.get(n.tier);
+      if (group) {
+        group.push(n);
+      } else {
+        tierGroups.set(n.tier, [n]);
+      }
     });
 
     const sortedTiers = Array.from(tierGroups.entries()).sort(
@@ -676,8 +683,12 @@ function NetworkGraph({
     const cols = new Map<number, { x: number; label: string; color: string }>();
     const tierGroups = new Map<number, ERDNode[]>();
     nodes.forEach((n) => {
-      if (!tierGroups.has(n.tier)) tierGroups.set(n.tier, []);
-      tierGroups.get(n.tier)!.push(n);
+      const group = tierGroups.get(n.tier);
+      if (group) {
+        group.push(n);
+      } else {
+        tierGroups.set(n.tier, [n]);
+      }
     });
     const sorted = Array.from(tierGroups.entries()).sort((a, b) => a[0] - b[0]);
     sorted.forEach(([, tierNodes], colIdx) => {
@@ -2243,23 +2254,25 @@ export function TransportPanel() {
           lineCount: 0,
         });
       }
-      const rel = relMap.get(key)!;
-      rel.lineCount += 1;
-      rel.totalThroughput += line.throughput;
-      if (line.active) rel.active = true;
+      const rel = relMap.get(key);
+      if (rel) {
+        rel.lineCount += 1;
+        rel.totalThroughput += line.throughput;
+        if (line.active) rel.active = true;
 
-      const existingRes = rel.resources.find(
-        (r) => r.resource === line.carriesResource,
-      );
-      if (existingRes) {
-        existingRes.throughput += line.throughput;
-        existingRes.maxThroughput += line.maxThroughput;
-      } else {
-        rel.resources.push({
-          resource: line.carriesResource,
-          throughput: line.throughput,
-          maxThroughput: line.maxThroughput,
-        });
+        const existingRes = rel.resources.find(
+          (r) => r.resource === line.carriesResource,
+        );
+        if (existingRes) {
+          existingRes.throughput += line.throughput;
+          existingRes.maxThroughput += line.maxThroughput;
+        } else {
+          rel.resources.push({
+            resource: line.carriesResource,
+            throughput: line.throughput,
+            maxThroughput: line.maxThroughput,
+          });
+        }
       }
     });
 

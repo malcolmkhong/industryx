@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useRef, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/store';
 import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE, RANK_THRESHOLDS, WEATHER_DEFS } from '@/lib/game/configCache';
 import { useConfigVersion } from '@/components/providers/GameConfigProvider';
@@ -8,19 +8,21 @@ import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
 import { TierCard } from '@/components/game/shared/TierCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useTickFormat } from '@/lib/hooks/useTickFormat';
-import { formatByMode, formatRemaining, formatDuration, formatTicks } from '@/lib/utils/time';
+import { useNavigateToTab } from '@/lib/hooks/page/useNavigateToTab';
+import { formatByMode, formatRemaining, formatDuration } from '@/lib/utils/time';
 import {
   Factory, Users, Zap, TrendingUp, AlertTriangle, FlaskConical,
   Activity, Pickaxe, Cog, Shield, Clock, Bell,
-  ArrowUpRight, ArrowDownRight, Minus, Timer, Power, Sparkles,
+  ArrowUpRight, ArrowDownRight, Minus, Timer,
   Database, Wrench, Globe, ArrowRight, Trophy, Package,
-  Hammer, CheckCircle2, XCircle, Flame, CloudSun, Pin, X as XIcon,
-  Gauge, Wallet, BarChart3, CircleDot, DollarSign, Gem, Crown, Star
+  CheckCircle2, XCircle, CloudSun, Pin, X as XIcon,
+  Gauge, Wallet, BarChart3, DollarSign, Gem, Crown, Star,
+  ChevronDown, ChevronUp, GitBranch
 } from 'lucide-react';
 import type { BuildingType, ResourceType, WeatherType } from "@/lib/game/types";
 import { motion, AnimatePresence } from 'framer-motion';
-import { ProductionChainPanel } from '@/components/game/ProductionChainPanel';
 import { GameIcon } from '@/components/icons';
 
 export function DashboardPanel() {
@@ -41,7 +43,6 @@ export function DashboardPanel() {
   const prestigeState = useGameStore((s) => s.prestigeState);
   const workers = useGameStore((s) => s.workers);
   const productionSnapshot = useGameStore((s) => s.productionSnapshot);
-  const gameTick = useGameStore((s) => s.gameTick);
   const activeResearch = useGameStore((s) => s.activeResearch);
   const researchProgress = useGameStore((s) => s.researchProgress);
   const notifications = useGameStore((s) => s.notifications);
@@ -49,13 +50,14 @@ export function DashboardPanel() {
   const quests = useGameStore((s) => s.quests);
   const trackedQuest = useGameStore((s) => s.trackedQuest);
   const activeEvents = useGameStore((s) => s.activeEvents);
-  const weather = useGameStore((s) => s.weather);
   const stats = useGameStore((s) => s.stats);
   const buildBuilding = useGameStore((s) => s.buildBuilding);
   const clearNotifications = useGameStore((s) => s.clearNotifications);
-  const setActiveTab = useGameStore((s) => s.setActiveTab);
   const setTrackedQuest = useGameStore((s) => s.setTrackedQuest);
-  const getCurrentRank = useGameStore((s) => s.getCurrentRank);
+  const navigateToTab = useNavigateToTab();
+  const [operationsOpen, setOperationsOpen] = useState(true);
+  const [productionOpen, setProductionOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   // Computed values
   const totalBuildings = buildings.length;
@@ -214,17 +216,17 @@ export function DashboardPanel() {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, type: 'spring' }}
-          onClick={() => setActiveTab('dailyRewards')}
-          className="w-full bg-linear-to-r from-900-pink/25 via-research/20/20 to-premium/30/25 border border-premium/30 rounded-xl p-3 flex items-center justify-between group hover:border-400-pink/50 cursor-pointer"
+          onClick={() => navigateToTab('dailyRewards')}
+          className="w-full bg-linear-to-r from-900-pink/25 via-research/20/20 to-premium/30/25 border border-premium/30 rounded-xl p-3 flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap group hover:border-400-pink/50 cursor-pointer"
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <GameIcon icon="game-icons:present" size={24} className="animate-bounce" />
-            <div className="text-left">
+            <div className="text-left min-w-0">
               <p className="text-sm font-bold text-premium group-hover:text-premium/40 transition-colors">Daily Reward Available!</p>
               <p className="text-[10px] text-subtle">Click to claim your daily login bonus</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <span className="text-[10px] text-premium/70 uppercase tracking-wider font-semibold">Day {((loginStreak.currentStreak - 1) % 7) + 1}</span>
             <ArrowRight className="w-4 h-4 text-premium/50 group-hover:text-premium group-hover:translate-x-0.5 transition-all" />
           </div>
@@ -297,6 +299,7 @@ export function DashboardPanel() {
               </div>
               <button
                 onClick={() => setTrackedQuest(null)}
+                aria-label="Untrack Quest"
                 className="text-muted-label hover:text-subtle p-0.5 rounded hover:bg-muted-label/50 transition-colors"
               >
                 <XIcon className="w-3 h-3" />
@@ -374,7 +377,7 @@ export function DashboardPanel() {
               >
                 <Button
                   className="bg-warning/70 hover:bg-warning text-white font-semibold px-5 py-2.5 text-xs"
-                  onClick={() => setActiveTab('power')}
+                  onClick={() => navigateToTab('power', 'build-power')}
                 >
                   <Zap className="w-4 h-4 mr-1.5" />
                   Build Power First
@@ -387,14 +390,14 @@ export function DashboardPanel() {
               >
                 <Button
                   className="bg-brand hover:bg-brand text-white font-semibold px-5 py-2.5 text-xs"
-                  onClick={() => setActiveTab('resources')}
+                  onClick={() => navigateToTab('resources', 'build-extractors')}
                 >
                   <Pickaxe className="w-4 h-4 mr-1.5" />
                   Go to Extraction
                 </Button>
               </motion.div>
             </div>
-            <div className="mt-6 flex items-center justify-center gap-4 text-[10px] text-muted-label">
+            <div className="mt-6 flex items-center justify-center gap-3 text-[10px] text-muted-label flex-wrap">
               <motion.div
                 className="flex items-center gap-2 bg-warning/20 border border-warning/30 rounded-lg px-3 py-2"
                 whileHover={{ scale: 1.05, borderColor: 'rgba(234,179,8,0.5)' }}
@@ -424,8 +427,8 @@ export function DashboardPanel() {
       )}
 
       {/* HEADER */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2 min-w-0">
           <div>
             <h2 className="text-xl font-bold text-brand neon-glow-cyan tracking-wide flex items-center gap-2">Factory Overview
               {activeBuildings > 0 && (
@@ -443,7 +446,16 @@ export function DashboardPanel() {
             <p className="text-xs text-muted-label mt-0.5">Command center for your industrial empire</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-[10px] border-success/40 text-success"
+            onClick={() => navigateToTab('productionChains')}
+          >
+            <GitBranch className="w-3 h-3 mr-1" />
+            Chains
+          </Button>
           {activeEvents.length > 0 && (
             <Badge variant="outline" className="border-domain/50 text-domain bg-domain/20 text-xs neon-pulse">
               <AlertTriangle className="w-3 h-3 mr-1" />
@@ -501,8 +513,15 @@ export function DashboardPanel() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* LEFT COLUMN */}
         <div className="md:col-span-2 lg:col-span-2 space-y-4">
-          {/* POWER GRID STATUS */}
-          <div className="game-card rounded-xl bg-card p-4 border border-border">
+          <DashboardSection
+            title="Operations"
+            subtitle="Power, economy, storage"
+            icon={<Gauge className="w-4 h-4 text-brand" />}
+            open={operationsOpen}
+            onOpenChange={setOperationsOpen}
+          >
+            {/* POWER GRID STATUS */}
+            <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Zap className="w-4 h-4 text-warning" />
@@ -536,7 +555,7 @@ export function DashboardPanel() {
                 <p className="text-xs text-muted-label mb-3">Build a Coal Generator or Solar Panel to start generating power</p>
                 <Button
                   className="glow-button-cyan bg-warning/70 hover:bg-warning text-white text-xs font-semibold px-4 py-1.5"
-                  onClick={() => setActiveTab('power')}
+                  onClick={() => navigateToTab('power', 'build-power')}
                 >
                   <Zap className="w-3 h-3 mr-1" />
                   Go to Power
@@ -612,8 +631,8 @@ export function DashboardPanel() {
             )}
           </div>
 
-          {/* ECONOMY SUMMARY */}
-          <div className="game-card rounded-xl bg-card p-4 border border-border">
+            {/* ECONOMY SUMMARY */}
+            <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <DollarSign className="w-4 h-4 text-success" />
@@ -682,14 +701,14 @@ export function DashboardPanel() {
             </div>
           </div>
 
-          {/* TOP RESOURCES */}
-          <div className="game-card rounded-xl bg-card p-4 border border-border">
+            {/* TOP RESOURCES */}
+            <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Database className="w-4 h-4 text-brand" />
                 <h3 className="text-sm font-semibold text-brand">Resource Storage</h3>
               </div>
-              <span className="text-[10px] text-muted-label">{topResources.length} raw materials</span>
+              <span className="text-[10px] text-muted-label">{topResources.length} stored resources</span>
             </div>
             {/* Resource Overview Summary */}
             {(() => {
@@ -698,13 +717,13 @@ export function DashboardPanel() {
               const overallPct = totalCapacity > 0 ? (totalStored / totalCapacity) * 100 : 0;
               return (
                 <div className="mb-3 bg-background rounded-lg p-3">
-                  <div className="flex items-center justify-between text-[10px] mb-1.5">
-                    <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-between gap-2 text-[10px] mb-1.5 flex-wrap">
+                    <div className="flex items-center gap-3 flex-wrap min-w-0">
                       <span className="text-subtle">Total Stored: <span className="text-brand font-mono font-bold">{formatNumber(totalStored)}</span></span>
                       <span className="text-muted-label">|</span>
                       <span className="text-subtle">Capacity: <span className={`font-mono font-bold ${overallPct > 80 ? 'text-domain' : overallPct > 50 ? 'text-warning' : 'text-success'}`}>{overallPct.toFixed(1)}%</span></span>
                     </div>
-                    <span className="text-muted-label font-mono">{formatNumber(totalStored)}/{formatNumber(totalCapacity)}</span>
+                    <span className="text-muted-label font-mono shrink-0">{formatNumber(totalStored)}/{formatNumber(totalCapacity)}</span>
                   </div>
                   <div className="h-2 bg-muted-label rounded-full overflow-hidden">
                     <div
@@ -760,14 +779,31 @@ export function DashboardPanel() {
             </div>
           </div>
 
-          {/* PRODUCTION RATE SUMMARY */}
-          <div className="game-card rounded-xl bg-card p-4 border border-border">
+          </DashboardSection>
+
+          <DashboardSection
+            title="Production Flow"
+            subtitle="Rates and activity"
+            icon={<TrendingUp className="w-4 h-4 text-success" />}
+            open={productionOpen}
+            onOpenChange={setProductionOpen}
+          >
+            {/* PRODUCTION RATE SUMMARY */}
+            <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-success" />
                 <h3 className="text-sm font-semibold text-success">Production Rates</h3>
               </div>
-              <span className="text-[10px] text-muted-label">per second</span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-[10px] border-success/40 text-success"
+                onClick={() => navigateToTab('productionChains')}
+              >
+                <ArrowRight className="w-3 h-3 mr-1" />
+                Open Chains
+              </Button>
             </div>
             {topProductionRates.length === 0 ? (
               <div className="text-center py-6">
@@ -795,11 +831,8 @@ export function DashboardPanel() {
             )}
           </div>
 
-          {/* PRODUCTION CHAINS VISUALIZATION - SVG flow diagram with building details */}
-          <ProductionChainPanel productionRates={productionRates} />
-
-          {/* ACTIVITY FEED */}
-          <div className="game-card rounded-xl bg-card p-4 border border-border">
+            {/* ACTIVITY FEED */}
+            <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Activity className="w-4 h-4 text-brand" />
@@ -816,7 +849,7 @@ export function DashboardPanel() {
             ) : (
               <div className="space-y-1 max-h-64 overflow-y-auto game-scrollbar">
                 <AnimatePresence initial={false}>
-                  {activityFeed.map((entry, i) => (
+                  {activityFeed.map((entry) => (
                     <motion.div
                       key={entry.id}
                       className={`flex items-start gap-2 py-1.5 px-2 rounded text-[11px] border-l-2 ${
@@ -843,13 +876,21 @@ export function DashboardPanel() {
                 </AnimatePresence>
               </div>
             )}
-          </div>
+            </div>
+          </DashboardSection>
         </div>
 
         {/* RIGHT COLUMN */}
         <div className="space-y-4">
-          {/* INCOME SPARKLINE CHART */}
-          <IncomeChart productionRates={productionRates} />
+          <DashboardSection
+            title="Details & Actions"
+            subtitle="Insights and quick actions"
+            icon={<Activity className="w-4 h-4 text-domain" />}
+            open={detailsOpen}
+            onOpenChange={setDetailsOpen}
+          >
+            {/* INCOME SPARKLINE CHART */}
+            <IncomeChart />
 
           {/* BUILDING BREAKDOWN */}
           <div className="game-card rounded-xl bg-card p-4 border border-border">
@@ -1045,8 +1086,8 @@ export function DashboardPanel() {
             </div>
           </div>
 
-          {/* PRESTIGE / GLOBAL STATS */}
-          <div className="game-card rounded-xl bg-card p-4 border border-border">
+            {/* PRESTIGE / GLOBAL STATS */}
+            <div className="game-card rounded-xl bg-card p-4 border border-border">
             <div className="flex items-center gap-2 mb-3">
               <Globe className="w-4 h-4 text-premium" />
               <h3 className="text-sm font-semibold text-premium">Empire Stats</h3>
@@ -1077,7 +1118,8 @@ export function DashboardPanel() {
                 <span className="text-subtle font-mono">{formatByMode(stats.playTime, tickFormat)}</span>
               </div>
             </div>
-          </div>
+            </div>
+          </DashboardSection>
         </div>
       </div>
     </div>
@@ -1085,6 +1127,52 @@ export function DashboardPanel() {
 }
 
 // --- Sub-components ---
+
+function DashboardSection({
+  title,
+  subtitle,
+  icon,
+  open,
+  onOpenChange,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  icon: React.ReactNode;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <Collapsible open={open} onOpenChange={onOpenChange} className="space-y-3">
+      <CollapsibleTrigger asChild>
+        <button
+          type="button"
+          className="w-full rounded-xl border border-border bg-card px-4 py-3 text-left hover:border-brand/40 hover:bg-background/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
+          aria-label={`${open ? 'Collapse' : 'Expand'} ${title}`}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="shrink-0">{icon}</span>
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold text-subtle truncate">{title}</h3>
+                <p className="text-[10px] text-muted-label truncate">{subtitle}</p>
+              </div>
+            </div>
+            {open ? (
+              <ChevronUp className="w-4 h-4 text-muted-label shrink-0" aria-hidden="true" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-muted-label shrink-0" aria-hidden="true" />
+            )}
+          </div>
+        </button>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="space-y-4">
+        {children}
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
 
 function BuildingCategoryRow({
   icon,
@@ -1125,12 +1213,14 @@ function BuildingCategoryRow({
 // --- Rank Bar Component ---
 function RankBar() {
   const getCurrentRank = useGameStore((s) => s.getCurrentRank);
-  const setActiveTab = useGameStore((s) => s.setActiveTab);
+  const navigateToTab = useNavigateToTab();
   const rank = getCurrentRank();
+  const nextRankScore = rank.nextRankScore;
 
-  const nextRank = rank.nextRankScore !== null
-    ? RANK_THRESHOLDS.find((r) => r.minScore === rank.nextRankScore)
+  const nextRank = nextRankScore !== null
+    ? RANK_THRESHOLDS.find((r) => r.minScore === nextRankScore)
     : null;
+  const hasNextRank = nextRankScore !== null;
 
   return (
     <div
@@ -1152,10 +1242,9 @@ function RankBar() {
             color={rank.color}
             gameIcon={rank.icon}
             nextLabel={nextRank?.name}
-            nextScore={rank.nextRankScore ?? undefined}
+            nextScore={hasNextRank ? nextRankScore : undefined}
             progress={rank.progress}
-            isMax={rank.nextRankScore === null}
-            iconBoxSize="sm"
+            isMax={!hasNextRank}
           />
         </div>
 
@@ -1165,7 +1254,7 @@ function RankBar() {
             variant="outline"
             size="sm"
             className="h-8 text-[10px] border-premium/50/50 text-premium hover:bg-premium/20/20"
-            onClick={() => setActiveTab('resources')}
+            onClick={() => navigateToTab('storage')}
           >
             <Package className="w-3 h-3 mr-1" />
             Upgrade Storage
@@ -1180,7 +1269,6 @@ function RankBar() {
 function WeatherInfoCard() {
   const weather = useGameStore((s) => s.weather);
   const gameTickLocal = useGameStore((s) => s.gameTick);
-  const [tickFormat] = useTickFormat();
   const currentWeather = weather.current as WeatherType;
   const weatherDef = WEATHER_DEFS[currentWeather];
   if (!weatherDef) return null;
@@ -1327,7 +1415,7 @@ function WeatherInfoCard() {
 }
 
 // --- Income Sparkline Chart Component ---
-function IncomeChart({ productionRates }: { productionRates: Record<string, number> }) {
+function IncomeChart() {
   const productionSnapshot = useGameStore((s) => s.productionSnapshot);
   const totalMoneyEarned = useGameStore((s) => s.totalMoneyEarned);
   // Generate projected income data points for sparkline based on current rates
@@ -1392,8 +1480,8 @@ function IncomeChart({ productionRates }: { productionRates: Record<string, numb
         </div>
         <span className="text-[10px] text-muted-label">projected</span>
       </div>
-      <div className="flex items-center gap-4">
-        <svg width={width} height={height} className="shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="w-full max-w-[200px] shrink-0">
           <defs>
             <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#22c55e" stopOpacity="0.3" />

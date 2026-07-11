@@ -270,9 +270,6 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   const startTime = Date.now();
-  let playersChecked = 0;
-  let flaggedCount = 0;
-
   try {
     // ── 4. Query active players (last_tick_at within 5 minutes) ──────
     const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
@@ -297,7 +294,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       });
     }
 
-    playersChecked = activePlayers.length;
+    const playersChecked = activePlayers.length;
 
     // ── 5. Build game config ───────────────────────────────
     const config: GameConfig = buildConfigFromCache();
@@ -368,7 +365,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         return 0;
       }),
     );
-    flaggedCount = flagResults.reduce((sum, count) => sum + count, 0);
+    const flaggedCount = flagResults.reduce((sum, count) => sum + count, 0);
 
     return NextResponse.json({
       players_checked: playersChecked,

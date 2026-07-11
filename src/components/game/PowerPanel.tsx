@@ -593,7 +593,7 @@ export function PowerPanel() {
       </div>
 
       {/* GENERATOR STATUS CARDS + Power History */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+      <div id="build-power" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 scroll-mt-24">
         {POWER_PLANT_TYPES.map(type => {
           const def = BUILDING_DEFS[type];
           if (!def) return null;
@@ -602,6 +602,7 @@ export function PowerPanel() {
           const activeInstances = instances.filter(b => b.active);
           const output = productionByType[type] || 0;
           const unlocked = isBuildingUnlocked(type, completedResearch, prestigeState);
+          const requiredResearch = def.unlockRequirement?.research;
 
           // Individual output variation
           let variationLabel = '';
@@ -640,7 +641,7 @@ export function PowerPanel() {
                 { label: 'Current Output', value: `${formatNumber(output)} MW`, color: 'text-warning' },
               ]}
               requirements={[
-                ...(def.unlockRequirement?.research ? [{ label: 'Research', value: RESEARCH_TREE.find(r => r.id === def.unlockRequirement!.research)?.name ?? def.unlockRequirement.research, color: completedResearch.includes(def.unlockRequirement.research) ? 'text-success' : 'text-danger' }] : []),
+                ...(requiredResearch ? [{ label: 'Research', value: RESEARCH_TREE.find(r => r.id === requiredResearch)?.name ?? requiredResearch, color: completedResearch.includes(requiredResearch) ? 'text-success' : 'text-danger' }] : []),
               ]}
               side="bottom"
             >

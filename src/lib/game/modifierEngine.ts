@@ -270,8 +270,9 @@ export class ModifierEngine {
       ? this.registry.getModifiersWithSubTarget(target, options.subTarget)
       : this.registry.getModifiers(target);
 
-    const filteredMods = options?.excludeSources
-      ? mods.filter(m => !options.excludeSources!.includes(m.source))
+    const excludeSources = options?.excludeSources;
+    const filteredMods = excludeSources
+      ? mods.filter(m => !excludeSources.includes(m.source))
       : mods;
 
     let result = baseValue;

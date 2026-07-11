@@ -9,17 +9,10 @@ import {
   BUILDING_DEFS,
 } from "@/lib/game/configCache";
 import { useConfigVersion } from "@/components/providers/GameConfigProvider";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight,
-  ArrowUpRight,
-  ArrowDownRight,
-  Minus,
   CheckCircle2,
   AlertTriangle,
-  ChevronDown,
-  ChevronUp,
-  Factory,
   Eye,
   EyeOff,
 } from "lucide-react";
@@ -49,10 +42,14 @@ const PADDING = 20;
 
 interface ProductionChainPanelProps {
   productionRates: Record<string, number>;
+  selectedChain?: number;
+  onSelectedChainChange?: (index: number) => void;
 }
 
 export function ProductionChainPanel({
   productionRates,
+  selectedChain: selectedChainProp,
+  onSelectedChainChange,
 }: ProductionChainPanelProps) {
   useConfigVersion();
   const store = useGameStore(
@@ -62,8 +59,10 @@ export function ProductionChainPanel({
       resources: s.resources,
     })),
   );
-  const [selectedChain, setSelectedChain] = useState(0);
+  const [localSelectedChain, setLocalSelectedChain] = useState(0);
   const [showDetailView, setShowDetailView] = useState(false);
+  const selectedChain = selectedChainProp ?? localSelectedChain;
+  const handleSelectedChainChange = onSelectedChainChange ?? setLocalSelectedChain;
 
   const chain = PRODUCTION_CHAINS[selectedChain];
 
@@ -204,16 +203,13 @@ export function ProductionChainPanel({
       {/* Chain Selector Pills */}
       <div className="flex gap-1.5 overflow-x-auto pb-2 mb-3 game-scrollbar scroll-fade">
         {PRODUCTION_CHAINS.map((c, i) => {
-          const cBottlenecks = c.steps.filter(
-            (step) => (productionRates[step as ResourceType] ?? 0) <= 0,
-          );
           const cAllProducing = c.steps.every(
             (step) => (productionRates[step as ResourceType] ?? 0) > 0,
           );
           return (
             <button
               key={c.name}
-              onClick={() => setSelectedChain(i)}
+              onClick={() => handleSelectedChainChange(i)}
               className={`shrink-0 px-2.5 py-1 rounded-full text-[10px] font-medium border relative ${
                 i === selectedChain
                   ? "text-white border-transparent shadow-lg"
@@ -313,7 +309,7 @@ export function ProductionChainPanel({
             const y = svgHeight / 2;
 
             return (
-              <g key={`arrow-${i}`}>
+              <g key={`arrow-${step}-${nextStep}`}>
                 {/* Connection line */}
                 <line
                   x1={x1}
@@ -362,7 +358,6 @@ export function ProductionChainPanel({
               capacity > 0 ? Math.min(100, (stock / capacity) * 100) : 0;
             const isBottleneck = rate <= 0;
             const tier = TIER_COLORS[meta.tier] ?? TIER_COLORS[0];
-            const buildings = stepBuildings[step] ?? [];
 
             const x = PADDING + i * (NODE_W + GAP_X);
             const y = svgHeight / 2 - NODE_H / 2;

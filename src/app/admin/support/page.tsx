@@ -62,7 +62,9 @@ export default function SupportPage() {
         const data = await res.json();
         setMessages(data.data?.messages || []);
       }
-    } catch {}
+    } catch {
+      return;
+    }
   };
 
   const doAction = async (action: 'accept' | 'resolve') => {

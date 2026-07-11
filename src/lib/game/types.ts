@@ -914,6 +914,7 @@ export type GameTab =
   | "resourceMonitor"
   | "resources"
   | "factories"
+  | "productionChains"
   | "storage"
   | "transport"
   | "power"

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { Lock, Ban, User, LogIn, ArrowLeft, Info } from "lucide-react";
@@ -96,13 +97,13 @@ export default function ForbiddenPage() {
               <span>{loading ? "Signing out..." : "Sign out & try again"}</span>
             </button>
 
-            <a
+            <Link
               href="/"
               className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-transparent hover:bg-background/60/50 text-muted-label hover:text-subtle font-medium rounded-xl transition-all duration-200"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back to game</span>
-            </a>
+            </Link>
           </div>
 
           {/* Info notice */}

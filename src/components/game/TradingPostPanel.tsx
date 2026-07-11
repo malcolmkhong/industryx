@@ -854,7 +854,7 @@ export function TradingPostPanel() {
 
             <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <label className="text-[10px] text-muted-label">Amount</label>
+                <label htmlFor="trade-give-amount" className="text-[10px] text-muted-label">Amount</label>
                 <button
                   className="text-[10px] text-research hover:text-research transition-colors"
                   onClick={setMaxGive}
@@ -863,6 +863,7 @@ export function TradingPostPanel() {
                 </button>
               </div>
               <input
+                id="trade-give-amount"
                 type="number"
                 aria-label="Trade amount"
                 min={0}

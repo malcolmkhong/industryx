@@ -141,7 +141,8 @@ class LRUCache<K, V> {
 
   get(key: K): V | undefined {
     if (!this.cache.has(key)) return undefined;
-    const value = this.cache.get(key)!;
+    const value = this.cache.get(key);
+    if (value === undefined) return undefined;
     this.cache.delete(key);
     this.cache.set(key, value);
     return value;
@@ -221,7 +222,9 @@ async function callCloudflareWorker(
       } catch { /* ignore parse error */ }
 
       // Rate-limited; silent backoff.
-      await new Promise(resolve => setTimeout(resolve, retryAfterMs));
+      await new Promise(resolve => {
+        setTimeout(resolve, retryAfterMs);
+      });
       return callCloudflareWorker(packets, retryCount + 1);
     }
 

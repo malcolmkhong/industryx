@@ -4,6 +4,7 @@ import React, { memo } from 'react';
 import { Sparkles } from 'lucide-react';
 import { GameIcon } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatNumber } from '@/lib/game/store';
 import { ColoredProgressBar } from './ColoredProgressBar';
 
@@ -61,7 +62,8 @@ function TierCardImpl({
       ? 'w-14 h-14 rounded-xl'
       : 'w-16 h-16 rounded-xl';
 
-  const iconSize = iconBoxSize === 'sm' ? 24 : 28;
+  const iconSize = iconBoxSize === 'sm' ? 34 : 38;
+  const lucideIconClass = iconBoxSize === 'sm' ? 'w-7 h-7' : 'w-8 h-8';
 
   return (
     <div
@@ -76,29 +78,31 @@ function TierCardImpl({
 
       <div className="relative z-10 flex items-center gap-4">
         {/* Icon box */}
-        <div
-          className={`${iconBoxClass} flex flex-col items-center justify-center border shrink-0`}
-          style={{
-            borderColor: `${color}44`,
-            backgroundColor: `${color}15`,
-            boxShadow: `0 0 24px ${color}20`,
-          }}
-        >
-          {lucideIcon && (
-            <span style={colorClass ? {} : colorStyle} className={colorClass ?? ''}>
-              {React.cloneElement(lucideIcon as React.ReactElement<{ className?: string; size?: number }>, { className: 'w-4 h-4' })}
-            </span>
-          )}
-          {gameIcon && !lucideIcon && (
-            <GameIcon icon={gameIcon} size={iconSize} style={colorClass ? {} : colorStyle} className={colorClass ?? ''} />
-          )}
-          <span
-            className="text-[11px] font-bold mt-0.5"
-            style={colorClass ? {} : colorStyle}
-          >
-            {name}
-          </span>
-        </div>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div
+              className={`${iconBoxClass} flex items-center justify-center border shrink-0`}
+              style={{
+                borderColor: `${color}44`,
+                backgroundColor: `${color}15`,
+                boxShadow: `0 0 24px ${color}20`,
+              }}
+              aria-label={`${label}: ${name}`}
+            >
+              {lucideIcon && (
+                <span style={colorClass ? {} : colorStyle} className={colorClass ?? ''}>
+                  {React.cloneElement(lucideIcon as React.ReactElement<{ className?: string; size?: number }>, { className: lucideIconClass })}
+                </span>
+              )}
+              {gameIcon && !lucideIcon && (
+                <GameIcon icon={gameIcon} size={iconSize} style={colorClass ? {} : colorStyle} className={colorClass ?? ''} />
+              )}
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="bg-card border-brand/30 text-xs">
+            {label}: {name}
+          </TooltipContent>
+        </Tooltip>
 
         {/* Content */}
         <div className="flex-1 min-w-0">

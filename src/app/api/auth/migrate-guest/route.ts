@@ -70,7 +70,12 @@ export async function POST(request: NextRequest) {
 
     // ── Sanitize displayName (M9: strip control chars, angle brackets, cap length) ──
     const safeDisplayName = String(displayName || auth.email?.split('@')[0] || 'Commander')
-      .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+      .split('')
+      .filter((char) => {
+        const code = char.charCodeAt(0);
+        return !((code >= 0 && code <= 31) || (code >= 127 && code <= 159));
+      })
+      .join('')
       .replace(/[<>]/g, '')
       .slice(0, 32);
 

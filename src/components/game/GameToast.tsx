@@ -56,8 +56,9 @@ export default function GameToast() {
   const dismissTimers = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   const dismissToast = useCallback((id: string) => {
-    if (dismissTimers.current.has(id)) {
-      clearTimeout(dismissTimers.current.get(id)!);
+    const timer = dismissTimers.current.get(id);
+    if (timer) {
+      clearTimeout(timer);
       dismissTimers.current.delete(id);
     }
     setToasts(prev => prev.filter(t => t.id !== id));

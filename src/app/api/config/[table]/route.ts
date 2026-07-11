@@ -28,7 +28,13 @@ export async function GET(request: NextRequest, context: RouteContext) {
     );
   }
 
-  const tableConfig = getTableConfig(tableName)!;
+  const tableConfig = getTableConfig(tableName);
+  if (!tableConfig) {
+    return NextResponse.json(
+      { error: "Invalid Table", message: `Table '${tableName}' is missing config metadata` },
+      { status: 400 }
+    );
+  }
 
   try {
     const supabase = createServiceRoleClient();
@@ -152,7 +158,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
     );
   }
 
-  const tableConfig = getTableConfig(tableName)!;
+  const tableConfig = getTableConfig(tableName);
+  if (!tableConfig) {
+    return NextResponse.json(
+      { error: "Invalid Table", message: `Table '${tableName}' is missing config metadata` },
+      { status: 400 }
+    );
+  }
 
   try {
     const body = await request.json();

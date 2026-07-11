@@ -123,12 +123,12 @@ async function computeFingerprint(): Promise<FingerprintResult> {
   inFlightPromise = (async (): Promise<FingerprintResult> => {
     try {
       const fpPromise = FingerprintJS.load().then((agent) => agent.get());
-      const timeoutPromise = new Promise<never>((_, reject) =>
+      const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(
           () => reject(new Error("fingerprint_timeout")),
           COMPUTE_TIMEOUT_MS,
-        ),
-      );
+        );
+      });
       const result = await Promise.race([fpPromise, timeoutPromise]);
       // result is FingerprintJS.GetResult; extract visitorId
       if (

@@ -1008,7 +1008,7 @@ function JsonPreview({ value }: { value: unknown }) {
     return <p className="text-[10px] text-muted-label/80 mt-1">Empty JSON</p>;
   }
 
-  let formatted = "";
+  let formatted: string;
   try {
     const parsed = typeof value === "string" ? JSON.parse(value) : value;
     formatted = JSON.stringify(parsed, null, 2);
