@@ -64,8 +64,11 @@ When the linter reports an unused variable or import, follow this protocol befor
 | BUG-048 | [x] Resolved (2026-07-11) | High | Server Tick / UI Sync | `/api/game/action` applied elapsed server ticks but did not sync `game_tick` column or return the full post-tick state to the client | `src/app/api/game/action/route.ts`, `src/lib/game/serverActions.ts` |
 | BUG-049 | [x] Resolved (2026-07-12) | High | API / Actions | `upgrade_worker` client action was wired but missing from the server action allow-list | `src/lib/game/actions/server/actionCommandRunner.ts`, `src/lib/game/actions/client/serverActions.ts` |
 | BUG-050 | [x] Resolved (2026-07-12) | High | Admin / Authorization | Several admin mutation routes lacked role write gates, and market resource routes passed admin id into `canWrite()` instead of admin role | `src/app/api/admin/**`, `src/lib/auth/admin-route-guards.ts` |
+| BUG-051 | [x] Resolved (2026-07-12) | Medium | UI / Auth | Fingerprint unavailable modal nested block content inside `DialogDescription`, causing invalid HTML and hydration/page error | `src/components/auth/FingerprintUnavailableModal.tsx` |
+| BUG-052 | [x] Resolved (2026-07-12) | Critical | Server Tick / Live Production | Live gameplay had no mounted server tick settlement loop, so resources only advanced on later server actions/offline reconciliation | `src/components/game/GameShell.tsx`, `src/lib/hooks/page/useLiveServerTick.ts`, `src/app/api/game/state/live-tick/route.ts` |
+| BUG-053 | [x] Resolved (2026-07-12) | Critical | Player Init / State Load | Player profiles could load with missing or partial `server_game_state.full_state`, causing startup money/resources to render from stub state | `src/app/api/game/state/sync/route.ts`, `src/lib/db/serverGameState.ts`, `src/lib/hooks/cloudSync/CloudSyncService.ts` |
 
-> **Total:** 13 open, 1 unverified, 7 Resolved (out of 21). BUG-042/043/044/048/049/050 closed in recent sessions.
+> **Total:** 13 open, 1 unverified, 10 Resolved (out of 24). BUG-042/043/044/048/049/050/051/052/053 closed in recent sessions.
 
 > **Highest priority for fixing (still open):** BUG-005 (.env.example - high severity, blocks new devs), BUG-001 (1 panel selector migration), BUG-003 (prisma uninstall), BUG-004 (test runner), BUG-009 (anon key), BUG-018 (admin a11y), BUG-019 (responsive), BUG-022 (contrast), BUG-025 (arbitrary values), BUG-033 (proxy rename). BUG-007, BUG-011, BUG-013 are low priority and may be deferred indefinitely.
 
@@ -141,6 +144,170 @@ Resolution: centralized action names in `VALID_ACTIONS`, added `"upgrade_worker"
 Resolution: added `src/lib/auth/admin-route-guards.ts` with `requireAdminWrite()` and `requireSuperAdmin()`. Wired write guards into config CRUD, market resource CRUD, market circuit-breaker clear, investigation actions, player bulk lock/unlock, support ticket mutations/messages, and permission grant/revoke. Permission grant/revoke now requires `super_admin`. Added missing admin audit logs for permissions, support mutations, market circuit-breaker clear, and investigation actions. Replaced direct `admin_actions` insert in market resource delete with `logAdminActionResource()`.
 
 Verification: red tests reproduced the bad states first, then passed after the fix. `bun run typecheck` passed. `npx eslint src/lib/auth/admin-route-guards.ts src/app/api/admin/config src/app/api/admin/market src/app/api/admin/users/permissions src/app/api/admin/players/bulk src/app/api/admin/investigations src/app/api/admin/support --cache --cache-location "$env:TEMP\\industryx-eslintcache" --format stylish` passed. `npx vitest run tests/api/admin` passed 25 files / 53 tests.
+
+---
+
+## BUG-051 - Fingerprint unavailable modal invalid DialogDescription markup
+
+### Status
+Resolved
+
+### Severity
+Medium
+
+### Category
+UI / Auth
+
+### Date Discovered
+2026-07-12
+
+### Discovered By
+User
+
+### Location
+- `src/components/auth/FingerprintUnavailableModal.tsx`
+
+### Problem Found
+`FingerprintUnavailableModal` renders several `<p>` tags and an `<ol>` inside `DialogDescription`. The shared Dialog primitive wraps Radix `DialogPrimitive.Description`, which renders paragraph semantics, so nested block content produces invalid HTML and can trigger a hydration/page error when the modal opens.
+
+### Expected Behavior
+Dialog description content uses valid HTML while preserving accessible dialog title/description semantics.
+
+### Actual Behavior
+Block content is nested inside `DialogDescription`.
+
+### Root Cause / Reason
+Confirmed: rich explanatory body was placed directly inside the Radix description primitive instead of keeping the primitive to short descriptive text and placing block content in a sibling container.
+
+### Investigation Performed
+- Read `src/components/auth/FingerprintUnavailableModal.tsx`.
+- Read `src/components/ui/dialog.tsx` and confirmed `DialogDescription` delegates to Radix `DialogPrimitive.Description`.
+- Checked existing `DialogDescription` usages; this modal is the only rich nested-block usage found.
+
+### Evidence
+`FingerprintUnavailableModal.tsx` line 123 currently opens `DialogDescription`, followed by nested `<p>` and `<ol>` children.
+
+### Troubleshooting / Next Steps
+Add a regression test, then move the rich body into a sibling container and keep one concise `DialogDescription`.
+
+### Resolution
+Resolved 2026-07-12. Kept `DialogDescription` as a concise text-only accessible description and moved the rich explanatory paragraphs/list into a sibling `div`, preventing invalid nested paragraph/list markup. Also replaced corrupted visible glyphs with ASCII text. Added `tests/unit/fingerprintUnavailableModal.test.ts` to guard against nested block content inside `DialogDescription`.
+
+Verification: red test failed first on the invalid markup. After the fix, `bunx vitest run tests/unit/fingerprintUnavailableModal.test.ts`, `bunx eslint src\\components\\auth\\FingerprintUnavailableModal.tsx --cache --cache-location "$env:TEMP\\industryx-eslintcache" --format stylish`, and `bun run typecheck` passed.
+
+---
+
+## BUG-052 - Live server time did not advance while player stayed on page
+
+### Status
+Resolved
+
+### Severity
+Critical
+
+### Category
+Server Tick / Live Production
+
+### Date Discovered
+2026-07-12
+
+### Discovered By
+User
+
+### Location
+- `src/components/game/GameShell.tsx`
+- `src/lib/hooks/page/useLiveServerTick.ts`
+- `src/app/api/game/state/live-tick/route.ts`
+- `src/lib/game/actions/server/shared/actionPersistence.ts`
+
+### Problem Found
+After building a production building, visible `gameTick` and resources did not advance during live play.
+
+### Expected Behavior
+While a signed-in or anonymous Supabase session is active and the tab is visible, the client should periodically ask the server to settle elapsed server time, persist the updated authoritative state, and apply the returned resources/gameTick to the UI.
+
+### Actual Behavior
+The client mounted `useOfflineProgressCheck()` once after load and `useSessionHeartbeat()` for presence, but no live loop called a server tick settlement route. `/api/game/production/compute` existed but only computed a response and did not persist authoritative state. Resource production therefore advanced only when another server action or offline reconciliation happened.
+
+### Root Cause / Reason
+Confirmed: the client tick loop was removed during server-authoritative cleanup, but no replacement live server tick polling hook was mounted in `GameShell`.
+
+### Investigation Performed
+- Read `GameShell` mounted hooks and confirmed no `/api/game/production/compute` or live tick call.
+- Read `useOfflineProgressCheck` and confirmed it runs once and uses offline semantics.
+- Read `useSessionHeartbeat` and confirmed it tracks presence only, not tick settlement.
+- Read `runServerTicks` and confirmed the server engine does produce resources.
+- Read `/api/game/production/compute` and confirmed it does not persist.
+
+### Evidence
+`GameShell.tsx` mounted heartbeat/offline/market hooks but no live tick settlement hook. `runServerTicks()` increments `state.gameTick` and resources, so the missing piece was wiring, not production math.
+
+### Troubleshooting / Next Steps
+Resolved by adding a server-authoritative live tick route plus a mounted client hook.
+
+### Resolution
+Resolved 2026-07-12. Added `/api/game/state/live-tick`, which verifies auth, rate-limits, loads authoritative server state, calls shared `applyElapsedServerTime()`, persists elapsed ticks through the existing optimistic-lock path, and returns the updated `full_state`. Added `useLiveServerTick()` to poll that route every 10 seconds while the tab is visible and apply returned server state. Mounted the hook in `GameShell`.
+
+Verification: `tests/unit/liveServerTickArchitecture.test.ts` failed before the hook/route existed, then passed after implementation. `bunx vitest run tests/api/game/live-tick.test.ts tests/unit/liveServerTickArchitecture.test.ts tests/unit/serverTickArchitecture.test.ts tests/api/game/compute.test.ts`, `bunx eslint src\\app\\api\\game\\state\\live-tick\\route.ts src\\lib\\hooks\\page\\useLiveServerTick.ts src\\lib\\game\\actions\\server\\shared\\actionPersistence.ts src\\components\\game\\GameShell.tsx --cache --cache-location "$env:TEMP\\industryx-eslintcache" --format stylish`, and `bun run typecheck` passed.
+
+---
+
+## BUG-053 - Player initialization loaded missing or partial server state
+
+### Status
+Resolved
+
+### Severity
+Critical
+
+### Category
+Player Init / State Load
+
+### Date Discovered
+2026-07-12
+
+### Discovered By
+User
+
+### Location
+- `src/app/api/game/state/sync/route.ts`
+- `src/lib/db/serverGameState.ts`
+- `src/lib/hooks/cloudSync/CloudSyncService.ts`
+
+### Problem Found
+Some player profiles did not have `server_game_state` rows, and most existing `server_game_state.full_state` blobs were partial legacy/backfill shapes missing core fields such as `money`, `resources`, `buildings`, and `gameTick`. The client cloud-load path applied only `fullState`, so denormalized positive `server_game_state.money` could be ignored and the UI could continue rendering the pre-hydration stub `money: 0`.
+
+### Expected Behavior
+Every authenticated profile load ensures a server-authoritative game state row exists, and every returned/applied `fullState` is a complete `ServerGameData` snapshot with denormalized core columns overlaid.
+
+### Actual Behavior
+`GET /api/game/state/sync` returned `{ data: null, isNew: true }` for missing rows, and `CloudSyncService.load()` silently treated that as success with no data. Existing rows returned raw `full_state` even when it was partial.
+
+### Root Cause / Reason
+Confirmed: the startup/load code assumed state rows were already initialized and that `full_state` was complete. Live Supabase data disproved both assumptions.
+
+### Investigation Performed
+- Reviewed player initialization chain from `AuthProvider` through `AuthOrchestrator`, quickstart, device registration, cloud sync, and game render.
+- Queried live Supabase read-only through MCP.
+- Confirmed `game_config_game.starting_money = 2000`, so config was not the source of zero startup money.
+
+### Evidence
+Supabase MCP read-only counts on 2026-07-12:
+- `auth.users`: 321
+- `profiles`: 320
+- `server_game_state`: 226
+- users missing `server_game_state`: 95
+- `server_game_state.money = 0`: 0
+- `server_game_state.full_state` core-complete rows: 12 / 226
+- `server_game_state.full_state` core-incomplete rows: 214 / 226
+
+### Troubleshooting / Next Steps
+Follow-up data maintenance may backfill existing rows eagerly, but runtime reads now repair the returned/applied state shape without requiring a destructive data migration.
+
+### Resolution
+Resolved 2026-07-12. Added `buildCompleteFullStateForServerRow()` to overlay denormalized `server_game_state` columns onto the canonical initial state plus any existing partial `full_state`. `GET /api/game/state/sync` now initializes a missing row with the canonical server state instead of returning the old `isNew` no-op. Cloud sync now treats any future `isNew` response as a visible server-unavailable failure instead of silently succeeding. Server tick/action and offline-progress loaders normalize partial `full_state` before consumers use it.
+
+Verification: `tests/unit/serverGameStateHydration.test.ts` and `tests/unit/cloudSyncService.test.ts` failed first, then passed after the fix. `bunx vitest run tests/unit/serverGameStateHydration.test.ts tests/unit/cloudSyncService.test.ts tests/api/game/live-tick.test.ts tests/unit/liveServerTickArchitecture.test.ts` passed. `bun run typecheck` passed.
 
 ---
 

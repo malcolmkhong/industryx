@@ -154,10 +154,16 @@ export class CloudSyncService {
       }
       const data = await res.json();
       if (data.isNew) {
-        // Per Q5: server already initialized state at anon sign-in via
-        // initialize-guest. isNew should never happen on normal load. If it
-        // does, treat as no-op (don't auto-migrate).
-        return { success: true, isNew: true };
+        this.setBlocked({
+          isBlocked: true,
+          reason: "Server did not return initialized game state.",
+          code: "SERVER_UNAVAILABLE",
+          detectedAt: Date.now(),
+        });
+        return {
+          success: false,
+          error: "Server did not return initialized game state",
+        };
       }
       if (data.data?.fullState) {
         const cloudState = data.data.fullState as Record<string, unknown>;

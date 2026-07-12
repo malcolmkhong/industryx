@@ -13,7 +13,7 @@
  *   1. WHAT happened (degraded mode, server-based game)
  *   2. WHAT they can do (retry, sign in)
  *
- * The modal is DISMISSIBLE — the user can browse the full UI after
+ * The modal is DISMISSIBLE - the user can browse the full UI after
  * closing it. However, when the user attempts any server-side action
  * (build, buy, sell, etc.), the action handler dispatches a custom
  * event ("force-show-limited-modal") that re-shows the modal. The user
@@ -28,9 +28,6 @@
 import { useEffect, useState } from "react";
 
 import { GameCard } from "@/components/game/shared/GameCard";
-import { getFingerprintResult } from "@/lib/auth/fingerprint";
-import { FORCE_SHOW_LIMITED_MODAL_EVENT } from "@/lib/auth/limitedMode";
-import { useAuth } from "@/lib/auth/orchestrator/useAuth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,6 +38,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { getFingerprintResult } from "@/lib/auth/fingerprint";
+import { FORCE_SHOW_LIMITED_MODAL_EVENT } from "@/lib/auth/limitedMode";
+import { useAuth } from "@/lib/auth/orchestrator/useAuth";
 
 const SESSION_FLAG = "factory-dominion-fp-modal-shown";
 
@@ -65,7 +65,7 @@ export function FingerprintUnavailableModal() {
   // this event; we re-show the modal so the user understands the action
   // was blocked and why.
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined") return undefined;
     const handler = () => setDismissed(false);
     window.addEventListener(FORCE_SHOW_LIMITED_MODAL_EVENT, handler);
     return () => {
@@ -118,9 +118,12 @@ export function FingerprintUnavailableModal() {
         <GameCard accent="amber">
           <DialogHeader>
             <DialogTitle className="text-warning">
-              ⚠ Limited Connection Mode
+              Limited Connection Mode
             </DialogTitle>
-            <DialogDescription className="space-y-3 text-sm leading-relaxed pt-2">
+            <DialogDescription>
+              Device fingerprinting is unavailable, so recovery is limited.
+            </DialogDescription>
+            <div className="space-y-3 text-sm leading-relaxed pt-2">
               <p>
                 This is a server-based game. Your progress is saved on our
                 servers, and we couldn&apos;t verify this device because your
@@ -141,13 +144,13 @@ export function FingerprintUnavailableModal() {
                 <li>Fix your browser&apos;s privacy settings or extensions</li>
                 <li>Click &quot;Retry fingerprint&quot; below</li>
               </ol>
-              <p className="text-muted-foreground">— OR —</p>
+              <p className="text-muted-foreground">or</p>
               <p>
                 Sign in with Google or GitHub. Your account will be linked to
                 your sign-in, allowing progress to be recovered even if device
                 fingerprinting is unavailable.
               </p>
-            </DialogDescription>
+            </div>
           </DialogHeader>
 
           {retryOutcome === "failure" && (
@@ -173,7 +176,7 @@ export function FingerprintUnavailableModal() {
               disabled={retrying}
               className="w-full border-warning/40 bg-warning/10 text-warning hover:bg-warning/20"
             >
-              {retrying ? "Retrying…" : "Retry fingerprint"}
+              {retrying ? "Retrying..." : "Retry fingerprint"}
             </Button>
             <div className="flex gap-2">
               <Button

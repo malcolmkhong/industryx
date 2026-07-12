@@ -20,6 +20,8 @@ import { isAdminUserId } from '@/lib/auth/admin';
 import {
   loadServerGameStateLite,
   loadServerGameStateForDeltaCheck,
+  initializeGuestGameState,
+  buildCompleteFullStateForServerRow,
   upsertServerGameState,
   syncPlayerProgressGameState,
   isServerGameStateAvailable,
@@ -61,10 +63,28 @@ export async function GET(request: Request) {
     );
   }
 
-  const data = await loadServerGameStateLite(userId);
+  let data = await loadServerGameStateLite(userId);
   if (!data) {
     // No row found (PGRST116) — treat as new user.
-    return NextResponse.json({ data: null, isNew: true });
+    const initialized = await initializeGuestGameState(userId);
+    if (!initialized) {
+      return NextResponse.json(
+        { error: 'Failed to initialize game state', code: 'STATE_INIT_FAILED' },
+        { status: 500 },
+      );
+    }
+    data = initialized;
+  }
+
+  let completeFullState;
+  try {
+    completeFullState = await buildCompleteFullStateForServerRow(data);
+  } catch (err) {
+    console.error('[GameStateAPI] full_state hydration failed:', err);
+    return NextResponse.json(
+      { error: 'Invalid server game state', code: 'INVALID_SERVER_STATE' },
+      { status: 503 },
+    );
   }
 
   // Audit log — values validated inside logActionAsync per [SEC-011].
@@ -82,7 +102,7 @@ export async function GET(request: Request) {
 
   return NextResponse.json({
     data: {
-      fullState: data.full_state,
+      fullState: completeFullState,
       money: data.money,
       totalMoneyEarned: data.total_money_earned,
       researchPoints: data.research_points,

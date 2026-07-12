@@ -14,7 +14,12 @@ type PersistResult<T> = ({ ok: true } & T) | { ok: false; response: Response };
 export async function applyElapsedServerTime(
   serverState: ServerGameStateForAction,
   userId: string,
-): Promise<PersistResult<{ activeServerState: ServerGameStateForAction }>> {
+): Promise<
+  PersistResult<{
+    activeServerState: ServerGameStateForAction;
+    elapsedTicks: number;
+  }>
+> {
   try {
     const rawGameSpeed = Number(serverState.game_speed);
     const allowedSpeeds = [1, 2, 5, 10] as const;
@@ -43,7 +48,7 @@ export async function applyElapsedServerTime(
       rawGameSpeed,
     );
     if (elapsed.elapsedTicks <= 0) {
-      return { ok: true, activeServerState: serverState };
+      return { ok: true, activeServerState: serverState, elapsedTicks: 0 };
     }
 
     let elapsedFields;
@@ -116,7 +121,11 @@ export async function applyElapsedServerTime(
       };
     }
 
-    return { ok: true, activeServerState: persisted as ServerGameStateForAction };
+    return {
+      ok: true,
+      activeServerState: persisted as ServerGameStateForAction,
+      elapsedTicks: elapsed.elapsedTicks,
+    };
   } catch (err) {
     console.error("[ActionAPI] applyElapsedTicks failed:", err);
     return {

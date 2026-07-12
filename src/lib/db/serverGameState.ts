@@ -32,7 +32,7 @@ import type { Database } from "@/lib/db/types";
 import { generateChecksum } from "@/lib/auth/gameStateValidator";
 import { fetchCanonicalInitialState } from "@/lib/db/initialState.server";
 import type { ServerGameData } from "@/lib/game/shared/types/types";
-import { asFullState } from "@/lib/db/serverGameStatePayload";
+import { asFullState, stripUIFields } from "@/lib/db/serverGameStatePayload";
 
 // Type aliases sourced from the generated Supabase types.
 // These are the single source of truth for row shapes.
@@ -68,6 +68,19 @@ export type ServerGameStateLite = Pick<
   | "cheat_flag_count"
 >;
 
+type ServerGameStateHydrationColumns = {
+  full_state: unknown;
+  money: unknown;
+  total_money_earned: unknown;
+  research_points: unknown;
+  buildings: unknown;
+  completed_research: unknown;
+  resources: unknown;
+  workers: unknown;
+  game_tick: unknown;
+  game_speed: unknown;
+};
+
 /**
  * Narrow shape for the offline tick flow (POST /api/game/state/offline-progress).
  */
@@ -79,6 +92,12 @@ export type ServerGameStateForTick = Pick<
   | "state_version"
   | "last_tick_at"
   | "money"
+  | "total_money_earned"
+  | "research_points"
+  | "buildings"
+  | "completed_research"
+  | "resources"
+  | "workers"
   | "is_locked"
   | "lock_reason"
 >;
@@ -176,6 +195,74 @@ export async function loadServerGameStateLite(
   return data as ServerGameStateLite;
 }
 
+function requireFiniteNumber(value: unknown, field: string): number {
+  const n = Number(value);
+  if (!Number.isFinite(n)) {
+    throw new Error(`[serverGameState] invalid ${field}: ${String(value)}`);
+  }
+  return n;
+}
+
+function requireInteger(value: unknown, field: string): number {
+  const n = requireFiniteNumber(value, field);
+  if (!Number.isInteger(n)) {
+    throw new Error(`[serverGameState] invalid ${field}: ${String(value)}`);
+  }
+  return n;
+}
+
+function recordOr<T extends Record<string, unknown>>(
+  value: unknown,
+  fallback: T,
+): T {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as T;
+  }
+  return fallback;
+}
+
+function arrayOr<T>(value: unknown, fallback: T[]): T[] {
+  return Array.isArray(value) ? (value as T[]) : fallback;
+}
+
+/**
+ * Build a complete ServerGameData snapshot for read paths.
+ *
+ * Production data contains legacy partial `full_state` blobs from migration
+ * backfills. The denormalized columns remain authoritative for core fields, so
+ * read-side hydration overlays them onto a fresh canonical template before
+ * returning/applying state.
+ */
+export async function buildCompleteFullStateForServerRow(
+  row: ServerGameStateHydrationColumns,
+): Promise<ServerGameData> {
+  const canonical = await fetchCanonicalInitialState();
+  const existing =
+    row.full_state && typeof row.full_state === "object" && !Array.isArray(row.full_state)
+      ? stripUIFields(row.full_state as Record<string, unknown>)
+      : {};
+
+  return {
+    ...canonical,
+    ...existing,
+    money: requireFiniteNumber(row.money, "money"),
+    totalMoneyEarned: requireFiniteNumber(
+      row.total_money_earned,
+      "total_money_earned",
+    ),
+    researchPoints: requireFiniteNumber(row.research_points, "research_points"),
+    buildings: arrayOr(row.buildings, canonical.buildings),
+    completedResearch: arrayOr(
+      row.completed_research,
+      canonical.completedResearch,
+    ),
+    resources: recordOr(row.resources, canonical.resources),
+    workers: arrayOr(row.workers, canonical.workers),
+    gameTick: requireInteger(row.game_tick, "game_tick"),
+    gameSpeed: requireInteger(row.game_speed, "game_speed"),
+  };
+}
+
 /**
  * Load only the fields needed for offline tick computation.
  */
@@ -188,7 +275,9 @@ export async function loadServerGameStateForTick(
   const { data, error } = await supabase
     .from("server_game_state")
     .select(
-      "full_state, game_tick, game_speed, state_version, last_tick_at, money, is_locked, lock_reason",
+      "full_state, game_tick, game_speed, state_version, last_tick_at, " +
+        "money, total_money_earned, research_points, buildings, " +
+        "completed_research, resources, workers, is_locked, lock_reason",
     )
     .eq("user_id", userId)
     .single();
@@ -197,7 +286,11 @@ export async function loadServerGameStateForTick(
     if (error.code === "PGRST116") return null;
     throw error;
   }
-  return data as ServerGameStateForTick;
+  const row = data as unknown as ServerGameStateForTick;
+  return {
+    ...row,
+    full_state: asFullState(await buildCompleteFullStateForServerRow(row)),
+  };
 }
 
 /**
@@ -274,7 +367,11 @@ export async function loadServerGameStateForAction(
     if (error.code === "PGRST116") return null;
     throw error;
   }
-  return data as unknown as ServerGameStateForAction;
+  const row = data as unknown as ServerGameStateForAction;
+  return {
+    ...row,
+    full_state: asFullState(await buildCompleteFullStateForServerRow(row)),
+  };
 }
 
 /**

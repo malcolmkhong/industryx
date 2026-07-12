@@ -9,6 +9,7 @@ import { useDailyLoginCheck } from "@/lib/hooks/page/useDailyLoginCheck";
 import { useDragPrevention } from "@/lib/hooks/page/useDragPrevention";
 import { useContextMenuPrevention } from "@/lib/hooks/page/useContextMenuPrevention";
 import { useKeyboardShortcuts } from "@/lib/hooks/page/useKeyboardShortcuts";
+import { useLiveServerTick } from "@/lib/hooks/page/useLiveServerTick";
 import { useAutoOpenGuide } from "@/lib/hooks/page/useAutoOpenGuide";
 
 import { useAutoSaveIndicator } from "@/lib/hooks/page/useAutoSaveIndicator";
@@ -69,6 +70,7 @@ export function GameShell({ children }: GameShellProps) {
   useDragPrevention();
   useContextMenuPrevention();
   useKeyboardShortcuts();
+  useLiveServerTick();
   useAutoOpenGuide();
 
   useServerMarket();
