@@ -416,12 +416,10 @@ export function TradingPostPanel() {
 
   // ─── Tick cooldown every second to re-render countdown ─────────────────────
   useEffect(() => {
-    if (cooldownUntil === null) return;
+    if (cooldownUntil === null) return () => {};
     if (Date.now() >= cooldownUntil) {
-      // U11: clear state first, return early so we don't allocate an interval
-      // for an already-expired cooldown.
       setCooldownUntil(null);
-      return;
+      return () => {};
     }
     const id = setInterval(() => {
       setCooldownTick((t) => t + 1);
@@ -430,11 +428,9 @@ export function TradingPostPanel() {
       }
     }, 1000);
     return () => {
-      // U11: ensure interval cleared even on unmount-mid-tick
       clearInterval(id);
     };
   }, [cooldownUntil]);
-
   // ─── Cooldown remaining (recomputes when tick or cooldownUntil changes) ───
   const cooldownMsRemaining = useMemo(() => {
     void cooldownTick; // dependency: trigger re-compute each tick

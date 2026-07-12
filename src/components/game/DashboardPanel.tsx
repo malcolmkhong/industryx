@@ -1481,7 +1481,7 @@ function IncomeChart() {
         <span className="text-[10px] text-muted-label">projected</span>
       </div>
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-        <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="w-full max-w-[200px] shrink-0">
+        <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="w-full max-w-50 shrink-0">
           <defs>
             <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#22c55e" stopOpacity="0.3" />

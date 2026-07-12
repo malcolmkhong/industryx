@@ -92,9 +92,7 @@ export function DesktopHeader({ onTabChange, onManageAccount }: DesktopHeaderPro
   const topHeadlines = notifications.slice(0, 3);
   const displayedHeadlineIndex = topHeadlines.length > 0 ? Math.min(headlineIndex, topHeadlines.length - 1) : 0;
   useEffect(() => {
-    if (topHeadlines.length < 2) {
-      return;
-    }
+    if (topHeadlines.length < 2) return () => {};
     const t = setInterval(() => setHeadlineIndex((i) => (i + 1) % topHeadlines.length), 5000);
     return () => clearInterval(t);
   }, [topHeadlines.length]);
