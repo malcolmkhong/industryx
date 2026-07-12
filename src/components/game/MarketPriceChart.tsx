@@ -47,7 +47,7 @@ export function MarketPriceChart({
       if (!cancelled) { setLoading(true); setError(null); }
     });
     const controller = new AbortController();
-    fetch(`/api/game/market-history?resource=${encodeURIComponent(resourceId)}&hours=${hours}`, { signal: controller.signal })
+    fetch(`/api/market/history?resource=${encodeURIComponent(resourceId)}&hours=${hours}`, { signal: controller.signal })
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();

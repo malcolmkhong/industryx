@@ -6,12 +6,16 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { verifyAdmin, withSecurityHeaders, clearAdminCache } from "@/lib/auth/admin";
+import { requireAdminWrite } from "@/lib/auth/admin-route-guards";
 import { setPlayerLockStateBulk } from "@/lib/db/serverGameState";
 import { logAdminAction } from "@/lib/auth/admin-helpers";
 
 export async function POST(request: NextRequest) {
   const authResult = await verifyAdmin();
   if ("error" in authResult) return authResult.error;
+
+  const writeError = await requireAdminWrite(authResult.admin);
+  if (writeError) return writeError;
 
   const body = await request.json();
   const { userIds, action } = body;
@@ -31,14 +35,16 @@ export async function POST(request: NextRequest) {
     "Bulk admin action",
   );
 
-  for (const userId of safeUserIds) {
-    await logAdminAction({
-      adminId: authResult.admin.id,
-      actionType: isLocked ? "lock_account" : "unlock_account",
-      targetUserId: userId,
-      details: { bulk: true, batch_count: userIds.length },
-    });
-  }
+  await Promise.all(
+    safeUserIds.map((userId: string) =>
+      logAdminAction({
+        adminId: authResult.admin.id,
+        actionType: isLocked ? "lock_account" : "unlock_account",
+        targetUserId: userId,
+        details: { bulk: true, batch_count: userIds.length },
+      }),
+    ),
+  );
 
   clearAdminCache();
 

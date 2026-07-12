@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { useGameStore } from '@/lib/game/store';
-import type { MarketNews } from '@/lib/game/marketSimulator';
-import type { ResourceType } from '@/lib/game/types';
+import { useGameStore } from '@/lib/game/state/store';
+import type { MarketNews } from '@/lib/game/market/marketSimulator';
+import type { ResourceType } from '@/lib/game/shared/types/types';
 
 type ServerNewsCategory =
   | 'price_move'

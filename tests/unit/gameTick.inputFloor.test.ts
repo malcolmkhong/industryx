@@ -18,8 +18,8 @@ import {
   computeProduction,
   type GameDefs,
   type MultiplierCache,
-} from "@/lib/game/productionCalculator";
-import type { BuildingInstance, BuildingDefinition } from "@/lib/game/types";
+} from "@/lib/game/production/productionCalculator";
+import type { BuildingInstance, BuildingDefinition } from "@/lib/game/shared/types/types";
 
 function makeMultiplierCache(gameDefs?: GameDefs): MultiplierCache {
   return {

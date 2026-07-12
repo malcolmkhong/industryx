@@ -110,8 +110,8 @@ describe("UI safety: store shape stability (Phase 6 fields)", () => {
   // this at build time, but this test makes it explicit and visible.
 
   it("GameState still has fields Phase 6 actions touch", async () => {
-    const types = await import("@/lib/game/types");
-    type GameStateT = import("@/lib/game/types").GameState;
+    const types = await import("@/lib/game/shared/types/types");
+    type GameStateT = import("@/lib/game/shared/types/types").GameState;
     // GameState is an interface — not present at runtime. The point of
     // this test is that the object literal TYPE-CHECKS at compile time:
     // if any field is renamed/removed, tsc fails the build.
@@ -152,9 +152,9 @@ describe("UI safety: store shape stability (Phase 6 fields)", () => {
   });
 
   it("correctedState shape in actionValidator still exposes Phase 6 fields", async () => {
-    const validator = await import("@/lib/game/actionValidator");
-    type Result = import("@/lib/game/actionValidator").ValidatedActionResult;
-    type ServerGameDataT = import("@/lib/game/types").ServerGameData;
+    const validator = await import("@/lib/game/actions/client/actionValidator");
+    type Result = import("@/lib/game/actions/client/actionValidator").ValidatedActionResult;
+    type ServerGameDataT = import("@/lib/game/shared/types/types").ServerGameData;
     const sample: Result = {
       approved: true,
       correctedState: {
@@ -187,7 +187,7 @@ describe("UI safety: action files still wire all Phase 6 actions", () => {
 
   it("market.ts: sellResource + buyResource call server", async () => {
     const src = readFileSync(
-      join(SRC_DIR, "lib/game/actions/market.ts"),
+      join(SRC_DIR, "lib/game/state/store-actions/market.ts"),
       "utf8",
     );
     expect(src).toMatch(
@@ -200,7 +200,7 @@ describe("UI safety: action files still wire all Phase 6 actions", () => {
 
   it("research.ts: startResearch calls server", async () => {
     const src = readFileSync(
-      join(SRC_DIR, "lib/game/actions/research.ts"),
+      join(SRC_DIR, "lib/game/state/store-actions/research.ts"),
       "utf8",
     );
     expect(src).toMatch(
@@ -210,7 +210,7 @@ describe("UI safety: action files still wire all Phase 6 actions", () => {
 
   it("drones.ts: sendDrone calls server", async () => {
     const src = readFileSync(
-      join(SRC_DIR, "lib/game/actions/drones.ts"),
+      join(SRC_DIR, "lib/game/state/store-actions/drones.ts"),
       "utf8",
     );
     expect(src).toMatch(
@@ -220,7 +220,7 @@ describe("UI safety: action files still wire all Phase 6 actions", () => {
 
   it("transport.ts: buildTransportLine + upgradeTransportLine call server", async () => {
     const src = readFileSync(
-      join(SRC_DIR, "lib/game/actions/transport.ts"),
+      join(SRC_DIR, "lib/game/state/store-actions/transport.ts"),
       "utf8",
     );
     expect(src).toMatch(
@@ -233,7 +233,7 @@ describe("UI safety: action files still wire all Phase 6 actions", () => {
 
   it("prestige.ts: doPrestige calls server", async () => {
     const src = readFileSync(
-      join(SRC_DIR, "lib/game/actions/prestige.ts"),
+      join(SRC_DIR, "lib/game/state/store-actions/prestige.ts"),
       "utf8",
     );
     expect(src).toMatch(
@@ -241,9 +241,13 @@ describe("UI safety: action files still wire all Phase 6 actions", () => {
     );
   });
 
-  it("route handler: all 18 actions are wired in validActions array", async () => {
-    const src = readFileSync(
-      join(SRC_DIR, "app/api/game/action/route.ts"),
+  it("action command runner wires every server action in VALID_ACTIONS", async () => {
+    const typesSrc = readFileSync(
+      join(SRC_DIR, "lib/game/actions/server/shared/actionTypes.ts"),
+      "utf8",
+    );
+    const handlersSrc = readFileSync(
+      join(SRC_DIR, "lib/game/actions/server/handlers/actionHandlers.ts"),
       "utf8",
     );
     const expected = [
@@ -258,6 +262,7 @@ describe("UI safety: action files still wire all Phase 6 actions", () => {
       "upgrade_storage",
       "hire_worker",
       "assign_worker",
+      "upgrade_worker",
       "collect_payout",
       "claim_quest",
       "claim_daily_reward",
@@ -270,16 +275,16 @@ describe("UI safety: action files still wire all Phase 6 actions", () => {
     for (const action of expected) {
       // Each must appear inside the validActions array AND have a
       // dispatch case (so dead entries are caught).
-      expect(src).toContain(`"${action}"`);
+      expect(typesSrc).toContain(`"${action}"`);
       // Switch case: case "action":
-      expect(src).toMatch(new RegExp(`case\\s+["']${action}["']`));
+      expect(handlersSrc).toMatch(new RegExp(`case\\s+["']${action}["']`));
     }
   });
 });
 
 describe("UI safety: serverEngine exports all Phase 6 validators", () => {
-  it("all 18 server-authoritative validators exist as exports", async () => {
-    const engine = await import("@/lib/game/serverEngine");
+  it("server-authoritative validators exist as exports", async () => {
+    const engine = await import("@/lib/game/production/engine/serverEngine");
     const required = [
       "validateBuildAction",
       "validateSellAction",

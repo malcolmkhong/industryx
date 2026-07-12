@@ -13,9 +13,9 @@
 // ============================================
 
 import { describe, it, expect } from "vitest";
-import { validateBuildAction } from "@/lib/game/serverEngine";
-import type { GameConfig } from "@/lib/game/config";
-import type { BuildingDefinition } from "@/lib/game/types";
+import { validateBuildAction } from "@/lib/game/production/engine/serverEngine";
+import type { GameConfig } from "@/lib/game/config/config";
+import type { BuildingDefinition } from "@/lib/game/shared/types/types";
 
 function makeConfig(overrides?: Partial<BuildingDefinition>): GameConfig {
   const buildingDef = {

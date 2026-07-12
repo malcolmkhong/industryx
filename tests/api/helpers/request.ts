@@ -4,7 +4,7 @@
  * Helpers for building Request objects compatible with Next.js App
  * Router route handlers. Use:
  *
- *   const req = buildRequest({ method: 'POST', url: '/api/game/trade',
+ *   const req = buildRequest({ method: 'POST', url: '/api/market/trades/execute',
  *     body: { giveResource: 'iron', giveAmount: 1, ... },
  *     cookies: { sb_token: 'xxx' } });
  *   const res = await POST(req, { params: Promise.resolve({}) });

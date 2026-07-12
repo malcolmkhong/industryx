@@ -2,8 +2,8 @@
 
 import { useMemo, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/store';
-import { BUILDING_DEFS, RESOURCE_META, PRODUCTION_CHAINS, RESEARCH_TREE } from '@/lib/game/configCache';
+import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/state/store';
+import { BUILDING_DEFS, RESOURCE_META, PRODUCTION_CHAINS, RESEARCH_TREE } from '@/lib/game/config/configCache';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -14,13 +14,13 @@ import {
   Gauge, Box,
   Pickaxe, Sparkles, X, Search,
 } from 'lucide-react';
-import type { FactoryType, ResourceType } from "@/lib/game/types";
-import { getFactoryTypesByTier } from '@/lib/game/buildingDiscovery';
+import type { FactoryType, ResourceType } from "@/lib/game/shared/types/types";
+import { getFactoryTypesByTier } from '@/lib/game/buildings/buildingDiscovery';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
 import { getTierColorClasses, type TierColor } from '@/components/game/shared/tierColors';
 import { GameIcon } from '@/components/icons';
-import { TIER_INFO, ALL_TIERS } from '@/lib/game/tiers';
+import { TIER_INFO, ALL_TIERS } from '@/lib/game/progression/tiers';
 
 // Factory types dynamically derived from BUILDING_DEFS (includes Supabase buildings)
 const factoryTiers = getFactoryTypesByTier();
@@ -32,7 +32,7 @@ const TIER_5_FACTORIES = factoryTiers[5] as FactoryType[];
 
 // Factory-tier config: derived from central TIER_INFO.
 // Factories only exist for tiers 1-5 (extractors are tier 0).
-// All values sourced from @/lib/game/tiers — do NOT hardcode here.
+// All values sourced from @/lib/game/progression/tiers — do NOT hardcode here.
 const FACTORY_TIER_KEYS = [1, 2, 3, 4, 5] as const;
 const TIER_CONFIG: Record<number, { label: string; shortLabel: string; color: string; icon: string; borderColor: string; hex: string }> =
   Object.fromEntries(

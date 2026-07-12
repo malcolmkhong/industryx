@@ -1,7 +1,7 @@
 /**
- * tests/api/auth/migrate-guest.test.ts
+ * tests/api/auth/guest/migrate.test.ts
  *
- * Boundary + auth + decision-branch tests for POST /api/auth/migrate-guest.
+ * Boundary + auth + decision-branch tests for POST /api/auth/guest/migrate.
  *
  * Coverage:
  *   - 400 when required fields missing
@@ -68,7 +68,7 @@ vi.mock('@/lib/db/initialState.server', () => ({
   })),
 }));
 
-import { POST } from '@/app/api/auth/migrate-guest/route';
+import { POST } from '@/app/api/auth/guest/migrate/route';
 
 // ─── helpers ────────────────────────────────────────────────────────────
 
@@ -145,7 +145,7 @@ function resetMocks(opts: {
 
 // ─── tests ──────────────────────────────────────────────────────────────
 
-describe('POST /api/auth/migrate-guest', () => {
+describe('POST /api/auth/guest/migrate', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetMocks();
@@ -156,7 +156,7 @@ describe('POST /api/auth/migrate-guest', () => {
   it('returns 400 when userId is missing', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/auth/migrate-guest',
+      url: '/api/auth/guest/migrate',
       body: { gameState: VALID_GAME_STATE },
     });
     const res = await POST(req);
@@ -168,7 +168,7 @@ describe('POST /api/auth/migrate-guest', () => {
   it('returns 400 when gameState is missing', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/auth/migrate-guest',
+      url: '/api/auth/guest/migrate',
       body: { userId: 'user-1' },
     });
     const res = await POST(req);
@@ -180,7 +180,7 @@ describe('POST /api/auth/migrate-guest', () => {
   it('returns 400 when both userId and gameState are missing', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/auth/migrate-guest',
+      url: '/api/auth/guest/migrate',
       body: {},
     });
     const res = await POST(req);
@@ -199,7 +199,7 @@ describe('POST /api/auth/migrate-guest', () => {
 
     const req = buildRequest({
       method: 'POST',
-      url: '/api/auth/migrate-guest',
+      url: '/api/auth/guest/migrate',
       body: { userId: 'user-1', gameState: VALID_GAME_STATE },
     });
     const res = await POST(req);
@@ -215,7 +215,7 @@ describe('POST /api/auth/migrate-guest', () => {
 
     const req = buildRequest({
       method: 'POST',
-      url: '/api/auth/migrate-guest',
+      url: '/api/auth/guest/migrate',
       body: { userId: 'user-1', gameState: VALID_GAME_STATE },
     });
     const res = await POST(req);
@@ -228,7 +228,7 @@ describe('POST /api/auth/migrate-guest', () => {
     resetMocks({ existingCloudTick: 500, migrationResult: ACCEPT_RESULT });
     const req = buildRequest({
       method: 'POST',
-      url: '/api/auth/migrate-guest',
+      url: '/api/auth/guest/migrate',
       body: { userId: 'user-1', gameState: VALID_GAME_STATE },
     });
     const res = await POST(req);
@@ -250,7 +250,7 @@ describe('POST /api/auth/migrate-guest', () => {
     resetMocks({ migrationResult: REJECT_RESULT });
     const req = buildRequest({
       method: 'POST',
-      url: '/api/auth/migrate-guest',
+      url: '/api/auth/guest/migrate',
       body: { userId: 'user-1', gameState: VALID_GAME_STATE },
     });
     const res = await POST(req);
@@ -284,7 +284,7 @@ describe('POST /api/auth/migrate-guest', () => {
     resetMocks({ migrationResult: FLAG_RESULT });
     const req = buildRequest({
       method: 'POST',
-      url: '/api/auth/migrate-guest',
+      url: '/api/auth/guest/migrate',
       body: { userId: 'user-1', gameState: VALID_GAME_STATE },
     });
     const res = await POST(req);
@@ -312,7 +312,7 @@ describe('POST /api/auth/migrate-guest', () => {
     resetMocks({ migrationResult: ACCEPT_RESULT });
     const req = buildRequest({
       method: 'POST',
-      url: '/api/auth/migrate-guest',
+      url: '/api/auth/guest/migrate',
       body: { userId: 'user-1', gameState: VALID_GAME_STATE },
     });
     const res = await POST(req);
@@ -342,7 +342,7 @@ describe('POST /api/auth/migrate-guest', () => {
     resetMocks({ migrationResult: ACCEPT_RESULT, upsertSuccess: false });
     const req = buildRequest({
       method: 'POST',
-      url: '/api/auth/migrate-guest',
+      url: '/api/auth/guest/migrate',
       body: { userId: 'user-1', gameState: VALID_GAME_STATE },
     });
     const res = await POST(req);
@@ -359,7 +359,7 @@ describe('POST /api/auth/migrate-guest', () => {
     });
     const req = buildRequest({
       method: 'POST',
-      url: '/api/auth/migrate-guest',
+      url: '/api/auth/guest/migrate',
       body: { userId: 'user-1', gameState: VALID_GAME_STATE },
     });
     const res = await POST(req);
@@ -374,7 +374,7 @@ describe('POST /api/auth/migrate-guest', () => {
     resetMocks({ migrationResult: ACCEPT_RESULT });
     const req = buildRequest({
       method: 'POST',
-      url: '/api/auth/migrate-guest',
+      url: '/api/auth/guest/migrate',
       body: {
         userId: 'user-1',
         gameState: VALID_GAME_STATE,

@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { useGameStore, formatNumber } from "@/lib/game/store";
-import { BUILDING_DEFS } from "@/lib/game/configCache";
-import type { GameStore } from "@/lib/game/store-types";
+import { useGameStore, formatNumber } from "@/lib/game/state/store";
+import { BUILDING_DEFS } from "@/lib/game/config/configCache";
+import type { GameStore } from "@/lib/game/state/store-types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { GameIcon } from "@/components/icons";

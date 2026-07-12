@@ -56,7 +56,7 @@ export async function getPlayerProgressByUserId(
 }
 
 /**
- * Upsert a player_progress row. Used by /api/auth/migrate-guest to
+ * Upsert a player_progress row. Used by /api/auth/guest/migrate to
  * persist the initial display_name + game_state snapshot after a guest
  * migrates to OAuth.
  *

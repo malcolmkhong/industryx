@@ -221,7 +221,7 @@ export default function PlayersListPage() {
   const fetchStats = useCallback(async () => {
     try {
       setStatsLoading(true);
-      const res = await fetch("/api/admin/stats");
+      const res = await fetch("/api/admin/system/stats");
       if (!res.ok) {
         const errData = await res.json().catch(() => null);
         throw new Error(errData?.message || "Failed to fetch stats");

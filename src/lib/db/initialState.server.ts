@@ -18,15 +18,15 @@
 // Fail-closed: any DB / RPC failure throws. Callers translate to 5xx.
 
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { ensureConfigLoaded } from "@/lib/game/configLoader.server";
+import { ensureConfigLoaded } from "@/lib/game/config/server/configLoader.server";
 import {
   INITIAL_MARKET,
   AUTOMATION_UNLOCKS,
   PRESTIGE_BONUSES,
   QUEST_DEFS,
   INITIAL_MEGA_PROJECTS,
-} from "@/lib/game/configCache";
-import type { ServerGameData, ResourceType, WeatherType } from "@/lib/game/types";
+} from "@/lib/game/config/configCache";
+import type { ServerGameData, ResourceType, WeatherType } from "@/lib/game/shared/types/types";
 
 const INITIAL_STATE_TTL_MS = 5 * 60 * 1000;
 

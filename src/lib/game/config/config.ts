@@ -1,0 +1,711 @@
+// ============================================
+// FACTORY DOMINION: Game Config System
+// Fetches and transforms Supabase config data
+// into the game's existing type format
+// ============================================
+
+import type { BuildingDefinition, ResourceAmount, ResourceType } from "../shared/types/types";
+
+// --- Supabase Row Types (raw DB shapes) ---
+
+export interface SupabaseBuilding {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  tier: number;
+  base_cost: Record<string, number> | Array<{resource: string; amount: number}>; // e.g. { money: 500 } or [{resource: 'money', amount: 500}]
+  cost_multiplier: number;
+  base_power_consumption: number;
+  base_power_production: number;
+  cycle_time: number;
+  building_multiplier: number;
+  base_production_rate: number;
+  fuel: string | null;
+  fuel_rate: number | null;
+  unlock_research: string | null;
+  unlock_prestige: number | null;
+  icon: string;
+  sort_order: number;
+}
+
+export interface SupabaseResource {
+  id: string;
+  name: string;
+  icon: string;
+  tier: number;
+  color: string;
+  category: string;
+  sort_order: number;
+  /** Default storage cap for a fresh player (Phase 12). Migration 069 seeds this. */
+  base_capacity?: number;
+}
+
+export interface SupabaseRecipe {
+  id: string;
+  building_id: string;
+  resource_id: string;
+  is_input: boolean;
+  amount: number;
+}
+
+export interface SupabaseProductionChain {
+  id: string;
+  upstream_building: string;
+  downstream_building: string;
+  resource_id: string;
+}
+
+export interface SupabaseResearch {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  tier: number;
+  cost: number;
+  time_required: number;
+  prerequisites: string[] | null;
+  effects: Record<string, unknown>[] | null;
+  icon: string;
+  sort_order: number;
+}
+
+export interface SupabaseMarket {
+  resource_id: string;
+  base_price: number;
+  demand: number;
+  supply: number;
+  volatility: number;
+  sort_order: number;
+  is_tradable: boolean;
+}
+
+export interface SupabaseWeather {
+  id: string;
+  name: string;
+  icon: string;
+  production_multiplier: number;
+  solar_multiplier: number;
+  wind_multiplier: number;
+  description: string;
+  sort_order: number;
+}
+
+export interface SupabaseWorker {
+  id: string;
+  name: string;
+  description: string;
+  base_hire_cost: number;
+  effects: Record<string, unknown>;
+  icon: string;
+  sort_order: number;
+}
+
+export interface SupabaseTransport {
+  id: string;
+  name: string;
+  description: string;
+  base_cost: Record<string, number> | Array<{resource: string; amount: number}>;
+  base_throughput: number;
+  upgrade_multiplier: number;
+  icon: string;
+  sort_order: number;
+}
+
+export interface SupabaseAutomation {
+  id: string;
+  name: string;
+  description: string;
+  cost: number;
+  requires_research: string | null;
+  icon: string;
+  sort_order: number;
+}
+
+export interface SupabasePrestigeBonus {
+  id: string;
+  name: string;
+  description: string;
+  cost: number;
+  effect: Record<string, unknown>;
+  sort_order: number;
+}
+
+export interface SupabaseRankThreshold {
+  rank: number;
+  name: string;
+  score_required: number;
+}
+
+export interface SupabaseQuestDefinition {
+  id: string;
+  name: string;
+  description: string;
+  type: string;
+  category: string;
+  game_tier: number;
+  steps: Record<string, unknown>[];
+  reward: Record<string, unknown>;
+  target_resource: string | null;
+  target_building: string | null;
+  icon: string;
+  sort_order: number;
+}
+
+export interface SupabaseDailyReward {
+  day: number;
+  type: string;
+  amount: number;
+  resource_id: string | null;
+}
+
+export interface SupabaseEventTemplate {
+  id: string;
+  name: string;
+  description: string;
+  type: string;
+  duration: number;
+  effects: Record<string, unknown>[];
+  icon: string;
+  sort_order: number;
+}
+
+export interface SupabaseSeasonalEvent {
+  id: string;
+  name: string;
+  description: string;
+  season: string;
+  start_date: string;
+  end_date: string;
+  effects: Record<string, unknown>[];
+  rewards: Record<string, unknown>[];
+  icon: string;
+  is_active: boolean;
+  sort_order: number;
+}
+
+export interface SupabaseMegaProject {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  stages: Record<string, unknown>[];
+  bonus: Record<string, unknown>;
+  unlock_requirement: Record<string, unknown>;
+  sort_order: number;
+}
+
+export interface SupabaseGameConfig {
+  id: string;
+  // Offline-tick tuning (added 2026-07-09, see .rules [ARC-011]/[SEC-011]).
+  // DB CHECK constraints enforce ranges; routes re-validate and fail closed.
+  tick_interval_ms: number;
+  max_offline_ticks: number;
+  min_offline_ms: number;
+  [key: string]: unknown; // remaining numeric config columns
+}
+
+export interface SupabaseBalancingRule {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  target: string;
+  multiplier: number;
+  is_active: boolean;
+  effective_from: string | null;
+  effective_until: string | null;
+}
+
+// --- Transformed Game Config (what the frontend consumes) ---
+
+export interface GameConfig {
+  buildings: Record<string, BuildingDefinition>;
+  resources: Record<string, { name: string; icon: string; tier: number; color: string; category: string; baseCapacity: number }>;
+  research: Array<{
+    id: string;
+    name: string;
+    description: string;
+    category: string;
+    tier: number;
+    cost: number;
+    timeRequired: number;
+    prerequisites: string[];
+    effects: Record<string, unknown>[];
+    icon: string;
+  }>;
+  market: Array<{
+    resource: string;
+    basePrice: number;
+    demand: number;
+    supply: number;
+    volatility: number;
+    isTradable: boolean;
+  }>;
+  /** Convenience field: just the resource IDs where isTradable=true. */
+  tradableResourceIds: string[];
+  weather: Record<string, {
+    name: string;
+    icon: string;
+    productionMultiplier: number;
+    solarMultiplier: number;
+    windMultiplier: number;
+    description: string;
+  }>;
+  workers: Array<{
+    id: string;
+    name: string;
+    description: string;
+    baseHireCost: number;
+    effects: Record<string, unknown>;
+    icon: string;
+  }>;
+  transport: Array<{
+    id: string;
+    name: string;
+    description: string;
+    baseCost: ResourceAmount[];
+    baseThroughput: number;
+    upgradeMultiplier: number;
+    icon: string;
+  }>;
+  automation: Array<{
+    id: string;
+    name: string;
+    description: string;
+    cost: number;
+    requiresResearch: string | null;
+    icon: string;
+  }>;
+  prestigeBonuses: Array<{
+    id: string;
+    name: string;
+    description: string;
+    cost: number;
+    effect: Record<string, unknown>;
+  }>;
+  rankThresholds: Array<{
+    rank: number;
+    name: string;
+    scoreRequired: number;
+  }>;
+  quests: Array<{
+    id: string;
+    name: string;
+    description: string;
+    type: string;
+    category: string;
+    gameTier: number;
+    steps: Record<string, unknown>[];
+    reward: Record<string, unknown>;
+    targetResource: string | null;
+    targetBuilding: string | null;
+    icon: string;
+  }>;
+  dailyRewards: Array<{
+    day: number;
+    type: string;
+    amount: number;
+    resourceId: string | null;
+  }>;
+  eventTemplates: Array<{
+    id: string;
+    name: string;
+    description: string;
+    type: string;
+    duration: number;
+    effects: Record<string, unknown>[];
+    icon: string;
+  }>;
+  seasonalEvents: Array<{
+    id: string;
+    name: string;
+    description: string;
+    season: string;
+    startDate: string;
+    endDate: string;
+    effects: Record<string, unknown>[];
+    rewards: Record<string, unknown>[];
+    icon: string;
+    isActive: boolean;
+  }>;
+  megaProjects: Array<{
+    id: string;
+    name: string;
+    description: string;
+    icon: string;
+    stages: Record<string, unknown>[];
+    bonus: Record<string, unknown>;
+    unlockRequirement: Record<string, unknown>;
+  }>;
+  gameConfig: Record<string, unknown>;
+  /**
+   * Client-safe subset of the server-authoritative game_config_balance
+   * values. The server is the source of truth for actual gameplay
+   * enforcement (cooldowns, commissions, etc.); the client uses these
+   * for display-only UX (showing commission %, cooldown progress bars,
+   * level-up thresholds).
+   *
+   * Populated by fetchGameConfigFromSupabase() from the game_config_balance
+   * table. If the table is unreachable or the row is missing, sensible
+   * defaults are returned (matching the migration 072 seed values).
+   */
+  balance: {
+    tradeCommissionRate: number; // server-authoritative
+    tradeCooldownSeconds: number; // server-authoritative
+    workerLevelUpXpBase: number; // server-authoritative
+    autoSellThresholdRatio: number; // server-authoritative
+  };
+  balancingRules?: Array<{
+    id: string;
+    name: string;
+    description: string;
+    category: string;
+    target: string;
+    multiplier: number;
+    isActive: boolean;
+  }>;
+  productionChains: Array<{
+    id: string;
+    upstreamBuilding: string;
+    downstreamBuilding: string;
+    resourceId: string;
+  }>;
+  // Metadata
+  loadedAt: number;
+  source: 'supabase' | 'fallback';
+}
+
+/**
+ * Default values for the client-safe `GameConfig.balance` subset. Used by:
+ * - The /api/game/config/definitions 503 fallback
+ * - The /api/game/config/definitions success path when the game_config_balance
+ *   table is unreachable or missing the relevant row
+ * - The GameConfigProvider client-side fallback config
+ * - Route handlers that build a GameConfig literal for server-side
+ *   validation (game/compute, game/offline, admin/investigations)
+ *
+ * Values match the migration 072 seed for game_config_balance.
+ */
+export const DEFAULT_BALANCE_SUBSET: GameConfig["balance"] = {
+  tradeCommissionRate: 0.15,
+  tradeCooldownSeconds: 300,
+  workerLevelUpXpBase: 100,
+  autoSellThresholdRatio: 0.8,
+};
+
+// --- Data Transformers ---
+
+function parseCostMap(costMap: Record<string, number> | Array<{resource: string; amount: number}> | null): ResourceAmount[] {
+  if (!costMap) return [{ resource: 'money', amount: 100 }];
+  // Handle array format from Supabase: [{resource: 'money', amount: 500}]
+  if (Array.isArray(costMap)) {
+    return costMap.map(item => ({
+      resource: item.resource as CostResourceType,
+      amount: item.amount,
+    }));
+  }
+  // Handle legacy object format: {money: 500}
+  return Object.entries(costMap).map(([resource, amount]) => ({
+    resource: resource as CostResourceType,
+    amount,
+  }));
+}
+
+type CostResourceType = ResourceType | 'money';
+
+function transformBuildings(
+  buildings: SupabaseBuilding[],
+  recipes: SupabaseRecipe[]
+): Record<string, BuildingDefinition> {
+  const result: Record<string, BuildingDefinition> = {};
+
+  for (const b of buildings) {
+    const buildingRecipes = recipes.filter(r => r.building_id === b.id);
+    const inputs: ResourceAmount[] = buildingRecipes
+      .filter(r => r.is_input)
+      .map(r => ({ resource: r.resource_id as ResourceType, amount: r.amount }));
+    const outputs: ResourceAmount[] = buildingRecipes
+      .filter(r => !r.is_input)
+      .map(r => ({ resource: r.resource_id as ResourceType, amount: r.amount }));
+
+    result[b.id] = {
+      type: b.id as BuildingDefinition['type'],
+      name: b.name,
+      description: b.description,
+      category: b.category as BuildingDefinition['category'],
+      tier: b.tier,
+      baseCost: parseCostMap(b.base_cost),
+      costMultiplier: b.cost_multiplier,
+      basePowerConsumption: b.base_power_consumption,
+      basePowerProduction: b.base_power_production,
+      baseProductionRate: b.base_production_rate,
+      ...(inputs.length > 0 ? { inputs } : {}),
+      ...(outputs.length > 0 ? { outputs } : {}),
+      ...(b.fuel ? { fuel: b.fuel as ResourceType } : {}),
+      ...(b.fuel_rate ? { fuelRate: b.fuel_rate } : {}),
+      ...(b.unlock_research || b.unlock_prestige ? {
+        unlockRequirement: {
+          ...(b.unlock_research ? { research: b.unlock_research } : {}),
+          ...(b.unlock_prestige ? { prestige: b.unlock_prestige } : {}),
+        }
+      } : {}),
+      icon: b.icon,
+    };
+  }
+
+  return result;
+}
+
+function transformResources(resources: SupabaseResource[]): GameConfig['resources'] {
+  const result: GameConfig['resources'] = {};
+  for (const r of resources) {
+    result[r.id] = {
+      name: r.name,
+      icon: r.icon,
+      tier: r.tier,
+      color: r.color,
+      category: r.category,
+      baseCapacity: r.base_capacity ?? 100,
+    };
+  }
+  return result;
+}
+
+function transformResearch(research: SupabaseResearch[]): GameConfig['research'] {
+  return research.map(r => ({
+    id: r.id,
+    name: r.name,
+    description: r.description,
+    category: r.category,
+    tier: r.tier,
+    cost: r.cost,
+    timeRequired: r.time_required,
+    prerequisites: r.prerequisites || [],
+    effects: (r.effects as Record<string, unknown>[]) || [],
+    icon: r.icon,
+  }));
+}
+
+function transformMarket(market: SupabaseMarket[]): GameConfig['market'] {
+  return market.map(m => ({
+    resource: m.resource_id,
+    basePrice: m.base_price,
+    demand: m.demand,
+    supply: m.supply,
+    volatility: m.volatility,
+    isTradable: m.is_tradable,
+  }));
+}
+
+function transformWeather(weather: SupabaseWeather[]): GameConfig['weather'] {
+  const result: GameConfig['weather'] = {};
+  for (const w of weather) {
+    result[w.id] = {
+      name: w.name,
+      icon: w.icon,
+      productionMultiplier: w.production_multiplier,
+      solarMultiplier: w.solar_multiplier,
+      windMultiplier: w.wind_multiplier,
+      description: w.description,
+    };
+  }
+  return result;
+}
+
+// --- Config Loader ---
+
+export async function fetchGameConfig(): Promise<GameConfig | null> {
+  try {
+    // Fetch all config tables in parallel
+    const [
+      buildingsRes,
+      resourcesRes,
+      recipesRes,
+      chainsRes,
+      researchRes,
+      marketRes,
+      weatherRes,
+      workersRes,
+      transportRes,
+      automationRes,
+      prestigeRes,
+      rankRes,
+      questsRes,
+      dailyRes,
+      eventsRes,
+      seasonalRes,
+      megaRes,
+      gameRes,
+      rulesRes,
+    ] = await Promise.all([
+      fetch('/api/admin/config?table=game_config_buildings&pageSize=2000'),
+      fetch('/api/admin/config?table=game_config_resources&pageSize=2000'),
+      fetch('/api/admin/config?table=game_config_production_recipes&pageSize=2000'),
+      fetch('/api/admin/config?table=game_config_production_chains&pageSize=2000'),
+      fetch('/api/admin/config?table=game_config_research&pageSize=2000'),
+      fetch('/api/admin/config?table=game_config_market&pageSize=2000'),
+      fetch('/api/admin/config?table=game_config_weather&pageSize=2000'),
+      fetch('/api/admin/config?table=game_config_workers&pageSize=2000'),
+      fetch('/api/admin/config?table=game_config_transport&pageSize=2000'),
+      fetch('/api/admin/config?table=game_config_automation&pageSize=2000'),
+      fetch('/api/admin/config?table=game_config_prestige_bonuses&pageSize=2000'),
+      fetch('/api/admin/config?table=game_config_rank_thresholds&pageSize=2000'),
+      fetch('/api/admin/config?table=game_config_quest_definitions&pageSize=2000'),
+      fetch('/api/admin/config?table=game_config_daily_rewards&pageSize=2000'),
+      fetch('/api/admin/config?table=game_config_event_templates&pageSize=2000'),
+      fetch('/api/admin/config?table=game_config_seasonal_events&pageSize=2000'),
+      fetch('/api/admin/config?table=game_config_mega_projects&pageSize=2000'),
+      fetch('/api/admin/config?table=game_config_game&pageSize=2000'),
+      fetch('/api/admin/config?table=game_config_balancing_rules&pageSize=2000'),
+    ]);
+
+    // Check if any critical fetch failed
+    if (!buildingsRes.ok || !resourcesRes.ok || !recipesRes.ok) {
+      console.warn('[GameConfig] Critical tables fetch failed, will use fallback');
+      return null;
+    }
+
+    const [buildings, resources, recipes, chains, research, market, weather, workers, transport, automation, prestige, rank, quests, daily, events, seasonal, mega, game, rules] = await Promise.all([
+      buildingsRes.json(),
+      resourcesRes.json(),
+      recipesRes.json(),
+      chainsRes.json(),
+      researchRes.json(),
+      marketRes.json(),
+      weatherRes.json(),
+      workersRes.json(),
+      transportRes.json(),
+      automationRes.json(),
+      prestigeRes.json(),
+      rankRes.json(),
+      questsRes.json(),
+      dailyRes.json(),
+      eventsRes.json(),
+      seasonalRes.json(),
+      megaRes.json(),
+      gameRes.json(),
+      rulesRes.json(),
+    ]);
+
+    const config: GameConfig = {
+      buildings: transformBuildings(buildings.data || [], recipes.data || []),
+      resources: transformResources(resources.data || []),
+      research: transformResearch(research.data || []),
+      market: transformMarket(market.data || []),
+      weather: transformWeather(weather.data || []),
+      workers: (workers.data || []).map((w: SupabaseWorker) => ({
+        id: w.id,
+        name: w.name,
+        description: w.description,
+        baseHireCost: w.base_hire_cost,
+        effects: w.effects,
+        icon: w.icon,
+      })),
+      transport: (transport.data || []).map((t: SupabaseTransport) => ({
+        id: t.id,
+        name: t.name,
+        description: t.description,
+        baseCost: parseCostMap(t.base_cost),
+        baseThroughput: t.base_throughput,
+        upgradeMultiplier: t.upgrade_multiplier,
+        icon: t.icon,
+      })),
+      automation: (automation.data || []).map((a: SupabaseAutomation) => ({
+        id: a.id,
+        name: a.name,
+        description: a.description,
+        cost: a.cost,
+        requiresResearch: a.requires_research,
+        icon: a.icon,
+      })),
+      prestigeBonuses: (prestige.data || []).map((p: SupabasePrestigeBonus) => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        cost: p.cost,
+        effect: p.effect,
+      })),
+      rankThresholds: (rank.data || []).map((r: SupabaseRankThreshold) => ({
+        rank: r.rank,
+        name: r.name,
+        scoreRequired: r.score_required,
+      })),
+      quests: (quests.data || []).map((q: SupabaseQuestDefinition) => ({
+        id: q.id,
+        name: q.name,
+        description: q.description,
+        type: q.type,
+        category: q.category,
+        gameTier: q.game_tier,
+        steps: q.steps,
+        reward: q.reward,
+        targetResource: q.target_resource,
+        targetBuilding: q.target_building,
+        icon: q.icon,
+      })),
+      dailyRewards: (daily.data || []).map((d: SupabaseDailyReward) => ({
+        day: d.day,
+        type: d.type,
+        amount: d.amount,
+        resourceId: d.resource_id,
+      })),
+      eventTemplates: (events.data || []).map((e: SupabaseEventTemplate) => ({
+        id: e.id,
+        name: e.name,
+        description: e.description,
+        type: e.type,
+        duration: e.duration,
+        effects: e.effects,
+        icon: e.icon,
+      })),
+      seasonalEvents: (seasonal.data || []).map((s: SupabaseSeasonalEvent) => ({
+        id: s.id,
+        name: s.name,
+        description: s.description,
+        season: s.season,
+        startDate: s.start_date,
+        endDate: s.end_date,
+        effects: s.effects,
+        rewards: s.rewards,
+        icon: s.icon,
+        isActive: s.is_active,
+      })),
+      megaProjects: (mega.data || []).map((m: SupabaseMegaProject) => ({
+        id: m.id,
+        name: m.name,
+        description: m.description,
+        icon: m.icon,
+        stages: m.stages,
+        bonus: m.bonus,
+        unlockRequirement: m.unlock_requirement,
+      })),
+      gameConfig: game.data?.[0] || {},
+      balance: DEFAULT_BALANCE_SUBSET,
+      balancingRules: (rules.data || []).map((r: SupabaseBalancingRule) => ({
+        id: r.id,
+        name: r.name,
+        description: r.description,
+        category: r.category,
+        target: r.target,
+        multiplier: r.multiplier,
+        isActive: r.is_active,
+      })),
+      productionChains: (chains.data || []).map((c: SupabaseProductionChain) => ({
+        id: c.id,
+        upstreamBuilding: c.upstream_building,
+        downstreamBuilding: c.downstream_building,
+        resourceId: c.resource_id,
+      })),
+      tradableResourceIds: [],
+      loadedAt: Date.now(),
+      source: 'supabase',
+    };
+
+    // Quietly loaded — debug via dev tools if needed.
+    return config;
+  } catch (error) {
+    console.warn('[GameConfig] Failed to load from Supabase, will use fallback:', error);
+    return null;
+  }
+}

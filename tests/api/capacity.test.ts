@@ -1,7 +1,7 @@
 /**
- * tests/api/capacity.test.ts
+ * tests/api/platform/capacity/status.test.ts
  *
- * Tests for GET /api/capacity — public capacity status (UI hints only).
+ * Tests for GET /api/platform/capacity/status — public capacity status (UI hints only).
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -10,9 +10,9 @@ import { mockSupabaseServer } from '../unit/mocks/supabase';
 
 vi.mock('@/lib/supabase/server', () => mockSupabaseServer());
 
-import { GET } from '@/app/api/capacity/route';
+import { GET } from '@/app/api/platform/capacity/status/route';
 
-describe('GET /api/capacity', () => {
+describe('GET /api/platform/capacity/status', () => {
   it('returns CapacityInfo shape with default mock data', async () => {
     const res = await GET();
     expect(res.status).toBe(200);
@@ -32,7 +32,7 @@ describe('GET /api/capacity', () => {
       isServiceRoleConfigured: () => false,
       isSupabaseConfigured: () => false,
     }));
-    const fresh = await import('@/app/api/capacity/route');
+    const fresh = await import('@/app/api/platform/capacity/status/route');
     const res = await fresh.GET();
     expect(res.status).toBe(200);
     const body = await readJson<any>(res);

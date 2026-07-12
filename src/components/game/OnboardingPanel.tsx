@@ -2,8 +2,8 @@
 
 import { useState, useMemo } from 'react';
 import { GameIcon } from '@/components/icons';
-import { useGameStore, formatNumber } from '@/lib/game/store';
-import type { GameStore } from '@/lib/game/store-types';
+import { useGameStore, formatNumber } from '@/lib/game/state/store';
+import type { GameStore } from '@/lib/game/state/store-types';
 import { useShallow } from 'zustand/react/shallow';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

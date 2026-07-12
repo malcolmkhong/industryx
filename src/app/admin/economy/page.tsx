@@ -32,7 +32,7 @@ export default function EconomyPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/economy');
+      const res = await fetch('/api/admin/economy/overview');
       if (res.ok) setData(await res.json());
     } catch (err) {
       console.error('Failed to fetch economy data:', err);

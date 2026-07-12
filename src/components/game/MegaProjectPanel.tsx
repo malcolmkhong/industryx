@@ -1,10 +1,10 @@
 'use client';
 
-import { useGameStore, formatNumber } from '@/lib/game/store';
+import { useGameStore, formatNumber } from '@/lib/game/state/store';
 import { useShallow } from 'zustand/react/shallow';
-import { RESOURCE_META } from '@/lib/game/configCache';
+import { RESOURCE_META } from '@/lib/game/config/configCache';
 import { useConfigVersion } from '@/components/providers/GameConfigProvider';
-import type { ResourceType } from "@/lib/game/types";
+import type { ResourceType } from "@/lib/game/shared/types/types";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { GameIcon } from '@/components/icons';

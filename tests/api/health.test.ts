@@ -1,7 +1,7 @@
 /**
- * tests/api/health.test.ts
+ * tests/api/platform/health.test.ts
  *
- * Tests for GET /api/health — liveness probe.
+ * Tests for GET /api/platform/health — liveness probe.
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -10,9 +10,9 @@ import { mockSupabaseServer } from '../unit/mocks/supabase';
 
 vi.mock('@/lib/supabase/server', () => mockSupabaseServer());
 
-import { GET } from '@/app/api/health/route';
+import { GET } from '@/app/api/platform/health/route';
 
-describe('GET /api/health', () => {
+describe('GET /api/platform/health', () => {
   it('returns 200 with status=ok when DB is connected', async () => {
     // Default mock has data: [], error: null which counts as ok
     const res = await GET();
@@ -33,7 +33,7 @@ describe('GET /api/health', () => {
       isServiceRoleConfigured: () => false,
       isSupabaseConfigured: () => false,
     }));
-    const fresh = await import('@/app/api/health/route');
+    const fresh = await import('@/app/api/platform/health/route');
     const res = await fresh.GET();
     expect(res.status).toBe(503);
     const body = await readJson<any>(res);

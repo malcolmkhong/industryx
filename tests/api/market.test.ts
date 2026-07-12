@@ -1,7 +1,7 @@
 /**
  * tests/api/market.test.ts
  *
- * Tests for GET /api/market/state + POST /api/market/action.
+ * Tests for GET /api/market/state + POST /api/market/pressure/record.
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -11,7 +11,7 @@ import { mockSupabaseServer } from '../unit/mocks/supabase';
 vi.mock('@/lib/supabase/server', () => mockSupabaseServer());
 
 import { GET } from '@/app/api/market/state/route';
-import { POST as marketAction } from '@/app/api/market/action/route';
+import { POST as marketAction } from '@/app/api/market/pressure/record/route';
 
 describe('GET /api/market/state', () => {
   it('returns market state shape', async () => {
@@ -22,11 +22,11 @@ describe('GET /api/market/state', () => {
   });
 });
 
-describe('POST /api/market/action', () => {
+describe('POST /api/market/pressure/record', () => {
   it('returns 401 when not authenticated', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/market/action',
+      url: '/api/market/pressure/record',
       body: { resource: 'iron', action: 'buy', amount: 10 },
     });
     const res = await marketAction(req);
@@ -36,7 +36,7 @@ describe('POST /api/market/action', () => {
   it('returns 400 on missing required fields', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/market/action',
+      url: '/api/market/pressure/record',
       body: { resource: 'iron' },
     });
     const res = await marketAction(req);
@@ -46,7 +46,7 @@ describe('POST /api/market/action', () => {
   it('rejects negative amount', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/market/action',
+      url: '/api/market/pressure/record',
       body: { resource: 'iron', action: 'buy', amount: -1 },
     });
     const res = await marketAction(req);

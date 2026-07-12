@@ -24,7 +24,7 @@ import {
 } from "react";
 
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useGameStore, applyServerState } from "@/lib/game/store";
+import { useGameStore, applyServerState } from "@/lib/game/state/store";
 import { extractGameState } from "./serializeGameState";
 import { CloudSyncService } from "./CloudSyncService";
 import type { CloudSyncState, SyncResult, LoadResult } from "./types";

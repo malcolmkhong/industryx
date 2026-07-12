@@ -12,8 +12,8 @@
 // ============================================
 
 import { describe, it, expect } from "vitest";
-import { validateUpgradeStorageAction } from "@/lib/game/serverEngine";
-import type { GameState, ResourceType } from "@/lib/game/types";
+import { validateUpgradeStorageAction } from "@/lib/game/production/engine/serverEngine";
+import type { GameState, ResourceType } from "@/lib/game/shared/types/types";
 
 function makeState(overrides?: {
   money?: number;

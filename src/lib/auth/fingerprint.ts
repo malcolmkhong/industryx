@@ -21,7 +21,7 @@ const COMPUTE_TIMEOUT_MS = 2000;
 /**
  * Sentinel sent to the server when the browser could not produce a fingerprint.
  * Distinct from the legacy literal "unknown" (still rejected with 400 by
- * /api/auth/quickstart) — this string tells the route "I know fingerprint
+ * /api/auth/guest/quickstart) — this string tells the route "I know fingerprint
  * is missing, fall through to deviceId-only dedupe".
  */
 export const FINGERPRINT_UNAVAILABLE = "__fingerprint_unavailable__";

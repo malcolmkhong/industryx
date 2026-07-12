@@ -13,7 +13,7 @@
  *   - Removes all listeners + clears interval on cleanup
  *   - Does NOT send DELETE on visibilitychange→hidden when last POST was recent
  *   - Sends DELETE on visibilitychange→hidden when last POST was >5 min ago
- *   - Initial POST body matches /api/game/heartbeat's required schema
+ *   - Initial POST body matches /api/game/session/heartbeat's required schema
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
@@ -96,7 +96,7 @@ describe('useSessionHeartbeat contract (no React renderer)', () => {
         .visibilityState;
       if (vis !== 'visible') return;
       try {
-        const r = await fetchMock('/api/game/heartbeat', {
+        const r = await fetchMock('/api/game/session/heartbeat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(collectPayload()),
@@ -112,16 +112,16 @@ describe('useSessionHeartbeat contract (no React renderer)', () => {
       if (cancelled) return;
       try {
         const blob = new Blob([''], { type: 'application/json' });
-        const ok = sendBeaconMock('/api/game/heartbeat', blob);
+        const ok = sendBeaconMock('/api/game/session/heartbeat', blob);
         if (!ok) {
-          void fetchMock('/api/game/heartbeat', {
+          void fetchMock('/api/game/session/heartbeat', {
             method: 'DELETE',
             credentials: 'same-origin',
             keepalive: true,
           }).catch(() => {});
         }
       } catch {
-        void fetchMock('/api/game/heartbeat', {
+        void fetchMock('/api/game/session/heartbeat', {
           method: 'DELETE',
           credentials: 'same-origin',
           keepalive: true,
@@ -199,7 +199,7 @@ describe('useSessionHeartbeat contract (no React renderer)', () => {
     await new Promise(r => setTimeout(r, 0));
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, opts] = fetchMock.mock.calls[0];
-    expect(url).toBe('/api/game/heartbeat');
+    expect(url).toBe('/api/game/session/heartbeat');
     expect(opts.method).toBe('POST');
     const body = JSON.parse(opts.body);
     expect(body).toEqual({
@@ -220,7 +220,7 @@ describe('useSessionHeartbeat contract (no React renderer)', () => {
     const pagehide = windowListeners.find(l => l.event === 'pagehide')!.handler;
     pagehide();
     expect(sendBeaconMock).toHaveBeenCalledTimes(1);
-    expect(sendBeaconMock.mock.calls[0][0]).toBe('/api/game/heartbeat');
+    expect(sendBeaconMock.mock.calls[0][0]).toBe('/api/game/session/heartbeat');
   });
 
   it('falls back to fetch+keepalive when sendBeacon returns false', async () => {
@@ -234,7 +234,7 @@ describe('useSessionHeartbeat contract (no React renderer)', () => {
     const pagehide = windowListeners.find(l => l.event === 'pagehide')!.handler;
     pagehide();
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/game/heartbeat',
+      '/api/game/session/heartbeat',
       expect.objectContaining({ method: 'DELETE', keepalive: true }),
     );
   });

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useGameStore } from '@/lib/game/store';
+import { useGameStore } from '@/lib/game/state/store';
 import { CheckCircle, AlertTriangle, XCircle, Info, X } from 'lucide-react';
 
 interface ToastItem {

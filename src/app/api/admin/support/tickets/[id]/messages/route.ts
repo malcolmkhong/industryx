@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { verifyAdmin, withSecurityHeaders } from "@/lib/auth/admin";
+import { requireAdminWrite } from "@/lib/auth/admin-route-guards";
+import { logAdminAction } from "@/lib/auth/admin-helpers";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 
 interface RouteContext {
@@ -9,6 +11,9 @@ interface RouteContext {
 export async function POST(request: NextRequest, context: RouteContext) {
   const authResult = await verifyAdmin();
   if ("error" in authResult) return authResult.error;
+
+  const writeError = await requireAdminWrite(authResult.admin);
+  if (writeError) return writeError;
 
   const { id } = await context.params;
 
@@ -55,6 +60,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     const response = NextResponse.json({ data: msg }, { status: 201 });
+    await logAdminAction({
+      adminId: authResult.admin.id,
+      actionType: "support.send_message",
+      details: { ticket_id: id },
+    });
     return withSecurityHeaders(response);
   } catch (err) {
     console.error("[Admin/Support] Error sending message:", err);

@@ -1,7 +1,7 @@
 /**
- * tests/api/auth/me.test.ts
+ * tests/api/auth/session/me.test.ts
  *
- * Tests for GET /api/auth/me — returns current user info.
+ * Tests for GET /api/auth/session/me — returns current user info.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -11,15 +11,15 @@ import { mockSupabaseServer } from '../../unit/mocks/supabase';
 vi.mock('@/lib/supabase/server', () => mockSupabaseServer());
 
 // Import AFTER mock
-import { GET } from '@/app/api/auth/me/route';
+import { GET } from '@/app/api/auth/session/me/route';
 
-describe('GET /api/auth/me', () => {
+describe('GET /api/auth/session/me', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('returns 401 when no user in session', async () => {
-    const req = buildRequest({ url: '/api/auth/me' });
+    const req = buildRequest({ url: '/api/auth/session/me' });
     const res = await GET();
     expect(res.status).toBe(401);
     const body = await readJson<{ error?: string }>(res);
@@ -44,7 +44,7 @@ describe('GET /api/auth/me', () => {
         isSupabaseConfigured: () => true,
       };
     });
-    const fresh = await import('@/app/api/auth/me/route');
+    const fresh = await import('@/app/api/auth/session/me/route');
     const res = await fresh.GET();
     expect(res.status).toBe(401);
     vi.doUnmock('@/lib/supabase/server');
@@ -76,7 +76,7 @@ describe('GET /api/auth/me', () => {
         isSupabaseConfigured: () => true,
       };
     });
-    const fresh = await import('@/app/api/auth/me/route');
+    const fresh = await import('@/app/api/auth/session/me/route');
     const res = await fresh.GET();
     expect(res.status).toBe(200);
     const body = await readJson<any>(res);
@@ -113,7 +113,7 @@ describe('GET /api/auth/me', () => {
         isSupabaseConfigured: () => true,
       };
     });
-    const fresh = await import('@/app/api/auth/me/route');
+    const fresh = await import('@/app/api/auth/session/me/route');
     const res = await fresh.GET();
     expect(res.status).toBe(200);
     const body = await readJson<any>(res);
@@ -137,7 +137,7 @@ describe('GET /api/auth/me', () => {
         isSupabaseConfigured: () => true,
       };
     });
-    const fresh = await import('@/app/api/auth/me/route');
+    const fresh = await import('@/app/api/auth/session/me/route');
     const res = await fresh.GET();
     expect(res.status).toBe(500);
     vi.doUnmock('@/lib/supabase/server');

@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { verifyAdmin, withSecurityHeaders } from "@/lib/auth/admin";
+import { requireAdminWrite } from "@/lib/auth/admin-route-guards";
+import { logAdminAction } from "@/lib/auth/admin-helpers";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 
 interface RouteContext {
@@ -41,6 +43,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
   const authResult = await verifyAdmin();
   if ("error" in authResult) return authResult.error;
 
+  const writeError = await requireAdminWrite(authResult.admin);
+  if (writeError) return writeError;
+
   const { id } = await context.params;
 
   try {
@@ -79,6 +84,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
         message: "Ticket accepted — an admin will assist you shortly.",
       });
 
+      await logAdminAction({
+        adminId: authResult.admin.id,
+        actionType: "support.accept_ticket",
+        details: { ticket_id: id },
+      });
+
       return withSecurityHeaders(NextResponse.json({ success: true, status: "accepted" }));
     }
 
@@ -107,6 +118,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
         sender_id: authResult.admin.id,
         sender_type: "admin",
         message: "Ticket resolved.",
+      });
+
+      await logAdminAction({
+        adminId: authResult.admin.id,
+        actionType: "support.resolve_ticket",
+        details: { ticket_id: id },
       });
 
       return withSecurityHeaders(NextResponse.json({ success: true, status: "resolved" }));

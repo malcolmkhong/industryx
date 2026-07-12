@@ -1,7 +1,7 @@
 /**
- * tests/api/news-llm.test.ts
+ * tests/api/market/news/llm.test.ts
  *
- * Tests for POST /api/news-llm (proxy to Cloudflare newsgenerator worker).
+ * Tests for POST /api/market/news/llm (proxy to Cloudflare newsgenerator worker).
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -10,13 +10,13 @@ import { mockSupabaseServer } from '../unit/mocks/supabase';
 
 vi.mock('@/lib/supabase/server', () => mockSupabaseServer());
 
-import { POST } from '@/app/api/news-llm/route';
+import { POST } from '@/app/api/market/news/llm/route';
 
-describe('POST /api/news-llm', () => {
+describe('POST /api/market/news/llm', () => {
   it('returns 400 on missing events array', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/news-llm',
+      url: '/api/market/news/llm',
       body: {},
     });
     const res = await POST(req);
@@ -26,7 +26,7 @@ describe('POST /api/news-llm', () => {
   it('returns 400 on empty events array', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/news-llm',
+      url: '/api/market/news/llm',
       body: { events: [] },
     });
     const res = await POST(req);

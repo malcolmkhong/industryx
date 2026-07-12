@@ -1,7 +1,7 @@
 /**
- * tests/api/auth/confirm-link.test.ts
+ * tests/api/auth/identity/confirm-link.test.ts
  *
- * Boundary + auth tests for POST /api/auth/confirm-link.
+ * Boundary + auth tests for POST /api/auth/identity/confirm-link.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -24,9 +24,9 @@ vi.mock("@/lib/auth/verifyAuth", () => ({
   }),
 }));
 
-import { POST } from "@/app/api/auth/confirm-link/route";
+import { POST } from "@/app/api/auth/identity/confirm-link/route";
 
-describe("POST /api/auth/confirm-link", () => {
+describe("POST /api/auth/identity/confirm-link", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -34,7 +34,7 @@ describe("POST /api/auth/confirm-link", () => {
   it("returns 400 when operationId is missing", async () => {
     const req = buildRequest({
       method: "POST",
-      url: "/api/auth/confirm-link",
+      url: "/api/auth/identity/confirm-link",
       body: { idempotencyKey: "key-1", preference: "keep_guest" },
     });
     const res = await POST(req);
@@ -46,7 +46,7 @@ describe("POST /api/auth/confirm-link", () => {
   it("returns 400 when idempotencyKey is missing", async () => {
     const req = buildRequest({
       method: "POST",
-      url: "/api/auth/confirm-link",
+      url: "/api/auth/identity/confirm-link",
       body: { operationId: "op-1", preference: "keep_guest" },
     });
     const res = await POST(req);
@@ -63,7 +63,7 @@ describe("POST /api/auth/confirm-link", () => {
   it("does NOT fail on preference validation when preference is missing", async () => {
     const req = buildRequest({
       method: "POST",
-      url: "/api/auth/confirm-link",
+      url: "/api/auth/identity/confirm-link",
       body: { operationId: "op-1", idempotencyKey: "key-1" },
     });
     const res = await POST(req);
@@ -76,7 +76,7 @@ describe("POST /api/auth/confirm-link", () => {
   it("does NOT fail on preference validation when preference is junk", async () => {
     const req = buildRequest({
       method: "POST",
-      url: "/api/auth/confirm-link",
+      url: "/api/auth/identity/confirm-link",
       body: {
         operationId: "op-1",
         idempotencyKey: "key-1",
@@ -96,7 +96,7 @@ describe("POST /api/auth/confirm-link", () => {
     });
     const req = buildRequest({
       method: "POST",
-      url: "/api/auth/confirm-link",
+      url: "/api/auth/identity/confirm-link",
       body: {
         operationId: "op-1",
         idempotencyKey: "key-1",

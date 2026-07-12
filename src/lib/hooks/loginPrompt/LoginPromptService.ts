@@ -10,9 +10,9 @@
  * Dismissal persistence stays in localStorage (must survive reload).
  */
 
-import { useGameStore } from '@/lib/game/store';
+import { useGameStore } from '@/lib/game/state/store';
 import type { LoginPromptReason } from '@/components/game/LoginFloatingPanel';
-import type { GameTab } from '@/lib/game/types';
+import type { GameTab } from '@/lib/game/shared/types/types';
 
 const PROGRESS_MILESTONE_TICKS = 5000;
 const PRESTIGE_THRESHOLD = 1_000_000;

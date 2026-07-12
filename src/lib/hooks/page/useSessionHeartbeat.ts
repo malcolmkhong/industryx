@@ -3,16 +3,16 @@
 // ============================================
 // useSessionHeartbeat
 // ============================================
-// Wires the existing /api/game/heartbeat endpoint to the client so the
+// Wires the existing /api/game/session/heartbeat endpoint to the client so the
 // server actually tracks online/offline status.
 //
 // Three lifecycle signals feed the server:
 //   1. Every 30 s while the tab is visible and the user is authenticated,
-//      POST /api/game/heartbeat with the latest gameTick/money/paused/speed
+//      POST /api/game/session/heartbeat with the latest gameTick/money/paused/speed
 //      → upserts player_sessions.is_online=true. It does not advance
 //      server_game_state.last_tick_at; tick settlement owns that cursor.
 //   2. On pagehide (tab close, navigation, refresh), best-effort
-//      DELETE /api/game/heartbeat via navigator.sendBeacon.
+//      DELETE /api/game/session/heartbeat via navigator.sendBeacon.
 //      sendBeacon is the standard, browser-supported way to fire
 //      a final request during unload — fetch+keepalive is unreliable
 //      on actual tab close (Chrome throttles/loses it).
@@ -38,7 +38,7 @@
 
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useGameStore } from "@/lib/game/store";
+import { useGameStore } from "@/lib/game/state/store";
 
 const POST_INTERVAL_MS = 30_000;
 const VISIBILITY_HIDDEN_MS_THRESHOLD = 5 * 60_000; // 5 min
@@ -76,7 +76,7 @@ export function useSessionHeartbeat(): void {
       if (cancelled) return;
       if (document.visibilityState !== "visible") return; // don't ping while tab hidden
       try {
-        const r = await fetch("/api/game/heartbeat", {
+        const r = await fetch("/api/game/session/heartbeat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(collectPayload()),
@@ -98,11 +98,11 @@ export function useSessionHeartbeat(): void {
       // Empty body is fine — DELETE handler does not need fields.
       try {
         const blob = new Blob([""], { type: "application/json" });
-        const ok = navigator.sendBeacon("/api/game/heartbeat", blob);
+        const ok = navigator.sendBeacon("/api/game/session/heartbeat", blob);
         if (!ok) {
           // Fallback for browsers that throttle / drop the beacon.
           // Use fetch+keepalive; the request may or may not survive unload.
-          void fetch("/api/game/heartbeat", {
+          void fetch("/api/game/session/heartbeat", {
             method: "DELETE",
             credentials: "same-origin",
             keepalive: true,
@@ -110,7 +110,7 @@ export function useSessionHeartbeat(): void {
         }
       } catch {
         // Older browsers without sendBeacon — best-effort fetch fallback.
-        void fetch("/api/game/heartbeat", {
+        void fetch("/api/game/session/heartbeat", {
           method: "DELETE",
           credentials: "same-origin",
           keepalive: true,

@@ -1,7 +1,7 @@
 /**
- * tests/api/game/heartbeat.test.ts
+ * tests/api/game/session/heartbeat.test.ts
  *
- * Boundary + auth tests for POST /api/game/heartbeat.
+ * Boundary + auth tests for POST /api/game/session/heartbeat.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -17,9 +17,9 @@ vi.mock('@/lib/auth/verifyAuth', () => ({
   verifyAuth: vi.fn().mockResolvedValue({ success: true, userId: 'user-1', email: 'test@example.com' }),
 }));
 
-import { POST } from '@/app/api/game/heartbeat/route';
+import { POST } from '@/app/api/game/session/heartbeat/route';
 
-describe('POST /api/game/heartbeat', () => {
+describe('POST /api/game/session/heartbeat', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -27,12 +27,12 @@ describe('POST /api/game/heartbeat', () => {
   it('returns 400 on invalid JSON body', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/game/heartbeat',
+      url: '/api/game/session/heartbeat',
       body: undefined,
     });
     // Override to send invalid body by using text
     const { NextRequest } = await import('next/server');
-    const badReq = new NextRequest('http://localhost:3000/api/game/heartbeat', {
+    const badReq = new NextRequest('http://localhost:3000/api/game/session/heartbeat', {
       method: 'POST',
       body: 'not-json',
       headers: { 'content-type': 'application/json' },
@@ -51,7 +51,7 @@ describe('POST /api/game/heartbeat', () => {
     });
     const req = buildRequest({
       method: 'POST',
-      url: '/api/game/heartbeat',
+      url: '/api/game/session/heartbeat',
       body: { gameTick: 100, money: 1000, paused: false, gameSpeed: 1 },
     });
     const res = await POST(req);
@@ -66,10 +66,10 @@ describe('POST /api/game/heartbeat', () => {
       isServiceRoleConfigured: () => false,
       isSupabaseConfigured: () => false,
     }));
-    const fresh = await import('@/app/api/game/heartbeat/route');
+    const fresh = await import('@/app/api/game/session/heartbeat/route');
     const req = buildRequest({
       method: 'POST',
-      url: '/api/game/heartbeat',
+      url: '/api/game/session/heartbeat',
       body: { gameTick: 100, money: 1000, paused: false, gameSpeed: 1 },
     });
     const res = await fresh.POST(req);

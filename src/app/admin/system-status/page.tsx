@@ -81,7 +81,7 @@ export default function SystemStatusPage() {
   const fetchStatus = useCallback(async () => {
     try {
       setRefreshing(true);
-      const res = await fetch('/api/admin/system-status');
+      const res = await fetch('/api/admin/system/status');
       if (res.ok) {
         setData(await res.json());
       }

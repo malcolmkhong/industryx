@@ -1,7 +1,7 @@
 /**
- * tests/api/leaderboard.test.ts
+ * tests/api/game/leaderboard.test.ts
  *
- * Tests for GET /api/leaderboard + POST /api/leaderboard/submit.
+ * Tests for GET /api/game/leaderboard + POST /api/game/leaderboard/submit.
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -10,22 +10,22 @@ import { mockSupabaseServer } from '../unit/mocks/supabase';
 
 vi.mock('@/lib/supabase/server', () => mockSupabaseServer());
 
-import { GET } from '@/app/api/leaderboard/route';
-import { POST as submitScore } from '@/app/api/leaderboard/submit/route';
+import { GET } from '@/app/api/game/leaderboard/route';
+import { POST as submitScore } from '@/app/api/game/leaderboard/submit/route';
 
-describe('GET /api/leaderboard', () => {
+describe('GET /api/game/leaderboard', () => {
   it('returns 401 when not authenticated', async () => {
-    const req = buildRequest({ method: 'GET', url: '/api/leaderboard' });
+    const req = buildRequest({ method: 'GET', url: '/api/game/leaderboard' });
     const res = await GET(req);
     expect(res.status).toBe(401);
   });
 });
 
-describe('POST /api/leaderboard/submit', () => {
+describe('POST /api/game/leaderboard/submit', () => {
   it('returns 401 when not authenticated', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/leaderboard/submit',
+      url: '/api/game/leaderboard/submit',
       body: { score: 1000 },
     });
     const res = await submitScore(req);
@@ -35,7 +35,7 @@ describe('POST /api/leaderboard/submit', () => {
   it('returns 400 on missing score', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/leaderboard/submit',
+      url: '/api/game/leaderboard/submit',
       body: { userId: 'user-1' },
     });
     const res = await submitScore(req);

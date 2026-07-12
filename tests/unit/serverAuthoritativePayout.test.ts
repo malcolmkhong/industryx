@@ -12,8 +12,8 @@
 // ============================================
 
 import { describe, it, expect } from "vitest";
-import { validateCollectPayoutAction } from "@/lib/game/serverEngine";
-import type { GameState } from "@/lib/game/types";
+import { validateCollectPayoutAction } from "@/lib/game/production/engine/serverEngine";
+import type { GameState } from "@/lib/game/shared/types/types";
 
 function makeState(overrides?: {
   money?: number;

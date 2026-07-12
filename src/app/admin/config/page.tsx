@@ -105,7 +105,7 @@ export default function ConfigTablesPage() {
     const fetchTables = async () => {
       try {
         setTableListLoading(true);
-        const res = await fetch("/api/tables");
+        const res = await fetch("/api/admin/database/tables");
         if (!res.ok) throw new Error("Failed to fetch tables");
         const data = await res.json();
         setCategories(data.categories || []);
@@ -151,7 +151,7 @@ export default function ConfigTablesPage() {
         params.set("search", searchDebounced);
       }
 
-      const res = await fetch(`/api/config/${selectedTable}?${params}`);
+      const res = await fetch(`/api/admin/config/${selectedTable}?${params}`);
       if (!res.ok) {
         const errData = await res.json().catch(() => null);
         throw new Error(errData?.message || "Failed to fetch data");
@@ -292,7 +292,7 @@ export default function ConfigTablesPage() {
       }
 
       if (modalMode === "create") {
-        const res = await fetch(`/api/config/${selectedTable}`, {
+        const res = await fetch(`/api/admin/config/${selectedTable}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
@@ -305,7 +305,7 @@ export default function ConfigTablesPage() {
       } else if (modalMode === "edit" && currentRow) {
         const pk = tableConfig.primaryKey;
         const pkValue = String(currentRow[pk]);
-        const res = await fetch(`/api/config/${selectedTable}/${encodeURIComponent(pkValue)}`, {
+        const res = await fetch(`/api/admin/config/${selectedTable}/${encodeURIComponent(pkValue)}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
@@ -338,7 +338,7 @@ export default function ConfigTablesPage() {
       setDeleting(true);
       const pk = tableConfig.primaryKey;
       const pkValue = String(deleteTarget[pk]);
-      const res = await fetch(`/api/config/${selectedTable}/${encodeURIComponent(pkValue)}`, {
+      const res = await fetch(`/api/admin/config/${selectedTable}/${encodeURIComponent(pkValue)}`, {
         method: "DELETE",
       });
       if (!res.ok) {
@@ -360,7 +360,7 @@ export default function ConfigTablesPage() {
 
   const refreshTableCounts = useCallback(async () => {
     try {
-      const res = await fetch("/api/tables");
+      const res = await fetch("/api/admin/database/tables");
       if (res.ok) {
         const data = await res.json();
         setCategories(data.categories || []);

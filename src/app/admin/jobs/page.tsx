@@ -44,7 +44,7 @@ export default function JobsPage() {
 
   const fetchJobs = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/jobs');
+      const res = await fetch('/api/admin/system/jobs');
       if (res.ok) {
         const data = await res.json();
         setJobs(data.jobs || []);

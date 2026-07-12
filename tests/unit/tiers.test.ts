@@ -2,10 +2,10 @@
  * Tier Centralization Architecture Test
  *
  * Ensures no panel re-introduces hardcoded tier arrays that bypass the
- * central tier module (`@/lib/game/tiers`).
+ * central tier module (`@/lib/game/progression/tiers`).
  *
  * Tier progression in IndustryaX is 0–5 (Startup → Transcendent).
- * The canonical source of truth is `src/lib/game/tiers.ts` which exports:
+ * The canonical source of truth is `src/lib/game/progression/tiers.ts` which exports:
  *   - TIER_INFO (array of 6 TierInfo objects)
  *   - MAX_TIER (number)
  *   - ALL_TIERS (number[] = [0,1,2,3,4,5])
@@ -30,7 +30,7 @@ import {
   getTierColor,
   getTierInfo,
   isValidTier,
-} from '@/lib/game/tiers';
+} from '@/lib/game/progression/tiers';
 
 const COMPONENTS_DIR = join(process.cwd(), 'src', 'components', 'game');
 const GAME_DIR = join(process.cwd(), 'src', 'lib', 'game');
@@ -114,7 +114,7 @@ describe('Tier Centralization SSOT', () => {
           .map(o => `  ${o.file}:${o.line} → ${o.text}`)
           .join('\n');
         throw new Error(
-          `Hardcoded tier arrays found. Use ALL_TIERS from '@/lib/game/tiers' instead:\n${msg}`,
+          `Hardcoded tier arrays found. Use ALL_TIERS from '@/lib/game/progression/tiers' instead:\n${msg}`,
         );
       }
       expect(OFFENDERS).toEqual([]);

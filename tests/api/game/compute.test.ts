@@ -1,7 +1,7 @@
 /**
- * tests/api/game/compute.test.ts
+ * tests/api/game/production/compute.test.ts
  *
- * Boundary + auth tests for POST /api/game/compute.
+ * Boundary + auth tests for POST /api/game/production/compute.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -17,9 +17,9 @@ vi.mock('@/lib/auth/verifyAuth', () => ({
   verifyAuth: vi.fn().mockResolvedValue({ success: true, userId: 'user-1', email: 'test@example.com' }),
 }));
 
-import { POST } from '@/app/api/game/compute/route';
+import { POST } from '@/app/api/game/production/compute/route';
 
-describe('POST /api/game/compute', () => {
+describe('POST /api/game/production/compute', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -27,7 +27,7 @@ describe('POST /api/game/compute', () => {
   it('returns 403 when userId does not match authenticated user', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/game/compute',
+      url: '/api/game/production/compute',
       body: { userId: 'different-user', ticks: 10, gameState: {} },
     });
     const res = await POST(req);
@@ -37,7 +37,7 @@ describe('POST /api/game/compute', () => {
   it('returns 400 when ticks is missing', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/game/compute',
+      url: '/api/game/production/compute',
       body: { userId: 'user-1', gameState: {} },
     });
     const res = await POST(req);
@@ -52,7 +52,7 @@ describe('POST /api/game/compute', () => {
     });
     const req = buildRequest({
       method: 'POST',
-      url: '/api/game/compute',
+      url: '/api/game/production/compute',
       body: { userId: 'user-1', ticks: 10, gameState: {} },
     });
     const res = await POST(req);

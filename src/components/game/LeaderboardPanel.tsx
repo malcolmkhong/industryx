@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { formatNumber } from '@/lib/game/store';
-import { RANK_THRESHOLDS } from '@/lib/game/configCache';
+import { formatNumber } from '@/lib/game/state/store';
+import { RANK_THRESHOLDS } from '@/lib/game/config/configCache';
 import { Trophy, ChevronDown, ChevronUp, Building2, FlaskConical, ScrollText, Coins, Clock, RotateCcw, Loader2, RefreshCw, Crown, Medal, Award, Globe, LogIn, WifiOff } from 'lucide-react';
 import { GameIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
@@ -101,7 +101,7 @@ export default function LeaderboardPanel() {
         params.set('userId', user.id);
       }
 
-      const response = await fetch(`/api/leaderboard?${params}`);
+      const response = await fetch(`/api/game/leaderboard?${params}`);
       if (!response.ok) {
         throw new Error(`Failed to load leaderboard (${response.status})`);
       }

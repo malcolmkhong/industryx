@@ -54,7 +54,7 @@ export interface ListPlayerActionsResult {
 
 /**
  * Filtered, paginated player-actions query for admin actions log.
- * Used by /api/admin/actions.
+ * Used by /api/admin/audit/player-actions.
  */
 export async function listPlayerActionsWithFilters(
   page: number,

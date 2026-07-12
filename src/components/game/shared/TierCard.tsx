@@ -5,7 +5,7 @@ import { Sparkles } from 'lucide-react';
 import { GameIcon } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { formatNumber } from '@/lib/game/store';
+import { formatNumber } from '@/lib/game/state/store';
 import { ColoredProgressBar } from './ColoredProgressBar';
 
 type TierColorKey = 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond';

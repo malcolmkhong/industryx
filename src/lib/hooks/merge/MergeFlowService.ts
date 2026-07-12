@@ -23,7 +23,7 @@ const IDEMPOTENCY_PREFIX = "merge-";
 
 /**
  * Kept for type export only. Auth always wins; there is no user choice.
- * See `confirmMerge()` (now no-arg) and /api/auth/confirm-link.
+ * See `confirmMerge()` (now no-arg) and /api/auth/identity/confirm-link.
  */
 export type MergePreference = "auth_wins";
 
@@ -159,7 +159,7 @@ export class MergeFlowService {
       const fingerprintHash = await getFingerprint();
       const userAgent =
         typeof navigator !== "undefined" ? navigator.userAgent : null;
-      const res = await fetch("/api/auth/link-identity", {
+      const res = await fetch("/api/auth/identity/link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -226,7 +226,7 @@ export class MergeFlowService {
 
     try {
       const fingerprintHash = await getFingerprint();
-      const res = await fetch("/api/auth/confirm-link", {
+      const res = await fetch("/api/auth/identity/confirm-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

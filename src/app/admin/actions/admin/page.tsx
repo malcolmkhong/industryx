@@ -115,7 +115,7 @@ export default function AdminAuditPage() {
       if (filterDateFrom) params.set("date_from", filterDateFrom);
       if (filterDateTo) params.set("date_to", filterDateTo);
 
-      const res = await fetch(`/api/admin/admin-actions?${params}`);
+      const res = await fetch(`/api/admin/audit/admin-actions?${params}`);
       if (!res.ok) {
         const errData = await res.json().catch(() => null);
         throw new Error(errData?.message || "Failed to fetch admin actions");

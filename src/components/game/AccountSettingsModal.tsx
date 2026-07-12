@@ -42,7 +42,7 @@ export function AccountSettingsModal({ open, onClose, onSignOut }: AccountSettin
     setSuccess(null);
 
     try {
-      const res = await fetch('/api/auth/update-profile', {
+      const res = await fetch('/api/auth/profile/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

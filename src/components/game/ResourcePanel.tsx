@@ -2,8 +2,8 @@
 
 import { useMemo, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked, hasUnlimitedStorage } from '@/lib/game/store';
-import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE } from '@/lib/game/configCache';
+import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked, hasUnlimitedStorage } from '@/lib/game/state/store';
+import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE } from '@/lib/game/config/configCache';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -13,8 +13,8 @@ import {
   ArrowUpFromLine, Workflow, Gauge, X,
 } from 'lucide-react';
 import ResourceFlowDiagram from '@/components/game/ResourceFlowDiagram';
-import type { ResourceType, ExtractorType } from "@/lib/game/types";
-import { getExtractorTypes, getBasicExtractors, getAdvancedExtractors, getSpecializedExtractors } from '@/lib/game/buildingDiscovery';
+import type { ResourceType, ExtractorType } from "@/lib/game/shared/types/types";
+import { getExtractorTypes, getBasicExtractors, getAdvancedExtractors, getSpecializedExtractors } from '@/lib/game/buildings/buildingDiscovery';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
 import { getTierColorClasses, type TierColor } from '@/components/game/shared/tierColors';

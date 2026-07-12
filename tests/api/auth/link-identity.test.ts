@@ -1,7 +1,7 @@
 /**
- * tests/api/auth/link-identity.test.ts
+ * tests/api/auth/identity/link.test.ts
  *
- * Boundary + auth tests for POST /api/auth/link-identity.
+ * Boundary + auth tests for POST /api/auth/identity/link.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -17,9 +17,9 @@ vi.mock('@/lib/auth/verifyAuth', () => ({
   verifyAuth: vi.fn().mockResolvedValue({ success: true, userId: 'user-1', email: 'test@example.com' }),
 }));
 
-import { POST } from '@/app/api/auth/link-identity/route';
+import { POST } from '@/app/api/auth/identity/link/route';
 
-describe('POST /api/auth/link-identity', () => {
+describe('POST /api/auth/identity/link', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -27,7 +27,7 @@ describe('POST /api/auth/link-identity', () => {
   it('returns 400 when idempotencyKey is missing', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/auth/link-identity',
+      url: '/api/auth/identity/link',
       body: { deviceId: 'test-device' },
     });
     const res = await POST(req);
@@ -45,7 +45,7 @@ describe('POST /api/auth/link-identity', () => {
     });
     const req = buildRequest({
       method: 'POST',
-      url: '/api/auth/link-identity',
+      url: '/api/auth/identity/link',
       body: { idempotencyKey: 'key-1' },
     });
     const res = await POST(req);
@@ -62,7 +62,7 @@ describe('POST /api/auth/link-identity', () => {
     });
     const req = buildRequest({
       method: 'POST',
-      url: '/api/auth/link-identity',
+      url: '/api/auth/identity/link',
       body: { idempotencyKey: 'key-1' },
     });
     const res = await POST(req);

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { useGameStore } from '@/lib/game/store';
+import { useGameStore } from '@/lib/game/state/store';
 import { useShallow } from 'zustand/react/shallow';
 import { Button } from '@/components/ui/button';
 import { Bell, Check, CheckCheck, Trash2, Filter } from 'lucide-react';

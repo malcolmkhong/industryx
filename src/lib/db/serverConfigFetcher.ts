@@ -4,14 +4,14 @@
 // - Next.js API routes (returns GameConfig JSON to clients)
 // - Server-side validators / cron (loads into in-process configCache)
 //
-// Why shared: the existing /api/game/definitions route hand-rolled the 18
+// Why shared: the existing /api/game/config/definitions route hand-rolled the 18
 // parallel safeFetchTable calls + transform funcs. The server-side loader
 // needed the same data, so this module factors that out so we have ONE
 // place to maintain the SQL surface area.
 //
 // Server-authoritative invariant: this module ALWAYS talks to Supabase
 // directly via the service-role client — never via a self-redirect to
-// /api/game/definitions, which would add latency + cache-confusion risks.
+// /api/game/config/definitions, which would add latency + cache-confusion risks.
 // ============================================
 
 import { createServiceRoleClient } from "@/lib/supabase/server";
@@ -37,7 +37,7 @@ import {
   type SupabaseGameConfig,
   type SupabaseBalancingRule,
   type GameConfig,
-} from "@/lib/game/config";
+} from "@/lib/game/config/config";
 
 /** Shape of a row in the `game_config_balance` table.
  *  Only the keys the client needs are mapped here. Server-side code
@@ -53,7 +53,7 @@ import type {
   ResourceAmount,
   ResourceType,
   CostResourceType,
-} from "@/lib/game/types";
+} from "@/lib/game/shared/types/types";
 
 // ─── Safe Fetch Helper (moved verbatim from route.ts) ──────────────────
 
@@ -106,7 +106,7 @@ async function safeFetchTable<T>(
   }
 }
 
-// ─── Transforms (moved verbatim from /api/game/definitions/route.ts) ───
+// ─── Transforms (moved verbatim from /api/game/config/definitions/route.ts) ───
 
 const ID_MIGRATION_MAP: Record<string, string | string[]> = {
   miningDrill: "ironMine",
@@ -312,7 +312,7 @@ export interface FetchConfigResult {
  *   if some non-critical tables failed. Callers may continue with partial data.
  *
  * Note: behavior is intentionally equivalent to the previous
- * /api/game/definitions handler — refactor moves SQL surface area only.
+ * /api/game/config/definitions handler — refactor moves SQL surface area only.
  */
 export async function fetchGameConfigFromSupabase(): Promise<FetchConfigResult> {
   const supabase = createServiceRoleClient();

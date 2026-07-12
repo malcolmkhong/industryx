@@ -14,7 +14,7 @@ import { describe, it, expect, vi } from "vitest";
 // Mock configLoader BEFORE importing the validator (vitest hoists vi.mock
 // to the top, but importing @/lib/auth/gameStateValidator below triggers
 // an eager `ensureConfigLoaded` chain in `validateGameState`).
-vi.mock("@/lib/game/configLoader.server", () => ({
+vi.mock("@/lib/game/config/server/configLoader.server", () => ({
   ensureConfigLoaded: vi.fn().mockResolvedValue({
     ok: true,
     config: { buildings: {}, workers: {} },

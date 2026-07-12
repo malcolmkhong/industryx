@@ -1,8 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useGameStore, formatNumber } from '@/lib/game/store';
-import { WORKER_DEFS, BUILDING_DEFS } from '@/lib/game/configCache';
+import { useGameStore, formatNumber } from '@/lib/game/state/store';
+import { WORKER_DEFS, BUILDING_DEFS } from '@/lib/game/config/configCache';
 import { useGameConfig } from '@/components/providers/GameConfigProvider';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,7 @@ import {
   Wrench, Bot, Shield, X, BarChart3,
   Zap, TrendingUp
 } from 'lucide-react';
-import type { WorkerType } from "@/lib/game/types";
+import type { WorkerType } from "@/lib/game/shared/types/types";
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { LoadingSpinner } from '@/components/game/shared/LoadingSpinner';
 import { GameIcon } from '@/components/icons';

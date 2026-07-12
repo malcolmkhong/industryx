@@ -3,9 +3,9 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { GameTab } from "@/lib/game/types";
+import type { GameTab } from "@/lib/game/shared/types/types";
 import { NAV_GROUPS, getGroupForTab } from "@/components/game/GameSidebar";
-import { useSettingsStore, type BottomNavMode } from "@/lib/game/settingsStore";
+import { useSettingsStore, type BottomNavMode } from "@/lib/game/settings/settingsStore";
 import { useTabChange } from "@/lib/hooks/page/useTabChange";
 import { motion, AnimatePresence } from "framer-motion";
 import {

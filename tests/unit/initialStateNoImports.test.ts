@@ -13,9 +13,9 @@
  * Allowed locations:
  *   - src/lib/db/initialState.server.ts        (the server helper itself,
  *     where comments mention the old client shape for historical context)
- *   - src/lib/game/actions/prestige.ts          (historical comment about
+ *   - src/lib/game/state/store-actions/prestige.ts (historical comment about
  *     the old pattern that was removed; the comment is informational only)
- *   - src/lib/game/serverEngine.ts              (historical comment in
+ *   - src/lib/game/production/engine/serverEngine.ts (historical comment in
  *     validatePrestigeAction docstring)
  *   - tests/unit/initialStateNoImports.test.ts (this file — references
  *     itself in ignore list)
@@ -39,8 +39,8 @@ const ALLOWED_FILES = new Set<string>([
   // The server helper itself — historical context in docblock.
   'src/lib/db/initialState.server.ts',
   // Phase 12 removal notes in client-side code (informational comments only).
-  'src/lib/game/actions/prestige.ts',
-  'src/lib/game/serverEngine.ts',
+  'src/lib/game/state/store-actions/prestige.ts',
+  'src/lib/game/production/engine/serverEngine.ts',
   // This guard.
   'tests/unit/initialStateNoImports.test.ts',
 ]);

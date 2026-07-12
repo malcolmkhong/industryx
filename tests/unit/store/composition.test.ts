@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { ResourceType } from '@/lib/game/types';
+import type { ResourceType } from '@/lib/game/shared/types/types';
 
 const HOIST_BUILDING_DEFS = vi.hoisted((): Record<string, Record<string, unknown>> => ({}));
 const HOIST_WEEKLY_REWARDS = vi.hoisted((): Record<string, unknown>[] => ([]));
@@ -14,14 +14,14 @@ vi.mock('@/lib/supabase/server', () => ({
   isSupabaseConfigured: vi.fn(() => false),
 }));
 
-vi.mock('@/lib/game/newsLLM', () => ({
+vi.mock('@/lib/game/market/news/newsLLM', () => ({
   initNewsLLM: vi.fn(async () => {}),
   registerUpdateCallback: vi.fn(),
   getLLMState: vi.fn(() => ({ initialized: false, pendingItems: [], callbacks: [] })),
   LLMEngineState: {},
 }));
 
-vi.mock('@/lib/game/productionCalculator', () => ({
+vi.mock('@/lib/game/production/productionCalculator', () => ({
   buildMultipliers: vi.fn(() => ({
     extractorBonus: 0, factoryBonus: 0, t1FactoryBonus: 0, t2FactoryBonus: 0, t3FactoryBonus: 0,
     weatherProduction: 1, eventProductionGlobal: 1, eventResearch: 1,
@@ -46,7 +46,7 @@ vi.mock('@/lib/game/productionCalculator', () => ({
   emptyProductionSnapshot: vi.fn(() => ({ production: {}, consumption: {}, actualConsumption: {}, buildings: {}, powerProduction: 0, powerConsumption: 0, powerEfficiency: 1, powerOverload: false, payoutPerCycle: 0, payoutBreakdown: { extractors: 0, factories: 0, power: 0 }, sellMultiplier: 0.5, endgameMoney: 0, endgameResearch: 0, endgameCorp: 0, moneyIncomeRate: 0, moneyExpenseRate: 0, rpIncomeRate: 0, rpExpenseRate: 0, cpIncomeRate: 0, cpExpenseRate: 0 })),
 }));
 
-vi.mock('@/lib/game/configCache', () => ({
+vi.mock('@/lib/game/config/configCache', () => ({
   BUILDING_DEFS: HOIST_BUILDING_DEFS,
   RESOURCE_META: {},
   WEATHER_DEFS: {},
@@ -66,7 +66,7 @@ vi.mock('@/lib/game/configCache', () => ({
   emptyProductionSnapshot: vi.fn(() => ({ production: {}, consumption: {}, actualConsumption: {}, buildings: {}, powerProduction: 0, powerConsumption: 0, powerEfficiency: 1, powerOverload: false, payoutPerCycle: 0, payoutBreakdown: { extractors: 0, factories: 0, power: 0 }, sellMultiplier: 0.5, endgameMoney: 0, endgameResearch: 0, endgameCorp: 0, moneyIncomeRate: 0, moneyExpenseRate: 0, rpIncomeRate: 0, rpExpenseRate: 0, cpIncomeRate: 0, cpExpenseRate: 0 })),
 }));
 
-vi.mock('@/lib/game/balanceConfig', () => ({
+vi.mock('@/lib/game/config/balance/balanceConfig', () => ({
   getBalance: vi.fn(() => ({
     storage: { upgradeCostExponent: 1.5, upgradeCapacityRatio: 0.5 },
     building: { upgradeEfficiencyGain: 0.1 },
@@ -84,15 +84,15 @@ vi.mock('@/lib/game/balanceConfig', () => ({
   })),
 }));
 
-vi.mock('@/lib/game/soundEngine', () => ({ soundEngine: { play: vi.fn() } }));
-vi.mock('@/lib/game/eventArchetypes', () => ({
+vi.mock('@/lib/game/audio/soundEngine', () => ({ soundEngine: { play: vi.fn() } }));
+vi.mock('@/lib/game/events/eventArchetypes', () => ({
   pickRandomArchetype: vi.fn(() => ({ id: 'test_event', name: 'Test Event', description: '', effects: [], icon: '' })),
   resolveArchetype: vi.fn(() => ({ name: 'Test', description: 'Testing', effects: [], icon: '' })),
 }));
-vi.mock('@/lib/game/idMigration', () => ({ migrateSaveBuildings: vi.fn((b: unknown) => b) }));
+vi.mock('@/lib/game/migration/idMigration', () => ({ migrateSaveBuildings: vi.fn((b: unknown) => b) }));
 
-import { useGameStore } from '@/lib/game/store';
-import type { GameStore } from '@/lib/game/store-types';
+import { useGameStore } from '@/lib/game/state/store';
+import type { GameStore } from '@/lib/game/state/store-types';
 
 function getStore() { return useGameStore.getState(); }
 function resetStore() { useGameStore.setState(useGameStore.getInitialState()); }

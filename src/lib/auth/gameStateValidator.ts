@@ -13,12 +13,12 @@ import {
 } from "@/lib/db/cheatInvestigations";
 // P2 refactor: Read BUILDING_DEFS from configCache (Supabase-backed live bindings)
 // rather than hardcoded data.ts defaults. Imports previously from `@/lib/game/data`.
-import { BUILDING_DEFS } from "@/lib/game/configCache";
+import { BUILDING_DEFS } from "@/lib/game/config/configCache";
 import {
   getGameLimits,
   VALID_RESOURCE_KEYS,
-} from "@/lib/game/balanceConfig";
-import { ensureConfigLoaded } from "@/lib/game/configLoader.server";
+} from "@/lib/game/config/balance/balanceConfig";
+import { ensureConfigLoaded } from "@/lib/game/config/server/configLoader.server";
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -46,7 +46,7 @@ interface AuditLogEntry {
 //
 // NOTE: GAME_LIMITS was previously re-exported here. It has been removed
 // in favor of `getGameLimits()` from balanceConfig (DB-backed).
-export { VALID_RESOURCE_KEYS } from "@/lib/game/balanceConfig";
+export { VALID_RESOURCE_KEYS } from "@/lib/game/config/balance/balanceConfig";
 
 // ─── HMAC Checksum ─────────────────────────────────────────────────────
 
@@ -514,7 +514,7 @@ export function validateAction(
  * Validate an imported save blob. Returns { valid: false } on any
  * server-side error. Never returns { valid: true } on errors.
  *
- * Used by /api/game/state POST handler when the request body matches
+ * Used by /api/game/state/sync POST handler when the request body matches
  * the import-save shape (explicit `import: true` flag).
  */
 export async function validateImportSaveOnServer(

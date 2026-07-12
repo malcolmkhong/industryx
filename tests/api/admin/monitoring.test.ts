@@ -1,7 +1,7 @@
 /**
- * tests/api/admin/monitoring.test.ts
+ * tests/api/admin/system/monitoring.test.ts
  *
- * Tests for GET /api/admin/monitoring (capacity + activity + infra metrics).
+ * Tests for GET /api/admin/system/monitoring (capacity + activity + infra metrics).
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -10,9 +10,9 @@ import { mockSupabaseServer } from '../../unit/mocks/supabase';
 
 vi.mock('@/lib/supabase/server', () => mockSupabaseServer());
 
-import { GET } from '@/app/api/admin/monitoring/route';
+import { GET } from '@/app/api/admin/system/monitoring/route';
 
-describe('GET /api/admin/monitoring', () => {
+describe('GET /api/admin/system/monitoring', () => {
   it('returns 401 when not authenticated', async () => {
     const res = await GET();
     expect([401, 403]).toContain(res.status);

@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { useGameStore, formatNumber } from '@/lib/game/store';
+import { useGameStore, formatNumber } from '@/lib/game/state/store';
 import { useShallow } from 'zustand/react/shallow';
-import { BUILDING_DEFS, PRODUCTION_CHAINS } from '@/lib/game/configCache';
-import { RESOURCE_META } from '@/lib/game/uiCatalog';
-import type { ResourceType } from "@/lib/game/types";
+import { BUILDING_DEFS, PRODUCTION_CHAINS } from '@/lib/game/config/configCache';
+import { RESOURCE_META } from '@/lib/game/catalog/ui/uiCatalog';
+import type { ResourceType } from "@/lib/game/shared/types/types";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

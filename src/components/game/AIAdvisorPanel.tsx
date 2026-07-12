@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/store';
+import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/state/store';
 import { useShallow } from 'zustand/react/shallow';
-import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE, PRODUCTION_CHAINS } from '@/lib/game/configCache';
+import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE, PRODUCTION_CHAINS } from '@/lib/game/config/configCache';
 import { useConfigVersion } from '@/components/providers/GameConfigProvider';
-import type { ResourceType, BuildingType, GameTab } from "@/lib/game/types";
+import type { ResourceType, BuildingType, GameTab } from "@/lib/game/shared/types/types";
 import { motion, AnimatePresence } from 'framer-motion';
 import { Brain, Zap, AlertTriangle, Lightbulb, TrendingUp, X, ChevronRight, Factory, Activity, Shield, FlaskConical, Package, ArrowUp, DollarSign, Link2, Power } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';

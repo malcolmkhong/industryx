@@ -6,10 +6,10 @@
  * is unreliable because admin.createUser doesn't set it).
  *
  * Locked features (API routes):
- *   - /api/game/trade
- *   - /api/game/trades
- *   - /api/leaderboard (GET)
- *   - /api/leaderboard/submit (POST)
+ *   - /api/market/trades/execute
+ *   - /api/market/trades/history
+ *   - /api/game/leaderboard (GET)
+ *   - /api/game/leaderboard/submit (POST)
  *
  * Flow:
  *   1. Fresh visitor → quickstart → guest with profile.is_guest = true
@@ -42,7 +42,7 @@ const fp = (seed: string) => `it-gate-fp-${seed}-${randomUUID()}`;
 const dev = (seed: string) => `it-gate-dev-${seed}-${randomUUID()}`;
 
 async function quickstart(deviceId: string, fingerprint: string) {
-  const r = await fetch(`${SERVER}/api/auth/quickstart`, {
+  const r = await fetch(`${SERVER}/api/auth/guest/quickstart`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ deviceId, fingerprint }),
@@ -79,9 +79,9 @@ async function postJson(
     "Content-Type": "application/json",
   };
   if (cookie) {
-    // /api/leaderboard/submit uses Authorization: Bearer (not cookie),
+    // /api/game/leaderboard/submit uses Authorization: Bearer (not cookie),
     // so prefer the access_token for that route specifically.
-    if (path.startsWith("/api/leaderboard/submit") && cookie.accessToken) {
+    if (path.startsWith("/api/game/leaderboard/submit") && cookie.accessToken) {
       headers.Authorization = `Bearer ${cookie.accessToken}`;
     } else if (cookie.cookieHeader) {
       headers.Cookie = cookie.cookieHeader;
@@ -106,7 +106,7 @@ async function getJson(
 ) {
   const headers: Record<string, string> = {};
   if (cookie) {
-    if (path.startsWith("/api/leaderboard/submit") && cookie.accessToken) {
+    if (path.startsWith("/api/game/leaderboard/submit") && cookie.accessToken) {
       headers.Authorization = `Bearer ${cookie.accessToken}`;
     } else if (cookie.cookieHeader) {
       headers.Cookie = cookie.cookieHeader;
@@ -161,7 +161,7 @@ describe("GUEST_GATED feature unlock on auth bind", () => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
     try {
-      const r = await fetch(`${SERVER}/api/auth/me`, {
+      const r = await fetch(`${SERVER}/api/auth/session/me`, {
         signal: AbortSignal.timeout(3000),
       });
       serverReachable = r.status > 0;
@@ -232,31 +232,31 @@ describe("GUEST_GATED feature unlock on auth bind", () => {
     // Sign a temp session so we can hit verifyAuth-protected routes
     const cookie = await getSessionFor(guestUserId);
 
-    // 2a. /api/game/trade → expect 403
+    // 2a. /api/market/trades/execute → expect 403
     const tradeRes = await postJson(
-      "/api/game/trade",
+      "/api/market/trades/execute",
       { resource: "iron", type: "buy", amount: 1 },
       cookie,
     );
     assert.equal(tradeRes.status, 403, "trade must be 403 for guest");
     assert.equal(tradeRes.body.code, "GUEST_GATED");
 
-    // 2b. /api/game/trades → expect 403
-    const tradesRes = await getJson("/api/game/trades", cookie);
+    // 2b. /api/market/trades/history → expect 403
+    const tradesRes = await getJson("/api/market/trades/history", cookie);
     assert.equal(tradesRes.status, 403, "trades history must be 403 for guest");
     assert.equal(tradesRes.body.code, "GUEST_GATED");
 
-    // 2c. /api/leaderboard/submit → expect 403
+    // 2c. /api/game/leaderboard/submit → expect 403
     const lbRes = await postJson(
-      "/api/leaderboard/submit",
+      "/api/game/leaderboard/submit",
       { userId: guestUserId, score: 100 },
       cookie,
     );
     assert.equal(lbRes.status, 403, "leaderboard submit must be 403 for guest");
     assert.equal(lbRes.body.code, "GUEST_GATED");
 
-    // 2d. /api/leaderboard GET → expect 403 (if gated)
-    const leaderboardRes = await getJson("/api/leaderboard", cookie);
+    // 2d. /api/game/leaderboard GET → expect 403 (if gated)
+    const leaderboardRes = await getJson("/api/game/leaderboard", cookie);
     // The leaderboard GET might be open for guests to view (just not submit)
     // so accept either 200 or 403 — but DO log if it's gated so we can audit.
     if (leaderboardRes.status === 403) {
@@ -302,9 +302,9 @@ describe("GUEST_GATED feature unlock on auth bind", () => {
     // 2. Sign in to obtain session cookie
     const cookie = await signInWithPasswordCookie(email, password);
 
-    // 3. /api/game/trade → expect non-403 (either 200 or some real response)
+    // 3. /api/market/trades/execute → expect non-403 (either 200 or some real response)
     const tradeRes = await postJson(
-      "/api/game/trade",
+      "/api/market/trades/execute",
       { resource: "iron", type: "buy", amount: 1 },
       cookie,
     );
@@ -357,7 +357,7 @@ describe("GUEST_GATED feature unlock on auth bind", () => {
     createdUserIds.push(oauthUserId);
 
     // 3. Drive confirm-link directly (manual merge)
-    //    Insert pending_link_operations row, then call /api/auth/confirm-link
+    //    Insert pending_link_operations row, then call /api/auth/identity/confirm-link
     //    with the oauth user's session cookie.
     const idempotencyKey = `gate-bind-${randomUUID()}`;
     const inserted = await supabase
@@ -379,7 +379,7 @@ describe("GUEST_GATED feature unlock on auth bind", () => {
 
     const cookie = await signInWithPasswordCookie(email, password);
     const confirm = await postJson(
-      "/api/auth/confirm-link",
+      "/api/auth/identity/confirm-link",
       {
         operationId,
         idempotencyKey,
@@ -446,7 +446,7 @@ describe("GUEST_GATED feature unlock on auth bind", () => {
 
       // 6. Verify gating is now open for oauth user
       const tradeRes = await postJson(
-        "/api/game/trade",
+        "/api/market/trades/execute",
         { resource: "iron", type: "buy", amount: 1 },
         cookie,
       );

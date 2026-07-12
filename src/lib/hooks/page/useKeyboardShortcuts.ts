@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useGameStore } from '@/lib/game/store';
+import { useGameStore } from '@/lib/game/state/store';
 import { useNavigateToTab } from '@/lib/hooks/page/useNavigateToTab';
 import { KEY_TAB_MAP } from '@/components/game/GameSidebar';
 

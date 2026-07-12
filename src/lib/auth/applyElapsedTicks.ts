@@ -22,10 +22,10 @@
 
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { fetchGameConfigFromSupabase } from "@/lib/db/serverConfigFetcher";
-import { runServerTicks } from "@/lib/game/serverEngine";
-import { getGameLimits } from "@/lib/game/balanceConfig";
-import { ensureConfigLoaded } from "@/lib/game/configLoader.server";
-import type { ServerGameData } from "@/lib/game/types";
+import { runServerTicks } from "@/lib/game/production/engine/serverEngine";
+import { getGameLimits } from "@/lib/game/config/balance/balanceConfig";
+import { ensureConfigLoaded } from "@/lib/game/config/server/configLoader.server";
+import type { ServerGameData } from "@/lib/game/shared/types/types";
 
 interface ApplyElapsedResult {
   /**

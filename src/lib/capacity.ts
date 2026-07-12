@@ -70,13 +70,13 @@ export async function canAcceptNewSignup(): Promise<boolean> {
 }
 
 /**
- * Client-side: fetches capacity via the public /api/capacity endpoint.
+ * Client-side: fetches capacity via the public /api/platform/capacity/status endpoint.
  * For UI hints only — never authoritative.
  */
 export async function getCapacityForClient(): Promise<CapacityInfo> {
   if (typeof window === 'undefined') return FALLBACK;
   try {
-    const res = await fetch('/api/capacity', { cache: 'no-store' });
+    const res = await fetch('/api/platform/capacity/status', { cache: 'no-store' });
     if (!res.ok) return FALLBACK;
     return (await res.json()) as CapacityInfo;
   } catch {

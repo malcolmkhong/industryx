@@ -6,7 +6,7 @@ vi.mock("@/lib/auth/limitedMode", () => ({
   gateIfLimited: vi.fn(() => false),
 }));
 
-vi.mock("@/lib/game/serverActions", () => ({
+vi.mock("@/lib/game/actions/client/serverActions", () => ({
   submitActionToServer: submitActionToServerMock,
 }));
 
@@ -17,7 +17,7 @@ describe("validateActionWithServer fail-closed correctedState contract", () => {
 
   it("rejects economy actions when the server omits correctedState", async () => {
     submitActionToServerMock.mockResolvedValueOnce({ valid: true });
-    const { validateActionWithServer } = await import("@/lib/game/actionValidator");
+    const { validateActionWithServer } = await import("@/lib/game/actions/client/actionValidator");
 
     const result = await validateActionWithServer(
       "build",
@@ -33,7 +33,7 @@ describe("validateActionWithServer fail-closed correctedState contract", () => {
 
   it("allows game speed changes without correctedState", async () => {
     submitActionToServerMock.mockResolvedValueOnce({ valid: true });
-    const { validateActionWithServer } = await import("@/lib/game/actionValidator");
+    const { validateActionWithServer } = await import("@/lib/game/actions/client/actionValidator");
 
     const result = await validateActionWithServer(
       "set_game_speed",

@@ -1,7 +1,7 @@
 /**
- * tests/api/waitlist.test.ts
+ * tests/api/platform/waitlist.test.ts
  *
- * Boundary tests for POST /api/waitlist.
+ * Boundary tests for POST /api/platform/waitlist.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -10,9 +10,9 @@ import { mockSupabaseServer } from '../unit/mocks/supabase';
 
 vi.mock('@/lib/supabase/server', () => mockSupabaseServer());
 
-import { POST } from '@/app/api/waitlist/route';
+import { POST } from '@/app/api/platform/waitlist/route';
 
-describe('POST /api/waitlist', () => {
+describe('POST /api/platform/waitlist', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -20,7 +20,7 @@ describe('POST /api/waitlist', () => {
   it('returns 400 when email is missing', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/waitlist',
+      url: '/api/platform/waitlist',
       body: { name: 'John' },
     });
     const res = await POST(req);
@@ -31,7 +31,7 @@ describe('POST /api/waitlist', () => {
 
   it('returns 400 on invalid JSON body', async () => {
     const { NextRequest } = await import('next/server');
-    const badReq = new NextRequest('http://localhost:3000/api/waitlist', {
+    const badReq = new NextRequest('http://localhost:3000/api/platform/waitlist', {
       method: 'POST',
       body: 'not-json',
       headers: { 'content-type': 'application/json' },
@@ -48,10 +48,10 @@ describe('POST /api/waitlist', () => {
       isServiceRoleConfigured: () => false,
       isSupabaseConfigured: () => false,
     }));
-    const fresh = await import('@/app/api/waitlist/route');
+    const fresh = await import('@/app/api/platform/waitlist/route');
     const req = buildRequest({
       method: 'POST',
-      url: '/api/waitlist',
+      url: '/api/platform/waitlist',
       body: { email: 'test@example.com' },
     });
     const res = await fresh.POST(req);

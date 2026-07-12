@@ -124,7 +124,7 @@ export default function MarketPage() {
 
   const fetchMarket = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/market');
+      const res = await fetch('/api/admin/market/overview');
       if (res.ok) setData(await res.json());
     } catch (err) {
       console.error('Failed to fetch market data:', err);
@@ -140,7 +140,7 @@ export default function MarketPage() {
   const clearBreakers = async () => {
     setClearing(true);
     try {
-      await fetch('/api/admin/market', { method: 'POST' });
+      await fetch('/api/admin/market/overview', { method: 'POST' });
       await fetchMarket();
     } finally {
       setClearing(false);

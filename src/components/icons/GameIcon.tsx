@@ -11,7 +11,7 @@ import {
   WORKER_ICON_MAP,
   RESEARCH_ICON_MAP,
   MEGA_PROJECT_ICON_MAP,
-} from '@/lib/game/icons';
+} from '@/lib/game/shared/icons';
 
 /**
  * Register the `game-icons` provider explicitly so @iconify/react resolves

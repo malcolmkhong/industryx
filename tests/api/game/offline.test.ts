@@ -1,7 +1,7 @@
 /**
- * tests/api/game/offline.test.ts
+ * tests/api/game/state/offline-progress.test.ts
  *
- * Boundary + auth tests for POST /api/game/offline.
+ * Boundary + auth tests for POST /api/game/state/offline-progress.
  * (GET was removed 2026-07-09 — see commit removing dead code; the offline
  * tick flow is fully driven by POST.)
  */
@@ -19,9 +19,9 @@ vi.mock('@/lib/auth/verifyAuth', () => ({
   verifyAuth: vi.fn().mockResolvedValue({ success: true, userId: 'user-1', email: 'test@example.com' }),
 }));
 
-import { POST } from '@/app/api/game/offline/route';
+import { POST } from '@/app/api/game/state/offline-progress/route';
 
-describe('POST /api/game/offline', () => {
+describe('POST /api/game/state/offline-progress', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -32,7 +32,7 @@ describe('POST /api/game/offline', () => {
       success: false,
       response: { status: 401 } as unknown as Response,
     });
-    const req = buildRequest({ method: 'POST', url: '/api/game/offline', body: {} });
+    const req = buildRequest({ method: 'POST', url: '/api/game/state/offline-progress', body: {} });
     const res = await POST(req);
     expect([401, 403]).toContain(res.status);
   });

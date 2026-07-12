@@ -15,8 +15,8 @@
 // ============================================
 
 import { describe, it, expect } from "vitest";
-import { validateFulfillContractAction } from "@/lib/game/serverEngine";
-import type { GameState, Contract, ContractReward } from "@/lib/game/types";
+import { validateFulfillContractAction } from "@/lib/game/production/engine/serverEngine";
+import type { GameState, Contract, ContractReward } from "@/lib/game/shared/types/types";
 
 function makeReward(overrides?: Partial<ContractReward>): ContractReward {
   return {

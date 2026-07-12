@@ -197,8 +197,8 @@ describe('Phase 13 — ServerGameData vs UISessionState split', () => {
 
     it('persistence paths (state/route, migrate-guest) use stripUIFields and asFullState', () => {
       for (const rel of [
-        'src/app/api/game/state/route.ts',
-        'src/app/api/auth/migrate-guest/route.ts',
+        'src/app/api/game/state/sync/route.ts',
+        'src/app/api/auth/guest/migrate/route.ts',
       ]) {
         const file = join(SRC_DIR, '..', rel);
         const content = readFileSync(file, 'utf8');

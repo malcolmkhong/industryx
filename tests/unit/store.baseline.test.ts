@@ -23,7 +23,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { GameState, ResourceType, BuildingType, BuildingInstance, Contract, GameNotification, LeaderboardEntry, DroneMission, DailyReward, LoginStreak, WeatherType, MegaProjectBonusType } from '@/lib/game/types';
+import type { GameState, ResourceType, BuildingType, BuildingInstance, Contract, GameNotification, LeaderboardEntry, DroneMission, DailyReward, LoginStreak, WeatherType, MegaProjectBonusType } from '@/lib/game/shared/types/types';
 
 // ═════════════════════════════════════════════════════════════════════
 // HOISTED MOCK DATA
@@ -67,14 +67,14 @@ vi.mock('@/lib/supabase/server', () => ({
   isSupabaseConfigured: vi.fn(() => false),
 }));
 
-vi.mock('@/lib/game/newsLLM', () => ({
+vi.mock('@/lib/game/market/news/newsLLM', () => ({
   initNewsLLM: vi.fn(async () => {}),
   registerUpdateCallback: vi.fn(),
   getLLMState: vi.fn(() => ({ initialized: false, pendingItems: [], callbacks: [] })),
   LLMEngineState: {},
 }));
 
-vi.mock('@/lib/game/productionCalculator', () => ({
+vi.mock('@/lib/game/production/productionCalculator', () => ({
   buildMultipliers: vi.fn(() => ({
     extractorBonus: 0, factoryBonus: 0, t1FactoryBonus: 0, t2FactoryBonus: 0, t3FactoryBonus: 0,
     weatherProduction: 1, eventProductionGlobal: 1, eventResearch: 1,
@@ -106,7 +106,7 @@ vi.mock('@/lib/game/productionCalculator', () => ({
   }))
 }));
 
-vi.mock('@/lib/game/configCache', () => ({
+vi.mock('@/lib/game/config/configCache', () => ({
   BUILDING_DEFS: HOIST_BUILDING_DEFS,
   RESOURCE_META: { iron: { name: 'Iron', icon: 'iron', tier: 1, color: '#888', category: 'raw' } },
   WEATHER_DEFS: {},
@@ -135,7 +135,7 @@ vi.mock('@/lib/game/configCache', () => ({
   }))
 }));
 
-vi.mock('@/lib/game/balanceConfig', () => ({
+vi.mock('@/lib/game/config/balance/balanceConfig', () => ({
   getBalance: vi.fn(() => ({
     storage: { upgradeCostExponent: 1.5, upgradeCapacityRatio: 0.5 },
     building: { upgradeEfficiencyGain: 0.1 },
@@ -153,19 +153,19 @@ vi.mock('@/lib/game/balanceConfig', () => ({
   })),
 }));
 
-vi.mock('@/lib/game/soundEngine', () => ({ soundEngine: { play: vi.fn() } }));
-vi.mock('@/lib/game/eventArchetypes', () => ({
+vi.mock('@/lib/game/audio/soundEngine', () => ({ soundEngine: { play: vi.fn() } }));
+vi.mock('@/lib/game/events/eventArchetypes', () => ({
   pickRandomArchetype: vi.fn(() => ({ id: 'test_event', name: 'Test Event', description: '', effects: [], icon: '' })),
   resolveArchetype: vi.fn(() => ({ name: 'Test', description: 'Testing', effects: [], icon: '' })),
 }));
-vi.mock('@/lib/game/idMigration', () => ({ migrateSaveBuildings: vi.fn((b) => b) }));
+vi.mock('@/lib/game/migration/idMigration', () => ({ migrateSaveBuildings: vi.fn((b) => b) }));
 
 // ─── IMPORTS ─────────────────────────────────────────────────────────
 
 import {
   useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked,
   isResearchUnlocked, generateId, hasUnlimitedStorage,
-} from '@/lib/game/store';
+} from '@/lib/game/state/store';
 
 // ─── TEST HELPERS ────────────────────────────────────────────────────
 
@@ -283,7 +283,7 @@ describe('Module: utils/costCalculator', () => {
 // Initial state is now server-authoritative via
 // `fetchCanonicalInitialState()` (tests/unit/initialState.server.test.ts).
 // The store now starts from a minimal stub (`hydrated: false`) and is
-// hydrated by `hydrateInitialState()` from GET /api/game/initial-state.
+// hydrated by `hydrateInitialState()` from GET /api/game/state/initial.
 // ═════════════════════════════════════════════════════════════════════
 
 // ═════════════════════════════════════════════════════════════════════

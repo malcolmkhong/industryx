@@ -6,9 +6,9 @@
  * import query functions from here instead of touching the table directly.
  *
  * Iteration 1 of the Database Centralization migration (2026-06-20).
- * Migrated routes: /api/game/state, /api/game/trade, /api/game/offline,
- *   /api/game/action, /api/cron/validate-ticks, /api/auth/claim-guest,
- *   /api/auth/link-identity.
+ * Migrated routes: /api/game/state/sync, /api/market/trades/execute, /api/game/state/offline-progress,
+ *   /api/game/actions/legacy, /api/cron/validate-ticks, /api/auth/claim-guest,
+ *   /api/auth/identity/link.
  *
  * Conventions (decided in Phase 2 of the audit):
  *   - All async functions return `Promise<T | null>` (null for not-found).
@@ -18,20 +18,20 @@
  *
  * Affected files (Iteration 1):
  *   - src/lib/db/serverGameState.ts            (NEW)
- *   - src/app/api/game/state/route.ts          (3 call sites)
- *   - src/app/api/game/trade/route.ts          (2 call sites)
- *   - src/app/api/game/offline/route.ts        (2 call sites)
- *   - src/app/api/game/action/route.ts         (2 call sites)
+ *   - src/app/api/game/state/sync/route.ts          (3 call sites)
+ *   - src/app/api/market/trades/execute/route.ts          (2 call sites)
+ *   - src/app/api/game/state/offline-progress/route.ts        (2 call sites)
+ *   - src/app/api/game/actions/legacy/route.ts         (2 call sites)
  *   - src/app/api/cron/validate-ticks/route.ts (1 call site)
  *   - src/app/api/auth/claim-guest/route.ts    (1 call site)
- *   - src/app/api/auth/link-identity/route.ts  (2 call sites)
+ *   - src/app/api/auth/identity/link/route.ts  (2 call sites)
  */
 
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/db/types";
 import { generateChecksum } from "@/lib/auth/gameStateValidator";
 import { fetchCanonicalInitialState } from "@/lib/db/initialState.server";
-import type { ServerGameData } from "@/lib/game/types";
+import type { ServerGameData } from "@/lib/game/shared/types/types";
 import { asFullState } from "@/lib/db/serverGameStatePayload";
 
 // Type aliases sourced from the generated Supabase types.
@@ -69,7 +69,7 @@ export type ServerGameStateLite = Pick<
 >;
 
 /**
- * Narrow shape for the offline tick flow (POST /api/game/offline).
+ * Narrow shape for the offline tick flow (POST /api/game/state/offline-progress).
  */
 export type ServerGameStateForTick = Pick<
   ServerGameStateRow,
@@ -152,7 +152,7 @@ export function isServerGameStateAvailable(): boolean {
 }
 
 /**
- * Load the lite (non-full_state) game state for a user. Used by GET /api/game/state.
+ * Load the lite (non-full_state) game state for a user. Used by GET /api/game/state/sync.
  * Returns null if not found OR if the table is unavailable.
  */
 export async function loadServerGameStateLite(
@@ -361,7 +361,7 @@ export async function loadFullStateForUser(
 }
 
 /**
- * Load the fields used by POST /api/game/state for delta validation:
+ * Load the fields used by POST /api/game/state/sync for delta validation:
  *   full_state, state_hash, game_tick, cheat_flag_count, state_version,
  *   resources, money, research_points, buildings
  */
@@ -397,7 +397,7 @@ export async function loadServerGameStateForDeltaCheck(
 }
 
 /**
- * Upsert a user's game state. Used by POST /api/game/state when no
+ * Upsert a user's game state. Used by POST /api/game/state/sync when no
  * prior row may exist. Inserts on `user_id` conflict.
  */
 export async function upsertServerGameState(
@@ -512,7 +512,7 @@ export async function initializeGuestGameState(
 }
 
 /**
- * Read just `game_tick` for a user. Used by /api/auth/migrate-guest to
+ * Read just `game_tick` for a user. Used by /api/auth/guest/migrate to
  * detect "cloud state already exists — refuse migration".
  * Returns null if the user has no row OR the table is unavailable.
  */
@@ -533,7 +533,7 @@ export async function getGameTick(userId: string): Promise<number | null> {
 
 /**
  * Paginated read of `full_state` JSONB for every player. Used by
- * /api/market/aggregate-supply to recompute global supply/demand.
+ * /api/market/supply/aggregate to recompute global supply/demand.
  *
  * Caller passes a page size; returns the next page + whether more rows exist.
  * Avoids loading the entire table into memory at once.
@@ -560,7 +560,7 @@ export async function pageServerGameStateFullState(
 
 /**
  * Sync `player_progress.game_state` for backwards compatibility. Used
- * by POST /api/game/state (thin: user_id + game_state only).
+ * by POST /api/game/state/sync (thin: user_id + game_state only).
  */
 export async function syncPlayerProgressGameState(
   userId: string,
@@ -604,7 +604,7 @@ export async function loadPlayerProgressGameState(
 
 /**
  * Optimistic-locking update: only updates the row if `state_version`
- * still matches `expectedStateVersion`. Used by /api/game/trade to
+ * still matches `expectedStateVersion`. Used by /api/market/trades/execute to
  * detect concurrent writes.
  *
  * Returns the updated row on success, or `null` on:

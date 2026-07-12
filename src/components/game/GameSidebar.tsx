@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSettingsStore } from "@/lib/game/settingsStore";
-import type { GameTab } from "@/lib/game/types";
+import { useSettingsStore } from "@/lib/game/settings/settingsStore";
+import type { GameTab } from "@/lib/game/shared/types/types";
 import { useTabChange } from "@/lib/hooks/page/useTabChange";
 import {
   Factory,
@@ -290,7 +290,7 @@ export function GameSidebar() {
   useEffect(() => {
     const check = async () => {
       try {
-        const res = await fetch('/api/auth/me');
+        const res = await fetch('/api/auth/session/me');
         if (!res.ok) {
           setIsAdmin(false);
           return;

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useGameStore } from '@/lib/game/store';
+import { useGameStore } from '@/lib/game/state/store';
 
 // Pulses a moneyGlow flag for 1s when money increases by more than 10 units,
 // used by the header money badge for a visual cue.

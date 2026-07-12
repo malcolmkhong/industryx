@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { useGameStore, formatNumber } from "@/lib/game/store";
+import { useGameStore, formatNumber } from "@/lib/game/state/store";
 import { useShallow } from "zustand/react/shallow";
-import type { Drone, DroneMission, ResourceType } from "@/lib/game/types";
+import type { Drone, DroneMission, ResourceType } from "@/lib/game/shared/types/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {

@@ -30,7 +30,7 @@ export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME === 'edgejs') return;
 
   // Defer-import to avoid loading Supabase modules at edge build time.
-  const { ensureConfigLoaded } = await import('@/lib/game/configLoader.server');
+  const { ensureConfigLoaded } = await import('@/lib/game/config/server/configLoader.server');
 
   console.info('[instrumentation] Pre-warming game config from Supabase...');
   const result = await ensureConfigLoaded();
@@ -51,7 +51,7 @@ export async function register(): Promise<void> {
   // ops populates the DB. Best-effort retry via the 60s poller.
   try {
     const { refreshBalanceFromSupabase, startBalancePoller } = await import(
-      '@/lib/game/configLoader.server',
+      '@/lib/game/config/server/configLoader.server',
     );
     const ok = await refreshBalanceFromSupabase();
     if (ok) {

@@ -9,12 +9,12 @@
 // ============================================
 
 import { describe, it, expect } from "vitest";
-import { validateClaimDailyRewardAction } from "@/lib/game/serverEngine";
+import { validateClaimDailyRewardAction } from "@/lib/game/production/engine/serverEngine";
 import type {
   GameState,
   DailyReward,
   LoginStreak,
-} from "@/lib/game/types";
+} from "@/lib/game/shared/types/types";
 
 function makeReward(overrides?: Partial<DailyReward>): DailyReward {
   return {

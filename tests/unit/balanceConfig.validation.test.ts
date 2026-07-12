@@ -33,7 +33,7 @@ import {
   BalanceNotLoadedError,
   _resetBalanceForTests,
   type GameBalanceConfig,
-} from "@/lib/game/balanceConfig";
+} from "@/lib/game/config/balance/balanceConfig";
 import balanceFixture from "../fixtures/balanceFixture.json";
 
 // Fixture is the same shape as GameBalanceConfig (no runtime validation

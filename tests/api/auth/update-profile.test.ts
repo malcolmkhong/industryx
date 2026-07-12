@@ -1,7 +1,7 @@
 /**
- * tests/api/auth/update-profile.test.ts
+ * tests/api/auth/profile/update.test.ts
  *
- * Tests for POST /api/auth/update-profile.
+ * Tests for POST /api/auth/profile/update.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -10,9 +10,9 @@ import { mockSupabaseServer } from '../../unit/mocks/supabase';
 
 vi.mock('@/lib/supabase/server', () => mockSupabaseServer());
 
-import { POST } from '@/app/api/auth/update-profile/route';
+import { POST } from '@/app/api/auth/profile/update/route';
 
-describe('POST /api/auth/update-profile', () => {
+describe('POST /api/auth/profile/update', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -20,7 +20,7 @@ describe('POST /api/auth/update-profile', () => {
   it('returns 400 on missing userId', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/auth/update-profile',
+      url: '/api/auth/profile/update',
       body: { displayName: 'Test' },
     });
     const res = await POST(req);
@@ -30,7 +30,7 @@ describe('POST /api/auth/update-profile', () => {
   it('returns 400 on missing displayName', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/auth/update-profile',
+      url: '/api/auth/profile/update',
       body: { userId: 'user-1' },
     });
     const res = await POST(req);
@@ -40,7 +40,7 @@ describe('POST /api/auth/update-profile', () => {
   it('returns 400 on non-string displayName', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/auth/update-profile',
+      url: '/api/auth/profile/update',
       body: { userId: 'user-1', displayName: 123 },
     });
     const res = await POST(req);
@@ -50,7 +50,7 @@ describe('POST /api/auth/update-profile', () => {
   it('returns 401 when not authenticated', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/auth/update-profile',
+      url: '/api/auth/profile/update',
       body: { userId: 'user-1', displayName: 'Test' },
     });
     const res = await POST(req);

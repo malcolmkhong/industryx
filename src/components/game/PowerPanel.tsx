@@ -2,8 +2,8 @@
 
 import { useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/store';
-import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE } from '@/lib/game/configCache';
+import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/state/store';
+import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE } from '@/lib/game/config/configCache';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -13,8 +13,8 @@ import {
   Gauge, Plug, Fuel, Activity,
   CircleAlert, Minus, Lock, Lightbulb, TrendingUp, Clock
 } from 'lucide-react';
-import type { PowerPlantType, BuildingInstance } from "@/lib/game/types";
-import { getPowerPlantTypes } from '@/lib/game/buildingDiscovery';
+import type { PowerPlantType, BuildingInstance } from "@/lib/game/shared/types/types";
+import { getPowerPlantTypes } from '@/lib/game/buildings/buildingDiscovery';
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
 import { GameIcon, TIER_INFO } from '@/components/icons';

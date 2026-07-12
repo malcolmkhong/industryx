@@ -3,7 +3,7 @@
 import { useCallback } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useLoginPrompt } from '@/lib/hooks/useLoginPrompt';
-import type { GameTab } from '@/lib/game/types';
+import type { GameTab } from '@/lib/game/shared/types/types';
 import type { LoginPromptReason } from '@/components/game/LoginFloatingPanel';
 
 const GUEST_GATED_TABS: Partial<Record<GameTab, LoginPromptReason>> = {

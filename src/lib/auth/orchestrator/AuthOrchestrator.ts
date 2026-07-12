@@ -271,7 +271,7 @@ export class AuthOrchestrator {
    * Phase 2 (post refactor):
    *  - NO fingerprint compute if session exists (skip cost entirely).
    *  - NO separate recover / claim calls.
-   *  - Single /api/auth/quickstart round-trip for anon startup.
+   *  - Single /api/auth/guest/quickstart round-trip for anon startup.
    */
   async startup(): Promise<() => void> {
     this.dispatch({ type: "STARTUP" });

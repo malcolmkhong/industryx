@@ -1,7 +1,7 @@
 /**
- * tests/api/game/state.test.ts
+ * tests/api/game/state/sync.test.ts
  *
- * Tests for GET/POST /api/game/state.
+ * Tests for GET/POST /api/game/state/sync.
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -10,11 +10,11 @@ import { mockSupabaseServer } from '../../unit/mocks/supabase';
 
 vi.mock('@/lib/supabase/server', () => mockSupabaseServer());
 
-import { GET, POST } from '@/app/api/game/state/route';
+import { GET, POST } from '@/app/api/game/state/sync/route';
 
-describe('GET /api/game/state', () => {
+describe('GET /api/game/state/sync', () => {
   it('returns 400 on missing userId', async () => {
-    const req = buildRequest({ method: 'GET', url: '/api/game/state' });
+    const req = buildRequest({ method: 'GET', url: '/api/game/state/sync' });
     const res = await GET(req);
     expect(res.status).toBe(400);
     const body = await readJson<{ error?: string }>(res);
@@ -24,18 +24,18 @@ describe('GET /api/game/state', () => {
   it('returns 401 when not authenticated', async () => {
     const req = buildRequest({
       method: 'GET',
-      url: '/api/game/state?userId=user-1',
+      url: '/api/game/state/sync?userId=user-1',
     });
     const res = await GET(req);
     expect(res.status).toBe(401);
   });
 });
 
-describe('POST /api/game/state', () => {
+describe('POST /api/game/state/sync', () => {
   it('returns 400 on missing userId', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/game/state',
+      url: '/api/game/state/sync',
       body: { gameState: {} },
     });
     const res = await POST(req);
@@ -45,7 +45,7 @@ describe('POST /api/game/state', () => {
   it('returns 401 when not authenticated', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/game/state',
+      url: '/api/game/state/sync',
       body: { userId: 'user-1', gameState: {} },
     });
     const res = await POST(req);

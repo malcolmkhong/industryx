@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useGameStore } from '@/lib/game/store';
+import { useGameStore } from '@/lib/game/state/store';
 
 // Auto-opens the Guide route for new players (no buildings yet, < 5 ticks).
 // Idempotent via an internal ref.

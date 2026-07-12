@@ -161,7 +161,7 @@ export default function AuditPage() {
       if (filterDateFrom) params.set("date_from", filterDateFrom);
       if (filterDateTo) params.set("date_to", filterDateTo);
 
-      const res = await fetch(`/api/admin/actions?${params}`);
+      const res = await fetch(`/api/admin/audit/player-actions?${params}`);
       if (!res.ok) {
         const errData = await res.json().catch(() => null);
         throw new Error(errData?.message || "Failed to fetch actions");

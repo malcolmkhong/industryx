@@ -3,8 +3,8 @@ import { describe, it, expect } from "vitest";
 import {
   validateStartDroneMissionAction,
   validateCollectDroneAction,
-} from "@/lib/game/serverEngine";
-import type { GameState, Drone } from "@/lib/game/types";
+} from "@/lib/game/production/engine/serverEngine";
+import type { GameState, Drone } from "@/lib/game/shared/types/types";
 
 function makeDrone(o?: Partial<Drone>): Drone {
   return {

@@ -1,7 +1,7 @@
 /**
- * tests/api/market/action.test.ts
+ * tests/api/market/pressure/record.test.ts
  *
- * Boundary + auth tests for POST /api/market/action.
+ * Boundary + auth tests for POST /api/market/pressure/record.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -13,9 +13,9 @@ vi.mock('@/lib/auth/verifyAuth', () => ({
   verifyAuth: vi.fn().mockResolvedValue({ success: true, userId: 'user-1', email: 'test@example.com' }),
 }));
 
-import { POST } from '@/app/api/market/action/route';
+import { POST } from '@/app/api/market/pressure/record/route';
 
-describe('POST /api/market/action', () => {
+describe('POST /api/market/pressure/record', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -23,7 +23,7 @@ describe('POST /api/market/action', () => {
   it('returns 400 when resource is missing', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/market/action',
+      url: '/api/market/pressure/record',
       body: { type: 'buy', amount: 10 },
     });
     const res = await POST(req);
@@ -35,7 +35,7 @@ describe('POST /api/market/action', () => {
   it('returns 400 when type is missing', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/market/action',
+      url: '/api/market/pressure/record',
       body: { resource: 'iron', amount: 10 },
     });
     const res = await POST(req);
@@ -47,7 +47,7 @@ describe('POST /api/market/action', () => {
   it('returns 400 when amount is missing', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/market/action',
+      url: '/api/market/pressure/record',
       body: { resource: 'iron', type: 'buy' },
     });
     const res = await POST(req);
@@ -57,7 +57,7 @@ describe('POST /api/market/action', () => {
   it('returns 400 when amount is not a positive number', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/market/action',
+      url: '/api/market/pressure/record',
       body: { resource: 'iron', type: 'buy', amount: -5 },
     });
     const res = await POST(req);
@@ -67,7 +67,7 @@ describe('POST /api/market/action', () => {
   it('returns 400 when type is not buy or sell', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/market/action',
+      url: '/api/market/pressure/record',
       body: { resource: 'iron', type: 'rent', amount: 10 },
     });
     const res = await POST(req);
@@ -84,7 +84,7 @@ describe('POST /api/market/action', () => {
     });
     const req = buildRequest({
       method: 'POST',
-      url: '/api/market/action',
+      url: '/api/market/pressure/record',
       body: { resource: 'iron', type: 'buy', amount: 10 },
     });
     const res = await POST(req);
@@ -99,10 +99,10 @@ describe('POST /api/market/action', () => {
       isServiceRoleConfigured: () => false,
       isSupabaseConfigured: () => false,
     }));
-    const fresh = await import('@/app/api/market/action/route');
+    const fresh = await import('@/app/api/market/pressure/record/route');
     const req = buildRequest({
       method: 'POST',
-      url: '/api/market/action',
+      url: '/api/market/pressure/record',
       body: { resource: 'iron', type: 'buy', amount: 10 },
     });
     const res = await fresh.POST(req);

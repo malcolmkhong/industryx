@@ -4,7 +4,7 @@
  * that constitute a guest-to-OAuth merge transaction.
  *
  * Iteration 9 of the Database Centralization migration.
- * Used by: /api/auth/confirm-link.
+ * Used by: /api/auth/identity/confirm-link.
  *
  * Conventions:
  *   - All async functions return `Promise<T | null>` (null for not-found).
@@ -12,7 +12,7 @@
  *   - Caller handles auth + rate limit + response shaping.
  *
  * Note: This module intentionally does NOT wrap the merge in a single DB
- * transaction. The original /api/auth/confirm-link ran each write
+ * transaction. The original /api/auth/identity/confirm-link ran each write
  * independently because a partial merge is recoverable (state is the source
  * of truth; receipt + audit log can be back-filled). Centralizing the
  * write pattern preserves that behavior exactly.

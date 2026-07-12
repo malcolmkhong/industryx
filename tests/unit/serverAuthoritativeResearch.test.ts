@@ -12,9 +12,9 @@
 // ============================================
 
 import { describe, it, expect } from "vitest";
-import { validateResearchAction } from "@/lib/game/serverEngine";
-import type { GameState } from "@/lib/game/types";
-import type { GameConfig } from "@/lib/game/config";
+import { validateResearchAction } from "@/lib/game/production/engine/serverEngine";
+import type { GameState } from "@/lib/game/shared/types/types";
+import type { GameConfig } from "@/lib/game/config/config";
 
 function makeResearch(
   overrides?: Partial<{

@@ -1,13 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useGameStore, formatNumber } from "@/lib/game/store";
+import { useGameStore, formatNumber } from "@/lib/game/state/store";
 import { useShallow } from "zustand/react/shallow";
 import {
   PRODUCTION_CHAINS,
   RESOURCE_META,
   BUILDING_DEFS,
-} from "@/lib/game/configCache";
+} from "@/lib/game/config/configCache";
 import { useConfigVersion } from "@/components/providers/GameConfigProvider";
 import {
   ArrowRight,
@@ -17,9 +17,9 @@ import {
   EyeOff,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import type { ResourceType } from "@/lib/game/types";
+import type { ResourceType } from "@/lib/game/shared/types/types";
 import { GameIcon } from "@/components/icons";
-import { TIER_INFO } from "@/lib/game/tiers";
+import { TIER_INFO } from "@/lib/game/progression/tiers";
 
 // Tier color scheme for SVG nodes — derived from central TIER_INFO.
 // fill = dark variant for SVG fill, stroke/text/label from TIER_INFO.

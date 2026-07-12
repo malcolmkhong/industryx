@@ -137,7 +137,7 @@ export interface MarketStateWithConfig {
 
 /**
  * Latest server_market_state row joined with the full base_prices/circuit_breakers
- * payload. Used by /api/admin/market for resource overview.
+ * payload. Used by /api/admin/market/overview for resource overview.
  */
 export async function getLatestMarketStateExtended(): Promise<MarketStateWithConfig | null> {
   const supabase = createServiceRoleClient();
@@ -193,7 +193,7 @@ export interface LatestMarketTickInfo {
 
 /**
  * Returns the latest tick + updated_at + count of resources in `prices`.
- * Used by /api/admin/jobs and /api/admin/system-status.
+ * Used by /api/admin/system/jobs and /api/admin/system/status.
  */
 export async function getLatestMarketTickInfo(): Promise<LatestMarketTickInfo | null> {
   const supabase = createServiceRoleClient();
@@ -223,7 +223,7 @@ export interface LatestMarketNewsRow {
 
 /**
  * Returns the latest server_market_state row with non-null news array.
- * Used by /api/admin/system-status for the "AI News Generator" service check.
+ * Used by /api/admin/system/status for the "AI News Generator" service check.
  */
 export async function getLatestMarketNews(): Promise<LatestMarketNewsRow | null> {
   const supabase = createServiceRoleClient();

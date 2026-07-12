@@ -48,17 +48,17 @@ vi.mock("@/lib/db/serverConfigFetcher", () => ({
   }),
 }));
 
-vi.mock("@/lib/game/configLoader.server", () => ({
+vi.mock("@/lib/game/config/server/configLoader.server", () => ({
   ensureConfigLoaded: vi.fn().mockResolvedValue({ ok: true }),
 }));
 
-vi.mock("@/lib/game/balanceConfig", () => ({
+vi.mock("@/lib/game/config/balance/balanceConfig", () => ({
   getGameLimits: vi.fn(() => ({
     maxTickRatePerSecond: 50,
   })),
 }));
 
-vi.mock("@/lib/game/serverEngine", () => ({
+vi.mock("@/lib/game/production/engine/serverEngine", () => ({
   runServerTicks: vi.fn((state, ticks) => ({
     newState: {
       ...state,
@@ -69,7 +69,7 @@ vi.mock("@/lib/game/serverEngine", () => ({
 }));
 
 import { applyElapsedTicks } from "@/lib/auth/applyElapsedTicks";
-import type { GameState } from "@/lib/game/types";
+import type { GameState } from "@/lib/game/shared/types/types";
 
 function makeState(tick: number, money: number): GameState {
   return {

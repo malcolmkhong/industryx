@@ -52,7 +52,7 @@ export function clearAdminCache(): void {
  * Single source of truth for "is the current user an admin" — uses the
  * authoritative admin_users table via the cache, with ADMIN_UIDS env as
  * bootstrap fallback. Client components should call this through the
- * /api/auth/me endpoint (which uses this helper internally) rather than
+ * /api/auth/session/me endpoint (which uses this helper internally) rather than
  * importing server-only Supabase client directly.
  */
 export async function isCurrentUserAdmin(): Promise<boolean> {

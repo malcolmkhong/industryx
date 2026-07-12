@@ -1,4 +1,4 @@
-import { formatNumber as fmtNumber } from '@/lib/game/store';
+import { formatNumber as fmtNumber } from '@/lib/game/state/store';
 
 /**
  * Canonical tick rate.

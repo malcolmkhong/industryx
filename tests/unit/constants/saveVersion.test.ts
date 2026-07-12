@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { SAVE_VERSION } from '@/lib/game/constants/saveVersion';
+import { SAVE_VERSION } from '@/lib/game/shared/constants/saveVersion';
 
 describe('constants/saveVersion', () => {
   it('has the correct current save version', () => {

@@ -15,9 +15,9 @@
 // P2 refactor: Read BUILDING_DEFS / RESEARCH_TREE from configCache (Supabase-backed
 // live bindings) instead of data.ts defaults. Module-level maps below are now lazily
 // initialized after ensureConfigLoaded() so they reflect the actual server config.
-import { BUILDING_DEFS, RESEARCH_TREE, configVersion } from '@/lib/game/configCache';
-import { ensureConfigLoaded } from '@/lib/game/configLoader.server';
-import { getBalance, getGameLimits } from '@/lib/game/balanceConfig';
+import { BUILDING_DEFS, RESEARCH_TREE, configVersion } from '@/lib/game/config/configCache';
+import { ensureConfigLoaded } from '@/lib/game/config/server/configLoader.server';
+import { getBalance, getGameLimits } from '@/lib/game/config/balance/balanceConfig';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 

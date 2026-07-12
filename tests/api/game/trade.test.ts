@@ -1,7 +1,7 @@
 /**
- * tests/api/game/trade.test.ts
+ * tests/api/market/trades/execute.test.ts
  *
- * Tests for POST /api/game/trade (server-authoritative trade).
+ * Tests for POST /api/market/trades/execute (server-authoritative trade).
  *
  * Note: this route checks auth before body validation, so without a
  * valid auth cookie we get 401. We test the boundary by asserting
@@ -14,7 +14,7 @@ import { mockSupabaseServer } from '../../unit/mocks/supabase';
 
 vi.mock('@/lib/supabase/server', () => mockSupabaseServer());
 
-import { POST } from '@/app/api/game/trade/route';
+import { POST } from '@/app/api/market/trades/execute/route';
 
 const validTrade = {
   userId: 'user-1',
@@ -24,11 +24,11 @@ const validTrade = {
   receiveAmount: 50,
 };
 
-describe('POST /api/game/trade', () => {
+describe('POST /api/market/trades/execute', () => {
   it('rejects when no auth and no userId (400 or 401)', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/game/trade',
+      url: '/api/market/trades/execute',
       body: { giveResource: 'iron', giveAmount: 1, receiveResource: 'copper', receiveAmount: 1 },
     });
     const res = await POST(req);
@@ -38,7 +38,7 @@ describe('POST /api/game/trade', () => {
   it('rejects missing required fields', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/game/trade',
+      url: '/api/market/trades/execute',
       body: { userId: 'user-1' },
     });
     const res = await POST(req);
@@ -48,7 +48,7 @@ describe('POST /api/game/trade', () => {
   it('rejects negative amounts', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/game/trade',
+      url: '/api/market/trades/execute',
       body: { ...validTrade, giveAmount: -1 },
     });
     const res = await POST(req);
@@ -58,7 +58,7 @@ describe('POST /api/game/trade', () => {
   it('rejects self-trade (give = receive)', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/game/trade',
+      url: '/api/market/trades/execute',
       body: { ...validTrade, giveResource: 'iron', receiveResource: 'iron' },
     });
     const res = await POST(req);
@@ -68,7 +68,7 @@ describe('POST /api/game/trade', () => {
   it('rejects unknown resource', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/game/trade',
+      url: '/api/market/trades/execute',
       body: { ...validTrade, giveResource: 'unobtainium' },
     });
     const res = await POST(req);
@@ -78,7 +78,7 @@ describe('POST /api/game/trade', () => {
   it('returns 401 when not authenticated (valid body)', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/game/trade',
+      url: '/api/market/trades/execute',
       body: validTrade,
     });
     const res = await POST(req);
@@ -88,7 +88,7 @@ describe('POST /api/game/trade', () => {
   it('rejects Infinity (serialized to null → 400)', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/game/trade',
+      url: '/api/market/trades/execute',
       body: { ...validTrade, giveAmount: Infinity },
     });
     const res = await POST(req);

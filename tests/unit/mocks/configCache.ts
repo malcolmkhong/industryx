@@ -3,11 +3,11 @@
  * Shared mock factory for game configCache.
  * Provides default BUILDING_DEFS, RESEARCH_TREE, RANK_THRESHOLDS, etc.
  *
- * Use these factories in vi.mock('@/lib/game/configCache', () => createMockConfigCache(...)),
+ * Use these factories in vi.mock('@/lib/game/config/configCache', () => createMockConfigCache(...)),
  * or merge into your own hoisted mock data.
  */
 
-import type { ResourceType } from '@/lib/game/types';
+import type { ResourceType } from '@/lib/game/shared/types/types';
 
 export function createMockBuildingDefs(): Record<string, Record<string, unknown>> {
   return {

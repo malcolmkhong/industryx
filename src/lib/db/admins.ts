@@ -6,13 +6,13 @@
  * import query functions from here instead of touching the table directly.
  *
  * Iteration 2 of the Database Centralization migration (2026-06-20).
- * Migrated routes: /api/admin/admins, /api/admin/admins/[id],
- *   /api/admin/admins/[id]/role, /api/auth/* (via auth.ts cache),
+ * Migrated routes: /api/admin/users/admins, /api/admin/users/admins/[id],
+ *   /api/admin/users/admins/[id]/role, /api/auth/* (via auth.ts cache),
  *   and src/lib/auth/admin-helpers.ts.
  *
  * Note: The legacy `/api/admins` and `/api/admins/[id]` (without the
  * `admin/` prefix) were deleted in Phase 5.4 as dead code (no consumers
- * — the `/api/admin/admins/*` paths are the canonical ones).
+ * — the `/api/admin/users/admins/*` paths are the canonical ones).
  *
  * Caching: The 60s in-memory cache for admin user IDs is preserved exactly
  * as it was in src/lib/auth/admin.ts. The cache now lives here, and
@@ -28,9 +28,9 @@
  *   - src/lib/db/adminActions.ts              (NEW, sibling)
  *   - src/lib/auth/admin.ts                   (cache moved here, re-exports)
  *   - src/lib/auth/admin-helpers.ts           (uses db/admins + db/adminActions)
- *   - src/app/api/admin/admins/route.ts       (3 call sites)
- *   - src/app/api/admin/admins/[id]/route.ts  (2 call sites)
- *   - src/app/api/admin/admins/[id]/role/route.ts (4 call sites)
+ *   - src/app/api/admin/users/admins/route.ts       (3 call sites)
+ *   - src/app/api/admin/users/admins/[id]/route.ts  (2 call sites)
+ *   - src/app/api/admin/users/admins/[id]/role/route.ts (4 call sites)
  */
 
 import { createClient } from "@/lib/supabase/server";

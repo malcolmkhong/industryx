@@ -1,7 +1,7 @@
 /**
- * tests/api/player.test.ts
+ * tests/api/player/progress.test.ts
  *
- * Tests for GET/POST /api/player (cloud save).
+ * Tests for GET/POST /api/player/progress (cloud save).
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -10,21 +10,21 @@ import { mockSupabaseServer } from '../unit/mocks/supabase';
 
 vi.mock('@/lib/supabase/server', () => mockSupabaseServer());
 
-import { GET, POST } from '@/app/api/player/route';
+import { GET, POST } from '@/app/api/player/progress/route';
 
-describe('GET /api/player', () => {
+describe('GET /api/player/progress', () => {
   it('returns 401 when not authenticated', async () => {
-    const req = buildRequest({ method: 'GET', url: '/api/player?userId=user-1' });
+    const req = buildRequest({ method: 'GET', url: '/api/player/progress?userId=user-1' });
     const res = await GET(req);
     expect(res.status).toBe(401);
   });
 });
 
-describe('POST /api/player', () => {
+describe('POST /api/player/progress', () => {
   it('rejects empty body (400 or 401)', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/player',
+      url: '/api/player/progress',
       body: {},
     });
     const res = await POST(req);

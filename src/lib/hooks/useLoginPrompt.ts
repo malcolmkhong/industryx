@@ -17,7 +17,7 @@ import { create } from 'zustand';
 import { useAuth } from '@/components/providers/AuthProvider';
 import type { LoginPromptService } from "./loginPrompt/LoginPromptService";
 import type { LoginPromptReason } from '@/components/game/LoginFloatingPanel';
-import type { GameTab } from '@/lib/game/types';
+import type { GameTab } from '@/lib/game/shared/types/types';
 
 interface LoginPromptState {
   isOpen: boolean;

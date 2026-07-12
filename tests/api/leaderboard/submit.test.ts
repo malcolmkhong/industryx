@@ -1,7 +1,7 @@
 /**
- * tests/api/leaderboard/submit.test.ts
+ * tests/api/game/leaderboard/submit.test.ts
  *
- * Boundary + auth tests for POST /api/leaderboard/submit.
+ * Boundary + auth tests for POST /api/game/leaderboard/submit.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -13,9 +13,9 @@ vi.mock('@/lib/auth/guestCheck', () => ({
   getUserGuestStatus: vi.fn().mockResolvedValue({ isGuest: false }),
 }));
 
-import { POST } from '@/app/api/leaderboard/submit/route';
+import { POST } from '@/app/api/game/leaderboard/submit/route';
 
-describe('POST /api/leaderboard/submit', () => {
+describe('POST /api/game/leaderboard/submit', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -23,7 +23,7 @@ describe('POST /api/leaderboard/submit', () => {
   it('returns 401 when authorization header is missing', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/leaderboard/submit',
+      url: '/api/game/leaderboard/submit',
       body: { score: 1000 },
     });
     const res = await POST(req);
@@ -44,10 +44,10 @@ describe('POST /api/leaderboard/submit', () => {
       isServiceRoleConfigured: () => true,
       isSupabaseConfigured: () => true,
     }));
-    const fresh = await import('@/app/api/leaderboard/submit/route');
+    const fresh = await import('@/app/api/game/leaderboard/submit/route');
     const req = buildRequest({
       method: 'POST',
-      url: '/api/leaderboard/submit',
+      url: '/api/game/leaderboard/submit',
       headers: { authorization: 'Bearer invalid-token' },
       body: { score: 1000 },
     });
@@ -64,10 +64,10 @@ describe('POST /api/leaderboard/submit', () => {
       isServiceRoleConfigured: () => false,
       isSupabaseConfigured: () => false,
     }));
-    const fresh = await import('@/app/api/leaderboard/submit/route');
+    const fresh = await import('@/app/api/game/leaderboard/submit/route');
     const req = buildRequest({
       method: 'POST',
-      url: '/api/leaderboard/submit',
+      url: '/api/game/leaderboard/submit',
       headers: { authorization: 'Bearer valid-token' },
       body: { score: 1000 },
     });

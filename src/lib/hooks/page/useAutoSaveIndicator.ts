@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useGameStore } from '@/lib/game/store';
+import { useGameStore } from '@/lib/game/state/store';
 
 // Detects when the game state has been persisted (gameTick changes) and
 // shows a brief "Saved" flash every 50 ticks. Exposes lastSaveTime for the

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_BALANCE_SUBSET, type GameConfig } from "@/lib/game/config";
-import { RESOURCE_META, updateFromSupabase } from "@/lib/game/configCache";
+import { DEFAULT_BALANCE_SUBSET, type GameConfig } from "@/lib/game/config/config";
+import { RESOURCE_META, updateFromSupabase } from "@/lib/game/config/configCache";
 
 function makeConfig(resources: GameConfig["resources"]): GameConfig {
   return {

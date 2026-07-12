@@ -7,12 +7,12 @@ import {
   useDeferredValue,
   useEffect,
 } from "react";
-import { useGameStore, formatNumber, hasUnlimitedStorage } from "@/lib/game/store";
+import { useGameStore, formatNumber, hasUnlimitedStorage } from "@/lib/game/state/store";
 import { useShallow } from "zustand/react/shallow";
-import { BUILDING_DEFS, PRODUCTION_CHAINS } from "@/lib/game/configCache";
-import { RESOURCE_META } from "@/lib/game/uiCatalog";
-import { TIER_INFO, ALL_TIERS } from "@/lib/game/tiers";
-import type { ResourceType, BuildingType } from "@/lib/game/types";
+import { BUILDING_DEFS, PRODUCTION_CHAINS } from "@/lib/game/config/configCache";
+import { RESOURCE_META } from "@/lib/game/catalog/ui/uiCatalog";
+import { TIER_INFO, ALL_TIERS } from "@/lib/game/progression/tiers";
+import type { ResourceType, BuildingType } from "@/lib/game/shared/types/types";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Database,

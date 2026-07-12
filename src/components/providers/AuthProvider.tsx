@@ -11,7 +11,7 @@ import React, {
 import {
   initServerValidation,
   disableServerValidation,
-} from "@/lib/game/serverActions";
+} from "@/lib/game/actions/client/serverActions";
 import type { User, Session } from "@supabase/supabase-js";
 import { getFingerprint, getFingerprintResult } from "@/lib/auth/fingerprint";
 import { DEVICE_ID_STORAGE_KEY } from "@/lib/auth/orchestrator/storage";
@@ -32,7 +32,7 @@ import {
   LoginPromptService,
   LoginPromptServiceProvider,
 } from "@/lib/hooks/useLoginPrompt";
-import { useGameStore, applyServerState, hydrateInitialState } from "@/lib/game/store";
+import { useGameStore, applyServerState, hydrateInitialState } from "@/lib/game/state/store";
 import { extractGameState } from "@/lib/hooks/cloudSync/serializeGameState";
 
 // Check if Supabase is configured
@@ -163,7 +163,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
         registerDevice: async (deviceId, fingerprint, fingerprintHash) => {
           try {
-            const res = await fetch("/api/auth/register-device", {
+            const res = await fetch("/api/auth/device/register", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ deviceId, fingerprint, fingerprintHash }),
@@ -223,7 +223,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   null)
                 : null;
 
-            const res = await fetch("/api/auth/quickstart", {
+            const res = await fetch("/api/auth/guest/quickstart", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",

@@ -3,7 +3,7 @@
  *
  * Architecture under test (matches the flowchart in handoff-ARCHITECTURE-REFACTOR.md):
  *
- *   Browser mount → no session → POST /api/auth/quickstart(deviceId, fingerprint)
+ *   Browser mount → no session → POST /api/auth/guest/quickstart(deviceId, fingerprint)
  *     ↳ Step 1: device_id primary lookup against guest_identities
  *     ↳ Step 2: fingerprint fallback lookup (active identities only,
  *                gated by migration 054 partial unique index)
@@ -57,7 +57,7 @@ const fp = (seed: string) => `it-fp-${seed}-${randomUUID()}`;
 const dev = (seed: string) => `it-dev-${seed}-${randomUUID()}`;
 
 async function quickstart(deviceId: string, fingerprint: string) {
-  const res = await fetch(`${SERVER}/api/auth/quickstart`, {
+  const res = await fetch(`${SERVER}/api/auth/guest/quickstart`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ deviceId, fingerprint }),
@@ -91,7 +91,7 @@ describe("Auth Flow — Guest (anon) startup", () => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
     try {
-      const r = await fetch(`${SERVER}/api/auth/me`, {
+      const r = await fetch(`${SERVER}/api/auth/session/me`, {
         signal: AbortSignal.timeout(3000),
       });
       pingStatus = r.status;
@@ -120,7 +120,7 @@ describe("Auth Flow — Guest (anon) startup", () => {
 
   // ────────────────────────────────────────────────────────────────────
   // Flowchart node: Mount → FP + DeviceId → Session check (null) →
-  //                 POST /api/auth/quickstart
+  //                 POST /api/auth/guest/quickstart
   // ────────────────────────────────────────────────────────────────────
   describe("Fresh visitor (no session, no prior identity)", () => {
     it("Step 3+4+5: creates anon user + game_state + identity in one round-trip", async (t) => {
@@ -350,7 +350,7 @@ describe("Auth Flow — Guest (anon) startup", () => {
         t.skip("dev server not reachable at localhost:3000");
         return;
       }
-      const r = await fetch(`${SERVER}/api/auth/quickstart`, {
+      const r = await fetch(`${SERVER}/api/auth/guest/quickstart`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ fingerprint: fp("no-dev") }),
@@ -363,7 +363,7 @@ describe("Auth Flow — Guest (anon) startup", () => {
         t.skip("dev server not reachable at localhost:3000");
         return;
       }
-      const r = await fetch(`${SERVER}/api/auth/quickstart`, {
+      const r = await fetch(`${SERVER}/api/auth/guest/quickstart`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ deviceId: dev("no-fp") }),
@@ -376,7 +376,7 @@ describe("Auth Flow — Guest (anon) startup", () => {
         t.skip("dev server not reachable at localhost:3000");
         return;
       }
-      const r = await fetch(`${SERVER}/api/auth/quickstart`, {
+      const r = await fetch(`${SERVER}/api/auth/guest/quickstart`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -392,7 +392,7 @@ describe("Auth Flow — Guest (anon) startup", () => {
         t.skip("dev server not reachable at localhost:3000");
         return;
       }
-      const r = await fetch(`${SERVER}/api/auth/quickstart`, {
+      const r = await fetch(`${SERVER}/api/auth/guest/quickstart`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),

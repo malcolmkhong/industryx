@@ -7,7 +7,7 @@
 // useCloudSync.ts inline definition.
 // ============================================
 
-import { useGameStore } from '@/lib/game/store';
+import { useGameStore } from '@/lib/game/state/store';
 
 /**
  * Extract the full game state from the Zustand store for cloud sync.

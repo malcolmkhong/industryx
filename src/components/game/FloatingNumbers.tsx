@@ -2,9 +2,9 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useGameStore, formatNumber } from '@/lib/game/store';
-import { RESOURCE_META } from '@/lib/game/configCache';
-import type { ResourceType } from "@/lib/game/types";
+import { useGameStore, formatNumber } from '@/lib/game/state/store';
+import { RESOURCE_META } from '@/lib/game/config/configCache';
+import type { ResourceType } from "@/lib/game/shared/types/types";
 import { useReducedMotion } from '@/components/game/shared/useReducedMotion';
 import { GameIcon } from '@/components/icons';
 

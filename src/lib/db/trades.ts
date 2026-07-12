@@ -2,7 +2,7 @@
  * trades — Centralized access to the `trade_history` table.
  *
  * Iteration 3 of the Database Centralization migration (2026-06-20).
- * Migrated routes: /api/game/trade (insert), /api/game/trades (read).
+ * Migrated routes: /api/market/trades/execute (insert), /api/market/trades/history (read).
  *
  * Conventions:
  *   - All async functions return `Promise<T | null>` (null for not-found).
@@ -19,7 +19,7 @@ type TradeHistoryRow = Database['public']['Tables']['trade_history']['Row'];
 type TradeHistoryInsert = Database['public']['Tables']['trade_history']['Insert'];
 
 /**
- * Shape for the trade_history insert in /api/game/trade POST.
+ * Shape for the trade_history insert in /api/market/trades/execute POST.
  * All fields are required per the table schema.
  */
 export interface RecordTradeParams {
@@ -37,7 +37,7 @@ export interface RecordTradeParams {
 }
 
 /**
- * Narrow shape returned for the GET /api/game/trades list response.
+ * Narrow shape returned for the GET /api/market/trades/history list response.
  * Only the columns the caller actually uses — avoids leaking internal fields.
  */
 export interface TradeHistoryItem {
@@ -63,7 +63,7 @@ export interface TradeHistoryResult {
 
 /**
  * Insert a new trade history row.
- * Called after a successful trade in /api/game/trade POST.
+ * Called after a successful trade in /api/market/trades/execute POST.
  * Fire-and-forget at caller level; caller handles any error response.
  */
 export async function recordTrade(params: RecordTradeParams): Promise<void> {
@@ -94,7 +94,7 @@ export async function recordTrade(params: RecordTradeParams): Promise<void> {
 
 /**
  * Fetch paginated trade history for a specific user.
- * Used by GET /api/game/trades.
+ * Used by GET /api/market/trades/history.
  *
  * @param userId     - authenticated user
  * @param limit      - max rows to return (caller caps at 200)

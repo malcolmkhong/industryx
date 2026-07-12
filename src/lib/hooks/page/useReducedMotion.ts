@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useSettingsStore } from '@/lib/game/settingsStore';
+import { useSettingsStore } from '@/lib/game/settings/settingsStore';
 
 // Syncs the settingsStore.reducedMotion flag to the <body> class so CSS rules
 // (e.g. .reduce-motion * { animation: none !important }) can disable animations.

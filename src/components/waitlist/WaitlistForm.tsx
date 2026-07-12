@@ -17,7 +17,7 @@ export function WaitlistForm() {
     setStatus('submitting');
     setMessage('');
     try {
-      const res = await fetch('/api/waitlist', {
+      const res = await fetch('/api/platform/waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, name: name || undefined }),

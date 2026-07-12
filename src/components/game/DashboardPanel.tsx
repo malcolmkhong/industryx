@@ -1,8 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/store';
-import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE, RANK_THRESHOLDS, WEATHER_DEFS } from '@/lib/game/configCache';
+import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/state/store';
+import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE, RANK_THRESHOLDS, WEATHER_DEFS } from '@/lib/game/config/configCache';
 import { useConfigVersion } from '@/components/providers/GameConfigProvider';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
 import { TierCard } from '@/components/game/shared/TierCard';
@@ -21,7 +21,7 @@ import {
   Gauge, Wallet, BarChart3, DollarSign, Gem, Crown, Star,
   ChevronDown, ChevronUp, GitBranch
 } from 'lucide-react';
-import type { BuildingType, ResourceType, WeatherType } from "@/lib/game/types";
+import type { BuildingType, ResourceType, WeatherType } from "@/lib/game/shared/types/types";
 import { motion, AnimatePresence } from 'framer-motion';
 import { GameIcon } from '@/components/icons';
 

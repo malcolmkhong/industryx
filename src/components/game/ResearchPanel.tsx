@@ -5,9 +5,9 @@ import {
   useGameStore,
   formatNumber,
   isResearchUnlocked,
-} from "@/lib/game/store";
+} from "@/lib/game/state/store";
 import { useShallow } from "zustand/react/shallow";
-import { RESEARCH_TREE, RESOURCE_META } from "@/lib/game/configCache";
+import { RESEARCH_TREE, RESOURCE_META } from "@/lib/game/config/configCache";
 import { useConfigVersion } from "@/components/providers/GameConfigProvider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,7 +29,7 @@ import {
   Users,
 } from "lucide-react";
 import { LoadingSpinner } from "@/components/game/shared/LoadingSpinner";
-import type { ResearchCategory } from "@/lib/game/types";
+import type { ResearchCategory } from "@/lib/game/shared/types/types";
 import { GameItemTooltip } from "@/components/game/GameItemTooltip";
 import { GameIcon } from "@/components/icons";
 

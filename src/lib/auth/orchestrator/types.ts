@@ -8,7 +8,7 @@
 
 import type { Session } from "@supabase/supabase-js";
 import type { LoginPromptReason } from "@/components/game/LoginFloatingPanel";
-import type { GameTab } from "@/lib/game/types";
+import type { GameTab } from "@/lib/game/shared/types/types";
 
 export type { LoginPromptReason };
 export type { GameTab };

@@ -248,7 +248,7 @@ export interface LatestCheatInvestigationRow {
 
 /**
  * Returns the most recent cheat_investigation created_at timestamp.
- * Used by /api/admin/jobs for the "Validate Ticks" cron row.
+ * Used by /api/admin/system/jobs for the "Validate Ticks" cron row.
  */
 export async function getLatestCheatInvestigation(): Promise<LatestCheatInvestigationRow | null> {
   const supabase = createServiceRoleClient();

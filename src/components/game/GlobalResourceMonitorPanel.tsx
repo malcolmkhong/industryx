@@ -38,14 +38,14 @@ import {
   useGameStore,
   formatNumber,
   hasUnlimitedStorage,
-} from "@/lib/game/store";
+} from "@/lib/game/state/store";
 import { useShallow } from "zustand/react/shallow";
-import { BUILDING_DEFS, RESOURCE_META } from "@/lib/game/configCache";
+import { BUILDING_DEFS, RESOURCE_META } from "@/lib/game/config/configCache";
 import { useConfigVersion } from "@/components/providers/GameConfigProvider";
-import type { ResourceType, GameTab } from "@/lib/game/types";
+import type { ResourceType, GameTab } from "@/lib/game/shared/types/types";
 import { PanelStatCard } from "@/components/game/shared/PanelStatCard";
 import { GameIcon } from "@/components/icons";
-import { TIER_INFO } from "@/lib/game/tiers";
+import { TIER_INFO } from "@/lib/game/progression/tiers";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";

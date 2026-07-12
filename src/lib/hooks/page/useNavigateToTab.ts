@@ -2,7 +2,7 @@
 
 import { useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import type { GameTab } from '@/lib/game/types';
+import type { GameTab } from '@/lib/game/shared/types/types';
 import { useTabChange } from '@/lib/hooks/page/useTabChange';
 
 function gameTabHref(tab: GameTab, hash?: string): string {

@@ -11,8 +11,8 @@
 // ============================================
 
 import { describe, it, expect } from "vitest";
-import { validateSellAction } from "@/lib/game/serverEngine";
-import type { GameState, MarketPrice } from "@/lib/game/types";
+import { validateSellAction } from "@/lib/game/production/engine/serverEngine";
+import type { GameState, MarketPrice } from "@/lib/game/shared/types/types";
 
 function makeMarket(overrides?: Partial<MarketPrice>): MarketPrice {
   return {

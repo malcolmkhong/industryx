@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useGameStore } from '@/lib/game/store';
+import { useGameStore } from '@/lib/game/state/store';
 
 // On mount, checks the daily login and opens the daily reward dialog if
 // today's reward is unclaimed. Idempotent via an internal ref.

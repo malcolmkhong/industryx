@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useGameStore, applyServerState } from "@/lib/game/store";
+import { useGameStore, applyServerState } from "@/lib/game/state/store";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCloudSync } from "@/lib/hooks/useCloudSync";
 
@@ -18,7 +18,7 @@ export interface OfflineProgressData {
 //
 // Single flow for all signed-in profiles:
 //   - Supabase authenticated user (OAuth / Google / GitHub)
-//   - Anonymous guest (created by /api/auth/quickstart on first visit)
+//   - Anonymous guest (created by /api/auth/guest/quickstart on first visit)
 //
 // Idempotency: server's 60s floor and `last_tick_at` update on apply
 // guarantee a second call within the same absence window returns 0
@@ -59,7 +59,7 @@ export function useOfflineProgressCheck(): {
           ...(beforeState.resources as Record<string, number>),
         };
 
-        const r = await fetch("/api/game/offline", {
+        const r = await fetch("/api/game/state/offline-progress", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({}),

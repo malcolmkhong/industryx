@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useGameStore, formatNumber } from '@/lib/game/store';
+import { useGameStore, formatNumber } from '@/lib/game/state/store';
 import { useShallow } from 'zustand/react/shallow';
-import { PRESTIGE_BONUSES, BUILDING_DEFS } from '@/lib/game/configCache';
+import { PRESTIGE_BONUSES, BUILDING_DEFS } from '@/lib/game/config/configCache';
 import { useConfigVersion } from '@/components/providers/GameConfigProvider';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

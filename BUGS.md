@@ -3,7 +3,7 @@
 > **Purpose:** Project-wide bug registry, investigation history, and resolution log.
 > **Authority:** This file is the canonical record of known issues. Future agents MUST read this before starting work and MUST update entries (not delete them) as work progresses.
 > **Created:** 2026-06-17 (during AGENT.md and `.rules` reconciliation audit)
-> **Last Updated:** 2026-07-11 (build errors + lint surface resolved)
+> **Last Updated:** 2026-07-12 (admin mutation write guards + audit sync)
 
 ---
 
@@ -61,8 +61,11 @@ When the linter reports an unused variable or import, follow this protocol befor
 | BUG-045 | [x] Resolved (2026-07-10) | Medium | Market / LLM News | Market news LLM path existed but client UI was not reading server-persisted market news | `src/app/api/market/tick/route.ts`, `src/lib/hooks/useServerMarket.ts`, `src/components/game/MarketPanel.tsx` |
 | BUG-046 | [x] Resolved (2026-07-11) | Critical | Server Tick / Persistence | Non-tick paths advanced `last_tick_at`, risking lost elapsed server progress | `/api/game/heartbeat`, `/api/game/state`, `/api/player`, `/api/game/action`, `/api/game/offline`, `src/lib/db/merge.ts` |
 | BUG-047 | [x] Resolved (2026-07-11) | High | Server Down / UI | Server/config fallback rendered UI but did not show a gameplay block dialog, and some auth/rate-limit failures still allowed local action fallback | `GameConfigProvider`, `GameShell`, `CloudSyncBlockBanner`, `serverActions.ts` |
+| BUG-048 | [x] Resolved (2026-07-11) | High | Server Tick / UI Sync | `/api/game/action` applied elapsed server ticks but did not sync `game_tick` column or return the full post-tick state to the client | `src/app/api/game/action/route.ts`, `src/lib/game/serverActions.ts` |
+| BUG-049 | [x] Resolved (2026-07-12) | High | API / Actions | `upgrade_worker` client action was wired but missing from the server action allow-list | `src/lib/game/actions/server/actionCommandRunner.ts`, `src/lib/game/actions/client/serverActions.ts` |
+| BUG-050 | [x] Resolved (2026-07-12) | High | Admin / Authorization | Several admin mutation routes lacked role write gates, and market resource routes passed admin id into `canWrite()` instead of admin role | `src/app/api/admin/**`, `src/lib/auth/admin-route-guards.ts` |
 
-> **Total:** 13 open, 1 unverified, 4 Resolved (out of 18). BUG-042/043/044 closed in this session.
+> **Total:** 13 open, 1 unverified, 7 Resolved (out of 21). BUG-042/043/044/048/049/050 closed in recent sessions.
 
 > **Highest priority for fixing (still open):** BUG-005 (.env.example - high severity, blocks new devs), BUG-001 (1 panel selector migration), BUG-003 (prisma uninstall), BUG-004 (test runner), BUG-009 (anon key), BUG-018 (admin a11y), BUG-019 (responsive), BUG-022 (contrast), BUG-025 (arbitrary values), BUG-033 (proxy rename). BUG-007, BUG-011, BUG-013 are low priority and may be deferred indefinitely.
 
@@ -112,6 +115,32 @@ Resolution: `last_tick_at` now advances only after real server tick settlement: 
 **Fixed 2026-07-11.** Root cause: the client could render fallback config when `/api/game/definitions` was unavailable, but there was no global gameplay-block dialog tied to that state. `serverActions.ts` also still allowed local mutation fallback on auth/rate-limit failures.
 
 Resolution: reused the existing `CloudSyncBlockBanner` contact-admin/Discord UI for server/config unavailability, fixed its small-screen overflow, connected `GameShell` to `GameConfigProvider` fallback state, and changed action validation failures for expired session/rate limit to fail closed instead of allowing local mutation. Added a central `correctedState` contract in `actionValidator` and removed old local fallback mutations from server-backed game actions, so missing authoritative server state now blocks the action instead of letting the client invent the result. Follow-up root cause found in the session-expired banner: auth and `LoginFloatingPanel` supported Google + GitHub, but `CloudSyncBlockBanner` exposed only one generic `onSignInAgain` callback and `GameShell` wired it to Google. Fixed by making the banner provider-specific and passing both OAuth handlers. Follow-up cleanup removed the legacy client tick action (`actions/gameTick.ts`), its unused UI loop hook (`useGameTickLoop.ts`), store export `gameTickAction`, and tests that still protected client-owned economy ticking.
+
+---
+
+## BUG-048 - Server time advanced on the server but did not update visible gameTick [x] RESOLVED
+
+**Fixed 2026-07-11.** Root cause: `/api/game/action` correctly called `applyElapsedTicks()` before action validation, but the elapsed-tick persist wrote only `full_state`, money, totals, `last_tick_at`, and `last_saved_at`; it did not update the denormalized `server_game_state.game_tick` column. The route also returned the action-specific `correctedState` patch instead of the merged post-elapsed/post-action state, and the client actions only applied selected fields such as money/buildings. Result: server-side elapsed production could be persisted while the UI header still showed a stale `gameTick`.
+
+Resolution: `/api/game/action` now persists `game_tick: elapsedFields.gameTick`, returns a public merged corrected state after removing `_action_history`, and `serverActions.ts` centrally applies returned server state via `applyServerState()`. Added `tests/unit/serverTickArchitecture.test.ts` assertions for the action route ownership contract.
+
+---
+
+## BUG-049 - `upgrade_worker` client action missing from server allow-list [x] RESOLVED
+
+**Fixed 2026-07-12.** Root cause: `levelUpWorker()` called `validateActionWithServer("upgrade_worker", ...)`, and the server dispatcher already had a `case "upgrade_worker"`, but the server action allow-list did not include `"upgrade_worker"`. The action was rejected before reaching its handler.
+
+Resolution: centralized action names in `VALID_ACTIONS`, added `"upgrade_worker"`, and moved action routing into thin per-action API route files backed by `actionCommandRunner`. `tests/unit/uiSafety.test.ts` now checks the shared runner list/switch so future action-name drift is caught.
+
+---
+
+## BUG-050 - Admin mutation routes had inconsistent write-role gates [x] RESOLVED
+
+**Fixed 2026-07-12.** Root cause: admin routes consistently used `verifyAdmin()`, but several mutation endpoints did not also check role write permission. The market resource routes also called `canWrite(authResult.admin.id)`, passing a user id where the helper expected a role, causing valid admin writes to be rejected.
+
+Resolution: added `src/lib/auth/admin-route-guards.ts` with `requireAdminWrite()` and `requireSuperAdmin()`. Wired write guards into config CRUD, market resource CRUD, market circuit-breaker clear, investigation actions, player bulk lock/unlock, support ticket mutations/messages, and permission grant/revoke. Permission grant/revoke now requires `super_admin`. Added missing admin audit logs for permissions, support mutations, market circuit-breaker clear, and investigation actions. Replaced direct `admin_actions` insert in market resource delete with `logAdminActionResource()`.
+
+Verification: red tests reproduced the bad states first, then passed after the fix. `bun run typecheck` passed. `npx eslint src/lib/auth/admin-route-guards.ts src/app/api/admin/config src/app/api/admin/market src/app/api/admin/users/permissions src/app/api/admin/players/bulk src/app/api/admin/investigations src/app/api/admin/support --cache --cache-location "$env:TEMP\\industryx-eslintcache" --format stylish` passed. `npx vitest run tests/api/admin` passed 25 files / 53 tests.
 
 ---
 

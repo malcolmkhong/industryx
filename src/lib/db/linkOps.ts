@@ -2,7 +2,7 @@
  * linkOps — Centralized access to the `pending_link_operations` table.
  *
  * Iteration 9 of the Database Centralization migration.
- * Used by: /api/auth/link-identity (preview/insert), /api/auth/confirm-link
+ * Used by: /api/auth/identity/link (preview/insert), /api/auth/identity/confirm-link
  * (fetch + mark completed/expired).
  *
  * Table purpose: orchestrates guest-to-OAuth merges. Each operation holds

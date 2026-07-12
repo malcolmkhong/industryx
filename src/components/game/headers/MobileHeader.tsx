@@ -14,8 +14,8 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useGameStore, formatNumber } from '@/lib/game/store';
-import { WEATHER_DEFS } from '@/lib/game/configCache';
+import { useGameStore, formatNumber } from '@/lib/game/state/store';
+import { WEATHER_DEFS } from '@/lib/game/config/configCache';
 import { GameIcon, BrandLogo } from '@/components/icons';
 import { OnlineCount } from '@/components/game/OnlineCount';
 import { useTickFormat } from '@/lib/hooks/useTickFormat';
@@ -26,7 +26,7 @@ import { useCloudSync } from '@/lib/hooks/useCloudSync';
 import { useLoginPrompt } from '@/lib/hooks/useLoginPrompt';
 import { useAutoSaveIndicator } from '@/lib/hooks/page/useAutoSaveIndicator';
 import { useMoneyGlowEffect } from '@/lib/hooks/page/useMoneyGlowEffect';
-import type { GameTab } from '@/lib/game/types';
+import type { GameTab } from '@/lib/game/shared/types/types';
 
 interface MobileHeaderProps {
   onTabChange: (tab: GameTab) => void;

@@ -139,7 +139,7 @@ export class CloudSyncService {
   async load(): Promise<LoadResult> {
     if (!this.userId) return { success: false, error: "Not authenticated" };
     try {
-      const res = await fetch(`/api/game/state?userId=${this.userId}`);
+      const res = await fetch(`/api/game/state/sync?userId=${this.userId}`);
       if (res.status >= 400) {
         const body = (await res.json().catch(() => ({}))) as Record<
           string,
@@ -197,7 +197,7 @@ export class CloudSyncService {
     this.isSyncing = true;
     this.notify();
     try {
-      const res = await fetch("/api/game/state", {
+      const res = await fetch("/api/game/state/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -223,7 +223,7 @@ export class CloudSyncService {
             // same stale tick (which would re-trigger Game-tick-went-backwards
             // and accumulate cheat flags). This was a missing piece that caused
             // guest accounts to auto-lock from infinite stale-save retries.
-            const { applyServerState } = await import("@/lib/game/store");
+            const { applyServerState } = await import("@/lib/game/state/store");
             applyServerState(serverState.fullState);
           }
           this.setServerAuthority({

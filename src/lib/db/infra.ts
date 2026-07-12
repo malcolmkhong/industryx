@@ -2,7 +2,7 @@
  * infra.ts — Database infrastructure helpers (server info queries).
  *
  * Iteration 8. Read-only queries about the database itself (size, version).
- * Used by /api/admin/monitoring for the infra dashboard.
+ * Used by /api/admin/system/monitoring for the infra dashboard.
  */
 
 import { createServiceRoleClient } from './admin';

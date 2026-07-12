@@ -1,10 +1,10 @@
 'use client';
 
 import { useMemo, useState, useCallback, useRef, useEffect, memo } from 'react';
-import { useGameStore, formatNumber } from '@/lib/game/store';
-import { BUILDING_DEFS } from '@/lib/game/configCache';
-import { RESOURCE_META } from '@/lib/game/uiCatalog';
-import type { BuildingInstance, BuildingType } from "@/lib/game/types";
+import { useGameStore, formatNumber } from '@/lib/game/state/store';
+import { BUILDING_DEFS } from '@/lib/game/config/configCache';
+import { RESOURCE_META } from '@/lib/game/catalog/ui/uiCatalog';
+import type { BuildingInstance, BuildingType } from "@/lib/game/shared/types/types";
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

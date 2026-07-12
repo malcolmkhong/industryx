@@ -1,7 +1,7 @@
 /**
- * tests/api/game/trades.test.ts
+ * tests/api/market/trades/history.test.ts
  *
- * Boundary + auth tests for GET /api/game/trades.
+ * Boundary + auth tests for GET /api/market/trades/history.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -19,9 +19,9 @@ vi.mock('@/lib/db/trades', () => ({
   getTradeHistory: vi.fn().mockResolvedValue({ trades: [], total: 0 }),
 }));
 
-import { GET } from '@/app/api/game/trades/route';
+import { GET } from '@/app/api/market/trades/history/route';
 
-describe('GET /api/game/trades', () => {
+describe('GET /api/market/trades/history', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -32,7 +32,7 @@ describe('GET /api/game/trades', () => {
       success: false,
       response: { status: 401 } as unknown as Response,
     });
-    const req = buildRequest({ method: 'GET', url: '/api/game/trades' });
+    const req = buildRequest({ method: 'GET', url: '/api/market/trades/history' });
     const res = await GET(req);
     expect([401, 403]).toContain(res.status);
   });
@@ -44,7 +44,7 @@ describe('GET /api/game/trades', () => {
       success: true, userId: 'guest-user', email: 'guest@example.com',
     });
     (getUserGuestStatus as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ isGuest: true });
-    const req = buildRequest({ method: 'GET', url: '/api/game/trades' });
+    const req = buildRequest({ method: 'GET', url: '/api/market/trades/history' });
     const res = await GET(req);
     expect(res.status).toBe(403);
     const body = await readJson<{ error?: string }>(res);

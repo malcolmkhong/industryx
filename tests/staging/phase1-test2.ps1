@@ -6,8 +6,8 @@ $endpoints = @(
   @{ name="initialize-guest";  url="http://localhost:3000/api/auth/initialize-guest";   method="POST"; body="{`"deviceId`":`"d1-$fp`",`"fingerprintHash`":`"$fp`"}" },
   @{ name="recover-by-device"; url="http://localhost:3000/api/auth/recover-by-device";  method="POST"; body="{`"deviceId`":`"d2-$fp`",`"fingerprintHash`":`"$fp`"}" },
   @{ name="claim-guest";       url="http://localhost:3000/api/auth/claim-guest";        method="POST"; body="{`"newUserId`":`"00000000-0000-0000-0000-000000000000`",`"deviceId`":`"d3-$fp`"}" },
-  @{ name="link-identity";     url="http://localhost:3000/api/auth/link-identity";      method="POST"; body="{`"idempotencyKey`":`"ik-$fp`",`"fingerprintHash`":`"$fp`"}" },
-  @{ name="confirm-link";      url="http://localhost:3000/api/auth/confirm-link";       method="POST"; body="{`"idempotencyKey`":`"ik-c-$fp`"}" }
+  @{ name="link-identity";     url="http://localhost:3000/api/auth/identity/link";      method="POST"; body="{`"idempotencyKey`":`"ik-$fp`",`"fingerprintHash`":`"$fp`"}" },
+  @{ name="confirm-link";      url="http://localhost:3000/api/auth/identity/confirm-link";       method="POST"; body="{`"idempotencyKey`":`"ik-c-$fp`"}" }
 )
 
 foreach ($e in $endpoints) {

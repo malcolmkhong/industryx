@@ -3,9 +3,9 @@ import { describe, it, expect } from "vitest";
 import {
   validateTransportAction,
   validateUpgradeTransportLineAction,
-} from "@/lib/game/serverEngine";
-import type { GameState, BuildingInstance } from "@/lib/game/types";
-import type { GameConfig } from "@/lib/game/config";
+} from "@/lib/game/production/engine/serverEngine";
+import type { GameState, BuildingInstance } from "@/lib/game/shared/types/types";
+import type { GameConfig } from "@/lib/game/config/config";
 
 function makeBuilding(o?: Partial<BuildingInstance>): BuildingInstance {
   return {

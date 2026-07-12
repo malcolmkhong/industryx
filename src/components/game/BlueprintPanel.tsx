@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useGameStore, formatNumber } from '@/lib/game/store';
+import { useGameStore, formatNumber } from '@/lib/game/state/store';
 import { useShallow } from 'zustand/react/shallow';
-import { BUILDING_DEFS, TRANSPORT_DEFS, PRODUCTION_CHAINS, RESOURCE_META } from '@/lib/game/configCache';
+import { BUILDING_DEFS, TRANSPORT_DEFS, PRODUCTION_CHAINS, RESOURCE_META } from '@/lib/game/config/configCache';
 import { useConfigVersion } from '@/components/providers/GameConfigProvider';
-import type { TransportType } from '@/lib/game/types';
+import type { TransportType } from '@/lib/game/shared/types/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {

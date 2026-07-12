@@ -114,7 +114,7 @@ export interface ListAdminActionsResult {
  * Filtered, paginated admin-actions query. Returns the row list and the
  * total count for pagination metadata.
  *
- * Replaces the inline supabase query in src/app/api/admin/admin-actions/route.ts.
+ * Replaces the inline supabase query in src/app/api/admin/audit/admin-actions/route.ts.
  */
 export async function listAdminActionsWithFilters(
   page: number,

@@ -1,15 +1,15 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { useGameStore, formatNumber } from "@/lib/game/store";
+import { useGameStore, formatNumber } from "@/lib/game/state/store";
 import {
   useSettingsStore,
   type NumberFormat,
   type AnimationSpeed,
   type SpeedLimit,
   type BottomNavMode,
-} from "@/lib/game/settingsStore";
-import { soundEngine } from "@/lib/game/soundEngine";
+} from "@/lib/game/settings/settingsStore";
+import { soundEngine } from "@/lib/game/audio/soundEngine";
 import { useTickFormat } from "@/lib/hooks/useTickFormat";
 import { formatDuration } from "@/lib/utils/time";
 import { Button } from "@/components/ui/button";

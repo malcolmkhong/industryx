@@ -14,7 +14,7 @@ vi.mock('@/lib/auth/rateLimiter', () => ({
   RATE_LIMITS: { sync: { limit: 1, windowMs: 60000, failClosed: true } },
 }));
 
-import { POST } from '@/app/api/cron/validate-ticks/route';
+import { POST } from '@/app/api/platform/cron/validate-ticks/route';
 
 describe('POST /api/cron/validate-ticks', () => {
   beforeEach(() => {
@@ -25,7 +25,7 @@ describe('POST /api/cron/validate-ticks', () => {
 
   it('returns 401 when CRON_SECRET is missing', async () => {
     delete process.env.CRON_SECRET;
-    const req = buildRequest({ method: 'POST', url: '/api/cron/validate-ticks' });
+    const req = buildRequest({ method: 'POST', url: '/api/platform/cron/validate-ticks' });
     const res = await POST(req);
     expect(res.status).toBe(401);
   });
@@ -33,7 +33,7 @@ describe('POST /api/cron/validate-ticks', () => {
   it('returns 401 when authorization header is wrong', async () => {
     const req = buildRequest({
       method: 'POST',
-      url: '/api/cron/validate-ticks',
+      url: '/api/platform/cron/validate-ticks',
       headers: { authorization: 'Bearer wrong-secret' },
     });
     const res = await POST(req);

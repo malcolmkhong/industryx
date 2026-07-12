@@ -2,8 +2,8 @@
  * profiles — Centralized access to the `profiles` table.
  *
  * Iteration 9 of the Database Centralization migration.
- * Migrated: /api/auth/update-profile, used by /api/auth/link-identity,
- * /api/auth/confirm-link (merge flow).
+ * Migrated: /api/auth/profile/update, used by /api/auth/identity/link,
+ * /api/auth/identity/confirm-link (merge flow).
  *
  * Conventions:
  *   - All async functions return `Promise<T | null>` (null for not-found).
@@ -101,10 +101,10 @@ export async function upsertProfile(
 
 /**
  * Mark a profile as a guest (is_guest = true).
- * Used by /api/auth/quickstart after a device fingerprint resolves
+ * Used by /api/auth/guest/quickstart after a device fingerprint resolves
  * to an existing anon user. Best-effort: failure is logged but not
  * propagated (quickstart tolerates a stale is_guest flag; the next
- * /api/game/state call will re-derive from profiles.is_anonymous).
+ * /api/game/state/sync call will re-derive from profiles.is_anonymous).
  */
 export async function markProfileAsGuest(userId: string): Promise<boolean> {
   const supabase = await createServiceRoleClient();
@@ -122,7 +122,7 @@ export async function markProfileAsGuest(userId: string): Promise<boolean> {
 
 /**
  * Set profiles.device_fingerprint for the current device session.
- * Called by /api/auth/register-device after a successful OAuth login,
+ * Called by /api/auth/device/register after a successful OAuth login,
  * keeping the user's "current device" pointer on the canonical row.
  *
  * Only writes when given a non-empty fingerprint. Empty / null / undefined
@@ -150,7 +150,7 @@ export async function setProfileFingerprint(
 
 /**
  * Read the display name + guest flag for one user. Used by
- * /api/auth/link-identity to build the merge preview.
+ * /api/auth/identity/link to build the merge preview.
  * Returns null if the user has no profile row.
  */
 export async function getProfileDisplayAndGuestFlag(

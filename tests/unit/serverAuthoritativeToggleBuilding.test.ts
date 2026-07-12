@@ -12,12 +12,12 @@
 // ============================================
 
 import { describe, it, expect } from "vitest";
-import { validateToggleBuildingAction } from "@/lib/game/serverEngine";
+import { validateToggleBuildingAction } from "@/lib/game/production/engine/serverEngine";
 import type {
   GameState,
   BuildingInstance,
   BuildingType,
-} from "@/lib/game/types";
+} from "@/lib/game/shared/types/types";
 
 function makeState(
   buildings: Array<{ id: string; active: boolean; type?: BuildingType }>,

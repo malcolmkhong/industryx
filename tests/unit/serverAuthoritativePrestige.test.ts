@@ -12,7 +12,7 @@
 //   - prestigeState is merged into the canonical reset
 //   - lastOnlineTimestamp is preserved from the input state when present
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { GameState } from "@/lib/game/types";
+import type { GameState } from "@/lib/game/shared/types/types";
 
 // Mock the canonical helper BEFORE importing the module under test.
 // The canonical state is a known stub so the validator can merge prestigeState into it.
@@ -81,8 +81,8 @@ vi.mock("@/lib/db/initialState.server", () => ({
 }));
 
 // IMPORTANT: import AFTER vi.mock so the mocked module is resolved.
-import { validatePrestigeAction } from "@/lib/game/serverEngine";
-import type { ServerGameData } from "@/lib/game/types";
+import { validatePrestigeAction } from "@/lib/game/production/engine/serverEngine";
+import type { ServerGameData } from "@/lib/game/shared/types/types";
 
 function makeBuilding(id: string) {
   return { id, type: "ironMine" as never, level: 1, efficiency: 1, active: true, placedAt: 0 };

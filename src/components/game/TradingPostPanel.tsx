@@ -2,16 +2,16 @@
 
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useGameStore, formatNumber } from "@/lib/game/store";
-import type { ResourceType } from "@/lib/game/types";
-import { getGlobalPrice } from "@/lib/game/utils/gameMath";
-import { notifyTradeImpactIfMoved } from "@/lib/game/actions/market";
+import { useGameStore, formatNumber } from "@/lib/game/state/store";
+import type { ResourceType } from "@/lib/game/shared/types/types";
+import { getGlobalPrice } from "@/lib/game/shared/utils/gameMath";
+import { notifyTradeImpactIfMoved } from "@/lib/game/state/store-actions/market";
 import { useGameConfig } from "@/components/providers/GameConfigProvider";
 import {
   INITIAL_MARKET,
   RESOURCE_META,
   TRADABLE_RESOURCE_IDS,
-} from "@/lib/game/configCache";
+} from "@/lib/game/config/configCache";
 import { GameIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,7 +35,7 @@ import {
 import { MarketPriceChart } from "./MarketPriceChart";
 import { formatRemaining } from "@/lib/utils/time";
 
-// ─── Server-enforced cooldown (mirrors src/app/api/game/trade/route.ts) ─────
+// ─── Server-enforced cooldown (mirrors src/app/api/market/trades/execute/route.ts) ─────
 // Trade values are sourced from the client-safe balance subset exposed via
 // GameConfigProvider (populated from game_config_balance by the server).
 // Server is authoritative for actual enforcement; client values are
@@ -241,7 +241,7 @@ async function executeTradeOnServer(
   pricing?: TradePricing;
 }> {
   try {
-    const response = await fetch("/api/game/trade", {
+    const response = await fetch("/api/market/trades/execute", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -296,7 +296,7 @@ async function executeTradeOnServer(
 // ─── Fetch trade history from server ──────────────────────────────────────────
 async function fetchTradeHistory(limit = 20): Promise<TradeHistoryEntry[]> {
   try {
-    const response = await fetch(`/api/game/trades?limit=${limit}`);
+    const response = await fetch(`/api/market/trades/history?limit=${limit}`);
     if (!response.ok) return [];
     const data = await response.json();
     return (data.trades ?? []).map((t: Record<string, unknown>) => ({
@@ -357,7 +357,7 @@ function formatReceiveAmountDisplay(
 // ─── Main Component ───────────────────────────────────────────────────────────
 export function TradingPostPanel() {
   // Client-safe trade values from the GameConfigProvider (sourced from
-  // game_config_balance by the server's /api/game/definitions endpoint).
+  // game_config_balance by the server's /api/game/config/definitions endpoint).
   // Server is authoritative; these are display-only UX values.
   const { config } = useGameConfig();
   const tradeCommissionRate = config.balance.tradeCommissionRate;

@@ -1,6 +1,6 @@
 'use client';
 
-import { formatNumber } from '@/lib/game/store';
+import { formatNumber } from '@/lib/game/state/store';
 import {
   Dialog,
   DialogContent,
@@ -11,8 +11,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { GameIcon } from '@/components/icons/GameIcon';
-import { VALID_RESOURCE_KEYS } from '@/lib/game/balanceConfig';
-import type { ResourceType } from '@/lib/game/types';
+import { VALID_RESOURCE_KEYS } from '@/lib/game/config/balance/balanceConfig';
+import type { ResourceType } from '@/lib/game/shared/types/types';
 
 interface OfflineEarningsDialogProps {
   open: boolean;

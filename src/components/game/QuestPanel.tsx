@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { useGameStore, formatNumber } from "@/lib/game/store";
+import { useGameStore, formatNumber } from "@/lib/game/state/store";
 import { useShallow } from "zustand/react/shallow";
-import { WEATHER_DEFS } from "@/lib/game/configCache";
-import { ALL_TIERS, getTierColor, getTierInfo } from "@/lib/game/tiers";
+import { WEATHER_DEFS } from "@/lib/game/config/configCache";
+import { ALL_TIERS, getTierColor, getTierInfo } from "@/lib/game/progression/tiers";
 import { GameItemTooltip } from "@/components/game/GameItemTooltip";
 import {
   Pin,
@@ -18,7 +18,7 @@ import {
   ScrollText,
 } from "lucide-react";
 import { GameCard } from "@/components/game/shared/GameCard";
-import type { Quest, QuestType } from "@/lib/game/types";
+import type { Quest, QuestType } from "@/lib/game/shared/types/types";
 import { GameIcon } from "@/components/icons";
 import { formatRemaining } from "@/lib/utils/time";
 

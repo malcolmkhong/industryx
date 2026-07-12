@@ -20,8 +20,8 @@ import {
   getAllSupplyDemand,
   updateMarketNews,
 } from '@/lib/db/market';
-import { getBalance } from '@/lib/game/balanceConfig';
-import { ensureConfigLoaded } from '@/lib/game/configLoader.server';
+import { getBalance } from '@/lib/game/config/balance/balanceConfig';
+import { ensureConfigLoaded } from '@/lib/game/config/server/configLoader.server';
 
 // Phase 3 F3: market simulation constants moved to balanceConfig.ts (single source of truth).
 // Defaults match prior behavior. Operators can tune via Supabase overrides.

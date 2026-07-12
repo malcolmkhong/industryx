@@ -18,9 +18,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProductionChainPanel } from "@/components/game/ProductionChainPanel";
 import { GameIcon } from "@/components/icons";
-import { BUILDING_DEFS, PRODUCTION_CHAINS, RESOURCE_META } from "@/lib/game/configCache";
-import { formatNumber, useGameStore } from "@/lib/game/store";
-import type { ResourceType } from "@/lib/game/types";
+import { BUILDING_DEFS, PRODUCTION_CHAINS, RESOURCE_META } from "@/lib/game/config/configCache";
+import { formatNumber, useGameStore } from "@/lib/game/state/store";
+import type { ResourceType } from "@/lib/game/shared/types/types";
 import { useNavigateToTab } from "@/lib/hooks/page/useNavigateToTab";
 
 type ChainCategory = "all" | "raw" | "components" | "energy" | "blocked" | "active";

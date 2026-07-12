@@ -2,7 +2,7 @@
 // Admin monitoring dashboard.
 // Sections: Capacity (server-rendered from getCapacityStatus),
 //           Activity (server-rendered from getCapacityStatus),
-//           Supabase + Cloudflare infra (client-rendered from /api/admin/monitoring with 30s polling).
+//           Supabase + Cloudflare infra (client-rendered from /api/admin/system/monitoring with 30s polling).
 //
 // Auth: the admin/layout already enforces session presence; the API route enforces
 // authoritative admin check via verifyAdmin().
@@ -87,7 +87,7 @@ export default function MonitoringPage() {
     try {
       setRefreshing(true);
       setError(null);
-      const res = await fetch('/api/admin/monitoring', { cache: 'no-store' });
+      const res = await fetch('/api/admin/system/monitoring', { cache: 'no-store' });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || `HTTP ${res.status}`);

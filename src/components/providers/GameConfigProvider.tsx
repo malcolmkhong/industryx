@@ -1,8 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { fetchGameConfig, DEFAULT_BALANCE_SUBSET, type GameConfig } from "@/lib/game/config";
-import { updateFromSupabase, configVersion } from '@/lib/game/configCache';
+import { fetchGameConfig, DEFAULT_BALANCE_SUBSET, type GameConfig } from "@/lib/game/config/config";
+import { updateFromSupabase, configVersion } from '@/lib/game/config/configCache';
 
 // Client-side config cache with 5-minute TTL
 const CONFIG_CACHE_KEY = 'industriax_game_config';
@@ -162,8 +162,8 @@ export function GameConfigProvider({ children }: { children: React.ReactNode }) 
 
   async function fetchFreshConfig(): Promise<GameConfig | null> {
     try {
-      // Try the new /api/game/definitions endpoint first (processed config)
-      const defsRes = await fetch('/api/game/definitions');
+      // Try the new /api/game/config/definitions endpoint first (processed config)
+      const defsRes = await fetch('/api/game/config/definitions');
       if (defsRes.ok) {
         const defsData = await defsRes.json();
         if (defsData.buildings && Object.keys(defsData.buildings).length > 0) {
@@ -199,7 +199,7 @@ export function GameConfigProvider({ children }: { children: React.ReactNode }) 
         return null;
       }
 
-      // Legacy fallback: try the old /api/config endpoint when definitions
+      // Legacy fallback: try the old /api/admin/config endpoint when definitions
       // is absent or non-critical. A 503 means server config is unavailable.
       const supabaseConfig = await fetchGameConfig();
       if (supabaseConfig) {

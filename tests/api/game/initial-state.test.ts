@@ -1,7 +1,7 @@
 /**
- * tests/api/game/initial-state.test.ts
+ * tests/api/game/state/initial.test.ts
  *
- * Auth + rate-limit + 5xx-fail-closed tests for GET /api/game/initial-state.
+ * Auth + rate-limit + 5xx-fail-closed tests for GET /api/game/state/initial.
  *
  * Phase 12 (2026-07-10) — pairs with `fetchCanonicalInitialState()` server
  * helper and the client store hydration hook.
@@ -12,9 +12,9 @@ import { mockSupabaseServer } from '../../unit/mocks/supabase';
 
 vi.mock('@/lib/supabase/server', () => mockSupabaseServer());
 
-import { GET } from '@/app/api/game/initial-state/route';
+import { GET } from '@/app/api/game/state/initial/route';
 
-describe('GET /api/game/initial-state', () => {
+describe('GET /api/game/state/initial', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -27,7 +27,7 @@ describe('GET /api/game/initial-state', () => {
       isServiceRoleConfigured: () => false,
       isSupabaseConfigured: () => false,
     }));
-    const fresh = await import('@/app/api/game/initial-state/route');
+    const fresh = await import('@/app/api/game/state/initial/route');
     const res = await fresh.GET(
       // @ts-expect-error -- minimal stub for NextRequest
       { headers: new Map() },
@@ -60,7 +60,7 @@ describe('GET /api/game/initial-state', () => {
     }));
 
     vi.resetModules();
-    const fresh = await import('@/app/api/game/initial-state/route');
+    const fresh = await import('@/app/api/game/state/initial/route');
     const res = await fresh.GET(
       // @ts-expect-error -- minimal stub for NextRequest
       { headers: new Map() },
@@ -95,7 +95,7 @@ describe('GET /api/game/initial-state', () => {
     }));
 
     vi.resetModules();
-    const fresh = await import('@/app/api/game/initial-state/route');
+    const fresh = await import('@/app/api/game/state/initial/route');
     const res = await fresh.GET(
       // @ts-expect-error -- minimal stub for NextRequest
       { headers: new Map() },
@@ -132,7 +132,7 @@ describe('GET /api/game/initial-state', () => {
     }));
 
     vi.resetModules();
-    const fresh = await import('@/app/api/game/initial-state/route');
+    const fresh = await import('@/app/api/game/state/initial/route');
     const res = await fresh.GET(
       // @ts-expect-error -- minimal stub for NextRequest
       { headers: new Map() },

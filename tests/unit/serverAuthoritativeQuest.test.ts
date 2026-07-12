@@ -11,8 +11,8 @@
 // ============================================
 
 import { describe, it, expect } from "vitest";
-import { validateClaimQuestAction } from "@/lib/game/serverEngine";
-import type { GameState, Quest, PrestigeState } from "@/lib/game/types";
+import { validateClaimQuestAction } from "@/lib/game/production/engine/serverEngine";
+import type { GameState, Quest, PrestigeState } from "@/lib/game/shared/types/types";
 
 function makeQuest(overrides?: Partial<Quest>): Quest {
   return {

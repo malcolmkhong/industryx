@@ -14,13 +14,13 @@
 // ============================================
 
 import { describe, it, expect } from "vitest";
-import { validateUpgradeAction } from "@/lib/game/serverEngine";
-import type { GameConfig } from "@/lib/game/config";
+import { validateUpgradeAction } from "@/lib/game/production/engine/serverEngine";
+import type { GameConfig } from "@/lib/game/config/config";
 import type {
   BuildingDefinition,
   BuildingInstance,
   GameState,
-} from "@/lib/game/types";
+} from "@/lib/game/shared/types/types";
 
 function makeConfig(overrides?: Partial<BuildingDefinition>): GameConfig {
   const buildingDef = {

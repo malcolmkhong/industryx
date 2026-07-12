@@ -12,13 +12,13 @@
  * `productionSnapshot` in its return shape. Those are added by the
  * client during hydration via `mergeCanonicalWithUI()`.
  *
- * Companion to the API route test at `tests/api/game/initial-state.test.ts`,
+ * Companion to the API route test at `tests/api/game/state/initial.test.ts`,
  * the backfill migration `070_backfill_full_state.sql`, and the store
  * helper at `src/lib/game/store-bootstrap.ts`.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { ServerGameData, UISessionState } from '@/lib/game/types';
+import type { ServerGameData, UISessionState } from '@/lib/game/shared/types/types';
 
 // Mock the Supabase server client BEFORE importing the module under test.
 const mockFrom = vi.fn();
@@ -32,12 +32,12 @@ vi.mock('@/lib/supabase/server', () => ({
 }));
 
 // Mock configCache + configLoader.server to short-circuit DB calls there.
-vi.mock('@/lib/game/configLoader.server', () => ({
+vi.mock('@/lib/game/config/server/configLoader.server', () => ({
   ensureConfigLoaded: vi.fn(async () => ({ ok: true })),
 }));
 
 // Mock configCache exports
-vi.mock('@/lib/game/configCache', () => ({
+vi.mock('@/lib/game/config/configCache', () => ({
   INITIAL_MARKET: [
     { resource: 'iron', basePrice: 10, currentPrice: 10, priceHistory: [], demand: 0.5, supply: 0.5, volatility: 0.1 },
     { resource: 'copper', basePrice: 8, currentPrice: 8, priceHistory: [], demand: 0.5, supply: 0.5, volatility: 0.1 },

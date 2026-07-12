@@ -1,7 +1,7 @@
 /**
- * tests/api/tables.test.ts
+ * tests/api/admin/database/tables.test.ts
  *
- * Boundary + admin auth tests for GET /api/tables.
+ * Boundary + admin auth tests for GET /api/admin/database/tables.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -14,9 +14,9 @@ vi.mock('@/lib/auth/admin', () => ({
   withSecurityHeaders: (res: Response) => res,
 }));
 
-import { GET } from '@/app/api/tables/route';
+import { GET } from '@/app/api/admin/database/tables/route';
 
-describe('GET /api/tables', () => {
+describe('GET /api/admin/database/tables', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });

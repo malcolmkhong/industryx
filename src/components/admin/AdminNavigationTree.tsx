@@ -34,13 +34,13 @@ export function AdminNavigationTree() {
     });
   }, []);
 
-  // Fetch the current admin's role from /api/auth/me so the nav tree
+  // Fetch the current admin's role from /api/auth/session/me so the nav tree
   // can hide entries the user doesn't have permission to see.
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const res = await fetch('/api/auth/me', { cache: 'no-store' });
+        const res = await fetch('/api/auth/session/me', { cache: 'no-store' });
         if (!res.ok) return;
         const data = await res.json();
         if (!cancelled && data?.user?.role) {

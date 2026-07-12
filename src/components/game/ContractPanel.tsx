@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { useGameStore, formatNumber } from '@/lib/game/store';
-import type { GameStore } from '@/lib/game/store-types';
+import { useGameStore, formatNumber } from '@/lib/game/state/store';
+import type { GameStore } from '@/lib/game/state/store-types';
 import { useShallow } from 'zustand/react/shallow';
-import { CONTRACT_TEMPLATES } from '@/lib/game/configCache';
-import { ALL_TIERS, getTierColor, getTierInfo } from '@/lib/game/tiers';
-import { RESOURCE_META } from '@/lib/game/uiCatalog';
+import { CONTRACT_TEMPLATES } from '@/lib/game/config/configCache';
+import { ALL_TIERS, getTierColor, getTierInfo } from '@/lib/game/progression/tiers';
+import { RESOURCE_META } from '@/lib/game/catalog/ui/uiCatalog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatRemaining, formatDuration } from '@/lib/utils/time';
@@ -14,7 +14,7 @@ import {
   ScrollText, Package, Clock, Check, X, AlertTriangle,
   Star, Trophy, Coins, FlaskConical, Globe, Lock, ChevronDown, ChevronRight
 } from 'lucide-react';
-import { type Contract } from "@/lib/game/types";
+import { type Contract } from "@/lib/game/shared/types/types";
 import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { LoadingSpinner } from '@/components/game/shared/LoadingSpinner';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';

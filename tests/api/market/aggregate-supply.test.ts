@@ -1,7 +1,7 @@
 /**
- * tests/api/market/aggregate-supply.test.ts
+ * tests/api/market/supply/aggregate.test.ts
  *
- * Boundary tests for POST /api/market/aggregate-supply.
+ * Boundary tests for POST /api/market/supply/aggregate.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -10,9 +10,9 @@ import { mockSupabaseServer } from '../../unit/mocks/supabase';
 
 vi.mock('@/lib/supabase/server', () => mockSupabaseServer());
 
-import { POST } from '@/app/api/market/aggregate-supply/route';
+import { POST } from '@/app/api/market/supply/aggregate/route';
 
-describe('POST /api/market/aggregate-supply', () => {
+describe('POST /api/market/supply/aggregate', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -25,7 +25,7 @@ describe('POST /api/market/aggregate-supply', () => {
       isServiceRoleConfigured: () => false,
       isSupabaseConfigured: () => false,
     }));
-    const fresh = await import('@/app/api/market/aggregate-supply/route');
+    const fresh = await import('@/app/api/market/supply/aggregate/route');
     const res = await fresh.POST();
     expect(res.status).toBe(503);
     vi.doUnmock('@/lib/supabase/server');

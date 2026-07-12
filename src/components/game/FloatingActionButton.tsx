@@ -12,8 +12,8 @@ import { ICON_MAP } from "@/components/game/BottomNavigationBar";
 import {
   useSettingsStore,
   type QuickAccessShortcut,
-} from "@/lib/game/settingsStore";
-import type { GameTab } from "@/lib/game/types";
+} from "@/lib/game/settings/settingsStore";
+import type { GameTab } from "@/lib/game/shared/types/types";
 import { useReducedMotion } from "@/components/game/shared/useReducedMotion";
 
 // ─── Constants ────────────────────────────────────────────────────────────────

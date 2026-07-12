@@ -25,7 +25,7 @@ const KID = "test-kid-1";
 
 // Build a fake NextRequest with one cookie carrying the JWT.
 function makeReq(token: string | null): NextRequest {
-  const req = new NextRequest("http://localhost/api/game/state");
+  const req = new NextRequest("http://localhost/api/game/state/sync");
   if (token !== null) {
     // Next.js 16 RequestCookies only parses via .set() in unit tests
     // (incoming headers are not lazily parsed in the vitest environment).

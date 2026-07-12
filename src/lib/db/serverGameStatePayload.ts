@@ -16,7 +16,7 @@
 // The `as never` pattern was previously used everywhere. That's gone.
 // ============================================
 
-import type { ServerGameData } from "@/lib/game/types";
+import type { ServerGameData } from "@/lib/game/shared/types/types";
 import type { Json } from "@/lib/db/types";
 
 export type { Json };
@@ -64,7 +64,7 @@ export function stripUIFields(
  */
 export function asFullState(value: unknown): Json {
   // We intentionally trust the input. Schema validation happens at the
-  // API boundary (validateGameState in /api/game/state) and is NOT
+  // API boundary (validateGameState in /api/game/state/sync) and is NOT
   // duplicated here — this helper is purely a typed alternative to
   // the `as never` cast that previously appeared everywhere.
   return value as Json;

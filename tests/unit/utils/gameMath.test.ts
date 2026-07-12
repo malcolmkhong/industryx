@@ -6,8 +6,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { getGlobalPrice, getMegaProjectBonus } from '@/lib/game/utils/gameMath';
-import type { GameState, MegaProjectBonusType } from '@/lib/game/types';
+import { getGlobalPrice, getMegaProjectBonus } from '@/lib/game/shared/utils/gameMath';
+import type { GameState, MegaProjectBonusType } from '@/lib/game/shared/types/types';
 
 // ─── Tests: getGlobalPrice ───────────────────────────────────────────
 

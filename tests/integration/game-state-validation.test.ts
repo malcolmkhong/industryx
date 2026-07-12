@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Security Test: Authentication & Authorization on API Routes
  *
  * Verifies that P0 critical paths reject unauthenticated/unauthorized access
@@ -39,22 +39,22 @@ async function fetchJSON(
   return { status: r.status, body };
 }
 
-// â”€â”€â”€ P0: Authentication Required on Protected Routes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── P0: Authentication Required on Protected Routes ────────────────
 
 describe("P0: Auth-required routes reject unauthenticated callers", () => {
   const protectedRoutes = [
     // Each route should return 401 (unauthenticated) or 403 (forbidden/role mismatch)
     // and MUST NOT return 200 (which would mean auth bypass)
-    { method: "GET", path: "/api/leaderboard", desc: "leaderboard" },
+    { method: "GET", path: "/api/game/leaderboard", desc: "leaderboard" },
     {
       method: "POST",
-      path: "/api/leaderboard/submit",
+      path: "/api/game/leaderboard/submit",
       desc: "leaderboard submit",
     },
-    { method: "GET", path: "/api/game/trades", desc: "trade history" },
-    { method: "POST", path: "/api/game/trade", desc: "trade action" },
-    { method: "GET", path: "/api/player", desc: "player state" },
-    { method: "GET", path: "/api/auth/me", desc: "current user" },
+    { method: "GET", path: "/api/market/trades/history", desc: "trade history" },
+    { method: "POST", path: "/api/market/trades/execute", desc: "trade action" },
+    { method: "GET", path: "/api/player/progress", desc: "player state" },
+    { method: "GET", path: "/api/auth/session/me", desc: "current user" },
   ];
 
   for (const route of protectedRoutes) {
@@ -66,7 +66,7 @@ describe("P0: Auth-required routes reject unauthenticated callers", () => {
       assert.notEqual(
         status,
         200,
-        `CRITICAL: ${route.path} returned 200 to unauthenticated request â€” possible auth bypass! Body: ${JSON.stringify(body).slice(0, 200)}`,
+        `CRITICAL: ${route.path} returned 200 to unauthenticated request — possible auth bypass! Body: ${JSON.stringify(body).slice(0, 200)}`,
       );
       // Must be 401 or 403
       assert.ok(
@@ -77,7 +77,7 @@ describe("P0: Auth-required routes reject unauthenticated callers", () => {
   }
 });
 
-// â”€â”€â”€ P0: Burst Resilience on Auth Endpoints â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── P0: Burst Resilience on Auth Endpoints ─────────────────────────────
 
 describe("P0: Burst resilience on auth endpoints", () => {
   liveTest("/api/auth/initialize-guest does not allow unauthenticated burst", async () => {
@@ -116,17 +116,17 @@ describe("P0: Burst resilience on auth endpoints", () => {
   });
 });
 
-// â”€â”€â”€ P0: Admin Routes are Protected â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── P0: Admin Routes are Protected ──────────────────────────────────
 
 describe("P0: Admin routes require admin role", () => {
   const adminRoutes = [
     "/api/admin/players",
-    "/api/admin/admins",
-    "/api/admin/stats",
-    "/api/admin/economy",
-    "/api/admin/jobs",
-    "/api/admin/market",
-    "/api/admin/system-status",
+    "/api/admin/users/admins",
+    "/api/admin/system/stats",
+    "/api/admin/economy/overview",
+    "/api/admin/system/jobs",
+    "/api/admin/market/overview",
+    "/api/admin/system/status",
     "/api/admin/support/tickets",
   ];
 
@@ -137,7 +137,7 @@ describe("P0: Admin routes require admin role", () => {
       assert.notEqual(
         status,
         200,
-        `CRITICAL: ${path} returned 200 to non-admin â€” admin auth bypass! Body: ${JSON.stringify(body).slice(0, 200)}`,
+        `CRITICAL: ${path} returned 200 to non-admin — admin auth bypass! Body: ${JSON.stringify(body).slice(0, 200)}`,
       );
       // Expected: 401 (unauthenticated) or 403 (authenticated but not admin)
       assert.ok(
@@ -148,24 +148,24 @@ describe("P0: Admin routes require admin role", () => {
   }
 });
 
-// â”€â”€â”€ P0: Trade Action Validates Input â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── P0: Trade Action Validates Input ────────────────────────────────
 
 describe("P0: Trade action rejects invalid input", () => {
   liveTest("rejects trade with no body", async () => {
-    const { status, body } = await fetchJSON("/api/game/trade", {
+    const { status, body } = await fetchJSON("/api/market/trades/execute", {
       method: "POST",
       body: JSON.stringify({}),
     });
-    // Even unauthenticated callers should NOT get 200 â€” should be 400 (bad input) or 401 (unauth)
+    // Even unauthenticated callers should NOT get 200 — should be 400 (bad input) or 401 (unauth)
     assert.notEqual(
       status,
       200,
-      `Trade with empty body returned 200 â€” input validation bypassed! Body: ${JSON.stringify(body).slice(0, 200)}`,
+      `Trade with empty body returned 200 — input validation bypassed! Body: ${JSON.stringify(body).slice(0, 200)}`,
     );
   });
 
   liveTest("rejects trade with negative amounts", async () => {
-    const { status, body } = await fetchJSON("/api/game/trade", {
+    const { status, body } = await fetchJSON("/api/market/trades/execute", {
       method: "POST",
       body: JSON.stringify({
         giveResource: "iron",
@@ -177,12 +177,12 @@ describe("P0: Trade action rejects invalid input", () => {
     assert.notEqual(
       status,
       200,
-      `Trade with negative amount returned 200 â€” bounds check bypassed! Body: ${JSON.stringify(body).slice(0, 200)}`,
+      `Trade with negative amount returned 200 — bounds check bypassed! Body: ${JSON.stringify(body).slice(0, 200)}`,
     );
   });
 
   liveTest("rejects trade with unknown resource", async () => {
-    const { status, body } = await fetchJSON("/api/game/trade", {
+    const { status, body } = await fetchJSON("/api/market/trades/execute", {
       method: "POST",
       body: JSON.stringify({
         giveResource: "unobtainium",
@@ -194,40 +194,40 @@ describe("P0: Trade action rejects invalid input", () => {
     assert.notEqual(
       status,
       200,
-      `Trade with unknown resource returned 200 â€” whitelist bypassed! Body: ${JSON.stringify(body).slice(0, 200)}`,
+      `Trade with unknown resource returned 200 — whitelist bypassed! Body: ${JSON.stringify(body).slice(0, 200)}`,
     );
   });
 });
 
-// â”€â”€â”€ P0: Service Health â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── P0: Service Health ─────────────────────────────────────────────
 
 describe("P0: Health endpoint", () => {
-  liveTest("/api/health responds", async () => {
-    const { status, body } = await fetchJSON("/api/health", { method: "GET" });
+  liveTest("/api/platform/health responds", async () => {
+    const { status, body } = await fetchJSON("/api/platform/health", { method: "GET" });
     // Health endpoint should be accessible (200)
     assert.ok(status < 500, `Health endpoint returned ${status}`);
   });
 });
 
-// â”€â”€â”€ P0: Cannot Modify Server Config Without Auth â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── P0: Cannot Modify Server Config Without Auth ────────────────────
 
 describe("P0: Config table routes require auth", () => {
-  liveTest("GET /api/config/[table] rejects unauthenticated", async () => {
-    const { status } = await fetchJSON("/api/config/game_config_buildings", {
+  liveTest("GET /api/admin/config/[table] rejects unauthenticated", async () => {
+    const { status } = await fetchJSON("/api/admin/config/game_config_buildings", {
       method: "GET",
     });
     assert.notEqual(status, 200, "Config GET returned 200 without auth");
   });
 
-  liveTest("POST /api/config/[table] rejects unauthenticated (no public writes)", async () => {
-    const { status } = await fetchJSON("/api/config/game_config_buildings", {
+  liveTest("POST /api/admin/config/[table] rejects unauthenticated (no public writes)", async () => {
+    const { status } = await fetchJSON("/api/admin/config/game_config_buildings", {
       method: "POST",
       body: JSON.stringify({ id: "hack", name: "hacked" }),
     });
     // Must NOT be 200/201 (which would mean public write succeeded)
     assert.ok(
       status !== 200 && status !== 201,
-      `Config POST allowed unauthenticated write â€” CRITICAL! Status: ${status}`,
+      `Config POST allowed unauthenticated write — CRITICAL! Status: ${status}`,
     );
   });
 });

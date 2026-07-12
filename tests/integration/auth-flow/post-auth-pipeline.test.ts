@@ -3,9 +3,9 @@
  *
  * What this DOES test (covers ~80% of what real OAuth would exercise):
  *   - verifyAuth() cookie-ssr round-trip
- *   - /api/auth/register-device post-OAuth profile sync
- *   - /api/auth/link-identity conflict detection
- *   - /api/auth/confirm-link data move + auth_wins semantics
+ *   - /api/auth/device/register post-OAuth profile sync
+ *   - /api/auth/identity/link conflict detection
+ *   - /api/auth/identity/confirm-link data move + auth_wins semantics
  *   - merge_receipts + merge_audit_log writes
  *   - guest_identities supersede marker
  *
@@ -106,7 +106,7 @@ async function quickstart(
   deviceId: string,
   fingerprint: string,
 ): Promise<Record<string, unknown>> {
-  const r = await fetch(`${SERVER}/api/auth/quickstart`, {
+  const r = await fetch(`${SERVER}/api/auth/guest/quickstart`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ deviceId, fingerprint }),
@@ -209,7 +209,7 @@ describe("Post-auth pipeline (google & github coverage)", () => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
     try {
-      const r = await fetch(`${SERVER}/api/auth/me`, {
+      const r = await fetch(`${SERVER}/api/auth/session/me`, {
         signal: AbortSignal.timeout(3000),
       });
       serverReachable = r.status > 0;
@@ -295,7 +295,7 @@ describe("Post-auth pipeline (google & github coverage)", () => {
         // 4. register-device: profile.device_fingerprint sync.
         //    Triggered after OAuth callback by AuthOrchestrator.runPostOAuth.
         const reg = await postJson(
-          "/api/auth/register-device",
+          "/api/auth/device/register",
           { deviceId, fingerprint },
           cookie,
         );
@@ -329,7 +329,7 @@ describe("Post-auth pipeline (google & github coverage)", () => {
         //    Triggered after OAuth callback by AuthOrchestrator.runMergeCheck.
         const idempotencyKey = `it-${provider}-${randomUUID()}`;
         const link = await postJson(
-          "/api/auth/link-identity",
+          "/api/auth/identity/link",
           {
             idempotencyKey,
             deviceId,
@@ -358,7 +358,7 @@ describe("Post-auth pipeline (google & github coverage)", () => {
         //    Same idempotencyKey is required to match the link-identity
         //    record (findLinkOperationById is keyed by id + user_id + idempotency_key).
         const confirm = await postJson(
-          "/api/auth/confirm-link",
+          "/api/auth/identity/confirm-link",
           {
             operationId,
             idempotencyKey,
@@ -481,7 +481,7 @@ describe("Post-auth pipeline (google & github coverage)", () => {
         // Use a fresh deviceId that has no existing identity. No
         // conflict should arise.
         const link = await postJson(
-          "/api/auth/link-identity",
+          "/api/auth/identity/link",
           {
             idempotencyKey: `it-${provider}-noconf-${randomUUID()}`,
             deviceId: dev(`${provider}-noconf-fresh`),

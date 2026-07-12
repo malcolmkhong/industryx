@@ -1,9 +1,9 @@
 "use client";
 
-import { RESOURCE_META } from "@/lib/game/uiCatalog";
+import { RESOURCE_META } from "@/lib/game/catalog/ui/uiCatalog";
 import { useState, useMemo, useCallback } from "react";
 import { LoadingSpinner } from "@/components/game/shared/LoadingSpinner";
-import { useGameStore, formatNumber } from "@/lib/game/store";
+import { useGameStore, formatNumber } from "@/lib/game/state/store";
 import { useShallow } from "zustand/react/shallow";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,7 +30,7 @@ import {
   Factory,
 } from "lucide-react";
 import { MarketPriceChart } from "@/components/game/MarketPriceChart";
-import type { ResourceType } from "@/lib/game/types";
+import type { ResourceType } from "@/lib/game/shared/types/types";
 import { GameItemTooltip } from "@/components/game/GameItemTooltip";
 import { PanelStatCard } from "@/components/game/shared/PanelStatCard";
 import { GameIcon } from "@/components/icons";
@@ -42,7 +42,7 @@ import {
   getSeverityStyle,
   getCategoryIcon,
   type MarketSector,
-} from "@/lib/game/marketSimulator";
+} from "@/lib/game/market/marketSimulator";
 
 // --- Bezier Sparkline Component ---
 function BezierSparkline({

@@ -17,9 +17,9 @@ import { describe, it, expect } from "vitest";
 import {
   validateHireWorkerAction,
   validateAssignWorkerAction,
-} from "@/lib/game/serverEngine";
-import type { GameConfig } from "@/lib/game/config";
-import type { GameState, Worker, BuildingInstance } from "@/lib/game/types";
+} from "@/lib/game/production/engine/serverEngine";
+import type { GameConfig } from "@/lib/game/config/config";
+import type { GameState, Worker, BuildingInstance } from "@/lib/game/shared/types/types";
 
 function makeConfig(): GameConfig {
   return {

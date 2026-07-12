@@ -4,7 +4,7 @@
  * Iteration 9 of the Database Centralization migration.
  * Note: /api/auth/recover-by-device and /api/auth/initialize-guest
  * were never deployed as standalone routes — both are subsumed by
- * /api/auth/quickstart which calls helpers in this module directly.
+ * /api/auth/guest/quickstart which calls helpers in this module directly.
  * (link-identity + confirm-link use this module
  * for read paths; their write paths live in db/merge.ts.)
  *
@@ -53,7 +53,7 @@ export type GuestIdentityInsert = Pick<
 
 /**
  * Find the active identity for a raw fingerprint value.
- * Used by /api/auth/quickstart to detect returning users whose deviceId
+ * Used by /api/auth/guest/quickstart to detect returning users whose deviceId
  * was lost but whose fingerprint survived (localStorage wiped).
  *
  * Queries the `fingerprint` column — the column with the unique partial
@@ -87,7 +87,7 @@ export async function findIdentityByFingerprint(
 }
 
 /**
- * Convenience wrapper for /api/auth/quickstart: returns just the user_id
+ * Convenience wrapper for /api/auth/guest/quickstart: returns just the user_id
  * (or null) for the active identity matched by fingerprint.
  */
 export async function findUserByFingerprint(
@@ -98,7 +98,7 @@ export async function findUserByFingerprint(
 }
 
 /**
- * Convenience wrapper for /api/auth/quickstart: returns just the user_id
+ * Convenience wrapper for /api/auth/guest/quickstart: returns just the user_id
  * (or null) for the active primary identity matched by device_id.
  */
 export async function findUserByDeviceId(

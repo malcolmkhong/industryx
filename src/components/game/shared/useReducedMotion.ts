@@ -1,7 +1,7 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
-import { useSettingsStore } from '@/lib/game/settingsStore';
+import { useSettingsStore } from '@/lib/game/settings/settingsStore';
 
 const QUERY = '(prefers-reduced-motion: reduce)';
 

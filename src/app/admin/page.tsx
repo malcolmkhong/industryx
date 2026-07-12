@@ -23,8 +23,8 @@ export default function BackendDashboard() {
     try {
       setStatsLoading(true);
       const [statsRes, actionsRes, investigationsRes] = await Promise.all([
-        fetch("/api/admin/stats"),
-        fetch("/api/admin/actions?limit=5"),
+        fetch("/api/admin/system/stats"),
+        fetch("/api/admin/audit/player-actions?limit=5"),
         fetch("/api/admin/investigations?limit=5"),
       ]);
 

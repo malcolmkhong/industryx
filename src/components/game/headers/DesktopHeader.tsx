@@ -14,8 +14,8 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useGameStore, formatNumber } from '@/lib/game/store';
-import { WEATHER_DEFS, RESEARCH_TREE } from '@/lib/game/configCache';
+import { useGameStore, formatNumber } from '@/lib/game/state/store';
+import { WEATHER_DEFS, RESEARCH_TREE } from '@/lib/game/config/configCache';
 import { GameIcon, BrandLogo } from '@/components/icons';
 import { OnlineCount } from '@/components/game/OnlineCount';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -28,7 +28,7 @@ import { useTickFormat } from '@/lib/hooks/useTickFormat';
 import {
   formatByMode, formatDuration, formatClock, formatShortDate, formatRemaining,
 } from '@/lib/utils/time';
-import type { GameTab } from '@/lib/game/types';
+import type { GameTab } from '@/lib/game/shared/types/types';
 
 interface DesktopHeaderProps {
   onTabChange: (tab: GameTab) => void;
