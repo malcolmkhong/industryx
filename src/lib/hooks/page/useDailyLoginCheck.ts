@@ -13,7 +13,7 @@ export function useDailyLoginCheck(): {
   const hasCheckedDailyLogin = useRef(false);
 
   useEffect(() => {
-    if (hasCheckedDailyLogin.current) return;
+    if (hasCheckedDailyLogin.current) return () => {};
     hasCheckedDailyLogin.current = true;
     const timer = setTimeout(() => {
       checkDailyLogin();

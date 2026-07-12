@@ -32,7 +32,7 @@ export function useOnlinePresence(): VisitorPresenceState {
   }, [user]);
 
   useEffect(() => {
-    if (!visitorManager) return;
+    if (!visitorManager) return () => {};
     const unsubscribe = visitorManager.subscribe(setState, userRef);
     return unsubscribe;
   }, []);

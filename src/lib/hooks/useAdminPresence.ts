@@ -26,7 +26,7 @@ export function useAdminPresence(): AdminPresenceState {
   });
 
   useEffect(() => {
-    if (!adminManager) return;
+    if (!adminManager) return () => {};
     const unsubscribe = adminManager.subscribe(setState, { current: null });
     return unsubscribe;
   }, []);

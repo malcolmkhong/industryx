@@ -47,6 +47,7 @@ export function useCloudSync(): CloudSyncState {
 
   useEffect(() => {
     service.setUserId(userId);
+    return () => {};
   }, [service, userId]);
 
   const snapshot = useSyncExternalStore(

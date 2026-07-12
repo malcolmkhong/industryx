@@ -18,6 +18,7 @@ export function useMoneyGlowEffect(): {
       return () => { clearTimeout(t1); clearTimeout(t2); };
     }
     prevMoneyRef.current = money;
+    return () => {};
   }, [money]);
 
   return { moneyGlow };

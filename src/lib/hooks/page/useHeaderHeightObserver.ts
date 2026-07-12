@@ -9,9 +9,9 @@ export function useHeaderHeightObserver(
 ): number {
   const [headerHeight, setHeaderHeight] = useState(52);
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) return () => {};
     const el = headerRef.current;
-    if (!el) return;
+    if (!el) return () => {};
     const updateHeight = () => setHeaderHeight(el.offsetHeight);
     const observer = new ResizeObserver(updateHeight);
     observer.observe(el);
