@@ -129,6 +129,27 @@ let circuitOpen = false;
 let lastCircuitBreakerLog = 0;             // Rate-limit circuit breaker log messages
 let lastApiFailureLog = 0;                 // Rate-limit 502/timeout log messages
 
+// ─── Circuit-breaker state mutations ──────────────────────────────────────────
+// Write-only helpers. Kept separate from the read sites (callCloudflareWorker
+// gate, flushBatch guard) so there is no read-then-write-after-await shape that
+// trips require-atomic-updates. JS is single-threaded; these are safe.
+function openCircuit(now: number): void {
+  circuitOpen = true;
+  disabledUntil = now + CIRCUIT_BREAKER_COOLDOWN_MS;
+}
+function closeCircuit(): void {
+  circuitOpen = false;
+}
+function disableUntilSlow(now: number): void {
+  disabledUntil = now + DISABLE_DURATION_MS;
+}
+function beginFlush(): void {
+  isFlushing = true;
+}
+function endFlush(): void {
+  isFlushing = false;
+}
+
 // ─── LRU Cache ────────────────────────────────────────────────────────────────
 
 class LRUCache<K, V> {
@@ -198,7 +219,7 @@ async function callCloudflareWorker(
         return null; // Silently skip — circuit is open
       }
       // Cooldown elapsed — try one request to see if the service recovered
-      circuitOpen = false;
+      closeCircuit();
     }
 
     const response = await fetch(API_ROUTE, {
@@ -234,8 +255,7 @@ async function callCloudflareWorker(
     if (!response.ok) {
       consecutiveFailures++;
       if (consecutiveFailures >= CIRCUIT_BREAKER_THRESHOLD) {
-        circuitOpen = true;
-        disabledUntil = Date.now() + CIRCUIT_BREAKER_COOLDOWN_MS;
+        openCircuit(Date.now());
         // Rate-limit log messages — only log once per minute max
         const now = Date.now();
         if (now - lastCircuitBreakerLog > 60_000) {
@@ -255,7 +275,7 @@ async function callCloudflareWorker(
 
     // ── Success — reset circuit breaker ──
     consecutiveFailures = 0;
-    circuitOpen = false;
+    closeCircuit();
 
     const data = await response.json();
 
@@ -269,8 +289,7 @@ async function callCloudflareWorker(
     recordGenTime(elapsed);
     consecutiveFailures++;
     if (consecutiveFailures >= CIRCUIT_BREAKER_THRESHOLD) {
-      circuitOpen = true;
-      disabledUntil = Date.now() + CIRCUIT_BREAKER_COOLDOWN_MS;
+      openCircuit(Date.now());
       const now = Date.now();
       if (now - lastCircuitBreakerLog > 60_000) {
         console.warn(`[NewsLLM] Circuit breaker OPEN after ${consecutiveFailures} failures (timeout/error). Disabling for ${CIRCUIT_BREAKER_COOLDOWN_MS / 1000}s.`);
@@ -298,7 +317,7 @@ async function flushBatch(): Promise<void> {
   if (isFlushing) return;
   if (pendingBatch.length === 0) return;
 
-  isFlushing = true;
+  beginFlush();
 
   // Take up to BATCH_MAX_SIZE events from the buffer
   const batchToSend = pendingBatch.splice(0, BATCH_MAX_SIZE);
@@ -361,7 +380,7 @@ async function flushBatch(): Promise<void> {
 
       // Check if LLM is too slow
       if (engineState.averageGenTimeMs > SLOW_LLM_THRESHOLD_MS) {
-        disabledUntil = Date.now() + DISABLE_DURATION_MS;
+        disableUntilSlow(Date.now());
         console.warn(
           `[NewsLLM] LLM too slow (avg ${engineState.averageGenTimeMs.toFixed(0)}ms). Disabling for ${DISABLE_DURATION_MS / 1000}s.`
         );
@@ -374,7 +393,7 @@ async function flushBatch(): Promise<void> {
     console.warn('[NewsLLM] flushBatch error:', error);
     engineState.llmFailures++;
   } finally {
-    isFlushing = false;
+    endFlush();
 
     // If more events accumulated while we were flushing, schedule another flush
     if (pendingBatch.length >= BATCH_MIN_SIZE) {
@@ -456,16 +475,15 @@ function applyHeadlinesToStore(
  * Initialize the LLM news system.
  * Marks as ready — the actual API will be tested on first call.
  */
-export async function initNewsLLM(): Promise<void> {
-  if (engineState.loadState !== 'idle') return undefined;
+export function initNewsLLM(): void {
+  if (engineState.loadState !== 'idle') return;
   if (typeof window === 'undefined') {
     engineState.loadState = 'unsupported';
-    return undefined;
+    return;
   }
   engineState.loadState = 'ready';
   engineState.model = 'cloudflare-llama-3.1-8b';
   engineState.backend = 'cloudflare';
-  return undefined;
 }
 
 /**
