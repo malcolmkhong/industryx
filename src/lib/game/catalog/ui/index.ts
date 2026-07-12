@@ -1,11 +1,7 @@
 // ============================================
-// IndustryaX: UI Catalog
-// Compatibility barrel — domain catalogs live in split modules.
-// Static, hand-curated UI metadata for game entities.
-// No game-logic (Master) fields — only presentation data.
-//
-// Source of truth for Master Data (cost, production, power, etc.):
-//   Supabase game_config_* tables → configCache (live bindings).
+// IndustryaX: UI Catalog — Index
+// Static presentation metadata only (no game-logic Master fields).
+// Split from uiCatalog.ts — behavior-identical data move.
 // ============================================
 
 export { RESOURCE_META } from './resources';

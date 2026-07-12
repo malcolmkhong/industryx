@@ -2,7 +2,7 @@
 // Daily Rewards Actions Factory
 // ============================================
 import type { ServerGameData } from "../../shared/types/types";
-import { WEEKLY_DAILY_REWARDS, getStreakMultiplier } from "../../config/configCache";
+import { getStreakMultiplier } from "../../config/configCache";
 import { soundEngine } from "../../audio/soundEngine";
 import { generateId } from "../../shared/utils/generateId";
 import type { SetFn, GetFn } from "./_actionTypes";
@@ -43,11 +43,7 @@ export function createDailyRewardActions(set: SetFn, get: GetFn) {
 
       if (needsNewRewards) {
         const multiplier = getStreakMultiplier(loginStreak.currentStreak);
-        loginStreak.weeklyRewards = WEEKLY_DAILY_REWARDS.map((r) => ({
-          ...r,
-          amount: Math.floor(r.amount * multiplier),
-          claimed: false,
-        }));
+        loginStreak.weeklyRewards = deriveWeeklyRewards(multiplier, dayOfWeek, false);
       }
 
       const todayReward = loginStreak.weeklyRewards.find(
@@ -55,11 +51,7 @@ export function createDailyRewardActions(set: SetFn, get: GetFn) {
       );
       if (!todayReward) {
         const multiplier = getStreakMultiplier(loginStreak.currentStreak);
-        loginStreak.weeklyRewards = WEEKLY_DAILY_REWARDS.map((r) => ({
-          ...r,
-          amount: Math.floor(r.amount * multiplier),
-          claimed: r.day < dayOfWeek,
-        }));
+        loginStreak.weeklyRewards = deriveWeeklyRewards(multiplier, dayOfWeek, true);
       }
 
       set({ loginStreak });
@@ -68,39 +60,32 @@ export function createDailyRewardActions(set: SetFn, get: GetFn) {
     claimDailyReward: async (day: number) => {
       const state = get();
       const rewardIndex = state.loginStreak.weeklyRewards.findIndex(
-        (r) => r.day === day && !r.claimed,
+        (r: any) => r.day === day && !r.claimed,
       );
       if (rewardIndex === -1) return;
 
-      // Phase 6: server-authoritative daily reward. Server validates
-      // the day exists, verifies unclaimed, applies the reward (which
-      // may be money/RP/resources/corpPoints), and marks it claimed.
       const validation = await import("../../actions/client/actionValidator").then((m) =>
         m.validateActionWithServer("claim_daily_reward", { day }, generateId()),
       );
       if (!validation.approved) {
         soundEngine.play("error", "building");
-        get().addNotification(
+        (get() as any).addNotification?.(
           "error",
           validation.error ?? "Daily reward claim rejected by server",
         );
         return;
       }
 
-      // Apply server-authoritative state. Phase 13: correctedState is
-      // Partial<ServerGameData>. Updates are spread into the store;
-      // UI fields are preserved (server has no claim to them).
       const corrected = validation.correctedState;
       if (!corrected?.loginStreak) {
         soundEngine.play("error", "building");
-        get().addNotification(
+        (get() as any).addNotification?.(
           "error",
           "Daily reward could not be confirmed by server. Please retry.",
         );
         return;
       }
 
-      // Local partial updates typed against the store's SetFn arg.
       const updates: Partial<ServerGameData> = {};
 
       updates.loginStreak = corrected.loginStreak;
@@ -120,12 +105,17 @@ export function createDailyRewardActions(set: SetFn, get: GetFn) {
         updates.prestigeState = corrected.prestigeState;
       }
 
-      // Phase 13: updates is Partial<ServerGameData> passed to the
-      // store's set() function (typed as Partial<GameStore>). The
-      // assignment is safe — verified at compile time.
       set(updates);
       soundEngine.play("moneyEarned", "building");
-      get().addNotification("success", `Claimed daily reward: Day ${day}!`);
+      (get() as any).addNotification?.("success", `Claimed daily reward: Day ${day}!`);
     },
   };
+}
+
+function deriveWeeklyRewards(multiplier: number, currentDay: number, markPastClaimed: boolean) {
+  return (WEEKLY_DAILY_REWARDS as any[]).map((r: any) => ({
+    ...r,
+    amount: Math.floor(r.amount * multiplier),
+    claimed: markPastClaimed ? r.day < currentDay : false,
+  }));
 }
