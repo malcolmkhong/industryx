@@ -204,6 +204,8 @@ function getPortXY(
       return { x: w * port.fraction, y: h };
     case "left":
       return { x: 0, y: h * port.fraction };
+    default:
+      throw new Error(`Invalid port side: ${port.side}`);
   }
 }
 
@@ -301,17 +303,14 @@ function assignPorts(
         fromSide = "left";
         toSide = "right";
       }
+    } else if (dy > 0) {
+      // Vertical dominance — Target is below → source outputs bottom, target inputs top
+      fromSide = "bottom";
+      toSide = "top";
     } else {
-      // Vertical dominance
-      if (dy > 0) {
-        // Target is below → source outputs bottom, target inputs top
-        fromSide = "bottom";
-        toSide = "top";
-      } else {
-        // Target is above → source outputs top, target inputs bottom
-        fromSide = "top";
-        toSide = "bottom";
-      }
+      // Target is above → source outputs top, target inputs bottom
+      fromSide = "top";
+      toSide = "bottom";
     }
 
     // Get available ports for the determined sides
@@ -411,16 +410,18 @@ function NetworkGraph({
   // Wheel zoom (non-passive to allow preventDefault)
   useEffect(() => {
     const el = containerRef.current;
-    if (!el) return;
-    const handler = (e: WheelEvent) => {
-      e.preventDefault();
-      const delta = e.deltaY > 0 ? -0.08 : 0.08;
-      setZoom((prev) =>
-        Math.max(0.25, Math.min(2.5, Math.round((prev + delta) * 100) / 100)),
-      );
-    };
-    el.addEventListener("wheel", handler, { passive: false });
-    return () => el.removeEventListener("wheel", handler);
+    if (el) {
+      const handler = (e: WheelEvent) => {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.08 : 0.08;
+        setZoom((prev) =>
+          Math.max(0.25, Math.min(2.5, Math.round((prev + delta) * 100) / 100)),
+        );
+      };
+      el.addEventListener("wheel", handler, { passive: false });
+      return () => el.removeEventListener("wheel", handler);
+    }
+    return undefined;
   }, []);
 
   // Build adjacency map
@@ -1364,7 +1365,7 @@ function NetworkGraph({
                             color: node.active ? "#4ade80" : "#6b7280",
                           });
                           return rows.map((row, idx) => (
-                            <g key={idx} style={{ opacity: 1 }}>
+                            <g key={row.label} style={{ opacity: 1 }}>
                               <text
                                 x={7}
                                 y={
@@ -1844,6 +1845,7 @@ export function TransportPanel() {
   // --- Bottleneck Detection ---
   const bottlenecks = useMemo(() => {
     const issues: {
+      id: string;
       building: BuildingInstance;
       reason: string;
       severity: "critical" | "warning" | "info";
@@ -1851,9 +1853,14 @@ export function TransportPanel() {
       flowRate?: number;
       requiredRate?: number;
       type:
-        "under-supplied" | "over-supplied" | "no-route" | "capacity" | "power";
+        | "under-supplied"
+        | "over-supplied"
+        | "no-route"
+        | "capacity"
+        | "power";
       action?: { label: string; onClick: () => void };
     }[] = [];
+    let seq = 0;
 
     store.buildings.forEach((b) => {
       if (!b.active) return;
@@ -1888,6 +1895,7 @@ export function TransportPanel() {
             );
           });
           issues.push({
+            id: `bn-${seq++}`,
             building: b,
             reason: "No outbound transport — production may be wasted",
             severity: "critical",
@@ -1923,6 +1931,7 @@ export function TransportPanel() {
             const lineDef = TRANSPORT_DEFS[line.type];
             const upgradeCost = getUpgradeCost(line);
             issues.push({
+              id: `bn-${seq++}`,
               building: b,
               reason: `${lineDef.name} at ${(util * 100).toFixed(0)}% capacity`,
               severity: "warning",
@@ -1970,6 +1979,7 @@ export function TransportPanel() {
               return pbDef?.outputs?.some((o) => o.resource === res);
             });
             issues.push({
+              id: `bn-${seq++}`,
               building: b,
               reason: `Missing inbound ${RESOURCE_META[res]?.name ?? res} — production stalled`,
               severity: "critical",
@@ -1991,6 +2001,7 @@ export function TransportPanel() {
             });
           } else if (totalInboundRate < consumptionRate * 0.8) {
             issues.push({
+              id: `bn-${seq++}`,
               building: b,
               reason: `Under-supplied ${RESOURCE_META[res]?.name ?? res}: ${totalInboundRate.toFixed(1)}/${consumptionRate.toFixed(1)}/s`,
               severity: "warning",
@@ -2036,8 +2047,9 @@ export function TransportPanel() {
             totalOutboundThroughput < productionRate * 0.5
           ) {
             issues.push({
-              building: b,
-              reason: `Over-supplied ${RESOURCE_META[res]?.name ?? res}: producing ${productionRate.toFixed(1)}/s but only ${totalOutboundThroughput.toFixed(1)}/s consumed`,
+               id: `bn-${seq++}`,
+               building: b,
+               reason: `Over-supplied ${RESOURCE_META[res]?.name ?? res}: producing ${productionRate.toFixed(1)}/s but only ${totalOutboundThroughput.toFixed(1)}/s consumed`,
               severity: "info",
               type: "over-supplied",
               flowRate: totalOutboundThroughput,
@@ -2051,6 +2063,7 @@ export function TransportPanel() {
       // 5. Power overload
       if (b.efficiency < 0.5 && store.powerGrid.overload) {
         issues.push({
+          id: `bn-${seq++}`,
           building: b,
           reason: `Running at ${(b.efficiency * 100).toFixed(0)}% — power grid overloaded`,
           severity: "warning",
@@ -2063,6 +2076,7 @@ export function TransportPanel() {
 
     if (store.transportLines.length === 0 && store.buildings.length > 2) {
       issues.push({
+        id: `bn-${seq++}`,
         building: store.buildings[0],
         reason: "No transport network — buildings operate independently",
         severity: "info",
@@ -2455,7 +2469,8 @@ export function TransportPanel() {
         <div className="flex items-center gap-2 mb-3">
           <Database className="w-4 h-4 text-brand" />
           <h3 className="text-sm font-semibold text-brand">Network Graph</h3>
-          <span className="text-[10px] text-muted-label ml-auto">
+          <span className="text-[10px] text-muted-label ml-auto flex items-center gap-1">
+            <Move className="w-3 h-3" />
             {erdNodes.length} nodes · {erdRelations.length} edges · click node
             to reveal connections · scroll to zoom · drag to pan
           </span>
@@ -2810,20 +2825,35 @@ export function TransportPanel() {
               )}
 
               {/* Build Button */}
-              <Button
-                onClick={handleBuild}
-                disabled={
-                  !fromBuilding ||
-                  !toBuilding ||
-                  !carriesResource ||
-                  fromBuilding === toBuilding
-                }
-                className="w-full bg-brand hover:bg-brand text-white"
-                size="sm"
-              >
-                <Truck className="w-3.5 h-3.5 mr-1.5" />
-                Build {TRANSPORT_DEFS[selectedType].name}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleBuild}
+                  disabled={
+                    !fromBuilding ||
+                    !toBuilding ||
+                    !carriesResource ||
+                    fromBuilding === toBuilding
+                  }
+                  className="flex-1 bg-brand hover:bg-brand text-white"
+                  size="sm"
+                >
+                  <Truck className="w-3.5 h-3.5 mr-1.5" />
+                  Build {TRANSPORT_DEFS[selectedType].name}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 w-8 p-0 text-muted-label border-muted-label hover:bg-muted-label"
+                  title="Clear selection"
+                  onClick={() => {
+                    setFromBuilding("");
+                    setToBuilding("");
+                    setCarriesResource("");
+                  }}
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -3114,7 +3144,6 @@ export function TransportPanel() {
             ) : (
               <div className="space-y-1 max-h-56 overflow-y-auto game-scrollbar">
                 <div className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-x-2 text-[9px] text-muted-label px-1 pb-1 border-b border-muted-label">
-                  <span></span>
                   <span>Resource</span>
                   <span className="text-right">Prod</span>
                   <span className="text-right">Cons</span>
@@ -3184,7 +3213,7 @@ export function TransportPanel() {
               </div>
             ) : (
               <div className="space-y-2 max-h-64 overflow-y-auto game-scrollbar">
-                {bottlenecks.map((bn, i) => {
+                {bottlenecks.map((bn) => {
                   const bDef = BUILDING_DEFS[bn.building.type];
                   const sevColor =
                     bn.severity === "critical"
@@ -3214,7 +3243,7 @@ export function TransportPanel() {
                     );
                   return (
                     <div
-                      key={i}
+                      key={bn.id}
                       className={`bg-background rounded-lg p-3 border ${sevColor}`}
                     >
                       <div className="flex items-center gap-1.5 mb-1.5">
@@ -3388,11 +3417,15 @@ export function TransportPanel() {
           </div>
         </div>
       </div>
-
       {/* Auto-Route Suggestions Overlay */}
-      <>
+      <AnimatePresence>
         {showSuggestions && (
-          <div>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.18 }}
+          >
             <div className="game-card rounded-xl bg-card p-4 border border-brand/30">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
@@ -3426,7 +3459,7 @@ export function TransportPanel() {
                 </div>
               ) : (
                 <div className="space-y-2 max-h-64 overflow-y-auto game-scrollbar">
-                  {routeSuggestions.map((sug, i) => {
+                  {routeSuggestions.map((sug) => {
                     const fromDef = BUILDING_DEFS[sug.from.type];
                     const toDef = BUILDING_DEFS[sug.to.type];
                     const resMeta = RESOURCE_META[sug.resource];
@@ -3434,7 +3467,7 @@ export function TransportPanel() {
                     const canAfford = store.money >= cheapestCost;
                     return (
                       <div
-                        key={i}
+                        key={`${sug.from.id}-${sug.to.id}-${sug.resource}`}
                         className="bg-background rounded-lg p-3 border border-brand/20"
                       >
                         <div className="flex items-center gap-2 mb-2">
@@ -3487,14 +3520,13 @@ export function TransportPanel() {
                 </div>
               )}
             </div>
-          </div>
+          </motion.div>
         )}
-      </>
-
+      </AnimatePresence>
       {/* Connect All Confirmation Dialog */}
-      <>
+      <AnimatePresence>
         {showConnectAllDialog && (
-          <div
+          <motion.div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
             role="dialog"
             aria-modal="true"
@@ -3504,11 +3536,19 @@ export function TransportPanel() {
               if (e.key === "Escape") setShowConnectAllDialog(false);
             }}
             tabIndex={0}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
           >
-            <div
+            <motion.div
               className="bg-card rounded-xl border border-brand/50 p-6 max-w-md w-full mx-4 shadow-[0_0_40px_rgba(34,211,238,0.15)]"
               role="presentation"
               onClick={(e) => e.stopPropagation()}
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.18 }}
             >
               <div className="flex items-center gap-2 mb-4">
                 <Link2 className="w-5 h-5 text-brand" />
@@ -3532,7 +3572,7 @@ export function TransportPanel() {
               <div className="bg-background rounded-lg p-3 mb-4 max-h-40 overflow-y-auto game-scrollbar">
                 {connectAllData.routes.slice(0, 20).map((r, i) => (
                   <div
-                    key={i}
+                    key={`${r.from}-${r.to}-${r.resource}`}
                     className="flex items-center gap-1.5 text-[10px] text-subtle py-0.5"
                   >
                     <span className="text-muted-label">{i + 1}.</span>
@@ -3579,10 +3619,11 @@ export function TransportPanel() {
                   Connect All
                 </Button>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         )}
-      </>
+      </AnimatePresence>
+
     </div>
   );
 }
