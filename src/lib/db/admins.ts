@@ -32,7 +32,7 @@
  *   - src/app/api/admin/users/admins/[id]/route.ts  (2 call sites)
  *   - src/app/api/admin/users/admins/[id]/role/route.ts (4 call sites)
  */
-
+ 
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/db/types";
 
@@ -105,7 +105,8 @@ export async function getAdminUserIdsFromDb(): Promise<Set<string>> {
       );
       return new Set(getAdminUidsFromEnv());
     }
-    adminCache = new Set((data ?? []).map((r) => r.user_id));
+    const newCache = new Set((data ?? []).map((r) => r.user_id)));
+    adminCache = newCache;
     cacheLoadedAt = Date.now();
     return adminCache;
   } catch (err) {
@@ -221,7 +222,7 @@ export async function getAdminById(
   return (data ?? null) as AdminUserForRoleUpdate | null;
 }
 
-/**
+/*
  * Check if an admin with the given user_id already exists.
  * Returns the id if found, null otherwise.
  */
