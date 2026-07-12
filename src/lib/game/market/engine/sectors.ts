@@ -131,5 +131,7 @@ export function getSectorInfo(sector: MarketSector): { name: string; color: stri
     case 'high_tech':       return { name: 'High Tech', color: 'text-premium', icon: 'game-icons:processor' };
     case 'endgame':         return { name: 'Endgame', color: 'text-research', icon: 'game-icons:atomic-slashes' };
     case 'agriculture':     return { name: 'Agriculture', color: 'text-success', icon: 'game-icons:fertilizer-bag' };
+    default:
+      throw new Error(`Unknown MarketSector: ${String(sector)}`);
   }
 }

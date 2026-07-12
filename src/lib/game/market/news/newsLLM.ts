@@ -457,17 +457,15 @@ function applyHeadlinesToStore(
  * Marks as ready — the actual API will be tested on first call.
  */
 export async function initNewsLLM(): Promise<void> {
-  if (engineState.loadState !== 'idle') return;
-
-  // Only initialize in browser environment
+  if (engineState.loadState !== 'idle') return undefined;
   if (typeof window === 'undefined') {
     engineState.loadState = 'unsupported';
-    return;
+    return undefined;
   }
-
   engineState.loadState = 'ready';
   engineState.model = 'cloudflare-llama-3.1-8b';
   engineState.backend = 'cloudflare';
+  return undefined;
 }
 
 /**

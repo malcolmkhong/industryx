@@ -635,6 +635,8 @@ function severityLabel(severity: "low" | "medium" | "high"): string {
       return "moderate";
     case "low":
       return "minor";
+    default:
+      throw new Error(`Unknown severity: ${String(severity)}`);
   }
 }
 

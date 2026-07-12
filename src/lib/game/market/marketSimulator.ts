@@ -32,6 +32,8 @@ export function getSeverityStyle(severity: 'low' | 'medium' | 'high'): {
     case 'high':   return { color: 'text-danger',    bg: 'bg-danger/20/10',         border: 'border-danger/20',         dot: 'bg-danger' };
     case 'medium': return { color: 'text-warning',   bg: 'bg-warning/10',            border: 'border-warning/20',        dot: 'bg-warning/50' };
     case 'low':    return { color: 'text-muted-label', bg: 'bg-900-gray/10',         border: 'border-muted-label/40/20', dot: 'bg-muted-label/40' };
+    default:
+      throw new Error(`Unknown severity: ${String(severity)}`);
   }
 }
 
@@ -42,6 +44,8 @@ export function getCategoryIcon(category: MarketNewsCategory): string {
     case 'correlation': return '??';
     case 'sector':      return '??';
     case 'trade':       return '??';
+    default:
+      throw new Error(`Unknown MarketNewsCategory: ${String(category)}`);
   }
 }
 
