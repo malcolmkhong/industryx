@@ -8,7 +8,7 @@
 import { NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { verifyAuthAndOwnership } from '@/lib/auth/verifyAuth';
-import { getPlayerProgressByUserId } from '@/lib/db/playerProgress';
+import { getPlayerProgressByUserId } from '@/lib/db/game/playerProgress';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

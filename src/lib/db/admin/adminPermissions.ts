@@ -1,10 +1,10 @@
-// ============================================
+﻿// ============================================
 // src/lib/db/adminPermissions.ts
-// Admin permission grants — CRUD on admin_permissions table.
+// Admin permission grants â€” CRUD on admin_permissions table.
 // Used by src/lib/auth/permissions.ts (the policy/auth module).
 // ============================================
 
-import { createServiceRoleClient } from '@/lib/db/admin';
+import { createServiceRoleClient } from '@/lib/db/admin/admin';
 
 const VALID_PERMISSIONS = [
   'view_players',
@@ -44,7 +44,7 @@ export async function listPermissionsForAdmin(
 
 /**
  * Check whether an admin user has a specific permission grant.
- * Returns false on any error (DB unreachable, no row, etc.) — caller
+ * Returns false on any error (DB unreachable, no row, etc.) â€” caller
  * should treat false as "not authorized".
  */
 export async function adminHasPermission(

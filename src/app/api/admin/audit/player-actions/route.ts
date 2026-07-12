@@ -6,8 +6,8 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { verifyAdmin, withSecurityHeaders } from "@/lib/auth/admin";
-import { listPlayerActionsWithFilters } from "@/lib/db/playerActions";
-import { filterAuthUsersByIds } from "@/lib/db/adminUsers";
+import { listPlayerActionsWithFilters } from "@/lib/db/game/playerActions";
+import { filterAuthUsersByIds } from "@/lib/db/admin/adminUsers";
 
 export async function GET(request: NextRequest) {
   const authResult = await verifyAdmin();

@@ -21,7 +21,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import type { Database } from '@/lib/db/types';
-import { asFullState } from '@/lib/db/serverGameStatePayload';
+import { asFullState } from '@/lib/db/game/serverGameStatePayload';
 
 // Type aliases from the generated Supabase types.
 type AdminActionInsert = Database['public']['Tables']['admin_actions']['Insert'];

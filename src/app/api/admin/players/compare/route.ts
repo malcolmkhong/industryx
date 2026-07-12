@@ -6,8 +6,8 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { verifyAdmin, withSecurityHeaders } from "@/lib/auth/admin";
-import { loadPlayersByIds } from "@/lib/db/serverGameState";
-import { listPlayerProgressByIds } from "@/lib/db/playerProgress";
+import { loadPlayersByIds } from "@/lib/db/game/serverGameState";
+import { listPlayerProgressByIds } from "@/lib/db/game/playerProgress";
 
 export async function POST(request: NextRequest) {
   const authResult = await verifyAdmin();

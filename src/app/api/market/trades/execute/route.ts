@@ -10,11 +10,11 @@ import { TRADABLE_RESOURCES_SET as FALLBACK_TRADABLE_SET } from '@/lib/game/mark
 import {
   loadServerGameStateForTrade,
   saveServerGameStateOptimistic,
-} from '@/lib/db/serverGameState';
-import { recordTrade } from '@/lib/db/trades';
+} from '@/lib/db/game/serverGameState';
+import { recordTrade } from '@/lib/db/game/trades';
 import { getBalance } from '@/lib/game/config/balance/balanceConfig';
 import { ensureConfigLoaded } from '@/lib/game/config/server/configLoader.server';
-import { asFullState } from '@/lib/db/serverGameStatePayload';
+import { asFullState } from '@/lib/db/game/serverGameStatePayload';
 
 interface TradeRequest {
   giveResource?: ResourceType;

@@ -6,7 +6,7 @@ import { DETECTION_TYPE_LABELS } from "@/lib/admin/investigations/detectionTypes
 import {
   countResolvedSince,
   listInvestigations,
-} from "@/lib/db/cheatInvestigations";
+} from "@/lib/db/admin/cheatInvestigations";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 
 type InvestigationStatus = "open" | "resolved" | "dismissed";

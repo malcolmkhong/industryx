@@ -5,7 +5,7 @@
  *
  * Iteration 2 of the Database Centralization migration (2026-06-20):
  * The admin_users query logic and 60s in-memory cache have moved to
- * `@/lib/db/admins`. This file re-exports them under the original names
+ * `@/lib/db/admin/admins`. This file re-exports them under the original names
  * (isAdminUserId, isAdminUserDb, clearAdminCache) to preserve the existing
  * public API and avoid breaking every call site.
  */
@@ -16,7 +16,7 @@ import {
   isAdminUserIdInEnv as _isAdminUserIdInEnv,
   isAdminUserIdInDb as _isAdminUserIdInDb,
   clearAdminCache as _clearAdminCache,
-} from "@/lib/db/admins";
+} from "@/lib/db/admin/admins";
 
 export interface AdminUser {
   id: string;

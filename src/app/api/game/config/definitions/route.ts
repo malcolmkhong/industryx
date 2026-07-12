@@ -6,13 +6,13 @@
 //
 // Architecture note:
 // After the data.ts → Supabase refactor, this route is a thin wrapper
-// around `fetchGameConfigFromSupabase()` (in src/lib/db/serverConfigFetcher.ts),
+// around `fetchGameConfigFromSupabase()` (in src/lib/db/config/serverConfigFetcher.ts),
 // which is also used by the server-side configLoader (configLoader.server.ts)
 // so we have ONE place that maintains the SQL surface area.
 
 import { NextResponse } from "next/server";
 import { DEFAULT_BALANCE_SUBSET, type GameConfig } from "@/lib/game/config/config";
-import { fetchGameConfigFromSupabase } from "@/lib/db/serverConfigFetcher";
+import { fetchGameConfigFromSupabase } from "@/lib/db/config/serverConfigFetcher";
 
 // ─── In-Memory Cache ────────────────────────────────────────────────────
 

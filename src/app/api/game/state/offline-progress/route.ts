@@ -23,7 +23,7 @@ import {
   loadServerGameStateForTick,
   saveServerGameStateOptimistic,
   isServerGameStateAvailable,
-} from "@/lib/db/serverGameState";
+} from "@/lib/db/game/serverGameState";
 import {
   DEFAULT_BALANCE_SUBSET,
   type SupabaseBuilding,
@@ -45,7 +45,7 @@ import type {
 } from "@/lib/game/shared/types/types";
 import type { ProductionSnapshot } from "@/lib/game/production/productionCalculator";
 import { runServerTicks } from "@/lib/game/production/engine/serverEngine";
-import { asFullState } from "@/lib/db/serverGameStatePayload";
+import { asFullState } from "@/lib/db/game/serverGameStatePayload";
 
 // ─── In-Memory Config Cache ─────────────────────────────────────────────
 

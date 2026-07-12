@@ -4,7 +4,7 @@ import {
   listTickets,
   createTicket,
   addTicketMessage,
-} from "@/lib/db/supportTickets";
+} from "@/lib/db/shared/supportTickets";
 
 export async function POST(request: NextRequest) {
   const authResult = await verifyAuth();

@@ -1,5 +1,5 @@
-/**
- * tests/unit/initialState.server.test.ts — Phase 12 + Phase 13 (Option C)
+﻿/**
+ * tests/unit/initialState.server.test.ts â€” Phase 12 + Phase 13 (Option C)
  *
  * Unit tests for the server-authoritative `fetchCanonicalInitialState()`
  * helper. Validates that the canonical ServerGameData is built correctly
@@ -49,12 +49,12 @@ vi.mock('@/lib/game/config/configCache', () => ({
 }));
 
 // Note (Phase 13): emptyProductionSnapshot is intentionally NOT mocked
-// here — the server helper no longer calls it (it returned UI state).
+// here â€” the server helper no longer calls it (it returned UI state).
 // Phase 13 invariant: the helper returns ONLY ServerGameData.
 
-// crypto.randomUUID present in Node ≥ 19; vitest uses Node ≥ 20. No mock needed.
+// crypto.randomUUID present in Node â‰¥ 19; vitest uses Node â‰¥ 20. No mock needed.
 
-import { fetchCanonicalInitialState } from '@/lib/db/initialState.server';
+import { fetchCanonicalInitialState } from '@/lib/db/infra/initialState.server';
 
 const fakeResources = [
   { id: 'iron', base_capacity: 100 },
@@ -115,7 +115,7 @@ describe('fetchCanonicalInitialState (server-authoritative)', () => {
     configureMockSupabase({});
   });
 
-  it('returns ServerGameData (not GameState) — type-level check', async () => {
+  it('returns ServerGameData (not GameState) â€” type-level check', async () => {
     const state: ServerGameData = await fetchCanonicalInitialState();
     // Type assignment succeeds. The presence/absence of UI keys is
     // asserted in the next test.
@@ -168,7 +168,7 @@ describe('fetchCanonicalInitialState (server-authoritative)', () => {
     expect(state.weather.current).toBe('clear');
   });
 
-  // ── Phase 13 invariants — UI fields MUST NOT be in ServerGameData ─────
+  // â”€â”€ Phase 13 invariants â€” UI fields MUST NOT be in ServerGameData â”€â”€â”€â”€â”€
 
   it('does NOT include hydrated (UI flag)', async () => {
     const state = await fetchCanonicalInitialState();
@@ -258,7 +258,7 @@ describe('fetchCanonicalInitialState (server-authoritative)', () => {
       },
     });
     const state = await fetchCanonicalInitialState();
-    // Fallback values: min=100, max=300, nextChange ∈ [100, 400)
+    // Fallback values: min=100, max=300, nextChange âˆˆ [100, 400)
     expect(state.weather.nextChange).toBeGreaterThanOrEqual(100);
     expect(state.weather.nextChange).toBeLessThan(400);
   });

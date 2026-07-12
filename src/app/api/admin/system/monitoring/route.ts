@@ -7,7 +7,7 @@
 import { NextResponse } from 'next/server';
 import { verifyAdmin, withSecurityHeaders } from '@/lib/auth/admin';
 import { getCapacityStatus } from '@/lib/capacity';
-import { getDatabaseSizeMb } from '@/lib/db/infra';
+import { getDatabaseSizeMb } from '@/lib/db/infra/infra';
 
 export const dynamic = 'force-dynamic';
 

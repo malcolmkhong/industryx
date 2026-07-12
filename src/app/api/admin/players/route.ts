@@ -6,9 +6,9 @@
  */
 import { NextResponse, type NextRequest } from "next/server";
 import { verifyAdmin, withSecurityHeaders } from "@/lib/auth/admin";
-import { listPlayersForAdmin } from "@/lib/db/serverGameState";
-import { searchPlayerProgressByDisplayName, listPlayerProgressByIds } from "@/lib/db/playerProgress";
-import { filterAuthUsersEnrichedByIds } from "@/lib/db/adminUsers";
+import { listPlayersForAdmin } from "@/lib/db/game/serverGameState";
+import { searchPlayerProgressByDisplayName, listPlayerProgressByIds } from "@/lib/db/game/playerProgress";
+import { filterAuthUsersEnrichedByIds } from "@/lib/db/admin/adminUsers";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

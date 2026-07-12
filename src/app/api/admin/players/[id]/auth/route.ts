@@ -13,7 +13,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { verifyAdmin, withSecurityHeaders } from "@/lib/auth/admin";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
-import { getAuthUserById } from "@/lib/db/adminUsers";
+import { getAuthUserById } from "@/lib/db/admin/adminUsers";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

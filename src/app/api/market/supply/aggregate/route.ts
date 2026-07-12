@@ -25,7 +25,7 @@
 
 import { NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
-import { pageServerGameStateFullState } from '@/lib/db/serverGameState';
+import { pageServerGameStateFullState } from '@/lib/db/game/serverGameState';
 
 interface ProductionSnapshot {
   production?: Record<string, number>;

@@ -5,7 +5,7 @@
 // ============================================
 
 import { NextResponse } from 'next/server';
-import { getMarketState } from '@/lib/db/market';
+import { getMarketState } from '@/lib/db/game/market';
 
 export async function GET() {
   const data = await getMarketState();

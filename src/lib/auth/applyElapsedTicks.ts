@@ -21,7 +21,7 @@
 // ============================================
 
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { fetchGameConfigFromSupabase } from "@/lib/db/serverConfigFetcher";
+import { fetchGameConfigFromSupabase } from "@/lib/db/config/serverConfigFetcher";
 import { runServerTicks } from "@/lib/game/production/engine/serverEngine";
 import { getGameLimits } from "@/lib/game/config/balance/balanceConfig";
 import { ensureConfigLoaded } from "@/lib/game/config/server/configLoader.server";

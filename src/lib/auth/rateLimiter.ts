@@ -4,7 +4,7 @@
 // ============================================
 
 import { NextResponse } from 'next/server';
-import { checkRateLimitRpc } from '@/lib/db/rateLimits';
+import { checkRateLimitRpc } from '@/lib/db/shared/rateLimits';
 
 export interface RateLimitConfig {
   maxRequests: number;

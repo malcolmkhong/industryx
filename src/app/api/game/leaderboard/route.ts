@@ -6,7 +6,7 @@
 import { NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/auth/verifyAuth';
 import { getUserGuestStatus } from '@/lib/auth/guestCheck';
-import { getLeaderboard, getUserRank } from '@/lib/db/leaderboard';
+import { getLeaderboard, getUserRank } from '@/lib/db/game/leaderboard';
 
 export const dynamic = 'force-dynamic';
 

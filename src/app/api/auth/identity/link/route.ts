@@ -19,16 +19,16 @@ import { cookies } from 'next/headers';
 import { NextResponse, type NextRequest } from "next/server";
 
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
-import { loadServerGameStateForPreview } from '@/lib/db/serverGameState';
+import { loadServerGameStateForPreview } from '@/lib/db/game/serverGameState';
 import { verifyAuth } from '@/lib/auth/verifyAuth';
 import { logRequestIp } from '@/app/api/auth/_shared/request-ip-log-helper';
-import { findPrimaryIdentityByDevice } from '@/lib/db/guestIdentities';
-import { getProfileDisplayAndGuestFlag } from '@/lib/db/profiles';
+import { findPrimaryIdentityByDevice } from '@/lib/db/player/guestIdentities';
+import { getProfileDisplayAndGuestFlag } from '@/lib/db/player/profiles';
 import {
   findLinkOperationByIdempotency,
   insertLinkOperation,
   setLinkOperationStatus,
-} from '@/lib/db/linkOps';
+} from '@/lib/db/shared/linkOps';
 
 export async function POST(request: NextRequest) {
   try {

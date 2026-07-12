@@ -6,8 +6,8 @@
 
 import { NextResponse } from "next/server";
 import { verifyAdmin, withSecurityHeaders } from "@/lib/auth/admin";
-import { getLatestMarketTickInfo } from "@/lib/db/market";
-import { getLatestCheatInvestigation } from "@/lib/db/cheatInvestigations";
+import { getLatestMarketTickInfo } from "@/lib/db/game/market";
+import { getLatestCheatInvestigation } from "@/lib/db/admin/cheatInvestigations";
 
 interface JobInfo {
   name: string;

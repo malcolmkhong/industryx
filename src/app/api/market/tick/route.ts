@@ -19,7 +19,7 @@ import {
   getAllPlayerPressure,
   getAllSupplyDemand,
   updateMarketNews,
-} from '@/lib/db/market';
+} from '@/lib/db/game/market';
 import { getBalance } from '@/lib/game/config/balance/balanceConfig';
 import { ensureConfigLoaded } from '@/lib/game/config/server/configLoader.server';
 

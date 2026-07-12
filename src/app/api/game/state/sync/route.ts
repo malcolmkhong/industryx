@@ -25,8 +25,8 @@ import {
   upsertServerGameState,
   syncPlayerProgressGameState,
   isServerGameStateAvailable,
-} from '@/lib/db/serverGameState';
-import { asFullState, stripUIFields } from '@/lib/db/serverGameStatePayload';
+} from '@/lib/db/game/serverGameState';
+import { asFullState, stripUIFields } from '@/lib/db/game/serverGameStatePayload';
 
 // GET /api/game/state/sync?userId=xxx - Load authoritative server game state
 export async function GET(request: Request) {

@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import type { AdminUser } from "@/lib/auth/admin";
-import { logAdminActionResource } from "@/lib/db/adminActions";
+import { logAdminActionResource } from "@/lib/db/admin/adminActions";
 import {
   createMarketConfigWithError,
   getMarketConfigById,
   updateMarketConfigWithError,
   type ValidSector,
-} from "@/lib/db/configMarket";
+} from "@/lib/db/config/configMarket";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 
 const VALID_SECTORS = [

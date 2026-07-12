@@ -38,10 +38,10 @@ import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 import {
   upsertServerGameState,
   getGameTick,
-} from '@/lib/db/serverGameState';
-import { fetchCanonicalInitialState } from '@/lib/db/initialState.server';
-import { upsertPlayerProgress } from '@/lib/db/playerProgress';
-import { asFullState, stripUIFields } from '@/lib/db/serverGameStatePayload';
+} from '@/lib/db/game/serverGameState';
+import { fetchCanonicalInitialState } from '@/lib/db/infra/initialState.server';
+import { upsertPlayerProgress } from '@/lib/db/game/playerProgress';
+import { asFullState, stripUIFields } from '@/lib/db/game/serverGameStatePayload';
 
 export async function POST(request: NextRequest) {
   try {

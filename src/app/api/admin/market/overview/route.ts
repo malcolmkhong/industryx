@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { verifyAdmin, withSecurityHeaders } from "@/lib/auth/admin";
 import { requireAdminWrite } from "@/lib/auth/admin-route-guards";
 import { logAdminAction } from "@/lib/auth/admin-helpers";
-import { getLatestMarketStateExtended, updateMarketCircuitBreakers } from "@/lib/db/market";
-import { listAllMarketConfig } from "@/lib/db/configMarket";
+import { getLatestMarketStateExtended, updateMarketCircuitBreakers } from "@/lib/db/game/market";
+import { listAllMarketConfig } from "@/lib/db/config/configMarket";
 
 interface ConfigRow {
   resource_id: string;

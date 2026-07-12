@@ -37,7 +37,7 @@ import {
   ModifierEngine,
   buildModifierRegistry,
 } from "../../modifiers/modifierEngine";
-import { fetchCanonicalInitialState } from "@/lib/db/initialState.server";
+import { fetchCanonicalInitialState } from "@/lib/db/infra/initialState.server";
 
 // ─── Server-Side Config Accessors ────────────────────────────────────────
 

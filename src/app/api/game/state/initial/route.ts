@@ -13,7 +13,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { verifyAuth } from "@/lib/auth/verifyAuth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
-import { fetchCanonicalInitialState } from "@/lib/db/initialState.server";
+import { fetchCanonicalInitialState } from "@/lib/db/infra/initialState.server";
 
 export async function GET(request: NextRequest) {
   const auth = await verifyAuth(request);

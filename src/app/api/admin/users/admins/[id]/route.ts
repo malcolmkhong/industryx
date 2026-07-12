@@ -5,7 +5,7 @@ import {
   isAdminsAvailable,
   getAdminById,
   deleteAdminById,
-} from "@/lib/db/admins";
+} from "@/lib/db/admin/admins";
 
 interface RouteContext {
   params: Promise<{ id: string }>;

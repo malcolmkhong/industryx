@@ -6,9 +6,9 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { verifyAdmin, withSecurityHeaders } from "@/lib/auth/admin";
-import { listAdminActionsWithFilters } from "@/lib/db/adminActions";
-import { listAllAuthUsers } from "@/lib/db/adminUsers";
-import { listAdmins } from "@/lib/db/admins";
+import { listAdminActionsWithFilters } from "@/lib/db/admin/adminActions";
+import { listAllAuthUsers } from "@/lib/db/admin/adminUsers";
+import { listAdmins } from "@/lib/db/admin/admins";
 
 export async function GET(request: NextRequest) {
   const authResult = await verifyAdmin();

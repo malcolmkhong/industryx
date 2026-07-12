@@ -7,8 +7,8 @@ import { NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { logActionAsync, validateGameState } from '@/lib/auth/gameStateValidator';
 import { getUserGuestStatus } from '@/lib/auth/guestCheck';
-import { loadServerGameStateForLeaderboard } from '@/lib/db/serverGameState';
-import { submitScore, getUserRank, getRecentSubmissionsByUser } from '@/lib/db/leaderboard';
+import { loadServerGameStateForLeaderboard } from '@/lib/db/game/serverGameState';
+import { submitScore, getUserRank, getRecentSubmissionsByUser } from '@/lib/db/game/leaderboard';
 
 export const dynamic = 'force-dynamic';
 

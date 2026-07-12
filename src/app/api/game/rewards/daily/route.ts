@@ -10,7 +10,7 @@ import {
   getLastClaimDate,
   getUserStreak,
   claimDailyReward,
-} from '@/lib/db/dailyRewards';
+} from '@/lib/db/game/dailyRewards';
 import { WEEKLY_DAILY_REWARDS, getStreakMultiplier } from '@/lib/game/config/configCache';
 
 export async function POST(request: Request) {

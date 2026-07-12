@@ -10,8 +10,8 @@ import {
   topEarners,
   countActivePlayersSince,
   countLockedPlayers,
-} from "@/lib/db/serverGameState";
-import { countActionsSince } from "@/lib/db/playerActions";
+} from "@/lib/db/game/serverGameState";
+import { countActionsSince } from "@/lib/db/game/playerActions";
 
 export async function GET() {
   const authResult = await verifyAdmin();

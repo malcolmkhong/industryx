@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+﻿import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readJson } from "../helpers/request";
 
 vi.mock("@/lib/auth/verifyAuth", () => ({
@@ -12,7 +12,7 @@ vi.mock("@/lib/auth/rateLimiter", () => ({
   },
 }));
 
-vi.mock("@/lib/db/serverGameState", () => ({
+vi.mock("@/lib/db/game/serverGameState", () => ({
   isServerGameStateAvailable: vi.fn(),
   loadServerGameStateForAction: vi.fn(),
 }));
@@ -25,7 +25,7 @@ import { verifyAuth } from "@/lib/auth/verifyAuth";
 import {
   isServerGameStateAvailable,
   loadServerGameStateForAction,
-} from "@/lib/db/serverGameState";
+} from "@/lib/db/game/serverGameState";
 import { applyElapsedServerTime } from "@/lib/game/actions/server/shared/actionPersistence";
 import { POST } from "@/app/api/game/state/live-tick/route";
 

@@ -1,4 +1,4 @@
-// ============================================================================
+﻿// ============================================================================
 // src/lib/db/capacity.ts
 // Capacity-status RPC wrapper for the `get_capacity_status` function.
 //
@@ -6,7 +6,7 @@
 // unreachable. The caller (src/lib/capacity.ts) decides the fallback.
 // ============================================================================
 
-import { createServiceRoleClient } from '@/lib/db/admin';
+import { createServiceRoleClient } from '@/lib/db/admin/admin';
 
 export type CapacityStatus = 'healthy' | 'warning' | 'full';
 

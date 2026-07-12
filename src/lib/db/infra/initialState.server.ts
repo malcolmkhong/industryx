@@ -65,16 +65,16 @@ interface ResourceRow {
  * Phase 13 (2026-07-10): returns ServerGameData only. NO UI fields.
  * The client store merges these into UISessionState (activeTab,
  * notifications, hydrated, ...) locally.
-//
-// Rules:
-//   • money = starting_money
-//   • totalMoneyEarned = 0 (spend/income invariant — seed is NOT earned)
-//   • drones.fleet[0].id = crypto.randomUUID() (SEC-007)
-//   • weather.nextChange = min + serverRandom(0, max-min)
-//
-// Cached 5 minutes. Any subsequent config edit will show up on the
-// next TTL boundary.
-*/
+ *
+ * Rules:
+ *   • money = starting_money
+ *   • totalMoneyEarned = 0 (spend/income invariant — seed is NOT earned)
+ *   • drones.fleet[0].id = crypto.randomUUID() (SEC-007)
+ *   • weather.nextChange = min + serverRandom(0, max-min)
+ *
+ * Cached 5 minutes. Any subsequent config edit will show up on the
+ * next TTL boundary.
+ */
 export async function fetchCanonicalInitialState(): Promise<ServerGameData> {
   const now = Date.now();
   const cached = cache;

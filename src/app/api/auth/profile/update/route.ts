@@ -6,7 +6,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 import { verifyAuthAndOwnership } from '@/lib/auth/verifyAuth';
-import { updateProfileDisplayName } from '@/lib/db/profiles';
+import { updateProfileDisplayName } from '@/lib/db/player/profiles';
 
 const MAX_DISPLAY_NAME_LENGTH = 32;
 const FORBIDDEN_CHARS_REGEX = /[<>{}[\]\\|`$%^&*+=]/;

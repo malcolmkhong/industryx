@@ -1,4 +1,4 @@
-/**
+﻿/**
  * tests/api/auth/guest/migrate.test.ts
  *
  * Boundary + auth + decision-branch tests for POST /api/auth/guest/migrate.
@@ -51,7 +51,7 @@ vi.mock('@/lib/db/serverGameState', () => ({
   getGameTick: (...args: unknown[]) => getGameTickMock(...args),
   upsertServerGameState: (...args: unknown[]) => upsertServerGameStateMock(...args),
 }));
-vi.mock('@/lib/db/playerProgress', () => ({
+vi.mock('@/lib/db/game/playerProgress', () => ({
   upsertPlayerProgress: vi.fn(async () => undefined),
 }));
 vi.mock('@/lib/db/initialState.server', () => ({
@@ -70,7 +70,7 @@ vi.mock('@/lib/db/initialState.server', () => ({
 
 import { POST } from '@/app/api/auth/guest/migrate/route';
 
-// ─── helpers ────────────────────────────────────────────────────────────
+// â”€â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const VALID_GAME_STATE: Record<string, unknown> = {
   money: 1500,
@@ -92,7 +92,7 @@ const REJECT_RESULT = {
     { name: 'wealth_ratio', passed: false, severity: 'critical' as const, detail: 'money too high' },
   ],
   action: 'reject' as const,
-  summary: 'Guest state failed validation — cheating detected',
+  summary: 'Guest state failed validation â€” cheating detected',
 };
 
 const FLAG_RESULT = {
@@ -143,7 +143,7 @@ function resetMocks(opts: {
   );
 }
 
-// ─── tests ──────────────────────────────────────────────────────────────
+// â”€â”€â”€ tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe('POST /api/auth/guest/migrate', () => {
   beforeEach(() => {
@@ -151,7 +151,7 @@ describe('POST /api/auth/guest/migrate', () => {
     resetMocks();
   });
 
-  // ── input validation ──
+  // â”€â”€ input validation â”€â”€
 
   it('returns 400 when userId is missing', async () => {
     const req = buildRequest({
@@ -187,7 +187,7 @@ describe('POST /api/auth/guest/migrate', () => {
     expect(res.status).toBe(400);
   });
 
-  // ── auth failure ──
+  // â”€â”€ auth failure â”€â”€
 
   it('forwards auth failure (verifyAuthAndOwnership non-success)', async () => {
     const failureResponse = NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -206,7 +206,7 @@ describe('POST /api/auth/guest/migrate', () => {
     expect(res.status).toBe(403);
   });
 
-  // ── rate limit ──
+  // â”€â”€ rate limit â”€â”€
 
   it('returns 429 when rate-limited', async () => {
     const { checkRateLimit } = await import('@/lib/auth/rateLimiter');
@@ -222,7 +222,7 @@ describe('POST /api/auth/guest/migrate', () => {
     expect(res.status).toBe(429);
   });
 
-  // ── cloud state already exists → skip migration ──
+  // â”€â”€ cloud state already exists â†’ skip migration â”€â”€
 
   it('returns 200 with action: "use_cloud" when cloud state already exists', async () => {
     resetMocks({ existingCloudTick: 500, migrationResult: ACCEPT_RESULT });
@@ -244,7 +244,7 @@ describe('POST /api/auth/guest/migrate', () => {
     expect(upsertServerGameStateMock).not.toHaveBeenCalled();
   });
 
-  // ── reject branch ──
+  // â”€â”€ reject branch â”€â”€
 
   it('returns 200 with action: "reset" when migration rejected + flag cheat + zero state', async () => {
     resetMocks({ migrationResult: REJECT_RESULT });
@@ -277,7 +277,7 @@ describe('POST /api/auth/guest/migrate', () => {
     expect(saved.state_version).toBe(1);
   });
 
-  // ── accept_with_flag branch ──
+  // â”€â”€ accept_with_flag branch â”€â”€
 
   it('returns 200 + flags cheat + saves state on accept_with_flag', async () => {
     const { flagCheatAttempt } = await import('@/lib/auth/gameStateValidator');
@@ -306,7 +306,7 @@ describe('POST /api/auth/guest/migrate', () => {
     expect(upsertServerGameStateMock).toHaveBeenCalledTimes(1);
   });
 
-  // ── accept happy path ──
+  // â”€â”€ accept happy path â”€â”€
 
   it('returns 200 + saves state on accept', async () => {
     resetMocks({ migrationResult: ACCEPT_RESULT });
@@ -336,7 +336,7 @@ describe('POST /api/auth/guest/migrate', () => {
     expect(saved.cheat_flag_count).toBe(0);
   });
 
-  // ── upsert failure ──
+  // â”€â”€ upsert failure â”€â”€
 
   it('returns 500 when upsertServerGameState fails', async () => {
     resetMocks({ migrationResult: ACCEPT_RESULT, upsertSuccess: false });
@@ -351,7 +351,7 @@ describe('POST /api/auth/guest/migrate', () => {
     expect(body.error).toBe('Failed to save cloud state');
   });
 
-  // ── unexpected throw ──
+  // â”€â”€ unexpected throw â”€â”€
 
   it('returns 500 on unexpected throw', async () => {
     validateGuestMigration.mockImplementationOnce(() => {
@@ -368,7 +368,7 @@ describe('POST /api/auth/guest/migrate', () => {
     expect(body.error).toMatch(/Internal server error/);
   });
 
-  // ── displayName sanitization ──
+  // â”€â”€ displayName sanitization â”€â”€
 
   it('sanitizes displayName (strips control chars + angle brackets, caps length)', async () => {
     resetMocks({ migrationResult: ACCEPT_RESULT });
@@ -384,7 +384,7 @@ describe('POST /api/auth/guest/migrate', () => {
     const res = await POST(req);
     expect(res.status).toBe(200);
     // Calls upsertPlayerProgress with sanitized name
-    const { upsertPlayerProgress } = await import('@/lib/db/playerProgress');
+    const { upsertPlayerProgress } = await import('@/lib/db/game/playerProgress');
     const calls = (upsertPlayerProgress as ReturnType<typeof vi.fn>).mock.calls;
     expect(calls.length).toBeGreaterThan(0);
     const playerProgressArg = calls[0]?.[1] as { display_name: string };

@@ -19,7 +19,7 @@
  */
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/db/types";
-import { asFullState } from "@/lib/db/serverGameStatePayload";
+import { asFullState } from "@/lib/db/game/serverGameStatePayload";
 
 type MergeReceiptRow = Database["public"]["Tables"]["merge_receipts"]["Row"];
 type MergeAuditLogRow = Database["public"]["Tables"]["merge_audit_log"]["Row"];

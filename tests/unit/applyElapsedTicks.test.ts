@@ -19,7 +19,7 @@ vi.mock("@/lib/supabase/server", () => ({
   })),
 }));
 
-vi.mock("@/lib/db/serverConfigFetcher", () => ({
+vi.mock("@/lib/db/config/serverConfigFetcher", () => ({
   fetchGameConfigFromSupabase: vi.fn().mockResolvedValue({
     config: {
       buildings: {},
@@ -241,7 +241,7 @@ describe("applyElapsedTicks (Phase 7 server tick injection)", () => {
 
   it("throws on config unavailable (fail-closed)", async () => {
     const { fetchGameConfigFromSupabase } =
-      await import("@/lib/db/serverConfigFetcher");
+      await import("@/lib/db/config/serverConfigFetcher");
     (
       fetchGameConfigFromSupabase as ReturnType<typeof vi.fn>
     ).mockResolvedValueOnce({

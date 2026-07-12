@@ -5,7 +5,7 @@
  * Used by /api/admin/system/monitoring for the infra dashboard.
  */
 
-import { createServiceRoleClient } from './admin';
+import { createServiceRoleClient } from '../admin/admin';
 
 /**
  * Returns the PostgreSQL database size in megabytes (rounded to 2 decimals).

@@ -30,9 +30,9 @@
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/db/types";
 import { generateChecksum } from "@/lib/auth/gameStateValidator";
-import { fetchCanonicalInitialState } from "@/lib/db/initialState.server";
+import { fetchCanonicalInitialState } from "@/lib/db/infra/initialState.server";
 import type { ServerGameData } from "@/lib/game/shared/types/types";
-import { asFullState, stripUIFields } from "@/lib/db/serverGameStatePayload";
+import { asFullState, stripUIFields } from "@/lib/db/game/serverGameStatePayload";
 
 // Type aliases sourced from the generated Supabase types.
 // These are the single source of truth for row shapes.

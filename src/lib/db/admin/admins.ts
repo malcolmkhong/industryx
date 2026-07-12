@@ -105,7 +105,7 @@ export async function getAdminUserIdsFromDb(): Promise<Set<string>> {
       );
       return new Set(getAdminUidsFromEnv());
     }
-    const newCache = new Set((data ?? []).map((r) => r.user_id)));
+    const newCache = new Set((data ?? []).map((r) => r.user_id));
     adminCache = newCache;
     cacheLoadedAt = Date.now();
     return adminCache;

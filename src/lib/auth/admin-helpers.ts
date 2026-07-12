@@ -3,8 +3,8 @@
  * Provides role checking and audit logging functions.
  *
  * Iteration 2 of the Database Centralization migration (2026-06-20):
- *   - getAdminRole() now delegates to `@/lib/db/admins` (getAdminRoleByUserId).
- *   - logAdminAction() now delegates to `@/lib/db/adminActions`.
+ *   - getAdminRole() now delegates to `@/lib/db/admin/admins` (getAdminRoleByUserId).
+ *   - logAdminAction() now delegates to `@/lib/db/admin/adminActions`.
  *   - canWrite() and hasRole() are pure functions, unchanged.
  */
 
@@ -12,8 +12,8 @@ import type { AdminUser } from "@/lib/auth/admin";
 import {
   getAdminRoleByUserId,
   isAdminUserIdInEnv,
-} from "@/lib/db/admins";
-import { logAdminAction } from "@/lib/db/adminActions";
+} from "@/lib/db/admin/admins";
+import { logAdminAction } from "@/lib/db/admin/adminActions";
 
 /**
  * Get the role of an admin user from the admin_users table.
@@ -60,7 +60,7 @@ export function hasRole(role: string, required: 'viewer' | 'admin' | 'super_admi
   return (hierarchy[role] ?? 0) >= (hierarchy[required] ?? 0);
 }
 
-// Re-export logAdminAction from @/lib/db/adminActions so existing
+// Re-export logAdminAction from @/lib/db/admin/adminActions so existing
 // imports `import { logAdminAction } from '@/lib/auth/admin-helpers'`
 // continue to work unchanged.
 export { logAdminAction };

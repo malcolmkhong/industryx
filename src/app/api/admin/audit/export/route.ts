@@ -5,7 +5,7 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { verifyAdmin } from "@/lib/auth/admin";
-import { listAdminActionsForExport } from "@/lib/db/playerActions";
+import { listAdminActionsForExport } from "@/lib/db/game/playerActions";
 
 function csvEscape(value: unknown): string {
   const str = value == null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value);

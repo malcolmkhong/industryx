@@ -6,11 +6,11 @@
  */
 import { NextResponse } from "next/server";
 import { verifyAdmin, withSecurityHeaders } from "@/lib/auth/admin";
-import { countPlayersTotal, countLockedPlayers } from "@/lib/db/serverGameState";
-import { countOpenCheatInvestigations, getLatestCheatInvestigation } from "@/lib/db/cheatInvestigations";
-import { getLatestMarketTickInfo, getLatestMarketNews } from "@/lib/db/market";
-import { countAdmins } from "@/lib/db/admins";
-import { pingGameConfig } from "@/lib/db/configGame";
+import { countPlayersTotal, countLockedPlayers } from "@/lib/db/game/serverGameState";
+import { countOpenCheatInvestigations, getLatestCheatInvestigation } from "@/lib/db/admin/cheatInvestigations";
+import { getLatestMarketTickInfo, getLatestMarketNews } from "@/lib/db/game/market";
+import { countAdmins } from "@/lib/db/admin/admins";
+import { pingGameConfig } from "@/lib/db/config/configGame";
 
 interface ServiceStatus {
   name: string;

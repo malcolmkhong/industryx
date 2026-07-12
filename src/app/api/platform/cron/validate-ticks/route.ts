@@ -20,7 +20,7 @@ import { logActionAsync } from "@/lib/auth/gameStateValidator";
 import {
   loadActivePlayersSince,
   loadFullStateForUser,
-} from "@/lib/db/serverGameState";
+} from "@/lib/db/game/serverGameState";
 import { ensureConfigLoaded } from "@/lib/game/config/server/configLoader.server";
 import {
   BUILDING_DEFS,

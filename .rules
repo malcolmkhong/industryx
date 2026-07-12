@@ -132,14 +132,9 @@
 - Success responses MUST return only needed data.
 
 ### API-005 — Domain route grouping
-- Game routes: `/api/game/`
-- Admin routes: `/api/admin/`
-- Config routes: `/api/config/`
-- Auth routes: `/api/auth/`
-- Market routes: `/api/market/`
-- Leaderboard routes: `/api/leaderboard/`
-- Cron routes: `/api/cron/`
-- Health routes: `/api/health/`
+- API routes MUST be grouped by product domain and resource ownership.
+- Do not place unrelated admin, game, auth, market, platform, config, or support behavior in the same route group.
+- When route groups are restructured, update callers and tests in the same scoped change.
 
 ### API-006 — REST-style contracts
 - API paths SHOULD be resource/domain-oriented.
@@ -155,6 +150,11 @@
 ### API-009 — Idempotent mutations
 - Mutating endpoints SHOULD be idempotent where duplicate requests are possible.
 - Retry-safe operations MUST not double-charge or double-apply rewards.
+
+### API-010 — Thin route handlers
+- Route handlers SHOULD only authenticate, authorize, rate limit, validate input, call domain/service logic, and return the response.
+- Business rules, economy math, persistence merge policy, and large response shaping SHOULD live in domain/server modules.
+- Do not hide complex gameplay mutation logic directly inside route handlers.
 
 ---
 
@@ -216,6 +216,11 @@
 - Production DB backup/restore process MUST be known before risky schema or data changes.
 - Destructive migrations require explicit approval.
 
+### DB-014 — Persistence layer responsibility
+- Database modules SHOULD contain query, persistence, and row-mapping logic only.
+- Database modules MUST NOT contain UI shaping, client fallback state, economy rules, or gameplay decisions unless the file is explicitly a database RPC wrapper for a server-authoritative operation.
+- Server/business modules should call database modules, not the other way around.
+
 ---
 
 ## 5. State Management Rules
@@ -251,6 +256,11 @@
 - Server writes MUST update state version.
 - Client optimistic state version changes MUST be verified by server response.
 
+### STO-008 — Store action responsibility
+- Store actions SHOULD orchestrate client state and apply server-authoritative responses.
+- UI effects such as sounds and notifications SHOULD be isolated from server result parsing where practical.
+- Store actions MUST NOT invent economy outcomes when the server response is missing, invalid, or rejected.
+
 ---
 
 ## 6. UI / Frontend Rules
@@ -273,7 +283,7 @@
 - Raw emoji and scattered inline icon logic are forbidden in production game panels.
 
 ### UI-005 — Tier metadata from SSOT
-- Tier metadata MUST come from `src/lib/game/tiers.ts`.
+- Tier metadata MUST come from the central tier metadata module.
 - Hardcoded tier arrays, tier colors, or duplicate tier systems are forbidden.
 
 ### UI-006 — Mobile-first responsive UI
@@ -385,11 +395,11 @@
 - Hardcoded client-side game balance values are forbidden.
 
 ### ARC-003 — Config cache SSOT
-- `configCache`, `balanceConfig`, and `configLoader.server` are the config loading/cache source of truth.
+- The runtime config cache, balance config, and server config loader are the config loading/cache source of truth.
 - Do not create parallel config loaders.
 
 ### ARC-004 — Tier SSOT
-- `src/lib/game/tiers.ts` is the tier metadata source of truth.
+- The central tier metadata module is the tier metadata source of truth.
 - Backward-compat redirects are allowed only as temporary compatibility layers.
 
 ### ARC-005 — Feature-based organization
@@ -424,6 +434,32 @@
 ### ARC-012 — Internationalization-ready formatting
 - User-facing dates, numbers, currencies, and units SHOULD use formatting helpers.
 - Do not scatter hardcoded formatting logic across components.
+
+### ARC-013 — One refactor type per task
+- Path migration, behavior fixes, cleanup, and responsibility splitting SHOULD be separate tasks.
+- A refactor task MUST declare whether it is behavior-preserving.
+- Do not mix broad file moves with gameplay logic changes unless explicitly requested.
+
+### ARC-014 — Dependency direction
+- Shared modules may be imported by domain modules.
+- Domain modules SHOULD NOT randomly import sibling domains; use explicit services, contracts, or shared modules.
+- Server-only modules MUST NOT be imported by client-only modules.
+- Client-only modules MUST NOT import service-role, server config, or database-only modules.
+
+### ARC-015 — Client/server file boundary
+- Server-only code SHOULD be named or placed so the boundary is obvious.
+- Client-only code SHOULD be named or placed so the boundary is obvious.
+- Any module that touches secrets, service role clients, server env, or privileged database access is server-only.
+
+### ARC-016 — Compatibility wrapper lifecycle
+- Compatibility wrappers and re-export files MUST be documented as temporary.
+- New code SHOULD import from the real owner, not from compatibility wrappers.
+- Wrappers SHOULD be removed after callers migrate.
+
+### ARC-017 — Structure plans must stay current
+- Structure plans and migration checklists MUST match the current tree before being used as implementation instructions.
+- File counts, old paths, and target paths in plans MUST be corrected when a migration changes them.
+- Do not treat stale markdown plans as more authoritative than the current repository.
 
 ---
 
@@ -535,7 +571,81 @@
 
 ---
 
-## 12. Forbidden Patterns
+## 12. Industry Standards Implementation Rules
+
+### STD-001 — Lighthouse CI
+- Pages SHOULD use lean bundles, optimized media, stable layout dimensions, cacheable assets, and minimal render-blocking work.
+- New UI code SHOULD avoid large client-only dependencies and unnecessary hydration.
+
+### STD-002 — Core Web Vitals
+- UI MUST reserve space for dynamic content to prevent layout shift.
+- Long tasks, blocking scripts, and unnecessary client rendering SHOULD be split, deferred, or moved server-side.
+- User interactions SHOULD update with minimal main-thread work.
+
+### STD-003 — WCAG 2.2 AA
+- UI MUST use semantic HTML, keyboard access, visible focus states, accessible names, sufficient contrast, and non-color-only meaning.
+- Forms MUST expose labels, errors, help text, and state changes to assistive technology.
+- Interactive targets SHOULD meet modern touch target sizing.
+
+### STD-004 — OWASP ASVS 5.0 Level 2
+- Auth, authorization, session, input validation, output encoding, secrets, crypto, file handling, and logging MUST use approved server-side utilities.
+- Privileged actions MUST enforce least privilege, audit logging, replay protection where needed, and fail-closed errors.
+
+### STD-005 — Web Platform Baseline
+- Frontend code SHOULD use baseline-supported web APIs.
+- Non-baseline APIs MUST have feature detection, progressive enhancement, or a project-approved fallback.
+
+### STD-006 — OpenAPI 3.1
+- API contracts SHOULD use OpenAPI 3.1-compatible request, response, error, auth, and schema definitions.
+- Route implementation SHOULD stay aligned with typed contracts and JSON Schema-compatible validation.
+
+### STD-007 — OpenTelemetry
+- Server operations SHOULD emit structured traces, metrics, and logs with request IDs and trace context.
+- Telemetry MUST avoid secrets, tokens, direct personal data, and excessive payloads.
+
+### STD-008 — NIST SSDF 1.1
+- Code changes SHOULD preserve secure design, dependency hygiene, vulnerability remediation, reviewability, and traceable change history.
+- Security-sensitive changes SHOULD use approved libraries and documented threat assumptions.
+
+### STD-009 — SLSA 1.1
+- Build and release flow SHOULD use pinned dependencies, reproducible scripts, provenance-friendly metadata, and protected automation.
+- Generated artifacts MUST come from the committed source state.
+
+### STD-010 — SBOM
+- Dependencies SHOULD remain declared, minimal, licensed, and attributable.
+- New runtime dependencies SHOULD have clear ownership, purpose, and supply-chain risk justification.
+
+### STD-011 — CSP
+- Pages MUST support a restrictive Content Security Policy.
+- Avoid inline scripts/styles, `unsafe-eval`, dynamic code execution, wildcard origins, and untrusted third-party resource loading.
+
+### STD-012 — SOC 2
+- Security-relevant changes SHOULD preserve access control, audit trails, change traceability, incident visibility, and least-privilege operation.
+- Sensitive operational data MUST be protected by need-to-know access and retention discipline.
+
+### STD-013 — ISO/IEC 27001
+- Security controls SHOULD be explicit, risk-based, documented in code or config ownership, and maintainable.
+- Access, secrets, logging, backup, and change-management behavior MUST remain auditable.
+
+### STD-014 — GDPR
+- Personal data MUST be minimized, purpose-limited, protected, exportable, correctable, and deletable where required.
+- Consent, retention, user identity, and data-sharing behavior MUST be explicit and not hidden in client-only logic.
+
+### STD-015 — PCI DSS 4.0.1
+- Payment card data MUST NOT be stored, logged, processed, or transmitted by app code unless explicitly approved and scoped.
+- Payment flows MUST use tokenized PCI-compliant providers and must not expose PAN, CVV, or cardholder secrets to application logs or databases.
+
+### STD-016 — Responsive Desktop and Mobile UX
+- Game UI MUST support both desktop management workflows and mobile check-in workflows.
+- Desktop layouts SHOULD preserve dense, scannable, efficient controls for planning-heavy gameplay.
+- Mobile layouts MUST keep core actions readable, touch-friendly, and usable at common small viewport widths.
+- Interactive targets SHOULD be at least 44x44 CSS pixels unless the component has an accessible equivalent.
+- Layouts MUST avoid unintended horizontal scrolling, clipped controls, hidden critical actions, and text overflow.
+- Responsive changes MUST NOT dumb down desktop workflows or make mobile core gameplay unusable.
+
+---
+
+## 13. Forbidden Patterns
 
 - Client-only economy mutation.
 - Fail-open auth, lock, rate-limit, config, or DB error handling.
@@ -562,7 +672,7 @@
 
 ---
 
-## 13. Minimum Verification Commands
+## 14. Minimum Verification Commands
 
 Use the relevant commands after changes:
 
@@ -588,7 +698,7 @@ grep -rn "?? [0-9]\||| [0-9]" src/app/api src/lib/game/actions
 
 ---
 
-## 14. Rule Maintenance
+## 15. Rule Maintenance
 
 - Keep this file short and enforceable.
 - Add rules only when they change AI/code behavior.

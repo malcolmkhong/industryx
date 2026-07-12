@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { pingGameConfig } from "@/lib/db/configGame";
+import { pingGameConfig } from "@/lib/db/config/configGame";
 
 // Iteration 9 close-out: replaced inline supabase.from('game_config_game')
 // with the existing pingGameConfig helper (added in iter 8 for

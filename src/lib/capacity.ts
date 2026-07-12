@@ -1,11 +1,11 @@
-// src/lib/capacity.ts
-// Capacity check helpers — server-authoritative, uses get_capacity_status() RPC.
+﻿// src/lib/capacity.ts
+// Capacity check helpers â€” server-authoritative, uses get_capacity_status() RPC.
 // MAX_TOTAL_PLAYERS is stored in app_config table (configurable from admin).
 //
 // IMPORTANT: Do NOT use active/online/session metrics for capacity enforcement.
 // Idle games have offline players who still consume resources.
 
-import { getCapacityStatusRpc } from '@/lib/db/capacity';
+import { getCapacityStatusRpc } from '@/lib/db/infra/capacity';
 
 export type CapacityStatus = 'healthy' | 'warning' | 'full';
 
@@ -17,7 +17,7 @@ export interface CapacityInfo {
   waitlistCount: number;
   utilizationPct: number;
   status: CapacityStatus;
-  // Activity metrics (analytics only — DO NOT use for enforcement)
+  // Activity metrics (analytics only â€” DO NOT use for enforcement)
   active15m: number;
   active24h: number;
   active7d: number;
@@ -71,7 +71,7 @@ export async function canAcceptNewSignup(): Promise<boolean> {
 
 /**
  * Client-side: fetches capacity via the public /api/platform/capacity/status endpoint.
- * For UI hints only — never authoritative.
+ * For UI hints only â€” never authoritative.
  */
 export async function getCapacityForClient(): Promise<CapacityInfo> {
   if (typeof window === 'undefined') return FALLBACK;

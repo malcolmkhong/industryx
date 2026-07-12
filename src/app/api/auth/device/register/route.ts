@@ -31,8 +31,8 @@ import {
   insertGuestIdentity,
   setIdentityFingerprintIfMissing,
   touchIdentityLastUsed,
-} from "@/lib/db/guestIdentities";
-import { setProfileFingerprint } from "@/lib/db/profiles";
+} from "@/lib/db/player/guestIdentities";
+import { setProfileFingerprint } from "@/lib/db/player/profiles";
 
 export async function POST(request: NextRequest) {
   try {

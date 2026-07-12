@@ -6,7 +6,7 @@ import {
   insertAdmin,
   isAdminsAvailable,
   listAdmins,
-} from "@/lib/db/admins";
+} from "@/lib/db/admin/admins";
 
 const VALID_ADMIN_ROLES = ["admin", "super_admin", "viewer"] as const;
 const UUID_RE =

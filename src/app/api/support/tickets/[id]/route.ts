@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyAuth } from "@/lib/auth/verifyAuth";
-import { getTicket, listTicketMessages } from "@/lib/db/supportTickets";
+import { getTicket, listTicketMessages } from "@/lib/db/shared/supportTickets";
 
 interface RouteContext {
   params: Promise<{ id: string }>;

@@ -58,7 +58,7 @@ import {
   REQUIRED_BALANCE_KEYS,
   type GameBalanceConfig,
 } from "@/lib/game/config/balance/balanceConfig";
-import { fetchGameConfigFromSupabase } from "@/lib/db/serverConfigFetcher";
+import { fetchGameConfigFromSupabase } from "@/lib/db/config/serverConfigFetcher";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 
 // Cache TTL — same as the client-side provider (5 minutes)

@@ -4,8 +4,8 @@ import { extractValidatedSaveFields } from "@/lib/auth/gameStateValidator";
 import {
   saveServerGameStateOptimistic,
   type ServerGameStateForAction,
-} from "@/lib/db/serverGameState";
-import { asFullState } from "@/lib/db/serverGameStatePayload";
+} from "@/lib/db/game/serverGameState";
+import { asFullState } from "@/lib/db/game/serverGameStatePayload";
 import type { GameState, ServerGameData } from "@/lib/game/shared/types/types";
 import type { ActionResponse, ActionType } from "./actionTypes";
 

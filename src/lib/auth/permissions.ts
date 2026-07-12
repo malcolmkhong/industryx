@@ -15,7 +15,7 @@ import {
   listPermissionsForAdmin,
   revokePermission as revokePermissionDb,
   type DbPermission,
-} from '@/lib/db/adminPermissions';
+} from '@/lib/db/admin/adminPermissions';
 
 // Re-export the valid permission list (single source of truth).
 export { getValidPermissions };

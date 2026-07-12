@@ -1,4 +1,4 @@
-// ============================================================================
+﻿// ============================================================================
 // src/lib/db/rateLimits.ts
 // Supabase-backed rate limit check (H2 fix).
 //
@@ -6,7 +6,7 @@
 // `null` if not configured; otherwise returns the raw RPC result row.
 // ============================================================================
 
-import { createServiceRoleClient } from '@/lib/db/admin';
+import { createServiceRoleClient } from '@/lib/db/admin/admin';
 
 export interface CheckRateLimitRow {
   allowed: boolean;

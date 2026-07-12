@@ -5,7 +5,7 @@ import {
   isServerGameStateAvailable,
   loadServerGameStateForAction,
   type ServerGameStateForAction,
-} from "@/lib/db/serverGameState";
+} from "@/lib/db/game/serverGameState";
 import type { GameConfig } from "@/lib/game/config/config";
 import { loadConfig } from "./actionConfig";
 import {

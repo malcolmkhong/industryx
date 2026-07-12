@@ -7,13 +7,13 @@
 import { NextResponse } from "next/server";
 import { verifyAdmin, withSecurityHeaders } from "@/lib/auth/admin";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
-import { countPlayersTotal, countLockedPlayers } from "@/lib/db/serverGameState";
+import { countPlayersTotal, countLockedPlayers } from "@/lib/db/game/serverGameState";
 import {
   countActionsSince,
   countInvalidActionsSince,
   countOnlinePlayers,
-} from "@/lib/db/playerActions";
-import { countOpenCheatInvestigations } from "@/lib/db/cheatInvestigations";
+} from "@/lib/db/game/playerActions";
+import { countOpenCheatInvestigations } from "@/lib/db/admin/cheatInvestigations";
 
 export async function GET() {
   const authResult = await verifyAdmin();

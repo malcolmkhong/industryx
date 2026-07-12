@@ -34,12 +34,12 @@ import { createServiceRoleClient } from "@/lib/supabase/server";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
 import { getCapacityStatus } from "@/lib/capacity";
 import { logRequestIp } from "@/app/api/auth/_shared/request-ip-log-helper";
-import { logFingerprintEvent } from "@/lib/db/fingerprint-events";
+import { logFingerprintEvent } from "@/lib/db/game/fingerprint-events";
 import {
   isServerGameStateAvailable,
   hasServerGameState,
   initializeGuestGameState,
-} from "@/lib/db/serverGameState";
+} from "@/lib/db/game/serverGameState";
 import {
   findUserByDeviceId,
   findUserByFingerprint,
@@ -48,7 +48,7 @@ import {
   insertGuestIdentity,
   setIdentityFingerprintIfMissing,
   touchIdentityLastUsed,
-} from "@/lib/db/guestIdentities";
+} from "@/lib/db/player/guestIdentities";
 
 /**
  * Sentinel sent by the client when the browser could not produce a fingerprint.

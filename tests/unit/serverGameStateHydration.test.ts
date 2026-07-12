@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+﻿import { describe, expect, it, vi } from "vitest";
 
 const canonical = {
   money: 2000,
@@ -20,11 +20,11 @@ const canonical = {
   },
 };
 
-vi.mock("@/lib/db/initialState.server", () => ({
+vi.mock("@/lib/db/infra/initialState.server", () => ({
   fetchCanonicalInitialState: vi.fn(async () => structuredClone(canonical)),
 }));
 
-import { buildCompleteFullStateForServerRow } from "@/lib/db/serverGameState";
+import { buildCompleteFullStateForServerRow } from "@/lib/db/game/serverGameState";
 
 describe("buildCompleteFullStateForServerRow", () => {
   it("merges denormalized server_game_state columns into partial full_state", async () => {

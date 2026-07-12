@@ -1,7 +1,7 @@
 // ============================================================================
 // IndustriaX: Cheat Investigations DB Helper
 // Centralized access to the `cheat_investigations` table.
-// Replaces inline `.from('cheat '.from('cheat_investigations')` calls across the admin
+// Replaces inline `.from('cheat_investigations')` calls across the admin
 // investigations routes AND the flagCheatAttempt enrichment in
 // gameStateValidator.ts.
 // ============================================================================
@@ -52,7 +52,7 @@ export async function listInvestigations(
     .select('*', { count: 'exact' })
     .order('created_at', { ascending: false });
 
-  if (flags.status) {
+  if (filters.status) {
     if (Array.isArray(filters.status)) {
       query = query.in('status', filters.status);
     } else {

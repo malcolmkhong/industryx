@@ -7,7 +7,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { verifyAdmin, withSecurityHeaders, clearAdminCache } from "@/lib/auth/admin";
 import { requireAdminWrite } from "@/lib/auth/admin-route-guards";
-import { setPlayerLockStateBulk } from "@/lib/db/serverGameState";
+import { setPlayerLockStateBulk } from "@/lib/db/game/serverGameState";
 import { logAdminAction } from "@/lib/auth/admin-helpers";
 
 export async function POST(request: NextRequest) {

@@ -4,7 +4,7 @@ import { verifyAuth } from "@/lib/auth/verifyAuth";
 import {
   isServerGameStateAvailable,
   loadServerGameStateForAction,
-} from "@/lib/db/serverGameState";
+} from "@/lib/db/game/serverGameState";
 import { applyElapsedServerTime } from "@/lib/game/actions/server/shared/actionPersistence";
 
 export async function POST() {

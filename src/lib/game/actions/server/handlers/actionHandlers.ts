@@ -1,4 +1,4 @@
-import { saveServerGameStateOptimistic } from "@/lib/db/serverGameState";
+import { saveServerGameStateOptimistic } from "@/lib/db/game/serverGameState";
 import type { GameConfig } from "@/lib/game/config/config";
 import {
   validateAssignWorkerAction,

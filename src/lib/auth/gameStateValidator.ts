@@ -10,7 +10,7 @@ import { createServiceRoleClient } from "@/lib/supabase/server";
 import {
   enrichLatestInvestigation,
   incrementCheatFlag,
-} from "@/lib/db/cheatInvestigations";
+} from "@/lib/db/admin/cheatInvestigations";
 // P2 refactor: Read BUILDING_DEFS from configCache (Supabase-backed live bindings)
 // rather than hardcoded data.ts defaults. Imports previously from `@/lib/game/data`.
 import { BUILDING_DEFS } from "@/lib/game/config/configCache";

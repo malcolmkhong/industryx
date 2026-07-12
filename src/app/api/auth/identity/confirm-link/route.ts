@@ -34,7 +34,7 @@ import {
   findLinkOperationById,
   findOtherPendingForGoogle,
   setLinkOperationStatus,
-} from "@/lib/db/linkOps";
+} from "@/lib/db/shared/linkOps";
 import {
   loadFullGameStateForMerge,
   moveGuestDataOntoAuthUser,
@@ -43,8 +43,8 @@ import {
   insertMergeReceipt,
   insertMergeAuditLog,
   type MergeDecisionType,
-} from "@/lib/db/merge";
-import { reassignUserData } from "@/lib/db/guestIdentities";
+} from "@/lib/db/shared/merge";
+import { reassignUserData } from "@/lib/db/player/guestIdentities";
 
 export async function POST(request: NextRequest) {
   try {

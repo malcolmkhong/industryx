@@ -7,7 +7,7 @@
 import { NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/auth/verifyAuth';
 import { getUserGuestStatus } from '@/lib/auth/guestCheck';
-import { getTradeHistory } from '@/lib/db/trades';
+import { getTradeHistory } from '@/lib/db/game/trades';
 
 export async function GET(request: Request) {
   const auth = await verifyAuth();
