@@ -153,6 +153,7 @@ planning/archive/
 planning/new/
 
 story-body.txt
+IDEA.md
 
 # Asset artifacts not for source control
 public/ChatGPT Image*.png
