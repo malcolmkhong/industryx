@@ -5,6 +5,9 @@ export const VALID_ACTIONS = [
   "sell",
   "buy",
   "research",
+  "cancel_research",
+  "add_research_to_queue",
+  "remove_research_from_queue",
   "upgrade",
   "transport",
   "set_game_speed",
@@ -30,6 +33,9 @@ export const ACTION_ROUTE_PATHS: Record<ActionType, string> = {
   sell: "/api/game/actions/sell",
   buy: "/api/game/actions/buy",
   research: "/api/game/actions/research",
+  cancel_research: "/api/game/actions/cancel-research",
+  add_research_to_queue: "/api/game/actions/add-research-to-queue",
+  remove_research_from_queue: "/api/game/actions/remove-research-from-queue",
   upgrade: "/api/game/actions/upgrade",
   transport: "/api/game/actions/transport",
   set_game_speed: "/api/game/actions/set-game-speed",
@@ -50,6 +56,7 @@ export const ACTION_ROUTE_PATHS: Record<ActionType, string> = {
 
 export interface ActionRequest {
   userId?: string;
+  deviceId?: string | null;
   requestId?: string;
   actionType?: string;
   action?: string;
