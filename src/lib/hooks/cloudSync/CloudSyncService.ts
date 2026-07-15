@@ -123,6 +123,10 @@ export class CloudSyncService {
     this.notify();
   }
 
+  clearBlocked(): void {
+    this.setBlocked(null);
+  }
+
   private setServerAuthority(auth: ServerAuthority): void {
     this.serverStateHash = auth.serverStateHash;
     this.serverStateVersion = auth.serverStateVersion;

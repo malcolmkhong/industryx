@@ -33,7 +33,12 @@ export class AdminPresenceManager extends BasePresenceManager<AdminPresenceState
 
   protected getKey(): string {
     if (!this.adminKey) {
-      this.adminKey = `admin_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+      // Audit 2026-07-15 (BUG-074 cleanup pass): use crypto.randomUUID()
+      // for admin presence keys. Consistent with RULES.md [SEC-008] /
+      // BUG-071 (generateServerUuid). The `admin_` prefix is preserved
+      // so admins remain distinguishable from regular visitors in the
+      // realtime presence state map.
+      this.adminKey = `admin_${crypto.randomUUID()}`;
     }
     return this.adminKey;
   }

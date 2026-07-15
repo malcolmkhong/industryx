@@ -29,6 +29,7 @@ export function extractGameState(): Record<string, unknown> {
     completedResearch: state.completedResearch,
     activeResearch: state.activeResearch,
     researchProgress: state.researchProgress,
+    researchQueue: state.researchQueue,
     workers: state.workers,
     market: state.market,
     contracts: state.contracts,

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useGameStore, applyServerState } from "@/lib/game/state/store";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCloudSync } from "@/lib/hooks/useCloudSync";
+import type { ProductionSnapshot } from "@/lib/game/production/productionCalculator";
 
 export interface OfflineProgressData {
   resources: Record<string, number>;
@@ -70,6 +71,7 @@ export function useOfflineProgressCheck(): {
           newState?: { money?: number; resources?: Record<string, number> };
           ticksApplied?: number;
           elapsedSeconds?: number;
+          productionSnapshot?: ProductionSnapshot | null;
         };
 
         // Server returns 0 ticks for sub-60s absences (the floor we added)
@@ -93,7 +95,10 @@ export function useOfflineProgressCheck(): {
         // Apply server-authoritative state. Subsequent collect just closes
         // the dialog; the state is already current.
         try {
-          applyServerState(newState as Record<string, unknown>);
+          applyServerState(
+            newState as Record<string, unknown>,
+            result.productionSnapshot ?? null,
+          );
         } catch (err) {
           console.warn("[useOfflineProgressCheck] applyServerState failed:", err);
           return;

@@ -34,7 +34,11 @@ function getOrCreateVisitorId(): string {
   if (typeof window === 'undefined') return '';
   let id = localStorage.getItem(VISITOR_KEY_STORAGE);
   if (!id) {
-    id = `v_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+    // Audit 2026-07-15 (BUG-074 cleanup pass): use crypto.randomUUID()
+    // for presence keys — consistent with RULES.md [SEC-008] / BUG-071
+    // (generateServerUuid). The `v_` prefix is preserved for backwards
+    // compatibility with any lingering client-side localStorage values.
+    id = `v_${crypto.randomUUID()}`;
     localStorage.setItem(VISITOR_KEY_STORAGE, id);
   }
   return id;
