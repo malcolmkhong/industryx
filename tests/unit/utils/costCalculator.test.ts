@@ -42,7 +42,7 @@ const HOIST_CONTRACT_TEMPLATES = vi.hoisted((): Record<string, unknown>[] => ([]
 
 // ─── MOCKS ──────────────────────────────────────────────────────────
 
-vi.mock('@/lib/supabase/server', () => ({
+vi.mock('@/lib/db/access', () => ({
   createServiceRoleClient: vi.fn(() => null),
   createClient: vi.fn(async () => null),
   isServiceRoleConfigured: vi.fn(() => false),

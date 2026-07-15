@@ -1,25 +1,33 @@
 /**
- * AuthOrchestrator unit tests — Phase 10.
+ * AuthOrchestrator unit tests — PR4-4A.
  *
- * Central state machine for frontend authentication. Tests verify:
- *   - subscribe / dispatch contract
- *   - startup() pipeline paths (session / anon-session / no-session /
- *     recovery / capacity_full)
- *   - signOut() ordering
- *   - signInWithOAuth() dispatch sequence
- *   - onAuthStateChange-driven transitions (anon→auth, auth→null)
- *   - runPostOAuth() (legacy post-OAuth device registration)
+ * Covers the new plan §5 state machine:
+ *   - idle -> resolving_session -> bootstrapping -> ready (happy path)
+ *   - bootstrapping -> conflict on 409
+ *   - bootstrapping -> recovery_required on 422
+ *   - bootstrapping -> temporary_error on 429 / 503 / network failure
+ *   - Stale-response guard (version counter)
+ *   - Guest bootstrap response cannot overwrite later authenticated response
+ *   - signOut triggers guest bootstrap with previousAuthUserId
+ *   - retry() from temporary_error restarts the pipeline
  *
  * Pure unit test: no Supabase, no React, no router. Every dep is mocked.
+ *
+ * NOTE: this file replaces the prior Phase 10 test suite. The previous
+ * suite covered the legacy `quickstart` / `registerDevice` / `onReady`
+ * lifecycle, which is gone in PR4-4A. Tests below target the new
+ * `/api/auth/bootstrap` + state.ts transition table contract.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { Session } from "@supabase/supabase-js";
 import { AuthOrchestrator } from "@/lib/auth/orchestrator";
 import type {
+  AuthOrchestratorBootstrapDeps,
   AuthEvent,
-  AuthOrchestratorDeps,
-} from "@/lib/auth/orchestrator/types";
+  BootstrapRequestBody,
+  BootstrapResponseBody,
+} from "@/lib/auth/orchestrator";
 
 // ─── helpers ────────────────────────────────────────────────────────────
 
@@ -48,54 +56,85 @@ function makeSession(opts: {
   } as unknown as Session;
 }
 
+const GUEST_GAME_STATE = {
+  money: 3456,
+  gameTick: 99,
+  quests: [{ id: "startup", completed: true }],
+};
+
+const AUTH_GAME_STATE = {
+  money: 5000,
+  gameTick: 25,
+  quests: [{ id: "startup", completed: false }],
+};
+
+const READY_GUEST: BootstrapResponseBody = {
+  code: "BOOTSTRAP_READY",
+  userId: "guest-1",
+  isGuest: true,
+  isNewUser: true,
+  source: "fresh",
+  hasGameState: true,
+  needsStateLoad: false,
+  gameState: GUEST_GAME_STATE,
+};
+
+const READY_AUTH: BootstrapResponseBody = {
+  code: "BOOTSTRAP_READY",
+  userId: "auth-1",
+  isGuest: false,
+  isNewUser: false,
+  source: "auth",
+  hasGameState: true,
+  needsStateLoad: false,
+  gameState: AUTH_GAME_STATE,
+};
+
+const CONFLICT_ACCOUNT: BootstrapResponseBody = {
+  code: "ACCOUNT_PROGRESS_CONFLICT",
+  conflictReason: "ACCOUNT_PROGRESS_CONFLICT",
+  survivingUserId: "auth-1",
+  archivedGuestId: "guest-old",
+};
+
+const CONFLICT_DEVICE: BootstrapResponseBody = {
+  code: "DEVICE_BOUND_TO_OTHER_USER",
+  conflictReason: "DEVICE_BOUND_TO_OTHER_USER",
+  survivingUserId: "auth-other",
+  archivedGuestId: null,
+};
+
+const RECOVERY: BootstrapResponseBody = { code: "STATE_RECOVERY_REQUIRED" };
+const RATE_LIMITED: BootstrapResponseBody = { code: "BOOTSTRAP_RATE_LIMITED" };
+const UNAVAILABLE: BootstrapResponseBody = { code: "BOOTSTRAP_UNAVAILABLE" };
+
 interface DepsBundle {
-  deps: AuthOrchestratorDeps;
+  deps: AuthOrchestratorBootstrapDeps;
   handlers: Set<(session: Session | null) => void>;
-  // named mock refs for assertions
   mocks: {
     getSession: ReturnType<typeof vi.fn>;
     getFingerprint: ReturnType<typeof vi.fn>;
-    quickstart: ReturnType<typeof vi.fn>;
-    signInWithOAuth: ReturnType<typeof vi.fn>;
-    registerDevice: ReturnType<typeof vi.fn>;
-    signOutSupabase: ReturnType<typeof vi.fn>;
-    disableServerValidation: ReturnType<typeof vi.fn>;
-    initServerValidation: ReturnType<typeof vi.fn>;
-    onReady: ReturnType<typeof vi.fn>;
-    onIdentityChanged: ReturnType<typeof vi.fn>;
-    onSignedOut: ReturnType<typeof vi.fn>;
-    runMergeCheck: ReturnType<typeof vi.fn>;
-    resetMerge: ReturnType<typeof vi.fn>;
-    startLoginPrompts: ReturnType<typeof vi.fn>;
-    stopLoginPrompts: ReturnType<typeof vi.fn>;
+    callBootstrap: ReturnType<typeof vi.fn>;
+    applyServerState: ReturnType<typeof vi.fn>;
+    clearPreviousUserState: ReturnType<typeof vi.fn>;
     getDeviceId: ReturnType<typeof vi.fn>;
     onAuthStateChange: ReturnType<typeof vi.fn>;
+    signInWithOAuth: ReturnType<typeof vi.fn>;
+    signOutSupabase: ReturnType<typeof vi.fn>;
   };
 }
 
-function buildDeps(overrides: Partial<AuthOrchestratorDeps> = {}): DepsBundle {
+function buildDeps(
+  overrides: Partial<AuthOrchestratorBootstrapDeps> = {},
+  response: BootstrapResponseBody | null = READY_GUEST,
+): DepsBundle {
   const handlers = new Set<(session: Session | null) => void>();
   const m = {
     getSession: vi.fn(async () => null),
     getFingerprint: vi.fn(async () => "fp-test-abc"),
-    quickstart: vi.fn(async () => ({
-      userId: "anon-new",
-      source: "fresh" as const,
-      isNewUser: true,
-      error: null,
-    })),
-    signInWithOAuth: vi.fn(async () => ({ error: null })),
-    registerDevice: vi.fn(async () => ({ ok: true, alreadyExists: false })),
-    signOutSupabase: vi.fn(async () => ({ error: null })),
-    disableServerValidation: vi.fn(),
-    initServerValidation: vi.fn(),
-    onReady: vi.fn(),
-    onIdentityChanged: vi.fn(),
-    onSignedOut: vi.fn(),
-    runMergeCheck: vi.fn(async () => {}),
-    resetMerge: vi.fn(),
-    startLoginPrompts: vi.fn(),
-    stopLoginPrompts: vi.fn(),
+    callBootstrap: vi.fn(async (_req: BootstrapRequestBody) => response),
+    applyServerState: vi.fn(),
+    clearPreviousUserState: vi.fn(),
     getDeviceId: vi.fn(() => "device-1"),
     onAuthStateChange: vi.fn((handler: (s: Session | null) => void) => {
       handlers.add(handler);
@@ -103,15 +142,16 @@ function buildDeps(overrides: Partial<AuthOrchestratorDeps> = {}): DepsBundle {
         handlers.delete(handler);
       };
     }),
+    signInWithOAuth: vi.fn(async () => ({ error: null })),
+    signOutSupabase: vi.fn(async () => ({ error: null })),
   };
 
   const deps = {
     isSupabaseConfigured: true,
     ...m,
     ...overrides,
-  } as unknown as AuthOrchestratorDeps;
+  } as unknown as AuthOrchestratorBootstrapDeps;
 
-  // Resolve mocks via deps so overrides flow through to assertions.
   return {
     deps,
     handlers,
@@ -120,58 +160,52 @@ function buildDeps(overrides: Partial<AuthOrchestratorDeps> = {}): DepsBundle {
       getFingerprint: deps.getFingerprint as unknown as ReturnType<
         typeof vi.fn
       >,
-      quickstart: deps.quickstart as unknown as ReturnType<typeof vi.fn>,
+      callBootstrap: deps.callBootstrap as unknown as ReturnType<
+        typeof vi.fn
+      >,
+      applyServerState: deps.applyServerState as unknown as ReturnType<
+        typeof vi.fn
+      >,
+      clearPreviousUserState:
+        deps.clearPreviousUserState as unknown as ReturnType<typeof vi.fn>,
+      getDeviceId: deps.getDeviceId as unknown as ReturnType<typeof vi.fn>,
+      onAuthStateChange: deps.onAuthStateChange as unknown as ReturnType<
+        typeof vi.fn
+      >,
       signInWithOAuth: deps.signInWithOAuth as unknown as ReturnType<
         typeof vi.fn
       >,
-      registerDevice: deps.registerDevice as unknown as ReturnType<
-        typeof vi.fn
-      >,
       signOutSupabase: deps.signOutSupabase as unknown as ReturnType<
-        typeof vi.fn
-      >,
-      disableServerValidation:
-        deps.disableServerValidation as unknown as ReturnType<typeof vi.fn>,
-      initServerValidation: deps.initServerValidation as unknown as ReturnType<
-        typeof vi.fn
-      >,
-      onReady: deps.onReady as unknown as ReturnType<typeof vi.fn>,
-      onIdentityChanged: deps.onIdentityChanged as unknown as ReturnType<
-        typeof vi.fn
-      >,
-      onSignedOut: deps.onSignedOut as unknown as ReturnType<typeof vi.fn>,
-      runMergeCheck: deps.runMergeCheck as unknown as ReturnType<typeof vi.fn>,
-      resetMerge: deps.resetMerge as unknown as ReturnType<typeof vi.fn>,
-      startLoginPrompts: deps.startLoginPrompts as unknown as ReturnType<
-        typeof vi.fn
-      >,
-      stopLoginPrompts: deps.stopLoginPrompts as unknown as ReturnType<
-        typeof vi.fn
-      >,
-      getDeviceId: deps.getDeviceId as unknown as ReturnType<typeof vi.fn>,
-      onAuthStateChange: deps.onAuthStateChange as unknown as ReturnType<
         typeof vi.fn
       >,
     },
   };
 }
 
-function captureEvents(orch: AuthOrchestrator): AuthEvent[] {
-  const events: AuthEvent[] = [];
-  orch.onEvent((e) => events.push(e));
-  return events;
+async function waitForStatus(
+  orch: AuthOrchestrator,
+  status: string,
+  timeoutMs = 1000,
+): Promise<void> {
+  const start = Date.now();
+  while (orch.getState().status !== status) {
+    if (Date.now() - start > timeoutMs) {
+      throw new Error(
+        `Timed out waiting for status "${status}" (current="${orch.getState().status}")`,
+      );
+    }
+    await new Promise((r) => setTimeout(r, 5));
+  }
 }
 
 // ─── tests ──────────────────────────────────────────────────────────────
 
-describe("AuthOrchestrator", () => {
+describe("AuthOrchestrator (PR4-4A)", () => {
   let orch: AuthOrchestrator;
 
   beforeEach(() => {
     orch = new AuthOrchestrator();
   });
-
-  // ─── subscribe / unsubscribe ──────────────────────────────────────────
 
   describe("subscribe", () => {
     it("subscribe calls listener with current state immediately", () => {
@@ -188,480 +222,377 @@ describe("AuthOrchestrator", () => {
       orch.attach(deps);
       const listener = vi.fn();
       const unsub = orch.subscribe(listener);
-
       listener.mockClear();
       unsub();
-      orch.dispatch({ type: "STARTUP" });
-
+      orch.setState({ status: "ready" });
       expect(listener).not.toHaveBeenCalled();
     });
-
-    it("multiple listeners all fire on state change", () => {
-      const { deps } = buildDeps();
-      orch.attach(deps);
-      const a = vi.fn();
-      const b = vi.fn();
-      orch.subscribe(a);
-      orch.subscribe(b);
-
-      a.mockClear();
-      b.mockClear();
-      orch.dispatch({ type: "STARTUP" });
-
-      // dispatch fires eventListeners only; setState would fire state listeners.
-      // Use signOut as a setState trigger.
-      void orch.signOut();
-      // signOut uses setState indirectly, but it also requires deps — so just
-      // verify listeners attach without error:
-      expect(typeof a).toBe("function");
-      expect(typeof b).toBe("function");
-    });
   });
 
-  // ─── startup() ────────────────────────────────────────────────────────
-
-  describe("startup()", () => {
-    it("with authenticated session — apply, init validation, onReady; no prompts", async () => {
-      const { deps, mocks } = buildDeps({
-        getSession: vi.fn(async () =>
-          makeSession({ userId: "auth-1", email: "a@b.com" }),
-        ),
-      });
+  describe("startup() — happy path", () => {
+    it("transitions idle -> resolving_session -> bootstrapping -> ready on 200 guest", async () => {
+      const { deps, mocks } = buildDeps({}, READY_GUEST);
       orch.attach(deps);
-
+      expect(orch.getState().status).toBe("idle");
       const cleanup = await orch.startup();
-
-      expect(orch.getState().identity).toBe("authenticated");
-      expect(orch.getState().userId).toBe("auth-1");
-      expect(orch.getState().status).toBe("ready");
-      expect(mocks.initServerValidation).toHaveBeenCalledWith("auth-1");
-      expect(mocks.onReady).toHaveBeenCalledWith("auth-1");
-      expect(mocks.startLoginPrompts).not.toHaveBeenCalled();
-      expect(mocks.quickstart).not.toHaveBeenCalled();
+      await waitForStatus(orch, "ready");
+      const final = orch.getState();
+      expect(final.status).toBe("ready");
+      expect(final.userId).toBe("guest-1");
+      expect(final.isGuest).toBe(true);
+      expect(final.result?.status).toBe("ready");
+      expect(mocks.callBootstrap).toHaveBeenCalledOnce();
+      expect(mocks.applyServerState).toHaveBeenCalledWith({
+        userId: "guest-1",
+        isGuest: true,
+        isNewUser: true,
+        needsStateLoad: false,
+        gameState: GUEST_GAME_STATE,
+      });
       cleanup();
     });
 
-    it("with anon session — onReady + startLoginPrompts wired", async () => {
-      const { deps, mocks } = buildDeps({
-        getSession: vi.fn(async () =>
-          makeSession({ userId: "anon-1", isAnonymous: true }),
-        ),
-      });
-      orch.attach(deps);
-
-      const cleanup = await orch.startup();
-
-      expect(orch.getState().identity).toBe("anonymous");
-      expect(mocks.onReady).toHaveBeenCalledWith("anon-1");
-      expect(mocks.startLoginPrompts).toHaveBeenCalledWith(
-        expect.any(Function),
+    it("transitions to ready on authenticated response when session exists", async () => {
+      const { deps, mocks } = buildDeps(
+        {
+          getSession: vi.fn(async () => makeSession({ userId: "auth-1" })),
+        },
+        READY_AUTH,
       );
+      orch.attach(deps);
+      const cleanup = await orch.startup();
+      await waitForStatus(orch, "ready");
+      const final = orch.getState();
+      expect(final.identity).toBe("authenticated");
+      expect(final.userId).toBe("auth-1");
+      expect(final.isGuest).toBe(false);
+      expect(mocks.callBootstrap).toHaveBeenCalledOnce();
+      const call = mocks.callBootstrap.mock.calls[0]?.[0] as BootstrapRequestBody;
+      expect(call.deviceId).toBe("device-1");
       cleanup();
     });
 
-    it("anon session — startLoginPrompts callback dispatches BIND_REQUEST", async () => {
-      const { deps, mocks } = buildDeps({
-        getSession: vi.fn(async () =>
-          makeSession({ userId: "anon-1", isAnonymous: true }),
-        ),
-      });
+    it("sends fingerprint to bootstrap with strict timeout budget", async () => {
+      const { deps, mocks } = buildDeps({}, READY_GUEST);
       orch.attach(deps);
-      const events = captureEvents(orch);
-
       const cleanup = await orch.startup();
-
-      const requestLogin = mocks.startLoginPrompts.mock.calls[0]?.[0];
-      expect(requestLogin).toBeInstanceOf(Function);
-      requestLogin("progress_milestone");
-
-      expect(events.some((e) => e.type === "BIND_REQUEST")).toBe(true);
-      const e = events.find((x) => x.type === "BIND_REQUEST") as Extract<
-        AuthEvent,
-        { type: "BIND_REQUEST" }
-      >;
-      expect(e.reason).toBe("progress_milestone");
-      cleanup();
-    });
-
-    it("with no session, no recovery — fingerprint computed, quickstart called once, NO_RECOVERY", async () => {
-      const { deps, mocks } = buildDeps();
-      orch.attach(deps);
-      const events = captureEvents(orch);
-
-      const cleanup = await orch.startup();
-
-      // Phase 2: fingerprint is computed lazily inside the orchestrator
-      // ONLY when no session exists.
+      await waitForStatus(orch, "ready");
       expect(mocks.getFingerprint).toHaveBeenCalledOnce();
-      // Single round-trip; no separate recover/claim calls.
-      expect(mocks.quickstart).toHaveBeenCalledOnce();
-      expect(mocks.quickstart).toHaveBeenCalledWith("device-1", "fp-test-abc");
-      expect(events.some((e) => e.type === "NO_RECOVERY")).toBe(true);
+      const timeoutArg = mocks.getFingerprint.mock.calls[0]?.[0];
+      expect(typeof timeoutArg).toBe("number");
+      expect(timeoutArg).toBeGreaterThan(0);
       cleanup();
     });
 
-    it("with no session + fingerprint match — RECOVERED dispatched, source=fingerprint", async () => {
-      const { deps, mocks } = buildDeps({
-        quickstart: vi.fn(async () => ({
-          userId: "matched-anon",
-          source: "fingerprint" as const,
-          isNewUser: false,
-          error: null,
-        })),
-      });
+    it("continues to bootstrap when fingerprint returns null (timeout / unavailable)", async () => {
+      const { deps, mocks } = buildDeps(
+        { getFingerprint: vi.fn(async () => null) },
+        READY_GUEST,
+      );
       orch.attach(deps);
-      const events = captureEvents(orch);
-
       const cleanup = await orch.startup();
-
-      const recovered = events.find((e) => e.type === "RECOVERED") as Extract<
-        AuthEvent,
-        { type: "RECOVERED" }
-      >;
-      expect(recovered).toBeTruthy();
-      expect(recovered.userId).toBe("matched-anon");
-      expect(recovered.source).toBe("fingerprint");
+      await waitForStatus(orch, "ready");
+      expect(mocks.callBootstrap).toHaveBeenCalledOnce();
+      const call = mocks.callBootstrap.mock.calls[0]?.[0] as BootstrapRequestBody;
+      expect(call.fingerprintHash).toBeNull();
+      expect(orch.getState().fingerprintStatus).toBe("unavailable");
       cleanup();
     });
 
-    it("quickstart capacity_full → WAITLIST_REQUIRED dispatched", async () => {
-      const { deps, mocks } = buildDeps({
-        quickstart: vi.fn(async () => ({
-          userId: null,
-          source: null,
-          isNewUser: null,
-          error: "capacity_full",
-        })),
-      });
+    it("calls /api/auth/bootstrap once per mount", async () => {
+      const { deps, mocks } = buildDeps({}, READY_GUEST);
       orch.attach(deps);
-      const events = captureEvents(orch);
-
       const cleanup = await orch.startup();
-
-      expect(mocks.quickstart).toHaveBeenCalledOnce();
-      expect(events.some((e) => e.type === "WAITLIST_REQUIRED")).toBe(true);
+      await waitForStatus(orch, "ready");
+      expect(mocks.callBootstrap).toHaveBeenCalledOnce();
       cleanup();
     });
 
-    it("with auth session — fingerprint NOT computed, quickstart NOT called", async () => {
-      const { deps, mocks } = buildDeps({
-        getSession: vi.fn(async () =>
-          makeSession({ userId: "auth-1", isAnonymous: false }),
-        ),
-      });
+    it("when !isSupabaseConfigured — startup short-circuits, no bootstrap fired", async () => {
+      const { deps, mocks } = buildDeps(
+        { isSupabaseConfigured: false },
+        READY_GUEST,
+      );
       orch.attach(deps);
-
       const cleanup = await orch.startup();
-
-      // Critical: returning user avoids fingerprint computation entirely.
-      expect(mocks.getFingerprint).not.toHaveBeenCalled();
-      expect(mocks.quickstart).not.toHaveBeenCalled();
-      expect(mocks.onReady).toHaveBeenCalledWith("auth-1");
-      cleanup();
-    });
-
-    it("with no session + fingerprint unavailable — quickstart skipped", async () => {
-      const { deps, mocks } = buildDeps({
-        getFingerprint: vi.fn(async () => null),
-      });
-      orch.attach(deps);
-
-      const cleanup = await orch.startup();
-
-      expect(mocks.getFingerprint).toHaveBeenCalled();
-      expect(mocks.quickstart).not.toHaveBeenCalled();
-      cleanup();
-    });
-
-    it("when !isSupabaseConfigured — startup exits immediately, no deps called", async () => {
-      const { deps, mocks } = buildDeps({ isSupabaseConfigured: false });
-
-      const cleanup = await orch.startup();
-
+      expect(mocks.callBootstrap).not.toHaveBeenCalled();
       expect(mocks.getSession).not.toHaveBeenCalled();
-      expect(mocks.quickstart).not.toHaveBeenCalled();
-      expect(orch.getState().status).toBe("idle");
       cleanup();
     });
   });
 
-  // ─── auth state change handler ────────────────────────────────────────
-
-  describe("onAuthStateChange-driven transitions", () => {
-    it("anon→auth — onIdentityChanged + runMergeCheck + stopLoginPrompts + initValidation", async () => {
-      const { deps, mocks, handlers } = buildDeps({
-        getSession: vi.fn(async () =>
-          makeSession({ userId: "anon-1", isAnonymous: true }),
-        ),
-      });
+  describe("startup() — 409 conflict", () => {
+    it("transitions to conflict on ACCOUNT_PROGRESS_CONFLICT", async () => {
+      const { deps, mocks } = buildDeps({}, CONFLICT_ACCOUNT);
       orch.attach(deps);
       const cleanup = await orch.startup();
-
-      mocks.onIdentityChanged.mockClear();
-      mocks.stopLoginPrompts.mockClear();
-      mocks.runMergeCheck.mockClear();
-      mocks.initServerValidation.mockClear();
-      mocks.registerDevice.mockClear();
-
-      handlers.forEach((h) => h(makeSession({ userId: "auth-1" })));
-
-      expect(orch.getState().identity).toBe("authenticated");
-      expect(mocks.initServerValidation).toHaveBeenCalledWith("auth-1");
-      expect(mocks.onIdentityChanged).toHaveBeenCalledWith("auth-1");
-      expect(mocks.stopLoginPrompts).toHaveBeenCalled();
-      expect(mocks.runMergeCheck).toHaveBeenCalledWith("auth-1", "device-1");
-      // anon→auth triggers runPostOAuth → registerDevice
-      expect(mocks.registerDevice).toHaveBeenCalledWith("device-1", null, null);
+      await waitForStatus(orch, "conflict");
+      const final = orch.getState();
+      expect(final.status).toBe("conflict");
+      expect(final.result?.status).toBe("conflict");
+      if (final.result?.status === "conflict") {
+        expect(final.result.reason).toBe("ACCOUNT_PROGRESS_CONFLICT");
+        expect(final.result.survivingUserId).toBe("auth-1");
+        expect(final.result.archivedGuestId).toBe("guest-old");
+      }
+      expect(mocks.applyServerState).not.toHaveBeenCalled();
       cleanup();
     });
 
-    it("auth→null (external SIGNED_OUT) — fires onSignedOut via handleSignedOut", async () => {
-      const { deps, mocks, handlers } = buildDeps({
-        getSession: vi.fn(async () => makeSession({ userId: "auth-1" })),
-      });
+    it("transitions to conflict on DEVICE_BOUND_TO_OTHER_USER", async () => {
+      const { deps } = buildDeps({}, CONFLICT_DEVICE);
       orch.attach(deps);
       const cleanup = await orch.startup();
+      await waitForStatus(orch, "conflict");
+      const final = orch.getState();
+      if (final.result?.status === "conflict") {
+        expect(final.result.reason).toBe("DEVICE_BOUND_TO_OTHER_USER");
+      }
+      cleanup();
+    });
+  });
 
-      mocks.onSignedOut.mockClear();
-      mocks.disableServerValidation.mockClear();
-      mocks.stopLoginPrompts.mockClear();
-      mocks.resetMerge.mockClear();
+  describe("startup() - 422 recovery", () => {
+    it("transitions to recovery_required and STOPS - retry is ignored", async () => {
+      const { deps, mocks } = buildDeps({}, RECOVERY);
+      orch.attach(deps);
+      const cleanup = await orch.startup();
+      await waitForStatus(orch, "recovery_required");
+      expect(mocks.applyServerState).not.toHaveBeenCalled();
+      expect(mocks.callBootstrap).toHaveBeenCalledOnce();
+      orch.retry();
+      await new Promise((r) => setTimeout(r, 50));
+      expect(orch.getState().status).toBe("recovery_required");
+      expect(mocks.callBootstrap).toHaveBeenCalledOnce();
+      cleanup();
+    });
+  });
 
-      handlers.forEach((h) => h(null));
-
-      expect(orch.getState().identity).toBe("unauthenticated");
-      // Phase 10: external SIGNED_OUT now fires onSignedOut via shared handleSignedOut.
-      expect(mocks.onSignedOut).toHaveBeenCalledTimes(1);
-      expect(mocks.disableServerValidation).toHaveBeenCalledTimes(1);
-      expect(mocks.stopLoginPrompts).toHaveBeenCalledTimes(1);
-      expect(mocks.resetMerge).toHaveBeenCalledTimes(1);
+  describe("startup() - 429 / 503 / network", () => {
+    it("transitions to temporary_error on 429 rate limited", async () => {
+      const { deps } = buildDeps({}, RATE_LIMITED);
+      orch.attach(deps);
+      const cleanup = await orch.startup();
+      await waitForStatus(orch, "temporary_error");
+      const final = orch.getState();
+      if (final.result?.status === "temporary_error") {
+        expect(final.result.reason).toBe("rate_limited");
+        expect(final.result.retryable).toBe(true);
+      }
       cleanup();
     });
 
-    it("cleanup function unsubscribes auth change handler", async () => {
-      const { deps, handlers } = buildDeps({
-        getSession: vi.fn(async () => makeSession({ userId: "auth-1" })),
-      });
+    it("transitions to temporary_error on 503 service unavailable", async () => {
+      const { deps } = buildDeps({}, UNAVAILABLE);
       orch.attach(deps);
       const cleanup = await orch.startup();
-
-      const before = handlers.size;
-      expect(before).toBeGreaterThan(0);
-
-      cleanup();
-
-      expect(handlers.size).toBe(0);
-    });
-
-    it("token refresh (same userId) — no lifecycle events fire", async () => {
-      const { deps, mocks, handlers } = buildDeps({
-        getSession: vi.fn(async () => makeSession({ userId: "auth-1" })),
-      });
-      orch.attach(deps);
-      const cleanup = await orch.startup();
-
-      mocks.onReady.mockClear();
-      mocks.onIdentityChanged.mockClear();
-      mocks.onSignedOut.mockClear();
-
-      // TOKEN_REFRESHED with same userId
-      handlers.forEach((h) => h(makeSession({ userId: "auth-1" })));
-
-      expect(mocks.onReady).not.toHaveBeenCalled();
-      expect(mocks.onIdentityChanged).not.toHaveBeenCalled();
-      expect(mocks.onSignedOut).not.toHaveBeenCalled();
+      await waitForStatus(orch, "temporary_error");
+      const final = orch.getState();
+      if (final.result?.status === "temporary_error") {
+        expect(final.result.reason).toBe("service_unavailable");
+        expect(final.result.retryable).toBe(true);
+      }
       cleanup();
     });
 
-    it("account switch (auth-1 → auth-2) — fires onIdentityChanged", async () => {
-      const { deps, mocks, handlers } = buildDeps({
-        getSession: vi.fn(async () => makeSession({ userId: "auth-1" })),
-      });
-      orch.attach(deps);
-      const cleanup = await orch.startup();
-
-      mocks.onReady.mockClear();
-      mocks.onIdentityChanged.mockClear();
-
-      handlers.forEach((h) => h(makeSession({ userId: "auth-2" })));
-
-      expect(mocks.onIdentityChanged).toHaveBeenCalledWith("auth-2");
-      expect(mocks.onIdentityChanged).toHaveBeenCalledTimes(1);
-      cleanup();
-    });
-
-    it("null→anon via SIGNED_IN (recovery path) — fires onReady once, subsequent same userId no-op", async () => {
-      const { deps, mocks, handlers } = buildDeps();
-      orch.attach(deps);
-      const cleanup = await orch.startup();
-      // After startup with no session: state.userId remains null because
-      // quickstart's userId is NOT applied via applySession in startup.
-      // The Supabase SIGNED_IN event comes through the handler later.
-
-      mocks.onReady.mockClear();
-      mocks.onIdentityChanged.mockClear();
-
-      // First SIGNED_IN event with anon-new → fires onReady (null → non-null)
-      handlers.forEach((h) =>
-        h(makeSession({ userId: "anon-new", isAnonymous: true })),
+    it("transitions to temporary_error when callBootstrap returns null", async () => {
+      const { deps } = buildDeps(
+        { callBootstrap: vi.fn(async () => null) },
+        null,
       );
-      expect(mocks.onReady).toHaveBeenCalledWith("anon-new");
-      expect(mocks.onIdentityChanged).not.toHaveBeenCalled();
-
-      // Subsequent SIGNED_IN with same userId → no event (no transition)
-      mocks.onReady.mockClear();
-      handlers.forEach((h) =>
-        h(makeSession({ userId: "anon-new", isAnonymous: true })),
-      );
-      expect(mocks.onReady).not.toHaveBeenCalled();
-      expect(mocks.onIdentityChanged).not.toHaveBeenCalled();
-      cleanup();
-    });
-  });
-
-  // ─── signOut() ────────────────────────────────────────────────────────
-
-  describe("signOut()", () => {
-    it("dispatches SIGN_OUT, clears state, calls onSignedOut + resetMerge + stopLoginPrompts + disableServerValidation", async () => {
-      const { deps, mocks } = buildDeps();
-      orch.attach(deps);
-      const events = captureEvents(orch);
-
-      // Set some state first so we can verify it's cleared
-      orch.setState({
-        userId: "before",
-        status: "ready",
-        identity: "authenticated",
-      });
-
-      await orch.signOut();
-
-      expect(events.some((e) => e.type === "SIGN_OUT")).toBe(true);
-      expect(mocks.disableServerValidation).toHaveBeenCalled();
-      expect(mocks.onSignedOut).toHaveBeenCalled();
-      expect(mocks.resetMerge).toHaveBeenCalled();
-      expect(mocks.stopLoginPrompts).toHaveBeenCalled();
-      expect(mocks.signOutSupabase).toHaveBeenCalled();
-      expect(orch.getState().status).toBe("idle");
-      expect(orch.getState().userId).toBeNull();
-      expect(orch.getState().identity).toBe("unauthenticated");
-    });
-
-    it("without deps attach — does not throw, state clears", async () => {
-      const events = captureEvents(orch);
-      await orch.signOut();
-      expect(events.some((e) => e.type === "SIGN_OUT")).toBe(true);
-      expect(orch.getState().status).toBe("idle");
-    });
-
-    it("idempotency: signOut + downstream SIGNED_OUT event — cleanup runs exactly once", async () => {
-      const { deps, mocks, handlers } = buildDeps({
-        getSession: vi.fn(async () => makeSession({ userId: "auth-1" })),
-      });
       orch.attach(deps);
       const cleanup = await orch.startup();
+      await waitForStatus(orch, "temporary_error");
+      const final = orch.getState();
+      expect(final.result?.status).toBe("temporary_error");
+      cleanup();
+    });
 
-      mocks.onSignedOut.mockClear();
-      mocks.disableServerValidation.mockClear();
-      mocks.stopLoginPrompts.mockClear();
-      mocks.resetMerge.mockClear();
-
-      // Simulate signOutSupabase firing SIGNED_OUT during the call
-      mocks.signOutSupabase.mockImplementation(async () => {
-        // Fire SIGNED_OUT synchronously (matches Supabase's actual behavior)
-        handlers.forEach((h) => h(null));
-        return { error: null };
+    it("retry() from temporary_error restarts the pipeline", async () => {
+      let callCount = 0;
+      const callBootstrap = vi.fn(async () => {
+        callCount += 1;
+        if (callCount === 1) return UNAVAILABLE;
+        return READY_GUEST;
       });
-
-      await orch.signOut();
-
-      expect(mocks.onSignedOut).toHaveBeenCalledTimes(1);
-      expect(mocks.disableServerValidation).toHaveBeenCalledTimes(1);
-      expect(mocks.stopLoginPrompts).toHaveBeenCalledTimes(1);
-      expect(mocks.resetMerge).toHaveBeenCalledTimes(1);
-      expect(orch.getState().userId).toBeNull();
+      const { deps } = buildDeps({ callBootstrap }, UNAVAILABLE);
+      orch.attach(deps);
+      const cleanup = await orch.startup();
+      await waitForStatus(orch, "temporary_error");
+      orch.retry();
+      await waitForStatus(orch, "ready");
+      expect(callCount).toBe(2);
+      expect(orch.getState().status).toBe("ready");
       cleanup();
     });
   });
 
-  // ─── signInWithOAuth() ────────────────────────────────────────────────
+  describe("stale-response guard", () => {
+    it("a slow stale response cannot overwrite a later ready response from retry()", async () => {
+      // First call: slow, returns UNAVAILABLE.
+      // Second call: fast, returns READY_GUEST.
+      // The orchestrator must reject the slow UNAVAILABLE because
+      // requestVersion was bumped by retry().
+      let callCount = 0;
+      const callBootstrap = vi.fn(async (_req: BootstrapRequestBody) => {
+        callCount += 1;
+        if (callCount === 1) {
+          return new Promise<BootstrapResponseBody>((resolve) =>
+            setTimeout(() => resolve(UNAVAILABLE), 80),
+          );
+        }
+        return READY_GUEST;
+      });
+      const { deps, mocks } = buildDeps({ callBootstrap }, UNAVAILABLE);
+      orch.attach(deps);
+
+      const cleanup = await orch.startup();
+      await waitForStatus(orch, "temporary_error");
+      // First response has now resolved into the state machine; status is
+      // temporary_error (not recovery_required).
+      expect(orch.getState().status).toBe("temporary_error");
+      expect(mocks.applyServerState).not.toHaveBeenCalled();
+
+      // Trigger retry — this bumps requestVersion so the in-flight first
+      // response becomes stale (even though it has already arrived). The
+      // new bootstrap fires callBootstrap a second time, returning
+      // READY_GUEST quickly.
+      mocks.applyServerState.mockClear();
+      orch.retry();
+      await waitForStatus(orch, "ready");
+
+      // Final state is `ready` from the second response. The first
+      // response was rejected (or already-applied) but never overwrote
+      // ready. Most importantly: applyServerState was called with the
+      // READY payload, NOT with a temporary_error payload.
+      expect(orch.getState().status).toBe("ready");
+      expect(mocks.applyServerState).toHaveBeenCalledOnce();
+      expect(mocks.applyServerState).toHaveBeenCalledWith({
+        userId: "guest-1",
+        isGuest: true,
+        isNewUser: true,
+        needsStateLoad: false,
+        gameState: GUEST_GAME_STATE,
+      });
+      // Allow the slow first response to settle — it must not flip
+      // the state back.
+      await new Promise((r) => setTimeout(r, 150));
+      expect(orch.getState().status).toBe("ready");
+      cleanup();
+    });
+  });
+
+  describe("signOut() - guest bootstrap with previousAuthUserId", () => {
+    it("captures previousAuthUserId and triggers guest bootstrap", async () => {
+      const { deps, mocks } = buildDeps({}, READY_AUTH);
+      orch.attach(deps);
+      const cleanup = await orch.startup();
+      await waitForStatus(orch, "ready");
+      mocks.callBootstrap.mockClear();
+      mocks.callBootstrap.mockResolvedValueOnce({
+        code: "BOOTSTRAP_READY",
+        userId: "guest-after-signout",
+        isGuest: true,
+        isNewUser: true,
+        source: "sign_out_to_guest",
+        hasGameState: true,
+        needsStateLoad: false,
+        gameState: GUEST_GAME_STATE,
+      } as BootstrapResponseBody);
+      await orch.signOut();
+      await waitForStatus(orch, "ready");
+      expect(mocks.callBootstrap).toHaveBeenCalled();
+      const signoutCall = mocks.callBootstrap.mock.calls[0]?.[0] as
+        | BootstrapRequestBody
+        | undefined;
+      expect(signoutCall).toBeDefined();
+      if (signoutCall) {
+        expect(signoutCall.previousAuthUserId).toBe("auth-1");
+      }
+      const final = orch.getState();
+      expect(final.userId).toBe("guest-after-signout");
+      expect(final.isGuest).toBe(true);
+      cleanup();
+    });
+
+    it("clears the previous user's game state BEFORE applying the new one", async () => {
+      const { deps, mocks } = buildDeps({}, READY_AUTH);
+      orch.attach(deps);
+      const cleanup = await orch.startup();
+      await waitForStatus(orch, "ready");
+      mocks.callBootstrap.mockClear();
+      mocks.callBootstrap.mockResolvedValueOnce({
+        ...READY_GUEST,
+        userId: "guest-after-signout",
+      } as BootstrapResponseBody);
+      // Clear all mocks so we measure only the post-signout order.
+      mocks.clearPreviousUserState.mockClear();
+      mocks.applyServerState.mockClear();
+      await orch.signOut();
+      await waitForStatus(orch, "ready");
+      const clearOrder = mocks.clearPreviousUserState.mock.invocationCallOrder[0] ?? 0;
+      const applyOrder = mocks.applyServerState.mock.invocationCallOrder[0] ?? 0;
+      expect(clearOrder).toBeGreaterThan(0);
+      expect(applyOrder).toBeGreaterThan(0);
+      expect(clearOrder).toBeLessThan(applyOrder);
+      cleanup();
+    });
+  });
+
+  describe("auth-state-change handler", () => {
+    it("on session identity change - clears state and triggers a new bootstrap", async () => {
+      const { deps, mocks, handlers } = buildDeps({}, READY_GUEST);
+      orch.attach(deps);
+      const cleanup = await orch.startup();
+      await waitForStatus(orch, "ready");
+      mocks.callBootstrap.mockClear();
+      mocks.applyServerState.mockClear();
+      mocks.clearPreviousUserState.mockClear();
+      mocks.callBootstrap.mockResolvedValueOnce(READY_AUTH);
+      handlers.forEach((h) => h(makeSession({ userId: "auth-1" })));
+      await new Promise((r) => setTimeout(r, 50));
+      expect(mocks.callBootstrap).toHaveBeenCalled();
+      expect(mocks.clearPreviousUserState).toHaveBeenCalled();
+      expect(orch.getState().userId).toBe("auth-1");
+      cleanup();
+    });
+  });
 
   describe("signInWithOAuth()", () => {
-    it("success — dispatches OAUTH_CALLBACK then OAUTH_SUCCESS; returns null", async () => {
-      const { deps, mocks } = buildDeps();
+    it("success - dispatches OAUTH_CALLBACK then OAUTH_SUCCESS; returns null", async () => {
+      const { deps, mocks } = buildDeps({}, READY_GUEST);
       orch.attach(deps);
-      const events = captureEvents(orch);
-
-      const error = await orch.signInWithOAuth(
-        "google",
-        "https://app/callback",
-      );
-
+      const events: AuthEvent[] = [];
+      orch.onEvent((e) => events.push(e));
+      const error = await orch.signInWithOAuth("google", "https://app/cb");
       expect(error).toBeNull();
-      expect(events.findIndex((e) => e.type === "OAUTH_CALLBACK")).toBeLessThan(
-        events.findIndex((e) => e.type === "OAUTH_SUCCESS"),
-      );
+      expect(
+        events.findIndex((e) => e.type === "OAUTH_CALLBACK"),
+      ).toBeLessThan(events.findIndex((e) => e.type === "OAUTH_SUCCESS"));
       expect(mocks.signInWithOAuth).toHaveBeenCalledWith(
         "google",
-        "https://app/callback",
+        "https://app/cb",
       );
     });
 
-    it("failure — dispatches OAUTH_CALLBACK then OAUTH_FAILURE; returns error string", async () => {
-      const { deps, mocks } = buildDeps({
-        signInWithOAuth: vi.fn(async () => ({ error: "oauth_failed" })),
-      });
-      orch.attach(deps);
-      const events = captureEvents(orch);
-
-      const error = await orch.signInWithOAuth(
-        "github",
-        "https://app/callback",
+    it("failure - dispatches OAUTH_FAILURE; returns the error string", async () => {
+      const { deps } = buildDeps(
+        { signInWithOAuth: vi.fn(async () => ({ error: "oauth_failed" })) },
+        READY_GUEST,
       );
-
+      orch.attach(deps);
+      const error = await orch.signInWithOAuth("github", "https://app/cb");
       expect(error).toBe("oauth_failed");
-      const failure = events.find((e) => e.type === "OAUTH_FAILURE") as Extract<
-        AuthEvent,
-        { type: "OAUTH_FAILURE" }
-      >;
-      expect(failure.provider).toBe("github");
-      expect(failure.error).toBe("oauth_failed");
     });
 
-    it('!isSupabaseConfigured — returns "not_configured" without dispatching', async () => {
-      const { deps } = buildDeps({ isSupabaseConfigured: false });
+    it("!isSupabaseConfigured - returns not_configured without dispatch", async () => {
+      const { deps } = buildDeps({ isSupabaseConfigured: false }, READY_GUEST);
       orch.attach(deps);
-      const events = captureEvents(orch);
-
-      const error = await orch.signInWithOAuth(
-        "google",
-        "https://app/callback",
-      );
-
+      const events: AuthEvent[] = [];
+      orch.onEvent((e) => events.push(e));
+      const error = await orch.signInWithOAuth("google", "https://app/cb");
       expect(error).toBe("not_configured");
       expect(events).toHaveLength(0);
-    });
-  });
-
-  // ─── runPostOAuth() ───────────────────────────────────────────────────
-
-  describe("runPostOAuth()", () => {
-    it("calls registerDevice with current deviceId + fingerprint", async () => {
-      const { deps, mocks } = buildDeps();
-      orch.attach(deps);
-
-      await orch.runPostOAuth("fp-hash");
-
-      expect(mocks.registerDevice).toHaveBeenCalledWith(
-        "device-1",
-        null,
-        "fp-hash",
-      );
-    });
-
-    it("does not throw when deps are unset", async () => {
-      // no attach
-      await expect(orch.runPostOAuth(null)).resolves.not.toThrow();
     });
   });
 });

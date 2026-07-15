@@ -10,7 +10,7 @@ import { NextResponse } from 'next/server';
 import { buildRequest } from '../helpers/request';
 import { mockSupabaseServer } from '../../unit/mocks/supabase';
 
-vi.mock('@/lib/supabase/server', () => mockSupabaseServer());
+vi.mock('@/lib/db/access', () => mockSupabaseServer());
 vi.mock('@/lib/auth/admin', () => ({
   verifyAdmin: vi.fn().mockResolvedValue({ admin: { id: 'admin-1', email: 'admin@test.com' } }),
   withSecurityHeaders: (res: Response) => res,

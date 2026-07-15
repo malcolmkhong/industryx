@@ -8,7 +8,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { readJson } from './helpers/request';
 import { mockSupabaseServer } from '../unit/mocks/supabase';
 
-vi.mock('@/lib/supabase/server', () => mockSupabaseServer());
+vi.mock('@/lib/db/access', () => mockSupabaseServer());
 
 import { GET } from '@/app/api/platform/capacity/status/route';
 
@@ -26,7 +26,7 @@ describe('GET /api/platform/capacity/status', () => {
 
   it('returns FALLBACK defaults when DB not configured', async () => {
     vi.resetModules();
-    vi.doMock('@/lib/supabase/server', () => ({
+    vi.doMock('@/lib/db/access', () => ({
       createServiceRoleClient: () => null,
       createClient: async () => null,
       isServiceRoleConfigured: () => false,

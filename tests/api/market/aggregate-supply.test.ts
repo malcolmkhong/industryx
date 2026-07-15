@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { buildRequest } from '../helpers/request';
 import { mockSupabaseServer } from '../../unit/mocks/supabase';
 
-vi.mock('@/lib/supabase/server', () => mockSupabaseServer());
+vi.mock('@/lib/db/access', () => mockSupabaseServer());
 
 import { POST } from '@/app/api/market/supply/aggregate/route';
 
@@ -19,7 +19,7 @@ describe('POST /api/market/supply/aggregate', () => {
 
   it('returns 503 when database is not configured', async () => {
     vi.resetModules();
-    vi.doMock('@/lib/supabase/server', () => ({
+    vi.doMock('@/lib/db/access', () => ({
       createServiceRoleClient: () => null,
       createClient: async () => null,
       isServiceRoleConfigured: () => false,

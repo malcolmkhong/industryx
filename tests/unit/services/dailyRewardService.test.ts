@@ -19,7 +19,7 @@ const HOIST_CONTRACT_TEMPLATES = vi.hoisted((): Record<string, unknown>[] => ([]
 const mockFetch = vi.fn();
 globalThis.fetch = mockFetch;
 
-vi.mock('@/lib/supabase/server', () => ({
+vi.mock('@/lib/db/access', () => ({
   createServiceRoleClient: vi.fn(() => null),
   createClient: vi.fn(async () => null),
   isServiceRoleConfigured: vi.fn(() => false),

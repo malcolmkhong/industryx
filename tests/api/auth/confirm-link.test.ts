@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { buildRequest, readJson } from "../helpers/request";
 import { mockSupabaseServer } from "../../unit/mocks/supabase";
 
-vi.mock("@/lib/supabase/server", () => mockSupabaseServer());
+vi.mock('@/lib/db/access', () => mockSupabaseServer());
 vi.mock("@/lib/auth/rateLimiter", () => ({
   checkRateLimit: vi.fn().mockResolvedValue(null),
   RATE_LIMITS: {

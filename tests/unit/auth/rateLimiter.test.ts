@@ -7,7 +7,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { mockSupabaseServer } from '../mocks/supabase';
 
-vi.mock('@/lib/supabase/server', () => mockSupabaseServer());
+vi.mock('@/lib/db/access', () => mockSupabaseServer());
 
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 
@@ -52,7 +52,7 @@ describe('auth/rateLimiter', () => {
 
     it('returns 503 for fail-closed when DB unreachable', async () => {
       vi.resetModules();
-      vi.doMock('@/lib/supabase/server', () => ({
+      vi.doMock('@/lib/db/access', () => ({
         createServiceRoleClient: () => null,
         createClient: async () => null,
         isServiceRoleConfigured: () => false,
@@ -67,7 +67,7 @@ describe('auth/rateLimiter', () => {
 
     it('returns null for fail-open when DB unreachable', async () => {
       vi.resetModules();
-      vi.doMock('@/lib/supabase/server', () => ({
+      vi.doMock('@/lib/db/access', () => ({
         createServiceRoleClient: () => null,
         createClient: async () => null,
         isServiceRoleConfigured: () => false,

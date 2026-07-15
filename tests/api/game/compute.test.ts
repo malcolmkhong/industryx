@@ -8,16 +8,21 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { buildRequest, readJson } from '../helpers/request';
 import { mockSupabaseServer } from '../../unit/mocks/supabase';
 
-vi.mock('@/lib/supabase/server', () => mockSupabaseServer());
+vi.mock('@/lib/db/access', () => mockSupabaseServer());
 vi.mock('@/lib/auth/rateLimiter', () => ({
   checkRateLimit: vi.fn().mockResolvedValue(null),
-  RATE_LIMITS: { action: { limit: 100, windowMs: 60000 }, general: { limit: 200, windowMs: 60000 } },
+  RATE_LIMITS: {
+    serverTick: { maxRequests: 12, windowMs: 60_000, failClosed: true },
+    action: { limit: 100, windowMs: 60000 },
+    general: { limit: 200, windowMs: 60000 },
+  },
 }));
 vi.mock('@/lib/auth/verifyAuth', () => ({
   verifyAuth: vi.fn().mockResolvedValue({ success: true, userId: 'user-1', email: 'test@example.com' }),
 }));
 
 import { POST } from '@/app/api/game/production/compute/route';
+import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 
 describe('POST /api/game/production/compute', () => {
   beforeEach(() => {
@@ -32,6 +37,11 @@ describe('POST /api/game/production/compute', () => {
     });
     const res = await POST(req);
     expect(res.status).toBe(403);
+    expect(checkRateLimit).toHaveBeenCalledWith(
+      'user-1',
+      RATE_LIMITS.serverTick,
+      '/api/game/production/compute',
+    );
   });
 
   it('returns 400 when ticks is missing', async () => {

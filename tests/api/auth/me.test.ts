@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { buildRequest, readJson } from '../helpers/request';
 import { mockSupabaseServer } from '../../unit/mocks/supabase';
 
-vi.mock('@/lib/supabase/server', () => mockSupabaseServer());
+vi.mock('@/lib/db/access', () => mockSupabaseServer());
 
 // Import AFTER mock
 import { GET } from '@/app/api/auth/session/me/route';
@@ -28,7 +28,7 @@ describe('GET /api/auth/session/me', () => {
 
   it('returns 401 when auth.getUser() returns error', async () => {
     vi.resetModules();
-    vi.doMock('@/lib/supabase/server', () => {
+    vi.doMock('@/lib/db/access', () => {
       const errClient: any = {
         auth: {
           getUser: vi.fn().mockResolvedValue({
@@ -52,7 +52,7 @@ describe('GET /api/auth/session/me', () => {
 
   it('returns 200 with user payload when authenticated', async () => {
     vi.resetModules();
-    vi.doMock('@/lib/supabase/server', () => {
+    vi.doMock('@/lib/db/access', () => {
       const client: any = {
         auth: {
           getUser: vi.fn().mockResolvedValue({
@@ -89,7 +89,7 @@ describe('GET /api/auth/session/me', () => {
   it('returns isAdmin=true when user is in ADMIN_UIDS', async () => {
     process.env.ADMIN_UIDS = 'user-1,admin-user-2';
     vi.resetModules();
-    vi.doMock('@/lib/supabase/server', () => {
+    vi.doMock('@/lib/db/access', () => {
       const client: any = {
         auth: {
           getUser: vi.fn().mockResolvedValue({
@@ -124,7 +124,7 @@ describe('GET /api/auth/session/me', () => {
 
   it('returns 500 on unexpected error', async () => {
     vi.resetModules();
-    vi.doMock('@/lib/supabase/server', () => {
+    vi.doMock('@/lib/db/access', () => {
       const client: any = {
         auth: {
           getUser: vi.fn().mockRejectedValue(new Error('boom')),

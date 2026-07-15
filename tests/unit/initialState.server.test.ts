@@ -22,7 +22,7 @@ import type { ServerGameData, UISessionState } from '@/lib/game/shared/types/typ
 
 // Mock the Supabase server client BEFORE importing the module under test.
 const mockFrom = vi.fn();
-vi.mock('@/lib/supabase/server', () => ({
+vi.mock('@/lib/db/access', () => ({
   createServiceRoleClient: vi.fn(() => ({
     from: mockFrom,
   })),

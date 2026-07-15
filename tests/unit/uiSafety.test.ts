@@ -187,7 +187,7 @@ describe("UI safety: action files still wire all Phase 6 actions", () => {
 
   it("market.ts: sellResource + buyResource call server", async () => {
     const src = readFileSync(
-      join(SRC_DIR, "lib/game/state/store-actions/market.ts"),
+      join(SRC_DIR, "lib/game/state/store-actions/market/marketActions.ts"),
       "utf8",
     );
     expect(src).toMatch(
@@ -200,7 +200,7 @@ describe("UI safety: action files still wire all Phase 6 actions", () => {
 
   it("research.ts: startResearch calls server", async () => {
     const src = readFileSync(
-      join(SRC_DIR, "lib/game/state/store-actions/research.ts"),
+      join(SRC_DIR, "lib/game/state/store-actions/research/researchActions.ts"),
       "utf8",
     );
     expect(src).toMatch(
@@ -210,7 +210,7 @@ describe("UI safety: action files still wire all Phase 6 actions", () => {
 
   it("drones.ts: sendDrone calls server", async () => {
     const src = readFileSync(
-      join(SRC_DIR, "lib/game/state/store-actions/drones.ts"),
+      join(SRC_DIR, "lib/game/state/store-actions/drones/dronesActions.ts"),
       "utf8",
     );
     expect(src).toMatch(
@@ -220,7 +220,7 @@ describe("UI safety: action files still wire all Phase 6 actions", () => {
 
   it("transport.ts: buildTransportLine + upgradeTransportLine call server", async () => {
     const src = readFileSync(
-      join(SRC_DIR, "lib/game/state/store-actions/transport.ts"),
+      join(SRC_DIR, "lib/game/state/store-actions/transport/transportActions.ts"),
       "utf8",
     );
     expect(src).toMatch(
@@ -233,7 +233,7 @@ describe("UI safety: action files still wire all Phase 6 actions", () => {
 
   it("prestige.ts: doPrestige calls server", async () => {
     const src = readFileSync(
-      join(SRC_DIR, "lib/game/state/store-actions/prestige.ts"),
+      join(SRC_DIR, "lib/game/state/store-actions/prestige/prestigeActions.ts"),
       "utf8",
     );
     expect(src).toMatch(

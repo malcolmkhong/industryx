@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { buildRequest, readJson } from '../helpers/request';
 import { mockSupabaseServer } from '../../unit/mocks/supabase';
 
-vi.mock('@/lib/supabase/server', () => mockSupabaseServer());
+vi.mock('@/lib/db/access', () => mockSupabaseServer());
 vi.mock('@/lib/auth/guestCheck', () => ({
   getUserGuestStatus: vi.fn().mockResolvedValue({ isGuest: false }),
 }));
@@ -34,7 +34,7 @@ describe('POST /api/game/leaderboard/submit', () => {
 
   it('returns 401 when token is invalid', async () => {
     vi.resetModules();
-    vi.doMock('@/lib/supabase/server', () => ({
+    vi.doMock('@/lib/db/access', () => ({
       createServiceRoleClient: () => ({
         auth: {
           getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: new Error('invalid_token') }),
@@ -58,7 +58,7 @@ describe('POST /api/game/leaderboard/submit', () => {
 
   it('returns 503 when database is not configured', async () => {
     vi.resetModules();
-    vi.doMock('@/lib/supabase/server', () => ({
+    vi.doMock('@/lib/db/access', () => ({
       createServiceRoleClient: () => null,
       createClient: async () => null,
       isServiceRoleConfigured: () => false,

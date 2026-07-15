@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { buildRequest, readJson } from '../helpers/request';
 import { mockSupabaseServer } from '../../unit/mocks/supabase';
 
-vi.mock('@/lib/supabase/server', () => mockSupabaseServer());
+vi.mock('@/lib/db/access', () => mockSupabaseServer());
 vi.mock('@/lib/auth/rateLimiter', () => ({
   checkRateLimit: vi.fn().mockResolvedValue(null),
   RATE_LIMITS: { action: { limit: 100, windowMs: 60000 }, general: { limit: 200, windowMs: 60000 } },
@@ -60,7 +60,7 @@ describe('POST /api/game/session/heartbeat', () => {
 
   it('returns 503 when DB is not configured', async () => {
     vi.resetModules();
-    vi.doMock('@/lib/supabase/server', () => ({
+    vi.doMock('@/lib/db/access', () => ({
       createServiceRoleClient: () => null,
       createClient: async () => null,
       isServiceRoleConfigured: () => false,

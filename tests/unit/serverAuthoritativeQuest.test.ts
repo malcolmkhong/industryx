@@ -12,7 +12,33 @@
 
 import { describe, it, expect } from "vitest";
 import { validateClaimQuestAction } from "@/lib/game/production/engine/serverEngine";
-import type { GameState, Quest, PrestigeState } from "@/lib/game/shared/types/types";
+import { WEATHER_DEFS } from "@/lib/game/config/configCache";
+import type { GameState, Quest, PrestigeState, WeatherType } from "@/lib/game/shared/types/types";
+
+/**
+ * weather_bonus feature: when state.weather.current is set, the server
+ * scales the money + researchPoints reward by WEATHER_DEFS[weather]
+ * .productionMultiplier. corporationPoints stays flat.
+ *
+ * Each test pins WEATHER_DEFS in-place to the values from
+ * game_config_weather, then verifies the claim response applies the
+ * matching scale.
+ */
+function pinWeather(multiplierByType: Record<WeatherType, number>) {
+  for (const k of Object.keys(WEATHER_DEFS) as WeatherType[]) {
+    delete WEATHER_DEFS[k];
+  }
+  for (const [k, v] of Object.entries(multiplierByType) as [WeatherType, number][]) {
+    WEATHER_DEFS[k] = {
+      name: k,
+      icon: `game-icons:${k}`,
+      productionMultiplier: v,
+      solarMultiplier: 1,
+      windMultiplier: 1,
+      description: `Test weather ${k}`,
+    };
+  }
+}
 
 function makeQuest(overrides?: Partial<Quest>): Quest {
   return {
@@ -182,5 +208,83 @@ describe("validateClaimQuestAction (server-authoritative)", () => {
     expect(result.valid).toBe(true);
     expect(result.correctedState?.money).toBe(1000 + 12345);
     expect(result.correctedState?.researchPoints).toBe(99);
+  });
+
+  describe("weather bonus on claim (server-authoritative)", () => {
+    it("clear weather leaves reward unchanged (×1.00)", () => {
+      pinWeather({
+        clear: 1, sunny: 1.05, rainy: 0.9, stormy: 0.75, foggy: 0.85, snowy: 0.8,
+      });
+      const state = makeState({
+        quests: [makeQuest({ reward: { money: 1000, researchPoints: 100 } })],
+      }) as Partial<GameState> & { weather?: { current: WeatherType } };
+      state.weather = { current: "clear", intensity: 0, remaining: 0, nextChange: 0 };
+
+      const result = validateClaimQuestAction("q1", state);
+
+      expect(result.valid).toBe(true);
+      expect(result.correctedState?.money).toBe(2000); // 1000 + 1000×1.00
+      expect(result.correctedState?.researchPoints).toBe(100); // 0 + 100×1.00
+    });
+
+    it("sunny weather boosts reward by +5%", () => {
+      pinWeather({
+        clear: 1, sunny: 1.05, rainy: 0.9, stormy: 0.75, foggy: 0.85, snowy: 0.8,
+      });
+      const state = makeState({
+        money: 0,
+        totalMoneyEarned: 0,
+        quests: [makeQuest({ reward: { money: 1000, researchPoints: 100, corporationPoints: 5 } })],
+      }) as Partial<GameState> & { weather?: { current: WeatherType } };
+      state.weather = { current: "sunny", intensity: 0.5, remaining: 50, nextChange: 100 };
+
+      const result = validateClaimQuestAction("q1", state);
+
+      expect(result.valid).toBe(true);
+      // 1000 × 1.05 = 1050
+      expect(result.correctedState?.money).toBe(1050);
+      expect(result.correctedState?.totalMoneyEarned).toBe(1050);
+      // 100 × 1.05 = 105
+      expect(result.correctedState?.researchPoints).toBe(105);
+      // corpPoints NOT scaled (5 × 1.0 = 5)
+      const prestige = result.correctedState?.prestigeState as PrestigeState;
+      expect(prestige?.corporationPoints).toBe(5);
+    });
+
+    it("stormy weather reduces reward by 25%", () => {
+      pinWeather({
+        clear: 1, sunny: 1.05, rainy: 0.9, stormy: 0.75, foggy: 0.85, snowy: 0.8,
+      });
+      const state = makeState({
+        money: 0,
+        totalMoneyEarned: 0,
+        quests: [makeQuest({ reward: { money: 1000, researchPoints: 100 } })],
+      }) as Partial<GameState> & { weather?: { current: WeatherType } };
+      state.weather = { current: "stormy", intensity: 0.8, remaining: 20, nextChange: 60 };
+
+      const result = validateClaimQuestAction("q1", state);
+
+      expect(result.valid).toBe(true);
+      // 1000 × 0.75 = 750
+      expect(result.correctedState?.money).toBe(750);
+      expect(result.correctedState?.totalMoneyEarned).toBe(750);
+      // 100 × 0.75 = 75
+      expect(result.correctedState?.researchPoints).toBe(75);
+    });
+
+    it("falls back to ×1 when WEATHER_DEFS missing the key", () => {
+      // Empty catalog (cold boot) — must not crash, must not zero out.
+      pinWeather({} as Record<WeatherType, number>);
+      const state = makeState({
+        money: 0,
+        quests: [makeQuest({ reward: { money: 1000, researchPoints: 100 } })],
+      }) as Partial<GameState> & { weather?: { current: WeatherType } };
+      state.weather = { current: "sunny", intensity: 0.5, remaining: 50, nextChange: 100 };
+
+      const result = validateClaimQuestAction("q1", state);
+
+      expect(result.valid).toBe(true);
+      expect(result.correctedState?.money).toBe(1000); // unchanged
+    });
   });
 });

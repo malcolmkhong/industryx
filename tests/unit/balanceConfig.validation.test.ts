@@ -11,10 +11,11 @@
 //
 // Test fixture: tests/fixtures/balanceFixture.json
 //   - Mirrors the Supabase `game_config_balance` shape
-//   - Mirrors the migration 068 seed (one logical change per migration)
+//   - Mirrors the migration 072 seed (complete base), plus
+//     migration 077 (payout + endgame) and 078 (storage.maxBulkUpgradeLevels)
 //   - Source of truth for the test contract; if a field is renamed or
-//     range changes, this fixture + migration 068 must both be updated
-//     in lockstep (or the test fails).
+//     range changes, this fixture + the matching migration must both be
+//     updated in lockstep (or the test fails).
 // ============================================
 
 import { describe, it, expect } from "vitest";

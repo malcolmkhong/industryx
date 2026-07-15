@@ -8,7 +8,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { mockSupabaseServer } from '../mocks/supabase';
 
-vi.mock('@/lib/supabase/server', () => mockSupabaseServer());
+vi.mock('@/lib/db/access', () => mockSupabaseServer());
 
 import {
   getValidPermissions,

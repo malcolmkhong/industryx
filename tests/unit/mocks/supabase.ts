@@ -74,7 +74,7 @@ export function createMockSupabaseClient(result: MockSupabaseResult = { data: []
  * supabase/server.ts" rule).
  *
  * Usage:
- *   vi.mock('@/lib/supabase/server', () => mockSupabaseServer());
+ *   vi.mock('@/lib/db/access', () => mockSupabaseServer());
  */
 export function mockSupabaseServer(result: MockSupabaseResult = { data: [], error: null }) {
   const { client } = createMockSupabaseClient(result);

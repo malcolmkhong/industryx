@@ -40,7 +40,7 @@ const HOIST_INITIAL_MARKET = vi.hoisted(() => [
 
 // ─── MOCKS ──────────────────────────────────────────────────────────
 
-vi.mock('@/lib/supabase/server', () => ({
+vi.mock('@/lib/db/access', () => ({
   createServiceRoleClient: vi.fn(() => null),
   createClient: vi.fn(async () => null),
   isServiceRoleConfigured: vi.fn(() => false),

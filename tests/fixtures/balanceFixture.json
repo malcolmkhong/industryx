@@ -58,10 +58,32 @@
   "storage": {
     "upgradeCostExponent": 1.5,
     "upgradeCapacityRatio": 0.5,
-    "logCostMultiplier": 0.9
+    "logCostMultiplier": 0.9,
+    "maxBulkUpgradeLevels": 100
   },
   "prestige": {
     "cpPerBuilding": 0.5
+  },
+  "payout": {
+    "extractorRate": 20,
+    "factoryRate": 50,
+    "powerRate": 10
+  },
+  "endgame": {
+    "dysonCollector":      { "moneyPerTick": 8000,   "researchPerTick": 0,    "corpPerTick": 0 },
+    "quantumTeleporter":   { "moneyPerTick": 0,      "researchPerTick": 10,   "corpPerTick": 0 },
+    "dimensionalGateway":  { "moneyPerTick": 0,      "researchPerTick": 0,    "corpPerTick": 1 },
+    "timeDistorter":       { "moneyPerTick": 5000,   "researchPerTick": 5,    "corpPerTick": 0 },
+    "galacticForge":       { "moneyPerTick": 100000, "researchPerTick": 50,   "corpPerTick": 5 },
+    "omniscienceArray":    { "moneyPerTick": 0,      "researchPerTick": 50,   "corpPerTick": 0 },
+    "worldEngine":         { "moneyPerTick": 8000,   "researchPerTick": 5,    "corpPerTick": 0 },
+    "planetaryShield":     { "moneyPerTick": 5000,   "researchPerTick": 0,    "corpPerTick": 0 },
+    "starReactor":         { "moneyPerTick": 10000,  "researchPerTick": 0,    "corpPerTick": 0 },
+    "voidEngine":          { "moneyPerTick": 0,      "researchPerTick": 30,   "corpPerTick": 0 },
+    "quantumExchange":     { "moneyPerTick": 8000,   "researchPerTick": 0,    "corpPerTick": 1 },
+    "megaCorpHQ":          { "moneyPerTick": 15000,  "researchPerTick": 0,    "corpPerTick": 2 },
+    "dimensionalNexus":    { "moneyPerTick": 0,      "researchPerTick": 20,   "corpPerTick": 1 },
+    "galacticArmada":      { "moneyPerTick": 5000,   "researchPerTick": 0,    "corpPerTick": 3 }
   },
   "offline": {
     "baseRate": 0.5,

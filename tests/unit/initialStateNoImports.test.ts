@@ -13,8 +13,6 @@
  * Allowed locations:
  *   - src/lib/db/initialState.server.ts        (the server helper itself,
  *     where comments mention the old client shape for historical context)
- *   - src/lib/game/state/store-actions/prestige.ts (historical comment about
- *     the old pattern that was removed; the comment is informational only)
  *   - src/lib/game/production/engine/serverEngine.ts (historical comment in
  *     validatePrestigeAction docstring)
  *   - tests/unit/initialStateNoImports.test.ts (this file — references
@@ -37,9 +35,7 @@ const TESTS_DIR = join(process.cwd(), 'tests');
 // Files legitimately allowed to mention the deleted symbols.
 const ALLOWED_FILES = new Set<string>([
   // The server helper itself — historical context in docblock.
-  'src/lib/db/initialState.server.ts',
-  // Phase 12 removal notes in client-side code (informational comments only).
-  'src/lib/game/state/store-actions/prestige.ts',
+  'src/lib/db/infra/initialState.server.ts',
   'src/lib/game/production/engine/serverEngine.ts',
   // This guard.
   'tests/unit/initialStateNoImports.test.ts',

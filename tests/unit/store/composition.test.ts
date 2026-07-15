@@ -7,7 +7,7 @@ const HOIST_RANK_THRESHOLDS = vi.hoisted(() => [{ name: 'Apprentice', icon: '★
 const HOIST_INITIAL_MARKET = vi.hoisted((): Record<string, unknown>[] => ([]));
 const HOIST_CONTRACT_TEMPLATES = vi.hoisted((): Record<string, unknown>[] => ([]));
 
-vi.mock('@/lib/supabase/server', () => ({
+vi.mock('@/lib/db/access', () => ({
   createServiceRoleClient: vi.fn(() => null),
   createClient: vi.fn(async () => null),
   isServiceRoleConfigured: vi.fn(() => false),

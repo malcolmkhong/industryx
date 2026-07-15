@@ -21,6 +21,19 @@ describe("live server tick architecture", () => {
     expect(shell).toMatch(/useLiveServerTick\(\)/);
   });
 
+  it("live tick can resolve guest identity from orchestrator device snapshot", () => {
+    const hook = readSource("src/lib/hooks/page/useLiveServerTick.ts");
+    const registry = readSource("src/lib/auth/orchestrator/registry.ts");
+
+    expect(hook).toContain("getOrchestratorStateSnapshot");
+    expect(hook).toContain("snapshot.deviceId");
+    expect(hook).toContain("createDeviceIdStorage");
+    expect(hook).toContain("readPersistentDeviceId");
+    expect(hook).not.toContain("if (!userId && !deviceId) return undefined");
+    expect(registry).toContain("deviceId: string | null");
+    expect(registry).toContain("deviceId: s.deviceId");
+  });
+
   it("live tick route settles elapsed server time instead of client-mutating game time", () => {
     const routePath = "src/app/api/game/state/live-tick/route.ts";
     expect(existsSync(join(process.cwd(), routePath))).toBe(true);

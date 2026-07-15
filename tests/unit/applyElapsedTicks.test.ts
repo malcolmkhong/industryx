@@ -10,7 +10,7 @@
 import { describe, it, expect, vi } from "vitest";
 
 // Mock the upstream modules BEFORE importing the helper.
-vi.mock("@/lib/supabase/server", () => ({
+vi.mock('@/lib/db/access', () => ({
   createServiceRoleClient: vi.fn(() => ({
     rpc: vi.fn().mockResolvedValue({
       data: "2026-07-09T01:00:00.000Z",
@@ -255,13 +255,35 @@ describe("applyElapsedTicks (Phase 7 server tick injection)", () => {
     ).rejects.toThrow(/Config unavailable/);
   });
 
-  it("falls back to game_speed=1 when input is invalid", async () => {
-    // last_tick_at = 30s ago, game_speed = NaN → fallback 1 → 30 ticks
-    const result = await applyElapsedTicks(
-      makeState(0, 1000),
-      "2026-07-09T00:59:30.000Z",
-      Number.NaN as unknown as number,
-    );
-    expect(result.elapsedTicks).toBe(30);
+  // V-031 (PR-BP-3, 2026-07-15): invalid `game_speed` values now fail
+  // closed with a RangeError instead of silently clamping to 1. The
+  // legacy behavior masked bad-data rows in `server_game_state.game_speed`
+  // and produced incorrect tick counts downstream.
+  it("V-031: throws RangeError when game_speed is NaN (fail-closed)", async () => {
+    await expect(
+      applyElapsedTicks(
+        makeState(0, 1000),
+        "2026-07-09T00:59:30.000Z",
+        Number.NaN as unknown as number,
+      ),
+    ).rejects.toThrow(/Invalid game speed/);
+  });
+
+  it("V-031: throws RangeError when game_speed is 0 or negative", async () => {
+    await expect(
+      applyElapsedTicks(
+        makeState(0, 1000),
+        "2026-07-09T00:59:30.000Z",
+        0,
+      ),
+    ).rejects.toThrow(/Invalid game speed/);
+
+    await expect(
+      applyElapsedTicks(
+        makeState(0, 1000),
+        "2026-07-09T00:59:30.000Z",
+        -1,
+      ),
+    ).rejects.toThrow(/Invalid game speed/);
   });
 });

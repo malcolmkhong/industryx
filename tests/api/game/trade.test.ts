@@ -12,7 +12,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { buildRequest } from '../helpers/request';
 import { mockSupabaseServer } from '../../unit/mocks/supabase';
 
-vi.mock('@/lib/supabase/server', () => mockSupabaseServer());
+vi.mock('@/lib/db/access', () => mockSupabaseServer());
 
 import { POST } from '@/app/api/market/trades/execute/route';
 

@@ -8,7 +8,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { buildRequest, buildContext, readJson } from '../helpers/request';
 import { mockSupabaseServer } from '../../unit/mocks/supabase';
 
-vi.mock('@/lib/supabase/server', () => mockSupabaseServer());
+vi.mock('@/lib/db/access', () => mockSupabaseServer());
 
 import { GET } from '@/app/api/admin/players/[id]/auth/route';
 
