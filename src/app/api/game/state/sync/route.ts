@@ -6,9 +6,10 @@
 // ============================================
 
 import { NextResponse } from 'next/server';
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/db/access';;
 import { verifyAuthAndOwnership } from '@/lib/auth/verifyAuth';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
+import { getServerNowISOOrNull } from '@/lib/auth/serverTime';
 import {
   validateGameState,
   extractValidatedSaveFields,
@@ -22,7 +23,7 @@ import {
   loadServerGameStateForDeltaCheck,
   initializeGuestGameState,
   buildCompleteFullStateForServerRow,
-  upsertServerGameState,
+  saveServerGameStateOptimistic,
   syncPlayerProgressGameState,
   isServerGameStateAvailable,
 } from '@/lib/db/game/serverGameState';
@@ -173,20 +174,33 @@ export async function POST(request: Request) {
 
   const isUserAdmin = isAdminUserId(auth.userId);
 
-  // Phase 4.4: Fetch server timestamp from DB (immune to client clock manipulation)
-  // Uses now_iso() RPC defined in supabase/migrations/024_now_iso_function.sql
-  let serverTimestamp: string;
-  try {
-    const supabase = createServiceRoleClient();
-    if (supabase) {
-      const { data: serverTimeData } = await supabase.rpc('now_iso');
-      serverTimestamp = serverTimeData ?? new Date().toISOString();
-    } else {
-      serverTimestamp = new Date().toISOString();
-    }
-  } catch {
-    // Fallback to server local clock if RPC is not yet applied
-    serverTimestamp = new Date().toISOString();
+  // Phase 4.4 (refined audit 2026-07-15, BUG-074): Fetch server timestamp
+  // from DB (immune to client clock manipulation and Node clock drift).
+  // The previous version silently fell back to `new Date().toISOString()`
+  // when the RPC returned null or threw — that violated RULES.md [SEC-002]
+  // (fail closed) and let Node time advance `last_saved_at` even when the
+  // DB clock was the only authoritative source.
+  //
+  // `getServerNowISOOrNull` returns null on any failure; we translate
+  // that into a 503 instead of letting the route silently complete with
+  // a Node-clock timestamp. The save is rejected — the client can retry
+  // once the DB is reachable.
+  const supabaseForTime = createServiceRoleClient();
+  const serverTimestamp = supabaseForTime
+    ? await getServerNowISOOrNull(supabaseForTime)
+    : null;
+  if (serverTimestamp == null) {
+    console.error(
+      '[GameStateAPI] now_iso() RPC unavailable — failing the save closed. ' +
+        'Client should retry.',
+    );
+    return NextResponse.json(
+      {
+        error: 'Server time source unavailable — retry',
+        code: 'SERVER_TIME_UNAVAILABLE',
+      },
+      { status: 503 },
+    );
   }
 
   // Fetch current server state for delta validation.
@@ -271,20 +285,33 @@ export async function POST(request: Request) {
   // `|| 0`) for required fields. extractValidatedSaveFields() throws on
   // missing/invalid values; we catch and return 503. Defends the DB write
   // path even if validateGameState() somehow allowed corrupt data through.
-  // Also reads + validates state_version from the row (was previously
-  // `... || 0` which silently masked missing rows on first save).
+  //
+  // CRIT-1 fix (2026-07-14): the unconditional `upsertServerGameState` below
+  // was a TOCTOU race vs concurrent writers (live-tick, offline-progress,
+  // market execute, action handlers). All of those use
+  // `saveServerGameStateOptimistic` with a `state_version` CAS. This route
+  // MUST use the same CAS guard. A no-row first-save still flows through
+  // `initializeGuestGameState` to seed the canonical row (with denormalized
+  // columns populated from full_state per Phase 12), then applies the
+  // client's validated payload via a single CAS update.
   let currentVersion: number;
-  try {
-    currentVersion = Number(currentServerState?.state_version);
-    if (!Number.isInteger(currentVersion) || currentVersion < 0) {
-      throw new Error(`state_version invalid: ${currentServerState?.state_version}`);
+  if (currentServerState) {
+    try {
+      currentVersion = Number(currentServerState.state_version);
+      if (!Number.isInteger(currentVersion) || currentVersion < 0) {
+        throw new Error(`state_version invalid: ${currentServerState.state_version}`);
+      }
+    } catch (err) {
+      console.error('[GameStateAPI] state_version validation failed:', err);
+      return NextResponse.json(
+        { error: 'Invalid server state version', code: 'INVALID_STATE_VERSION' },
+        { status: 503 },
+      );
     }
-  } catch (err) {
-    console.error('[GameStateAPI] state_version validation failed:', err);
-    return NextResponse.json(
-      { error: 'Invalid server state version', code: 'INVALID_STATE_VERSION' },
-      { status: 503 },
-    );
+  } else {
+    // No prior row. state_version is implicitly 0 — the initializer writes
+    // the canonical row at version 0, then we CAS-update to 1 below.
+    currentVersion = 0;
   }
 
   let saveFields;
@@ -314,32 +341,91 @@ export async function POST(request: Request) {
     gameState as Record<string, unknown>,
   );
 
-  // Upsert to server_game_state (SOURCE OF TRUTH) — uses validated values
-  // above, not the original client-supplied numbers (no `|| 0` fallbacks).
-  // Cloud save is not tick settlement. `last_tick_at` is owned by
-  // applyElapsedTicks/offline tick paths after runServerTicks succeeds.
-  const upsertData = await upsertServerGameState({
-    user_id: userId,
-    money,
-    total_money_earned: totalMoneyEarned,
-    research_points: researchPoints,
-    buildings: asFullState(gameState.buildings),
-    buildings_count: buildingsCount,
-    completed_research: asFullState(gameState.completedResearch),
-    resources: asFullState(gameState.resources),
-    workers: asFullState(gameState.workers),
-    game_tick: gameTick,
-    game_speed: gameSpeed,
-    full_state: asFullState(sanitizedFullState),
-    state_hash: validation.checksum,
-    state_version: currentVersion + 1,
-    last_saved_at: serverTimestamp,
-  });
+  // Persist with optimistic locking (state_version CAS). Cloud save is not
+  // tick settlement — `last_tick_at` stays owned by applyElapsedTicks /
+  // offline-progress / live-tick paths after runServerTicks succeeds.
+  //
+  // First-save path: if no row exists yet, seed the canonical row via
+  // initializeGuestGameState (which writes denormalized cols from the
+  // canonical full_state per Phase 12), then immediately CAS-update with
+  // the client's validated payload. The 2-roundtrip cost is acceptable
+  // because first-save is a once-per-user event.
+  let baseVersion = currentVersion;
+  if (!currentServerState) {
+    const initialized = await initializeGuestGameState(userId);
+    if (!initialized) {
+      return NextResponse.json(
+        { error: 'Failed to initialize game state', code: 'STATE_INIT_FAILED' },
+        { status: 500 },
+      );
+    }
+    const initVersion = Number(initialized.state_version);
+    if (!Number.isInteger(initVersion) || initVersion < 0) {
+      return NextResponse.json(
+        { error: 'Invalid initial state version', code: 'INVALID_STATE_VERSION' },
+        { status: 503 },
+      );
+    }
+    baseVersion = initVersion;
+  }
+
+  const nextStateVersion = baseVersion + 1;
+  const upsertData = await saveServerGameStateOptimistic(
+    userId,
+    baseVersion,
+    {
+      money,
+      total_money_earned: totalMoneyEarned,
+      research_points: researchPoints,
+      buildings: asFullState(gameState.buildings),
+      buildings_count: buildingsCount,
+      completed_research: asFullState(gameState.completedResearch),
+      resources: asFullState(gameState.resources),
+      workers: asFullState(gameState.workers),
+      game_tick: gameTick,
+      game_speed: gameSpeed,
+      full_state: asFullState(sanitizedFullState),
+      state_hash: validation.checksum,
+      state_version: nextStateVersion,
+      last_saved_at: serverTimestamp,
+    },
+  );
 
   if (!upsertData) {
+    // CAS miss or DB error. Could be a concurrent live-tick / offline
+    // tick / market execute / action handler that beat us to the row.
+    // Reload the current authoritative server state and include it in
+    // the 409 body so CloudSyncService.save() can hydrate the client
+    // immediately. Without this, the client sets
+    // `isBlocked: MIGRATION_REJECTED` with a false "synced" notification
+    // but never actually overwrites its stale buildings/money with the
+    // server's authoritative state (BUG-073 follow-up to CRIT-1 fix).
+    let serverStateForClient: {
+      fullState?: Record<string, unknown>;
+      stateVersion?: number;
+      stateHash?: string;
+    } | null = null;
+    try {
+      const currentRow = await loadServerGameStateLite(userId);
+      if (currentRow) {
+        const hydrated = await buildCompleteFullStateForServerRow(currentRow);
+        serverStateForClient = {
+          fullState: hydrated as unknown as Record<string, unknown>,
+          stateVersion: Number(currentRow.state_version),
+          stateHash: currentRow.state_hash ?? undefined,
+        };
+      }
+    } catch (reloadErr) {
+      console.error('[GameStateAPI] failed to reload state for 409 body:', reloadErr);
+    }
+
     return NextResponse.json(
-      { error: 'Failed to persist game state' },
-      { status: 500 }
+      {
+        error: 'State version conflict — server state changed. Re-fetch and retry.',
+        code: 'STATE_VERSION_CONFLICT',
+        ...(serverStateForClient ? { serverState: serverStateForClient } : {}),
+      },
+      { status: 409 },
     );
   }
 
@@ -358,7 +444,7 @@ export async function POST(request: Request) {
       source: 'server_game_state',
       buildingsCount,
       riskLevel: validation.riskLevel,
-      stateVersion: currentVersion + 1,
+      stateVersion: nextStateVersion,
     },
     gameTick,
     moneyAfter: money,
@@ -370,7 +456,7 @@ export async function POST(request: Request) {
   return NextResponse.json({
     saved: true,
     stateHash: validation.checksum,
-    stateVersion: currentVersion + 1,
+    stateVersion: nextStateVersion,
     validation: {
       isValid: validation.isValid,
       riskLevel: validation.riskLevel,

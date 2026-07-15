@@ -15,7 +15,7 @@
 // ============================================
 
 import { NextResponse } from "next/server";
-import { createServiceRoleClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from '@/lib/db/access';;
 import { verifyAuth } from "@/lib/auth/verifyAuth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
 import { logActionAsync } from "@/lib/auth/gameStateValidator";
@@ -24,6 +24,7 @@ import {
   saveServerGameStateOptimistic,
   isServerGameStateAvailable,
 } from "@/lib/db/game/serverGameState";
+import { buildDenormalizedStatePatchFields } from "@/lib/game/actions/server/shared/denormalizedStatePatch";
 import {
   DEFAULT_BALANCE_SUBSET,
   type SupabaseBuilding,
@@ -46,6 +47,7 @@ import type {
 import type { ProductionSnapshot } from "@/lib/game/production/productionCalculator";
 import { runServerTicks } from "@/lib/game/production/engine/serverEngine";
 import { asFullState } from "@/lib/db/game/serverGameStatePayload";
+import { recordTickResponse } from "@/lib/game/production/observability";
 
 // ─── In-Memory Config Cache ─────────────────────────────────────────────
 
@@ -134,27 +136,42 @@ async function loadFullConfig(): Promise<GameConfig | null> {
     ] = await Promise.all([
       supabase
         .from("game_config_buildings")
-        .select("*")
+        .select(
+          "id, name, description, category, tier, base_cost, cost_multiplier, base_power_consumption, base_power_production, base_production_rate, fuel, fuel_rate, unlock_research, unlock_prestige, icon",
+        )
         .order("sort_order", { ascending: true, nullsFirst: false }),
-      supabase.from("game_config_production_recipes").select("*"),
+      supabase
+        .from("game_config_production_recipes")
+        .select("building_id, resource_id, amount, is_input"),
       supabase
         .from("game_config_research")
-        .select("*")
+        .select(
+          "id, name, description, category, tier, cost, time_required, prerequisites, effects, icon",
+        )
         .order("sort_order", { ascending: true, nullsFirst: false }),
-      supabase.from("game_config_production_chains").select("*"),
+      supabase
+        .from("game_config_production_chains")
+        .select("id, upstream_building, downstream_building, resource_id"),
       supabase
         .from("game_config_workers")
-        .select("*")
+        .select("id, name, description, base_hire_cost, effects, icon")
         .order("sort_order", { ascending: true, nullsFirst: false }),
       supabase
         .from("game_config_weather")
-        .select("*")
+        .select(
+          "id, name, icon, production_multiplier, solar_multiplier, wind_multiplier, description",
+        )
         .order("sort_order", { ascending: true, nullsFirst: false }),
       supabase
         .from("game_config_market")
-        .select("*")
+        .select(
+          "resource_id, base_price, demand, supply, volatility, is_tradable",
+        )
         .order("sort_order", { ascending: true, nullsFirst: false }),
-      supabase.from("game_config_game").select("*").single(),
+      supabase
+        .from("game_config_game")
+        .select("tick_interval_ms, max_offline_ticks, min_offline_ms")
+        .single(),
     ]);
 
     if (buildingsRes.error || !buildingsRes.data) {
@@ -369,10 +386,10 @@ export async function POST(request: Request) {
   const auth = await verifyAuth();
   if (!auth.success) return auth.response;
 
-  // ✅ Rate limit — use compute profile (offline precompute)
+  // Rate limit server-authoritative offline settlement.
   const rateLimitResponse = await checkRateLimit(
     auth.userId,
-    RATE_LIMITS.compute,
+    RATE_LIMITS.serverTick,
     "/api/game/state/offline-progress",
   );
   if (rateLimitResponse) return rateLimitResponse;
@@ -506,6 +523,8 @@ export async function POST(request: Request) {
   const elapsedTicks = Math.min(rawTicks, maxOfflineTicks);
 
   if (elapsedMs < minOfflineMs || elapsedTicks <= 0) {
+    // PR-BP-5 §7: zero-tick offline response — no snapshot to install.
+    recordTickResponse(false);
     return NextResponse.json({
       newState: serverState.full_state,
       productionSnapshot: null,
@@ -587,17 +606,21 @@ export async function POST(request: Request) {
   }
 
   const nextVersion = currentVersion + 1;
+  const denormalizedFields = buildDenormalizedStatePatchFields(
+    result.newState as unknown as Record<string, unknown>,
+    serverState,
+  );
 
   const updated = await saveServerGameStateOptimistic(
     auth.userId,
     currentVersion, // optimistic lock
     {
       full_state: asFullState(result.newState),
+      ...denormalizedFields,
       game_tick: newGameTick,
       state_version: nextVersion,
       last_tick_at: serverNow,
       last_saved_at: serverNow,
-      money: newMoney,
     },
   );
 
@@ -626,6 +649,12 @@ export async function POST(request: Request) {
   });
 
   // ─── Return Result ────────────────────────────────────────────────────
+
+  // PR-BP-5 §7 (NEW-TEST-031 telemetry variant): record whether the offline
+  // tick produced a usable snapshot. `result.productionSnapshot` is set by
+  // `runServerTicks` whenever at least one output was produced; null means
+  // zero-tick or cold-start (per audit §1.1 V-001).
+  recordTickResponse(result.productionSnapshot != null);
 
   return NextResponse.json({
     newState: result.newState,

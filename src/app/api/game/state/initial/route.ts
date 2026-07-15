@@ -11,17 +11,18 @@
 // ============================================
 
 import { NextResponse, type NextRequest } from "next/server";
-import { verifyAuth } from "@/lib/auth/verifyAuth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
+import {
+  extractClientIp,
+  hashIp,
+} from "@/app/api/auth/_shared/request-ip-log-helper";
 import { fetchCanonicalInitialState } from "@/lib/db/infra/initialState.server";
 
 export async function GET(request: NextRequest) {
-  const auth = await verifyAuth(request);
-  if (!auth.success) return auth.response;
-
+  const identifier = `public:${hashIp(extractClientIp(request.headers))}`;
   const limited = await checkRateLimit(
-    auth.userId,
-    RATE_LIMITS.config,
+    identifier,
+    RATE_LIMITS.publicConfig,
     "/api/game/state/initial",
   );
   if (limited) return limited;

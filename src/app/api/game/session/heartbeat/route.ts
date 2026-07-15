@@ -3,10 +3,18 @@
 // POST endpoint for session tracking
 // LEAN MVP — no PII, no player_progress update.
 // Heartbeat tracks presence only. It must not advance server tick cursors.
+//
+// Audit 2026-07-15 (BUG-074): heartbeat timestamps use Node `new Date()`
+// intentionally. Presence metadata is never compared to another timestamp
+// for gameplay decisions — `last_heartbeat_at` and `disconnected_at` are
+// only read by admin dashboards / cleanup-sweep crons that tolerate a
+// few seconds of drift. Routing through `getServerNowISO()` here would
+// add an RPC per beat (PER-007: 10s minimum cadence already) without
+// any gameplay correctness benefit. See `docs/SERVER_TICK_CHAIN_PLAN.md`.
 // ============================================
 
 import { NextResponse } from "next/server";
-import { createServiceRoleClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from '@/lib/db/access';;
 import { verifyAuth } from "@/lib/auth/verifyAuth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
 
@@ -20,7 +28,7 @@ export async function POST(request: Request) {
   // ✅ Rate limit (heartbeats can be frequent — 60/min)
   const rateLimitResponse = await checkRateLimit(
     auth.userId,
-    RATE_LIMITS.general,
+    RATE_LIMITS.presence,
     "/api/game/session/heartbeat",
   );
   if (rateLimitResponse) return rateLimitResponse;
