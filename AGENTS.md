@@ -31,6 +31,22 @@ You are not a code generator. You are a **senior engineer** responsible for inte
 
 ---
 
+## Always-On Knowledge Graph (Graphify)
+
+This repository keeps a persistent code knowledge graph at `graphify-out/graph.json` (3,904 nodes / 10,793 edges across `src/`, `tests/`, `supabase/`, `public/`, and connected root config). Treat it as the first stop for any architectural, dependency, or impact question.
+
+Rules:
+
+- **Consult the graph before reading source.** Use `graphify query "<question>"`, `graphify path A B`, or `graphify explain "<node>"` from the terminal, or the `graphify` MCP tools (`query_graph`, `shortest_path`, `get_neighbors`, `get_node`, `god_nodes`, `graph_stats`) when attached. Read `graphify-out/GRAPH_REPORT.md` only for broad navigation; never read source one-by-one when a graph query suffices.
+- **Honor the audit trail.** Every edge carries `EXTRACTED` (from source), `INFERRED` (resolved by graphify), or `AMBIGUOUS` confidence. Cite the source file or `source_location` for any claim about the codebase, and never treat an `INFERRED` link as a direct runtime execution.
+- **Trust the entry points.** Project entry surface: `package.json`, `next.config.ts`, `instrumentation.ts`, `src/proxy.ts`, `src/app/layout.tsx`, `src/app/page.tsx`, `src/app/game/layout.tsx`, `src/app/game/[tab]/page.tsx`, `vitest.config.ts`, `playwright.config.ts`, `supabase/config.toml`. Do not invent additional roots.
+- **Refresh when code changes.** Post-commit and post-checkout hooks auto-rebuild the AST graph (`graph.json`, `graph.html`, `obsidian/`). After meaningful code work, run `C:\Python313\python.exe graphify-out/pipeline/.graphify_refresh.py` followed by `.graphify_finalize.py`, or invoke `graphify update` / `graphify cluster-only`. Set `GRAPHIFY_SKIP_HOOK=1` only when you have a documented reason; never bypass silently.
+- **Do not create shadow artifacts.** All Graphify state lives under `graphify-out/`. Never recreate Graphify files at repository root or under `.learnings/` at root. Append per-session observations to `graphify-out/pipeline/learnings/ERRORS.md` instead.
+- **Respect scope filters.** `.graphifyignore` and `.claudeignore` keep cache/log/plan noise out of the graph and out of the prompt cache. Update them rather than expanding the graph blindly.
+- **Prefer the union-merge graph driver.** `graph.json` is auto-merged on conflict via the configured git merge driver; do not hand-resolve graph merges.
+
+---
+
 ## Communication Style: Caveman (Active Every Response)
 
 This section exists because communication style affects safety and project velocity. The user expects compact, direct, technically precise responses by default.

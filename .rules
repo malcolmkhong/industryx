@@ -29,9 +29,10 @@
 - Applies to: trade, market, contracts, prestige, drones, workers, automation, leaderboard, resources, payouts, production, and progression.
 
 ### SEC-002 — Fail closed
-- Auth, lock checks, rate limits, config loads, DB reads, and validation failures MUST deny the operation.
+- Auth, lock checks, required config loads, DB reads, and validation failures MUST deny the operation.
 - Never return permissive defaults after an error.
 - Example: lock-check failure returns locked/denied, not unlocked/allowed.
+- Rate-limit outages MUST follow the route's named `failClosed` profile.
 
 ### SEC-003 — No hardcoded secrets
 - Secrets MUST come from environment variables.
@@ -121,8 +122,9 @@
 - Do not hardcode route-specific rate-limit numbers inside handlers.
 
 ### API-003 — Rate limiter fails closed
-- If rate-limit checking fails, deny the request.
-- Do not allow requests because the limiter is unavailable.
+- Protected, mutating, economy, admin-write, and server-authoritative routes MUST use fail-closed rate-limit profiles.
+- Public config, bootstrap, telemetry, and presence routes MAY use explicit best-effort profiles.
+- Do not choose fail-open behavior without a named profile and route-level reason.
 
 ### API-004 — Consistent error format
 - Error responses MUST use:
@@ -220,6 +222,14 @@
 - Database modules SHOULD contain query, persistence, and row-mapping logic only.
 - Database modules MUST NOT contain UI shaping, client fallback state, economy rules, or gameplay decisions unless the file is explicitly a database RPC wrapper for a server-authoritative operation.
 - Server/business modules should call database modules, not the other way around.
+
+### DB-015 — Privileged Supabase client boundary
+- The service-role Supabase client MUST be obtained through `@/lib/db/access` (`getDbClient` / `requireDbClient`). Direct imports of `createServiceRoleClient` / `isServiceRoleConfigured` from `@/lib/supabase/server` or `@/lib/db/admin/admin` are permitted only as legacy compatibility shims and must not be added to new code.
+- The boundary module owns the module-scope singleton lifecycle: do not construct a fresh service-role client per request from feature code.
+- Cookie-aware anon clients MUST be obtained through `@/lib/db/access` (`createClient` re-export) so a single `vi.mock('@/lib/db/access', ...)` covers the whole server-side Supabase surface in tests.
+- Missing-environment failure MUST surface as the typed `DbClientNotConfiguredError` from `@/lib/db/access` (callable via `requireDbClient`); routes that catch it MUST respond `503` with code `DB_CLIENT_NOT_CONFIGURED`.
+- New code SHOULD prefer the typed `requireDbClient` over `createServiceRoleClient` so config errors are caught at the trust boundary instead of returning `null`.
+- Architecture test `tests/architecture/db-access.test.ts` enforces this rule.
 
 ---
 
