@@ -5,7 +5,8 @@
 
 import type { VolatilityInjection, MarketSector } from '../marketSimulator';
 import type { ResourceType } from '../../shared/types/types';
-import { NEWS_CONFIG, type EventPacket } from './newsBuilder';
+import { NEWS_CONFIG } from './newsConfig';
+import type { EventPacket } from './eventPacketTypes';
 
 export function buildEventPacketFromPriceMove(
   resource: ResourceType,

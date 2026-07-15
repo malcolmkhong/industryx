@@ -4,13 +4,19 @@
 // ============================================
 
 import {
-  type EventPacket,
   UP_INSIGHTS,
   DOWN_INSIGHTS,
   NEUTRAL_INSIGHTS,
   BULLISH_OUTLOOKS,
   BEARISH_OUTLOOKS,
   NEUTRAL_OUTLOOKS,
+  TITLE_PRICE_UP,
+  TITLE_PRICE_DOWN,
+  TITLE_VOLATILITY,
+  TITLE_SECTOR,
+  TITLE_TRADE,
+} from './phraseBank';
+import {
   PRICE_MOVE_UP_TEMPLATES,
   PRICE_MOVE_DOWN_TEMPLATES,
   VOLATILITY_MICRO_TEMPLATES,
@@ -20,12 +26,8 @@ import {
   SECTOR_DOWNTURN_TEMPLATES,
   TRADE_BUY_HEAVY_TEMPLATES,
   TRADE_SELL_HEAVY_TEMPLATES,
-  TITLE_PRICE_UP,
-  TITLE_PRICE_DOWN,
-  TITLE_VOLATILITY,
-  TITLE_SECTOR,
-  TITLE_TRADE,
-} from './newsBuilder';
+} from './templates';
+import type { EventPacket } from './eventPacketTypes';
 
 import { RESOURCE_META } from '../../config/configCache';
 import type { ResourceType } from '../../shared/types/types';
