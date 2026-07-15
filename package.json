@@ -93,6 +93,7 @@
     "happy-dom": "^15.11.7",
     "jsdom": "^29.1.1",
     "knip": "^6.16.1",
+    "postgres": "^3.4.9",
     "tailwindcss": "^4",
     "tsx": "^4.22.4",
     "typescript": "^5",
