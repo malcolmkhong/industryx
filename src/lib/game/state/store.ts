@@ -22,26 +22,27 @@ import {
   hydrateInitialStateFromServer,
 } from "./store-bootstrap";
 import { createNotificationActions } from "./store-actions/notifications";
-import { createPayoutActions } from "./store-actions/payouts";
+import { createPayoutActions } from "./store-actions/payouts/payoutsActions";
 import { createAutomationActions } from "./store-actions/automation";
 import { createBlueprintActions } from "./store-actions/blueprints";
-import { createContractActions } from "./store-actions/contracts";
-import { createTransportActions } from "./store-actions/transport";
-import { createBuildingActions } from "./store-actions/buildings";
-import { createMarketActions } from "./store-actions/market";
-import { createPrestigeActions } from "./store-actions/prestige";
-import { createDroneActions } from "./store-actions/drones";
-import { createResearchActions } from "./store-actions/research";
-import { createWorkerActions } from "./store-actions/workers";
+import { createContractActions } from "./store-actions/contracts/contractsActions";
+import { createTransportActions } from "./store-actions/transport/transportActions";
+import { createBuildingActions } from "./store-actions/buildings/buildingsActions";
+import { createMarketActions } from "./store-actions/market/marketActions";
+import { createPrestigeActions } from "./store-actions/prestige/prestigeActions";
+import { createDroneActions } from "./store-actions/drones/dronesActions";
+import { createResearchActions } from "./store-actions/research/researchActions";
+import { createWorkerActions } from "./store-actions/workers/workersActions";
 import { createMegaProjectActions } from "./store-actions/megaProjects";
 import { createCoreActions } from "./store-actions/core";
 import { createLeaderboardActions } from "./store-actions/leaderboard";
-import { createDailyRewardActions } from "./store-actions/dailyRewards";
-import { createQuestActions } from "./store-actions/quests";
-import { createStorageActions } from "./store-actions/storage";
+import { createDailyRewardActions } from "./store-actions/dailyRewards/dailyRewardsActions";
+import { createQuestActions } from "./store-actions/quests/questsActions";
+import { createStorageActions } from "./store-actions/storage/storageActions";
 import { createRankActions } from "./store-actions/rank";
 import { createNewsActions } from "./store-actions/news";
 import type { GameStore } from "./store-types";
+import type { ProductionSnapshot } from "@/lib/game/production/productionCalculator";
 
 // Fields replaced verbatim from server response. Server already validated.
 const SERVER_FIELDS = [
@@ -115,13 +116,30 @@ export const useGameStore = create<GameStore>()((set, get) => ({
 
 /**
  * Apply server-loaded game state to the client store. Called from the cloud
- * load path in AuthProvider.onReady. Server is authoritative — no bounds
- * checks. Transient UI state (activeTab, notifications, selectedBuilding,
- * productionSnapshot, paused) is preserved from the previous client state.
+ * load path in AuthProvider.onReady and from useLiveServerTick /
+ * useOfflineProgressCheck. Server is authoritative — no bounds checks.
+ * Transient UI state (activeTab, notifications, selectedBuilding, paused)
+ * is preserved from the previous client state.
  *
  * Phase 13: server returns ServerGameData. UI session preserved locally.
+ *
+ * `productionSnapshot?: ProductionSnapshot | null` — V-001 plumbing:
+ *   - `undefined` (omitted): preserve prev.productionSnapshot (cloud load path)
+ *   - `null`: zero-tick response / cold-start; fall back to prev to keep UI
+ *     consumers non-nullable
+ *   - non-null: install the new authoritative snapshot (live-tick / offline)
+ *
+ * The store type stays `productionSnapshot: ProductionSnapshot` (non-null)
+ * for the 14 UI consumers; only the apply boundary allows `null` so the
+ * response contract can carry it.
+ *
+ * The snapshot is treated as a client-only UI cache and is never persisted
+ * in `full_state`; the response contract is the sole transport.
  */
-export function applyServerState(data: Record<string, unknown> | null | undefined): void {
+export function applyServerState(
+  data: Record<string, unknown> | null | undefined,
+  productionSnapshot?: ProductionSnapshot | null,
+): void {
   if (!data || typeof data !== "object") return;
 
   const next: Record<string, unknown> = {};
@@ -130,6 +148,15 @@ export function applyServerState(data: Record<string, unknown> | null | undefine
       next[key] = data[key];
     }
   }
+
+  // V-001 (2026-07-15): When the caller passes a non-null productionSnapshot
+  // (live/offline settlement), install it. When the caller passes null
+  // explicitly, OR omits it, preserve `prev.productionSnapshot`. This keeps
+  // the type contract non-null for the 14 UI consumers (`productionSnapshot`
+  // is `ProductionSnapshot`) while still letting the response carry
+  // `null` for zero-tick or cold-start cases.
+  const incomingSnapshot = productionSnapshot as ProductionSnapshot | null | undefined;
+  const shouldInstallSnapshot = incomingSnapshot != null;
 
   useGameStore.setState((prev) => ({
     ...next,
@@ -140,7 +167,9 @@ export function applyServerState(data: Record<string, unknown> | null | undefine
     activeTab: prev.activeTab,
     selectedBuilding: prev.selectedBuilding,
     notifications: prev.notifications,
-    productionSnapshot: prev.productionSnapshot,
+    productionSnapshot: shouldInstallSnapshot
+      ? (incomingSnapshot as ProductionSnapshot)
+      : prev.productionSnapshot,
   }));
 }
 

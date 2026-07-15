@@ -38,6 +38,9 @@ export interface GameActions {
 
   // Research
   startResearch: (id: string) => Promise<void>;
+  cancelResearch: (id: string) => Promise<void>;
+  addToResearchQueue: (id: string) => Promise<void>;
+  removeFromResearchQueue: (id: string) => Promise<void>;
 
   // Workers
   hireWorker: (type: WorkerType) => Promise<void>;
