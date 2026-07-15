@@ -1,0 +1,5 @@
+# Claude prompt-cache and tool-result hygiene.
+# Keep large graphify outputs out of Read/Glob results so they do not bust cache.
+
+graph.json
+graphify-out/

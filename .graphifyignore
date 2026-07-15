@@ -1,0 +1,86 @@
+# Graphify ignore — exclude paths that drift between runs or carry no architectural signal.
+# Patterns follow .gitignore syntax. `.gitignore` is respected automatically; this file is merged last and wins on conflicts (including `!` negations).
+
+# Vendored / generated / build artifacts
+node_modules/
+.next/
+.next-dev/
+.history/
+html/
+out/
+build/
+dist/
+.cache/
+.tsbuildinfo
+
+# Tooling / probes / logs
+tools/_apply-migration-*.mjs
+tools/_audit-*.mjs
+tools/_check-*.mjs
+tools/_inspect_db*.mjs
+tools/_investigate-*.mjs
+tools/_list-*.mjs
+tools/_probe-supabase-rest.ts
+tools/_test-*.mjs
+tools/_verify-*.mjs
+*.log
+*.out
+*.err
+
+# Coverage / test reports
+coverage/
+test-results/
+playwright-err.txt
+playwright-out.txt
+tscheck*.out
+vitest*.out
+
+# Repository-local transient markdown that should not become graph nodes
+planning/archive/
+planning/2026-06-12_archive/
+planning/2026-06-17_implementation-reports/
+planning/2026-06-17_phase-definitions/
+planning/2026-06-18_audit/
+planning/2026-06-19_audit/
+planning/2026-06-20_test/
+planning/2026-06-24_test/
+planning/backend_plan/
+planning/new/
+.handoff-*.md
+AUTH_ORCHESTRATOR_REDESIGN_PLAN.md
+BUILDING_PRODUCTION_AUDIT.md
+BUILDING_PRODUCTION_FIX_PLAN.md
+
+# Visual / script scratch (one-off screenshots, binary deltas)
+*.png
+*.jpg
+*.webp
+*.gif
+*.ico
+*.svg
+sb_*.txt
+store-body.txt
+
+# Graphify self-output (don't recursively graph the graph)
+graphify-out/
+
+# Re-include the architectural surface
+!src/
+!src/**
+!tests/
+!tests/**
+!supabase/
+!supabase/**
+!public/
+!public/**
+!instrumentation.ts
+!next.config.ts
+!tsconfig.json
+!package.json
+!playwright.config.ts
+!vitest.config.ts
+!tailwind.config.ts
+!postcss.config.mjs
+!eslint.config.mjs
+!knip.json
+!components.json
