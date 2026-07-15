@@ -1,11 +1,12 @@
 // ============================================
 // Daily Rewards Actions Factory
 // ============================================
-import type { ServerGameData } from "../../shared/types/types";
-import { getStreakMultiplier } from "../../config/configCache";
-import { soundEngine } from "../../audio/soundEngine";
-import { generateId } from "../../shared/utils/generateId";
-import type { SetFn, GetFn } from "./_actionTypes";
+import type { ServerGameData } from "../../../shared/types/types";
+import { getStreakMultiplier } from "../../../config/configCache";
+import { soundEngine } from "../../../audio/soundEngine";
+import { generateId } from "../../../shared/utils/generateId";
+import type { SetFn, GetFn } from "../_actionTypes";
+import { deriveWeeklyRewards } from "./deriveWeeklyRewards";
 
 export function createDailyRewardActions(set: SetFn, get: GetFn) {
   return {
@@ -60,16 +61,16 @@ export function createDailyRewardActions(set: SetFn, get: GetFn) {
     claimDailyReward: async (day: number) => {
       const state = get();
       const rewardIndex = state.loginStreak.weeklyRewards.findIndex(
-        (r: any) => r.day === day && !r.claimed,
+        (r) => r.day === day && !r.claimed,
       );
       if (rewardIndex === -1) return;
 
-      const validation = await import("../../actions/client/actionValidator").then((m) =>
+      const validation = await import("../../../actions/client/actionValidator").then((m) =>
         m.validateActionWithServer("claim_daily_reward", { day }, generateId()),
       );
       if (!validation.approved) {
         soundEngine.play("error", "building");
-        (get() as any).addNotification?.(
+        get().addNotification(
           "error",
           validation.error ?? "Daily reward claim rejected by server",
         );
@@ -79,7 +80,7 @@ export function createDailyRewardActions(set: SetFn, get: GetFn) {
       const corrected = validation.correctedState;
       if (!corrected?.loginStreak) {
         soundEngine.play("error", "building");
-        (get() as any).addNotification?.(
+        get().addNotification(
           "error",
           "Daily reward could not be confirmed by server. Please retry.",
         );
@@ -107,15 +108,7 @@ export function createDailyRewardActions(set: SetFn, get: GetFn) {
 
       set(updates);
       soundEngine.play("moneyEarned", "building");
-      (get() as any).addNotification?.("success", `Claimed daily reward: Day ${day}!`);
+      get().addNotification("success", `Claimed daily reward: Day ${day}!`);
     },
   };
-}
-
-function deriveWeeklyRewards(multiplier: number, currentDay: number, markPastClaimed: boolean) {
-  return (WEEKLY_DAILY_REWARDS as any[]).map((r: any) => ({
-    ...r,
-    amount: Math.floor(r.amount * multiplier),
-    claimed: markPastClaimed ? r.day < currentDay : false,
-  }));
 }

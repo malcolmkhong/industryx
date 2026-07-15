@@ -1,8 +1,8 @@
-import type { Contract } from "../../shared/types/types";
-import { generateId } from "../../shared/utils/generateId";
-import { formatNumber } from "../../shared/utils/formatNumber";
-import { soundEngine } from "../../audio/soundEngine";
-import type { SetFn, GetFn } from "./_actionTypes";
+import type { Contract } from "../../../shared/types/types";
+import { generateId } from "../../../shared/utils/generateId";
+import { formatNumber } from "../../../shared/utils/formatNumber";
+import { soundEngine } from "../../../audio/soundEngine";
+import type { SetFn, GetFn } from "../_actionTypes";
 
 export function createContractActions(set: SetFn, get: GetFn) {
   return {
@@ -27,7 +27,7 @@ export function createContractActions(set: SetFn, get: GetFn) {
       // validates affordability, deducts required resources, applies
       // reward (money + RP + corpPoints), and marks the contract as
       // completed.
-      const validation = await import("../../actions/client/actionValidator").then((m) =>
+      const validation = await import("../../../actions/client/actionValidator").then((m) =>
         m.validateActionWithServer(
           "fulfill_contract",
           { contractId: id },

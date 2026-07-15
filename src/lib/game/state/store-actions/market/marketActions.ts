@@ -1,89 +1,13 @@
-import type { ResourceType } from "../../shared/types/types";
-import { RESOURCE_META } from "../../config/configCache";
-import { getGlobalPrice } from "../../shared/utils/gameMath";
-import { useGameStore } from "../store";
+import type { ResourceType } from "../../../shared/types/types";
+import { RESOURCE_META } from "../../../config/configCache";
+import { getGlobalPrice } from "../../../shared/utils/gameMath";
 
-import { generateId } from "../../shared/utils/generateId";
-import { formatNumber } from "../../shared/utils/formatNumber";
-import { soundEngine } from "../../audio/soundEngine";
-import type { SetFn, GetFn } from "./_actionTypes";
-
-// Inline: translate server technical error → user-friendly text.
-// The raw error is still logged to console for debugging; this only
-// affects the user-facing notification. Keeps translation local to the
-// file rather than in a shared helper — same pattern as other action files.
-function friendlyTradeError(serverError: string | undefined): string {
-  const e = serverError ?? "";
-  if (e.includes("Not enough")) return e; // e.g., "Not enough iron to sell" — already friendly
-  if (e.includes("No market found"))
-    return "This resource is not currently tradeable. Try a different resource.";
-  if (e.includes("Market price for") && e.includes("is invalid"))
-    return "Market temporarily unavailable. Please try again in a moment.";
-  if (e.includes("Computed sell price is non-finite"))
-    return "Trade could not be completed right now. Please try again.";
-  if (e.includes("Computed buy cost is non-finite"))
-    return "Trade could not be completed right now. Please try again.";
-  if (e.includes("Storage full"))
-    return "Storage is full. Sell or store resources before buying more.";
-  return e || "Trade could not be completed. Please try again.";
-}
-
-// Phase 3 F5: dedupe so a single trade doesn't trigger multiple "you moved the
-// market" notifications when the polling eventually catches up.
-const tradeImpactNotifiedAt: Record<string, number> = {};
-const TRADE_IMPACT_NOTIFY_COOLDOWN_MS = 10_000;
-
-/**
- * Phase 3 F5 (+U2 reuse): schedule a delayed check of `/api/market/state` to
- * detect whether the player's trade measurably moved the global price.
- * If yes (>=5% abs move), push an `info` notification.
- *
- * Self-contained: uses `useGameStore.getState()` so callers don't need to
- * pass set/get. Safe to call from any context that owns a resource price.
- *
- * Dedupe: 10s per-resource cooldown to avoid spamming notifications when
- * the polling hook catches up.
- */
-export function notifyTradeImpactIfMoved(
-  resource: ResourceType,
-  priceBefore: number,
-  delayMs = 5000,
-) {
-  // Dedupe: if we already notified for this resource inside the cooldown window, skip.
-  const last = tradeImpactNotifiedAt[resource] ?? 0;
-  if (Date.now() - last < TRADE_IMPACT_NOTIFY_COOLDOWN_MS) return;
-  tradeImpactNotifiedAt[resource] = Date.now();
-
-  setTimeout(async () => {
-    try {
-      const res = await fetch("/api/market/state", { cache: "no-store" });
-      if (!res.ok) return;
-      const data = await res.json();
-      const prices = Array.isArray(data?.prices) ? data.prices : [];
-      const found = prices.find(
-        (p: { resource?: string }) => p?.resource === resource,
-      );
-      const newPrice = Number(found?.currentPrice);
-      if (!Number.isFinite(newPrice) || newPrice <= 0 || priceBefore <= 0)
-        return;
-      const changePct = (newPrice - priceBefore) / priceBefore;
-      if (Math.abs(changePct) >= 0.05) {
-        const direction = changePct > 0 ? "up" : "down";
-        const arrow = changePct > 0 ? "▲" : "▼";
-        const pctStr = (Math.abs(changePct) * 100).toFixed(1);
-        const resourceName = RESOURCE_META[resource]?.name ?? resource;
-        useGameStore
-          .getState()
-          .addNotification(
-            "info",
-            `${arrow} ${resourceName} ${direction === "up" ? "spiked" : "dropped"} ${pctStr}% — your trade moved the market`,
-          );
-      }
-    } catch {
-      // Silent: the player didn't see a market move; nothing to report.
-    }
-  }, delayMs);
-}
+import { generateId } from "../../../shared/utils/generateId";
+import { formatNumber } from "../../../shared/utils/formatNumber";
+import { soundEngine } from "../../../audio/soundEngine";
+import type { SetFn, GetFn } from "../_actionTypes";
+import { friendlyTradeError } from "./friendlyTradeError";
+import { notifyTradeImpactIfMoved } from "./notifyTradeImpact";
 
 export function createMarketActions(set: SetFn, get: GetFn) {
   return {
@@ -113,7 +37,7 @@ export function createMarketActions(set: SetFn, get: GetFn) {
       // state.market (immune to client tampering), computes revenue with
       // server-side sellMultiplier, validates resource affordability,
       // and returns authoritative post-sell state.
-      const validation = await import("../../actions/client/actionValidator").then((m) =>
+      const validation = await import("../../../actions/client/actionValidator").then((m) =>
         m.validateActionWithServer("sell", { resource, amount }, generateId()),
       );
       if (!validation.approved) {
@@ -204,7 +128,7 @@ export function createMarketActions(set: SetFn, get: GetFn) {
       // Phase 6: server-authoritative buy. Server reads price from
       // state.market, computes cost with markup, validates affordability
       // AND storage capacity, and returns authoritative post-buy state.
-      const validation = await import("../../actions/client/actionValidator").then((m) =>
+      const validation = await import("../../../actions/client/actionValidator").then((m) =>
         m.validateActionWithServer("buy", { resource, amount }, generateId()),
       );
       if (!validation.approved) {

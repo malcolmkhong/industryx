@@ -1,10 +1,10 @@
 // ============================================
 // Quest Actions Factory
 // ============================================
-import { generateId } from "../../shared/utils/generateId";
-import { soundEngine } from "../../audio/soundEngine";
-import type { Quest, QuestStep } from "../../shared/types/types";
-import type { SetFn, GetFn } from "./_actionTypes";
+import { generateId } from "../../../shared/utils/generateId";
+import { soundEngine } from "../../../audio/soundEngine";
+import type { Quest, QuestStep } from "../../../shared/types/types";
+import type { SetFn, GetFn } from "../_actionTypes";
 
 export function createQuestActions(set: SetFn, get: GetFn) {
   return {
@@ -16,7 +16,7 @@ export function createQuestActions(set: SetFn, get: GetFn) {
       // Phase 6: server-authoritative quest claim. Server reads the reward
       // from state.quests (immune to client tampering), applies it, and
       // marks the quest as claimed. Client applies server-returned state.
-      const validation = await import("../../actions/client/actionValidator").then((m) =>
+      const validation = await import("../../../actions/client/actionValidator").then((m) =>
         m.validateActionWithServer("claim_quest", { questId }, generateId()),
       );
       if (!validation.approved) {

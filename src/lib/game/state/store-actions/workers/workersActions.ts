@@ -1,8 +1,8 @@
-import type { WorkerType, Worker } from "../../shared/types/types";
-import { WORKER_DEFS } from "../../config/configCache";
-import { generateId } from "../../shared/utils/generateId";
-import { soundEngine } from "../../audio/soundEngine";
-import type { SetFn, GetFn } from "./_actionTypes";
+import type { WorkerType, Worker } from "../../../shared/types/types";
+import { WORKER_DEFS } from "../../../config/configCache";
+import { generateId } from "../../../shared/utils/generateId";
+import { soundEngine } from "../../../audio/soundEngine";
+import type { SetFn, GetFn } from "../_actionTypes";
 
 export function createWorkerActions(set: SetFn, get: GetFn) {
   return {
@@ -13,7 +13,7 @@ export function createWorkerActions(set: SetFn, get: GetFn) {
       // Phase 6: server-authoritative hire. Server validates against
       // config.workers baseHireCost (immune to client tampering), generates
       // the worker ID, and returns the updated workers array.
-      const validation = await import("../../actions/client/actionValidator").then((m) =>
+      const validation = await import("../../../actions/client/actionValidator").then((m) =>
         m.validateActionWithServer(
           "hire_worker",
           { workerType: type },
@@ -55,7 +55,7 @@ export function createWorkerActions(set: SetFn, get: GetFn) {
     assignWorker: async (workerId: string, buildingId: string | null) => {
       // Phase 6: server-authoritative assign. Server validates worker and
       // building existence, returns the updated workers array.
-      const validation = await import("../../actions/client/actionValidator").then((m) =>
+      const validation = await import("../../../actions/client/actionValidator").then((m) =>
         m.validateActionWithServer(
           "assign_worker",
           { workerId, buildingId },
@@ -100,7 +100,7 @@ export function createWorkerActions(set: SetFn, get: GetFn) {
       // current XP/level, validates against the levelUpXpBase threshold
       // (server-driven via balanceConfig → game_config_game), and returns
       // the updated workers array with level +1 and experience reset.
-      const validation = await import("../../actions/client/actionValidator").then((m) =>
+      const validation = await import("../../../actions/client/actionValidator").then((m) =>
         m.validateActionWithServer(
           "upgrade_worker",
           { workerId },

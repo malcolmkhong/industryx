@@ -1,28 +1,11 @@
-import type { TransportType, TransportLine, ResourceType } from "../../shared/types/types";
-import { TRANSPORT_DEFS } from "../../config/configCache";
-import { generateId } from "../../shared/utils/generateId";
-import { formatNumber } from "../../shared/utils/formatNumber";
-import { soundEngine } from "../../audio/soundEngine";
-import { buildMultipliers } from "../../production/productionCalculator";
-import type { SetFn, GetFn } from "./_actionTypes";
-
-// Inline: translate server technical error → user-friendly text.
-function friendlyTransportError(serverError: string | undefined): string {
-  const e = serverError ?? "";
-  if (e.includes("Transport type") && e.includes("not found in config"))
-    return "That transport type is not available.";
-  if (e.includes("Source building") && e.includes("not found"))
-    return "Source building no longer exists.";
-  if (e.includes("Destination building") && e.includes("not found"))
-    return "Destination building no longer exists.";
-  if (e.includes("Transport line") && e.includes("not found"))
-    return "Transport line no longer exists.";
-  if (e.includes("Not enough money for transport"))
-    return "Not enough money to build transport.";
-  if (e.includes("Not enough money to upgrade"))
-    return "Not enough money to upgrade transport.";
-  return e || "Transport action could not be completed. Please try again.";
-}
+import type { TransportType, TransportLine, ResourceType } from "../../../shared/types/types";
+import { TRANSPORT_DEFS } from "../../../config/configCache";
+import { generateId } from "../../../shared/utils/generateId";
+import { formatNumber } from "../../../shared/utils/formatNumber";
+import { soundEngine } from "../../../audio/soundEngine";
+import { buildMultipliers } from "../../../production/productionCalculator";
+import type { SetFn, GetFn } from "../_actionTypes";
+import { friendlyTransportError } from "./friendlyTransportError";
 
 export function createTransportActions(set: SetFn, get: GetFn) {
   return {
@@ -44,7 +27,7 @@ export function createTransportActions(set: SetFn, get: GetFn) {
       // Phase 6: server-authoritative transport line build. Server validates
       // buildings, transport type, money, and returns authoritative post-build
       // state with the new line, money, and stats.
-      const validation = await import("../../actions/client/actionValidator").then((m) =>
+      const validation = await import("../../../actions/client/actionValidator").then((m) =>
         m.validateActionWithServer(
           "transport",
           {
@@ -118,7 +101,7 @@ export function createTransportActions(set: SetFn, get: GetFn) {
       // Phase 6: server-authoritative upgrade. Server computes scaled cost
       // from current level and new throughput; returns authoritative
       // post-upgrade state.
-      const validation = await import("../../actions/client/actionValidator").then((m) =>
+      const validation = await import("../../../actions/client/actionValidator").then((m) =>
         m.validateActionWithServer(
           "upgrade_transport_line",
           { lineId: id },

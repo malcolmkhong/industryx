@@ -1,12 +1,12 @@
-import type { BuildingType, BuildingInstance } from "../../shared/types/types";
-import { BUILDING_DEFS } from "../../config/configCache";
-import { generateId } from "../../shared/utils/generateId";
-import { formatNumber } from "../../shared/utils/formatNumber";
-import { getBuildingCost, isBuildingUnlocked } from "../../shared/utils/costCalculator";
-import { getMegaProjectBonus } from "../../shared/utils/gameMath";
-import { soundEngine } from "../../audio/soundEngine";
-import { buildMultipliers, computePowerGrid } from "../../production/productionCalculator";
-import type { SetFn, GetFn } from "./_actionTypes";
+import type { BuildingType, BuildingInstance } from "../../../shared/types/types";
+import { BUILDING_DEFS } from "../../../config/configCache";
+import { generateId } from "../../../shared/utils/generateId";
+import { formatNumber } from "../../../shared/utils/formatNumber";
+import { getBuildingCost, isBuildingUnlocked } from "../../../shared/utils/costCalculator";
+import { getMegaProjectBonus } from "../../../shared/utils/gameMath";
+import { soundEngine } from "../../../audio/soundEngine";
+import { buildMultipliers, computePowerGrid } from "../../../production/productionCalculator";
+import type { SetFn, GetFn } from "../_actionTypes";
 
 export function createBuildingActions(set: SetFn, get: GetFn) {
   return {
@@ -50,7 +50,7 @@ export function createBuildingActions(set: SetFn, get: GetFn) {
 
       // Phase 2.3: BLOCKING. Server must return correctedState; no local
       // fallback mutation is allowed when server authority is unavailable.
-      const validation = await import("../../actions/client/actionValidator").then((m) =>
+      const validation = await import("../../../actions/client/actionValidator").then((m) =>
         m.validateActionWithServer(
           "build",
           { buildingType: type },
@@ -113,7 +113,7 @@ export function createBuildingActions(set: SetFn, get: GetFn) {
       // (applies mega-project bonus), deducts money/resources, increments
       // level, and returns the post-upgrade state. Client applies that
       // verbatim and does not compute the cost itself.
-      const validation = await import("../../actions/client/actionValidator").then((m) =>
+      const validation = await import("../../../actions/client/actionValidator").then((m) =>
         m.validateActionWithServer("upgrade", { buildingId: id }, generateId()),
       );
       if (!validation.approved) {
@@ -161,7 +161,7 @@ export function createBuildingActions(set: SetFn, get: GetFn) {
       // Phase 6: server-authoritative toggle. Server validates, persists,
       // and returns the post-toggle buildings array. Client applies that
       // verbatim and recomputes the power grid for UI freshness.
-      const validation = await import("../../actions/client/actionValidator").then((m) =>
+      const validation = await import("../../../actions/client/actionValidator").then((m) =>
         m.validateActionWithServer(
           "toggle_building",
           { buildingId: id, enabled: newActive },

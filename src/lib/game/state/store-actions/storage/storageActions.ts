@@ -1,11 +1,11 @@
 // ============================================
 // Storage Actions Factory
 // ============================================
-import type { ResourceType } from "../../shared/types/types";
-import { RESOURCE_META } from "../../config/configCache";
-import { soundEngine } from "../../audio/soundEngine";
-import { generateId } from "../../shared/utils/generateId";
-import type { SetFn, GetFn } from "./_actionTypes";
+import type { ResourceType } from "../../../shared/types/types";
+import { RESOURCE_META } from "../../../config/configCache";
+import { soundEngine } from "../../../audio/soundEngine";
+import { generateId } from "../../../shared/utils/generateId";
+import type { SetFn, GetFn } from "../_actionTypes";
 
 export function createStorageActions(set: SetFn, get: GetFn) {
   return {
@@ -15,7 +15,7 @@ export function createStorageActions(set: SetFn, get: GetFn) {
       // Phase 6: server-authoritative storage upgrade. Server computes the
       // log-dampened cost, applies the upgrade, and returns the new capacity
       // and level. Client applies the server's authoritative state verbatim.
-      const validation = await import("../../actions/client/actionValidator").then((m) =>
+      const validation = await import("../../../actions/client/actionValidator").then((m) =>
         m.validateActionWithServer(
           "upgrade_storage",
           { resource, levels },

@@ -1,22 +1,10 @@
-import type { Drone } from "../../shared/types/types";
-import { soundEngine } from "../../audio/soundEngine";
-import { generateId } from "../../shared/utils/generateId";
-import { formatNumber } from "../../shared/utils/formatNumber";
-import { generateDroneMissionsFromState } from "../../shared/utils/saveMigration";
-import type { SetFn, GetFn } from "./_actionTypes";
-
-// Inline: translate server technical error → user-friendly text.
-function friendlyDroneError(serverError: string | undefined): string {
-  const e = serverError ?? "";
-  if (e.includes("not found in fleet"))
-    return "Drone not found. Please refresh.";
-  if (e.includes("not idle")) return "Drone is busy with another mission.";
-  if (e.includes("Invalid missionId format"))
-    return "That mission is not available.";
-  if (e.includes("Not enough money for drone fuel"))
-    return "Not enough money for drone fuel.";
-  return e || "Drone mission could not be started. Please try again.";
-}
+import type { Drone } from "../../../shared/types/types";
+import { soundEngine } from "../../../audio/soundEngine";
+import { generateId } from "../../../shared/utils/generateId";
+import { formatNumber } from "../../../shared/utils/formatNumber";
+import { generateDroneMissionsFromState } from "../../../shared/utils/saveMigration";
+import type { SetFn, GetFn } from "../_actionTypes";
+import { friendlyDroneError } from "./friendlyDroneError";
 
 export function createDroneActions(set: SetFn, get: GetFn) {
   return {
@@ -70,7 +58,7 @@ export function createDroneActions(set: SetFn, get: GetFn) {
       // affordability, computes deliveryTicks with speed upgrade, and returns
       // the authoritative post-start state. Client applies exactly what the
       // server says.
-      const validation = await import("../../actions/client/actionValidator").then((m) =>
+      const validation = await import("../../../actions/client/actionValidator").then((m) =>
         m.validateActionWithServer(
           "start_drone_mission",
           {

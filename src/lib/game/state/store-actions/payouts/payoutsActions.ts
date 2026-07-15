@@ -1,7 +1,7 @@
-import { soundEngine } from "../../audio/soundEngine";
-import { formatNumber } from "../../shared/utils/formatNumber";
-import { generateId } from "../../shared/utils/generateId";
-import type { SetFn, GetFn } from "./_actionTypes";
+import { soundEngine } from "../../../audio/soundEngine";
+import { formatNumber } from "../../../shared/utils/formatNumber";
+import { generateId } from "../../../shared/utils/generateId";
+import type { SetFn, GetFn } from "../_actionTypes";
 
 export function createPayoutActions(set: SetFn, get: GetFn) {
   return {
@@ -13,7 +13,7 @@ export function createPayoutActions(set: SetFn, get: GetFn) {
       // computed `pendingPayout` (from runServerTicks via applyElapsedTicks)
       // and returns the post-collection money/totalMoneyEarned/pendingPayout.
       // Server is immune to client tampering with state.pendingPayout.
-      const validation = await import("../../actions/client/actionValidator").then((m) =>
+      const validation = await import("../../../actions/client/actionValidator").then((m) =>
         m.validateActionWithServer("collect_payout", {}, generateId()),
       );
       if (!validation.approved) {
