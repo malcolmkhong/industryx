@@ -7,17 +7,16 @@ import {
   isResearchUnlocked,
 } from "@/lib/game/state/store";
 import { useShallow } from "zustand/react/shallow";
-import { RESEARCH_TREE, RESOURCE_META } from "@/lib/game/config/configCache";
+import { RESEARCH_TREE } from "@/lib/game/config/configCache";
+import { RESEARCH_QUEUE_MAX } from "@/lib/game/production/engine/serverEngine";
 import { useConfigVersion } from "@/components/providers/GameConfigProvider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { formatRemaining, formatDuration } from "@/lib/utils/time";
+import { formatDuration } from "@/lib/utils/time";
 import {
   FlaskConical,
   Lock,
   Check,
-  ChevronRight,
   Timer,
   Zap,
   Cog,
@@ -25,16 +24,41 @@ import {
   Bot,
   Brain,
   Atom,
-  BarChart3,
-  Users,
 } from "lucide-react";
 import { LoadingSpinner } from "@/components/game/shared/LoadingSpinner";
 import type { ResearchCategory } from "@/lib/game/shared/types/types";
 import { GameItemTooltip } from "@/components/game/GameItemTooltip";
 import { GameIcon } from "@/components/icons";
 
-// Module-level constant: research category metadata. Static — never
-// recomputed. Lifted out of the component to keep useMemo deps stable.
+// Module-level constants — lifted out of the component so heavy work
+// (effect label/icon lookup) doesn't run on every render and useMemo
+// deps stay stable.
+
+// Maps a ResearchEffect.type to a player-facing label + GameIcon key.
+// `unlockAutomation` previously fell through to the generic "Bonus"
+// branch, hiding automation unlocks behind the same icon as catch-all
+// bonuses. Adding it explicitly matches the behaviour of unlockBuilding /
+// unlockTransport.
+const EFFECT_TYPE_PRESENTATION: Record<
+  string,
+  { label: string; icon: string }
+> = {
+  productionSpeed: { label: "Speed", icon: "game-icons:lightning-frequency" },
+  transportSpeed: { label: "Transport", icon: "game-icons:truck" },
+  powerEfficiency: { label: "Power", icon: "game-icons:battery-75" },
+  unlockBuilding: { label: "Unlock", icon: "game-icons:castle" },
+  unlockTransport: { label: "Unlock", icon: "game-icons:steam-locomotive" },
+  unlockAutomation: { label: "Unlock", icon: "game-icons:robot-helmet" },
+  marketBonus: { label: "Market", icon: "game-icons:profit" },
+  workerEfficiency: { label: "Workers", icon: "game-icons:overhead" },
+  storageBonus: { label: "Storage", icon: "game-icons:cardboard-box" },
+};
+const EFFECT_FALLBACK = { label: "Bonus", icon: "game-icons:sparkles" };
+function effectPresentation(
+  type: string,
+): { label: string; icon: string } {
+  return EFFECT_TYPE_PRESENTATION[type] ?? EFFECT_FALLBACK;
+}
 const RESEARCH_CATEGORIES: {
   id: ResearchCategory;
   name: string;
@@ -87,10 +111,17 @@ export function ResearchPanel() {
       completedResearch: s.completedResearch,
       researchPoints: s.researchPoints,
       researchProgress: s.researchProgress,
+      researchQueue: s.researchQueue,
       startResearch: s.startResearch,
+      cancelResearch: s.cancelResearch,
+      addToResearchQueue: s.addToResearchQueue,
+      removeFromResearchQueue: s.removeFromResearchQueue,
     })),
   );
   const [startingResearch, setStartingResearch] = useState<string | null>(null);
+  const [cancelingResearch, setCancelingResearch] = useState<string | null>(null);
+  const [queuingNodeId, setQueuingNodeId] = useState<string | null>(null);
+  const [unqueuingId, setUnqueuingId] = useState<string | null>(null);
 
   const activeResearchNode = store.activeResearch
     ? RESEARCH_TREE.find((r) => r.id === store.activeResearch)
@@ -105,6 +136,13 @@ export function ResearchPanel() {
     });
     return grouped;
   }, []);
+
+  // Hide category cards that have no research nodes (would render an
+  // empty box). Keeps the Research Lab readable when RESEARCH_TREE is
+  // sparse or a category is temporarily retired in config.
+  const populatedCategories = RESEARCH_CATEGORIES.filter(
+    (cat) => (researchByCategory[cat.id]?.length ?? 0) > 0,
+  );
 
   return (
     <div className="space-y-4">
@@ -187,6 +225,37 @@ export function ResearchPanel() {
                 <div className="absolute inset-0 bg-linear-to-b from-white/10 to-transparent" />
               </div>
             </div>
+            {/*
+              Cancel-research control. Server-authoritative cancelResearch
+              action refunds 100% of the original RP cost via
+              validateCancelResearchAction. The button mirrors the
+              project-wide 300ms debounce (same pattern as ContractPanel)
+              while the server round-trip is in flight.
+            */}
+            <div className="mt-3 flex justify-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  if (!store.activeResearch) return;
+                  setCancelingResearch(store.activeResearch);
+                  store.cancelResearch(store.activeResearch);
+                  setTimeout(() => setCancelingResearch(null), 300);
+                }}
+                disabled={cancelingResearch !== null}
+                aria-label={`Cancel active research ${activeResearchNode.name}`}
+                className="text-[10px] text-muted-label hover:text-danger h-7 px-2"
+              >
+                {cancelingResearch === store.activeResearch ? (
+                  <LoadingSpinner />
+                ) : (
+                  <>
+                    Cancel · Refund{" "}
+                    {formatNumber(activeResearchNode.cost)} RP
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="text-center py-6">
@@ -198,6 +267,130 @@ export function ResearchPanel() {
           </div>
         )}
       </div>
+
+      {/*
+        Research Queue — sits directly under the Active Research card so
+        the player can see "what's in flight" + "what comes next" on
+        the same screen. Hidden entirely when the queue is empty so the
+        page stays uncluttered for players who don't queue.
+
+        Layout per row:
+          [position #N]  [icon]  Node Name   Cost   [Remove button]
+
+        Position #1 is the next item to auto-promote when the active
+        research completes (PR-1 in the research-progress-tick plan).
+        Until that lands, the queue is purely a planned-orders list.
+      */}
+      {store.researchQueue.length > 0 && (
+        <div className="game-card rounded-xl bg-card p-4 border border-research/30 relative overflow-hidden">
+          <div className="flex items-center gap-2 mb-3">
+            <FlaskConical className="w-4 h-4 text-research" />
+            <h3 className="text-sm font-semibold text-research">
+              Research Queue
+            </h3>
+            <Badge
+              variant="outline"
+              className="ml-auto text-[10px] px-1.5 py-0 border-research text-research"
+              aria-label={`Queue ${store.researchQueue.length} of ${RESEARCH_QUEUE_MAX} slots used`}
+            >
+              {store.researchQueue.length}/{RESEARCH_QUEUE_MAX}
+            </Badge>
+          </div>
+          <div className="space-y-2">
+            {store.researchQueue.map((queuedId, idx) => {
+              const node = RESEARCH_TREE.find((r) => r.id === queuedId);
+              if (!node) {
+                // Defensive: orphaned id (config drift). Still allow
+                // removal so the queue stays clean.
+                return (
+                  <div
+                    key={queuedId}
+                    className="rounded-lg p-3 border border-danger/30 bg-danger/10 flex items-center gap-2 text-xs"
+                  >
+                    <span className="text-danger font-mono">#{idx + 1}</span>
+                    <span className="flex-1 text-muted-label">
+                      Unknown research: {queuedId}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setUnqueuingId(queuedId);
+                        store.removeFromResearchQueue(queuedId);
+                        setTimeout(() => setUnqueuingId(null), 300);
+                      }}
+                      disabled={unqueuingId !== null}
+                      className="text-[10px] text-muted-label hover:text-danger h-7 px-2"
+                      aria-label="Remove unknown entry from queue"
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                );
+              }
+              const prereqsMetByEarlierInQueue =
+                node.prerequisites.length > 0 &&
+                node.prerequisites.every((p) =>
+                  store.completedResearch.includes(p),
+                );
+              return (
+                <div
+                  key={queuedId}
+                  className="rounded-lg p-3 border border-research/30 bg-research/10 flex items-center gap-3"
+                >
+                  <span className="text-[11px] font-mono text-research w-6 shrink-0">
+                    #{idx + 1}
+                  </span>
+                  <GameIcon icon={node.icon} size={20} className="shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-semibold text-subtle truncate">
+                      {node.name}
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] px-1.5 py-0 border-research/50 text-research"
+                      >
+                        {formatNumber(node.cost)} RP (held)
+                      </Badge>
+                      {!prereqsMetByEarlierInQueue &&
+                        idx === 0 &&
+                        node.prerequisites.length > 0 && (
+                          <span className="text-[9px] text-warning">
+                            {`Prereq: ${node.prerequisites[0]}`}
+                          </span>
+                        )}
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setUnqueuingId(queuedId);
+                      store.removeFromResearchQueue(queuedId);
+                      setTimeout(() => setUnqueuingId(null), 300);
+                    }}
+                    disabled={unqueuingId !== null}
+                    aria-label={`Remove ${node.name} from research queue`}
+                    className="text-[10px] text-muted-label hover:text-danger h-7 px-2"
+                  >
+                    {unqueuingId === queuedId ? (
+                      <LoadingSpinner />
+                    ) : (
+                      "Remove"
+                    )}
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-[10px] text-muted-label mt-3 leading-relaxed">
+            Queued items hold their RP cost in escrow; removing returns the
+            full amount. Items are auto-promoted when the active research
+            completes.
+          </p>
+        </div>
+      )}
 
       {/* Research Tree by Category */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -214,7 +407,7 @@ export function ResearchPanel() {
             </p>
           </div>
         )}
-        {RESEARCH_CATEGORIES.map((cat) => {
+        {populatedCategories.map((cat) => {
           const nodes = researchByCategory[cat.id] || [];
           return (
             <div
@@ -243,8 +436,28 @@ export function ResearchPanel() {
                     store.completedResearch,
                   );
                   const canAfford = store.researchPoints >= node.cost;
-                  const isAvailable =
-                    !isCompleted && !isActive && isUnlocked && canAfford;
+                  const queueFull =
+                    store.researchQueue.length >= RESEARCH_QUEUE_MAX;
+                  const alreadyQueued =
+                    store.researchQueue.includes(node.id);
+                  const startBlockedByOther =
+                    !!store.activeResearch && !isActive;
+                  const isStartable =
+                    !isCompleted &&
+                    !isActive &&
+                    isUnlocked &&
+                    canAfford &&
+                    !startBlockedByOther;
+                  const isQueueable =
+                    !isCompleted &&
+                    !isActive &&
+                    isUnlocked &&
+                    canAfford &&
+                    !alreadyQueued &&
+                    !queueFull;
+                  // Visual "ready" state covers both start and queue.
+                  // The action area picks which button(s) to render.
+                  const isAvailable = isStartable || isQueueable;
 
                   return (
                     <GameItemTooltip
@@ -266,7 +479,7 @@ export function ResearchPanel() {
                         },
                         ...node.effects.map((effect, i) => ({
                           label: `Effect ${i + 1}`,
-                          value: `${effect.type === "productionSpeed" ? "Speed" : effect.type === "unlockBuilding" ? "Unlock" : effect.type === "transportSpeed" ? "Transport" : effect.type === "powerEfficiency" ? "Power" : effect.type === "marketBonus" ? "Market" : effect.type === "workerEfficiency" ? "Workers" : effect.type === "unlockTransport" ? "Unlock" : effect.type === "storageBonus" ? "Storage" : "Bonus"} +${(effect.value * 100).toFixed(0)}%${effect.target ? ` (${effect.target})` : ""}`,
+                          value: `${effectPresentation(effect.type).label} +${(effect.value * 100).toFixed(0)}%${effect.target ? ` (${effect.target})` : ""}`,
                           color: "text-brand",
                         })),
                       ]}
@@ -406,120 +619,87 @@ export function ResearchPanel() {
                         {isUnlocked && !isCompleted && (
                           <div className="mt-2 pt-2 border-t border-muted-label/50">
                             <div className="flex flex-wrap gap-1">
-                              {node.effects.map((effect, i) => (
-                                <Badge
-                                  key={i}
-                                  variant="outline"
-                                  className="text-[11px] px-1 py-0 border-brand text-brand"
-                                >
-                                  {effect.type === "productionSpeed" ? (
-                                    <>
-                                      <GameIcon
-                                        icon="game-icons:lightning-frequency"
-                                        size={14}
-                                        className="inline"
-                                      />{" "}
-                                      Speed
-                                    </>
-                                  ) : effect.type === "unlockBuilding" ? (
-                                    <>
-                                      <GameIcon
-                                        icon="game-icons:castle"
-                                        size={14}
-                                        className="inline"
-                                      />{" "}
-                                      Unlock
-                                    </>
-                                  ) : effect.type === "transportSpeed" ? (
-                                    <>
-                                      <GameIcon
-                                        icon="game-icons:truck"
-                                        size={14}
-                                        className="inline"
-                                      />{" "}
-                                      Transport
-                                    </>
-                                  ) : effect.type === "powerEfficiency" ? (
-                                    <>
-                                      <GameIcon
-                                        icon="game-icons:battery-75"
-                                        size={14}
-                                        className="inline"
-                                      />{" "}
-                                      Power
-                                    </>
-                                  ) : effect.type === "marketBonus" ? (
-                                    <>
-                                      <GameIcon
-                                        icon="game-icons:profit"
-                                        size={14}
-                                        className="inline"
-                                      />{" "}
-                                      Market
-                                    </>
-                                  ) : effect.type === "workerEfficiency" ? (
-                                    <>
-                                      <GameIcon
-                                        icon="game-icons:overhead"
-                                        size={14}
-                                        className="inline"
-                                      />{" "}
-                                      Workers
-                                    </>
-                                  ) : effect.type === "unlockTransport" ? (
-                                    <>
-                                      <GameIcon
-                                        icon="game-icons:steam-locomotive"
-                                        size={14}
-                                        className="inline"
-                                      />{" "}
-                                      Unlock
-                                    </>
-                                  ) : effect.type === "storageBonus" ? (
-                                    <>
-                                      <GameIcon
-                                        icon="game-icons:cardboard-box"
-                                        size={14}
-                                        className="inline"
-                                      />{" "}
-                                      Storage
-                                    </>
-                                  ) : (
-                                    <>
-                                      <GameIcon
-                                        icon="game-icons:sparkles"
-                                        size={14}
-                                        className="inline"
-                                      />{" "}
-                                      Bonus
-                                    </>
-                                  )}{" "}
-                                  +{(effect.value * 100).toFixed(0)}%
-                                </Badge>
-                              ))}
+                              {node.effects.map((effect) => {
+                                const pres = effectPresentation(effect.type);
+                                return (
+                                  <Badge
+                                    key={effect.id}
+                                    variant="outline"
+                                    className="text-[11px] px-1 py-0 border-brand text-brand"
+                                  >
+                                    <GameIcon
+                                      icon={pres.icon}
+                                      size={14}
+                                      className="inline"
+                                    />{" "}
+                                    {pres.label}{" "}
+                                    +{(effect.value * 100).toFixed(0)}%
+                                  </Badge>
+                                );
+                              })}
                             </div>
                           </div>
                         )}
 
-                        {/* Start Research Button */}
+                        {/* Start Research / Queue Actions */}
                         {isAvailable && (
-                          <Button
-                            onClick={() => {
-                              setStartingResearch(node.id);
-                              store.startResearch(node.id);
-                              setTimeout(() => setStartingResearch(null), 300);
-                            }}
-                            disabled={startingResearch === node.id}
-                            className="w-full mt-2 bg-research hover:bg-research text-white text-xs h-7 min-h-9"
-                            size="sm"
-                          >
-                            {startingResearch === node.id ? (
-                              <LoadingSpinner />
-                            ) : (
-                              <FlaskConical className="w-3 h-3 mr-1" />
+                          <div className="flex gap-2 mt-2">
+                            {isStartable && (
+                              <Button
+                                onClick={() => {
+                                  setStartingResearch(node.id);
+                                  store.startResearch(node.id);
+                                  setTimeout(
+                                    () => setStartingResearch(null),
+                                    300,
+                                  );
+                                }}
+                                disabled={startingResearch === node.id}
+                                className="flex-1 bg-research hover:bg-research text-white text-xs h-7 min-h-9"
+                                size="sm"
+                                aria-label={`Start research ${node.name}, cost ${formatNumber(
+                                  node.cost,
+                                )} research points`}
+                              >
+                                {startingResearch === node.id ? (
+                                  <LoadingSpinner />
+                                ) : (
+                                  <FlaskConical className="w-3 h-3 mr-1" />
+                                )}
+                                Start ({formatNumber(node.cost)} RP)
+                              </Button>
                             )}
-                            Start Research ({formatNumber(node.cost)} RP)
-                          </Button>
+                            {isQueueable && (
+                              <Button
+                                variant="outline"
+                                onClick={() => {
+                                  setQueuingNodeId(node.id);
+                                  store.addToResearchQueue(node.id);
+                                  setTimeout(
+                                    () => setQueuingNodeId(null),
+                                    300,
+                                  );
+                                }}
+                                disabled={queuingNodeId === node.id}
+                                className="flex-1 border-research/50 text-research hover:bg-research/20 text-xs h-7 min-h-9"
+                                size="sm"
+                                aria-label={`Queue research ${node.name}, holds ${formatNumber(
+                                  node.cost,
+                                )} research points in escrow`}
+                              >
+                                {queuingNodeId === node.id ? (
+                                  <LoadingSpinner />
+                                ) : (
+                                  <>
+                                    <FlaskConical className="w-3 h-3 mr-1" />
+                                    {startBlockedByOther
+                                      ? `Queue for next (${formatNumber(node.cost)} RP)`
+                                      : `Queue (${formatNumber(node.cost)} RP)`}
+                                  </>
+                                )}
+                              </Button>
+                            )}
+                          </div>
                         )}
                       </div>
                     </GameItemTooltip>

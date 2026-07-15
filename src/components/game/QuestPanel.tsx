@@ -3,7 +3,6 @@
 import React, { useState, useMemo } from "react";
 import { useGameStore, formatNumber } from "@/lib/game/state/store";
 import { useShallow } from "zustand/react/shallow";
-import { WEATHER_DEFS } from "@/lib/game/config/configCache";
 import { ALL_TIERS, getTierColor, getTierInfo } from "@/lib/game/progression/tiers";
 import { GameItemTooltip } from "@/components/game/GameItemTooltip";
 import {
@@ -18,9 +17,15 @@ import {
   ScrollText,
 } from "lucide-react";
 import { GameCard } from "@/components/game/shared/GameCard";
-import type { Quest, QuestType } from "@/lib/game/shared/types/types";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
+import type { Quest, QuestType, WeatherType } from "@/lib/game/shared/types/types";
 import { GameIcon } from "@/components/icons";
 import { formatRemaining } from "@/lib/utils/time";
+import { WEATHER_DEFS } from "@/lib/game/config/configCache";
 
 const QUEST_TYPE_CONFIG: Record<
   string,
@@ -144,15 +149,26 @@ interface QuestItemProps {
   onTrack: (id: string | null) => void;
   onClaim: (id: string) => void;
   gameTick: number;
+  // Live weather data for the per-quest reward preview. Server is still
+  // authoritative — the formula here MUST stay in lockstep with
+  // applyClaimQuestMutation in mutators/quests.ts.
+  weatherKey: WeatherType;
+  weatherMult: number;
+  weatherIcon?: string;
+  weatherName?: string;
 }
 
-const MemoizedQuestItem = React.memo(function MemoizedQuestItem({
+function QuestItem({
   quest,
   isLocked,
   isTracked,
   onTrack,
   onClaim,
   gameTick,
+  weatherKey,
+  weatherMult,
+  weatherIcon,
+  weatherName,
 }: QuestItemProps) {
   const allStepsComplete = quest.steps.every((s) => s.completed);
   const progress =
@@ -168,6 +184,26 @@ const MemoizedQuestItem = React.memo(function MemoizedQuestItem({
   const typeConfig = QUEST_TYPE_CONFIG[quest.type] ?? QUEST_TYPE_CONFIG.build;
   const catConfig =
     CATEGORY_CONFIG[quest.category] ?? CATEGORY_CONFIG.challenge;
+
+  // Weather-adjusted reward preview — same formula as
+  // applyClaimQuestMutation. multiplier !== 1 means the weather is
+  // actually bending payouts, so we surface the preview + badge.
+  // For clear weather (mult = 1.00 in game_config_weather) the gate
+  // naturally falls through and we render the base figure.
+  const hasWeatherEffect = weatherMult !== 1;
+  const weatherPct = Math.round((weatherMult - 1) * 100);
+  const moneyPreviewActive = quest.reward.money > 0 && hasWeatherEffect;
+  const finalMoney = moneyPreviewActive
+    ? Math.round(quest.reward.money * weatherMult * 100) / 100
+    : quest.reward.money;
+  const finalResearch =
+    quest.reward.researchPoints != null && quest.reward.researchPoints > 0 && hasWeatherEffect
+      ? Math.round(quest.reward.researchPoints * weatherMult * 100) / 100
+      : quest.reward.researchPoints;
+  const weatherAccent =
+    weatherMult > 1 ? "text-success border-success/40 bg-success/15" :
+    weatherMult < 1 ? "text-warning border-warning/40 bg-warning/15" :
+    "text-subtle border-muted-label/40 bg-muted-label/15";
 
   return (
     <div
@@ -237,6 +273,21 @@ const MemoizedQuestItem = React.memo(function MemoizedQuestItem({
                     },
                   ]
                 : []),
+              // Weather Bonus row — surfaces the active modifier so the
+              // tooltip explains why the reward cell shows an adjusted
+              // value, instead of the base figure.
+              ...(hasWeatherEffect
+                ? [
+                    {
+                      label: "Weather Bonus",
+                      value: `${weatherName ?? weatherKey} ${
+                        weatherPct > 0 ? "+" : ""
+                      }${weatherPct}% · claim pays ${finalMoney}`,
+                      color:
+                        weatherMult > 1 ? "text-success" : "text-warning",
+                    },
+                  ]
+                : []),
               ...quest.steps.map((step, i) => ({
                 label: `Step ${i + 1}`,
                 value: `${Math.min(step.current, step.target)}/${step.target} ${step.completed ? "✓" : ""}`,
@@ -246,7 +297,11 @@ const MemoizedQuestItem = React.memo(function MemoizedQuestItem({
                 ? [
                     {
                       label: "Time Remaining",
-                      value: `${Math.max(0, quest.expiresAt - gameTick)} ticks`,
+                      // formatRemaining renders ticks as "1h 32m 5s" so
+                      // the player reads a duration, not a raw tick count.
+                      value: formatRemaining(
+                        Math.max(0, quest.expiresAt - gameTick),
+                      ),
                       color:
                         quest.expiresAt - gameTick > 100
                           ? "text-brand"
@@ -310,6 +365,17 @@ const MemoizedQuestItem = React.memo(function MemoizedQuestItem({
                       buildings
                     </span>
                   )}
+                  {quest.expiresAt &&
+                    quest.expiresAt > 0 &&
+                    !quest.claimed &&
+                    !isLocked && (
+                      <span className="flex items-center gap-0.5 text-[9px] text-warning">
+                        <Clock className="w-2.5 h-2.5" />
+                        {formatRemaining(
+                          Math.max(0, quest.expiresAt - gameTick),
+                        )}
+                      </span>
+                    )}
                 </div>
                 <p className="text-[11px] text-muted-label mt-0.5 line-clamp-1">
                   {quest.description}
@@ -361,13 +427,13 @@ const MemoizedQuestItem = React.memo(function MemoizedQuestItem({
 
       {!isLocked && (
         <div className="mt-3 space-y-1.5">
-          {quest.steps.map((step, i) => {
+          {quest.steps.map((step) => {
             const stepProgress = Math.min(
               1,
               step.current / Math.max(1, step.target),
             );
             return (
-              <div key={i} className="space-y-1">
+              <div key={step.id} className="space-y-1">
                 <div className="flex justify-between text-[10px]">
                   <span
                     className={step.completed ? "text-success" : "text-subtle"}
@@ -401,29 +467,67 @@ const MemoizedQuestItem = React.memo(function MemoizedQuestItem({
       )}
 
       {!isLocked && (
-        <div className="mt-3 flex items-center gap-2 text-[10px] pt-2 border-t border-muted-label/50">
+        <div className="mt-3 flex items-center gap-2 text-[10px] pt-2 border-t border-muted-label/50 flex-wrap">
           <span className="text-muted-label">Rewards:</span>
           {quest.reward.money > 0 && (
-            <span className="text-success">
+            <span
+              className={
+                moneyPreviewActive
+                  ? "text-muted-label line-through mr-1"
+                  : "text-success"
+              }
+            >
               ${formatNumber(quest.reward.money)}
             </span>
           )}
+          {moneyPreviewActive && (
+            <span className="text-success font-semibold">
+              ${formatNumber(finalMoney)}
+            </span>
+          )}
           {quest.reward.researchPoints && quest.reward.researchPoints > 0 && (
-            <span className="text-research">
+            <span
+              className={
+                finalResearch !== quest.reward.researchPoints && hasWeatherEffect
+                  ? "text-muted-label line-through mr-1"
+                  : "text-research"
+              }
+            >
               {quest.reward.researchPoints} RP
             </span>
           )}
+          {hasWeatherEffect &&
+            finalResearch !== quest.reward.researchPoints && (
+              <span className="text-research font-semibold">
+                {finalResearch} RP
+              </span>
+            )}
           {quest.reward.corporationPoints &&
             quest.reward.corporationPoints > 0 && (
               <span className="text-premium">
                 {quest.reward.corporationPoints} CP
               </span>
             )}
+          {hasWeatherEffect && (
+            <span
+              className={`text-[9px] px-1.5 py-0.5 rounded border inline-flex items-center gap-1 ${weatherAccent}`}
+              title="Live weather modifier — server confirms on claim"
+            >
+              {weatherIcon && (
+                <GameIcon icon={weatherIcon} size={10} className="inline-flex" />
+              )}
+              {weatherName ?? weatherKey}{" "}
+              {weatherPct > 0 ? "+" : ""}
+              {weatherPct}%
+            </span>
+          )}
         </div>
       )}
     </div>
   );
-});
+}
+
+const MemoizedQuestItem = React.memo(QuestItem);
 
 export function QuestPanel() {
   const store = useGameStore(
@@ -440,6 +544,15 @@ export function QuestPanel() {
   const playerTier = store.getPlayerGameTier();
   const [filterType, setFilterType] = useState<FilterType>("all");
   const [showFilters, setShowFilters] = useState(false);
+
+  // Live weather context — drives the header chip + per-quest reward
+  // preview. Same formula and lookup apply server-side in
+  // applyClaimQuestMutation.
+  const weather = useGameStore((s) => s.weather);
+  const weatherKey: WeatherType = (weather?.current ?? "clear") as WeatherType;
+  const weatherDef = WEATHER_DEFS?.[weatherKey];
+  const weatherMult: number = weatherDef?.productionMultiplier ?? 1;
+  const weatherPct = Math.round((weatherMult - 1) * 100);
 
   // Group quests by gameTier
   const questsByTier: Record<number, Quest[]> = Object.fromEntries(
@@ -484,306 +597,117 @@ export function QuestPanel() {
     return result;
   }, [questsByTier, filterType]);
 
-  const renderQuest = (quest: Quest, isLocked: boolean = false) => {
-    const allStepsComplete = quest.steps.every((s) => s.completed);
-    const progress =
-      quest.steps.length > 0
-        ? quest.steps.reduce(
-            (sum, s) => sum + Math.min(1, s.current / Math.max(1, s.target)),
-            0,
-          ) / quest.steps.length
-        : 0;
-    const isTracked = store.trackedQuest === quest.id;
-    const tier = quest.gameTier ?? 0;
-    const tierColor = getTierColor(tier);
-    const tierInfo = getTierInfo(tier);
-    const typeConfig = QUEST_TYPE_CONFIG[quest.type] ?? QUEST_TYPE_CONFIG.build;
-    const catConfig =
-      CATEGORY_CONFIG[quest.category] ?? CATEGORY_CONFIG.challenge;
-
-    // Build tooltip details
-    const tooltipDetails = [
-      {
-        label: "Tier",
-        value: `T${tier}: ${tierInfo?.name ?? "Unknown"}`,
-        color: tierColor,
-        isStyle: true,
-      },
-      { label: "Type", value: typeConfig.label, color: typeConfig.color },
-      { label: "Category", value: catConfig.label, color: catConfig.color },
-    ];
-
-    if (quest.reward.money > 0) {
-      tooltipDetails.push({
-        label: "Money Reward",
-        value: `$${formatNumber(quest.reward.money)}`,
-        color: "text-success",
-      });
-    }
-    if (quest.reward.researchPoints && quest.reward.researchPoints > 0) {
-      tooltipDetails.push({
-        label: "RP Reward",
-        value: `${quest.reward.researchPoints}`,
-        color: "text-research",
-      });
-    }
-    if (quest.reward.corporationPoints && quest.reward.corporationPoints > 0) {
-      tooltipDetails.push({
-        label: "CP Reward",
-        value: `${quest.reward.corporationPoints}`,
-        color: "text-premium",
-      });
-    }
-
-    quest.steps.forEach((step, i) => {
-      tooltipDetails.push({
-        label: `Step ${i + 1}`,
-        value: `${Math.min(step.current, step.target)}/${step.target} ${step.completed ? "✓" : ""}`,
-        color: step.completed ? "text-success" : "text-subtle",
-      });
-    });
-
-    if (quest.expiresAt && quest.expiresAt > 0) {
-      const remaining = quest.expiresAt - store.gameTick;
-      tooltipDetails.push({
-        label: "Time Remaining",
-        value: formatRemaining(Math.max(0, remaining)),
-        color:
-          remaining > 100
-            ? "text-brand"
-            : remaining > 30
-              ? "text-warning"
-              : "text-danger",
-      });
-    }
-
-    return (
-      <div
-        key={quest.id}
-        className={`quest-card-hover rounded-xl border p-4 border-l-2 ${
-          isLocked
-            ? "border-muted-label bg-muted-label/20 cursor-not-allowed opacity-40"
-            : quest.claimed
-              ? "border-muted-label bg-muted-label/30 opacity-50"
-              : allStepsComplete
-                ? "border-success/30 bg-success/10"
-                : isTracked
-                  ? "border-brand/40 bg-brand/10"
-                  : "border-brand/30 bg-card/50"
-        }`}
-        style={{ borderLeftColor: isLocked ? "#333" : tierColor }}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <GameItemTooltip
-              name={quest.name}
-              icon={quest.icon}
-              description={quest.description}
-              category={catConfig.label}
-              tier={tier}
-              details={tooltipDetails}
-              side="right"
-              disabled={quest.claimed || isLocked}
-            >
-              <div className="flex items-center gap-2 cursor-help min-w-0">
-                <GameIcon icon={quest.icon} size={24} className="shrink-0" />
-                <div className="min-w-0">
-                  <h4
-                    className={`text-sm font-semibold truncate ${
-                      isLocked
-                        ? "text-muted-label"
-                        : quest.claimed
-                          ? "text-muted-label line-through"
-                          : allStepsComplete
-                            ? "text-success"
-                            : isTracked
-                              ? "text-brand"
-                              : "text-subtle"
-                    }`}
-                  >
-                    {quest.name}
-                  </h4>
-                  <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                    {/* Tier Badge */}
-                    <span
-                      className="text-[9px] px-1.5 py-0.5 rounded border"
-                      style={{
-                        color: tierColor,
-                        borderColor: tierInfo?.borderColor,
-                        backgroundColor: tierInfo?.bgColor,
-                      }}
-                    >
-                      <GameIcon
-                        icon={tierInfo?.icon}
-                        size={12}
-                        className="inline-flex"
-                      />{" "}
-                      T{tier}
-                    </span>
-                    <span
-                      className={`text-[9px] px-1.5 py-0.5 rounded border ${catConfig.color} ${catConfig.bg} ${catConfig.border}`}
-                    >
-                      {quest.category.toUpperCase()}
-                    </span>
-                    <span
-                      className={`text-[9px] px-1.5 py-0.5 rounded border ${typeConfig.color} ${typeConfig.bg} ${typeConfig.border}`}
-                    >
-                      {typeConfig.label}
-                    </span>
-                    {quest.expiresAt &&
-                      quest.expiresAt > 0 &&
-                      !quest.claimed &&
-                      !isLocked && (
-                        <span className="flex items-center gap-0.5 text-[9px] text-warning">
-                          <Clock className="w-2.5 h-2.5" />
-                          {formatRemaining(
-                            Math.max(0, quest.expiresAt - store.gameTick),
-                          )}
-                        </span>
-                      )}
-                    {isLocked && (
-                      <span className="flex items-center gap-0.5 text-[9px] text-muted-label">
-                        <Lock className="w-2.5 h-2.5" /> Requires T{tier}{" "}
-                        buildings
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-muted-label mt-0.5 line-clamp-1">
-                    {quest.description}
-                  </p>
-                </div>
-              </div>
-            </GameItemTooltip>
-          </div>
-
-          <div className="flex items-center gap-1.5 shrink-0">
-            {!isLocked && !quest.claimed && (
-              <button
-                onClick={() =>
-                  store.setTrackedQuest(isTracked ? null : quest.id)
-                }
-                className={`p-1.5 rounded-lg ${
-                  isTracked
-                    ? "bg-brand/40 text-brand border border-brand/40 hover:bg-brand/60"
-                    : "bg-muted-label/50 text-muted-label border border-muted-label/50 hover:text-subtle hover:bg-muted-label"
-                }`}
-                title={isTracked ? "Untrack quest" : "Track quest on dashboard"}
-              >
-                {isTracked ? (
-                  <PinOff className="w-3.5 h-3.5" />
-                ) : (
-                  <Pin className="w-3.5 h-3.5" />
-                )}
-              </button>
-            )}
-
-            {isLocked ? (
-              <Lock className="w-4 h-4 text-muted-label" />
-            ) : quest.claimed ? (
-              <span className="text-[10px] text-muted-label bg-muted-label px-2 py-1 rounded">
-                CLAIMED
-              </span>
-            ) : allStepsComplete ? (
-              <button
-                onClick={() => store.claimQuestReward(quest.id)}
-                className="text-[11px] font-bold text-success bg-success/30 border border-success/30 px-3 py-1.5 rounded-lg hover:bg-success/50 transition-colors neon-breathe"
-              >
-                CLAIM
-              </button>
-            ) : (
-              <span className="text-[10px] text-brand bg-brand/20 px-2 py-1 rounded">
-                {Math.round(progress * 100)}%
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Steps progress */}
-        {!isLocked && (
-          <div className="mt-3 space-y-1.5">
-            {quest.steps.map((step, i) => {
-              const stepProgress = Math.min(
-                1,
-                step.current / Math.max(1, step.target),
-              );
-              return (
-                <div key={i} className="space-y-1">
-                  <div className="flex justify-between text-[10px]">
-                    <span
-                      className={
-                        step.completed ? "text-success" : "text-subtle"
-                      }
-                    >
-                      {step.description}
-                    </span>
-                    <span
-                      className={
-                        step.completed ? "text-success" : "text-muted-label"
-                      }
-                    >
-                      {Math.min(step.current, step.target)}/{step.target}
-                    </span>
-                  </div>
-                  <div className="h-1.5 bg-muted-label rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-500 progress-bar-shimmer ${
-                        step.completed
-                          ? "bg-success"
-                          : isTracked
-                            ? "bg-brand"
-                            : "bg-brand"
-                      }`}
-                      style={{ width: `${stepProgress * 100}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Rewards */}
-        {!isLocked && (
-          <div className="mt-3 flex items-center gap-2 text-[10px] pt-2 border-t border-muted-label/50">
-            <span className="text-muted-label">Rewards:</span>
-            {quest.reward.money > 0 && (
-              <span className="text-success">
-                ${formatNumber(quest.reward.money)}
-              </span>
-            )}
-            {quest.reward.researchPoints && quest.reward.researchPoints > 0 && (
-              <span className="text-research">
-                {quest.reward.researchPoints} RP
-              </span>
-            )}
-            {quest.reward.corporationPoints &&
-              quest.reward.corporationPoints > 0 && (
-                <span className="text-premium">
-                  {quest.reward.corporationPoints} CP
-                </span>
-              )}
-          </div>
-        )}
-      </div>
-    );
-  };
 
   return (
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-xl font-bold text-brand flex items-center gap-2 neon-glow-cyan">
-          <GameIcon
-            icon="game-icons:scroll-unfurled"
-            size={20}
-            className="inline"
-          />{" "}
-          Quest Board
-        </h2>
+        <div className="flex items-center gap-2 flex-wrap">
+          <h2 className="text-xl font-bold text-brand flex items-center gap-2 neon-glow-cyan">
+            <GameIcon
+              icon="game-icons:scroll-unfurled"
+              size={20}
+              className="inline"
+            />{" "}
+            Quest Board
+          </h2>
+
+          {/* Weather reward chip — BADGE shows the effect,
+              TOOLTIP shows the full detail (matches MobileHeader
+              pattern so the player already knows how to read it). */}
+          {weatherDef && (
+            <HoverCard openDelay={150} closeDelay={80}>
+              <HoverCardTrigger asChild>
+                <button
+                  type="button"
+                  className={`text-[10px] px-2 py-1 rounded border inline-flex items-center gap-1.5 cursor-default transition-colors ${
+                    weatherKey === "clear"
+                      ? "border-muted-label/50 text-subtle bg-muted-label/20 hover:bg-muted-label/30"
+                      : weatherMult > 1
+                        ? "border-success/50 text-success bg-success/20 hover:bg-success/30 neon-glow-green"
+                        : "border-warning/50 text-warning bg-warning/20 hover:bg-warning/30"
+                  }`}
+                  aria-label={`Current weather ${weatherDef.name}, quest reward multiplier ${weatherMult.toFixed(2)}`}
+                >
+                  <GameIcon
+                    icon={weatherDef.icon}
+                    size={12}
+                    className="inline-flex"
+                  />
+                  <span className="font-semibold">{weatherDef.name}</span>
+                  <span className="font-mono">
+                    {weatherMult === 1
+                      ? "· ×1.00"
+                      : `· ${weatherPct > 0 ? "+" : ""}${weatherPct}% reward`}
+                  </span>
+                </button>
+              </HoverCardTrigger>
+              <HoverCardContent
+                side="bottom"
+                className="w-72 bg-card border-brand/30 p-0 overflow-hidden"
+              >
+                <div
+                  className={`px-3 py-2 border-b ${
+                    weatherKey === "clear"
+                      ? "bg-muted-label/15 border-muted-label/30"
+                      : weatherMult > 1
+                        ? "bg-success/15 border-success/30"
+                        : "bg-warning/15 border-warning/30"
+                  }`}
+                >
+                  <p className="text-xs font-bold inline-flex items-center gap-1.5">
+                    <GameIcon
+                      icon={weatherDef.icon}
+                      size={14}
+                      className="inline-flex"
+                    />{" "}
+                    {weatherDef.name}
+                  </p>
+                </div>
+                <div className="px-3 py-2 space-y-1.5 text-[11px]">
+                  <p className="text-subtle leading-relaxed">
+                    {weatherDef.description}
+                  </p>
+                  <div className="flex justify-between pt-1 border-t border-muted-label/30">
+                    <span className="text-muted-label">Quest reward</span>
+                    <span
+                      className={`font-mono font-bold ${
+                        weatherMult > 1
+                          ? "text-success"
+                          : weatherMult < 1
+                            ? "text-warning"
+                            : "text-subtle"
+                      }`}
+                    >
+                      ×{weatherMult.toFixed(2)}
+                    </span>
+                  </div>
+                  {weather && weather.remaining > 0 && (
+                    <div className="flex justify-between pt-1 border-t border-muted-label/30">
+                      <span className="text-muted-label">Weather ends in</span>
+                      <span className="text-brand font-mono font-bold">
+                        {formatRemaining(weather.remaining)}
+                      </span>
+                    </div>
+                  )}
+                  <p className="text-[10px] text-muted-label pt-1 border-t border-muted-label/30 leading-relaxed">
+                    Multiplier is applied server-side on claim. Client
+                    shows live preview; server wins on dispute.
+                  </p>
+                </div>
+              </HoverCardContent>
+            </HoverCard>
+          )}
+        </div>
         <div className="flex items-center gap-2 text-[10px]">
           <span className="text-subtle">
-            {claimedCount}/{totalCount} Completed
+            {completedCount}/{totalCount} Completed
           </span>
+          {completedCount - claimedCount > 0 && (
+            <span className="text-brand font-semibold">
+              {completedCount - claimedCount} Ready to Claim
+            </span>
+          )}
           <div className="w-20 h-1.5 bg-muted-label rounded-full overflow-hidden">
             <div
               className="h-full bg-success rounded-full transition-all"
@@ -1147,17 +1071,31 @@ export function QuestPanel() {
               />
             </div>
             <div className="space-y-2.5">
-              {tierQuests.map((quest) => (
-                <MemoizedQuestItem
-                  key={quest.id}
-                  quest={quest}
-                  isLocked={!isUnlocked}
-                  isTracked={store.trackedQuest === quest.id}
-                  onTrack={store.setTrackedQuest}
-                  onClaim={store.claimQuestReward}
-                  gameTick={store.gameTick}
-                />
-              ))}
+              {tierQuests.map((quest) => {
+                // Per-quest lock state: use the quest's own gameTier,
+                // not the section's tier loop variable. The earlier
+                // version used section-level isUnlocked for every quest
+                // which locked out quests that the player was actually
+                // entitled to (e.g. a T2 quest listed under the T1
+                // section rendered as locked while the player was at T2).
+                const questLocked =
+                  (quest.gameTier ?? 0) > playerTier || !isUnlocked;
+                return (
+                  <MemoizedQuestItem
+                    key={quest.id}
+                    quest={quest}
+                    isLocked={questLocked}
+                    isTracked={store.trackedQuest === quest.id}
+                    onTrack={store.setTrackedQuest}
+                    onClaim={store.claimQuestReward}
+                    gameTick={store.gameTick}
+                    weatherKey={weatherKey}
+                    weatherMult={weatherMult}
+                    weatherIcon={weatherDef?.icon}
+                    weatherName={weatherDef?.name}
+                  />
+                );
+              })}
             </div>
           </div>
         );
