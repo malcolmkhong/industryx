@@ -1,49 +1,173 @@
 /**
- * AuthOrchestrator — Phase 3.
+ * AuthOrchestrator — PR4-4A.
  *
- * Central state machine for frontend authentication. Phase 3 adds the
- * startup() pipeline. Orchestrator owns:
- *   1. device-id read
- *   2. session check
- *   3. quickstart POST — one server round-trip covers deviceId lookup,
- *      fingerprint fallback, anon-user creation, identity registration,
- *      and server_game_state bootstrap
- *   4. onAuthStateChange subscription (state stays in sync)
+ * Rewritten around the single `/api/auth/bootstrap` endpoint per
+ * AUTH_ORCHESTRATOR_REDESIGN_PLAN.md §4-§6 + §15. The state machine lives
+ * in `./state.ts` (8 states, decision table). The orchestrator is the
+ * caller; it:
  *
- * Behavior change: none visible. Code path: now one place.
+ *   1. Reads the persistent deviceId (creates one if missing).
+ *   2. Collects the fingerprint with a STRICT timeout (telemetry only —
+ *      plan §10).
+ *   3. POSTs `/api/auth/bootstrap` once per mount with
+ *      `{ deviceId, fingerprintHash, previousAuthUserId? }`.
+ *   4. Dispatches the response into the state machine via
+ *      `transition(currentStatus, event)`.
+ *   5. Assigns `applyServerState` only to the latest response (version
+ *      guard — stale responses are dropped before they reach the state
+ *      machine).
+ *   6. On sign-out, captures the previous auth user id and re-bootstraps
+ *      with `previousAuthUserId` set in the body — the server routes that
+ *      to `create_signed_out_guest_after_signout`.
+ *
+ * Hard rules (plan §5):
+ *   - Only the latest in-flight request may apply state.
+ *   - When the resolved user changes, immediately block gameplay + clear
+ *     previous user's game state before applying new state.
+ *   - Never render one user's state while another is bootstrapping.
+ *   - Guest bootstrap response must not overwrite later authenticated
+ *     response.
+ *
+ * Out of scope: legacy `/api/auth/guest/quickstart`,
+ * `/api/auth/device/register`, the merged `onReady/onIdentityChanged/
+ * onSignedOut` lifecycle, and the post-OAuth `registerDevice` pipeline.
+ * Those become thin wrappers in PR4-4B.
  */
 
+import {
+  responseBodyToEvent,
+  transition,
+  type TransitionEvent,
+} from "./state";
 import type {
   AuthEvent,
   AuthEventListener,
-  AuthOrchestratorDeps,
+  AuthOrchestratorBootstrapDeps,
+  BootstrapReadyResult,
+  BootstrapResponseBody,
+  BootstrapTemporaryErrorResult,
   IdentityKind,
   OrchestratorState,
+  OrchestratorStatus,
   Session,
   StateListener,
 } from "./types";
+
+// ─── Defaults ──────────────────────────────────────────────────────────
+
+/**
+ * Maximum time (ms) the orchestrator will wait for fingerprint collection
+ * before continuing without it. Per plan §10 fingerprint must NEVER delay
+ * bootstrap indefinitely.
+ */
+const FINGERPRINT_TIMEOUT_MS = 1500;
+
+/**
+ * Maximum time (ms) for the session resolution phase. Mirrors the
+ * fingerprint budget so a slow Supabase round-trip does not stall startup.
+ */
+const SESSION_TIMEOUT_MS = 5000;
+
+/**
+ * Maximum time (ms) for the bootstrap HTTP request itself.
+ */
+const BOOTSTRAP_TIMEOUT_MS = 10_000;
+
+const INITIAL_STATE: OrchestratorState = {
+  status: "idle",
+  identity: "unauthenticated",
+  userId: null,
+  deviceId: null,
+  isGuest: false,
+  result: null,
+  previousAuthUserId: null,
+  fingerprintStatus: "pending",
+  limitedMode: false,
+  limitedReason: null,
+};
+
+// ─── Helpers ───────────────────────────────────────────────────────────
+
+/** Race a promise against a timeout. Resolves to the fallback if timeout
+ *  fires first. The original promise continues running but its result is
+ *  discarded. */
+function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  fallback: T,
+): Promise<T> {
+  return new Promise<T>((resolve) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      resolve(fallback);
+    }, ms);
+    void promise
+      .then((value) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch(() => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(fallback);
+      });
+  });
+}
+
+/** Wraps a fetch call in an AbortController timeout. Returns null on
+ *  timeout / network failure so the caller can route to RESPONSE_TEMPORARY.
+ *  The deps implementation is expected to do this internally, but we
+ *  add a defensive layer here in case the dep does not. */
+function withAbortTimeout<T>(
+  factory: (signal: AbortSignal) => Promise<T>,
+  ms: number,
+): Promise<T | null> {
+  // Defensive check: if AbortController isn't available, fall back to a
+  // manual timer that swallows late results.
+  if (typeof globalThis.AbortController === "undefined") {
+    return withTimeout(factory({ aborted: false } as AbortSignal), ms, null);
+  }
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  return factory(ctrl.signal)
+    .then((value) => {
+      clearTimeout(timer);
+      return value;
+    })
+    .catch(() => {
+      clearTimeout(timer);
+      return null;
+    });
+}
+
+// ─── Orchestrator ──────────────────────────────────────────────────────
 
 export class AuthOrchestrator {
   private state: OrchestratorState;
   private listeners = new Set<StateListener>();
   private eventListeners = new Set<AuthEventListener>();
-  private deps: AuthOrchestratorDeps | null = null;
+  private deps: AuthOrchestratorBootstrapDeps | null = null;
   private authSubscription: (() => void) | null = null;
 
+  /**
+   * Latest in-flight request version. Each call to bootstrap() bumps it.
+   * Stale responses check this counter and bail out before mutating
+   * state — implementing plan §5 hard rule #1.
+   */
+  private requestVersion = 0;
+
   constructor(initial: Partial<OrchestratorState> = {}) {
-    this.state = {
-      status: "idle",
-      identity: "unauthenticated",
-      userId: null,
-      deviceId: null,
-      isGuest: false,
-      limitedMode: false,
-      limitedReason: null,
-      ...initial,
-    };
+    this.state = { ...INITIAL_STATE, ...initial };
   }
 
-  attach(deps: AuthOrchestratorDeps): void {
+  // ─── Public surface ─────────────────────────────────────────────────
+
+  attach(deps: AuthOrchestratorBootstrapDeps): void {
     this.deps = deps;
   }
 
@@ -87,17 +211,15 @@ export class AuthOrchestrator {
     }
   }
 
+  // ─── Sign-in / sign-out ─────────────────────────────────────────────
+
   /**
-   * Sign in via OAuth (Google or GitHub). Provider-agnostic — same pipeline
-   * for both. Pipeline:
-   *   1. dispatch OAUTH_CALLBACK
-   *   2. supabase.auth.signInWithOAuth (browser redirect)
-   *   3. dispatch OAUTH_SUCCESS or OAUTH_FAILURE
+   * OAuth entry point. Triggers Supabase's signInWithOAuth which redirects
+   * the browser to the provider. The post-callback path comes back via
+   * `onAuthStateChange` which then triggers a re-bootstrap.
    *
-   * Returns the error string if sign-in failed, null on success.
-   * Note: on success the browser redirects away — no further orchestration
-   * runs in this method. Post-OAuth pipeline (register-device) is triggered
-   * by the auth state change listener after the callback returns.
+   * Returns null on success (browser redirect follows) or the error string
+   * when sign-in failed locally.
    */
   async signInWithOAuth(
     provider: "google" | "github",
@@ -105,7 +227,8 @@ export class AuthOrchestrator {
   ): Promise<string | null> {
     const deps = this.deps;
     if (!deps || !deps.isSupabaseConfigured) return "not_configured";
-    if (this.state.status === "initializing") return "initializing";
+    if (!deps.signInWithOAuth) return "not_configured";
+    if (this.state.status === "bootstrapping") return "bootstrapping";
 
     this.dispatch({ type: "OAUTH_CALLBACK", provider });
 
@@ -120,336 +243,510 @@ export class AuthOrchestrator {
   }
 
   /**
-   * Post-OAuth pipeline. Called from onAuthStateChange when a non-anonymous
-   * session arrives for the first time after OAUTH_SUCCESS. Runs:
-   *   1. register-device (idempotent — same-device re-login is a no-op)
+   * Sign-out pipeline (plan §6 step 1-5):
+   *   1. Capture previousAuthUserId on state.
+   *   2. Transition ready -> signed_out (block gameplay).
+   *   3. Notify Supabase (optional — server can resolve without it, but
+   *      the OAuth cookie must be cleared to prevent stale-session
+   *      replay).
+   *   4. Transition signed_out -> resolving_session and trigger guest
+   *      bootstrap with previousAuthUserId set in body.
    */
-  async runPostOAuth(fingerprintHash: string | null = null): Promise<void> {
-    const deps = this.deps;
-    if (!deps) return;
-
-    const deviceId = deps.getDeviceId();
-    try {
-      const result = await deps.registerDevice(deviceId, null, fingerprintHash);
-      if (!result.ok) {
-        console.warn(
-          "[AuthOrchestrator] register-device non-ok:",
-          result.reason,
-        );
-      }
-    } catch (err) {
-      console.warn("[AuthOrchestrator] register-device threw:", err);
-    }
-  }
-
   async signOut(): Promise<void> {
-    this.dispatch({ type: "SIGN_OUT" });
-    this.setState({ status: "signing_out" });
-
     const deps = this.deps;
-    if (!deps) {
-      console.warn("[AuthOrchestrator] signOut called before attach()");
-      this.setState({
-        status: "idle",
-        identity: "unauthenticated",
-        userId: null,
-        isGuest: false,
-        limitedMode: false,
-        limitedReason: null,
-      });
-      return;
-    }
-
-    // Snapshot priorUserId BEFORE applySession (for handleSignedOut idempotency).
     const priorUserId = this.state.userId;
+    const priorIdentity = this.state.identity;
 
-    // Apply null session FIRST — clears state.userId via setState (sole owner).
-    // Sets status to 'idle'; we override to 'signing_out' immediately after.
-    this.applySession(null);
-    this.setState({ status: "signing_out" });
+    this.dispatch({ type: "SIGN_OUT_STARTED" });
 
-    // Run cleanup via shared method (idempotent via priorUserId snapshot).
-    this.handleSignedOut(priorUserId);
-
-    if (!deps.isSupabaseConfigured) {
-      this.setState({ status: "idle" });
-      return;
+    // Step 1: capture previous auth user id BEFORE state mutation. The
+    // next bootstrap request must carry this so the server routes to the
+    // create_signed_out_guest_after_signout RPC (plan §6 step 4).
+    if (priorIdentity === "authenticated" && priorUserId) {
+      this.setState({ previousAuthUserId: priorUserId });
     }
 
-    // Server-side invalidation. Supabase emits SIGNED_OUT SYNCHRONOUSLY during
-    // this call. Handler's prevUserId snapshot will be null (cleared above) →
-    // dispatch's third branch is FALSE → no double-fire of handleSignedOut.
-    // Wrap in try/catch: local state is already cleared, server failure must
-    // not propagate to the caller (UI button / dispatch).
-    let signOutError: string | null = null;
+    // Step 2: ready -> signed_out (blocks gameplay via transition effect).
+    this.applyTransition({ type: "SIGN_OUT" });
+
+    // Step 3: clear previous user's game state synchronously. This MUST
+    // happen BEFORE the next applyServerState — plan §5 hard rule.
     try {
-      const { error } = await deps.signOutSupabase();
-      if (error) {
-        console.error("[AuthOrchestrator] Sign-out error:", error);
-        signOutError = error;
+      deps?.clearPreviousUserState();
+    } catch (err) {
+      console.warn("[AuthOrchestrator] clearPreviousUserState threw:", err);
+    }
+
+    // Step 4: notify Supabase (best-effort — local state is already cleared).
+    if (deps?.signOutSupabase) {
+      try {
+        const { error } = await deps.signOutSupabase();
+        if (error) {
+          console.warn("[AuthOrchestrator] signOutSupabase failed:", error);
+        }
+      } catch (err) {
+        console.warn("[AuthOrchestrator] signOutSupabase threw:", err);
       }
-    } catch (err) {
-      console.error("[AuthOrchestrator] signOutSupabase threw:", err);
-      signOutError = err instanceof Error ? err.message : "unknown";
     }
 
-    this.setState({ status: "idle" });
-    // Return ignored by callers today, but kept for future telemetry.
-    void signOutError;
+    // Step 5: dispatch SIGN_OUT_COMPLETE and trigger the sign-out bootstrap.
+    this.dispatch({ type: "SIGN_OUT_COMPLETE" });
+    this.applyTransition({ type: "SIGN_OUT_COMPLETE" });
+
+    void this.runBootstrap({
+      reason: "sign_out",
+      previousAuthUserId:
+        priorIdentity === "authenticated" && priorUserId
+          ? priorUserId
+          : null,
+    });
   }
 
   /**
-   * Shared cleanup method for sign-out. Routes through the dep callbacks
-   * (disableServerValidation, stopLoginPrompts, resetMerge, onSignedOut).
-   *
-   * Idempotency derived from priorUserId (caller's pre-apply snapshot of
-   * state.userId). Does NOT read this.state.userId. Does NOT mutate auth
-   * state. No new flag.
-   *
-   * Each dep callback is wrapped in try/catch so a buggy provider cannot
-   * prevent subsequent cleanup steps from running.
-   *
-   * @param priorUserId - state.userId captured BEFORE applySession ran.
-   *                      If null, no prior session existed or it was already
-   *                      cleaned — skip cleanup.
+   * Apply a Supabase session snapshot to orchestrator state. Public so
+   * PR4-4B's AuthProvider can mirror the legacy AuthContext shape (user,
+   * session, loading, isGuest). Internally this only updates the
+   * identity/userId fields and dispatches AUTH_STATE_CHANGED — it does
+   * NOT trigger bootstrap. Bootstrap is owned by startup() and the
+   * auth-state-change subscription below.
    */
-  private handleSignedOut(priorUserId: string | null): void {
-    const deps = this.deps;
-    if (!deps) return;
-    if (priorUserId === null) return; // no prior session to clean
-    try {
-      deps.disableServerValidation();
-    } catch (err) {
-      console.warn("[AuthOrchestrator] disableServerValidation threw:", err);
-    }
-    try {
-      deps.stopLoginPrompts();
-    } catch (err) {
-      console.warn("[AuthOrchestrator] stopLoginPrompts threw:", err);
-    }
-    try {
-      deps.resetMerge();
-    } catch (err) {
-      console.warn("[AuthOrchestrator] resetMerge threw:", err);
-    }
-    try {
-      deps.onSignedOut();
-    } catch (err) {
-      console.warn("[AuthOrchestrator] onSignedOut threw:", err);
-    }
-  }
-
-  /**
-   * Apply a session to orchestrator state. Public so AuthProvider can mirror
-   * the legacy AuthContext shape (user/session/loading/isGuest).
-   */
-  applySession(session: Session | null): { loading: boolean } {
+  applySession(session: Session | null): void {
     const identity: IdentityKind = session?.user
       ? session.user.is_anonymous
         ? "anonymous"
         : "authenticated"
       : "unauthenticated";
-    const wasLoading = this.state.status === "initializing";
     this.setState({
-      status: session ? "ready" : "idle",
       identity,
       userId: session?.user?.id ?? null,
       isGuest: session?.user?.is_anonymous ?? false,
-      // OAuth / session-based path always clears limitedMode — a real
-      // session removes any need for fingerprint-based recovery.
-      limitedMode: false,
-      limitedReason: null,
     });
     this.dispatch({ type: "AUTH_STATE_CHANGED", session });
-    return { loading: wasLoading };
   }
 
+  // ─── Main entry point ───────────────────────────────────────────────
+
   /**
-   * Startup pipeline — replaces the inline AuthProvider mount flow.
-   * Returns a cleanup function that unsubscribes from auth changes.
+   * Startup pipeline (plan §4 steps 1-12):
+   *   1. Ensure deps attached.
+   *   2. Read deviceId (create if missing).
+   *   3. Subscribe to auth state changes (optional dep).
+   *   4. Run the bootstrap pipeline (resolving_session -> bootstrapping -> ready).
    *
-   * Phase 2 (post refactor):
-   *  - NO fingerprint compute if session exists (skip cost entirely).
-   *  - NO separate recover / claim calls.
-   *  - Single /api/auth/guest/quickstart round-trip for anon startup.
+   * Returns a cleanup function that unsubscribes auth changes.
    */
+  // eslint-disable-next-line require-await -- startup returns a cleanup function and triggers background bootstrap; the async signature is required by callers awaiting startup().
   async startup(): Promise<() => void> {
     this.dispatch({ type: "STARTUP" });
-    this.setState({ status: "initializing" });
 
     const deps = this.deps;
     if (!deps) {
       console.warn("[AuthOrchestrator] startup called before attach()");
-      this.setState({ status: "idle" });
+      // Stay in idle — no bootstrap can run without deps. The state
+      // machine refuses STARTUP from non-idle states, so we deliberately
+      // do NOT transition here.
       return () => {};
     }
 
     if (!deps.isSupabaseConfigured) {
-      this.setState({ status: "idle" });
+      // SEC-002: fail closed on misconfiguration — do not pretend to be
+      // authenticated. Stay in idle so the UI surfaces a config error
+      // rather than rendering a half-hydrated game.
       return () => {};
     }
 
+    // Step 1: deviceId (plan §4 step 2).
     const deviceId = deps.getDeviceId();
     this.setState({ deviceId });
 
-    let session: Session | null = null;
-    try {
-      session = await deps.getSession();
-    } catch (err) {
-      console.warn("[Auth] getSession failed (Supabase unreachable?):", err);
-    }
-
-    this.applySession(session);
-
-    if (session?.user?.id) {
-      deps.initServerValidation(session.user.id);
-      // Per Decision 12: on READY state (anon or auth), trigger load.
-      // Both paths reach server_game_state because quickstart already
-      // created the row for anon (Phase 2).
-      deps.onReady(session.user.id);
-      if (session.user.is_anonymous) {
-        deps.startLoginPrompts((reason, tab) =>
-          this.dispatch({
-            type: "BIND_REQUEST",
-            reason,
-            ...(tab ? { pendingTab: tab } : {}),
-          }),
-        );
-      }
-      // Skip fingerprint + quickstart entirely; session already valid.
-    } else {
-      // No session: compute fingerprint lazily, then single quickstart.
-      // getFingerprint() returns either a real visitorId, the
-      // __fingerprint_unavailable__ sentinel, or "unknown" (SSR only).
-      // Both sentinel and "unknown" are sent to the server; the route
-      // accepts the sentinel and falls through to deviceId-only dedupe.
-      let fingerprint: string | null = null;
-      try {
-        fingerprint = await deps.getFingerprint();
-      } catch (err) {
-        console.warn("[Auth] getFingerprint failed:", err);
-      }
-      if (fingerprint && fingerprint !== "unknown") {
-        try {
-          const result = await deps.quickstart(deviceId, fingerprint);
-          if (result.error === "capacity_full") {
-            this.dispatch({ type: "WAITLIST_REQUIRED" });
-          } else if (result.error) {
-            console.warn("[Auth] quickstart failed:", result.error);
-          } else if (result.userId) {
-            if (
-              result.source === "deviceId" ||
-              result.source === "fingerprint"
-            ) {
-              this.dispatch({
-                type: "RECOVERED",
-                userId: result.userId,
-                source: result.source,
-              });
-              // Step 1 / Step 2 recovery with a real fingerprint → not
-              // limited mode. (Even with a sentinel fingerprint, Step 1
-              // deviceId match is full recovery — modal NOT shown.)
-            } else {
-              this.dispatch({ type: "NO_RECOVERY" });
-            }
-            // The server tells us whether the account is operating in
-            // limited mode (sentinel + new user). If so, surface the
-            // degraded state to the UI so the modal can show.
-            if (result.limited) {
-              this.setState({
-                limitedMode: true,
-                limitedReason: "fingerprint_unavailable",
-              });
-            }
-            // Note: we cannot establish a Supabase Auth session for the
-            // server-created/identified anon user without a second round-trip
-            // (signInAnonymously). The game continues to operate on
-            // localStorage-backed Zustand state; cloud sync attempts will
-            // fall back to local until the user upgrades via OAuth.
+    // Step 3: subscribe to auth state changes (plan §6 OAuth callback
+    // timing). Optional — test harnesses may omit it.
+    if (deps.onAuthStateChange) {
+      this.authSubscription = deps.onAuthStateChange((session) => {
+        const prevUserId = this.state.userId;
+        this.applySession(session);
+        const currentUserId = this.state.userId;
+        // Plan §5: ready -> resolving_session when the auth user changes.
+        if (prevUserId !== currentUserId) {
+          // Identity changed (e.g., OAuth completed, account switched).
+          // Trigger a fresh bootstrap. Stale-response guard ensures the
+          // previous bootstrap's result (if any) cannot win.
+          this.applyTransition({
+            type: "AUTH_USER_CHANGED",
+            userId: currentUserId,
+          });
+          // Clear previous user's state before the new bootstrap applies.
+          try {
+            deps.clearPreviousUserState();
+          } catch (err) {
+            console.warn(
+              "[AuthOrchestrator] clearPreviousUserState threw:",
+              err,
+            );
           }
-        } catch (err) {
-          console.warn("[Auth] quickstart threw:", err);
+          void this.runBootstrap({
+            reason: "auth_state_change",
+            previousAuthUserId: this.state.previousAuthUserId,
+          });
         }
-      } else {
-        console.warn("[Auth] Skipping quickstart: fingerprint unavailable");
-      }
+      });
     }
 
-    // Subscribe to auth state changes
-    this.authSubscription = deps.onAuthStateChange((s) => {
-      // Snapshot pre-apply state (used for both lifecycle dispatch and existing gates).
-      const prevUserId = this.state.userId;
-      const prevIdentity = this.state.identity;
-
-      // Apply session FIRST — sole owner of state.userId mutation.
-      this.applySession(s);
-
-      // Read current userId from state (post-apply).
-      const currentUserId = this.state.userId;
-
-      // Lifecycle dispatch (after applySession; uses pre-apply snapshot for idempotency).
-      // Each dep callback wrapped so a buggy provider cannot break the rest of
-      // the dispatch (existing gates, listeners).
-      if (prevUserId === null && currentUserId !== null) {
-        try {
-          deps.onReady(currentUserId);
-        } catch (err) {
-          console.warn("[AuthOrchestrator] onReady threw:", err);
-        }
-      } else if (
-        prevUserId !== null &&
-        currentUserId !== null &&
-        prevUserId !== currentUserId
-      ) {
-        try {
-          deps.onIdentityChanged(currentUserId);
-        } catch (err) {
-          console.warn("[AuthOrchestrator] onIdentityChanged threw:", err);
-        }
-      } else if (prevUserId !== null && currentUserId === null) {
-        this.handleSignedOut(prevUserId);
-      }
-
-      // Existing transition gates (preserve verbatim — use pre-apply snapshot).
-      const wasAnon = prevIdentity === "anonymous";
-      const isNowAuth = !!s?.user && !s.user.is_anonymous;
-      const wasAuth = prevUserId !== null && prevIdentity === "authenticated";
-
-      // Server validation is managed by handleSignedOut() on sign-out.
-      // For non-sign-out transitions, init/refresh per-user validation.
-      if (s?.user?.id) {
-        try {
-          deps.initServerValidation(s.user.id);
-        } catch (err) {
-          console.warn("[AuthOrchestrator] initServerValidation threw:", err);
-        }
-      }
-      // (Sign-out case: state already cleared by applySession; handleSignedOut
-      //  has fired disableServerValidation via the lifecycle dispatch above.)
-      // Transition from anon → authenticated (OAuth just completed): run
-      // post-OAuth pipeline. Same-account re-login also passes through here,
-      // but register-device is idempotent.
-      if (wasAnon && isNowAuth) {
-        void this.runPostOAuth(null);
-      }
-      // Auth transitions
-      if (isNowAuth && !wasAuth && s?.user?.id) {
-        // onAuthenticated removed — replaced by onIdentityChanged lifecycle dispatch above.
-        try {
-          deps.stopLoginPrompts();
-        } catch (err) {
-          console.warn("[AuthOrchestrator] stopLoginPrompts threw:", err);
-        }
-        // Phase 6: merge check fires on every anon→auth transition.
-        // Per Q3: auto-open panel on conflict. No more triggeredRef bug —
-        // same-account re-login only fires this if there was a state reset.
-        void deps.runMergeCheck(s.user.id, this.state.deviceId ?? "");
-      }
+    // Step 4: run the bootstrap pipeline.
+    void this.runBootstrap({
+      reason: "mount",
+      previousAuthUserId: this.state.previousAuthUserId,
     });
 
     return () => {
       this.authSubscription?.();
       this.authSubscription = null;
+      // Bump the request version so any in-flight bootstrap is invalidated.
+      this.requestVersion += 1;
     };
+  }
+
+  /** Manually retry from a `temporary_error` state. */
+  retry(): void {
+    if (this.state.status !== "temporary_error") return;
+    this.applyTransition({ type: "RETRY" });
+    void this.runBootstrap({
+      reason: "retry",
+      previousAuthUserId: this.state.previousAuthUserId,
+    });
+  }
+
+  // ─── Bootstrap pipeline (private) ───────────────────────────────────
+
+  /**
+   * Drive the bootstrap state machine. Bumps the request version so any
+   * in-flight response can be recognized as stale. Reads the deviceId
+   * from state (already populated by startup()), collects the fingerprint
+   * with a strict timeout, resolves the session, then POSTs to
+   * /api/auth/bootstrap.
+   *
+   * The result flows through `responseBodyToEvent` -> `transition()` ->
+   * state mutation. Side effects (applyServerState, block gameplay, etc.)
+   * are wired here, NOT inside `state.ts`, so the state machine stays
+   * pure.
+   */
+  private async runBootstrap(args: {
+    reason: "mount" | "auth_state_change" | "sign_out" | "retry";
+    previousAuthUserId: string | null;
+  }): Promise<void> {
+    const deps = this.deps;
+    if (!deps) return;
+
+    // Stale-response guard: bump the version. Any response that arrives
+    // after this point will check the version and bail if it doesn't
+    // match.
+    const version = ++this.requestVersion;
+
+    // Resolve session + collect fingerprint IN PARALLEL (plan §4 step 3).
+    // The session result is required before the request body is built;
+    // the fingerprint is telemetry-only with a strict timeout.
+    const fingerprintPromise = withTimeout(
+      deps
+        .getFingerprint(FINGERPRINT_TIMEOUT_MS)
+        .then((value) => ({
+          status: value ? ("available" as const) : ("unavailable" as const),
+          value,
+        }))
+        .catch(() => ({ status: "timeout" as const, value: null })),
+      FINGERPRINT_TIMEOUT_MS + 250,
+      { status: "timeout" as const, value: null },
+    );
+
+    const sessionPromise = withTimeout(
+      deps.getSession(),
+      SESSION_TIMEOUT_MS,
+      null as Session | null,
+    );
+
+    const [fingerprint, session] = await Promise.all([
+      fingerprintPromise,
+      sessionPromise,
+    ]);
+
+    // Update fingerprint telemetry status on state (does not change status).
+    this.setState({ fingerprintStatus: fingerprint.status });
+
+    // If a newer request started while we were collecting input, abort.
+    if (version !== this.requestVersion) return;
+
+    // transitioning idle -> resolving_session. Only valid from idle. If
+    // we're already mid-flow (e.g., another bootstrap is running), skip.
+    if (this.state.status === "idle") {
+      this.applyTransition({ type: "STARTUP" });
+    } else if (
+      this.state.status === "ready" ||
+      this.state.status === "signed_out"
+    ) {
+      // Plan §5: ready -> resolving_session on auth change. The transition
+      // is only meaningful if the user has actually changed. The caller
+      // (signOut / onAuthStateChange) is responsible for that decision.
+      this.applyTransition({
+        type: "AUTH_USER_CHANGED",
+        userId: session?.user?.id ?? null,
+      });
+    }
+
+    // resolving_session -> bootstrapping (after session resolved).
+    this.applyTransition({ type: "SESSION_RESOLVED" });
+
+    // Stale-response guard redux: a retry or sign-out fired during the
+    // session/fingerprint wait must invalidate us.
+    if (version !== this.requestVersion) return;
+
+    const deviceId = this.state.deviceId ?? "";
+    if (!deviceId) {
+      // SEC-002 fail closed — without a deviceId we cannot resolve
+      // identity. Block gameplay; this is a permanent error.
+      this.setState({
+        status: "recovery_required",
+        result: { status: "recovery_required" },
+        previousAuthUserId: null,
+      });
+      return;
+    }
+
+    // Build request body. previousAuthUserId is the only field that
+    // changes between bootstrap reasons — for `mount` and `retry` we
+    // pass whatever the orchestrator remembers; for `sign_out` the
+    // caller supplies it explicitly.
+    const previousAuthUserId =
+      args.reason === "sign_out"
+        ? args.previousAuthUserId
+        : this.state.previousAuthUserId;
+
+    const body = {
+      deviceId,
+      fingerprintHash: fingerprint.value,
+      previousAuthUserId,
+      // Migration 079: orchestrator does NOT set mergePolicy — the server
+      // resolves it from profiles.auth_merge_policy per user, falling back
+      // to the default 'auth_wins_archive_guest'. We deliberately do not
+      // forward a client-supplied value here to keep the trust boundary
+      // server-side.
+    };
+
+    // Issue the bootstrap request. The dep is responsible for fetch +
+    // parsing; we wrap in an abort-timeout defensively so a misbehaving
+    // dep can't hang startup forever.
+    const response = await withAbortTimeout(
+      () => deps.callBootstrap(body),
+      BOOTSTRAP_TIMEOUT_MS,
+    );
+
+    // Stale-response guard: drop responses for old versions.
+    if (version !== this.requestVersion) return;
+
+    const event = responseBodyToEvent(response);
+    if (!event) {
+      // Unknown response shape — treat as temporary error.
+      this.applyTransition({
+        type: "RESPONSE_TEMPORARY",
+        response: { code: "INTERNAL_BOOTSTRAP_ERROR" },
+      });
+      return;
+    }
+
+    this.applyTransition(event);
+  }
+
+  // ─── State machine wiring ───────────────────────────────────────────
+
+  /**
+   * Apply a transition event to the current state. Drives `transition()`
+   * (pure) and then applies the side effects it requested.
+   *
+   * IMPORTANT: this is the SOLE place where side effects fire in response
+   * to a bootstrap response. The state machine itself is pure.
+   */
+  private applyTransition(event: TransitionEvent): void {
+    const current = this.state.status;
+    const outcome = transition(current, event);
+    const deps = this.deps;
+
+    // Apply state patch. We always update `status` and `result` (when the
+    // event is a response). Identity / userId are derived from the
+    // response payload for response events.
+    const patch: Partial<OrchestratorState> = { status: outcome.nextStatus };
+
+    if (event.type === "RESPONSE_BOOTSTRAP_READY") {
+      patch.identity = event.response.isGuest ? "anonymous" : "authenticated";
+      patch.userId = event.response.userId;
+      patch.isGuest = event.response.isGuest;
+      const readyResult: BootstrapReadyResult = {
+        status: "ready",
+        userId: event.response.userId,
+        isGuest: event.response.isGuest,
+        isNewUser: event.response.isNewUser,
+        source: this.normalizeSource(event.response.source),
+        hasGameState: event.response.hasGameState,
+        needsStateLoad: event.response.needsStateLoad,
+        gameState: event.response.gameState,
+        // Migration 079: archive receipt / archived guest id propagate
+        // through to the orchestrator state for one-time UI banner.
+        archiveReceiptId: event.response.archiveReceiptId ?? null,
+        archivedGuestId: event.response.archivedGuestId ?? null,
+      };
+      patch.result = readyResult;
+      // Bootstrap consumed any pending previousAuthUserId. Clear it so
+      // subsequent requests don't accidentally include it.
+      patch.previousAuthUserId = null;
+    } else if (event.type === "RESPONSE_CONFLICT") {
+      patch.result = {
+        status: "conflict",
+        reason: event.response.code,
+        survivingUserId: event.response.survivingUserId,
+        archivedGuestId: event.response.archivedGuestId,
+      };
+    } else if (event.type === "RESPONSE_RECOVERY") {
+      patch.result = { status: "recovery_required" };
+    } else if (event.type === "RESPONSE_TEMPORARY") {
+      const reason = this.mapTemporaryReason(event.response.code);
+      patch.result = {
+        status: "temporary_error",
+        reason,
+        retryable:
+          event.response.code === "BOOTSTRAP_RATE_LIMITED" ||
+          event.response.code === "BOOTSTRAP_UNAVAILABLE",
+      };
+    } else if (event.type === "STARTUP") {
+      patch.result = null;
+    } else if (event.type === "AUTH_USER_CHANGED") {
+      // Identity is about to change — clear result. The actual identity
+      // update happens via applySession() before this transition fires,
+      // so we only need to clear the result + block gameplay here.
+      patch.result = null;
+    }
+
+    this.setState(patch);
+
+    // Apply side effects.
+    for (const effect of outcome.effects) {
+      switch (effect) {
+        case "apply_ready_response":
+          if (event.type === "RESPONSE_BOOTSTRAP_READY") {
+            try {
+              deps?.applyServerState({
+                userId: event.response.userId,
+                isGuest: event.response.isGuest,
+                isNewUser: event.response.isNewUser,
+                needsStateLoad: event.response.needsStateLoad,
+                gameState: event.response.gameState,
+              });
+            } catch (err) {
+              console.warn(
+                "[AuthOrchestrator] applyServerState threw:",
+                err,
+              );
+            }
+            this.dispatch({
+              type: "BOOTSTRAP_READY",
+              userId: event.response.userId,
+              isGuest: event.response.isGuest,
+              isNewUser: event.response.isNewUser,
+              source: this.normalizeSource(event.response.source),
+            });
+          }
+          break;
+        case "apply_conflict_response":
+          if (event.type === "RESPONSE_CONFLICT") {
+            this.dispatch({
+              type: "BOOTSTRAP_CONFLICT",
+              reason: event.response.code,
+              survivingUserId: event.response.survivingUserId,
+              archivedGuestId: event.response.archivedGuestId,
+            });
+          }
+          break;
+        case "apply_recovery_response":
+          this.dispatch({ type: "BOOTSTRAP_RECOVERY_REQUIRED" });
+          break;
+        case "apply_temporary_error_response":
+          if (event.type === "RESPONSE_TEMPORARY") {
+            const retryable =
+              event.response.code === "BOOTSTRAP_RATE_LIMITED" ||
+              event.response.code === "BOOTSTRAP_UNAVAILABLE";
+            this.dispatch({
+              type: "BOOTSTRAP_TEMPORARY_ERROR",
+              retryable,
+            });
+          }
+          break;
+        case "block_gameplay":
+          // The store + UI listen for status changes; nothing extra to
+          // do here. Kept as an explicit effect for clarity / future
+          // hooks (e.g., showing a loading overlay).
+          break;
+        case "clear_previous_user_state":
+          // Done at the call site (signOut / onAuthStateChange). Listed
+          // here as a documented effect so the state machine stays the
+          // single source of truth for what must happen.
+          break;
+        case "trigger_sign_out_bootstrap":
+          // Triggered by signOut() itself. Listed here for documentation
+          // completeness; the call site runs the bootstrap directly.
+          break;
+        default: {
+          const _exhaustive: never = effect;
+          void _exhaustive;
+        }
+      }
+    }
+  }
+
+  // ─── Helpers ────────────────────────────────────────────────────────
+
+  private normalizeSource(raw: string): BootstrapReadyResult["source"] {
+    if (
+      raw === "deviceId" ||
+      raw === "auth" ||
+      raw === "fresh" ||
+      raw === "sign_out_to_guest"
+    ) {
+      return raw;
+    }
+    return "fresh";
+  }
+
+  private mapTemporaryReason(
+    code: Extract<
+      BootstrapResponseBody,
+      {
+        code:
+          | "BOOTSTRAP_RATE_LIMITED"
+          | "BOOTSTRAP_UNAVAILABLE"
+          | "INTERNAL_BOOTSTRAP_ERROR"
+          | "INVALID_BOOTSTRAP_REQUEST"
+          | "INVALID_SESSION";
+      }
+    >["code"],
+  ): BootstrapTemporaryErrorResult["reason"] {
+    switch (code) {
+      case "BOOTSTRAP_RATE_LIMITED":
+        return "rate_limited";
+      case "BOOTSTRAP_UNAVAILABLE":
+        return "service_unavailable";
+      case "INTERNAL_BOOTSTRAP_ERROR":
+        return "internal_error";
+      case "INVALID_BOOTSTRAP_REQUEST":
+        return "invalid_request";
+      case "INVALID_SESSION":
+        return "invalid_session";
+      default: {
+        const _exhaustive: never = code;
+        void _exhaustive;
+        return "internal_error";
+      }
+    }
+  }
+
+  // Exposed for tests so the orchestrator's status can be asserted
+  // against the §5 names without leaking the private field.
+  getStatus(): OrchestratorStatus {
+    return this.state.status;
   }
 }

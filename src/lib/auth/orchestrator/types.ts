@@ -1,27 +1,200 @@
 /**
- * AuthOrchestrator types — Phase 1 skeleton.
+ * AuthOrchestrator types — PR4-4A rewrite.
  *
- * Defines the public state machine surface, identity enum, and event union
- * that the orchestrator consumes. Phase 1 does not change behavior — only
- * introduces these types so future phases can wire transitions.
+ * Public state machine surface, identity enum, bootstrap request/response
+ * types, and event union. Aligned with plan §5 + §15 from
+ * AUTH_ORCHESTRATOR_REDESIGN_PLAN.md.
  */
 
 import type { Session } from "@supabase/supabase-js";
-import type { LoginPromptReason } from "@/components/game/LoginFloatingPanel";
-import type { GameTab } from "@/lib/game/shared/types/types";
 
-export type { LoginPromptReason };
-export type { GameTab };
-
-export type IdentityKind =
-  "unauthenticated" | "anonymous" | "authenticated" | "locked_to_account";
-
-export type OrchestratorStatus =
-  "idle" | "initializing" | "recovering" | "ready" | "signing_out" | "blocked";
+// ─── State machine (plan §5) ────────────────────────────────────────────
 
 /**
- * Why the user is in `limitedMode`. Future-ready: 'oauth_required',
- * 'maintenance', 'guest_only', 'network' all fit here.
+ * Client orchestrator status. 8 states matching plan §5.
+ *
+ * NOTE: this is a breaking change from the prior 6-state enum. The prior
+ * values `initializing | recovering | signing_out | blocked` are gone — they
+ * collapse into the new lifecycle:
+ *   - initializing -> resolving_session + bootstrapping
+ *   - recovering   -> bootstrapping
+ *   - signing_out  -> signed_out
+ *   - blocked      -> recovery_required
+ *
+ * Consumers that read `status` directly must update.
+ */
+export type OrchestratorStatus =
+  | "idle"
+  | "resolving_session"
+  | "bootstrapping"
+  | "ready"
+  | "conflict"
+  | "recovery_required"
+  | "temporary_error"
+  | "signed_out";
+
+export type IdentityKind =
+  | "unauthenticated"
+  | "anonymous"
+  | "authenticated"
+  | "locked_to_account";
+
+// ─── Bootstrap request/response (matches /api/auth/bootstrap) ───────────
+
+export interface BootstrapRequestBody {
+  deviceId: string;
+  fingerprintHash?: string | null;
+  previousAuthUserId?: string | null;
+  /**
+   * Migration 079: per-request auth-merge policy forwarded to the
+   * server. Default 'auth_wins_archive_guest' (server-side). Set
+   * 'explicit_conflict' for users who opted into the legacy 409 prompt.
+   */
+  mergePolicy?: "auth_wins_archive_guest" | "explicit_conflict";
+}
+
+/**
+ * Discriminated union for the POST /api/auth/bootstrap response. Mirrors
+ * plan §15 status codes exactly + Migration 079 archive metadata.
+ * The orchestrator never sees raw HTTP — the deps' `callBootstrap`
+ * parses JSON into this shape.
+ */
+export type BootstrapResponseBody =
+  | {
+      code: "BOOTSTRAP_READY";
+      userId: string;
+      isGuest: boolean;
+      isNewUser: boolean;
+      source: string;
+      hasGameState: boolean;
+      needsStateLoad: boolean;
+      gameState?: Record<string, unknown>;
+      /**
+       * Migration 079: when the default 'auth_wins_archive_guest' policy
+       * archived guest progress at sign-in, this id points to the
+       * recoverable snapshot row in `guest_state_archive`. UI can
+       * render a one-time banner.
+       */
+      archiveReceiptId?: string | null;
+      archivedGuestId?: string | null;
+    }
+  | {
+      code: "ACCOUNT_PROGRESS_CONFLICT" | "DEVICE_BOUND_TO_OTHER_USER";
+      conflictReason: string;
+      survivingUserId: string | null;
+      archivedGuestId: string | null;
+    }
+  | {
+      code: "STATE_RECOVERY_REQUIRED";
+    }
+  | {
+      code: "BOOTSTRAP_RATE_LIMITED" | "BOOTSTRAP_UNAVAILABLE";
+      message?: string;
+    }
+  | {
+      code: "INTERNAL_BOOTSTRAP_ERROR";
+      message?: string;
+    }
+  | {
+      code: "INVALID_BOOTSTRAP_REQUEST" | "INVALID_SESSION";
+      message?: string;
+    };
+
+// ─── Typed orchestrator result payload (plan §5) ────────────────────────
+
+export type BootstrapSource =
+  | "deviceId"
+  | "auth"
+  | "fresh"
+  | "sign_out_to_guest";
+
+export interface BootstrapReadyResult {
+  status: "ready";
+  userId: string;
+  isGuest: boolean;
+  isNewUser: boolean;
+  source: BootstrapSource;
+  hasGameState: boolean;
+  needsStateLoad: boolean;
+  gameState?: Record<string, unknown>;
+  /** Migration 079: archive receipt id (recoverable guest snapshot). */
+  archiveReceiptId?: string | null;
+  archivedGuestId?: string | null;
+}
+
+export interface BootstrapConflictResult {
+  status: "conflict";
+  reason: "DEVICE_BOUND_TO_OTHER_USER" | "ACCOUNT_PROGRESS_CONFLICT";
+  survivingUserId: string | null;
+  archivedGuestId: string | null;
+}
+
+export interface BootstrapRecoveryResult {
+  status: "recovery_required";
+}
+
+export interface BootstrapTemporaryErrorResult {
+  status: "temporary_error";
+  reason:
+    | "rate_limited"
+    | "service_unavailable"
+    | "network"
+    | "internal_error"
+    | "invalid_request"
+    | "invalid_session";
+  retryable: boolean;
+}
+
+export type OrchestratorResult =
+  | BootstrapReadyResult
+  | BootstrapConflictResult
+  | BootstrapRecoveryResult
+  | BootstrapTemporaryErrorResult
+  | { status: "idle" };
+
+// ─── Fingerprint status (telemetry only — plan §10) ─────────────────────
+
+export type FingerprintStatus =
+  | "pending"
+  | "available"
+  | "unavailable"
+  | "timeout"
+  | "blocked";
+
+// ─── Orchestrator state shape ───────────────────────────────────────────
+
+export interface OrchestratorState {
+  status: OrchestratorStatus;
+  identity: IdentityKind;
+  userId: string | null;
+  deviceId: string | null;
+  isGuest: boolean;
+  /**
+   * Latest typed bootstrap result. `null` when no bootstrap has completed
+   * yet. The status and result together describe the orchestrator's view
+   * of the world: status tells the UI which screen to render, result
+   * carries the payload the screen needs.
+   */
+  result: OrchestratorResult | null;
+  /**
+   * Authenticated user id captured BEFORE sign-out. Cleared on the next
+   * bootstrap that consumes it. The orchestrator passes this to
+   * /api/auth/bootstrap as `previousAuthUserId` so the server can route
+   * the request to the create_signed_out_guest_after_signout RPC.
+   */
+  previousAuthUserId: string | null;
+  fingerprintStatus: FingerprintStatus;
+  /**
+   * Kept for legacy consumers (FingerprintUnavailableModal reads these).
+   * Will be removed in PR4-4B once the modal migrates to `result` + status.
+   */
+  limitedMode: boolean;
+  limitedReason: LimitedReason | null;
+}
+
+/**
+ * Legacy limitedReason enum. Kept so external consumers that read
+ * `state.limitedMode` / `state.limitedReason` keep compiling.
  */
 export type LimitedReason =
   | "fingerprint_unavailable"
@@ -30,27 +203,30 @@ export type LimitedReason =
   | "guest_only"
   | "network";
 
-export interface OrchestratorState {
-  status: OrchestratorStatus;
-  identity: IdentityKind;
-  userId: string | null;
-  deviceId: string | null;
-  isGuest: boolean;
-  /** True when the user can play but some feature is degraded. */
-  limitedMode: boolean;
-  /** Why limitedMode is set; null when not in limited mode. */
-  limitedReason: LimitedReason | null;
-}
+// ─── Events ─────────────────────────────────────────────────────────────
 
 export type AuthEvent =
   | { type: "STARTUP" }
-  | { type: "RECOVERED"; userId: string; source: "deviceId" | "fingerprint" }
-  | { type: "NO_RECOVERY" }
+  | {
+      type: "BOOTSTRAP_READY";
+      userId: string;
+      isGuest: boolean;
+      isNewUser: boolean;
+      source: BootstrapSource;
+    }
+  | {
+      type: "BOOTSTRAP_CONFLICT";
+      reason: "DEVICE_BOUND_TO_OTHER_USER" | "ACCOUNT_PROGRESS_CONFLICT";
+      survivingUserId: string | null;
+      archivedGuestId: string | null;
+    }
+  | { type: "BOOTSTRAP_RECOVERY_REQUIRED" }
+  | { type: "BOOTSTRAP_TEMPORARY_ERROR"; retryable: boolean }
   | { type: "OAUTH_CALLBACK"; provider: "google" | "github" }
   | { type: "OAUTH_SUCCESS"; provider: "google" | "github" }
   | { type: "OAUTH_FAILURE"; provider: "google" | "github"; error: string }
-  | { type: "BIND_REQUEST"; reason: LoginPromptReason; pendingTab?: GameTab }
-  | { type: "SIGN_OUT" }
+  | { type: "SIGN_OUT_STARTED" }
+  | { type: "SIGN_OUT_COMPLETE" }
   | { type: "WAITLIST_REQUIRED" }
   | { type: "AUTH_STATE_CHANGED"; session: Session | null };
 
@@ -58,63 +234,99 @@ export type AuthEventListener = (event: AuthEvent) => void;
 export type StateListener = (state: OrchestratorState) => void;
 export { Session };
 
-export interface AuthOrchestratorDeps {
+// ─── Deps — NEW minimal interface for the bootstrap flow ────────────────
+
+/**
+ * AuthOrchestrator deps for the post-PR4-4A bootstrap flow. This replaces
+ * the legacy `AuthOrchestratorDeps` (quickstart/registerDevice/etc.). The
+ * legacy interface is no longer exported — PR4-4B will update
+ * `AuthProvider.tsx` to wire the new shape.
+ *
+ * Each callback is wrapped in try/catch by the orchestrator so a buggy
+ * provider cannot prevent subsequent cleanup steps from running.
+ */
+export interface AuthOrchestratorBootstrapDeps {
+  /** True when Supabase env vars exist. False short-circuits bootstrap. */
   isSupabaseConfigured: boolean;
+
+  /** Persistent device id (UUID). The orchestrator owns creation. */
   getDeviceId: () => string;
-  getSession: () => Promise<Session | null>;
+
   /**
-   * Compute browser fingerprint. The orchestrator calls this ONLY when
-   * a session is missing (i.e., an anon startup flow actually needs it).
-   * Returning 'unknown' causes the orchestrator to skip the quickstart
-   * call entirely, since fingerprint is a required field.
+   * Read the current Supabase session. Returning `null` is valid (no
+   * session, i.e. guest bootstrap).
    */
-  getFingerprint: () => Promise<string | null>;
-  /** SINGLE entry point for anon startup. Server-side consolidated:
-   *  - deviceId primary lookup
-   *  - fingerprint fallback lookup
-   *  - create user if no match
-   *  - init game state if new
-   *  - register/update guest identity
-   *  Source lets the client log/telemetry know how the user was resolved. */
-  quickstart: (
-    deviceId: string,
-    fingerprint: string | null,
-  ) => Promise<{
-    userId: string | null;
-    source?: "deviceId" | "fingerprint" | "fresh" | null;
-    isNewUser?: boolean | null;
-    /** True when quickstart was forced to use the unavailable-fingerprint
-     *  sentinel AND Step 1 (deviceId) did NOT match. UI shows the
-     *  limited-mode modal. Step 1 match + sentinel = full recovery, no modal. */
-    limited?: boolean | null;
-    error: string | null;
-  }>;
-  signInWithOAuth: (
+  getSession: () => Promise<Session | null>;
+
+  /**
+   * Collect browser fingerprint with a STRICT timeout. The orchestrator
+   * passes the timeout budget (ms). Returning `null` after timeout is
+   * acceptable — bootstrap must continue. Per plan §10 fingerprint is
+   * never allowed to delay bootstrap indefinitely.
+   */
+  getFingerprint: (timeoutMs: number) => Promise<string | null>;
+
+  /**
+   * POST /api/auth/bootstrap. Caller (the orchestrator) supplies the
+   * deviceId, fingerprintHash, and optional previousAuthUserId body
+   * fields. The dep is responsible for fetch + JSON parsing + HTTP
+   * status → discriminated union mapping.
+   *
+   * MUST return `null` on network/JSON failure so the orchestrator can
+   * route to RESPONSE_TEMPORARY.
+   */
+  callBootstrap: (body: BootstrapRequestBody) => Promise<BootstrapResponseBody | null>;
+
+  /**
+   * Apply server-authoritative state. Called EXACTLY ONCE per successful
+   * bootstrap response (after the previous user's state has been cleared).
+   * The orchestrator guarantees only the latest response triggers this.
+   *
+   * `applyServerState` is the dependency that wires the new userId into
+   * the Zustand store via the existing `applyServerState` helper from
+   * `@/lib/game/state/store`. In PR4-4A this is wired by the consumer
+   * (AuthProvider) since the store lives outside the orchestrator.
+   */
+  applyServerState: (args: {
+    userId: string;
+    isGuest: boolean;
+    isNewUser: boolean;
+    needsStateLoad: boolean;
+    gameState?: Record<string, unknown>;
+  }) => void | Promise<void>;
+
+  /**
+   * Clear the previous user's game state. Called BEFORE applyServerState
+   * when the resolved identity has changed. Ensures plan §5 hard rule:
+   * "When the resolved user changes, immediately block gameplay + clear
+   * previous user's game state before applying new state."
+   */
+  clearPreviousUserState: () => void;
+
+  /** Subscribe to Supabase auth state changes. Optional — some test
+   *  harnesses do not need it. */
+  onAuthStateChange?: (
+    handler: (session: Session | null) => void,
+  ) => () => void;
+
+  /** Supabase sign-out. Optional — PR4-4B will wire it. */
+  signOutSupabase?: () => Promise<{ error: string | null }>;
+
+  /** OAuth sign-in entry point. Optional in tests. */
+  signInWithOAuth?: (
     provider: "google" | "github",
     redirectTo: string,
   ) => Promise<{ error: string | null }>;
-  registerDevice: (
-    deviceId: string,
-    fingerprint: string | null,
-    fingerprintHash: string | null,
-  ) => Promise<{ ok: boolean; alreadyExists: boolean; reason?: string }>;
-  onAuthStateChange: (handler: (session: Session | null) => void) => () => void;
-  signOutSupabase: () => Promise<{ error: string | null }>;
-  disableServerValidation: () => void;
-  initServerValidation: (userId: string) => void;
-  // Phase 5: cloud sync trigger. Orchestrator owns load/save timing.
-  onReady: (userId: string) => void;
-  // Phase 10: identity transition between two non-null userIds
-  // (OAuth upgrade, account switch). Does NOT re-load — load is
-  // one-shot via onReady.
-  onIdentityChanged: (userId: string) => void;
-  onSignedOut: () => void;
-  // Phase 6: merge flow trigger. Orchestrator owns merge-check timing.
-  runMergeCheck: (userId: string, deviceId: string) => Promise<void>;
-  resetMerge: () => void;
-  // Phase 7: soft prompt trigger. Orchestrator owns prompt timing.
-  startLoginPrompts: (
-    requestLogin: (reason: LoginPromptReason, tab?: GameTab) => void,
-  ) => void;
-  stopLoginPrompts: () => void;
 }
+
+// ─── Legacy re-exports for callers that still import the old names ──────
+//
+// PR4-4B will rewrite AuthProvider.tsx and the test harness. Until then
+// we keep `AuthOrchestratorDeps` as a type alias so existing imports keep
+// compiling. Once AuthProvider is updated this alias goes away.
+
+/**
+ * @deprecated Use `AuthOrchestratorBootstrapDeps`. Kept for the existing
+ * AuthProvider.tsx and E2E harness; PR4-4B removes it.
+ */
+export type AuthOrchestratorDeps = AuthOrchestratorBootstrapDeps;

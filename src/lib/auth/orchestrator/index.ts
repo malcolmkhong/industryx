@@ -1,27 +1,49 @@
 /**
- * AuthOrchestrator — public API barrel.
+ * AuthOrchestrator — public API barrel (PR4-4A).
  */
 
-export { AuthOrchestrator } from './AuthOrchestrator';
+export { AuthOrchestrator } from "./AuthOrchestrator";
 export {
   AuthOrchestratorProvider,
   AuthOrchestratorContext,
   type AuthContextValue,
-} from './AuthContext';
-export { useAuth } from './useAuth';
+} from "./AuthContext";
+export { useAuth } from "./useAuth";
 export {
   createDeviceIdStorage,
   DEVICE_ID_STORAGE_KEY,
   type DeviceIdStorage,
-} from './storage';
+} from "./storage";
+export {
+  registerOrchestrator,
+  unregisterOrchestrator,
+  getOrchestratorStateSnapshot,
+} from "./registry";
+export {
+  transition,
+  responseBodyToEvent,
+  type TransitionEvent,
+  type TransitionEffect,
+  type TransitionOutcome,
+} from "./state";
 export type {
   AuthEvent,
   AuthEventListener,
+  AuthOrchestratorBootstrapDeps,
   AuthOrchestratorDeps,
-  GameTab,
+  BootstrapConflictResult,
+  BootstrapReadyResult,
+  BootstrapRecoveryResult,
+  BootstrapRequestBody,
+  BootstrapResponseBody,
+  BootstrapSource,
+  BootstrapTemporaryErrorResult,
+  FingerprintStatus,
   IdentityKind,
-  LoginPromptReason,
+  LimitedReason,
+  OrchestratorResult,
   OrchestratorState,
   OrchestratorStatus,
   StateListener,
-} from './types';
+} from "./types";
+export type { Session } from "./types";
