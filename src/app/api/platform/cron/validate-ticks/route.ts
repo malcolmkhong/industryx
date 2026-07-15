@@ -11,7 +11,7 @@
 // ============================================================================
 
 import { NextResponse } from "next/server";
-import { createServiceRoleClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from '@/lib/db/access';;
 import { computeMaxPossibleMoney } from "@/lib/game/server-time/serverTickValidator";
 import { DEFAULT_BALANCE_SUBSET, type GameConfig } from "@/lib/game/config/config";
 import type { ServerGameData } from "@/lib/game/shared/types/types";

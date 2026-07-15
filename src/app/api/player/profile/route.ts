@@ -6,7 +6,7 @@
 // ============================================
 
 import { NextResponse } from 'next/server';
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/db/access';;
 import { verifyAuthAndOwnership } from '@/lib/auth/verifyAuth';
 import { getPlayerProgressByUserId } from '@/lib/db/game/playerProgress';
 

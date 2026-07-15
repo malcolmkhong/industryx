@@ -3,7 +3,7 @@
 // (reuses existing support system — admin sees it in /admin/support).
 
 import { NextResponse, type NextRequest } from "next/server";
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/db/access';;
 
 export async function POST(request: NextRequest) {
   let body: { email?: string; name?: string; source?: string };

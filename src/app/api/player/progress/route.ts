@@ -8,7 +8,7 @@
 // ============================================
 
 import { NextResponse } from 'next/server';
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/db/access';;
 import { verifyAuthAndOwnership } from '@/lib/auth/verifyAuth';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 import {
