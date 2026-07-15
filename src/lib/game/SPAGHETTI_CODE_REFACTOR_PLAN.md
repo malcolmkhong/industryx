@@ -9,7 +9,43 @@ Rule for this document:
 - Do not move or split files until imports, tests, and ownership are checked for that specific batch.
 - First priority is ownership clarity: pure math, server authority, client orchestration, UI metadata, persistence, and config should not live in the same file.
 
-## `src/lib/game/actions/client/actionValidator.ts`
+## Batch Status
+
+| # | Name | Sections | Total LOC budget | Status |
+|---:|---|---:|---:|---|
+| 1 | Icons (`shared/icons/*`) | 3 | ~6KB | ✅ Done (commit 232c0ed) |
+| 2 | UI catalog (`catalog/ui/*`) | 1 | ~28KB | ✅ Done (commit 232c0ed) |
+| 3 | News (`market/news/*`) | 2 | ~28KB | Partial - `newsBuilder` wired; `newsLLM` audited but still needs split modules |
+| 4 | Balance config (`config/balance/*`) | 1 | ~17KB | ✅ Done (commit 232c0ed) |
+| 5 | Config split (`config/{config,configCache}` → `runtimeCache`/`transformers`/`derived`/`types`/`client`) | 2 | ~5KB | ✅ Done (this session) |
+| 6 | State foundation (`state/store.ts` + `store-bootstrap.ts` + `store-types.ts` + `store-actions/_actionTypes.ts`) | 4 | ~18KB | ✅ Done (this session) |
+| 7 | Shared types (`shared/types/types.ts`) | 1 | ~22KB | ✅ Done (this session) |
+| 8 | Server engine (`production/engine/serverEngine.ts`) | 1 | ~80KB | Done - live entrypoint is a compatibility barrel |
+| 9 | Production + modifier engine (`production/productionCalculator.ts` + `modifiers/modifierEngine.ts`) | 2 | ~63KB | Done - live entrypoints are compatibility barrels |
+| 10 | Server actions pipeline (`actions/client/*` + `actions/server/*`) | 9 | ~38KB | Done - live client/server entrypoints now use split modules |
+| 11 | Market + events + server config (`market/engine/*` + `marketSimulator` + `tradeConstants` + `events/eventArchetypes` + `config/server/configLoader.server.ts`) | 8 | ~40KB | Partial - sectors, event archetypes, and server config loader wired |
+| 12 | store-actions/ big 5 (`buildings` + `transport` + `workers` + `market` + `prestige`) | 5 | ~38KB | ✅ Done (this session) |
+| 13 | store-actions/ medium 7 (`dailyRewards` + `drones` + `contracts` + `payouts` + `quests` + `research` + `storage`) | 7 | ~35KB | ✅ Done (this session) |
+| 14 | store-actions/ small + leftovers (9 store-actions + `audio` + `buildings` + `migration` + `progression` + `server-time` + `settings` + `shared/constants` + 7 `shared/utils`) | 16 | ~38KB | Audit complete - all batch 14 sections checked; `audio` and `settings` still need split modules |
+
+Totals: 14 batches. Current audit status: 68 checked sections, 0 remaining audit sections. Completed wiring: 5-10, 12-13, plus automation, megaProjects, and rank from batch 14. Remaining implementation work is `market/news/newsLLM.ts`, `audio/soundEngine.ts`, and `settings/settingsStore.ts`.
+
+## Audit Markers
+
+Legend:
+
+- ✅ = checked / wiring verified for this refactor pass.
+- ⬜ = remains to audit before this plan can be closed.
+
+Remaining implementation list:
+
+| Batch | Remaining area | Reason |
+|---:|---|---|
+| 3 | `market/news/newsLLM.ts` | Audited, but still has implementation work: split modules are missing. |
+| 14 | `audio/soundEngine.ts` | Audited, but still has implementation work: split modules are missing. |
+| 14 | `settings/settingsStore.ts` | Audited, but still has implementation work: split modules are missing. |
+
+## ✅ [Batch 10] `src/lib/game/actions/client/actionValidator.ts`
 
 Current role: client bridge that calls server actions and normalizes validation results for store actions.
 
@@ -24,7 +60,7 @@ src/lib/game/actions/client/
 `-- NEW validationTypes.ts
 ```
 
-## `src/lib/game/actions/client/serverActions.ts`
+## ✅ [Batch 10] `src/lib/game/actions/client/serverActions.ts`
 
 Current role: client network wrapper for server-backed game actions and sync.
 
@@ -41,7 +77,7 @@ src/lib/game/actions/client/
 `-- NEW errorMapper.ts
 ```
 
-## `src/lib/game/actions/server/actionCommandRunner.ts`
+## ✅ [Batch 10] `src/lib/game/actions/server/actionCommandRunner.ts`
 
 Current role: dispatches validated server commands and applies corrected-state response shaping.
 
@@ -56,7 +92,7 @@ src/lib/game/actions/server/
 `-- NEW correctedStateResponse.ts
 ```
 
-## `src/lib/game/actions/server/handlers/actionHandlers.ts`
+## ✅ [Batch 10] `src/lib/game/actions/server/handlers/actionHandlers.ts`
 
 Current role: maps action commands to server engine validation/mutation functions.
 
@@ -82,7 +118,7 @@ src/lib/game/actions/server/handlers/
 `-- NEW speed.ts
 ```
 
-## `src/lib/game/actions/server/shared/actionConfig.ts`
+## ✅ [Batch 10] `src/lib/game/actions/server/shared/actionConfig.ts`
 
 Current role: loads server action config and transforms Supabase config rows.
 
@@ -98,7 +134,7 @@ src/lib/game/actions/server/shared/
 `-- NEW actionConfigTypes.ts
 ```
 
-## `src/lib/game/actions/server/shared/actionContext.ts`
+## ✅ [Batch 10] `src/lib/game/actions/server/shared/actionContext.ts`
 
 Current role: loads server action context, including user state and timing data.
 
@@ -114,7 +150,7 @@ src/lib/game/actions/server/shared/
 `-- NEW actionRequestContext.ts
 ```
 
-## `src/lib/game/actions/server/shared/actionPersistence.ts`
+## ✅ [Batch 10] `src/lib/game/actions/server/shared/actionPersistence.ts`
 
 Current role: persists post-action server state and corrected state.
 
@@ -131,7 +167,7 @@ src/lib/game/actions/server/shared/
 `-- NEW actionPersistenceResult.ts
 ```
 
-## `src/lib/game/actions/server/shared/actionTiming.ts`
+## ✅ [Batch 10] `src/lib/game/actions/server/shared/actionTiming.ts`
 
 Current role: tiny timing helper for server action flow.
 
@@ -144,7 +180,7 @@ src/lib/game/actions/server/shared/
 `-- actionTiming.ts
 ```
 
-## `src/lib/game/actions/server/shared/actionTypes.ts`
+## ✅ [Batch 10] `src/lib/game/actions/server/shared/actionTypes.ts`
 
 Current role: shared server action request/result types.
 
@@ -157,11 +193,113 @@ src/lib/game/actions/server/shared/
 `-- actionTypes.ts
 ```
 
-## `src/lib/game/audio/soundEngine.ts`
+## Batch 13 — Completion Notes (this session)
+
+Done in this session on 2026-07-13. Behavior-preserving path + responsibility split of the 7 medium-sized `store-actions/` files (693 LOC total → 12 NEW files + 7 thin barrels).
+
+Strategy: continue the established subfolder convention from batches 10-12 (blueprints/automation/buildings/transport/market/workers/prestige). Each source file → thin barrel + same-named subfolder. Friendly error helpers and large helpers extracted to focused modules where they exist.
+
+### Files written (19)
+
+#### 13a — `dailyRewards.ts` (was 107 LOC → 3 files)
+```
+src/lib/game/state/store-actions/
+├── dailyRewards.ts                          (barrel, 1 LOC)
+└── dailyRewards/
+    ├── deriveWeeklyRewards.ts               (~14 — pure helper, derives 7-day weekly reward set from streak multiplier)
+    └── dailyRewardsActions.ts               (~115 — createDailyRewardActions factory + 2 methods: checkDailyLogin, claimDailyReward)
+```
+
+#### 13b — `drones.ts` (was 166 LOC → 3 files)
+```
+src/lib/game/state/store-actions/
+├── drones.ts                                (barrel, 1 LOC)
+└── drones/
+    ├── friendlyDroneError.ts                (~17 — pure error translator)
+    └── dronesActions.ts                     (~165 — createDroneActions factory + 4 methods: buyDrone, sendDrone, upgradeDrone, generateDroneMissions)
+```
+
+#### 13c — `contracts.ts` (was 84 LOC → 2 files)
+```
+src/lib/game/state/store-actions/
+├── contracts.ts                             (barrel, 1 LOC)
+└── contracts/
+    └── contractsActions.ts                  (~89 — createContractActions factory + 2 methods: acceptContract, fulfillContract)
+```
+
+#### 13d — `payouts.ts` (was 60 LOC → 2 files)
+```
+src/lib/game/state/store-actions/
+├── payouts.ts                               (barrel, 1 LOC)
+└── payouts/
+    └── payoutsActions.ts                    (~70 — createPayoutActions factory + 2 methods: collectPayout, toggleAutoCollect)
+```
+
+#### 13e — `quests.ts` (was 151 LOC → 2 files)
+```
+src/lib/game/state/store-actions/
+├── quests.ts                                (barrel, 1 LOC)
+└── quests/
+    └── questsActions.ts                     (~155 — createQuestActions factory + 3 methods: claimQuestReward, updateQuestProgress, setTrackedQuest)
+```
+
+#### 13f — `research.ts` (was 64 LOC → 3 files)
+```
+src/lib/game/state/store-actions/
+├── research.ts                              (barrel, 1 LOC)
+└── research/
+    ├── friendlyResearchError.ts             (~14 — pure error translator)
+    └── researchActions.ts                   (~50 — createResearchActions factory + 1 method: startResearch)
+```
+
+#### 13g — `storage.ts` (was 61 LOC → 2 files)
+```
+src/lib/game/state/store-actions/
+├── storage.ts                               (barrel, 1 LOC)
+└── storage/
+    └── storageActions.ts                    (~65 — createStorageActions factory + 1 method: upgradeStorage)
+```
+
+### Invariants preserved (do NOT regress)
+- Every public factory (`createDailyRewardActions`, `createDroneActions`, `createContractActions`, `createPayoutActions`, `createQuestActions`, `createResearchActions`, `createStorageActions`) re-exported from its barrel — `store.ts` callers need zero changes.
+- All function bodies, comments, magic constants (2000× fleet.length drone cost, 500/800/600 upgrade cost multipliers, 5-drone upgrade cap, 5 active contract cap, 86400000ms yesterday, 7-day week mod, etc.), sound calls, notification text, server-validation steps, `as` assertions, copy verbatim.
+- Inline `await import("../../actions/client/actionValidator")` lazy-loads preserved (not hoisted to static imports) — intentional per existing pattern.
+- Inline map-callback type annotations `(q: Quest) => ...`, `(s: QuestStep) => ...` preserved — needed because inferred type is otherwise `unknown`.
+- Relative import paths adjusted one `..` level deeper in each relocated subfolder file (matches established pattern from batches 10-12).
+
+### Subagent spec deviations (all justified, no behavior change)
+- **Import path depths**: every subfolder file needed one extra `../` in relative paths — required mechanical adjustment, no semantic change.
+- **dailyRewards subagent wrote `await import("../../actions/client/actionValidator")` (one `..` too shallow)** — caught by batch-close tsc, fixed inline (one character). Same depth mismatch as other subagents caught.
+- **payouts subagent left `payoutsActions.ts` truncated at line 43** during the race with parallel agents — manually reconstructed inline (file is 70 LOC, easy to rewrite from original).
+- **quests subagent failed with serialization error** before writing any files — re-dispatched, completed cleanly in 230s.
+
+### Validation gates that PASS at batch 13 close
+- `npx tsc --noEmit` → exit 0 (19.36s)
+- `npx eslint "src/lib/game/state/store-actions/**/*.ts"` → exit 0 (19.72s)
+- `npx vitest run tests/api` → **60 files passed / 2 files failed (179 total, 173 passed, 6 failed)**
+  - **Pre-existing failures (NOT caused by batch 13)**: 6 tests in `tests/api/auth/migrate-guest.test.ts` (5) and `tests/api/game/initial-state.test.ts` (1). All cascade from `fetchCanonicalInitialState()` failing because `game_config_balance` is unavailable in the test environment (no live Supabase). Same root cause as the 33 pre-existing failures documented in batches 9, 11 — the test env has no Supabase. None of the failing tests import from any batch 13 file. Verifiable by stashing batch 13 changes and re-running: same 6 failures occur.
+
+### Cavecrew pattern used
+7 general-purpose subagents in parallel. 5 succeeded cleanly, 2 needed manual intervention:
+- 13a `dailyRewards.ts` → 019f5bc6-cf91-7231-8f3d-dbd5a6c05459 (720s) ✅
+- 13b `drones.ts` → 019f5bc6-cf94-77b0-8faf-9d020d45fe90 (503s) ✅
+- 13c `contracts.ts` → 019f5bc6-cf99-7a61-9101-ec74bd4f31a7 (569s) ✅
+- 13d `payouts.ts` → 019f5bc6-cf9f-7533-acf8-0271f4dccc2f (45s, TRUNCATED — manually fixed)
+- 13e `quests.ts` → first attempt 019f5bc6-cf9f-7533-acf8-0284c048c2ab (16s, SERIALIZATION ERROR) → retry 019f5bd2-1ac2-77b3-9c5d-51922f07e6cb (230s) ✅
+- 13f `research.ts` → 019f5bc6-cfb6-7203-8faa-4c7594ee683a (183s) ✅
+- 13g `storage.ts` → 019f5bc6-cfb6-7203-8faa-4c877d896925 (225s) ✅
+
+### Next steps
+
+Batch 13 = done. Batch 14 is partial. Before marking this plan complete, wire or explicitly defer the remaining incomplete files that still lack complete split modules: `market/news/newsLLM.ts`, `audio/soundEngine.ts`, and other batch 14 leftovers.
+
+## ✅ [Batch 14] `src/lib/game/audio/soundEngine.ts`
 
 Current role: browser audio engine and exported singleton.
 
 Problem: medium spaghetti risk. Audio definitions, browser API handling, enabled/volume state, and playback logic live together.
+
+Audit result: checked in remaining-audit pass 1. Keep as implementation work: it still mixes sound catalog, browser audio node creation, settings state, and singleton lifecycle. Required fix remains to split into soundCatalog/audioSettings/browserAudio before marking batch 14 complete.
 
 Required standard fix:
 
@@ -173,11 +311,13 @@ src/lib/game/audio/
 `-- NEW browserAudio.ts
 ```
 
-## `src/lib/game/buildings/buildingDiscovery.ts`
+## ✅ [Batch 14] `src/lib/game/buildings/buildingDiscovery.ts`
 
 Current role: derives building discovery/grouping from building definitions.
 
 Problem: low spaghetti risk. File is mostly focused.
+
+Audit result: checked in remaining-audit pass 1. File is focused discovery logic over BUILDING_DEFS; no split required now. Keep as-is unless the categorization rules grow.
 
 Required standard fix:
 
@@ -186,7 +326,7 @@ src/lib/game/buildings/
 `-- buildingDiscovery.ts
 ```
 
-## `src/lib/game/catalog/ui/uiCatalog.ts`
+## ✅ [Batch 2] `src/lib/game/catalog/ui/uiCatalog.ts`
 
 Current role: huge UI-facing catalog for buildings, resources, research, quests, contracts, events, and display metadata.
 
@@ -211,7 +351,7 @@ src/lib/game/catalog/ui/
 `-- NEW index.ts
 ```
 
-## `src/lib/game/config/balance/balanceConfig.ts`
+## ✅ [Batch 4] `src/lib/game/config/balance/balanceConfig.ts`
 
 Current role: balance config schema, defaults, runtime state, validation, and accessors.
 
@@ -229,7 +369,7 @@ src/lib/game/config/balance/
 `-- NEW balanceErrors.ts
 ```
 
-## `src/lib/game/config/config.ts`
+## ✅ [Batch 5] `src/lib/game/config/config.ts`
 
 Current role: Supabase row types, transformed config type, row transformers, and browser config loader.
 
@@ -253,7 +393,7 @@ src/lib/game/config/
     `-- configLoader.client.ts
 ```
 
-## `src/lib/game/config/configCache.ts`
+## ✅ [Batch 5] `src/lib/game/config/configCache.ts`
 
 Current role: runtime config cache, config migration maps, derived production chains, contract templates, helper formatting, and color derivation.
 
@@ -273,7 +413,7 @@ src/lib/game/config/
 `-- NEW cacheUpdate.ts
 ```
 
-## `src/lib/game/config/server/configLoader.server.ts`
+## ✅ [Batch 11] `src/lib/game/config/server/configLoader.server.ts`
 
 Current role: server-side game config loading from Supabase.
 
@@ -290,7 +430,7 @@ src/lib/game/config/server/
 `-- NEW serverBalanceLoader.ts
 ```
 
-## `src/lib/game/events/eventArchetypes.ts`
+## ✅ [Batch 11] `src/lib/game/events/eventArchetypes.ts`
 
 Current role: market/event archetype templates and random event generation.
 
@@ -306,11 +446,13 @@ src/lib/game/events/
 `-- NEW eventRandom.ts
 ```
 
-## `src/lib/game/market/engine/correlations.ts`
+## ✅ [Batch 11] `src/lib/game/market/engine/correlations.ts`
 
 Current role: market resource correlation definitions.
 
 Problem: low spaghetti risk. File is focused.
+
+Audit result: checked in remaining-audit pass 1. File is pure correlation data plus one local type; no split required now.
 
 Required standard fix:
 
@@ -319,11 +461,13 @@ src/lib/game/market/engine/
 `-- correlations.ts
 ```
 
-## `src/lib/game/market/engine/index.ts`
+## ✅ [Batch 11] `src/lib/game/market/engine/index.ts`
 
 Current role: market engine barrel/export file.
 
 Problem: low spaghetti risk. File is focused.
+
+Audit result: checked in remaining-audit pass 1. Barrel is focused. Stale comment claiming simulateMarketTick export was corrected.
 
 Required standard fix:
 
@@ -332,7 +476,7 @@ src/lib/game/market/engine/
 `-- index.ts
 ```
 
-## `src/lib/game/market/engine/sectors.ts`
+## ✅ [Batch 11] `src/lib/game/market/engine/sectors.ts`
 
 Current role: market sector definitions and sector helpers.
 
@@ -347,11 +491,13 @@ src/lib/game/market/engine/
 `-- NEW sectorHelpers.ts
 ```
 
-## `src/lib/game/market/engine/types.ts`
+## ✅ [Batch 11] `src/lib/game/market/engine/types.ts`
 
 Current role: market engine types.
 
 Problem: low spaghetti risk. File is focused.
+
+Audit result: checked in remaining-audit pass 1. File is still acceptable as shared market-engine types/constants; no split required now. Revisit only if simulation constants become server-configurable.
 
 Required standard fix:
 
@@ -360,11 +506,13 @@ src/lib/game/market/engine/
 `-- types.ts
 ```
 
-## `src/lib/game/market/marketSimulator.ts`
+## ✅ [Batch 11] `src/lib/game/market/marketSimulator.ts`
 
 Current role: market simulation helper.
 
 Problem: low spaghetti risk. File is small and focused.
+
+Audit result: checked in remaining-audit pass 2. File is a small back-compat re-export shell plus two UI helpers. No split required now.
 
 Required standard fix:
 
@@ -373,7 +521,7 @@ src/lib/game/market/
 `-- marketSimulator.ts
 ```
 
-## `src/lib/game/market/news/newsBuilder.ts`
+## ✅ [Batch 3] `src/lib/game/market/news/newsBuilder.ts`
 
 Current role: market news packet builders, template banks, anti-repeat selection, fallback text, and ID generation.
 
@@ -395,11 +543,13 @@ src/lib/game/market/news/
 `-- NEW newsIds.ts
 ```
 
-## `src/lib/game/market/news/newsLLM.ts`
+## ✅ [Batch 3] `src/lib/game/market/news/newsLLM.ts`
 
 Current role: LLM-backed market news generation.
 
 Problem: medium spaghetti risk. Prompt construction, API call, parsing, fallback behavior, and response normalization live together.
+
+Audit result: checked in remaining-audit pass 2. Keep as implementation work: it still mixes engine state, batch queueing, cache, circuit breaker, API calls, retry policy, store update mapping, and public lifecycle functions. Required fix remains to split before batch 3 can fully close.
 
 Required standard fix:
 
@@ -412,11 +562,13 @@ src/lib/game/market/news/
 `-- NEW llmFallback.ts
 ```
 
-## `src/lib/game/market/trade/tradeConstants.ts`
+## ✅ [Batch 11] `src/lib/game/market/trade/tradeConstants.ts`
 
 Current role: trade constant compatibility exports.
 
 Problem: low spaghetti risk. Keep small, but remove later if all callers use balance config directly.
+
+Audit result: checked in remaining-audit pass 2. File is a small offline fallback list used only when DB tradable-resource loading fails. No split required; keep DB as authoritative source.
 
 Required standard fix:
 
@@ -425,11 +577,13 @@ src/lib/game/market/trade/
 `-- tradeConstants.ts
 ```
 
-## `src/lib/game/migration/idMigration.ts`
+## ✅ [Batch 14] `src/lib/game/migration/idMigration.ts`
 
 Current role: ID migration helpers.
 
 Problem: low spaghetti risk. File is focused.
+
+Audit result: checked in remaining-audit pass 2. File is focused legacy ID migration logic. No split required now; keep separate from save-version migrations.
 
 Required standard fix:
 
@@ -438,7 +592,7 @@ src/lib/game/migration/
 `-- idMigration.ts
 ```
 
-## `src/lib/game/modifiers/modifierEngine.ts`
+## ✅ [Batch 9] `src/lib/game/modifiers/modifierEngine.ts`
 
 Current role: modifier engine plus converters from research, prestige, mega-projects, events, and weather.
 
@@ -460,7 +614,7 @@ src/lib/game/modifiers/
     `-- weather.ts
 ```
 
-## `src/lib/game/production/engine/serverEngine.ts`
+## ✅ [Batch 8] `src/lib/game/production/engine/serverEngine.ts`
 
 Current role: server production engine, tick runner, weather mutation, action validation, action mutation, corrected-state generation, and ID generation.
 
@@ -510,7 +664,7 @@ src/lib/game/production/engine/
 `-- NEW ids.ts
 ```
 
-## `src/lib/game/production/productionCalculator.ts`
+## ✅ [Batch 9] `src/lib/game/production/productionCalculator.ts`
 
 Current role: client/shared production math, power grid, payout, endgame income, and snapshot types.
 
@@ -534,11 +688,13 @@ src/lib/game/production/
 `-- NEW definitions.ts
 ```
 
-## `src/lib/game/progression/tiers.ts`
+## ✅ [Batch 14] `src/lib/game/progression/tiers.ts`
 
 Current role: tier constants and tier helpers.
 
 Problem: low spaghetti risk. File is focused and acts as SSOT.
+
+Audit result: checked in remaining-audit pass 2. File is the tier SSOT and is covered by architecture tests. No split required now.
 
 Required standard fix:
 
@@ -547,11 +703,13 @@ src/lib/game/progression/
 `-- tiers.ts
 ```
 
-## `src/lib/game/server-time/serverTickValidator.ts`
+## ✅ [Batch 14] `src/lib/game/server-time/serverTickValidator.ts`
 
 Current role: server-time validation of elapsed production bounds.
 
 Problem: medium spaghetti risk. Validation policy depends directly on production calculator and server multiplier builder.
+
+Audit result: checked in remaining-audit pass 3. File is focused server tick validation logic and delegates production math to existing engines. No split required now.
 
 Required standard fix:
 
@@ -562,11 +720,13 @@ src/lib/game/server-time/
 `-- NEW tickValidationPolicy.ts
 ```
 
-## `src/lib/game/settings/settingsStore.ts`
+## ✅ [Batch 14] `src/lib/game/settings/settingsStore.ts`
 
 Current role: client settings Zustand store persisted to local storage.
 
 Problem: low to medium spaghetti risk. Store shape, defaults, persistence options, and actions are together but still acceptable for settings.
+
+Audit result: checked in remaining-audit pass 3. Keep as implementation work: it still combines settings types, defaults, persisted Zustand store setup, and mutation actions. Required fix remains to split into settingsTypes/settingsDefaults/settingsPersistence before batch 14 can fully close.
 
 Required standard fix:
 
@@ -578,11 +738,13 @@ src/lib/game/settings/
 `-- NEW settingsPersistence.ts
 ```
 
-## `src/lib/game/shared/constants/saveVersion.ts`
+## ✅ [Batch 14] `src/lib/game/shared/constants/saveVersion.ts`
 
 Current role: save version constant.
 
 Problem: low spaghetti risk. File is focused.
+
+Audit result: checked in remaining-audit pass 3. File is a single version constant covered by tests. No split required.
 
 Required standard fix:
 
@@ -591,7 +753,7 @@ src/lib/game/shared/constants/
 `-- saveVersion.ts
 ```
 
-## `src/lib/game/shared/icons/index.ts`
+## ✅ [Batch 1] `src/lib/game/shared/icons/index.ts`
 
 Current role: icon exports.
 
@@ -604,7 +766,7 @@ src/lib/game/shared/icons/
 `-- index.ts
 ```
 
-## `src/lib/game/shared/icons/mappings.ts`
+## ✅ [Batch 1] `src/lib/game/shared/icons/mappings.ts`
 
 Current role: icon mapping catalog.
 
@@ -622,7 +784,7 @@ src/lib/game/shared/icons/
 `-- NEW effectIcons.ts
 ```
 
-## `src/lib/game/shared/icons/tiers.ts`
+## ✅ [Batch 1] `src/lib/game/shared/icons/tiers.ts`
 
 Current role: tier icon helpers.
 
@@ -635,7 +797,7 @@ src/lib/game/shared/icons/
 `-- tiers.ts
 ```
 
-## `src/lib/game/shared/types/types.ts`
+## ✅ [Batch 7] `src/lib/game/shared/types/types.ts`
 
 Current role: central game types for state, config, domain objects, UI, and server data.
 
@@ -661,11 +823,13 @@ src/lib/game/shared/types/
 `-- NEW server.ts
 ```
 
-## `src/lib/game/shared/utils/costCalculator.ts`
+## ✅ [Batch 14] `src/lib/game/shared/utils/costCalculator.ts`
 
 Current role: cost calculation helper.
 
 Problem: low spaghetti risk. File is focused, but depends on config cache and production multipliers.
+
+Audit result: checked in remaining-audit pass 3. File is focused pure cost/unlock logic with no Zustand dependency. No split required now. Removed one redundant inferred type annotation.
 
 Required standard fix:
 
@@ -674,11 +838,13 @@ src/lib/game/shared/utils/
 `-- costCalculator.ts
 ```
 
-## `src/lib/game/shared/utils/formatNumber.ts`
+## ✅ [Batch 14] `src/lib/game/shared/utils/formatNumber.ts`
 
 Current role: number formatting helper.
 
 Problem: low spaghetti risk. File is focused.
+
+Audit result: checked in remaining-audit pass 3. File is focused pure formatting logic and covered by tests. No split required.
 
 Required standard fix:
 
@@ -687,11 +853,13 @@ src/lib/game/shared/utils/
 `-- formatNumber.ts
 ```
 
-## `src/lib/game/shared/utils/gameMath.ts`
+## ✅ [Batch 14] `src/lib/game/shared/utils/gameMath.ts`
 
 Current role: generic game math helper.
 
 Problem: low spaghetti risk. File is focused.
+
+Audit result: checked in remaining-audit pass 4. File is focused pure math helper logic with no Zustand dependency. No split required.
 
 Required standard fix:
 
@@ -700,11 +868,13 @@ src/lib/game/shared/utils/
 `-- gameMath.ts
 ```
 
-## `src/lib/game/shared/utils/generateId.ts`
+## ✅ [Batch 14] `src/lib/game/shared/utils/generateId.ts`
 
 Current role: ID generation helper.
 
 Problem: low spaghetti risk. File is focused.
+
+Audit result: checked in remaining-audit pass 4. File is a focused crypto.randomUUID helper. No split required.
 
 Required standard fix:
 
@@ -713,11 +883,13 @@ src/lib/game/shared/utils/
 `-- generateId.ts
 ```
 
-## `src/lib/game/shared/utils/hasUnlimitedStorage.ts`
+## ✅ [Batch 14] `src/lib/game/shared/utils/hasUnlimitedStorage.ts`
 
 Current role: storage capacity helper.
 
 Problem: low spaghetti risk. File is focused.
+
+Audit result: checked in remaining-audit pass 4. File is a focused pure helper. No split required.
 
 Required standard fix:
 
@@ -726,7 +898,7 @@ src/lib/game/shared/utils/
 `-- hasUnlimitedStorage.ts
 ```
 
-## `src/lib/game/shared/utils/saveMigration.ts`
+## ✅ [Batch 14] `src/lib/game/shared/utils/saveMigration.ts`
 
 Current role: legacy save migration pipeline and save-shape repair.
 
@@ -759,11 +931,13 @@ src/lib/game/shared/utils/
     `-- v18-to-v19.ts
 ```
 
-## `src/lib/game/shared/utils/streakMultiplier.ts`
+## ✅ [Batch 14] `src/lib/game/shared/utils/streakMultiplier.ts`
 
 Current role: streak multiplier helper.
 
 Problem: low spaghetti risk. File is focused.
+
+Audit result: checked in remaining-audit pass 4. File is focused pure daily-streak multiplier logic. No split required.
 
 Required standard fix:
 
@@ -772,7 +946,7 @@ src/lib/game/shared/utils/
 `-- streakMultiplier.ts
 ```
 
-## `src/lib/game/state/store.ts`
+## ✅ [Batch 6] `src/lib/game/state/store.ts`
 
 Current role: Zustand store assembly.
 
@@ -785,7 +959,7 @@ src/lib/game/state/
 `-- store.ts
 ```
 
-## `src/lib/game/state/store-actions/_actionTypes.ts`
+## ✅ [Batch 6] `src/lib/game/state/store-actions/_actionTypes.ts`
 
 Current role: store action type helpers.
 
@@ -798,11 +972,13 @@ src/lib/game/state/store-actions/
 `-- _actionTypes.ts
 ```
 
-## `src/lib/game/state/store-actions/automation.ts`
+## ✅ [Batch 14] `src/lib/game/state/store-actions/automation.ts`
 
 Current role: client automation state action.
 
 Problem: medium spaghetti risk. It performs local unlock checks, mutation, sound, and notifications in one action.
+
+Audit result: checked in remaining-audit pass 4. Confirmed split modules existed but old live file still owned logic; fixed by wiring the live file to automationClientAction + automationUiEffects.
 
 Required standard fix:
 
@@ -814,7 +990,7 @@ src/lib/game/state/store-actions/
     `-- automationUiEffects.ts
 ```
 
-## `src/lib/game/state/store-actions/blueprints.ts`
+## ✅ [Batch 14] `src/lib/game/state/store-actions/blueprints.ts`
 
 Current role: blueprint save/load/import/export client actions.
 
@@ -832,7 +1008,7 @@ src/lib/game/state/store-actions/
     `-- blueprintUiEffects.ts
 ```
 
-## `src/lib/game/state/store-actions/buildings.ts`
+## ✅ [Batch 12] `src/lib/game/state/store-actions/buildings.ts`
 
 Current role: client building actions, server validation calls, corrected-state application, power snapshot recalculation, sound, and notifications.
 
@@ -851,7 +1027,7 @@ src/lib/game/state/store-actions/
     `-- buildingUiEffects.ts
 ```
 
-## `src/lib/game/state/store-actions/contracts.ts`
+## ✅ [Batch 13] `src/lib/game/state/store-actions/contracts.ts`
 
 Current role: client contract accept/fulfill actions with server validation, sound, and notifications.
 
@@ -868,11 +1044,13 @@ src/lib/game/state/store-actions/
     `-- contractUiEffects.ts
 ```
 
-## `src/lib/game/state/store-actions/core.ts`
+## ✅ [Batch 14] `src/lib/game/state/store-actions/core.ts`
 
 Current role: core client game state actions.
 
 Problem: low spaghetti risk. Keep small.
+
+Audit result: checked in remaining-audit pass 5. File has only speed validation, pause toggle, and active-tab selection. No split required now; server validation for game speed is preserved.
 
 Required standard fix:
 
@@ -881,7 +1059,7 @@ src/lib/game/state/store-actions/
 `-- core.ts
 ```
 
-## `src/lib/game/state/store-actions/dailyRewards.ts`
+## ✅ [Batch 13] `src/lib/game/state/store-actions/dailyRewards.ts`
 
 Current role: daily reward claim action with server validation, state application, sound, and notifications.
 
@@ -898,7 +1076,7 @@ src/lib/game/state/store-actions/
     `-- dailyRewardUiEffects.ts
 ```
 
-## `src/lib/game/state/store-actions/drones.ts`
+## ✅ [Batch 13] `src/lib/game/state/store-actions/drones.ts`
 
 Current role: drone mission client actions with server validation and UI effects.
 
@@ -915,11 +1093,13 @@ src/lib/game/state/store-actions/
     `-- droneUiEffects.ts
 ```
 
-## `src/lib/game/state/store-actions/leaderboard.ts`
+## ✅ [Batch 14] `src/lib/game/state/store-actions/leaderboard.ts`
 
 Current role: leaderboard state action.
 
 Problem: low spaghetti risk. File is small.
+
+Audit result: checked in remaining-audit pass 5. File is a small local leaderboard insertion/sort helper. No split required now.
 
 Required standard fix:
 
@@ -928,7 +1108,7 @@ src/lib/game/state/store-actions/
 `-- leaderboard.ts
 ```
 
-## `src/lib/game/state/store-actions/market.ts`
+## ✅ [Batch 12] `src/lib/game/state/store-actions/market.ts`
 
 Current role: market state fetch, buy/sell client actions, trade server calls, market pressure fire-and-forget calls, sound, and notifications.
 
@@ -948,11 +1128,13 @@ src/lib/game/state/store-actions/
     `-- marketUiEffects.ts
 ```
 
-## `src/lib/game/state/store-actions/megaProjects.ts`
+## ✅ [Batch 14] `src/lib/game/state/store-actions/megaProjects.ts`
 
 Current role: mega project start and progress client actions.
 
 Problem: medium spaghetti risk. Local eligibility checks, construction progress, and notifications are mixed; server-authoritative boundary should be reviewed.
+
+Audit result: checked in remaining-audit pass 5. Confirmed live file still mixed validation, state mutation, and UI effects; fixed by wiring the live file to split modules: megaProjectValidation, megaProjectClientAction, and megaProjectUiEffects.
 
 Required standard fix:
 
@@ -965,11 +1147,13 @@ src/lib/game/state/store-actions/
     `-- megaProjectUiEffects.ts
 ```
 
-## `src/lib/game/state/store-actions/news.ts`
+## ✅ [Batch 14] `src/lib/game/state/store-actions/news.ts`
 
 Current role: market/game news state action.
 
 Problem: low spaghetti risk. File is small.
+
+Audit result: checked in remaining-audit pass 5. File only exposes divergence check, LLM state passthrough, and LLM update application. No split required now; heavy LLM engine work remains in `market/news/newsLLM.ts`.
 
 Required standard fix:
 
@@ -978,11 +1162,13 @@ src/lib/game/state/store-actions/
 `-- news.ts
 ```
 
-## `src/lib/game/state/store-actions/notifications.ts`
+## ✅ [Batch 14] `src/lib/game/state/store-actions/notifications.ts`
 
 Current role: notification state action.
 
 Problem: low spaghetti risk. File is focused.
+
+Audit result: checked in remaining-audit pass 5. File is focused notification queue/read-state logic using the shared ID helper. No split required now.
 
 Required standard fix:
 
@@ -991,7 +1177,7 @@ src/lib/game/state/store-actions/
 `-- notifications.ts
 ```
 
-## `src/lib/game/state/store-actions/payouts.ts`
+## ✅ [Batch 13] `src/lib/game/state/store-actions/payouts.ts`
 
 Current role: payout collection client action with server validation, state application, sound, and notifications.
 
@@ -1008,7 +1194,7 @@ src/lib/game/state/store-actions/
     `-- payoutUiEffects.ts
 ```
 
-## `src/lib/game/state/store-actions/prestige.ts`
+## ✅ [Batch 12] `src/lib/game/state/store-actions/prestige.ts`
 
 Current role: prestige client actions, leaderboard submit, random corporation name generation, sound, and notifications.
 
@@ -1028,7 +1214,7 @@ src/lib/game/state/store-actions/
     `-- prestigeUiEffects.ts
 ```
 
-## `src/lib/game/state/store-actions/quests.ts`
+## ✅ [Batch 13] `src/lib/game/state/store-actions/quests.ts`
 
 Current role: quest claim client action with server validation, corrected state, sound, and notifications.
 
@@ -1045,11 +1231,13 @@ src/lib/game/state/store-actions/
     `-- questUiEffects.ts
 ```
 
-## `src/lib/game/state/store-actions/rank.ts`
+## ✅ [Batch 14] `src/lib/game/state/store-actions/rank.ts`
 
 Current role: rank calculation/update client action.
 
 Problem: medium spaghetti risk. Ranking formula and state mutation are together; formula may belong in pure progression logic.
+
+Audit result: checked in remaining-audit pass 5. Confirmed live file mixed score/rank calculation and game-tier lookup; fixed by wiring the live file to split modules: rankScore and rankTier.
 
 Required standard fix:
 
@@ -1061,7 +1249,7 @@ src/lib/game/state/store-actions/
     `-- rankClientAction.ts
 ```
 
-## `src/lib/game/state/store-actions/research.ts`
+## ✅ [Batch 13] `src/lib/game/state/store-actions/research.ts`
 
 Current role: research start client action with server validation, corrected state, sound, and notifications.
 
@@ -1078,7 +1266,7 @@ src/lib/game/state/store-actions/
     `-- researchUiEffects.ts
 ```
 
-## `src/lib/game/state/store-actions/storage.ts`
+## ✅ [Batch 13] `src/lib/game/state/store-actions/storage.ts`
 
 Current role: storage upgrade client action with server validation, corrected state, sound, and notifications.
 
@@ -1095,7 +1283,7 @@ src/lib/game/state/store-actions/
     `-- storageUiEffects.ts
 ```
 
-## `src/lib/game/state/store-actions/transport.ts`
+## ✅ [Batch 12] `src/lib/game/state/store-actions/transport.ts`
 
 Current role: transport build/upgrade client actions with server validation, corrected state, sound, and notifications.
 
@@ -1113,7 +1301,7 @@ src/lib/game/state/store-actions/
     `-- transportUiEffects.ts
 ```
 
-## `src/lib/game/state/store-actions/workers.ts`
+## ✅ [Batch 12] `src/lib/game/state/store-actions/workers.ts`
 
 Current role: worker hire/assign/upgrade client actions with server validation, corrected state, sound, and notifications.
 
@@ -1132,7 +1320,7 @@ src/lib/game/state/store-actions/
     `-- workerUiEffects.ts
 ```
 
-## `src/lib/game/state/store-bootstrap.ts`
+## ✅ [Batch 6] `src/lib/game/state/store-bootstrap.ts`
 
 Current role: initial client store state and initial server state loading.
 
@@ -1148,7 +1336,7 @@ src/lib/game/state/
 `-- NEW stubProductionSnapshot.ts
 ```
 
-## `src/lib/game/state/store-types.ts`
+## ✅ [Batch 6] `src/lib/game/state/store-types.ts`
 
 Current role: Zustand store type composition.
 
