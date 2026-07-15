@@ -1686,6 +1686,7 @@ export type Database = {
           last_tick_at: string
           last_trade_at: string | null
           lock_reason: string | null
+          market_supply: Json
           money: number
           research_points: number
           resources: Json
@@ -1710,6 +1711,7 @@ export type Database = {
           last_tick_at?: string
           last_trade_at?: string | null
           lock_reason?: string | null
+          market_supply?: Json
           money?: number
           research_points?: number
           resources?: Json
@@ -1734,6 +1736,7 @@ export type Database = {
           last_tick_at?: string
           last_trade_at?: string | null
           lock_reason?: string | null
+          market_supply?: Json
           money?: number
           research_points?: number
           resources?: Json
