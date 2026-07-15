@@ -356,7 +356,7 @@ export function MegaProjectPanel() {
                       {/* Stage Indicators */}
                       <div className="flex items-center gap-1 mb-3">
                         {project.stages.map((s, i) => (
-                          <div key={i} className="flex items-center gap-1 flex-1">
+                          <div key={`stage-${s.name}`} className="flex items-center gap-1 flex-1">
                             <div className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${
                               s.completed
                                 ? 'bg-success'
@@ -402,14 +402,14 @@ export function MegaProjectPanel() {
                             <DollarSign className="w-3 h-3" />
                             Required Materials (must be held)
                           </div>
-                          {currentStage.requiredResources.map((r, i) => {
+                          {currentStage.requiredResources.map((r) => {
                             const resKey = r.resource as ResourceType;
                             const meta = RESOURCE_META[resKey];
                             const current = r.resource === 'money' ? store.money : store.resources[resKey] ?? 0;
                             const enough = current >= r.amount;
 
                             return (
-                              <div key={i} className="flex items-center justify-between text-[11px]">
+                              <div key={`req-${r.resource}`} className="flex items-center justify-between text-[11px]">
                                 <div className="flex items-center gap-1.5">
                                   {meta ? <GameIcon icon={meta.icon} size={16} /> : <GameIcon icon="game-icons:money-stack" size={16} />}
                                   <span className="text-subtle">{meta?.name ?? 'Money'}</span>
@@ -487,7 +487,7 @@ export function MegaProjectPanel() {
                   <div className="mt-3 space-y-1">
                     <div className="text-[10px] text-muted-label">Stage Progress</div>
                     {project.stages.map((s, i) => (
-                      <div key={i} className="flex items-center gap-2 text-[10px]">
+                      <div key={`stage-${s.name}`} className="flex items-center gap-2 text-[10px]">
                         {s.completed ? (
                           <Check className="w-3 h-3 text-success" />
                         ) : i === project.currentStage ? (
@@ -506,8 +506,8 @@ export function MegaProjectPanel() {
                 {/* Completed Project Glow Effect */}
                 {project.completed && (
                   <div className="mt-2 space-y-1">
-                    {project.stages.map((s, i) => (
-                      <div key={i} className="flex items-center gap-2 text-[10px]">
+                    {project.stages.map((s) => (
+                      <div key={`stage-${s.name}`} className="flex items-center gap-2 text-[10px]">
                         <Check className="w-3 h-3 text-success" />
                         <span className="text-success/60">{s.name}</span>
                       </div>

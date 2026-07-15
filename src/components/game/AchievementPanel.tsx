@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { useGameStore, formatNumber } from "@/lib/game/state/store";
 import { BUILDING_DEFS } from "@/lib/game/config/configCache";
 import type { GameStore } from "@/lib/game/state/store-types";
@@ -633,7 +634,27 @@ const ACHIEVEMENT_CATEGORIES = [
 ] as const;
 
 export function AchievementPanel() {
-  const store = useGameStore();
+  // HIGH-3 fix (2026-07-14): the bare `useGameStore()` subscription re-renders
+  // the entire achievement panel on ANY store change (UI tick, hydrate,
+  // selection, market news, etc.). Use a specific shallow selector that only
+  // includes the fields the achievement conditions actually read. Cast to
+  // GameStore because the condition functions are typed against the full
+  // store but only read the fields we subscribe to.
+  const store = useGameStore(
+    useShallow((s) => ({
+      buildings: s.buildings,
+      stats: s.stats,
+      powerGrid: s.powerGrid,
+      money: s.money,
+      totalMoneyEarned: s.totalMoneyEarned,
+      completedResearch: s.completedResearch,
+      prestigeState: s.prestigeState,
+      automationUnlocks: s.automationUnlocks,
+      gameSpeed: s.gameSpeed,
+      workers: s.workers,
+      gameTick: s.gameTick,
+    })),
+  ) as unknown as GameStore;
   const [selectedCategory, setSelectedCategory] = useState<
     AchievementCategory | "All"
   >("All");

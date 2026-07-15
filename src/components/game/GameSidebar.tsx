@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSettingsStore } from "@/lib/game/settings/settingsStore";
 import type { GameTab } from "@/lib/game/shared/types/types";
@@ -428,9 +429,11 @@ export function GameSidebar() {
             rel="noopener noreferrer"
             className="block"
           >
-            <img
+            <Image
               src="/bmc_qr.png"
               alt="Scan QR code to support on Buy Me a Coffee"
+              width={64}
+              height={64}
               className="w-16 h-16 rounded-md mx-auto opacity-90"
             />
           </a>

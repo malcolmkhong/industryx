@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import Image from "next/image";
 import { useGameStore, formatNumber } from "@/lib/game/state/store";
 import {
   useSettingsStore,
@@ -738,7 +739,7 @@ export function SettingsPanel() {
             <div className="flex-1 min-w-0">
               <p className="text-xs text-subtle leading-relaxed">
                 Factory Dominion is a free, open-source passion project built
-                with love. If you're enjoying the game, a small coffee helps
+                with love. If you&apos;re enjoying the game, a small coffee helps
                 keep the servers running and fuels new features!
               </p>
               <a
@@ -765,9 +766,11 @@ export function SettingsPanel() {
               rel="noopener noreferrer"
               className="block"
             >
-              <img
+              <Image
                 src="/bmc_qr.png"
                 alt="Scan QR code to support on Buy Me a Coffee"
+                width={112}
+                height={112}
                 className="w-28 h-28 rounded-lg opacity-90"
               />
             </a>

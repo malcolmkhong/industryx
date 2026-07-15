@@ -79,8 +79,8 @@ function LineChart({
   return (
     <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet" className="w-full h-auto overflow-visible" role="img" aria-label={`${label} line chart`} tabIndex={0}>
       {/* Grid lines */}
-      {gridYs.map(({ y, val }, i) => (
-        <g key={i}>
+      {gridYs.map(({ y, val }) => (
+        <g key={`grid-${val}`}>
           <line
             x1={padding.left}
             y1={y}
@@ -204,8 +204,8 @@ function AreaChart({
   return (
     <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet" className="w-full h-auto overflow-visible" role="img" aria-label="Power grid production and consumption area chart" tabIndex={0}>
       {/* Grid lines */}
-      {gridYs.map(({ y, val }, i) => (
-        <g key={i}>
+      {gridYs.map(({ y, val }) => (
+        <g key={`grid-${val}`}>
           <line
             x1={padding.left}
             y1={y}

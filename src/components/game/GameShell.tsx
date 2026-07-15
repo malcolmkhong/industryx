@@ -10,7 +10,6 @@ import { useDragPrevention } from "@/lib/hooks/page/useDragPrevention";
 import { useContextMenuPrevention } from "@/lib/hooks/page/useContextMenuPrevention";
 import { useKeyboardShortcuts } from "@/lib/hooks/page/useKeyboardShortcuts";
 import { useLiveServerTick } from "@/lib/hooks/page/useLiveServerTick";
-import { useAutoOpenGuide } from "@/lib/hooks/page/useAutoOpenGuide";
 
 import { useAutoSaveIndicator } from "@/lib/hooks/page/useAutoSaveIndicator";
 import { useHeaderHeightObserver } from "@/lib/hooks/page/useHeaderHeightObserver";
@@ -71,7 +70,6 @@ export function GameShell({ children }: GameShellProps) {
   useContextMenuPrevention();
   useKeyboardShortcuts();
   useLiveServerTick();
-  useAutoOpenGuide();
 
   useServerMarket();
   useAutoSaveIndicator();

@@ -226,7 +226,7 @@ export function PrestigePanel() {
             {/* Points preview */}
             <div className="bg-background rounded-lg p-4 mb-4">
               <div className="text-center">
-                <div className="text-[10px] text-muted-label mb-1">Corporation Points You'll Earn</div>
+                <div className="text-[10px] text-muted-label mb-1">Corporation Points You&apos;ll Earn</div>
                 <div className="text-3xl font-bold font-mono text-premium">{pointsEarned} CP</div>
                 <div className="text-[10px] text-muted-label mt-1">
                   ({store.buildings.length} buildings × 0.5) + ({store.completedResearch.length} research × 2) + ({store.stats.contractsCompleted} contracts)

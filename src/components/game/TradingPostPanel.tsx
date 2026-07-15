@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useGameStore, formatNumber } from "@/lib/game/state/store";
 import type { ResourceType } from "@/lib/game/shared/types/types";
 import { getGlobalPrice } from "@/lib/game/shared/utils/gameMath";
-import { notifyTradeImpactIfMoved } from "@/lib/game/state/store-actions/market";
+import { notifyTradeImpactIfMoved } from "@/lib/game/state/store-actions/market/notifyTradeImpact";
 import { useGameConfig } from "@/components/providers/GameConfigProvider";
 import {
   INITIAL_MARKET,

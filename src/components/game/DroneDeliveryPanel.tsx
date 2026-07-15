@@ -64,6 +64,9 @@ function UpgradeBar({
 }) {
   return (
     <div className="flex gap-0.5">
+      {/* Position-only UI element: list length is fixed by `maxLevel` and never
+          reorders mid-render. No semantic data is available to key on. */}
+      {/* eslint-disable react/no-array-index-key */}
       {Array.from({ length: maxLevel }).map((_, i) => (
         <div
           key={i}
@@ -74,6 +77,7 @@ function UpgradeBar({
           }`}
         />
       ))}
+      {/* eslint-enable react/no-array-index-key */}
     </div>
   );
 }
@@ -172,7 +176,7 @@ function DroneVisualMap({
         {/* Grid lines */}
         {Array.from({ length: 5 }).map((_, i) => (
           <line
-            key={`h${i}`}
+            key={`h-${i * 20}`}
             x1="0"
             y1={i * 20}
             x2="100"
@@ -183,7 +187,7 @@ function DroneVisualMap({
         ))}
         {Array.from({ length: 5 }).map((_, i) => (
           <line
-            key={`v${i}`}
+            key={`v-${i * 25}`}
             x1={i * 25}
             y1="0"
             x2={i * 25}
@@ -213,8 +217,8 @@ function DroneVisualMap({
         })}
 
         {/* Building dots */}
-        {buildings.map((b, i) => (
-          <g key={i}>
+        {buildings.map((b) => (
+          <g key={b.name}>
             <circle
               cx={b.x + 3}
               cy={b.y + 3}

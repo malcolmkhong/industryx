@@ -151,12 +151,12 @@ export function EventPanel() {
                   </div>
 
                   <div className="flex flex-wrap gap-2 mb-3">
-                    {event.effects.map((effect, i) => {
+                    {event.effects.map((effect) => {
                       const isUp = effect.value > 1;
                       const resourceName = effect.target ? RESOURCE_META[effect.target]?.name : null;
                       return (
                         <Badge
-                          key={`${effect.target}-${i}`}
+                          key={effect.id}
                           variant="outline"
                           className={`text-[10px] ${isUp ? 'border-success/50 text-success' : 'border-danger/50 text-danger'}`}
                         >
@@ -221,8 +221,8 @@ export function EventPanel() {
             </Button>
           </div>
           <div className="space-y-1 max-h-60 overflow-y-auto game-scrollbar scroll-fade">
-            {(showFullHistory ? store.eventLog.slice().reverse() : store.eventLog.slice(-20).reverse()).map((event, i) => (
-              <div key={`${event.id}-${i}`} className="flex items-center gap-2 text-[11px] text-muted-label py-1 border-b border-muted-label/50">
+            {(showFullHistory ? store.eventLog.slice().reverse() : store.eventLog.slice(-20).reverse()).map((event) => (
+              <div key={event.id} className="flex items-center gap-2 text-[11px] text-muted-label py-1 border-b border-muted-label/50">
                 <span className="text-sm">{event.icon}</span>
                 <span>{event.name}</span>
                 <span className="ml-auto text-[9px] text-muted-label">{formatRemaining(event.remaining)}</span>

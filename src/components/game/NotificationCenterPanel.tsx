@@ -26,14 +26,14 @@ interface NotificationItemProps {
   onMarkRead: (id: string) => void;
 }
 
-const MemoizedNotificationItem = React.memo(function MemoizedNotificationItem({
+const MemoizedNotificationItem = React.memo(({
   id,
   type,
   message,
   gameTick,
   read,
   onMarkRead,
-}: NotificationItemProps) {
+}: NotificationItemProps) => {
   const tc = typeColors[type];
   return (
     <motion.div

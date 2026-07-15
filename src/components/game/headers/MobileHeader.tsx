@@ -164,10 +164,10 @@ export function MobileHeader({ onTabChange, onManageAccount }: MobileHeaderProps
 
         <HoverCard openDelay={200} closeDelay={100}>
           <HoverCardTrigger asChild>
-            <span className="text-[9px] font-mono shrink-0 cursor-default text-subtle hover:text-brand transition-colors">Tick: {formatByMode(gameTick, tickFormat)}</span>
+            <span className="text-[9px] font-mono shrink-0 cursor-default text-subtle hover:text-brand transition-colors">Time: {formatByMode(gameTick, tickFormat)}</span>
           </HoverCardTrigger>
           <HoverCardContent side="bottom" className="w-56 bg-card border-brand/30">
-            <p className="text-xs font-bold text-brand">Game Tick</p>
+            <p className="text-xs font-bold text-brand">Time</p>
             <p className="text-[10px] text-subtle mt-0.5">Speed: {gameSpeed}x · {paused ? 'Paused' : 'Running'}</p>
             <p className="text-[10px] text-subtle mt-1 leading-relaxed">Each tick advances production, consumption, and event timers.</p>
           </HoverCardContent>
@@ -438,8 +438,8 @@ export function MobileHeader({ onTabChange, onManageAccount }: MobileHeaderProps
                     <div className="px-3 py-1.5 space-y-1">
                       <p className="text-[10px] text-subtle leading-relaxed">{e.description}</p>
                       <div className="flex flex-wrap gap-1 pt-1">
-                        {e.effects.filter(ef => ef.type === 'marketPriceMultiplier').map((ef, i) => (
-                          <span key={`${ef.target}-${i}`} className={`text-[9px] px-1 py-0.5 rounded border ${ef.value > 1 ? 'border-success/40 text-success bg-success/5' : 'border-danger/40 text-danger bg-danger/5'}`}>
+                        {e.effects.filter(ef => ef.type === 'marketPriceMultiplier').map((ef) => (
+                          <span key={ef.id} className={`text-[9px] px-1 py-0.5 rounded border ${ef.value > 1 ? 'border-success/40 text-success bg-success/5' : 'border-danger/40 text-danger bg-danger/5'}`}>
                             {ef.value > 1 ? <TrendingUp className="w-2.5 h-2.5 inline mr-0.5" /> : <TrendingDown className="w-2.5 h-2.5 inline mr-0.5" />}
                             {ef.target?.slice(0, 12)}{(ef.target?.length ?? 0) > 12 ? '…' : ''} {ef.value > 1 ? '+' : ''}{((ef.value - 1) * 100).toFixed(0)}%
                           </span>

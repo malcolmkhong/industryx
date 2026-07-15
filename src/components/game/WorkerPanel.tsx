@@ -87,7 +87,7 @@ function RadarChart({ values, labels, colors, size = 160 }: {
       {/* Data points */}
       {values.map((v, i) => {
         const p = getPoint(i, v);
-        return <circle key={`point-v${v.toFixed(2)}`} cx={p.x} cy={p.y} r="3" fill={colors[i]} />;
+        return <circle key={labels[i] ?? `point-${i}`} cx={p.x} cy={p.y} r="3" fill={colors[i]} />;
       })}
       {/* Labels */}
       {labels.map((label, i) => {

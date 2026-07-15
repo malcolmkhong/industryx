@@ -82,16 +82,16 @@ export default function KeyboardShortcutsHelp() {
 
               {/* Shortcuts list */}
               <div className="px-5 py-4 space-y-3">
-                {SHORTCUTS.map((shortcut, index) => (
-                  <div key={index} className="flex items-center justify-between gap-4">
+                {SHORTCUTS.map((shortcut) => (
+                  <div key={shortcut.description} className="flex items-center justify-between gap-4">
                     <span className="text-xs text-subtle">{shortcut.description}</span>
                     <div className="flex items-center gap-1.5 shrink-0">
-                      {shortcut.keys.map((key, ki) => (
-                        <span key={ki}>
+                      {shortcut.keys.map((key) => (
+                        <span key={key}>
                           <kbd className="inline-flex items-center justify-center min-w-7 h-7 px-2 rounded-md bg-background border border-brand/30 text-[11px] font-mono text-brand shadow-sm">
                             {key}
                           </kbd>
-                          {ki < shortcut.keys.length - 1 && (
+                          {shortcut.keys.indexOf(key) < shortcut.keys.length - 1 && (
                             <span className="text-[10px] text-muted-label mx-0.5">/</span>
                           )}
                         </span>

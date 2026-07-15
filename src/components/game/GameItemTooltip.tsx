@@ -5,6 +5,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { GameIcon } from '@/components/icons';
 
 interface TooltipRow {
+  /** Optional stable identifier. Callers should supply this for rows that come
+   *  from a known data source so React can use it as a list key. When omitted,
+   *  the row index is used (the list is then assumed to be static / display-only). */
+  id?: string;
   label: string;
   value: string | number;
   color?: string; // tailwind text color class or raw CSS color when isStyle is true
@@ -75,7 +79,7 @@ export function GameItemTooltip({
             <p className="text-[10px] font-semibold text-brand uppercase tracking-wider mb-1.5">Details</p>
             <div className="space-y-1">
               {details.map((row, i) => (
-                <div key={i} className="flex items-center justify-between text-xs">
+                <div key={row.id ?? i} className="flex items-center justify-between text-xs">
                   <span className="text-subtle">{row.label}</span>
                   <span className={row.isStyle ? 'text-subtle' : (row.color || 'text-subtle')} style={row.isStyle && row.color ? { color: row.color } : undefined}>{row.value}</span>
                 </div>
@@ -90,7 +94,7 @@ export function GameItemTooltip({
             <p className="text-[10px] font-semibold text-warning uppercase tracking-wider mb-1.5">Requirements</p>
             <div className="space-y-1">
               {requirements.map((row, i) => (
-                <div key={i} className="flex items-center justify-between text-xs">
+                <div key={row.id ?? i} className="flex items-center justify-between text-xs">
                   <span className="text-subtle">{row.label}</span>
                   <span className={row.isStyle ? 'text-subtle' : (row.color || 'text-subtle')} style={row.isStyle && row.color ? { color: row.color } : undefined}>{row.value}</span>
                 </div>

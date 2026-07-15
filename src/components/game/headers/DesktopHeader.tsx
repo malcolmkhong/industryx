@@ -2,7 +2,7 @@ import Image from 'next/image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Bell, Check, Cloud, CloudOff, Download, Loader2, LogIn, LogOut,
-  Newspaper, Pause, Play, RefreshCw, RotateCcw, Settings, Upload, User, Wifi, WifiOff,
+  Newspaper, Pause, Play, RefreshCw, User, Wifi, WifiOff,
   Wrench, TrendingUp, TrendingDown,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -155,7 +155,7 @@ export function DesktopHeader({ onTabChange, onManageAccount }: DesktopHeaderPro
                     <div className="text-subtle font-mono font-semibold">{buildings.length}</div>
                   </div>
                   <div className="text-[10px]">
-                    <div className="text-muted-label">Game Tick</div>
+                    <div className="text-muted-label">Time</div>
                     <div className="text-subtle font-mono font-semibold">{formatNumber(gameTick)}</div>
                   </div>
                   <div className="text-[10px]">
@@ -367,16 +367,16 @@ export function DesktopHeader({ onTabChange, onManageAccount }: DesktopHeaderPro
           <HoverCard openDelay={200} closeDelay={100}>
             <HoverCardTrigger asChild>
               <div className="text-[10px] text-subtle font-mono cursor-default hover:text-brand transition-colors">
-                Tick: {formatByMode(gameTick, tickFormat)}
+                Time: {formatByMode(gameTick, tickFormat)}
               </div>
             </HoverCardTrigger>
             <HoverCardContent side="bottom" className="w-64 bg-card border-brand/30 p-0 overflow-hidden">
               <div className="bg-linear-to-r from-brand/20 to-research/10 px-3 py-1.5 border-b border-brand/20">
-                <p className="text-xs font-bold text-brand">Game Tick</p>
+                <p className="text-xs font-bold text-brand">Time</p>
               </div>
               <div className="px-3 py-1.5 space-y-1">
                 <div className="flex justify-between text-[10px]">
-                  <span className="text-subtle">Current Tick</span>
+                  <span className="text-subtle">Current</span>
                   <span className="text-brand font-mono font-bold">{formatByMode(gameTick, tickFormat)}</span>
                 </div>
                 <div className="flex justify-between text-[10px]">
@@ -466,8 +466,8 @@ export function DesktopHeader({ onTabChange, onManageAccount }: DesktopHeaderPro
                     <div className="px-3 py-1.5 space-y-1">
                       <p className="text-[10px] text-subtle leading-relaxed">{e.description}</p>
                       <div className="flex flex-wrap gap-1 pt-1">
-                        {e.effects.filter(ef => ef.type === 'marketPriceMultiplier').map((ef, i) => (
-                          <span key={`${ef.target}-${i}`} className={`text-[9px] px-1 py-0.5 rounded border ${ef.value > 1 ? 'border-success/40 text-success bg-success/5' : 'border-danger/40 text-danger bg-danger/5'}`}>
+                        {e.effects.filter(ef => ef.type === 'marketPriceMultiplier').map((ef) => (
+                          <span key={ef.id} className={`text-[9px] px-1 py-0.5 rounded border ${ef.value > 1 ? 'border-success/40 text-success bg-success/5' : 'border-danger/40 text-danger bg-danger/5'}`}>
                             {ef.value > 1 ? <TrendingUp className="w-2.5 h-2.5 inline mr-0.5" /> : <TrendingDown className="w-2.5 h-2.5 inline mr-0.5" />}
                             {ef.target?.slice(0, 12)}{(ef.target?.length ?? 0) > 12 ? '…' : ''} {ef.value > 1 ? '+' : ''}{((ef.value - 1) * 100).toFixed(0)}%
                           </span>
@@ -652,7 +652,7 @@ export function DesktopHeader({ onTabChange, onManageAccount }: DesktopHeaderPro
                     Sign in to enable cloud saves that sync across all your devices.
                   </p>
                   <p className="text-[10px] text-muted-label pt-1 border-t border-muted-label/20 leading-relaxed">
-                    Click the button or the "Bind Account" link to get started.
+                    Click the button or the &quot;Bind Account&quot; link to get started.
                   </p>
                 </div>
               </HoverCardContent>

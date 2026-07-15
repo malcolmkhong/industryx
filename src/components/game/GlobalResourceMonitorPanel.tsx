@@ -1230,9 +1230,9 @@ export default function GlobalResourceMonitorPanel() {
                       });
                       return (
                         <span className="text-success">
-                          {withCounts.map((p, i) => (
-                            <span key={i}>
-                              {i > 0 && ", "}
+                          {withCounts.map((p) => (
+                            <span key={p.name}>
+                              {withCounts.findIndex(c => c.name === p.name) > 0 && ", "}
                               {p.name}
                               {p.count > 0 ? ` ×${p.count}` : ""}
                             </span>
@@ -1262,9 +1262,9 @@ export default function GlobalResourceMonitorPanel() {
                         );
                       return (
                         <span className="text-danger">
-                          {withCounts.map((c, i) => (
-                            <span key={i}>
-                              {i > 0 && ", "}
+                          {withCounts.map((c) => (
+                            <span key={c.name}>
+                              {withCounts.findIndex(x => x.name === c.name) > 0 && ", "}
                               {c.name} ×{c.count}
                             </span>
                           ))}

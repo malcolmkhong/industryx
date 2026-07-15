@@ -100,20 +100,21 @@ export function PayoutPanel() {
   const incomePerMinute = estimatedPayout * payoutsPerMinute;
 
   // Tips — 03.2 FIX: memoize so this list only recomputes when underlying
-  // buildings/payout config change, not on every tick.
-  const tips = useMemo<ReactNode[]>(() => {
-    const result: ReactNode[] = [];
+  // buildings/payout config change, not on every tick. Each tip carries a
+  // stable `id` so React can use it as a list key across reorders.
+  const tips = useMemo<Array<{ id: string; node: ReactNode }>>(() => {
+    const result: Array<{ id: string; node: ReactNode }> = [];
     if (buildings.length === 0) {
-      result.push(<><GameIcon icon="game-icons:castle" size={14} className="inline" /> Build your first building to start receiving payouts!</>);
+      result.push({ id: 'no-buildings', node: <><GameIcon icon="game-icons:castle" size={14} className="inline" /> Build your first building to start receiving payouts!</> });
     } else {
-      if (factories.length === 0) result.push(<><GameIcon icon="game-icons:factory" size={14} className="inline" /> Build factories to increase your payout — they earn $50/cycle per building!</>);
-      if (extractors.length === 0) result.push(<><GameIcon icon="game-icons:mining" size={14} className="inline" /> Build extractors to earn $20/cycle per building from raw material production!</>);
-      if (avgEfficiency < 0.8) result.push(<><GameIcon icon="game-icons:lightning-frequency" size={14} className="inline" /> Improve power efficiency to boost payouts — build more power plants!</>);
-      if (payoutConfig.autoCollect) result.push(<><GameIcon icon="game-icons:spinning-wheel" size={14} className="inline" /> Auto-collect is ON — payouts go directly to your balance.</>);
-      else result.push(<>👆 Click "Collect" to claim your pending payout, or enable auto-collect.</>);
-      if (factories.length > extractors.length * 2) result.push(<><GameIcon icon="game-icons:scales" size={14} className="inline" /> Consider building more extractors to supply your factories.</>);
-      if (gameSpeed === 1) result.push(<><GameIcon icon="game-icons:fast-forward-button" size={14} className="inline" /> Increase game speed to receive payouts more frequently!</>);
-      if (estimatedPayout < 10) result.push(<><GameIcon icon="game-icons:profit" size={14} className="inline" /> Build more buildings or upgrade existing ones to increase payout amounts.</>);
+      if (factories.length === 0) result.push({ id: 'no-factories', node: <><GameIcon icon="game-icons:factory" size={14} className="inline" /> Build factories to increase your payout — they earn $50/cycle per building!</> });
+      if (extractors.length === 0) result.push({ id: 'no-extractors', node: <><GameIcon icon="game-icons:mining" size={14} className="inline" /> Build extractors to earn $20/cycle per building from raw material production!</> });
+      if (avgEfficiency < 0.8) result.push({ id: 'low-efficiency', node: <><GameIcon icon="game-icons:lightning-frequency" size={14} className="inline" /> Improve power efficiency to boost payouts — build more power plants!</> });
+      if (payoutConfig.autoCollect) result.push({ id: 'auto-collect-on', node: <><GameIcon icon="game-icons:spinning-wheel" size={14} className="inline" /> Auto-collect is ON — payouts go directly to your balance.</> });
+      else result.push({ id: 'auto-collect-off', node: <>👆 Click &quot;Collect&quot; to claim your pending payout, or enable auto-collect.</> });
+      if (factories.length > extractors.length * 2) result.push({ id: 'imbalance', node: <><GameIcon icon="game-icons:scales" size={14} className="inline" /> Consider building more extractors to supply your factories.</> });
+      if (gameSpeed === 1) result.push({ id: 'speed-up', node: <><GameIcon icon="game-icons:fast-forward-button" size={14} className="inline" /> Increase game speed to receive payouts more frequently!</> });
+      if (estimatedPayout < 10) result.push({ id: 'low-payout', node: <><GameIcon icon="game-icons:profit" size={14} className="inline" /> Build more buildings or upgrade existing ones to increase payout amounts.</> });
     }
     return result;
   }, [buildings.length, factories.length, extractors.length, avgEfficiency, payoutConfig.autoCollect, gameSpeed, estimatedPayout]);
@@ -360,9 +361,9 @@ export function PayoutPanel() {
               <p className="text-xs text-muted-label text-center py-3">No payouts yet. Build buildings to start earning!</p>
             ) : (
               <div className="space-y-2 max-h-64 overflow-y-auto game-scrollbar">
-                {[...payoutHistory].reverse().map((record, idx) => (
+                {[...payoutHistory].reverse().map((record) => (
                   <div
-                    key={idx}
+                    key={record.tick}
                     className="flex items-center justify-between py-1.5 px-2 rounded-md bg-muted-label/30 border border-muted-label/30"
                   >
                     <div className="flex items-center gap-2">
@@ -406,9 +407,9 @@ export function PayoutPanel() {
           <div className="overflow-hidden">
           <CardContent className="px-4 pb-4">
             <div className="space-y-2">
-              {tips.map((tip, idx) => (
-                <div key={idx} className="text-xs text-subtle py-1 px-2 rounded bg-muted-label/20 border border-muted-label/20">
-                  {tip}
+              {tips.map((tip) => (
+                <div key={tip.id} className="text-xs text-subtle py-1 px-2 rounded bg-muted-label/20 border border-muted-label/20">
+                  {tip.node}
                 </div>
               ))}
             </div>

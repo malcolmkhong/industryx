@@ -88,12 +88,12 @@ function ContractCard({ contract, store, fulfillingId, onFulfill }: { contract: 
 
         {/* Required Resources */}
         <div className="flex flex-wrap gap-2 mb-3">
-          {contract.requiredResources.filter(r => RESOURCE_META[r.resource]).map((r, i) => {
+          {contract.requiredResources.filter(r => RESOURCE_META[r.resource]).map((r) => {
             const meta = RESOURCE_META[r.resource];
             const have = store.resources[r.resource] ?? 0;
             const enough = have >= r.amount;
             return (
-              <div key={i} className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-colors duration-300 ${
+              <div key={r.resource} className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs transition-colors duration-300 ${
                 enough ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'
               }`}>
                 <GameIcon icon={meta.icon} size={14} className="inline-flex" />

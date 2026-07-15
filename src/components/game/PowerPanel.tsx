@@ -455,10 +455,10 @@ export function PowerPanel() {
           {/* Grid lines background */}
           <div className="absolute inset-0 opacity-5">
             {[...Array(6)].map((_, i) => (
-              <div key={`h-${i}`} className="absolute h-px bg-brand" style={{ top: `${(i + 1) * 16.6}%`, left: '5%', right: '5%' }} />
+              <div key={`h-${(i + 1) * 16.6}%`} className="absolute h-px bg-brand" style={{ top: `${(i + 1) * 16.6}%`, left: '5%', right: '5%' }} />
             ))}
             {[...Array(8)].map((_, i) => (
-              <div key={`v-${i}`} className="absolute w-px bg-brand" style={{ left: `${(i + 1) * 12.5}%`, top: '5%', bottom: '5%' }} />
+              <div key={`v-${(i + 1) * 12.5}%`} className="absolute w-px bg-brand" style={{ left: `${(i + 1) * 12.5}%`, top: '5%', bottom: '5%' }} />
             ))}
           </div>
 
@@ -544,7 +544,7 @@ export function PowerPanel() {
                 <>
                   {[...Array(4)].map((_, i) => (
                     <motion.div
-                      key={`lp-${i}`}
+                      key={`lp-${20 + i * 20}%`}
                       className="absolute w-1.5 h-1.5 rounded-full"
                       style={{
                         backgroundColor: flowColor,
@@ -557,7 +557,7 @@ export function PowerPanel() {
                   ))}
                   {[...Array(4)].map((_, i) => (
                     <motion.div
-                      key={`rp-${i}`}
+                      key={`rp-${20 + i * 20}%`}
                       className="absolute w-1.5 h-1.5 rounded-full"
                       style={{
                         backgroundColor: flowColor,
