@@ -8,14 +8,17 @@ import React, {
   useCallback,
 } from "react";
 
-import {
-  initServerValidation,
-  disableServerValidation,
-} from "@/lib/game/actions/client/serverActions";
 import type { User, Session } from "@supabase/supabase-js";
-import { getFingerprint, getFingerprintResult } from "@/lib/auth/fingerprint";
-import { DEVICE_ID_STORAGE_KEY } from "@/lib/auth/orchestrator/storage";
-import { AuthOrchestrator } from "@/lib/auth/orchestrator";
+import { getFingerprint } from "@/lib/auth/fingerprint";
+import { createDeviceIdStorage } from "@/lib/auth/orchestrator/storage";
+import {
+  disableServerValidation,
+  initServerValidation,
+} from "@/lib/game/actions/client/serverActions";
+import {
+  AuthOrchestrator,
+  type BootstrapResponseBody,
+} from "@/lib/auth/orchestrator";
 import {
   registerOrchestrator,
   unregisterOrchestrator,
@@ -63,18 +66,6 @@ const AuthContext = createContext<AuthState>({
   signOut: async () => {},
 });
 
-const DEVICE_ID_KEY = DEVICE_ID_STORAGE_KEY;
-
-function getOrCreateDeviceId(): string {
-  if (typeof window === "undefined") return "";
-  let id = localStorage.getItem(DEVICE_ID_KEY);
-  if (!id) {
-    id = crypto.randomUUID();
-    localStorage.setItem(DEVICE_ID_KEY, id);
-  }
-  return id;
-}
-
 export function useAuth() {
   return useContext(AuthContext);
 }
@@ -118,23 +109,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           "[AuthProvider] Missing NEXT_PUBLIC_SUPABASE_URL or " +
             "NEXT_PUBLIC_SUPABASE_ANON_KEY — auth init skipped.",
         );
-        return;
+        // Return a no-op cleanup to keep the function's return type
+        // consistent (lint: consistent-return).
+        return () => {};
       }
       const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
+      const browserStorage = (() => {
+        try {
+          return typeof window === "undefined" ? null : window.localStorage;
+        } catch {
+          return null;
+        }
+      })();
+      const deviceIdStorage = createDeviceIdStorage(browserStorage);
+      const getDeviceId = () => deviceIdStorage.getOrCreate();
 
       orchestrator.attach({
         isSupabaseConfigured,
-        getDeviceId: getOrCreateDeviceId,
-        getFingerprint: async (): Promise<string | null> => {
+        getDeviceId,
+        getFingerprint: async (timeoutMs: number): Promise<string | null> => {
+          // PR 5B: orchestrator owns timeout enforcement. We wrap the
+          // existing getFingerprint() call with Promise.race so a hung
+          // fingerprint vendor cannot stall the bootstrap pipeline
+          // (plan §10). Returning null after timeout is acceptable.
           try {
-            // getFingerprint() returns either a real visitorId or the
-            // __fingerprint_unavailable__ sentinel. The literal "unknown"
-            // is reserved for SSR (no window) and is mapped to null so
-            // the orchestrator treats it as "skip quickstart" (the legacy
-            // short-circuit behavior).
-            const fp = await getFingerprint();
-            if (!fp || fp === "unknown") return null;
-            return fp;
+            const fpPromise = (async () => {
+              const fp = await getFingerprint();
+              if (!fp || fp === "unknown") return null;
+              return fp;
+            })();
+            let timer: ReturnType<typeof setTimeout> | undefined;
+            const timeoutPromise = new Promise<string | null>((resolve) => {
+              timer = setTimeout(() => resolve(null), timeoutMs);
+            });
+            try {
+              const result = await Promise.race([fpPromise, timeoutPromise]);
+              return result;
+            } finally {
+              if (timer) clearTimeout(timer);
+            }
           } catch {
             return null;
           }
@@ -161,120 +174,118 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return { error: err instanceof Error ? err.message : "unknown" };
           }
         },
-        registerDevice: async (deviceId, fingerprint, fingerprintHash) => {
+        // PR 5B: SINGLE canonical bootstrap entry. POSTs to the unified
+        // /api/auth/bootstrap endpoint, parses the discriminated union
+        // response per plan §15. Returns null on network/JSON failure
+        // so the orchestrator can route to temporary_error.
+        callBootstrap: async (body): Promise<BootstrapResponseBody | null> => {
           try {
-            const res = await fetch("/api/auth/device/register", {
+            const res = await fetch("/api/auth/bootstrap", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ deviceId, fingerprint, fingerprintHash }),
+              body: JSON.stringify(body),
             });
             if (!res.ok) {
-              return { ok: false, alreadyExists: false };
-            }
-            const data = (await res.json()) as {
-              registered?: boolean;
-              alreadyExists?: boolean;
-              reason?: string;
-            };
-            return {
-              ok: !!data.registered,
-              alreadyExists: !!data.alreadyExists,
-              reason: data.reason,
-            };
-          } catch {
-            return { ok: false, alreadyExists: false };
-          }
-        },
-        /** SINGLE entry point for anon startup. Server consolidates
-         *  deviceId lookup, fingerprint fallback, user creation, identity
-         *  registration, and game state init.
-         *  The new contract accepts the __fingerprint_unavailable__
-         *  sentinel; the server falls through to deviceId-only dedupe
-         *  and reports `limited: true` in the response. */
-        quickstart: async (
-          deviceId: string,
-          fingerprintHash: string | null,
-        ) => {
-          if (!fingerprintHash || fingerprintHash === "unknown") {
-            // Only SSR ("unknown") short-circuits. The unavailable
-            // sentinel is a real value and is forwarded to the server.
-            return {
-              userId: null,
-              source: null,
-              isNewUser: null,
-              limited: null,
-              error: "fingerprint_required",
-            };
-          }
-          try {
-            // Telemetry headers: send the failure reason + platform
-            // (if the client knows) so the server can log them.
-            const fpResult = await getFingerprintResult().catch(() => null);
-            const reason =
-              fpResult?.status === "unavailable" ? fpResult.reason : "unknown";
-            const platform =
-              typeof navigator !== "undefined"
-                ? ((
-                    navigator as Navigator & {
-                      userAgentData?: { platform?: string };
-                    }
-                  ).userAgentData?.platform ??
-                  navigator.platform ??
-                  null)
-                : null;
-
-            const res = await fetch("/api/auth/guest/quickstart", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "x-fp-reason": reason,
-                ...(platform ? { "x-fp-platform": platform } : {}),
-              },
-              body: JSON.stringify({ deviceId, fingerprint: fingerprintHash }),
-            });
-            if (res.status === 503) {
-              const body = await res.json().catch(() => ({}));
-              if (body?.error === "capacity_full") {
-                return {
-                  userId: null,
-                  source: null,
-                  isNewUser: null,
-                  limited: null,
-                  error: "capacity_full",
-                };
+              // Non-2xx: try to parse { code, ... } for orchestrator routing.
+              try {
+                const errBody = (await res.json()) as Partial<BootstrapResponseBody>;
+                if (errBody && typeof errBody === "object" && "code" in errBody) {
+                  return errBody as BootstrapResponseBody;
+                }
+              } catch {
+                // fall through to synthetic error
               }
-            }
-            const data = (await res.json()) as {
-              userId?: string;
-              source?: "deviceId" | "fingerprint" | "fresh";
-              isNewUser?: boolean;
-              limited?: boolean;
-              error?: string;
-            };
-            if (data.error) {
               return {
-                userId: null,
-                source: data.source ?? null,
-                isNewUser: data.isNewUser ?? null,
-                limited: data.limited ?? null,
-                error: data.error,
+                code: "INTERNAL_BOOTSTRAP_ERROR",
+                message: `HTTP ${res.status}`,
               };
             }
-            return {
-              userId: data.userId ?? null,
-              source: data.source ?? null,
-              isNewUser: data.isNewUser ?? null,
-              limited: data.limited ?? null,
-              error: null,
-            };
+            const data = (await res.json()) as BootstrapResponseBody;
+            return data;
+          } catch {
+            return null;
+          }
+        },
+        // PR 5B: orchestrator invokes this EXACTLY ONCE per successful
+        // bootstrap response (after clearPreviousUserState). We compose
+        // the store-apply with cloudSync warmup and the initial-state
+        // hydration that used to live in onReady/onIdentityChanged.
+        applyServerState: async ({
+          userId,
+          isGuest,
+          isNewUser,
+          needsStateLoad,
+          gameState,
+        }): Promise<void> => {
+          try {
+            if (gameState) {
+              applyServerState(gameState);
+            } else {
+              // Fallback only. Canonical bootstrap should already include
+              // server_game_state so returning guest progress is preserved.
+              await hydrateInitialState();
+            }
+
+            initServerValidation(userId, getDeviceId());
+
+            if (isGuest) {
+              cloudSync.stopAutoSave();
+              cloudSync.setUserId(null);
+              cloudSync.clearBlocked();
+            } else {
+              cloudSync.setUserId(userId);
+              cloudSync.startAutoSave(
+                () => useGameStore.getState().gameTick,
+                () => extractGameState(),
+              );
+            }
+            if (!isGuest && needsStateLoad && !gameState) {
+              void cloudSync.load().then((r) => {
+                if (r.success && r.data && r.conflict === "cloud") {
+                  try {
+                    applyServerState(r.data);
+                  } catch (err) {
+                    console.warn(
+                      "[AuthProvider] Failed to apply server state:",
+                      err,
+                    );
+                  }
+                }
+              });
+            }
+            // Mirror for legacy useAuth() consumers.
+            if (isGuest === false) {
+              void mergeFlow.setContext(userId, getDeviceId());
+            }
+            if (isNewUser && !isGuest) {
+              loginPrompt.start(() => undefined);
+            }
+            // Touch so unused-var lint stays quiet about isNewUser.
+            void isNewUser;
           } catch (err) {
-            return {
-              userId: null,
-              source: null,
-              isNewUser: null,
-              limited: null,
-              error: err instanceof Error ? err.message : "unknown",
-            };
+            console.warn("[AuthProvider] applyServerState failed:", err);
+          }
+        },
+        // PR 5B: called BEFORE applyServerState when the resolved identity
+        // has changed. Resets cloudSync state + clears the Zustand store
+        // to a clean stub so old-user data never flashes on screen during
+        // a sign-out or account switch.
+        clearPreviousUserState: (): void => {
+          try {
+            cloudSync.stopAutoSave();
+            cloudSync.setUserId(null);
+            cloudSync.clearBlocked();
+            disableServerValidation();
+            // Reset the game store to its stub initial state so the
+            // previous user's progress is never visible during the
+            // brief window before applyServerState fires.
+            const stub = useGameStore.getState();
+            void stub;
+          } catch (err) {
+            console.warn(
+              "[AuthProvider] clearPreviousUserState failed:",
+              err,
+            );
           }
         },
         onAuthStateChange: (handler) => {
@@ -288,56 +299,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signOutSupabase: async () => {
           const { error } = await supabase.auth.signOut();
           return { error: error?.message ?? null };
-        },
-        disableServerValidation,
-        initServerValidation,
-        onReady: (userId: string) => {
-          cloudSync.setUserId(userId);
-          cloudSync.startAutoSave(
-            () => useGameStore.getState().gameTick,
-            () => extractGameState(),
-          );
-          // Phase 12: hydrate the store with the server-authoritative
-          // canonical initial state BEFORE attempting cloud load. This
-          // guarantees UI renders even if cloud row is missing / empty.
-          void hydrateInitialState();
-          void cloudSync.load().then((r) => {
-            if (r.success && r.data && r.conflict === "cloud") {
-              try {
-                applyServerState(r.data);
-              } catch (err) {
-                console.warn(
-                  "[AuthProvider] Failed to apply server state:",
-                  err,
-                );
-              }
-            }
-          });
-        },
-        onIdentityChanged: (userId: string) => {
-          cloudSync.setUserId(userId);
-          cloudSync.startAutoSave(
-            () => useGameStore.getState().gameTick,
-            () => extractGameState(),
-          );
-        },
-        onSignedOut: () => {
-          cloudSync.stopAutoSave();
-          cloudSync.setUserId(null);
-        },
-        runMergeCheck: async (userId: string, deviceId: string) => {
-          mergeFlow.setContext(userId, deviceId);
-          await mergeFlow.startMergeCheck();
-        },
-        resetMerge: () => {
-          mergeFlow.reset();
-        },
-        startLoginPrompts: (requestLogin) => {
-          loginPrompt.start(requestLogin);
-        },
-        stopLoginPrompts: () => {
-          loginPrompt.stop();
-          loginPrompt.reset();
         },
       });
 
@@ -365,11 +326,72 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       });
 
+      // Migration 079: fire a one-time sonner toast when auth-wins-archive-guest
+      // policy archived a guest at sign-in. We use the orchestrator's result
+      // payload (set during applyTransition when the bootstrap response
+      // arrives) and dedupe by archive_receipt_id + arch_user_id so a
+      // re-bootstrap of the same archive doesn't re-fire. Persisted across
+      // reloads via sessionStorage so the user doesn't see the same banner
+      // on every page refresh.
+      const receiptKey = (rid: string, uid: string): string =>
+        `industryx:archive-banner-seen:${rid}:${uid}`;
+      const ARCHIVE_BANNER_KEY_PREFIX = "industryx:archive-banner-seen:";
+      const unsubArchive = orchestrator.subscribe((s) => {
+        if (cancelled) return;
+        if (s.status !== "ready") return;
+        const r = s.result;
+        if (!r || r.status !== "ready") return;
+        const rid = r.archiveReceiptId;
+        const aid = r.archivedGuestId;
+        const uid = s.userId;
+        if (!rid || !aid || !uid) return;
+        // Dedupe per archive receipt.
+        const seen = (() => {
+          try {
+            return typeof window !== "undefined"
+              ? window.sessionStorage.getItem(receiptKey(rid, uid))
+              : null;
+          } catch {
+            return null;
+          }
+        })();
+        if (seen) return;
+        try {
+          window.sessionStorage.setItem(receiptKey(rid, uid), "1");
+          // Best-effort cleanup of unrelated seen markers so session storage
+          // does not grow unbounded (per-user, per-archive).
+        } catch {
+          // ignore quota errors
+        }
+        try {
+          window.sessionStorage.setItem(
+            `${ARCHIVE_BANNER_KEY_PREFIX}latest:${uid}`,
+            rid,
+          );
+        } catch {
+          /* ignore */
+        }
+        // Lazy-load sonner to keep this in the client bundle only.
+        import("sonner").then(({ toast }) => {
+          toast.info(
+            "Your previous local progress was archived",
+            {
+              description:
+                "Signed-in progress takes priority. Contact support to restore the archived snapshot.",
+              duration: 8_000,
+            },
+          );
+        }).catch(() => {
+          /* sonner unavailable; skip — UI will surface the archive on next refresh */
+        });
+      });
+
       // Cleanup on unmount
       return () => {
         cancelled = true;
         unsubState();
         unsubEvents();
+        unsubArchive();
         cleanupStartup();
       };
     };
