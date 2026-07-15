@@ -6,7 +6,7 @@ import {
   getInvestigation,
   resolveInvestigation,
 } from "@/lib/db/admin/cheatInvestigations";
-import { createServiceRoleClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from '@/lib/db/access';;
 
 interface ResolutionBody {
   action?: unknown;

@@ -17,14 +17,14 @@ type SoundName =
 
 class SoundEngine {
   private ctx: AudioContext | null = null;
-  private masterVolume: number = 0.5;
+  private masterVolume = 0.5;
   private categories: Record<string, number> = {
     building: 0.7,
     production: 0.5,
     events: 0.8,
     ui: 0.6,
   };
-  private enabled: boolean = true;
+  private enabled = true;
 
   /**
    * Initialize the AudioContext. Must be called from a user gesture handler.

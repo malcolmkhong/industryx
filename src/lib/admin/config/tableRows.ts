@@ -6,7 +6,7 @@ import {
   isAllowedTable,
   type TableConfig,
 } from "@/lib/config/tables";
-import { createServiceRoleClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from '@/lib/db/access';;
 
 type RowBody = Record<string, unknown>;
 

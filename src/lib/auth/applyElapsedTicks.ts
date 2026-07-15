@@ -20,12 +20,14 @@
 // See docs/REFACTOR_SERVER_AUTHORITATIVE_ACTIONS.md Phase 7 for the design.
 // ============================================
 
-import { createServiceRoleClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from '@/lib/db/access';;
 import { fetchGameConfigFromSupabase } from "@/lib/db/config/serverConfigFetcher";
 import { runServerTicks } from "@/lib/game/production/engine/serverEngine";
 import { getGameLimits } from "@/lib/game/config/balance/balanceConfig";
 import { ensureConfigLoaded } from "@/lib/game/config/server/configLoader.server";
+import { getServerNowISO } from "@/lib/auth/serverTime";
 import type { ServerGameData } from "@/lib/game/shared/types/types";
+import type { ProductionSnapshot } from "@/lib/game/production/productionCalculator";
 
 interface ApplyElapsedResult {
   /**
@@ -44,6 +46,15 @@ interface ApplyElapsedResult {
    * now_iso()). Caller should use this for `last_tick_at` persistence.
    */
   serverNow: string;
+  /**
+   * ProductionSnapshot for the post-tick state. `null` when no ticks
+   * were applied (no new authoritative snapshot to install). Surface to
+   * the client so UI consumers can refresh rates alongside `newState`.
+   *
+   * Phase 13 invariant preserved: snapshot stays a response/UI value and
+   * is NEVER persisted inside `full_state`.
+   */
+  productionSnapshot: ProductionSnapshot | null;
 }
 
 /**
@@ -88,19 +99,17 @@ export async function applyElapsedTicks(
     throw new Error("[applyElapsedTicks] Supabase service role not configured");
   }
 
-  const { data: serverNowData, error: serverNowError } =
-    await supabase.rpc("now_iso");
-  if (serverNowError || !serverNowData) {
-    throw new Error(
-      `[applyElapsedTicks] Failed to read server time: ${serverNowError?.message ?? "no data"}`,
-    );
-  }
-  const serverNow = String(serverNowData);
+  // Centralized time-source helper (audit 2026-07-15, BUG-074). The helper
+  // throws on any RPC error so we never silently fall back to Node clock.
+  // Previously this branch had its own inline now_iso RPC call plus
+  // a Node-clock fallback elsewhere in the codebase; both have been
+  // collapsed to this single delegated read.
+  const serverNow = await getServerNowISO(supabase);
 
   // No prior tick timestamp → assume brand-new state. Do not apply ticks;
   // caller will initialize.
   if (!lastTickAt) {
-    return { state: currentState, elapsedTicks: 0, serverNow };
+    return { state: currentState, elapsedTicks: 0, serverNow, productionSnapshot: null };
   }
 
   const serverNowMs = new Date(serverNow).getTime();
@@ -112,15 +121,27 @@ export async function applyElapsedTicks(
   }
 
   const elapsedSeconds = Math.max(0, (serverNowMs - lastTickMs) / 1000);
-  const safeGameSpeed =
-    Number.isFinite(gameSpeed) && gameSpeed > 0 ? gameSpeed : 1;
+  // V-031 (PR-BP-3): fail-closed on invalid game speed. Previously the
+  // helper silently clamped `gameSpeed <= 0 || NaN || Infinity` to `1`,
+  // which masked data corruption in `server_game_state.game_speed` and
+  // produced incorrect tick counts (and downstream resource drift) on
+  // rows whose speed column had drifted to a bad value. Per RULES.md
+  // "fail-closed on auth, config, validation, rate-limit, server, and
+  // database errors", we now throw so the caller returns 503.
+  if (!Number.isFinite(gameSpeed) || gameSpeed <= 0) {
+    throw new RangeError(
+      `[applyElapsedTicks] Invalid game speed: ${gameSpeed}. ` +
+        `Per RULES.md [SEC-002]: refuse to proceed.`,
+    );
+  }
+  const safeGameSpeed = gameSpeed;
   const elapsedTicks = Math.min(
     getGameLimits().maxTickRatePerSecond,
     Math.floor(elapsedSeconds * safeGameSpeed),
   );
 
   if (elapsedTicks <= 0) {
-    return { state: currentState, elapsedTicks: 0, serverNow };
+    return { state: currentState, elapsedTicks: 0, serverNow, productionSnapshot: null };
   }
 
   const result = runServerTicks(currentState, elapsedTicks, config);
@@ -128,5 +149,6 @@ export async function applyElapsedTicks(
     state: result.newState,
     elapsedTicks,
     serverNow,
+    productionSnapshot: result.productionSnapshot,
   };
 }

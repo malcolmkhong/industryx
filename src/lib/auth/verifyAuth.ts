@@ -15,7 +15,7 @@
 // path. All 50+ existing call sites still compile and behave the same.
 // ============================================
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from '@/lib/db/access';;
 import { NextResponse, type NextRequest } from "next/server";
 
 import { tryLocalVerify } from "./jwtVerify";

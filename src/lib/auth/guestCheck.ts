@@ -15,7 +15,7 @@
 //   2. user binds OAuth (confirm-link)     → profile.is_guest = false  (unlocked)
 //   3. archiveGuestProfile runs on GUEST   → GUEST profile.is_guest=false (audit shell)
 
-import { createServiceRoleClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from '@/lib/db/access';;
 
 export interface GuestCheckResult {
   isGuest: boolean;

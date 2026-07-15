@@ -1,4 +1,4 @@
-import { createServiceRoleClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from '@/lib/db/access';;
 import {
   DEFAULT_BALANCE_SUBSET,
   type GameConfig,

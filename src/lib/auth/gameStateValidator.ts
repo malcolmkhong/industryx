@@ -6,7 +6,7 @@
 
 import { createHmac } from "crypto";
 
-import { createServiceRoleClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from '@/lib/db/access';;
 import {
   enrichLatestInvestigation,
   incrementCheatFlag,

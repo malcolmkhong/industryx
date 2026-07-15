@@ -10,7 +10,7 @@
  * public API and avoid breaking every call site.
  */
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from '@/lib/db/access';;
 import { NextResponse } from "next/server";
 import {
   isAdminUserIdInEnv as _isAdminUserIdInEnv,

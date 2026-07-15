@@ -7,7 +7,7 @@ import {
   updateMarketConfigWithError,
   type ValidSector,
 } from "@/lib/db/config/configMarket";
-import { createServiceRoleClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from '@/lib/db/access';;
 
 const VALID_SECTORS = [
   "raw_minerals",
