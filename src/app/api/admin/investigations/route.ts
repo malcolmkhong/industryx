@@ -7,7 +7,7 @@ import {
   countResolvedSince,
   listInvestigations,
 } from "@/lib/db/admin/cheatInvestigations";
-import { createServiceRoleClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from '@/lib/db/access';;
 
 type InvestigationStatus = "open" | "resolved" | "dismissed";
 type InvestigationSeverity = "low" | "medium" | "high" | "critical";
