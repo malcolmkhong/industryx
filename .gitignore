@@ -216,3 +216,26 @@ planning/
 # one-off .cjs/.mjs/.ts files are not for source control.
 # Use tests/ + tests/integration/ for production test code.
 scripts/
+# Graphify self-output cache + cost (canonical artifacts tracked separately)
+graphify-out/cache/
+graphify-out/cost.json
+graphify-out/pipeline/.graphify_*.json
+
+# Local build / typecheck / lint cache
+.cache/
+
+# Local log / probe debris
+dev-server.err.log
+dev-server.log
+dev-stderr.log
+dev-stdout.log
+dev.log
+diffstat.out
+.lint.out
+.tscheck*.out
+**/tscheck*.out
+**/vitest*.out
+
+# Test backup fragments
+*.bak2
+*.bak3
