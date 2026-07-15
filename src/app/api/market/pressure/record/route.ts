@@ -6,7 +6,7 @@
 // ============================================
 
 import { NextResponse } from 'next/server';
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/db/access';;
 import { verifyAuth } from '@/lib/auth/verifyAuth';
 
 export async function POST(request: Request) {

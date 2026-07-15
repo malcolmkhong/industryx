@@ -6,15 +6,20 @@
 //   - The /api/market/tick route before running the simulation
 //   - Manually via curl for debugging
 //
-// Source data shape (per player, in `full_state`):
+// Source data shape (per player, in `server_game_state.market_supply`):
 //   {
-//     productionSnapshot: {
-//       production: { iron: 12.3, copper: 5.1, ... },
-//       actualConsumption: { iron: 8.0, copper: 4.5, ... },
-//       gameTick: 12345,
-//       capturedAt: 1234567890
-//     }
+//     production: { iron: 12.3, copper: 5.1, ... },
+//     actualConsumption: { iron: 8.0, copper: 4.5, ... },
+//     updatedAt: "2026-07-15T00:00:00.000Z"
 //   }
+//
+// PR-BP-2 (V-032): the legacy reader on `full_state.productionSnapshot`
+// was silently broken — `stripUIFields` removes that field before
+// persistence, so the read was always undefined and every player was
+// skipped. We now read the dedicated `market_supply` JSONB column
+// populated by `buildMarketSupplyProjection` in
+// `src/lib/game/production/snapshot/marketSupplyProjection.ts`.
+// Phase 13 invariant kept: `productionSnapshot` stays a UI-only field.
 //
 // Iteration 9e of DB centralization migration:
 //   - paginated server_game_state read routed through
@@ -24,15 +29,9 @@
 // ============================================
 
 import { NextResponse } from 'next/server';
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/db/access';;
 import { pageServerGameStateFullState } from '@/lib/db/game/serverGameState';
-
-interface ProductionSnapshot {
-  production?: Record<string, number>;
-  actualConsumption?: Record<string, number>;
-  gameTick?: number;
-  capturedAt?: number;
-}
+import type { MarketSupplyProjection } from '@/lib/game/production/snapshot/marketSupplyProjection';
 
 const PAGE = 1000;
 
@@ -104,17 +103,21 @@ async function collectSupplyDemandPages(
   let playersScanned = 0;
   for (const row of page.rows) {
     playersScanned += 1;
-    const fullState = (row.full_state ?? {}) as Record<string, unknown>;
-    const snapshot = fullState.productionSnapshot as ProductionSnapshot | undefined;
-    if (!snapshot) continue;
+    // PR-BP-2 (V-032): read server-only supply projection. The previous
+    // implementation read `fullState.productionSnapshot`, which
+    // `stripUIFields` strips before persistence; the projection column
+    // survives the strip and is the canonical server-authoritative
+    // source for the aggregate cron.
+    const projection = row.market_supply as MarketSupplyProjection | null;
+    if (!projection || typeof projection !== 'object') continue;
 
-    for (const [resource, value] of Object.entries(snapshot.production ?? {})) {
+    for (const [resource, value] of Object.entries(projection.production ?? {})) {
       if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) continue;
       productionTotals.set(resource, (productionTotals.get(resource) ?? 0) + value);
       playerCounts.set(resource, (playerCounts.get(resource) ?? 0) + 1);
     }
 
-    for (const [resource, value] of Object.entries(snapshot.actualConsumption ?? {})) {
+    for (const [resource, value] of Object.entries(projection.actualConsumption ?? {})) {
       if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) continue;
       consumptionTotals.set(resource, (consumptionTotals.get(resource) ?? 0) + value);
       // Don't double-count: player contributes to BOTH production and consumption for same resource
