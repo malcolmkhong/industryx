@@ -1,6 +1,10 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+
+import {
+  createServiceRoleClient as getServiceRoleClientFromBoundary,
+  isServiceRoleConfigured as isServiceRoleConfiguredFromBoundary,
+} from '@/lib/db/access';
 
 /**
  * Check if Supabase is configured (env vars present).
@@ -15,15 +19,26 @@ export function isSupabaseConfigured(): boolean {
 
 /**
  * Check if Supabase service role is configured.
- * Used by API routes that need service-level access.
+ *
+ * Re-exported from @/lib/db/access for backward compatibility with code
+ * that already imports this name from @/lib/supabase/server. New code
+ * should import `isDbClientConfigured` directly from `@/lib/db/access`.
  */
 export function isServiceRoleConfigured(): boolean {
-  return !!(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-  );
+  return isServiceRoleConfiguredFromBoundary();
 }
 
+/**
+ * Per-request Supabase server client with cookie-bound auth.
+ *
+ * This client MUST be created fresh for each request because it owns the
+ * cookie store of the current request. See Supabase SSR docs: "A new
+ * client must be created for each server render — never share a client
+ * across requests."
+ *
+ * Do not use this factory for service-role access; use
+ * `@/lib/db/access` instead.
+ */
 export async function createClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -44,7 +59,7 @@ export async function createClient() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
+              cookieStore.set(name, value, options),
             );
           } catch {
             // The `setAll` method was called from a Server Component.
@@ -52,30 +67,21 @@ export async function createClient() {
           }
         },
       },
-    }
+    },
   );
 }
 
 /**
- * Create a Supabase client with service role privileges.
- * Returns null if service role is not configured, instead of throwing.
- * Callers should check for null and return an appropriate error response.
+ * Service-role Supabase client.
+ *
+ * Re-exported from @/lib/db/access for backward compatibility with the 66
+ * existing import sites. New code MUST use `@/lib/db/access` so the
+ * boundary module owns the singleton lifecycle and the typed fail-closed
+ * error path (requireDbClient / DbClientNotConfiguredError).
+ *
+ * Returns null when SUPABASE_SERVICE_ROLE_KEY (or the project URL) is
+ * missing; callers MUST check for null and return an appropriate error.
  */
 export function createServiceRoleClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !serviceRoleKey) {
-    return null;
-  }
-
-  return createSupabaseClient(
-    supabaseUrl,
-    serviceRoleKey,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    }
-  );
+  return getServiceRoleClientFromBoundary();
 }
