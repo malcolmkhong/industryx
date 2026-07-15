@@ -21,6 +21,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 import { loadServerGameStateForPreview } from '@/lib/db/game/serverGameState';
 import { verifyAuth } from '@/lib/auth/verifyAuth';
+import { getServerNowISOOrNull, isValidUntilIso } from '@/lib/auth/serverTime';
+import { createServiceRoleClient } from '@/lib/db/access';;
 import { logRequestIp } from '@/app/api/auth/_shared/request-ip-log-helper';
 import { findPrimaryIdentityByDevice } from '@/lib/db/player/guestIdentities';
 import { getProfileDisplayAndGuestFlag } from '@/lib/db/player/profiles';
@@ -29,6 +31,9 @@ import {
   insertLinkOperation,
   setLinkOperationStatus,
 } from '@/lib/db/shared/linkOps';
+import {
+  runBootstrap,
+} from '@/lib/auth/server/bootstrapService.server';
 
 export async function POST(request: NextRequest) {
   try {
@@ -104,8 +109,23 @@ export async function POST(request: NextRequest) {
       auth.userId,
     );
 
+    // Audit 2026-07-15 (BUG-074): previous Date-parsing compare used
+    // the Node clock and silently accepted malformed ISO. Now anchored
+    // to `now_iso()` (same source as the tick chain) and compared via
+    // pure ISO-string lex order.
     if (existingOp && existingOp.status === 'pending') {
-      if (new Date(existingOp.expires_at) > new Date()) {
+      const timeClient = createServiceRoleClient();
+      const nowIso = timeClient ? await getServerNowISOOrNull(timeClient) : null;
+      if (nowIso == null) {
+        console.error(
+          '[LinkIdentity] now_iso() RPC unavailable — refusing to check expiry',
+        );
+        return NextResponse.json(
+          { error: 'Server time unavailable — retry' },
+          { status: 503 },
+        );
+      }
+      if (isValidUntilIso(existingOp.expires_at, nowIso)) {
         return NextResponse.json({
           conflict: true,
           operationId: existingOp.id,
@@ -196,6 +216,43 @@ export async function POST(request: NextRequest) {
         { error: 'Failed to create merge operation' },
         { status: 500 }
       );
+    }
+
+    // PR 4-4B: finalize the device binding in the same transaction window by
+    // delegating to the canonical bootstrap service. The pending_link_operations
+    // row above drives the merge-conflict UI; this bootstrap call finalizes
+    // device_bindings + evaluates guest→auth upgrade eligibility per plan §6.
+    //
+    // Best-effort: if bootstrap fails, the orchestrator's next mount will call
+    // it again (confirm-link also defers bootstrap to the orchestrator). The
+    // pending_link_operations row remains the authoritative UI signal.
+    if (deviceId && typeof deviceId === 'string' && deviceId.trim().length > 0) {
+      try {
+        const bootstrapResult = await runBootstrap({
+          deviceId: deviceId.trim(),
+          fingerprintHash:
+            typeof fingerprintHash === 'string' && fingerprintHash.length > 0
+              ? fingerprintHash
+              : null,
+          // Not a sign-out flow — previousAuthUserId is omitted.
+          previousAuthUserId: null,
+        });
+        // Log the delegation outcome so callers migrating off this endpoint
+        // can be detected in telemetry (plan §18).
+        console.info(
+          '[LinkIdentity] delegated to /api/auth/bootstrap:',
+          bootstrapResult.kind,
+          'userId=',
+          bootstrapResult.kind === 'ready' ? bootstrapResult.ready.userId : null,
+          'isNewUser=',
+          bootstrapResult.kind === 'ready' ? bootstrapResult.ready.isNewUser : null,
+        );
+      } catch (bootstrapErr) {
+        console.warn(
+          '[LinkIdentity] bootstrap delegation failed (non-fatal):',
+          bootstrapErr instanceof Error ? bootstrapErr.message : bootstrapErr,
+        );
+      }
     }
 
     return NextResponse.json({

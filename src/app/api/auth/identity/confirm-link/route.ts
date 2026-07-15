@@ -25,6 +25,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
 import { verifyAuth } from "@/lib/auth/verifyAuth";
+import { getServerNowISOOrNull, isExpiredIso } from "@/lib/auth/serverTime";
+import { createServiceRoleClient } from '@/lib/db/access';;
 import {
   logRequestIp,
   extractClientIp,
@@ -115,7 +117,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (new Date(op.expires_at) < new Date()) {
+    // Audit 2026-07-15 (BUG-074): previously this compared
+    // the parsed expiry timestamp against a freshly-constructed JS
+    // Date (i.e. `new Date(str) < new Date()`). The pattern silently
+    // accepts malformed ISO strings (NaN comparison is always false),
+    // and the right-hand operand used the Node clock — drifting
+    // from the same DB clock used by `expire_stale_pending_operations`.
+    //
+    // We now source the comparison anchor from the same `now_iso()`
+    // RPC the tick chain uses, and compare two UTC ISO strings
+    // lexicographically (chronologically equivalent at the same
+    // precision).
+    const timeClient = createServiceRoleClient();
+    const nowIso = timeClient ? await getServerNowISOOrNull(timeClient) : null;
+    if (nowIso == null) {
+      console.error(
+        "[ConfirmLink] now_iso() RPC unavailable — refusing to check expiry",
+      );
+      return NextResponse.json(
+        { error: "Server time unavailable — retry" },
+        { status: 503 },
+      );
+    }
+    if (isExpiredIso(op.expires_at, nowIso)) {
       await setLinkOperationStatus(operationId, "expired");
       return NextResponse.json({ error: "Operation expired" }, { status: 400 });
     }

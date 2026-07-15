@@ -6,7 +6,7 @@
 // The IP is hashed before storage (SHA-256). The raw IP is never persisted.
 
 import { createHash } from 'crypto';
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/db/access';;
 
 export interface RequestIpLogEntry {
   endpoint: string;

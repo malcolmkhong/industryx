@@ -5,6 +5,18 @@
 // Validates guest save data before allowing
 // migration to an authenticated Google account.
 //
+// PR 4-4B: kept untouched as a wrapper. This endpoint owns the
+// client-supplied gameState migration (validate + upsert server_game_state).
+// The canonical /api/auth/bootstrap endpoint handles device binding via the
+// bootstrap_authenticated RPC, but only when a verified deviceId is supplied;
+// migrate is deviceId-less and operates on the user_id supplied by the
+// authenticated client. Both paths may now write to server_game_state for the
+// same authenticated user — the orchestrator's next mount resolves the
+// conflict via applyServerState.
+//
+// TODO(PR4-4B): migrate path overlaps with bootstrap_authenticated binding
+// creation; track in BUGS.md.
+//
 // Flow:
 // 1. Guest plays locally (localStorage)
 // 2. Guest clicks "Sign in with Google"
