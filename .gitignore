@@ -216,10 +216,28 @@ planning/
 # one-off .cjs/.mjs/.ts files are not for source control.
 # Use tests/ + tests/integration/ for production test code.
 scripts/
-# Graphify self-output cache + cost (canonical artifacts tracked separately)
+# Graphify self-output cache + cost (canonical artifacts tracked separately).
+# Ignore the entire directory by default; per-file negations below restore
+# the canonical human-readable artifacts (GRAPH_REPORT.md, graph.html,
+# pipeline/learnings/, etc.) so cross-machine reuse stays possible.
+graphify-out/
+!graphify-out/GRAPH_REPORT.md
+!graphify-out/graph.html
+!graphify-out/manifest.json
+!graphify-out/benchmark.json
+!graphify-out/pipeline/
+!graphify-out/obsidian/
+# Re-ignore the heavy volatile subcache from the broad allow above.
 graphify-out/cache/
 graphify-out/cost.json
 graphify-out/pipeline/.graphify_*.json
+
+# Next.js dev restart loop log (Next 16 diagnostic spam)
+.next-dev-restart.log
+
+# Playwright debug probes
+playwright-err.txt
+playwright-out.txt
 
 # Local build / typecheck / lint cache
 .cache/
