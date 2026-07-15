@@ -5,7 +5,7 @@
  * and that the game config row exists.
  */
 
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/db/access';;
 
 export async function pingGameConfig(): Promise<{ ok: boolean; error?: string }> {
   const supabase = createServiceRoleClient();

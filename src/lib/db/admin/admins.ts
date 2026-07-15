@@ -33,7 +33,7 @@
  *   - src/app/api/admin/users/admins/[id]/role/route.ts (4 call sites)
  */
  
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from '@/lib/db/access';;
 import type { Database } from "@/lib/db/types";
 
 // Type aliases from the generated Supabase types.

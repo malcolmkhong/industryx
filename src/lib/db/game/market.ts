@@ -15,7 +15,7 @@
  *   - Caller handles auth + rate limit + response shaping.
  */
 
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/db/access';;
 import type { Database } from '@/lib/db/types';
 
 type ServerMarketStateRow = Database['public']['Tables']['server_market_state']['Row'];

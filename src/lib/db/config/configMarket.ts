@@ -6,7 +6,7 @@
  * 60s cycle, so resources added here become tradable automatically.
  */
 
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/db/access';;
 
 export type ValidSector =
   | 'raw_minerals'

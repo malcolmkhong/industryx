@@ -12,7 +12,7 @@
  *     (errors surfaced via try/catch at the route level).
  */
 
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/db/access';;
 import type { Database } from '@/lib/db/types';
 
 type TradeHistoryRow = Database['public']['Tables']['trade_history']['Row'];

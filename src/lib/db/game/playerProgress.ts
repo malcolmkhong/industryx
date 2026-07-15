@@ -9,7 +9,7 @@
  * `createServiceRoleClient()` that return plain objects (no Supabase types).
  */
 
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/db/access';;
 
 export interface PlayerProgressRow {
   user_id: string;

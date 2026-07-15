@@ -21,7 +21,7 @@
  *   - Throw for unexpected database errors (PostgrestError).
  *   - Caller handles auth + rate limit + response shaping.
  */
-import { createServiceRoleClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from '@/lib/db/access';;
 import type { Database } from "@/lib/db/types";
 
 type GuestIdentityRow = Database["public"]["Tables"]["guest_identities"]["Row"];
@@ -395,6 +395,10 @@ export async function reassignUserData(
   }
   const results: ReassignResult[] = [];
   for (const table of REASSIGNABLE_TABLES) {
+    // Sequential by design: each table update must report its own error
+    // (via `results.push`) so the caller can decide whether to continue
+    // or roll back. Parallelizing would lose per-table error context.
+    // eslint-disable-next-line no-await-in-loop
     const { data, error } = await supabase
       .from(table)
       .update({ user_id: newUserId })

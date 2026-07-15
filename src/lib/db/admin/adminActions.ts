@@ -19,7 +19,7 @@
  *   - src/lib/auth/admin-helpers.ts         (re-routes logAdminAction here)
  */
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/db/access';;
 import type { Database } from '@/lib/db/types';
 import { asFullState } from '@/lib/db/game/serverGameStatePayload';
 
@@ -78,7 +78,7 @@ export async function logAdminAction(params: LogAdminActionParams): Promise<void
  * array on error.
  */
 export async function listAdminActions(
-  limit: number = 50
+  limit = 50
 ): Promise<AdminActionRow[]> {
   const supabase = await createClient();
   const { data, error } = await supabase

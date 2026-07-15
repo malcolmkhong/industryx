@@ -17,7 +17,7 @@
  * of truth; receipt + audit log can be back-filled). Centralizing the
  * write pattern preserves that behavior exactly.
  */
-import { createServiceRoleClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from '@/lib/db/access';;
 import type { Database } from "@/lib/db/types";
 import { asFullState } from "@/lib/db/game/serverGameStatePayload";
 

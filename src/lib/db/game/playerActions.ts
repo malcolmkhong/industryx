@@ -4,7 +4,7 @@
  * Iteration 8. Read-only counts for admin economy dashboard.
  */
 
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/db/access';;
 
 export async function countActionsSince(sinceISO: string): Promise<number> {
   const supabase = createServiceRoleClient();

@@ -14,7 +14,7 @@
 // /api/game/config/definitions, which would add latency + cache-confusion risks.
 // ============================================
 
-import { createServiceRoleClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from '@/lib/db/access';;
 import {
   DEFAULT_BALANCE_SUBSET,
   type SupabaseBuilding,
@@ -499,7 +499,14 @@ export async function fetchGameConfigFromSupabase(): Promise<FetchConfigResult> 
       description: e.description,
       type: e.type,
       duration: e.duration,
-      effects: e.effects,
+      effects: ((e.effects as Array<Record<string, unknown>> | null) ?? []).map(
+        (raw, idx) => ({
+          id: `${e.id}-effect-${idx}`,
+          type: raw.type as 'productionMultiplier' | 'powerMultiplier' | 'marketPriceMultiplier' | 'transportSpeed' | 'researchSpeed',
+          target: raw.target as string | undefined,
+          value: Number(raw.value ?? 1),
+        }),
+      ),
       icon: e.icon,
     })),
     seasonalEvents: (seasonalRes.data ?? []).map((s) => ({
@@ -509,7 +516,14 @@ export async function fetchGameConfigFromSupabase(): Promise<FetchConfigResult> 
       season: s.season,
       startDate: s.start_date,
       endDate: s.end_date,
-      effects: s.effects,
+      effects: ((s.effects as Array<Record<string, unknown>> | null) ?? []).map(
+        (raw, idx) => ({
+          id: `${s.id}-effect-${idx}`,
+          type: raw.type as 'productionMultiplier' | 'powerMultiplier' | 'marketPriceMultiplier' | 'transportSpeed' | 'researchSpeed',
+          target: raw.target as string | undefined,
+          value: Number(raw.value ?? 1),
+        }),
+      ),
       rewards: s.rewards,
       icon: s.icon,
       isActive: s.is_active,

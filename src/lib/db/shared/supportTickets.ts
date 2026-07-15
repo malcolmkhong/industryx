@@ -5,7 +5,7 @@
 // calls across `src/app/api/support/**` routes.
 // ============================================================================
 
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/db/access';;
 import type { Database } from '@/lib/db/types';
 
 type SupportTicketRow = Database['public']['Tables']['support_tickets']['Row'];

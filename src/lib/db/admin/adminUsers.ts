@@ -27,7 +27,7 @@
  *   }
  */
 
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/db/access';;
 
 /**
  * Provider-agnostic auth identity shape.

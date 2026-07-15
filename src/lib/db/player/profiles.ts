@@ -10,7 +10,7 @@
  *   - Throw for unexpected database errors (PostgrestError).
  *   - Caller handles auth + rate limit + response shaping.
  */
-import { createServiceRoleClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from '@/lib/db/access';;
 import type { Database } from "@/lib/db/types";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];

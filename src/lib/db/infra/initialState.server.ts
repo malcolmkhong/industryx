@@ -17,7 +17,7 @@
 //
 // Fail-closed: any DB / RPC failure throws. Callers translate to 5xx.
 
-import { createServiceRoleClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from '@/lib/db/access';;
 import { ensureConfigLoaded } from "@/lib/game/config/server/configLoader.server";
 import {
   INITIAL_MARKET,
@@ -164,6 +164,7 @@ export async function fetchCanonicalInitialState(): Promise<ServerGameData> {
     completedResearch: [],
     activeResearch: null,
     researchProgress: 0,
+    researchQueue: [],
 
     workers: [],
 

@@ -5,7 +5,7 @@
  * All API routes must import from here instead of touching the tables directly.
  */
 
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/db/access';;
 
 // ─── Types ─────────────────────────────────────────────────────────────
 

@@ -1,4 +1,4 @@
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/db/access';;
 import type { Database } from '@/lib/db/types';
 
 type LeaderboardRow = Database['public']['Tables']['leaderboard']['Row'];
