@@ -24,8 +24,14 @@ export interface RateLimitConfig {
 // - See planning estimate: ~134 MB/day at 670k requests/day, well under 500MB cap
 //   with 15-min cleanup keeping table at ~2.3k rows.
 export const RATE_LIMITS = {
+  /** Auth/bootstrap orchestration: 20/min per device, best-effort */
+  bootstrap: { maxRequests: 20, windowMs: 60_000, failClosed: false },
+  /** Public cached config/bootstrap reads: 30/min per IP/device, best-effort */
+  publicConfig: { maxRequests: 30, windowMs: 60_000, failClosed: false },
   /** Player save/load: 20/min, best-effort */
   player: { maxRequests: 20, windowMs: 60_000, failClosed: false },
+  /** Server-authoritative time settlement: 12/min, fail-closed */
+  serverTick: { maxRequests: 12, windowMs: 60_000, failClosed: true },
   /** Game compute (compute, offline): 10/min, best-effort */
   compute: { maxRequests: 10, windowMs: 60_000, failClosed: false },
   /** Game action validation (action, trade): 20/min, fail-closed (cheat prevention) */
@@ -34,8 +40,14 @@ export const RATE_LIMITS = {
   sync: { maxRequests: 20, windowMs: 60_000, failClosed: true },
   /** Config/definitions: 30/min, best-effort */
   config: { maxRequests: 30, windowMs: 60_000, failClosed: false },
+  /** Presence/heartbeat: 60/min, best-effort */
+  presence: { maxRequests: 60, windowMs: 60_000, failClosed: false },
   /** General fallback: 30/min, best-effort */
   general: { maxRequests: 30, windowMs: 60_000, failClosed: false },
+  /** Admin read endpoints: 60/min, best-effort */
+  adminRead: { maxRequests: 60, windowMs: 60_000, failClosed: false },
+  /** Admin write endpoints: 30/min, fail-closed */
+  adminWrite: { maxRequests: 30, windowMs: 60_000, failClosed: true },
   /** Admin endpoints: 60/min, best-effort */
   admin: { maxRequests: 60, windowMs: 60_000, failClosed: false },
 } as const;
