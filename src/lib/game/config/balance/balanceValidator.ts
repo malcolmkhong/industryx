@@ -20,11 +20,32 @@ export function vrange(min: number, max: number): Validator {
   };
 }
 
+/**
+ * Leaf validator for per-type endgame income: a plain object with three
+ * finite, non-negative numeric rates. Used by `endgame` keys in
+ * `BALANCE_VALIDATORS` (V-012 / PR-BP-3).
+ */
+export function rateLeaf(max = 1_000_000): Validator {
+  return (v: unknown) => {
+    if (typeof v !== "object" || v === null || Array.isArray(v)) {
+      return { ok: false, reason: "must be an object with three numeric rates" };
+    }
+    const obj = v as Record<string, unknown>;
+    for (const field of ["moneyPerTick", "researchPerTick", "corpPerTick"]) {
+      const result = vrange(0, max)(obj[field]);
+      if (!result.ok) {
+        return { ok: false, reason: `${field}: ${result.reason}` };
+      }
+    }
+    return { ok: true };
+  };
+}
+
 export function vnumberArray(
   min: number,
   max: number,
-  minLen: number = 1,
-  maxLen: number = 100,
+  minLen = 1,
+  maxLen = 100,
 ): Validator {
   return (v: unknown) => {
     if (!Array.isArray(v)) {
@@ -113,9 +134,38 @@ export const BALANCE_VALIDATORS: Record<string, Record<string, Validator>> = {
     upgradeCostExponent: vrange(1, 5),
     upgradeCapacityRatio: vrange(0.01, 5),
     logCostMultiplier: vrange(0.5, 1),
+    // V-030: was hardcoded `MAX_STORAGE_UPGRADE = 100` in
+    // `validators/storage.ts`. Range 1..1000 lets server tune
+    // bulk upgrade ceilings via a balance row, fail-closed.
+    maxBulkUpgradeLevels: vrange(1, 1000),
   },
   prestige: {
     cpPerBuilding: vrange(0, 10),
+  },
+  // V-011 (PR-BP-3): payout scalar rates.
+  payout: {
+    extractorRate: vrange(0, 1_000_000),
+    factoryRate: vrange(0, 1_000_000),
+    powerRate: vrange(0, 1_000_000),
+  },
+  // V-012 (PR-BP-3): per-type endgame income. Each leaf carries three
+  // scalar rates. Adding a new endgame type requires a row update in
+  // the validator map and `balanceTypes.ts` — no change to endgame.ts.
+  endgame: {
+    dysonCollector: rateLeaf(),
+    quantumTeleporter: rateLeaf(),
+    dimensionalGateway: rateLeaf(),
+    timeDistorter: rateLeaf(),
+    galacticForge: rateLeaf(),
+    omniscienceArray: rateLeaf(),
+    worldEngine: rateLeaf(),
+    planetaryShield: rateLeaf(),
+    starReactor: rateLeaf(),
+    voidEngine: rateLeaf(),
+    quantumExchange: rateLeaf(),
+    megaCorpHQ: rateLeaf(),
+    dimensionalNexus: rateLeaf(),
+    galacticArmada: rateLeaf(),
   },
   offline: {
     baseRate: vrange(0, 1),

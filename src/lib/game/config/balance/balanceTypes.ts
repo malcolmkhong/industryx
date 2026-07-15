@@ -68,9 +68,42 @@ export interface GameBalanceConfig {
     upgradeCostExponent: number;
     upgradeCapacityRatio: number;
     logCostMultiplier: number;
+    // V-030 (PR-BP-3 §2.11): bulk-upgrade ceiling moved off the
+    // `MAX_STORAGE_UPGRADE = 100` literal in `validators/storage.ts`.
+    // Server-side tunable; failure below: failed-closed validation.
+    maxBulkUpgradeLevels: number;
   };
   prestige: {
     cpPerBuilding: number;
+  };
+  // V-011 (PR-BP-3, 2026-07-15): payout scalar rates moved out of
+  // `src/lib/game/production/math/payout.ts` into the balance config.
+  // Values seeded by migration 077 to match the legacy literals.
+  payout: {
+    extractorRate: number;
+    factoryRate: number;
+    powerRate: number;
+  };
+  // V-012 (PR-BP-3, 2026-07-15): per-type endgame income moved out of
+  // the 14-case hardcoded switch in `src/lib/game/production/math/endgame.ts`.
+  // Each entry's `moneyPerTick`/`researchPerTick`/`corpPerTick` is the
+  // per-unit multiplier (rate = level × effectiveEfficiency × perTypeRate).
+  // Adding a new tier-5 building is a row update only — no code change.
+  endgame: {
+    dysonCollector: { moneyPerTick: number; researchPerTick: number; corpPerTick: number };
+    quantumTeleporter: { moneyPerTick: number; researchPerTick: number; corpPerTick: number };
+    dimensionalGateway: { moneyPerTick: number; researchPerTick: number; corpPerTick: number };
+    timeDistorter: { moneyPerTick: number; researchPerTick: number; corpPerTick: number };
+    galacticForge: { moneyPerTick: number; researchPerTick: number; corpPerTick: number };
+    omniscienceArray: { moneyPerTick: number; researchPerTick: number; corpPerTick: number };
+    worldEngine: { moneyPerTick: number; researchPerTick: number; corpPerTick: number };
+    planetaryShield: { moneyPerTick: number; researchPerTick: number; corpPerTick: number };
+    starReactor: { moneyPerTick: number; researchPerTick: number; corpPerTick: number };
+    voidEngine: { moneyPerTick: number; researchPerTick: number; corpPerTick: number };
+    quantumExchange: { moneyPerTick: number; researchPerTick: number; corpPerTick: number };
+    megaCorpHQ: { moneyPerTick: number; researchPerTick: number; corpPerTick: number };
+    dimensionalNexus: { moneyPerTick: number; researchPerTick: number; corpPerTick: number };
+    galacticArmada: { moneyPerTick: number; researchPerTick: number; corpPerTick: number };
   };
   offline: {
     baseRate: number;

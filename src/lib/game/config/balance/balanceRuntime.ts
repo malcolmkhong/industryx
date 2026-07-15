@@ -7,7 +7,7 @@ import type { GameBalanceConfig } from './balanceTypes';
 import { validateCompleteBalance, validateBalanceOverrides } from './balanceValidator';
 
 let activeBalance: GameBalanceConfig | null = null;
-let balanceLoadedAt: number = 0;
+let balanceLoadedAt = 0;
 
 export class BalanceNotLoadedError extends Error {
   constructor() {
