@@ -393,9 +393,9 @@ export default function ResourceFlowDiagram() {
               </text>
             ))}
 
-            {[0.17, 0.39, 0.61, 0.82].map((x, i) => (
+            {[0.17, 0.39, 0.61, 0.82].map((x) => (
               <line
-                key={`sep-${i}`}
+                key={`sep-${x}`}
                 x1={x * svgDims.w}
                 y1={30}
                 x2={x * svgDims.w}
@@ -406,7 +406,7 @@ export default function ResourceFlowDiagram() {
               />
             ))}
 
-            {flowEdges.map((edge, i) => {
+            {flowEdges.map((edge) => {
               const fromPos = nodePositions[edge.from];
               const toPos = nodePositions[edge.to];
               if (!fromPos || !toPos) return null;
@@ -421,7 +421,7 @@ export default function ResourceFlowDiagram() {
               const path = getPath(fromPos, toPos);
 
               return (
-                <g key={`edge-${i}`}>
+                <g key={`edge-${edge.from}-${edge.viaBuilding}-${edge.to}`}>
                   <path
                     d={path}
                     fill="none"
@@ -555,7 +555,7 @@ export default function ResourceFlowDiagram() {
           </CardHeader>
           <CardContent className="px-4 pb-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-72 overflow-y-auto game-scrollbar pr-1">
-              {PRODUCTION_CHAINS.map((chain, i) => {
+              {PRODUCTION_CHAINS.map((chain, chainIdx) => {
                 const chainActive = chain.steps.every((step: string) => {
                   const r = step as ResourceType;
                   return (productionSnapshot.production[r] ?? 0) > 0 || (resources[r] ?? 0) > 0;
@@ -566,17 +566,17 @@ export default function ResourceFlowDiagram() {
                 });
                 return (
                   <button
-                    key={i}
+                    key={chain.name}
                     onClick={() => {
                       const firstActive = chain.steps.find((s: string) => {
                         const r = s as ResourceType;
                         return (productionSnapshot.production[r] ?? 0) > 0;
                       }) as ResourceType | undefined;
                       setSelectedResource(firstActive ?? (chain.steps[0] as ResourceType));
-                      setHighlightChain(i);
+                      setHighlightChain(chainIdx);
                     }}
                     className={`text-left p-3 rounded-lg border ${
-                      highlightChain === i
+                      highlightChain === chainIdx
                         ? 'border-brand/40 bg-brand/10'
                         : chainActive
                           ? 'border-success/30 bg-success/5 hover:border-success/30'
@@ -594,12 +594,12 @@ export default function ResourceFlowDiagram() {
                       {chainActive && <Badge variant="outline" className="text-[11px] h-3.5 px-1 border-success/30 text-success ml-auto">ACTIVE</Badge>}
                     </div>
                     <div className="flex items-center gap-0.5 flex-wrap">
-                      {chain.steps.slice(0, 5).map((step: string, si: number) => {
+                      {chain.steps.slice(0, 5).map((step: string, stepIdx: number) => {
                         const stepRes = step as ResourceType;
                         const stepMeta = RESOURCE_META[stepRes];
                         return (
-                          <div key={si} className="flex items-center gap-0.5">
-                            {si > 0 && <ArrowRight className="w-2 h-2 text-dim" />}
+                          <div key={step} className="flex items-center gap-0.5">
+                            {stepIdx > 0 && <ArrowRight className="w-2 h-2 text-dim" />}
                             <GameIcon icon={stepMeta?.icon} size={10} className="inline-flex" />
                           </div>
                         );

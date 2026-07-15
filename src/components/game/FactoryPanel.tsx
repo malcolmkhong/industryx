@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo, useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
 import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/state/store';
 import { BUILDING_DEFS, RESOURCE_META, PRODUCTION_CHAINS, RESEARCH_TREE } from '@/lib/game/config/configCache';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   Factory, ChevronUp, Power, PowerOff, Hammer, ArrowRight,
   Zap, Lock, Layers, Cog, Flame,
-  Brain, ArrowDownToLine,
+  ArrowDownToLine,
   ArrowUpFromLine, Package, Workflow,
   Gauge, Box,
   Pickaxe, Sparkles, X, Search,
@@ -20,7 +19,7 @@ import { GameItemTooltip } from '@/components/game/GameItemTooltip';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
 import { getTierColorClasses, type TierColor } from '@/components/game/shared/tierColors';
 import { GameIcon } from '@/components/icons';
-import { TIER_INFO, ALL_TIERS } from '@/lib/game/progression/tiers';
+import { TIER_INFO } from '@/lib/game/progression/tiers';
 
 // Factory types dynamically derived from BUILDING_DEFS (includes Supabase buildings)
 const factoryTiers = getFactoryTypesByTier();
@@ -84,10 +83,6 @@ export function FactoryPanel() {
   const [selectedChain, setSelectedChain] = useState<number>(0);
   const [selectedFlowNode, setSelectedFlowNode] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Track recently built/upgraded buildings for CSS animation classes
-  const [recentlyBuilt, setRecentlyBuilt] = useState<Set<string>>(new Set());
-  const [recentlyUpgraded, setRecentlyUpgraded] = useState<Set<string>>(new Set());
 
   // Factory buildings from store
   const factoryBuildings = useMemo(() =>
@@ -210,45 +205,16 @@ export function FactoryPanel() {
     );
   }, []);
 
+  // buildBuilding is async; the store handles the actual insertion.
+  // The recent-build/upgrade visualization is owned by FactoryMapPanel
+  // via `upgradedBuildingIds` (drives the glow on map tiles), so this
+  // panel has no need for its own tracking state.
   const handleBuild = useCallback((type: FactoryType) => {
-    const prevCount = buildings.filter(b => b.type === type).length;
-    buildBuilding(type);
-    setTimeout(() => {
-      const newBuildings = buildings.filter(b => b.type === type);
-      if (newBuildings.length > prevCount) {
-        const newBuilding = newBuildings[newBuildings.length - 1];
-        if (newBuilding) {
-          setRecentlyBuilt(prev => {
-            const next = new Set(prev);
-            next.add(newBuilding.id);
-            return next;
-          });
-          setTimeout(() => {
-            setRecentlyBuilt(prev => {
-              const next = new Set(prev);
-              next.delete(newBuilding.id);
-              return next;
-            });
-          }, 1000);
-        }
-      }
-    }, 50);
-  }, [buildings, buildBuilding]);
+    void buildBuilding(type);
+  }, [buildBuilding]);
 
   const handleUpgrade = useCallback((id: string) => {
-    upgradeBuilding(id);
-    setRecentlyUpgraded(prev => {
-      const next = new Set(prev);
-      next.add(id);
-      return next;
-    });
-    setTimeout(() => {
-      setRecentlyUpgraded(prev => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
-    }, 1000);
+    void upgradeBuilding(id);
   }, [upgradeBuilding]);
 
   const handleToggle = useCallback((id: string) => {
@@ -336,9 +302,9 @@ export function FactoryPanel() {
                 </linearGradient>
               ))}
               {/* Particle animation */}
-              {FLOW_TIERS.map((_, i) => (
+              {FLOW_TIERS.map((tier, i) => (
                 i < FLOW_TIERS.length - 1 ? (
-                  <circle key={`particle${i}`} id={`flowParticle${i}`} r="3" fill={FLOW_TIERS[i + 1].color} opacity="0.8">
+                  <circle key={`flowParticle-${tier.key}`} id={`flowParticle${i}`} r="3" fill={FLOW_TIERS[i + 1].color} opacity="0.8">
                     <animateMotion
                       dur="2s"
                       repeatCount="indefinite"
@@ -354,7 +320,7 @@ export function FactoryPanel() {
             {/* Connection lines with animated flow */}
             {FLOW_TIERS.map((tier, i) => (
               i < FLOW_TIERS.length - 1 ? (
-                <g key={`conn${i}`}>
+                <g key={`flowConn-${tier.key}`}>
                   {/* Main connection line */}
                   <line
                     x1={150 + i * 220}
@@ -508,7 +474,7 @@ export function FactoryPanel() {
             const relevantResources = Object.entries(allProductionRates)
               .concat(Object.entries(allDemandRates).filter(([k]) => !allProductionRates[k]))
               .filter(([res]) => getResourceTier(res as ResourceType) === tierNum)
-              .reduce<Record<string, { prod: number; cons: number }>>((acc, [res, rate]) => {
+              .reduce<Record<string, { prod: number; cons: number }>>((acc, [res]) => {
                 if (!acc[res]) acc[res] = { prod: 0, cons: 0 };
                 if (allProductionRates[res]) acc[res].prod = allProductionRates[res];
                 if (allActualConsumptionRates[res]) acc[res].cons = allActualConsumptionRates[res];
@@ -703,16 +669,16 @@ export function FactoryPanel() {
                         {/* Inline I/O flow */}
                         <div className="mb-2">
                           <div className="flex items-center gap-0.5 flex-wrap">
-                            {def.inputs?.map((inp, i) => (
-                              <span key={i} className="text-[11px] text-danger/80 bg-danger/20 rounded px-1 py-px">
+                            {def.inputs?.map((inp) => (
+                              <span key={`in-${inp.resource}`} className="text-[11px] text-danger/80 bg-danger/20 rounded px-1 py-px">
                                 <GameIcon icon={RESOURCE_META[inp.resource].icon} size={10} className="inline-flex" />{inp.amount}
                               </span>
                             ))}
                             {def.inputs && def.inputs.length > 0 && (
                               <ArrowRight className="w-2 h-2 text-muted-label shrink-0" />
                             )}
-                            {def.outputs?.map((out, i) => (
-                              <span key={i} className="text-[11px] text-success/80 bg-success/20 rounded px-1 py-px">
+                            {def.outputs?.map((out) => (
+                              <span key={`out-${out.resource}`} className="text-[11px] text-success/80 bg-success/20 rounded px-1 py-px">
                                 <GameIcon icon={RESOURCE_META[out.resource].icon} size={10} className="inline-flex" />{out.amount}
                               </span>
                             ))}
@@ -839,8 +805,8 @@ export function FactoryPanel() {
 
                                 {/* Inline I/O flow */}
                                 <div className="flex items-center gap-1 flex-wrap">
-                                  {effectiveInputs.map(({ resource: _r, rate, meta, hasEnough }, i) => (
-                                    <div key={i} className={`flex items-center gap-0.5 rounded px-1 py-px ${
+                                  {effectiveInputs.map(({ resource, rate, meta, hasEnough }) => (
+                                    <div key={`in-${resource}`} className={`flex items-center gap-0.5 rounded px-1 py-px ${
                                       hasEnough ? 'bg-danger/15' : 'bg-danger/30 border border-danger/50'
                                     }`}>
                                       <GameIcon icon={meta.icon} size={12} className="inline-flex" />
@@ -852,8 +818,8 @@ export function FactoryPanel() {
                                   {effectiveInputs.length > 0 && (
                                     <ArrowRight className="w-2.5 h-2.5 text-muted-label shrink-0" />
                                   )}
-                                  {effectiveOutputs.map(({ resource: _r, rate, meta }, i) => (
-                                    <div key={i} className="flex items-center gap-0.5 bg-success/15 rounded px-1 py-px">
+                                  {effectiveOutputs.map(({ resource, rate, meta }) => (
+                                    <div key={`out-${resource}`} className="flex items-center gap-0.5 bg-success/15 rounded px-1 py-px">
                                       <GameIcon icon={meta.icon} size={12} className="inline-flex" />
                                       <span className={`text-[11px] font-mono ${building.active ? 'text-success' : 'text-muted-label'}`}>
                                         +{formatNumber(rate)}

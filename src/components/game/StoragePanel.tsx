@@ -82,7 +82,7 @@ type QuickFilter = "all" | "inStock" | "critical" | "overflow";
 // ─── Storage Upgrade Cost Helper ─────────────────────────────────────────────
 function getStorageUpgradeCost(
   currentLevel: number,
-  levels: number = 1,
+  levels = 1,
 ): number {
   let total = 0;
   for (let i = 0; i < levels; i++) {
@@ -169,8 +169,8 @@ export function StoragePanel() {
     const deps: Record<
       string,
       {
-        producers: { building: string; type: BuildingType; amount: number }[];
-        consumers: { building: string; type: BuildingType; amount: number }[];
+        producers: { id: string; building: string; type: BuildingType; amount: number }[];
+        consumers: { id: string; building: string; type: BuildingType; amount: number }[];
         chains: string[];
       }
     > = {};
@@ -192,6 +192,7 @@ export function StoragePanel() {
         if (o.resource === "money") continue;
         if (deps[o.resource]) {
           deps[o.resource].producers.push({
+            id: b.id,
             building: def.name,
             type: b.type,
             amount: o.amount,
@@ -202,6 +203,7 @@ export function StoragePanel() {
         if (inp.resource === "money") continue;
         if (deps[inp.resource]) {
           deps[inp.resource].consumers.push({
+            id: b.id,
             building: def.name,
             type: b.type,
             amount: inp.amount,
@@ -690,12 +692,12 @@ export function StoragePanel() {
                 </span>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {deps.chains.map((chainName, i) => {
+                {deps.chains.map((chainName) => {
                   const chain = PRODUCTION_CHAINS.find(
                     (c) => c.name === chainName,
                   );
                   return (
-                    <TooltipProvider key={i}>
+                    <TooltipProvider key={chainName}>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div
@@ -714,8 +716,8 @@ export function StoragePanel() {
                           className="bg-muted-label border-muted-label text-subtle text-[10px]"
                         >
                           <div className="flex items-center gap-1">
-                            {chain?.steps.map((step, j) => (
-                              <span key={j} className="flex items-center gap-1">
+                            {chain?.steps.map((step, stepIdx) => (
+                              <span key={step} className="flex items-center gap-1">
                                 <span
                                   style={{
                                     color:
@@ -733,7 +735,7 @@ export function StoragePanel() {
                                   {RESOURCE_META[step as ResourceType]?.name ??
                                     step}
                                 </span>
-                                {j < chain.steps.length - 1 && (
+                                {stepIdx < chain.steps.length - 1 && (
                                   <ArrowRight className="w-2.5 h-2.5 text-muted-label" />
                                 )}
                               </span>
@@ -764,9 +766,9 @@ export function StoragePanel() {
                       Produced By
                     </div>
                     <div className="space-y-1">
-                      {deps.producers.slice(0, 5).map((p, i) => (
+                      {deps.producers.slice(0, 5).map((p) => (
                         <div
-                          key={i}
+                          key={p.id}
                           className="flex items-center justify-between text-[10px]"
                         >
                           <span className="text-subtle truncate">
@@ -791,9 +793,9 @@ export function StoragePanel() {
                       Consumed By
                     </div>
                     <div className="space-y-1">
-                      {deps.consumers.slice(0, 5).map((c, i) => (
+                      {deps.consumers.slice(0, 5).map((c) => (
                         <div
-                          key={i}
+                          key={c.id}
                           className="flex items-center justify-between text-[10px]"
                         >
                           <span className="text-subtle truncate">

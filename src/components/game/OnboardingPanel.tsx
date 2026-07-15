@@ -226,8 +226,8 @@ export function OnboardingPanel() {
             <h3 className="text-sm font-semibold text-warning">Strategy Hints</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {STRATEGY_HINTS.map((hint, i) => (
-              <div key={i} className="bg-background rounded-lg p-3">
+            {STRATEGY_HINTS.map((hint) => (
+              <div key={hint.title} className="bg-background rounded-lg p-3">
                 <div className="flex items-center gap-1.5 mb-1">
                   <span className={`w-2 h-2 rounded-full shrink-0 ${CATEGORY_COLORS[hint.category]?.dot ?? 'bg-muted-label/40'}`} title={CATEGORY_COLORS[hint.category]?.label} />
                   <GameIcon icon={hint.icon} size={14} className="inline-flex" />
@@ -246,8 +246,8 @@ export function OnboardingPanel() {
             <h3 className="text-sm font-semibold text-warning">Pro Tips</h3>
           </div>
           <div className="space-y-2">
-            {PRO_TIPS.map((tip, i) => (
-              <div key={i} className="flex items-center gap-2 bg-background rounded-lg px-3 py-2">
+            {PRO_TIPS.map((tip) => (
+              <div key={tip.title} className="flex items-center gap-2 bg-background rounded-lg px-3 py-2">
                 <span className={`w-2 h-2 rounded-full shrink-0 ${CATEGORY_COLORS[tip.category]?.dot ?? 'bg-muted-label/40'}`} title={CATEGORY_COLORS[tip.category]?.label} />
                 <span className="text-xs text-subtle">{tip.title}</span>
               </div>
@@ -262,8 +262,8 @@ export function OnboardingPanel() {
             <h3 className="text-sm font-semibold text-subtle">Keyboard Shortcuts</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {KEYBOARD_SHORTCUTS.map((shortcut, i) => (
-              <div key={i} className="flex items-center justify-between bg-background rounded-lg px-3 py-2">
+            {KEYBOARD_SHORTCUTS.map((shortcut) => (
+              <div key={shortcut.keys} className="flex items-center justify-between bg-background rounded-lg px-3 py-2">
                 <span className="text-[10px] text-subtle">{shortcut.description}</span>
                 <kbd className="text-[10px] font-mono bg-muted-label text-subtle px-2 py-0.5 rounded border border-muted-label">{shortcut.keys}</kbd>
               </div>
@@ -477,8 +477,8 @@ export function OnboardingPanel() {
         </button>
         {showHints && (
           <div className="mt-3 space-y-2">
-            {STRATEGY_HINTS.map((hint, i) => (
-              <div key={i} className="bg-background rounded-lg p-3">
+            {STRATEGY_HINTS.map((hint) => (
+              <div key={hint.title} className="bg-background rounded-lg p-3">
                 <div className="flex items-center gap-1.5 mb-1">
                   <span className={`w-2 h-2 rounded-full shrink-0 ${CATEGORY_COLORS[hint.category]?.dot ?? 'bg-muted-label/40'}`} title={CATEGORY_COLORS[hint.category]?.label} />
                   <GameIcon icon={hint.icon} size={14} className="inline-flex" />
@@ -560,8 +560,8 @@ export function OnboardingPanel() {
           <h3 className="text-sm font-semibold text-warning">Pro Tips</h3>
         </div>
         <div className="space-y-2">
-          {PRO_TIPS.map((tip, i) => (
-            <div key={i} className="flex items-center gap-2 bg-background rounded-lg px-3 py-2">
+          {PRO_TIPS.map((tip) => (
+            <div key={tip.title} className="flex items-center gap-2 bg-background rounded-lg px-3 py-2">
               <span className={`w-2 h-2 rounded-full shrink-0 ${CATEGORY_COLORS[tip.category]?.dot ?? 'bg-muted-label/40'}`} title={CATEGORY_COLORS[tip.category]?.label} />
               <span className="text-xs text-subtle">{tip.title}</span>
             </div>
@@ -576,8 +576,8 @@ export function OnboardingPanel() {
           <h3 className="text-sm font-semibold text-subtle">Keyboard Shortcuts</h3>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {KEYBOARD_SHORTCUTS.map((shortcut, i) => (
-            <div key={i} className="flex items-center justify-between bg-background rounded-lg px-3 py-2">
+          {KEYBOARD_SHORTCUTS.map((shortcut) => (
+            <div key={shortcut.keys} className="flex items-center justify-between bg-background rounded-lg px-3 py-2">
               <span className="text-[10px] text-subtle">{shortcut.description}</span>
               <kbd className="text-[10px] font-mono bg-muted-label text-subtle px-2 py-0.5 rounded border border-muted-label">{shortcut.keys}</kbd>
             </div>

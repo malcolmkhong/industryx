@@ -1,11 +1,11 @@
 'use client';
 
-import { useMemo, useState, useCallback, useRef, useEffect, memo } from 'react';
+import { useMemo, useState, useCallback, useRef, useEffect, memo, type ReactNode } from 'react';
 import { useGameStore, formatNumber } from '@/lib/game/state/store';
 import { BUILDING_DEFS } from '@/lib/game/config/configCache';
 import { RESOURCE_META } from '@/lib/game/catalog/ui/uiCatalog';
 import type { BuildingInstance, BuildingType } from "@/lib/game/shared/types/types";
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -61,24 +61,29 @@ function getEffColor(eff: number): string {
 }
 
 // --- Building Palette for Build Mode ---
-const BUILD_CATEGORIES = [
+const BUILD_CATEGORIES: Array<{ id: string; label: ReactNode; types: BuildingType[] }> = [
   {
+    id: 'extraction',
     label: <><GameIcon icon="game-icons:mining" size={14} className="inline" /> Extraction</>,
     types: ['ironMine', 'copperMine', 'coalMine', 'oilPump', 'waterExtractor', 'sandMine', 'lithiumMine', 'clayPit', 'limestoneQuarry', 'gravelPit', 'bauxiteMine', 'wolframiteMine', 'silverMine', 'goldMine', 'rareEarthExtractor'] as BuildingType[],
   },
   {
+    id: 't1_factory',
     label: <><GameIcon icon="game-icons:flame" size={14} className="inline" /> T1 Factory</>,
     types: ['smelter', 'wireMill', 'chemicalPlant', 'glassFurnace', 'steelForge', 'carbonProcessor', 'brickFactory', 'concreteFactory', 'fertilizerFactory', 'oilRefinery'] as BuildingType[],
   },
   {
+    id: 't2_factory',
     label: <><GameIcon icon="game-icons:big-gear" size={14} className="inline" /> T2 Factory</>,
     types: ['gearFactory', 'circuitFactory', 'engineFactory', 'batteryFactory', 'siliconRefinery', 'aluminiumFactory', 'insecticideFactory', 'copperRefinery', 'titaniumRefinery', 'coolantPlant', 'opticsLab', 'solarCellFactory', 'displayFactory', 'hydrogenPlant', 'reinforcedConcretePlant', 'powerCellPlant', 'silverRefinery', 'goldRefinery'] as BuildingType[],
   },
   {
+    id: 't3_factory',
     label: <><GameIcon icon="game-icons:brain" size={14} className="inline" /> T3 Factory</>,
     types: ['aiLab', 'roboticsBay', 'quantumLab', 'quantumAssembler', 'alloyForge', 'nanoLab', 'electronicsFactory', 'medicalTechLab', 'jewelleryForge', 'tungstenSmelter', 'armsFactory', 'droneShipyard', 'detectorFactory', 'neuralLab', 'opticalComputingLab', 'carbonCompositePlant', 'structuralFrameFactory', 'fusionReactor', 'solarPanelFactory', 'creditMint'] as BuildingType[],
   },
   {
+    id: 't4_factory',
     label: <><GameIcon icon="game-icons:vortex" size={14} className="inline" /> T4 Factory</>,
     types: [
       'singularityForge', 'darkMatterLab', 'warpDriveFactory', 'antimatterReactor',
@@ -92,10 +97,12 @@ const BUILD_CATEGORIES = [
     ] as BuildingType[],
   },
   {
+    id: 't5_transcendent',
     label: <><GameIcon icon="game-icons:galactic-carrier" size={14} className="inline" /> T5 Transcendent</>,
     types: ['omniscienceArray', 'worldEngine', 'planetaryShield', 'starReactor', 'voidEngine', 'quantumExchange', 'megaCorpHQ', 'dimensionalNexus', 'galacticArmada'] as BuildingType[],
   },
   {
+    id: 'power',
     label: <><GameIcon icon="game-icons:lightning-frequency" size={14} className="inline" /> Power</>,
     types: ['coalGenerator', 'solarFarm', 'windTurbine', 'nuclearReactor', 'antimatterPowerPlant'] as BuildingType[],
   },
@@ -152,7 +159,7 @@ interface FactoryConnection {
 }
 
 // --- Building Tile on the Map ---
-const MapBuildingTile = memo(function MapBuildingTile({
+const MapBuildingTile = memo(({
   building,
   isSelected,
   onClick,
@@ -166,7 +173,7 @@ const MapBuildingTile = memo(function MapBuildingTile({
   tick: number;
   recentlyUpgraded: boolean;
   connectionEfficiency?: number;
-}) {
+}) => {
   const def = BUILDING_DEFS[building.type];
   if (!def) return null;
 
@@ -184,7 +191,12 @@ const MapBuildingTile = memo(function MapBuildingTile({
             ${style.bg}
             ${!building.active ? 'opacity-40 grayscale' : 'hover:brightness-125 hover:scale-[1.05]'}
           `}
-          style={{ borderColor: isSelected ? '#22d3ee' : style.fill }}
+          style={{
+            borderColor: isSelected ? '#22d3ee' : style.fill,
+            boxShadow: recentlyUpgraded
+              ? `0 0 12px ${style.glow}, 0 0 24px ${style.glow}`
+              : undefined,
+          }}
 
         >
           {/* Power glow */}
@@ -199,7 +211,7 @@ const MapBuildingTile = memo(function MapBuildingTile({
             <div className="absolute inset-0 pointer-events-none overflow-hidden">
               {def.outputs.slice(0, 3).map((output, i) => (
                 <motion.div
-                  key={i}
+                  key={`out-${output.resource}`}
                   className="absolute w-1 h-1 rounded-full"
                   style={{
                     backgroundColor: RESOURCE_META[output.resource as keyof typeof RESOURCE_META]?.color ?? '#00fff2',
@@ -278,6 +290,7 @@ const MapBuildingTile = memo(function MapBuildingTile({
     </Tooltip>
   );
 });
+MapBuildingTile.displayName = 'MapBuildingTile';
 
 // --- Selected Building Detail Panel ---
 function SelectedBuildingPanel({
@@ -311,7 +324,7 @@ function SelectedBuildingPanel({
           <div>
             <h3 className={`text-sm font-semibold ${style.text}`}>{def.name}</h3>
             <p className="text-[10px] text-muted-label">
-              Lv {building.level} • {building.active ? <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-success"></span>Active</span> : <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-danger"></span>Off</span>}
+              Lv {building.level} • {building.active ? <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-success" />Active</span> : <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-danger" />Off</span>}
             </p>
           </div>
         </div>
@@ -345,11 +358,11 @@ function SelectedBuildingPanel({
         <div>
           <div className="text-[9px] text-muted-label mb-1">Produces</div>
           <div className="space-y-0.5">
-            {def.outputs.map((output, i) => {
+            {def.outputs.map((output) => {
               const meta = RESOURCE_META[output.resource as keyof typeof RESOURCE_META];
               const rate = building.active ? output.amount * building.level * building.efficiency : 0;
               return (
-                <div key={i} className="flex items-center justify-between bg-background rounded px-1.5 py-0.5">
+                <div key={`out-${output.resource}`} className="flex items-center justify-between bg-background rounded px-1.5 py-0.5">
                   <div className="flex items-center gap-1">
                     <span className="text-[10px]">{meta?.icon ?? ''}</span>
                     <span className="text-[9px]" style={{ color: meta?.color }}>{meta?.name ?? output.resource}</span>
@@ -367,13 +380,13 @@ function SelectedBuildingPanel({
         <div>
           <div className="text-[9px] text-muted-label mb-1">Requires</div>
           <div className="space-y-0.5">
-            {def.inputs.map((input, i) => {
+            {def.inputs.map((input) => {
               const meta = RESOURCE_META[input.resource as keyof typeof RESOURCE_META];
               const needed = input.amount * building.level;
               const have = resources[input.resource as keyof typeof resources] ?? 0;
               const enough = have >= needed;
               return (
-                <div key={i} className="flex items-center justify-between bg-background rounded px-1.5 py-0.5">
+                <div key={`in-${input.resource}`} className="flex items-center justify-between bg-background rounded px-1.5 py-0.5">
                   <div className="flex items-center gap-1">
                     <span className="text-[10px]">{meta?.icon ?? ''}</span>
                     <span className="text-[9px]" style={{ color: meta?.color }}>{meta?.name ?? input.resource}</span>
@@ -494,8 +507,8 @@ function ConnectionOverlay({
             <circle cx={mx} cy={my} r="2" fill={effColor} opacity="0.6" />
 
             {/* Animated flow particles */}
-            {[0, 0.33, 0.66].map((offset, j) => (
-              <circle key={j} r={isPower ? 1.5 : 2} fill={color} opacity="0.7">
+            {[0, 0.33, 0.66].map((offset) => (
+              <circle key={`flowParticle-${offset}`} r={isPower ? 1.5 : 2} fill={color} opacity="0.7">
                 <animateMotion
                   dur={`${1.5 + (1 - conn.efficiency) * 1}s`}
                   repeatCount="indefinite"
@@ -514,7 +527,6 @@ function ConnectionOverlay({
 // --- Main FactoryMapPanel ---
 export default function FactoryMapPanel() {
   const buildings = useGameStore((s) => s.buildings);
-  const resources = useGameStore((s) => s.resources);
   const money = useGameStore((s) => s.money);
   const gameSpeed = useGameStore((s) => s.gameSpeed);
   const gameTick = useGameStore((s) => s.gameTick);
@@ -523,12 +535,10 @@ export default function FactoryMapPanel() {
   const weather = useGameStore((s) => s.weather);
   const completedResearch = useGameStore((s) => s.completedResearch);
   const buildBuilding = useGameStore((s) => s.buildBuilding);
-  const toggleBuilding = useGameStore((s) => s.toggleBuilding);
-  const upgradeBuilding = useGameStore((s) => s.upgradeBuilding);
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
   const [buildMode, setBuildMode] = useState(false);
   const [selectedBuildType, setSelectedBuildType] = useState<BuildingType | null>(null);
-  const [paletteCategory, setPaletteCategory] = useState(0);
+  const [paletteCategory, setPaletteCategory] = useState<string | -1>(-1);
   const [showConnections, setShowConnections] = useState(true);
   const [autoConnectEnabled, setAutoConnectEnabled] = useState(true);
   const [zoom, setZoom] = useState(1);
@@ -723,7 +733,7 @@ export default function FactoryMapPanel() {
   // Zoom via mouse wheel (non-passive to allow preventDefault)
   useEffect(() => {
     const el = mapRef.current;
-    if (!el) return;
+    if (!el) return undefined;
     const handler = (e: WheelEvent) => {
       e.preventDefault();
       const delta = e.deltaY > 0 ? -0.1 : 0.1;
@@ -1254,16 +1264,16 @@ export default function FactoryMapPanel() {
                   </div>
                 )}
 
-                {filteredCategories.map((cat, catIdx) => (
-                  <div key={catIdx}>
+                {filteredCategories.map((cat) => (
+                  <div key={cat.id}>
                     <button
                       className="flex items-center gap-1 text-[10px] text-subtle hover:text-subtle mb-1"
-                      onClick={() => setPaletteCategory(paletteCategory === catIdx ? -1 : catIdx)}
+                      onClick={() => setPaletteCategory(paletteCategory === cat.id ? -1 : cat.id)}
                     >
-                      {paletteCategory === catIdx ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                      {paletteCategory === cat.id ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
                       {cat.label}
                     </button>
-                    {paletteCategory === catIdx && (
+                    {paletteCategory === cat.id && (
                       <div className="flex flex-wrap gap-1.5 ml-4">
                         {cat.types.map(type => {
                           const def = BUILDING_DEFS[type];

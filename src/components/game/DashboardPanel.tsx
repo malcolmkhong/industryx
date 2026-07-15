@@ -1212,9 +1212,62 @@ function BuildingCategoryRow({
 
 // --- Rank Bar Component ---
 function RankBar() {
-  const getCurrentRank = useGameStore((s) => s.getCurrentRank);
+  const totalMoneyEarned = useGameStore((s) => s.totalMoneyEarned);
+  const buildings = useGameStore((s) => s.buildings);
+  const completedResearch = useGameStore((s) => s.completedResearch);
+  const contractsCompleted = useGameStore((s) => s.stats.contractsCompleted);
+  const totalPrestiges = useGameStore((s) => s.prestigeState.totalPrestiges);
   const navigateToTab = useNavigateToTab();
-  const rank = getCurrentRank();
+
+  const rank = useMemo(() => {
+    const score = Math.floor(
+      (totalMoneyEarned ?? 0) +
+        (buildings?.length ?? 0) * 100 +
+        (completedResearch?.length ?? 0) * 200 +
+        (contractsCompleted ?? 0) * 50 +
+        (totalPrestiges ?? 0) * 500,
+    );
+    const fallbackRank = {
+      name: "Apprentice",
+      icon: "game-icons:medal",
+      color: "#a0a0a0",
+      minScore: 0,
+    };
+    const rankThresholds = Array.isArray(RANK_THRESHOLDS)
+      ? RANK_THRESHOLDS.filter((candidate) => (
+          candidate &&
+          typeof candidate.name === "string" &&
+          typeof candidate.minScore === "number" &&
+          Number.isFinite(candidate.minScore)
+        ))
+      : [];
+    const thresholds = rankThresholds.length > 0 ? rankThresholds : [fallbackRank];
+
+    let currentRank = thresholds[0] ?? fallbackRank;
+    let nextRank = thresholds[1] ?? null;
+    for (let i = thresholds.length - 1; i >= 0; i--) {
+      const candidate = thresholds[i];
+      if (candidate && score >= candidate.minScore) {
+        currentRank = candidate;
+        nextRank = thresholds[i + 1] ?? null;
+        break;
+      }
+    }
+
+    const progress = nextRank
+      ? (score - currentRank.minScore) / (nextRank.minScore - currentRank.minScore)
+      : 1;
+
+    return {
+      name: currentRank.name ?? fallbackRank.name,
+      icon: currentRank.icon ?? fallbackRank.icon,
+      color: currentRank.color ?? fallbackRank.color,
+      score,
+      nextRankScore: nextRank?.minScore ?? null,
+      progress: Math.min(1, Math.max(0, Number.isFinite(progress) ? progress : 1)),
+    };
+  }, [buildings, completedResearch, contractsCompleted, totalMoneyEarned, totalPrestiges]);
+
   const nextRankScore = rank.nextRankScore;
 
   const nextRank = nextRankScore !== null

@@ -315,9 +315,9 @@ export function ResourcePanel() {
                 </linearGradient>
               ))}
               {/* Particle animation */}
-              {EXTRACTION_TIERS.map((_, i) => (
+              {EXTRACTION_TIERS.map((tier, i) => (
                 i < EXTRACTION_TIERS.length - 1 ? (
-                  <circle key={`extParticle${i}`} id={`extFlowParticle${i}`} r="3" fill={EXTRACTION_TIERS[i + 1].color} opacity="0.8">
+                  <circle key={`extParticle-${tier.key}`} id={`extFlowParticle${i}`} r="3" fill={EXTRACTION_TIERS[i + 1].color} opacity="0.8">
                     <animateMotion
                       dur="2.5s"
                       repeatCount="indefinite"
@@ -333,7 +333,7 @@ export function ResourcePanel() {
             {/* Connection lines with animated flow */}
             {EXTRACTION_TIERS.map((tier, i) => (
               i < EXTRACTION_TIERS.length - 1 ? (
-                <g key={`extConn${i}`}>
+                <g key={`extConn-${tier.key}`}>
                   {/* Main connection line */}
                   <line
                     x1={270 + i * 350}
@@ -648,8 +648,8 @@ export function ResourcePanel() {
                         {/* Inline output flow */}
                         <div className="mb-2">
                           <div className="flex items-center gap-0.5 flex-wrap">
-                            {def.outputs?.map((out, i) => (
-                              <span key={i} className="text-[11px] text-success/80 bg-success/20 rounded px-1 py-px">
+                            {def.outputs?.map((out) => (
+                              <span key={`out-${out.resource}`} className="text-[11px] text-success/80 bg-success/20 rounded px-1 py-px">
                                 <GameIcon icon={RESOURCE_META[out.resource].icon} size={10} color="#9ca3af" className="inline-flex" />{(out.amount * def.baseProductionRate).toFixed(1)}/s
                               </span>
                             ))}
@@ -758,8 +758,8 @@ export function ResourcePanel() {
 
                                 {/* Inline output flow */}
                                 <div className="flex items-center gap-1 flex-wrap">
-                                  {effectiveOutputs.map(({ resource: _r, rate, meta }, i) => (
-                                    <div key={i} className="flex items-center gap-0.5 bg-success/15 rounded px-1 py-px">
+                                  {effectiveOutputs.map(({ resource, rate, meta }) => (
+                                    <div key={`out-${resource}`} className="flex items-center gap-0.5 bg-success/15 rounded px-1 py-px">
                                       <GameIcon icon={meta.icon} size={10} className="inline-flex" />
                                       <span className={`text-[11px] font-mono ${building.active ? 'text-success' : 'text-muted-label'}`}>
                                         +{formatNumber(rate)}
