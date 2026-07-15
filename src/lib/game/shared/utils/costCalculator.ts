@@ -13,7 +13,7 @@ import { buildMultipliers, type MultiplierCache } from '@/lib/game/production/pr
 /**
  * Calculate building cost with multiplier, cost reduction, and floor.
  */
-export function getBuildingCost(type: BuildingType, currentCount: number, costReduction: number = 0): number {
+export function getBuildingCost(type: BuildingType, currentCount: number, costReduction = 0): number {
   const def = BUILDING_DEFS[type];
   if (!def) return Infinity;
   const baseMoneyCost = def.baseCost.find(c => c.resource === 'money')?.amount ?? 0;
@@ -59,7 +59,22 @@ export function getCapacity(
   const hasUnlimitedStorage = state.megaProjects.some(p => p.completed && p.bonus.type === 'unlimitedStorage');
   if (hasUnlimitedStorage) return Infinity;
 
-  const baseCapacity = state.resourceCapacity[resource] ?? 50;
+  // V-030 / PR-BP-3 §2.11: client-side parity with §2.1 server-side
+  // capacity policy. A missing `resourceCapacity` row is a DB-integrity
+  // issue — fail closed (RULES.md SEC-002) rather than silently
+  // returning 50, which previously created divergent client/server
+  // capacity previews. Caller paths:
+  //   - upgradeStorage always seeds a row before reach here
+  //   - bootstrap / migrations seed every known resource
+  //   - any new resource type is a config drift that should throw fast
+  const baseCapacity = state.resourceCapacity[resource];
+  if (typeof baseCapacity !== "number" || !Number.isFinite(baseCapacity)) {
+    throw new RangeError(
+      `[getCapacity] missing or non-finite resourceCapacity for "${resource}". ` +
+        `Seed a finite capacity row, or complete Terraforming Engine mega project ` +
+        `to grant unlimited storage.`,
+    );
+  }
   // Always use modifier engine for storage capacity — build cache on demand if not provided
   const effectiveCache = cache ?? buildMultipliers(state);
   return Math.floor(baseCapacity * (1 + effectiveCache.storageCapacityBonus));
