@@ -27,11 +27,11 @@
  *   - src/app/api/auth/identity/link/route.ts  (2 call sites)
  */
 
-import { createServiceRoleClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from '@/lib/db/access';;
 import type { Database } from "@/lib/db/types";
 import { generateChecksum } from "@/lib/auth/gameStateValidator";
 import { fetchCanonicalInitialState } from "@/lib/db/infra/initialState.server";
-import type { ServerGameData } from "@/lib/game/shared/types/types";
+import type { Quest, QuestStep, ServerGameData } from "@/lib/game/shared/types/types";
 import { asFullState, stripUIFields } from "@/lib/db/game/serverGameStatePayload";
 
 // Type aliases sourced from the generated Supabase types.
@@ -225,6 +225,82 @@ function arrayOr<T>(value: unknown, fallback: T[]): T[] {
   return Array.isArray(value) ? (value as T[]) : fallback;
 }
 
+function isQuestStep(value: unknown): value is Partial<QuestStep> {
+  return value !== null && typeof value === "object";
+}
+
+function isQuest(value: unknown): value is Partial<Quest> {
+  return value !== null && typeof value === "object";
+}
+
+function normalizeQuestStep(
+  canonicalStep: QuestStep,
+  savedStep: unknown,
+): QuestStep {
+  const saved = isQuestStep(savedStep) ? savedStep : {};
+  const current =
+    typeof saved.current === "number" && Number.isFinite(saved.current)
+      ? saved.current
+      : canonicalStep.current;
+  const completed =
+    typeof saved.completed === "boolean"
+      ? saved.completed
+      : canonicalStep.completed;
+  const id =
+    typeof (saved as { id?: unknown }).id === "string"
+      ? (saved as { id: string }).id
+      : canonicalStep.id;
+
+  return {
+    ...canonicalStep,
+    id,
+    current,
+    completed,
+  };
+}
+
+function mergeQuestsWithCanonical(
+  canonicalQuests: Quest[],
+  savedQuests: unknown,
+): Quest[] {
+  if (!Array.isArray(savedQuests) || savedQuests.length === 0) {
+    return canonicalQuests.map((quest) => ({
+      ...quest,
+      steps: quest.steps.map((step) => ({ ...step })),
+    }));
+  }
+
+  const savedById = new Map(
+    savedQuests
+      .filter((quest): quest is Partial<Quest> => isQuest(quest) && typeof quest.id === "string")
+      .map((quest) => [quest.id as string, quest]),
+  );
+
+  return canonicalQuests.map((canonicalQuest) => {
+    const savedQuest = savedById.get(canonicalQuest.id);
+    const savedSteps = Array.isArray(savedQuest?.steps) ? savedQuest.steps : [];
+
+    return {
+      ...canonicalQuest,
+      steps: canonicalQuest.steps.map((step, index) =>
+        normalizeQuestStep(step, savedSteps[index]),
+      ),
+      completed:
+        typeof savedQuest?.completed === "boolean"
+          ? savedQuest.completed
+          : canonicalQuest.completed,
+      claimed:
+        typeof savedQuest?.claimed === "boolean"
+          ? savedQuest.claimed
+          : canonicalQuest.claimed,
+      expiresAt:
+        typeof savedQuest?.expiresAt === "number"
+          ? savedQuest.expiresAt
+          : canonicalQuest.expiresAt,
+    };
+  });
+}
+
 /**
  * Build a complete ServerGameData snapshot for read paths.
  *
@@ -245,6 +321,7 @@ export async function buildCompleteFullStateForServerRow(
   return {
     ...canonical,
     ...existing,
+    quests: mergeQuestsWithCanonical(canonical.quests, existing.quests),
     money: requireFiniteNumber(row.money, "money"),
     totalMoneyEarned: requireFiniteNumber(
       row.total_money_earned,
@@ -394,24 +471,6 @@ export async function loadServerGameStateForPreview(
 }
 
 /**
- * Load the lock state of a user (used by claim-guest to detect banned
- * guest accounts that are trying to re-claim via a new device).
- */
-export async function loadLockState(userId: string): Promise<boolean> {
-  const supabase = createServiceRoleClient();
-  if (!supabase) return false;
-
-  const { data, error } = await supabase
-    .from("server_game_state")
-    .select("is_locked")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (error) return false;
-  return data?.is_locked === true;
-}
-
-/**
  * Load active players for the validate-ticks cron. Filters by
  * `last_tick_at > cutoffISO`. Returns an array (not a single row).
  */
@@ -517,32 +576,9 @@ export async function upsertServerGameState(
 }
 
 /**
- * Check whether a user already has a game_state row. Used by
- * /api/auth/initialize-guest to short-circuit duplicate initialization.
- * Returns true if a row exists, false otherwise (including on error —
- * callers fall through to the insert path).
- */
-export async function hasServerGameState(userId: string): Promise<boolean> {
-  const supabase = createServiceRoleClient();
-  if (!supabase) return false;
-  const { data, error } = await supabase
-    .from("server_game_state")
-    .select("user_id")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (error) {
-    console.error(
-      "[serverGameState] hasServerGameState failed:",
-      error.message,
-    );
-    return false;
-  }
-  return data !== null;
-}
-
-/**
  * Insert the initial game state for a brand-new guest user.
- * Caller must verify no prior state exists (see hasServerGameState).
+ * Duplicate-row guard is the `server_game_state.user_id` PRIMARY KEY
+ * (concurrent INSERTs fail with 23505 → caller surfaces 500).
  *
  * Phase 12 (2026-07-10): the row is now seeded from
  * `fetchCanonicalInitialState()` so that `full_state` carries the full
@@ -634,23 +670,33 @@ export async function getGameTick(userId: string): Promise<number | null> {
  *
  * Caller passes a page size; returns the next page + whether more rows exist.
  * Avoids loading the entire table into memory at once.
+ *
+ * PR-BP-2 (V-032): also selects `market_supply` (the server-only
+ * per-player supply projection written by `applyElapsedServerTime`).
+ * The aggregate cron previously read `full_state.productionSnapshot`,
+ * which `stripUIFields` removes — see market_supply_state migration 076.
  */
 export async function pageServerGameStateFullState(
   offset: number,
   pageSize: number,
-): Promise<{ rows: { full_state: unknown }[]; hasMore: boolean } | null> {
+): Promise<
+  {
+    rows: { full_state: unknown; market_supply: unknown }[];
+    hasMore: boolean;
+  } | null
+> {
   const supabase = createServiceRoleClient();
   if (!supabase) return null;
   const { data, error } = await supabase
     .from("server_game_state")
-    .select("full_state")
+    .select("full_state, market_supply")
     .range(offset, offset + pageSize - 1);
   if (error) {
     console.error("[serverGameState] pageFullState failed:", error.message);
     return null;
   }
   return {
-    rows: (data ?? []) as { full_state: unknown }[],
+    rows: (data ?? []) as { full_state: unknown; market_supply: unknown }[],
     hasMore: (data?.length ?? 0) === pageSize,
   };
 }
