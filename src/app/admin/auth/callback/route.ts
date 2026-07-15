@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { createClient, createServiceRoleClient } from "@/lib/supabase/server";
+import { createClient } from '@/lib/db/access';;
+import { createServiceRoleClient } from '@/lib/db/access';;
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);

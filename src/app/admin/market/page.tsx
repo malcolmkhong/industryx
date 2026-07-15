@@ -48,11 +48,20 @@ interface MarketResource {
   inMarket: boolean;
 }
 
+interface MarketNewsEntry {
+  id: string;
+  title: string;
+  description?: string;
+  severity?: string;
+  gameTick?: number;
+  category?: string;
+}
+
 interface MarketState {
   tick: number;
   volatility: number | null;
   updatedAt: string;
-  news: string[];
+  news: MarketNewsEntry[];
   circuitBreakers: Record<string, unknown>;
 }
 
@@ -456,12 +465,12 @@ export default function MarketPage() {
         <div className="mt-6">
           <h3 className="text-sm font-semibold text-subtle mb-3">Recent Market News</h3>
           <div className="space-y-2">
-            {data.state.news.slice(0, 8).map((headline, i) => (
+            {data.state.news.slice(0, 8).map((entry) => (
               <div
-                key={`${i}-${headline.slice(0, 20)}`}
+                key={entry.id}
                 className="flex items-start gap-3 p-3 rounded-lg border border-muted-label/30 bg-background/40"
               >
-                <span className="text-xs text-subtle/80">{headline}</span>
+                <span className="text-xs text-subtle/80">{entry.title}</span>
               </div>
             ))}
           </div>

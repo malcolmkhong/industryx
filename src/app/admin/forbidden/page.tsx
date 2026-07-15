@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { Lock, Ban, User, LogIn, ArrowLeft, Info } from "lucide-react";
 
 export default function ForbiddenPage() {
+  const { signOut } = useAuth();
   const [email, setEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -20,13 +22,18 @@ export default function ForbiddenPage() {
     });
   }, []);
 
+  // Plan §21 PR 4: route sign-out through the orchestrator so the
+  // sign-out-to-guest bootstrap fires (signed_out → resolving_session →
+  // /api/auth/bootstrap with previousAuthUserId set). Calling
+  // `supabase.auth.signOut()` directly skipped the new pipeline and
+  // blocked gameplay clearing + guest re-bootstrap.
   const handleSignOut = async () => {
     setLoading(true);
-    if (isSupabaseConfigured()) {
-      const supabase = createClient();
-      await supabase.auth.signOut();
+    try {
+      await signOut();
+    } finally {
+      window.location.href = "/admin/login";
     }
-    window.location.href = "/admin/login";
   };
 
   return (

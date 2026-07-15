@@ -1,5 +1,8 @@
 'use client';
 
+import Image from 'next/image';
+import { useState } from 'react';
+
 interface UserAvatarProps {
   avatarUrl?: string | null;
   email?: string | null;
@@ -13,10 +16,13 @@ interface UserAvatarProps {
  *
  * Edge cases handled:
  *  - null/undefined/empty avatarUrl → fallback to initial circle
- *  - Image load error (CDN 404, hotlink block, expired URL) → hide img, show initial
+ *  - Image load error (CDN 404, hotlink block, expired URL) → swap to initial via React state
  *  - referrerPolicy="no-referrer" prevents Google CDN hotlink rejection
- *  - loading="lazy" defers off-screen avatars
- *  - Same width/height attrs prevent CLS while img loads
+ *  - next/image is lazy by default
+ *  - Explicit width/height props prevent CLS while img loads
+ *  - `unoptimized` skips the optimizer for arbitrary external URLs; the configured
+ *    remotePatterns in next.config.ts cover common OAuth CDNs, but `unoptimized`
+ *    keeps the component safe if an unexpected host appears in player data.
  */
 export function UserAvatar({
   avatarUrl,
@@ -25,26 +31,23 @@ export function UserAvatar({
   size = 32,
   className = '',
 }: UserAvatarProps) {
+  const [hasError, setHasError] = useState(false);
   const initial = (email || displayName || 'U')[0].toUpperCase();
   const dim = `${size}px`;
   const fontSize = Math.max(10, Math.round(size * 0.4));
 
-  if (avatarUrl) {
+  if (avatarUrl && !hasError) {
     return (
-      <img
+      <Image
         src={avatarUrl}
         alt=""
         width={size}
         height={size}
-        loading="lazy"
+        unoptimized
         referrerPolicy="no-referrer"
         className={`rounded-full object-cover shrink-0 bg-background/40 ${className}`}
         style={{ width: dim, height: dim }}
-        onError={(e) => {
-          (e.currentTarget as HTMLImageElement).style.display = 'none';
-          const next = (e.currentTarget as HTMLImageElement).nextElementSibling as HTMLElement | null;
-          if (next) next.style.display = 'flex';
-        }}
+        onError={() => setHasError(true)}
       />
     );
   }

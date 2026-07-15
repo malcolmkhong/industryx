@@ -277,12 +277,14 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
 
   // ─── JSONB viewer ──────────────────────────────────────────────────────
 
-  const getJsonLines = (): string[] => {
+  const getJsonLines = (): Array<{ lineNumber: number; content: string }> => {
     if (!player?.game_state?.full_state) return [];
     try {
-      return JSON.stringify(player.game_state.full_state, null, 2).split("\n");
+      return JSON.stringify(player.game_state.full_state, null, 2)
+        .split("\n")
+        .map((content, lineNumber) => ({ lineNumber: lineNumber + 1, content }));
     } catch {
-      return ["[Error rendering JSON]"];
+      return [{ lineNumber: 1, content: "[Error rendering JSON]" }];
     }
   };
 
@@ -503,10 +505,10 @@ export default function PlayerDetailPage({ params }: { params: Promise<{ id: str
                 </button>
                 <div className="p-4 overflow-x-auto max-h-96 overflow-y-auto">
                   <pre className="text-muted-label text-xs font-mono leading-relaxed">
-                    {displayLines.map((line, i) => (
-                      <div key={i} className="hover:bg-background/60/30 px-2 -mx-2">
-                        <span className="text-muted-label/80 select-none mr-4 inline-block w-8 text-right">{i + 1}</span>
-                        {line}
+                    {displayLines.map((line) => (
+                      <div key={line.lineNumber} className="hover:bg-background/60/30 px-2 -mx-2">
+                        <span className="text-muted-label/80 select-none mr-4 inline-block w-8 text-right">{line.lineNumber}</span>
+                        {line.content}
                       </div>
                     ))}
                   </pre>

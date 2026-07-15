@@ -16,8 +16,23 @@ export default function BackendDashboard() {
     totalActionsToday: number;
     invalidActionsToday: number;
   } | null>(null);
-  const [recentActions, setRecentActions] = useState<Record<string, unknown>[]>([]);
-  const [recentInvestigations, setRecentInvestigations] = useState<Record<string, unknown>[]>([]);
+  const [recentActions, setRecentActions] = useState<Array<{
+    id: string;
+    action_type: string;
+    is_valid: boolean;
+    user_email: string | null;
+    user_id: string | null;
+    created_at: string | null;
+  }>>([]);
+  const [recentInvestigations, setRecentInvestigations] = useState<Array<{
+    id: string;
+    status: string;
+    detection_type: string;
+    severity: string;
+    user_email: string | null;
+    user_id: string | null;
+    created_at: string | null;
+  }>>([]);
 
   const fetchDashboardData = async () => {
     try {
@@ -259,8 +274,8 @@ export default function BackendDashboard() {
             ) : recentActions.length === 0 ? (
               <p className="text-muted-label/80 text-xs py-4 text-center">No recent actions</p>
             ) : (
-              recentActions.map((action, i) => (
-                <div key={i} className="flex items-start gap-3 py-2 border-b border-muted-label/40 last:border-0">
+              recentActions.map((action) => (
+                <div key={action.id} className="flex items-start gap-3 py-2 border-b border-muted-label/40 last:border-0">
                   <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
                     action.is_valid ? "bg-success" : "bg-danger"
                   }`} />
@@ -269,12 +284,12 @@ export default function BackendDashboard() {
                       {String(action.action_type || "Unknown")}
                     </p>
                     <p className="text-muted-label text-xs truncate">
-                      {(action.user_email as string) || String(action.user_id || "").slice(0, 8) + "..."}
+                      {(action.user_email) || String(action.user_id || "").slice(0, 8) + "..."}
                     </p>
                   </div>
                   <span className="text-muted-label/80 text-[10px] shrink-0">
                     {action.created_at
-                      ? new Date(action.created_at as string).toLocaleTimeString()
+                      ? new Date(action.created_at).toLocaleTimeString()
                       : ""}
                   </span>
                 </div>
@@ -297,8 +312,8 @@ export default function BackendDashboard() {
             ) : recentInvestigations.length === 0 ? (
               <p className="text-muted-label/80 text-xs py-4 text-center">No recent investigations</p>
             ) : (
-              recentInvestigations.map((inv, i) => (
-                <div key={i} className="flex items-start gap-3 py-2 border-b border-muted-label/40 last:border-0">
+              recentInvestigations.map((inv) => (
+                <div key={inv.id} className="flex items-start gap-3 py-2 border-b border-muted-label/40 last:border-0">
                   <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
                     inv.status === "open" ? "bg-warning" :
                     inv.status === "resolved" ? "bg-success" :
@@ -316,12 +331,12 @@ export default function BackendDashboard() {
                       </span>
                     </p>
                     <p className="text-muted-label text-xs truncate">
-                      {(inv.user_email as string) || String(inv.user_id || "").slice(0, 8) + "..."}
+                      {(inv.user_email) || String(inv.user_id || "").slice(0, 8) + "..."}
                     </p>
                   </div>
                   <span className="text-muted-label/80 text-[10px] shrink-0">
                     {inv.created_at
-                      ? new Date(inv.created_at as string).toLocaleTimeString()
+                      ? new Date(inv.created_at).toLocaleTimeString()
                       : ""}
                   </span>
                 </div>

@@ -35,14 +35,17 @@ const METRICS: { key: keyof PlayerData; label: string; format: (v: unknown) => s
   { key: 'lastSaved', label: 'Last Saved', format: (v) => new Date(v as string).toLocaleString() },
 ];
 
+const COMPARE_SLOTS = ['1', '2', '3', '4'] as const;
+type CompareSlot = typeof COMPARE_SLOTS[number];
+
 export default function ComparePage() {
-  const [ids, setIds] = useState<string[]>(['', '', '', '']);
+  const [ids, setIds] = useState<Record<CompareSlot, string>>({ '1': '', '2': '', '3': '', '4': '' });
   const [players, setPlayers] = useState<PlayerData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const compare = useCallback(async () => {
-    const valid = ids.filter((id) => id.trim());
+    const valid = COMPARE_SLOTS.map((s) => ids[s].trim()).filter(Boolean);
     if (valid.length < 2) {
       setError('Enter at least 2 player IDs');
       return;
@@ -53,7 +56,7 @@ export default function ComparePage() {
       const res = await fetch('/api/admin/players/compare', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userIds: valid.map((s) => s.trim()) }),
+        body: JSON.stringify({ userIds: valid }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -66,10 +69,8 @@ export default function ComparePage() {
     }
   }, [ids]);
 
-  const updateId = (i: number, val: string) => {
-    const next = [...ids];
-    next[i] = val;
-    setIds(next);
+  const updateId = (slot: CompareSlot, val: string) => {
+    setIds((prev) => ({ ...prev, [slot]: val }));
   };
 
   return (
@@ -83,12 +84,12 @@ export default function ComparePage() {
 
       <div className="border border-muted-label/40 rounded-xl p-4 mb-6 bg-background/80/50">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
-          {ids.map((id, i) => (
+          {COMPARE_SLOTS.map((slot, i) => (
             <input
-              key={`player-input-${i}`}
+              key={slot}
               aria-label={`Player ${i + 1} UUID`}
-              value={id}
-              onChange={(e) => updateId(i, e.target.value)}
+              value={ids[slot]}
+              onChange={(e) => updateId(slot, e.target.value)}
               placeholder={`Player ${i + 1} UUID...`}
               className="px-3 py-2 bg-background/60 border border-muted-label/30 rounded-lg text-xs text-white placeholder-muted-label font-mono focus:outline-none focus:border-warning/60/50"
             />

@@ -717,20 +717,20 @@ export default function ConfigTablesPage() {
                       >
                         <ChevronLeft size={16} />
                       </button>
-                      {generatePageNumbers(pagination.page, pagination.totalPages).map((p, i) =>
-                        p === "..." ? (
-                          <span key={`dots-${i}`} className="px-1 text-muted-label/80 text-xs">...</span>
+                      {generatePageNumbers(pagination.page, pagination.totalPages).map((entry) =>
+                        entry.kind === "ellipsis" ? (
+                          <span key={`ellipsis-${entry.side}`} className="px-1 text-muted-label/80 text-xs">...</span>
                         ) : (
                           <button
-                            key={p}
-                            onClick={() => setPagination((prev) => ({ ...prev, page: p as number }))}
+                            key={`page-${entry.page}`}
+                            onClick={() => setPagination((prev) => ({ ...prev, page: entry.page }))}
                             className={`w-8 h-8 rounded text-xs transition-colors ${
-                              pagination.page === p
+                              pagination.page === entry.page
                                 ? "bg-warning/20 text-warning font-medium"
                                 : "text-muted-label hover:text-white hover:bg-background/60"
                             }`}
                           >
-                            {p}
+                            {entry.page}
                           </button>
                         )
                       )}
@@ -1026,16 +1026,20 @@ function JsonPreview({ value }: { value: unknown }) {
 
 // ─── Pagination Helper ────────────────────────────────────────────────────
 
-function generatePageNumbers(current: number, total: number): (number | "...")[] {
+type PageEntry =
+  | { kind: "page"; page: number }
+  | { kind: "ellipsis"; side: "left" | "right" };
+
+function generatePageNumbers(current: number, total: number): PageEntry[] {
   if (total <= 7) {
-    return Array.from({ length: total }, (_, i) => i + 1);
+    return Array.from({ length: total }, (_, i) => ({ kind: "page", page: i + 1 }));
   }
-  const pages: (number | "...")[] = [1];
-  if (current > 3) pages.push("...");
+  const pages: PageEntry[] = [{ kind: "page", page: 1 }];
+  if (current > 3) pages.push({ kind: "ellipsis", side: "left" });
   for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) {
-    pages.push(i);
+    pages.push({ kind: "page", page: i });
   }
-  if (current < total - 2) pages.push("...");
-  pages.push(total);
+  if (current < total - 2) pages.push({ kind: "ellipsis", side: "right" });
+  pages.push({ kind: "page", page: total });
   return pages;
 }
