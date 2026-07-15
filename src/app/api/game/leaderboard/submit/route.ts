@@ -4,7 +4,7 @@
 // ============================================================================
 
 import { NextResponse } from 'next/server';
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/db/access';;
 import { logActionAsync, validateGameState } from '@/lib/auth/gameStateValidator';
 import { getUserGuestStatus } from '@/lib/auth/guestCheck';
 import { loadServerGameStateForLeaderboard } from '@/lib/db/game/serverGameState';

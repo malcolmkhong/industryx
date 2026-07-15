@@ -5,7 +5,7 @@
 // ============================================
 
 import { NextResponse } from "next/server";
-import { createServiceRoleClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from '@/lib/db/access';;
 import { verifyAuth } from "@/lib/auth/verifyAuth";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/auth/rateLimiter";
 import {
@@ -100,25 +100,37 @@ async function loadFullConfig(): Promise<GameConfig | null> {
     ] = await Promise.all([
       supabase
         .from("game_config_buildings")
-        .select("*")
+        .select(
+          "id, name, description, category, tier, base_cost, cost_multiplier, base_power_consumption, base_power_production, base_production_rate, fuel, fuel_rate, unlock_research, unlock_prestige, icon",
+        )
         .order("sort_order", { ascending: true, nullsFirst: false }),
-      supabase.from("game_config_production_recipes").select("*"),
+      supabase
+        .from("game_config_production_recipes")
+        .select("building_id, resource_id, amount, is_input"),
       supabase
         .from("game_config_research")
-        .select("*")
+        .select(
+          "id, name, description, category, tier, cost, time_required, prerequisites, effects, icon",
+        )
         .order("sort_order", { ascending: true, nullsFirst: false }),
-      supabase.from("game_config_production_chains").select("*"),
+      supabase
+        .from("game_config_production_chains")
+        .select("id, upstream_building, downstream_building, resource_id"),
       supabase
         .from("game_config_workers")
-        .select("*")
+        .select("id, name, description, base_hire_cost, effects, icon")
         .order("sort_order", { ascending: true, nullsFirst: false }),
       supabase
         .from("game_config_weather")
-        .select("*")
+        .select(
+          "id, name, icon, production_multiplier, solar_multiplier, wind_multiplier, description",
+        )
         .order("sort_order", { ascending: true, nullsFirst: false }),
       supabase
         .from("game_config_market")
-        .select("*")
+        .select(
+          "resource_id, base_price, demand, supply, volatility, is_tradable",
+        )
         .order("sort_order", { ascending: true, nullsFirst: false }),
     ]);
 
@@ -273,7 +285,7 @@ export async function POST(request: Request) {
   // ✅ Rate limit check
   const rateLimitResponse = await checkRateLimit(
     auth.userId,
-    RATE_LIMITS.compute,
+    RATE_LIMITS.serverTick,
     "/api/game/production/compute",
   );
   if (rateLimitResponse) return rateLimitResponse;

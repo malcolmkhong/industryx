@@ -12,6 +12,11 @@ import {
   claimDailyReward,
 } from '@/lib/db/game/dailyRewards';
 import { WEEKLY_DAILY_REWARDS, getStreakMultiplier } from '@/lib/game/config/configCache';
+import { createServiceRoleClient } from '@/lib/db/access';;
+import {
+  getCurrentUtcDateISO,
+  getPreviousUtcDateISO,
+} from '@/lib/auth/serverTime';
 
 export async function POST(request: Request) {
   const auth = await verifyAuth();
@@ -28,12 +33,30 @@ export async function POST(request: Request) {
     `[DailyRewardAPI] user=${auth.userId} requestId=${requestId} ua=${userAgent.slice(0, 80)}`,
   );
 
-  // Determine UTC today
-  const today = new Date().toISOString().split('T')[0];
+  // Audit 2026-07-15 (BUG-074): daily-reset boundary MUST be derived from
+  // the same `now_iso()` DB clock the tick chain uses — not from a
+  // Node-clock ISO string sliced to a date. The Node clock drifts in
+  // serverless containers; a future deploy that pins `TZ=US/Pacific`
+  // would silently shift the reset hour.
+  const timeClient = createServiceRoleClient();
+  if (!timeClient) {
+    return NextResponse.json(
+      { error: 'Server unavailable — retry', code: 'SERVER_UNAVAILABLE' },
+      { status: 503 },
+    );
+  }
+  const today = await getCurrentUtcDateISO(timeClient);
+  const yesterday = await getPreviousUtcDateISO(timeClient);
+  if (today == null || yesterday == null) {
+    console.error('[DailyRewardAPI] now_iso() RPC unavailable — refusing to claim');
+    return NextResponse.json(
+      { error: 'Server time unavailable — retry', code: 'SERVER_TIME_UNAVAILABLE' },
+      { status: 503 },
+    );
+  }
 
   // Get last claim date from DB
   const lastClaimDate = await getLastClaimDate(auth.userId);
-  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
   // Calculate new streak
   let currentStreak = 1;
@@ -79,7 +102,9 @@ export async function POST(request: Request) {
 
   const rewardAmount = Math.floor(rewardTemplate.amount * multiplier);
 
-  // Record in DB
+  // Record in DB — `lastClaimDate` is the DB-anchored UTC date so the row's
+  // `daily_rewards.claim_date` and `user_streaks.last_claim_date` columns
+  // share the same TZ-anchored value as the comparison logic above.
   const result = await claimDailyReward(
     auth.userId,
     {
