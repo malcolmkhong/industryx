@@ -6,75 +6,25 @@
 
 "use client";
 
-import { applyServerState, useGameStore } from "../../state/store";
-
-// Track whether server validation is enabled and working
-let serverValidationEnabled = false;
-let userId: string | null = null;
-
-/**
- * Initialize server action validation for a logged-in user.
- */
-export function initServerValidation(uid: string) {
-  userId = uid;
-  serverValidationEnabled = true;
-}
-
-/**
- * Disable server action validation (on logout).
- */
-export function disableServerValidation() {
-  userId = null;
-  serverValidationEnabled = false;
-}
-
-/**
- * Check if server validation is active.
- */
-export function isServerValidationActive(): boolean {
-  return serverValidationEnabled && !!userId;
-}
-
-/**
- * Submit a game action to the server for validation.
- * Returns { valid: true } if the action is approved,
- * or { valid: false, error: string } if rejected.
- *
- * Phase 2.3: `requestId` is REQUIRED for replay protection. Server stores
- * the last 100 requestIds and rejects duplicates with HTTP 409.
- *
- * For non-logged-in users, always returns { valid: true } (local-only play).
- */
 import type { ServerGameData } from "@/lib/game/shared/types/types";
+import { actionEndpoint } from "./endpoints";
+import {
+  networkErrorToResult,
+  statusToError,
+  unknownStatusToError,
+} from "./errorMapper";
+import { buildActionRequestBody } from "./requestBuilder";
+import { parseActionResponse } from "./responseParser";
+import {
+  getCurrentUserId,
+  isServerValidationActive,
+} from "./validationState";
 
-const ACTION_ENDPOINTS: Record<string, string> = {
-  build: "/api/game/actions/build",
-  sell: "/api/game/actions/sell",
-  sell_market: "/api/game/actions/sell",
-  buy: "/api/game/actions/buy",
-  buy_market: "/api/game/actions/buy",
-  research: "/api/game/actions/research",
-  upgrade: "/api/game/actions/upgrade",
-  transport: "/api/game/actions/transport",
-  set_game_speed: "/api/game/actions/set-game-speed",
-  toggle_building: "/api/game/actions/toggle-building",
-  upgrade_storage: "/api/game/actions/upgrade-storage",
-  hire_worker: "/api/game/actions/hire-worker",
-  assign_worker: "/api/game/actions/assign-worker",
-  upgrade_worker: "/api/game/actions/upgrade-worker",
-  collect_payout: "/api/game/actions/collect-payout",
-  claim_quest: "/api/game/actions/claim-quest",
-  claim_daily_reward: "/api/game/actions/claim-daily-reward",
-  fulfill_contract: "/api/game/actions/fulfill-contract",
-  start_drone_mission: "/api/game/actions/start-drone-mission",
-  collect_drone: "/api/game/actions/collect-drone",
-  upgrade_transport_line: "/api/game/actions/upgrade-transport-line",
-  do_prestige: "/api/game/actions/prestige",
-};
-
-function actionEndpoint(actionType: string): string {
-  return ACTION_ENDPOINTS[actionType] ?? "/api/game/actions/legacy";
-}
+export {
+  disableServerValidation,
+  initServerValidation,
+  isServerValidationActive,
+} from "./validationState";
 
 export async function submitActionToServer(
   actionType: string,
@@ -85,87 +35,37 @@ export async function submitActionToServer(
   error?: string;
   correctedState?: Partial<ServerGameData>;
 }> {
-  if (!serverValidationEnabled || !userId) {
-    // Not logged in — all actions are local-only
+  const currentUserId = getCurrentUserId();
+  if (!isServerValidationActive() || !currentUserId) {
+    // Not logged in - all actions are local-only.
     return { valid: true };
   }
 
   try {
-    const state = useGameStore.getState();
-
     const res = await fetch(actionEndpoint(actionType), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId,
-        actionType,
-        payload,
-        requestId, // Phase 2.3: forward nonce for server replay detection
-        gameState: {
-          money: state.money,
-          totalMoneyEarned: state.totalMoneyEarned,
-          gameTick: state.gameTick,
-          buildings: state.buildings,
-          resources: state.resources,
-          researchPoints: state.researchPoints,
-          completedResearch: state.completedResearch,
-          workers: state.workers,
-          gameSpeed: state.gameSpeed,
-        },
-      }),
+      body: JSON.stringify(
+        buildActionRequestBody(currentUserId, actionType, payload, requestId),
+      ),
     });
 
-    if (res.status === 401) {
-      // Session expired — fail closed. Do not allow local economy mutation
-      // when the authenticated server path cannot validate the action.
-      disableServerValidation();
-      return {
-        valid: false,
-        error: "Session expired — sign in again to continue gameplay actions",
-      };
+    const mappedStatus = statusToError(res.status);
+    if (mappedStatus) return mappedStatus;
+
+    if (!res.ok) {
+      return unknownStatusToError(res);
     }
 
-    if (res.status === 429) {
-      return {
-        valid: false,
-        error: "Server is busy — please retry in a moment",
-      };
-    }
-
-    const data = await res.json();
-
-    if (data.valid) {
-      // Server may return a server-authoritative post-action `correctedState`.
-      // Surface it to callers so they can apply exactly what the server
-      // persisted, instead of computing cost/deductions locally.
-      const serverCorrected =
-        typeof data.correctedState === "object" && data.correctedState !== null
-          ? (data.correctedState as Record<string, unknown>)
-          : undefined;
-      if (serverCorrected) {
-        applyServerState(serverCorrected);
-      }
-      // Phase 13: correctedState is strictly Partial<ServerGameData>.
-      // The server returns server-authoritative data only — no UI fields.
-      return {
-        valid: true,
-        correctedState: serverCorrected as Partial<ServerGameData> | undefined,
-      };
-    }
-
-    // Action rejected by server
-    return { valid: false, error: data.error || "Action rejected by server" };
+    return parseActionResponse(
+      (await res.json()) as {
+        valid: boolean;
+        error?: string;
+        correctedState?: unknown;
+      },
+    );
   } catch (err) {
-    // Network error — BLOCK the action. Fail-closed: cheaters must not
-    // be able to disconnect from the network to bypass server validation.
-    // The client may keep playing locally via the offline-tolerance path
-    // in the Zustand store, but the server-validated path refuses to
-    // certify the action. UI surfaces this as a soft warning.
-    console.warn("[ServerAction] Network error, blocking action:", err);
-    return {
-      valid: false,
-      error: "Network error — action blocked (server unreachable)",
-    };
+    return networkErrorToResult(err);
   }
 }
 
@@ -177,7 +77,7 @@ export function validateGameSpeed(
   speed: number,
   requestId?: string,
 ): Promise<{ valid: boolean; error?: string }> {
-  // Client-side pre-check
+  // Client-side pre-check.
   if (![1, 2, 5, 10].includes(speed)) {
     return Promise.resolve({
       valid: false,
@@ -247,17 +147,18 @@ export function validateUpgradeAction(
 export async function validateImportSave(
   saveData: Record<string, unknown>,
 ): Promise<{ valid: boolean; error?: string; violations?: string[] }> {
-  if (!serverValidationEnabled || !userId) {
-    return { valid: true }; // Local-only play
+  const currentUserId = getCurrentUserId();
+  if (!isServerValidationActive() || !currentUserId) {
+    return { valid: true }; // Local-only play.
   }
 
   try {
-    // We validate the import by attempting to save it to the server
+    // We validate the import by attempting to save it to the server.
     const res = await fetch("/api/game/state/sync", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        userId,
+        userId: currentUserId,
         gameState: saveData,
       }),
     });
@@ -278,26 +179,26 @@ export async function validateImportSave(
       return { valid: true };
     }
 
-    // Server returned a non-OK status that wasn't already handled above
-    // (e.g., 403 ACCOUNT_LOCKED, 409 STATE_VERSION_CONFLICT, 500).
+    // Server returned a non-OK status that was not already handled above
+    // (e.g. 403 ACCOUNT_LOCKED, 409 STATE_VERSION_CONFLICT, 500).
     // Fail-closed: do NOT certify the import. Caller surfaces the error.
     let errBody: { error?: string } = {};
     try {
       errBody = (await res.json()) as { error?: string };
     } catch {
-      /* non-JSON body — keep generic message */
+      /* non-JSON body - keep generic message */
     }
     return {
       valid: false,
       error: errBody.error || `Server rejected import (HTTP ${res.status})`,
     };
   } catch (err) {
-    // Network error — fail-closed. Imports that can't be validated
+    // Network error - fail-closed. Imports that cannot be validated
     // server-side MUST NOT be applied. Same principle as submitActionToServer.
     console.warn("[ServerAction] Import network error, blocking import:", err);
     return {
       valid: false,
-      error: "Network error — import blocked (server unreachable)",
+      error: "Network error - import blocked (server unreachable)",
     };
   }
 }
