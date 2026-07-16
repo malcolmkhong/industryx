@@ -3210,3 +3210,36 @@ PowerPanel now reads the existing flat `GameConfig.balance` response supplied by
 - Targeted lint passes for the changed production files (the test file is excluded by the repository ESLint ignore pattern).
 - `tests/unit/configCache.test.ts` passes alongside the BUG-094 regression test.
 - Repo-wide `bun run typecheck` remains blocked only by four existing Vitest mock errors in `tests/api/game/session-heartbeat.contract.test.ts` (lines 99, 115, 117, 124); none originate from this change.
+
+---
+
+## BUG-095 - Instrumentation imports Node-only config modules in Edge runtime
+
+### Status
+Fixed locally - pending deployment.
+
+### Severity
+High
+
+### Category
+Server startup / Runtime compatibility
+
+### Date Discovered
+2026-07-16
+
+### Location
+- `instrumentation.ts`
+- `src/lib/game/config/server/`
+
+### Problem Found
+The root instrumentation hook compared `NEXT_RUNTIME` to `edgejs`, but Next.js uses `edge`. Edge startup could therefore import the Node-only Supabase config stack.
+
+### Root Cause
+The root hook combined runtime selection, config loading, balance refreshing, polling, and logging. That made the incorrect runtime literal and a duplicate balance fetch easy to miss.
+
+### Resolution
+Instrumentation is now a Node-only adapter. `bootstrapConfigRuntime()` in the config server domain owns pre-warming complete config and starting the balance poller. The duplicate immediate balance refresh was removed; polling still starts after a failed pre-warm so it can retry while request paths remain fail-closed.
+
+### Verification
+- `tests/unit/configServerBootstrap.test.ts` verifies one complete load, one poller start, Node-only instrumentation, and no direct balance refresh.
+- Targeted lint and typecheck run after implementation.
