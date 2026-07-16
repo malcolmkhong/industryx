@@ -3021,7 +3021,7 @@ Resolved 2026-07-16. Two parts:
 
 ### Verification
 Direct SQL against Supabase MCP after migration applied:
-- `INSERT ... ON CONFLICT (user_id) DO UPDATE` (1st call) → row created: `id=3e715615-e85a-4e60-86ee-dbaf09497f64`, `is_online=true`, `last_heartbeat_at=2026-07-16 12:21:41`.
+- `INSERT ... ON CONFLICT (user_id) DO UPDATE` (1st call) → row created: `id=industryx-pull`, `is_online=true`, `last_heartbeat_at=2026-07-16 12:21:41`.
 - Repeat same upsert (2nd call, +5s) → same `id`, `(xmax = 0) = false`, `last_heartbeat_at=2026-07-16 12:21:56`, `created_at` preserved at `12:21:41`. Upsert working correctly.
 - `SELECT COUNT(*), COUNT(DISTINCT user_id) FROM player_sessions` → 1, 1 (correct: one row per user).
 - Plain `INSERT` with duplicate `user_id` (no `ON CONFLICT`) → rejected with `23505 duplicate key value violates unique constraint "player_sessions_user_id_key"` (unique-index enforcement confirmed).

@@ -257,3 +257,8 @@ diffstat.out
 # Test backup fragments
 *.bak2
 *.bak3
+.env.*
+*.env
+credentials.json
+*.key
+.credentials
