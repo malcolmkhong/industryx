@@ -4,7 +4,10 @@
 // ============================================
 
 export { fetchGameConfig } from "./client/configLoader.client";
-export { DEFAULT_BALANCE_SUBSET, type GameConfig } from "./types/gameConfig";
+export {
+  DEFAULT_BALANCE_SUBSET,
+  type GameConfig,
+} from "./types/gameConfig";
 export type {
   SupabaseAutomation,
   SupabaseBalancingRule,

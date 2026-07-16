@@ -1,4 +1,12 @@
 import type { BuildingDefinition, ResourceAmount } from "../../shared/types/types";
+import type { ClientPowerBalance } from "../balance/balanceTypes";
+
+export type ClientBalanceConfig = {
+  tradeCommissionRate: number;
+  tradeCooldownSeconds: number;
+  workerLevelUpXpBase: number;
+  autoSellThresholdRatio: number;
+} & Partial<ClientPowerBalance>;
 
 export interface GameConfig {
   buildings: Record<string, BuildingDefinition>;
@@ -131,12 +139,7 @@ export interface GameConfig {
    * table. If the table is unreachable or the row is missing, sensible
    * defaults are returned (matching the migration 072 seed values).
    */
-  balance: {
-    tradeCommissionRate: number; // server-authoritative
-    tradeCooldownSeconds: number; // server-authoritative
-    workerLevelUpXpBase: number; // server-authoritative
-    autoSellThresholdRatio: number; // server-authoritative
-  };
+  balance: ClientBalanceConfig;
   balancingRules?: Array<{
     id: string;
     name: string;

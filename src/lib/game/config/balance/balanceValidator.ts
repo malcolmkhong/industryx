@@ -3,7 +3,34 @@
 // Split from balanceConfig.ts — validation logic only.
 // ============================================
 
-import type { Validator } from './balanceTypes';
+import type { ClientPowerBalance, Validator } from './balanceTypes';
+
+const CLIENT_POWER_BALANCE_FIELDS = [
+  "fuelStarvedOutputRatio",
+  "solarAmplitudeBase",
+  "solarAmplitudeSwing",
+  "solarOscillationFreq",
+  "solarMinOutput",
+  "windAmplitudeBase",
+  "windAmplitudeSwing",
+  "windOscillationFreq",
+  "windMinOutput",
+] as const satisfies readonly (keyof ClientPowerBalance)[];
+
+/**
+ * Confirms that the client received the complete display-only power subset.
+ * Missing or invalid values are withheld rather than replaced with defaults.
+ */
+export function isClientPowerBalance(
+  value: unknown,
+): value is ClientPowerBalance {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+  return CLIENT_POWER_BALANCE_FIELDS.every(
+    (field) => BALANCE_VALIDATORS.power[field](Reflect.get(value, field)).ok,
+  );
+}
 
 export function vrange(min: number, max: number): Validator {
   return (v: unknown) => {

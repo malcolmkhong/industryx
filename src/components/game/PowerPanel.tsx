@@ -3,8 +3,10 @@
 import { useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/state/store';
-import { getBalance } from '@/lib/game/config/balance/balanceConfig';
 import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE } from '@/lib/game/config/configCache';
+import { useGameConfig } from '@/components/providers/GameConfigProvider';
+import type { ClientPowerBalance } from '@/lib/game/config/balance/balanceTypes';
+import { isClientPowerBalance } from '@/lib/game/config/balance/balanceValidator';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -84,6 +86,21 @@ function PowerSparkline({ data, color, width = 200, height = 40 }: { data: numbe
 }
 
 export function PowerPanel() {
+  const { config, loading, isUsingSupabase } = useGameConfig();
+  const powerConfig = isClientPowerBalance(config.balance) ? config.balance : null;
+
+  if (loading) {
+    return <div className="p-4 text-sm text-muted-foreground" role="status">Loading power configuration…</div>;
+  }
+
+  if (!isUsingSupabase || !powerConfig) {
+    return <div className="p-4 text-sm text-danger" role="alert">Power configuration unavailable. Reload to continue.</div>;
+  }
+
+  return <PowerPanelContent powerConfig={powerConfig} />;
+}
+
+function PowerPanelContent({ powerConfig }: { powerConfig: ClientPowerBalance }) {
   const buildings = useGameStore((s) => s.buildings);
   const resources = useGameStore((s) => s.resources);
   const resourceCapacity = useGameStore((s) => s.resourceCapacity);
@@ -124,12 +141,11 @@ export function PowerPanel() {
   // all multipliers: weather events, prestige power bonus, power optimization, etc.)
   // C-008 (BUILDING_PRODUCTION_AUDIT §10.4, 2026-07-16): hardcoded
   // economy factors (0.1 fuel-starved ratio, solar/wind amplitude and
-  // oscillation constants) replaced with values from `getBalance().power`
+  // oscillation constants) sourced from the client-safe config response.
   // so a balance-config tuning actually affects the UI preview. The
   // snapshot total is still authoritative; the per-type ratio is an
   // estimate scaled to that total.
   const { productionByType, powerScaleFactor } = useMemo(() => {
-    const balance = getBalance().power;
     const snapshotTotal = productionSnapshot.powerProduction;
     const production: Record<string, number> = {};
     let rawTotal = 0;
@@ -145,22 +161,22 @@ export function PowerPanel() {
         let plantProduction = def.basePowerProduction * b.level * b.efficiency;
         if (def.fuel && def.fuelRate) {
           if (resources[def.fuel] < def.fuelRate * b.level) {
-            plantProduction *= balance.fuelStarvedOutputRatio;
+            plantProduction *= powerConfig.fuelStarvedOutputRatio;
           }
         }
         if (type === 'solarFarm') {
           const dayFactor =
-            balance.solarAmplitudeBase +
-            balance.solarAmplitudeSwing *
-              Math.sin(gameTick * balance.solarOscillationFreq);
-          plantProduction *= Math.max(balance.solarMinOutput, dayFactor);
+            powerConfig.solarAmplitudeBase +
+            powerConfig.solarAmplitudeSwing *
+              Math.sin(gameTick * powerConfig.solarOscillationFreq);
+          plantProduction *= Math.max(powerConfig.solarMinOutput, dayFactor);
         }
         if (type === 'windTurbine') {
           const windFactor =
-            balance.windAmplitudeBase +
-            balance.windAmplitudeSwing *
-              Math.sin(gameTick * balance.windOscillationFreq + Math.PI / 3);
-          plantProduction *= Math.max(balance.windMinOutput, windFactor);
+            powerConfig.windAmplitudeBase +
+            powerConfig.windAmplitudeSwing *
+              Math.sin(gameTick * powerConfig.windOscillationFreq + Math.PI / 3);
+          plantProduction *= Math.max(powerConfig.windMinOutput, windFactor);
         }
         totalType += plantProduction;
       });
@@ -174,7 +190,7 @@ export function PowerPanel() {
       production[type] = rawByType[type] * scale;
     });
     return { productionByType: production, powerScaleFactor: scale };
-  }, [plantsByType, resources, gameTick, productionSnapshot.powerProduction]);
+  }, [plantsByType, resources, gameTick, productionSnapshot.powerProduction, powerConfig]);
 
   // Total real production — from snapshot (single source of truth)
   const totalRealProduction = productionSnapshot.powerProduction;
@@ -240,16 +256,14 @@ export function PowerPanel() {
   // Solar/wind current output factor
   // C-008: use balance-driven factors instead of hardcoded literals.
   const solarFactor = useMemo(() => {
-    const b = getBalance().power;
-    const factor = b.solarAmplitudeBase + b.solarAmplitudeSwing * Math.sin(gameTick * b.solarOscillationFreq);
-    return Math.max(b.solarMinOutput, factor);
-  }, [gameTick]);
+    const factor = powerConfig.solarAmplitudeBase + powerConfig.solarAmplitudeSwing * Math.sin(gameTick * powerConfig.solarOscillationFreq);
+    return Math.max(powerConfig.solarMinOutput, factor);
+  }, [gameTick, powerConfig]);
 
   const windFactor = useMemo(() => {
-    const b = getBalance().power;
-    const factor = b.windAmplitudeBase + b.windAmplitudeSwing * Math.sin(gameTick * b.windOscillationFreq + Math.PI / 3);
-    return Math.max(b.windMinOutput, factor);
-  }, [gameTick]);
+    const factor = powerConfig.windAmplitudeBase + powerConfig.windAmplitudeSwing * Math.sin(gameTick * powerConfig.windOscillationFreq + Math.PI / 3);
+    return Math.max(powerConfig.windMinOutput, factor);
+  }, [gameTick, powerConfig]);
 
   const handleBuild = useCallback((type: PowerPlantType) => {
     buildBuilding(type);
@@ -810,20 +824,18 @@ export function PowerPanel() {
                     let rawProduction = def.basePowerProduction * plant.level * plant.efficiency;
                     if (def.fuel && def.fuelRate) {
                       if (resources[def.fuel] < def.fuelRate * plant.level) {
-                        rawProduction *= 0.1;
+                        rawProduction *= powerConfig.fuelStarvedOutputRatio;
                         productionNote = 'Low fuel!';
                         isDerated = true;
                       }
                     }
                     if (plant.type === 'solarFarm') {
-                      const b = getBalance().power;
-                      const factor = Math.max(b.solarMinOutput, b.solarAmplitudeBase + b.solarAmplitudeSwing * Math.sin(gameTick * b.solarOscillationFreq));
+                      const factor = Math.max(powerConfig.solarMinOutput, powerConfig.solarAmplitudeBase + powerConfig.solarAmplitudeSwing * Math.sin(gameTick * powerConfig.solarOscillationFreq));
                       rawProduction *= factor;
                       productionNote = factor > 0.7 ? 'Peak sun' : factor > 0.4 ? 'Moderate' : 'Low light';
                     }
                     if (plant.type === 'windTurbine') {
-                      const b = getBalance().power;
-                      const factor = Math.max(b.windMinOutput, b.windAmplitudeBase + b.windAmplitudeSwing * Math.sin(gameTick * b.windOscillationFreq + Math.PI / 3));
+                      const factor = Math.max(powerConfig.windMinOutput, powerConfig.windAmplitudeBase + powerConfig.windAmplitudeSwing * Math.sin(gameTick * powerConfig.windOscillationFreq + Math.PI / 3));
                       rawProduction *= factor;
                       productionNote = factor > 0.7 ? 'Strong wind' : factor > 0.4 ? 'Moderate' : 'Low wind';
                     }

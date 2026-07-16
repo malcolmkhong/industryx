@@ -188,3 +188,21 @@ export interface GameBalanceConfig {
     maxCheatFlags: number;
   };
 }
+
+/**
+ * Browser-safe power factors. These are a read-only projection of the
+ * server-authoritative `power` balance row; they do not create a client
+ * balance source or fallback values.
+ */
+export type ClientPowerBalance = Pick<
+  GameBalanceConfig["power"],
+  | "fuelStarvedOutputRatio"
+  | "solarAmplitudeBase"
+  | "solarAmplitudeSwing"
+  | "solarOscillationFreq"
+  | "solarMinOutput"
+  | "windAmplitudeBase"
+  | "windAmplitudeSwing"
+  | "windOscillationFreq"
+  | "windMinOutput"
+>;
