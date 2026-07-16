@@ -33,7 +33,9 @@ export async function GET(
     // Fetch game state
     const { data: gameState, error: gsError } = await supabase
       .from("server_game_state")
-      .select("*")
+      .select(
+        "user_id,full_state,money,total_money_earned,buildings_count,game_tick,game_speed,last_tick_at,last_saved_at,state_version,research_points,resources,workers,is_locked,lock_reason,cheat_flag_count,created_at",
+      )
       .eq("user_id", playerId)
       .single();
 
@@ -47,7 +49,9 @@ export async function GET(
     // Fetch player progress
     const { data: progress, error: progressError } = await supabase
       .from("player_progress")
-      .select("*")
+      .select(
+        "user_id,display_name,game_state,total_money_earned,game_tick,game_speed,last_login_at,last_saved_at,resources,buildings,workers,research_progress,completed_research,active_research,contracts,auto_collect,auto_sell_resources,blueprints,last_server_tick_at,pending_notifications,total_play_time,created_at",
+      )
       .eq("user_id", playerId)
       .single();
 
@@ -62,7 +66,9 @@ export async function GET(
     // Fetch last 50 player actions
     const { data: actions, error: actionsError } = await supabase
       .from("player_actions")
-      .select("*")
+      .select(
+        "id,user_id,action_type,payload,is_valid,money_after,rejection_reason,validation_risk,created_at",
+      )
       .eq("user_id", playerId)
       .order("created_at", { ascending: false })
       .limit(50);
@@ -77,7 +83,9 @@ export async function GET(
     // Fetch cheat investigations for this player
     const { data: investigations, error: invError } = await supabase
       .from("cheat_investigations")
-      .select("*")
+      .select(
+        "id,user_id,detection_type,description,evidence,status,device_id,fingerprint_hash,resolution_note,resolved_by,resolved_at,created_at,updated_at",
+      )
       .eq("user_id", playerId)
       .order("created_at", { ascending: false });
 

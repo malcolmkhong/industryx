@@ -14,7 +14,7 @@ import {
 import { recordTrade } from '@/lib/db/game/trades';
 import { getBalance } from '@/lib/game/config/balance/balanceConfig';
 import { ensureConfigLoaded } from '@/lib/game/config/server/configLoader.server';
-import { asFullState } from '@/lib/db/game/serverGameStatePayload';
+import { asFullState, stripUIFields } from '@/lib/db/game/serverGameStatePayload';
 
 interface TradeRequest {
   giveResource?: ResourceType;
@@ -264,7 +264,11 @@ export async function POST(request: Request) {
     currentVersion,
     {
       resources: asFullState(newResources),
-      full_state: asFullState(updatedFullState),
+      // C-003 (BUILDING_PRODUCTION_AUDIT §10.4, 2026-07-16):
+      // Defense-in-depth — strip UI keys before coercing to full_state.
+      full_state: asFullState(
+        stripUIFields(updatedFullState as unknown as Record<string, unknown>),
+      ),
       state_version: nextStateVersion,
       last_trade_at: new Date().toISOString(),
     }

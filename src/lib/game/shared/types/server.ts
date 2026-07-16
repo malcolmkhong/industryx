@@ -115,6 +115,7 @@ export interface ServerGameData {
     transportLinesBuilt: number;
     researchCompleted: number;
     contractsCompleted: number;
+    tradesCompleted: number;
     playTime: number; // in ticks
   };
 

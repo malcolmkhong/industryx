@@ -64,6 +64,7 @@ export function applyFulfillContractMutation(
         transportLinesBuilt: 0,
         researchCompleted: 0,
         contractsCompleted: 0,
+        tradesCompleted: 0,
         playTime: 0,
       }),
       contractsCompleted: contractsCompletedStat + 1,

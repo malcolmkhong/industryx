@@ -3,7 +3,7 @@ import {
   saveServerGameStateOptimistic,
   type ServerGameStateForAction,
 } from "@/lib/db/game/serverGameState";
-import { asFullState } from "@/lib/db/game/serverGameStatePayload";
+import { asFullState, stripUIFields } from "@/lib/db/game/serverGameStatePayload";
 import type { GameState } from "@/lib/game/shared/types/types";
 import type { ActionResponse, ActionType } from "./actionTypes";
 import { buildDenormalizedStatePatchFields } from "./denormalizedStatePatch";
@@ -79,7 +79,11 @@ export async function persistCorrectedActionState({
   );
 
   const persisted = await saveServerGameStateOptimistic(userId, currentVersion, {
-    full_state: asFullState(mergedFullState),
+    // C-003 (BUILDING_PRODUCTION_AUDIT §10.4, 2026-07-16):
+    // Defense-in-depth — strip UI keys before coercing to full_state.
+    full_state: asFullState(
+      stripUIFields(mergedFullState as unknown as Record<string, unknown>),
+    ),
     ...denormalizedFields,
     state_version: currentVersion + 1,
   }).catch((err) => {

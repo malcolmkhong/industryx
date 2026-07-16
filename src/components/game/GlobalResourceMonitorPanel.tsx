@@ -305,6 +305,7 @@ export default function GlobalResourceMonitorPanel() {
       const t = setTimeout(() => setToast(null), 2500);
       return () => clearTimeout(t);
     }
+    return undefined;
   }, [toast]);
 
   // ─── Compute resource rows ──────────────────────────────────────────────

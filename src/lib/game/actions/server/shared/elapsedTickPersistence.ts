@@ -5,7 +5,7 @@ import {
   saveServerGameStateOptimistic,
   type ServerGameStateForAction,
 } from "@/lib/db/game/serverGameState";
-import { asFullState } from "@/lib/db/game/serverGameStatePayload";
+import { asFullState, stripUIFields } from "@/lib/db/game/serverGameStatePayload";
 import type { Json } from "@/lib/db/types";
 import type { ServerGameData } from "@/lib/game/shared/types/types";
 import type { ProductionSnapshot } from "@/lib/game/production/productionCalculator";
@@ -166,7 +166,11 @@ export async function applyElapsedServerTime(
       userId,
       elapsedStateVersion,
       {
-        full_state: asFullState(elapsed.state),
+        // C-003 (BUILDING_PRODUCTION_AUDIT §10.4, 2026-07-16):
+        // Defense-in-depth — strip UI keys before coercing to full_state.
+        full_state: asFullState(
+          stripUIFields(elapsed.state as unknown as Record<string, unknown>),
+        ),
         // PR-BP-2 (V-032): server-only supply projection written to a
         // dedicated top-level column. `stripUIFields` does NOT touch
         // this — it lives outside `full_state` and is server-pure data,

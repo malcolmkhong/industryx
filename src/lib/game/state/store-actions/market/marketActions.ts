@@ -179,5 +179,33 @@ export function createMarketActions(set: SetFn, get: GetFn) {
         set({ autoSellResources: [...current, resource] });
       }
     },
+
+    // P2-13 (BUILDING_PRODUCTION_AUDIT §10.6 P2, 2026-07-16):
+    // Store response adapter for the legacy trade-execute response shape.
+    // The panel previously called `useGameStore.setState({ resources: ... })`
+    // directly, bypassing the action boundary (STO-003). This action
+    // applies the server-authoritative resources plus a tradesCompleted
+    // stat bump. Components call this action instead of touching setState
+    // directly.
+    applyTradeResources: (updatedResources: Record<string, number>) => {
+      const state = get();
+      const tradesCompleted = (state.stats?.tradesCompleted ?? 0) + 1;
+      set({
+        resources: updatedResources,
+        stats: {
+          ...(state.stats ?? {
+            totalResourcesProduced: {},
+            totalResourcesSold: {},
+            peakEfficiency: 0,
+            factoriesBuilt: 0,
+            transportLinesBuilt: 0,
+            researchCompleted: 0,
+            contractsCompleted: 0,
+            playTime: 0,
+          }),
+          tradesCompleted,
+        },
+      });
+    },
   };
 }

@@ -54,7 +54,10 @@ vi.mock('@/lib/game/config/configCache', () => ({
 
 // crypto.randomUUID present in Node â‰¥ 19; vitest uses Node â‰¥ 20. No mock needed.
 
-import { fetchCanonicalInitialState } from '@/lib/db/infra/initialState.server';
+import {
+  fetchCanonicalInitialState,
+  invalidateCanonicalInitialStateCache,
+} from '@/lib/db/infra/initialState.server';
 
 const fakeResources = [
   { id: 'iron', base_capacity: 100 },
@@ -113,6 +116,8 @@ describe('fetchCanonicalInitialState (server-authoritative)', () => {
     mockFrom.mockReset();
     // Default to a healthy DB response so each test can opt-in to failures.
     configureMockSupabase({});
+    // Drop the 5-minute in-memory cache so each test sees its mocked response.
+    invalidateCanonicalInitialStateCache();
   });
 
   it('returns ServerGameData (not GameState) â€” type-level check', async () => {

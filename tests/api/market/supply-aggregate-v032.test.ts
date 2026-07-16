@@ -69,7 +69,12 @@ async function runCronWith(
   );
 
   // Inject the mock supabase client.
-  const { createServiceRoleClient } = await import("@/lib/supabase/server");
+  // C-004 (BUILDING_PRODUCTION_AUDIT §10.4, 2026-07-16): the test
+  // previously imported `createServiceRoleClient` from the legacy
+  // `@/lib/supabase/server` shim, but the production route resolves it
+  // from `@/lib/db/access` (DB-015 boundary). Mock the actual import
+  // path the route uses.
+  const { createServiceRoleClient } = await import("@/lib/db/access");
   const mockClient = makeMockClient([]);
   (createServiceRoleClient as ReturnType<typeof vi.fn>).mockReturnValue(
     mockClient,

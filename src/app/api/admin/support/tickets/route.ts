@@ -13,7 +13,9 @@ export async function GET() {
 
   const { data: tickets, error } = await supabase
     .from("support_tickets")
-    .select("*")
+    .select(
+      "id,user_id,subject,message,status,priority,created_at,updated_at,assigned_admin_id",
+    )
     .order("created_at", { ascending: false });
 
   if (error) {

@@ -17,7 +17,7 @@ import { describe, it, expect } from "vitest";
 import {
   validateHireWorkerAction,
   validateAssignWorkerAction,
-} from "@/lib/game/production/engine/serverEngine";
+} from "@/lib/game/production/engine/serverEngine.server";
 import type { GameConfig } from "@/lib/game/config/config";
 import type { GameState, Worker, BuildingInstance } from "@/lib/game/shared/types/types";
 

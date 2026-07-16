@@ -3,7 +3,9 @@
 > **Purpose:** Project-wide bug registry, investigation history, and resolution log.
 > **Authority:** This file is the canonical record of known issues. Future agents MUST read this before starting work and MUST update entries (not delete them) as work progresses.
 > **Created:** 2026-06-17 (during AGENT.md and `.rules` reconciliation audit)
-> **Last Updated:** 2026-07-16 (BUG-077 added and resolved: `@/lib/db/access` boundary + module-scope singleton replaces the 237-edge `createServiceRoleClient()` god node. BUG-076 added 2026-07-16: stale `knip.json` entry paths. BUG-075 added and resolved 2026-07-15: auth-merge policy migrated to industry-standard "auth wins, archive guest" default with explicit-conflict opt-in.)
+> **Last Updated:** 2026-07-16 (BUG-091 added and resolved by P2-14a repair pass from BUILDING_PRODUCTION_AUDIT §10.4: select('*') sweep across `src/app/api` and `src/lib/db` replaced with explicit column lists and shared CONFIG_TABLE_COLUMNS whitelist; daily_rewards/user_streaks/leaderboard/player_progress column lists corrected to match actual schema. BUG-087..BUG-090 added and resolved by P2 repair pass from BUILDING_PRODUCTION_AUDIT §10.4: P2-10 thin server math wrappers removed, P2-11 initial state uses crypto RNG, P2-12 LeaderboardPanel shared polling hook, P2-13 TradingPostPanel store action adapter. BUG-082..BUG-086 added and resolved by P1 repair pass from BUILDING_PRODUCTION_AUDIT §10.4: C-006 orphan compute oracle removed, C-007 shared income/minute formula, C-005 parseCostMap fails closed on null cost, C-008 PowerPanel balance-driven factors, C-009 client-only pause UI removed. BUG-078..BUG-081 added and resolved by P0 repair pass from BUILDING_PRODUCTION_AUDIT §10.4: C-001 blocked-factory snapshot aggregation, C-002 offline market_supply write, C-003 strip-symmetry across all writers, C-004 V-032 test mock repair. BUG-077 added and resolved 2026-07-16: `@/lib/db/access` boundary + module-scope singleton replaces the 237-edge `createServiceRoleClient()` god node. BUG-076 added 2026-07-16: stale `knip.json` entry paths. BUG-075 added and resolved 2026-07-15: auth-merge policy migrated to industry-standard "auth wins, archive guest" default with explicit-conflict opt-in.)
+
+**BUG-092 added and resolved 2026-07-16:** heartbeat `player_sessions` upsert failed with Postgres `42P10` because migration `003` only created a non-unique btree index on `user_id`; added UNIQUE INDEX via migration `080_player_sessions_unique_user_id.sql`; promoted both `sessionError` and `profiles.last_active` failure modes from best-effort `console.warn` to `503 Presence tracking unavailable` so future regressions cannot silently disable presence.
 
 ---
 
@@ -92,7 +94,7 @@ When the linter reports an unused variable or import, follow this protocol befor
 | BUG-076 | Open | Low | Tooling / Architecture | `knip.json` still declares three pre-refactor entry paths that no longer exist, reducing dead-code and dependency-audit accuracy | `knip.json` |
 | BUG-077 | [x] Resolved (2026-07-16) | Medium | DB / Architecture | `createServiceRoleClient()` constructed a fresh `@supabase/supabase-js` client on every call (god-node #1 with 237 imports; `serverGameState.ts` alone instantiated 26 fresh HTTP pools per request). No repository boundary and no singleton. Replaced with module-scope singleton + canonical `@/lib/db/access` boundary (`getDbClient` / `requireDbClient`) plus typed `DbClientNotConfiguredError` for fail-closed 503 responses. Architecture test `tests/architecture/db-access.test.ts` enforces the boundary. | `src/lib/db/access/{getDbClient.server,errors,index}.ts` (NEW), `src/lib/supabase/server.ts`, `src/lib/db/admin/admin.ts`, 59 source files, 99 test files, `.rules` §DB-015, `tests/architecture/db-access.test.ts` (NEW) |
 
-> **Total:** 18 open, 1 unverified, 20 Resolved (out of 39). BUG-077 added and resolved 2026-07-16: `@/lib/db/access` boundary + module-scope singleton replaces the 237-edge `createServiceRoleClient()` god node. BUG-076 added 2026-07-16 after Graphify exposed stale Knip entry paths. BUG-067/068/069/070/071/072 added and resolved by 2026-07-14 production architecture audit; BUG-072 also closes BUG-001 for the AchievementPanel component; BUG-073 added and resolved 2026-07-15 as a follow-up to BUG-067 (409 response shape regression).
+> **Total:** 18 open, 1 unverified, 36 Resolved (out of 55). BUG-093 added and resolved 2026-07-16: 18 freshly-bootstrapped players had `money=0` because (a) bootstrap RPCs hardcode `money=0` when inserting the `{"bootstrap_pending": true}` placeholder row, and (b) `buildCompleteFullStateForServerRow` trusted `row.money` (0) over `canonical.money` (2000). Two-layer fix: migration `081_bootstrap_placeholder_canonical_defaults` adds a BEFORE INSERT trigger that canonicalizes placeholder rows from `game_config_game.starting_money`, plus a one-shot UPDATE backfill of the 18 existing placeholder rows; `src/lib/db/game/serverGameState.ts` was patched to detect the `bootstrap_pending` flag and fall back to canonical values, defending against any future placeholder path that slips past the trigger. BUG-092 added and resolved 2026-07-16: heartbeat `player_sessions` upsert was failing on every call with Postgres `42P10`; migration `080_player_sessions_unique_user_id` adds the required UNIQUE INDEX; route promoted from best-effort `console.warn` to `503`. BUG-091 added and resolved 2026-07-16 by the BUILDING_PRODUCTION_AUDIT §10.4 P2-14a repair pass: select('*') sweep across `src/app/api` and `src/lib/db` replaced with explicit column lists and shared CONFIG_TABLE_COLUMNS whitelist. BUG-087..BUG-090 added and resolved 2026-07-16 by the BUILDING_PRODUCTION_AUDIT §10.4 P2 repair pass: P2-10 thin server math wrappers removed, P2-11 initial state crypto RNG, P2-12 LeaderboardPanel shared polling hook, P2-13 TradingPostPanel store action adapter. BUG-082..BUG-086 added and resolved by the P1 repair pass. BUG-078..BUG-081 added and resolved by the P0 repair pass. BUG-077 added and resolved 2026-07-16: `@/lib/db/access` boundary + module-scope singleton replaces the 237-edge `createServiceRoleClient()` god node. BUG-076 added 2026-07-16 after Graphify exposed stale Knip entry paths. BUG-067/068/069/070/071/072 added and resolved by 2026-07-14 production architecture audit; BUG-072 also closes BUG-001 for the AchievementPanel component; BUG-073 added and resolved 2026-07-15 as a follow-up to BUG-067 (409 response shape regression).
 
 > **Highest priority for fixing (still open):** BUG-005 (.env.example - high severity, blocks new devs), BUG-001 (1 panel selector migration), BUG-003 (prisma uninstall), BUG-004 (test runner), BUG-009 (anon key), BUG-018 (admin a11y), BUG-019 (responsive), BUG-022 (contrast), BUG-025 (arbitrary values), BUG-033 (proxy rename). BUG-007, BUG-011, BUG-013 are low priority and may be deferred indefinitely.
 
@@ -2296,3 +2298,873 @@ Resolved 2026-07-15 with the following changes:
 - STD-013 ISO 27001 � explicit policy parameter is "auditable" rather than implicit; future opt-in UX surfaces the policy choice to users.
 - STD-008 NIST SSDF � recoverable archive row + estored_at marker provides "traceable change history".
 
+
+---
+
+## BUG-078 - C-001: buildProductionSnapshotServer aggregated blocked factory outputs as actual production
+
+### Status
+Resolved
+
+### Severity
+High
+
+### Category
+Production / Observability
+
+### Date Discovered
+2026-07-16
+
+### Discovered By
+Production architecture audit C-001 (BUILDING_PRODUCTION_AUDIT.md �10.4)
+
+### Location
+- `src/lib/game/production/engine/tick/productionSnapshot.ts` (FIXED)
+- `src/lib/game/production/math/production.ts:143-178` (factory branch returns potential output even when `canProduce=false`)
+- `src/components/game/FactoryPanel.tsx`, `PowerPanel.tsx`, `StoragePanel.tsx`, etc. (consumers)
+
+### Problem Found
+`buildProductionSnapshotServer` iterated every building and aggregated `result.outputs` into `snapshot.production` regardless of `canProduce`. `computeProduction` returns a populated `outputs` array (potential output) for factories that ran out of inputs, so the snapshot reported potential output as actual production. `runServerTicks` correctly skipped the result (no inventory or money change), so server economy stayed correct, but the UI snapshot over-reported production rates for blocked factories. `FactoryPanel` and downstream panels (PowerPanel, StoragePanel, AIAdvisorPanel) read `snapshot.production[resource]` and `snapshot.buildings[id].outputs` as actual rates.
+
+### Expected Behavior
+A blocked factory (`canProduce: false`) must contribute zero to `snapshot.production[resource]` and have an empty `snapshot.buildings[id].outputs`. Input demand (`snapshot.consumption`) continues to advertise demand for planning; `actualConsumption` already reflected `actualInputs` (empty for blocked).
+
+### Actual Behavior
+Blocked factories contributed their full potential output to `snapshot.production`. `snapshot.buildings[id].outputs` showed the potential output array. UI displayed non-zero production rates while inventory stayed unchanged.
+
+### Root Cause / Reason
+Confirmed: `buildProductionSnapshotServer` did not check `result.canProduce` before aggregating `result.outputs` into `snapshot.production` or before writing `result.outputs` to `snapshot.buildings[id].outputs`. The factory branch of `computeProduction` always returns a populated `outputs` array (the potential output, useful for the calculator and demand planning), so the snapshot must filter on `canProduce`.
+
+### Investigation Performed
+- Confirmed `production.ts:162-178` returns `outputs` regardless of `canProduce` (potential output for the calculator).
+- Confirmed `runServerTicks.ts:78-110` correctly skips the result and does not credit blocked output.
+- Confirmed `buildProductionSnapshotServer` (productionSnapshot.ts:50-76) aggregated `result.outputs` unconditionally.
+- Wrote failing regression test `tests/unit/snapshot-blocked-factory.test.ts` proving the snapshot reported 5 ironPlate from a blocked factory.
+
+### Resolution
+Resolved 2026-07-16. `buildProductionSnapshotServer` now gates the per-building `outputs` field and the `production` / `actualConsumption` aggregation on `result.canProduce`. The `consumption` (demand) loop continues to advertise input demand for planning. The per-building detail still records `inputs` (demand) and `efficiency` for blocked buildings.
+
+Verification: `tests/unit/snapshot-blocked-factory.test.ts` (5 cases) failed first, then passed. `tests/unit/runServerTicks.storageOverflow.test.ts` (5 cases) still passes. `npm run typecheck` clean.
+
+---
+
+## BUG-079 - C-002: offline-progress route did not write market_supply projection
+
+### Status
+Resolved
+
+### Severity
+High
+
+### Category
+Server Tick / Persistence
+
+### Date Discovered
+2026-07-16
+
+### Discovered By
+Production architecture audit C-002 (BUILDING_PRODUCTION_AUDIT.md �10.4)
+
+### Location
+- `src/app/api/game/state/offline-progress/route.ts:614-625` (FIXED)
+- `src/lib/game/production/snapshot/marketSupplyProjection.ts`
+- `supabase/migrations/20260715000000_076_market_supply_state.sql`
+
+### Problem Found
+The offline route ran `runServerTicks` and wrote `full_state` plus denormalized columns, but it did NOT write the `server_game_state.market_supply` JSONB projection that the global market aggregate cron reads. The live/action elapsed writers (via `applyElapsedServerTime` in `elapsedTickPersistence.ts:165-180`) already do this; the offline route had its own separate CAS write and was missed by the V-032 fix. A player whose only progress came through offline settlement would have correct inventory but stale/empty aggregate supply, causing the global market to omit their contribution.
+
+### Expected Behavior
+Every authoritative tick-settlement writer that produces a snapshot must update the same server-only `market_supply` projection, or the aggregate cron must recompute from a canonical source. The offline route must write the same projection that `applyElapsedServerTime` writes.
+
+### Actual Behavior
+The offline route returned a valid `newState` and `productionSnapshot` to the client, but `server_game_state.market_supply` was not refreshed. The aggregate cron (`/api/market/supply/aggregate`) reads `row.market_supply` and would skip or zero the contribution.
+
+### Root Cause / Reason
+Migration 076 added the `market_supply` column and `buildMarketSupplyProjection` writer. The V-032 fix integrated the writer into `elapsedTickPersistence.ts` (the shared elapsed writer used by live-tick and action paths) but not into the standalone offline route, which has its own CAS write block at `offline-progress/route.ts:614-625`.
+
+### Investigation Performed
+- `grep buildMarketSupplyProjection` confirmed only `marketSupplyProjection.ts` and `elapsedTickPersistence.ts` used it; offline-progress was missing.
+- Wrote failing regression test `tests/api/game/state/offline-progress-market-supply.test.ts` proving the offline CAS patch did not include `market_supply`.
+
+### Resolution
+Resolved 2026-07-16. The offline CAS patch at `offline-progress/route.ts:618-625` now writes `market_supply: buildMarketSupplyProjection(result.productionSnapshot, serverNow)` alongside `full_state` and denormalized fields, mirroring `applyElapsedServerTime`. `stripUIFields` is also applied to `full_state` (see BUG-081).
+
+Verification: `tests/api/game/state/offline-progress-market-supply.test.ts` failed first, then passed. `tests/api/market/supply-aggregate-v032.test.ts` (4 cases) passes after C-004 mock repair. `npm run typecheck` clean.
+
+---
+
+## BUG-080 - C-003: full_state writers missing stripUIFields defense-in-depth
+
+### Status
+Resolved
+
+### Severity
+High
+
+### Category
+Persistence / Security
+
+### Date Discovered
+2026-07-16
+
+### Discovered By
+Production architecture audit C-003 (BUILDING_PRODUCTION_AUDIT.md �10.4)
+
+### Location
+- `src/lib/game/actions/server/shared/elapsedTickPersistence.ts` (FIXED)
+- `src/lib/game/actions/server/shared/correctedStatePersistence.ts` (FIXED)
+- `src/app/api/game/state/offline-progress/route.ts` (FIXED)
+- `src/app/api/market/trades/execute/route.ts` (FIXED)
+- `src/lib/db/game/serverGameStatePayload.ts` (`stripUIFields` helper)
+
+### Problem Found
+Four production writers passed `asFullState(state)` without first calling `stripUIFields(state)`. The Phase 13 invariant states that `server_game_state.full_state` must never contain UI-only keys (`hydrated`, `activeTab`, `selectedBuilding`, `notifications`, `productionSnapshot`). `stripUIFields` is the shared defense-in-depth helper. The existing `serverGameDataShape.test.ts` only enumerated three writers (serverGameState, sync route, guest migrate), so the other four passed silently. In current code the state is pure `ServerGameData` (no UI keys leak), so this is a latent defect � a future code change that adds a UI field to `state` would persist it.
+
+### Expected Behavior
+Every `full_state` writer must call `stripUIFields(state)` before coercing with `asFullState`. The architecture test must enumerate every writer, not a hand-maintained subset.
+
+### Actual Behavior
+`elapsedTickPersistence.ts:169`, `correctedStatePersistence.ts:82`, `offline-progress/route.ts:618`, and `market/trades/execute/route.ts:267` all wrote `full_state: asFullState(state)` without stripping. The `serverGameDataShape.test.ts` `PERSISTENCE_WRITERS` array only covered three of the seven writers, giving false confidence.
+
+### Root Cause / Reason
+The refactor that introduced `stripUIFields` (Phase 13) applied it to the three original writers but missed the ones added or refactored later (elapsed tick persistence, corrected action persistence, offline-progress route, market trade route). The architecture test was not updated when new writers were added.
+
+### Investigation Performed
+- Expanded the `PERSISTENCE_WRITERS` list in the new `tests/unit/strip-symmetry.test.ts` to cover all seven writers.
+- Test failed first on four writers (elapsed, corrected, offline, trades), confirming the gap.
+- Applied `stripUIFields(state as unknown as Record<string, unknown>)` before `asFullState` in all four.
+- Test now passes 8/8 cases.
+
+### Resolution
+Resolved 2026-07-16. All seven production writers now call `stripUIFields` before `asFullState`. Added `tests/unit/strip-symmetry.test.ts` that enumerates the full writer set and asserts both the strip call and its ordering relative to `asFullState`. Updated existing test mocks for `correctedStatePersistence.test.ts` and `elapsedTickPersistence.test.ts` to export `stripUIFields` from the `@/lib/db/game/serverGameStatePayload` mock.
+
+Verification: `tests/unit/strip-symmetry.test.ts` (8 cases) failed first, then passed. Full targeted regression suite (10 files, 60 tests) passes. `npm run typecheck` clean.
+
+---
+
+## BUG-081 - C-004: V-032 aggregate test mocked wrong import path
+
+### Status
+Resolved
+
+### Severity
+Medium
+
+### Category
+Tests / Infrastructure
+
+### Date Discovered
+2026-07-16
+
+### Discovered By
+Production architecture audit C-004 (BUILDING_PRODUCTION_AUDIT.md �10.4)
+
+### Location
+- `tests/api/market/supply-aggregate-v032.test.ts:72-77` (FIXED)
+
+### Problem Found
+The V-032 aggregate test mocked `createServiceRoleClient` from `@/lib/supabase/server` (the legacy shim) but the production route imports it from `@/lib/db/access` (the DB-015 boundary). The mock's `mockReturnValue` call was applied to a function the route never uses, so the test failed with `TypeError: createServiceRoleClient.mockReturnValue is not a function` before any assertion ran. All four test cases failed in CI even though the production code was correct.
+
+### Expected Behavior
+Tests must mock the same import path the production code uses. The DB-015 boundary (`@/lib/db/access`) is the canonical import path for the service-role client.
+
+### Actual Behavior
+Four test cases failed with `TypeError: createServiceRoleClient.mockReturnValue is not a function` in `tests/api/market/supply-aggregate-v032.test.ts`.
+
+### Root Cause / Reason
+The test was written during the V-032 fix before the `@/lib/db/access` boundary was introduced (BUG-077). The import was not updated when the boundary landed.
+
+### Investigation Performed
+- Confirmed `aggregate/route.ts:41` imports from `@/lib/db/access`.
+- Confirmed the test imported from `@/lib/supabase/server`.
+- Confirmed `@/lib/supabase/server` is now a shim that re-exports from `@/lib/db/access`, so the mock must target the canonical boundary.
+
+### Resolution
+Resolved 2026-07-16. Updated the test to `await import("@/lib/db/access")` and call `mockReturnValue` on the boundary's `createServiceRoleClient`.
+
+Verification: `tests/api/market/supply-aggregate-v032.test.ts` (4 cases) failed first, then passed. The test now correctly exercises the V-032 reader path and provides a green regression guard for the market aggregate.
+
+---
+
+## BUG-082 - C-006: /api/game/production/compute was an orphan oracle route
+
+### Status
+Resolved
+
+### Severity
+Medium
+
+### Category
+API / Server Tick
+
+### Date Discovered
+2026-07-16
+
+### Discovered By
+Production architecture audit C-006 (BUILDING_PRODUCTION_AUDIT.md �10.4)
+
+### Location
+- `src/app/api/game/production/compute/route.ts` (REMOVED)
+- `tests/api/game/compute.test.ts` (REMOVED)
+- `src/app/api/API_STRUCTURE_PLAN.md` (updated)
+- `tests/unit/v043-explicit-columns.test.ts` (updated)
+
+### Problem Found
+`POST /api/game/production/compute` authenticated, rate-limited, ownership-checked, and tick-capped, then ran `runServerTicks` and returned `{newState, productionSnapshot}` without persisting. Zero production callers existed in `src/`, `src/components/`, or `src/lib/`. The route was a misleading preview endpoint with no approved caller, and if wired as a mutation without CAS + idempotency it would double-apply ticks.
+
+### Expected Behavior
+Either rename and document as a non-persisting preview, or remove until an approved caller exists.
+
+### Actual Behavior
+The route was removed in C-006 because no approved caller existed. The test `tests/api/game/compute.test.ts` and the `v043-explicit-columns.test.ts` compute-route block were also removed/updated.
+
+### Root Cause / Reason
+Legacy oracle that survived the server-authoritative migration. Production settlement moved to the live-tick, offline-progress, and action elapsed paths, all of which persist authoritatively. The compute route was never wired into any consumer.
+
+### Investigation Performed
+- `grep "/api/game/production/compute" src/` confirmed only the route self-reference and the API_STRUCTURE_PLAN.md doc entry.
+- Confirmed the live-tick, offline-progress, and action elapsed paths cover all authoritative settlement.
+
+### Resolution
+Resolved 2026-07-16. Removed `src/app/api/game/production/compute/`, `tests/api/game/compute.test.ts`, and the `v043-explicit-columns.test.ts` compute-route block. Updated `src/app/api/API_STRUCTURE_PLAN.md` to remove the table and tree entries for the compute route. Updated `v043-explicit-columns.test.ts` to assert the compute route does not reappear.
+
+Verification: `npm run typecheck` clean. `tests/unit/v043-explicit-columns.test.ts` (8 cases) passes.
+
+---
+
+## BUG-083 - C-007: Dashboard income/minute diverged from header income/minute
+
+### Status
+Resolved
+
+### Severity
+High
+
+### Category
+UI / Configuration
+
+### Date Discovered
+2026-07-16
+
+### Discovered By
+Production architecture audit C-007 (BUILDING_PRODUCTION_AUDIT.md �10.4)
+
+### Location
+- `src/components/game/DashboardPanel.tsx:182-184` (FIXED)
+- `src/components/game/headers/DesktopHeader.tsx:77-80` (FIXED to use shared formula)
+- `src/components/game/headers/MobileHeader.tsx:73-80` (FIXED to use shared formula)
+- `src/lib/game/state/store.ts` (NEW `computeNetIncomePerMinute` utility)
+
+### Problem Found
+`DashboardPanel` computed `payoutPerCycle * 6` as income/min � a literal 6 cycles/min that assumed 1x speed and a 10s payout interval. `DesktopHeader` and `MobileHeader` used the correct formula `(effectiveSpeed / basePayoutInterval) * 60`. At any non-default game speed or payout interval, the dashboard and headers displayed different income values.
+
+### Expected Behavior
+All income/minute surfaces must use the same formula: `(payoutPerCycle * effectiveSpeed / basePayoutInterval) * 60`, floored.
+
+### Actual Behavior
+Dashboard showed `payoutPerCycle * 6` (correct only at 1x/10s). Headers showed the correct formula. At 5x speed the dashboard showed 1/5 of the header value.
+
+### Root Cause / Reason
+The dashboard retained a 10-second/6-cycles-per-minute literal while headers were updated to use the current configuration. No shared helper existed.
+
+### Investigation Performed
+- Confirmed `DashboardPanel.tsx:182` used `* 6`; both headers used `(effectiveSpeed / basePayoutInterval) * 60`.
+- Wrote `tests/unit/compute-net-income-per-minute.test.ts` pinning the shared formula with parameterized cases.
+
+### Resolution
+Resolved 2026-07-16. Extracted `computeNetIncomePerMinute(payoutPerCycle, effectiveSpeed, basePayoutInterval)` to `src/lib/game/state/store.ts`. `DashboardPanel`, `DesktopHeader`, and `MobileHeader` all import and use the shared formula. Dashboard gained `gameSpeed` and `payoutConfig` selectors and computes `effectiveSpeed` from `gameSpeed` and prestige gameSpeed bonuses, matching the headers.
+
+Verification: `tests/unit/compute-net-income-per-minute.test.ts` (8 cases) passes. `npm run typecheck` clean.
+
+---
+
+## BUG-084 - C-005: parseCostMap silently fabricated 100 money on null cost
+
+### Status
+Resolved
+
+### Severity
+High
+
+### Category
+Configuration / Data Integrity
+
+### Date Discovered
+2026-07-16
+
+### Discovered By
+Production architecture audit C-005 (BUILDING_PRODUCTION_AUDIT.md �10.4)
+
+### Location
+- `src/lib/game/config/transformers/buildings.ts:4-5` (FIXED)
+- `src/lib/db/config/serverConfigFetcher.ts:117-124` (FIXED)
+- `src/lib/game/actions/server/shared/configParsers.ts:14-25` (FIXED)
+- `src/lib/admin/investigations/configLoader.ts:30-45` (FIXED)
+- `src/app/api/game/state/offline-progress/route.ts:78-84` (was already fail-closed)
+
+### Problem Found
+Four production copies of `parseCostMap` silently returned `[{resource: "money", amount: 100}]` when `base_cost` was null or missing. The offline-progress route already failed closed (it threw). A missing `base_cost` row is a DB-integrity issue; silently defaulting to 100 money could let a player build a building at a non-existent price or mask a migration backfill bug.
+
+### Expected Behavior
+Every `parseCostMap` copy must fail closed (throw) on null/missing `base_cost`. The error must surface through the route's `loadConfig()` null return ? 503 response, per RULES.md [SEC-002].
+
+### Actual Behavior
+Three of four copies fabricated 100 money on null. The offline-progress route was the only one that threw. Three production paths (client config, server fetcher, action config, admin config) had inconsistent fail-open behavior.
+
+### Root Cause / Reason
+The offline-progress route was updated during the C-002 pass to fail closed, but the other copies were missed. The canonical client-side transformer and three server-side copies all retained the original silent default.
+
+### Investigation Performed
+- `grep parseCostMap` found 4 copies with the silent fallback and 1 (offline-progress) that already threw.
+- Wrote `tests/unit/parse-cost-map-fail-closed.test.ts` pinning the canonical behavior and scanning all 4 server copies for the silent default regex.
+
+### Resolution
+Resolved 2026-07-16. All four production copies of `parseCostMap` now throw on null/missing cost with a clear error message. The `tests/unit/parse-cost-map-fail-closed.test.ts` regression test pins the canonical behavior and scans all server copies to prevent reintroduction.
+
+Verification: `tests/unit/parse-cost-map-fail-closed.test.ts` (8 cases) passes. `npm run typecheck` clean.
+
+---
+
+## BUG-085 - C-008: PowerPanel used hardcoded economy factors instead of balance config
+
+### Status
+Resolved
+
+### Severity
+Medium
+
+### Category
+UI / Configuration
+
+### Date Discovered
+2026-07-16
+
+### Discovered By
+Production architecture audit C-008 (BUILDING_PRODUCTION_AUDIT.md �10.4)
+
+### Location
+- `src/components/game/PowerPanel.tsx` (FIXED � three blocks)
+
+### Problem Found
+`PowerPanel` used hardcoded economy factors for its local per-plant power calculation: `0.1` (fuel-starved ratio), `0.5`/`0.5`/`0.01` (solar amplitude/swing/frequency), `0.2` (solar min output), `0.5`/`0.5`/`0.007`/`Math.PI/3` (wind), and `0.3` (wind min output). The `getBalance().power.*` config has `fuelStarvedOutputRatio`, `solarAmplitudeBase/Swing/OscillationFreq/MinOutput`, and `windAmplitudeBase/Swing/OscillationFreq/MinOutput`. A balance-config tuning did not affect the UI preview.
+
+### Expected Behavior
+Per-plant power values should use balance-driven factors, matching what the server uses for the authoritative total. The snapshot total is still authoritative; the per-type ratio is an estimate scaled to that total.
+
+### Actual Behavior
+Hardcoded literals diverged from balance config. A balance-config tuning of solar/wind/fuel-starved parameters would not affect the PowerPanel preview.
+
+### Root Cause / Reason
+PowerPanel pre-dated the balance-config migration for these fields. The per-type ratio is a presentation-only estimate scaled to the authoritative snapshot total.
+
+### Investigation Performed
+- Confirmed `getBalance().power` has all the needed fields.
+- Located three hardcoded blocks in PowerPanel: the per-type `useMemo`, the `solarFactor`/`windFactor` `useMemo` pair, and the per-plant card display logic.
+- Each block was updated to read from `getBalance().power`.
+
+### Resolution
+Resolved 2026-07-16. All three PowerPanel blocks now read from `getBalance().power` (fuel-starved ratio, solar/wind amplitude base/swing, oscillation frequency, and minimum output). The `powerScaleFactor` fudge that scales per-type values to the authoritative snapshot total is preserved; per-type values are clearly estimates scaled to server truth.
+
+Verification: `npm run typecheck` clean.
+
+---
+
+## BUG-086 - C-009: Client-only pause toggle misled players about server state
+
+### Status
+Resolved
+
+### Severity
+Medium
+
+### Category
+UI / Server Tick
+
+### Date Discovered
+2026-07-16
+
+### Discovered By
+Production architecture audit C-009 (BUILDING_PRODUCTION_AUDIT.md �10.4)
+
+### Location
+- `src/lib/game/state/store-actions/core.ts` (togglePause removed)
+- `src/lib/game/state/store-types.ts` (interface updated)
+- `src/components/game/headers/DesktopHeader.tsx` (button + selectors removed)
+- `src/components/game/headers/MobileHeader.tsx` (button + selectors removed)
+- `src/lib/hooks/page/useKeyboardShortcuts.ts` (Space binding removed)
+- `src/lib/hooks/page/useSessionHeartbeat.ts` (paused field removed)
+- `tests/unit/services/coreService.test.ts` (togglePause tests removed)
+- `tests/unit/store.baseline.test.ts` (togglePause test removed)
+- `tests/unit/store/composition.test.ts` (togglePause assertion removed)
+
+### Problem Found
+`togglePause` flipped local `state.paused` only. The server tick runner (`runServerTicks`) never read `state.paused`, so resources continued advancing on the server regardless of the client's pause state. The header button and Space-key shortcut gave players a false sense of control. After reload, the pause was overwritten by the server-authoritative state.
+
+### Expected Behavior
+Either make pause server-authoritative (a new `set_paused` action with persistence and tick-runner honoring), or remove the misleading UI entirely.
+
+### Actual Behavior
+Pause button worked locally but had zero effect on server gameplay. Players believed production was paused while resources kept advancing.
+
+### Root Cause / Reason
+Client pause action survived the server-authoritative migration without a server owner. The pause field was never read by `runServerTicks` or any persistence path.
+
+### Investigation Performed
+- Confirmed `runServerTicks.ts:88-190` never reads `state.paused`.
+- Confirmed no server action handler for pause exists.
+- Confirmed `serializeGameState.ts:55-56` and `useSessionHeartbeat.ts:70` carried `paused` over the wire, but the server had no concept of it.
+
+### Resolution
+Resolved 2026-07-16 per product decision: remove the pause UI entirely. `togglePause` removed from the store type and core actions. The pause button removed from both headers. The Space-key shortcut removed from `useKeyboardShortcuts`. `paused` removed from the heartbeat payload. Three existing test files updated to drop `togglePause` assertions. Added `tests/unit/c-009-pause-ui-removed.test.ts` with 6 regression checks asserting the UI, store, shortcut, and heartbeat no longer reference pause. The `paused` field stays in `ServerGameData` for backward compatibility but is never set to `true`. A future product can reintroduce a server-authoritative pause as a proper mechanic.
+
+Verification: `tests/unit/c-009-pause-ui-removed.test.ts` (6 cases) passes. `npm run typecheck` clean. Full targeted regression suite (14 files, 93 tests) passes.
+
+---
+
+## BUG-087 - P2-10: Thin server math wrappers added no behavior
+
+### Status
+Resolved
+
+### Severity
+Low
+
+### Category
+Architecture
+
+### Date Discovered
+2026-07-16
+
+### Discovered By
+Production architecture audit P2-10 (BUILDING_PRODUCTION_AUDIT.md �10.4)
+
+### Location
+- `src/lib/game/production/engine/math/production.server.ts` (REMOVED)
+- `src/lib/game/production/engine/math/power.server.ts` (REMOVED)
+- `src/lib/game/production/engine/math/payout.server.ts` (REMOVED)
+- `src/lib/game/production/engine/math/endgame.server.ts` (REMOVED)
+- `src/lib/game/production/engine/math/sell.server.ts` (REMOVED)
+- `src/lib/game/production/engine/math/index.server.ts` (REMOVED)
+- `src/lib/game/production/engine/tick/runServerTicks.ts` (UPDATED to direct imports)
+- `src/lib/game/production/engine/tick/productionSnapshot.ts` (UPDATED to direct imports)
+- `src/lib/game/production/engine/serverEngine.ts` (UPDATED barrel)
+- `tests/unit/runServerTicks.storageOverflow.test.ts` (UPDATED mocks)
+- `tests/unit/observability/silent-failure-counter.test.ts` (UPDATED mocks)
+- `tests/unit/production/pr-bp-3-expense-rates.test.ts` (UPDATED mocks)
+- `tests/unit/snapshot-blocked-factory.test.ts` (UPDATED mocks)
+
+### Problem Found
+Five thin wrapper functions in `src/lib/game/production/engine/math/*.server.ts` packaged `buildings` and `workerDefs` into a `gameDefs` shape and delegated to the underlying math functions in `productionCalculator`. The `math/index.server.ts` barrel re-exported all five. The wrappers added no behavior beyond input packaging; the same packaging could be done at the two call sites (`runServerTicks.ts` and `productionSnapshot.ts`).
+
+### Expected Behavior
+One canonical owner per function. Wrappers that add no behavior should be deleted after caller migration.
+
+### Actual Behavior
+Two callers (`runServerTicks` and `productionSnapshot`) imported the wrappers; the productionCalculator module already exported the underlying functions. The wrappers and barrel were dead weight in the import graph.
+
+### Root Cause / Reason
+The wrappers were created when the engine was split into smaller files. The caller migration to direct imports was never completed.
+
+### Investigation Performed
+- `grep` confirmed `runServerTicks.ts` and `productionSnapshot.ts` were the only callers.
+- Both callers already had `buildings` and `workerDefs` as separate variables; inlining the packaging was trivial.
+- `multipliers.server.ts` kept because it does real server-specific work (cache builder, worker-defs map).
+
+### Resolution
+Resolved 2026-07-16. Deleted all 5 wrapper files and the `index.server.ts` barrel. Updated `runServerTicks.ts` and `productionSnapshot.ts` to import directly from `productionCalculator` with inline `{buildings, workers: workerDefs}` packaging. Updated `serverEngine.ts` barrel to re-export only `multipliers.server` and the direct `productionCalculator` functions. Updated 4 test files to mock `productionCalculator` directly instead of the deleted wrapper paths.
+
+Verification: `tests/unit/p2-10-thin-delegators-removed.test.ts` (9 cases) passes. `npm run typecheck` clean. Full targeted regression suite (10 files, 48 tests) passes.
+
+---
+
+## BUG-088 - P2-11: initial state weather cadence used Math.random
+
+### Status
+Resolved
+
+### Severity
+Medium
+
+### Category
+Security / Server RNG
+
+### Date Discovered
+2026-07-16
+
+### Discovered By
+Production architecture audit P2-11 (BUILDING_PRODUCTION_AUDIT.md �10.4)
+
+### Location
+- `src/lib/db/infra/initialState.server.ts:141` (FIXED)
+
+### Problem Found
+`fetchCanonicalInitialState()` builds the server-authoritative initial `ServerGameData`. The weather cadence (`nextChange` tick count) was seeded with `Math.random()` � non-cryptographic, non-deterministic across concurrent server invocations. The code comment claimed "server-side random (replaces client Math.random)" but the implementation still used `Math.random()`.
+
+### Expected Behavior
+Server-authoritative random values must use crypto RNG (SEC-008). The server already had `secureRandomIntInRange` in `serverRandom.ts` that uses `crypto.getRandomValues` and fails closed on missing crypto.
+
+### Actual Behavior
+Initial weather timing was non-reproducible and predictable from PRNG state. Two concurrent server invocations for the same user (e.g., live-tick and offline-progress racing on a fresh session) could produce different weather, making state divergence possible if both wrote without CAS.
+
+### Root Cause / Reason
+The migration to crypto RNG during BUG-068 covered production paths (weather rotation, ID generation) but missed the canonical initial-state path. The comment indicated intent to use server RNG but the implementation was never updated.
+
+### Investigation Performed
+- `grep Math.random src/` found the call in `initialState.server.ts:141`.
+- Confirmed `secureRandomIntInRange` exists in `serverRandom.ts` with fail-closed semantics.
+- The BUG-068 audit already classified event/news/prestige `Math.random` sites as out of scope (non-security); canonical initial weather is server-authoritative and in scope.
+
+### Resolution
+Resolved 2026-07-16. Replaced `Math.floor(Math.random() * Math.max(1, wmax - wmin))` with `secureRandomIntInRange(0, Math.max(1, wmax - wmin))`. Updated the comment to reference SEC-008 and fail-closed semantics.
+
+Verification: `tests/unit/p2-11-crypto-rng-in-initial-state.test.ts` (3 cases) passes. `npm run typecheck` clean.
+
+---
+
+## BUG-089 - P2-12: LeaderboardPanel component-owned polling loop
+
+### Status
+Resolved
+
+### Severity
+Medium
+
+### Category
+Architecture / Polling
+
+### Date Discovered
+2026-07-16
+
+### Discovered By
+Production architecture audit P2-12 (BUILDING_PRODUCTION_AUDIT.md �10.4)
+
+### Location
+- `src/components/game/LeaderboardPanel.tsx` (FIXED)
+- `src/lib/hooks/page/useLeaderboardPolling.ts` (NEW shared hook)
+
+### Problem Found
+LeaderboardPanel used `setInterval(fetchLeaderboard, 30_000)` with no visibility handling and no failure backoff. A 429/503 during a service incident would amplify load because every mounted leaderboard kept polling on a fixed interval. PER-008 forbids component-owned polling loops.
+
+### Expected Behavior
+Shared backoff-aware polling hook with visibility handling, exponential backoff on failure, and cleanup on unmount. Mirrors the `useLiveServerTick` pattern without coupling to a specific endpoint.
+
+### Actual Behavior
+Every mounted LeaderboardPanel polled every 30 seconds regardless of tab visibility or server health. Multiple mounts (e.g., navigation between pages) would multiply load.
+
+### Root Cause / Reason
+LeaderboardPanel predated the centralized polling hook pattern introduced for live-tick (BUG-070 fix).
+
+### Investigation Performed
+- Confirmed the component owned `setInterval` with a fixed interval.
+- Confirmed no visibility handler, no failure handler, no shared hook.
+
+### Resolution
+Resolved 2026-07-16. Created `src/lib/hooks/page/useLeaderboardPolling.ts` with recursive `setTimeout`, visibility check, and exponential backoff (30s ? 60s ? 120s cap 160s). Updated LeaderboardPanel to call `useLeaderboardPolling(fetchLeaderboard)` and removed the component-owned `setInterval` block.
+
+Verification: `tests/unit/p2-12-leaderboard-polling.test.ts` (2 cases) passes. `npm run typecheck` clean.
+
+---
+
+## BUG-090 - P2-13: TradingPostPanel bypassed store action boundary
+
+### Status
+Resolved
+
+### Severity
+Medium
+
+### Category
+Architecture / State Management
+
+### Date Discovered
+2026-07-16
+
+### Discovered By
+Production architecture audit P2-13 (BUILDING_PRODUCTION_AUDIT.md �10.4)
+
+### Location
+- `src/components/game/TradingPostPanel.tsx:597` (FIXED)
+- `src/lib/game/state/store-actions/market/marketActions.ts` (NEW action)
+
+### Problem Found
+After a successful trade, the panel called `useGameStore.setState({ resources: serverResult.updatedResources })` directly, bypassing the store action boundary (STO-003). The component silently dropped any other fields the server might add to the trade response. Other store-affecting code paths (live-tick, offline-progress, action elapsed) use `applyServerState` from the store.
+
+### Expected Behavior
+Components call store actions; server-authoritative response updates flow through the action boundary.
+
+### Actual Behavior
+Direct `setState` from a component, partial field application, and inconsistent pattern vs. other paths.
+
+### Root Cause / Reason
+Trade UI predated the centralized response application path.
+
+### Investigation Performed
+- `grep "useGameStore.setState" src/components` confirmed this was the only economic-path `setState` from a component.
+
+### Resolution
+Resolved 2026-07-16. Added `applyTradeResources(updatedResources)` action to `marketActions.ts` that applies the server-authoritative resources and bumps `stats.tradesCompleted` by one. Updated TradingPostPanel to call `currentState.applyTradeResources(serverResult.updatedResources)` instead of the direct `setState`. Notifications remain in the component as UI effects.
+
+Verification: `tests/unit/p2-13-trade-store-action.test.ts` (4 cases) passes. `npm run typecheck` clean.
+
+---
+
+## BUG-091 - P2-14a: select('*') violations across src/app/api and src/lib/db
+
+### Status
+Resolved
+
+### Severity
+Medium
+
+### Category
+Architecture / Database
+
+### Date Discovered
+2026-07-16
+
+### Discovered By
+Production architecture audit P2-14a (BUILDING_PRODUCTION_AUDIT.md §10.4)
+
+### Location
+- `src/lib/db/types.ts` (CONFIG_TABLE_COLUMNS, SUPPORT_TICKETS_COLUMNS, SUPPORT_MESSAGES_COLUMNS)
+- `src/lib/db/game/{serverGameState,dailyRewards,leaderboard,market}.ts`
+- `src/lib/db/admin/{adminActions,cheatInvestigations}.ts`
+- `src/lib/db/shared/{supportTickets,merge}.ts`
+- `src/lib/db/config/serverConfigFetcher.ts` (added `columns` param to `safeFetchTable`)
+- `src/lib/admin/config/tableRows.ts`
+- `src/lib/admin/investigations/configLoader.ts`
+- `src/lib/game/actions/server/shared/loadConfig.ts`
+- `src/app/api/admin/players/[id]/route.ts`
+- `src/app/api/admin/support/tickets/route.ts`
+- `src/app/api/admin/support/tickets/[id]/route.ts`
+- `src/app/api/player/progress/route.ts`
+- `src/lib/db/infra/initialState.server.ts` (added `tradesCompleted: 0` to stats literal)
+
+### Problem Found
+PER-003 architecture test forbids `select('*')` in production API paths, but the audit found 17+ `select('*')` calls across production code. Two more issues emerged during the fix: the local column lists in `dailyRewards.ts` and `user_streaks` referenced columns that don't exist in the actual schema (`reward_type/reward_amount/reward_resource/streak_multiplier/total_streak/claimed_at` were correct, but `last_login_date` was wrong — schema uses `last_claim_date`), and `leaderboard.ts` was missing `total_money_earned`.
+
+### Expected Behavior
+Every production `.select()` enumerates the columns it needs and matches the actual DB schema.
+
+### Actual Behavior
+Several selects pulled extra columns (network/serialization cost) or referenced columns that didn't exist (silent type narrowing).
+
+### Root Cause / Reason
+No canonical column whitelist existed; each writer made up its own list. The CONFIG loader (highest-volume consumer) was the most inconsistent.
+
+### Investigation Performed
+- Read all 17+ production `select('*')` call sites and traced the actual schema in `supabase/migrations/20260622141127_035_market_resource_config.sql` and the generator file in `src/lib/db/types.ts`.
+- Identified schema drift between `Database['public']['Tables']` (auto-generated, narrow) and ad-hoc column lists (e.g., `last_login_date` vs. `last_claim_date`).
+
+### Resolution
+Resolved 2026-07-16. Added shared `CONFIG_TABLE_COLUMNS`, `SUPPORT_TICKETS_COLUMNS`, `SUPPORT_MESSAGES_COLUMNS` whitelists in `src/lib/db/types.ts`. Replaced every `select('*')` in production code with explicit column lists that match the schema. Corrected column-list mismatches in `dailyRewards.ts` (`last_login_date` → `last_claim_date`, added `claim_date,day_of_streak,reward_day` to selects to match `DailyRewardRow` interface), `leaderboard.ts` (added `total_money_earned`, removed bogus `updated_at`), `game_config_market` whitelist (now `resource_id,base_price,demand,supply,volatility,sort_order,is_tradable` — matches `SupabaseMarket`), and `initialState.server.ts` stats literal (added `tradesCompleted: 0`). `tableRows.ts` uses a typed `ConfigTableName` lookup with `as unknown as { select(): ... }` cast for `string`-typed `tableName`.
+
+Verification: `tests/unit/v043-explicit-columns.test.ts` (PER-003, 11 cases) passes. All 12 P0/P1/P2 regression files (69 tests) pass. `npm run typecheck` clean. Full suite went from 113 → 108 failed tests (net 5 fewer) without introducing new failures.
+
+---
+
+## BUG-092 - Heartbeat `player_sessions` upsert blocked by missing UNIQUE constraint + silent failure swallow
+
+### Status
+Resolved
+
+### Severity
+High
+
+### Category
+Persistence / Presence / Logging
+
+### Date Discovered
+2026-07-16
+
+### Discovered By
+Production log: repeated `[Heartbeat] Session upsert failed: there is no unique or exclusion constraint matching the ON CONFLICT specification` observed on every call since heartbeat was first wired (rate: 60/min per active player).
+
+### Location
+- `src/app/api/game/session/heartbeat/route.ts` (POST handler; failure-swallow on `sessionError`)
+- `supabase/migrations/20260622141107_003_player_sessions_and_server_ticks.sql`
+- `supabase/migrations/20260622141108_004_server_authoritative_upgrade.sql` (re-declared table without UNIQUE on `user_id`)
+- New file: `supabase/migrations/20260716202212_080_player_sessions_unique_user_id.sql`
+
+### Problem Found
+The heartbeat endpoint calls `supabase.from("player_sessions").upsert({...}, { onConflict: "user_id" })`, which compiles to `INSERT ... ON CONFLICT (user_id) ...`. Postgres requires the conflict target to be backed by `PRIMARY KEY` / `UNIQUE` / `EXCLUSION`. Migration `003` created only a plain btree index (`idx_player_sessions_user_id`); migration `004` repeated the same omission when it issued `CREATE TABLE IF NOT EXISTS player_sessions`. Every heartbeat has therefore failed since launch with SQLSTATE `42P10`. Worse, the route caught `sessionError`, logged `console.warn`, then continued and returned `{ ok: true, serverTime }`. From the client and any probe the endpoint looked healthy; presence tracking had been broken at the data layer while the API layer pretended otherwise.
+
+### Expected Behavior
+- Heartbeat upsert should succeed (one row per user, updated in place).
+- Any DB failure on the presence path should fail closed (non-2xx response) so client retry logic (`useSessionHeartbeat` already handles 503 + `sendBeacon`) can react.
+
+### Actual Behavior
+- `public.player_sessions` table held 0 rows at discovery (every insert rejected).
+- Admin "online players" dashboard permanently empty.
+- `cleanup_orphan_anon_users` cron misidentifies active players as abandoned and can prune them.
+- A future regression of the same shape would also be invisible because the failure path is best-effort.
+
+### Root Cause / Reason
+Two compounding mistakes from the original implementation:
+1. Migration DDL declared `user_id UUID NOT NULL REFERENCES auth.users(id)` with only a non-unique btree index. Migration `004` re-declared the table without correction.
+2. The route's catch-and-warn pattern treated presence tracking as best-effort even though presence is a server-authoritative signal used by the cleanup cron, admin tooling, and analytics (SEC-002 fail-closed violation).
+
+### Investigation Performed
+- Read `src/app/api/game/session/heartbeat/route.ts`; confirmed `onConflict: "user_id"` and the swallow-on-failure pattern.
+- Queried `pg_constraint` on `public.player_sessions` via Supabase MCP: only `player_sessions_pkey` (PK on `id`) and `player_sessions_user_id_fkey` (FK to `auth.users`).
+- Queried `pg_indexes` on the same table: 1 unique PK index, 1 plain index on `user_id`, 1 partial index on `is_online`. **No UNIQUE on `user_id`.**
+- Queried `SELECT COUNT(*), COUNT(DISTINCT user_id) FROM player_sessions` → both 0 (table empty; failures left no rows).
+- Cross-checked migration history via `supabase_migrations.schema_migrations`: 96 remote rows; latest is `20260715100000_079_auth_merge_policy_and_archive`. Migration `003` confirmed applied.
+- Diffed local migration filenames (92 files) vs remote `schema_migrations` versions: every local file has a remote row; the 25 remote rows with `statements IS NULL` are empty stubs (no DDL ran) and contain the three short-name shadow entries (`076_market_supply_state`, `077_balance_payout_endgame`, `078_storage_max_bulk_upgrade`) that shadow real DDL under timestamped versions.
+
+### Resolution
+Resolved 2026-07-16. Two parts:
+
+**(1) Database — new migration `080`.** File `supabase/migrations/20260716202212_080_player_sessions_unique_user_id.sql`. Dedupe CTE (no-op on the empty production table; defensive against future re-runs — keeps row with most-recent `last_heartbeat_at`, then `created_at DESC`, then `id DESC`) followed by `CREATE UNIQUE INDEX IF NOT EXISTS player_sessions_user_id_key ON player_sessions (user_id)`. Applied via `supabase__apply_migration` (Supabase MCP, project `wkkzqtseqwcyyyezroqq`, name `080_player_sessions_unique_user_id`); recorded as remote version `20260716122129`.
+
+**(2) Code — fail-closed response.** `src/app/api/game/session/heartbeat/route.ts` POST handler: if `sessionError` is set, return `503 { error: "Presence tracking unavailable", detail: <message> }`. The `profiles.last_active` update was also promoted to fail-closed with its own guard (separate try) so any future regression on that side surfaces the same way. The `console.warn` is retained for log-searchability.
+
+### Verification
+Direct SQL against Supabase MCP after migration applied:
+- `INSERT ... ON CONFLICT (user_id) DO UPDATE` (1st call) → row created: `id=3e715615-e85a-4e60-86ee-dbaf09497f64`, `is_online=true`, `last_heartbeat_at=2026-07-16 12:21:41`.
+- Repeat same upsert (2nd call, +5s) → same `id`, `(xmax = 0) = false`, `last_heartbeat_at=2026-07-16 12:21:56`, `created_at` preserved at `12:21:41`. Upsert working correctly.
+- `SELECT COUNT(*), COUNT(DISTINCT user_id) FROM player_sessions` → 1, 1 (correct: one row per user).
+- Plain `INSERT` with duplicate `user_id` (no `ON CONFLICT`) → rejected with `23505 duplicate key value violates unique constraint "player_sessions_user_id_key"` (unique-index enforcement confirmed).
+- `42P10` no longer occurs.
+
+Migration-history audit: 25 harmless stub rows in `supabase_migrations.schema_migrations` (`statements IS NULL`) remain — cosmetic cleanup pending separate approval; no schema impact.
+
+---
+
+## BUG-092 - Heartbeat `player_sessions` upsert blocked by missing unique constraint + silent swallow
+
+### Status
+Resolved
+
+### Severity
+High
+
+### Category
+Persistence / Presence / Logging
+
+### Date Discovered
+2026-07-16
+
+### Discovered By
+Production log: repeated `[Heartbeat] Session upsert failed: there is no unique or exclusion constraint matching the ON CONFLICT specification` observed on every call since heartbeat was wired (rate: 60/min per active player).
+
+### Location
+- `src/app/api/game/session/heartbeat/route.ts` (POST handler at line 56; failure-swallow at line 64)
+- `supabase/migrations/20260622141107_003_player_sessions_and_server_ticks.sql`
+- `supabase/migrations/20260622141108_004_server_authoritative_upgrade.sql` (lines 14-26 — original CREATE TABLE without UNIQUE on `user_id`)
+
+### Problem Found
+The heartbeat upsert `supabase.from("player_sessions").upsert({...}, { onConflict: "user_id" })` translates to `INSERT ... ON CONFLICT (user_id) ...`. Postgres requires the conflict target to be backed by `PRIMARY KEY`/`UNIQUE`/`EXCLUSION`. Migration `003` only created a plain btree index (`idx_player_sessions_user_id`), so every call failed with SQLSTATE `42P10`. Worse, the handler caught the error, logged `console.warn`, then continued and returned `{ ok: true, serverTime }`. From the client and any health probe the endpoint looked healthy; presence tracking had been broken since launch.
+
+### Expected Behavior
+- The endpoint should either succeed at tracking presence, or surface failure as a non-2xx response so client retry logic (`useSessionHeartbeat` already handles 503 / `sendBeacon` fallback) can react.
+- A database heartbeat upsert must not be allowed to silently fail under SEC-002 fail-closed.
+
+### Actual Behavior
+- `player_sessions` table never received a row (verified 0 rows on production at discovery time).
+- Admin "online players" dashboard permanently empty.
+- `cleanup_orphan_anon_users` cron misidentifies active players as abandoned and may prune their progress.
+- Future regressions of the same shape (any DB write failing on the heartbeat path) would be invisible until ops happened to tail logs.
+
+### Root Cause / Reason
+Two compounding mistakes in the original implementation:
+1. Migration `003` declared `user_id UUID NOT NULL REFERENCES auth.users(id)` with only a plain btree index (sufficient for lookup, insufficient for `ON CONFLICT`). Migration `004` re-`CREATE TABLE IF NOT EXISTS player_sessions` (line 14) repeated the same omission, so the table never gained uniqueness on `user_id`.
+2. The route's catch-and-warn pattern treated the heartbeat as best-effort even though presence is a server-authoritative signal used by the cleanup cron, admin tooling, and analytics.
+
+### Investigation Performed
+- Read `src/app/api/game/session/heartbeat/route.ts` and confirmed `onConflict: "user_id"`.
+- Queried `pg_constraint` and `pg_indexes` on `public.player_sessions`: only PK on `id`, FK on `user_id`, plain btree on `user_id`, partial btree on `is_online`. No UNIQUE.
+- Queried `SELECT COUNT(*), COUNT(DISTINCT user_id) FROM player_sessions` → both 0 (table empty; failures left no rows).
+- Cross-checked migration history via `supabase_migrations.schema_migrations`: 96 rows applied, latest `20260715100000_079_auth_merge_policy_and_archive`. Migration `003` (local) confirmed applied in remote.
+- Diff between local migration files and remote applied set: all 92 local files present in remote; 25 remote rows had `statements IS NULL` (harmless stubs, no SQL ran).
+
+### Resolution
+Resolved 2026-07-16. Two parts:
+
+**Database fix (migration `080`):** new file `supabase/migrations/20260716202212_080_player_sessions_unique_user_id.sql`. Dedupe CTE (no-op on empty table; defense for future re-runs — keeps row with most recent `last_heartbeat_at`, then `created_at DESC`, then `id DESC`) followed by `CREATE UNIQUE INDEX IF NOT EXISTS player_sessions_user_id_key ON player_sessions (user_id)`. Applied via `supabase__apply_migration` (name `080_player_sessions_unique_user_id`); recorded as version `20260716122129`.
+
+**Code fix (fail-closed response):** `src/app/api/game/session/heartbeat/route.ts` POST handler now returns `503 { error: "Presence tracking unavailable", detail: <message> }` if either the `player_sessions` upsert fails or the `profiles.last_active` update fails. Only the JSON-body parse remains a 400. The `console.warn` retained for observability, paired with the new error response.
+
+### Verification
+Direct SQL against Supabase MCP after migration applied:
+- `INSERT ... ON CONFLICT (user_id) DO UPDATE` (1st call) → row created, `id=3e715615-...`.
+- Repeat same upsert (2nd call) → same `id` returned, `was_insert=false`, `last_heartbeat_at` updated, `created_at` preserved. `SELECT COUNT(*)` returns 1, `COUNT(DISTINCT user_id)` returns 1.
+- Plain `INSERT` with duplicate `user_id` (no ON CONFLICT) → rejected with `23505 duplicate key value violates unique constraint "player_sessions_user_id_key"` (constraint enforcement confirmed).
+- `42P10` no longer occurs.
+
+Code: `tests/unit/heartbeat.test.ts` (TODO if not yet present) — pending; the route change is a single-step promotion of two error paths from `console.warn` to non-2xx, no behavior change on the happy path.
+
+---
+
+## BUG-093 - Zero-money bootstrap: placeholder `server_game_state` rows override canonical defaults
+
+### Status
+Resolved
+
+### Severity
+High
+
+### Category
+Persistence / Onboarding / Economics
+
+### Date Discovered
+2026-07-16
+
+### Discovered By
+Production observation after BUG-092 fix: 19 of 278 `server_game_state` rows had `money=0`. 18 of those 19 also had `full_state = {"bootstrap_pending": true}` and `game_tick=0`, matching the placeholder shape written by the bootstrap RPCs since launch.
+
+### Location
+- `supabase/migrations/20260714120200_074_bootstrap_rpcs.sql` — line 145 (`bootstrap_guest`), line 402 (`create_signed_out_guest_after_signout`), line 563 + line 679 (`upgrade_guest_to_auth` defensive + `merge_guest_into_authenticated_user`). Each does the same `'INSERT INTO public.server_game_state ... VALUES ($1, 0, 0, 1, 1, $2, '''' )'` hardcode with `full_state = {"bootstrap_pending": true}`.
+- `supabase/migrations/20260715100000_079_auth_merge_policy_and_archive.sql` — line 274 (newer `upgrade_guest_to_auth` defensive path; same hardcode).
+- `src/lib/db/game/serverGameState.ts` — `buildCompleteFullStateForServerRow` (line 312).
+- New file: `supabase/migrations/20260716204500_081_bootstrap_placeholder_canonical_defaults.sql`.
+
+### Problem Found
+The bootstrap RPCs (`bootstrap_guest`, `create_signed_out_guest_after_signout`, two defensive paths in `upgrade_guest_to_auth`, `merge_guest_into_authenticated_user`) insert a placeholder row into `server_game_state` with `money=0`, `game_tick=0`, `game_speed=1`, `state_version=1`, `state_hash=''` and `full_state = {"bootstrap_pending": true}`. The migration comment promised "PR 3 service hydrates with canonical config" but the hydration layer in `buildCompleteFullStateForServerRow` did the opposite: it spread canonical first, then immediately overrode `money`/`totalMoneyEarned`/`gameTick`/etc. with the row's denormalized values (`requireFiniteNumber(row.money, "money")`). For placeholder rows those values are `0`, so the function returned `{...canonical, money: 0}` and AuthProvider's `applyServerState` wrote a $0 ServerGameData into the client store. BUG-053 had already partially fixed the client side; the server still shipped zeros.
+
+### Expected Behavior
+- New players must see canonical `$2000` (or whatever `game_config_game.starting_money` says) on first load.
+- Existing placeholder rows must self-heal as soon as they're read.
+- Any future placeholder path (new RPC, new migration, manual insert) must not regress to zero.
+
+### Actual Behavior
+- 18 player rows had `money=0, game_tick=0, full_state = {"bootstrap_pending": true}, created_at ≈ 2026-07-15, last_saved_at ≈ 24-25h ago`. Each user had signed up, got a placeholder, never saved, and rendered $0 in the UI.
+- 1 row had `game_tick=436` and `full_state.money = "0"` — this was an actual played player who spent everything (genuine state, not placeholder).
+
+### Root Cause / Reason
+Two compounding mistakes:
+1. The bootstrap INSERTs hardcoded `0` for every denormalized column instead of reading `starting_money` / `base_payout_interval` from `game_config_game`. The intent ("PR 3 service hydrates") was never implemented.
+2. `buildCompleteFullStateForServerRow` trusted denormalized columns absolutely with no placeholder-aware short-circuit, so a freshly-created row with sentinel values (all zero) silently overrode the canonical defaults.
+
+### Investigation Performed
+- Queried DB: `SELECT COUNT(*) FILTER (WHERE money = 0), COUNT(*) FILTER (WHERE money = 2000), COUNT(*) FROM server_game_state;` → 19 zero, 21 canonical, 278 total. Drilling into the zero rows revealed 18 with `full_state = {"bootstrap_pending": true}` and `game_tick=0`.
+- Read `src/lib/db/game/serverGameState.ts` line 312 (`buildCompleteFullStateForServerRow`). Confirmed the spread-canonical-then-override-row pattern with no placeholder detection.
+- Read `supabase/migrations/074_bootstrap_rpcs.sql` and `079_auth_merge_policy_and_archive.sql` and grepped for every `INSERT INTO public.server_game_state` literal. Found 5 placeholder INSERT sites in 074 and 1 in 079 — all the same pattern.
+- Read `src/components/providers/AuthProvider.tsx` line 226 (`hydrateInitialState` fallback). Confirmed the fallback is dead code in this path because `loadBootstrapGameState` returns a truthy `{money: 0, ...canonical}` object, not `null`.
+- Confirmed `game_config_game.starting_money = "2000"` so the canonical source is healthy.
+
+### Resolution
+Resolved 2026-07-16. **Two layers**:
+
+**(1) Write-side — canonicalize placeholders at insert time.**
+New file `supabase/migrations/20260716204500_081_bootstrap_placeholder_canonical_defaults.sql`. Defines a `BEFORE INSERT` trigger `bootstrap_placeholder_canonical_defaults` on `public.server_game_state` that fires only when `NEW.full_state->>'bootstrap_pending' = true`. The trigger pulls `starting_money` and `base_payout_interval` from `public.game_config_game WHERE id='global'` (fallback 2000/100 if row missing), then assigns `money`, `total_money_earned = 0`, `research_points = 0`, `game_tick = 0`, `game_speed = 1`, `state_version = 1`, `state_hash = 'placeholder'`. Trigger is uniform across every RPC and protects future writers. **Plus** a one-shot `UPDATE` backfill that repopulates the same columns on the 18 existing placeholder rows.
+
+**(2) Read-side — placeholder-aware hydration in `buildCompleteFullStateForServerRow`.**
+`src/lib/db/game/serverGameState.ts` now detects `(existing as { bootstrap_pending?: unknown }).bootstrap_pending === true` and routes around every denormalized override (money, totalMoneyEarned, researchPoints, buildings, completedResearch, resources, workers, gameTick, gameSpeed), letting `canonical` win for all fields. Non-placeholder rows keep the previous merge behavior — including the legitimate zero-money played player.
+
+### Verification
+| Check | Result |
+|---|---|
+| `pnpm exec tsc --noEmit` | exit 0, 0 errors |
+| `tests/unit/serverGameStateHydration.test.ts` | **4/4 pass** (added 2: `treats bootstrap_pending placeholder as canonical-only (BUG-093)` + `non-placeholder row with money=0 still returns money=0 (no false-positive)`) |
+| Backfill: `SELECT COUNT(*) FILTER (WHERE full_state ? 'bootstrap_pending' AND money = 2000) FROM server_game_state` | **18/18** placeholders now have `money=2000` (was 0/18 before) |
+| Trigger test: fresh INSERT with `full_state = {"bootstrap_pending": true}` against real `auth.users` row | `money=2000, total_money_earned=0, game_tick=0, game_speed=1, state_version=1, state_hash='placeholder'` (trigger fired) |
+| Non-placeholder UPDATE bypasses trigger | unchanged row preserved |
+| E2E simulation: `CASE WHEN full_state->>'bootstrap_pending' = true THEN canonical_money ELSE row_money END` against worst-case `money=0` placeholder | **2000** (read-side patch saves the day even if the trigger ever regresses) |
+| Live zero-money distribution | 19 → **1** (the legit played-with-$0 player). 278 total unchanged. |
+
+### Risks / Follow-up
+- Trigger adds `BEFORE INSERT` overhead only on placeholder rows; non-placeholder inserts skip via `WHEN` clause. No measurable impact.
+- Existing 6 RPCs still emit `'0, 0, 1, 1'` literally in their SQL; future cleanups could remove those hardcodes now that the trigger does the right thing, but leaving them is harmless (the trigger overrides).
+- The trigger assumes `game_config_game` has a global row with `id='global'`; missing row falls back to the literal `2000`. Acceptable per RULES.md fail-closed.
+- Backfill was idempotent: any future placeholder already at `money=2000` would still be updated to `2000` (no-op).

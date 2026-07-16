@@ -54,7 +54,9 @@ export async function getMarketStateFull(): Promise<ServerMarketStateRow | null>
 
   const { data, error } = await supabase
     .from('server_market_state')
-    .select('*')
+    .select(
+      'id,tick,prices,base_prices,volatility,circuit_breakers,news,updated_at',
+    )
     .eq('id', 1)
     .single();
 
@@ -72,7 +74,7 @@ export async function getAllPlayerPressure(): Promise<MarketPlayerPressureRow[]>
 
   const { data } = await supabase
     .from('market_player_pressure')
-    .select('*');
+    .select('user_id,resource,buy_volume,sell_volume,updated_at');
 
   return data ?? [];
 }

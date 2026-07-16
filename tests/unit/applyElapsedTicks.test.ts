@@ -58,7 +58,7 @@ vi.mock("@/lib/game/config/balance/balanceConfig", () => ({
   })),
 }));
 
-vi.mock("@/lib/game/production/engine/serverEngine", () => ({
+vi.mock("@/lib/game/production/engine/serverEngine.server", () => ({
   runServerTicks: vi.fn((state, ticks) => ({
     newState: {
       ...state,

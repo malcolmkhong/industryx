@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/state/store';
+import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked, computeNetIncomePerMinute } from '@/lib/game/state/store';
 import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE, RANK_THRESHOLDS, WEATHER_DEFS } from '@/lib/game/config/configCache';
 import { useConfigVersion } from '@/components/providers/GameConfigProvider';
 import { PanelStatCard } from '@/components/game/shared/PanelStatCard';
@@ -43,6 +43,16 @@ export function DashboardPanel() {
   const prestigeState = useGameStore((s) => s.prestigeState);
   const workers = useGameStore((s) => s.workers);
   const productionSnapshot = useGameStore((s) => s.productionSnapshot);
+  // C-007: shared income formula needs the configured payout interval
+  // and the current game speed (including prestige gameSpeed bonus).
+  const gameSpeed = useGameStore((s) => s.gameSpeed);
+  const payoutConfig = useGameStore((s) => s.payoutConfig);
+  const effectiveSpeed =
+    gameSpeed *
+    (1 +
+      prestigeState.bonuses
+        .filter((b) => b.purchased && b.effect.type === "gameSpeed")
+        .reduce((sum, b) => sum + b.effect.value, 0));
   const activeResearch = useGameStore((s) => s.activeResearch);
   const researchProgress = useGameStore((s) => s.researchProgress);
   const notifications = useGameStore((s) => s.notifications);
@@ -179,7 +189,15 @@ export function DashboardPanel() {
   // Economy summary values
   const economySummary = useMemo(() => {
     const payoutPerCycle = productionSnapshot.payoutPerCycle || 0;
-    const netIncomePerMin = payoutPerCycle * 6; // 6 cycles per minute (tick every 10s)
+    // C-007 (BUILDING_PRODUCTION_AUDIT §10.4, 2026-07-16):
+    // Use the same formula as the headers — `payoutPerCycle * 6` was
+    // correct only at 1x speed with a 10s payout interval and silently
+    // diverged from the header income at any other game speed.
+    const netIncomePerMin = computeNetIncomePerMinute(
+      payoutPerCycle,
+      effectiveSpeed,
+      payoutConfig.basePayoutInterval,
+    );
     
     // Total assets: sum of resources * estimated value (tier-based pricing)
     const resourceValues: Record<number, number> = { 0: 1, 1: 5, 2: 20, 3: 100 };
@@ -206,7 +224,7 @@ export function DashboardPanel() {
     const storageUtilization = totalCapacity > 0 ? (totalStored / totalCapacity) * 100 : 0;
     
     return { netIncomePerMin, totalAssetsValue, storageUtilization };
-  }, [productionSnapshot.payoutPerCycle, money, resources, resourceCapacity]);
+  }, [productionSnapshot.payoutPerCycle, money, resources, resourceCapacity, effectiveSpeed, payoutConfig.basePayoutInterval]);
 
   return (
     <div className="space-y-4">

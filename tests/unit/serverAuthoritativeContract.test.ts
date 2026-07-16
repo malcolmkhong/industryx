@@ -15,7 +15,7 @@
 // ============================================
 
 import { describe, it, expect } from "vitest";
-import { validateFulfillContractAction } from "@/lib/game/production/engine/serverEngine";
+import { validateFulfillContractAction } from "@/lib/game/production/engine/serverEngine.server";
 import type { GameState, Contract, ContractReward } from "@/lib/game/shared/types/types";
 
 function makeReward(overrides?: Partial<ContractReward>): ContractReward {
@@ -63,6 +63,7 @@ function makeState(overrides?: {
     transportLinesBuilt: 0,
     researchCompleted: 0,
     contractsCompleted: 0,
+    tradesCompleted: 0,
     playTime: 0,
   };
   return {

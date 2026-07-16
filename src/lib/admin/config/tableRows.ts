@@ -7,6 +7,7 @@ import {
   type TableConfig,
 } from "@/lib/config/tables";
 import { createServiceRoleClient } from '@/lib/db/access';;
+import { CONFIG_TABLE_COLUMNS, type ConfigTableName } from "@/lib/db/types";
 
 type RowBody = Record<string, unknown>;
 
@@ -209,11 +210,27 @@ export async function getConfigRow(
       return databaseUnavailable();
     }
 
-    const { data, error } = await supabase
-      .from(tableName)
-      .select("*")
+    const columns =
+      CONFIG_TABLE_COLUMNS[tableName as ConfigTableName] ??
+      `${table.tableConfig.primaryKey},id,created_at,updated_at`;
+    // Cast through `any` here: `tableName: string` makes the supabase
+    // client infer a union of all table row types, which TypeScript
+    // cannot represent after explicit-column `.select()` chaining.
+    // The shape is validated at runtime via `validateConfigTable` above
+    // and the column list comes from the explicit `CONFIG_TABLE_COLUMNS`
+    // whitelist.
+    const query = (supabase.from(tableName as ConfigTableName) as unknown as {
+      select(cols: string): {
+        eq(col: string, val: unknown): { single(): Promise<{ data: unknown; error: { code?: string; message: string } | null }> };
+      };
+    })
+      // P2-14a: PER-003 forbids select('*'). Fall back to the shared
+      // whitelist; unknown tables (admin tool lists arbitrary
+      // game_config_*) use their declared column list.
+      .select(columns)
       .eq(table.tableConfig.primaryKey, decodeURIComponent(rowId))
       .single();
+    const { data, error } = await query;
 
     if (error) {
       if (error.code === "PGRST116") {

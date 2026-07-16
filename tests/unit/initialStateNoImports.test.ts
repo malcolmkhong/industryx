@@ -13,8 +13,10 @@
  * Allowed locations:
  *   - src/lib/db/initialState.server.ts        (the server helper itself,
  *     where comments mention the old client shape for historical context)
- *   - src/lib/game/production/engine/serverEngine.ts (historical comment in
- *     validatePrestigeAction docstring)
+ *   - src/lib/game/production/engine/serverEngine.server.ts (historical
+ *     comment in validatePrestigeAction docstring)
+ *   - src/lib/game/production/engine/validators/prestige.ts (Phase 12
+ *     update note about async canonical reset)
  *   - tests/unit/initialStateNoImports.test.ts (this file — references
  *     itself in ignore list)
  *
@@ -36,7 +38,8 @@ const TESTS_DIR = join(process.cwd(), 'tests');
 const ALLOWED_FILES = new Set<string>([
   // The server helper itself — historical context in docblock.
   'src/lib/db/infra/initialState.server.ts',
-  'src/lib/game/production/engine/serverEngine.ts',
+  'src/lib/game/production/engine/serverEngine.server.ts',
+  'src/lib/game/production/engine/validators/prestige.ts',
   // This guard.
   'tests/unit/initialStateNoImports.test.ts',
 ]);

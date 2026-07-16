@@ -13,7 +13,7 @@
 // ============================================
 
 import { describe, it, expect } from "vitest";
-import { validateBuildAction } from "@/lib/game/production/engine/serverEngine";
+import { validateBuildAction } from "@/lib/game/production/engine/serverEngine.server";
 import type { GameConfig } from "@/lib/game/config/config";
 import type { BuildingDefinition } from "@/lib/game/shared/types/types";
 

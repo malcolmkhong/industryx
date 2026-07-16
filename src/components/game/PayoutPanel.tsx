@@ -287,7 +287,19 @@ export function PayoutPanel() {
               </div>
               <div className="flex items-center justify-between mt-2 pt-2 border-t border-brand/15">
                 <span className="text-xs font-bold text-success">Est. Next Payout</span>
-                <span className="text-base font-mono font-bold text-success">${formatNumber(estimatedPayout)}</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-base font-mono font-bold text-success cursor-help underline decoration-dotted underline-offset-2">
+                      ${formatNumber(estimatedPayout)}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p className="text-[10px]">
+                      Raw income × avg efficiency.
+                      Weather (sun/wind) may modify actual payout.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
               <div className="flex items-center justify-between mt-1">
                 <span className="text-[10px] text-muted-label">Est. Income / Min</span>
@@ -422,11 +434,16 @@ export function PayoutPanel() {
       <Card className="bg-card border-brand/30">
         <CardContent className="p-4">
           <p className="text-[10px] text-muted-label leading-relaxed">
-            <GameIcon icon="game-icons:light-bulb" size={14} className="inline" /> <span className="text-muted-label">How Payouts Work:</span> Every {formatDuration(payoutConfig.basePayoutInterval)}, 
-            your factory generates a payout based on active buildings. Extractors earn ${extractorRate}/cycle, 
-            Factories earn ${factoryRate}/cycle, and Power Plants earn ${powerRate}/cycle per building (scaled by level and efficiency). 
+            <GameIcon icon="game-icons:light-bulb" size={14} className="inline" /> <span className="text-muted-label">How Payouts Work:</span> Every {formatDuration(payoutConfig.basePayoutInterval)},
+            your factory generates a payout based on active buildings. Extractors earn ${extractorRate}/cycle,
+            Factories earn ${factoryRate}/cycle, and Power Plants earn ${powerRate}/cycle per building (scaled by level and efficiency).
             The total is modified by game speed, average building efficiency, prestige bonuses, and active events.
           </p>
+          <div className="mt-2 pt-2 border-t border-brand/15 flex items-center gap-2 text-[10px] text-muted-label">
+            <span>Weather modifiers:</span>
+            <Sun className="w-3 h-3 text-warning" aria-label="sunny" />
+            <Wind className="w-3 h-3 text-brand" aria-label="windy" />
+          </div>
         </CardContent>
       </Card>
     </div>

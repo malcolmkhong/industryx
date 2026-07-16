@@ -142,6 +142,7 @@ describe("UI safety: store shape stability (Phase 6 fields)", () => {
         transportLinesBuilt: 0,
         researchCompleted: 0,
         contractsCompleted: 0,
+        tradesCompleted: 0,
         playTime: 0,
       },
     };
@@ -284,7 +285,7 @@ describe("UI safety: action files still wire all Phase 6 actions", () => {
 
 describe("UI safety: serverEngine exports all Phase 6 validators", () => {
   it("server-authoritative validators exist as exports", async () => {
-    const engine = await import("@/lib/game/production/engine/serverEngine");
+    const engine = await import("@/lib/game/production/engine/serverEngine.server");
     const required = [
       "validateBuildAction",
       "validateSellAction",

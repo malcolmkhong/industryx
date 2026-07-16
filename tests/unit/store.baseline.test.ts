@@ -577,10 +577,10 @@ describe('Module: services/antiCheatService', () => {
 
 describe('Module: services/coreService', () => {
   beforeEach(() => { resetStore(); vi.clearAllMocks(); });
-  it('togglePause toggles', () => {
-    expect(getStore().paused).toBe(false); getStore().togglePause(); expect(getStore().paused).toBe(true);
-    getStore().togglePause(); expect(getStore().paused).toBe(false);
-  });
+  // C-009: togglePause test removed — pause was client-only and the
+  // server tick runner ignored state.paused, so the action was
+  // misleading. The paused field stays in state for backward
+  // compatibility but is never set to true. See BUG-086.
   it('setActiveTab changes tab', () => { getStore().setActiveTab('market'); expect(getStore().activeTab).toBe('market'); });
   it('setGameSpeed valid', async () => { await getStore().setGameSpeed(2); expect(getStore().gameSpeed).toBe(2); });
   it('setGameSpeed rejects invalid', async () => { await getStore().setGameSpeed(3); expect(getStore().gameSpeed).toBe(1); });

@@ -62,15 +62,28 @@ export async function POST(request: Request) {
 
   if (sessionError) {
     console.warn("[Heartbeat] Session upsert failed:", sessionError.message);
+    return NextResponse.json(
+      { error: "Presence tracking unavailable", detail: sessionError.message },
+      { status: 503 },
+    );
   }
 
   // Bump profiles.last_active so cleanup_orphan_anon_users can tell
-  // active players from abandoned ones. Best-effort: failure does not
-  // break the heartbeat. (Tier 1 fix 4.)
-  await supabase
+  // active players from abandoned ones. Fail-closed: if presence tracking
+  // is broken, the cleanup cron and admin dashboards will diverge from
+  // reality, so we surface the failure the same way as the session write.
+  const { error: profileError } = await supabase
     .from("profiles")
     .update({ last_active: now })
     .eq("id", auth.userId);
+
+  if (profileError) {
+    console.warn("[Heartbeat] profile last_active update failed:", profileError.message);
+    return NextResponse.json(
+      { error: "Presence tracking unavailable", detail: profileError.message },
+      { status: 503 },
+    );
+  }
 
   // Return server time for client sync
   return NextResponse.json({

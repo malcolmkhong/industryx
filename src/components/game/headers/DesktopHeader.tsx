@@ -2,7 +2,7 @@ import Image from 'next/image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Bell, Check, Cloud, CloudOff, Download, Loader2, LogIn, LogOut,
-  Newspaper, Pause, Play, RefreshCw, User, Wifi, WifiOff,
+  Newspaper, RefreshCw, User, Wifi, WifiOff,
   Wrench, TrendingUp, TrendingDown,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +14,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useGameStore, formatNumber } from '@/lib/game/state/store';
+import { useGameStore, formatNumber, computeNetIncomePerMinute } from '@/lib/game/state/store';
 import { WEATHER_DEFS, RESEARCH_TREE } from '@/lib/game/config/configCache';
 import { GameIcon, BrandLogo } from '@/components/icons';
 import { OnlineCount } from '@/components/game/OnlineCount';
@@ -40,7 +40,8 @@ const SPEED_OPTIONS = [1, 2, 5, 10] as const;
 export function DesktopHeader({ onTabChange, onManageAccount }: DesktopHeaderProps) {
   const gameTick = useGameStore(s => s.gameTick);
   const gameSpeed = useGameStore(s => s.gameSpeed);
-  const paused = useGameStore(s => s.paused);
+  // C-009: paused/togglePause removed — pause was client-only and the
+  // server tick runner ignored it. The pause button is removed below.
   const prestigeState = useGameStore(s => s.prestigeState);
   const effectiveSpeed = gameSpeed * (1 + prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'gameSpeed').reduce((sum, b) => sum + b.effect.value, 0));
   const money = useGameStore(s => s.money);
@@ -48,7 +49,6 @@ export function DesktopHeader({ onTabChange, onManageAccount }: DesktopHeaderPro
   const pendingPayout = useGameStore(s => s.pendingPayout);
   const payoutConfig = useGameStore(s => s.payoutConfig);
   const collectPayout = useGameStore(s => s.collectPayout);
-  const togglePause = useGameStore(s => s.togglePause);
   const setGameSpeed = useGameStore(s => s.setGameSpeed);
   const powerGrid = useGameStore(s => s.powerGrid);
   const productionSnapshot = useGameStore(s => s.productionSnapshot);
@@ -74,9 +74,13 @@ export function DesktopHeader({ onTabChange, onManageAccount }: DesktopHeaderPro
     : powerGrid.totalProduction > 0 ? 100 : 0;
 
   const incomePerMinute = useMemo(() => {
-    const rawPayoutPerCycle = productionSnapshot.payoutPerCycle || 0;
-    const cyclesPerMinute = effectiveSpeed / payoutConfig.basePayoutInterval * 60;
-    return Math.floor(rawPayoutPerCycle * cyclesPerMinute);
+    // C-007: use the shared formula so Dashboard and the headers stay
+    // in sync at any game speed and payout interval.
+    return computeNetIncomePerMinute(
+      productionSnapshot.payoutPerCycle || 0,
+      effectiveSpeed,
+      payoutConfig.basePayoutInterval,
+    );
   }, [productionSnapshot.payoutPerCycle, effectiveSpeed, payoutConfig.basePayoutInterval]);
 
   const factoryEfficiency = useMemo(() => {
@@ -341,15 +345,7 @@ export function DesktopHeader({ onTabChange, onManageAccount }: DesktopHeaderPro
           </div>
 
           <div className="flex items-center bg-card rounded-lg border border-brand/20 overflow-hidden">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 text-xs focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-              onClick={togglePause}
-              aria-label={paused ? "Resume game" : "Pause game"}
-            >
-              {paused ? <Play className="w-3 h-3 text-success" /> : <Pause className="w-3 h-3 text-warning" />}
-            </Button>
+            {/* C-009: pause button removed — see BUG-086. */}
             {SPEED_OPTIONS.map(speed => (
               <Button
                 key={speed}
@@ -380,19 +376,29 @@ export function DesktopHeader({ onTabChange, onManageAccount }: DesktopHeaderPro
                   <span className="text-brand font-mono font-bold">{formatByMode(gameTick, tickFormat)}</span>
                 </div>
                 <div className="flex justify-between text-[10px]">
+                  <span className="text-subtle">Playtime</span>
+                  <span className="text-brand font-mono">{formatDuration(gameTick)}</span>
+                </div>
+                <div className="flex justify-between text-[10px]">
                   <span className="text-subtle">Game Speed</span>
                   <span className="text-success font-mono">{gameSpeed}x</span>
                 </div>
-                <div className="flex justify-between text-[10px]">
-                  <span className="text-subtle">Status</span>
-                  <span className="font-mono text-subtle">{paused ? 'Paused' : 'Running'}</span>
-                </div>
+                {/* C-009: paused status removed — see BUG-086. */}
                 <p className="text-[10px] text-muted-label pt-1 border-t border-muted-label/20 leading-relaxed">
                   Each tick advances all building production, consumption, and event timers. Higher speed = more ticks per second.
                 </p>
               </div>
             </HoverCardContent>
           </HoverCard>
+
+          <div
+            className="hidden md:flex items-center gap-1 text-[10px] text-subtle font-mono cursor-default hover:text-brand transition-colors"
+            aria-label={`Local time ${formatClock(new Date())} on ${formatShortDate(new Date())}`}
+          >
+            <span className="text-brand font-bold" aria-hidden="true">{formatClock(new Date())}</span>
+            <span className="text-muted-label" aria-hidden="true">·</span>
+            <span aria-hidden="true">{formatShortDate(new Date())}</span>
+          </div>
 
           <HoverCard openDelay={200} closeDelay={100}>
             <HoverCardTrigger asChild>
@@ -761,9 +767,9 @@ export function DesktopHeader({ onTabChange, onManageAccount }: DesktopHeaderPro
           aria-atomic="true"
         >
           {topHeadlines.length > 0 ? (
-            topHeadlines[Math.min(headlineIndex, topHeadlines.length - 1)] && (
-              <li key={topHeadlines[Math.min(headlineIndex, topHeadlines.length - 1)].id} className="text-[11px] text-subtle truncate">
-                {topHeadlines[Math.min(headlineIndex, topHeadlines.length - 1)].message}
+            topHeadlines[displayedHeadlineIndex] && (
+              <li key={topHeadlines[displayedHeadlineIndex].id} className="text-[11px] text-subtle truncate">
+                {topHeadlines[displayedHeadlineIndex].message}
               </li>
             )
           ) : (
@@ -774,7 +780,7 @@ export function DesktopHeader({ onTabChange, onManageAccount }: DesktopHeaderPro
         </ul>
         {topHeadlines.length > 1 && (
           <span className="text-[9px] text-subtle shrink-0">
-            {headlineIndex + 1}/{topHeadlines.length}
+            {displayedHeadlineIndex + 1}/{topHeadlines.length}
           </span>
         )}
       </div>

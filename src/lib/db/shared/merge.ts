@@ -70,7 +70,9 @@ export async function loadFullGameStateForMerge(
   if (!supabase) return null;
   const { data, error } = await supabase
     .from("server_game_state")
-    .select("*")
+    .select(
+      "user_id,full_state,money,total_money_earned,buildings_count,game_tick,game_speed,last_tick_at,last_saved_at,state_version,research_points,resources,workers,is_locked,lock_reason,cheat_flag_count,buildings,completed_research,created_at",
+    )
     .eq("user_id", userId)
     .maybeSingle();
   if (error) {

@@ -67,7 +67,7 @@ export function useSessionHeartbeat(): void {
       return {
         gameTick: Number(s.gameTick) || 0,
         money: Number(s.money) || 0,
-        paused: !!s.paused,
+        // C-009: paused removed — see BUG-086.
         gameSpeed: Number(s.gameSpeed) || 1,
       };
     };

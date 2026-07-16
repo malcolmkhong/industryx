@@ -115,7 +115,9 @@ export async function getInvestigation(id: string): Promise<CheatInvestigationRo
 
   const { data, error } = await supabase
     .from('cheat_investigations')
-    .select('*')
+    .select(
+      'id,user_id,detection_type,description,evidence,status,device_id,fingerprint_hash,resolution_note,resolved_by,resolved_at,created_at,updated_at',
+    )
     .eq('id', id)
     .single();
 
@@ -124,7 +126,7 @@ export async function getInvestigation(id: string): Promise<CheatInvestigationRo
     console.error('[CheatInvestigations] Failed to get:', error);
     return null;
   }
-  return data as CheatInvestigationRow;
+  return data as unknown as CheatInvestigationRow;
 }
 
 /**
@@ -141,14 +143,16 @@ export async function flagCheat(
   const { data, error } = await supabase
     .from('cheat_investigations')
     .insert(values)
-    .select()
+    .select(
+      'id,user_id,detection_type,description,evidence,status,device_id,fingerprint_hash,resolution_note,resolved_by,resolved_at,created_at,updated_at',
+    )
     .single();
 
   if (error) {
     console.error('[CheatInvestigations] Failed to flag cheat:', error);
     return null;
   }
-  return data as CheatInvestigationRow;
+  return data as unknown as CheatInvestigationRow;
 }
 
 /**

@@ -67,6 +67,7 @@ async function safeFetchTable<T>(
   tableName: string,
   pageSize = 2000,
   useSortOrder = true,
+  columns?: string,
 ): Promise<SafeFetchResult<T>> {
   if (!supabase) return { data: null, error: "Supabase client not available" };
 
@@ -91,7 +92,7 @@ async function safeFetchTable<T>(
 
     let query = supabase
       .from(tableName)
-      .select("*")
+      .select(columns ?? "*")
       .range(0, pageSize - 1);
 
     if (useSortOrder && tablesWithSortOrder.has(tableName)) {
@@ -118,7 +119,13 @@ function parseCostMap(
   costMap:
     Record<string, number> | Array<{ resource: string; amount: number }> | null,
 ): ResourceAmount[] {
-  if (!costMap) return [{ resource: "money", amount: 100 }];
+  // C-005 (BUILDING_PRODUCTION_AUDIT §10.6 P1, 2026-07-16): fail closed
+  // on missing or null cost. Matches the offline-progress route.
+  if (!costMap) {
+    throw new Error(
+      "[parseCostMap] building has null/missing base_cost — refusing to fabricate a cost",
+    );
+  }
   if (Array.isArray(costMap)) {
     return costMap.map((item) => ({
       resource: item.resource as CostResourceType,
@@ -390,7 +397,13 @@ export async function fetchGameConfigFromSupabase(): Promise<FetchConfigResult> 
     ),
     // game_config_balance: client-safe subset only. The full strict
     // complete-set load is done by configLoader.server.ts.
-    safeFetchTable<SupabaseBalanceRow>(supabase, "game_config_balance", 100, false),
+    safeFetchTable<SupabaseBalanceRow>(
+      supabase,
+      "game_config_balance",
+      100,
+      false,
+      "key,value,updated_at",
+    ),
   ]);
 
   // Collect per-table errors

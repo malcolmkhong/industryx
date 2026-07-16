@@ -611,6 +611,7 @@ export function StoragePanel() {
           <div>
             <div className="flex items-center gap-1.5 mb-2">
               <Warehouse className="w-3 h-3 text-warning" />
+              <Box className="w-3 h-3 text-warning/60" />
               <span className="text-[10px] font-semibold text-warning uppercase tracking-wider">
                 Storage Capacity — {meta.name}
               </span>
@@ -653,7 +654,7 @@ export function StoragePanel() {
                           : "border-muted-label/30 text-muted-label bg-muted-label/20"
                       }`}
                     >
-                      <Plus className="w-3 h-3" />
+                      <Zap className="w-3 h-3" />
                       +1 Level (${formatNumber(upgradeCost)})
                     </Button>
                     <Button
@@ -880,6 +881,14 @@ export function StoragePanel() {
             <span className="text-[10px] text-muted-label font-mono">
               {unlimited ? "∞" : formatNumber(capacity)}
             </span>
+            {!unlimited && (
+              <span
+                className={`text-[9px] font-mono ml-1 ${fillPct >= 95 ? "text-danger" : fillPct >= 80 ? "text-domain" : "text-muted-label/70"}`}
+                aria-label={`Fill ${fillPct.toFixed(0)}%`}
+              >
+                {fillPct.toFixed(0)}%
+              </span>
+            )}
           </div>
 
           {/* Net Rate (compact — detail hidden behind expand chevron) */}
@@ -972,7 +981,7 @@ export function StoragePanel() {
           ))}
         </div>
         <AnimatePresence mode="popLayout">
-          {filteredAlerts.map((alert, i) => {
+          {filteredAlerts.map((alert, _) => {
             const meta = RESOURCE_META[alert.resource];
             if (!meta) return null;
             const iconMap = {
@@ -1065,7 +1074,7 @@ export function StoragePanel() {
       <div className="space-y-3 max-h-[calc(100vh-280px)] overflow-y-auto game-scrollbar pr-1">
         {PRODUCTION_CHAINS.filter((chain) =>
           chain.steps.some((s) => activeResources.includes(s as ResourceType)),
-        ).map((chain, ci) => {
+        ).map((chain, _) => {
           const allActive = chain.steps.every((s) =>
             activeResources.includes(s as ResourceType),
           );
@@ -1501,19 +1510,24 @@ export function StoragePanel() {
                       { mode: "tier" as SortMode, label: "Tier" },
                       { mode: "stock" as SortMode, label: "Stock" },
                       { mode: "rate" as SortMode, label: "Rate" },
-                      { mode: "capacity" as SortMode, label: "Capacity" },
+                      {
+                        mode: "capacity" as SortMode,
+                        label: "Capacity",
+                        icon: BarChart3,
+                      },
                     ].map((tab) => (
                       <Button
                         key={tab.mode}
                         onClick={() => setSortMode(tab.mode)}
                         size="sm"
                         variant="outline"
-                        className={`h-7 px-2 text-[10px] rounded-md ${
+                        className={`h-7 px-2 text-[10px] rounded-md gap-1 ${
                           sortMode === tab.mode
                             ? "border-brand/40 text-brand bg-brand/10 hover:bg-brand/20"
                             : "border-transparent text-muted-label bg-transparent hover:text-subtle hover:bg-transparent"
                         }`}
                       >
+                        {tab.icon && <tab.icon className="w-3 h-3" />}
                         {tab.label}
                       </Button>
                     ))}

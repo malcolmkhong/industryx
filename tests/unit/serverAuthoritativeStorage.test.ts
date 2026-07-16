@@ -11,8 +11,14 @@
 // astronomically large) but only after a wasted DB write.
 // ============================================
 
-import { describe, it, expect } from "vitest";
-import { validateUpgradeStorageAction } from "@/lib/game/production/engine/serverEngine";
+import { describe, it, expect, beforeEach } from "vitest";
+import balanceFixture from "../fixtures/balanceFixture.json";
+import {
+  applyBalanceOverrides,
+  _resetBalanceForTests,
+  type GameBalanceConfig,
+} from "@/lib/game/config/balance/balanceConfig";
+import { validateUpgradeStorageAction } from "@/lib/game/production/engine/serverEngine.server";
 import type { GameState, ResourceType } from "@/lib/game/shared/types/types";
 
 function makeState(overrides?: {
@@ -34,6 +40,15 @@ function makeState(overrides?: {
     }) as Record<ResourceType, number>,
   };
 }
+
+function makeCompleteBalance(): GameBalanceConfig {
+  return structuredClone(balanceFixture) as unknown as GameBalanceConfig;
+}
+
+beforeEach(() => {
+  _resetBalanceForTests();
+  applyBalanceOverrides(makeCompleteBalance());
+});
 
 describe("validateUpgradeStorageAction (server-authoritative)", () => {
   it("returns valid + correctedState for affordable single-level upgrade", () => {

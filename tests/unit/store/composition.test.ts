@@ -102,7 +102,7 @@ describe('Module: store/composition', () => {
 
   it('all server-authoritative store actions exist on the store', () => {
     const actions = [
-      'setGameSpeed', 'togglePause', 'setActiveTab',
+      'setGameSpeed', 'setActiveTab',
       'buildBuilding', 'upgradeBuilding', 'toggleBuilding', 'selectBuilding',
       'buildTransportLine', 'upgradeTransportLine', 'toggleTransportLine',
       'startResearch',
@@ -124,7 +124,7 @@ describe('Module: store/composition', () => {
       'startMegaProject', 'contributeToMegaProject',
       'saveBlueprint', 'loadBlueprint', 'deleteBlueprint', 'renameBlueprint', 'exportBlueprint', 'importBlueprint',
     ];
-    expect(actions.length).toBe(52);
+    expect(actions.length).toBe(51);
     for (const a of actions) {
       expect(typeof (getStore() as unknown as Record<string, unknown>)[a]).toBe('function');
     }
@@ -151,6 +151,7 @@ describe('Module: store/composition', () => {
   it('GameStore type is properly exported', () => {
     const store: GameStore = getStore();
     expect(typeof store.money).toBe('number');
-    expect(typeof store.togglePause).toBe('function');
+    // C-009: togglePause was removed — see BUG-086.
+    expect(typeof store.setActiveTab).toBe('function');
   });
 });

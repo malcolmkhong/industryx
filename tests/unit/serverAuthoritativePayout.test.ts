@@ -12,7 +12,7 @@
 // ============================================
 
 import { describe, it, expect } from "vitest";
-import { validateCollectPayoutAction } from "@/lib/game/production/engine/serverEngine";
+import { validateCollectPayoutAction } from "@/lib/game/production/engine/serverEngine.server";
 import type { GameState } from "@/lib/game/shared/types/types";
 
 function makeState(overrides?: {

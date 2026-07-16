@@ -246,6 +246,7 @@ export function PrestigePanel() {
             >
               <Globe className="w-4 h-4 mr-2" />
               {canPrestige ? `Global Expand (+${pointsEarned} CP)` : 'Need 5+ Buildings to Expand'}
+              {canPrestige && <ArrowUpRight className="w-4 h-4 ml-2" />}
             </Button>
           </div>
 
@@ -278,12 +279,20 @@ export function PrestigePanel() {
                           <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
                             bonus.purchased ? 'bg-premium/20/30 text-premium' : 'bg-muted-label/50 text-muted-label'
                           }`}>
-                            {bonus.purchased ? <Check className="w-4 h-4" /> : icon}
+                            {bonus.purchased ? <Check className="w-4 h-4" /> : !canAfford ? <Lock className="w-4 h-4" /> : icon}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="text-xs font-medium text-subtle">{bonus.name}</div>
                             <div className="text-[10px] text-subtle">{bonus.description}</div>
                           </div>
+                          {!bonus.purchased && (
+                            <ChevronRight
+                              className={`w-4 h-4 shrink-0 ${
+                                canAfford ? 'text-premium/70' : 'text-muted-label/50'
+                              }`}
+                              aria-label="More details"
+                            />
+                          )}
                         </div>
                         {!bonus.purchased && (
                           <Button
@@ -349,11 +358,15 @@ export function PrestigePanel() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-label">Bonuses Purchased</span>
-                <span className="text-success font-mono">{purchasedBonuses}</span>
+                <span className="text-success font-mono">{purchasedBonuses}/{PRESTIGE_BONUSES.length}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-label">Current Buildings</span>
                 <span className="text-brand font-mono">{store.buildings.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-label">Building Types</span>
+                <span className="text-brand font-mono">{Object.keys(BUILDING_DEFS).length}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-label">Research Done</span>

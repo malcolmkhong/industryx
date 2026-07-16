@@ -3,12 +3,12 @@
 import { useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked } from '@/lib/game/state/store';
+import { getBalance } from '@/lib/game/config/balance/balanceConfig';
 import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE } from '@/lib/game/config/configCache';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   Zap, ChevronUp, Power, PowerOff, Hammer,
-  AlertTriangle,
   ArrowUpRight, ArrowDownRight, Shield,
   Gauge, Plug, Fuel, Activity,
   CircleAlert, Minus, Lock, Lightbulb, TrendingUp, Clock
@@ -122,7 +122,14 @@ export function PowerPanel() {
   // Actual production per plant type — derived from snapshot
   // Compute raw per-type ratios then scale to match snapshot total (which includes
   // all multipliers: weather events, prestige power bonus, power optimization, etc.)
+  // C-008 (BUILDING_PRODUCTION_AUDIT §10.4, 2026-07-16): hardcoded
+  // economy factors (0.1 fuel-starved ratio, solar/wind amplitude and
+  // oscillation constants) replaced with values from `getBalance().power`
+  // so a balance-config tuning actually affects the UI preview. The
+  // snapshot total is still authoritative; the per-type ratio is an
+  // estimate scaled to that total.
   const { productionByType, powerScaleFactor } = useMemo(() => {
+    const balance = getBalance().power;
     const snapshotTotal = productionSnapshot.powerProduction;
     const production: Record<string, number> = {};
     let rawTotal = 0;
@@ -138,16 +145,22 @@ export function PowerPanel() {
         let plantProduction = def.basePowerProduction * b.level * b.efficiency;
         if (def.fuel && def.fuelRate) {
           if (resources[def.fuel] < def.fuelRate * b.level) {
-            plantProduction *= 0.1;
+            plantProduction *= balance.fuelStarvedOutputRatio;
           }
         }
         if (type === 'solarFarm') {
-          const dayFactor = 0.5 + 0.5 * Math.sin(gameTick * 0.01);
-          plantProduction *= Math.max(0.2, dayFactor);
+          const dayFactor =
+            balance.solarAmplitudeBase +
+            balance.solarAmplitudeSwing *
+              Math.sin(gameTick * balance.solarOscillationFreq);
+          plantProduction *= Math.max(balance.solarMinOutput, dayFactor);
         }
         if (type === 'windTurbine') {
-          const windFactor = 0.5 + 0.5 * Math.sin(gameTick * 0.007 + Math.PI / 3);
-          plantProduction *= Math.max(0.3, windFactor);
+          const windFactor =
+            balance.windAmplitudeBase +
+            balance.windAmplitudeSwing *
+              Math.sin(gameTick * balance.windOscillationFreq + Math.PI / 3);
+          plantProduction *= Math.max(balance.windMinOutput, windFactor);
         }
         totalType += plantProduction;
       });
@@ -225,14 +238,17 @@ export function PowerPanel() {
   );
 
   // Solar/wind current output factor
+  // C-008: use balance-driven factors instead of hardcoded literals.
   const solarFactor = useMemo(() => {
-    const factor = 0.5 + 0.5 * Math.sin(gameTick * 0.01);
-    return Math.max(0.2, factor);
+    const b = getBalance().power;
+    const factor = b.solarAmplitudeBase + b.solarAmplitudeSwing * Math.sin(gameTick * b.solarOscillationFreq);
+    return Math.max(b.solarMinOutput, factor);
   }, [gameTick]);
 
   const windFactor = useMemo(() => {
-    const factor = 0.5 + 0.5 * Math.sin(gameTick * 0.007 + Math.PI / 3);
-    return Math.max(0.3, factor);
+    const b = getBalance().power;
+    const factor = b.windAmplitudeBase + b.windAmplitudeSwing * Math.sin(gameTick * b.windOscillationFreq + Math.PI / 3);
+    return Math.max(b.windMinOutput, factor);
   }, [gameTick]);
 
   const handleBuild = useCallback((type: PowerPlantType) => {
@@ -259,6 +275,7 @@ export function PowerPanel() {
         <div>
           <h2 className="text-xl font-bold text-warning tracking-wide flex items-center gap-2 neon-glow-yellow">
             <Zap className="w-5 h-5" />
+            <Lightbulb className="w-4 h-4 text-warning/80" />
             Power Grid
           </h2>
           <p className="text-xs text-muted-label mt-0.5">Generate and distribute electricity across your empire</p>
@@ -266,8 +283,8 @@ export function PowerPanel() {
         <div className="flex items-center gap-2">
           {powerGrid.overload && (
             <Badge variant="outline" className="border-danger/50 text-danger bg-danger/20 text-xs neon-pulse">
-              <AlertTriangle className="w-3 h-3 mr-1" />
-              OVERLOAD
+              <Lock className="w-3 h-3 mr-1" />
+              LOCKED OVERLOAD
             </Badge>
           )}
           <Badge
@@ -395,8 +412,13 @@ export function PowerPanel() {
           <PanelStatCard
             icon={<Gauge className="w-4 h-4" />}
             label="Efficiency"
-            value={`${(realtimeEfficiency * 100).toFixed(1)}%`}
-            subtext="Current"
+            value={
+              <span className="inline-flex items-center gap-1">
+                {(realtimeEfficiency * 100).toFixed(1)}%
+                <Shield className="w-3 h-3 text-success" />
+              </span>
+            }
+            subtext={`Grid: ${(powerEfficiency * 100).toFixed(0)}%`}
             color={realtimeEfficiency >= 0.8 ? 'green' : realtimeEfficiency >= 0.5 ? 'yellow' : 'red'}
             trend={realtimeEfficiency >= 0.8 ? 'up' : realtimeEfficiency >= 0.5 ? 'neutral' : 'down'}
           />
@@ -446,7 +468,7 @@ export function PowerPanel() {
       </div>
 
       {/* POWER FLOW VISUALIZATION */}
-      <div className="game-card rounded-xl bg-card p-4 border border-border">
+      <div className={`game-card rounded-xl bg-card p-4 border border-border ${flowGlowClass}`}>
         <div className="flex items-center gap-2 mb-3">
           <Activity className="w-4 h-4 text-brand" />
           <h3 className="text-sm font-semibold text-brand">Power Flow Diagram</h3>
@@ -794,12 +816,14 @@ export function PowerPanel() {
                       }
                     }
                     if (plant.type === 'solarFarm') {
-                      const factor = Math.max(0.2, 0.5 + 0.5 * Math.sin(gameTick * 0.01));
+                      const b = getBalance().power;
+                      const factor = Math.max(b.solarMinOutput, b.solarAmplitudeBase + b.solarAmplitudeSwing * Math.sin(gameTick * b.solarOscillationFreq));
                       rawProduction *= factor;
                       productionNote = factor > 0.7 ? 'Peak sun' : factor > 0.4 ? 'Moderate' : 'Low light';
                     }
                     if (plant.type === 'windTurbine') {
-                      const factor = Math.max(0.3, 0.5 + 0.5 * Math.sin(gameTick * 0.007 + Math.PI / 3));
+                      const b = getBalance().power;
+                      const factor = Math.max(b.windMinOutput, b.windAmplitudeBase + b.windAmplitudeSwing * Math.sin(gameTick * b.windOscillationFreq + Math.PI / 3));
                       rawProduction *= factor;
                       productionNote = factor > 0.7 ? 'Strong wind' : factor > 0.4 ? 'Moderate' : 'Low wind';
                     }
@@ -986,11 +1010,14 @@ export function PowerPanel() {
             <div className="mt-3 pt-3 border-t border-muted-label">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs text-subtle">Total Production</span>
-                <span className="text-sm font-mono font-bold text-success">{formatNumber(totalRealProduction)} MW</span>
+                <span className="text-sm font-mono font-bold text-success">
+                  {formatNumber(totalRealProduction)} MW
+                  <span className="text-[10px] text-muted-label ml-1.5 font-normal">(grid {formatNumber(powerTotalProduction)})</span>
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-subtle">Total Demand</span>
-                <span className="text-sm font-mono font-bold text-domain">{formatNumber(powerGrid.totalConsumption)} MW</span>
+                <span className="text-sm font-mono font-bold text-domain">{formatNumber(powerTotalConsumption)} MW</span>
               </div>
             </div>
           </div>
@@ -1046,7 +1073,7 @@ export function PowerPanel() {
               <PanelStatCard
                 icon={<Clock className="w-4 h-4" />}
                 label="Remaining"
-                value={coalFuelStatus.ticksRemaining === Infinity ? '∞' : formatDuration(coalFuelStatus.ticksRemaining)}
+                value={coalFuelStatus.ticksRemaining === Infinity ? '∞' : formatRemaining(coalFuelStatus.ticksRemaining)}
                 subtext="fuel remaining"
                 color={coalFuelStatus.ticksRemaining < 500 ? 'red' : 'sky'}
                 trend={coalFuelStatus.ticksRemaining < 500 ? 'down' : 'neutral'}

@@ -143,8 +143,7 @@ Exact 66-file map. Every scanned existing API/helper file is listed.
 | 24 | `src/app/api/leaderboard/route.ts` | `/api/leaderboard` | `src/app/api/game/leaderboard/route.ts` | `/api/game/leaderboard` | No |
 | 25 | `src/app/api/leaderboard/submit/route.ts` | `/api/leaderboard/submit` | `src/app/api/game/leaderboard/submit/route.ts` | `/api/game/leaderboard/submit` | No |
 | 26 | `src/app/api/game/action/route.ts` | `/api/game/action` | `src/app/api/game/actions/legacy/route.ts` | `/api/game/actions/legacy` | No |
-| 27 | `src/app/api/game/compute/route.ts` | `/api/game/compute` | `src/app/api/game/production/compute/route.ts` | `/api/game/production/compute` | No |
-| 28 | `src/app/api/game/daily-reward/route.ts` | `/api/game/daily-reward` | `src/app/api/game/rewards/daily/route.ts` | `/api/game/rewards/daily` | No |
+| 27 | `src/app/api/game/daily-reward/route.ts` | `/api/game/daily-reward` | `src/app/api/game/rewards/daily/route.ts` | `/api/game/rewards/daily` | No |
 | 29 | `src/app/api/game/definitions/route.ts` | `/api/game/definitions` | `src/app/api/game/config/definitions/route.ts` | `/api/game/config/definitions` | No |
 | 30 | `src/app/api/game/heartbeat/route.ts` | `/api/game/heartbeat` | `src/app/api/game/session/heartbeat/route.ts` | `/api/game/session/heartbeat` | No |
 | 31 | `src/app/api/game/initial-state/route.ts` | `/api/game/initial-state` | `src/app/api/game/state/initial/route.ts` | `/api/game/state/initial` | No |
@@ -257,7 +256,6 @@ src/app/api/
 |   |-- leaderboard/
 |   |   |-- route.ts
 |   |   `-- submit/route.ts
-|   |-- production/compute/route.ts
 |   |-- rewards/daily/route.ts
 |   |-- session/heartbeat/route.ts
 |   `-- state/

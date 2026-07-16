@@ -318,25 +318,49 @@ export async function buildCompleteFullStateForServerRow(
       ? stripUIFields(row.full_state as Record<string, unknown>)
       : {};
 
+  // BUG-093 read-side safety net: if the row is a freshly-bootstrapped
+  // placeholder (full_state = {"bootstrap_pending": true}), the denormalized
+  // columns are pre-canonical defaults (set by the
+  // bootstrap_placeholder_canonical_defaults trigger, or zero/legacy on
+  // rows created before the trigger shipped). Trusting them would override
+  // canonical.money with row.money = 0 and ship a $0 ServerGameData to the
+  // client. Skip the overrides entirely so canonical wins.
+  const isPlaceholder =
+    existing &&
+    typeof existing === "object" &&
+    (existing as { bootstrap_pending?: unknown }).bootstrap_pending === true;
+
   return {
     ...canonical,
-    ...existing,
+    ...(isPlaceholder ? {} : existing),
     quests: mergeQuestsWithCanonical(canonical.quests, existing.quests),
-    money: requireFiniteNumber(row.money, "money"),
-    totalMoneyEarned: requireFiniteNumber(
-      row.total_money_earned,
-      "total_money_earned",
-    ),
-    researchPoints: requireFiniteNumber(row.research_points, "research_points"),
-    buildings: arrayOr(row.buildings, canonical.buildings),
-    completedResearch: arrayOr(
-      row.completed_research,
-      canonical.completedResearch,
-    ),
-    resources: recordOr(row.resources, canonical.resources),
-    workers: arrayOr(row.workers, canonical.workers),
-    gameTick: requireInteger(row.game_tick, "game_tick"),
-    gameSpeed: requireInteger(row.game_speed, "game_speed"),
+    money: isPlaceholder
+      ? canonical.money
+      : requireFiniteNumber(row.money, "money"),
+    totalMoneyEarned: isPlaceholder
+      ? canonical.totalMoneyEarned
+      : requireFiniteNumber(row.total_money_earned, "total_money_earned"),
+    researchPoints: isPlaceholder
+      ? canonical.researchPoints
+      : requireFiniteNumber(row.research_points, "research_points"),
+    buildings: isPlaceholder
+      ? canonical.buildings
+      : arrayOr(row.buildings, canonical.buildings),
+    completedResearch: isPlaceholder
+      ? canonical.completedResearch
+      : arrayOr(row.completed_research, canonical.completedResearch),
+    resources: isPlaceholder
+      ? canonical.resources
+      : recordOr(row.resources, canonical.resources),
+    workers: isPlaceholder
+      ? canonical.workers
+      : arrayOr(row.workers, canonical.workers),
+    gameTick: isPlaceholder
+      ? canonical.gameTick
+      : requireInteger(row.game_tick, "game_tick"),
+    gameSpeed: isPlaceholder
+      ? canonical.gameSpeed
+      : requireInteger(row.game_speed, "game_speed"),
   };
 }
 
@@ -768,7 +792,9 @@ export async function saveServerGameStateOptimistic(
     .update(patch)
     .eq("user_id", userId)
     .eq("state_version", expectedStateVersion)
-    .select("*")
+    .select(
+      "user_id,full_state,money,total_money_earned,buildings_count,game_tick,game_speed,last_tick_at,last_saved_at,state_version,research_points,resources,workers,is_locked,lock_reason,cheat_flag_count,buildings,completed_research,created_at",
+    )
     .single();
 
   if (error || !data) return null;

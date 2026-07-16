@@ -19,6 +19,9 @@ vi.mock("@/lib/db/game/serverGameState", () => ({
 
 vi.mock("@/lib/db/game/serverGameStatePayload", () => ({
   asFullState: vi.fn((state) => state),
+  // C-003: writers now call stripUIFields before asFullState. The test
+  // mock must export it; we provide a pass-through.
+  stripUIFields: vi.fn((state: Record<string, unknown>) => state),
 }));
 
 import { applyElapsedTicks } from "@/lib/auth/applyElapsedTicks";

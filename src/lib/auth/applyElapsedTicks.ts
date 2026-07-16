@@ -22,7 +22,7 @@
 
 import { createServiceRoleClient } from '@/lib/db/access';;
 import { fetchGameConfigFromSupabase } from "@/lib/db/config/serverConfigFetcher";
-import { runServerTicks } from "@/lib/game/production/engine/serverEngine";
+import { runServerTicks } from "@/lib/game/production/engine/serverEngine.server";
 import { getGameLimits } from "@/lib/game/config/balance/balanceConfig";
 import { ensureConfigLoaded } from "@/lib/game/config/server/configLoader.server";
 import { getServerNowISO } from "@/lib/auth/serverTime";

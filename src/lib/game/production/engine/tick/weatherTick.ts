@@ -35,7 +35,11 @@ export function advanceWeatherTick(state: ServerGameData): void {
   state.weather.remaining -= 1;
   if (state.weather.remaining <= 0) {
     state.weather.remaining = secureRandomIntInRange(100, 300);
-    state.weather.current = WEATHER_TYPES[secureRandomInt(WEATHER_TYPES.length)]!;
+    const weatherType = WEATHER_TYPES[secureRandomInt(WEATHER_TYPES.length)];
+    if (weatherType === undefined) {
+      throw new Error("[advanceWeatherTick] WEATHER_TYPES index out of range");
+    }
+    state.weather.current = weatherType;
     state.weather.intensity = 0.3 + secureRandomFloat() * 0.7;
   }
 }

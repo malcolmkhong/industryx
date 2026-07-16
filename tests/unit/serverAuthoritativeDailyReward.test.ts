@@ -9,7 +9,7 @@
 // ============================================
 
 import { describe, it, expect } from "vitest";
-import { validateClaimDailyRewardAction } from "@/lib/game/production/engine/serverEngine";
+import { validateClaimDailyRewardAction } from "@/lib/game/production/engine/serverEngine.server";
 import type {
   GameState,
   DailyReward,

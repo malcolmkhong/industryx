@@ -419,7 +419,8 @@ export function GameSidebar() {
         >
           <Coffee className="w-4 h-4 shrink-0 text-warning" />
           <span className="truncate text-warning">Buy me a coffee</span>
-          <Heart className="w-3 h-3 ml-auto text-danger" />
+          <Swords className="w-3 h-3 ml-auto text-muted-label" aria-hidden="true" />
+          <Heart className="w-3 h-3 text-danger" />
         </a>
         {/* QR Code hint */}
         <div className="mt-1.5 px-2.5 pb-1">

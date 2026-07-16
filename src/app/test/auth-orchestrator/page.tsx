@@ -414,7 +414,7 @@ function makeSession(opts: { userId: string; isAnonymous?: boolean }): Session {
 // ─── React component (renders harness state for debugging) ───────────────
 
 export default function AuthHarnessPage() {
-  const [tick, setTick] = useState(0);
+  const [_tick, setTick] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setTick((n) => n + 1), 200);
     return () => clearInterval(id);
@@ -428,7 +428,7 @@ export default function AuthHarnessPage() {
 
     // Auto-bootstrap: start with auth session to verify onReady path
     (async () => {
-      const session = makeSession({ userId: "auth-startup" });
+      const _session = makeSession({ userId: "auth-startup" });
       // Manually set the supabase state via the internal harness closure.
       // Workaround: re-use the getSession() return shape via setting
       // currentSession is not exposed. We start with no session to test
@@ -439,9 +439,7 @@ export default function AuthHarnessPage() {
       harness.api.emitOAuth("auth-google"); // upgrade to auth
     })();
 
-    return () => {
-      // No cleanup needed for harness in browser
-    };
+    // No cleanup needed for harness in browser
   }, []);
 
   const api = typeof window !== "undefined" ? window.__authApi : undefined;

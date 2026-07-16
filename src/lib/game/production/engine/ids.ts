@@ -28,7 +28,11 @@ function cryptoRandomHex(byteLength: number): string {
     crypto.getRandomValues(bytes);
     let out = "";
     for (let i = 0; i < bytes.length; i++) {
-      out += bytes[i]!.toString(16).padStart(2, "0");
+      const byte = bytes[i];
+      if (byte === undefined) {
+        throw new Error("[secureRandomHex] byte index out of range");
+      }
+      out += byte.toString(16).padStart(2, "0");
     }
     return out;
   }

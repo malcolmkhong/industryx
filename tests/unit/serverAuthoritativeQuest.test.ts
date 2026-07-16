@@ -11,7 +11,7 @@
 // ============================================
 
 import { describe, it, expect } from "vitest";
-import { validateClaimQuestAction } from "@/lib/game/production/engine/serverEngine";
+import { validateClaimQuestAction } from "@/lib/game/production/engine/serverEngine.server";
 import { WEATHER_DEFS } from "@/lib/game/config/configCache";
 import type { GameState, Quest, PrestigeState, WeatherType } from "@/lib/game/shared/types/types";
 

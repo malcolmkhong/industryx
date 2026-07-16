@@ -97,6 +97,7 @@ export function createStubServerData(): ServerGameData {
       transportLinesBuilt: 0,
       researchCompleted: 0,
       contractsCompleted: 0,
+      tradesCompleted: 0,
       playTime: 0,
     },
 

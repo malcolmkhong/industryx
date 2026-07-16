@@ -12,6 +12,12 @@
 //   - prestigeState is merged into the canonical reset
 //   - lastOnlineTimestamp is preserved from the input state when present
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import balanceFixture from "../fixtures/balanceFixture.json";
+import {
+  applyBalanceOverrides,
+  _resetBalanceForTests,
+  type GameBalanceConfig,
+} from "@/lib/game/config/balance/balanceConfig";
 import type { GameState } from "@/lib/game/shared/types/types";
 
 // Mock the canonical helper BEFORE importing the module under test.
@@ -81,7 +87,7 @@ vi.mock("@/lib/db/initialState.server", () => ({
 }));
 
 // IMPORTANT: import AFTER vi.mock so the mocked module is resolved.
-import { validatePrestigeAction } from "@/lib/game/production/engine/serverEngine";
+import { validatePrestigeAction } from "@/lib/game/production/engine/serverEngine.server";
 import type { ServerGameData } from "@/lib/game/shared/types/types";
 
 function makeBuilding(id: string) {
@@ -106,6 +112,7 @@ function makeState(o?: {
       peakEfficiency: 0, factoriesBuilt: 0,
       transportLinesBuilt: 0, researchCompleted: 0,
       contractsCompleted: o?.contractsCompleted ?? 0,
+      tradesCompleted: 0,
       playTime: 0,
     },
     prestigeState: {
@@ -118,7 +125,13 @@ function makeState(o?: {
   };
 }
 
+function makeCompleteBalance(): GameBalanceConfig {
+  return structuredClone(balanceFixture) as unknown as GameBalanceConfig;
+}
+
 beforeEach(() => {
+  _resetBalanceForTests();
+  applyBalanceOverrides(makeCompleteBalance());
   vi.clearAllMocks();
 });
 

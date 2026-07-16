@@ -2,7 +2,15 @@ import type { BuildingDefinition, ResourceAmount, ResourceType } from "../../sha
 import type { SupabaseBuilding, SupabaseRecipe } from "../types/supabaseRows";
 
 export function parseCostMap(costMap: Record<string, number> | Array<{resource: string; amount: number}> | null): ResourceAmount[] {
-  if (!costMap) return [{ resource: 'money', amount: 100 }];
+  // C-005 (BUILDING_PRODUCTION_AUDIT §10.6 P1, 2026-07-16): fail closed
+  // on missing or null cost. A missing `base_cost` row is a DB-integrity
+  // bug; silently fabricating a 100-money default would mask it and
+  // could let a player build something at a non-existent price.
+  if (!costMap) {
+    throw new Error(
+      "[parseCostMap] building has null/missing base_cost — refusing to fabricate a cost",
+    );
+  }
   // Handle array format from Supabase: [{resource: 'money', amount: 500}]
   if (Array.isArray(costMap)) {
     return costMap.map(item => ({

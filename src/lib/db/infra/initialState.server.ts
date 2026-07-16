@@ -19,6 +19,7 @@
 
 import { createServiceRoleClient } from '@/lib/db/access';;
 import { ensureConfigLoaded } from "@/lib/game/config/server/configLoader.server";
+import { secureRandomIntInRange } from "@/lib/game/production/engine/util/serverRandom";
 import {
   INITIAL_MARKET,
   AUTOMATION_UNLOCKS,
@@ -135,10 +136,12 @@ export async function fetchCanonicalInitialState(): Promise<ServerGameData> {
     zeroResources[key] = 0;
   }
 
-  // Weather cadence — server-side random (replaces client Math.random()).
+  // Weather cadence — crypto RNG (replaces Math.random). SEC-008:
+  // server-authoritative random values must not be predictable from a
+  // PRNG state. secureRandomIntInRange throws on crypto failure.
   const wmin = Number(game.weather_change_min_ticks) || 100;
   const wmax = Number(game.weather_change_max_ticks) || 300;
-  const nextChange = wmin + Math.floor(Math.random() * Math.max(1, wmax - wmin));
+  const nextChange = wmin + secureRandomIntInRange(0, Math.max(1, wmax - wmin));
 
   const state: ServerGameData = {
     money: Number(game.starting_money) || 0,
@@ -202,6 +205,7 @@ export async function fetchCanonicalInitialState(): Promise<ServerGameData> {
       transportLinesBuilt: 0,
       researchCompleted: 0,
       contractsCompleted: 0,
+      tradesCompleted: 0,
       playTime: 0,
     },
 

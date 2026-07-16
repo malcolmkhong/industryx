@@ -21,7 +21,9 @@ export async function GET(_request: Request, context: RouteContext) {
 
   const { data: ticket, error } = await supabase
     .from("support_tickets")
-    .select("*")
+    .select(
+      "id,user_id,subject,message,status,priority,created_at,updated_at,assigned_admin_id",
+    )
     .eq("id", id)
     .single();
 
@@ -31,7 +33,7 @@ export async function GET(_request: Request, context: RouteContext) {
 
   const { data: messages } = await supabase
     .from("support_messages")
-    .select("*")
+    .select("id,ticket_id,sender_id,sender_role,message,created_at")
     .eq("ticket_id", id)
     .order("created_at", { ascending: true });
 

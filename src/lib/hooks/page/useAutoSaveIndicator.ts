@@ -25,6 +25,7 @@ export function useAutoSaveIndicator(): {
       }
       prevGameTickRef.current = gameTick;
     }
+    return undefined;
   }, [gameTick]);
 
   return { lastSaveTime, showSavedFlash };

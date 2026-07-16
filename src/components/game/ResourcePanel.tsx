@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useCallback } from 'react';
+import { Fragment, useMemo, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useGameStore, formatNumber, getBuildingCost, isBuildingUnlocked, hasUnlimitedStorage } from '@/lib/game/state/store';
 import { BUILDING_DEFS, RESOURCE_META, RESEARCH_TREE } from '@/lib/game/config/configCache';
@@ -30,14 +30,14 @@ const SPECIALIZED_EXTRACTORS = getSpecializedExtractors() as ExtractorType[];
 
 const RAW_RESOURCES: ResourceType[] = ['iron', 'copper', 'coal', 'oil', 'sand', 'lithium', 'water', 'rareEarth', 'clay', 'limestone', 'gravel', 'bauxite', 'wolframite', 'silver', 'gold'];
 
-// Tab config for the tier selector
-const TAB_CONFIG = {
-  basic: { label: 'Basic Mining', shortLabel: 'Basic', color: 'amber' as const, icon: 'game-icons:mining' },
-  advanced: { label: 'Advanced Mining', shortLabel: 'Advanced', color: 'orange' as const, icon: 'game-icons:peaks' },
-  specialized: { label: 'Specialized', shortLabel: 'Special', color: 'purple' as const, icon: 'game-icons:gem-chain' },
-};
-
 type TabKey = 'basic' | 'advanced' | 'specialized';
+
+// Tab config for the tier selector
+const TAB_CONFIG: Record<TabKey, { label: string; shortLabel: string; color: TierColor; icon: string }> = {
+  basic: { label: 'Basic Mining', shortLabel: 'Basic', color: 'amber', icon: 'game-icons:mining' },
+  advanced: { label: 'Advanced Mining', shortLabel: 'Advanced', color: 'orange', icon: 'game-icons:peaks' },
+  specialized: { label: 'Specialized', shortLabel: 'Special', color: 'purple', icon: 'game-icons:gem-chain' },
+};
 
 // Extraction pipeline tiers for SVG flow diagram
 const EXTRACTION_TIERS = [
@@ -69,8 +69,8 @@ export function ResourcePanel() {
   const [selectedFlowNode, setSelectedFlowNode] = useState<string | null>(null);
 
   // Track recently built/upgraded buildings for CSS animation classes
-  const [recentlyBuilt, setRecentlyBuilt] = useState<Set<string>>(new Set());
-  const [recentlyUpgraded, setRecentlyUpgraded] = useState<Set<string>>(new Set());
+  const [_recentlyBuilt, setRecentlyBuilt] = useState<Set<string>>(new Set());
+  const [_recentlyUpgraded, setRecentlyUpgraded] = useState<Set<string>>(new Set());
 
   // ─── Computed data ──────────────────────────────────────────────────────
 
@@ -247,7 +247,7 @@ export function ResourcePanel() {
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="border-warning/50 text-warning bg-warning/20 text-xs">
-            <Pickaxe className="w-3 h-3 mr-1" />
+            <Drill className="w-3 h-3 mr-1" />
             {activeExtractors}/{totalExtractors} Active
           </Badge>
           <Badge variant="outline" className="border-warning/50 text-warning bg-warning/20 text-xs">
@@ -547,31 +547,35 @@ export function ResourcePanel() {
         <div className="lg:col-span-2 space-y-3">
           {/* TAB SELECTOR */}
           <div className="flex items-center gap-1 p-1 bg-card rounded-xl border border-border">
-            {(['basic', 'advanced', 'specialized'] as const).map(tab => {
+            {(['basic', 'advanced', 'specialized'] as const).map((tab, idx) => {
               const config = TAB_CONFIG[tab];
               const colors = getTierColorClasses(config.color);
               const tabBuildings = extractorsByTab[tab];
               const isActive = selectedTab === tab;
 
               return (
-                <button
-                  key={tab}
-                  onClick={() => setSelectedTab(tab)}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border text-xs font-semibold ${
-                    isActive
-                      ? colors.tabActive
-                      : `border-transparent text-muted-label ${colors.tabHover}`
-                  }`}
-                >
-                  <div className={`w-6 h-6 rounded-md flex items-center justify-center ${isActive ? colors.bg : 'bg-muted-label/50'}`}>
-                    <GameIcon icon={config.icon} size={16} color={isActive ? config.color : '#9ca3af'} />
-                  </div>
-                  <span className="hidden sm:inline">{config.label}</span>
-                  <span className="sm:hidden">{config.shortLabel}</span>
-                  <span className={`text-[9px] font-mono ${isActive ? '' : 'text-muted-label'}`}>
-                    ({tabBuildings.filter(b => b.active).length}/{tabBuildings.length})
-                  </span>
-                </button>
+                <Fragment key={tab}>
+                  {idx > 0 && (
+                    <ArrowRight className="w-3 h-3 text-muted-label shrink-0" aria-hidden="true" />
+                  )}
+                  <button
+                    onClick={() => setSelectedTab(tab)}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border text-xs font-semibold ${
+                      isActive
+                        ? colors.tabActive
+                        : `border-transparent text-muted-label ${colors.tabHover}`
+                    }`}
+                  >
+                    <div className={`w-6 h-6 rounded-md flex items-center justify-center ${isActive ? colors.bg : 'bg-muted-label/50'}`}>
+                      <GameIcon icon={config.icon} size={16} color={isActive ? config.color : '#9ca3af'} />
+                    </div>
+                    <span className="hidden sm:inline">{config.label}</span>
+                    <span className="sm:hidden">{config.shortLabel}</span>
+                    <span className={`text-[9px] font-mono ${isActive ? '' : 'text-muted-label'}`}>
+                      ({tabBuildings.filter(b => b.active).length}/{tabBuildings.length})
+                    </span>
+                  </button>
+                </Fragment>
               );
             })}
           </div>
@@ -874,14 +878,26 @@ export function ResourcePanel() {
                 if (isEmpty && prodRate === 0 && consRate === 0) return null;
 
                 return (
-                  <div key={resource} className={`rounded-lg p-2 bg-background border ${
-                    isFull ? 'border-domain/40' : 'border-muted-label/50'
-                  }`}>
+                  <motion.div
+                    key={resource}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    whileHover={{ x: 2 }}
+                    transition={{ duration: 0.2 }}
+                    className={`rounded-lg p-2 bg-background border ${
+                      isFull ? 'border-domain/40' : 'border-muted-label/50'
+                    }`}
+                  >
                     {/* Header */}
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-1.5">
                         <GameIcon icon={meta.icon} size={14} className="inline-flex" />
                         <span className="text-[11px] text-subtle font-medium">{meta.name}</span>
+                        {(['oil', 'water'] as ResourceType[]).includes(resource) ? (
+                          <Droplets className="w-3 h-3 text-cyan-400" aria-label="liquid resource" />
+                        ) : (
+                          <Mountain className="w-3 h-3 text-stone-400" aria-label="mined resource" />
+                        )}
                       </div>
                       {netRate !== 0 ? (
                         <span className={`text-[9px] font-mono ${netRate > 0 ? 'text-success' : 'text-danger'}`}>
@@ -945,6 +961,13 @@ export function ResourcePanel() {
                       </div>
                     )}
 
+                    {/* Demand (uncapped target consumption) per minute */}
+                    {demandRates[resource] > 0 && (
+                      <div className="flex items-center justify-end mt-0.5 text-[10px] text-muted-label font-mono">
+                        <span>Demand: {formatNumber(demandRates[resource] * 60)}/min</span>
+                      </div>
+                    )}
+
                     {/* Storage upgrade */}
                     <div className="flex items-center justify-between mt-1 pt-1 border-t border-muted-label/50">
                       <div className="flex items-center gap-0.5">
@@ -970,7 +993,7 @@ export function ResourcePanel() {
                         );
                       })()}
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>

@@ -28,7 +28,11 @@ function getRandomUint32(): number {
   if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
     const buf = new Uint32Array(1);
     crypto.getRandomValues(buf);
-    return buf[0]!;
+    const value = buf[0];
+    if (value === undefined) {
+      throw new Error("[secureRandomUint32] Uint32Array index 0 is undefined");
+    }
+    return value;
   }
   // Last-resort fallback. Should never execute on supported runtimes.
   return Math.floor(Math.random() * 0xffffffff);

@@ -8,7 +8,7 @@ import {
 } from "@/lib/game/state/store";
 import { useShallow } from "zustand/react/shallow";
 import { RESEARCH_TREE } from "@/lib/game/config/configCache";
-import { RESEARCH_QUEUE_MAX } from "@/lib/game/production/engine/serverEngine";
+import { RESEARCH_QUEUE_MAX } from "@/lib/game/production/engine/validators/research";
 import { useConfigVersion } from "@/components/providers/GameConfigProvider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

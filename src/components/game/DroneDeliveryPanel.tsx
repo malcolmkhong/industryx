@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useGameStore, formatNumber } from "@/lib/game/state/store";
 import { useShallow } from "zustand/react/shallow";
-import type { Drone, DroneMission, ResourceType } from "@/lib/game/shared/types/types";
+import type { Drone, DroneMission } from "@/lib/game/shared/types/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -96,7 +96,7 @@ function DroneVisualMap({
   const buildings = useMemo(() => {
     const seen = new Set<string>();
     const result: { name: string; x: number; y: number }[] = [];
-    missions.forEach((m, i) => {
+    missions.forEach((m, _i) => {
       if (!seen.has(m.fromBuilding)) {
         seen.add(m.fromBuilding);
         result.push({
@@ -322,12 +322,21 @@ export default function DroneDeliveryPanel() {
             variant="outline"
             className="text-[10px] border-brand/30 text-brand bg-brand/20"
           >
-            {idleDrones.length} idle / {fleet.length} total
+            {deliveringDrones.length} active · {idleDrones.length} idle ·{" "}
+            {fleet.length} total
           </Badge>
         </div>
-        <div className="text-xs text-muted-label">
-          {drones.completedMissions} missions completed · $
-          {formatNumber(drones.totalEarned)} earned
+        <div className="text-xs text-muted-label flex items-center gap-1">
+          {drones.completedMissions > 0 && (
+            <Trophy
+              className="w-3 h-3 text-warning"
+              aria-label="Fleet achievement"
+            />
+          )}
+          <span>
+            {drones.completedMissions} missions completed · $
+            {formatNumber(drones.totalEarned)} earned
+          </span>
         </div>
       </div>
 
@@ -692,7 +701,7 @@ export default function DroneDeliveryPanel() {
                         <p className="text-[10px] text-muted-label mb-1">
                           Select drone to send:
                         </p>
-                        {idleDrones.map((drone, idx) => {
+                        {idleDrones.map((drone, _idx) => {
                           const droneIdx = fleet.indexOf(drone);
                           const fuel = fuelCostForDrone(drone);
                           const ticks = ticksForDrone(drone);

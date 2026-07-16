@@ -1,4 +1,4 @@
-import { validatePrestigeAction } from "@/lib/game/production/engine/serverEngine";
+import { validatePrestigeAction } from "@/lib/game/production/engine/serverEngine.server";
 import type { GameState } from "@/lib/game/shared/types/types";
 import type { ActionResponse } from "../shared/actionTypes";
 

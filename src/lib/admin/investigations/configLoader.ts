@@ -10,6 +10,7 @@ import {
   type SupabaseWeather,
   type SupabaseWorker,
 } from "@/lib/game/config/config";
+import { CONFIG_TABLE_COLUMNS } from "@/lib/db/types";
 import type {
   BuildingDefinition,
   CostResourceType,
@@ -33,7 +34,13 @@ function parseCostMap(
     | Array<{ resource: string; amount: number }>
     | null,
 ): ResourceAmount[] {
-  if (!costMap) return [{ resource: "money", amount: 100 }];
+  // C-005 (BUILDING_PRODUCTION_AUDIT §10.6 P1, 2026-07-16): fail closed
+  // on missing or null cost. Matches the offline-progress route.
+  if (!costMap) {
+    throw new Error(
+      "[parseCostMap] building has null/missing base_cost — refusing to fabricate a cost",
+    );
+  }
   if (Array.isArray(costMap)) {
     return costMap.map((item) => ({
       resource: item.resource as CostResourceType,
@@ -66,27 +73,17 @@ export async function loadInvestigationFullConfig(): Promise<GameConfig | null> 
       weatherRes,
       marketRes,
     ] = await Promise.all([
-      supabase
-        .from("game_config_buildings")
-        .select("*")
+      supabase.from("game_config_buildings").select(CONFIG_TABLE_COLUMNS.game_config_buildings)
         .order("sort_order", { ascending: true, nullsFirst: false }),
-      supabase.from("game_config_production_recipes").select("*"),
-      supabase
-        .from("game_config_research")
-        .select("*")
+      supabase.from("game_config_production_recipes").select(CONFIG_TABLE_COLUMNS.game_config_production_recipes),
+      supabase.from("game_config_research").select(CONFIG_TABLE_COLUMNS.game_config_research)
         .order("sort_order", { ascending: true, nullsFirst: false }),
-      supabase.from("game_config_production_chains").select("*"),
-      supabase
-        .from("game_config_workers")
-        .select("*")
+      supabase.from("game_config_production_chains").select(CONFIG_TABLE_COLUMNS.game_config_production_chains),
+      supabase.from("game_config_workers").select(CONFIG_TABLE_COLUMNS.game_config_workers)
         .order("sort_order", { ascending: true, nullsFirst: false }),
-      supabase
-        .from("game_config_weather")
-        .select("*")
+      supabase.from("game_config_weather").select(CONFIG_TABLE_COLUMNS.game_config_weather)
         .order("sort_order", { ascending: true, nullsFirst: false }),
-      supabase
-        .from("game_config_market")
-        .select("*")
+      supabase.from("game_config_market").select(CONFIG_TABLE_COLUMNS.game_config_market)
         .order("sort_order", { ascending: true, nullsFirst: false }),
     ]);
 

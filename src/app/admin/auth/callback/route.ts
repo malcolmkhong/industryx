@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from '@/lib/db/access';;
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { createClient, createServiceRoleClient } from '@/lib/db/access';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -47,7 +46,6 @@ export async function GET(request: Request) {
           // Authorized admin → redirect to admin dashboard
           return NextResponse.redirect(`${origin}${next}`);
         } else {
-          // Authenticated but NOT admin → unauthorized
           return NextResponse.redirect(`${origin}/admin/login?error=unauthorized`);
         }
       }

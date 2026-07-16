@@ -399,7 +399,7 @@ export function FloatingActionButton({
   // ── Close menu on outside click ──
 
   useEffect(() => {
-    if (!isExpanded) return;
+    if (!isExpanded) return undefined;
 
     const handleClickOutside = (e: MouseEvent | TouchEvent) => {
       if (

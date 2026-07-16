@@ -1,9 +1,15 @@
 // tests/unit/serverAuthoritativeDrone.test.ts - Phase 6 #13 + #14
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
+import balanceFixture from "../fixtures/balanceFixture.json";
+import {
+  applyBalanceOverrides,
+  _resetBalanceForTests,
+  type GameBalanceConfig,
+} from "@/lib/game/config/balance/balanceConfig";
 import {
   validateStartDroneMissionAction,
   validateCollectDroneAction,
-} from "@/lib/game/production/engine/serverEngine";
+} from "@/lib/game/production/engine/serverEngine.server";
 import type { GameState, Drone } from "@/lib/game/shared/types/types";
 
 function makeDrone(o?: Partial<Drone>): Drone {
@@ -59,6 +65,15 @@ function withPayload(
 }
 
 // PLACEHOLDER_MARKER
+
+function makeCompleteBalance(): GameBalanceConfig {
+  return structuredClone(balanceFixture) as unknown as GameBalanceConfig;
+}
+
+beforeEach(() => {
+  _resetBalanceForTests();
+  applyBalanceOverrides(makeCompleteBalance());
+});
 
 describe("validateStartDroneMissionAction (server-authoritative)", () => {
   it("returns valid + correctedState for affordable mission start", () => {

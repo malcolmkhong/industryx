@@ -12,7 +12,7 @@
 // ============================================
 
 import { describe, it, expect } from "vitest";
-import { validateToggleBuildingAction } from "@/lib/game/production/engine/serverEngine";
+import { validateToggleBuildingAction } from "@/lib/game/production/engine/serverEngine.server";
 import type {
   GameState,
   BuildingInstance,

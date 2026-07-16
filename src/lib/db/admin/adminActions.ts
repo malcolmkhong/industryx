@@ -83,7 +83,9 @@ export async function listAdminActions(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('admin_actions')
-    .select('*')
+    .select(
+      'id,admin_user_id,action_type,target_id,target_user_id,details,payload,ip_address,created_at',
+    )
     .order('created_at', { ascending: false })
     .limit(limit);
 

@@ -22,17 +22,22 @@ import {
 } from "@/lib/game/config/balance/balanceConfig";
 
 const BALANCE = fixture as unknown as GameBalanceConfig;
-
 // ── hoisted mocks: keep `buildProductionSnapshotServer` deterministic ──
-const { computeProductionServer, computePowerGridServer } = vi.hoisted(() => ({
-  computeProductionServer: vi.fn(() => ({
+// P2-10: production code imports `computeProduction` and
+// `computePowerGrid` directly from productionCalculator. The hoisted
+// mocks are referenced by the `vi.mock` factory below and by the
+// per-test `mockReturnValue` / `mockReturnValueOnce` calls in the body.
+const { computeProduction, computePowerGrid } = vi.hoisted(() => ({
+  computeProduction: vi.fn(() => ({
     canProduce: true,
     inputs: [{ resource: "iron", amount: 10 }],
     actualInputs: [{ resource: "iron", amount: 10 }],
     outputs: [{ resource: "ironPlate", amount: 5 }],
     efficiency: 1,
+    workerPowerSavings: 0,
+    reason: null,
   })),
-  computePowerGridServer: vi.fn(() => ({
+  computePowerGrid: vi.fn(() => ({
     totalProduction: 0,
     totalConsumption: 0,
     efficiency: 1,
@@ -71,30 +76,70 @@ vi.mock("@/lib/game/production/engine/math/multipliers.server", () => ({
   getBuildingDef: vi.fn(() => ({ category: "factory" })),
 }));
 
-vi.mock("@/lib/game/production/engine/math/power.server", () => ({
-  computePowerGridServer,
-}));
-
-vi.mock("@/lib/game/production/engine/math/production.server", () => ({
-  computeProductionServer,
-}));
-
-vi.mock("@/lib/game/production/engine/math/payout.server", () => ({
-  computePayoutServer: vi.fn(() => ({
+// P2-10: production code imports directly from productionCalculator.
+// Mock the barrel and share the hoisted computeProduction /
+// computePowerGrid so per-test mockReturnValue* calls affect the
+// function the production code actually runs.
+vi.mock("@/lib/game/production/productionCalculator", () => ({
+  getBuildingDef: vi.fn(),
+  getWorkerDef: vi.fn(),
+  buildMultipliers: vi.fn(() => ({
+    powerEfficiency: 1,
+    productionBonus: 0,
+    eventProductionGlobal: 1,
+    weatherProduction: 1,
+    transportProductionBonus: 1,
+    marketBonus: 0,
+    extractorBonus: 0,
+    factoryBonus: 0,
+    t1FactoryBonus: 0,
+    t2FactoryBonus: 0,
+    t3FactoryBonus: 0,
+    workerEfficiencyTotal: 0,
+    specificBuildingBonuses: new Map(),
+    workersByBuilding: new Map(),
+    eventProductionTargeted: new Map(),
+    weatherSolar: 1,
+    weatherWind: 1,
+    hasEnergyEfficiency: false,
+    hasPowerOptimization: false,
+    eventPowerConsumption: 1,
+    powerBonus: 0,
+  })),
+  computePowerGrid,
+  computeProduction,
+  computeSellMultiplier: vi.fn(() => 1),
+  computePayout: vi.fn(() => ({
     amountPerCycle: 0,
     breakdown: { extractors: 0, factories: 0, power: 0 },
   })),
-}));
-
-vi.mock("@/lib/game/production/engine/math/sell.server", () => ({
-  computeSellMultiplierServer: vi.fn(() => 1),
-}));
-
-vi.mock("@/lib/game/production/engine/math/endgame.server", () => ({
-  computeEndgameIncomeServer: vi.fn(() => ({
+  computeEndgameIncome: vi.fn(() => ({
     moneyPerTick: 100,
     researchPerTick: 5,
     corpPerTick: 1,
+  })),
+  emptyProductionSnapshot: vi.fn(() => ({
+    production: {},
+    consumption: {},
+    actualConsumption: {},
+    buildings: {},
+    powerProduction: 0,
+    powerConsumption: 0,
+    powerEfficiency: 1,
+    powerOverload: false,
+    payoutPerCycle: 0,
+    payoutBreakdown: { extractors: 0, factories: 0, power: 0 },
+    sellMultiplier: 0,
+    endgameMoney: 0,
+    endgameResearch: 0,
+    endgameCorp: 0,
+    moneyIncomeRate: 0,
+    moneyExpenseRate: 0,
+    rpIncomeRate: 0,
+    rpExpenseRate: 0,
+    cpIncomeRate: 0,
+    cpExpenseRate: 0,
+    storageOverflow: {},
   })),
 }));
 
@@ -111,12 +156,14 @@ const STUB_CONFIG = {
 beforeEach(() => {
   _resetBalanceForTests();
   applyBalanceOverrides(BALANCE);
-  computeProductionServer.mockReturnValue({
+  computeProduction.mockReturnValue({
     canProduce: true,
     inputs: [{ resource: "iron", amount: 10 }],
     actualInputs: [{ resource: "iron", amount: 10 }],
     outputs: [{ resource: "ironPlate", amount: 5 }],
     efficiency: 1,
+    workerPowerSavings: 0,
+    reason: null,
   });
 });
 
@@ -181,12 +228,14 @@ describe("V-035 / PR-BP-3 §2.3 — currency expense-rate wiring", () => {
     // Building recipe that consumes money as an input (currently no
     // production def does this, but the wiring must handle it so a
     // future building automatically populates its expense rate).
-    computeProductionServer.mockReturnValueOnce({
+    computeProduction.mockReturnValueOnce({
       canProduce: true,
       inputs: [{ resource: "money", amount: 42 }],
       actualInputs: [{ resource: "money", amount: 42 }],
-      outputs: [{ resource: "ironPlate", amount: 1 }],
+      outputs: [{ resource: 'ironPlate', amount: 1 }],
       efficiency: 1,
+      workerPowerSavings: 0,
+      reason: null,
     });
     const snapshot = buildProductionSnapshotServer(makeState(), STUB_CONFIG);
 
@@ -196,12 +245,14 @@ describe("V-035 / PR-BP-3 §2.3 — currency expense-rate wiring", () => {
   });
 
   it("rpExpenseRate surfaces when a building consumes researchPoints", () => {
-    computeProductionServer.mockReturnValueOnce({
+    computeProduction.mockReturnValueOnce({
       canProduce: true,
       inputs: [{ resource: "researchPoints", amount: 17 }],
       actualInputs: [{ resource: "researchPoints", amount: 17 }],
-      outputs: [{ resource: "ironPlate", amount: 1 }],
+      outputs: [{ resource: 'ironPlate', amount: 1 }],
       efficiency: 1,
+      workerPowerSavings: 0,
+      reason: null,
     });
     const snapshot = buildProductionSnapshotServer(makeState(), STUB_CONFIG);
 
@@ -211,12 +262,14 @@ describe("V-035 / PR-BP-3 §2.3 — currency expense-rate wiring", () => {
   });
 
   it("cpExpenseRate surfaces when a building consumes corporationPoints", () => {
-    computeProductionServer.mockReturnValueOnce({
+    computeProduction.mockReturnValueOnce({
       canProduce: true,
       inputs: [{ resource: "corporationPoints", amount: 3 }],
       actualInputs: [{ resource: "corporationPoints", amount: 3 }],
-      outputs: [{ resource: "ironPlate", amount: 1 }],
+      outputs: [{ resource: 'ironPlate', amount: 1 }],
       efficiency: 1,
+      workerPowerSavings: 0,
+      reason: null,
     });
     const snapshot = buildProductionSnapshotServer(makeState(), STUB_CONFIG);
 

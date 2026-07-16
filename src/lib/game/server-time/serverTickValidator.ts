@@ -16,7 +16,7 @@
 import type { ServerGameData } from "../shared/types/types";
 import type { GameConfig } from "../config/config";
 import { computeProduction, computePayout, computeEndgameIncome } from '../production/productionCalculator';
-import { buildMultipliersServer } from '../production/engine/serverEngine';
+import { buildMultipliersServer } from '../production/engine/serverEngine.server';
 
 /**
  * Compute the theoretical maximum money a player should have.

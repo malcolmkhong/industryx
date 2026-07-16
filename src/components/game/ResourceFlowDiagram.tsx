@@ -323,12 +323,15 @@ export default function ResourceFlowDiagram() {
               Flow Diagram
             </CardTitle>
             <div className="flex items-center gap-2">
-              <Input
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="h-7 w-32 text-[11px] bg-card border-brand/30 text-subtle placeholder-muted-label"
-              />
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-label pointer-events-none" />
+                <Input
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="h-7 w-32 pl-7 text-[11px] bg-card border-brand/30 text-subtle placeholder-muted-label"
+                />
+              </div>
               {selectedResource && (
                 <Button
                   variant="ghost"

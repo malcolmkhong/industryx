@@ -1,9 +1,15 @@
 // tests/unit/serverAuthoritativeTransport.test.ts - Phase 6 #15 + #16
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
+import balanceFixture from "../fixtures/balanceFixture.json";
+import {
+  applyBalanceOverrides,
+  _resetBalanceForTests,
+  type GameBalanceConfig,
+} from "@/lib/game/config/balance/balanceConfig";
 import {
   validateTransportAction,
   validateUpgradeTransportLineAction,
-} from "@/lib/game/production/engine/serverEngine";
+} from "@/lib/game/production/engine/serverEngine.server";
 import type { GameState, BuildingInstance } from "@/lib/game/shared/types/types";
 import type { GameConfig } from "@/lib/game/config/config";
 
@@ -129,10 +135,20 @@ function makeState(o?: {
       transportLinesBuilt: 0,
       researchCompleted: 0,
       contractsCompleted: 0,
+      tradesCompleted: 0,
       playTime: 0,
     },
   };
 }
+
+function makeCompleteBalance(): GameBalanceConfig {
+  return structuredClone(balanceFixture) as unknown as GameBalanceConfig;
+}
+
+beforeEach(() => {
+  _resetBalanceForTests();
+  applyBalanceOverrides(makeCompleteBalance());
+});
 
 describe("validateTransportAction (server-authoritative)", () => {
   const config = makeConfig();

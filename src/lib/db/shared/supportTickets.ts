@@ -36,7 +36,9 @@ export async function listTickets(filters: TicketFilters = {}): Promise<SupportT
 
   let query = supabase
     .from('support_tickets')
-    .select('*')
+    .select(
+      'id,user_id,subject,message,status,priority,accepted_by,resolved_at,created_at,updated_at',
+    )
     .order('created_at', { ascending: false });
 
   if (filters.userId) query = query.eq('user_id', filters.userId);
@@ -68,7 +70,9 @@ export async function getTicket(id: string): Promise<SupportTicketRow | null> {
 
   const { data, error } = await supabase
     .from('support_tickets')
-    .select('*')
+    .select(
+      'id,user_id,subject,message,status,priority,accepted_by,resolved_at,created_at,updated_at',
+    )
     .eq('id', id)
     .single();
 
@@ -147,7 +151,7 @@ export async function listTicketMessages(ticketId: string): Promise<SupportMessa
 
   const { data, error } = await supabase
     .from('support_messages')
-    .select('*')
+    .select('id,ticket_id,sender_id,sender_type,message,created_at')
     .eq('ticket_id', ticketId)
     .order('created_at', { ascending: true });
 

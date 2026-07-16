@@ -25,6 +25,9 @@ import {
   isServerGameStateAvailable,
 } from "@/lib/db/game/serverGameState";
 import { buildDenormalizedStatePatchFields } from "@/lib/game/actions/server/shared/denormalizedStatePatch";
+import { buildMarketSupplyProjection } from "@/lib/game/production/snapshot/marketSupplyProjection";
+import { asFullState, stripUIFields } from "@/lib/db/game/serverGameStatePayload";
+import type { Json } from "@/lib/db/types";
 import {
   DEFAULT_BALANCE_SUBSET,
   type SupabaseBuilding,
@@ -45,8 +48,7 @@ import type {
   ServerGameData,
 } from "@/lib/game/shared/types/types";
 import type { ProductionSnapshot } from "@/lib/game/production/productionCalculator";
-import { runServerTicks } from "@/lib/game/production/engine/serverEngine";
-import { asFullState } from "@/lib/db/game/serverGameStatePayload";
+import { runServerTicks } from "@/lib/game/production/engine/serverEngine.server";
 import { recordTickResponse } from "@/lib/game/production/observability";
 
 // ─── In-Memory Config Cache ─────────────────────────────────────────────
@@ -615,7 +617,22 @@ export async function POST(request: Request) {
     auth.userId,
     currentVersion, // optimistic lock
     {
-      full_state: asFullState(result.newState),
+      // C-003 (BUILDING_PRODUCTION_AUDIT §10.4, 2026-07-16):
+      // Defense-in-depth — strip UI keys before coercing to full_state.
+      full_state: asFullState(
+        stripUIFields(result.newState as unknown as Record<string, unknown>),
+      ),
+      // C-002 (BUILDING_PRODUCTION_AUDIT §10.4, 2026-07-16):
+      // Persist the server-only supply projection to the dedicated
+      // top-level column so /api/market/supply/aggregate (which reads
+      // `row.market_supply`, not the stripped `full_state`) stays
+      // accurate for players whose only progress comes through offline
+      // settlement. Mirrors the live/action writer in
+      // `applyElapsedServerTime`.
+      market_supply: buildMarketSupplyProjection(
+        result.productionSnapshot,
+        serverNow,
+      ) as unknown as Json,
       ...denormalizedFields,
       game_tick: newGameTick,
       state_version: nextVersion,

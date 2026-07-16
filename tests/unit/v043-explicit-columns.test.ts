@@ -6,20 +6,21 @@
  * schema churn into runtime, and widens the trust boundary for any
  * future row-level changes.
  *
- * Scope: the two server-authoritative tick routes.
- *
- *   - src/app/api/game/production/compute/route.ts (7 sites)
+ * Scope: the server-authoritative offline tick route.
  *   - src/app/api/game/state/offline-progress/route.ts (8 sites)
  *
+ * NOTE: the `/api/game/production/compute` orphan oracle was removed
+ * in C-006 (BUILDING_PRODUCTION_AUDIT §10.4, 2026-07-16).
+ *
  * These tables are pinned:
- *   game_config_buildings           (compute + offline)
- *   game_config_production_recipes  (compute + offline)
- *   game_config_research            (compute + offline)
- *   game_config_production_chains   (compute + offline)
- *   game_config_workers             (compute + offline)
- *   game_config_weather             (compute + offline)
- *   game_config_market              (compute + offline)
- *   game_config_game                (offline only)
+ *   game_config_buildings           (offline)
+ *   game_config_production_recipes  (offline)
+ *   game_config_research            (offline)
+ *   game_config_production_chains   (offline)
+ *   game_config_workers             (offline)
+ *   game_config_weather             (offline)
+ *   game_config_market              (offline)
+ *   game_config_game                (offline)
  */
 
 import { describe, expect, it } from "vitest";
@@ -33,10 +34,7 @@ function readSource(relPath: string): string {
 }
 
 describe("V-043 — explicit column lists in production tick routes", () => {
-  const computeRoute =
-    "src/app/api/game/production/compute/route.ts";
-  const offlineRoute =
-    "src/app/api/game/state/offline-progress/route.ts";
+  const offlineRoute = "src/app/api/game/state/offline-progress/route.ts";
 
   const tables = [
     "game_config_buildings",
@@ -47,72 +45,6 @@ describe("V-043 — explicit column lists in production tick routes", () => {
     "game_config_weather",
     "game_config_market",
   ] as const;
-
-  describe(`compute route (${computeRoute})`, () => {
-    const src = readSource(computeRoute);
-
-    it.each(tables)(
-      "explicit columns for `%s` (no select('*'))",
-      (table) => {
-        const selectStar = new RegExp(
-          `from\\(["']${table}["']\\)\\s*\\.select\\(\\s*["']\\*["']`,
-        );
-        expect(src, `${table} still uses select('*')`).not.toMatch(
-          selectStar,
-        );
-      },
-    );
-
-    it("selects every required column for game_config_buildings", () => {
-      // Required by BuildingDefinition mapper in compute/route.ts
-      const required = [
-        "id",
-        "name",
-        "description",
-        "category",
-        "tier",
-        "base_cost",
-        "cost_multiplier",
-        "base_power_consumption",
-        "base_power_production",
-        "base_production_rate",
-        "fuel",
-        "fuel_rate",
-        "unlock_research",
-        "unlock_prestige",
-        "icon",
-      ];
-      const re = /from\(["']game_config_buildings["']\)[\s\S]*?\.select\(\s*"([\s\S]*?)"/;
-      const match = src.match(re);
-      expect(match, "game_config_buildings select() block").toBeTruthy();
-      const columns = (match?.[1] ?? "").split(",").map((s) => s.trim());
-      for (const col of required) {
-        expect(columns, `missing column ${col}`).toContain(col);
-      }
-    });
-
-    it("selects every required column for game_config_research", () => {
-      const required = [
-        "id",
-        "name",
-        "description",
-        "category",
-        "tier",
-        "cost",
-        "time_required",
-        "prerequisites",
-        "effects",
-        "icon",
-      ];
-      const re = /from\(["']game_config_research["']\)[\s\S]*?\.select\(\s*"([\s\S]*?)"/;
-      const match = src.match(re);
-      expect(match, "game_config_research select() block").toBeTruthy();
-      const columns = (match?.[1] ?? "").split(",").map((s) => s.trim());
-      for (const col of required) {
-        expect(columns, `missing column ${col}`).toContain(col);
-      }
-    });
-  });
 
   describe(`offline-progress route (${offlineRoute})`, () => {
     const src = readSource(offlineRoute);
@@ -149,15 +81,20 @@ describe("V-043 — explicit column lists in production tick routes", () => {
   });
 
   describe("V-043 scope guard", () => {
-    it("does not touch out-of-scope admin/player routes (V-043 is production-only)", () => {
-      // Documenting the explicit boundary. V-043 covers only the two
-      // tick routes. Admin (`configLoader.ts`) and player (`progress`)
-      // are tracked under separate work items.
-      const inScope = [
+    it("C-006: /api/game/production/compute is removed", () => {
+      // The orphan oracle was removed in C-006; this regression guard
+      // ensures the route file does not reappear.
+      const { existsSync } = require("node:fs") as typeof import("node:fs");
+      const computeRoute = join(
+        REPO_ROOT,
         "src/app/api/game/production/compute/route.ts",
-        "src/app/api/game/state/offline-progress/route.ts",
-      ];
-      expect(inScope).toHaveLength(2);
+      );
+      expect(existsSync(computeRoute)).toBe(false);
+    });
+
+    it("V-043 scope: only the offline-progress route is in scope", () => {
+      const inScope = ["src/app/api/game/state/offline-progress/route.ts"];
+      expect(inScope).toHaveLength(1);
     });
   });
 });

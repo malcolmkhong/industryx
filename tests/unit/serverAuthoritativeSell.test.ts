@@ -10,8 +10,14 @@
 // stats.totalResourcesSold[resource] is incremented.
 // ============================================
 
-import { describe, it, expect } from "vitest";
-import { validateSellAction } from "@/lib/game/production/engine/serverEngine";
+import { describe, it, expect, beforeEach } from "vitest";
+import balanceFixture from "../fixtures/balanceFixture.json";
+import {
+  applyBalanceOverrides,
+  _resetBalanceForTests,
+  type GameBalanceConfig,
+} from "@/lib/game/config/balance/balanceConfig";
+import { validateSellAction } from "@/lib/game/production/engine/serverEngine.server";
 import type { GameState, MarketPrice } from "@/lib/game/shared/types/types";
 
 function makeMarket(overrides?: Partial<MarketPrice>): MarketPrice {
@@ -57,6 +63,15 @@ function makeState(overrides?: {
     },
   };
 }
+
+function makeCompleteBalance(): GameBalanceConfig {
+  return structuredClone(balanceFixture) as unknown as GameBalanceConfig;
+}
+
+beforeEach(() => {
+  _resetBalanceForTests();
+  applyBalanceOverrides(makeCompleteBalance());
+});
 
 describe("validateSellAction (server-authoritative)", () => {
   it("returns valid + correctedState for affordable sell", () => {
@@ -167,6 +182,7 @@ describe("validateSellAction (server-authoritative)", () => {
       transportLinesBuilt: 0,
       researchCompleted: 0,
       contractsCompleted: 0,
+      tradesCompleted: 0,
       playTime: 0,
     };
 

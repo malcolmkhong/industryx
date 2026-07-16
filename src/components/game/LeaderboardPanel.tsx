@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { formatNumber } from '@/lib/game/state/store';
 import { RANK_THRESHOLDS } from '@/lib/game/config/configCache';
+import { useLeaderboardPolling } from '@/lib/hooks/page/useLeaderboardPolling';
 import { Trophy, ChevronDown, ChevronUp, Building2, FlaskConical, ScrollText, Coins, Clock, RotateCcw, Loader2, RefreshCw, Crown, Medal, Award, Globe, LogIn, WifiOff } from 'lucide-react';
 import { GameIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
@@ -123,11 +124,11 @@ export default function LeaderboardPanel() {
     fetchLeaderboard();
   }, [fetchLeaderboard]);
 
-  // Auto-refresh every 30 seconds
-  useEffect(() => {
-    const interval = setInterval(fetchLeaderboard, 30_000);
-    return () => clearInterval(interval);
-  }, [fetchLeaderboard]);
+  // P2-12: shared backoff-aware polling hook. Replaces the previous
+  // component-owned setInterval (no visibility handling, no failure
+  // backoff). The hook pauses while the tab is hidden and escalates
+  // backoff on 429/5xx.
+  useLeaderboardPolling(fetchLeaderboard);
 
   const toggleExpand = useCallback((id: string) => {
     setExpandedEntry(prev => prev === id ? null : id);

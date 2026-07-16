@@ -7,17 +7,17 @@
 
 import {
   emptyProductionSnapshot,
+  computeProduction,
+  computePowerGrid,
+  computePayout,
+  computeSellMultiplier,
+  computeEndgameIncome,
   type ProductionSnapshot,
 } from "../../productionCalculator";
 import type { ServerGameData } from "../../../shared/types/types";
 import type { GameConfig } from "../../../config/config";
 
 import { buildMultipliersServer, buildWorkerDefsMap } from "../math/multipliers.server";
-import { computePowerGridServer } from "../math/power.server";
-import { computeProductionServer } from "../math/production.server";
-import { computePayoutServer } from "../math/payout.server";
-import { computeSellMultiplierServer } from "../math/sell.server";
-import { computeEndgameIncomeServer } from "../math/endgame.server";
 
 export function buildProductionSnapshotServer(
   state: ServerGameData,
@@ -30,13 +30,12 @@ export function buildProductionSnapshotServer(
   const cache = buildMultipliersServer(state, config);
 
   const resourcesCopy = { ...state.resources };
-  const powerResult = computePowerGridServer(
+  const powerResult = computePowerGrid(
     state,
     cache,
     resourcesCopy,
     state.gameTick,
-    buildings,
-    workerDefs,
+    { buildings, workers: workerDefs },
   );
 
   cache.powerEfficiency = powerResult.efficiency;
@@ -47,27 +46,38 @@ export function buildProductionSnapshotServer(
   snapshot.powerOverload = powerResult.overload;
 
   for (const building of state.buildings) {
-    const result = computeProductionServer(
+    const result = computeProduction(
       building,
       cache,
       resourcesCopy,
-      buildings,
-      workerDefs,
+      { buildings, workers: workerDefs },
     );
 
+    // C-001 (BUILDING_PRODUCTION_AUDIT §10.4, 2026-07-16):
+    // Blocked factories return `canProduce: false` but still carry a
+    // populated `outputs` array (the potential output, useful for the
+    // calculator and demand planning). The server's authoritative
+    // inventory/wallet was never credited by `runServerTicks`, so the
+    // snapshot must not surface potential output as actual production.
+    // `actualConsumption` is already correct because `actualInputs` is
+    // empty for blocked factories; `consumption` continues to advertise
+    // input demand for the planner.
     snapshot.buildings[building.id] = {
-      outputs: result.outputs,
+      outputs: result.canProduce ? result.outputs : [],
       inputs: result.inputs,
       efficiency: result.efficiency,
     };
 
-    for (const output of result.outputs) {
-      snapshot.production[output.resource] =
-        (snapshot.production[output.resource] ?? 0) + output.amount;
-    }
     for (const input of result.inputs) {
       snapshot.consumption[input.resource] =
         (snapshot.consumption[input.resource] ?? 0) + input.amount;
+    }
+
+    if (!result.canProduce) continue;
+
+    for (const output of result.outputs) {
+      snapshot.production[output.resource] =
+        (snapshot.production[output.resource] ?? 0) + output.amount;
     }
     for (const input of result.actualInputs) {
       snapshot.actualConsumption[input.resource] =
@@ -75,13 +85,16 @@ export function buildProductionSnapshotServer(
     }
   }
 
-  const payout = computePayoutServer(state, cache, buildings);
+  const payout = computePayout(state, cache, {
+    buildings,
+    workers: cache.gameDefs?.workers ?? {},
+  });
   snapshot.payoutPerCycle = payout.amountPerCycle;
   snapshot.payoutBreakdown = payout.breakdown;
 
-  snapshot.sellMultiplier = computeSellMultiplierServer(state, cache);
+  snapshot.sellMultiplier = computeSellMultiplier(state, cache);
 
-  const endgame = computeEndgameIncomeServer(state, cache);
+  const endgame = computeEndgameIncome(state, cache);
   snapshot.endgameMoney = endgame.moneyPerTick;
   snapshot.endgameResearch = endgame.researchPerTick;
   snapshot.endgameCorp = endgame.corpPerTick;

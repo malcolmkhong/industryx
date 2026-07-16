@@ -1,20 +1,20 @@
 # IndustryX Building Production Chain — Test Plan & Architecture Audit
 
 > **Audit-only deliverable.** No code changes proposed in this document.
-> **Verdict (lead with this):** **PARTIALLY CONNECTED / BROKEN END-TO-END.** Authoritative server-state wiring for `money`, `resources`, `buildings`, `powerGrid`, `gameTick`, `weather`, `last_tick_at` is correct end-to-end via `live-tick` and `offline-progress`. The per-tick `productionSnapshot` (the object every UI panel reads to display rates, fill bars, power surplus, payout per cycle, RP/CP income, factory flow) **is generated on the server but never reaches the client UI in production**. Multiple core engine invariants are silently violated or undocumented. Several user-listed concerns are confirmed true and are testable today; some are partially mitigated but still leaky.
+> **Verdict (lead with this):** **PARTIALLY CONNECTED — CORE SETTLEMENT OPERATIONAL, NOT RELEASE-COMPLETE.** The historical `productionSnapshot` transport break is fixed in the current tree: live-tick and offline-progress return it, the client store installs it, and 14 UI files consume it. The remaining current-tree blockers are false production-rate reporting for input-starved factories, incomplete market-supply projection writes on offline settlement, asymmetric `full_state` sanitization, divergent client-side power/income calculations, duplicated config ownership, and weak/stale regression coverage. Server settlement for `money`, `resources`, `buildings`, `powerGrid`, `gameTick`, `weather`, and `last_tick_at` remains authoritative through CAS-backed live/action/offline paths.
 
 ---
 
 ## 0. Context
 
-This document is the single source-of-truth audit of the building production chain in `A:\industryx\industryx`. It is grounded entirely in current code (commit `main` + 1 ahead), docs in `BUGS.md`, `docs/`, `planning/`, and the live supabase table dumps (`sb_*.txt`). It contains:
+This document is the single source-of-truth audit of the building production chain in `A:\industryx\industryx`. It is grounded in the current working tree validated on 2026-07-16, docs in `BUGS.md`, `docs/`, `planning/`, and the committed Supabase table dumps (`sb_*.txt`). It contains:
 
 1. A chain-walk from Supabase config → server tick → API → DB → client store → UI.
 2. A per-concern verdict on each user-listed implementation worry.
 3. A concrete test specification for every required scenario, with file paths, preconditions, steps, expected vs. actual behavior, and priority.
 4. A list of confirmed architectural problems (broken links, race conditions, silent failures, hardcoded leaks, orphan endpoints).
 
-**No production code is modified by this audit.** After approval, the same content is written verbatim to the root-level Markdown report file as requested.
+**No production code is modified by this audit.** The current-tree revalidation and repair plan are recorded below; implementation remains a separate approved task.
 
 ---
 
@@ -1590,3 +1590,462 @@ Run targeted tests first, then `npm run typecheck`, `npm run lint`, Vitest, inte
 - **Are tests proving runtime behavior?** No. Existing coverage is weighted toward validators and route guards; core tick math, snapshot installation, storage overflow, market aggregate, expense rates, live/offline parity, and current state-shape boundaries lack trustworthy end-to-end tests.
 
 The minimum acceptable production bar is P0 snapshot repair **plus market-aggregate repair plus expense-rate population** plus regression coverage, P1 fail-closed/storage/persistence/strip-symmetry repairs, and a corrected architecture test. Until then, the building production system should be treated as **not release-complete** even though its core server settlement loop is operational.
+
+---
+
+## 10. Current-Tree Revalidation — 2026-07-16
+
+### 10.1 Scope, method, and authority
+
+This addendum supersedes earlier verdicts where the current working tree has changed since the 2026-07-15 pass. It validates all files under `src/components/game/**` (including `auth/`, `headers/`, and `shared/`) plus the connected store, hooks, server routes, config loaders, persistence writers, migrations, production engine, database accessors, and tests.
+
+Evidence sources:
+
+- Graphify queries for the snapshot path, game-component dependencies, tick engine, and config consumers. Graph edges were used for navigation only; direct source reads below are authoritative.
+- Current source, tests, migrations, generated DB types, `sb_buildings.txt`, `BUGS.md`, `.rules`, `docs/ECONOMY_AUDIT.md`, and `docs/SERVER_TICK_CHAIN_PLAN.md`.
+- Parallel read-only audits for production math, UI components, API/persistence, config/database, and test architecture. Main-agent cross-check rejected conflicting subagent claims against current source.
+- Executed validation on the current tree: `npm run typecheck`, targeted Vitest suites, `npm test`, `npm run test:vitest`, `npm run lint`, and `npm run test:components`.
+
+No production source code was changed. This report and the bug registry are documentation outputs only.
+
+### 10.2 Execution-chain diagrams
+
+#### Authoritative live/action settlement
+
+```text
+Supabase config + complete balance
+  → fetchGameConfigFromSupabase()/ensureConfigLoaded()
+  → transform building rows + recipes
+  → applyElapsedServerTime()
+  → applyElapsedTicks()
+  → runServerTicks(state, ticks, config)
+       → buildMultipliersServer
+       → computePowerGridServer + fuel debit
+       → computeProductionServer per building
+       → input debit + output capacity handling
+       → computeEndgameIncomeServer
+       → weather advance
+       → buildProductionSnapshotServer
+  → saveServerGameStateOptimistic(... state_version CAS ...)
+       → full_state + denormalized columns
+       → market_supply projection on elapsed action/live path
+  → live-tick response {newState, productionSnapshot}
+  → useLiveServerTick()
+  → applyServerState(newState, productionSnapshot)
+  → Zustand productionSnapshot
+  → 14 UI files
+```
+
+**Validated:** ordinary server state and snapshot transport are connected. **Not validated as correct:** snapshot output semantics for blocked factories and projection writes on every tick-settlement writer.
+
+#### Offline settlement
+
+```text
+useOfflineProgressCheck()
+  → POST /api/game/state/offline-progress
+  → auth + rate limit + load state + DB time + config
+  → runServerTicks()
+  → saveServerGameStateOptimistic(... full_state + denormalized fields ...)
+  → response {newState, productionSnapshot}
+  → applyServerState(newState, productionSnapshot)
+```
+
+**Broken link:** this route does not write `market_supply`, although the live/action elapsed writer does. The global market aggregate therefore depends on which settlement path last ran.
+
+#### Snapshot semantic path for an input-starved factory
+
+```text
+computeProduction()
+  → canProduce=false, actualInputs=[], outputs=[potential output], reason="missing_inputs"
+  → runServerTicks() correctly skips debit/output
+  → buildProductionSnapshotServer() currently aggregates result.outputs anyway
+  → productionSnapshot.production and building.outputs report output
+  → FactoryPanel and other consumers display a nonzero production rate
+```
+
+**This is a live correctness defect.** Server inventory remains correct; server-derived status is not.
+
+#### Config ownership currently has parallel paths
+
+```text
+applyElapsedTicks()       → serverConfigFetcher + server balance loader
+runActionCommand()        → actions/server/shared/loadConfig.ts
+offline-progress route    → inline loadFullConfig()/inline transforms
+production/compute route  → inline loadFullConfig()/inline transforms
+client provider          → configLoader.client.ts + shared transformers
+admin investigations     → another inline config loader
+```
+
+These paths do not load exactly the same tables, use exactly the same transforms, or share the same cache. This is an architecture drift risk, not proof that every current result differs.
+
+### 10.3 Current validation matrix
+
+| Report claim | Current verdict | Confidence | Current evidence / correction |
+|---|---|---:|---|
+| V-001: `productionSnapshot` never reaches UI | **Outdated / resolved** | High | `live-tick/route.ts:91-95`, `offline-progress/route.ts:660-662`, `useLiveServerTick.ts:99-103`, `useOfflineProgressCheck.ts:98-101`, `state/store.ts:139-173`. Snapshot is installed as a second argument and remains out of `SERVER_FIELDS`/`full_state` by design. |
+| V-002: workers are bonuses, not prerequisites | **Confirmed behavior; intent unresolved** | High | `production.ts:99-115` skips worker effects when none are assigned; extractors/factories still run when power/inputs pass. Keep unless product design says staffing is mandatory. |
+| V-003: storage overflow silently discards output | **Partially resolved** | High | `runServerTicks.ts:55-71,148-170,188-190` now fails closed, records `{produced, accepted, wasted}`, and emits telemetry. Zero component reads `storageOverflow`; `StoragePanel.tsx` never surfaces waste. Silent player-visible loss remains. |
+| V-004: client/server capacity diverges | **Core engine resolved; UI fallback drift remains** | High | Server `resolveCapacityForResource()` honors unlimited storage and throws on missing capacity. But `StoragePanel.tsx:238,317,401,513,831`, `GlobalResourceMonitorPanel.tsx:318-320`, and `ResourceFlowDiagram.tsx:103` still use `?? 100`, `?? 50`, or `?? 50` presentation fallbacks. |
+| V-005: unknown and inactive buildings are indistinguishable | **Resolved at calculator boundary** | High | `production.ts:49-75,169-190` returns distinct reasons and records counters. No caller yet uses `reason` to render blocked status. |
+| V-006: power shortage uses global floor | **Confirmed behavior; product decision open** | High | `power.ts:110-130` computes one global ratio with a minimum floor; `production.ts:78-82` applies it to each building. No per-building allocation exists. |
+| V-007/V-009: compute API returns an unpersisted state | **Confirmed orphan oracle** | High | `production/compute/route.ts:280-380` authenticates, loads config/state, runs ticks, returns JSON, performs no CAS write, and has no caller outside itself/tests. |
+| V-008/V-010: tick engine is simplified and omits subsystems | **Confirmed** | High | `runServerTicks.ts:1-12,88-190` handles weather, power, fuel, production, capacity, endgame; no contract progression, market drift, drone mission progression, or event-state mutation. |
+| V-011: payout rates are hardcoded 20/50/10 | **Outdated / resolved** | High | `payout.ts:22-25` reads `getBalance().payout`; migration `20260715000001_077_balance_payout_endgame.sql` seeds legacy-equivalent values. Modifier scope remains a separate design concern. |
+| V-012: endgame rates are hardcoded in a switch | **Partially rejected / corrected** | High | Rates come from `getBalance().endgame` in `endgame.ts:84-108`. A static allowlist and `ratesFor()` switch still require code changes for a new endgame type, so config is not fully data-driven. |
+| V-013: event paths double-apply today | **Rejected as runtime claim; redundancy confirmed** | High | `multipliers.server.ts:91-110` folds event fields manually; `modifiers/registry.ts:136` registers event targets. Current production consumers read the manual fields, so numeric double application is not demonstrated. |
+| V-014: server transport coefficient hardcoded 0.25 | **Outdated / resolved** | High | `multipliers.server.ts:164-172` reads `getBalance().transport.productionBonusCoeff`, matching client math. |
+| V-015: seasonal schedule fields are discarded | **Partially resolved** | High | `runtimeCache.ts:350-375` preserves `season`, `startDate`, `endDate`, and `isActive`; `duration`, `color`, and `triggerChance` remain hardcoded because the current DB row has no corresponding columns. |
+| V-016: building transforms and ID maps are duplicated | **Confirmed** | High | `transformers/buildings.ts:4-60`, `serverConfigFetcher.ts:117-181`, `runtimeCache.ts:120-126`, and `migration/idMigration.ts:20-31` retain parallel ownership. |
+| V-017/V-043: compatibility wrappers are redundant | **Confirmed, scoped** | High | `engine/math/{production,power,payout,endgame,sell}.server.ts` are pure delegators; `engine/math/multipliers.server.ts` is not redundant. Zero-importer barrels include `config/cacheUpdate.ts` and `config/buildingIdMigration.ts`. |
+| V-018: client/server power calculations duplicate | **Confirmed** | High | `buildingsActions.ts:194-227` computes client power after toggle; `PowerPanel.tsx:124-160,228-235` recomputes per-type power with local constants and a scale factor; server recomputes in `power.ts`. |
+| V-019: every action injects elapsed ticks | **Confirmed by design** | High | `commandDispatcher.ts:21-34` calls `applyElapsedServerTime()` before dispatching every action; elapsed persistence and corrected-action persistence can produce two sequential CAS writes. |
+| V-020: speed write is fire-and-forget | **Outdated / resolved** | High | `handlers/speed.ts:31-58` now awaits CAS and returns failure on exception or CAS miss. |
+| V-021: no row lock means double-apply | **Partially confirmed; double commit rejected** | High | `serverGameState.ts:758-771` uses state-version CAS and no row lock. Concurrent losers should fail CAS; duplicate computation and retry pressure remain. |
+| V-022: `structuredClone` scales with 60,000 cap | **Confirmed implementation; impact unmeasured** | High | `runServerTicks.ts:79` clones complete state once per call; compute route caps at 60,000 (`production/compute/route.ts:316-329`). No benchmark exists. |
+| V-023: crypto ID fallback is fail-open | **Confirmed latent security gap** | High | `engine/util/serverRandom.ts:31-34` and `engine/ids.ts:35-43` still use `Math.random()` after secure-path failure. Security-sensitive IDs should fail closed. |
+| V-024: `powerGrid.plants` includes inactive plants | **Confirmed** | High | `runServerTicks.ts:106-114` filters by power category only; `power.ts:36-40` filters active plants for totals. State list and totals can disagree. |
+| V-025: anti-cheat validator is a parallel economy model | **Confirmed** | High | `serverTickValidator.ts:35-85` directly calls pure calculators with infinite resources instead of sharing `runServerTicks`; this is a theoretical maximum model, but it can drift. |
+| V-026: Phase 13 test silently passed / was 13-of-14 broken | **Rejected as current wording; test remains incomplete** | High | Current `serverGameDataShape.test.ts:60-199` passes in targeted execution, but only enumerates three persistence writers and therefore misses elapsed/offline/corrected production writers. Passing is false confidence. |
+| V-027: input-floor test proves runner race safety | **Rejected as evidence; test is outdated and currently fails** | High | `gameTick.inputFloor.test.ts:79-200` calls `computeProduction()` directly with a shadow resource object; it does not drive `runServerTicks`. Targeted run failed three cases because strict `getBalance()` was not loaded. |
+| V-028: original consumer inventory is complete / WorkerPanel consumes snapshot | **WorkerPanel claim rejected; count corrected** | High | WorkerPanel reads worker fields, not snapshot. Current snapshot consumers are 14 files: `FactoryPanel`, `ResourcePanel`, `PowerPanel`, `StoragePanel`, `DashboardPanel`, `GlobalResourceMonitorPanel`, `ProductionChainsPanel`, `ResourceFlowDiagram`, `AIAdvisorPanel`, `TransportPanel`, `MobileHeader`, `DesktopHeader`, `PrestigePanel`, and `MarketPanel`. |
+| V-029: dead parameters/wrapper inputs | **Confirmed** | High | `math/sell.ts:8-12` accepts unused `_state`; `engine/math/payout.server.ts` constructs worker definitions that `computePayout()` does not read. |
+| V-030: missing cost silently becomes 100 | **Partially resolved; live fail-open copies remain** | High | `offline-progress/route.ts:69-84` throws, but `transformers/buildings.ts:4-5`, `serverConfigFetcher.ts:117-124`, and `production/compute/route.ts:59-65` still fabricate `{money:100}`. |
+| V-031: invalid game speed falls back to 1 | **Outdated / resolved** | High | `applyElapsedTicks.ts:122-138` throws on non-finite/non-positive speed; targeted tests cover NaN, zero, and negative values. |
+| V-032: aggregate reads stripped snapshot and is always zero | **Reader resolved; writer chain incomplete** | High | `aggregate/route.ts:98-130` reads `market_supply`, and migration 076 exists. `elapsedTickPersistence.ts:165-180` writes the projection, but `offline-progress/route.ts:614-625` does not. The aggregate test itself fails because it mocks the old `@/lib/supabase/server` path while the route imports `@/lib/db/access`. |
+| V-033/V-034: strip symmetry and live response purity | **Confirmed gaps** | High | `elapsedTickPersistence.ts:169`, `offline-progress/route.ts:618`, and `correctedStatePersistence.ts:82` call `asFullState()` without `stripUIFields()`. `live-tick/route.ts:79-95` returns raw `full_state` on the wire. |
+| V-035: expense rates are never populated | **Wiring resolved; current model still yields zero** | High | `productionSnapshot.ts:88-100` maps expense fields from `actualConsumption`, but `production.ts:148-162` filters currency inputs and current recipes contain none. AI advisor growth therefore treats expense as zero. |
+| V-036: solar building claim | **Current correction** | High | `solarPanelFactory` is wired in `buildings.ts:83,189` and catalog `buildings.ts:507`. The separate DB row `solarPanel` remains absent from the union/catalog and is dead legacy data. |
+| V-037: bulk actions are declared but unwired | **Outdated / removed** | High | `tests/unit/actions/bulk-types-removed.test.ts` passes; current action unions and dispatcher contain no `bulk_build`/`bulk_sell`. |
+| V-038: root `src/lib/game/store.ts` is dead | **Outdated / deleted** | High | File is absent and no importers exist. `knip.json:4-6` still references three deleted paths, so BUG-076 remains open. |
+| V-039: non-secure random IDs reach persisted state | **Confirmed and expanded** | High | `newsIds.ts:7`, `prestigeActions.ts:98`, event/news selectors, and `initialState.server.ts:141` use `Math.random()` for values that can round-trip through state. The initial-state weather value is server-authoritative and should not use non-crypto RNG. |
+| V-040: denormalized patch helper has no isolated test | **Confirmed** | High | Writers use `denormalizedStatePatch.ts:78-105`; existing writer tests exercise it indirectly, but no focused fidelity test covers all fallback/invalid-shape branches. |
+| V-041: old `select('*')` count | **Outdated count; violation remains** | High | Executed architecture A6 failed with 22 `select("*")`/`select('*')` calls under `src/app/api` and `src/lib/db`, including `serverGameState.ts:771`. |
+| V-042: no property/invariant tests for tick engine | **Confirmed** | High | No property suite exists. Only `gameTick.inputFloor.test.ts` approximates one calculator case and does not run the full runner. |
+| V-043: thin server math delegators | **Confirmed** | High | Five wrappers add no behavior; keep `multipliers.server.ts`, which does server-specific cache construction. |
+
+### 10.4 Newly discovered current findings
+
+#### C-001 — Blocked factories are reported as producing
+
+- **Severity:** High. **Confidence:** High.
+- **Audit-report claim:** Related to original TST-004 footgun and V-001 snapshot path; not previously promoted to a runtime defect.
+- **Validation verdict:** **Newly discovered, confirmed.**
+- **Files/functions:** `src/lib/game/production/math/production.ts:143-178` (`computeProduction`); `src/lib/game/production/engine/tick/productionSnapshot.ts:50-76` (`buildProductionSnapshotServer`); `src/components/game/FactoryPanel.tsx:100-118` and other snapshot consumers.
+- **Execution flow:** A factory with insufficient inputs returns `canProduce: false`, `actualInputs: []`, `reason: "missing_inputs"`, but still returns a populated `outputs` array. `runServerTicks()` correctly skips the result and does not debit inputs or apply outputs. The snapshot builder later aggregates `result.outputs` without checking `result.canProduce`. `FactoryPanel` reads `snapshot.buildings[b.id].outputs` and `snapshot.production` as actual rates.
+- **Expected behavior:** Actual production rate must be zero when the factory did not run. Potential output may be exposed separately, with a blocked reason.
+- **Actual behavior:** UI can show a nonzero factory/output rate while inventory remains unchanged. Server economy is not double-credited, but the authoritative observability contract is false.
+- **Root cause:** `BuildResult.outputs` is a potential-output field intended for callers that need demand/capacity information; snapshot aggregation treats it as accepted output. Snapshot detail omits `canProduce` and `reason`.
+- **User impact:** Players see factories apparently producing while input-starved; downstream bottleneck and market-pressure panels can make incorrect recommendations.
+- **Data-integrity/security impact:** No direct balance duplication. High observability/economy-decision risk; automated advisors may act on false rates.
+- **Evidence:** `production.ts:154-178` returns outputs on `canProduce=false`; `productionSnapshot.ts:61-67` aggregates every output; `FactoryPanel.tsx:107-115` consumes those outputs.
+- **Existing tests:** Diagnostic-reason tests cover the calculator. Storage-overflow tests mock `computeProductionServer` and mock the snapshot builder; no actual blocked-factory snapshot test exists.
+- **Missing tests:** Blocked factory through `buildProductionSnapshotServer`; live/offline response and `FactoryPanel` render with `missing_inputs`.
+- **Minimal production repair:** Keep `BuildResult` semantics if potential output is required, but aggregate `snapshot.production` and actual per-building `outputs` only when `result.canProduce`, or add explicit `potentialOutputs`/`canProduce`/`reason` fields and make UI consume actual output. Do not duplicate input checks in React.
+- **Remove:** No math branch yet. Remove only the ambiguous use of potential `outputs` as actual snapshot production after callers migrate.
+- **Must remain:** Sequential input debit in `runServerTicks()` and diagnostic reasons.
+- **Change risk:** Medium; snapshot consumers may currently rely on potential output for planning. Add a separate field if that behavior is intentional.
+- **Regression tests:** `buildProductionSnapshotServer` with insufficient input; exact zero actual output; potential output preserved only in a separately named field; component smoke test.
+
+#### C-002 — Offline settlement does not write the market-supply projection
+
+- **Severity:** High. **Confidence:** High.
+- **Audit-report claim:** V-032 was marked fixed after replacing the stripped `full_state.productionSnapshot` reader.
+- **Validation verdict:** **Partially rejected as fully fixed; newly discovered writer gap.**
+- **Files/functions:** `src/app/api/game/state/offline-progress/route.ts:550-625`; `src/lib/game/actions/server/shared/elapsedTickPersistence.ts:165-180`; `src/app/api/market/supply/aggregate/route.ts:98-130`; migration `supabase/migrations/20260715000000_076_market_supply_state.sql`.
+- **Execution flow:** Live/action elapsed settlement writes `market_supply: buildMarketSupplyProjection(...)`. Offline settlement runs the same `runServerTicks()` engine but writes only `full_state`, denormalized columns, version, and timestamps. The aggregate cron reads only `row.market_supply`. A player whose progress is applied through offline settlement can therefore have correct inventory but stale/empty aggregate supply.
+- **Expected behavior:** Every authoritative tick-settlement writer that produces a snapshot must update the same server-only projection, or the aggregate must recompute from a canonical source.
+- **Actual behavior:** Projection freshness depends on the path. The reader is fixed, but the end-to-end writer chain is not complete.
+- **Root cause:** Migration 076 was integrated into the shared elapsed writer but not the standalone offline writer.
+- **User impact:** Global supply/demand and dynamic market pressure can omit players after offline progress; effect persists if a subsequent live tick applies zero ticks and does not rewrite the projection.
+- **Data-integrity/security impact:** No player wallet corruption. Global market economics and analytics are incomplete.
+- **Evidence:** `grep` finds `buildMarketSupplyProjection` only in `marketSupplyProjection.ts` and `elapsedTickPersistence.ts`; offline patch at `route.ts:614-625` has no `market_supply` key.
+- **Existing tests:** `tests/api/market/supply-aggregate-v032.test.ts` tests the reader using manually populated `market_supply`; `tests/unit/elapsedTickPersistence.test.ts` tests the live/action writer. The aggregate suite currently fails because it mocks the pre-DB-access path.
+- **Missing tests:** Offline route writes projection; offline → aggregate end-to-end; stale projection after zero-tick live response.
+- **Minimal production repair:** Add `market_supply: buildMarketSupplyProjection(result.productionSnapshot, serverNow)` to the offline CAS patch, or route offline settlement through the shared elapsed persistence function. Preserve the dedicated column and keep `productionSnapshot` out of `full_state`.
+- **Remove:** No reader code. Remove the old full-state snapshot reader already removed.
+- **Must remain:** migration 076, projection type, aggregate validation of finite nonnegative values.
+- **Change risk:** Medium; stale-player aggregate totals change immediately after repair. Test live/offline parity before release.
+- **Regression tests:** offline route projection write; reader sums a real offline-produced projection; no UI snapshot leakage.
+
+#### C-003 — Phase 13 sanitization test omits the production writers it claims to protect
+
+- **Severity:** High. **Confidence:** High.
+- **Audit-report claim:** V-026 said the architecture test was stale; the rewritten test claims all persistence writers call `stripUIFields`.
+- **Validation verdict:** **Newly discovered, confirmed false-positive.**
+- **Files/functions:** `tests/unit/serverGameDataShape.test.ts:60-70,162-199`; production writers at `elapsedTickPersistence.ts:165-180`, `offline-progress/route.ts:614-625`, `correctedStatePersistence.ts:81-88`, and market trade `src/app/api/market/trades/execute/route.ts:262-270`.
+- **Execution flow:** The test's `PERSISTENCE_WRITERS` array contains only `serverGameState.ts`, sync route, and guest migration. It passes because those three call `stripUIFields`. The high-frequency elapsed/offline/corrected writers are not enumerated and directly pass `asFullState(...)`.
+- **Expected behavior:** The invariant test must enumerate every `full_state` writer or the sanitizer must be centralized inside the database boundary.
+- **Actual behavior:** Targeted test passes while current production writers violate the documented invariant.
+- **Root cause:** Test was rewritten for path migration but its writer inventory was not re-derived from current call sites.
+- **User impact:** None with today's pure state shape; latent UI-field persistence/leak risk after future state additions.
+- **Data-integrity/security impact:** Defense-in-depth failure at a trust boundary; stale UI fields could survive in JSONB and alter later hydration if code drifts.
+- **Evidence:** `grep` of `full_state: asFullState` shows unstripped production writers; test array ends at three files.
+- **Existing tests:** `serverGameDataShape.test.ts` passes targeted run but is structurally incomplete. No runtime test injects a UI key into every writer.
+- **Missing tests:** Exhaustive writer inventory and strip-order test; runtime payload test for each writer.
+- **Minimal production repair:** Apply `stripUIFields` at every `full_state` write (elapsed, offline, corrected, trade, merge where applicable) or enforce it once in `saveServerGameStateOptimistic`. Update the architecture test from a hand-maintained list to a complete current list and add a source scan for all `full_state` writes.
+- **Remove:** Do not remove the shared strip helper or UI field list.
+- **Must remain:** `SERVER_STATE_UI_FIELDS`, canonical server/UI split, and explicit response DTO snapshot transport.
+- **Change risk:** Low for current state; medium if a writer intentionally stores a server-only field that the strip list changes.
+- **Regression tests:** exhaustive source scan; injected-UI-key writer tests; live/offline response purity.
+
+#### C-004 — Dashboard income/minute disagrees with header income/minute
+
+- **Severity:** High. **Confidence:** High.
+- **Audit-report claim:** New UI consistency finding; not in the original report.
+- **Validation verdict:** **Newly discovered, confirmed.**
+- **Files/functions:** `src/components/game/DashboardPanel.tsx:180-208`; `src/components/game/headers/DesktopHeader.tsx:72-80`; `src/components/game/headers/MobileHeader.tsx:73-80`.
+- **Execution flow:** Dashboard computes `payoutPerCycle * 6`. Headers compute `payoutPerCycle * effectiveSpeed / payoutConfig.basePayoutInterval * 60`.
+- **Expected behavior:** One configured income-rate transformation from the authoritative snapshot and configured payout interval/game speed.
+- **Actual behavior:** At non-default speed or payout interval, dashboard and headers display different values.
+- **Root cause:** Dashboard retained a 10-second/6-cycles-per-minute literal while headers use the current configuration.
+- **User impact:** Players receive contradictory economy guidance and may make incorrect expansion decisions.
+- **Data-integrity/security impact:** Display-only; no wallet mutation.
+- **Evidence:** Exact formulas above; `payoutConfig.basePayoutInterval` and `effectiveSpeed` are state/config values.
+- **Existing tests:** None for income/minute transformation.
+- **Missing tests:** Parameterized game speed and payout interval cases; dashboard/header parity.
+- **Minimal production repair:** One shared pure selector/helper for income per minute; replace Dashboard's `* 6`. Do not add another fallback formula.
+- **Remove:** Dashboard literal and duplicated formula after callers migrate.
+- **Must remain:** `payoutPerCycle` as the server-derived base value.
+- **Change risk:** Low; visible numbers change to the configured result.
+- **Regression tests:** speed 1/2/5/10, payout interval override, header/dashboard equality.
+
+#### C-005 — Power panel uses local per-plant heuristics instead of an authoritative breakdown
+
+- **Severity:** Medium. **Confidence:** High.
+- **Audit-report claim:** Related to V-018 client/server power duplication.
+- **Validation verdict:** **Confirmed and expanded.**
+- **Files/functions:** `src/components/game/PowerPanel.tsx:124-164,228-235`; `src/lib/game/production/math/power.ts:46-96`; `src/lib/game/production/snapshot/productionSnapshot.ts:20-24`.
+- **Execution flow:** Server snapshot supplies only total power. PowerPanel recomputes plant-type values locally with hardcoded fuel-starved, solar, and wind factors, then scales the totals to equal the server total.
+- **Expected behavior:** Per-plant values should come from server math, or be clearly labeled as estimates.
+- **Actual behavior:** The total is authoritative but per-type values and solar/wind labels can differ from server balance/weather; the scale factor hides the discrepancy.
+- **Root cause:** Snapshot schema has no per-plant breakdown, so UI retained a legacy calculation.
+- **User impact:** Per-plant power cards and weather labels can be misleading even when the total is correct.
+- **Data-integrity/security impact:** Display-only; no direct economy mutation.
+- **Existing tests:** No component or parity tests.
+- **Missing tests:** Server/client coefficient parity and rendered per-plant values.
+- **Minimal production repair:** Prefer adding a server-derived per-building power breakdown to the snapshot and remove local recomputation. If not justified, label current values as estimates and use balance-driven factors rather than literals.
+- **Remove:** `powerScaleFactor` heuristic after authoritative breakdown exists.
+- **Must remain:** server total power fields and server settlement math.
+- **Change risk:** Medium due snapshot schema and UI updates.
+- **Regression tests:** fuel-starved, solar, wind, weather, and active/inactive plant cases.
+
+#### C-006 — Pause control is client-only and server ticks ignore it
+
+- **Severity:** Medium. **Confidence:** High.
+- **Audit-report claim:** New connected UI/state finding.
+- **Validation verdict:** **Newly discovered, confirmed.**
+- **Files/functions:** `src/lib/game/state/store-actions/core.ts:10-29`; `src/components/game/headers/DesktopHeader.tsx:41-52,344-352`; `src/components/game/headers/MobileHeader.tsx`; `src/lib/game/production/engine/tick/runServerTicks.ts:88-190`.
+- **Execution flow:** Header calls `togglePause`; store flips local `paused`. No server action is sent. `runServerTicks` never reads `state.paused`, and `applyElapsedTicks` continues settling elapsed time.
+- **Expected behavior:** A visible Pause control must either pause authoritative gameplay through a server contract or be removed/renamed as a UI-only display pause.
+- **Actual behavior:** The button changes local state but does not stop server production or elapsed settlement. Reload/hydration can overwrite it.
+- **Root cause:** Client pause action survived server-authoritative migration without a server owner.
+- **User impact:** Player can believe production is paused while resources continue to advance.
+- **Data-integrity/security impact:** No exploit by itself, but it violates server/UI truth and can produce support disputes.
+- **Existing tests:** No pause action/API/tick interaction test.
+- **Missing tests:** pause button → server state → elapsed runner behavior; reload persistence; guest/auth parity.
+- **Minimal production repair:** Product decision. Either remove pause from production controls, or add a server-authoritative pause action and make elapsed settlement honor it. Do not add a client-only guard around `runServerTicks`.
+- **Remove:** Client-only `togglePause` if pause is not a supported mechanic.
+- **Must remain:** server elapsed ownership.
+- **Change risk:** High if pause changes economy; product approval required.
+- **Regression tests:** paused/unpaused live tick, offline settlement, action settlement, and reload.
+
+#### C-007 — Component bypasses the store mutation boundary after a server trade
+
+- **Severity:** Medium. **Confidence:** High.
+- **Audit-report claim:** New UI/state architecture finding.
+- **Validation verdict:** **Newly discovered, confirmed.**
+- **Files/functions:** `src/components/game/TradingPostPanel.tsx:540-640`; `.rules` STO-003.
+- **Execution flow:** Panel calls `executeTradeOnServer()`, then directly invokes `useGameStore.setState({ resources: serverResult.updatedResources })`, followed by local notification/history updates.
+- **Expected behavior:** Components call store actions or a centralized server-response adapter; direct `setState` remains inside the store boundary.
+- **Actual behavior:** One component applies a partial authoritative response outside `applyServerState`/store actions.
+- **Root cause:** Trade UI predates the centralized response application path.
+- **User impact:** Current trade resources update, but related state, version handling, capacity policy, or future response fields can drift from other actions.
+- **Data-integrity/security impact:** Medium architecture risk; no current server bypass because the server already validated the trade.
+- **Existing tests:** API trade tests exist; no component/store-boundary test.
+- **Missing tests:** server trade response → centralized store action; no direct component `setState` architecture guard.
+- **Minimal production repair:** Add/reuse one store action that applies the validated trade response, or call the existing authoritative response adapter. Keep notification/history as UI effects after the action resolves.
+- **Remove:** Direct component `useGameStore.setState`.
+- **Must remain:** server trade validation and returned resource payload.
+- **Change risk:** Low.
+- **Regression tests:** successful trade, rejected trade, cooldown, resources/history/notification state.
+
+#### C-008 — Leaderboard component owns an uncontrolled polling loop
+
+- **Severity:** Medium. **Confidence:** High.
+- **Audit-report claim:** New performance/architecture finding.
+- **Validation verdict:** **Newly discovered, confirmed.**
+- **Files/functions:** `src/components/game/LeaderboardPanel.tsx:100-132`; `.rules` PER-008.
+- **Execution flow:** Component uses `setInterval(fetchLeaderboard, 30_000)` directly; no shared backoff or centralized polling service.
+- **Expected behavior:** Shared polling hook/service with visibility handling and failure backoff.
+- **Actual behavior:** Every mounted panel polls on a fixed interval, including during 429/5xx conditions.
+- **Root cause:** UI-local polling remained outside the centralized hook pattern used by live ticks.
+- **User impact:** Extra requests and slower recovery during service incidents; multiple mounts can multiply load.
+- **Data-integrity/security impact:** Performance/availability risk, not economy corruption.
+- **Existing tests:** API auth tests only; no polling/backoff test.
+- **Missing tests:** visibility, unmount, 429/503 backoff, duplicate mounts.
+- **Minimal production repair:** Move polling into a shared hook/service with bounded backoff and abort cleanup. Keep leaderboard route/auth/rate-limit behavior.
+- **Remove:** Component-owned interval after migration.
+- **Must remain:** leaderboard display and server endpoint.
+- **Change risk:** Low.
+- **Regression tests:** successful refresh, failure backoff, unmount cancellation.
+
+#### C-009 — Server-authoritative initial weather uses `Math.random()`
+
+- **Severity:** Medium. **Confidence:** High.
+- **Audit-report claim:** Related to V-023/V-039 but not explicitly listed.
+- **Validation verdict:** **Newly discovered, confirmed.**
+- **Files/functions:** `src/lib/db/infra/initialState.server.ts:138-142`.
+- **Execution flow:** Canonical initial state calculates weather `nextChange` with `Math.random()`, then the state can be persisted to `server_game_state.full_state`.
+- **Expected behavior:** Server-authoritative random values use the approved crypto helper or a deterministic server seed.
+- **Actual behavior:** Initial weather timing uses non-cryptographic randomness.
+- **Root cause:** Initial-state path was not migrated with the production engine RNG fixes.
+- **User impact:** No direct UI symptom; initial weather state is non-reproducible and violates SEC-008.
+- **Data-integrity/security impact:** Low-to-medium predictability/integrity risk for persisted server state.
+- **Existing tests:** Initial-state tests cover shape and values, not RNG source.
+- **Missing tests:** source/behavior test that crypto RNG is used and fallback fails closed.
+- **Minimal production repair:** Use `secureRandomIntInRange`/approved server RNG; fail closed if secure randomness is unavailable.
+- **Remove:** `Math.random()` call.
+- **Must remain:** canonical initial-state loader and validated weather bounds.
+- **Change risk:** Low.
+- **Regression tests:** bounded random value, crypto mock, failure path.
+
+#### C-010 — Multiple config loaders and cost transforms permit source-of-truth drift
+
+- **Severity:** Medium. **Confidence:** High.
+- **Audit-report claim:** Related to V-016/V-030/V-017; current scope expanded.
+- **Validation verdict:** **Confirmed, newly consolidated.**
+- **Files/functions:** `src/lib/db/config/serverConfigFetcher.ts:117-181,317-558`; `src/lib/game/actions/server/shared/loadConfig.ts:28-160`; `src/app/api/game/state/offline-progress/route.ts:75-360`; `src/app/api/game/production/compute/route.ts:59-270`; `src/lib/game/config/transformers/buildings.ts:4-60`; `src/lib/admin/investigations/configLoader.ts`.
+- **Execution flow:** Different production/action routes fetch overlapping tables and transform building/cost/recipe data independently. Some paths fail closed on null `base_cost`; others silently fabricate 100 money. Some paths load workers/weather/balance; `loadConfig.ts` intentionally builds empty arrays for several domains.
+- **Expected behavior:** One authoritative server loader/transformer/cache for all economy-affecting paths, with explicit partial-config policy.
+- **Actual behavior:** Config source and failure behavior depend on entry point; a DB row can be valid under one path and silently default under another.
+- **Root cause:** Refactor created path-local loaders instead of migrating callers to one owner.
+- **User impact:** Possible route-specific prices, missing modifiers, or different validation outcomes after config changes.
+- **Data-integrity/security impact:** High configuration integrity risk, though no single divergence was reproduced for a seeded row.
+- **Existing tests:** Transformer and balance-source tests cover selected paths; no loader-equivalence test.
+- **Missing tests:** same DB fixture through every production loader; null-cost fail-closed test for every owner.
+- **Minimal production repair:** Centralize `transformBuildings`/`parseCostMap` and the authoritative production config loader. Preserve explicit client-safe and admin-only projections only when their contracts differ.
+- **Remove:** duplicate inline transforms after caller migration.
+- **Must remain:** server config cache and strict balance validation.
+- **Change risk:** Medium; loader consolidation can change which partial failures return 503.
+- **Regression tests:** config equivalence, missing-table failure, cache TTL/concurrency, recipe/building parity.
+
+### 10.5 Redundant-code and necessity analysis
+
+Required production chain:
+
+```text
+validated config → one server transform → one tick engine → one CAS writer → one response/store adapter → UI selectors
+```
+
+Current extra edges and disposition:
+
+| Extra code/path | Necessary? | Proof | Disposition |
+|---|---|---|---|
+| `runServerTicks.ts` | Yes | Live/action/offline paths depend on it for authoritative settlement. | Keep. Add invariant tests; do not duplicate. |
+| `production/math/*.ts` | Yes | Pure business rules used by server wrappers, snapshot builder, and validator. | Keep as one math owner. |
+| `engine/math/{production,power,payout,endgame,sell}.server.ts` | No behavior added | Each delegates to pure math; callers also import direct modules. | Migrate imports, then remove. Keep `multipliers.server.ts`. |
+| `engine/serverEngine.ts` / `engine/math/index.server.ts` | Transitional but still connected | Validators/routes import the barrel. | Keep until direct caller migration proves safe. |
+| `config/cacheUpdate.ts` / `config/buildingIdMigration.ts` | No current production necessity | Zero importers; re-export-only. | Remove after one fresh graph/typecheck gate. |
+| Duplicate `transformBuildings`/`parseCostMap` | No | Same DB rows transformed in multiple places with different null behavior. | Centralize; delete copies after parity tests. |
+| `productionSnapshot` inside `full_state` | No | UI-derived and explicitly excluded by Phase 13. | Keep out of DB; transport separately. |
+| `market_supply` projection column | Yes | Aggregate cron needs server-pure data without UI snapshot leakage. | Keep; repair all tick writers. |
+| `PowerPanel` raw per-plant scale heuristic | No, once server breakdown exists | Server total is already authoritative; local constants diverge. | Replace with server breakdown or explicitly label estimate. |
+| Client toggle power recompute | Presentation-only at best | Server recomputes on next settlement; formula can differ. | Remove numeric authority after response contract is verified. |
+| Universal elapsed injection in dispatcher | One owner is necessary; current placement costly | It prevents stale action validation but causes two CAS writes and extra compute. | Keep until measured alternative exists; consider combined CAS/RPC later. |
+| `production/compute` route | No current caller | Zero production callers; no persistence. | Delete or rename/document as preview after product decision. |
+| `paused` client-only field | Not required unless pause is a product mechanic | Server runner ignores it. | Remove control or make it server-authoritative; do not leave ambiguous. |
+
+No removal is recommended solely because code is complex. Candidates above are backed by zero-importer or one-call evidence and require caller migration plus regression tests.
+
+### 10.6 Minimal production-ready repair plan
+
+#### P0 — Correct authoritative observability and market output
+
+1. Fix `buildProductionSnapshotServer()` so blocked factories do not enter actual `production` totals; expose `canProduce`/`reason` or separately named potential output if UI needs it.
+2. Add `market_supply` projection to the offline CAS writer using the same post-tick snapshot and server timestamp. Verify any other full-state writer that changes production-relevant state.
+3. Apply `stripUIFields()` to elapsed, offline, corrected-action, trade/merge full-state writes, or enforce it centrally in the database writer. Expand the architecture test to cover all call sites.
+4. Repair the failing V-032 test mock to use `@/lib/db/access`; then add offline-writer coverage. A green reader-only test is insufficient.
+
+#### P1 — Remove configuration and UI source drift
+
+5. Centralize building/recipe/cost transforms and fail closed on missing required cost data.
+6. Decide whether `/api/game/production/compute` is a preview. If no approved caller exists, remove route and tests; otherwise validate finite positive integer ticks, hydrate canonical state/denormalized fields, and document non-persistence.
+7. Replace Dashboard's `payoutPerCycle * 6` with the configured shared income-rate calculation.
+8. Replace PowerPanel's local per-plant heuristic with a server-derived breakdown, or mark it as an estimate and remove hardcoded economy factors.
+9. Decide pause semantics; remove misleading client-only pause if no server mechanic is approved.
+
+#### P2 — Architecture, security, and performance
+
+10. Migrate from pure server math delegators and zero-importer config barrels; retain real owners until graph/typecheck proof.
+11. Replace remaining security-sensitive `Math.random()` fallbacks, including canonical initial weather, with crypto RNG and fail closed.
+12. Move LeaderboardPanel polling into a shared backoff-aware hook.
+13. Replace the TradingPostPanel component-level `useGameStore.setState()` with a store response adapter.
+14. Resolve `select('*')` architecture failures and current component lint errors before release.
+
+### 10.7 Exact regression-test plan
+
+| Test | Required assertion |
+|---|---|
+| `tests/unit/production/snapshot-blocked-factory.test.ts` | Missing-input factory yields zero actual production and a stable blocked reason; potential output is not mislabeled as actual. |
+| `tests/api/game/offline.test.ts` extension | Response contains a snapshot after ticks and offline CAS patch contains matching `market_supply`. |
+| `tests/unit/elapsedTickPersistence.test.ts` extension | Projection timestamp and production/consumption values match the same elapsed snapshot. |
+| `tests/api/market/supply-aggregate-v032.test.ts` repair | Mock `@/lib/db/access`; reader aggregates nonzero projection and ignores leaked `full_state.productionSnapshot`. |
+| `tests/unit/architecture/strip-symmetry.test.ts` | Enumerate every `full_state` writer; each strips UI fields before coercion. |
+| `tests/api/game/live-tick-purity.test.ts` | Wire response excludes UI fields while still allowing top-level `productionSnapshot` DTO. |
+| `tests/unit/config/transform-equivalence.test.ts` | All server production loaders produce equal building/recipe/cost definitions and fail closed on null cost. |
+| `tests/api/game/compute.test.ts` extension | Fractional/NaN/non-finite/oversized ticks reject; preview remains non-persisting; canonical state hydration is used. |
+| `tests/unit/income-rate-parity.test.ts` | Dashboard/header helper equality for speed and payout interval variants. |
+| `tests/unit/client-server-power-parity.test.ts` | Same state/config yields equal total and per-plant server-derived power values. |
+| `tests/unit/pause-authority.test.ts` | Approved pause semantics hold across live, offline, action, guest, and reload paths. |
+| `tests/unit/trade-store-boundary.test.ts` | Trade response updates resources only through a store action/adapter. |
+| `tests/unit/leaderboard-polling.test.ts` | Fixed interval replaced with visibility-aware backoff and cleanup. |
+| `tests/unit/security/initial-weather-rng.test.ts` | Initial weather uses crypto RNG and fails closed when unavailable. |
+| `tests/unit/denormalizedStatePatch.test.ts` | Every denormalized field mirrors the validated canonical state, including invalid/fallback inputs. |
+| `tests/unit/tick/invariants.test.ts` | `gameTick` monotonicity, nonnegative fuel/resources, and input debit bounds over randomized states. |
+| `tests/unit/production/compute-preview.test.ts` | No DB write and explicit preview contract, or remove route and test. |
+| `tests/components/productionSnapshotConsumers.test.tsx` | Create the missing `tests/components` suite; render all 14 snapshot consumers from a nonzero applied snapshot and assert no zero-stub regression. |
+
+### 10.8 Validation commands and current results
+
+| Command | Result | Interpretation |
+|---|---|---|
+| `npm run typecheck` | **Passed** | Type contracts compile; does not prove runtime behavior. |
+| Focused snapshot/storage/API suite | **48 passed, 4 failed** | Four V-032 aggregate tests fail before assertions because test mocks call `createServiceRoleClient.mockReturnValue` on the old `@/lib/supabase/server` import while production route uses `@/lib/db/access`. |
+| Focused tick/compute/state suite | **18 passed, 3 failed** | `gameTick.inputFloor.test.ts` fails before assertions with `BalanceNotLoadedError`; test setup does not load strict DB balance. |
+| `npm test` | **Passed: 13, skipped: 47** | Integration/security command exits 0, but most live tests are skipped by default; not proof of local end-to-end gameplay. |
+| `npm run test:vitest` | **Failed: 27 files failed, 131 passed; 110 failed, 925 passed** | Full suite contains broad stale/mocked failures and unhandled `BalanceNotLoadedError`; release gate is red. Relevant failures include the V-032 mock drift and strict-balance tests. |
+| `npm run lint` | **Failed: 64 errors, 199 warnings** | Current `src/components/game` errors include DroneDeliveryPanel, GameSidebar, GlobalResourceMonitorPanel, KeyboardShortcutsHelp, PayoutPanel, PowerPanel, PrestigePanel, ResourceFlowDiagram, ResourcePanel, SettingsPanel, StoragePanel, and headers. |
+| `npm run test:components` | **Failed: no test files found** | `tests/components/` does not exist; planned UI snapshot coverage is absent. |
+
+Treat static tests as guardrails, not runtime proof. `serverGameDataShape.test.ts` passing does not close C-003 because its writer inventory is incomplete. `runServerTicks.storageOverflow.test.ts` is useful but mocks downstream math and the snapshot builder; it does not prove full production-status semantics.
+
+### 10.9 Final verdict
+
+**Building production is not release-complete.** Current classification:
+
+- **Server settlement:** operational and mostly authoritative. CAS protects final writes for compliant writers; live/action/offline all run the same core tick engine.
+- **Snapshot transport:** repaired. The historical all-zero UI break is resolved; 14 UI files receive a nonzero snapshot after a settled tick.
+- **Snapshot correctness:** incomplete. Input-starved factories can be reported as producing because potential outputs are aggregated as actual outputs.
+- **Storage:** bounded and observable server-side, but overflow is not rendered by any game component.
+- **Market aggregate:** reader repair is present, but offline settlement does not refresh the projection; end-to-end market supply remains path-dependent.
+- **Config:** building/recipe/cost ownership is duplicated, with inconsistent fail-open/fail-closed behavior.
+- **Client/server consistency:** power breakdowns, Dashboard income/minute, capacity display fallbacks, and pause semantics have duplicate or disconnected sources of truth.
+- **Persistence safety:** CAS works, but `stripUIFields` is not applied symmetrically and the architecture test gives false confidence.
+- **Tests:** mixed and currently red. Core validators and selected fixes have tests; full runtime chain, UI consumers, offline snapshot/projection, blocked-factory semantics, and parity tests are missing.
+- **Architecture:** overengineered at compatibility/config boundaries, but removal is safe only after caller migration and tests.
+
+**Final classification:** **PARTIALLY CONNECTED, CORE SERVER LOOP OPERATIONAL, UI PARTIALLY CORRECT, OVERENGINEERED AT CONFIG/WRAPPER BOUNDARIES, AND NOT PRODUCTION-READY.** Minimum release bar: P0 repairs C-001 through C-003, a green current-boundary test suite, and end-to-end offline/live market and UI snapshot regression coverage.
+
+### 10.10 P2-14a completion (2026-07-16)
+
+After the audit + P0/P1/P2-10..P2-13 repair passes, the audit's remaining "violation remains" callout on `select('*')` (V-041, 22 calls under `src/app/api` and `src/lib/db`) was swept. Implementation summary:
+
+- **Whitelists added:** `CONFIG_TABLE_COLUMNS`, `SUPPORT_TICKETS_COLUMNS`, `SUPPORT_MESSAGES_COLUMNS` exported from `src/lib/db/types.ts`. `safeFetchTable` now accepts an optional `columns` param.
+- **Writers fixed:** `serverGameState.ts:771`, `dailyRewards.ts` (lines 63/107/145, with schema-correct columns including `claim_date, day_of_streak, reward_day` and `last_claim_date` instead of the bogus `last_login_date`), `leaderboard.ts` (lines 17/39, added `total_money_earned`), `market.ts` (lines 57/75), `adminActions.ts:86`, `cheatInvestigations.ts:117` + `.select()` at line 143, `supportTickets.ts` (lines 39/71/150), `merge.ts:73`.
+- **Admin tools:** `tableRows.ts:213-225` (typed `ConfigTableName` lookup), `configLoader.ts:111` (config-table columns match `SupabaseMarket`), `loadConfig.ts` (all 7 config tables).
+- **API routes:** `admin/players/[id]/route.ts`, `admin/support/tickets/route.ts`, `admin/support/tickets/[id]/route.ts`, `player/progress/route.ts`.
+- **Drift fix:** `initialState.server.ts:200` adds `tradesCompleted: 0` to stats literal (Phase-13 invariant for the new `applyTradeResources` action).
+
+**Verification:** `tests/unit/v043-explicit-columns.test.ts` (PER-003, 11 cases) passes. Full P0/P1/P2-13/P2-14a regression suite (12 files / 69 tests) passes. `npm run typecheck` clean. Full suite net 5 fewer test failures (113 → 108) without introducing new failures.
+
+**Bug registry:** BUG-091 added to BUGS.md (resolved).

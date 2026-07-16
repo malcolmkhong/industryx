@@ -18,8 +18,8 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 // ── hoisted mocks (vi.mock factory runs before imports) ──────────────────
-const { computeProductionServer } = vi.hoisted(() => ({
-  computeProductionServer: vi.fn(() => ({
+const { computeProduction } = vi.hoisted(() => ({
+  computeProduction: vi.fn(() => ({
     canProduce: true,
     inputs: [],
     actualInputs: [],
@@ -39,25 +39,76 @@ vi.mock(
   }),
 );
 
-vi.mock("@/lib/game/production/engine/math/power.server", () => ({
-  computePowerGridServer: vi.fn(() => ({
+// P2-10: production code uses direct imports from productionCalculator.
+// Mock the entire barrel directly so the real `computeProduction`
+// (which calls getBalance and would throw BalanceNotLoadedError) is
+// never loaded.
+vi.mock("@/lib/game/production/productionCalculator", () => ({
+  getBuildingDef: vi.fn(),
+  getWorkerDef: vi.fn(),
+  buildMultipliers: vi.fn(() => ({
+    powerEfficiency: 1,
+    productionBonus: 0,
+    eventProductionGlobal: 1,
+    weatherProduction: 1,
+    transportProductionBonus: 1,
+    marketBonus: 0,
+    extractorBonus: 0,
+    factoryBonus: 0,
+    t1FactoryBonus: 0,
+    t2FactoryBonus: 0,
+    t3FactoryBonus: 0,
+    workerEfficiencyTotal: 0,
+    specificBuildingBonuses: new Map(),
+    workersByBuilding: new Map(),
+    eventProductionTargeted: new Map(),
+    weatherSolar: 1,
+    weatherWind: 1,
+    hasEnergyEfficiency: false,
+    hasPowerOptimization: false,
+    eventPowerConsumption: 1,
+    powerBonus: 0,
+  })),
+  computePowerGrid: vi.fn(() => ({
     totalProduction: 0,
     totalConsumption: 0,
     efficiency: 1,
     overload: false,
     fuelConsumption: [],
   })),
-}));
-
-vi.mock("@/lib/game/production/engine/math/production.server", () => ({
-  computeProductionServer,
-}));
-
-vi.mock("@/lib/game/production/engine/math/endgame.server", () => ({
-  computeEndgameIncomeServer: vi.fn(() => ({
+  computeProduction,
+  computeSellMultiplier: vi.fn(() => 1),
+  computePayout: vi.fn(() => ({
+    amountPerCycle: 0,
+    breakdown: { extractors: 0, factories: 0, power: 0 },
+  })),
+  computeEndgameIncome: vi.fn(() => ({
     moneyPerTick: 0,
     researchPerTick: 0,
     corpPerTick: 0,
+  })),
+  emptyProductionSnapshot: vi.fn(() => ({
+    production: {},
+    consumption: {},
+    actualConsumption: {},
+    buildings: {},
+    powerProduction: 0,
+    powerConsumption: 0,
+    powerEfficiency: 1,
+    powerOverload: false,
+    payoutPerCycle: 0,
+    payoutBreakdown: { extractors: 0, factories: 0, power: 0 },
+    sellMultiplier: 0,
+    endgameMoney: 0,
+    endgameResearch: 0,
+    endgameCorp: 0,
+    moneyIncomeRate: 0,
+    moneyExpenseRate: 0,
+    rpIncomeRate: 0,
+    rpExpenseRate: 0,
+    cpIncomeRate: 0,
+    cpExpenseRate: 0,
+    storageOverflow: {},
   })),
 }));
 
@@ -162,7 +213,7 @@ describe("runServerTicks — storage overflow (V-003 / PR-BP-3 §2.1)", () => {
   beforeEach(() => {
     // Default: building outputs 250 iron/tick, capacity = 100. Should
     // overflow by 150 each tick.
-    computeProductionServer.mockReturnValue({
+    computeProduction.mockReturnValue({
       canProduce: true,
       inputs: [],
       actualInputs: [],
@@ -187,7 +238,7 @@ describe("runServerTicks — storage overflow (V-003 / PR-BP-3 §2.1)", () => {
   });
 
   it("TST-017: empty overflow report when output fits in capacity", () => {
-    computeProductionServer.mockReturnValueOnce({
+    computeProduction.mockReturnValueOnce({
       canProduce: true,
       inputs: [],
       actualInputs: [],
@@ -236,7 +287,7 @@ describe("runServerTicks — storage overflow (V-003 / PR-BP-3 §2.1)", () => {
   });
 
   it("empty overflow stays empty when building cannot produce", () => {
-    computeProductionServer.mockReturnValueOnce({
+    computeProduction.mockReturnValueOnce({
       canProduce: false,
       inputs: [],
       actualInputs: [],

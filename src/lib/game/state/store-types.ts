@@ -22,7 +22,6 @@ import type { LLMEngineState } from '../market/news/newsLLM';
 export interface GameActions {
   // Core
   setGameSpeed: (speed: number) => Promise<void>;
-  togglePause: () => void;
   setActiveTab: (tab: GameTab) => void;
 
   // Buildings
@@ -51,6 +50,8 @@ export interface GameActions {
   sellResource: (resource: ResourceType, amount: number) => Promise<void>;
   buyResource: (resource: ResourceType, amount: number) => Promise<void>;
   toggleAutoSell: (resource: ResourceType) => void;
+  // P2-13: store response adapter for the trade-execute response shape.
+  applyTradeResources: (updatedResources: Record<string, number>) => void;
 
   // Contracts
   acceptContract: (contract: Contract) => void;

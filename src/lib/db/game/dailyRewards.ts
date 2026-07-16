@@ -5,7 +5,7 @@
  * All API routes must import from here instead of touching the tables directly.
  */
 
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { createServiceRoleClient } from '@/lib/db/access';
 
 // ─── Types ─────────────────────────────────────────────────────────────
 
@@ -60,7 +60,7 @@ export async function getUserStreak(userId: string): Promise<UserStreakRow | nul
 
   const { data } = await supabase
     .from('user_streaks')
-    .select('*')
+    .select('user_id,current_streak,longest_streak,total_logins,last_claim_date,created_at,updated_at')
     .eq('user_id', userId)
     .single();
 
@@ -104,7 +104,9 @@ export async function claimDailyReward(
       streak_multiplier: reward.streakMultiplier,
       total_streak: streakData.currentStreak,
     })
-    .select('*')
+    .select(
+      'id,user_id,claim_date,day_of_streak,reward_day,reward_type,reward_amount,reward_resource,streak_multiplier,total_streak,claimed_at',
+    )
     .single();
 
   if (rewardError || !rewardRow) {
@@ -142,7 +144,9 @@ export async function getRecentRewards(userId: string, limit = 10): Promise<Dail
 
   const { data } = await supabase
     .from('daily_rewards')
-    .select('*')
+    .select(
+      'id,user_id,claim_date,day_of_streak,reward_day,reward_type,reward_amount,reward_resource,streak_multiplier,total_streak,claimed_at',
+    )
     .eq('user_id', userId)
     .order('claimed_at', { ascending: false })
     .limit(limit);

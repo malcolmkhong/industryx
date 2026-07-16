@@ -17,7 +17,13 @@ export function parseCostMap(
     | Array<{ resource: string; amount: number }>
     | null,
 ): ResourceAmount[] {
-  if (!costMap) return [{ resource: "money", amount: 100 }];
+  // C-005 (BUILDING_PRODUCTION_AUDIT §10.6 P1, 2026-07-16): fail closed
+  // on missing or null cost. Matches the offline-progress route.
+  if (!costMap) {
+    throw new Error(
+      "[parseCostMap] building has null/missing base_cost — refusing to fabricate a cost",
+    );
+  }
   if (Array.isArray(costMap)) {
     return costMap.map((item) => ({
       resource: item.resource as CostResourceType,

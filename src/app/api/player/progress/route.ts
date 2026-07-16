@@ -88,7 +88,9 @@ export async function GET(request: Request) {
   // Fallback to player_progress (backwards compat — only game_state available)
   const { data, error } = await supabase
     .from('player_progress')
-    .select('*')
+    .select(
+      'user_id,display_name,game_state,total_money_earned,game_tick,game_speed,last_login_at,last_saved_at,resources,buildings,workers,research_progress,completed_research,active_research,contracts,auto_collect,auto_sell_resources,blueprints,last_server_tick_at,pending_notifications,total_play_time,created_at',
+    )
     .eq('user_id', userId)
     .single();
 

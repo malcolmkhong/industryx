@@ -1,7 +1,7 @@
 // ============================================
 // Core Actions Factory
 // ============================================
-import type { GameState, GameTab } from '../../shared/types/types';
+import type { GameTab } from '../../shared/types/types';
 import { generateId } from '../../shared/utils/generateId';
 import type { SetFn, GetFn } from "./_actionTypes";
 
@@ -26,7 +26,12 @@ export function createCoreActions(set: SetFn, get: GetFn) {
 
       set({ gameSpeed: speed });
     },
-    togglePause: () => set((state: GameState) => ({ paused: !state.paused })),
+    // C-009 (BUILDING_PRODUCTION_AUDIT §10.6 P1, 2026-07-16):
+    // The pause button was client-only and the server tick runner
+    // ignored `state.paused`, so toggling it gave a false sense of
+    // control. Removed from the store; the UI button and keyboard
+    // shortcut are also removed. Product can reintroduce a
+    // server-authoritative pause as a future mechanic.
     setActiveTab: (tab: GameTab) => set({ activeTab: tab }),
   };
 }

@@ -108,17 +108,8 @@ function resetStore() { useGameStore.setState(useGameStore.getInitialState()); }
 describe('Module: services/coreService', () => {
   beforeEach(() => { resetStore(); vi.clearAllMocks(); });
 
-  it('togglePause toggles to true', () => {
-    expect(getStore().paused).toBe(false);
-    getStore().togglePause();
-    expect(getStore().paused).toBe(true);
-  });
-
-  it('togglePause toggles to false', () => {
-    useGameStore.setState({ paused: true });
-    getStore().togglePause();
-    expect(getStore().paused).toBe(false);
-  });
+  // C-009: togglePause tests removed — pause was client-only and the
+  // server tick runner ignored state.paused. See BUG-086.
 
   it('setActiveTab sets tab to market', () => {
     getStore().setActiveTab('market');

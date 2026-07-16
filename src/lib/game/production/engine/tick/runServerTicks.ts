@@ -16,12 +16,14 @@ import type {
   ServerGameData,
 } from "../../../shared/types/types";
 import type { GameConfig } from "../../../config/config";
-import type { ProductionSnapshot } from "../../productionCalculator";
+import {
+  type ProductionSnapshot,
+  computeProduction,
+  computePowerGrid,
+  computeEndgameIncome,
+} from "../../productionCalculator";
 
 import { buildMultipliersServer, buildWorkerDefsMap, getBuildingDef } from "../math/multipliers.server";
-import { computePowerGridServer } from "../math/power.server";
-import { computeProductionServer } from "../math/production.server";
-import { computeEndgameIncomeServer } from "../math/endgame.server";
 import { buildProductionSnapshotServer } from "./productionSnapshot";
 import { advanceWeatherTick } from "./weatherTick";
 import { hasUnlimitedStorage } from "../../../shared/utils/hasUnlimitedStorage";
@@ -90,13 +92,12 @@ export function runServerTicks(
     const cache = buildMultipliersServer(state, config);
 
     const resourcesCopy = { ...state.resources };
-    const powerResult = computePowerGridServer(
+    const powerResult = computePowerGrid(
       state,
       cache,
       resourcesCopy,
       state.gameTick,
-      buildings,
-      workerDefs,
+      { buildings, workers: workerDefs },
     );
 
     cache.powerEfficiency = powerResult.efficiency;
@@ -122,12 +123,11 @@ export function runServerTicks(
     }
 
     for (const building of state.buildings) {
-      const result = computeProductionServer(
+      const result = computeProduction(
         building,
         cache,
         state.resources,
-        buildings,
-        workerDefs,
+        { buildings, workers: workerDefs },
       );
 
       if (!result.canProduce) continue;
@@ -173,7 +173,7 @@ export function runServerTicks(
       }
     }
 
-    const endgame = computeEndgameIncomeServer(state, cache);
+    const endgame = computeEndgameIncome(state, cache);
     state.money += endgame.moneyPerTick;
     state.totalMoneyEarned += endgame.moneyPerTick;
     state.researchPoints += endgame.researchPerTick;

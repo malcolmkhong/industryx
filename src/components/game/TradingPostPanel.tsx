@@ -593,8 +593,10 @@ export function TradingPostPanel() {
         const finalReceiveAmount = serverResult.receiveAmount ?? rAmt;
         const currentState = useGameStore.getState();
 
-        // Apply server-authoritative resources directly
-        useGameStore.setState({ resources: serverResult.updatedResources });
+        // P2-13: route through the store action boundary instead of
+        // calling useGameStore.setState directly. The action applies
+        // the server-authoritative resources and bumps tradesCompleted.
+        currentState.applyTradeResources(serverResult.updatedResources);
         currentState.addNotification(
           "success",
           `Traded ${formatNumber(gAmt)} ${RESOURCE_META[gRes]?.name ?? gRes} for ${finalReceiveAmount.toFixed(1)} ${RESOURCE_META[rRes]?.name ?? rRes}`,

@@ -1,4 +1,4 @@
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { createServiceRoleClient } from '@/lib/db/access';
 import type { Database } from '@/lib/db/types';
 
 type LeaderboardRow = Database['public']['Tables']['leaderboard']['Row'];
@@ -14,7 +14,9 @@ export async function submitScore(entry: LeaderboardInsert): Promise<Leaderboard
   const { data, error } = await supabase
     .from('leaderboard')
     .insert(entry)
-    .select()
+    .select(
+      'id,user_id,corporation_name,score,total_money_earned,buildings_built,research_completed,contracts_completed,prestige_count,play_time_ticks,rank_name,game_tick,created_at',
+    )
     .single();
 
   if (error) {
@@ -34,7 +36,9 @@ export async function getLeaderboard(limit = 50): Promise<LeaderboardRow[]> {
 
   const { data, error } = await supabase
     .from('leaderboard')
-    .select('*')
+    .select(
+      'id,user_id,corporation_name,score,total_money_earned,buildings_built,research_completed,contracts_completed,prestige_count,play_time_ticks,rank_name,game_tick,created_at',
+    )
     .order('score', { ascending: false })
     .limit(limit);
 

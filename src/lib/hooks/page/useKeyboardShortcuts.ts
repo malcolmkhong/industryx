@@ -6,13 +6,17 @@ import { KEY_TAB_MAP } from '@/components/game/GameSidebar';
 
 const SPEED_OPTIONS = [1, 2, 5, 10] as const;
 
-// Global keyboard shortcuts: 1-9 switch tabs (via KEY_TAB_MAP), Space toggles
-// pause, + / - change game speed, Escape deselects the active building.
+// Global keyboard shortcuts: 1-9 switch tabs (via KEY_TAB_MAP), + / -
+// change game speed, Escape deselects the active building.
 // Ignores key events when the user is typing in an input.
+//
+// C-009 (BUILDING_PRODUCTION_AUDIT §10.6 P1, 2026-07-16): the Space
+// key used to call `togglePause()`. Pause was client-only and the
+// server tick runner ignored `state.paused`, so the binding was
+// misleading. It is removed alongside the store action and the UI.
 export function useKeyboardShortcuts(): void {
   const navigateToTab = useNavigateToTab();
   const router = useRouter();
-  const togglePause = useGameStore(s => s.togglePause);
   const setGameSpeed = useGameStore(s => s.setGameSpeed);
   const selectBuilding = useGameStore(s => s.selectBuilding);
   const gameSpeed = useGameStore(s => s.gameSpeed);
@@ -27,12 +31,6 @@ export function useKeyboardShortcuts(): void {
       if (KEY_TAB_MAP[e.key]) {
         e.preventDefault();
         navigateToTab(KEY_TAB_MAP[e.key]);
-        return;
-      }
-
-      if (e.key === ' ') {
-        e.preventDefault();
-        togglePause();
         return;
       }
 
@@ -60,5 +58,5 @@ export function useKeyboardShortcuts(): void {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [navigateToTab, router, togglePause, setGameSpeed, selectBuilding, gameSpeed]);
+  }, [navigateToTab, router, setGameSpeed, selectBuilding, gameSpeed]);
 }

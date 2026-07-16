@@ -207,6 +207,23 @@ if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
 }
 
 export { formatNumber } from "../shared/utils/formatNumber";
+
+/**
+ * C-007 (BUILDING_PRODUCTION_AUDIT §10.4, 2026-07-16):
+ * Server-authoritative payout per cycle + game speed + configured
+ * payout interval give the actual cycles-per-minute income. Used by
+ * DashboardPanel and the two header components so all surfaces show
+ * the same number.
+ */
+export function computeNetIncomePerMinute(
+  payoutPerCycle: number,
+  effectiveSpeed: number,
+  basePayoutInterval: number,
+): number {
+  if (basePayoutInterval <= 0) return 0;
+  const cyclesPerMinute = (effectiveSpeed / basePayoutInterval) * 60;
+  return Math.floor(payoutPerCycle * cyclesPerMinute);
+}
 export {
   getBuildingCost,
   isResearchUnlocked,

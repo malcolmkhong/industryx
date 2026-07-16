@@ -2,7 +2,7 @@ import Image from 'next/image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Bell, Check, Cloud, CloudOff, Download, Loader2, LogIn, LogOut,
-  Newspaper, Pause, Play, RefreshCw, User, Wifi, WifiOff,
+  Newspaper, RefreshCw, User, Wifi, WifiOff,
   Wrench, TrendingUp, TrendingDown,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +14,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useGameStore, formatNumber } from '@/lib/game/state/store';
+import { useGameStore, formatNumber, computeNetIncomePerMinute } from '@/lib/game/state/store';
 import { WEATHER_DEFS } from '@/lib/game/config/configCache';
 import { GameIcon, BrandLogo } from '@/components/icons';
 import { OnlineCount } from '@/components/game/OnlineCount';
@@ -39,7 +39,7 @@ export function MobileHeader({ onTabChange, onManageAccount }: MobileHeaderProps
   const gameTick = useGameStore(s => s.gameTick);
   const [tickFormat] = useTickFormat();
   const gameSpeed = useGameStore(s => s.gameSpeed);
-  const paused = useGameStore(s => s.paused);
+  // C-009: paused/togglePause removed — see BUG-086.
   const prestigeState = useGameStore(s => s.prestigeState);
   const effectiveSpeed = gameSpeed * (1 + prestigeState.bonuses.filter(b => b.purchased && b.effect.type === 'gameSpeed').reduce((sum, b) => sum + b.effect.value, 0));
   const money = useGameStore(s => s.money);
@@ -47,7 +47,6 @@ export function MobileHeader({ onTabChange, onManageAccount }: MobileHeaderProps
   const pendingPayout = useGameStore(s => s.pendingPayout);
   const payoutConfig = useGameStore(s => s.payoutConfig);
   const collectPayout = useGameStore(s => s.collectPayout);
-  const togglePause = useGameStore(s => s.togglePause);
   const setGameSpeed = useGameStore(s => s.setGameSpeed);
   const powerGrid = useGameStore(s => s.powerGrid);
   const productionSnapshot = useGameStore(s => s.productionSnapshot);
@@ -71,9 +70,13 @@ export function MobileHeader({ onTabChange, onManageAccount }: MobileHeaderProps
     : powerGrid.totalProduction > 0 ? 100 : 0;
 
   const incomePerMinute = useMemo(() => {
-    const rawPayoutPerCycle = productionSnapshot.payoutPerCycle || 0;
-    const cyclesPerMinute = effectiveSpeed / payoutConfig.basePayoutInterval * 60;
-    return Math.floor(rawPayoutPerCycle * cyclesPerMinute);
+    // C-007: use the shared formula so Dashboard and the headers stay
+    // in sync at any game speed and payout interval.
+    return computeNetIncomePerMinute(
+      productionSnapshot.payoutPerCycle || 0,
+      effectiveSpeed,
+      payoutConfig.basePayoutInterval,
+    );
   }, [productionSnapshot.payoutPerCycle, effectiveSpeed, payoutConfig.basePayoutInterval]);
 
   const factoryEfficiency = useMemo(() => {
@@ -168,7 +171,8 @@ export function MobileHeader({ onTabChange, onManageAccount }: MobileHeaderProps
           </HoverCardTrigger>
           <HoverCardContent side="bottom" className="w-56 bg-card border-brand/30">
             <p className="text-xs font-bold text-brand">Time</p>
-            <p className="text-[10px] text-subtle mt-0.5">Speed: {gameSpeed}x · {paused ? 'Paused' : 'Running'}</p>
+            {/* C-009: paused status removed — see BUG-086. */}
+            <p className="text-[10px] text-subtle mt-0.5">Speed: {gameSpeed}x</p>
             <p className="text-[10px] text-subtle mt-1 leading-relaxed">Each tick advances production, consumption, and event timers.</p>
           </HoverCardContent>
         </HoverCard>
@@ -304,15 +308,7 @@ export function MobileHeader({ onTabChange, onManageAccount }: MobileHeaderProps
       {/* ── Row 3: Speed controls + power bar ── */}
       <div className="flex items-center gap-2">
         <div className="flex items-center bg-card rounded-lg border border-brand/20 overflow-hidden shrink-0">
-          <Button
-            variant="ghost"
-            size="sm"
-            className={`${btn44} ${paused ? 'text-success' : 'text-warning'}`}
-            onClick={togglePause}
-            aria-label={paused ? "Resume game" : "Pause game"}
-          >
-            {paused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
-          </Button>
+          {/* C-009: pause button removed — see BUG-086. */}
           {SPEED_OPTIONS.map(speed => (
             <Button
               key={speed}

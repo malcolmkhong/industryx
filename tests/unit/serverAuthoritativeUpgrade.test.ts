@@ -14,7 +14,7 @@
 // ============================================
 
 import { describe, it, expect } from "vitest";
-import { validateUpgradeAction } from "@/lib/game/production/engine/serverEngine";
+import { validateUpgradeAction } from "@/lib/game/production/engine/serverEngine.server";
 import type { GameConfig } from "@/lib/game/config/config";
 import type {
   BuildingDefinition,

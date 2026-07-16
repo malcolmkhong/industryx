@@ -6,6 +6,48 @@
   | { [key: string]: Json | undefined }
   | Json[]
 
+/**
+ * P2-14a (BUILDING_PRODUCTION_AUDIT §10.6 P2, 2026-07-16):
+ * `.select("*")` over-fetches, leaks schema churn into runtime, and
+ * widens the trust boundary. PER-003 forbids it in production API
+ * paths. Per-table explicit column lists are exported here so call
+ * sites can import them and stay schema-typed.
+ *
+ * Convention: column lists match the generated `Row` type for each
+ * table. When a migration adds a column, the typed `Row<T>` forces
+ * the consumer to re-evaluate which columns it needs.
+ */
+export const SUPPORT_TICKETS_COLUMNS =
+  "id,user_id,subject,message,status,priority,accepted_by,resolved_at,created_at,updated_at";
+export const SUPPORT_MESSAGES_COLUMNS =
+  "id,ticket_id,sender_id,sender_type,message,created_at";
+
+// Re-export SUPPORT_TICKETS_COLUMNS / SUPPORT_MESSAGES_COLUMNS through
+// the config barrel for convenience in routes that already import from
+// @/lib/game/config/config.
+
+// Config table column whitelists (used by safeFetchTable and the generic
+// admin config loaders). Each is the canonical column list for that
+// table; adding a column requires updating this list AND the migration.
+export const CONFIG_TABLE_COLUMNS = {
+  game_config_buildings:
+    "id,name,description,category,tier,base_cost,cost_multiplier,base_power_consumption,base_power_production,base_production_rate,cycle_time,building_multiplier,fuel,fuel_rate,unlock_research,unlock_prestige,icon,sort_order,created_at,updated_at",
+  game_config_production_recipes:
+    "id,building_id,resource_id,amount,is_input,created_at",
+  game_config_research:
+    "id,name,description,category,tier,cost,time_required,prerequisites,effects,icon,requires_research,sort_order,created_at,updated_at",
+  game_config_production_chains:
+    "id,upstream_building,downstream_building,resource_id,created_at",
+  game_config_workers:
+    "id,name,description,base_hire_cost,effects,icon,sort_order,created_at,updated_at",
+  game_config_weather:
+    "id,name,icon,production_multiplier,solar_multiplier,wind_multiplier,description,sort_order,created_at,updated_at",
+  game_config_market:
+    "resource_id,base_price,demand,supply,volatility,sort_order,is_tradable",
+} as const;
+
+export type ConfigTableName = keyof typeof CONFIG_TABLE_COLUMNS;
+
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)

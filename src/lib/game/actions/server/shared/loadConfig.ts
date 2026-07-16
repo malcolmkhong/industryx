@@ -6,6 +6,7 @@ import {
   type SupabaseRecipe,
   type SupabaseResearch,
 } from "@/lib/game/config/config";
+import { CONFIG_TABLE_COLUMNS } from "@/lib/db/types";
 import type {
   BuildingDefinition,
   ResourceAmount,
@@ -38,16 +39,12 @@ export async function loadConfig(): Promise<GameConfig | null> {
   try {
     const [buildingsRes, recipesRes, researchRes, chainsRes] =
       await Promise.all([
-        supabase
-          .from("game_config_buildings")
-          .select("*")
+        supabase.from("game_config_buildings").select(CONFIG_TABLE_COLUMNS.game_config_buildings)
           .order("sort_order", { ascending: true, nullsFirst: false }),
-        supabase.from("game_config_production_recipes").select("*"),
-        supabase
-          .from("game_config_research")
-          .select("*")
+        supabase.from("game_config_production_recipes").select(CONFIG_TABLE_COLUMNS.game_config_production_recipes),
+        supabase.from("game_config_research").select(CONFIG_TABLE_COLUMNS.game_config_research)
           .order("sort_order", { ascending: true, nullsFirst: false }),
-        supabase.from("game_config_production_chains").select("*"),
+        supabase.from("game_config_production_chains").select(CONFIG_TABLE_COLUMNS.game_config_production_chains),
       ]);
 
     if (buildingsRes.error || !buildingsRes.data) {

@@ -536,10 +536,20 @@ export function SettingsPanel() {
           label="Floating Numbers"
           description="Show resource production popups"
         >
-          <Switch
-            checked={settings.floatingNumbers}
-            onCheckedChange={settings.setFloatingNumbers}
-          />
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={settings.floatingNumbers}
+              onCheckedChange={settings.setFloatingNumbers}
+            />
+            {settings.floatingNumbers ? (
+              <Eye className="w-3.5 h-3.5 text-success" aria-label="visible" />
+            ) : (
+              <EyeOff
+                className="w-3.5 h-3.5 text-muted-label"
+                aria-label="hidden"
+              />
+            )}
+          </div>
         </SettingRow>
 
         {/* Toast notifications */}
@@ -547,10 +557,20 @@ export function SettingsPanel() {
           label="Toast Notifications"
           description="Show notification toasts in the corner"
         >
-          <Switch
-            checked={settings.toastNotifications}
-            onCheckedChange={settings.setToastNotifications}
-          />
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={settings.toastNotifications}
+              onCheckedChange={settings.setToastNotifications}
+            />
+            {settings.toastNotifications ? (
+              <Eye className="w-3.5 h-3.5 text-success" aria-label="visible" />
+            ) : (
+              <EyeOff
+                className="w-3.5 h-3.5 text-muted-label"
+                aria-label="hidden"
+              />
+            )}
+          </div>
         </SettingRow>
 
         {/* Scan line effect */}
@@ -558,10 +578,20 @@ export function SettingsPanel() {
           label="Scan Line Effect"
           description="CRT-style scan line overlay"
         >
-          <Switch
-            checked={settings.scanLineEffect}
-            onCheckedChange={settings.setScanLineEffect}
-          />
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={settings.scanLineEffect}
+              onCheckedChange={settings.setScanLineEffect}
+            />
+            {settings.scanLineEffect ? (
+              <Eye className="w-3.5 h-3.5 text-success" aria-label="visible" />
+            ) : (
+              <EyeOff
+                className="w-3.5 h-3.5 text-muted-label"
+                aria-label="hidden"
+              />
+            )}
+          </div>
         </SettingRow>
 
         {/* Background grid */}
@@ -569,10 +599,20 @@ export function SettingsPanel() {
           label="Background Grid"
           description="Show grid pattern in the background"
         >
-          <Switch
-            checked={settings.backgroundGrid}
-            onCheckedChange={settings.setBackgroundGrid}
-          />
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={settings.backgroundGrid}
+              onCheckedChange={settings.setBackgroundGrid}
+            />
+            {settings.backgroundGrid ? (
+              <Eye className="w-3.5 h-3.5 text-success" aria-label="visible" />
+            ) : (
+              <EyeOff
+                className="w-3.5 h-3.5 text-muted-label"
+                aria-label="hidden"
+              />
+            )}
+          </div>
         </SettingRow>
 
         {/* Animation speed */}
@@ -677,7 +717,10 @@ export function SettingsPanel() {
         {/* Shortcut List - reorderable */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-subtle">Quick Access Shortcuts</p>
+            <p className="text-xs text-subtle inline-flex items-center gap-1">
+              <Plus className="w-3 h-3 text-brand" aria-label="add" />
+              Quick Access Shortcuts
+            </p>
             <Button
               variant="ghost"
               size="sm"
@@ -689,7 +732,7 @@ export function SettingsPanel() {
             </Button>
           </div>
           <div className="space-y-1">
-            {settings.quickAccessShortcuts.map((shortcut, index) => {
+            {settings.quickAccessShortcuts.map((shortcut, _) => {
               const IconComponent = ICON_MAP[shortcut.icon];
               return (
                 <div
@@ -739,7 +782,12 @@ export function SettingsPanel() {
             <div className="flex-1 min-w-0">
               <p className="text-xs text-subtle leading-relaxed">
                 Factory Dominion is a free, open-source passion project built
-                with love. If you&apos;re enjoying the game, a small coffee helps
+                with{" "}
+                <Heart
+                  className="w-3 h-3 inline text-danger align-text-bottom"
+                  aria-label="love"
+                />{" "}
+                love. If you&apos;re enjoying the game, a small coffee helps
                 keep the servers running and fuels new features!
               </p>
               <a
