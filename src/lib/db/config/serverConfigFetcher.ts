@@ -38,6 +38,7 @@ import {
   type SupabaseBalancingRule,
   type GameConfig,
 } from "@/lib/game/config/config";
+import { isClientPowerBalance } from "@/lib/game/config/balance/balanceValidator";
 
 /** Shape of a row in the `game_config_balance` table.
  *  Only the keys the client needs are mapped here. Server-side code
@@ -251,13 +252,14 @@ function transformWeather(weather: SupabaseWeather[]): GameConfig["weather"] {
 //
 // Server code reads the COMPLETE balance via balanceConfig.ts (strict
 // complete-set contract). The client only needs a small subset for display:
-// trade commission, trade cooldown, worker level-up XP, auto-sell threshold.
+// trade commission, trade cooldown, worker level-up XP, auto-sell threshold,
+// and display-only power factors.
 // We pick just those keys from the full balance row set.
 //
 // The full strict load is enforced server-side by
 // configLoader.server.ts → loadCompleteBalanceFromSupabase() and does NOT
-// depend on this transform. This transform is a relaxed read for the client
-// API only — missing keys fall back to the migration 072 seed defaults.
+// depend on this transform. Power values have no local fallback:
+// incomplete data is withheld from the browser.
 
 function transformClientBalance(
   rows: SupabaseBalanceRow[] | null,
@@ -285,6 +287,20 @@ function transformClientBalance(
       case "autoSell": {
         if (typeof v.thresholdRatio === "number" && Number.isFinite(v.thresholdRatio)) {
           out.autoSellThresholdRatio = v.thresholdRatio;
+        }
+        break;
+      }
+      case "power": {
+        if (isClientPowerBalance(v)) {
+          out.fuelStarvedOutputRatio = v.fuelStarvedOutputRatio;
+          out.solarAmplitudeBase = v.solarAmplitudeBase;
+          out.solarAmplitudeSwing = v.solarAmplitudeSwing;
+          out.solarOscillationFreq = v.solarOscillationFreq;
+          out.solarMinOutput = v.solarMinOutput;
+          out.windAmplitudeBase = v.windAmplitudeBase;
+          out.windAmplitudeSwing = v.windAmplitudeSwing;
+          out.windOscillationFreq = v.windOscillationFreq;
+          out.windMinOutput = v.windMinOutput;
         }
         break;
       }

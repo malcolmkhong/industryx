@@ -3168,3 +3168,78 @@ New file `supabase/migrations/20260716204500_081_bootstrap_placeholder_canonical
 - Existing 6 RPCs still emit `'0, 0, 1, 1'` literally in their SQL; future cleanups could remove those hardcodes now that the trigger does the right thing, but leaving them is harmless (the trigger overrides).
 - The trigger assumes `game_config_game` has a global row with `id='global'`; missing row falls back to the literal `2000`. Acceptable per RULES.md fail-closed.
 - Backfill was idempotent: any future placeholder already at `money=2000` would still be updated to `2000` (no-op).
+
+---
+
+## BUG-094 - Client PowerPanel reads server-only balance runtime before DB configuration loads
+
+### Status
+Fixed locally — pending production deployment.
+
+### Severity
+High
+
+### Category
+Client configuration / Production availability
+
+### Date Discovered
+2026-07-16
+
+### Location
+- `src/components/game/PowerPanel.tsx`
+- `src/lib/db/config/serverConfigFetcher.ts`
+- `src/lib/game/config/types/gameConfig.ts`
+
+### Problem Found
+`PowerPanel`, a client component, imported `getBalance()` from the server runtime singleton. Browser bundles never execute the server-side complete DB load, so opening `/game/power` called `getBalance()` with an empty singleton and crashed with `BalanceNotLoadedError`.
+
+### Root Cause
+BUG-085 replaced PowerPanel presentation literals with `getBalance().power` but crossed the client/server config boundary. The definitions API fetched only four other display values and did not expose the complete power-preview configuration already stored in `game_config_balance`.
+
+### Investigation / Evidence
+- Production browser stack trace identifies `BalanceNotLoadedError` during a `PowerPanel` `useMemo` render.
+- Graphify traced the route through `GameConfigProvider` and `GameShell`; the shell displays a configuration error banner but still mounts its child panel.
+- Live production `GET /api/game/config/definitions` returned only trade, worker, and auto-sell display values.
+- Live Supabase `game_config_balance` row `key='power'` contains all required values: `fuelStarvedOutputRatio`, solar amplitude/swing/frequency/minimum, and wind amplitude/swing/frequency/minimum (last updated `2026-07-12 11:04 UTC`).
+
+### Resolution
+PowerPanel now reads the existing flat `GameConfig.balance` response supplied by `GameConfigProvider`; it no longer imports the server-only balance runtime. The balance domain owns the shared client-safe power projection type and completeness check. `serverConfigFetcher` maps all nine power fields from the DB row only when they are finite and complete, without adding them to `DEFAULT_BALANCE_SUBSET`. Missing configuration blocks the panel rather than calculating with invented values. Server-side production authority remains unchanged.
+
+### Verification
+- `tests/unit/bug-094-power-panel-client-balance.test.ts` passes: no client `getBalance()` import/call, no power values in `DEFAULT_BALANCE_SUBSET`, and definitions expose the DB-backed flat balance fields.
+- Targeted lint passes for the changed production files (the test file is excluded by the repository ESLint ignore pattern).
+- `tests/unit/configCache.test.ts` passes alongside the BUG-094 regression test.
+- Repo-wide `bun run typecheck` remains blocked only by four existing Vitest mock errors in `tests/api/game/session-heartbeat.contract.test.ts` (lines 99, 115, 117, 124); none originate from this change.
+
+---
+
+## BUG-095 - Instrumentation imports Node-only config modules in Edge runtime
+
+### Status
+Fixed locally - pending deployment.
+
+### Severity
+High
+
+### Category
+Server startup / Runtime compatibility
+
+### Date Discovered
+2026-07-16
+
+### Location
+- `instrumentation.ts`
+- `src/lib/game/config/server/`
+
+### Problem Found
+The root instrumentation hook compared `NEXT_RUNTIME` to `edgejs`, but Next.js uses `edge`. Edge startup could therefore import the Node-only Supabase config stack.
+
+### Root Cause
+The root hook combined runtime selection, config loading, balance refreshing, polling, and logging. That made the incorrect runtime literal and a duplicate balance fetch easy to miss.
+
+### Resolution
+Instrumentation is now a Node-only adapter. `bootstrapConfigRuntime()` in the config server domain owns pre-warming complete config and starting the balance poller. The duplicate immediate balance refresh was removed; polling still starts after a failed pre-warm so it can retry while request paths remain fail-closed.
+
+### Verification
+- `tests/unit/configServerBootstrap.test.ts` verifies one complete load, one poller start, Node-only instrumentation, and no direct balance refresh.
+- Targeted lint and typecheck run after implementation.

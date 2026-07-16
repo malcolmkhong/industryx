@@ -1,5 +1,7 @@
 // Server config loader compatibility barrel.
-// Split modules own config loading, balance loading, and balance polling.
+// Split modules own config loading, boot orchestration, balance loading, and polling.
+
+export { bootstrapConfigRuntime } from "./bootstrap.server";
 
 export {
   __resetConfigLoaderForTests,
