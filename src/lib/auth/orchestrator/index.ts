@@ -9,6 +9,7 @@ export {
   type AuthContextValue,
 } from "./AuthContext";
 export { useAuth } from "./useAuth";
+export { useOrchestratorStatus } from "./useOrchestratorStatus";
 export {
   createDeviceIdStorage,
   DEVICE_ID_STORAGE_KEY,

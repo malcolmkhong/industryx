@@ -122,3 +122,24 @@ export function formatDurationLong(ticks: number): string {
   if (seconds > 0) parts.push(`${seconds} ${seconds === 1 ? 'second' : 'seconds'}`);
   return parts.join(', ');
 }
+
+/**
+ * Phase 8 stub: convert an absolute UTC epoch (ms) into a world-clock game tick.
+ * Canonical implementation belongs in this module; this thin version is
+ * sufficient for type-correct builds until the world clock is wired in.
+ */
+export function utcMsToTick(epochMs: number, _clock: WorldClock): number {
+  return Math.max(0, Math.floor(epochMs / 1000));
+}
+
+/**
+ * Phase 8 stub: world clock descriptor used to anchor server-side countdowns.
+ * Real implementation comes from app config; this minimal shape is enough for
+ * callers that only need a stable identity to pass around.
+ */
+export interface WorldClock {
+  /** Identifier (epoch seconds since server start, deployment id, etc.). */
+  readonly id: string;
+  /** Reference epoch in ms — start of game time. */
+  readonly epochMs: number;
+}

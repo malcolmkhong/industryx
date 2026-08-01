@@ -6,6 +6,7 @@ import { getOrchestratorStateSnapshot } from "@/lib/auth/orchestrator/registry";
 import { createDeviceIdStorage } from "@/lib/auth/orchestrator/storage";
 import { applyServerState } from "@/lib/game/state/store";
 import type { ProductionSnapshot } from "@/lib/game/production/productionCalculator";
+import { useCloudSync } from "@/lib/hooks/useCloudSync";
 
 const LIVE_TICK_INTERVAL_MS = 10_000;
 const LIVE_TICK_BACKOFF_MAX_MS = 160_000;
@@ -33,6 +34,7 @@ function readPersistentDeviceId(): string | null {
 
 export function useLiveServerTick(): void {
   const { user, deviceId } = useAuth();
+  const { lastSyncAt } = useCloudSync();
   const userId = user?.id ?? null;
   const inFlightRef = useRef(false);
 
@@ -64,6 +66,15 @@ export function useLiveServerTick(): void {
       if (inFlightRef.current) return;
       if (document.visibilityState !== "visible") {
         // Tab hidden — re-check shortly, do not advance backoff.
+        scheduleNext(LIVE_TICK_INTERVAL_MS);
+        return;
+      }
+
+      // Task 7: barrier against offline-progress application. The cloud
+      // sync service bumps `lastSyncAt` only after a successful load OR
+      // save — so this gate ensures we don't apply a live-tick delta over
+      // the freshly-bootstrapped state until hydration completes.
+      if (!lastSyncAt) {
         scheduleNext(LIVE_TICK_INTERVAL_MS);
         return;
       }
@@ -140,5 +151,5 @@ export function useLiveServerTick(): void {
         timeoutHandle = null;
       }
     };
-  }, [deviceId, userId]);
+  }, [deviceId, userId, lastSyncAt]);
 }

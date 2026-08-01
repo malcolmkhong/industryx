@@ -25,6 +25,16 @@ export interface GameEvent {
   remaining: number;
   effects: EventEffect[];
   icon: string;
+  /** Phase 8: stable template id (FK to game_config_event_templates.id). */
+  templateId?: string;
+  /** Phase 8: scope discriminator ('factory' | 'weather' | ...). */
+  scope?: string;
+  /** Phase 8: tick at which the event was activated. */
+  startedAtTick?: number;
+  /** Phase 8: server-anchored tick at which the event ends. */
+  endsAtTick?: number;
+  /** Phase 8: scheduleCheck the event was assigned at activation. */
+  scheduleCheck?: number;
 }
 
 export interface EventEffect {
