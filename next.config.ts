@@ -22,7 +22,13 @@ const nextConfig: NextConfig = {
           {
             key: "Content-Security-Policy",
             value:
-              "default-src 'self'; script-src 'self' 'unsafe-inline' https://vercel.live; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.workers.dev https://api.simplesvg.com https://api.iconify.design https://api.unisvg.com; frame-src 'self' https://vercel.live; frame-ancestors 'none'",
+              // Dev mode (NODE_ENV !== 'production') needs 'unsafe-eval' for
+              // Next.js React Refresh runtime (HMR) which uses eval() to
+              // reconstruct error callstacks. Production bundles don't
+              // include this runtime, so the strict policy is safe to ship.
+              process.env.NODE_ENV === "production"
+                ? "default-src 'self'; script-src 'self' 'unsafe-inline' https://vercel.live; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.workers.dev https://api.simplesvg.com https://api.iconify.design https://api.unisvg.com; frame-src 'self' https://vercel.live; frame-ancestors 'none'"
+                : "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' ws: wss: https://*.supabase.co wss://*.supabase.co https://*.workers.dev https://api.simplesvg.com https://api.iconify.design https://api.unisvg.com; frame-src 'self' https://vercel.live; frame-ancestors 'none'",
           },
         ],
       },

@@ -9,6 +9,26 @@ applyTo: "**"
 
 ---
 
+## Autonoma test data
+
+The `/api/autonoma` endpoint (see `src/app/api/autonoma/route.ts` and
+`src/lib/autonoma/`) is the **Environment Factory** the Autonoma
+end-to-end test runner calls to seed and tear down isolated test
+data. Every entity the planner audit lists is registered as a Zod
+factory that inserts through the same tables the production code
+writes to, so any business rule, trigger, or RLS policy that fires in
+production also fires for the test seed.
+
+When you add or change a model — or the production helper that
+creates it — update the matching factory in `src/lib/autonoma/` and
+register it in `factories.ts`. The recipe at
+`C:\Users\malco\.autonoma\a-industryx-industryx\recipe.json` is
+generated from the entity audit and the live schema; keep your factory
+input schema aligned with the real table so the recipe's
+substitutions land on columns that exist.
+
+---
+
 ## Mandatory Rule Loading
 
 Before doing any work, every AI agent MUST read the `.rules` file in this repository.
