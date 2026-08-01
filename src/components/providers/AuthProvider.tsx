@@ -35,7 +35,11 @@ import {
   LoginPromptService,
   LoginPromptServiceProvider,
 } from "@/lib/hooks/useLoginPrompt";
-import { useGameStore, applyServerState, hydrateInitialState } from "@/lib/game/state/store";
+import {
+  useGameStore,
+  applyServerState,
+  hydrateInitialState,
+} from "@/lib/game/state/store";
 import { extractGameState } from "@/lib/hooks/cloudSync/serializeGameState";
 
 // Check if Supabase is configured
@@ -188,8 +192,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (!res.ok) {
               // Non-2xx: try to parse { code, ... } for orchestrator routing.
               try {
-                const errBody = (await res.json()) as Partial<BootstrapResponseBody>;
-                if (errBody && typeof errBody === "object" && "code" in errBody) {
+                const errBody =
+                  (await res.json()) as Partial<BootstrapResponseBody>;
+                if (
+                  errBody &&
+                  typeof errBody === "object" &&
+                  "code" in errBody
+                ) {
                   return errBody as BootstrapResponseBody;
                 }
               } catch {
@@ -264,6 +273,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             void isNewUser;
           } catch (err) {
             console.warn("[AuthProvider] applyServerState failed:", err);
+            // Task 5: surface the failure so any listening error surface
+            // (banner, recovery CTA, etc.) can react. The event payload
+            // carries the error so consumers can decide how to render.
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(
+                new CustomEvent("industryx:apply-state-error", {
+                  detail: {
+                    error: err instanceof Error ? err.message : String(err),
+                  },
+                }),
+              );
+            }
           }
         },
         // PR 5B: called BEFORE applyServerState when the resolved identity
@@ -282,10 +303,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const stub = useGameStore.getState();
             void stub;
           } catch (err) {
-            console.warn(
-              "[AuthProvider] clearPreviousUserState failed:",
-              err,
-            );
+            console.warn("[AuthProvider] clearPreviousUserState failed:", err);
           }
         },
         onAuthStateChange: (handler) => {
@@ -372,18 +390,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           /* ignore */
         }
         // Lazy-load sonner to keep this in the client bundle only.
-        import("sonner").then(({ toast }) => {
-          toast.info(
-            "Your previous local progress was archived",
-            {
+        import("sonner")
+          .then(({ toast }) => {
+            toast.info("Your previous local progress was archived", {
               description:
                 "Signed-in progress takes priority. Contact support to restore the archived snapshot.",
               duration: 8_000,
-            },
-          );
-        }).catch(() => {
-          /* sonner unavailable; skip — UI will surface the archive on next refresh */
-        });
+            });
+          })
+          .catch(() => {
+            /* sonner unavailable; skip — UI will surface the archive on next refresh */
+          });
+      });
+
+      // Task 5: also bridge applyServerState failures to a module-level
+      // signal so the AuthOrchestrator can surface the error to the UI.
+      // AuthProvider already logs `applyServerState failed` (above) — we
+      // additionally dispatch a window event so future error surfaces
+      // (e.g. a banner / retry CTA) can react without polling.
+      const applyErrorHandler = () => {
+        // No-op stub: orchestrator-level retry is sufficient today. The
+        // event is kept for forward compatibility.
+      };
+      window.addEventListener("industryx:apply-state-error", applyErrorHandler);
+      registerBootstrapRetryHandler(() => {
+        try {
+          orchestrator.retry();
+        } catch (err) {
+          console.warn("[AuthProvider] retry handler threw:", err);
+        }
       });
 
       // Cleanup on unmount
@@ -393,6 +428,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         unsubEvents();
         unsubArchive();
         cleanupStartup();
+        window.removeEventListener(
+          "industryx:apply-state-error",
+          applyErrorHandler,
+        );
+        registerBootstrapRetryHandler(() => undefined);
       };
     };
 
@@ -465,4 +505,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       </MergeFlowServiceProvider>
     </LoginPromptServiceProvider>
   );
+}
+
+// Exposed for the bootstrap-retry event listener. The orchestrator is a
+// class instance held in React context — to call `retry()` from a DOM event
+// listener we need a module-level reference. AuthProvider registers this
+// bridge in a useEffect that runs once on mount.
+let _bootstrapRetryHandler: (() => void) | null = null;
+export function registerBootstrapRetryHandler(handler: () => void): void {
+  _bootstrapRetryHandler = handler;
 }

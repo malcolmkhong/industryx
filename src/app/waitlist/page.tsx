@@ -9,7 +9,28 @@ import { WaitlistForm } from '@/components/waitlist/WaitlistForm';
 export const dynamic = 'force-dynamic';
 
 export default async function WaitlistPage() {
-  const cap = await getCapacityStatus();
+  // Task 12: surface capacity-fetch failure rather than crashing the
+  // whole page. If the platform endpoint is unreachable, show a friendly
+  // "check back later" message instead of an error trace.
+  let cap: Awaited<ReturnType<typeof getCapacityStatus>>;
+  try {
+    cap = await getCapacityStatus();
+  } catch (err) {
+    console.error("[waitlist] getCapacityStatus failed:", err);
+    return (
+      <main className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md text-center">
+          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3 tracking-tight">
+            Capacity status unavailable
+          </h1>
+          <p className="text-muted-label text-sm sm:text-base leading-relaxed">
+            We could not check capacity right now. The waitlist form is
+            temporarily unavailable — please check back in a few minutes.
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-background flex items-center justify-center px-4 py-12">

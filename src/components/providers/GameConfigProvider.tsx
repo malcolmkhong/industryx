@@ -1,11 +1,25 @@
-'use client';
+"use client";
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { fetchGameConfig, DEFAULT_BALANCE_SUBSET, type GameConfig } from "@/lib/game/config/config";
-import { updateFromSupabase, configVersion } from '@/lib/game/config/configCache';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
+import {
+  fetchGameConfig,
+  DEFAULT_BALANCE_SUBSET,
+  type GameConfig,
+} from "@/lib/game/config/config";
+import {
+  updateFromSupabase,
+  configVersion,
+} from "@/lib/game/config/configCache";
 
 // Client-side config cache with 5-minute TTL
-const CONFIG_CACHE_KEY = 'industriax_game_config';
+const CONFIG_CACHE_KEY = "industriax_game_config";
 const CONFIG_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 interface CachedConfig {
@@ -66,7 +80,7 @@ function createFallbackConfig(): GameConfig {
     productionChains: [],
     tradableResourceIds: [],
     loadedAt: Date.now(),
-    source: 'fallback',
+    source: "fallback",
   };
 }
 
@@ -106,7 +120,11 @@ export function useConfigVersion(): number {
   return useContext(GameConfigContext).version;
 }
 
-export function GameConfigProvider({ children }: { children: React.ReactNode }) {
+export function GameConfigProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [config, setConfig] = useState<GameConfig>(createFallbackConfig());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -119,23 +137,25 @@ export function GameConfigProvider({ children }: { children: React.ReactNode }) 
     try {
       // 1. Try localStorage cache first (instant load)
       const cachedConfig = getCachedConfig();
-      if (cachedConfig && cachedConfig.source === 'supabase') {
+      if (cachedConfig && cachedConfig.source === "supabase") {
         updateFromSupabase(cachedConfig);
         setConfig(cachedConfig);
         setLastUpdated(cachedConfig.loadedAt);
-        setVersion(v => v + 1);
+        setVersion((v) => v + 1);
         setLoading(false);
 
         // Still fetch fresh data in background (stale-while-revalidate)
-        fetchFreshConfig().then(freshConfig => {
-          if (freshConfig) {
-            updateFromSupabase(freshConfig);
-            setConfig(freshConfig);
-            setLastUpdated(Date.now());
-            setVersion(v => v + 1);
-            setCachedConfig(freshConfig);
-          }
-        }).catch(() => {});
+        fetchFreshConfig()
+          .then((freshConfig) => {
+            if (freshConfig) {
+              updateFromSupabase(freshConfig);
+              setConfig(freshConfig);
+              setLastUpdated(Date.now());
+              setVersion((v) => v + 1);
+              setCachedConfig(freshConfig);
+            }
+          })
+          .catch(() => {});
         return;
       }
 
@@ -145,25 +165,40 @@ export function GameConfigProvider({ children }: { children: React.ReactNode }) 
         updateFromSupabase(freshConfig);
         setConfig(freshConfig);
         setLastUpdated(Date.now());
-        setVersion(v => v + 1);
+        setVersion((v) => v + 1);
         setCachedConfig(freshConfig);
       } else {
-        setError('Game configuration unavailable. Server gameplay actions are paused.');
+        setError(
+          "Game configuration unavailable. Server gameplay actions are paused.",
+        );
         setConfig(createFallbackConfig());
+        // Task 4: auto-retry once on initial fetch failure. Bounded — we
+        // do NOT spin here; a single retry covers the common
+        // "cold-start cache miss" case where the API needs a moment to
+        // respond. Persistent failures still surface the error.
+        if (!hasRetriedConfigFetch.current) {
+          hasRetriedConfigFetch.current = true;
+          window.setTimeout(() => {
+            void loadConfig();
+          }, 1500);
+        }
       }
     } catch (err) {
-      console.error('[GameConfigProvider] Error loading config:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      console.error("[GameConfigProvider] Error loading config:", err);
+      setError(err instanceof Error ? err.message : "Unknown error");
       setConfig(createFallbackConfig());
     } finally {
       setLoading(false);
     }
   }, []);
 
+  // Task 4: track whether we've already auto-retried so we don't loop.
+  const hasRetriedConfigFetch = useRef(false);
+
   async function fetchFreshConfig(): Promise<GameConfig | null> {
     try {
       // Try the new /api/game/config/definitions endpoint first (processed config)
-      const defsRes = await fetch('/api/game/config/definitions');
+      const defsRes = await fetch("/api/game/config/definitions");
       if (defsRes.ok) {
         const defsData = await defsRes.json();
         if (defsData.buildings && Object.keys(defsData.buildings).length > 0) {
@@ -189,7 +224,7 @@ export function GameConfigProvider({ children }: { children: React.ReactNode }) 
             productionChains: defsData.productionChains || [],
             tradableResourceIds: defsData.tradableResourceIds || [],
             loadedAt: Date.now(),
-            source: 'supabase',
+            source: "supabase",
           };
           return supabaseConfig;
         }
@@ -208,7 +243,7 @@ export function GameConfigProvider({ children }: { children: React.ReactNode }) 
 
       return null;
     } catch (err) {
-      console.error('[GameConfigProvider] Fresh fetch error:', err);
+      console.error("[GameConfigProvider] Fresh fetch error:", err);
       return null;
     }
   }
@@ -217,10 +252,20 @@ export function GameConfigProvider({ children }: { children: React.ReactNode }) 
     loadConfig();
   }, [loadConfig]);
 
-  const isUsingSupabase = config.source === 'supabase';
+  const isUsingSupabase = config.source === "supabase";
 
   return (
-    <GameConfigContext.Provider value={{ config, loading, error, reload: loadConfig, isUsingSupabase, lastUpdated, version }}>
+    <GameConfigContext.Provider
+      value={{
+        config,
+        loading,
+        error,
+        reload: loadConfig,
+        isUsingSupabase,
+        lastUpdated,
+        version,
+      }}
+    >
       {children}
     </GameConfigContext.Provider>
   );
