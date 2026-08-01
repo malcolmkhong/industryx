@@ -1,0 +1,127 @@
+﻿
+> nextjs_tailwind_shadcn_ts@0.2.0 build
+> next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/ && rm -rf .next/standalone/node_modules/sharp .next/standalone/node_modules/@img .next/standalone/node_modules/detect-libc
+
+Γû▓ Next.js 16.1.3 (Turbopack)
+- Environments: .env.local, .env
+
+npm.cmd : ΓÜá The "middleware" file convention is deprecated. 
+Please use "proxy" instead. Learn more: 
+https://nextjs.org/docs/messages/middleware-to-proxy
+At line:1 char:1
++ & "C:\nvm4w\nodejs\npm.cmd" run build 2>&1 | Out-File 
+-FilePath "buil ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ΓÜá The "middle. 
+   ..leware-to-proxy:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 32.5s
+  Running TypeScript ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/68) ...
+  Generating static pages using 7 workers (17/68) 
+  Generating static pages using 7 workers (34/68) 
+  Generating static pages using 7 workers (51/68) 
+Γ£ô Generating static pages using 7 workers (68/68) in 5.0s
+  Finalizing page optimization ...
+
+Route (app)
+Γöî Γùï /
+Γö£ Γùï /_not-found
+Γö£ Γùï /admin
+Γö£ Γùï /admin/actions/admin
+Γö£ Γùï /admin/actions/player
+Γö£ Γùï /admin/admins
+Γö£ ╞Æ /admin/auth/callback
+Γö£ Γùï /admin/config
+Γö£ Γùï /admin/economy
+Γö£ Γùï /admin/forbidden
+Γö£ Γùï /admin/investigations
+Γö£ Γùï /admin/jobs
+Γö£ Γùï /admin/login
+Γö£ Γùï /admin/market
+Γö£ Γùï /admin/monitoring
+Γö£ Γùï /admin/permissions
+Γö£ Γùï /admin/players
+Γö£ ╞Æ /admin/players/[id]
+Γö£ Γùï /admin/players/compare
+Γö£ Γùï /admin/reports
+Γö£ Γùï /admin/support
+Γö£ Γùï /admin/system-status
+Γö£ ╞Æ /api
+Γö£ ╞Æ /api/admin/actions
+Γö£ ╞Æ /api/admin/admin-actions
+Γö£ ╞Æ /api/admin/admins
+Γö£ ╞Æ /api/admin/admins/[id]
+Γö£ ╞Æ /api/admin/admins/[id]/role
+Γö£ ╞Æ /api/admin/audit/export
+Γö£ ╞Æ /api/admin/economy
+Γö£ ╞Æ /api/admin/investigations
+Γö£ ╞Æ /api/admin/investigations/[id]
+Γö£ ╞Æ /api/admin/jobs
+Γö£ ╞Æ /api/admin/market
+Γö£ ╞Æ /api/admin/market/resources
+Γö£ ╞Æ /api/admin/market/resources/[id]
+Γö£ ╞Æ /api/admin/monitoring
+Γö£ ╞Æ /api/admin/permissions/[userId]
+Γö£ ╞Æ /api/admin/players
+Γö£ ╞Æ /api/admin/players/[id]
+Γö£ ╞Æ /api/admin/players/[id]/lock
+Γö£ ╞Æ /api/admin/players/bulk
+Γö£ ╞Æ /api/admin/players/compare
+Γö£ ╞Æ /api/admin/stats
+Γö£ ╞Æ /api/admin/support/tickets
+Γö£ ╞Æ /api/admin/support/tickets/[id]
+Γö£ ╞Æ /api/admin/support/tickets/[id]/messages
+Γö£ ╞Æ /api/admin/system-status
+Γö£ ╞Æ /api/admins
+Γö£ ╞Æ /api/admins/[id]
+Γö£ ╞Æ /api/auth/callback
+Γö£ ╞Æ /api/auth/claim-guest
+Γö£ ╞Æ /api/auth/confirm-link
+Γö£ ╞Æ /api/auth/initialize-guest
+Γö£ ╞Æ /api/auth/link-identity
+Γö£ ╞Æ /api/auth/me
+Γö£ ╞Æ /api/auth/migrate-guest
+Γö£ ╞Æ /api/auth/recover-by-device
+Γö£ ╞Æ /api/auth/update-profile
+Γö£ ╞Æ /api/capacity
+Γö£ ╞Æ /api/config/[table]
+Γö£ ╞Æ /api/config/[table]/[id]
+Γö£ ╞Æ /api/cron/validate-ticks
+Γö£ ╞Æ /api/game/action
+Γö£ ╞Æ /api/game/compute
+Γö£ ╞Æ /api/game/definitions
+Γö£ ╞Æ /api/game/heartbeat
+Γö£ ╞Æ /api/game/market-history
+Γö£ ╞Æ /api/game/offline
+Γö£ ╞Æ /api/game/state
+Γö£ ╞Æ /api/game/trade
+Γö£ ╞Æ /api/game/trades
+Γö£ ╞Æ /api/health
+Γö£ ╞Æ /api/icons
+Γö£ ╞Æ /api/leaderboard
+Γö£ ╞Æ /api/leaderboard/submit
+Γö£ ╞Æ /api/market/action
+Γö£ ╞Æ /api/market/aggregate-supply
+Γö£ ╞Æ /api/market/state
+Γö£ ╞Æ /api/market/tick
+Γö£ ╞Æ /api/news-llm
+Γö£ ╞Æ /api/player
+Γö£ ╞Æ /api/support/tickets
+Γö£ ╞Æ /api/support/tickets/[id]
+Γö£ ╞Æ /api/support/tickets/[id]/messages
+Γö£ ╞Æ /api/tables
+Γö£ ╞Æ /api/waitlist
+Γöö ╞Æ /waitlist
+
+
+╞Æ Proxy (Middleware)
+
+Γùï  (Static)   prerendered as static content
+╞Æ  (Dynamic)  server-rendered on demand
+
+'cp' is not recognized as an internal or external command,
+operable program or batch file.

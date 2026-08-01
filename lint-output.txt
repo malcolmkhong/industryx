@@ -1,0 +1,1031 @@
+﻿
+> nextjs_tailwind_shadcn_ts@0.2.0 lint
+> eslint .
+
+
+A:\industryx\industryx\.history\src\app\admin\actions\admin\page_20260617215828.tsx
+  255:13  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  264:13  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  504:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  504:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  508:15  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\actions\admin\page_20260618143304.tsx
+  255:13  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  264:13  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  504:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  504:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  508:15  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\actions\admin\page_20260618143309.tsx
+  255:13  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  264:13  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  504:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  504:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  508:15  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\actions\admin\page_20260618143325.tsx
+  255:13  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  264:13  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  504:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  504:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  508:15  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\actions\admin\page_20260618143334.tsx
+  255:13  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  264:13  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  504:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  504:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  508:15  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\actions\admin\page_20260618143921.tsx
+  255:13  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  264:13  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  504:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  504:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  508:15  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\actions\admin\page_20260618152652.tsx
+  256:13  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  266:13  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  507:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  507:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  511:15  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\actions\admin\page_20260618153948.tsx
+  256:13  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  266:13  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  512:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  512:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\app\admin\actions\admin\page_20260618164525.tsx
+  256:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  266:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\actions\admin\page_20260618170355.tsx
+  267:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\actions\player\page_20260617215828.tsx
+  282:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  318:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  327:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  446:21  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  455:23  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\actions\player\page_20260618143340.tsx
+  282:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  318:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  327:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  446:21  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  455:23  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\actions\player\page_20260618143348.tsx
+  282:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  318:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  327:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  446:21  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  455:23  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\actions\player\page_20260618143353.tsx
+  282:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  318:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  327:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  446:21  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  455:23  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\actions\player\page_20260618143357.tsx
+  282:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  318:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  327:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  446:21  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  455:23  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\actions\player\page_20260618143403.tsx
+  282:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  318:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  327:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  446:21  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  455:23  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\actions\player\page_20260618143420.tsx
+  282:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  318:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  327:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  446:21  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  455:23  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\actions\player\page_20260618143425.tsx
+  282:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  318:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  327:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  446:21  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  455:23  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\actions\player\page_20260618143922.tsx
+  282:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  318:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  327:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  446:21  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  455:23  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\actions\player\page_20260618143944.tsx
+  282:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  318:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  327:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  446:21  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\actions\player\page_20260618152710.tsx
+  282:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  321:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  331:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  451:21  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\actions\player\page_20260618171410.tsx
+  282:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  321:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  331:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  451:21  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\actions\player\page_20260618171432.tsx
+  322:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  332:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  452:21  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\actions\player\page_20260618171433.tsx
+  333:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  453:21  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\actions\player\page_20260618171436.tsx
+  454:21  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\admins\page_20260618142957.tsx
+  389:25  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  408:25  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  564:17  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  580:17  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\admins\page_20260618143019.tsx
+  389:25  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  408:25  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  564:17  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  587:17  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\admins\page_20260618143049.tsx
+  389:25  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  408:25  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  569:17  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  592:17  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\admins\page_20260618143109.tsx
+  389:25  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  408:25  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  570:17  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  593:17  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\admins\page_20260618143127.tsx
+  391:25  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  576:17  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  599:17  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\admins\page_20260618143157.tsx
+  393:25  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  582:17  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  605:17  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\admins\page_20260618143229.tsx
+  393:25  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  582:17  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  605:17  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\admins\page_20260618143432.tsx
+  393:25  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  582:17  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  605:17  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\admins\page_20260618171832.tsx
+  583:17  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  606:17  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\admins\page_20260618171836.tsx
+  607:17  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\config\page_20260617160324.tsx
+  509:9   warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  509:9   warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  524:9   warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  624:15  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  710:29  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  846:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  846:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  878:25  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  907:25  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  919:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  929:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  938:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  977:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  977:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\app\admin\config\page_20260618142856.tsx
+  509:9   warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  509:9   warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  524:9   warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  624:15  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  710:29  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  846:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  846:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  878:25  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  907:25  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  919:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  929:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  938:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  977:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  977:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\app\admin\config\page_20260618142905.tsx
+  509:9   warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  509:9   warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  524:9   warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  624:15  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  710:29  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  846:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  846:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  878:25  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  907:25  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  919:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  929:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  938:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  977:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  977:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\app\admin\config\page_20260618143440.tsx
+  509:9   warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  509:9   warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  524:9   warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  624:15  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  710:29  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  846:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  846:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  878:25  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  907:25  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  919:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  929:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  938:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  977:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  977:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\app\admin\config\page_20260618152751.tsx
+   509:9   warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+   509:9   warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+   524:9   warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+   717:29  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+   858:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+   858:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+   895:25  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+   924:25  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+   938:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+   950:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+   961:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  1008:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  1008:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\app\admin\config\page_20260618161813.tsx
+   509:9   warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+   509:9   warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+   524:9   warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+   718:29  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+   859:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+   859:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+   896:25  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+   925:25  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+   939:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+   951:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+   962:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  1009:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  1009:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\app\admin\config\page_20260618164525.tsx
+   528:9   warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+   722:29  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+   863:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+   863:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+   900:25  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+   929:25  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+   943:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+   955:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+   966:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  1013:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  1013:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\app\admin\config\page_20260618164527.tsx
+   723:29  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+   864:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+   864:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+   901:25  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+   930:25  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+   944:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+   956:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+   967:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  1014:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  1014:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\app\admin\config\page_20260618164531.tsx
+   723:29  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+   901:25  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+   930:25  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+   944:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+   956:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+   967:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  1014:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  1014:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\app\admin\config\page_20260618164532.tsx
+  723:29  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  901:25  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  930:25  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  944:23  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  956:23  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  967:23  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\config\page_20260618170110.tsx
+  723:29  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  933:25  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  947:23  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  959:23  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  970:23  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\config\page_20260618171830.tsx
+  934:25  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  948:23  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  960:23  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  971:23  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\config\page_20260618171923.tsx
+  951:24  error  Parsing error: ')' expected
+
+A:\industryx\industryx\.history\src\app\admin\config\page_20260618171924.tsx
+  951:24  error  Parsing error: ')' expected
+
+A:\industryx\industryx\.history\src\app\admin\config\page_20260618171925.tsx
+  951:24  error  Parsing error: ')' expected
+
+A:\industryx\industryx\.history\src\app\admin\config\page_20260618172037.tsx
+  951:24  error  Parsing error: ')' expected
+
+A:\industryx\industryx\.history\src\app\admin\investigations\page_20260617215828.tsx
+  466:31  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  566:23  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  671:15  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\investigations\page_20260618143459.tsx
+  466:31  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  566:23  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  671:15  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\investigations\page_20260618143505.tsx
+  466:31  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  566:23  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  671:15  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\investigations\page_20260618143510.tsx
+  466:31  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  566:23  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  671:15  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\investigations\page_20260618143516.tsx
+  466:31  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  566:23  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  671:15  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\investigations\page_20260618143553.tsx
+  466:31  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  566:23  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  671:15  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\investigations\page_20260618144038.tsx
+  583:23  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  688:15  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\investigations\page_20260618152810.tsx
+  697:15  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\investigations\page_20260618154300.tsx
+  698:15  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\investigations\page_20260618154310.tsx
+  699:15  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\investigations\page_20260618154321.tsx
+  700:15  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\layout_20260617160324.tsx
+  20:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+A:\industryx\industryx\.history\src\app\admin\layout_20260617160324.tsx:20:7
+  18 |   useEffect(() => {
+  19 |     if (AUTH_ROUTES.some((r) => pathname.startsWith(r))) {
+> 20 |       setLoading(false);
+     |       ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  21 |       return;
+  22 |     }
+  23 |  react-hooks/set-state-in-effect
+
+A:\industryx\industryx\.history\src\app\admin\layout_20260618143317.tsx
+  20:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+A:\industryx\industryx\.history\src\app\admin\layout_20260618143317.tsx:20:7
+  18 |   useEffect(() => {
+  19 |     if (AUTH_ROUTES.some((r) => pathname.startsWith(r))) {
+> 20 |       setLoading(false);
+     |       ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  21 |       return;
+  22 |     }
+  23 |  react-hooks/set-state-in-effect
+
+A:\industryx\industryx\.history\src\app\admin\layout_20260618150537.tsx
+  20:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+A:\industryx\industryx\.history\src\app\admin\layout_20260618150537.tsx:20:7
+  18 |   useEffect(() => {
+  19 |     if (AUTH_ROUTES.some((r) => pathname.startsWith(r))) {
+> 20 |       setLoading(false);
+     |       ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  21 |       return;
+  22 |     }
+  23 |  react-hooks/set-state-in-effect
+
+A:\industryx\industryx\.history\src\app\admin\page_20260617160630.tsx
+   78:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+   95:9   warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  152:9   warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  194:9   warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  215:9   warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\page_20260617215508.tsx
+   78:13  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+   95:9   warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  152:9   warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  194:9   warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  215:9   warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\page_20260618152533.tsx
+  2:1  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+
+A:\industryx\industryx\.history\src\app\admin\players\[id]\page_20260617165336.tsx
+  621:27  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  716:17  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\players\[id]\page_20260617215508.tsx
+  621:27  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  716:17  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\players\[id]\page_20260617215828.tsx
+  621:27  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  716:17  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\players\[id]\page_20260618143536.tsx
+  621:27  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  716:17  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\players\[id]\page_20260618143537.tsx
+  621:27  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  716:17  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\players\[id]\page_20260618143541.tsx
+  621:27  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  716:17  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\players\[id]\page_20260618164534.tsx
+  621:27  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  716:17  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\players\[id]\page_20260618172727.tsx
+  717:17  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\players\[id]\page_20260618172729.tsx
+  717:17  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\players\[id]\page_20260618172849.tsx
+  622:27  warning  Unused eslint-disable directive (no problems were reported from 'jsx-a11y/control-has-associated-label')
+
+A:\industryx\industryx\.history\src\app\admin\players\[id]\page_20260618172850.tsx
+  622:27  warning  Unused eslint-disable directive (no problems were reported from 'jsx-a11y/control-has-associated-label')
+
+A:\industryx\industryx\.history\src\app\admin\players\[id]\page_20260618173154.tsx
+  622:27  warning  Unused eslint-disable directive (no problems were reported from 'jsx-a11y/control-has-associated-label')
+
+A:\industryx\industryx\.history\src\app\admin\players\page_20260617215828.tsx
+  228:13  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  386:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  403:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  473:17  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  473:17  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\app\admin\players\page_20260618143545.tsx
+  228:13  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  386:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  403:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  473:17  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  473:17  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\app\admin\players\page_20260618143547.tsx
+  397:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  414:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  484:17  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  484:17  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\app\admin\players\page_20260618143559.tsx
+  397:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  414:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  484:17  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  484:17  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\app\admin\players\page_20260618143620.tsx
+  401:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  490:17  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  490:17  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\app\admin\players\page_20260618143651.tsx
+  402:23  warning  A control must be associated with a text label                                                                                                                                                     jsx-a11y/control-has-associated-label
+  491:17  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  491:17  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\app\admin\players\page_20260618143733.tsx
+  406:23  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\players\page_20260618143807.tsx
+  406:23  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\players\page_20260618143832.tsx
+  406:23  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\admin\players\page_20260618171833.tsx
+  407:20  error  Parsing error: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+
+A:\industryx\industryx\.history\src\app\admin\players\page_20260618172007.tsx
+  406:23  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\app\api\admin\monitoring\route_20260618121027.ts
+  69:40  error  Parsing error: Unterminated string literal
+
+A:\industryx\industryx\.history\src\app\api\auth\initialize-guest\route_20260618191231.ts
+  42:6  error  Parsing error: ',' expected
+
+A:\industryx\industryx\.history\src\app\api\auth\initialize-guest\route_20260618191257.ts
+  43:1  error  Parsing error: ')' expected
+
+A:\industryx\industryx\.history\src\app\api\auth\initialize-guest\route_20260618191313.ts
+  42:0  error  Parsing error: ',' expected
+
+A:\industryx\industryx\.history\src\app\api\auth\initialize-guest\route_20260618191334.ts
+  41:0  error  Parsing error: ',' expected
+
+A:\industryx\industryx\.history\src\app\api\auth\initialize-guest\route_20260618191338.ts
+  41:0  error  Parsing error: ',' expected
+
+A:\industryx\industryx\.history\src\app\api\auth\initialize-guest\route_20260618191341.ts
+  41:0  error  Parsing error: ',' expected
+
+A:\industryx\industryx\.history\src\app\api\auth\initialize-guest\route_20260618191459.ts
+  44:5  error  Parsing error: ')' expected
+
+A:\industryx\industryx\.history\src\app\api\auth\initialize-guest\route_20260618191503.ts
+  45:4  error  Parsing error: ',' expected
+
+A:\industryx\industryx\.history\src\app\api\auth\initialize-guest\route_20260618191506.ts
+  45:4  error  Parsing error: Argument expression expected
+
+A:\industryx\industryx\.history\src\app\api\auth\initialize-guest\route_20260618191508.ts
+  45:4  error  Parsing error: ',' expected
+
+A:\industryx\industryx\.history\src\app\api\auth\initialize-guest\route_20260618191955.ts
+  45:4  error  Parsing error: ',' expected
+
+A:\industryx\industryx\.history\src\app\api\auth\link-identity\route_20260618180052.ts
+  58:4  error  Parsing error: Unknown keyword or identifier. Did you mean 'const'?
+
+A:\industryx\industryx\.history\src\app\api\auth\recover-by-device\route_20260618182155.ts
+  17:6  error  Parsing error: ',' expected
+
+A:\industryx\industryx\.history\src\app\api\auth\recover-by-device\route_20260618182216.ts
+  17:6  error  Parsing error: ',' expected
+
+A:\industryx\industryx\.history\src\app\page_20260617215016.tsx
+  236:52  error  Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `setOfflineData`, but the source dependencies were [offlineData]. Inferred different dependency than source.
+
+A:\industryx\industryx\.history\src\app\page_20260617215016.tsx:236:52
+  234 |   }, [resetGame]);
+  235 |
+> 236 |   const handleCollectOfflineEarnings = useCallback(() => {
+      |                                                    ^^^^^^^
+> 237 |     if (offlineData) {
+      | ^^^^^^^^^^^^^^^^^^^^^^
+> 238 |       useGameStore.getState().collectOfflineProgress(offlineData);
+      | ^^^^^^^^^^^^^^^^^^^^^^
+> 239 |       setOfflineData(null);
+      | ^^^^^^^^^^^^^^^^^^^^^^
+> 240 |     }
+      | ^^^^^^^^^^^^^^^^^^^^^^
+> 241 |   }, [offlineData]);
+      | ^^^^ Could not preserve existing manual memoization
+  242 |
+  243 |   const renderPanel = () => {
+  244 |     switch (activeTab) {  react-hooks/preserve-manual-memoization
+
+A:\industryx\industryx\.history\src\app\page_20260617215020.tsx
+  236:52  error  Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `setOfflineData`, but the source dependencies were [offlineData]. Inferred different dependency than source.
+
+A:\industryx\industryx\.history\src\app\page_20260617215020.tsx:236:52
+  234 |   }, [resetGame]);
+  235 |
+> 236 |   const handleCollectOfflineEarnings = useCallback(() => {
+      |                                                    ^^^^^^^
+> 237 |     if (offlineData) {
+      | ^^^^^^^^^^^^^^^^^^^^^^
+> 238 |       useGameStore.getState().collectOfflineProgress(offlineData);
+      | ^^^^^^^^^^^^^^^^^^^^^^
+> 239 |       setOfflineData(null);
+      | ^^^^^^^^^^^^^^^^^^^^^^
+> 240 |     }
+      | ^^^^^^^^^^^^^^^^^^^^^^
+> 241 |   }, [offlineData]);
+      | ^^^^ Could not preserve existing manual memoization
+  242 |
+  243 |   const renderPanel = () => {
+  244 |     switch (activeTab) {  react-hooks/preserve-manual-memoization
+
+A:\industryx\industryx\.history\src\app\page_20260617215143.tsx
+  236:52  error  Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `setOfflineData`, but the source dependencies were [offlineData]. Inferred different dependency than source.
+
+A:\industryx\industryx\.history\src\app\page_20260617215143.tsx:236:52
+  234 |   }, [resetGame]);
+  235 |
+> 236 |   const handleCollectOfflineEarnings = useCallback(() => {
+      |                                                    ^^^^^^^
+> 237 |     if (offlineData) {
+      | ^^^^^^^^^^^^^^^^^^^^^^
+> 238 |       useGameStore.getState().collectOfflineProgress(offlineData);
+      | ^^^^^^^^^^^^^^^^^^^^^^
+> 239 |       setOfflineData(null);
+      | ^^^^^^^^^^^^^^^^^^^^^^
+> 240 |     }
+      | ^^^^^^^^^^^^^^^^^^^^^^
+> 241 |   }, [offlineData]);
+      | ^^^^ Could not preserve existing manual memoization
+  242 |
+  243 |   const renderPanel = () => {
+  244 |     switch (activeTab) {  react-hooks/preserve-manual-memoization
+
+A:\industryx\industryx\.history\src\components\admin\CommandPalette_20260618152534.tsx
+  104:15  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\components\admin\TableSkeleton_20260618163547.tsx
+   8:15  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+  18:17  warning  A control must be associated with a text label  jsx-a11y/control-has-associated-label
+
+A:\industryx\industryx\.history\src\components\game\CloudSyncBlockBanner_20260617165336.tsx
+  96:5  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  96:5  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\CloudSyncBlockBanner_20260617215507.tsx
+  96:5  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  96:5  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\CloudSyncBlockBanner_20260618155346.tsx
+  96:5  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener  jsx-a11y/click-events-have-key-events
+
+A:\industryx\industryx\.history\src\components\game\CloudSyncBlockBanner_20260618164403.tsx
+  96:5  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener  jsx-a11y/click-events-have-key-events
+
+A:\industryx\industryx\.history\src\components\game\DroneDeliveryPanel_20260617174506.tsx
+  247:15  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  247:15  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  435:17  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  435:17  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\DroneDeliveryPanel_20260617215455.tsx
+  247:15  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  247:15  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  435:17  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  435:17  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\DroneDeliveryPanel_20260618161845.tsx
+  438:17  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  438:17  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\FactoryMapPanel_20260617184356.tsx
+  1363:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  1428:25  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  1428:25  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\FactoryMapPanel_20260617215144.tsx
+  1363:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  1428:25  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  1428:25  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\FactoryMapPanel_20260618150455.tsx
+  1363:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  1428:25  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  1428:25  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\FactoryMapPanel_20260618150510.tsx
+  1363:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  1428:25  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  1428:25  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\FactoryMapPanel_20260618164034.tsx
+  1430:25  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  1430:25  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\GlobalResourceMonitorPanel_20260617215830.tsx
+  671:17  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\GlobalResourceMonitorPanel_20260618150634.tsx
+  671:17  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\GlobalResourceMonitorPanel_20260618163812.tsx
+  671:17  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\GlobalResourceMonitorPanel_20260618163813.tsx
+  671:17  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\GlobalResourceMonitorPanel_20260618163814.tsx
+  671:17  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\GlobalResourceMonitorPanel_20260618163816.tsx
+  671:17  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\GlobalResourceMonitorPanel_20260618163818.tsx
+  671:17  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\KeyboardShortcutsHelp_20260617165336.tsx
+  51:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  51:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\KeyboardShortcutsHelp_20260617215144.tsx
+  51:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  51:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\KeyboardShortcutsHelp_20260617215507.tsx
+  51:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  51:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\KeyboardShortcutsHelp_20260618154846.tsx
+  51:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  51:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\KeyboardShortcutsHelp_20260618163335.tsx
+  51:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  51:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\KeyboardShortcutsHelp_20260618163446.tsx
+  51:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  51:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\LoginFloatingPanel_20260618163757.tsx
+  411:10  error  Parsing error: '}' expected
+
+A:\industryx\industryx\.history\src\components\game\LoginFloatingPanel_20260618163758.tsx
+  411:10  error  Parsing error: '}' expected
+
+A:\industryx\industryx\.history\src\components\game\LoginFloatingPanel_20260618164320.tsx
+  424:10  error  Parsing error: '}' expected
+
+A:\industryx\industryx\.history\src\components\game\MarketPriceChart_20260618164945.tsx
+  46:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+A:\industryx\industryx\.history\src\components\game\MarketPriceChart_20260618164945.tsx:46:5
+  44 |   useEffect(() => {
+  45 |     let cancelled = false;
+> 46 |     setLoading(true);
+     |     ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  47 |     setError(null);
+  48 |     const controller = new AbortController();
+  49 |     fetch(`/api/game/market-history?resource=${encodeURIComponent(resourceId)}&hours=${hours}`, { signal: controller.signal })  react-hooks/set-state-in-effect
+
+A:\industryx\industryx\.history\src\components\game\TradingPostPanel_20260617224054.tsx
+  724:14  error  'PriceChangeBadge' is not defined  react/jsx-no-undef
+  728:14  error  'PriceChangeBadge' is not defined  react/jsx-no-undef
+
+A:\industryx\industryx\.history\src\components\game\TradingPostPanel_20260617224055.tsx
+  724:14  error  'PriceChangeBadge' is not defined  react/jsx-no-undef
+  728:14  error  'PriceChangeBadge' is not defined  react/jsx-no-undef
+
+A:\industryx\industryx\.history\src\components\game\TransportPanel_20260617184356.tsx
+   582:5   warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+   630:7   warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+   630:7   warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  2259:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  2259:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  2263:13  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  2263:13  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\TransportPanel_20260617215144.tsx
+   582:5   warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+   630:7   warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+   630:7   warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  2259:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  2259:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  2263:13  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  2263:13  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\TransportPanel_20260617215507.tsx
+   582:5   warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+   630:7   warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+   630:7   warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  2259:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  2259:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  2263:13  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  2263:13  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\TransportPanel_20260618154941.tsx
+   582:5   warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+   630:7   warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+   630:7   warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  2260:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  2260:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  2264:13  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  2264:13  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\TransportPanel_20260618155003.tsx
+   582:5   warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+   630:7   warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+   630:7   warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  2261:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  2261:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  2265:13  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  2265:13  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\TransportPanel_20260618155006.tsx
+   582:5   warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+   630:7   warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+   630:7   warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  2262:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  2262:11  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  2266:13  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  2266:13  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\TransportPanel_20260618155028.tsx
+   582:5   warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+   630:7   warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+   630:7   warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  2262:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  2269:13  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  2269:13  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\TransportPanel_20260618164120.tsx
+   632:7   warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+   632:7   warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  2264:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  2271:13  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  2271:13  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\TransportPanel_20260618164122.tsx
+  2266:11  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  2273:13  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  2273:13  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\TransportPanel_20260618164155.tsx
+  2275:13  warning  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  2275:13  warning  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+A:\industryx\industryx\.history\src\components\game\headers\DesktopHeader_20260617184356.tsx
+  94:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+A:\industryx\industryx\.history\src\components\game\headers\DesktopHeader_20260617184356.tsx:94:7
+  92 |       // Reset to 0 so a single notification is always shown at index 0
+  93 |       // (avoids stale index pointing past the end of a shortened list)
+> 94 |       setHeadlineIndex(0);
+     |       ^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  95 |       return;
+  96 |     }
+  97 |     const t = setInterval(() => setHeadlineIndex((i) => (i + 1) % topHeadlines.length), 5000);  react-hooks/set-state-in-effect
+
+A:\industryx\industryx\.history\src\components\game\headers\DesktopHeader_20260617215144.tsx
+  94:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+A:\industryx\industryx\.history\src\components\game\headers\DesktopHeader_20260617215144.tsx:94:7
+  92 |       // Reset to 0 so a single notification is always shown at index 0
+  93 |       // (avoids stale index pointing past the end of a shortened list)
+> 94 |       setHeadlineIndex(0);
+     |       ^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  95 |       return;
+  96 |     }
+  97 |     const t = setInterval(() => setHeadlineIndex((i) => (i + 1) % topHeadlines.length), 5000);  react-hooks/set-state-in-effect
+
+A:\industryx\industryx\.history\src\components\game\headers\DesktopHeader_20260617215355.tsx
+  94:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+A:\industryx\industryx\.history\src\components\game\headers\DesktopHeader_20260617215355.tsx:94:7
+  92 |       // Reset to 0 so a single notification is always shown at index 0
+  93 |       // (avoids stale index pointing past the end of a shortened list)
+> 94 |       setHeadlineIndex(0);
+     |       ^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  95 |       return;
+  96 |     }
+  97 |     const t = setInterval(() => setHeadlineIndex((i) => (i + 1) % topHeadlines.length), 5000);  react-hooks/set-state-in-effect
+
+A:\industryx\industryx\.history\src\components\game\headers\DesktopHeader_20260617215508.tsx
+  94:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+A:\industryx\industryx\.history\src\components\game\headers\DesktopHeader_20260617215508.tsx:94:7
+  92 |       // Reset to 0 so a single notification is always shown at index 0
+  93 |       // (avoids stale index pointing past the end of a shortened list)
+> 94 |       setHeadlineIndex(0);
+     |       ^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  95 |       return;
+  96 |     }
+  97 |     const t = setInterval(() => setHeadlineIndex((i) => (i + 1) % topHeadlines.length), 5000);  react-hooks/set-state-in-effect
+
+A:\industryx\industryx\.history\src\components\providers\AuthProvider_20260618050301.tsx
+  180:6  error  Parsing error: Unknown keyword or identifier. Did you mean 'const'?
+
+A:\industryx\industryx\.history\src\lib\game\configCache_20260617214955.ts
+  413:0  error  Parsing error: '}' expected
+
+A:\industryx\industryx\.history\src\lib\game\configCache_20260617214956.ts
+  411:0  error  Parsing error: '}' expected
+
+A:\industryx\industryx\.history\src\lib\game\configCache_20260617214957.ts
+  410:0  error  Parsing error: '}' expected
+
+A:\industryx\industryx\.history\src\lib\hooks\useMergeFlow_20260618181242.ts
+  105:12  error  Parsing error: ':' expected
+
+A:\industryx\industryx\.history\src\lib\hooks\useMergeFlow_20260618181255.ts
+  104:12  error  Parsing error: ':' expected
+
+A:\industryx\industryx\.history\src\lib\hooks\useMergeFlow_20260618181304.ts
+  103:8  error  Parsing error: ',' expected
+
+A:\industryx\industryx\.history\src\lib\hooks\useMergeFlow_20260618181310.ts
+  105:12  error  Parsing error: ':' expected
+
+A:\industryx\industryx\cloudflare-worker.js
+  18:1  warning  Assign object to a variable before exporting as module default  import/no-anonymous-default-export
+
+A:\industryx\industryx\cloudflare\newsgenerator\worker.js
+  18:1  warning  Assign object to a variable before exporting as module default  import/no-anonymous-default-export
+
+A:\industryx\industryx\src\app\admin\players\[id]\page.tsx
+  622:27  warning  Unused eslint-disable directive (no problems were reported from 'jsx-a11y/control-has-associated-label')
+
+A:\industryx\industryx\src\components\ui\pagination.tsx
+  52:5  error  Anchors must have content and the content must be accessible by a screen reader  jsx-a11y/anchor-has-content
+
+Γ£û 504 problems (47 errors, 457 warnings)
+  0 errors and 4 warnings potentially fixable with the `--fix` option.
+
