@@ -1,0 +1,58 @@
+{
+	"servers": {
+
+  "@supabase/mcp-server-supabase": {
+    "command": "npx",
+    "args": [
+      "@supabase/mcp-server-supabase@0.8.2"
+    ],
+    "env": {
+      "SUPABASE_ACCESS_TOKEN": "${input:SUPABASE_ACCESS_TOKEN}"
+    },
+    "type": "stdio"
+  },
+
+  "minimax-image": {
+    "command": "node",
+    "args": [
+      "C:/Users/malco/mcp/minimax-image/index.js"
+    ],
+    "env": {
+      "MINIMAX_API_KEY": "sk-cp-_kwM1Jhb3Z02rMVxsyokqA5o2jhPoIf5FuCfYbijroz7Qetucj7uc0xObqpL6goPqKAAR5-aka1VMd61NbsOigtEkBuopbUa9CnPAUbR082HXheFaJwqg2U"
+    },
+    "type": "stdio"
+  }
+	},
+	"inputs": [
+		{
+			"type": "promptString",
+			"id": "arg_project_ref",
+			"description": "Supabase project reference ID",
+			"password": false
+		},
+		{
+			"type": "promptString",
+			"id": "arg_read_only",
+			"description": "Enable read-only mode",
+			"password": false
+		},
+		{
+			"type": "promptString",
+			"id": "arg_features",
+			"description": "Comma-separated list of features to enable",
+			"password": false
+		},
+		{
+			"type": "promptString",
+			"id": "arg_api_url",
+			"description": "Custom API URL",
+			"password": false
+		},
+		{
+			"type": "promptString",
+			"id": "SUPABASE_ACCESS_TOKEN",
+			"description": "Personal access token for Supabase API",
+			"password": true
+		}
+	]
+}

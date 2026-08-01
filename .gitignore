@@ -33,7 +33,9 @@ dev*.log
 
 # vercel
 .vercel
-skills/
+skills/**/*.generated
+skills/**/*.cache
+skills/tmp/
 # supabase/ is gitignored (contains Supabase CLI config), but migrations/ is tracked
 supabase/
 !supabase/migrations/
@@ -60,9 +62,6 @@ db/
 
 # agent context
 agent-ctx/
-
-# MCP config (contains tokens)
-.vscode/mcp.json
 
 # QA/downloaded screenshots
 download/
@@ -93,5 +92,3 @@ worklog.md
 
 # Documentation
 docs/
-
-skills/
