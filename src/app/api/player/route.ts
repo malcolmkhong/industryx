@@ -242,20 +242,14 @@ export async function POST(request: Request) {
     );
   }
 
-  // Check client checksum against server-generated checksum
-  if (clientChecksum && clientChecksum !== validation.checksum) {
-    await flagCheatAttempt(
-      auth.userId,
-      'state_tampering',
-      `Client checksum mismatch. Client: ${clientChecksum}, Server: ${validation.checksum}`,
-      'high',
-    );
-
-    return NextResponse.json(
-      { error: 'Checksum mismatch — possible state tampering', code: 'CHECKSUM_MISMATCH' },
-      { status: 400 },
-    );
-  }
+  // NOTE: The previous clientChecksum !== validation.checksum anti-cheat block was
+  // removed because it incorrectly compared a previously-loaded server hash against
+  // a newly modified game state. That comparison flagged every legitimate save
+  // (state_N vs state_N+1) as state_tampering and auto-locked users after 3 saves.
+  // Cheat detection now relies solely on validateGameState()'s bounds + delta checks
+  // and the state_version conflict detection above. The clientChecksum request
+  // field, serverStateHash storage, and state_hash response values are preserved
+  // for backwards compatibility with the existing client contract.
 
   // Upsert to server_game_state (AUTHORITATIVE — source of truth)
   const buildingsCount = ((gameState as Record<string, unknown>).buildings as unknown[])?.length || 0;

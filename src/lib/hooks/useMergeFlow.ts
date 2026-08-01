@@ -5,8 +5,10 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+
 import { useAuth } from '@/components/providers/AuthProvider';
 import type { LoginPromptReason } from '@/components/game/LoginFloatingPanel';
+import { getFingerprint } from '@/lib/auth/fingerprint';
 
 export interface MergePreview {
   guest: {
@@ -89,15 +91,24 @@ export function useMergeFlow() {
     const idempotencyKey = generateIdempotencyKey();
 
     try {
-      setCookie(GUEST_UID_COOKIE, 'pending-check', 1);
+      deleteCookie(GUEST_UID_COOKIE);
     } catch {
     }
 
     try {
+      // Phase 1: include fingerprint + UA for correlation (never used for
+      // enforcement; server stores them as-is).
+      const fingerprintHash = await getFingerprint();
+      const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : null;
       const res = await fetch('/api/auth/link-identity', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idempotencyKey }),
+        body: JSON.stringify({
+          idempotencyKey,
+          deviceId,
+          fingerprintHash,
+          userAgent,
+        }),
       });
 
       const data = await res.json();
@@ -149,6 +160,8 @@ export function useMergeFlow() {
       const idempotencyKey = `${state.operationId}-${preference}`;
 
       try {
+        // Phase 1: include fingerprint for correlation
+        const fingerprintHash = await getFingerprint();
         const res = await fetch('/api/auth/confirm-link', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -156,6 +169,7 @@ export function useMergeFlow() {
             operationId: state.operationId,
             idempotencyKey,
             preference,
+            fingerprintHash,
           }),
         });
 

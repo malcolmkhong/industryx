@@ -10,7 +10,7 @@ import { createServiceRoleClient } from '@/lib/supabase/server';
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const authResult = await verifyAdmin();
   if ('error' in authResult) return authResult.error;
@@ -21,7 +21,7 @@ export async function DELETE(
     );
   }
 
-  const resourceId = params.id;
+  const resourceId = (await params).id;
   if (!/^[a-z][a-z0-9-]{0,49}$/.test(resourceId)) {
     return withSecurityHeaders(
       NextResponse.json({ error: 'Invalid resource_id format' }, { status: 400 }),

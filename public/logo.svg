@@ -1,29 +1,111 @@
-<?xml version="1.0" encoding="utf-8"?>
-<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
-	 viewBox="0 0 30 30" style="enable-background:new 0 0 30 30;" xml:space="preserve">
-<defs>
-  <style type="text/css">
-    .st194{fill:#2D2D2D;stroke:#FFFFFF;stroke-width:0.6317;stroke-miterlimit:10;}
-    .st23{fill:#FFFFFF;}
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  IndustriaX Logo — Factory Dominion: Automated Empire
+  A gear-crown fusion: industry meets dominion
+  Colors: teal primary, dark accent, white foreground
+-->
+<svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="IndustriaX Logo">
+  <title>IndustriaX</title>
+  <desc>Factory Dominion: Automated Empire — a gear-crown logo representing industrial automation and empire building</desc>
 
-    .z-breathe {
-      animation: breathe 2.5s ease-in-out infinite;
-    }
+  <defs>
+    <!-- Teal gradient for the crown -->
+    <linearGradient id="crownGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4dd4c8"/>
+      <stop offset="100%" stop-color="#2a9d8f"/>
+    </linearGradient>
 
-    @keyframes breathe {
-      0%, 100% { opacity: 0.7; }
-      50% { opacity: 1; }
-    }
-  </style>
-</defs>
+    <!-- Gear tooth gradient -->
+    <linearGradient id="gearGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2a9d8f"/>
+      <stop offset="100%" stop-color="#1a6b63"/>
+    </linearGradient>
 
-<g>
-  <path class="st194" d="M24.51,28.51H5.49c-2.21,0-4-1.79-4-4V5.49c0-2.21,1.79-4,4-4h19.03c2.21,0,4,1.79,4,4v19.03
-    C28.51,26.72,26.72,28.51,24.51,28.51z"/>
-  <g class="z-breathe">
-    <path class="st23" d="M15.47,7.1l-1.3,1.85c-0.2,0.29-0.54,0.47-0.9,0.47h-7.1V7.09C6.16,7.1,15.47,7.1,15.47,7.1z"/>
-    <polygon class="st23" points="24.3,7.1 13.14,22.91 5.7,22.91 16.86,7.1"/>
-    <path class="st23" d="M14.53,22.91l1.31-1.86c0.2-0.29,0.54-0.47,0.9-0.47h7.09v2.33H14.53z"/>
+    <!-- Inner glow -->
+    <radialGradient id="innerGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#4dd4c8" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#2a9d8f" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background circle (dark) -->
+  <circle cx="64" cy="64" r="62" fill="#0f172a"/>
+
+  <!-- Outer gear ring -->
+  <path fill="url(#gearGrad)"
+    d="M 64 8
+       L 72 8 L 74 20 L 80 19 L 84 12 L 90 15
+       L 88 26 L 93 29 L 88 38 L 93 42
+       L 84 44 L 80 37 L 74 36 L 72 48
+       L 80 48 L 82 60 L 88 59 L 88 70
+       L 97 72 L 95 82 L 104 86 L 100 95
+       L 109 100 L 102 106 L 108 114 L 97 114
+       L 95 123 L 85 120 L 82 128 L 72 128
+       L 70 120 L 60 122 L 56 114 L 46 117
+       L 40 110 L 30 113 L 28 104 L 18 100
+       L 26 93 L 23 83 L 32 80 L 30 70
+       L 40 68 L 38 56 L 46 54 L 48 44
+       L 58 46 L 62 36 L 70 38 L 72 26
+       L 62 24 L 60 14 L 64 8 Z"/>
+
+  <!-- Inner dark ring (creates gear tooth depth) -->
+  <circle cx="64" cy="64" r="38" fill="#0f172a"/>
+
+  <!-- Crown body — fortress/dominion shape -->
+  <path fill="url(#crownGrad)"
+    d="M 30 58
+       L 30 78 Q 30 86 38 90
+       L 42 92 L 42 86 L 50 86
+       L 50 92 L 58 92 L 58 82
+       L 64 78 L 70 82 L 70 92
+       L 78 92 L 78 86 L 86 86
+       L 86 92 L 90 90 Q 98 86 98 78
+       L 98 58 Z"/>
+
+  <!-- Crown merlons (fortress battlements) -->
+  <rect x="42" y="62" width="8" height="10" fill="url(#crownGrad)"/>
+  <rect x="58" y="62" width="12" height="10" fill="url(#crownGrad)"/>
+  <rect x="78" y="62" width="8" height="10" fill="url(#crownGrad)"/>
+
+  <!-- Crown center jewel -->
+  <circle cx="64" cy="76" r="6" fill="#0f172a"/>
+  <circle cx="64" cy="76" r="4" fill="#4dd4c8"/>
+
+  <!-- Gear teeth — 8 teeth around the crown -->
+  <g fill="url(#gearGrad)">
+    <!-- Top tooth -->
+    <rect x="60" y="16" width="8" height="12" rx="2"/>
+    <!-- Bottom tooth -->
+    <rect x="60" y="100" width="8" height="12" rx="2"/>
+    <!-- Left tooth -->
+    <rect x="16" y="60" width="12" height="8" rx="2"/>
+    <!-- Right tooth -->
+    <rect x="100" y="60" width="12" height="8" rx="2"/>
+    <!-- Top-right tooth -->
+    <rect x="92" y="24" width="10" height="8" rx="2" transform="rotate(45, 97, 28)"/>
+    <!-- Top-left tooth -->
+    <rect x="26" y="24" width="10" height="8" rx="2" transform="rotate(-45, 31, 28)"/>
+    <!-- Bottom-right tooth -->
+    <rect x="92" y="96" width="10" height="8" rx="2" transform="rotate(-45, 97, 100)"/>
+    <!-- Bottom-left tooth -->
+    <rect x="26" y="96" width="10" height="8" rx="2" transform="rotate(45, 31, 100)"/>
   </g>
-</g>
+
+  <!-- Inner glow overlay -->
+  <circle cx="64" cy="64" r="50" fill="url(#innerGlow)"/>
+
+  <!-- "IX" letterforms inside the crown (subtle) -->
+  <text x="64" y="82"
+        font-family="Georgia, serif"
+        font-size="16"
+        font-weight="bold"
+        fill="#0f172a"
+        text-anchor="middle"
+        dominant-baseline="middle">IX</text>
+
+  <!-- Accent dots at gear corners -->
+  <circle cx="30" cy="30" r="3" fill="#4dd4c8" opacity="0.8"/>
+  <circle cx="98" cy="30" r="3" fill="#4dd4c8" opacity="0.8"/>
+  <circle cx="30" cy="98" r="3" fill="#4dd4c8" opacity="0.8"/>
+  <circle cx="98" cy="98" r="3" fill="#4dd4c8" opacity="0.8"/>
 </svg>

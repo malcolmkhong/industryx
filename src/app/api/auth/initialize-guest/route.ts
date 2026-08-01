@@ -1,11 +1,13 @@
 // Phase 1.3: Initialize guest profile + server_game_state + device mapping
 // Called after signInAnonymously completes.
 
-import { NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'crypto';
+import { NextRequest, NextResponse } from 'next/server';
+
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 import { getCapacityStatus } from '@/lib/capacity';
+import { logRequestIp } from '@/app/api/auth/request-ip-log-helper';
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,6 +24,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Phase 1: log request IP for analytics (correlation only)
+    logRequestIp(request, '/api/auth/initialize-guest', null);
+
     const supabase = createServiceRoleClient();
     if (!supabase) {
       return NextResponse.json(
@@ -30,15 +35,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      request.headers.get('authorization')?.replace('Bearer ', '') ?? ''
-    );
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+console.log(
+  '[InitializeGuest] Authorization:',
+  request.headers.get('authorization')
+);
+
+const accessToken =
+  request.headers.get('authorization')?.replace('Bearer ', '') ?? '';
+
+const {
+  data: { user },
+  error: authError,
+} = await supabase.auth.getUser(accessToken);
+
+console.log('[InitializeGuest] Auth result:', {
+  hasUser: !!user,
+  authError: authError?.message,
+});
+
+if (authError || !user) {
+  return NextResponse.json(
+    { error: 'Unauthorized' },
+    { status: 401 }
+  );
+}
 
     const rateLimitResponse = await checkRateLimit(
       user.id,
@@ -99,19 +119,48 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (!anyIdentity) {
-        await supabase.from('guest_identities').insert({
-          user_id: user.id,
-          device_id: deviceId,
-          fingerprint: fingerprint ?? '',
-          fingerprint_hash: fingerprint
-            ? createHash('sha256').update(fingerprint).digest('hex')
-            : null,
-          is_primary: true,
-        });
+console.log('[InitializeGuest] Creating guest identity', {
+  userId: user.id,
+  deviceId,
+});
+
+const { error: insertError } = await supabase
+  .from('guest_identities')
+  .insert({
+    user_id: user.id,
+    device_id: deviceId,
+    fingerprint: fingerprint ?? '',
+    fingerprint_hash: fingerprint
+      ? createHash('sha256').update(fingerprint).digest('hex')
+      : null,
+    is_primary: true,
+  });
+
+console.log(
+  '[InitializeGuest] guest_identities insert error:',
+  insertError
+);
+
+if (insertError) {
+  return NextResponse.json(
+    {
+      error: 'guest_identity_insert_failed',
+      details: insertError.message,
+    },
+    { status: 500 }
+  );
+}
+
+console.log('[InitializeGuest] Guest identity created successfully');
       }
     }
 
-    return NextResponse.json({ initialized: true });
+    return NextResponse.json({
+      initialized: true,
+      fingerprintHash: fingerprint
+        ? createHash('sha256').update(fingerprint).digest('hex')
+        : null,
+    });
   } catch (error) {
     console.error('[InitializeGuest] Unexpected error:', error);
     return NextResponse.json(

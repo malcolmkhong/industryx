@@ -18,19 +18,26 @@ export interface RateLimitConfig {
 }
 
 // Pre-configured rate limit profiles
+// 2026-06-19 tuning for 500 players on Supabase free tier:
+// - Tighter action/sync limits (cheat prevention + 33% less rate_limits row growth)
+// - Lower general/admin limits (no need for high caps)
+// - See planning estimate: ~134 MB/day at 670k requests/day, well under 500MB cap
+//   with 15-min cleanup keeping table at ~2.3k rows.
 export const RATE_LIMITS = {
   /** Player save/load: 20/min, best-effort */
   player: { maxRequests: 20, windowMs: 60_000, failClosed: false },
   /** Game compute (compute, offline): 10/min, best-effort */
   compute: { maxRequests: 10, windowMs: 60_000, failClosed: false },
-  /** Game action validation (action, trade): 30/min, fail-closed (security) */
-  action: { maxRequests: 30, windowMs: 60_000, failClosed: true },
-  /** Game state sync: 30/min, fail-closed (cheat prevention) */
-  sync: { maxRequests: 30, windowMs: 60_000, failClosed: true },
+  /** Game action validation (action, trade): 20/min, fail-closed (cheat prevention) */
+  action: { maxRequests: 20, windowMs: 60_000, failClosed: true },
+  /** Game state sync: 20/min, fail-closed (cheat prevention) */
+  sync: { maxRequests: 20, windowMs: 60_000, failClosed: true },
   /** Config/definitions: 30/min, best-effort */
   config: { maxRequests: 30, windowMs: 60_000, failClosed: false },
-  general: { maxRequests: 60, windowMs: 60_000, failClosed: false },
-  admin: { maxRequests: 100, windowMs: 60_000, failClosed: false },
+  /** General fallback: 30/min, best-effort */
+  general: { maxRequests: 30, windowMs: 60_000, failClosed: false },
+  /** Admin endpoints: 60/min, best-effort */
+  admin: { maxRequests: 60, windowMs: 60_000, failClosed: false },
 } as const;
 
 interface CheckRateLimitRow {

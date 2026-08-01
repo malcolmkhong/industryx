@@ -5,16 +5,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/auth/rateLimiter';
 import { verifyAuth } from '@/lib/auth/verifyAuth';
+import { logRequestIp, extractClientIp, hashIp } from '@/app/api/auth/request-ip-log-helper';
 
 type Preference = 'keep_guest' | 'keep_google';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { operationId, idempotencyKey, preference } = body as {
+    const { operationId, idempotencyKey, preference, fingerprintHash } = body as {
       operationId?: string;
       idempotencyKey?: string;
       preference?: Preference;
+      fingerprintHash?: string;
     };
 
     if (!operationId || !idempotencyKey || !preference) {
@@ -40,6 +42,14 @@ export async function POST(request: NextRequest) {
       '/api/auth/confirm-link'
     );
     if (rateLimitResponse) return rateLimitResponse;
+
+    // Phase 1: log request IP for analytics (correlation only)
+    logRequestIp(request, '/api/auth/confirm-link', auth.userId);
+
+    // Phase 1: read IP + UA from request headers for the audit fields
+    const realIp = extractClientIp(request.headers);
+    const ipHashValue = hashIp(realIp);
+    const requestUserAgent = request.headers.get('user-agent') ?? null;
 
     const supabase = createServiceRoleClient();
     if (!supabase) {
@@ -222,6 +232,12 @@ export async function POST(request: NextRequest) {
       risk_score: op.risk_score,
       risk_flags: op.risk_flags ?? [],
       actor_user_id: auth.userId,
+      // Phase 1: pre-existing IP/UA columns — now populated
+      actor_ip_hash: ipHashValue,
+      actor_ip_region: null, // not in scope for Phase 1
+      actor_user_agent: requestUserAgent,
+      // Phase 1: new correlation column
+      ...(fingerprintHash ? { fingerprint_hash: fingerprintHash } : {}),
     });
 
     return NextResponse.json({

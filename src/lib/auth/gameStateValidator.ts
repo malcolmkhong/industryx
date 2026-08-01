@@ -4,8 +4,9 @@
 // SERVER-AUTHORITATIVE — LEAN MVP
 // ============================================
 
-import { createServiceRoleClient } from '@/lib/supabase/server';
 import { createHmac } from 'crypto';
+
+import { createServiceRoleClient } from '@/lib/supabase/server';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -308,7 +309,7 @@ export async function fetchPreviousServerState(userId: string): Promise<Record<s
       .from('server_game_state')
       .select('full_state, money, game_tick, game_speed')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (sgs?.full_state) {
       return sgs.full_state as Record<string, unknown>;
@@ -336,9 +337,12 @@ export async function fetchPreviousServerState(userId: string): Promise<Record<s
  * Check if a user account is locked for cheating.
  * Only checks server_game_state (the source of truth).
  */
-export async function isAccountLocked(userId: string): Promise<{ locked: boolean; reason?: string }> {
+export async function isAccountLocked(
+  userId: string
+): Promise<{ locked: boolean; reason?: string }> {
   try {
     const supabase = createServiceRoleClient();
+
     if (!supabase) {
       throw new Error('Supabase service role not configured');
     }
@@ -347,25 +351,60 @@ export async function isAccountLocked(userId: string): Promise<{ locked: boolean
       .from('server_game_state')
       .select('is_locked, lock_reason')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
-    // C2 FIX: Fail-closed on database errors.
-    // If we can't verify the account status, we assume it's locked.
-    // This prevents attackers from DDoSing the database to bypass account locks.
+    // Real database/query errors = fail closed
     if (error) {
-      console.error('[Security] Failed to check account lock status for', userId, ':', error.message);
-      return { locked: true, reason: 'Unable to verify account status — access restricted for security' };
+      console.error('[Security] Failed to check account lock status', {
+        userId,
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
+
+      return {
+        locked: true,
+        reason:
+          'Unable to verify account status — access restricted for security',
+      };
     }
 
-    if (sgs?.is_locked) {
-      return { locked: true, reason: sgs.lock_reason || 'Account locked' };
+    // No game state yet = new player, not locked
+    if (!sgs) {
+      console.warn(
+        `[Security] No server_game_state found for user ${userId}. Treating as unlocked.`
+      );
+
+      return {
+        locked: false,
+      };
     }
 
-    return { locked: false };
+    // Explicit lock
+    if (sgs.is_locked) {
+      return {
+        locked: true,
+        reason: sgs.lock_reason || 'Account locked',
+      };
+    }
+
+    return {
+      locked: false,
+    };
   } catch (err) {
-    // C2 FIX: Fail-closed on unexpected errors too.
-    console.error('[Security] Exception checking account lock for', userId, ':', err);
-    return { locked: true, reason: 'Unable to verify account status — access restricted for security' };
+    console.error(
+      '[Security] Exception checking account lock for',
+      userId,
+      ':',
+      err
+    );
+
+    return {
+      locked: true,
+      reason:
+        'Unable to verify account status — access restricted for security',
+    };
   }
 }
 
@@ -373,11 +412,24 @@ export async function isAccountLocked(userId: string): Promise<{ locked: boolean
  * Increment the cheat flag counter and auto-lock if threshold reached.
  * Only updates server_game_state (the source of truth).
  */
+export interface FlagCheatAttemptOptions {
+  /**
+   * Client-computed fingerprint hash (correlation only, never used for
+   * bans or locks). Optional. Pass `null` or `undefined` if unknown.
+   */
+  fingerprintHash?: string | null
+  /**
+   * Client-supplied device id (the existing localStorage UUID). Optional.
+   */
+  deviceId?: string | null
+}
+
 export async function flagCheatAttempt(
   userId: string,
   detectionType: string,
   description: string,
   severity: 'low' | 'medium' | 'high' | 'critical',
+  options: FlagCheatAttemptOptions = {},
 ): Promise<void> {
   try {
     const supabase = createServiceRoleClient();
@@ -398,9 +450,31 @@ export async function flagCheatAttempt(
 
     if (error) {
       console.error('[AntiCheat] Failed to flag cheat attempt:', error.message);
-    } else {
-      console.warn(`[AntiCheat] User ${userId} flagged: ${detectionType} (${severity}).`);
+      return;
     }
+
+    // Phase 1 enrichment: denormalize fingerprint_hash and device_id onto the
+    // most recent cheat_investigations row for this user. This is best-effort
+    // (correlation only, never enforcement) and silently no-ops if the columns
+    // do not exist yet (pre-migration) or if no row was inserted.
+    const { fingerprintHash, deviceId } = options;
+    if (fingerprintHash || deviceId) {
+      const updatePayload: Record<string, string> = {}
+      if (fingerprintHash) updatePayload.fingerprint_hash = fingerprintHash
+      if (deviceId) updatePayload.device_id = deviceId
+      const { error: updateError } = await supabase
+        .from('cheat_investigations')
+        .update(updatePayload)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+      if (updateError) {
+        // Non-fatal; correlation only
+        console.warn('[AntiCheat] Could not enrich investigation row:', updateError.message)
+      }
+    }
+
+    console.warn(`[AntiCheat] User ${userId} flagged: ${detectionType} (${severity}).`);
   } catch (err) {
     console.error('[AntiCheat] Failed to flag cheat attempt:', err);
   }

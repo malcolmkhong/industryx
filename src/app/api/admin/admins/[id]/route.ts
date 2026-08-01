@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin, withSecurityHeaders, clearAdminCache } from "@/lib/auth/admin";
-import { createServiceRoleClient } from "@/lib/supabase/server";
 import { getAdminRole, hasRole, logAdminAction } from "@/lib/auth/admin-helpers";
+import {
+  isAdminsAvailable,
+  getAdminById,
+  deleteAdminById,
+} from "@/lib/db/admins";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -30,21 +34,16 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
   const { id: adminRecordId } = await context.params;
 
   try {
-    const supabase = createServiceRoleClient();
-    if (!supabase) {
+    if (!isAdminsAvailable()) {
       return NextResponse.json(
         { error: 'Service temporarily unavailable — database not configured' },
         { status: 503 }
       );
     }
 
-    const { data: adminRecord, error: fetchError } = await supabase
-      .from("admin_users")
-      .select("id, user_id, role")
-      .eq("id", adminRecordId)
-      .single();
+    const adminRecord = await getAdminById(adminRecordId);
 
-    if (fetchError || !adminRecord) {
+    if (!adminRecord) {
       return NextResponse.json(
         { error: "Not Found", message: "Admin record not found" },
         { status: 404 }
@@ -70,15 +69,11 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
       );
     }
 
-    const { error: deleteError } = await supabase
-      .from("admin_users")
-      .delete()
-      .eq("id", adminRecordId);
+    const ok = await deleteAdminById(adminRecordId);
 
-    if (deleteError) {
-      console.error("[Admin/Admins] Error deleting admin:", deleteError.message);
+    if (!ok) {
       return NextResponse.json(
-        { error: "Database Error", message: deleteError.message },
+        { error: "Database Error", message: "Failed to delete admin" },
         { status: 500 }
       );
     }

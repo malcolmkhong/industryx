@@ -16,6 +16,13 @@ import {
   flagCheatAttempt,
 } from '@/lib/auth/gameStateValidator';
 import { isAdminUserId } from '@/lib/auth/admin';
+import {
+  loadServerGameStateLite,
+  loadServerGameStateForDeltaCheck,
+  upsertServerGameState,
+  syncPlayerProgressGameState,
+  isServerGameStateAvailable,
+} from '@/lib/db/serverGameState';
 
 // GET /api/game/state?userId=xxx - Load authoritative server game state
 export async function GET(request: Request) {
@@ -45,25 +52,17 @@ export async function GET(request: Request) {
     console.warn(`[GameStateAPI] Admin ${auth.userId} bypassing account lock for GET`);
   }
 
-  const supabase = createServiceRoleClient();
-  if (!supabase) {
+  if (!isServerGameStateAvailable()) {
     return NextResponse.json(
       { error: 'Service temporarily unavailable — database not configured' },
       { status: 503 },
     );
   }
 
-  const { data, error } = await supabase
-    .from('server_game_state')
-    .select('*')
-    .eq('user_id', userId)
-    .single();
-
-  if (error) {
-    if (error.code === 'PGRST116') {
-      return NextResponse.json({ data: null, isNew: true });
-    }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  const data = await loadServerGameStateLite(userId);
+  if (!data) {
+    // No row found (PGRST116) — treat as new user.
+    return NextResponse.json({ data: null, isNew: true });
   }
 
   // Audit log
@@ -107,6 +106,9 @@ export async function POST(request: Request) {
     gameState?: Record<string, unknown>;
     clientChecksum?: string;
     clientStateVersion?: number;
+    // Phase 1: optional fingerprint/device_id from client (correlation only)
+    fingerprintHash?: string;
+    deviceId?: string;
   };
   try {
     body = await request.json();
@@ -142,31 +144,24 @@ export async function POST(request: Request) {
 
   const isUserAdmin = isAdminUserId(auth.userId);
 
-  const supabase = createServiceRoleClient();
-  if (!supabase) {
-    return NextResponse.json(
-      { error: 'Service temporarily unavailable — database not configured' },
-      { status: 503 },
-    );
-  }
-
   // Phase 4.4: Fetch server timestamp from DB (immune to client clock manipulation)
   // Uses now_iso() RPC defined in supabase/migrations/024_now_iso_function.sql
   let serverTimestamp: string;
   try {
-    const { data: serverTimeData } = await supabase.rpc('now_iso');
-    serverTimestamp = serverTimeData ?? new Date().toISOString();
+    const supabase = createServiceRoleClient();
+    if (supabase) {
+      const { data: serverTimeData } = await supabase.rpc('now_iso');
+      serverTimestamp = serverTimeData ?? new Date().toISOString();
+    } else {
+      serverTimestamp = new Date().toISOString();
+    }
   } catch {
     // Fallback to server local clock if RPC is not yet applied
     serverTimestamp = new Date().toISOString();
   }
 
   // Fetch current server state for delta validation + version conflict check
-  const { data: currentServerState } = await supabase
-    .from('server_game_state')
-    .select('full_state, state_hash, game_tick, cheat_flag_count, state_version, resources, money, research_points, buildings')
-    .eq('user_id', userId)
-    .single();
+  const currentServerState = await loadServerGameStateForDeltaCheck(userId);
 
   // 02.3: State version conflict detection — if client provides clientStateVersion
   // and DB has a newer version, return 409 with current server state so client
@@ -240,6 +235,7 @@ export async function POST(request: Request) {
         validation.riskLevel === 'critical' ? 'state_tampering' : 'money_manipulation',
         `Server state sync rejected: ${validation.violations.join('; ')}`,
         validation.riskLevel,
+        { fingerprintHash: body.fingerprintHash, deviceId: body.deviceId },
       );
 
       logActionAsync({
@@ -266,65 +262,47 @@ export async function POST(request: Request) {
     }
   }
 
-  // Check client checksum (admins bypass — checksum may differ due to dev testing)
-  if (clientChecksum && clientChecksum !== validation.checksum && !isUserAdmin) {
-    await flagCheatAttempt(
-      auth.userId,
-      'state_tampering',
-      `Client checksum mismatch on server state sync. Client: ${clientChecksum}, Server: ${validation.checksum}`,
-      'high',
-    );
-
-    return NextResponse.json(
-      { error: 'Checksum mismatch', code: 'CHECKSUM_MISMATCH' },
-      { status: 400 },
-    );
-  }
-
-  // Admin checksum mismatch log (don't reject, just log)
-  if (clientChecksum && clientChecksum !== validation.checksum && isUserAdmin) {
-    console.warn(`[GameStateAPI] Admin ${auth.userId} checksum mismatch (bypassed): Client=${clientChecksum}, Server=${validation.checksum}`);
-  }
+  // NOTE: The previous clientChecksum !== validation.checksum anti-cheat block was
+  // removed because it incorrectly compared a previously-loaded server hash against
+  // a newly modified game state. That comparison flagged every legitimate save
+  // (state_N vs state_N+1) as state_tampering and auto-locked users after 3 saves.
+  // Cheat detection now relies solely on validateGameState()'s bounds + delta checks
+  // and the state_version conflict detection above. The clientChecksum request
+  // field, serverStateHash storage, and stateHash response values are preserved
+  // for backwards compatibility with the existing client contract.
 
   const buildingsCount = ((gameState as Record<string, unknown>).buildings as unknown[])?.length || 0;
   const currentVersion = (currentServerState?.state_version as number) || 0;
 
   // Upsert to server_game_state (SOURCE OF TRUTH)
-  const { data: upsertData, error: upsertError } = await supabase
-    .from('server_game_state')
-    .upsert({
-      user_id: userId,
-      money: Number(gameState.money) || 0,
-      total_money_earned: Number(gameState.totalMoneyEarned) || 0,
-      research_points: Number(gameState.researchPoints) || 0,
-      buildings: gameState.buildings,
-      buildings_count: buildingsCount,
-      completed_research: gameState.completedResearch,
-      resources: gameState.resources,
-      workers: gameState.workers,
-      game_tick: Number(gameState.gameTick) || 0,
-      game_speed: Number(gameState.gameSpeed) || 1,
-      full_state: gameState,
-      state_hash: validation.checksum,
-      state_version: currentVersion + 1,
-      last_tick_at: serverTimestamp,
-      last_saved_at: serverTimestamp,
-    }, { onConflict: 'user_id' })
-    .select()
-    .single();
+  const upsertData = await upsertServerGameState({
+    user_id: userId,
+    money: Number(gameState.money) || 0,
+    total_money_earned: Number(gameState.totalMoneyEarned) || 0,
+    research_points: Number(gameState.researchPoints) || 0,
+    buildings: gameState.buildings as never,
+    buildings_count: buildingsCount,
+    completed_research: gameState.completedResearch as never,
+    resources: gameState.resources as never,
+    workers: gameState.workers as never,
+    game_tick: Number(gameState.gameTick) || 0,
+    game_speed: Number(gameState.gameSpeed) || 1,
+    full_state: gameState as never,
+    state_hash: validation.checksum,
+    state_version: currentVersion + 1,
+    last_tick_at: serverTimestamp,
+    last_saved_at: serverTimestamp,
+  });
 
-  if (upsertError) {
-    console.error('[GameStateAPI] server_game_state upsert error:', upsertError);
-    return NextResponse.json({ error: upsertError.message }, { status: 500 });
+  if (!upsertData) {
+    return NextResponse.json(
+      { error: 'Failed to persist game state' },
+      { status: 500 }
+    );
   }
 
   // Sync to player_progress for backwards compatibility (thin: user_id + game_state only)
-  await supabase
-    .from('player_progress')
-    .upsert({
-      user_id: userId,
-      game_state: gameState,
-    }, { onConflict: 'user_id' });
+  await syncPlayerProgressGameState(userId, gameState);
 
   // Audit log
   logActionAsync({

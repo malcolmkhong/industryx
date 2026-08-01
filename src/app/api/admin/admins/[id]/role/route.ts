@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin, withSecurityHeaders, clearAdminCache } from "@/lib/auth/admin";
-import { createServiceRoleClient } from "@/lib/supabase/server";
 import { getAdminRole, hasRole, logAdminAction } from "@/lib/auth/admin-helpers";
+import {
+  isAdminsAvailable,
+  getAdminById,
+  countAdminsByRole,
+  updateAdminRole,
+} from "@/lib/db/admins";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -41,21 +46,16 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const supabase = createServiceRoleClient();
-    if (!supabase) {
+    if (!isAdminsAvailable()) {
       return NextResponse.json(
         { error: 'Service temporarily unavailable — database not configured' },
         { status: 503 }
       );
     }
 
-    const { data: adminRecord, error: fetchError } = await supabase
-      .from("admin_users")
-      .select("id, user_id, role")
-      .eq("id", adminRecordId)
-      .single();
+    const adminRecord = await getAdminById(adminRecordId);
 
-    if (fetchError || !adminRecord) {
+    if (!adminRecord) {
       return NextResponse.json(
         { error: "Not Found", message: "Admin record not found" },
         { status: 404 }
@@ -70,12 +70,9 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     }
 
     if (adminRecord.user_id === authResult.admin.id && role !== "super_admin") {
-      const { count, error: countError } = await supabase
-        .from("admin_users")
-        .select("id", { count: "exact", head: true })
-        .eq("role", "super_admin");
+      const superAdminCount = await countAdminsByRole("super_admin");
 
-      if (!countError && (count ?? 0) <= 1) {
+      if (superAdminCount <= 1) {
         return NextResponse.json(
           { error: "Forbidden", message: "Cannot demote yourself — you are the last super admin" },
           { status: 403 }
@@ -83,15 +80,11 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       }
     }
 
-    const { error: updateError } = await supabase
-      .from("admin_users")
-      .update({ role })
-      .eq("id", adminRecordId);
+    const ok = await updateAdminRole(adminRecordId, role);
 
-    if (updateError) {
-      console.error("[Admin/Admins] Error updating admin role:", updateError.message);
+    if (!ok) {
       return NextResponse.json(
-        { error: "Database Error", message: updateError.message },
+        { error: "Database Error", message: "Failed to update admin role" },
         { status: 500 }
       );
     }

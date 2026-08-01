@@ -177,6 +177,19 @@ export async function POST() {
     const breakers = (stateData?.circuit_breakers as Record<string, BreakerState>) || {};
     const result = marketTick(prices, pressure, stateData?.volatility || 0, breakers);
 
+    // 5b. Clamp computed prices to within 50% of basePrice.
+    //     The RPC (apply_market_tick) validates ABS((current - base) / base) <= 0.50
+    //     and rejects the entire tick if any resource exceeds. Since prices can
+    //     drift (mean reversion is slow), the per-tick change can compound.
+    //     Clamp here so the RPC accepts the batch.
+    for (const p of result.prices) {
+      if (!p.basePrice || p.basePrice <= 0) continue;
+      const minAllowed = p.basePrice * 0.5;
+      const maxAllowed = p.basePrice * 1.5;
+      if (p.currentPrice < minAllowed) p.currentPrice = minAllowed;
+      if (p.currentPrice > maxAllowed) p.currentPrice = maxAllowed;
+    }
+
     // 6. PERSIST via the Supabase RPC — the validated gate (Rule 1).
     //    The RPC: validates bounds, increments tick atomically, writes
     //    game_config_market_history, clears market_player_pressure.

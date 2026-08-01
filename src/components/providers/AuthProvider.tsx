@@ -1,9 +1,11 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import type { User, Session } from '@supabase/supabase-js';
+import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
+
 import { initServerValidation, disableServerValidation } from '@/lib/game/serverActions';
+import type { User, Session } from '@supabase/supabase-js';
+import { getFingerprint } from '@/lib/auth/fingerprint';
 
 // Check if Supabase is configured
 const isSupabaseConfigured = !!(
@@ -105,10 +107,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (mounted && !session) {
         let shouldClaim = false;
         try {
+          // Phase 1: include fingerprint for correlation (never used for
+          // recovery denial — the server never reads fingerprint for blocking).
+          const fingerprintHash = await getFingerprint();
           const recoverRes = await fetch('/api/auth/recover-by-device', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ deviceId: devId }),
+            body: JSON.stringify({ deviceId: devId, fingerprintHash }),
           });
           if (recoverRes.ok) {
             const data = (await recoverRes.json()) as {
@@ -200,26 +205,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw error;
     }
     if (data.user) {
-      // Phase 1.3: Initialize guest profile + server_game_state + device mapping
-      try {
-        const res = await fetch('/api/auth/initialize-guest', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ deviceId: devId }),
-        });
-        // Capacity gate: if at MAX_TOTAL_PLAYERS, redirect to waitlist.
-        // Server returns 503 + { error: 'capacity_full', redirect: '/waitlist' }.
-        if (res.status === 503) {
-          const body = await res.json().catch(() => ({}));
-          if (body?.error === 'capacity_full') {
-            router.push('/waitlist');
-            return;
-          }
-        }
-      } catch (err) {
-        console.warn('[Auth] initialize-guest failed (non-fatal):', err);
+  try {
+    // Phase 1: include fingerprint for correlation (never used for
+    // guest creation denial).
+    const fingerprintHash = await getFingerprint();
+    const res = await fetch('/api/auth/initialize-guest', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ deviceId: devId, fingerprintHash }),
+    });
+
+    console.log(
+      '[Auth] initialize-guest response:',
+      res.status,
+      await res.clone().text()
+    );
+
+    if (res.status === 503) {
+      const body = await res.json().catch(() => ({}));
+
+      if (body?.error === 'capacity_full') {
+        router.push('/waitlist');
+        return;
       }
     }
+  } catch (err) {
+    console.warn('[Auth] initialize-guest failed (non-fatal):', err);
+  }
+}
   }, [deviceId, router]);
 
   const signInWithGoogle = useCallback(async () => {

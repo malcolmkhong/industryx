@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin, withSecurityHeaders, clearAdminCache } from "@/lib/auth/admin";
-import { createServiceRoleClient } from "@/lib/supabase/server";
 import { getAdminRole, hasRole, logAdminAction } from "@/lib/auth/admin-helpers";
+import {
+  isAdminsAvailable,
+  listAdmins,
+  findAdminIdByUserId,
+  insertAdmin,
+} from "@/lib/db/admins";
 
 /**
  * GET /api/admins
@@ -14,8 +19,7 @@ export async function GET() {
   }
 
   try {
-    const supabase = createServiceRoleClient();
-    if (!supabase) {
+    if (!isAdminsAvailable()) {
       return NextResponse.json(
         { error: 'Service temporarily unavailable — database not configured' },
         { status: 503 }
@@ -23,18 +27,7 @@ export async function GET() {
     }
 
     // Get admin users from database
-    const { data: dbAdmins, error } = await supabase
-      .from("admin_users")
-      .select("id, user_id, email, role, added_by, created_at")
-      .order("created_at", { ascending: true });
-
-    if (error) {
-      console.error("[Admins] Error fetching admin_users:", error.message);
-      return NextResponse.json(
-        { error: "Database Error", message: error.message },
-        { status: 500 }
-      );
-    }
+    const dbAdmins = await listAdmins();
 
     // Get ADMIN_UIDS from env
     const envAdminUids = (process.env.ADMIN_UIDS || "")
@@ -126,8 +119,7 @@ export async function POST(request: NextRequest) {
     const validRoles = ["admin", "super_admin", "viewer"];
     const adminRole = role && validRoles.includes(role) ? role : "admin";
 
-    const supabase = createServiceRoleClient();
-    if (!supabase) {
+    if (!isAdminsAvailable()) {
       return NextResponse.json(
         { error: 'Service temporarily unavailable — database not configured' },
         { status: 503 }
@@ -135,11 +127,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already exists in admin_users
-    const { data: existing } = await supabase
-      .from("admin_users")
-      .select("id")
-      .eq("user_id", userId)
-      .single();
+    const existing = await findAdminIdByUserId(userId);
 
     if (existing) {
       return NextResponse.json(
@@ -149,23 +137,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert new admin user
-    const insertData: Record<string, unknown> = {
+    const data = await insertAdmin({
       user_id: userId,
       email: email || null,
       role: adminRole,
       added_by: authResult.admin.id,
-    };
+    });
 
-    const { data, error } = await supabase
-      .from("admin_users")
-      .insert(insertData)
-      .select()
-      .single();
-
-    if (error) {
-      console.error("[Admins] Error inserting admin:", error.message);
+    if (!data) {
       return NextResponse.json(
-        { error: "Database Error", message: error.message },
+        { error: "Database Error", message: "Failed to insert admin" },
         { status: 500 }
       );
     }
