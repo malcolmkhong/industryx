@@ -1,0 +1,21 @@
+{
+  "customSyntax": "postcss-scss",
+  "rules": {
+    "at-rule-no-unknown": [
+      true,
+      {
+        "ignoreAtRules": [
+          "custom-variant",
+          "theme",
+          "layer",
+          "apply",
+          "tailwind",
+          "variants",
+          "responsive",
+          "screen",
+          "import"
+        ]
+      }
+    ]
+  }
+}
