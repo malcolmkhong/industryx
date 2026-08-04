@@ -348,6 +348,7 @@ CREATE TABLE IF NOT EXISTS public.admin_actions (
   action_type TEXT NOT NULL,
   target_user_id UUID,
   payload JSONB NOT NULL DEFAULT '{}',
+  details JSONB NOT NULL DEFAULT '{}',
   reason TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
