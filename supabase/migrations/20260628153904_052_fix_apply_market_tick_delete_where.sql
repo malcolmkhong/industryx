@@ -157,10 +157,10 @@ BEGIN
 END;
 $$;
 
-REVOKE EXECUTE ON FUNCTION apply_market_tick FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION apply_market_tick FROM anon;
-REVOKE EXECUTE ON FUNCTION apply_market_tick FROM authenticated;
-GRANT EXECUTE ON FUNCTION apply_market_tick TO service_role;
+REVOKE EXECUTE ON FUNCTION apply_market_tick(BIGINT, JSONB, JSONB, NUMERIC, JSONB) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION apply_market_tick(BIGINT, JSONB, JSONB, NUMERIC, JSONB) FROM anon;
+REVOKE EXECUTE ON FUNCTION apply_market_tick(BIGINT, JSONB, JSONB, NUMERIC, JSONB) FROM authenticated;
+GRANT EXECUTE ON FUNCTION apply_market_tick(BIGINT, JSONB, JSONB, NUMERIC, JSONB) TO service_role;
 
 COMMENT ON FUNCTION apply_market_tick IS
   'Market tick persistence gate. Fixed in 052: DELETE now has explicit WHERE 1=1 (BUG-042).';
