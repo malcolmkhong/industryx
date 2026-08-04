@@ -495,11 +495,19 @@ CREATE TABLE IF NOT EXISTS rate_limits (
 CREATE TABLE IF NOT EXISTS trade_history (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL,
-  resource_id TEXT NOT NULL,
-  side TEXT NOT NULL,
-  quantity INTEGER NOT NULL,
-  unit_price NUMERIC NOT NULL,
-  total NUMERIC NOT NULL,
+  give_resource TEXT,
+  give_amount NUMERIC,
+  receive_resource TEXT,
+  receive_amount NUMERIC,
+  commission_rate NUMERIC,
+  server_validated BOOLEAN,
+  market_phase TEXT,
+  game_tick BIGINT,
+  resource_id TEXT,
+  side TEXT,
+  quantity INTEGER,
+  unit_price NUMERIC,
+  total NUMERIC,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
