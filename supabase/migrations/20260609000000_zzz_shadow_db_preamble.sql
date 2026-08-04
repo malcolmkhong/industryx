@@ -425,9 +425,10 @@ CREATE TABLE IF NOT EXISTS public.merge_receipts (
 );
 
 CREATE TABLE IF NOT EXISTS public.request_ip_log (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id BIGSERIAL PRIMARY KEY,
   endpoint TEXT NOT NULL,
   ip_hash TEXT NOT NULL,
+  user_id UUID,
   user_agent TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
