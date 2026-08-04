@@ -271,6 +271,8 @@ CREATE TABLE IF NOT EXISTS game_config_weather (
   solar_multiplier NUMERIC NOT NULL DEFAULT 1.0,
   wind_multiplier NUMERIC NOT NULL DEFAULT 1.0,
   description TEXT NOT NULL DEFAULT '',
+  transport_multiplier NUMERIC NOT NULL DEFAULT 1.0,
+  clear NUMERIC NOT NULL DEFAULT 1.0,
   sort_order INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
