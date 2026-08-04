@@ -384,20 +384,44 @@ CREATE TABLE IF NOT EXISTS public.pending_link_operations (
 
 CREATE TABLE IF NOT EXISTS public.merge_audit_log (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  operation TEXT NOT NULL,
+  operation TEXT,
+  merge_receipt_id TEXT,
+  idempotency_key TEXT,
   guest_user_id UUID,
+  google_user_id UUID,
   auth_user_id UUID,
-  result TEXT NOT NULL,
+  preference TEXT,
+  guest_state_before JSONB,
+  google_state_before JSONB,
+  guest_state_after JSONB,
+  google_state_after JSONB,
+  merge_result JSONB,
+  preview_version JSONB,
+  result TEXT,
+  risk_score INTEGER DEFAULT 0,
+  risk_flags JSONB DEFAULT '[]'::jsonb,
+  actor_user_id UUID,
+  actor_ip_hash TEXT,
+  actor_ip_region TEXT,
+  actor_user_agent TEXT,
   details JSONB NOT NULL DEFAULT '{}',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS public.merge_receipts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  operation_id UUID,
   merge_audit_id UUID,
-  surviving_user_id UUID NOT NULL,
+  kept_user_id UUID,
+  surviving_user_id UUID,
+  archived_user_id UUID,
   archived_guest_id UUID,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  decision_type TEXT,
+  guest_state_snapshot JSONB,
+  google_state_snapshot JSONB,
+  risk_score INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expires_at TIMESTAMPTZ
 );
 
 CREATE TABLE IF NOT EXISTS public.request_ip_log (
