@@ -274,7 +274,11 @@ CREATE TABLE IF NOT EXISTS server_game_state (
   state_version INT NOT NULL DEFAULT 1,
   last_tick_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   last_saved_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  cheat_flag_count INT NOT NULL DEFAULT 0
+  cheat_flag_count INT NOT NULL DEFAULT 0,
+  is_locked BOOLEAN NOT NULL DEFAULT false,
+  lock_reason TEXT,
+  market_supply JSONB NOT NULL DEFAULT '{}'::jsonb,
+  last_trade_at TIMESTAMPTZ
 );
 
 CREATE TABLE IF NOT EXISTS server_market_state (
