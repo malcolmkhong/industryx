@@ -1,4 +1,4 @@
-﻿-- ============================================================================
+-- ============================================================================
 -- Migration: 015_market_history
 -- Description: Time-series price history for market manipulation detection + UI
 -- Purpose:     Record a price sample every time a trade executes. Enables:

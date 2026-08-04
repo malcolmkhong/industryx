@@ -1,4 +1,4 @@
-﻿-- ============================================================================
+-- ============================================================================
 -- Migration: 004_server_authoritative_upgrade
 -- Description: Upgrade database for server-authoritative game model
 -- Purpose: Prevent cheating by making the server the source of truth

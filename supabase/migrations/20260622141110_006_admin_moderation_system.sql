@@ -1,4 +1,4 @@
-﻿-- ============================================================================
+-- ============================================================================
 -- Migration: 006_admin_moderation_system
 -- Description: Create admin audit trail and restore investigation resolution
 -- Purpose: Enable admin moderation with full action history and investigation

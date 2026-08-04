@@ -1,4 +1,4 @@
-﻿-- 029_server_market.sql
+-- 029_server_market.sql
 -- Unified global market â€” same prices & news for all players
 -- Player buy/sell actions contribute to a shared pressure pool,
 -- processed every 60 seconds by a Cloudflare Cron worker.

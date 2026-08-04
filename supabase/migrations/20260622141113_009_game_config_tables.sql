@@ -1,4 +1,4 @@
-﻿-- ============================================================================
+-- ============================================================================
 -- Migration: 009_game_config_tables
 -- Description: Create all 19 game_config_* tables for disaster recovery
 -- Purpose: These tables were created directly in the Supabase dashboard and had

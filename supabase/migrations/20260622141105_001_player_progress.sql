@@ -1,4 +1,4 @@
-﻿-- Migration: 001_player_progress
+-- Migration: 001_player_progress
 -- Description: Create player_progress table for cloud save functionality
 -- Created: Task 7+8
 
