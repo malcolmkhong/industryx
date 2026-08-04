@@ -361,11 +361,24 @@ CREATE TABLE IF NOT EXISTS public.cheat_investigations (
 CREATE TABLE IF NOT EXISTS public.pending_link_operations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   guest_user_id UUID NOT NULL,
-  target_auth_user_id UUID NOT NULL,
+  google_user_id UUID,
+  target_auth_user_id UUID,
+  idempotency_key TEXT,
   status TEXT NOT NULL DEFAULT 'pending',
+  ip_hash TEXT,
+  ip_region TEXT,
+  user_agent TEXT,
+  risk_score INTEGER DEFAULT 0,
+  risk_flags JSONB DEFAULT '[]'::jsonb,
+  preference TEXT,
+  preview_version JSONB,
+  merge_result JSONB,
+  confirmed_email TEXT,
   merge_policy TEXT NOT NULL DEFAULT 'auth_wins_archive_guest',
+  expires_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   resolved_at TIMESTAMPTZ,
+  completed_at TIMESTAMPTZ,
   conflict_reason TEXT
 );
 
