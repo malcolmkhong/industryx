@@ -35,24 +35,15 @@ import { handleRequest } from "@autonoma-ai/sdk";
 
 import { factories } from "@/lib/autonoma/factories";
 import { buildAuthPayload } from "@/lib/autonoma/auth";
+import { isAutonomaEndpointEnabled } from "@/lib/autonoma/endpointAccess";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-/** Whether the endpoint should be reachable in the current environment.
- *
- *  Rules (per https://docs.autonoma.app/environment-factory/security/):
- *    - Autonoma-managed preview (AUTONOMA_PREVIEWKIT set) → mount even
- *      when NODE_ENV=production; previews are isolated + disposable.
- *    - Local dev (NODE_ENV !== production) → mount.
- *    - Otherwise → 404.
- */
-function isEndpointEnabled(): boolean {
-  if (process.env.AUTONOMA_PREVIEWKIT) return true;
-  return process.env.NODE_ENV !== "production";
-}
-
+// Autonoma can inject this only into the Vercel Preview selected for SDK
+// validation. `isAutonomaEndpointEnabled` requires that injection before it
+// exposes this route on a production-mode Vercel deployment.
 const SHARED_SECRET = process.env.AUTONOMA_SHARED_SECRET;
 // Signing secret precedence: SDK-canonical name first (so anyone
 // following the docs finds it), fall back to the legacy gameplay-state
@@ -61,7 +52,9 @@ const SIGNING_SECRET =
   process.env.AUTONOMA_SIGNING_SECRET ?? process.env.CHECKSUM_SECRET;
 
 async function handlePost(request: NextRequest) {
-  if (!isEndpointEnabled()) {
+  // A Vercel Preview is permitted only when Autonoma injected its HMAC key.
+  // Vercel Production remains disabled even if that key exists there.
+  if (!isAutonomaEndpointEnabled()) {
     return NextResponse.json(
       { error: "Autonoma endpoint is disabled in production" },
       { status: 404 },
