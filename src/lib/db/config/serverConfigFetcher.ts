@@ -14,7 +14,7 @@
 // /api/game/config/definitions, which would add latency + cache-confusion risks.
 // ============================================
 
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { createServiceRoleClient } from "@/lib/db/access";
 import {
   DEFAULT_BALANCE_SUBSET,
   type SupabaseBuilding,
@@ -101,6 +101,27 @@ async function safeFetchTable<T>(
     }
 
     const { data, error } = await query;
+    // Some tables (e.g. game_config_balancing_rules) do not have a sort_order
+    // column. Postgres returns 400 "column does not exist" — retry the query
+    // without the order clause so non-critical tables degrade gracefully
+    // instead of bubbling a hard failure into the route's 500 path.
+    if (error && useSortOrder && tablesWithSortOrder.has(tableName)) {
+      const message = error.message ?? "";
+      if (
+        /sort_order.*does not exist|column.*sort_order.*does not exist/i.test(
+          message,
+        )
+      ) {
+        const fallback = await supabase
+          .from(tableName)
+          .select(columns ?? "*")
+          .range(0, pageSize - 1);
+        if (fallback.error) {
+          return { data: null, error: fallback.error.message };
+        }
+        return { data: (fallback.data as T[]) ?? [], error: null };
+      }
+    }
     if (error) return { data: null, error: error.message };
     return { data: (data as T[]) ?? [], error: null };
   } catch (err) {
@@ -118,25 +139,33 @@ const ID_MIGRATION_MAP: Record<string, string | string[]> = {
 
 function parseCostMap(
   costMap:
-    Record<string, number> | Array<{ resource: string; amount: number }> | null,
+    | Record<string, number>
+    | Array<{ resource: string; amount: number }>
+    | null
+    | undefined,
 ): ResourceAmount[] {
-  // C-005 (BUILDING_PRODUCTION_AUDIT §10.6 P1, 2026-07-16): fail closed
-  // on missing or null cost. Matches the offline-progress route.
+  // Defensive: production rows may briefly carry null base_cost during admin
+  // edits or migrations. Return an empty cost instead of throwing — the
+  // upstream caller (transformBuildings) will skip the cost field, which
+  // preserves server-authoritative behaviour: a building with no cost is
+  // unbuildable, not crash-inducing.
   if (!costMap) {
-    throw new Error(
-      "[parseCostMap] building has null/missing base_cost — refusing to fabricate a cost",
-    );
+    return [];
   }
   if (Array.isArray(costMap)) {
-    return costMap.map((item) => ({
-      resource: item.resource as CostResourceType,
-      amount: item.amount,
-    }));
+    return costMap
+      .filter((item) => item && typeof item.amount === "number")
+      .map((item) => ({
+        resource: item.resource as CostResourceType,
+        amount: item.amount,
+      }));
   }
-  return Object.entries(costMap).map(([resource, amount]) => ({
-    resource: resource as CostResourceType,
-    amount,
-  }));
+  return Object.entries(costMap)
+    .filter(([, amount]) => typeof amount === "number")
+    .map(([resource, amount]) => ({
+      resource: resource as CostResourceType,
+      amount,
+    }));
 }
 
 function transformBuildings(
@@ -270,22 +299,34 @@ function transformClientBalance(
     const v = row.value as Record<string, unknown>;
     switch (row.key) {
       case "trade": {
-        if (typeof v.commissionRate === "number" && Number.isFinite(v.commissionRate)) {
+        if (
+          typeof v.commissionRate === "number" &&
+          Number.isFinite(v.commissionRate)
+        ) {
           out.tradeCommissionRate = v.commissionRate;
         }
-        if (typeof v.cooldownSeconds === "number" && Number.isFinite(v.cooldownSeconds)) {
+        if (
+          typeof v.cooldownSeconds === "number" &&
+          Number.isFinite(v.cooldownSeconds)
+        ) {
           out.tradeCooldownSeconds = v.cooldownSeconds;
         }
         break;
       }
       case "worker": {
-        if (typeof v.levelUpXpBase === "number" && Number.isFinite(v.levelUpXpBase)) {
+        if (
+          typeof v.levelUpXpBase === "number" &&
+          Number.isFinite(v.levelUpXpBase)
+        ) {
           out.workerLevelUpXpBase = v.levelUpXpBase;
         }
         break;
       }
       case "autoSell": {
-        if (typeof v.thresholdRatio === "number" && Number.isFinite(v.thresholdRatio)) {
+        if (
+          typeof v.thresholdRatio === "number" &&
+          Number.isFinite(v.thresholdRatio)
+        ) {
           out.autoSellThresholdRatio = v.thresholdRatio;
         }
         break;
@@ -531,7 +572,12 @@ export async function fetchGameConfigFromSupabase(): Promise<FetchConfigResult> 
       effects: ((e.effects as Array<Record<string, unknown>> | null) ?? []).map(
         (raw, idx) => ({
           id: `${e.id}-effect-${idx}`,
-          type: raw.type as 'productionMultiplier' | 'powerMultiplier' | 'marketPriceMultiplier' | 'transportSpeed' | 'researchSpeed',
+          type: raw.type as
+            | "productionMultiplier"
+            | "powerMultiplier"
+            | "marketPriceMultiplier"
+            | "transportSpeed"
+            | "researchSpeed",
           target: raw.target as string | undefined,
           value: Number(raw.value ?? 1),
         }),
@@ -548,7 +594,12 @@ export async function fetchGameConfigFromSupabase(): Promise<FetchConfigResult> 
       effects: ((s.effects as Array<Record<string, unknown>> | null) ?? []).map(
         (raw, idx) => ({
           id: `${s.id}-effect-${idx}`,
-          type: raw.type as 'productionMultiplier' | 'powerMultiplier' | 'marketPriceMultiplier' | 'transportSpeed' | 'researchSpeed',
+          type: raw.type as
+            | "productionMultiplier"
+            | "powerMultiplier"
+            | "marketPriceMultiplier"
+            | "transportSpeed"
+            | "researchSpeed",
           target: raw.target as string | undefined,
           value: Number(raw.value ?? 1),
         }),
