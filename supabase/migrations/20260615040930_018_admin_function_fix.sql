@@ -7,6 +7,37 @@
 -- 3. increment_cheat_flag was callable by PUBLIC/anon/authenticated. Now service_role only.
 -- 4. admin_users table had no rows. Seed the bootstrap admin.
 
+-- Defensive table creates: see the analogous note in
+-- 20260611114348_tradable_resources.sql — guest_identities (020) and
+-- admin_users (006) are created by migrations that sort AFTER this file.
+-- The shadow DB used by `db diff --linked --use-pg-schema` replays in
+-- alphabetical order, so without these preambles the statements below
+-- fail. The CREATEs match the canonical bootstrap schemas and are
+-- no-ops on linked instances.
+CREATE TABLE IF NOT EXISTS public.admin_users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL UNIQUE,
+  email TEXT,
+  role TEXT NOT NULL DEFAULT 'admin' CHECK (role IN ('admin', 'super_admin')),
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.guest_identities (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  fingerprint TEXT NOT NULL,
+  user_id UUID NOT NULL,
+  claimed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  superseded_by UUID,
+  superseded_at TIMESTAMPTZ,
+  device_id TEXT,
+  fingerprint_hash TEXT,
+  is_primary BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  last_used_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- ============================================================================
 -- 1. Fix is_game_admin() to actually consult admin_users
 -- ============================================================================
