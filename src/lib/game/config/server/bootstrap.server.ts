@@ -19,7 +19,9 @@ import { startBalancePoller } from "./balancePoller";
 const RETRY_DELAYS_MS = [1000, 2000, 4000, 8000];
 
 async function sleep(ms: number): Promise<void> {
-  await new Promise<void>((resolve) => setTimeout(resolve, ms));
+  await new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 export async function bootstrapConfigRuntime(): Promise<void> {

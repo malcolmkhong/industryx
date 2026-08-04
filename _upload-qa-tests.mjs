@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable no-console, no-await-in-loop */
 // _upload-qa-tests.mjs — manually POST qa-tests/ + artifacts to the Autonoma dashboard.
 //
 // Replicates what `npx @autonoma-ai/planner@latest upload` does, based on the

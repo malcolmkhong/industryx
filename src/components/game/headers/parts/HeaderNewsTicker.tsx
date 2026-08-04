@@ -31,7 +31,7 @@ export function HeaderNewsTicker({ notifications }: HeaderNewsTickerProps) {
       : 0;
 
   useEffect(() => {
-    if (topHeadlines.length < 2) return;
+    if (topHeadlines.length < 2) return undefined;
     const t = setInterval(
       () => setHeadlineIndex((i) => (i + 1) % topHeadlines.length),
       UI_CONFIG.headlineRotationMs,

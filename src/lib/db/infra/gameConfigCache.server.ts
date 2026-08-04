@@ -38,8 +38,10 @@
 // ============================================
 
 import { kv } from "@vercel/kv";
-import type { FetchConfigResult } from "@/lib/db/config/serverConfigFetcher";
-import { fetchGameConfigFromSupabase } from "@/lib/db/config/serverConfigFetcher";
+import {
+  fetchGameConfigFromSupabase,
+  type FetchConfigResult,
+} from "@/lib/db/config/serverConfigFetcher";
 
 const CACHE_KEY = "cache:game-config:v1";
 const CACHE_TTL_SECONDS = 60 * 60; // 1 hour safety net

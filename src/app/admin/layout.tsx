@@ -8,8 +8,6 @@ import { AdminHeader } from '@/components/admin/AdminHeader';
 import { CommandPalette } from '@/components/admin/CommandPalette';
 import { Toaster } from 'sonner';
 
-const AUTH_ROUTES = ['/admin/login', '/admin/forbidden', '/admin/auth'];
-
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   // Task 8: dropped `pathname` from useEffect deps. The proxy already
