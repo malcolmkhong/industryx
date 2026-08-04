@@ -26,7 +26,6 @@
 import type { AuthContext, AuthResult } from "@autonoma-ai/sdk";
 
 import { createServiceRoleClient } from "@/lib/db/access";
-import { userUuidFor } from "./helpers";
 
 interface ProfileRef {
   id: string;
@@ -49,7 +48,12 @@ export async function buildAuthPayload(
     return { headers: {} };
   }
 
-  const profile = user as ProfileRef;
+  // The SDK hands us an arbitrary ref payload whose shape we don't
+  // statically know — cast through `unknown` per TS rules when the
+  // target type (`ProfileRef`) doesn't structurally overlap with the
+  // source. This is the documented escape hatch for narrowing
+  // external JSON into a known internal shape.
+  const profile = user as unknown as ProfileRef;
   const userId = profile.id;
   const email = profile.authEmail;
   const password = profile.password ?? "autonoma-default-password";
@@ -128,8 +132,14 @@ export async function buildAuthPayload(
 }
 
 /** Look up the seeded auth email + password for a logical user. Used by
- *  afterUp hooks (and useful when a test wants to re-authenticate). */
-export async function lookupSeededCredentials(
+ *  afterUp hooks (and useful when a test wants to re-authenticate).
+ *
+ *  No `await` today — kept as a Promise-returning function so future
+ *  implementations (e.g. reading from auth.users) can become async
+ *  without a signature break. The eslint `require-await` rule is
+ *  satisfied by leaving the function synchronous; callers still get
+ *  a Promise through `Promise.resolve`. */
+export function lookupSeededCredentials(
   testRunId: string,
   logicalUserId: string,
 ): Promise<{ email: string; password: string } | null> {
@@ -137,7 +147,9 @@ export async function lookupSeededCredentials(
   // `password` column of `auth.users.encrypted_password`; we don't
   // store the plaintext elsewhere. For credentials-on-demand, fall back
   // to the deterministic password the factory minted.
-  const userId = userUuidFor(testRunId, logicalUserId);
   const email = `seed-${logicalUserId}+${testRunId.slice(0, 8)}@autonoma.local`;
-  return { email, password: `autonoma-${testRunId.slice(0, 8)}` };
+  return Promise.resolve({
+    email,
+    password: `autonoma-${testRunId.slice(0, 8)}`,
+  });
 }

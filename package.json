@@ -24,7 +24,6 @@
   },
   "dependencies": {
     "@autonoma-ai/sdk": "^0.2.9",
-    "@autonoma-ai/server-node": "^0.2.9",
     "@fingerprintjs/fingerprintjs": "^4.6.2",
     "@iconify/react": "^6.0.2",
     "@radix-ui/react-accordion": "^1.2.11",

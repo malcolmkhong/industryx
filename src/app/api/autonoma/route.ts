@@ -15,16 +15,19 @@
  *   - HMAC verification of `x-signature` is done by the SDK against
  *     `AUTONOMA_SHARED_SECRET` from the environment. We never invent a
  *     secret.
- *   - Refs are signed with `CHECKSUM_SECRET` (a pre-existing
- *     app-managed secret) so only this endpoint can authorize teardown.
+ *   - Refs are signed with `AUTONOMA_SIGNING_SECRET` (per SDK docs).
+ *     Falls back to `CHECKSUM_SECRET` for backward-compat with existing
+ *     deploys — gameplay state HMAC uses the same key so we don't have
+ *     to migrate both secrets in lock-step.
  *   - The endpoint only reads `x-signature`; body, headers, and signature
  *     flow through the SDK as-is.
  *
  * Lifecycle:
- *   - This route is gated to non-production deploys by the SDK's own
- *     docs ("never run in production"). We additionally 404 in
- *     `NODE_ENV=production` so a misconfigured deploy can't seed
- *     test data on a live cluster.
+ *   - Autonoma-managed preview deploys set `AUTONOMA_PREVIEWKIT` —
+ *     per the SDK docs those previews are isolated and disposable,
+ *     so we mount the route even if `NODE_ENV=production` is also set.
+ *   - For non-preview production deploys we 404 so a misconfigured
+ *     deploy can't seed test data on a live cluster.
  */
 
 import { NextResponse, type NextRequest } from "next/server";
@@ -37,19 +40,28 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-/** Refuse to run in production. The Autonoma SDK treats this endpoint
- *  as a developer-only environment factory; production builds must
- *  not have it mounted. Fail closed with a 404 so a misconfigured
- *  deploy doesn't accidentally seed test data. */
-function isProductionEnv(): boolean {
-  return process.env.NODE_ENV === "production";
+/** Whether the endpoint should be reachable in the current environment.
+ *
+ *  Rules (per https://docs.autonoma.app/environment-factory/security/):
+ *    - Autonoma-managed preview (AUTONOMA_PREVIEWKIT set) → mount even
+ *      when NODE_ENV=production; previews are isolated + disposable.
+ *    - Local dev (NODE_ENV !== production) → mount.
+ *    - Otherwise → 404.
+ */
+function isEndpointEnabled(): boolean {
+  if (process.env.AUTONOMA_PREVIEWKIT) return true;
+  return process.env.NODE_ENV !== "production";
 }
 
 const SHARED_SECRET = process.env.AUTONOMA_SHARED_SECRET;
-const SIGNING_SECRET = process.env.CHECKSUM_SECRET;
+// Signing secret precedence: SDK-canonical name first (so anyone
+// following the docs finds it), fall back to the legacy gameplay-state
+// HMAC key for backward-compat with existing deploys.
+const SIGNING_SECRET =
+  process.env.AUTONOMA_SIGNING_SECRET ?? process.env.CHECKSUM_SECRET;
 
 async function handlePost(request: NextRequest) {
-  if (isProductionEnv()) {
+  if (!isEndpointEnabled()) {
     return NextResponse.json(
       { error: "Autonoma endpoint is disabled in production" },
       { status: 404 },
@@ -60,7 +72,7 @@ async function handlePost(request: NextRequest) {
     return NextResponse.json(
       {
         error:
-          "Autonoma endpoint requires AUTONOMA_SHARED_SECRET and CHECKSUM_SECRET",
+          "Autonoma endpoint requires AUTONOMA_SHARED_SECRET and AUTONOMA_SIGNING_SECRET (or legacy CHECKSUM_SECRET fallback)",
       },
       { status: 503 },
     );
@@ -80,7 +92,7 @@ async function handlePost(request: NextRequest) {
       return "?";
     }
   })();
-  console.log(`[autonoma] handleRequest action=${action} bytes=${raw.length}`);
+  console.info(`[autonoma] handleRequest action=${action} bytes=${raw.length}`);
   const result = await handleRequest(
     {
       scopeField: "userId",
@@ -91,7 +103,7 @@ async function handlePost(request: NextRequest) {
     },
     { body: raw, headers },
   );
-  console.log(
+  console.info(
     `[autonoma] handleRequest action=${action} → status=${result.status}`,
   );
 
@@ -101,10 +113,17 @@ async function handlePost(request: NextRequest) {
   });
 }
 
+// Next.js App Router requires `export async function POST/GET` per the
+// route segment conventions — even when the body just delegates. The
+// `require-await` lint rule is suppressed for the two wrappers; they
+// return a `Promise<NextResponse>` from the async helper so the
+// runtime contract is preserved.
+// eslint-disable-next-line require-await
 export async function POST(request: NextRequest) {
   return handlePost(request);
 }
 
+// eslint-disable-next-line require-await
 export async function GET(request: NextRequest) {
   // Some SDKs probe GET for health; we mirror POST so a wrong verb still
   // returns the discover schema. The SDK itself routes by `action` field

@@ -2,12 +2,12 @@
  * Autonoma test-data — gameplay-state factories.
  */
 
+import { randomUUID } from "node:crypto";
+
 import { defineFactory } from "@autonoma-ai/sdk";
 import { z } from "zod";
 
 import { requireDb, ref, userUuidFor, uuidFor } from "./helpers";
-
-const randomUUID = () => require("node:crypto").randomUUID();
 
 // ─── server_game_state ──────────────────────────────────────────────────
 
@@ -22,7 +22,7 @@ export const serverGameStateFactory = defineFactory({
     gameSpeed: z.number().default(1),
     stateVersion: z.number().default(1),
     buildings: z.array(z.unknown()).default([]),
-    resources: z.record(z.number()).default({}),
+    resources: z.record(z.string(), z.number()).default({}),
     workers: z.array(z.unknown()).default([]),
     completedResearch: z.array(z.string()).default([]),
   }),
@@ -30,7 +30,7 @@ export const serverGameStateFactory = defineFactory({
   create: async (data, ctx) => {
     const supabase = requireDb();
     const userId = userUuidFor(ctx.testRunId, data.logicalUserId);
-    const id = require("node:crypto").randomUUID();
+    const id = randomUUID();
     const nowIso = new Date().toISOString();
     const fullState = {
       money: data.money,
@@ -171,7 +171,7 @@ export const playerActionsFactory = defineFactory({
       "bulk_build",
       "bulk_sell",
     ]),
-    payload: z.record(z.unknown()).default({}),
+    payload: z.record(z.string(), z.unknown()).default({}),
     moneyAfter: z.number().default(0),
   }),
   refSchema: z.object({ id: z.string() }),
@@ -523,7 +523,7 @@ export const gameStateRecoveryCasesFactory = defineFactory({
     logicalUserId: z.string(),
     originalStateId: z.string(),
     originalStateVersion: z.number().default(1),
-    originalFullState: z.record(z.unknown()).default({}),
+    originalFullState: z.record(z.string(), z.unknown()).default({}),
     detectedSchemaCondition: z
       .enum([
         "bootstrap_pending",
@@ -535,7 +535,7 @@ export const gameStateRecoveryCasesFactory = defineFactory({
       ])
       .default("partial_legacy"),
     evidenceSources: z.array(z.unknown()).default([]),
-    fieldClassification: z.record(z.unknown()).default({}),
+    fieldClassification: z.record(z.string(), z.unknown()).default({}),
     recoverableFields: z.array(z.string()).default([]),
     unresolvedFields: z.array(z.string()).default([]),
     status: z

@@ -19,6 +19,15 @@
 .DS_Store
 *.pem
 
+# Autonoma test-data (local dev only)
+.autonoma-token.txt
+.autonoma-*.log
+# Autonoma CLI debug artifacts (planner output captures from session probing)
+step.log
+verify-output.txt
+# Autonoma one-off helper scripts (debug utility, not part of the app)
+_validate-factory.ps1
+
 # debug
 npm-debug.log*
 yarn-debug.log*

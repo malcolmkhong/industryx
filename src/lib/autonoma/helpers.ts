@@ -35,8 +35,18 @@ export function runUuid(ctx: { testRunId: string }, label: string): string {
   return uuidFor(ctx.testRunId, label);
 }
 
-/** Wrap an inserted record for the SDK's `ref`. */
-export function ref(record: Record<string, unknown>) {
+/** Wrap an inserted record for the SDK's `ref`.
+ *
+ *  Generic so the returned shape tracks the literal `{ id, ... }` that
+ *  the factory constructs. Without this, TypeScript collapses the
+ *  return to `Record<string, unknown>` and the SDK's
+ *  `FactoryDefinition.create` signature fails the structural check
+ *  against `refSchema` for every factory with a `refSchema` —
+ *  e.g. `refSchema: z.object({ id: z.string() })` would otherwise
+ *  be rejected because `Record<string, unknown>` is not assignable
+ *  to `{ id: string }`.
+ */
+export function ref<T extends Record<string, unknown>>(record: T): T {
   return record;
 }
 
@@ -52,7 +62,7 @@ export function requireDb() {
 
 /** Common not-null upsert helper. The DB columns vary per factory, so
  *  callers assemble the patch and pass it through. */
-export async function upsertById<T extends Record<string, unknown>>(
+export async function upsertById(
   table: string,
   values: Record<string, unknown>,
   conflictKey: string,
@@ -65,7 +75,14 @@ export async function upsertById<T extends Record<string, unknown>>(
     .select(selectColumn)
     .single();
   if (error) throw new Error(`[autonoma] ${table}: ${error.message}`);
-  const row = data as Record<string, unknown> | null;
+  // Supabase types `data` as a discriminated union that doesn't
+  // structurally overlap with `Record<string, unknown>` (the success
+  // branch is `{ ...row }`, the failure branch is `{ error: true } &
+  // String`). Cast through `unknown` per TS rules — this is the
+  // documented escape hatch.
+  const row = (data ?? null) as unknown as
+    | (Record<string, unknown> & { id?: string | number })
+    | null;
   if (!row) throw new Error(`[autonoma] ${table}: empty upsert result`);
   return { id: String(row[selectColumn] ?? row.id ?? "") };
 }

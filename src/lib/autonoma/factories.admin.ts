@@ -2,12 +2,12 @@
  * Autonoma test-data — admin / moderation / system factories.
  */
 
+import { randomUUID } from "node:crypto";
+
 import { defineFactory } from "@autonoma-ai/sdk";
 import { z } from "zod";
 
 import { ref, requireDb, userUuidFor } from "./helpers";
-
-const randomUUID = () => require("node:crypto").randomUUID();
 
 // ─── admin_users ────────────────────────────────────────────────────────
 
@@ -102,7 +102,7 @@ export const adminActionsFactory = defineFactory({
     ]),
     targetId: z.string().nullable().default(null),
     targetUserId: z.string().nullable().default(null),
-    details: z.record(z.unknown()).default({}),
+    details: z.record(z.string(), z.unknown()).default({}),
   }),
   refSchema: z.object({ id: z.string() }),
   create: async (data, ctx) => {
@@ -156,7 +156,7 @@ export const cheatInvestigationsFactory = defineFactory({
       .enum(["open", "investigating", "resolved", "dismissed"])
       .default("open"),
     description: z.string().default("Autonoma seeded investigation"),
-    evidence: z.record(z.unknown()).default({}),
+    evidence: z.record(z.string(), z.unknown()).default({}),
     fingerprintHash: z.string().nullable().default(null),
   }),
   refSchema: z.object({ id: z.string() }),

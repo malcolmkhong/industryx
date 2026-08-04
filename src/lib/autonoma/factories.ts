@@ -128,6 +128,7 @@ export const factories: FactoryRegistry = {
 
   // admin / moderation / ops
   admin_users: adminUsersFactory,
+  admin_permissions: adminPermissionsFactory,
   admin_actions: adminActionsFactory,
   cheat_investigations: cheatInvestigationsFactory,
   support_tickets: supportTicketsFactory,

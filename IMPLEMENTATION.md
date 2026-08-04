@@ -14,7 +14,7 @@
 
 - [x] `POST /api/autonoma` mounted under `src/app/api/autonoma/route.ts`
 - [x] Bridges Next.js App Router to `@autonoma-ai/sdk` `handleRequest`
-- [x] Verifies `AUTONOMA_SHARED_SECRET` + `CHECKSUM_SECRET` at boot
+- [x] Verifies `AUTONOMA_SHARED_SECRET` + `AUTONOMA_SIGNING_SECRET` at boot (falls back to `CHECKSUM_SECRET` for the signing key for backward-compat)
 - [x] Returns 404 in `NODE_ENV=production` (fail closed)
 
 ## 2. Auth callback

@@ -1,13 +1,15 @@
 #!/usr/bin/env node
+/* eslint-disable no-console */
 /** verify-autonoma.mjs — up + down + verify DB cleanup. */
 import { spawnSync } from "node:child_process";
 import { writeFile } from "node:fs/promises";
 
-const NODE = "C:/nvm4w/nodejs/node.exe";
+const NODE = process.env.NODE_BIN ?? "C:/nvm4w/nodejs/node.exe";
 const PLANNER =
+  process.env.AUTONOMA_PLANNER_BIN ??
   "C:/Users/malco/AppData/Local/npm-cache/_npx/7a17110e47753839/node_modules/@autonoma-ai/planner/dist/index.js";
 const URL = process.env.AUTONOMA_URL ?? "http://localhost:3000/api/autonoma";
-const RECIPE = "C:/Users/malco/.autonoma/a-industryx-industryx/recipe.json";
+const RECIPE = process.env.AUTONOMA_RECIPE ?? "C:/Users/malco/.autonoma/a-industryx-industryx/recipe.json";
 const SHARED = process.env.AUTONOMA_SHARED_SECRET;
 if (!SHARED) {
   console.error("AUTONOMA_SHARED_SECRET must be set");

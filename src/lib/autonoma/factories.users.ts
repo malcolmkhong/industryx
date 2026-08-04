@@ -1,14 +1,13 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
 /**
  * Autonoma test-data — user & identity factories.
  */
+
+import { randomUUID } from "node:crypto";
 
 import { defineFactory } from "@autonoma-ai/sdk";
 import { z } from "zod";
 
 import { requireDb, ref, userUuidFor } from "./helpers";
-
-const randomUUID = () => require("node:crypto").randomUUID();
 
 // ─── profiles ───────────────────────────────────────────────────────────
 

@@ -1,21 +1,13 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
 /**
  * Autonoma test-data — auth-merge & guest-state factories.
  */
 
+import { randomUUID } from "node:crypto";
+
 import { defineFactory } from "@autonoma-ai/sdk";
 import { z } from "zod";
 
-import {
-  ref,
-  requireDb,
-  rid,
-  shortIdFor,
-  userUuidFor,
-  uuidFor,
-} from "./helpers";
-
-const randomUUID = () => require("node:crypto").randomUUID();
+import { ref, requireDb, shortIdFor, userUuidFor, uuidFor } from "./helpers";
 
 // ─── pending_link_operations ────────────────────────────────────────────
 
@@ -110,8 +102,8 @@ export const mergeAuditLogFactory = defineFactory({
     preference: z.string().default("auth_wins"),
     idempotencyKey: z.string(),
     logicalActorUserId: z.string(),
-    guestStateBefore: z.record(z.unknown()).nullable().default(null),
-    googleStateBefore: z.record(z.unknown()).nullable().default(null),
+    guestStateBefore: z.record(z.string(), z.unknown()).nullable().default(null),
+    googleStateBefore: z.record(z.string(), z.unknown()).nullable().default(null),
   }),
   refSchema: z.object({ id: z.string() }),
   create: async (data, ctx) => {
@@ -158,7 +150,7 @@ export const guestStateArchiveFactory = defineFactory({
     logicalArchivedByAuthUserId: z.string(),
     policyApplied: z.string().default("auth_wins_archive_guest"),
     reason: z.string().default("autonoma_seed"),
-    fullStateSnapshot: z.record(z.unknown()).default({}),
+    fullStateSnapshot: z.record(z.string(), z.unknown()).default({}),
     money: z.number().default(0),
     gameTick: z.number().default(0),
   }),
