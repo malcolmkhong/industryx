@@ -15,34 +15,13 @@ jobs:
         with:
           version: 2.109.0
 
-      - name: Link staging project
-        run: supabase link --project-ref ${{ secrets.SUPABASE_STAGING_PROJECT_REF }}
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-
-      - name: List remote + local migrations (debug diff)
+      - name: Link Supabase directly
         run: |
-          echo "=== LOCAL MIGRATIONS ==="
-          ls -1 supabase/migrations/ | sort
-          echo ""
-          echo "=== REMOTE MIGRATIONS ==="
-          supabase migration list
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          npx supabase link \
+            --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}" \
+            --password "${{ secrets.SUPABASE_DB_PASSWORD }}" \
+            --skip-pooler
 
-      # NOTE: `supabase db push --dry-run` is intentionally skipped.
-      # The shadow-DB safety preamble (20260609000000_zzz_shadow_db_preamble.sql)
-      # sorts before all other migrations so the shadow DB used by
-      # `db diff --linked --use-pg-schema` can replay every file in
-      # dependency-correct order. However, `db push --dry-run` rejects
-      # new local migrations that sort before already-applied remote
-      # migrations — so we run the schema diff directly, which is the
-      # real signal we want in CI. To push the preamble eventually, run
-      # `supabase migration repair --status applied 20260609000000` on
-      # staging so the remote history records it without trying to apply
-      # its shadow-DB-only DDL.
-
-      - name: Diff check
-        run: supabase db diff --linked --use-pg-schema
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      - name: Generate database diff
+        run: |
+          npx supabase db diff --linked --use-pg-schema
