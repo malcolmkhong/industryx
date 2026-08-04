@@ -45,6 +45,19 @@ out.log
 build-output.txt
 ts-output.txt
 lint-output.txt
+# Stale bug trackers (replaced by AGENTS.md + commit messages; don't reintroduce)
+BUGS.md
+BUGS2.md
+TEST_CHECKLIST.md
+BUILDING_PRODUCTION_FIX_PLAN.md
+# Stale structural plan MDs in src/ (don't reintroduce)
+src/app/api/API_STRUCTURE_PLAN.md
+src/lib/db/DB_STRUCTURE_PLAN.md
+src/lib/game/LIB_GAME_STRUCTURE_PLAN.md
+src/lib/game/SPAGHETTI_CODE_REFACTOR_PLAN.md
+tests/integration/auth-flow/README-oauth-testing.md
+# Audits folder (local-only audit history, never push)
+audits/
 
 # debug
 npm-debug.log*
