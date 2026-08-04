@@ -504,11 +504,32 @@ CREATE TABLE IF NOT EXISTS trade_history (
 
 
 -- ─── Helper functions that early migrations REVOKE/GRANT ───
--- increment_cheat_flag is created by 049_lockdown_security_rpcs.sql with
--- a different signature than 018 references. Provide a stub matching the
--- signature 018 uses so the guarded REVOKE/GRANT in 018 is harmless on
--- the shadow DB. On linked instances the canonical function exists with
--- this signature and CREATE OR REPLACE is a no-op replay.
+-- Stubs for shadow-DB replay only. The canonical implementations are
+-- in 018, 049, etc. — on linked instances these CREATE OR REPLACE
+-- statements are no-ops. The signatures match what 049 references.
+CREATE OR REPLACE FUNCTION public.set_capacity(p_max integer) RETURNS void
+LANGUAGE plpgsql AS $$ BEGIN RAISE NOTICE '[stub] set_capacity'; END; $$;
+
+CREATE OR REPLACE FUNCTION public.apply_market_tick(
+  p_tick bigint, p_prices jsonb, p_volatility real, p_events jsonb, p_breakers jsonb
+) RETURNS void LANGUAGE plpgsql AS $$ BEGIN RAISE NOTICE '[stub] apply_market_tick'; END; $$;
+
+CREATE OR REPLACE FUNCTION public.upsert_market_pressure(
+  p_user_id uuid, p_resource text, p_buy_volume double precision, p_sell_volume double precision
+) RETURNS void LANGUAGE plpgsql AS $$ BEGIN RAISE NOTICE '[stub] upsert_market_pressure'; END; $$;
+
+CREATE OR REPLACE FUNCTION public.upsert_supply_demand(
+  p_resource text, p_production double precision, p_consumption double precision, p_player_count integer
+) RETURNS void LANGUAGE plpgsql AS $$ BEGIN RAISE NOTICE '[stub] upsert_supply_demand'; END; $$;
+
+CREATE OR REPLACE FUNCTION public.validate_game_action(
+  p_user_id uuid, p_action_type text, p_payload jsonb, p_current_money numeric, p_current_game_tick bigint
+) RETURNS void LANGUAGE plpgsql AS $$ BEGIN RAISE NOTICE '[stub] validate_game_action'; END; $$;
+
+CREATE OR REPLACE FUNCTION public.compute_offline_ticks(
+  p_user_id uuid, p_max_ticks bigint
+) RETURNS bigint LANGUAGE plpgsql AS $$ BEGIN RAISE NOTICE '[stub] compute_offline_ticks'; RETURN 0; END; $$;
+
 CREATE OR REPLACE FUNCTION public.increment_cheat_flag(
   p_user_id UUID,
   p_flag_type TEXT,
@@ -516,11 +537,13 @@ CREATE OR REPLACE FUNCTION public.increment_cheat_flag(
   p_severity TEXT
 ) RETURNS void AS $$
 BEGIN
-  -- Stub for shadow-DB replay only. Linked instances have the real
-  -- implementation; this OR REPLACE is a no-op there.
   RAISE NOTICE '[shadow-stub] increment_cheat_flag called';
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION public.lock_cheater_account(
+  p_user_id uuid, p_reason text
+) RETURNS void LANGUAGE plpgsql AS $$ BEGIN RAISE NOTICE '[stub] lock_cheater_account'; END; $$;
 
 CREATE OR REPLACE FUNCTION public.is_game_admin() RETURNS boolean
 LANGUAGE plpgsql STABLE SECURITY DEFINER AS $$
@@ -530,3 +553,9 @@ EXCEPTION WHEN OTHERS THEN
   RETURN false;
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION public.unlock_account(p_user_id uuid, p_note text)
+RETURNS void LANGUAGE plpgsql AS $$ BEGIN RAISE NOTICE '[stub] unlock_account'; END; $$;
+
+CREATE OR REPLACE FUNCTION public.expire_stale_pending_operations()
+RETURNS integer LANGUAGE plpgsql AS $$ BEGIN RETURN 0; END; $$;
