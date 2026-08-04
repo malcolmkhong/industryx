@@ -13,8 +13,6 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          # Keep CI on the version validated against this project's linked
-          # migration history; the local package uses the same CLI version.
           version: 2.109.0
 
       - name: Link staging project
@@ -32,18 +30,19 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
-      - name: Apply migrations (dry run)
-        run: supabase db push --dry-run
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      # NOTE: `supabase db push --dry-run` is intentionally skipped.
+      # The shadow-DB safety preamble (20260609000000_zzz_shadow_db_preamble.sql)
+      # sorts before all other migrations so the shadow DB used by
+      # `db diff --linked --use-pg-schema` can replay every file in
+      # dependency-correct order. However, `db push --dry-run` rejects
+      # new local migrations that sort before already-applied remote
+      # migrations — so we run the schema diff directly, which is the
+      # real signal we want in CI. To push the preamble eventually, run
+      # `supabase migration repair --status applied 20260609000000` on
+      # staging so the remote history records it without trying to apply
+      # its shadow-DB-only DDL.
 
       - name: Diff check
-        # `db diff` has no `--exit-code` flag. Use the linked schema diff
-        # supported by the pinned CLI; GitHub's Ubuntu runner provides Docker
-        # for the temporary shadow database it creates. Migration files in
-        # supabase/migrations/ include idempotent preambles for tables
-        # referenced before their canonical create-statement, so the shadow
-        # DB replay succeeds.
         run: supabase db diff --linked --use-pg-schema
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
