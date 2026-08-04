@@ -13,7 +13,9 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Keep CI on the version validated against this project's linked
+          # migration history; the local package uses the same CLI version.
+          version: 2.109.0
 
       - name: Link staging project
         run: supabase link --project-ref ${{ secrets.SUPABASE_STAGING_PROJECT_REF }}
@@ -32,4 +34,7 @@ jobs:
         run: supabase db push --dry-run
 
       - name: Diff check
-        run: supabase db diff --exit-code
+        # `db diff` has no `--exit-code` flag. Use the linked schema diff
+        # supported by the pinned CLI; GitHub's Ubuntu runner provides Docker
+        # for the temporary shadow database it creates.
+        run: supabase db diff --linked --use-pg-schema

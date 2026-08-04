@@ -40,6 +40,7 @@
   "exclude": [
     "node_modules",
     "examples",
-    "skills"
+    "skills",
+    "tests"
   ]
 }

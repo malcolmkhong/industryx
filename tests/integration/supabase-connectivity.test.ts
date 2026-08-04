@@ -18,6 +18,8 @@ const SUPABASE_URL = "https://wkkzqtseqwcyyyezroqq.supabase.co";
 // Falls back to a placeholder so the test is still importable in CI without secrets.
 // The connectivity check will skip network assertions if the env var is missing.
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "test-placeholder-key";
+const LIVE = process.env.RUN_LIVE_TESTS === "1" || process.env.RUN_LIVE_TESTS === "true";
+const liveDescribe = LIVE ? describe : describe.skip;
 
 function supabaseHeaders(extra: Record<string, string> = {}) {
   return { apikey: ANON_KEY, "Content-Type": "application/json", ...extra };
@@ -25,7 +27,9 @@ function supabaseHeaders(extra: Record<string, string> = {}) {
 
 // ─── Test Suite ──────────────────────────────────────────────────────
 
-describe("Supabase Connectivity", () => {
+// CI must be hermetic. These checks exercise mutable production auth state,
+// so run them only in an explicitly opted-in live validation job.
+liveDescribe("Supabase Connectivity", () => {
   let projectReachable = false;
 
   before(async () => {
@@ -174,8 +178,7 @@ describe("Supabase Connectivity", () => {
 
 // Gate the simulated flow test behind RUN_LIVE_TESTS — it always hits
 // the live Supabase project, which can flap on rate limits / anon
-// config drift. Connectivity is already covered by the tests above.
-const LIVE = process.env.RUN_LIVE_TESTS === "1" || process.env.RUN_LIVE_TESTS === "true";
+// config drift. Connectivity is already covered by the live suite above.
 const liveTest = LIVE ? it : it.skip;
 
 describe("Supabase Auth Flow (simulated)", () => {
@@ -188,7 +191,7 @@ describe("Supabase Auth Flow (simulated)", () => {
    * 4. If anonymous fails → fallback to null user
    */
 
-  it("traces the complete AuthProvider initAuth code path", async () => {
+  liveTest("traces the complete AuthProvider initAuth code path", async () => {
     const results: string[] = [];
 
     // Step 1: getSession (simulated via REST)
