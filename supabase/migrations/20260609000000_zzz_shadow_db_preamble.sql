@@ -299,11 +299,17 @@ CREATE TABLE IF NOT EXISTS market_player_pressure (
 -- ─── Auth & user tables (no FKs to auth schema in shadow) ───
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY,
+  season_id TEXT DEFAULT 'S1',
+  session_count INTEGER DEFAULT 0,
+  last_active TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW(),
+  created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW(),
+  is_guest BOOLEAN NOT NULL DEFAULT TRUE,
+  device_fingerprint TEXT,
+  linked_account_id UUID,
+  linked_at TIMESTAMPTZ,
   display_name TEXT,
-  is_guest BOOLEAN NOT NULL DEFAULT false,
   is_test BOOLEAN NOT NULL DEFAULT false,
   fingerprint_status TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
