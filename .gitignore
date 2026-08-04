@@ -29,7 +29,9 @@ verify-output.txt
 _validate-factory.ps1
 # Design-system audit session artifacts (regenerated on demand)
 _audit-design-system.mjs
+_audit-quality-baseline.mjs
 audit.log
+baseline.log
 
 # debug
 npm-debug.log*
