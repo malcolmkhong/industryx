@@ -32,6 +32,19 @@ _audit-design-system.mjs
 _audit-quality-baseline.mjs
 audit.log
 baseline.log
+# Dev-server + build logs (regenerated on every dev/build run, never source)
+*.dev.log
+*.dev-server.log
+*.dev-server-2.log
+*.dev-server-webpack.log
+.build.log
+.down.log
+.down.err
+out.log
+# Local build output captures
+build-output.txt
+ts-output.txt
+lint-output.txt
 
 # debug
 npm-debug.log*
