@@ -218,7 +218,15 @@ scripts/test-setGameSpeed-*
 # the project's audit history on disk but never push to source control.
 # Use AGENTS.md for canonical rules; per-phase audit context lives in
 # commit messages instead.
-planning/
+# Ignore the contents but not the directory itself so we can carve
+# out exceptions for files the CI workflow needs.
+planning/*
+planning/*/
+# Exception: the design-system CI gate script + its doc are tracked
+# so the `ci-gate` job in .github/workflows/test.yml can run them
+# in CI. Everything else under planning/ stays local.
+!planning/CI_GATES.sh
+!planning/CI_GATES.md
 
 # All scripts/ are local-dev only. The scripts documented in commit
 # messages serve as audit trail of what was tested, but the actual
