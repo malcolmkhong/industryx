@@ -72,10 +72,26 @@ CREATE POLICY "Service role full access on guest_identities" ON guest_identities
 -- ============================================================================
 -- 3. Lock down increment_cheat_flag grants
 -- ============================================================================
-REVOKE EXECUTE ON FUNCTION public.increment_cheat_flag(uuid, text, text, text) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION public.increment_cheat_flag(uuid, text, text, text) FROM anon;
-REVOKE EXECUTE ON FUNCTION public.increment_cheat_flag(uuid, text, text, text) FROM authenticated;
-GRANT EXECUTE ON FUNCTION public.increment_cheat_flag(uuid, text, text, text) TO service_role;
+-- Defensive: the function is created by a later migration; without this
+-- guard the shadow DB replay fails with "function does not exist". On
+-- linked instances where the function already exists the inner block is a
+-- no-op replay of the same REVOKE/GRANT pair.
+DO $incf$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE p.proname = 'increment_cheat_flag' AND n.nspname = 'public'
+  ) THEN
+    REVOKE EXECUTE ON FUNCTION public.increment_cheat_flag(uuid, text, text, text) FROM PUBLIC;
+    REVOKE EXECUTE ON FUNCTION public.increment_cheat_flag(uuid, text, text, text) FROM anon;
+    REVOKE EXECUTE ON FUNCTION public.increment_cheat_flag(uuid, text, text, text) FROM authenticated;
+    GRANT EXECUTE ON FUNCTION public.increment_cheat_flag(uuid, text, text, text) TO service_role;
+  ELSE
+    RAISE NOTICE '[018] public.increment_cheat_flag not yet created (shadow replay); skipping REVOKE/GRANT — later migration asserts them.';
+  END IF;
+END
+$incf$;
 
 
 -- ============================================================================
