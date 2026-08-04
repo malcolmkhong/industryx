@@ -162,5 +162,5 @@ REVOKE EXECUTE ON FUNCTION apply_market_tick(BIGINT, JSONB, JSONB, NUMERIC, JSON
 REVOKE EXECUTE ON FUNCTION apply_market_tick(BIGINT, JSONB, JSONB, NUMERIC, JSONB) FROM authenticated;
 GRANT EXECUTE ON FUNCTION apply_market_tick(BIGINT, JSONB, JSONB, NUMERIC, JSONB) TO service_role;
 
-COMMENT ON FUNCTION apply_market_tick IS
+COMMENT ON FUNCTION apply_market_tick(BIGINT, JSONB, JSONB, NUMERIC, JSONB) IS
   'Market tick persistence gate. Fixed in 052: DELETE now has explicit WHERE 1=1 (BUG-042).';

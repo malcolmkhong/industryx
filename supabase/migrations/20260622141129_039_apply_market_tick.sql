@@ -222,5 +222,5 @@ REVOKE EXECUTE ON FUNCTION apply_market_tick(BIGINT, JSONB, REAL, JSONB, JSONB) 
 REVOKE EXECUTE ON FUNCTION apply_market_tick(BIGINT, JSONB, REAL, JSONB, JSONB) FROM authenticated;
 GRANT EXECUTE ON FUNCTION apply_market_tick(BIGINT, JSONB, REAL, JSONB, JSONB) TO service_role;
 
-COMMENT ON FUNCTION apply_market_tick IS
+COMMENT ON FUNCTION apply_market_tick(BIGINT, JSONB, REAL, JSONB, JSONB) IS
   'Market tick persistence gate. Cloudflare Worker (or Next.js debug route) computes prices/events/volatility; this function validates bounds and persists atomically. Sole writer of server_market_state.tick, prices, volatility, circuit_breakers. Sole writer of game_config_market_history from market events. Sole clearer of market_player_pressure.';
