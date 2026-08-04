@@ -29,7 +29,40 @@
 -- Purpose: Existing rows default to FALSE (conservative — admin must opt-in
 --          any new resources). This prevents accidental "trade everything"
 --          when new resources are added to the table.
+--
+-- Defensive table create: this migration predates
+-- 20260622141113_009_game_config_tables.sql in the original local file
+-- ordering. The Supabase CLI shadow database (used by
+-- `db diff --linked --use-pg-schema`) replays every migration from
+-- scratch in alphabetical order, so without this preamble the
+-- ALTER TABLE below errors with "relation game_config_market does not
+-- exist". The CREATE matches 009_game_config_tables.sql exactly and
+-- uses IF NOT EXISTS, so it is a no-op on instances where the table
+-- already exists (i.e., the linked staging/prod databases).
 -- ============================================================================
+
+CREATE TABLE IF NOT EXISTS game_config_resources (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  icon TEXT NOT NULL,
+  tier SMALLINT NOT NULL DEFAULT 0,
+  color TEXT NOT NULL DEFAULT '#ffffff',
+  category TEXT NOT NULL DEFAULT 'standard',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS game_config_market (
+  resource_id TEXT PRIMARY KEY REFERENCES game_config_resources(id) ON DELETE CASCADE,
+  base_price NUMERIC NOT NULL,
+  demand NUMERIC NOT NULL DEFAULT 1.0,
+  supply NUMERIC NOT NULL DEFAULT 1.0,
+  volatility NUMERIC NOT NULL DEFAULT 0.1,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
 ALTER TABLE game_config_market
   ADD COLUMN IF NOT EXISTS is_tradable BOOLEAN NOT NULL DEFAULT false;
