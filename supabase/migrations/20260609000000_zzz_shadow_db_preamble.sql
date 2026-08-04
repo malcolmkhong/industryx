@@ -293,7 +293,8 @@ CREATE TABLE IF NOT EXISTS server_market_state (
 );
 
 CREATE TABLE IF NOT EXISTS market_player_pressure (
-  resource TEXT PRIMARY KEY,
+  resource TEXT,
+  user_id UUID,
   buy_volume DOUBLE PRECISION NOT NULL DEFAULT 0,
   sell_volume DOUBLE PRECISION NOT NULL DEFAULT 0,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
