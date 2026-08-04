@@ -103,10 +103,20 @@ BEGIN
 END $$;
 
 -- rls_auto_enable: called by ensure_rls event trigger (bypasses EXECUTE grants)
-REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM anon;
-REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM authenticated;
-GRANT EXECUTE ON FUNCTION public.rls_auto_enable() TO service_role;
+-- Wrapped in existence guard for shadow-DB replay; the canonical function
+-- is installed by Supabase infrastructure, not by these migrations.
+DO $lock_rls_auto$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'rls_auto_enable' AND pronamespace = 'public'::regnamespace) THEN
+    REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM PUBLIC;
+    REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM anon;
+    REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM authenticated;
+    GRANT EXECUTE ON FUNCTION public.rls_auto_enable() TO service_role;
+  ELSE
+    RAISE NOTICE '[017] rls_auto_enable not yet defined; skipping revoke/grant';
+  END IF;
+END
+$lock_rls_auto$;
 
 COMMIT;
 
