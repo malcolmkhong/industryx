@@ -29,12 +29,18 @@ jobs:
           echo ""
           echo "=== REMOTE MIGRATIONS ==="
           supabase migration list
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Apply migrations (dry run)
         run: supabase db push --dry-run
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Diff check
         # `db diff` has no `--exit-code` flag. Use the linked schema diff
         # supported by the pinned CLI; GitHub's Ubuntu runner provides Docker
         # for the temporary shadow database it creates.
         run: supabase db diff --linked --use-pg-schema
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
