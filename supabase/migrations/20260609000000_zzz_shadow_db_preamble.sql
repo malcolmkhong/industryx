@@ -278,6 +278,15 @@ CREATE TABLE IF NOT EXISTS game_config_weather (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Seed the canonical 'clear' weather row used by the global weather
+-- runtime (20260718211641_add_global_weather_runtime.sql). Without this
+-- the runtime's "clear row exists?" check raises an exception. The
+-- INSERT uses ON CONFLICT DO NOTHING so it's a safe no-op when the row
+-- is already present (canonical state on staging/prod).
+INSERT INTO game_config_weather (id, name, icon, production_multiplier, sort_order)
+VALUES ('clear', 'Clear', 'weather-clear', 1.0, 0)
+ON CONFLICT (id) DO NOTHING;
+
 CREATE TABLE IF NOT EXISTS game_config_balancing_rules (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
