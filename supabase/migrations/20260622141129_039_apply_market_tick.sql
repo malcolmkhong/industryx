@@ -32,7 +32,10 @@ CREATE OR REPLACE FUNCTION apply_market_tick(
   events_recorded   INTEGER,
   prices_recorded   INTEGER,
   history_inserted  INTEGER
-) AS $$
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
 DECLARE
   v_prev_tick        BIGINT;
   v_price_entry      JSONB;
@@ -210,7 +213,7 @@ BEGIN
 
   RETURN QUERY SELECT p_tick, v_events_count, v_prices_count, v_history_count;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 -- Lock down: only service_role can call this. Cloudflare Worker uses
 -- service_role key. Next.js debug endpoint also uses service_role client.
