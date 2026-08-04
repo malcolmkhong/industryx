@@ -3,8 +3,17 @@
 -- The Cloudflare worker reads this to initialize prices for new resources.
 -- New resources discovered via pressure pool are added with the closest tier's average price.
 
-UPDATE server_market_state
-SET base_prices = '[
+-- Defensive: server_market_state is created by 20260622141122_029_server_market.sql,
+-- which sorts AFTER this file. The shadow DB used by
+-- `db diff --linked --use-pg-schema` replays in alphabetical order, so
+-- without this guard the UPDATE below errors. On linked staging/prod
+-- the table exists and the UPDATE runs as the original migration
+-- intended.
+DO $seed_prices$
+BEGIN
+  IF to_regclass('server_market_state') IS NOT NULL THEN
+    UPDATE server_market_state
+    SET base_prices = '[
   {"resource":"iron","basePrice":5},
   {"resource":"copper","basePrice":8},
   {"resource":"coal","basePrice":3},
@@ -63,3 +72,6 @@ SET base_prices = '[
   {"resource":"voidCrystal","basePrice":250000}
 ]'
 WHERE id = 1;
+  END IF;
+END
+$seed_prices$;
