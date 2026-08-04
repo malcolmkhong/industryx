@@ -187,7 +187,7 @@ BEGIN
 
   RETURN QUERY SELECT p_tick, v_events_count, v_prices_count, v_history_count;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
 -- Re-lock to service_role only
 REVOKE EXECUTE ON FUNCTION apply_market_tick FROM PUBLIC;
