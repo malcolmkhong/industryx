@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* eslint-disable no-console, no-await-in-loop */
+/* eslint-disable no-await-in-loop */
 // _upload-qa-tests.mjs — manually POST qa-tests/ + artifacts to the Autonoma dashboard.
 //
 // Replicates what `npx @autonoma-ai/planner@latest upload` does, based on the
@@ -23,7 +23,8 @@ import { join, relative, sep } from "node:path";
 const API_TOKEN = process.env.AUTONOMA_API_TOKEN;
 const GENERATION_ID = process.env.AUTONOMA_GENERATION_ID;
 const API_URL = process.env.AUTONOMA_API_URL ?? "https://autonoma.app";
-const OUTPUT_DIR = process.env.AUTONOMA_OUTPUT_DIR ??
+const OUTPUT_DIR =
+  process.env.AUTONOMA_OUTPUT_DIR ??
   `C:/Users/malco/.autonoma/a-industryx-industryx`;
 
 if (!API_TOKEN || !GENERATION_ID) {
@@ -42,17 +43,27 @@ async function readTestCases(rootDir) {
       if (entry.isDirectory()) {
         if (entry.name === "_invalid") continue;
         await walk(fullPath);
-      } else if (entry.isFile() && entry.name.endsWith(".md") && entry.name !== "INDEX.md") {
+      } else if (
+        entry.isFile() &&
+        entry.name.endsWith(".md") &&
+        entry.name !== "INDEX.md"
+      ) {
         const rel = relative(testsDir, fullPath).split(sep);
         const name = rel[rel.length - 1];
         const folder = rel.slice(0, -1).join("/");
         const content = await readFile(fullPath, "utf-8");
-        out.push({ name, content, folder: folder.length > 0 ? folder : undefined });
+        out.push({
+          name,
+          content,
+          folder: folder.length > 0 ? folder : undefined,
+        });
       }
     }
   }
   await walk(testsDir);
-  return out.sort((a, b) => a.folder.localeCompare(b.folder) || a.name.localeCompare(b.name));
+  return out.sort(
+    (a, b) => a.folder.localeCompare(b.folder) || a.name.localeCompare(b.name),
+  );
 }
 
 /** Read the 3 root artifacts the planner also ships. */
@@ -73,7 +84,9 @@ async function readArtifacts(rootDir) {
 /** Best-effort git sha from the planner's .git-info.json sidecar. */
 async function readGitSha(rootDir) {
   try {
-    const raw = JSON.parse(await readFile(join(rootDir, ".git-info.json"), "utf-8"));
+    const raw = JSON.parse(
+      await readFile(join(rootDir, ".git-info.json"), "utf-8"),
+    );
     return raw?.sha ?? null;
   } catch {
     return null;
@@ -118,7 +131,9 @@ async function main() {
   const artifacts = await readArtifacts(OUTPUT_DIR);
   const commitSha = await readGitSha(OUTPUT_DIR);
 
-  console.log(`Found ${testCases.length} test cases, ${artifacts.length} artifacts.`);
+  console.log(
+    `Found ${testCases.length} test cases, ${artifacts.length} artifacts.`,
+  );
   if (testCases.length === 0) {
     console.error("No test cases found on disk — check qa-tests/ directory.");
     process.exit(1);
@@ -143,7 +158,9 @@ async function main() {
     console.error(`Body: ${patchRes.body.slice(0, 500)}`);
   }
 
-  console.log(`\nDone. Refresh https://autonoma.app to see qa-tests/ uploaded.`);
+  console.log(
+    `\nDone. Refresh https://autonoma.app to see qa-tests/ uploaded.`,
+  );
 }
 
 main().catch((err) => {

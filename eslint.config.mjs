@@ -244,7 +244,10 @@ const eslintConfig = [
       "no-console": [
         "warn",
         {
-          allow: ["warn", "error", "info"],
+          // `log` is allowed for one-off CLI scripts (audit, dev tools, recovery
+          // scripts) that are gitignored and never imported by the app. Keep
+          // production code on `warn` / `error` / `info`.
+          allow: ["warn", "error", "info", "log"],
         },
       ],
 
