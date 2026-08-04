@@ -27,6 +27,9 @@ step.log
 verify-output.txt
 # Autonoma one-off helper scripts (debug utility, not part of the app)
 _validate-factory.ps1
+# Design-system audit session artifacts (regenerated on demand)
+_audit-design-system.mjs
+audit.log
 
 # debug
 npm-debug.log*
