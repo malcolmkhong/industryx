@@ -24,7 +24,13 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
-const BASE_URL = process.env.BASE_URL ?? "https://industryx.vercel.app";
+const DEFAULT_BASE_URL = "https://industryx.vercel.app";
+
+function resolveBaseUrl(value: string | undefined) {
+  return value || DEFAULT_BASE_URL;
+}
+
+const BASE_URL = resolveBaseUrl(process.env.BASE_URL);
 const LIVE =
   process.env.RUN_LIVE_TESTS === "1" || process.env.RUN_LIVE_TESTS === "true";
 const liveTest = LIVE ? it : it.skip;
@@ -47,6 +53,10 @@ async function fetchJSON(
 }
 
 describe("time-refactor runtime smoke", () => {
+  it("uses the default URL when CI provides an empty BASE_URL", () => {
+    assert.equal(resolveBaseUrl(""), DEFAULT_BASE_URL);
+  });
+
   liveTest("bootstrap response includes worldClock", async () => {
     const { status, body } = await fetchJSON("/api/auth/bootstrap", {
       method: "POST",
