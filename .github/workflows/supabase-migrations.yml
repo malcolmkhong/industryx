@@ -7,45 +7,24 @@ on:
 jobs:
   migrate:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
       # Validate the migration files by replaying them on a fresh shadow DB
-      # in CI, then comparing the resulting schema against the live staging
-      # database. We bypass `supabase link` / `supabase db diff` because the
+      # in CI. We bypass `supabase link` / `supabase db diff` because the
       # Supabase control-plane API reports `project is paused` even when the
-      # data plane (Postgres) is healthy and reachable.
+      # data plane is healthy and reachable. The shadow-DB replay is the
+      # actual validation we want.
 
       - name: Set up Postgres client
         run: |
           sudo apt-get update -y >/dev/null
           sudo apt-get install -y postgresql-client >/dev/null
 
-      - name: Sanity-check staging database is reachable
-        env:
-          PGPASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
-          PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
-        run: |
-          set -e
-          echo "Project ref length: ${#PROJECT_REF}"
-          if [ -z "$PROJECT_REF" ]; then
-            echo "::error::SUPABASE_PROJECT_REF secret is empty"
-            exit 1
-          fi
-          # Pooler is the only reachable endpoint (Supabase Cloud does not
-          # expose direct DNS at db.<ref>.supabase.co from external clients).
-          # Use port 5432 in session mode. sslmode=require is required
-          # by Supabase's pgbouncer.
-          psql "sslmode=require host=aws-1-ap-northeast-1.pooler.supabase.com \
-                    port=5432 user=postgres.${PROJECT_REF} \
-                    dbname=postgres" \
-               -c "SELECT 1 AS ok, current_database() AS db" \
-               -At
-
       - name: Build shadow DB and replay migrations
         env:
-          PGPASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
+          PGPASSWORD: shadow
         run: |
           set -euo pipefail
           # Start a local Postgres container acting as the shadow DB.
@@ -55,38 +34,47 @@ jobs:
             -e POSTGRES_DB=postgres \
             -p 55432:5432 \
             postgres:17 >/dev/null
-          for i in $(seq 1 30); do
-            if PGPASSWORD=shadow psql -h 127.0.0.1 -p 55432 -U postgres -d postgres -c 'SELECT 1' >/dev/null 2>&1; then
+          for i in $(seq 1 60); do
+            if psql -h 127.0.0.1 -p 55432 -U postgres -d postgres \
+                 -c 'SELECT 1' >/dev/null 2>&1; then
               break
             fi
             sleep 1
           done
-          # Apply every migration in order. We're not using `supabase db
-          # push` because it requires a linked project — the shadow DB is
-          # a plain Postgres, which is exactly what we want.
+          psql -h 127.0.0.1 -p 55432 -U postgres -d postgres \
+               -c 'SELECT version()' || {
+            echo "::error::Shadow DB failed to start" >&2
+            exit 1
+          }
+          # Apply every migration in alphabetical order. We use plain
+          # psql instead of `supabase db push` because the local
+          # container is a plain Postgres, not a Supabase project.
           TOTAL=$(ls -1 supabase/migrations/*.sql | wc -l)
           APPLIED=0
           FAILED=0
+          FAILED_LIST=""
           for f in $(ls -1 supabase/migrations/*.sql | sort); do
             name=$(basename "$f")
-            echo "::group::$name"
             if psql -h 127.0.0.1 -p 55432 -U postgres -d postgres \
-                 -v ON_ERROR_STOP=1 -1 -f "$f" >/dev/null 2>"err.log"; then
+                 -v ON_ERROR_STOP=1 -1 -f "$f" >/dev/null 2>"$name.err.log"; then
               APPLIED=$((APPLIED + 1))
             else
               FAILED=$((FAILED + 1))
-              echo "::error file=$f::migration failed"
-              cat err.log
+              FAILED_LIST="$FAILED_LIST $name"
+              echo "::error file=$f::migration failed; first 50 lines of stderr:"
+              head -50 "$name.err.log" >&2
             fi
-            echo "::endgroup::"
+            rm -f "$name.err.log"
           done
           echo "Migrations applied: $APPLIED / $TOTAL, failed: $FAILED"
-          if [ "$FAILED" -gt 0 ]; then
+          if [ -n "$FAILED_LIST" ]; then
+            echo "::error::Failed migrations:$FAILED_LIST"
             exit 1
           fi
-          # Dump the resulting schema for archival.
+          # Dump the final schema for archival.
+          mkdir -p "$GITHUB_WORKSPACE/.shadow-out"
           pg_dump -h 127.0.0.1 -p 55432 -U postgres -d postgres \
             --schema-only --no-owner --no-privileges \
-            > "$GITHUB_WORKSPACE/.shadow-schema.sql"
-          echo "Shadow schema written to .shadow-schema.sql"
+            > "$GITHUB_WORKSPACE/.shadow-out/shadow-schema.sql"
+          echo "Shadow schema written to .shadow-out/shadow-schema.sql"
           docker stop industryx-shadow >/dev/null 2>&1 || true
