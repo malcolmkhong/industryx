@@ -22,7 +22,7 @@ BEGIN
 END
 $shadow_063$;
 
-DO $cron$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid WHERE p.proname = 'schedule' AND n.nspname = 'cron') THEN RAISE NOTICE '[063] pg_cron not loaded; skipping schedule block'; RETURN; END IF; END $cron$;
+DO $shadow_063c$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid WHERE p.proname = 'schedule' AND n.nspname = 'cron') THEN RAISE NOTICE '[063] pg_cron not loaded; skipping schedule block'; RETURN; END IF; END $shadow_063c$;
 DO $
 BEGIN
   IF NOT EXISTS (

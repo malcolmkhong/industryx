@@ -82,6 +82,8 @@ jobs:
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             email TEXT,
             is_anonymous BOOLEAN NOT NULL DEFAULT false,
+            raw_user_meta_data JSONB,
+            raw_app_meta_data JSONB,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
           );
