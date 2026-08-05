@@ -35,11 +35,11 @@ jobs:
           fi
           # Pooler is the only reachable endpoint (Supabase Cloud does not
           # expose direct DNS at db.<ref>.supabase.co from external clients).
-          # Use port 5432 in session mode for admin operations.
-          psql -h "aws-1-ap-northeast-1.pooler.supabase.com" \
-               -p 5432 \
-               -U "postgres.${PROJECT_REF}" \
-               -d postgres \
+          # Use port 5432 in session mode. sslmode=require is required
+          # by Supabase's pgbouncer.
+          psql "sslmode=require host=aws-1-ap-northeast-1.pooler.supabase.com \
+                    port=5432 user=postgres.${PROJECT_REF} \
+                    dbname=postgres" \
                -c "SELECT 1 AS ok, current_database() AS db" \
                -At
 
