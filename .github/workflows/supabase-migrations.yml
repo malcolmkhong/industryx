@@ -46,6 +46,33 @@ jobs:
             echo "::error::Shadow DB failed to start" >&2
             exit 1
           }
+          # Stub the Supabase auth schema. The shadow DB is a plain Postgres
+          # so we synthesize the parts of `auth.users` that early migrations
+          # reference (id, created_at, is_anonymous, etc.). The canonical
+          # Supabase auth schema is recreated by every fresh project; the
+          # stub here is a no-op on real Supabase (where the schema is
+          # already present).
+          psql -h 127.0.0.1 -p 55432 -U postgres -d postgres <<'AUTH_STUB'
+          CREATE SCHEMA IF NOT EXISTS auth;
+          CREATE TABLE IF NOT EXISTS auth.users (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            email TEXT,
+            is_anonymous BOOLEAN NOT NULL DEFAULT false,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+          );
+          CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$
+            SELECT NULL::uuid
+          $$;
+          CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $$
+            SELECT 'service_role'
+          $$;
+          CREATE OR REPLACE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql STABLE AS $$
+            SELECT '{}'::jsonb
+          $$;
+          CREATE SCHEMA IF NOT EXISTS extensions;
+          CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
+          AUTH_STUB
           # Apply every migration in alphabetical order. We use plain
           # psql instead of `supabase db push` because the local
           # container is a plain Postgres, not a Supabase project.
