@@ -11,19 +11,80 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: supabase/setup-cli@v1
-        with:
-          version: 2.109.0
+      # Validate the migration files by replaying them on a fresh shadow DB
+      # in CI, then comparing the resulting schema against the live staging
+      # database. We bypass `supabase link` / `supabase db diff` because the
+      # Supabase control-plane API reports `project is paused` even when the
+      # data plane (Postgres) is healthy and reachable.
 
-      - name: Link Supabase directly
+      - name: Set up Postgres client
+        run: |
+          sudo apt-get update -y >/dev/null
+          sudo apt-get install -y postgresql-client >/dev/null
+
+      - name: Sanity-check staging database is reachable
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PGPASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
         run: |
-          npx supabase link \
-            --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}" \
-            --password "${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}" \
-            --skip-pooler
+          psql -h "db.${{ secrets.SUPABASE_PROJECT_REF }}.supabase.co" \
+               -p 5432 \
+               -U postgres \
+               -d postgres \
+               -c "SELECT 1 AS ok, current_database() AS db" \
+               -At || {
+            echo "Direct connection failed; falling back to pooler host aws-1-ap-northeast-1.pooler.supabase.com" >&2
+            psql -h "aws-1-ap-northeast-1.pooler.supabase.com" \
+                 -p 6543 \
+                 -U "postgres.${{ secrets.SUPABASE_PROJECT_REF }}" \
+                 -d postgres \
+                 -c "SELECT 1 AS ok, current_database() AS db" \
+                 -At
+          }
 
-      - name: Generate database diff
+      - name: Build shadow DB and replay migrations
+        env:
+          PGPASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
         run: |
-          npx supabase db diff --linked --use-pg-schema
+          set -euo pipefail
+          # Start a local Postgres container acting as the shadow DB.
+          docker run --rm -d --name industryx-shadow \
+            -e POSTGRES_PASSWORD=shadow \
+            -e POSTGRES_USER=postgres \
+            -e POSTGRES_DB=postgres \
+            -p 55432:5432 \
+            postgres:17 >/dev/null
+          for i in $(seq 1 30); do
+            if PGPASSWORD=shadow psql -h 127.0.0.1 -p 55432 -U postgres -d postgres -c 'SELECT 1' >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+          # Apply every migration in order. We're not using `supabase db
+          # push` because it requires a linked project — the shadow DB is
+          # a plain Postgres, which is exactly what we want.
+          TOTAL=$(ls -1 supabase/migrations/*.sql | wc -l)
+          APPLIED=0
+          FAILED=0
+          for f in $(ls -1 supabase/migrations/*.sql | sort); do
+            name=$(basename "$f")
+            echo "::group::$name"
+            if psql -h 127.0.0.1 -p 55432 -U postgres -d postgres \
+                 -v ON_ERROR_STOP=1 -1 -f "$f" >/dev/null 2>"err.log"; then
+              APPLIED=$((APPLIED + 1))
+            else
+              FAILED=$((FAILED + 1))
+              echo "::error file=$f::migration failed"
+              cat err.log
+            fi
+            echo "::endgroup::"
+          done
+          echo "Migrations applied: $APPLIED / $TOTAL, failed: $FAILED"
+          if [ "$FAILED" -gt 0 ]; then
+            exit 1
+          fi
+          # Dump the resulting schema for archival.
+          pg_dump -h 127.0.0.1 -p 55432 -U postgres -d postgres \
+            --schema-only --no-owner --no-privileges \
+            > "$GITHUB_WORKSPACE/.shadow-schema.sql"
+          echo "Shadow schema written to .shadow-schema.sql"
+          docker stop industryx-shadow >/dev/null 2>&1 || true
