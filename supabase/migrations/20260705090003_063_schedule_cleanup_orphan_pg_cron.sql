@@ -22,9 +22,20 @@ BEGIN
 END
 $shadow_063$;
 
-DO $shadow_063c$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid WHERE p.proname = 'schedule' AND n.nspname = 'cron') THEN RAISE NOTICE '[063] pg_cron not loaded; skipping schedule block'; RETURN; END IF; END $shadow_063c$;
-DO $$
+-- Schedule the daily cleanup via pg_cron. Guarded: when the `cron`
+-- schema is not present (shadow DB replay), skip the SELECT against
+-- cron.job and the cron.schedule call. On real Supabase (where
+-- pg_cron is configured), this block runs verbatim.
+DO $shadow_063c$
 BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_proc p
+    JOIN pg_namespace n ON p.pronamespace = n.oid
+    WHERE p.proname = 'schedule' AND n.nspname = 'cron'
+  ) THEN
+    RAISE NOTICE '[063] pg_cron not loaded; skipping cron.schedule';
+    RETURN;
+  END IF;
   IF NOT EXISTS (
     SELECT 1 FROM cron.job WHERE jobname = 'cleanup-orphan-accounts'
   ) THEN
@@ -35,4 +46,4 @@ BEGIN
     );
   END IF;
 END
-$$;
+$shadow_063c$;
