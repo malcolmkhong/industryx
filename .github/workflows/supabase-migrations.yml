@@ -1,37 +1,36 @@
-name: Supabase Migrations
-
-on:
-  pull_request:
-  workflow_dispatch:
-
 jobs:
   migrate:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_STAGING_PROJECT_REF }}
+
     steps:
       - uses: actions/checkout@v4
 
       - uses: supabase/setup-cli@v1
         with:
-          version: 2.109.0
+          version: 2.111.0
 
-      # Link the staging project via the direct (non-pooler) DB connection.
-      # The `--skip-pooler` flag bypasses the pgbouncer pooler (which has a
-      # 15-client session-mode cap) and talks directly to the project's
-      # main Postgres on port 5432. The control-plane API used by `supabase
-      # link` may report `project is paused` even when the data plane is
-      # healthy; linking via the direct DB URL avoids that endpoint.
-      - name: Link Supabase directly
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      - name: Link Supabase project using IPv4 pooler
         run: |
-          npx supabase link \
-            --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}" \
-            --password "${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}" \
-            --skip-pooler
+          rm -rf supabase/.temp
+          supabase link --project-ref "$SUPABASE_PROJECT_REF"
 
-      - name: Generate database diff
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      - name: Verify linked project
         run: |
-          npx supabase db diff --linked --use-pg-schema
+          echo "Linked project: $(cat supabase/.temp/project-ref)"
+          test "$(cat supabase/.temp/project-ref)" = "$SUPABASE_PROJECT_REF"
+
+      - name: List migrations
+        run: supabase migration list
+
+      - name: Apply migrations dry run
+        run: supabase db push --dry-run
+
+      - name: Diff check
+        run: supabase db diff --linked --use-pg-schema
+        if: always()
