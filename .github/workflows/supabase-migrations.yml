@@ -25,8 +25,10 @@ jobs:
       - name: Sanity-check staging database is reachable
         env:
           PGPASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
+          PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: |
-          psql -h "db.${{ secrets.SUPABASE_PROJECT_REF }}.supabase.co" \
+          echo "Project ref: $PROJECT_REF"
+          psql -h "db.${PROJECT_REF}.supabase.co" \
                -p 5432 \
                -U postgres \
                -d postgres \
@@ -35,7 +37,7 @@ jobs:
             echo "Direct connection failed; falling back to pooler host aws-1-ap-northeast-1.pooler.supabase.com" >&2
             psql -h "aws-1-ap-northeast-1.pooler.supabase.com" \
                  -p 6543 \
-                 -U "postgres.${{ secrets.SUPABASE_PROJECT_REF }}" \
+                 -U "postgres.${PROJECT_REF}" \
                  -d postgres \
                  -c "SELECT 1 AS ok, current_database() AS db" \
                  -At
