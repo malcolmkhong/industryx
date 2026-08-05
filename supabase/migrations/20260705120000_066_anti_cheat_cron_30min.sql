@@ -25,8 +25,9 @@
 DO $shadow_066$
 BEGIN
   IF NOT EXISTS (
-    SELECT 1 FROM pg_proc
-    WHERE proname = 'schedule' AND pronamespace = 'cron'::regnamespace
+    SELECT 1 FROM pg_proc p
+    JOIN pg_namespace n ON p.pronamespace = n.oid
+    WHERE p.proname = 'schedule' AND n.nspname = 'cron'
   ) THEN
     RAISE NOTICE '[066] pg_cron not loaded; skipping cron job schedule';
     RETURN;
