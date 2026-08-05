@@ -8,17 +8,16 @@
 -- under a fully-configured Supabase Postgres image. Skip the schedule
 -- block when pg_cron is not loaded.
 
--- Shadow-DB guard: the binary is installed, but pg_cron only loads
--- when the `cron.database_name` GUC is set in postgresql.conf (set
--- automatically by the Supabase image). The shadow DB used for
--- migration replay does not have that GUC, so loading the extension
--- would error with "unrecognized configuration parameter". Skip
--- CREATE EXTENSION when running on a database that hasn't been
--- pre-configured for pg_cron.
+-- Shadow-DB guard: pg_cron requires shared_preload_libraries and the
+-- `cron.database_name` GUC to be set in postgresql.conf. The shadow
+-- DB used for migration replay does not have it, so loading the
+-- extension would error with "unrecognized configuration parameter".
+-- Probe whether the cron schema is already present (production has
+-- it pre-created by the Supabase image); the shadow DB does not.
 DO $shadow_017$
 BEGIN
-  IF current_setting('cron.database_name', true) IS NULL THEN
-    RAISE NOTICE '[017] pg_cron GUC not configured; skipping extension creation and schedule';
+  IF NOT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'cron') THEN
+    RAISE NOTICE '[017] pg_cron not pre-installed; skipping extension creation and schedule';
     RETURN;
   END IF;
   CREATE EXTENSION IF NOT EXISTS pg_cron;
