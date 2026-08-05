@@ -11,35 +11,39 @@ jobs:
 
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
-      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_STAGING_PROJECT_REF }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: supabase/setup-cli@v1
         with:
-          version: 2.111.0
+          version: 2.109.0
 
-      - name: Link Supabase project using IPv4 direct connection
+      - name: Link Supabase project
+        shell: bash
         run: |
           rm -rf supabase/.temp
-          # --skip-pooler forces a direct connection to the main Postgres
-          # instance, avoiding the pgbouncer session-mode 15-client cap
-          # that intermittently blocks `supabase link` on free-tier projects.
-          supabase link --project-ref "$SUPABASE_PROJECT_REF" --skip-pooler
+          supabase link \
+            --project-ref "$SUPABASE_PROJECT_REF" \
+            --password "$SUPABASE_DB_PASSWORD" \
+            --debug
 
-      - name: Verify linked project
+      - name: Verify linked connection
+        shell: bash
         run: |
-          echo "Linked project: $(cat supabase/.temp/project-ref)"
+          echo "Project ref: $(cat supabase/.temp/project-ref)"
           test "$(cat supabase/.temp/project-ref)" = "$SUPABASE_PROJECT_REF"
 
+          echo "Supabase temporary connection files:"
+          find supabase/.temp -maxdepth 1 -type f -printf "%f\n" | sort
+
       - name: List migrations
-        run: supabase migration list
+        run: supabase migration list --debug
 
       - name: Apply migrations dry run
-        run: supabase db push --dry-run
+        run: supabase db push --dry-run --debug
 
       - name: Diff check
-        run: supabase db diff --linked --use-pg-schema
-        if: always()
+        run: supabase db diff --linked --use-pg-schema --debug
