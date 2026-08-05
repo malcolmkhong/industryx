@@ -46,12 +46,12 @@ jobs:
             echo "::error::Shadow DB failed to start" >&2
             exit 1
           }
-          # Stub the Supabase auth schema. The shadow DB is a plain Postgres
-          # so we synthesize the parts of `auth.users` that early migrations
-          # reference (id, created_at, is_anonymous, etc.). The canonical
-          # Supabase auth schema is recreated by every fresh project; the
-          # stub here is a no-op on real Supabase (where the schema is
-          # already present).
+          # Stub the Supabase auth schema + roles. The shadow DB is a plain
+          # Postgres, so we synthesize the parts of `auth.users` and the
+          # standard Supabase roles (anon, authenticated, service_role) that
+          # early migrations reference. The canonical Supabase auth schema
+          # and roles are recreated by every fresh project; the stub here is
+          # a no-op on real Supabase (where the schema/roles already exist).
           psql -h 127.0.0.1 -p 55432 -U postgres -d postgres <<'AUTH_STUB'
           CREATE SCHEMA IF NOT EXISTS auth;
           CREATE TABLE IF NOT EXISTS auth.users (
@@ -72,6 +72,20 @@ jobs:
           $$;
           CREATE SCHEMA IF NOT EXISTS extensions;
           CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
+          -- Standard Supabase roles (used by RLS policies)
+          DO $$
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+              CREATE ROLE anon NOLOGIN;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+              CREATE ROLE authenticated NOLOGIN;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
+              CREATE ROLE service_role NOLOGIN BYPASSRLS;
+            END IF;
+          END $$
+          ;
           AUTH_STUB
           # Apply every migration in alphabetical order. We use plain
           # psql instead of `supabase db push` because the local
