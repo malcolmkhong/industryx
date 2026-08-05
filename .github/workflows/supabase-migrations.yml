@@ -27,7 +27,12 @@ jobs:
           PGPASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
           PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: |
-          echo "Project ref: $PROJECT_REF"
+          set -e
+          echo "Project ref length: ${#PROJECT_REF}"
+          if [ -z "$PROJECT_REF" ]; then
+            echo "::error::SUPABASE_PROJECT_REF secret is empty"
+            exit 1
+          fi
           psql -h "db.${PROJECT_REF}.supabase.co" \
                -p 5432 \
                -U postgres \
