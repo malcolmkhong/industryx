@@ -27,30 +27,27 @@ jobs:
           PGPASSWORD: shadow
         run: |
           set -euo pipefail
-          # Start a local Postgres container acting as the shadow DB.
-          # Use the Supabase Postgres image (17.6.1.127) because it
-          # ships with pg_cron and the other server-side extensions the
-          # migration set expects. The image wraps supervisord and
-          # requires several Supabase-specific env vars; we set the
-          # minimum needed so the container starts in standalone mode.
-          # We wait up to 240 s for the data plane to be reachable.
+          # Build a custom Postgres image that has pg_cron pre-installed.
+          # The stock postgres:17 image does not ship pg_cron, and the
+          # Supabase image has too many side services that prevent it
+          # from booting in our CI environment. Building a tiny image
+          # that just apt-installs pg_cron keeps the shadow DB fast and
+          # self-contained.
+          cat > /tmp/Dockerfile.shadow <<'DOCKERFILE'
+          FROM postgres:17
+          RUN apt-get update \
+              && apt-get install -y --no-install-recommends postgresql-17-cron \
+              && rm -rf /var/lib/apt/lists/*
+          DOCKERFILE
+          docker build -q -t industryx-shadow:latest -f /tmp/Dockerfile.shadow /tmp >/dev/null
           docker run --rm -d --name industryx-shadow \
             -e POSTGRES_PASSWORD=shadow \
             -e POSTGRES_USER=postgres \
             -e POSTGRES_DB=postgres \
             -e POSTGRES_HOST_AUTH_METHOD=trust \
-            -e SUPABASE_DB_URL=postgres://postgres:shadow@127.0.0.1:5432/postgres \
-            -e SUPABASE_INTERNAL_JWT_SECRET=ci-shadow-secret \
-            -e SUPABASE_JWT_SECRET=ci-shadow-secret \
-            -e DASHBOARD_USERNAME=admin \
-            -e DASHBOARD_PASSWORD=shadow \
             -p 55432:5432 \
-            --health-cmd="pg_isready -U postgres -d postgres" \
-            --health-interval=5s \
-            --health-timeout=5s \
-            --health-retries=60 \
-            ghcr.io/supabase/postgres:17.6.1.127 >/dev/null
-          for i in $(seq 1 240); do
+            industryx-shadow:latest >/dev/null
+          for i in $(seq 1 60); do
             if docker exec industryx-shadow \
                  pg_isready -U postgres -d postgres >/dev/null 2>&1; then
               break
@@ -63,6 +60,12 @@ jobs:
             docker logs industryx-shadow 2>&1 | tail -80 >&2 || true
             exit 1
           }
+          # pg_cron requires it to be added to shared_preload_libraries
+          # at startup, but in the shadow DB we apply it via SQL on the
+          # running session. The shadow DB only runs the migration
+          # queries; pg_cron never actually schedules jobs in CI.
+          docker exec industryx-shadow \
+            psql -U postgres -d postgres -c 'CREATE EXTENSION IF NOT EXISTS pg_cron;' >/dev/null
           # Stub the Supabase auth schema + roles. The shadow DB is a plain
           # Postgres, so we synthesize the parts of `auth.users` and the
           # standard Supabase roles (anon, authenticated, service_role) that
