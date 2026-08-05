@@ -31,14 +31,19 @@ jobs:
           # Use the Supabase Postgres image (17.6.1.127) because it
           # ships with pg_cron and the other server-side extensions the
           # migration set expects. The image wraps supervisord and
-          # requires the cluster to be in /var/lib/postgresql/data, so
-          # we explicitly set POSTGRES_DB and ALLOW_NO_PASSWORD. We
-          # wait up to 240 s for the data plane to be reachable.
+          # requires several Supabase-specific env vars; we set the
+          # minimum needed so the container starts in standalone mode.
+          # We wait up to 240 s for the data plane to be reachable.
           docker run --rm -d --name industryx-shadow \
             -e POSTGRES_PASSWORD=shadow \
             -e POSTGRES_USER=postgres \
             -e POSTGRES_DB=postgres \
             -e POSTGRES_HOST_AUTH_METHOD=trust \
+            -e SUPABASE_DB_URL=postgres://postgres:shadow@127.0.0.1:5432/postgres \
+            -e SUPABASE_INTERNAL_JWT_SECRET=ci-shadow-secret \
+            -e SUPABASE_JWT_SECRET=ci-shadow-secret \
+            -e DASHBOARD_USERNAME=admin \
+            -e DASHBOARD_PASSWORD=shadow \
             -p 55432:5432 \
             --health-cmd="pg_isready -U postgres -d postgres" \
             --health-interval=5s \
@@ -55,7 +60,7 @@ jobs:
           docker exec industryx-shadow \
             psql -U postgres -d postgres -c 'SELECT version()' || {
             echo "::error::Shadow DB failed to start" >&2
-            docker logs industryx-shadow 2>&1 | tail -50 >&2 || true
+            docker logs industryx-shadow 2>&1 | tail -80 >&2 || true
             exit 1
           }
           # Stub the Supabase auth schema + roles. The shadow DB is a plain
