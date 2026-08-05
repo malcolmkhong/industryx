@@ -35,7 +35,7 @@ export const CONFIG_TABLE_COLUMNS = {
   game_config_production_recipes:
     "id,building_id,resource_id,amount,is_input,created_at",
   game_config_research:
-    "id,name,description,category,tier,cost,time_required,prerequisites,effects,icon,requires_research,sort_order,created_at,updated_at",
+    "id,name,description,category,tier,cost,time_required,prerequisites,effects,icon,sort_order,created_at,updated_at",
   game_config_production_chains:
     "id,upstream_building,downstream_building,resource_id,created_at",
   game_config_workers:

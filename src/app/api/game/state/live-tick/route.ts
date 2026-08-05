@@ -108,7 +108,9 @@ async function resolveGuestIdentity(
 
   const row = guest.row;
   const err = rowErrorCode(row);
-  if (err || !row.user_id || row.status !== "OK") return null;
+  if (err || !row.user_id) return null;
+  // bootstrap_guest returns "OK_CREATED" or "OK_EXISTING" — accept either.
+  if (row.status !== "OK_CREATED" && row.status !== "OK_EXISTING") return null;
 
   return {
     userId: row.user_id,

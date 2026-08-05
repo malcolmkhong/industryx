@@ -65,7 +65,9 @@ export async function authorizeActionContext(
   const rateLimitResponse = await checkRateLimit(
     auth.success ? resolvedAuth.userId : `guest:${deviceId ?? requestUserId}`,
     RATE_LIMITS.action,
-    forcedAction ? ACTION_ROUTE_PATHS[forcedAction] : "/api/game/actions/legacy",
+    forcedAction
+      ? ACTION_ROUTE_PATHS[forcedAction]
+      : "/api/game/actions/legacy",
   );
   if (rateLimitResponse) {
     return { ok: false, response: rateLimitResponse };
@@ -84,12 +86,42 @@ async function resolveGuestAuth(
     deviceId,
     fingerprintHash: null,
   });
-  if (!guest.ok) return null;
+  if (!guest.ok) {
+    console.warn(
+      "[resolveGuestAuth] callBootstrapGuest failed",
+      guest.errorCode,
+      guest.message,
+    );
+    return null;
+  }
 
   const row = guest.row;
   const err = rowErrorCode(row);
-  if (err || row.status !== "OK" || !row.user_id) return null;
-  if (row.user_id !== requestUserId) return null;
+  // Per migration 074 / bootstrapRpcs: the success statuses for
+  // bootstrap_guest are "OK_CREATED" and "OK_EXISTING". Bare "OK" is
+  // never returned by this RPC — the previous `row.status !== "OK"`
+  // check rejected every legitimate success response, which is the
+  // bug behind guest 401s on /api/game/actions/*. Whitelist the two
+  // real success values here.
+  const status = row.status ?? "";
+  const isSuccess = status === "OK_CREATED" || status === "OK_EXISTING";
+  if (err || !isSuccess || !row.user_id) {
+    console.warn("[resolveGuestAuth] row rejected:", {
+      err,
+      status: row.status,
+      hasUserId: !!row.user_id,
+    });
+    return null;
+  }
+  if (row.user_id !== requestUserId) {
+    console.warn(
+      "[resolveGuestAuth] userId mismatch: row=",
+      row.user_id,
+      "request=",
+      requestUserId,
+    );
+    return null;
+  }
 
   return {
     success: true,

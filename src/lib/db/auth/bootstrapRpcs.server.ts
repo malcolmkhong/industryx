@@ -41,7 +41,12 @@ export type BootstrapErrorCode = (typeof BOOTSTRAP_ERROR_CODES)[number];
 
 /** bootstrap_guest: idempotent guest bootstrap via device_id */
 export interface BootstrapGuestRow {
-  status: "OK" | "ERROR";
+  // Migration 074 returns "OK_CREATED" / "OK_EXISTING" on success, and
+  // "ERROR" on row-level failure. (The TypeScript type was previously
+  // "OK" | "ERROR" which never matched the actual SQL output, causing
+  // guest auth fallback to silently reject every legitimate response —
+  // see `resolveGuestAuth` in contextAuth.ts.)
+  status: "OK_CREATED" | "OK_EXISTING" | "ERROR";
   user_id: string | null;
   binding_id: string | null;
   is_new_user: boolean | null;

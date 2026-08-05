@@ -59,7 +59,10 @@ export async function loadConfig(): Promise<GameConfig | null> {
       return null;
     }
     if (researchRes.error || !researchRes.data) {
-      console.error("[ActionAPI] Failed to fetch research:", researchRes.error);
+      console.error(
+        "[ActionAPI] Failed to fetch research:",
+        JSON.stringify(researchRes.error),
+      );
       return null;
     }
 
