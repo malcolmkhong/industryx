@@ -35,6 +35,10 @@ jobs:
           # self-contained.
           cat > /tmp/Dockerfile.shadow <<'DOCKERFILE'
           FROM postgres:17
+          # postgresql-17-cron is installed so the .so is available if
+          # any migration needs it, but the extension is not created
+          # at runtime. Migrations that touch the cron schema are
+          # wrapped in shadow-DB guards.
           RUN apt-get update \
               && apt-get install -y --no-install-recommends postgresql-17-cron \
               && rm -rf /var/lib/apt/lists/*
@@ -60,12 +64,12 @@ jobs:
             docker logs industryx-shadow 2>&1 | tail -80 >&2 || true
             exit 1
           }
-          # pg_cron requires it to be added to shared_preload_libraries
-          # at startup, but in the shadow DB we apply it via SQL on the
-          # running session. The shadow DB only runs the migration
-          # queries; pg_cron never actually schedules jobs in CI.
-          docker exec industryx-shadow \
-            psql -U postgres -d postgres -c 'CREATE EXTENSION IF NOT EXISTS pg_cron;' >/dev/null
+          # pg_cron requires the cron.database_name GUC to be set in
+          # postgresql.conf, which the shadow DB does not configure. We
+          # install the binary (postgresql-17-cron) in the image so the
+          # .so is available, but we don't pre-create the extension.
+          # Migrations that need pg_cron are wrapped in shadow-DB guards
+          # that short-circuit when the cron schema is absent.
           # Stub the Supabase auth schema + roles. The shadow DB is a plain
           # Postgres, so we synthesize the parts of `auth.users` and the
           # standard Supabase roles (anon, authenticated, service_role) that
