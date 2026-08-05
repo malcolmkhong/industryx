@@ -63,6 +63,22 @@ interface SafeFetchResult<T> {
   error: string | null;
 }
 
+/**
+ * Normalizes a jsonb column value into an array of records.
+ *
+ * The live database has at least one row (`game_config_seasonal_events.id =
+ * 'sea-season_q1-ef1957f5'`) where `effects` was inserted as an OBJECT,
+ * not an array, because the seed script wrote it that way. Treating a
+ * single object as "one effect" preserves the data instead of throwing
+ * during static page generation.
+ */
+function asEffectArray(value: unknown): Array<Record<string, unknown>> {
+  if (value == null) return [];
+  if (Array.isArray(value)) return value as Array<Record<string, unknown>>;
+  if (typeof value === "object") return [value as Record<string, unknown>];
+  return [];
+}
+
 async function safeFetchTable<T>(
   supabase: ReturnType<typeof createServiceRoleClient>,
   tableName: string,
@@ -570,7 +586,7 @@ export async function fetchGameConfigFromSupabase(): Promise<FetchConfigResult> 
       description: e.description,
       type: e.type,
       duration: e.duration,
-      effects: ((e.effects as Array<Record<string, unknown>> | null) ?? []).map(
+      effects: asEffectArray(e.effects).map(
         (raw, idx) => ({
           id: `${e.id}-effect-${idx}`,
           type: raw.type as
@@ -592,19 +608,17 @@ export async function fetchGameConfigFromSupabase(): Promise<FetchConfigResult> 
       season: s.season,
       startDate: s.start_date,
       endDate: s.end_date,
-      effects: ((s.effects as Array<Record<string, unknown>> | null) ?? []).map(
-        (raw, idx) => ({
-          id: `${s.id}-effect-${idx}`,
-          type: raw.type as
-            | "productionMultiplier"
-            | "powerMultiplier"
-            | "marketPriceMultiplier"
-            | "transportSpeed"
-            | "researchSpeed",
-          target: raw.target as string | undefined,
-          value: Number(raw.value ?? 1),
-        }),
-      ),
+      effects: asEffectArray(s.effects).map((raw, idx) => ({
+        id: `${s.id}-effect-${idx}`,
+        type: raw.type as
+          | "productionMultiplier"
+          | "powerMultiplier"
+          | "marketPriceMultiplier"
+          | "transportSpeed"
+          | "researchSpeed",
+        target: raw.target as string | undefined,
+        value: Number(raw.value ?? 1),
+      })),
       rewards: s.rewards,
       icon: s.icon,
       isActive: s.is_active,
