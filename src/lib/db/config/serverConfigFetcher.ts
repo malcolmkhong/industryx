@@ -73,13 +73,7 @@ async function safeFetchTable<T>(
   if (!supabase) return { data: null, error: "Supabase client not available" };
 
   try {
-    // Tables known to have sort_order column. NOTE: `game_config_balancing_rules`
-    // is intentionally NOT in this set — the canonical
-    // 20260622141113_009_game_config_tables.sql schema does NOT declare
-    // sort_order on the balancing_rules table, so attempts to ORDER BY
-    // sort_order raise SQLSTATE 42703. Including it here broke the admin
-    // config GET handler with 500/404 errors after Postgres rejected the
-    // ORDER BY clause.
+    // Tables known to have sort_order column
     const tablesWithSortOrder = new Set([
       "game_config_buildings",
       "game_config_resources",
@@ -95,7 +89,7 @@ async function safeFetchTable<T>(
       "game_config_seasonal_events",
       "game_config_mega_projects",
       "game_config_weather",
-      "game_config_balance",
+      "game_config_balancing_rules",
     ]);
 
     let query = supabase
