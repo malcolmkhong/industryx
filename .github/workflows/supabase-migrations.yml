@@ -15,10 +15,13 @@ jobs:
         with:
           version: 2.111.0
 
-      - name: Link Supabase project using IPv4 pooler
+      - name: Link Supabase project using IPv4 direct connection
         run: |
           rm -rf supabase/.temp
-          supabase link --project-ref "$SUPABASE_PROJECT_REF"
+          # --skip-pooler forces a direct connection to the main Postgres
+          # instance, avoiding the pgbouncer session-mode 15-client cap
+          # that intermittently blocks `supabase link` on free-tier projects.
+          supabase link --project-ref "$SUPABASE_PROJECT_REF" --skip-pooler
 
       - name: Verify linked project
         run: |
