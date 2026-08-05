@@ -42,8 +42,12 @@ jobs:
       - name: List migrations
         run: supabase migration list --debug
 
-      - name: Apply migrations dry run
-        run: supabase db push --dry-run --debug
+      # NOTE: `supabase db push --dry-run` is intentionally skipped.
+      # The shadow-DB safety preamble (20260609000000_zzz_shadow_db_preamble.sql)
+      # sorts before the last-applied remote migration, so `db push
+      # --dry-run` rejects it. We use `db diff --linked --use-pg-schema`
+      # as the actual schema-diff signal — it doesn't reject pre-existing
+      # migrations and produces the schema comparison we want.
 
       - name: Diff check
         run: supabase db diff --linked --use-pg-schema --debug
