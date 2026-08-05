@@ -9,7 +9,18 @@
 --
 -- Idempotent: skips schedule insertion if jobname already exists.
 
-CREATE EXTENSION IF NOT EXISTS pg_cron;
+-- Shadow-DB guard: pg_cron requires the `cron.database_name` GUC to be
+-- set in postgresql.conf. The shadow DB used for migration replay does
+-- not have it. Skip CREATE EXTENSION + schedule when the GUC is missing.
+DO $shadow_063$
+BEGIN
+  IF current_setting('cron.database_name', true) IS NULL THEN
+    RAISE NOTICE '[063] pg_cron GUC not configured; skipping extension + schedule';
+    RETURN;
+  END IF;
+  CREATE EXTENSION IF NOT EXISTS pg_cron;
+END
+$shadow_063$;
 
 DO $cron$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'schedule' AND pronamespace = 'cron'::regnamespace) THEN RAISE NOTICE '[063] pg_cron not loaded; skipping schedule block'; RETURN; END IF; END $cron$;
 DO $
