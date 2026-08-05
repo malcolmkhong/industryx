@@ -27,7 +27,12 @@ const COMPUTE_TIMEOUT_MS = 2000;
 export const FINGERPRINT_UNAVAILABLE = "__fingerprint_unavailable__";
 
 export type FingerprintReason =
-  "blocked" | "timeout" | "network" | "unsupported" | "unknown";
+  | "blocked"
+  | "timeout"
+  | "network"
+  | "unsupported"
+  | "pending"
+  | "unknown";
 
 export type FingerprintResult =
   | { status: "available"; value: string }
@@ -117,7 +122,7 @@ function classifyError(err: unknown): FingerprintReason {
  * The result is de-duplicated via a single in-flight promise: concurrent calls
  * share the same computation.
  */
-async function computeFingerprint(): Promise<FingerprintResult> {
+function computeFingerprint(): Promise<FingerprintResult> {
   if (inFlightPromise) return inFlightPromise;
 
   inFlightPromise = (async (): Promise<FingerprintResult> => {
@@ -157,20 +162,54 @@ async function computeFingerprint(): Promise<FingerprintResult> {
 }
 
 /**
- * Get the fingerprint, using the localStorage cache when available.
- * Returns a structured result.
+ * Synchronous cache lookup. Returns the cached visitorId if present and
+ * non-expired, otherwise null. Does NOT trigger a recompute.
+ *
+ * Use this on hot/timeout-bound paths (bootstrap, telemetry) so a slow
+ * FingerprintJS compute never blocks the caller. The non-blocking variant
+ * is `getFingerprintResultAsync`.
  */
-export async function getFingerprintResult(): Promise<FingerprintResult> {
+export function getCachedFingerprint(): string | null {
+  return readCache();
+}
+
+/**
+ * Async, fire-and-forget fingerprint getter.
+ *
+ * Cache hit  -> resolve immediately with the cached value.
+ * Cache miss -> kick off computeFingerprint() in the background, return
+ *               FINGERPRINT_UNAVAILABLE NOW. The cache is populated by the
+ *               background promise when (if) it eventually resolves.
+ *
+ * Industry pattern: identity (deviceId) must never block on telemetry
+ * (fingerprint). A timing race in the previous implementation
+ * (orchestrator 1500ms + helper 2000ms + FingerprintJS internal) caused
+ * the compute to time out on first paint, never reach writeCache(), and
+ * repeat on every subsequent page load. Fire-and-forget eliminates the
+ * race: the cache will be populated on whichever page load finally
+ * succeeds, even if that's not this one.
+ *
+ * Returns the FINGERPRINT_UNAVAILABLE sentinel when no cache is present
+ * AND the background compute hasn't finished yet. The route handler
+ * already accepts this sentinel (deviceId-only dedupe).
+ */
+export function getFingerprintResult(): Promise<FingerprintResult> {
   if (typeof window === "undefined") {
-    return { status: "unavailable", reason: "unsupported" };
+    return Promise.resolve({ status: "unavailable", reason: "unsupported" });
   }
   const cached = readCache();
-  if (cached) return { status: "available", value: cached };
-  const result = await computeFingerprint();
-  if (result.status === "available") {
-    writeCache(result.value);
-  }
-  return result;
+  if (cached) return Promise.resolve({ status: "available", value: cached });
+
+  // Kick off compute in the background. Do NOT await — caller already
+  // has its answer (sentinel). Errors are silenced (best-effort
+  // telemetry); successful compute writes to cache for the next page.
+  void computeFingerprint().then((result) => {
+    if (result.status === "available") {
+      writeCache(result.value);
+    }
+  });
+
+  return Promise.resolve({ status: "unavailable", reason: "pending" });
 }
 
 /**

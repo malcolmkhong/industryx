@@ -34,15 +34,12 @@
  * Those become thin wrappers in PR4-4B.
  */
 
-import {
-  responseBodyToEvent,
-  transition,
-  type TransitionEvent,
-} from "./state";
+import { responseBodyToEvent, transition, type TransitionEvent } from "./state";
 import type {
   AuthEvent,
   AuthEventListener,
   AuthOrchestratorBootstrapDeps,
+  BootstrapTelemetryEvent,
   BootstrapReadyResult,
   BootstrapResponseBody,
   BootstrapTemporaryErrorResult,
@@ -160,6 +157,14 @@ export class AuthOrchestrator {
    * state — implementing plan §5 hard rule #1.
    */
   private requestVersion = 0;
+
+  /**
+   * Timestamp (Date.now()) of the most recent runBootstrap() entry. Used
+   * by buildTelemetry() to report total bootstrap duration_ms. Reset to
+   * 0 whenever no bootstrap is in flight (the field is read-only from
+   * outside this module — telemetry skips events when it's 0).
+   */
+  private bootstrapStartedAt = 0;
 
   constructor(initial: Partial<OrchestratorState> = {}) {
     this.state = { ...INITIAL_STATE, ...initial };
@@ -296,9 +301,7 @@ export class AuthOrchestrator {
     void this.runBootstrap({
       reason: "sign_out",
       previousAuthUserId:
-        priorIdentity === "authenticated" && priorUserId
-          ? priorUserId
-          : null,
+        priorIdentity === "authenticated" && priorUserId ? priorUserId : null,
     });
   }
 
@@ -441,10 +444,16 @@ export class AuthOrchestrator {
     // after this point will check the version and bail if it doesn't
     // match.
     const version = ++this.requestVersion;
+    // Telemetry: capture start time so we can report total bootstrap
+    // duration. Per-call — overwritten on each new runBootstrap.
+    this.bootstrapStartedAt = Date.now();
 
     // Resolve session + collect fingerprint IN PARALLEL (plan §4 step 3).
     // The session result is required before the request body is built;
-    // the fingerprint is telemetry-only with a strict timeout.
+    // the fingerprint is telemetry-only and now fire-and-forget in the
+    // dep (returns synchronously via Promise.resolve). The timeout
+    // wrapper remains as a defensive no-op — if a future dep returns an
+    // async fingerprint, this still bounds it.
     const fingerprintPromise = withTimeout(
       deps
         .getFingerprint(FINGERPRINT_TIMEOUT_MS)
@@ -624,6 +633,23 @@ export class AuthOrchestrator {
 
     this.setState(patch);
 
+    // Telemetry: fire-and-forget on terminal bootstrap outcomes. The dep
+    // is optional; callers that don't wire telemetry simply don't
+    // receive these events. Errors are swallowed inside the dep impl.
+    // We compute the outcome string from the terminal-state branch the
+    // patch already filled in (patch.result.status carries the
+    // orchestrator's `result` shape, which we use for the API contract).
+    if (deps?.emitTelemetry) {
+      const telemetry = this.buildTelemetry(event);
+      if (telemetry) {
+        try {
+          deps.emitTelemetry(telemetry);
+        } catch (err) {
+          console.warn("[AuthOrchestrator] emitTelemetry threw:", err);
+        }
+      }
+    }
+
     // Apply side effects.
     for (const effect of outcome.effects) {
       switch (effect) {
@@ -638,10 +664,7 @@ export class AuthOrchestrator {
                 gameState: event.response.gameState,
               });
             } catch (err) {
-              console.warn(
-                "[AuthOrchestrator] applyServerState threw:",
-                err,
-              );
+              console.warn("[AuthOrchestrator] applyServerState threw:", err);
             }
             this.dispatch({
               type: "BOOTSTRAP_READY",
@@ -710,6 +733,89 @@ export class AuthOrchestrator {
       return raw;
     }
     return "fresh";
+  }
+
+  /**
+   * Build a telemetry event from a transition + the state patch that
+   * was about to be applied. Returns null for non-terminal transitions
+   * (STARTUP, SESSION_RESOLVED, etc.) and for AUTH_USER_CHANGED which
+   * is not an outcome of bootstrap.
+   *
+   * Telemetry outcomes (matches `/api/telemetry/bootstrap` whitelist):
+   *   ready             → RESPONSE_BOOTSTRAP_READY
+   *   conflict          → RESPONSE_CONFLICT
+   *   recovery_required → RESPONSE_RECOVERY
+   *   temporary_error   → RESPONSE_TEMPORARY
+   *   signed_out        → emitted by signOut() flow (no terminal event here)
+   *   signed_in         → emitted by onAuthStateChange (no terminal event here)
+   *
+   * Duration is captured from the latest runBootstrap entry. Fingerprint
+   * status is read off the live state (set by runBootstrap when the
+   * fingerprint race resolves).
+   */
+  private buildTelemetry(
+    event: TransitionEvent,
+  ): BootstrapTelemetryEvent | null {
+    const deviceId = this.state.deviceId;
+    if (!deviceId) return null;
+
+    const durationMs =
+      this.bootstrapStartedAt > 0
+        ? Math.min(60_000, Date.now() - this.bootstrapStartedAt)
+        : null;
+
+    const fingerprintStatus = this.normalizeFingerprintStatus(
+      this.state.fingerprintStatus,
+    );
+
+    // Build the per-event fields in one place. Default (unknown event)
+    // is null — the caller (`applyTransition`) skips emission for
+    // non-terminal transitions like STARTUP / AUTH_USER_CHANGED.
+    const fields: Pick<
+      BootstrapTelemetryEvent,
+      "outcome" | "source" | "isGuest"
+    > = (() => {
+      switch (event.type) {
+        case "RESPONSE_BOOTSTRAP_READY":
+          return {
+            outcome: "ready",
+            source: this.normalizeSource(event.response.source),
+            isGuest: event.response.isGuest,
+          };
+        case "RESPONSE_CONFLICT":
+          // RESPONSE_CONFLICT payload has no `source` field (it's only
+          // on BOOTSTRAP_READY). Telemetry gets null here — fine, the
+          // server side accepts null.
+          return { outcome: "conflict", source: null, isGuest: null };
+        case "RESPONSE_RECOVERY":
+          return { outcome: "recovery_required", source: null, isGuest: null };
+        case "RESPONSE_TEMPORARY":
+          return { outcome: "temporary_error", source: null, isGuest: null };
+        default:
+          return { outcome: null as never, source: null, isGuest: null };
+      }
+    })();
+
+    if (fields.outcome === null) return null;
+
+    return {
+      deviceId,
+      ...fields,
+      durationMs,
+      fingerprintStatus,
+      stateAtEmit: this.state.status,
+    };
+  }
+
+  private normalizeFingerprintStatus(
+    raw: string | null | undefined,
+  ): BootstrapTelemetryEvent["fingerprintStatus"] {
+    // Maps the orchestrator's FingerprintStatus enum to the server
+    // telemetry whitelist (ok | unavailable | timeout | null).
+    if (raw === "available") return "ok";
+    if (raw === "timeout" || raw === "blocked") return "timeout";
+    if (raw === "unavailable" || raw === "pending") return "unavailable";
+    return null;
   }
 
   private mapTemporaryReason(

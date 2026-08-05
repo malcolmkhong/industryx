@@ -38,6 +38,7 @@ export type {
   BootstrapRequestBody,
   BootstrapResponseBody,
   BootstrapSource,
+  BootstrapTelemetryEvent,
   BootstrapTemporaryErrorResult,
   FingerprintStatus,
   IdentityKind,

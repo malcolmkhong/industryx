@@ -9,7 +9,7 @@ import React, {
 } from "react";
 
 import type { User, Session } from "@supabase/supabase-js";
-import { getFingerprint } from "@/lib/auth/fingerprint";
+import { getFingerprint, getCachedFingerprint } from "@/lib/auth/fingerprint";
 import { createDeviceIdStorage } from "@/lib/auth/orchestrator/storage";
 import {
   disableServerValidation,
@@ -18,6 +18,7 @@ import {
 import {
   AuthOrchestrator,
   type BootstrapResponseBody,
+  type BootstrapTelemetryEvent,
 } from "@/lib/auth/orchestrator";
 import {
   registerOrchestrator,
@@ -131,29 +132,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       orchestrator.attach({
         isSupabaseConfigured,
         getDeviceId,
-        getFingerprint: async (timeoutMs: number): Promise<string | null> => {
-          // PR 5B: orchestrator owns timeout enforcement. We wrap the
-          // existing getFingerprint() call with Promise.race so a hung
-          // fingerprint vendor cannot stall the bootstrap pipeline
-          // (plan §10). Returning null after timeout is acceptable.
+        getFingerprint: (_timeoutMs: number): Promise<string | null> => {
+          // Industry standard: telemetry must not block identity. The
+          // `timeoutMs` budget is ignored here — fingerprint is now
+          // fire-and-forget inside the helper. This wrapper does two
+          // things synchronously:
+          //
+          //   1. Read the localStorage cache. Hit -> return cached value.
+          //   2. Miss -> kick off a background compute via getFingerprint()
+          //      (which itself does fire-and-forget), return null now.
+          //
+          // Result: bootstrap never waits on FingerprintJS. The cache
+          // gets populated on whichever page load finally completes the
+          // compute (usually the second, when the SDK is warm). No code
+          // outside this helper cares that we ignored `timeoutMs` —
+          // identity is keyed on deviceId, not fingerprint.
           try {
-            const fpPromise = (async () => {
-              const fp = await getFingerprint();
-              if (!fp || fp === "unknown") return null;
-              return fp;
-            })();
-            let timer: ReturnType<typeof setTimeout> | undefined;
-            const timeoutPromise = new Promise<string | null>((resolve) => {
-              timer = setTimeout(() => resolve(null), timeoutMs);
-            });
-            try {
-              const result = await Promise.race([fpPromise, timeoutPromise]);
-              return result;
-            } finally {
-              if (timer) clearTimeout(timer);
-            }
+            const cached = getCachedFingerprint();
+            if (cached) return Promise.resolve(cached);
+            // Fire-and-forget. The helper writes to cache when (if) it
+            // resolves. We don't await — bootstrap continues.
+            void getFingerprint();
+            return Promise.resolve(null);
           } catch {
-            return null;
+            return Promise.resolve(null);
           }
         },
         getSession: async () => {
@@ -176,6 +178,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return { error: error?.message ?? null };
           } catch (err) {
             return { error: err instanceof Error ? err.message : "unknown" };
+          }
+        },
+        // PR 5B: best-effort bootstrap telemetry sink. Fires once per
+        // terminal bootstrap outcome. Uses sendBeacon when available so
+        // the event survives page unload (the orchestrator may emit
+        // 'signed_out' right before sign-out unmounts the page).
+        emitTelemetry: (event: BootstrapTelemetryEvent): void => {
+          try {
+            const url = "/api/telemetry/bootstrap";
+            const payload = JSON.stringify(event);
+            // sendBeacon is the right tool: best-effort, doesn't block,
+            // survives unload. Falls back to fetch with keepalive=false
+            // when unavailable (older browsers).
+            if (
+              typeof navigator !== "undefined" &&
+              typeof navigator.sendBeacon === "function"
+            ) {
+              const blob = new Blob([payload], { type: "application/json" });
+              navigator.sendBeacon(url, blob);
+              return;
+            }
+            void fetch(url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: payload,
+              keepalive: true,
+            }).catch(() => {
+              // Telemetry must never crash the orchestrator.
+            });
+          } catch {
+            // Same — never crash on telemetry failure.
           }
         },
         // PR 5B: SINGLE canonical bootstrap entry. POSTs to the unified

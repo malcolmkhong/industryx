@@ -317,6 +317,43 @@ export interface AuthOrchestratorBootstrapDeps {
     provider: "google" | "github",
     redirectTo: string,
   ) => Promise<{ error: string | null }>;
+
+  /**
+   * Best-effort bootstrap telemetry sink. Optional — callers that don't
+   * wire telemetry simply never report outcomes. The orchestrator fires
+   * this EXACTLY ONCE per terminal bootstrap outcome (ready, conflict,
+   * recovery_required, temporary_error, signed_out, signed_in).
+   *
+   * Implementations should:
+   *   - Use navigator.sendBeacon if available (survives page unload).
+   *   - Catch and swallow all errors. Telemetry must never crash the
+   *     orchestrator state machine.
+   *   - Fire-and-forget. The orchestrator does NOT await the promise.
+   *
+   * Server contract: POST /api/telemetry/bootstrap
+   * (see `src/app/api/telemetry/bootstrap/route.ts`).
+   */
+  emitTelemetry?: (event: BootstrapTelemetryEvent) => void;
+}
+
+/**
+ * Shape of a bootstrap telemetry event. Mirrors the validator in
+ * `src/app/api/telemetry/bootstrap/route.ts`.
+ */
+export interface BootstrapTelemetryEvent {
+  deviceId: string;
+  outcome:
+    | "ready"
+    | "conflict"
+    | "recovery_required"
+    | "temporary_error"
+    | "signed_out"
+    | "signed_in";
+  source: "deviceId" | "auth" | "fresh" | "sign_out_to_guest" | null;
+  durationMs: number | null;
+  fingerprintStatus: "ok" | "unavailable" | "timeout" | null;
+  stateAtEmit: string | null;
+  isGuest: boolean | null;
 }
 
 // ─── Legacy re-exports for callers that still import the old names ──────
