@@ -11,7 +11,8 @@
 
 CREATE EXTENSION IF NOT EXISTS pg_cron;
 
-DO $$
+DO $cron$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'schedule' AND pronamespace = 'cron'::regnamespace) THEN RAISE NOTICE '[063] pg_cron not loaded; skipping schedule block'; RETURN; END IF; END $cron$;
+DO $
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM cron.job WHERE jobname = 'cleanup-orphan-accounts'
