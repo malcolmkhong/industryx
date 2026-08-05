@@ -18,26 +18,43 @@
 -- Idempotent: safe to apply multiple times.
 
 -- Unschedule existing
-SELECT cron.unschedule('validate-active-players-ticks')
-WHERE EXISTS (
-  SELECT 1 FROM cron.job WHERE jobname = 'validate-active-players-ticks'
-);
+-- Shadow-DB guard: pg_cron is not loaded on the shadow DB. The
+-- schedule block below only matters in production where pg_cron
+-- is configured. Wrap the whole migration in a guard so replay
+-- is a no-op when the cron schema is absent.
+DO $shadow_066$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_proc p
+    JOIN pg_namespace n ON p.pronamespace = n.oid
+    WHERE p.proname = 'schedule' AND n.nspname = 'cron'
+  ) THEN
+    RAISE NOTICE '[066] pg_cron not loaded; skipping cron job schedule';
+    RETURN;
+  END IF;
 
--- Reschedule at 30min cadence
-SELECT cron.schedule(
-  'validate-active-players-ticks',
-  '*/30 * * * *',  -- every 30 minutes (down from 5)
-  $$
-    SELECT net.http_post(
-      url := 'https://industryx.vercel.app/api/cron/validate-ticks',
-      headers := jsonb_build_object(
-        'Content-Type', 'application/json',
-        'Authorization', 'Bearer ' || current_setting('app.cron_secret', true)
-      ),
-      body := '{}'::jsonb
-    ) AS request_id;
-  $$
-);
+  SELECT cron.unschedule('validate-active-players-ticks')
+  WHERE EXISTS (
+    SELECT 1 FROM cron.job WHERE jobname = 'validate-active-players-ticks'
+  );
+
+  -- Reschedule at 30min cadence
+  SELECT cron.schedule(
+    'validate-active-players-ticks',
+    '*/30 * * * *',  -- every 30 minutes (down from 5)
+    $$
+      SELECT net.http_post(
+        url := 'https://industryx.vercel.app/api/cron/validate-ticks',
+        headers := jsonb_build_object(
+          'Content-Type', 'application/json',
+          'Authorization', 'Bearer ' || current_setting('app.cron_secret', true)
+        ),
+        body := '{}'::jsonb
+      ) AS request_id;
+    $$
+  );
+END
+$shadow_066$;
 
 -- Verification: list the new schedule
 -- (uncomment to verify after applying)

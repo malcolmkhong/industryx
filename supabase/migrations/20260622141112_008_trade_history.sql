@@ -1,4 +1,4 @@
-﻿-- ============================================================================
+-- ============================================================================
 -- Migration: 008_trade_history
 -- Description: Create trade_history table (was missing from migrations)
 -- Purpose: Formalize the trade_history table that exists on Supabase but has

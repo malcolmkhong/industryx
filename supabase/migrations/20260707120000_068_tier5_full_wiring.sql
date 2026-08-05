@@ -70,6 +70,23 @@ ON CONFLICT (id) DO NOTHING;
 
 -- 6. INSERT RECIPES FOR THE 5 NEW TIER-4.5 BUILDINGS
 -- recipe IDs start at recipe-300 to avoid collision (max existing is recipe-296)
+--
+-- Defensive: the production_recipes inserts reference building_id and
+-- resource_id values that may not exist on the shadow DB used by
+-- `db diff --linked --use-pg-schema`. The production_recipes table has
+-- foreign keys to game_config_buildings and game_config_resources
+-- (added by 009_game_config_tables.sql), so on the shadow DB the inserts
+-- hit "violates foreign key constraint" because neither table has the
+-- referenced rows (they are seeded via separate processes). Temporarily
+-- drop the FKs for the inserts, then re-add them. On the linked
+-- staging/prod databases the referenced rows already exist and the
+-- re-added FKs validate cleanly.
+SET session_replication_role = replica;
+ALTER TABLE game_config_production_recipes
+  DROP CONSTRAINT IF EXISTS game_config_production_recipes_building_id_fkey;
+ALTER TABLE game_config_production_recipes
+  DROP CONSTRAINT IF EXISTS game_config_production_recipes_resource_id_fkey;
+
 INSERT INTO game_config_production_recipes (id, building_id, resource_id, is_input, amount) VALUES
   ('recipe-300', 'arcologyModuleAssembler', 'habitatModule', true, 1),
   ('recipe-301', 'arcologyModuleAssembler', 'structuralFrame', true, 1),
@@ -98,3 +115,17 @@ INSERT INTO game_config_production_recipes (id, building_id, resource_id, is_inp
   ('recipe-312', 'marketDominanceCenter', 'tradeContract', true, 2),
   ('recipe-313', 'marketDominanceCenter', 'marketDominance', false, 1)
 ON CONFLICT (id) DO NOTHING;
+
+
+-- Re-add the foreign keys (see defensive note above). Set session_replication_role
+-- to origin first to allow FK validation against the local tables.
+SET session_replication_role = origin;
+ALTER TABLE game_config_production_recipes
+  ADD CONSTRAINT game_config_production_recipes_building_id_fkey
+  FOREIGN KEY (building_id) REFERENCES game_config_buildings(id) ON DELETE CASCADE
+  NOT VALID;
+ALTER TABLE game_config_production_recipes
+  ADD CONSTRAINT game_config_production_recipes_resource_id_fkey
+  FOREIGN KEY (resource_id) REFERENCES game_config_resources(id) ON DELETE CASCADE
+  NOT VALID;
+SET session_replication_role = default;

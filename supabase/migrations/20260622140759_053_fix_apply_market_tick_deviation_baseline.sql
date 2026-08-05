@@ -44,6 +44,7 @@ RETURNS TABLE (
   prices_recorded   INTEGER,
   history_inserted  INTEGER
 )
+LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $$

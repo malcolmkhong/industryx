@@ -31,6 +31,7 @@ RETURNS TABLE (
   prices_recorded   INTEGER,
   history_inserted  INTEGER
 )
+LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $$
@@ -176,9 +177,9 @@ BEGIN
 
   RETURN QUERY SELECT p_tick, v_events_count, v_prices_count, v_history_count;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
 GRANT EXECUTE ON FUNCTION apply_market_tick(BIGINT, JSONB, JSONB, NUMERIC, JSONB) TO service_role;
 
-COMMENT ON FUNCTION apply_market_tick IS
+COMMENT ON FUNCTION apply_market_tick(BIGINT, JSONB, JSONB, NUMERIC, JSONB) IS
   'Advances the global market by one tick. BUG-041 fix: validates per-tick price change against PREVIOUS tick currentPrice, not basePrice. Added 2026-06-22.';

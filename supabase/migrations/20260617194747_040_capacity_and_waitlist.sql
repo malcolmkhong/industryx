@@ -1,4 +1,4 @@
-﻿-- 040_capacity_and_waitlist.sql
+-- 040_capacity_and_waitlist.sql
 -- Capacity protection system for the idle game.
 -- Enforces MAX_TOTAL_PLAYERS (configurable, default 500) at the application layer.
 -- No triggers on auth.users â€” all checks happen in the app/server layer.

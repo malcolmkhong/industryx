@@ -32,7 +32,10 @@ CREATE OR REPLACE FUNCTION apply_market_tick(
   events_recorded   INTEGER,
   prices_recorded   INTEGER,
   history_inserted  INTEGER
-) AS $$
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
 DECLARE
   v_prev_tick        BIGINT;
   v_price_entry      JSONB;
@@ -210,14 +213,14 @@ BEGIN
 
   RETURN QUERY SELECT p_tick, v_events_count, v_prices_count, v_history_count;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 -- Lock down: only service_role can call this. Cloudflare Worker uses
 -- service_role key. Next.js debug endpoint also uses service_role client.
-REVOKE EXECUTE ON FUNCTION apply_market_tick FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION apply_market_tick FROM anon;
-REVOKE EXECUTE ON FUNCTION apply_market_tick FROM authenticated;
-GRANT EXECUTE ON FUNCTION apply_market_tick TO service_role;
+REVOKE EXECUTE ON FUNCTION apply_market_tick(BIGINT, JSONB, REAL, JSONB, JSONB) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION apply_market_tick(BIGINT, JSONB, REAL, JSONB, JSONB) FROM anon;
+REVOKE EXECUTE ON FUNCTION apply_market_tick(BIGINT, JSONB, REAL, JSONB, JSONB) FROM authenticated;
+GRANT EXECUTE ON FUNCTION apply_market_tick(BIGINT, JSONB, REAL, JSONB, JSONB) TO service_role;
 
-COMMENT ON FUNCTION apply_market_tick IS
+COMMENT ON FUNCTION apply_market_tick(BIGINT, JSONB, REAL, JSONB, JSONB) IS
   'Market tick persistence gate. Cloudflare Worker (or Next.js debug route) computes prices/events/volatility; this function validates bounds and persists atomically. Sole writer of server_market_state.tick, prices, volatility, circuit_breakers. Sole writer of game_config_market_history from market events. Sole clearer of market_player_pressure.';

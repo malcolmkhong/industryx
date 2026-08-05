@@ -21,8 +21,23 @@
 -- update it to the real production URL before applying.
 
 -- Enable required extensions (Supabase has these by default, but be explicit)
-CREATE EXTENSION IF NOT EXISTS pg_cron;
-CREATE EXTENSION IF NOT EXISTS pg_net;
+-- Shadow-DB guard: pg_cron and pg_net require shared_preload_libraries
+-- configuration that the shadow DB used by the migration replay cannot
+-- provide. When those libraries are not loaded, the cron.* / net.* calls
+-- below would fail with "function does not exist". Skip the schedule
+-- block on the shadow DB; the schedules are only meaningful in production.
+DO $shadow_025$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_proc p
+    JOIN pg_namespace n ON p.pronamespace = n.oid
+    WHERE p.proname = 'schedule' AND n.nspname = 'cron'
+  ) THEN
+    RAISE NOTICE '[025] pg_cron not loaded; skipping cron job schedule';
+    RETURN;
+  END IF;
+  CREATE EXTENSION IF NOT EXISTS pg_cron;
+  CREATE EXTENSION IF NOT EXISTS pg_net;
 
 -- Unschedule any existing job with the same name (idempotent)
 SELECT cron.unschedule('validate-active-players-ticks')
@@ -79,3 +94,5 @@ SELECT cron.schedule(
 -- Verification: list all scheduled cron jobs
 -- (this is a query, not a change; uncomment to verify after applying)
 -- SELECT jobname, schedule, active FROM cron.job ORDER BY jobname;
+END
+$shadow_025$;
