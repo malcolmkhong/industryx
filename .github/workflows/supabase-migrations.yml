@@ -64,7 +64,7 @@ jobs:
           # early migrations reference. The canonical Supabase auth schema
           # and roles are recreated by every fresh project; the stub here is
           # a no-op on real Supabase (where the schema/roles already exist).
-          psql -h 127.0.0.1 -p 55432 -U postgres -d postgres <<'AUTH_STUB'
+          docker exec -i industryx-shadow psql -U postgres -d postgres <<'AUTH_STUB'
           CREATE SCHEMA IF NOT EXISTS auth;
           CREATE TABLE IF NOT EXISTS auth.users (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -108,8 +108,10 @@ jobs:
           FAILED_LIST=""
           for f in $(ls -1 supabase/migrations/*.sql | sort); do
             name=$(basename "$f")
-            if psql -h 127.0.0.1 -p 55432 -U postgres -d postgres \
-                 -v ON_ERROR_STOP=1 -1 -f "$f" >/dev/null 2>"$name.err.log"; then
+            if docker exec -i industryx-shadow \
+                 psql -U postgres -d postgres \
+                 -v ON_ERROR_STOP=1 -1 \
+                 < "$f" >/dev/null 2>"$name.err.log"; then
               APPLIED=$((APPLIED + 1))
             else
               FAILED=$((FAILED + 1))
@@ -126,7 +128,8 @@ jobs:
           fi
           # Dump the final schema for archival.
           mkdir -p "$GITHUB_WORKSPACE/.shadow-out"
-          pg_dump -h 127.0.0.1 -p 55432 -U postgres -d postgres \
+          docker exec industryx-shadow \
+            pg_dump -U postgres -d postgres \
             --schema-only --no-owner --no-privileges \
             > "$GITHUB_WORKSPACE/.shadow-out/shadow-schema.sql"
           echo "Shadow schema written to .shadow-out/shadow-schema.sql"
