@@ -5,16 +5,20 @@
 // calls across `src/app/api/support/**` routes.
 // ============================================================================
 
-import { createServiceRoleClient } from '@/lib/db/access';;
-import type { Database } from '@/lib/db/types';
+import { getDbClient } from "@/lib/db/access";
+import type { Database } from "@/lib/db/types";
 
-type SupportTicketRow = Database['public']['Tables']['support_tickets']['Row'];
-type SupportTicketInsert = Database['public']['Tables']['support_tickets']['Insert'];
-type SupportTicketUpdate = Database['public']['Tables']['support_tickets']['Update'];
-type SupportMessageRow = Database['public']['Tables']['support_messages']['Row'];
-type SupportMessageInsert = Database['public']['Tables']['support_messages']['Insert'];
+type SupportTicketRow = Database["public"]["Tables"]["support_tickets"]["Row"];
+type SupportTicketInsert =
+  Database["public"]["Tables"]["support_tickets"]["Insert"];
+type SupportTicketUpdate =
+  Database["public"]["Tables"]["support_tickets"]["Update"];
+type SupportMessageRow =
+  Database["public"]["Tables"]["support_messages"]["Row"];
+type SupportMessageInsert =
+  Database["public"]["Tables"]["support_messages"]["Insert"];
 
-export type SupportTicketStatus = 'open' | 'accepted' | 'resolved';
+export type SupportTicketStatus = "open" | "accepted" | "resolved";
 
 /**
  * Filter for listTickets.
@@ -30,31 +34,33 @@ export interface TicketFilters {
  * List tickets with optional filters.
  * Returns most recent first (created_at DESC) by default.
  */
-export async function listTickets(filters: TicketFilters = {}): Promise<SupportTicketRow[]> {
-  const supabase = createServiceRoleClient();
+export async function listTickets(
+  filters: TicketFilters = {},
+): Promise<SupportTicketRow[]> {
+  const supabase = getDbClient();
   if (!supabase) return [];
 
   let query = supabase
-    .from('support_tickets')
+    .from("support_tickets")
     .select(
-      'id,user_id,subject,message,status,priority,accepted_by,resolved_at,created_at,updated_at',
+      "id,user_id,subject,message,status,priority,accepted_by,resolved_at,created_at,updated_at",
     )
-    .order('created_at', { ascending: false });
+    .order("created_at", { ascending: false });
 
-  if (filters.userId) query = query.eq('user_id', filters.userId);
-  if (filters.acceptedBy) query = query.eq('accepted_by', filters.acceptedBy);
+  if (filters.userId) query = query.eq("user_id", filters.userId);
+  if (filters.acceptedBy) query = query.eq("accepted_by", filters.acceptedBy);
   if (filters.status) {
     if (Array.isArray(filters.status)) {
-      query = query.in('status', filters.status);
+      query = query.in("status", filters.status);
     } else {
-      query = query.eq('status', filters.status);
+      query = query.eq("status", filters.status);
     }
   }
   if (filters.limit) query = query.limit(filters.limit);
 
   const { data, error } = await query;
   if (error) {
-    console.error('[SupportTickets] Failed to list tickets:', error);
+    console.error("[SupportTickets] Failed to list tickets:", error);
     return [];
   }
   return data || [];
@@ -65,20 +71,20 @@ export async function listTickets(filters: TicketFilters = {}): Promise<SupportT
  * Returns null if not found.
  */
 export async function getTicket(id: string): Promise<SupportTicketRow | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
-    .from('support_tickets')
+    .from("support_tickets")
     .select(
-      'id,user_id,subject,message,status,priority,accepted_by,resolved_at,created_at,updated_at',
+      "id,user_id,subject,message,status,priority,accepted_by,resolved_at,created_at,updated_at",
     )
-    .eq('id', id)
+    .eq("id", id)
     .single();
 
   if (error) {
-    if (error.code === 'PGRST116') return null;
-    console.error('[SupportTickets] Failed to get ticket:', error);
+    if (error.code === "PGRST116") return null;
+    console.error("[SupportTickets] Failed to get ticket:", error);
     return null;
   }
   return data as SupportTicketRow;
@@ -89,19 +95,19 @@ export async function getTicket(id: string): Promise<SupportTicketRow | null> {
  * Returns the inserted row, or null on failure.
  */
 export async function createTicket(
-  values: SupportTicketInsert
+  values: SupportTicketInsert,
 ): Promise<SupportTicketRow | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
-    .from('support_tickets')
+    .from("support_tickets")
     .insert(values)
     .select()
     .single();
 
   if (error) {
-    console.error('[SupportTickets] Failed to create ticket:', error);
+    console.error("[SupportTickets] Failed to create ticket:", error);
     return null;
   }
   return data as SupportTicketRow;
@@ -112,20 +118,20 @@ export async function createTicket(
  */
 export async function updateTicket(
   id: string,
-  patch: SupportTicketUpdate
+  patch: SupportTicketUpdate,
 ): Promise<SupportTicketRow | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
-    .from('support_tickets')
+    .from("support_tickets")
     .update(patch)
-    .eq('id', id)
+    .eq("id", id)
     .select()
     .single();
 
   if (error) {
-    console.error('[SupportTickets] Failed to update ticket:', error);
+    console.error("[SupportTickets] Failed to update ticket:", error);
     return null;
   }
   return data as SupportTicketRow;
@@ -135,9 +141,11 @@ export async function updateTicket(
  * Mark a ticket as resolved.
  * No-op if the ticket does not exist or is already resolved.
  */
-export async function resolveTicket(id: string): Promise<SupportTicketRow | null> {
+export async function resolveTicket(
+  id: string,
+): Promise<SupportTicketRow | null> {
   return updateTicket(id, {
-    status: 'resolved',
+    status: "resolved",
     resolved_at: new Date().toISOString(),
   });
 }
@@ -145,18 +153,20 @@ export async function resolveTicket(id: string): Promise<SupportTicketRow | null
 /**
  * List messages on a ticket, oldest first (chronological).
  */
-export async function listTicketMessages(ticketId: string): Promise<SupportMessageRow[]> {
-  const supabase = createServiceRoleClient();
+export async function listTicketMessages(
+  ticketId: string,
+): Promise<SupportMessageRow[]> {
+  const supabase = getDbClient();
   if (!supabase) return [];
 
   const { data, error } = await supabase
-    .from('support_messages')
-    .select('id,ticket_id,sender_id,sender_type,message,created_at')
-    .eq('ticket_id', ticketId)
-    .order('created_at', { ascending: true });
+    .from("support_messages")
+    .select("id,ticket_id,sender_id,sender_type,message,created_at")
+    .eq("ticket_id", ticketId)
+    .order("created_at", { ascending: true });
 
   if (error) {
-    console.error('[SupportTickets] Failed to list messages:', error);
+    console.error("[SupportTickets] Failed to list messages:", error);
     return [];
   }
   return data || [];
@@ -167,19 +177,19 @@ export async function listTicketMessages(ticketId: string): Promise<SupportMessa
  * Caller is responsible for validating ticket ownership and status.
  */
 export async function addTicketMessage(
-  values: SupportMessageInsert
+  values: SupportMessageInsert,
 ): Promise<SupportMessageRow | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
-    .from('support_messages')
+    .from("support_messages")
     .insert(values)
     .select()
     .single();
 
   if (error) {
-    console.error('[SupportTickets] Failed to add message:', error);
+    console.error("[SupportTickets] Failed to add message:", error);
     return null;
   }
   return data as SupportMessageRow;

@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // src/lib/db/rateLimits.ts
 // Supabase-backed rate limit check (H2 fix).
 //
@@ -6,7 +6,7 @@
 // `null` if not configured; otherwise returns the raw RPC result row.
 // ============================================================================
 
-import { createServiceRoleClient } from '@/lib/db/admin/admin';
+import { getDbClient } from "@/lib/db/access";
 
 export interface CheckRateLimitRow {
   allowed: boolean;
@@ -25,10 +25,10 @@ export async function checkRateLimitRpc(params: {
   windowSeconds: number;
   maxRequests: number;
 }): Promise<CheckRateLimitRow | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
 
-  const { data, error } = await supabase.rpc('check_rate_limit', {
+  const { data, error } = await supabase.rpc("check_rate_limit", {
     p_identifier: params.identifier,
     p_endpoint: params.endpoint,
     p_window_seconds: params.windowSeconds,

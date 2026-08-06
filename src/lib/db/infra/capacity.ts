@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // src/lib/db/capacity.ts
 // Capacity-status RPC wrapper for the `get_capacity_status` function.
 //
@@ -6,9 +6,9 @@
 // unreachable. The caller (src/lib/capacity.ts) decides the fallback.
 // ============================================================================
 
-import { createServiceRoleClient } from '@/lib/db/admin/admin';
+import { getDbClient } from "@/lib/db/access";
 
-export type CapacityStatus = 'healthy' | 'warning' | 'full';
+export type CapacityStatus = "healthy" | "warning" | "full";
 
 export interface CapacityInfoRow {
   max_total_players: number | string;
@@ -28,10 +28,10 @@ export interface CapacityInfoRow {
  * Returns the first row (typed), or null if the RPC failed or returned no rows.
  */
 export async function getCapacityStatusRpc(): Promise<CapacityInfoRow | null> {
-  const supabase = createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
 
-  const { data, error } = await supabase.rpc('get_capacity_status');
+  const { data, error } = await supabase.rpc("get_capacity_status");
   if (error || !data?.[0]) return null;
   return data[0] as CapacityInfoRow;
 }

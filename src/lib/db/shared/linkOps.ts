@@ -13,12 +13,18 @@
  *   - Throw for unexpected database errors (PostgrestError).
  *   - Caller handles auth + rate limit + response shaping.
  */
-import { createServiceRoleClient } from '@/lib/db/access';;
-import type { Database } from '@/lib/db/types';
+import { getDbClient } from "@/lib/db/access";
+import type { Database } from "@/lib/db/types";
 
-type PendingLinkOpRow = Database['public']['Tables']['pending_link_operations']['Row'];
+type PendingLinkOpRow =
+  Database["public"]["Tables"]["pending_link_operations"]["Row"];
 
-export type PendingLinkStatus = 'pending' | 'completed' | 'expired' | 'cancelled' | 'failed';
+export type PendingLinkStatus =
+  | "pending"
+  | "completed"
+  | "expired"
+  | "cancelled"
+  | "failed";
 
 export interface PendingLinkOperation {
   id: string;
@@ -44,26 +50,26 @@ export interface PendingLinkOperation {
 
 export type PendingLinkInsert = Pick<
   PendingLinkOpRow,
-  'guest_user_id' | 'idempotency_key' | 'expires_at'
+  "guest_user_id" | "idempotency_key" | "expires_at"
 > &
   Partial<
     Pick<
       PendingLinkOpRow,
-      | 'google_user_id'
-      | 'status'
-      | 'ip_hash'
-      | 'ip_region'
-      | 'user_agent'
-      | 'risk_score'
-      | 'risk_flags'
-      | 'preview_version'
-      | 'fingerprint_hash'
-      | 'device_id'
+      | "google_user_id"
+      | "status"
+      | "ip_hash"
+      | "ip_region"
+      | "user_agent"
+      | "risk_score"
+      | "risk_flags"
+      | "preview_version"
+      | "fingerprint_hash"
+      | "device_id"
     >
   >;
 
 const OPERATION_COLUMNS =
-  'id, guest_user_id, google_user_id, idempotency_key, status, ip_hash, ip_region, user_agent, risk_score, risk_flags, preference, preview_version, merge_result, confirmed_email, expires_at, created_at, completed_at, fingerprint_hash, device_id';
+  "id, guest_user_id, google_user_id, idempotency_key, status, ip_hash, ip_region, user_agent, risk_score, risk_flags, preference, preview_version, merge_result, confirmed_email, expires_at, created_at, completed_at, fingerprint_hash, device_id";
 
 /**
  * Find an operation by (idempotency_key, google_user_id). Used by
@@ -73,16 +79,16 @@ export async function findLinkOperationByIdempotency(
   idempotencyKey: string,
   googleUserId: string,
 ): Promise<PendingLinkOperation | null> {
-  const supabase = await createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
   const { data, error } = await supabase
-    .from('pending_link_operations')
+    .from("pending_link_operations")
     .select(OPERATION_COLUMNS)
-    .eq('idempotency_key', idempotencyKey)
-    .eq('google_user_id', googleUserId)
+    .eq("idempotency_key", idempotencyKey)
+    .eq("google_user_id", googleUserId)
     .maybeSingle();
   if (error) {
-    console.error('[linkOps] findByIdempotency failed:', error.message);
+    console.error("[linkOps] findByIdempotency failed:", error.message);
     return null;
   }
   return (data ?? null) as PendingLinkOperation | null;
@@ -97,17 +103,17 @@ export async function findLinkOperationById(
   googleUserId: string,
   idempotencyKey: string,
 ): Promise<PendingLinkOperation | null> {
-  const supabase = await createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
   const { data, error } = await supabase
-    .from('pending_link_operations')
+    .from("pending_link_operations")
     .select(OPERATION_COLUMNS)
-    .eq('id', operationId)
-    .eq('google_user_id', googleUserId)
-    .eq('idempotency_key', idempotencyKey)
+    .eq("id", operationId)
+    .eq("google_user_id", googleUserId)
+    .eq("idempotency_key", idempotencyKey)
     .maybeSingle();
   if (error) {
-    console.error('[linkOps] findById failed:', error.message);
+    console.error("[linkOps] findById failed:", error.message);
     return null;
   }
   return (data ?? null) as PendingLinkOperation | null;
@@ -122,18 +128,18 @@ export async function findOtherPendingForGoogle(
   googleUserId: string,
   excludeOperationId: string,
 ): Promise<{ id: string } | null> {
-  const supabase = await createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
   const { data, error } = await supabase
-    .from('pending_link_operations')
-    .select('id')
-    .eq('google_user_id', googleUserId)
-    .eq('status', 'pending')
-    .neq('id', excludeOperationId)
-    .gt('expires_at', new Date().toISOString())
+    .from("pending_link_operations")
+    .select("id")
+    .eq("google_user_id", googleUserId)
+    .eq("status", "pending")
+    .neq("id", excludeOperationId)
+    .gt("expires_at", new Date().toISOString())
     .limit(1);
   if (error) {
-    console.error('[linkOps] findOtherPending failed:', error.message);
+    console.error("[linkOps] findOtherPending failed:", error.message);
     return null;
   }
   return (data && data.length > 0 ? data[0] : null) as { id: string } | null;
@@ -145,15 +151,15 @@ export async function findOtherPendingForGoogle(
 export async function insertLinkOperation(
   values: PendingLinkInsert,
 ): Promise<string | null> {
-  const supabase = await createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return null;
   const { data, error } = await supabase
-    .from('pending_link_operations')
+    .from("pending_link_operations")
     .insert(values)
-    .select('id')
+    .select("id")
     .single();
   if (error) {
-    console.error('[linkOps] insert failed:', error.message);
+    console.error("[linkOps] insert failed:", error.message);
     return null;
   }
   return (data?.id ?? null) as string | null;
@@ -167,18 +173,23 @@ export async function setLinkOperationStatus(
   operationId: string,
   status: PendingLinkStatus,
 ): Promise<boolean> {
-  const supabase = await createServiceRoleClient();
+  const supabase = getDbClient();
   if (!supabase) return false;
   const update: { status: string; completed_at?: string } = { status };
-  if (status === 'completed' || status === 'expired' || status === 'cancelled' || status === 'failed') {
+  if (
+    status === "completed" ||
+    status === "expired" ||
+    status === "cancelled" ||
+    status === "failed"
+  ) {
     update.completed_at = new Date().toISOString();
   }
   const { error } = await supabase
-    .from('pending_link_operations')
+    .from("pending_link_operations")
     .update(update)
-    .eq('id', operationId);
+    .eq("id", operationId);
   if (error) {
-    console.error('[linkOps] setStatus failed:', error.message);
+    console.error("[linkOps] setStatus failed:", error.message);
     return false;
   }
   return true;
