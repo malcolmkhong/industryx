@@ -27,12 +27,19 @@
  *   - src/app/api/auth/identity/link/route.ts  (2 call sites)
  */
 
-import { createServiceRoleClient } from '@/lib/db/access';;
+import { createServiceRoleClient } from "@/lib/db/access";
 import type { Database } from "@/lib/db/types";
 import { generateChecksum } from "@/lib/auth/gameStateValidator";
 import { fetchCanonicalInitialState } from "@/lib/db/infra/initialState.server";
-import type { Quest, QuestStep, ServerGameData } from "@/lib/game/shared/types/types";
-import { asFullState, stripUIFields } from "@/lib/db/game/serverGameStatePayload";
+import type {
+  Quest,
+  QuestStep,
+  ServerGameData,
+} from "@/lib/game/shared/types/types";
+import {
+  asFullState,
+  stripUIFields,
+} from "@/lib/db/game/serverGameStatePayload";
 
 // Type aliases sourced from the generated Supabase types.
 // These are the single source of truth for row shapes.
@@ -272,7 +279,10 @@ function mergeQuestsWithCanonical(
 
   const savedById = new Map(
     savedQuests
-      .filter((quest): quest is Partial<Quest> => isQuest(quest) && typeof quest.id === "string")
+      .filter(
+        (quest): quest is Partial<Quest> =>
+          isQuest(quest) && typeof quest.id === "string",
+      )
       .map((quest) => [quest.id as string, quest]),
   );
 
@@ -314,7 +324,9 @@ export async function buildCompleteFullStateForServerRow(
 ): Promise<ServerGameData> {
   const canonical = await fetchCanonicalInitialState();
   const existing =
-    row.full_state && typeof row.full_state === "object" && !Array.isArray(row.full_state)
+    row.full_state &&
+    typeof row.full_state === "object" &&
+    !Array.isArray(row.full_state)
       ? stripUIFields(row.full_state as Record<string, unknown>)
       : {};
 
@@ -703,12 +715,10 @@ export async function getGameTick(userId: string): Promise<number | null> {
 export async function pageServerGameStateFullState(
   offset: number,
   pageSize: number,
-): Promise<
-  {
-    rows: { full_state: unknown; market_supply: unknown }[];
-    hasMore: boolean;
-  } | null
-> {
+): Promise<{
+  rows: { full_state: unknown; market_supply: unknown }[];
+  hasMore: boolean;
+} | null> {
   const supabase = createServiceRoleClient();
   if (!supabase) return null;
   const { data, error } = await supabase
@@ -737,13 +747,13 @@ export async function syncPlayerProgressGameState(
   if (!supabase) return;
 
   await supabase.from("player_progress").upsert(
-      {
-        user_id: userId,
-        game_state: asFullState(gameState),
-      },
-      { onConflict: "user_id" },
-    );
-  }
+    {
+      user_id: userId,
+      game_state: asFullState(gameState),
+    },
+    { onConflict: "user_id" },
+  );
+}
 
 /**
  * Fallback read of `player_progress.game_state` for backwards compat.

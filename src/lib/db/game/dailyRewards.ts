@@ -1,11 +1,15 @@
 /**
- * db/dailyRewards.ts — Server-authoritative daily reward tracking.
+ * db/dailyRewards.ts — Server-authoritative daily reward analytics.
  *
- * Centralized access to the `daily_rewards` and `user_streaks` tables.
- * All API routes must import from here instead of touching the tables directly.
+ * Persists claim events to the `daily_rewards` and `user_streaks`
+ * tables. These tables are ANALYTICS-ONLY (audit + admin dashboard) —
+ * the actual reward state lives in `server_game_state.full_state.loginStreak`,
+ * which is the source of truth for gameplay. The action framework
+ * (`handleClaimDailyRewardAction`) calls these helpers fire-and-forget
+ * after a successful state mutation.
  */
 
-import { createServiceRoleClient } from '@/lib/db/access';
+import { createServiceRoleClient } from "@/lib/db/access";
 
 // ─── Types ─────────────────────────────────────────────────────────────
 
@@ -31,125 +35,78 @@ export interface UserStreakRow {
   last_claim_date: string | null;
 }
 
-// ─── Queries ───────────────────────────────────────────────────────────
+// ─── Inserts / Upserts ─────────────────────────────────────────────────
 
 /**
- * Get the last claim date for a user.
+ * Insert a claim event into `daily_rewards`. Used by the action handler
+ * after a successful server-authoritative mutation. Errors are surfaced
+ * to the caller (handler treats them as non-blocking via Promise.allSettled).
  */
-export async function getLastClaimDate(userId: string): Promise<string | null> {
+export async function recordDailyRewardClaim(args: {
+  userId: string;
+  claimDate: string; // YYYY-MM-DD
+  dayOfStreak: number;
+  rewardDay: number;
+  rewardType: string;
+  rewardAmount: number;
+  rewardResource: string | null;
+  streakMultiplier: number;
+  totalStreak: number;
+}): Promise<DailyRewardRow | null> {
   const supabase = createServiceRoleClient();
   if (!supabase) return null;
 
-  const { data } = await supabase
-    .from('daily_rewards')
-    .select('claim_date')
-    .eq('user_id', userId)
-    .order('claim_date', { ascending: false })
-    .limit(1)
+  const { data, error } = await supabase
+    .from("daily_rewards")
+    .insert({
+      user_id: args.userId,
+      claim_date: args.claimDate,
+      day_of_streak: args.dayOfStreak,
+      reward_day: args.rewardDay,
+      reward_type: args.rewardType,
+      reward_amount: args.rewardAmount,
+      reward_resource: args.rewardResource,
+      streak_multiplier: args.streakMultiplier,
+      total_streak: args.totalStreak,
+    })
+    .select(
+      "id,user_id,claim_date,day_of_streak,reward_day,reward_type,reward_amount,reward_resource,streak_multiplier,total_streak,claimed_at",
+    )
     .single();
 
-  return data?.claim_date ?? null;
-}
-
-/**
- * Get user streak data.
- */
-export async function getUserStreak(userId: string): Promise<UserStreakRow | null> {
-  const supabase = createServiceRoleClient();
-  if (!supabase) return null;
-
-  const { data } = await supabase
-    .from('user_streaks')
-    .select('user_id,current_streak,longest_streak,total_logins,last_claim_date,created_at,updated_at')
-    .eq('user_id', userId)
-    .single();
-
+  if (error || !data) {
+    console.error("[DailyRewards] insert failed:", error);
+    return null;
+  }
   return data;
 }
 
 /**
- * Record a daily reward claim and upsert streak in a single call.
- * Returns the created reward row and updated streak.
+ * Upsert user_streaks aggregate. Errors are surfaced to the caller
+ * (handler treats them as non-blocking via Promise.allSettled).
  */
-export async function claimDailyReward(
-  userId: string,
-  streakData: {
-    currentStreak: number;
-    longestStreak: number;
-    totalLogins: number;
-    lastClaimDate: string;
-  },
-  reward: {
-    rewardDay: number;
-    rewardType: string;
-    rewardAmount: number;
-    rewardResource: string | null;
-    streakMultiplier: number;
-  },
-): Promise<{ reward: DailyRewardRow; streak: UserStreakRow } | null> {
+export async function upsertUserStreakFromClaim(args: {
+  userId: string;
+  currentStreak: number;
+  longestStreak: number;
+  totalLogins: number;
+  lastClaimDate: string;
+}): Promise<UserStreakRow | null> {
   const supabase = createServiceRoleClient();
   if (!supabase) return null;
 
-  // 1. Insert reward row
-  const { data: rewardRow, error: rewardError } = await supabase
-    .from('daily_rewards')
-    .insert({
-      user_id: userId,
-      claim_date: streakData.lastClaimDate,
-      day_of_streak: streakData.currentStreak,
-      reward_day: reward.rewardDay,
-      reward_type: reward.rewardType,
-      reward_amount: reward.rewardAmount,
-      reward_resource: reward.rewardResource,
-      streak_multiplier: reward.streakMultiplier,
-      total_streak: streakData.currentStreak,
-    })
-    .select(
-      'id,user_id,claim_date,day_of_streak,reward_day,reward_type,reward_amount,reward_resource,streak_multiplier,total_streak,claimed_at',
-    )
-    .single();
-
-  if (rewardError || !rewardRow) {
-    console.error('[DailyRewards] Failed to insert reward:', rewardError);
-    return null;
-  }
-
-  // 2. Upsert streak
-  const { data: streakRow, error: streakError } = await supabase
-    .rpc('upsert_user_streak', {
-      p_user_id: userId,
-      p_current_streak: streakData.currentStreak,
-      p_longest_streak: streakData.longestStreak,
-      p_total_logins: streakData.totalLogins,
-      p_last_claim_date: streakData.lastClaimDate,
+  const { data, error } = await supabase
+    .rpc("upsert_user_streak", {
+      p_user_id: args.userId,
+      p_current_streak: args.currentStreak,
+      p_longest_streak: args.longestStreak,
+      p_total_logins: args.totalLogins,
+      p_last_claim_date: args.lastClaimDate,
     });
 
-  if (streakError || !streakRow) {
-    console.error('[DailyRewards] Failed to upsert streak:', streakError);
-    // Reward was inserted — still return it, just warn
+  if (error || !data) {
+    console.error("[DailyRewards] upsert_user_streak failed:", error);
+    return null;
   }
-
-  return {
-    reward: rewardRow,
-    streak: streakRow ?? await getUserStreak(userId) as unknown as UserStreakRow,
-  };
-}
-
-/**
- * Get recent reward history for a user.
- */
-export async function getRecentRewards(userId: string, limit = 10): Promise<DailyRewardRow[]> {
-  const supabase = createServiceRoleClient();
-  if (!supabase) return [];
-
-  const { data } = await supabase
-    .from('daily_rewards')
-    .select(
-      'id,user_id,claim_date,day_of_streak,reward_day,reward_type,reward_amount,reward_resource,streak_multiplier,total_streak,claimed_at',
-    )
-    .eq('user_id', userId)
-    .order('claimed_at', { ascending: false })
-    .limit(limit);
-
-  return data ?? [];
+  return data;
 }

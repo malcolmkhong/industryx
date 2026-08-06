@@ -1,68 +1,50 @@
-// Server-authoritative daily reward claim validator.
+// Server-authoritative daily reward claim validator (read-only).
+//
+// Validates that the requested day is claimable given the current
+// game state. Does NOT mutate state — the handler is responsible for
+// applying the server-authoritative amount + multiplier via the
+// mutator.
 
-import { applyClaimDailyRewardMutation } from "../mutators/rewards";
 import type { ServerGameData } from "../../../shared/types/types";
 
-export function validateClaimDailyRewardAction(
+export interface ClaimDailyRewardValidationOk {
+  ok: true;
+  rewardIdx: number;
+}
+export interface ClaimDailyRewardValidationFail {
+  ok: false;
+  error: string;
+}
+
+export function validateClaimDailyReward(
   day: number,
   state: Partial<ServerGameData>,
-): {
-  valid: boolean;
-  error?: string;
-  correctedState?: Partial<ServerGameData>;
-} {
+): ClaimDailyRewardValidationOk | ClaimDailyRewardValidationFail {
   if (!Number.isInteger(day) || day < 1 || day > 7) {
-    return { valid: false, error: "Day must be an integer between 1 and 7" };
+    return { ok: false, error: "Day must be an integer between 1 and 7" };
   }
 
   const weeklyRewards = state.loginStreak?.weeklyRewards ?? [];
   const rewardIdx = weeklyRewards.findIndex((r) => r.day === day);
   if (rewardIdx < 0) {
     return {
-      valid: false,
+      ok: false,
       error: `No daily reward configured for day ${day}`,
     };
   }
+
   const reward = weeklyRewards[rewardIdx];
   if (reward.claimed) {
     return {
-      valid: false,
+      ok: false,
       error: `Daily reward for day ${day} already claimed`,
     };
   }
-  if (typeof reward.amount !== "number" || reward.amount < 0) {
-    return {
-      valid: false,
-      error: `Invalid reward amount for day ${day}`,
-    };
-  }
 
-  // Validate resources reward has resource field if type is resources.
-  if (reward.type === "resources" && !reward.resource) {
-    return {
-      valid: false,
-      error: `Resources reward for day ${day} missing resource field`,
-    };
-  }
+  // Validator does NOT enforce `reward.amount` (the handler trusts the
+  // server-authoritative `WEEKLY_DAILY_REWARDS` template instead). A
+  // tampered `weeklyRewards[i].amount` cannot inflate the payout
+  // because the handler uses `template.amount`, not `reward.amount`.
 
-  // Reject unknown reward types.
-  if (
-    reward.type !== "money" &&
-    reward.type !== "researchPoints" &&
-    reward.type !== "resources" &&
-    reward.type !== "corporationPoints"
-  ) {
-    return {
-      valid: false,
-      error: `Unknown reward type "${reward.type}" for day ${day}`,
-    };
-  }
-
-  return {
-    valid: true,
-    correctedState: applyClaimDailyRewardMutation(
-      { day, rewardIdx, rewardResource: reward.resource ?? null },
-      state,
-    ),
-  };
+  return { ok: true, rewardIdx };
 }

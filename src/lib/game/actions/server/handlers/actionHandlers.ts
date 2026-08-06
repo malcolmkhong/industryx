@@ -82,7 +82,7 @@ export function dispatchAction({
     case "claim_quest":
       return handleClaimQuestAction(payload, gameState);
     case "claim_daily_reward":
-      return handleClaimDailyRewardAction(payload, gameState);
+      return handleClaimDailyRewardAction(payload, gameState, userId);
     case "fulfill_contract":
       return handleFulfillContractAction(payload, gameState);
     case "start_drone_mission":
