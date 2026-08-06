@@ -79,9 +79,18 @@ export function createMockSupabaseClient(result: MockSupabaseResult = { data: []
 export function mockSupabaseServer(result: MockSupabaseResult = { data: [], error: null }) {
   const { client } = createMockSupabaseClient(result);
   return {
+    // Canonical boundary names (BUG-077 target). Both layers point
+    // at the same mock client so tests can migrate to getDbClient at
+    // their own pace without per-test mock changes.
+    getDbClient: () => client,
+    requireDbClient: () => client,
+    isDbClientConfigured: () => true,
+    // Legacy aliases (kept during the migration window of BUG-077).
+    // Removed in Task 9 once every test stops using them.
     createServiceRoleClient: () => client,
-    createClient: async () => client,
     isServiceRoleConfigured: () => true,
+    // Anon-client side, same co-existence strategy.
+    createClient: async () => client,
     isSupabaseConfigured: () => true,
   };
 }
